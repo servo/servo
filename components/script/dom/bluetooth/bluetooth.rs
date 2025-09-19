@@ -230,7 +230,7 @@ impl Bluetooth {
         if let PermissionState::Denied =
             descriptor_permission_state(PermissionName::Bluetooth, None)
         {
-            return p.reject_error(Error::NotFound, can_gc);
+            return p.reject_error(Error::NotFound(None), can_gc);
         }
 
         // Note: Step 3, 6 - 8 are implemented in
@@ -530,7 +530,7 @@ impl Convert<Error> for BluetoothError {
         match self {
             BluetoothError::Type(message) => Error::Type(message),
             BluetoothError::Network => Error::Network,
-            BluetoothError::NotFound => Error::NotFound,
+            BluetoothError::NotFound => Error::NotFound(None),
             BluetoothError::NotSupported => Error::NotSupported,
             BluetoothError::Security => Error::Security,
             BluetoothError::InvalidState => Error::InvalidState,

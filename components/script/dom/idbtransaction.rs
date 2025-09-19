@@ -268,7 +268,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
 
         // Step 2: Check that the object store exists
         if !self.object_store_names.Contains(name.clone()) {
-            return Err(Error::NotFound);
+            return Err(Error::NotFound(None));
         }
 
         // Step 3: Each call to this method on the same

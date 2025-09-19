@@ -220,7 +220,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
                 return Ok(());
             }
         }
-        Err(Error::NotFound)
+        Err(Error::NotFound(None))
     }
 
     // https://w3c.github.io/selection-api/#dom-selection-removeallranges
