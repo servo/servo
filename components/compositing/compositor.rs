@@ -54,6 +54,7 @@ use webrender_api::{
 };
 
 use crate::InitialCompositorState;
+use crate::largest_contentful_paint_calculator::LargestContentfulPaintCalculator;
 use crate::refresh_driver::RefreshDriver;
 use crate::webview_manager::WebViewManager;
 use crate::webview_renderer::{PinchZoomResult, UnknownWebView, WebViewRenderer};
@@ -154,6 +155,9 @@ pub struct IOCompositor {
     /// A handle to the memory profiler which will automatically unregister
     /// when it's dropped.
     _mem_profiler_registration: ProfilerRegistration,
+
+    /// Calculate largest-contentful-paint.
+    lcp_calculator: LargestContentfulPaintCalculator,
 }
 
 /// Why we need to be repainted. This is used for debugging.
@@ -334,6 +338,7 @@ impl IOCompositor {
             rendering_context: state.rendering_context,
             pending_frames: Cell::new(0),
             _mem_profiler_registration: registration,
+            lcp_calculator: LargestContentfulPaintCalculator::new(),
         };
 
         {
@@ -526,6 +531,8 @@ impl IOCompositor {
                 if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
                     webview_renderer.pipeline_exited(pipeline_id, pipeline_exit_source);
                 }
+                self.lcp_calculator
+                    .remove_lcp_candidates_for_pipeline(pipeline_id.into());
             },
 
             CompositorMsg::NewWebRenderFrameReady(_document_id, recomposite_needed) => {
@@ -805,7 +812,10 @@ impl IOCompositor {
                     webview.set_viewport_description(viewport_description);
                 }
             },
-            CompositorMsg::LCPCandidate(_, _) => todo!(),
+            CompositorMsg::LCPCandidate(lcp_candidate, pipeline_id) => {
+                self.lcp_calculator
+                    .append_lcp_candidate(pipeline_id, lcp_candidate);
+            },
         }
     }
 
@@ -828,6 +838,8 @@ impl IOCompositor {
                 if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
                     webview_renderer.pipeline_exited(pipeline_id, pipeline_exit_source);
                 }
+                self.lcp_calculator
+                    .remove_lcp_candidates_for_pipeline(pipeline_id.into());
             },
             CompositorMsg::GenerateImageKey(sender) => {
                 let _ = sender.send(self.global.borrow().webrender_api.generate_image_key());
@@ -1392,6 +1404,22 @@ impl IOCompositor {
                         pipeline.first_contentful_paint_metric = PaintMetricState::Sent;
                     },
                     _ => {},
+                }
+
+                if let Some(lcp) = self.lcp_calculator.calculate_largest_contentful_paint(
+                    paint_time,
+                    current_epoch,
+                    pipeline_id.into(),
+                ) {
+                    #[cfg(feature = "tracing")]
+                    let _ = tracing::debug_span!(
+                        "largest-contentful-paint",
+                        servo_profiling = true,
+                        timestamp = ?lcp.paint_time,
+                    )
+                    .entered();
+                    // TODO(boluochoufeng): Add LCP to PaintMetric.
+                    let _ = lcp;
                 }
             }
         }
