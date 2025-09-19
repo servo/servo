@@ -137,11 +137,7 @@ impl XPathResult {
         )
     }
 
-    pub(crate) fn reinitialize_with(
-        &self,
-        result_type: XPathResultType,
-        value: XPathResultValue,
-    ) {
+    pub(crate) fn reinitialize_with(&self, result_type: XPathResultType, value: XPathResultValue) {
         self.result_type.set(result_type);
         *self.value.borrow_mut() = value;
         self.iterator_invalid.set(false);
