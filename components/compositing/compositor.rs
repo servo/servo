@@ -117,9 +117,6 @@ pub struct ServoRenderer {
     /// Some XR devices want to run on the main thread.
     webxr_main_thread: webxr::MainThreadRegistry,
 
-    /// True to translate mouse input into touch events.
-    pub(crate) convert_mouse_to_touch: bool,
-
     /// The last position in the rendered view that the mouse moved over. This becomes `None`
     /// when the mouse leaves the rendered view.
     pub(crate) last_mouse_move_position: Option<DevicePoint>,
@@ -306,7 +303,7 @@ impl ServoRenderer {
 }
 
 impl IOCompositor {
-    pub fn new(state: InitialCompositorState, convert_mouse_to_touch: bool) -> Self {
+    pub fn new(state: InitialCompositorState) -> Self {
         let registration = state.mem_profiler_chan.prepare_memory_reporting(
             "compositor".into(),
             state.sender.clone(),
@@ -327,7 +324,6 @@ impl IOCompositor {
                 webrender_gl: state.webrender_gl,
                 #[cfg(feature = "webxr")]
                 webxr_main_thread: state.webxr_main_thread,
-                convert_mouse_to_touch,
                 last_mouse_move_position: None,
                 frame_delayer: Default::default(),
             })),
