@@ -11,7 +11,7 @@
             position: relative;
             background: green;
             width: 100px;
-            height: 100px;
+            height: 50px;
             margin-left: 200px;
             left: -200px;
         }
@@ -20,7 +20,10 @@
     <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
     <div style="width: 100px; background: red;">
         <table>
-            <caption></caption>
+            <caption style="caption-side: top"></caption>
+        </table>
+        <table>
+            <caption style="caption-side: bottom"></caption>
         </table>
     </div>
 </html>
