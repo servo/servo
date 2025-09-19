@@ -82,7 +82,7 @@ hyper-rustls = { version = "0.27", default-features = false, features = ["http1"
 hyper-util = { version = "0.1", features = ["client-legacy", "http2", "tokio"] }
 hyper_serde = { path = "components/hyper_serde" }
 icu_locid = "1.5.0"
-icu_segmenter = "1.5.0"
+icu_segmenter = "2.0.0"
 image = "0.25"
 imsz = "0.2"
 indexmap = { version = "2.11.3", features = ["std"] }
