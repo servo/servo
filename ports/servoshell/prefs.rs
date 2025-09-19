@@ -366,13 +366,14 @@ fn map_debug_options(arg: String) -> Vec<String> {
 }
 
 #[derive(Bpaf, Clone, Debug)]
-#[bpaf(options, version(VERSION))]
+#[bpaf(options, version(VERSION), usage("servo [OPTIONS] [ARGUMENT] URL"))]
 struct CmdArgs {
     /// Background Hang Monitor enabled.
     #[bpaf(short('B'), long("bhm"))]
     background_hang_monitor: bool,
 
-    /// Path to find SSL certificates.
+    ///
+    ///  Path to find SSL certificates.
     #[bpaf(argument("/home/servo/resources/certs"))]
     certificate_path: Option<PathBuf>,
 
@@ -380,15 +381,18 @@ struct CmdArgs {
     #[bpaf(long)]
     clean_shutdown: bool,
 
-    /// Config directory following xdg spec on linux platform.
+    ///
+    ///  Config directory following xdg spec on linux platform.
     #[bpaf(argument("~/.config/servo"))]
     config_dir: Option<PathBuf>,
 
-    /// Run as a content process and connect to the given pipe.
+    ///
+    ///  Run as a content process and connect to the given pipe.
     #[bpaf(argument("servo-ipc-channel.abcdefg"))]
     content_process: Option<String>,
 
-    /// A comma-separated string of debug options. Pass help to show available options.
+    ///
+    ///  A comma-separated string of debug options. Pass help to show available options.
     #[bpaf(
         short('Z'),
         argument("layout_grid_enabled=true,dom_async_clipboard_enabled"),
@@ -398,7 +402,8 @@ struct CmdArgs {
     )]
     debug: Vec<String>,
 
-    /// Device pixels per px.
+    ///
+    ///  Device pixels per px.
     #[bpaf(argument("1.0"))]
     device_pixel_ratio: Option<f32>,
 
@@ -406,7 +411,8 @@ struct CmdArgs {
     #[bpaf(argument("0"))]
     devtools: Option<u16>,
 
-    /// Whether or not to enable experimental web platform features.
+    ///
+    ///  Whether or not to enable experimental web platform features.
     #[bpaf(long)]
     enable_experimental_web_platform_features: bool,
 
@@ -426,7 +432,8 @@ struct CmdArgs {
     #[bpaf(short('z'), long)]
     headless: bool,
 
-    /// Whether or not to completely ignore certificate errors.
+    ///
+    ///  Whether or not to completely ignore certificate errors.
     #[bpaf(long)]
     ignore_certificate_errors: bool,
 
@@ -434,7 +441,8 @@ struct CmdArgs {
     #[bpaf(short('y'), long, argument("1"))]
     layout_threads: Option<i64>,
 
-    /// Directory root with unminified scripts.
+    ///
+    ///  Directory root with unminified scripts.
     #[bpaf(argument("~/.local/share/servo"))]
     local_script_source: Option<PathBuf>,
 
@@ -456,7 +464,8 @@ struct CmdArgs {
     #[bpaf(short('b'), long)]
     no_native_titlebar: bool,
 
-    /// Enable to turn off incremental layout.
+    ///
+    ///  Enable to turn off incremental layout.
     #[bpaf(short('i'), long, flag(false, true))]
     nonincremental_layout: bool,
 
@@ -470,15 +479,18 @@ struct CmdArgs {
     #[bpaf(external)]
     profile: Option<OutputOptions>,
 
-    /// Path to dump a self-contained HTML timeline of profiler traces.
+    ///
+    ///  Path to dump a self-contained HTML timeline of profiler traces.
     #[bpaf(argument("trace.html"), long)]
     profiler_trace_path: Option<PathBuf>,
 
-    /// A preference to set.
+    ///
+    ///  A preference to set.
     #[bpaf(argument("dom_bluetooth_enabled"), many)]
     pref: Vec<String>,
 
-    /// Load in additional prefs from a file.
+    ///
+    ///  Load in additional prefs from a file.
     #[bpaf(long, argument("/path/to/prefs.json"), many)]
     prefs_file: Vec<PathBuf>,
 
@@ -486,7 +498,8 @@ struct CmdArgs {
     #[bpaf(long)]
     print_pwm: bool,
 
-    /// Probability of randomly closing a pipeline (for testing constellation hardening).
+    ///
+    ///  Probability of randomly closing a pipeline (for testing constellation hardening).
     #[bpaf(argument("0.25"))]
     random_pipeline_closure_probability: Option<f32>,
 
@@ -500,7 +513,8 @@ struct CmdArgs {
     /// Shaders will be loaded from the specified directory instead of using the builtin ones.
     shaders: Option<PathBuf>,
 
-    /// Override the screen resolution in logical (device independent) pixels.
+    ///
+    ///  Override the screen resolution in logical (device independent) pixels.
     #[bpaf(long("screen-size"), argument::<String>("1024x768"),
         parse(parse_resolution_string), fallback(None))]
     screen_size_override: Option<Size2D<u32, DeviceIndependentPixel>>,
@@ -517,15 +531,18 @@ struct CmdArgs {
     #[bpaf(long)]
     unminify_css: bool,
 
-    /// Set custom user agent string (or ios / android / desktop for platform default).
+    ///
+    ///  Set custom user agent string (or ios / android / desktop for platform default).
     #[bpaf(short('u'),long,argument::<String>("NCSA mosaic/1.0 (X11;SunOS 4.1.4 sun4m"))]
     user_agent: Option<String>,
 
-    /// Uses userscripts in resources/user-agent-js, or a specified full path.
+    ///
+    ///  Uses userscripts in resources/user-agent-js, or a specified full path.
     #[bpaf(external)]
     userscripts: Option<PathBuf>,
 
-    /// A user stylesheet to be added to every document.
+    ///
+    ///  A user stylesheet to be added to every document.
     #[bpaf(argument::<String>("file.css"), parse(parse_user_stylesheets), fallback(vec![]))]
     user_stylesheet: Vec<(Vec<u8>, ServoUrl)>,
 
@@ -533,7 +550,8 @@ struct CmdArgs {
     #[bpaf(external)]
     webdriver_port: Option<u16>,
 
-    /// Set the initial window size in logical (device independent) pixels.
+    ///
+    ///  Set the initial window size in logical (device independent) pixels.
     #[bpaf(argument::<String>("1024x740"), parse(parse_resolution_string), fallback(None))]
     window_size: Option<Size2D<u32, DeviceIndependentPixel>>,
 
