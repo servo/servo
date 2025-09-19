@@ -13,7 +13,8 @@ import time
 import sys
 import urllib.request
 import urllib.error
-from typing import Dict, Optional, Any
+import glob
+from typing import Dict, Optional, Any, List
 
 
 class OHOSWebDriverController:
@@ -24,6 +25,47 @@ class OHOSWebDriverController:
         self.wpt_server_port = wpt_server_port
         self.session_id: Optional[str] = None
         self.wpt_server_process: Optional[subprocess.Popen] = None
+
+    def discover_tests(self, path: str) -> List[str]:
+        """Discover test files in a given path (file or directory)."""
+        tests = []
+
+        # Determine the WPT tests directory
+        # The script is in python/wpt/, and tests are in tests/wpt/tests/
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        servo_root = os.path.dirname(os.path.dirname(script_dir))  # Go up from python/wpt/ to servo root
+        wpt_tests_dir = os.path.join(servo_root, "tests", "wpt", "tests")
+
+        # Convert relative paths to absolute paths based on WPT tests directory
+        if not os.path.isabs(path):
+            full_path = os.path.join(wpt_tests_dir, path)
+        else:
+            full_path = path
+
+        if os.path.isfile(full_path):
+            # Single test file - convert back to relative path for URL construction
+            rel_path = os.path.relpath(full_path, wpt_tests_dir)
+            tests.append(rel_path)
+        elif os.path.isdir(full_path):
+            # Find all .html, .htm, .xhtml test files recursively
+            for ext in ["*.html", "*.htm", "*.xhtml"]:
+                pattern = os.path.join(full_path, "**", ext)
+                found_files = glob.glob(pattern, recursive=True)
+                for file_path in found_files:
+                    # Convert back to relative path for URL construction
+                    rel_path = os.path.relpath(file_path, wpt_tests_dir)
+                    tests.append(rel_path)
+        else:
+            logging.error(f"Path does not exist: {path} (resolved to: {full_path})")
+
+        # Normalize path separators for URLs
+        normalized_tests = []
+        for test in tests:
+            # Normalize path separators to forward slashes for URLs
+            test = test.replace("\\", "/")
+            normalized_tests.append(test)
+
+        return sorted(normalized_tests)
 
     def setup_wpt_server_access(self) -> bool:
         """Set up access to WPT server for OHOS device."""
@@ -204,60 +246,75 @@ class OHOSWebDriverController:
             logging.debug(f"Navigation request failed: {nav_error}")
             return False
 
-    def run_test(self, test_path: str) -> Dict[str, Any]:
-        """Run a single WPT test."""
+    def run_test(self, test_path: str, timeout: int = 30) -> Dict[str, Any]:
+        """Run a single WPT test with enhanced error handling."""
+        test_start_time = time.time()
+
         try:
+            logging.info(f"Starting test: {test_path}")
+
             if not self.create_session():
                 return {
-                    "status": "ERROR",
-                    "title": "",
+                    "status": "SESSION_ERROR",
+                    "title": test_path,
                     "details": "Failed to create WebDriver session",
                     "passCount": 0,
                     "failCount": 0,
                     "failingTests": [],
+                    "duration": time.time() - test_start_time,
                 }
 
             if not self.create_window():
                 return {
-                    "status": "ERROR",
-                    "title": "",
+                    "status": "WINDOW_ERROR",
+                    "title": test_path,
                     "details": "Failed to create window",
                     "passCount": 0,
                     "failCount": 0,
                     "failingTests": [],
+                    "duration": time.time() - test_start_time,
                 }
 
             test_url = f"http://localhost:{self.wpt_server_port}/{test_path}"
-
             logging.info(f"Navigating URL: {test_url}")
 
-            navigation_result = self.navigate_to_url(test_url, timeout=5)
+            navigation_result = self.navigate_to_url(test_url, timeout=10)
 
-            if navigation_result:
-                logging.info("Navigation completed, proceeding to test completion check")
-            else:
-                logging.warning("Navigation may have failed, but continuing with test completion check")
+            if not navigation_result:
+                return {
+                    "status": "NAVIGATION_ERROR",
+                    "title": test_path,
+                    "details": "Failed to navigate to test URL",
+                    "passCount": 0,
+                    "failCount": 0,
+                    "failingTests": [],
+                    "duration": time.time() - test_start_time,
+                }
 
-            return self.wait_for_test_completion_ohos()
+            return self.wait_for_test_completion_ohos(timeout, test_start_time)
 
         except Exception as e:
-            logging.error(f"Error running test: {e}")
+            logging.error(f"Error running test {test_path}: {e}")
             return {
-                "status": "ERROR",
-                "title": "",
+                "status": "RUNTIME_ERROR",
+                "title": test_path,
                 "details": str(e),
                 "passCount": 0,
                 "failCount": 0,
                 "failingTests": [],
+                "duration": time.time() - test_start_time,
             }
 
-    def wait_for_test_completion_ohos(self, timeout: int = 30) -> Dict[str, Any]:
-        """OHOS test completion handling"""
+    def wait_for_test_completion_ohos(self, timeout: int = 30, test_start_time: float = None) -> Dict[str, Any]:
+        """OHOS test completion handling with enhanced timeout detection"""
+        if test_start_time is None:
+            test_start_time = time.time()
+
         try:
             logging.info("OHOS test completion handling...")
 
             logging.info("Waiting for page to load and test to complete...")
-            for i in range(6):
+            for i in range(timeout // 5):
                 time.sleep(5)
                 logging.info(f"Waiting... ({(i + 1) * 5}/{timeout}s)")
 
@@ -276,12 +333,13 @@ class OHOSWebDriverController:
                             return {
                                 "status": result.get("status"),
                                 "title": result.get("title", ""),
-                                "details": result.get("bodyText", "")[:200] + "..."
-                                if len(result.get("bodyText", "")) > 200
+                                "details": result.get("bodyText", "")[:300] + "..."
+                                if len(result.get("bodyText", "")) > 300
                                 else result.get("bodyText", ""),
                                 "passCount": result.get("passCount", 0),
                                 "failCount": result.get("failCount", 0),
                                 "failingTests": result.get("failingTests", []),
+                                "duration": time.time() - test_start_time,
                             }
                         else:
                             logging.info(
@@ -291,26 +349,22 @@ class OHOSWebDriverController:
                     logging.debug(f"API request failed: {api_error}")
 
             # If we get here, either test timed out or API is completely unresponsive
-            logging.warning("WebDriver API appears to be unresponsive - this is a known OHOS limitation")
-
-            # Take screenshot for debugging
-            screenshot_path = f"test_output/servo_ohos_screenshot_{int(time.time())}.jpeg"
+            elapsed_time = time.time() - test_start_time
+            screenshot_path = f"test_output/servo_ohos_indeterminate_screenshot_{int(time.time())}.jpeg"
             self.take_screenshot(screenshot_path)
 
             return {
-                "status": "INDETERMINATE",
+                "status": "UNKNOWN",
                 "title": "OHOS WebDriver Limitation",
-                "details": (
-                    "Test was successfully loaded on OHOS device, but WebDriver API became "
-                    "unresponsive. Please check the test result manually on the device screen,"
-                    "or refer to the screenshot at of Desktop at: " + screenshot_path
-                ),
+                "details": f"Test did not complete within timeout or API unresponsive. Screenshot saved to {screenshot_path}",
                 "passCount": 0,
                 "failCount": 0,
                 "failingTests": [],
+                "duration": elapsed_time,
             }
 
         except Exception as e:
+            elapsed_time = time.time() - test_start_time
             logging.error(f"Error in OHOS test completion handling: {e}")
 
             # Take screenshot for debugging on error
@@ -318,13 +372,116 @@ class OHOSWebDriverController:
             self.take_screenshot(screenshot_path)
 
             return {
-                "status": "ERROR",
-                "title": "",
-                "details": str(e),
+                "status": "COMPLETION_ERROR",
+                "title": "Test Completion Error",
+                "details": f"Error during test completion check: {str(e)}. Screenshot saved to {screenshot_path}",
                 "passCount": 0,
                 "failCount": 0,
                 "failingTests": [],
+                "duration": elapsed_time,
             }
+
+    def kill_servo_instances(self) -> bool:
+        """Kill all servo instances on the OHOS device."""
+        success = True
+
+        try:
+            # Kill servo processes
+            subprocess.run(["hdc", "shell", "killall org.servo.servo"], capture_output=True, text=True, timeout=10)
+            logging.debug("Executed killall command")
+        except Exception as e:
+            logging.debug(f"killall command failed (may be expected): {e}")
+            success = False
+
+        try:
+            # Force stop servo application
+            subprocess.run(
+                ["hdc", "shell", "aa force-stop org.servo.servo"], capture_output=True, text=True, timeout=10
+            )
+            logging.debug("Executed force-stop command")
+        except Exception as e:
+            logging.debug(f"force-stop command failed (may be expected): {e}")
+            success = False
+
+        # Give time for cleanup
+        time.sleep(2)
+        return success
+
+    def start_servo_application(self) -> bool:
+        """Start the servo application on OHOS device."""
+        try:
+            subprocess.run(
+                ["hdc", "shell", "aa start -a EntryAbility -b org.servo.servo"],
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+            logging.info("Started servo application")
+            time.sleep(3)  # Give servo time to start
+            return True
+        except Exception as e:
+            logging.error(f"Failed to start servo application: {e}")
+            return False
+
+    def run_multiple_tests(self, test_paths: List[str], timeout_per_test: int = 30) -> List[Dict[str, Any]]:
+        """Run multiple tests consecutively with kill/restart cycle for each test."""
+        results = []
+        total_tests = len(test_paths)
+
+        logging.info(f"Starting batch test run: {total_tests} tests")
+
+        for i, test_path in enumerate(test_paths, 1):
+            logging.info(f"\n{'=' * 60}")
+            logging.info(f"Running test {i}/{total_tests}: {test_path}")
+            logging.info(f"{'=' * 60}")
+
+            # Kill any existing servo instances
+            logging.info("Cleaning up existing servo instances...")
+            self.kill_servo_instances()
+
+            # Start fresh servo instance
+            logging.info("Starting fresh servo instance...")
+            if not self.start_servo_application():
+                result = {
+                    "status": "SERVO_START_FAILED",
+                    "title": test_path,
+                    "details": "Failed to start servo application",
+                    "passCount": 0,
+                    "failCount": 0,
+                    "failingTests": [],
+                    "duration": 0,
+                }
+                results.append(result)
+                continue
+
+            # Set up infrastructure for this test
+            if not self.setup_hdc_forwarding():
+                result = {
+                    "status": "HDC_SETUP_FAILED",
+                    "title": test_path,
+                    "details": "Failed to set up HDC forwarding",
+                    "passCount": 0,
+                    "failCount": 0,
+                    "failingTests": [],
+                    "duration": 0,
+                }
+                results.append(result)
+                continue
+
+            self.setup_wpt_server_access()
+
+            # Run the actual test
+            result = self.run_test(test_path, timeout_per_test)
+            result["test_number"] = i
+            result["test_path"] = test_path
+            results.append(result)
+
+            # Clean up session for next test
+            self.cleanup()
+
+            logging.info(f"Test {i} completed with status: {result['status']}")
+
+        return results
 
     def take_screenshot(self, output_path: str) -> bool:
         """Take a screenshot from OHOS device for debugging."""
@@ -372,12 +529,113 @@ class OHOSWebDriverController:
                     pass
             self.wpt_server_process = None
 
+    def print_test_summary(self, results: List[Dict[str, Any]]) -> None:
+        """Print a summary of all test results."""
+        if not results:
+            print("No test results to display.")
+            return
+
+        print("\n" + "=" * 80)
+        print(" TEST RESULTS SUMMARY")
+        print("=" * 80)
+
+        # Count results by status
+        status_counts = {}
+        total_duration = 0
+        total_pass = 0
+        total_fail = 0
+
+        for result in results:
+            status = result.get("status", "UNKNOWN")
+            status_counts[status] = status_counts.get(status, 0) + 1
+            total_duration += result.get("duration", 0)
+            total_pass += result.get("passCount", 0)
+            total_fail += result.get("failCount", 0)
+
+        print(f"Total Tests: {len(results)}")
+        print(f"Total Duration: {total_duration:.1f} seconds")
+        print(f"Average Test Duration: {total_duration / len(results):.1f} seconds")
+
+        print("\nStatus Breakdown:")
+        for status, count in sorted(status_counts.items()):
+            percentage = (count / len(results)) * 100
+            print(f"  {status}: {count} ({percentage:.1f}%)")
+
+        if total_pass > 0 or total_fail > 0:
+            print("\nOverall Test Results:")
+            print(f"  Total Assertions Passed: {total_pass}")
+            print(f"  Total Assertions Failed: {total_fail}")
+            if total_pass + total_fail > 0:
+                pass_rate = (total_pass / (total_pass + total_fail)) * 100
+                print(f"  Overall Pass Rate: {pass_rate:.1f}%")
+
+        print(f"\n{'Test #':<6} {'Status':<18} {'Duration':<10} {'Test Path'}")
+        print("-" * 80)
+
+        for result in results:
+            test_num = result.get("test_number", "?")
+            status = result.get("status", "UNKNOWN")
+            duration = result.get("duration", 0)
+            test_path = result.get("test_path", result.get("title", "Unknown"))
+
+            # Truncate long paths
+            if len(test_path) > 45:
+                test_path = "..." + test_path[-42:]
+
+            print(f"{test_num:<6} {status:<18} {duration:<9.1f}s {test_path}")
+
+        # Show detailed information for failed/problematic tests
+        problematic_statuses = [
+            "FAIL",
+            "TIMEOUT",
+            "ERROR",
+            "RUNTIME_ERROR",
+            "SESSION_ERROR",
+            "WINDOW_ERROR",
+            "NAVIGATION_ERROR",
+            "COMPLETION_ERROR",
+        ]
+
+        problematic_tests = [r for r in results if r.get("status") in problematic_statuses]
+
+        if problematic_tests:
+            print("\n" + "=" * 80)
+            print(" DETAILED FAILURE ANALYSIS")
+            print("=" * 80)
+
+            for result in problematic_tests:
+                test_num = result.get("test_number", "?")
+                status = result.get("status", "UNKNOWN")
+                test_path = result.get("test_path", result.get("title", "Unknown"))
+                details = result.get("details", "No details available")
+
+                print(f"\nTest #{test_num}: {test_path}")
+                print(f"Status: {status}")
+                print(f"Details: {details}")
+
+                if result.get("failCount", 0) > 0:
+                    print(f"Failed Assertions: {result.get('failCount', 0)}")
+                    failing_tests = result.get("failingTests", [])
+                    if failing_tests:
+                        print("Failing Test Cases:")
+                        for i, failing_test in enumerate(failing_tests, 1):
+                            if isinstance(failing_test, dict):
+                                name = failing_test.get("name", "Unknown")
+                                error = failing_test.get("error", "No error message")
+                                print(f"  {i}. {name}: {error}")
+                            else:
+                                print(f"  {i}. {failing_test}")
+
+        print("\n" + "=" * 80)
+
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run a single WPT test on OHOS device")
-    parser.add_argument("--test", required=True, help="Path to WPT test (relative to tests/wpt/tests/)")
+    parser = argparse.ArgumentParser(description="Run WPT tests on OHOS device")
+
+    parser.add_argument("--test", required=True, help="Path to WPT test file or folder containing tests")
     parser.add_argument("--webdriver-port", type=int, default=7000, help="WebDriver server port")
     parser.add_argument("--wpt-server-port", type=int, default=8000, help="WPT server port")
+    parser.add_argument("--timeout", type=int, default=30, help="Timeout per test in seconds")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
 
     args = parser.parse_args()
@@ -388,85 +646,59 @@ def main() -> int:
     controller = OHOSWebDriverController(args.webdriver_port, args.wpt_server_port)
 
     try:
-        logging.info("Killing any existing servo instances and starting fresh...")
-
-        try:
-            subprocess.run(["hdc", "shell", "killall org.servo.servo"], capture_output=True, text=True, timeout=10)
-            logging.info("Killed existing servo processes")
-        except Exception as e:
-            logging.debug(f"killall command failed (may be expected): {e}")
-
-        try:
-            subprocess.run(
-                ["hdc", "shell", "aa force-stop org.servo.servo"], capture_output=True, text=True, timeout=10
-            )
-            logging.info("Force stopped servo application")
-        except Exception as e:
-            logging.debug(f"force-stop command failed (may be expected): {e}")
-
-        try:
-            subprocess.run(
-                ["hdc", "shell", "aa start -a EntryAbility -b org.servo.servo"],
-                capture_output=True,
-                text=True,
-                timeout=15,
-            )
-            logging.info("Started servo application")
-            time.sleep(3)
-        except Exception as e:
-            logging.error(f"Failed to start servo application: {e}")
+        # Determine tests to run - automatically detect if it's a file or folder
+        test_paths = controller.discover_tests(args.test)
+        if not test_paths:
+            logging.error(f"No test files found at: {args.test}")
             return 1
 
+        if len(test_paths) == 1:
+            logging.info(f"Running single test: {test_paths[0]}")
+        else:
+            logging.info(f"Discovered {len(test_paths)} tests in: {args.test}")
+
+        # Set up infrastructure once
         logging.info("Setting up test infrastructure...")
 
-        if not controller.setup_hdc_forwarding():
-            logging.error("Failed to set up HDC forwarding")
-            return 1
-
-        controller.setup_wpt_server_access()
+        if not controller.setup_wpt_server_access():
+            logging.warning("Failed to set up WPT server access - continuing anyway")
 
         if not controller.start_wpt_server():
             logging.error("Failed to start WPT server")
             return 1
 
-        logging.info(f"Running test: {args.test}")
-        result = controller.run_test(args.test)
+        # Run tests
+        if len(test_paths) == 1:
+            # Single test - use original logic with cleanup
+            logging.info("Killing any existing servo instances and starting fresh...")
+            controller.kill_servo_instances()
 
-        print("\nTest Results:")
-        print("=" * 50)
-        print(f"Status: {result['status']}")
-        print(f"Title: {result['title']}")
+            if not controller.start_servo_application():
+                logging.error("Failed to start servo application")
+                return 1
 
-        if "passCount" in result and "failCount" in result:
-            total_tests = result["passCount"] + result["failCount"]
-            print(f"Total Tests: {total_tests}")
-            print(f"Passed: {result['passCount']}")
-            print(f"Failed: {result['failCount']}")
+            if not controller.setup_hdc_forwarding():
+                logging.error("Failed to set up HDC forwarding")
+                return 1
 
-            if result["failCount"] > 0 and "failingTests" in result and result["failingTests"]:
-                print(f"\nFailing Tests ({len(result['failingTests'])} extracted):")
-                print("-" * 50)
-                actual_count = 0
-                for i, failing_test in enumerate(result["failingTests"], 1):
-                    if isinstance(failing_test, dict):
-                        test_name = failing_test.get("name", "Unknown")
-                        error_msg = failing_test.get("error", "No error message")
-                    else:
-                        test_name = str(failing_test)
-                        error_msg = "No error message"
+            result = controller.run_test(test_paths[0], args.timeout)
+            results = [result]
+        else:
+            # Multiple tests - use batch runner
+            results = controller.run_multiple_tests(test_paths, args.timeout)
 
-                    actual_count += 1
-                    print(f"{actual_count}. Test: {test_name}")
-                    print(f"   Error: {error_msg}")
-                    print()
+        # Print results using unified summary format
+        controller.print_test_summary(results)
 
-                    if actual_count >= result["failCount"]:
-                        break
+        # Determine overall success
+        successful_statuses = ["PASS", "INDETERMINATE", "API_UNRESPONSIVE"]
+        successful_tests = sum(1 for r in results if r.get("status") in successful_statuses)
+        success_rate = (successful_tests / len(results)) * 100
 
-        return 0 if result["status"] == "PASS" else 1
+        print(f"\nOverall Success Rate: {successful_tests}/{len(results)} ({success_rate:.1f}%)")
 
     except KeyboardInterrupt:
-        logging.info("Test interrupted by user")
+        logging.info("Test execution interrupted by user")
         return 1
     except Exception as e:
         logging.error(f"Unexpected error: {e}")
@@ -474,20 +706,8 @@ def main() -> int:
     finally:
         controller.cleanup()
 
-        logging.info("Cleaning up servo instances...")
-        try:
-            subprocess.run(["hdc", "shell", "killall org.servo.servo"], capture_output=True, text=True, timeout=10)
-            logging.info("Killed servo processes")
-        except Exception as e:
-            logging.debug(f"killall command failed during cleanup: {e}")
-
-        try:
-            subprocess.run(
-                ["hdc", "shell", "aa force-stop org.servo.servo"], capture_output=True, text=True, timeout=10
-            )
-            logging.info("Force stopped servo application")
-        except Exception as e:
-            logging.debug(f"force-stop command failed during cleanup: {e}")
+        logging.info("Final cleanup - killing servo instances...")
+        controller.kill_servo_instances()
 
     # This should never be reached
     return 1
