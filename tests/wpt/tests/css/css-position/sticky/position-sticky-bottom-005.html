@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>CSS Position Test: sticky element with bottom offset</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-position/#stickypos-insets">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="
+  The static position of #sticky is outside (above) of its containing block.
+  Sticky positioning doesn't force it to move down into the containing block.
+">
+
+<style>
+#scroll-container {
+  overflow: hidden;
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+#sticky {
+  position: sticky;
+  bottom: 0;
+  height: 100px;
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="scroll-container">
+  <div style="padding-top: 200px">
+    <div style="margin-top: -200px"></div>
+    <div id="sticky"></div>
+  </div>
+</div>
