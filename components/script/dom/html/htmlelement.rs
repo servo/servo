@@ -462,7 +462,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
 
     /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetparent>
     fn GetOffsetParent(&self) -> Option<DomRoot<Element>> {
-        if self.is_body_element() || self.is::<HTMLHtmlElement>() {
+        if self.is::<HTMLBodyElement>() || self.upcast::<Element>().is_root() {
             return None;
         }
 
