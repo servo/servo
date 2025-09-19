@@ -569,4 +569,8 @@ impl BoxFragment {
             _ => false,
         }
     }
+
+    pub(crate) fn spatial_tree_node(&self) -> Option<ScrollTreeNodeId> {
+        *self.spatial_tree_node.borrow()
+    }
 }

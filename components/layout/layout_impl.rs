@@ -322,7 +322,12 @@ impl Layout for LayoutThread {
     #[servo_tracing::instrument(skip_all)]
     fn query_offset_parent(&self, node: TrustedNodeAddress) -> OffsetParentResponse {
         let node = unsafe { ServoLayoutNode::new(&node) };
-        process_offset_parent_query(node).unwrap_or_default()
+        let stacking_context_tree = self.stacking_context_tree.borrow();
+        let stacking_context_tree = stacking_context_tree
+            .as_ref()
+            .expect("Should always have a StackingContextTree for offset parent queries");
+        process_offset_parent_query(&stacking_context_tree.compositor_info.scroll_tree, node)
+            .unwrap_or_default()
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -1608,26 +1613,26 @@ impl ReflowPhases {
     /// so [`ReflowPhases::empty()`] implies that.
     fn necessary(reflow_goal: &ReflowGoal) -> Self {
         match reflow_goal {
-            ReflowGoal::UpdateTheRendering | ReflowGoal::UpdateScrollNode(..) => {
-                Self::StackingContextTreeConstruction | Self::DisplayListConstruction
-            },
             ReflowGoal::LayoutQuery(query) => match query {
                 QueryMsg::NodesFromPointQuery => {
                     Self::StackingContextTreeConstruction | Self::DisplayListConstruction
                 },
                 QueryMsg::BoxArea |
                 QueryMsg::BoxAreas |
+                QueryMsg::ElementsFromPoint |
+                QueryMsg::OffsetParentQuery |
                 QueryMsg::ResolvedStyleQuery |
-                QueryMsg::ScrollingAreaOrOffsetQuery |
-                QueryMsg::ElementsFromPoint => Self::StackingContextTreeConstruction,
+                QueryMsg::ScrollingAreaOrOffsetQuery => Self::StackingContextTreeConstruction,
                 QueryMsg::ClientRectQuery |
                 QueryMsg::ElementInnerOuterTextQuery |
                 QueryMsg::InnerWindowDimensionsQuery |
-                QueryMsg::OffsetParentQuery |
-                QueryMsg::ScrollParentQuery |
                 QueryMsg::ResolvedFontStyleQuery |
-                QueryMsg::TextIndexQuery |
-                QueryMsg::StyleQuery => Self::empty(),
+                QueryMsg::ScrollParentQuery |
+                QueryMsg::StyleQuery |
+                QueryMsg::TextIndexQuery => Self::empty(),
+            },
+            ReflowGoal::UpdateScrollNode(..) | ReflowGoal::UpdateTheRendering => {
+                Self::StackingContextTreeConstruction | Self::DisplayListConstruction
             },
         }
     }
