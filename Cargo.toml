@@ -128,7 +128,7 @@ rustls-pki-types = "1.12"
 rustc-hash = "2.1.1"
 script_traits = { path = "components/shared/script" }
 selectors = { git = "https://github.com/servo/stylo", branch = "2025-09-02" }
-serde = "1.0.223"
+serde = "1.0.225"
 serde_bytes = "0.11"
 serde_json = "1.0"
 servo-media = { git = "https://github.com/servo/media" }
