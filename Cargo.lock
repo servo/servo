@@ -1479,6 +1479,7 @@ dependencies = [
  "dpi",
  "embedder_traits",
  "euclid",
+ "fnv",
  "gleam",
  "ipc-channel",
  "libc",

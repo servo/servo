@@ -31,6 +31,7 @@ dpi = { workspace = true }
 rustc-hash = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
+fnv = { workspace = true }
 gleam = { workspace = true }
 ipc-channel = { workspace = true }
 libc = { workspace = true }
