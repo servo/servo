@@ -2688,7 +2688,11 @@ impl Document {
         if self.window().has_unhandled_resize_event() {
             return true;
         }
-        if self.has_pending_animated_image_update.get() {
+        if self.has_pending_animated_image_update.get() ||
+            !self.dirty_2d_contexts.borrow().is_empty() ||
+            !self.dirty_webgl_contexts.borrow().is_empty() ||
+            !self.dirty_webgpu_contexts.borrow().is_empty()
+        {
             return true;
         }
 
@@ -2703,11 +2707,14 @@ impl Document {
     //
     // Returns the set of reflow phases run as a [`ReflowPhasesRun`].
     pub(crate) fn update_the_rendering(&self) -> ReflowPhasesRun {
+        let mut results = ReflowPhasesRun::empty();
+
         if self.has_pending_animated_image_update.get() {
             self.image_animation_manager
                 .borrow()
                 .update_active_frames(&self.window, self.current_animation_timeline_value());
             self.has_pending_animated_image_update.set(false);
+            results.insert(ReflowPhasesRun::UpdatedImageData);
         }
 
         // All dirty canvases are flushed before updating the rendering.
@@ -2721,7 +2728,10 @@ impl Document {
                 .borrow_mut()
                 .drain()
                 .filter(|(_, context)| context.update_rendering(canvas_epoch))
-                .map(|(_, context)| context.image_key()),
+                .map(|(_, context)| {
+                    results.insert(ReflowPhasesRun::UpdatedImageData);
+                    context.image_key()
+                }),
         );
 
         image_keys.extend(
@@ -2729,7 +2739,10 @@ impl Document {
                 .borrow_mut()
                 .drain()
                 .filter(|(_, context)| context.update_rendering(canvas_epoch))
-                .map(|(_, context)| context.image_key()),
+                .map(|(_, context)| {
+                    results.insert(ReflowPhasesRun::UpdatedImageData);
+                    context.image_key()
+                }),
         );
 
         let dirty_webgl_context_ids: Vec<_> = self
@@ -2744,6 +2757,7 @@ impl Document {
             .collect();
 
         if !dirty_webgl_context_ids.is_empty() {
+            results.insert(ReflowPhasesRun::UpdatedImageData);
             self.window
                 .webgl_chan()
                 .expect("Where's the WebGL channel?")
@@ -2766,7 +2780,7 @@ impl Document {
             );
         }
 
-        self.window().reflow(ReflowGoal::UpdateTheRendering)
+        results.union(self.window().reflow(ReflowGoal::UpdateTheRendering))
     }
 
     pub(crate) fn handle_no_longer_waiting_on_asynchronous_image_updates(&self) {
