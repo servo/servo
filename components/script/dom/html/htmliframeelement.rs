@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::rc::Rc;
 
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use bitflags::bitflags;
@@ -48,6 +49,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::windowproxy::WindowProxy;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
+use crate::script_window_proxies::ScriptWindowProxies;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
 struct SandboxAllowance(u8);
@@ -93,6 +95,8 @@ pub(crate) struct HTMLIFrameElement {
     sandbox_allowance: Cell<Option<SandboxAllowance>>,
     load_blocker: DomRefCell<Option<LoadBlocker>>,
     throttled: Cell<bool>,
+    #[ignore_malloc_size_of = "Rc"]
+    script_window_proxies: Rc<ScriptWindowProxies>,
 }
 
 impl HTMLIFrameElement {
@@ -490,6 +494,7 @@ impl HTMLIFrameElement {
             sandbox_allowance: Cell::new(None),
             load_blocker: DomRefCell::new(None),
             throttled: Cell::new(false),
+            script_window_proxies: ScriptThread::window_proxies(),
         }
     }
 
@@ -649,7 +654,7 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
     fn GetContentWindow(&self) -> Option<DomRoot<WindowProxy>> {
         self.browsing_context_id
             .get()
-            .and_then(ScriptThread::find_window_proxy)
+            .and_then(|id| self.script_window_proxies.find_window_proxy(id))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentdocument
