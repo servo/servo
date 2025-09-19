@@ -809,6 +809,7 @@ impl IOCompositor {
                     webview.set_viewport_description(viewport_description);
                 }
             },
+            CompositorMsg::LCPCandidate(_, _) => todo!(),
         }
     }
 
