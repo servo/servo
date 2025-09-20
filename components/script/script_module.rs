@@ -1079,7 +1079,7 @@ impl ModuleOwner {
                                 fetch_options,
                                 ScriptType::Module,
                                 global.unminified_js_dir(),
-                                Err(Error::NotFound),
+                                Err(Error::NotFound(None)),
                             )),
                         },
                     }

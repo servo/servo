@@ -294,7 +294,7 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
                     .upcast::<Node>()
                     .is_shadow_including_inclusive_ancestor_of(anchor.upcast::<Node>())
                 {
-                    return Err(Error::NotFound);
+                    return Err(Error::NotFound(None));
                 }
                 anchor
             },

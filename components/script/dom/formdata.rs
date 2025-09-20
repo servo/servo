@@ -107,7 +107,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
             // Step 1.1.2. If submitter’s form owner is not form, then throw a "NotFoundError"
             // DOMException.
             if !matches!(submit_button.form_owner(), Some(owner) if *owner == *form) {
-                return Err(Error::NotFound);
+                return Err(Error::NotFound(None));
             }
 
             Ok(submit_button)

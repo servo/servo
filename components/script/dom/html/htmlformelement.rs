@@ -337,12 +337,12 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
                 let owner = match submitters_owner {
                     Some(owner) => owner,
                     None => {
-                        return Err(Error::NotFound);
+                        return Err(Error::NotFound(None));
                     },
                 };
 
                 if *owner != *self {
-                    return Err(Error::NotFound);
+                    return Err(Error::NotFound(None));
                 }
 
                 submit_button
