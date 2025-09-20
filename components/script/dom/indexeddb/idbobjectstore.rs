@@ -694,7 +694,11 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-indexnames>
     fn IndexNames(&self) -> DomRoot<DOMStringList> {
-        DOMStringList::new(&*self.global(), self.index_names.borrow().clone(), CanGc::note())
+        DOMStringList::new(
+            &self.global(),
+            self.index_names.borrow().clone(),
+            CanGc::note(),
+        )
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-transaction>
