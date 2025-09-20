@@ -4,12 +4,13 @@
 
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take_while1};
-use nom::character::complete::{alpha1, alphanumeric1, char, digit1, multispace0};
+use nom::character::complete::{char, digit1, multispace0};
 use nom::combinator::{map, opt, recognize, value};
 use nom::error::{Error as NomError, ErrorKind as NomErrorKind, ParseError as NomParseError};
 use nom::multi::{many0, separated_list0};
 use nom::sequence::{delimited, pair, preceded};
-use nom::{Finish, IResult, Parser};
+use nom::{AsChar, Finish, IResult, Input, Parser};
+use crate::dom::bindings::xmlname::{is_valid_start, is_valid_continuation};
 
 pub(crate) fn parse(input: &str) -> Result<Expr, OwnedParserError> {
     let (_, ast) = expr(input).finish().map_err(OwnedParserError::from)?;
@@ -955,7 +956,7 @@ fn string_literal(input: &str) -> IResult<&str, Literal> {
     .parse(input)
 }
 
-// QName parser
+/// <https://www.w3.org/TR/REC-xml-names/#NT-QName>
 fn qname(input: &str) -> IResult<&str, QName> {
     let (input, prefix) = opt((ncname, char(':'))).parse(input)?;
     let (input, local) = ncname(input)?;
@@ -969,13 +970,31 @@ fn qname(input: &str) -> IResult<&str, QName> {
     ))
 }
 
-// NCName parser
+/// <https://www.w3.org/TR/REC-xml-names/#NT-NCName>
 fn ncname(input: &str) -> IResult<&str, &str> {
-    recognize(pair(
-        alpha1,
-        many0(alt((alphanumeric1, tag("-"), tag("_")))),
-    ))
-    .parse(input)
+    fn name_start_character<T, E: NomParseError<T>>(input: T) -> IResult<T, T, E>
+    where
+        T: Input,
+        <T as Input>::Item: AsChar,
+    {
+        input.split_at_position1_complete(
+            |character| !is_valid_start(character.as_char()) || character.as_char() == ':',
+            NomErrorKind::OneOf,
+        )
+    }
+
+    fn name_character<T, E: NomParseError<T>>(input: T) -> IResult<T, T, E>
+    where
+        T: Input,
+        <T as Input>::Item: AsChar,
+    {
+        input.split_at_position1_complete(
+            |character| !is_valid_continuation(character.as_char())|| character.as_char() == ':',
+            NomErrorKind::OneOf,
+        )
+    }
+
+    recognize(pair(name_start_character, many0(name_character))).parse(input)
 }
 
 // Test functions to verify the parsers:
