@@ -512,7 +512,7 @@ fn union_expr(input: &str) -> IResult<&str, Expr> {
 }
 
 fn path_expr(input: &str) -> IResult<&str, Expr> {
-    alt((
+    ws(alt((
         // "//" RelativePathExpr
         map(
             pair(tag("//"), move |i| relative_path_expr(true, i)),
@@ -545,7 +545,7 @@ fn path_expr(input: &str) -> IResult<&str, Expr> {
         ),
         // RelativePathExpr
         move |i| relative_path_expr(false, i),
-    ))
+    )))
     .parse(input)
 }
 
