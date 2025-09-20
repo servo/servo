@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use embedder_traits::{EmbedderMsg, FormControl as EmbedderFormControl};
 use embedder_traits::{SelectElementOption, SelectElementOptionOrOptgroup};
 use euclid::{Point2D, Rect, Size2D};
-use html5ever::{LocalName, Prefix, local_name};
+use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
@@ -37,11 +37,10 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::element::{AttributeMutation, CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlcollection::CollectionFilter;
-use crate::dom::html::htmldivelement::HTMLDivElement;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{FormControl, FormDatum, FormDatumValue, HTMLFormElement};
@@ -257,15 +256,27 @@ impl HTMLSelectElement {
         let document = self.owner_document();
         let root = self.upcast::<Element>().attach_ua_shadow_root(true, can_gc);
 
-        let select_box = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
-        select_box.upcast::<Element>().set_string_attribute(
-            &local_name!("style"),
-            SELECT_BOX_STYLE.into(),
+        let select_box = Element::create(
+            QualName::new(None, ns!(html), local_name!("div")),
+            None,
+            &document,
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
+            None,
             can_gc,
         );
+        select_box.set_string_attribute(&local_name!("style"), SELECT_BOX_STYLE.into(), can_gc);
 
-        let text_container = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
-        text_container.upcast::<Element>().set_string_attribute(
+        let text_container = Element::create(
+            QualName::new(None, ns!(html), local_name!("div")),
+            None,
+            &document,
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
+            None,
+            can_gc,
+        );
+        text_container.set_string_attribute(
             &local_name!("style"),
             TEXT_CONTAINER_STYLE.into(),
             can_gc,
@@ -284,9 +295,16 @@ impl HTMLSelectElement {
             .AppendChild(text.upcast::<Node>(), can_gc)
             .unwrap();
 
-        let chevron_container =
-            HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
-        chevron_container.upcast::<Element>().set_string_attribute(
+        let chevron_container = Element::create(
+            QualName::new(None, ns!(html), local_name!("div")),
+            None,
+            &document,
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
+            None,
+            can_gc,
+        );
+        chevron_container.set_string_attribute(
             &local_name!("style"),
             CHEVRON_CONTAINER_STYLE.into(),
             can_gc,
