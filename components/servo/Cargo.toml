@@ -13,6 +13,7 @@ path = "lib.rs"
 crate-type = ["rlib"]
 
 [features]
+default = ["clipboard", "vello_cpu"]
 background_hang_monitor = ["background_hang_monitor/sampler"]
 bluetooth = [
     "bluetooth_traits",
@@ -25,7 +26,6 @@ bluetooth = [
 clipboard = ["dep:arboard"]
 crown = ["script/crown"]
 debugmozjs = ["script/debugmozjs"]
-default = ["clipboard", "vello_cpu"]
 dynamic_freetype = ["webrender/dynamic_freetype"]
 jitspew = ["script/jitspew"]
 js_backtrace = ["script/js_backtrace"]

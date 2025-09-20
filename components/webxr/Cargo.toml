@@ -16,8 +16,8 @@ but adapted to Rust design patterns.'''
 path = "lib.rs"
 
 [features]
-angle = ["surfman/sm-angle"]
 default = ["x11"]
+angle = ["surfman/sm-angle"]
 glwindow = []
 headless = []
 ipc = ["webxr-api/ipc", "serde"]

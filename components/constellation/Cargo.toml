@@ -12,8 +12,8 @@ name = "constellation"
 path = "lib.rs"
 
 [features]
-bluetooth = ["bluetooth_traits"]
 default = []
+bluetooth = ["bluetooth_traits"]
 tracing = ["dep:tracing", "canvas/tracing"]
 vello = ["canvas/vello"]
 vello_cpu = ["canvas/vello_cpu"]
