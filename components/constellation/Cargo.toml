@@ -12,12 +12,12 @@ name = "constellation"
 path = "lib.rs"
 
 [features]
-bluetooth = ["bluetooth_traits"]
 default = []
+bluetooth = ["bluetooth_traits"]
 tracing = ["dep:tracing", "canvas/tracing"]
-webgpu = ["script_traits/webgpu"]
 vello = ["canvas/vello"]
 vello_cpu = ["canvas/vello_cpu"]
+webgpu = ["script_traits/webgpu"]
 
 [lints.clippy]
 unwrap_used = "deny"
@@ -40,7 +40,6 @@ euclid = { workspace = true }
 fonts = { path = "../fonts" }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
-rustc-hash = { workspace = true }
 layout_api = { workspace = true }
 log = { workspace = true }
 media = { path = "../media" }
@@ -49,20 +48,21 @@ net_traits = { workspace = true }
 parking_lot = { workspace = true }
 profile = { path = "../profile" }
 profile_traits = { workspace = true }
+rustc-hash = { workspace = true }
 script_traits = { workspace = true }
 serde = { workspace = true }
+servo-tracing = { workspace = true }
 servo_config = { path = "../config" }
 servo_rand = { path = "../rand" }
 servo_url = { path = "../url" }
-stylo_traits = { workspace = true }
 stylo = { workspace = true }
+stylo_traits = { workspace = true }
 tracing = { workspace = true, optional = true }
 webgpu = { path = "../webgpu" }
 webgpu_traits = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webxr-api = { workspace = true, features = ["ipc"] }
-servo-tracing = { workspace = true }
 
 [target.'cfg(any(target_os="macos", all(not(target_os = "windows"), not(target_os = "ios"), not(target_os="android"), not(target_env="ohos"), not(target_arch="arm"), not(target_arch="aarch64"))))'.dependencies]
 gaol = "0.2.1"

@@ -15,7 +15,6 @@ path = "lib.rs"
 base = { workspace = true }
 base64 = { workspace = true }
 chrono = { workspace = true }
-rustc-hash = { workspace = true }
 crossbeam-channel = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
@@ -25,13 +24,13 @@ ipc-channel = { workspace = true }
 log = { workspace = true }
 net = { path = "../net" }
 net_traits = { workspace = true }
+rustc-hash = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 servo_config = { path = "../config" }
 servo_rand = { path = "../rand" }
 servo_url = { path = "../url" }
 uuid = { workspace = true }
-
 
 [build-dependencies]
 chrono = { workspace = true }

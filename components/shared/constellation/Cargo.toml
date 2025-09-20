@@ -23,7 +23,6 @@ devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fonts_traits = { workspace = true }
-rustc-hash = { workspace = true }
 http = { workspace = true }
 hyper_serde = { workspace = true }
 ipc-channel = { workspace = true }
@@ -33,6 +32,7 @@ malloc_size_of_derive = { workspace = true }
 net_traits = { workspace = true }
 pixels = { path = "../../pixels" }
 profile_traits = { workspace = true }
+rustc-hash = { workspace = true }
 serde = { workspace = true }
 servo_config = { path = "../../config" }
 servo_url = { path = "../../url" }

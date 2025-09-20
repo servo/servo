@@ -17,12 +17,12 @@ doctest = false
 background_hang_monitor_api = { workspace = true }
 backtrace = { workspace = true }
 base = { workspace = true }
-rustc-hash = { workspace = true }
 crossbeam-channel = { workspace = true }
 ipc-channel = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
 rustc-demangle = { version = "0.1", optional = true }
+rustc-hash = { workspace = true }
 serde_json = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]

@@ -49,6 +49,7 @@ rustc-hash = { workspace = true }
 script = { path = "../script" }
 script_traits = { workspace = true }
 selectors = { workspace = true }
+servo-tracing = { workspace = true }
 servo_arc = { workspace = true }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
@@ -65,7 +66,6 @@ unicode-script = { workspace = true }
 url = { workspace = true }
 webrender_api = { workspace = true }
 xi-unicode = { workspace = true }
-servo-tracing = { workspace = true }
 
 [dev-dependencies]
 num-traits = { workspace = true }

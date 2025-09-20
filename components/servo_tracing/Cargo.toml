@@ -8,8 +8,8 @@ publish.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-quote = { workspace = true }
 proc-macro2 = { workspace = true }
+quote = { workspace = true }
 syn = { version = "2", features = ["full"] }
 
 [lib]

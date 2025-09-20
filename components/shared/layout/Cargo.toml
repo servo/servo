@@ -12,10 +12,10 @@ name = "layout_api"
 path = "lib.rs"
 
 [dependencies]
-base = { workspace = true }
-bitflags = { workspace = true }
 app_units = { workspace = true }
 atomic_refcell = { workspace = true }
+base = { workspace = true }
+bitflags = { workspace = true }
 compositing_traits = { workspace = true }
 constellation_traits = { workspace = true }
 embedder_traits = { workspace = true }
@@ -31,13 +31,13 @@ net_traits = { workspace = true }
 parking_lot = { workspace = true }
 pixels = { path = "../../pixels" }
 profile_traits = { workspace = true }
-rustc-hash = { workspace = true }
 range = { path = "../../range" }
+rustc-hash = { workspace = true }
 script_traits = { workspace = true }
 selectors = { workspace = true }
 serde = { workspace = true }
 servo_arc = { workspace = true }
 servo_url = { path = "../../url" }
-stylo_traits = { workspace = true }
 stylo = { workspace = true }
+stylo_traits = { workspace = true }
 webrender_api = { workspace = true }
