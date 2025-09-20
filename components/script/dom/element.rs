@@ -5279,6 +5279,18 @@ impl Element {
         false
     }
 
+    /// This is a performance optimization. `Element::create` can simply call
+    /// `element.set_custom_element_state(CustomElementState::Uncustomized)` to initialize
+    /// uncustomized, built-in elements with the right state, which currently just means that the
+    /// `DEFINED` state should be `true` for styling. However `set_custom_element_state` has a high
+    /// performance cost and it is unnecessary if the element is being created as an uncustomized
+    /// built-in element.
+    ///
+    /// See <https://github.com/servo/servo/issues/37745> for more details.
+    pub(crate) fn init_state_for_uncustomized_builtin_element(&self) {
+        self.set_state(ElementState::DEFINED, true);
+    }
+
     pub(crate) fn init_state_for_internals(&self) {
         self.set_enabled_state(true);
         self.set_state(ElementState::VALID, true);
