@@ -502,7 +502,6 @@ impl App {
                     }
                 },
                 WebDriverCommandMsg::KeyboardAction(webview_id, key_event, msg_id) => {
-                    // TODO: We should do processing like in `headed_window:handle_keyboard_input`.
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
                         webview.notify_input_event(
                             InputEvent::Keyboard(KeyboardEvent::new(key_event))

@@ -2134,16 +2134,11 @@ impl Handler {
         );
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
 
-        // TODO: distinguish the not found and not focusable cases
         // File input and non-typeable form control should have
         // been handled in `webdriver_handler.rs`.
         if !wait_for_ipc_response(receiver)?.map_err(|error| WebDriverError::new(error, ""))? {
             return Ok(WebDriverResponse::Void);
         }
-
-        // TODO: there's a race condition caused by the focus command and the
-        // send keys command being two separate messages,
-        // so the constellation may have changed state between them.
 
         // Step 10. Let input id be a the result of generating a UUID.
         let id = Uuid::new_v4().to_string();
