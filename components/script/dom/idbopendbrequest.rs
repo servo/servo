@@ -13,6 +13,7 @@ use script_bindings::conversions::SafeToJSValConvertible;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::IDBOpenDBRequestBinding::IDBOpenDBRequestMethods;
+use crate::dom::bindings::codegen::Bindings::IDBRequestBinding::IDBRequestReadyState;
 use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransactionMode;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -87,7 +88,9 @@ impl OpenRequestListener {
     fn handle_delete_db(&self, result: BackendResult<()>, can_gc: CanGc) {
         let open_request = self.open_request.root();
         let global = open_request.global();
-        open_request.idbrequest.set_ready_state_done();
+        open_request
+            .idbrequest
+            .set_ready_state(IDBRequestReadyState::Done);
 
         match result {
             Ok(_) => {
@@ -184,7 +187,7 @@ impl IDBOpenDBRequest {
                 this.idbrequest.set_transaction(&txn);
 
                 // Step 8.3
-                this.idbrequest.set_ready_state_done();
+                this.idbrequest.set_ready_state(IDBRequestReadyState::Done);
 
                 let event = IDBVersionChangeEvent::new(
                     &global,
@@ -340,7 +343,7 @@ impl IDBOpenDBRequest {
             task!(send_success_notification: move || {
                 let this = this.root();
                 let result = result.root();
-                this.idbrequest.set_ready_state_done();
+                this.idbrequest.set_ready_state(IDBRequestReadyState::Done);
                 let global = this.global();
                 let cx = GlobalScope::get_cx();
 

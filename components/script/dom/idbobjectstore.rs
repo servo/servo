@@ -116,6 +116,10 @@ impl IDBObjectStore {
         self.name.borrow().clone()
     }
 
+    pub(crate) fn key_path(&self) -> Option<&KeyPath> {
+        self.key_path.as_ref()
+    }
+
     pub fn transaction(&self) -> DomRoot<IDBTransaction> {
         self.transaction.as_rooted()
     }
@@ -140,12 +144,13 @@ impl IDBObjectStore {
         receiver.recv().unwrap().unwrap()
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#object-store-in-line-keys
-    fn uses_inline_keys(&self) -> bool {
+    /// <https://www.w3.org/TR/IndexedDB-2/#object-store-in-line-keys>
+    pub(crate) fn uses_inline_keys(&self) -> bool {
         self.key_path.is_some()
     }
 
-    fn verify_not_deleted(&self) -> ErrorResult {
+    /// If the object store has been deleted, throw an "InvalidStateError" DOMException.
+    pub(crate) fn verify_not_deleted(&self) -> ErrorResult {
         let db = self.transaction.Db();
         if !db.object_store_exists(&self.name.borrow()) {
             return Err(Error::InvalidState);

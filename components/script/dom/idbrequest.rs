@@ -131,7 +131,7 @@ impl RequestListener {
         let cx = GlobalScope::get_cx();
 
         // Substep 1: Set the result of request to result.
-        request.set_ready_state_done();
+        request.set_ready_state(IDBRequestReadyState::Done);
 
         let _ac = enter_realm(&*request);
         rooted!(in(*cx) let mut answer = UndefinedValue());
@@ -322,8 +322,8 @@ impl IDBRequest {
         self.source.set(source);
     }
 
-    pub fn set_ready_state_done(&self) {
-        self.ready_state.set(IDBRequestReadyState::Done);
+    pub(crate) fn set_ready_state(&self, state: IDBRequestReadyState) {
+        self.ready_state.set(state);
     }
 
     pub fn set_result(&self, result: HandleValue) {
