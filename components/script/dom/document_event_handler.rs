@@ -21,14 +21,14 @@ use embedder_traits::{
 use euclid::Point2D;
 use ipc_channel::ipc;
 use keyboard_types::{Code, Key, KeyState, Modifiers, NamedKey};
-use layout_api::node_id_from_scroll_id;
+use layout_api::{ScrollContainerQueryFlags, node_id_from_scroll_id};
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
 use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
 use script_bindings::codegen::GenericBindings::TouchBinding::TouchMethods;
-use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
+use script_bindings::codegen::GenericBindings::WindowBinding::{ScrollBehavior, WindowMethods};
 use script_bindings::inheritance::Castable;
 use script_bindings::num::Finite;
 use script_bindings::root::{Dom, DomRoot, DomSlice};
@@ -44,6 +44,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::clipboardevent::ClipboardEventType;
 use crate::dom::document::{FireMouseEventType, FocusInitiator, TouchEventResult};
+use crate::dom::element::ScrollingBox;
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventDefault};
 use crate::dom::gamepad::gamepad::{Gamepad, contains_user_gesture};
 use crate::dom::gamepad::gamepadevent::GamepadEventType;
@@ -78,6 +79,8 @@ pub(crate) struct DocumentEventHandler {
     last_click_info: DomRefCell<Option<(Instant, Point2D<f32, CSSPixel>)>>,
     /// The element that is currently hovered by the cursor.
     current_hover_target: MutNullableDom<Element>,
+    /// The element that was most recently clicked.
+    most_recently_clicked_element: MutNullableDom<Element>,
     /// The most recent mouse movement point, used for processing `mouseleave` events.
     #[no_trace]
     most_recent_mousemove_point: Cell<Option<Point2D<f32, CSSPixel>>>,
@@ -100,6 +103,7 @@ impl DocumentEventHandler {
             mouse_move_event_index: Default::default(),
             last_click_info: Default::default(),
             current_hover_target: Default::default(),
+            most_recently_clicked_element: Default::default(),
             most_recent_mousemove_point: Default::default(),
             current_cursor: Default::default(),
             active_touch_points: Default::default(),
@@ -581,6 +585,8 @@ impl DocumentEventHandler {
         match event.action {
             // https://w3c.github.io/uievents/#handle-native-mouse-click
             MouseButtonAction::Click => {
+                self.most_recently_clicked_element.set(Some(&el));
+
                 el.set_click_in_progress(true);
                 dom_event.dispatch(node.upcast(), false, can_gc);
                 el.set_click_in_progress(false);
@@ -1471,5 +1477,73 @@ impl DocumentEventHandler {
 
             document.handle_element_scroll_event(&element);
         }
+    }
+
+    pub(crate) fn run_default_keyboard_event_handler(&self, event: &KeyboardEvent) {
+        if event.upcast::<Event>().type_() != atom!("keydown") {
+            return;
+        }
+        if !event.modifiers().is_empty() {
+            return;
+        }
+
+        let is_horizontal_scroll = match event.key() {
+            Key::Named(
+                NamedKey::Home |
+                NamedKey::End |
+                NamedKey::PageDown |
+                NamedKey::PageUp |
+                NamedKey::ArrowUp |
+                NamedKey::ArrowDown,
+            ) => false,
+            Key::Named(NamedKey::ArrowLeft | NamedKey::ArrowRight) => true,
+            _ => return,
+        };
+
+        let document = self.window.Document();
+        let mut scrolling_box = document
+            .get_focused_element()
+            .or(self.most_recently_clicked_element.get())
+            .and_then(|element| element.scrolling_box(ScrollContainerQueryFlags::Inclusive))
+            .unwrap_or_else(|| ScrollingBox::Viewport(document));
+
+        let mut content_size = scrolling_box.content_size();
+        let mut box_size = scrolling_box.size();
+        while (is_horizontal_scroll && content_size.width <= box_size.width) ||
+            (!is_horizontal_scroll && content_size.height <= box_size.height)
+        {
+            let Some(parent) = scrolling_box.parent() else {
+                break;
+            };
+
+            scrolling_box = parent;
+            content_size = scrolling_box.content_size();
+            box_size = scrolling_box.size();
+        }
+
+        const LINE_HEIGHT: f32 = 76.0;
+        const LINE_WIDTH: f32 = 76.0;
+
+        let current_scroll_offset = scrolling_box.scroll_offset();
+        let (delta_x, delta_y) = match event.key() {
+            Key::Named(NamedKey::Home) => (0.0, -current_scroll_offset.y),
+            Key::Named(NamedKey::End) => (
+                0.0,
+                -current_scroll_offset.y + content_size.height - box_size.height,
+            ),
+            Key::Named(NamedKey::PageDown) => (0.0, box_size.height - 2.0 * LINE_HEIGHT),
+            Key::Named(NamedKey::PageUp) => (0.0, 2.0 * LINE_HEIGHT - box_size.height),
+            Key::Named(NamedKey::ArrowUp) => (0.0, -LINE_HEIGHT),
+            Key::Named(NamedKey::ArrowDown) => (0.0, LINE_HEIGHT),
+            Key::Named(NamedKey::ArrowLeft) => (-LINE_WIDTH, 0.0),
+            Key::Named(NamedKey::ArrowRight) => (LINE_WIDTH, 0.0),
+            _ => return,
+        };
+
+        scrolling_box.scroll_to(
+            delta_x + current_scroll_offset.x,
+            delta_y + current_scroll_offset.y,
+            ScrollBehavior::Auto,
+        );
     }
 }
