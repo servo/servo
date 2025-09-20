@@ -23,6 +23,7 @@ use style::str::HTML_SPACE_CHARACTERS;
 use stylo_atoms::Atom;
 
 use crate::conversions::Convert;
+use crate::dom::abortsignal::{AbortAlgorithm, RemovableDomEventListener};
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
 use crate::dom::bindings::callback::{CallbackContainer, CallbackFunction, ExceptionHandling};
 use crate::dom::bindings::cell::DomRefCell;
@@ -46,6 +47,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
 };
 use crate::dom::bindings::error::{Error, Fallible, report_pending_exception};
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{
     DomGlobal, DomObject, Reflector, reflect_dom_object_with_proto,
 };
@@ -431,7 +433,7 @@ pub(crate) struct EventListenerEntry {
     phase: ListenerPhase,
     listener: EventListenerType,
     once: bool,
-    passive: Option<bool>,
+    passive: bool,
     removed: bool,
 }
 
@@ -605,7 +607,7 @@ impl EventTarget {
     /// <https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handlers-11>
     fn set_inline_event_listener(&self, ty: Atom, listener: Option<InlineEventListener>) {
         let mut handlers = self.handlers.borrow_mut();
-        let entries = match handlers.entry(ty) {
+        let entries = match handlers.entry(ty.clone()) {
             Occupied(entry) => entry.into_mut(),
             Vacant(entry) => entry.insert(EventListeners(vec![])),
         };
@@ -631,7 +633,7 @@ impl EventTarget {
                         phase: ListenerPhase::Bubbling,
                         listener: EventListenerType::Inline(listener.into()),
                         once: false,
-                        passive: None,
+                        passive: self.default_passive_value(&ty),
                         removed: false,
                     })));
                 }
@@ -650,11 +652,8 @@ impl EventTarget {
     }
 
     /// Determines the `passive` attribute of an associated event listener
-    pub(crate) fn is_passive(&self, ty: &Atom, listener: &Rc<RefCell<EventListenerEntry>>) -> bool {
-        listener
-            .borrow()
-            .passive
-            .unwrap_or(self.default_passive_value(ty))
+    pub(crate) fn is_passive(&self, listener: &Rc<RefCell<EventListenerEntry>>) -> bool {
+        listener.borrow().passive
     }
 
     fn get_inline_event_listener(&self, ty: &Atom, can_gc: CanGc) -> Option<CommonEventHandler> {
@@ -943,18 +942,36 @@ impl EventTarget {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-eventtarget-addeventlistener>
+    /// and <https://dom.spec.whatwg.org/#add-an-event-listener>
     pub(crate) fn add_event_listener(
         &self,
         ty: DOMString,
         listener: Option<Rc<EventListener>>,
         options: AddEventListenerOptions,
     ) {
+        if let Some(signal) = options.signal.as_ref() {
+            // Step 2. If listener’s signal is not null and is aborted, then return.
+            if signal.aborted() {
+                return;
+            }
+            // Step 6. If listener’s signal is not null, then add the following abort steps to it:
+            signal.add(&AbortAlgorithm::DomEventListener(
+                RemovableDomEventListener {
+                    event_target: Trusted::new(self),
+                    ty: ty.clone(),
+                    listener: listener.clone(),
+                    options: options.parent.clone(),
+                },
+            ));
+        }
+        // Step 3. If listener’s callback is null, then return.
         let listener = match listener {
             Some(l) => l,
             None => return,
         };
         let mut handlers = self.handlers.borrow_mut();
-        let entries = match handlers.entry(Atom::from(ty)) {
+        let ty = Atom::from(ty);
+        let entries = match handlers.entry(ty.clone()) {
             Occupied(entry) => entry.into_mut(),
             Vacant(entry) => entry.insert(EventListeners(vec![])),
         };
@@ -964,27 +981,32 @@ impl EventTarget {
         } else {
             ListenerPhase::Bubbling
         };
+        // Step 4. If listener’s passive is null, then set it to the default passive value given listener’s type and eventTarget.
         let new_entry = Rc::new(RefCell::new(EventListenerEntry {
             phase,
             listener: EventListenerType::Additive(listener),
             once: options.once,
-            passive: options.passive,
+            passive: options.passive.unwrap_or(self.default_passive_value(&ty)),
             removed: false,
         }));
 
+        // Step 5. If eventTarget’s event listener list does not contain
+        // an event listener whose type is listener’s type, callback is listener’s callback,
+        // and capture is listener’s capture, then append listener to eventTarget’s event listener list.
         if !entries.contains(&new_entry) {
             entries.push(new_entry);
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-eventtarget-removeeventlistener
+    /// <https://dom.spec.whatwg.org/#dom-eventtarget-removeeventlistener>
+    /// and <https://dom.spec.whatwg.org/#remove-an-event-listener>
     pub(crate) fn remove_event_listener(
         &self,
         ty: DOMString,
-        listener: Option<Rc<EventListener>>,
-        options: EventListenerOptions,
+        listener: &Option<Rc<EventListener>>,
+        options: &EventListenerOptions,
     ) {
-        let Some(ref listener) = listener else {
+        let Some(listener) = listener else {
             return;
         };
         let mut handlers = self.handlers.borrow_mut();
@@ -994,10 +1016,12 @@ impl EventTarget {
             } else {
                 ListenerPhase::Bubbling
             };
-            if let Some(position) = entries.iter().position(|e| {
-                e.borrow().listener == EventListenerType::Additive(listener.clone()) &&
-                    e.borrow().phase == phase
-            }) {
+            let listener_type = EventListenerType::Additive(listener.clone());
+            if let Some(position) = entries
+                .iter()
+                .position(|e| e.borrow().listener == listener_type && e.borrow().phase == phase)
+            {
+                // Step 2. Set listener’s removed to true and remove listener from eventTarget’s event listener list.
                 entries.remove(position).borrow_mut().removed = true;
             }
         }
@@ -1102,7 +1126,7 @@ impl EventTargetMethods<crate::DomTypeHolder> for EventTarget {
         listener: Option<Rc<EventListener>>,
         options: EventListenerOptionsOrBoolean,
     ) {
-        self.remove_event_listener(ty, listener, options.convert())
+        self.remove_event_listener(ty, &listener, &options.convert())
     }
 
     // https://dom.spec.whatwg.org/#dom-eventtarget-dispatchevent
@@ -1122,13 +1146,20 @@ impl VirtualMethods for EventTarget {
 }
 
 impl Convert<AddEventListenerOptions> for AddEventListenerOptionsOrBoolean {
+    /// <https://dom.spec.whatwg.org/#event-flatten-more>
     fn convert(self) -> AddEventListenerOptions {
+        // Step 1. Let capture be the result of flattening options.
+        // Step 5. Return capture, passive, once, and signal.
         match self {
+            // Step 4. If options is a dictionary:
             AddEventListenerOptionsOrBoolean::AddEventListenerOptions(options) => options,
             AddEventListenerOptionsOrBoolean::Boolean(capture) => AddEventListenerOptions {
                 parent: EventListenerOptions { capture },
+                // Step 2. Let once be false.
                 once: false,
+                // Step 3. Let passive and signal be null.
                 passive: None,
+                signal: None,
             },
         }
     }

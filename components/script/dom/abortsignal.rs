@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, RefCell};
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use dom_struct::dom_struct;
@@ -15,9 +16,13 @@ use script_bindings::trace::CustomTraceable;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AbortSignalBinding::AbortSignalMethods;
+use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
+use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventListenerOptions;
 use crate::dom::bindings::error::{Error, ErrorToJsval};
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::readablestream::PipeTo;
@@ -35,7 +40,7 @@ impl js::gc::Rootable for AbortAlgorithm {}
 #[allow(dead_code)]
 pub(crate) enum AbortAlgorithm {
     /// <https://dom.spec.whatwg.org/#add-an-event-listener>
-    DomEventLister,
+    DomEventListener(RemovableDomEventListener),
     /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
     StreamPiping(PipeTo),
     /// <https://fetch.spec.whatwg.org/#dom-global-fetch>
@@ -44,6 +49,15 @@ pub(crate) enum AbortAlgorithm {
         #[conditional_malloc_size_of]
         Arc<Mutex<FetchContext>>,
     ),
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+pub(crate) struct RemovableDomEventListener {
+    pub(crate) event_target: Trusted<EventTarget>,
+    pub(crate) ty: DOMString,
+    #[conditional_malloc_size_of]
+    pub(crate) listener: Option<Rc<EventListener>>,
+    pub(crate) options: EventListenerOptions,
 }
 
 /// <https://dom.spec.whatwg.org/#abortsignal>
@@ -176,9 +190,15 @@ impl AbortSignal {
                     .unwrap()
                     .abort_fetch(reason.handle(), cx, can_gc);
             },
-            _ => {
-                // TODO: match on variant and implement algo steps.
-                // See the various items of #34866
+            AbortAlgorithm::DomEventListener(removable_listener) => {
+                removable_listener
+                    .event_target
+                    .root()
+                    .remove_event_listener(
+                        removable_listener.ty.clone(),
+                        &removable_listener.listener,
+                        &removable_listener.options,
+                    );
             },
         }
     }
