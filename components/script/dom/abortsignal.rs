@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, RefCell};
+use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 use dom_struct::dom_struct;
 use indexmap::IndexSet;
@@ -14,12 +16,17 @@ use script_bindings::trace::CustomTraceable;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AbortSignalBinding::AbortSignalMethods;
+use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
+use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventListenerOptions;
 use crate::dom::bindings::error::{Error, ErrorToJsval};
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::readablestream::PipeTo;
+use crate::fetch::FetchContext;
 use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -33,11 +40,24 @@ impl js::gc::Rootable for AbortAlgorithm {}
 #[allow(dead_code)]
 pub(crate) enum AbortAlgorithm {
     /// <https://dom.spec.whatwg.org/#add-an-event-listener>
-    DomEventLister,
+    DomEventListener(RemovableDomEventListener),
     /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
     StreamPiping(PipeTo),
     /// <https://fetch.spec.whatwg.org/#dom-global-fetch>
-    Fetch,
+    Fetch(
+        #[no_trace]
+        #[conditional_malloc_size_of]
+        Arc<Mutex<FetchContext>>,
+    ),
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+pub(crate) struct RemovableDomEventListener {
+    pub(crate) event_target: Trusted<EventTarget>,
+    pub(crate) ty: DOMString,
+    #[conditional_malloc_size_of]
+    pub(crate) listener: Option<Rc<EventListener>>,
+    pub(crate) options: EventListenerOptions,
 }
 
 /// <https://dom.spec.whatwg.org/#abortsignal>
@@ -162,9 +182,23 @@ impl AbortSignal {
                 reason.set(self.abort_reason.get());
                 pipe.abort_with_reason(cx, global, reason.handle(), realm, can_gc);
             },
-            _ => {
-                // TODO: match on variant and implement algo steps.
-                // See the various items of #34866
+            AbortAlgorithm::Fetch(fetch_context) => {
+                rooted!(in(*cx) let mut reason = UndefinedValue());
+                reason.set(self.abort_reason.get());
+                fetch_context
+                    .lock()
+                    .unwrap()
+                    .abort_fetch(reason.handle(), cx, can_gc);
+            },
+            AbortAlgorithm::DomEventListener(removable_listener) => {
+                removable_listener
+                    .event_target
+                    .root()
+                    .remove_event_listener(
+                        removable_listener.ty.clone(),
+                        &removable_listener.listener,
+                        &removable_listener.options,
+                    );
             },
         }
     }
