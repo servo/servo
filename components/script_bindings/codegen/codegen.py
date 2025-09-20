@@ -671,7 +671,7 @@ def typeIsSequenceOrHasSequenceMember(type: IDLType) -> bool:
 
 def union_native_type(t: IDLType) -> str:
     name = t.unroll().name
-    generic = "<D>" if containsDomInterface(t) else ""
+    generic = "::<D>" if containsDomInterface(t) else ""
     return f'GenericUnionTypes::{name}{generic}'
 
 
@@ -2414,7 +2414,9 @@ class CGImports(CGWrapper):
                 if getIdentifier(t) in [c.identifier for c in callbacks]:
                     continue
             # Importing these types in the same module that defines them is an error.
-            if t in dictionaries or t in enums:
+            if t.isDictionary() and t in dictionaries:
+                continue
+            if t.isEnum() and t in enums:
                 continue
             if t.isInterface() or t.isNamespace():
                 name = getIdentifier(t).name
@@ -2422,7 +2424,9 @@ class CGImports(CGWrapper):
                 parentName = descriptor.getParentName()
                 while parentName:
                     descriptor = descriptorProvider.getDescriptor(parentName)
-                    extras += [descriptor.bindingPath]
+                    # Importing these types in the same module that defines them is an error.
+                    if descriptor not in descriptors:
+                        extras += [descriptor.bindingPath]
                     parentName = descriptor.getParentName()
             elif isIDLType(t) and t.isRecord():
                 extras += ['crate::record::Record']
@@ -7438,7 +7442,7 @@ class CGDictionary(CGThing):
             memberName = self.makeMemberName(m[0].identifier.name)
             members += [f"            {memberName}: self.{memberName}.clone(),"]
         if self.dictionary.parent:
-            members += ["            parent: parent.clone(),"]
+            members += ["            parent: self.parent.clone(),"]
         members = "\n".join(members)
         return f"""
 #[allow(clippy::clone_on_copy)]
@@ -8020,7 +8024,7 @@ class CGBindingRoot(CGThing):
 
             if t.innerType.isUnion() and not t.innerType.nullable():
                 # Allow using the typedef's name for accessing variants.
-                typeDefinition = f"pub use self::{type.replace('<D>', '')} as {name};"
+                typeDefinition = f"pub use self::{type.replace('::<D>', '')} as {name};"
             else:
                 generic = "<D>" if containsDomInterface(t.innerType) else ""
                 replacedType = type.replace("D::", "<D as DomTypes>::")
@@ -8054,7 +8058,7 @@ class CGBindingRoot(CGThing):
 
         # Add imports
         # These are the global imports (outside of the generated module)
-        curr = CGImports(curr, descriptors=callbackDescriptors, callbacks=mainCallbacks,
+        curr = CGImports(curr, descriptors=callbackDescriptors + descriptors, callbacks=mainCallbacks,
                          dictionaries=dictionaries, enums=enums, typedefs=typedefs,
                          imports=['crate::import::base::*'], config=config)
 

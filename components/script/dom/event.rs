@@ -1282,7 +1282,7 @@ fn inner_invoke(
         }
 
         // Step 2.9 If listener’s passive is true, then set event's in passive listener flag.
-        event.set_in_passive_listener(event_target.is_passive(&event.type_(), listener));
+        event.set_in_passive_listener(event_target.is_passive(listener));
 
         // Step 2.10 If global is a Window object, then record timing info for event listener
         // given event and listener.
