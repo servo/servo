@@ -16,13 +16,13 @@ but adapted to Rust design patterns.'''
 path = "lib.rs"
 
 [features]
-default = ["x11"]
-x11 = ["surfman/sm-x11"]
 angle = ["surfman/sm-angle"]
+default = ["x11"]
 glwindow = []
 headless = []
 ipc = ["webxr-api/ipc", "serde"]
 openxr-api = ["angle", "openxr", "winapi", "wio", "surfman/sm-angle-default"]
+x11 = ["surfman/sm-x11"]
 
 [dependencies]
 crossbeam-channel = { workspace = true }
@@ -36,5 +36,5 @@ surfman = { workspace = true, features = ["chains", "sm-raw-window-handle-06"] }
 webxr-api = { workspace = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
-winapi = { workspace = true, features = ["dxgi", "d3d11", "winerror"], optional = true }
+winapi = { workspace = true, features = ["d3d11", "dxgi", "winerror"], optional = true }
 wio = { workspace = true, optional = true }

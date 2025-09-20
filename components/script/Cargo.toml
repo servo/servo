@@ -17,14 +17,14 @@ bluetooth = ['bluetooth_traits', 'script_bindings/bluetooth']
 crown = ['js/crown']
 debugmozjs = ['js/debugmozjs']
 jitspew = ['js/jitspew']
+js_backtrace = []
 profilemozjs = ['js/profilemozjs']
+refcell_backtrace = ["accountable-refcell"]
 testbinding = ["script_bindings/testbinding"]
 tracing = ["dep:tracing", "script_bindings/tracing"]
 webgl_backtrace = ["canvas_traits/webgl_backtrace"]
-js_backtrace = []
-refcell_backtrace = ["accountable-refcell"]
-webxr = ["webxr-api", "script_bindings/webxr"]
 webgpu = ["script_bindings/webgpu", "script_traits/webgpu"]
+webxr = ["webxr-api", "script_bindings/webxr"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }
@@ -99,10 +99,10 @@ parking_lot = { workspace = true }
 percent-encoding = { workspace = true }
 phf = "0.11"
 pixels = { path = "../pixels" }
-rustc-hash = { workspace = true }
 profile_traits = { workspace = true }
 range = { path = "../range" }
 regex = { workspace = true }
+rustc-hash = { workspace = true }
 script_bindings = { path = "../script_bindings" }
 script_traits = { workspace = true }
 selectors = { workspace = true }

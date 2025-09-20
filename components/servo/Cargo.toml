@@ -13,6 +13,7 @@ path = "lib.rs"
 crate-type = ["rlib"]
 
 [features]
+background_hang_monitor = ["background_hang_monitor/sampler"]
 bluetooth = [
     "bluetooth_traits",
     "dep:bluetooth",
@@ -21,17 +22,16 @@ bluetooth = [
     "script/bluetooth",
     "script_traits/bluetooth",
 ]
-default = ["clipboard", "vello_cpu"]
 clipboard = ["dep:arboard"]
 crown = ["script/crown"]
 debugmozjs = ["script/debugmozjs"]
-background_hang_monitor = ["background_hang_monitor/sampler"]
+default = ["clipboard", "vello_cpu"]
+dynamic_freetype = ["webrender/dynamic_freetype"]
 jitspew = ["script/jitspew"]
 js_backtrace = ["script/js_backtrace"]
 media-gstreamer = ["servo-media-gstreamer", "gstreamer"]
 native-bluetooth = ["bluetooth/native-bluetooth"]
 no-wgl = ["mozangle/egl", "mozangle/build_dlls", "surfman/sm-angle-default", "compositing_traits/no-wgl"]
-dynamic_freetype = ["webrender/dynamic_freetype"]
 profilemozjs = ["script/profilemozjs"]
 refcell_backtrace = ["script/refcell_backtrace"]
 testbinding = ["script/testbinding"]
@@ -44,10 +44,17 @@ tracing = [
     "profile_traits/tracing",
     "script/tracing",
 ]
+vello = ["constellation/vello"]
+vello_cpu = ["constellation/vello_cpu"]
 webgl_backtrace = [
     "script/webgl_backtrace",
     "webgl/webgl_backtrace",
     "canvas_traits/webgl_backtrace",
+]
+webgpu = [
+    "script/webgpu",
+    "constellation/webgpu",
+    "constellation_traits/webgpu",
 ]
 webxr = [
     "dep:webxr",
@@ -56,22 +63,13 @@ webxr = [
     "webgl/webxr",
     "script/webxr",
 ]
-webgpu = [
-    "script/webgpu",
-    "constellation/webgpu",
-    "constellation_traits/webgpu",
-]
-vello = ["constellation/vello"]
-vello_cpu = ["constellation/vello_cpu"]
 
 [dependencies]
 background_hang_monitor = { path = "../background_hang_monitor" }
 base = { workspace = true }
-rustc-hash = { workspace = true }
 bincode = { workspace = true }
 bluetooth = { path = "../bluetooth", optional = true }
 bluetooth_traits = { workspace = true, optional = true }
-webgl = { path = "../webgl", default-features = false }
 canvas_traits = { workspace = true }
 compositing = { path = "../compositing" }
 compositing_traits = { workspace = true }
@@ -100,6 +98,7 @@ parking_lot = { workspace = true }
 profile = { path = "../profile" }
 profile_traits = { workspace = true }
 rayon = { workspace = true }
+rustc-hash = { workspace = true }
 script = { path = "../script" }
 script_traits = { workspace = true }
 serde = { workspace = true }
@@ -116,6 +115,7 @@ stylo_traits = { workspace = true }
 surfman = { workspace = true }
 tracing = { workspace = true, optional = true }
 url = { workspace = true }
+webgl = { path = "../webgl", default-features = false }
 webgpu = { path = "../webgpu" }
 webrender = { workspace = true }
 webrender_api = { workspace = true }

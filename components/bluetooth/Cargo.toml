@@ -33,6 +33,6 @@ blurdroid = { version = "0.1.2", optional = true }
 blurmac = { path = "../../third_party/blurmac", optional = true }
 
 [features]
-default = ["bluetooth-test"]
-native-bluetooth = ["blurz", "blurdroid", "blurmac", "bluetooth-test"]
 bluetooth-test = ["blurmock"]
+default = ["bluetooth-test"]
+native-bluetooth = ["bluetooth-test", "blurdroid", "blurmac", "blurz"]

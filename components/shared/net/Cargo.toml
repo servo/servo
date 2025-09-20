@@ -22,7 +22,6 @@ crossbeam-channel = { workspace = true }
 data-url = { workspace = true }
 embedder_traits = { workspace = true }
 headers = { workspace = true }
-rustc-hash = { workspace = true }
 http = { workspace = true }
 hyper-util = { workspace = true }
 hyper_serde = { workspace = true }
@@ -35,6 +34,7 @@ num-traits = { workspace = true }
 percent-encoding = { workspace = true }
 pixels = { path = "../../pixels" }
 profile_traits = { path = "../profile" }
+rustc-hash = { workspace = true }
 rustls-pki-types = { workspace = true }
 serde = { workspace = true }
 servo_arc = { workspace = true }

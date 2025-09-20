@@ -13,10 +13,10 @@ authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
 edition = "2024"
 publish = false
-# We have yet to decide on a policy for updating the minimum supported rust version.
-# Before increasing this, please open a discussion on zulip explaining the reason
-# why we should consider increasing our minimum supported rust version.
-# Please also note, that the **default** rust version in rust-toolchain.toml may be
+# We have yet to decide on a policy for updating the minimum supported Rust version.
+# Before increasing this, please open a discussion on Zulip explaining the reason
+# why we should consider increasing our minimum supported Rust version.
+# Please also note, that the **default** Rust version in rust-toolchain.toml may be
 # bumped freely.
 rust-version = "1.86.0"
 
@@ -122,10 +122,10 @@ rayon = "1"
 read-fonts = "0.33.1"
 regex = "1.11"
 resvg = "0.45.0"
+rustc-hash = "2.1.1"
 rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12"] }
 rustls-pemfile = "2.0"
 rustls-pki-types = "1.12"
-rustc-hash = "2.1.1"
 script_traits = { path = "components/shared/script" }
 selectors = { git = "https://github.com/servo/stylo", branch = "2025-09-02" }
 serde = "1.0.225"

@@ -15,7 +15,7 @@ test = false
 doctest = false
 
 [dependencies]
-async-compression = { version = "0.4.12", default-features = false, features = ["tokio", "brotli", "gzip", "zlib", "zstd"] }
+async-compression = { version = "0.4.12", default-features = false, features = ["brotli", "gzip", "tokio", "zlib", "zstd"] }
 async-recursion = "1.1"
 async-tungstenite = { workspace = true }
 base = { workspace = true }
@@ -31,7 +31,6 @@ data-url = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
 fst = "0.4"
-rustc-hash = { workspace = true }
 futures = { version = "0.3", package = "futures" }
 futures-core = { version = "0.3.30", default-features = false }
 futures-util = { version = "0.3.30", default-features = false }
@@ -56,12 +55,13 @@ nom = { workspace = true }
 pixels = { path = "../pixels" }
 profile_traits = { workspace = true }
 rayon = { workspace = true }
+resvg = { workspace = true }
+rusqlite = { version = "0.37", features = ["bundled"] }
+rustc-hash = { workspace = true }
 rustls = { workspace = true }
 rustls-pemfile = { workspace = true }
 rustls-pki-types = { workspace = true }
-resvg = { workspace = true }
-rusqlite = { version = "0.37", features = ["bundled"] }
-sea-query = { version = "1.0.0-rc.9", default-features = false, features = ["derive", "backend-sqlite"] }
+sea-query = { version = "1.0.0-rc.9", default-features = false, features = ["backend-sqlite", "derive"] }
 sea-query-rusqlite = { version = "0.8.0-rc.8" }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -70,7 +70,7 @@ servo_config = { path = "../config" }
 servo_url = { path = "../url" }
 sha2 = "0.10"
 time = { workspace = true }
-tokio = { workspace = true, features = ["sync", "macros", "rt-multi-thread"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
 tokio-rustls = { workspace = true }
 tokio-stream = "0.1"
 tokio-util = { version = "0.7.12", default-features = false, features = ["codec", "io"] }
