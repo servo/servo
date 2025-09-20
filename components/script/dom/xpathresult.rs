@@ -211,20 +211,14 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-xpathresult-invaliditeratorstate>
-    fn GetInvalidIteratorState(&self) -> Fallible<bool> {
-        let is_iterator_invalid = self.iterator_invalid.get();
-        if is_iterator_invalid ||
-            matches!(
-                self.result_type.get(),
-                XPathResultType::OrderedNodeIterator | XPathResultType::UnorderedNodeIterator
-            )
-        {
-            Ok(is_iterator_invalid)
-        } else {
-            Err(Error::Type(
-                "Can't iterate on XPathResult that is not a node-set".to_string(),
-            ))
-        }
+    fn InvalidIteratorState(&self) -> bool {
+        let is_iterator = matches!(
+            self.result_type.get(),
+            XPathResultType::OrderedNodeIterator | XPathResultType::UnorderedNodeIterator
+        );
+        let has_been_invalidated = self.iterator_invalid.get();
+
+        is_iterator && has_been_invalidated
     }
 
     /// <https://dom.spec.whatwg.org/#dom-xpathresult-snapshotlength>
