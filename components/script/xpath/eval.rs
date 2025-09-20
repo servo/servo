@@ -33,9 +33,12 @@ pub(crate) enum Error {
     UnknownFunction {
         name: QualName,
     },
-    UnknownVariable {
-        name: QualName,
-    },
+    /// It is not clear where variables used in XPath expression should come from.
+    /// Firefox throws "NS_ERROR_ILLEGAL_VALUE" when using them, chrome seems to return
+    /// an empty result. We also error out.
+    ///
+    /// See <https://github.com/whatwg/dom/issues/67>
+    CannotUseVariables,
     UnknownNamespace {
         prefix: String,
     },
@@ -58,7 +61,7 @@ impl std::fmt::Display for Error {
             Error::NotANodeset => write!(f, "expression did not evaluate to a nodeset"),
             Error::InvalidPath => write!(f, "invalid path expression"),
             Error::UnknownFunction { name } => write!(f, "unknown function {:?}", name),
-            Error::UnknownVariable { name } => write!(f, "unknown variable {:?}", name),
+            Error::CannotUseVariables => write!(f, "cannot use variables"),
             Error::UnknownNamespace { prefix } => {
                 write!(f, "unknown namespace prefix {:?}", prefix)
             },
@@ -745,7 +748,7 @@ impl Evaluatable for PrimaryExpr {
     fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error> {
         match self {
             PrimaryExpr::Literal(literal) => literal.evaluate(context),
-            PrimaryExpr::Variable(_qname) => todo!(),
+            PrimaryExpr::Variable(_qname) => Err(Error::CannotUseVariables),
             PrimaryExpr::Parenthesized(expr) => expr.evaluate(context),
             PrimaryExpr::ContextItem => Ok(Value::Nodeset(vec![context.context_node.clone()])),
             PrimaryExpr::Function(core_function) => core_function.evaluate(context),
