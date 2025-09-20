@@ -20,7 +20,7 @@ import subprocess
 import sys
 import textwrap
 from time import sleep
-from typing import Any
+from typing import Any, Optional, List
 from pathlib import Path
 
 import tidy
@@ -162,6 +162,8 @@ class MachCommands(CommandBase):
     @CommandArgument(
         "--nocapture", default=False, action="store_true", help="Run tests with nocapture ( show test stdout )"
     )
+    @CommandArgument("--code-coverage", default=False, action="store_true", help="Run in code coverage mode")
+    @CommandArgument("--llvm-cov-option", default=None, action="append", help="Additional options for llvm-cov")
     @CommandBase.common_command_arguments(build_configuration=True, build_type=True)
     def test_unit(
         self,
@@ -169,6 +171,8 @@ class MachCommands(CommandBase):
         test_name: list[str] | None = None,
         package: str | None = None,
         bench: bool = False,
+        code_coverage: bool = False,
+        llvm_cov_option: Optional[List[str]] = None,
         nocapture: bool = False,
         **kwargs: Any,
     ) -> int:
@@ -241,8 +245,7 @@ class MachCommands(CommandBase):
         if len(packages) == 0 and len(in_crate_packages) == 0:
             return 0
 
-        # Gather Cargo build timings (https://doc.rust-lang.org/cargo/reference/timings.html).
-        args: list[str] = ["--timings"]
+        args: list[str] = []
 
         if build_type.is_release():
             args += ["--release"]
@@ -261,10 +264,31 @@ class MachCommands(CommandBase):
             args += ["--", "--nocapture"]
 
         env = self.build_env()
-        result = call(["cargo", "bench" if bench else "test"], cwd="support/crown")
+
+        crown_cargo_command: List[str] = ["cargo"]
+        cargo_command: str
+        if bench:
+            cargo_command = "bench"
+            if code_coverage:
+                print(
+                    "Error: Invalid argument combination for `./mach test-unit`. "
+                    "`--bench` and `--code-coverage` are mutually exclusive."
+                )
+                exit(1)
+        elif code_coverage:
+            cargo_llvm_cov_options: List[str] = llvm_cov_option or []
+            crown_cargo_command.extend(["llvm-cov", "test"])
+            crown_cargo_command.extend(cargo_llvm_cov_options)
+            cargo_command = "llvm-cov"
+            args.insert(0, "test")
+            args.extend(cargo_llvm_cov_options)
+        else:
+            crown_cargo_command.append("test")
+            cargo_command = "test"
+        result = call(crown_cargo_command, cwd="support/crown")
         if result != 0:
             return result
-        result = self.run_cargo_build_like_command("bench" if bench else "test", args, env=env, **kwargs)
+        result = self.run_cargo_build_like_command(cargo_command, args, env=env, **kwargs)
         assert isinstance(result, int)
         return result
 
