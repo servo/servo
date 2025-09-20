@@ -10,7 +10,8 @@ use nom::error::{Error as NomError, ErrorKind as NomErrorKind, ParseError as Nom
 use nom::multi::{many0, separated_list0};
 use nom::sequence::{delimited, pair, preceded};
 use nom::{AsChar, Finish, IResult, Input, Parser};
-use crate::dom::bindings::xmlname::{is_valid_start, is_valid_continuation};
+
+use crate::dom::bindings::xmlname::{is_valid_continuation, is_valid_start};
 
 pub(crate) fn parse(input: &str) -> Result<Expr, OwnedParserError> {
     let (_, ast) = expr(input).finish().map_err(OwnedParserError::from)?;
@@ -989,7 +990,7 @@ fn ncname(input: &str) -> IResult<&str, &str> {
         <T as Input>::Item: AsChar,
     {
         input.split_at_position1_complete(
-            |character| !is_valid_continuation(character.as_char())|| character.as_char() == ':',
+            |character| !is_valid_continuation(character.as_char()) || character.as_char() == ':',
             NomErrorKind::OneOf,
         )
     }
