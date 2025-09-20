@@ -164,7 +164,7 @@ pub fn convert_value_to_key(
     // Step 2: If seen contains input, then return invalid.
     for s in &seen {
         if s.get() == input.get() {
-            return Err(Error::Data);
+            return Ok(ConversionResult::Invalid);
         }
     }
 
