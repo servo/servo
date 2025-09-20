@@ -115,7 +115,7 @@ egui-file-dialog = "0.11.0"
 egui-winit = { version = "0.32.3", default-features = false, features = ["accesskit", "clipboard", "wayland"] }
 egui_glow = { version = "0.32.3", features = ["winit"] }
 gilrs = "0.11.0"
-glow = "0.16.0"
+glow = { workspace = true }
 headers = { workspace = true }
 net = { path = "../../components/net" }
 net_traits = { workspace = true }

@@ -19,7 +19,7 @@ base = { workspace = true }
 bincode = { workspace = true }
 bitflags = { workspace = true }
 crossbeam-channel = { workspace = true }
-dpi = { version = "0.1" }
+dpi = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 gleam = { workspace = true }
@@ -30,7 +30,7 @@ log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 profile_traits = { path = '../profile' }
-raw-window-handle = "0.6"
+raw-window-handle = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 servo_geometry = { path = "../../geometry" }
