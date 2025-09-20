@@ -218,17 +218,35 @@ impl IDBObjectStore {
             serialized_key = Some(convert_value_to_key(cx, key, None)?.into_result()?);
         } else {
             // Step 11: We should use in-line keys instead
-            if let Some(Ok(ExtractionResult::Key(kpk))) = self
+            // Step 11.1: Let kpk be the result of running the steps to extract a
+            // key from a value using a key path with clone and store’s key path.
+            let extraction_result = self
                 .key_path
                 .as_ref()
-                .map(|p| extract_key(cx, value, p, None))
-            {
-                serialized_key = Some(kpk);
-            } else {
-                if !self.has_key_generator() {
-                    return Err(Error::Data);
-                }
-                serialized_key = None;
+                .map(|p| extract_key(cx, value, p, None));
+
+            match extraction_result {
+                Some(Ok(ExtractionResult::Failure)) | None => {
+                    // Step 11.4. Otherwise:
+                    // Step 11.4.1. If store does not have a key generator, throw
+                    // a "DataError" DOMException.
+                    if !self.has_key_generator() {
+                        return Err(Error::Data);
+                    }
+                    // Stept 11.4.2. Otherwise, if the steps to check that a key could
+                    // be injected into a value with clone and store’s key path return
+                    // false, throw a "DataError" DOMException.
+                    // TODO
+                    serialized_key = None;
+                },
+                // Step 11.1. Rethrow any exceptions.
+                Some(extraction_result) => match extraction_result? {
+                    // Step 11.2. If kpk is invalid, throw a "DataError" DOMException.
+                    ExtractionResult::Invalid => return Err(Error::Data),
+                    // Step 11.3. If kpk is not failure, let key be kpk.
+                    ExtractionResult::Key(kpk) => serialized_key = Some(kpk),
+                    ExtractionResult::Failure => unreachable!(),
+                },
             }
         }
 
