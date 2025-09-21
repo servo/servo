@@ -590,7 +590,7 @@ impl Handler {
                 pointer_input_state.y = y; // Step 5 - 6
             }
 
-            // Step 8. If lasts is true, return.
+            // Step 8. If last is true, return.
             if last {
                 return;
             }
