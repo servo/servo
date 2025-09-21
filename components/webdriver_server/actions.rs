@@ -587,7 +587,7 @@ impl Handler {
                 let _ = self.send_message_to_embedder(cmd_msg);
                 // Step 7.3. Let input state's x property equal x and y property equal y.
                 pointer_input_state.x = x;
-                pointer_input_state.y = y; // Step 5 - 6
+                pointer_input_state.y = y;
             }
 
             // Step 8. If last is true, return.
