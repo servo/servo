@@ -7,8 +7,8 @@ use std::cell::Cell;
 use base::IpcSend;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use net_traits::indexeddb_thread::{IndexedDBThreadMsg, KeyPath, SyncOperation};
 use profile_traits::ipc;
+use storage_traits::indexeddb_thread::{IndexedDBThreadMsg, KeyPath, SyncOperation};
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -77,7 +77,7 @@ impl IDBDatabase {
     }
 
     fn get_idb_thread(&self) -> IpcSender<IndexedDBThreadMsg> {
-        self.global().resource_threads().sender()
+        self.global().storage_threads().sender()
     }
 
     pub fn get_name(&self) -> DOMString {

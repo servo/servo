@@ -67,7 +67,6 @@ use net_traits::image_cache::{
     ImageCache, ImageCacheResponseMessage, ImageLoadListener, ImageResponse, PendingImageId,
     PendingImageResponse, RasterizationCompleteResponse,
 };
-use net_traits::storage_thread::StorageType;
 use num_traits::ToPrimitive;
 use profile_traits::generic_channel as ProfiledGenericChannel;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
@@ -83,6 +82,8 @@ use servo_arc::Arc as ServoArc;
 use servo_config::{opts, pref};
 use servo_geometry::{DeviceIndependentIntRect, f32_rect_to_au_rect};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
+use storage_traits::StorageThreads;
+use storage_traits::storage_thread::StorageType;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::properties::PropertyId;
 use style::properties::style_structs::Font;
@@ -3206,6 +3207,7 @@ impl Window {
         image_cache_sender: IpcSender<ImageCacheResponseMessage>,
         image_cache: Arc<dyn ImageCache>,
         resource_threads: ResourceThreads,
+        storage_threads: StorageThreads,
         #[cfg(feature = "bluetooth")] bluetooth_thread: IpcSender<BluetoothRequest>,
         mem_profiler_chan: MemProfilerChan,
         time_profiler_chan: TimeProfilerChan,
@@ -3253,6 +3255,7 @@ impl Window {
                 constellation_chan,
                 embedder_chan,
                 resource_threads,
+                storage_threads,
                 origin,
                 creation_url,
                 Some(top_level_creation_url),

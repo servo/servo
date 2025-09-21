@@ -27,13 +27,14 @@ use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{Destination, InsecureRequestsPolicy, Referrer, RequestBody};
-use net_traits::storage_thread::StorageType;
 use net_traits::{ReferrerPolicy, ResourceThreads};
 use profile_traits::mem::MemoryReportResult;
 use profile_traits::{mem, time as profile_time};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
+use storage_traits::StorageThreads;
+use storage_traits::storage_thread::StorageType;
 use strum_macros::IntoStaticStr;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPU, WebGPUAdapterResponse};
@@ -434,6 +435,8 @@ pub struct IFrameLoadInfoWithData {
 pub struct WorkerGlobalScopeInit {
     /// Chan to a resource thread
     pub resource_threads: ResourceThreads,
+    /// Chan to a storage thread
+    pub storage_threads: StorageThreads,
     /// Chan to the memory profiler
     pub mem_profiler_chan: mem::ProfilerChan,
     /// Chan to the time profiler

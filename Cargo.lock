@@ -1601,6 +1601,7 @@ dependencies = [
  "servo_config",
  "servo_rand",
  "servo_url",
+ "storage_traits",
  "stylo",
  "stylo_traits",
  "tracing",
@@ -1636,6 +1637,7 @@ dependencies = [
  "servo_config",
  "servo_malloc_size_of",
  "servo_url",
+ "storage_traits",
  "strum",
  "strum_macros",
  "stylo_traits",
@@ -5054,6 +5056,8 @@ dependencies = [
  "servo_config",
  "servo_geometry",
  "servo_url",
+ "storage",
+ "storage_traits",
  "stylo",
  "stylo_traits",
  "surfman",
@@ -5529,7 +5533,6 @@ dependencies = [
  "async-tungstenite",
  "base",
  "base64 0.22.1",
- "bincode",
  "bytes",
  "chrono",
  "compositing_traits",
@@ -5565,13 +5568,10 @@ dependencies = [
  "profile_traits",
  "rayon",
  "resvg",
- "rusqlite",
  "rustc-hash 2.1.1",
  "rustls",
  "rustls-pemfile",
  "rustls-pki-types",
- "sea-query",
- "sea-query-rusqlite",
  "serde",
  "serde_json",
  "servo_arc",
@@ -5579,7 +5579,6 @@ dependencies = [
  "servo_malloc_size_of",
  "servo_url",
  "sha2",
- "tempfile",
  "time",
  "tokio",
  "tokio-rustls",
@@ -7375,6 +7374,7 @@ dependencies = [
  "servo_rand",
  "servo_url",
  "smallvec",
+ "storage_traits",
  "strum",
  "strum_macros",
  "stylo",
@@ -7479,6 +7479,7 @@ dependencies = [
  "servo_config",
  "servo_malloc_size_of",
  "servo_url",
+ "storage_traits",
  "strum",
  "strum_macros",
  "stylo_atoms",
@@ -8251,6 +8252,47 @@ name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
+
+[[package]]
+name = "storage"
+version = "0.0.1"
+dependencies = [
+ "base",
+ "bincode",
+ "ipc-channel",
+ "log",
+ "malloc_size_of_derive",
+ "profile_traits",
+ "rusqlite",
+ "rustc-hash 2.1.1",
+ "sea-query",
+ "sea-query-rusqlite",
+ "serde",
+ "serde_json",
+ "servo_config",
+ "servo_malloc_size_of",
+ "servo_url",
+ "storage_traits",
+ "tempfile",
+ "tokio",
+ "tokio-rustls",
+ "tokio-stream",
+ "tokio-util",
+ "uuid",
+]
+
+[[package]]
+name = "storage_traits"
+version = "0.0.1"
+dependencies = [
+ "base",
+ "ipc-channel",
+ "malloc_size_of_derive",
+ "profile_traits",
+ "serde",
+ "servo_malloc_size_of",
+ "servo_url",
+]
 
 [[package]]
 name = "strck"

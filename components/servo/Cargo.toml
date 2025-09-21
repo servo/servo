@@ -110,6 +110,8 @@ servo_allocator = { path = "../allocator" }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
+storage = { path = "../storage" }
+storage_traits = { workspace = true }
 stylo = { workspace = true }
 stylo_traits = { workspace = true }
 surfman = { workspace = true }

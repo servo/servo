@@ -8,19 +8,19 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread;
 
+use base::threadpool::ThreadPool;
 use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
 use log::{debug, warn};
-use net_traits::indexeddb_thread::{
-    AsyncOperation, BackendError, BackendResult, CreateObjectResult, DbResult, IndexedDBThreadMsg,
-    IndexedDBTxnMode, KeyPath, SyncOperation,
-};
 use rustc_hash::FxHashMap;
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
+use storage_traits::indexeddb_thread::{
+    AsyncOperation, BackendError, BackendResult, CreateObjectResult, DbResult, IndexedDBThreadMsg,
+    IndexedDBTxnMode, KeyPath, SyncOperation,
+};
 use uuid::Uuid;
 
 use crate::indexeddb::engines::{KvsEngine, KvsOperation, KvsTransaction, SqliteEngine};
-use crate::resource_thread::CoreResourceThreadPool;
 
 pub trait IndexedDBThreadFactory {
     fn new(config_dir: Option<PathBuf>) -> Self;
@@ -196,7 +196,7 @@ struct IndexedDBManager {
     port: IpcReceiver<IndexedDBThreadMsg>,
     idb_base_dir: PathBuf,
     databases: HashMap<IndexedDBDescription, IndexedDBEnvironment<SqliteEngine>>,
-    thread_pool: Arc<CoreResourceThreadPool>,
+    thread_pool: Arc<ThreadPool>,
 }
 
 impl IndexedDBManager {
@@ -215,10 +215,7 @@ impl IndexedDBManager {
             port,
             idb_base_dir,
             databases: HashMap::new(),
-            thread_pool: Arc::new(CoreResourceThreadPool::new(
-                thread_count,
-                "IndexedDB".to_string(),
-            )),
+            thread_pool: Arc::new(ThreadPool::new(thread_count, "IndexedDB".to_string())),
         }
     }
 }

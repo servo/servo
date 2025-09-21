@@ -108,6 +108,7 @@ use servo_geometry::{
 use servo_media::ServoMedia;
 use servo_media::player::context::GlContext;
 use servo_url::ServoUrl;
+use storage::new_storage_threads;
 use style::global_style_data::StyleThreadPool;
 use webgl::WebGLComm;
 #[cfg(feature = "webgpu")]
@@ -1153,11 +1154,14 @@ fn create_constellation(
         time_profiler_chan.clone(),
         mem_profiler_chan.clone(),
         embedder_proxy.clone(),
-        config_dir,
+        config_dir.clone(),
         opts.certificate_path.clone(),
         opts.ignore_certificate_errors,
         Arc::new(protocols),
     );
+
+    let (private_storage_threads, public_storage_threads) =
+        new_storage_threads(mem_profiler_chan.clone(), config_dir);
 
     let system_font_service = Arc::new(
         SystemFontService::spawn(
@@ -1176,6 +1180,8 @@ fn create_constellation(
         system_font_service,
         public_resource_threads,
         private_resource_threads,
+        public_storage_threads,
+        private_storage_threads,
         time_profiler_chan,
         mem_profiler_chan,
         webrender_document,

@@ -9,6 +9,7 @@ use std::sync::{Arc, Mutex};
 use std::{mem, thread};
 
 use base::id::PipelineId;
+use base::threadpool::ThreadPool;
 use compositing_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
 use imsz::imsz_from_reader;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
@@ -34,8 +35,6 @@ use webrender_api::units::DeviceIntSize;
 use webrender_api::{
     ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey as WebRenderImageKey,
 };
-
-use crate::resource_thread::CoreResourceThreadPool;
 
 // We bake in rippy.png as a fallback, in case the embedder does not provide
 // a rippy resource. this version is 253 bytes large, don't exchange it against
@@ -703,7 +702,7 @@ pub struct ImageCacheImpl {
     store: Arc<Mutex<ImageCacheStore>>,
 
     /// Thread pool for image decoding
-    thread_pool: Arc<CoreResourceThreadPool>,
+    thread_pool: Arc<ThreadPool>,
 }
 
 impl ImageCache for ImageCacheImpl {
@@ -730,10 +729,7 @@ impl ImageCache for ImageCacheImpl {
                 pipeline_id: None,
                 key_cache: KeyCache::new(),
             })),
-            thread_pool: Arc::new(CoreResourceThreadPool::new(
-                thread_count,
-                "ImageCache".to_string(),
-            )),
+            thread_pool: Arc::new(ThreadPool::new(thread_count, "ImageCache".to_string())),
         }
     }
 

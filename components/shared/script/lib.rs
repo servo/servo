@@ -38,13 +38,14 @@ use malloc_size_of_derive::MallocSizeOf;
 use media::WindowGLContext;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
-use net_traits::storage_thread::StorageType;
 use pixels::PixelFormat;
 use profile_traits::mem;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_config::prefs::PrefValue;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use storage_traits::StorageThreads;
+use storage_traits::storage_thread::StorageType;
 use strum_macros::IntoStaticStr;
 use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
@@ -330,6 +331,8 @@ pub struct InitialScriptState {
     pub background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
     /// A channel to the resource manager thread.
     pub resource_threads: ResourceThreads,
+    /// A channel to the storage manager thread.
+    pub storage_threads: StorageThreads,
     /// A channel to the bluetooth thread.
     #[cfg(feature = "bluetooth")]
     pub bluetooth_sender: IpcSender<BluetoothRequest>,

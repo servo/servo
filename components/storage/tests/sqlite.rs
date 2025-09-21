@@ -4,15 +4,15 @@
 use std::collections::VecDeque;
 use std::sync::Arc;
 
-use net::indexeddb::engines::{KvsEngine, KvsOperation, KvsTransaction, SqliteEngine};
-use net::indexeddb::idb_thread::IndexedDBDescription;
-use net::resource_thread::CoreResourceThreadPool;
-use net_traits::indexeddb_thread::{
+use base::threadpool::ThreadPool;
+use serde::{Deserialize, Serialize};
+use servo_url::ImmutableOrigin;
+use storage::indexeddb::engines::{KvsEngine, KvsOperation, KvsTransaction, SqliteEngine};
+use storage::indexeddb::idb_thread::IndexedDBDescription;
+use storage_traits::indexeddb_thread::{
     AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, CreateObjectResult,
     IndexedDBKeyRange, IndexedDBKeyType, IndexedDBTxnMode, KeyPath, PutItemResult,
 };
-use serde::{Deserialize, Serialize};
-use servo_url::ImmutableOrigin;
 use url::Host;
 
 fn test_origin() -> ImmutableOrigin {
@@ -23,8 +23,8 @@ fn test_origin() -> ImmutableOrigin {
     )
 }
 
-fn get_pool() -> Arc<CoreResourceThreadPool> {
-    Arc::new(CoreResourceThreadPool::new(1, "test".to_string()))
+fn get_pool() -> Arc<ThreadPool> {
+    Arc::new(ThreadPool::new(1, "test".to_string()))
 }
 
 #[test]

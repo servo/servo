@@ -15,7 +15,6 @@ mod hsts;
 mod http_cache;
 mod http_loader;
 mod resource_thread;
-mod sqlite;
 mod subresource_integrity;
 
 use core::convert::Infallible;
@@ -26,6 +25,7 @@ use std::net::TcpListener as StdTcpListener;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, LazyLock, Mutex, RwLock, Weak};
 
+use base::threadpool::ThreadPool;
 use content_security_policy as csp;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::DevtoolsControlMsg;
@@ -45,7 +45,6 @@ use net::fetch::methods::{self, FetchContext};
 use net::filemanager_thread::FileManager;
 use net::protocols::ProtocolRegistry;
 use net::request_interceptor::RequestInterceptor;
-use net::resource_thread::CoreResourceThreadPool;
 use net::test::HttpState;
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::request::Request;
@@ -163,7 +162,7 @@ fn create_http_state(fc: Option<EmbedderProxy>) -> HttpState {
 fn new_fetch_context(
     dc: Option<Sender<DevtoolsControlMsg>>,
     fc: Option<EmbedderProxy>,
-    pool_handle: Option<Weak<CoreResourceThreadPool>>,
+    pool_handle: Option<Weak<ThreadPool>>,
 ) -> FetchContext {
     let _ = &*ASYNC_RUNTIME;
 

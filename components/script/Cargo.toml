@@ -115,6 +115,7 @@ servo_geometry = { path = "../geometry" }
 servo_rand = { path = "../rand" }
 servo_url = { path = "../url" }
 smallvec = { workspace = true }
+storage_traits = { workspace = true }
 strum = { workspace = true }
 strum_macros = { workspace = true }
 stylo = { workspace = true }
