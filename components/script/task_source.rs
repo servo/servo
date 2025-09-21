@@ -29,6 +29,8 @@ pub(crate) enum TaskSourceName {
     /// <https://w3c.github.io/webcrypto/#dfn-crypto-task-source-0>
     Crypto,
     DatabaseAccess,
+    /// <https://fetch.spec.whatwg.org/#deferred-fetch-task-source>
+    DeferredFetch,
     DOMManipulation,
     FileReading,
     /// <https://drafts.csswg.org/css-font-loading/#task-source>
@@ -60,6 +62,7 @@ impl From<TaskSourceName> for ScriptThreadEventCategory {
             TaskSourceName::Clipboard => ScriptThreadEventCategory::ScriptEvent,
             TaskSourceName::Crypto => ScriptThreadEventCategory::ScriptEvent,
             TaskSourceName::DatabaseAccess => ScriptThreadEventCategory::ScriptEvent,
+            TaskSourceName::DeferredFetch => ScriptThreadEventCategory::NetworkEvent,
             TaskSourceName::DOMManipulation => ScriptThreadEventCategory::ScriptEvent,
             TaskSourceName::FileReading => ScriptThreadEventCategory::FileRead,
             TaskSourceName::FontLoading => ScriptThreadEventCategory::FontLoading,

@@ -314,6 +314,7 @@ pub(crate) mod eventsource;
 pub(crate) mod eventtarget;
 pub(crate) mod extendableevent;
 pub(crate) mod extendablemessageevent;
+pub(crate) mod fetchlaterresult;
 pub(crate) mod file;
 pub(crate) mod filelist;
 pub(crate) mod filereader;

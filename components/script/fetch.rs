@@ -2,13 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use base::id::WebViewId;
 use ipc_channel::ipc;
+use js::jsapi::{ExceptionStackBehavior, JS_IsExceptionPending};
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
+use js::rust::wrappers::JS_SetPendingException;
 use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, Referrer,
@@ -20,6 +24,7 @@ use net_traits::{
     ResourceTimingType, cancel_async_fetch,
 };
 use servo_url::ServoUrl;
+use timers::TimerEventRequest;
 
 use crate::body::BodyMixin;
 use crate::dom::abortsignal::AbortAlgorithm;
@@ -29,14 +34,17 @@ use crate::dom::bindings::codegen::Bindings::RequestBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::Response_Binding::ResponseMethods;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
-use crate::dom::bindings::error::Error;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::{DeferredRequestInit, WindowMethods};
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::import::module::SafeJSContext;
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::csp::{GlobalCspReporting, Violation};
+use crate::dom::fetchlaterresult::FetchLaterResult;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::Guard;
 use crate::dom::performanceresourcetiming::InitiatorType;
@@ -44,6 +52,7 @@ use crate::dom::promise::Promise;
 use crate::dom::request::Request;
 use crate::dom::response::Response;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
+use crate::dom::window::Window;
 use crate::network_listener::{self, PreInvoke, ResourceTimingListener, submit_timing_data};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::CanGc;
@@ -266,6 +275,189 @@ pub(crate) fn Fetch(
     promise
 }
 
+/// <https://fetch.spec.whatwg.org/#queue-a-deferred-fetch>
+fn queue_deferred_fetch(
+    request: NetTraitsRequest,
+    activate_after: Finite<f64>,
+    global: &GlobalScope,
+) -> Arc<Mutex<DeferredFetchRecord>> {
+    let trusted_global = Trusted::new(global);
+    // Step 1. Populate request from client given request.
+    // TODO
+    // Step 2. Set request’s service-workers mode to "none".
+    // TODO
+    // Step 3. Set request’s keepalive to true.
+    // TODO
+    // Step 4. Let deferredRecord be a new deferred fetch record whose request is request, and whose notify invoked is onActivatedWithoutTermination.
+    let deferred_record = Arc::new(Mutex::new(DeferredFetchRecord {
+        request,
+        global: trusted_global.clone(),
+        invoke_state: Cell::new(DeferredFetchRecordInvokeState::Pending),
+        activated: Cell::new(false),
+    }));
+    // Step 5. Append deferredRecord to request’s client’s fetch group’s deferred fetch records.
+    // TODO
+    // Step 6. If activateAfter is non-null, then run the following steps in parallel:
+    let deferred_record_clone = deferred_record.clone();
+    global.schedule_timer(TimerEventRequest {
+        callback: Box::new(move || {
+            // Step 6.2. Process deferredRecord.
+            deferred_record_clone.lock().unwrap().process();
+
+            // Last step of https://fetch.spec.whatwg.org/#process-a-deferred-fetch
+            //
+            // Step 4. Queue a global task on the deferred fetch task source with
+            // deferredRecord’s request’s client’s global object to run deferredRecord’s notify invoked.
+            let deferred_record_clone = deferred_record_clone.clone();
+            trusted_global
+                .root()
+                .task_manager()
+                .deferred_fetch_task_source()
+                .queue(task!(notify_deferred_record: move || {
+                    deferred_record_clone.lock().unwrap().activate();
+                }));
+        }),
+        // Step 6.1. The user agent should wait until any of the following conditions is met:
+        duration: Duration::from_millis(*activate_after as u64),
+    });
+    // Step 7. Return deferredRecord.
+    deferred_record
+}
+
+/// <https://fetch.spec.whatwg.org/#dom-window-fetchlater>
+#[allow(non_snake_case, unsafe_code)]
+pub(crate) fn FetchLater(
+    window: &Window,
+    input: RequestInfo,
+    init: RootedTraceableBox<DeferredRequestInit>,
+    can_gc: CanGc,
+) -> Fallible<DomRoot<FetchLaterResult>> {
+    let global_scope = window.upcast();
+    // Step 1. Let requestObject be the result of invoking the initial value
+    // of Request as constructor with input and init as arguments.
+    let request_object = Request::constructor(global_scope, None, can_gc, input, &init.parent)?;
+    // Step 2. If requestObject’s signal is aborted, then throw signal’s abort reason.
+    let signal = request_object.Signal();
+    if signal.aborted() {
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut abort_reason = UndefinedValue());
+        signal.Reason(cx, abort_reason.handle_mut());
+        unsafe {
+            assert!(!JS_IsExceptionPending(*cx));
+            JS_SetPendingException(*cx, abort_reason.handle(), ExceptionStackBehavior::Capture);
+        }
+        return Err(Error::JSFailed);
+    }
+    // Step 3. Let request be requestObject’s request.
+    let request = request_object.get_request();
+    // Step 4. Let activateAfter be null.
+    let mut activate_after = Finite::wrap(0_f64);
+    // Step 5. If init is given and init["activateAfter"] exists, then set
+    // activateAfter to init["activateAfter"].
+    if let Some(init_activate_after) = init.activateAfter.as_ref() {
+        activate_after = *init_activate_after;
+    }
+    // Step 6. If activateAfter is less than 0, then throw a RangeError.
+    if *activate_after < 0.0 {
+        return Err(Error::Range("activateAfter must be at least 0".to_owned()));
+    }
+    // Step 7. If this’s relevant global object’s associated document is not fully active, then throw a TypeError.
+    if !window.Document().is_fully_active() {
+        return Err(Error::Type("Document is not fully active".to_owned()));
+    }
+    let url = request.url();
+    // Step 8. If request’s URL’s scheme is not an HTTP(S) scheme, then throw a TypeError.
+    if !matches!(url.scheme(), "http" | "https") {
+        return Err(Error::Type("URL is not http(s)".to_owned()));
+    }
+    // Step 9. If request’s URL is not a potentially trustworthy URL, then throw a SecurityError.
+    if !url.is_potentially_trustworthy() {
+        return Err(Error::Type("URL is not trustworthy".to_owned()));
+    }
+    // Step 10. If request’s body is not null, and request’s body length is null, then throw a TypeError.
+    if let Some(body) = request.body.as_ref() {
+        if body.len().is_none() {
+            return Err(Error::Type("Body is null".to_owned()));
+        }
+    }
+    // Step 11. If the available deferred-fetch quota given request’s client and request’s URL’s
+    // origin is less than request’s total request length, then throw a "QuotaExceededError" DOMException.
+    // TODO
+    // Step 12. Let activated be false.
+    // Step 13. Let deferredRecord be the result of calling queue a deferred fetch given request,
+    // activateAfter, and the following step: set activated to true.
+    let deferred_record = queue_deferred_fetch(request, activate_after, global_scope);
+    // Step 14. Add the following abort steps to requestObject’s signal: Set deferredRecord’s invoke state to "aborted".
+    signal.add(&AbortAlgorithm::FetchLater(deferred_record.clone()));
+    // Step 15. Return a new FetchLaterResult whose activated getter steps are to return activated.
+    Ok(FetchLaterResult::new(window, deferred_record, can_gc))
+}
+
+/// <https://fetch.spec.whatwg.org/#deferred-fetch-record-invoke-state>
+#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
+enum DeferredFetchRecordInvokeState {
+    Pending,
+    Sent,
+    Aborted,
+}
+
+/// <https://fetch.spec.whatwg.org/#deferred-fetch-record>
+#[derive(MallocSizeOf)]
+pub(crate) struct DeferredFetchRecord {
+    /// <https://fetch.spec.whatwg.org/#deferred-fetch-record-request>
+    request: NetTraitsRequest,
+    /// <https://fetch.spec.whatwg.org/#deferred-fetch-record-invoke-state>
+    invoke_state: Cell<DeferredFetchRecordInvokeState>,
+    global: Trusted<GlobalScope>,
+    activated: Cell<bool>,
+}
+
+impl DeferredFetchRecord {
+    /// Part of step 13 of <https://fetch.spec.whatwg.org/#dom-window-fetchlater>
+    fn activate(&self) {
+        // and the following step: set activated to true.
+        self.activated.set(true);
+    }
+    /// Part of step 14 of <https://fetch.spec.whatwg.org/#dom-window-fetchlater>
+    pub(crate) fn abort(&self) {
+        // Set deferredRecord’s invoke state to "aborted".
+        self.invoke_state
+            .set(DeferredFetchRecordInvokeState::Aborted);
+    }
+    /// Part of step 15 of <https://fetch.spec.whatwg.org/#dom-window-fetchlater>
+    pub(crate) fn activated_getter_steps(&self) -> bool {
+        // whose activated getter steps are to return activated.
+        self.activated.get()
+    }
+    /// <https://fetch.spec.whatwg.org/#process-a-deferred-fetch>
+    fn process(&self) {
+        // Step 1. If deferredRecord’s invoke state is not "pending", then return.
+        if self.invoke_state.get() != DeferredFetchRecordInvokeState::Pending {
+            return;
+        }
+        // Step 2. Set deferredRecord’s invoke state to "sent".
+        self.invoke_state.set(DeferredFetchRecordInvokeState::Sent);
+        // Step 3. Fetch deferredRecord’s request.
+        let url = self.request.url().clone();
+        let fetch_later_listener = Arc::new(Mutex::new(FetchLaterListener {
+            url,
+            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
+            global: self.global.clone(),
+        }));
+        let global = self.global.root();
+        let _realm = enter_realm(&*global);
+        let mut request_init = request_init_from_request(self.request.clone());
+        request_init.policy_container =
+            RequestPolicyContainer::PolicyContainer(global.policy_container());
+        global.fetch(
+            request_init,
+            fetch_later_listener,
+            global.task_manager().networking_task_source().to_sendable(),
+        );
+        // Step 4 is handled by caller
+    }
+}
+
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct FetchContext {
     #[ignore_malloc_size_of = "unclear ownership semantics"]
@@ -450,6 +642,74 @@ impl ResourceTimingListener for FetchContext {
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
         self.response_object.root().global()
+    }
+}
+
+struct FetchLaterListener {
+    /// URL of this request.
+    url: ServoUrl,
+    /// Timing data for this resource.
+    resource_timing: ResourceFetchTiming,
+    /// The global object fetching the report uri violation
+    global: Trusted<GlobalScope>,
+}
+
+impl FetchResponseListener for FetchLaterListener {
+    fn process_request_body(&mut self, _: RequestId) {}
+
+    fn process_request_eof(&mut self, _: RequestId) {}
+
+    fn process_response(
+        &mut self,
+        _: RequestId,
+        fetch_metadata: Result<FetchMetadata, NetworkError>,
+    ) {
+        _ = fetch_metadata;
+    }
+
+    fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
+        _ = chunk;
+    }
+
+    fn process_response_eof(
+        &mut self,
+        _: RequestId,
+        response: Result<ResourceFetchTiming, NetworkError>,
+    ) {
+        _ = response;
+    }
+
+    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn resource_timing(&self) -> &ResourceFetchTiming {
+        &self.resource_timing
+    }
+
+    fn submit_resource_timing(&mut self) {
+        network_listener::submit_timing(self, CanGc::note())
+    }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
+        let global = self.resource_timing_global();
+        global.report_csp_violations(violations, None, None);
+    }
+}
+
+impl ResourceTimingListener for FetchLaterListener {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        (InitiatorType::Fetch, self.url.clone())
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        self.global.root()
+    }
+}
+
+impl PreInvoke for FetchLaterListener {
+    fn should_invoke(&self) -> bool {
+        true
     }
 }
 

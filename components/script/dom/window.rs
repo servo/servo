@@ -110,10 +110,11 @@ use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::MediaQueryListBinding::MediaQueryList_Binding::MediaQueryListMethods;
 use crate::dom::bindings::codegen::Bindings::ReportingObserverBinding::Report;
-use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
+use crate::dom::bindings::codegen::Bindings::RequestBinding::{RequestInfo, RequestInit};
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
-    self, FrameRequestCallback, ScrollBehavior, WindowMethods, WindowPostMessageOptions,
+    self, DeferredRequestInit, FrameRequestCallback, ScrollBehavior, WindowMethods,
+    WindowPostMessageOptions,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     RequestOrUSVString, TrustedScriptOrString, TrustedScriptOrStringOrFunction,
@@ -139,6 +140,7 @@ use crate::dom::document::{AnimationFrameCallback, Document};
 use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::fetchlaterresult::FetchLaterResult;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::history::History;
@@ -1815,6 +1817,16 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         can_gc: CanGc,
     ) -> Rc<Promise> {
         fetch::Fetch(self.upcast(), input, init, comp, can_gc)
+    }
+
+    /// <https://fetch.spec.whatwg.org/#dom-window-fetchlater>
+    fn FetchLater(
+        &self,
+        input: RequestInfo,
+        init: RootedTraceableBox<DeferredRequestInit>,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<FetchLaterResult>> {
+        fetch::FetchLater(self, input, init, can_gc)
     }
 
     #[cfg(feature = "bluetooth")]
