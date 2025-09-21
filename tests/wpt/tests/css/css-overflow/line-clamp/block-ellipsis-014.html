@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>CSS Overflow: the block-ellipsis can be placed at hyphenation opportunities, even if the line would not break</title>
+<title>CSS Overflow: the block-ellipsis cannot be placed at hyphenation opportunities if the line would not break</title>
 <link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
 <link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
-<link rel="match" href="reference/block-ellipsis-014-ref.html">
-<meta name="assert" content="The block-ellipsis is placed after the last soft wrap opportunity in the line box that fits the ellipsis. This happens even with text-wrap: nowrap, since that only prevents line wrapping, rather than removing wrap opportunities.">
+<link rel="match" href="reference/block-ellipsis-013-ref.html">
+<meta name="assert" content="The block-ellipsis is not placed after the last soft wrap opportunity in a line with text-wrap: nowrap.">
 <style>
 .clamp {
   line-clamp: 2;

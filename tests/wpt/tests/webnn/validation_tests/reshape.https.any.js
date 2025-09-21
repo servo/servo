@@ -82,3 +82,19 @@ tests.forEach(
             () => builder.reshape(input, test.newShape, options), regrexp);
       }
     }, test.name));
+
+promise_test(async t => {
+  const builder = new MLGraphBuilder(context);
+
+  const input = builder.input('input', {dataType: 'float32', shape: [2]});
+  const newShape =
+      new Array(context.opSupportLimits().expand.output.rankRange.max + 1)
+          .fill(1);
+  newShape[0] = 2;
+
+  const label = 'reshape_xxx';
+  const options = {label};
+  const regrexp = new RegExp('\\[' + label + '\\]');
+  assert_throws_with_label(
+      () => builder.reshape(input, newShape, options), regrexp);
+}, '[expand] throw if new shape rank exceeds limit');

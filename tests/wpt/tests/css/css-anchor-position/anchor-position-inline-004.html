@@ -51,7 +51,12 @@ body > div {
   height: anchor-size(--a1 height);
 }
 </style>
-<body onload="checkLayoutForAnchorPos('.target')">
+<script>
+  function onload() {
+    document.fonts.ready.then(() => checkLayoutForAnchorPos('.target'));
+  }
+</script>
+<body onload="onload()">
   <!-- The inline anchor appear in a single line inline containing block. -->
   <div class="cb">
     <div>spacer</div>

@@ -70,8 +70,9 @@
       assert_range_equals(anims[1].rangeEnd,
                           { rangeName: 'cover', offset: CSS.percent(100) });
 
-      scroller.scrollTop = 600;  // Start boundary for cover range.
-      await waitForNextFrame();
+      await runAndWaitForFrameUpdate(() => {
+        scroller.scrollTop = 600;  // Start boundary for cover range.
+      });
 
       assert_percents_equal(anims[0].currentTime, 0,
                             'currentTime at start of normal range');

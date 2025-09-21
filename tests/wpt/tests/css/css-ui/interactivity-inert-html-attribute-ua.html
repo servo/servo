@@ -23,10 +23,10 @@
 
   test(() => {
     assert_equals(getComputedStyle(t3).interactivity, "auto");
-  }, "Author interactivity:auto overrides inherited UA [inert] { interactivity: inert }");
+  }, "Author interactivity:auto on a descendant can override inherited UA [inert] { interactivity: inert }");
 
   test(() => {
-    assert_equals(getComputedStyle(t4).interactivity, "auto");
-  }, "Author interactivity:auto overrides UA [inert] { interactivity: inert }");
+    assert_equals(getComputedStyle(t4).interactivity, "inert");
+  }, "Author interactivity:auto does not override UA [inert] { interactivity: inert } on the element itself");
 
 </script>

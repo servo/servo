@@ -112,12 +112,13 @@ function runTest() {
     await waitForCompositorCommit();
 
     let scrollendPromise = null;
+    const TIMEOUT = 2000;
     if (testInfo.target == document.scrollingElement) {
       targetDiv.addEventListener("scrollend", onInvalidScrollEnd);
-      scrollendPromise = createScrollendPromiseForTarget(t, document, 700, true);
+      scrollendPromise = createScrollendPromiseForTarget(t, document, TIMEOUT, true);
     } else {
       document.addEventListener("scrollend", onInvalidScrollEnd);
-      scrollendPromise = createScrollendPromiseForTarget(t, targetDiv, 700, false);
+      scrollendPromise = createScrollendPromiseForTarget(t, targetDiv, TIMEOUT, false);
     }
 
     testInfo.target[testInfo.attribute] = 200;

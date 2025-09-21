@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>document.caretRangeFromPoint()</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/pull/12362" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(() => {
+    const textarea = document.createElement("textarea");
+    document.replaceChild(textarea, document.documentElement);
+    let range = document.caretRangeFromPoint(0, 0);
+    assert_true(range instanceof Range);
+    assert_equals(range.startOffset, 1);
+    assert_equals(range.endOffset, 1);
+    assert_equals(range.startContainer, textarea);
+    assert_equals(range.endContainer, textarea);
+  }, "document.caretRangeFromPoint(0, 0)");
+</script>

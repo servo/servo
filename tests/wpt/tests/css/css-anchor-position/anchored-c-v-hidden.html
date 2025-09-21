@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning Test: Anchor positioned element with content-visibility:hidden</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<style>
+  #anchor {
+    anchor-name: --a;
+    width: 100px;
+    height: 100px;
+  }
+  #anchored {
+    position: absolute;
+    position-anchor: --a;
+    position-area: center;
+    content-visibility: hidden;
+    width: 100px;
+    height: 100px;
+    background-color: green;
+  }
+  #fail { background-color: red; }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="anchor"></div>
+<div id="anchored">
+  <div id="fail">FAIL</div>
+</div>

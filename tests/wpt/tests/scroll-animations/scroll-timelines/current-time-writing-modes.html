@@ -38,13 +38,14 @@ promise_test(async t => {
   assert_percents_equal(verticalScrollTimeline.currentTime, 0,
                         'Unscrolled vertical timeline');
 
-  // The offset in the inline/horizontal direction should be inverted. The
-  // block/vertical direction should be unaffected.
-  scroller.scrollTop = 0.1 * verticalScrollRange;
-  scroller.scrollLeft = -0.8 * horizontalScrollRange;
   // Wait for new animation frame  which allows the timeline to compute new
   // current time.
-  await waitForNextFrame();
+  await runAndWaitForFrameUpdate(() => {
+    // The offset in the inline/horizontal direction should be inverted. The
+    // block/vertical direction should be unaffected.
+    scroller.scrollTop = 0.1 * verticalScrollRange;
+    scroller.scrollLeft = -0.8 * horizontalScrollRange;
+  });
 
   assert_percents_equal(blockScrollTimeline.currentTime, 10,
                         'Scrolled block timeline');

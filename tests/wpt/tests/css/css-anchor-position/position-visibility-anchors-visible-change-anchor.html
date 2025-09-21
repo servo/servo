@@ -62,7 +62,9 @@
       scroller.scrollTop = 100;
       // #target should still be visible because it is anchored to #anchor1,
       // which is still visible.
-      takeScreenshot();
+      waitForAtLeastOneFrame().then(() => {
+        takeScreenshot();
+      });
     });
   });
 </script>

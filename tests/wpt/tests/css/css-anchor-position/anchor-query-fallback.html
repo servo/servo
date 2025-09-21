@@ -60,6 +60,8 @@
     <!-- More complicated fallback values -->
     <div class="target" style="left: anchor(--inexist-anchor left, 50%)" data-offset-x="150"></div>
     <div class="target" style="left: anchor(--inexist-anchor left, calc(20% + 20px))" data-offset-x="80"></div>
+    <div class="target" style="left: calc(anchor(--inexist-anchor left, calc(anchor(--inexist-anchor left, 20%) + 20px)) + 20px)" data-offset-x="100"></div>
+    <div class="target" style="left: calc(anchor(--inexist-anchor left, calc(anchor-size(--inexist-anchor width, 20%) + 20px)) + 20px)" data-offset-x="100"></div>
     <div class="target" style="top: anchor(--a1 left, anchor(--a2 top))" data-offset-y="100"></div>
     <div class="target" style="top: anchor(--a1 left, calc((anchor(--a1 bottom) + anchor(--a2 top)) / 2))" data-offset-y="75"></div>
     <div class="target" style="width: anchor-size(--inexist-anchor width, 50%)" data-expected-width="150"></div>

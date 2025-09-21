@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+
+<style>
+  .content::before {
+    content: "";
+    display: block;
+    width: 256px;
+    height: 256px;
+    background-image: url(/images/lcp-256x256.png);
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+</style>
+
+<button id="navigateButton">Click here!</button>
+<div id="container"></div>
+
+<script>
+  promise_test(async t => {
+    const url = 'soft-nav-1';
+
+    navigateButton.addEventListener('click', async () => {
+      container.innerHTML = `<div><div id="content">Text</div></div>`;
+      history.pushState({}, '', url);
+    }, {once: true});
+
+    // Set up the PerformanceObservers before clicking to avoid races,
+    // and use unbuffered here so we don't get duplicate entries.
+    const softNavPromise = SoftNavigationTestHelper.getPerformanceEntries(
+        "soft-navigation",
+        /* minNumEntries= */ 1);
+    const icpPromise = SoftNavigationTestHelper.getPerformanceEntries(
+        "interaction-contentful-paint",
+        /* minNumEntries= */ 1);
+
+    if (test_driver) {
+      test_driver.click(navigateButton);
+    }
+
+    const helper = new SoftNavigationTestHelper(t);
+
+    // Check if we detected a soft nav.
+    const softNavs = await helper.withTimeoutMessage(
+        softNavPromise, "Soft navigation not detected.", /*timeout=*/ 3000);
+    assert_equals(softNavs.length, 1, 'Expected exactly one soft navigation.');
+    assert_true(
+      softNavs[0].name.endsWith(url),
+      `Unexpected Soft Navigation URL. Expected url to end with ${url} but got ${softNavs[0].name}`);
+
+    // Check that we only get one ICP entry, and that it's for the expected node.
+    const icps = await helper.withTimeoutMessage(
+        icpPromise, 'ICP not detected.', /*timeout=*/ 3000);
+    assert_equals(icps.length, 1, 'Expected exactly one ICP entry.');
+    assert_equals(icps[0].id, 'content', 'Expected ICP candidate to be "content"');
+  }, 'Soft Navigation Detection supports adding nodes with image pseudo elements')
+</script>

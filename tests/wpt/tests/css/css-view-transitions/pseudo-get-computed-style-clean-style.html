@@ -31,7 +31,7 @@ promise_test(async () => {
     // Ensure our style & layout are clean.
     document.documentElement.getBoundingClientRect();
 
-    assert_equals(getComputedStyle(document.documentElement, "::view-transition").position, "fixed", "::view-transition");
+    assert_equals(getComputedStyle(document.documentElement, "::view-transition").position, "absolute", "::view-transition");
     assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").mixBlendMode, "normal", "container(target)");
   });
 
@@ -42,7 +42,7 @@ promise_test(async () => {
   // Ensure our style & layout are clean.
   document.documentElement.getBoundingClientRect();
 
-  assert_equals(getComputedStyle(document.documentElement, "::view-transition").position, "fixed", "::view-transition");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition").position, "absolute", "::view-transition");
   assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").mixBlendMode, "multiply", "container(target)");
 
   await transition.finished;

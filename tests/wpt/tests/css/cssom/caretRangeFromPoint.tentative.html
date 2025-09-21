@@ -1,0 +1,122 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>document.caretRangeFromPoint()</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/pull/12362" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  div {
+    display: inline-block;
+  }
+  canvas {
+    display: block;
+    background: green;
+  };
+</style>
+<div id="div">abc</div>
+<div id="shadow">
+  <template shadowrootmode="open">
+    <div>def</div>
+  </template>
+</div>
+
+<canvas id="canvas" width="500" height="500"></canvas>
+
+<script>
+  test(() => {
+    let range = document.caretRangeFromPoint();
+    assert_true(range instanceof Range);
+    assert_equals(range.startOffset, 0);
+    assert_equals(range.endOffset, 0);
+  }, "document.caretRangeFromPoint() (no supplied coordinates) returns Range with 0 0 values");
+
+  test(() => {
+    const doc = document.implementation.createHTMLDocument("");
+    let range = doc.caretRangeFromPoint(0, 0);
+    assert_equals(range, null);
+  }, "document.caretRangeFromPoint() should return null for a document with no viewport");
+
+  test(() => {
+    assert_equals(document.caretRangeFromPoint(-5, 5), null);
+    assert_equals(document.caretRangeFromPoint(5, -5), null);
+    assert_equals(
+      document.caretRangeFromPoint(document.documentElement.clientWidth * 2, 5),
+      null,
+    );
+    assert_equals(
+      document.caretRangeFromPoint(
+        5,
+        document.documentElement.clientHeight * 2,
+      ),
+      null,
+    );
+  }, "document.caretRangeFromPoint() should return null if given coordinates outside of the viewport");
+
+  test(() => {
+    const rect = div.getBoundingClientRect();
+    const characterWidth = rect.width / div.textContent.length;
+    const characterIndex = 2;
+    const x = rect.left + characterWidth * characterIndex;
+    const y = rect.top + rect.height / 2;
+    const range = document.caretRangeFromPoint(x, y);
+    assert_true(range instanceof Range);
+    assert_equals(range.startContainer, div.childNodes[0]);
+    assert_equals(range.endContainer, div.childNodes[0]);
+    assert_equals(range.startOffset, characterIndex);
+    assert_equals(range.endOffset, characterIndex);
+    assert_true(range.collapsed);
+    range.setEnd(div.childNodes[0], characterIndex + 1);
+    assert_false(range.collapsed);
+    assert_equals(range.toString(), "c");
+    range.setStart(div.childNodes[0], characterIndex - 1);
+    assert_false(range.collapsed);
+    assert_equals(range.toString(), "bc");
+    range.setStart(div.childNodes[0], 0);
+    assert_false(range.collapsed);
+    assert_equals(range.toString(), "abc");
+  }, "document.caretRangeFromPoint() should return a Range at the specified location");
+
+  test(() => {
+    const rect = div.getBoundingClientRect();
+    const characterWidth = rect.width / div.textContent.length;
+    const characterIndex = 2;
+    const x = rect.left + characterWidth * characterIndex;
+    const y = rect.top + rect.height / 2;
+    const range = document.caretRangeFromPoint(x, y);
+    let rangeRect = range.getBoundingClientRect();
+    assert_approx_equals(rangeRect.x, x, 1);
+    assert_approx_equals(rangeRect.y, rect.height / 2, 3);
+    assert_approx_equals(rangeRect.height, rect.height, 1);
+    assert_approx_equals(rangeRect.width, 0, 0.02, "Caret range should be collapsed");
+  }, "document.caretRangeFromPoint() should return a client rect close to the given coords");
+
+  test(() => {
+    const shadowDiv = shadow.shadowRoot.querySelector("div");
+    const rect = shadow.getBoundingClientRect();
+    const characterWidth = rect.width / shadow.textContent.length;
+    const characterIndex = 2;
+    const x = rect.left + characterWidth * characterIndex;
+    const y = rect.top + rect.height / 2;
+    const range = document.caretRangeFromPoint(x, y);
+    const point = document.caretPositionFromPoint(x, y);
+    assert_true(range instanceof Range);
+    assert_equals(range.startContainer, point.offsetNode);
+    assert_equals(range.endContainer, point.offsetNode);
+    assert_equals(range.startOffset, characterIndex);
+    assert_equals(range.endOffset, characterIndex);
+    assert_true(range.collapsed);
+  }, "document.caretRangeFromPoint() on a shadow should return a Range pointing at the same node as caretPositionFromPoint");
+
+  test(() => {
+    const rect = canvas.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    const range = document.caretRangeFromPoint(x, y);
+    assert_true(range instanceof Range);
+    assert_equals(range.startContainer, canvas);
+    assert_equals(range.endContainer, canvas);
+    assert_equals(range.startOffset, 0);
+    assert_equals(range.endOffset, 0);
+    assert_true(range.collapsed);
+  }, "document.caretRangeFromPoint() on a textarea should return a Range pointing at canvas");
+</script>

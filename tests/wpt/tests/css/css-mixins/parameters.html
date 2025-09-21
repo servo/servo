@@ -25,6 +25,10 @@
       #e2b {
         @apply --m2(navy);
       }
+      #e2c {
+        color: fuchsia;
+        @apply --m2();
+      }
 
       @mixin --m3(--my-color) {
         color: env(--my-color);
@@ -47,15 +51,104 @@
         color: green;
         @apply --m5(too-many-parameters);
       }
+
+      @mixin --m6(--my-color) {
+        color: env(--my-color, navy);
+      }
+      #e6 {
+        @apply --m6(green);
+      }
+      #e6b {
+        @apply --m6;
+      }
+      #e6c {
+        @apply --m6(invalid-color);
+      }
+      #e6d {
+        color: env(--not-within-mixin, green);
+      }
+      #e6e {
+        color: env(--not-within-mixin);
+      }
+
+      @mixin --m7(--my-color) {
+        color: attr(color-attr type(<color>));
+      }
+      #e7 {
+        @apply --m7(green);
+      }
+
+      @mixin --m8(--my-length type(<length>)) {
+        font-size: 10px;
+        --some-length: env(--my-length);
+      }
+      #e8 {
+        @apply --m8(1.0em);
+      }
+
+      @mixin --m9(--my-length type(length)) {  /* Note the syntax error. */
+        font-size: 10px;
+        --some-length: env(--my-length);
+      }
+      #e9 {
+        @apply --m9(1.0em);
+      }
+
+      @mixin --m10inner(--inner-color) {
+        color: env(--outer-color);
+      }
+      @mixin --m10outer(--outer-color) {
+        @apply --m10inner(red);
+      }
+      #e10 {
+        @apply --m10outer(green);
+      }
+
+      @mixin --m11(--val, --true, --false) {
+        color: if(style(--x: env(--val)): env(--true); else: env(--false))
+      }
+      #e11 {
+        --x: a;
+        @apply --m11(a, green, red);
+      }
+      #e11b {
+        --x: a;
+        @apply --m11(b, red, green);
+      }
+
+      @function --f() {
+        color: env(--my-color);
+      }
+      @mixin --m12(--my-color) {
+        color: --f();
+      }
+      #e12 {
+        @apply --m12(red);
+      }
+    }
+    </style>
     </style>
   </head>
   <body>
     <div><div id="e1">This text should be green.</div></div>
     <div><div id="e2">This text should be green.</div></div>
     <div><div id="e2b">This text should be navy.</div></div>
+    <div><div id="e2c">This text should be fuchsia.</div></div>
     <div><div id="e3">This text should be green.</div></div>
     <div><div id="e4">This text should be green.</div></div>
     <div><div id="e5">This text should be green.</div></div>
+    <div><div id="e6">This text should be green.</div></div>
+    <div><div id="e6b">This text should be navy.</div></div>
+    <div><div id="e6c">This text should be black.</div></div>
+    <div><div id="e6d">This text should be green.</div></div>
+    <div><div id="e6e">This text should be black.</div></div>
+    <div><div id="e7" color-attr="env(--my-color)">This text should be green.</div></div>
+    <div><div id="e8">This text does not matter.</div></div>
+    <div><div id="e9">This text does not matter.</div></div>
+    <div><div id="e10">This text should be green.</div></div>
+    <div><div id="e11">This text should be green.</div></div>
+    <div><div id="e11b">This text should be green.</div></div>
+    <div><div id="e12">This text should be black.</div></div>
   <script>
     test(() => {
       let target = document.getElementById('e1');
@@ -73,6 +166,11 @@
     }, 'Mixins can be called multiple times with different parameters');
 
     test(() => {
+      let target = document.getElementById('e2c');
+      assert_equals(getComputedStyle(target).color, 'rgb(0, 0, 0)');
+    }, 'Too few parameters and no default ignores mixin');
+
+    test(() => {
       let target = document.getElementById('e3');
       assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
     }, 'Mixin argument parsing with arguments wrapped in {}');
@@ -86,6 +184,67 @@
       let target = document.getElementById('e5');
       assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
     }, '@apply with too many parameters is ignored');
+
+    test(() => {
+      let target = document.getElementById('e6');
+      assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+    }, 'Fallback is ignored if argument is given');
+
+    test(() => {
+      let target = document.getElementById('e6b');
+      assert_equals(getComputedStyle(target).color, 'rgb(0, 0, 128)');
+    }, 'Fallback is used with no parameter and no default');
+
+    test(() => {
+      let target = document.getElementById('e6c');
+      assert_equals(getComputedStyle(target).color, 'rgb(0, 0, 0)');
+    }, 'Fallback is not used on other errors');
+
+    test(() => {
+      let target = document.getElementById('e6d');
+      assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+    }, 'Fallback is not when outside mixin');
+
+    test(() => {
+      let target = document.getElementById('e6e');
+      assert_equals(getComputedStyle(target).color, 'rgb(0, 0, 0)');
+    }, 'Invalid when no fallback and outside mixin');
+
+    test(() => {
+      let target = document.getElementById('e7');
+      assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+    }, 'env() can be accessed from attributes');
+
+    test(() => {
+      let target = document.getElementById('e8');
+      assert_equals(getComputedStyle(target).getPropertyValue('--some-length'), '10px');
+    }, 'env() resolves typed parameters');
+
+    test(() => {
+      let target = document.getElementById('e9');
+      assert_equals(getComputedStyle(target).getPropertyValue('--some-length'), '');
+      assert_equals(getComputedStyle(target).fontSize, '10px');
+    }, 'env() refuses illegal syntax parameters, but does not fail entire mixin');
+
+    test(() => {
+      let target = document.getElementById('e10');
+      assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+    }, 'env() can access parameters from outer mixins');
+
+    test(() => {
+      let target = document.getElementById('e11');
+      assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+    }, 'env() works inside if, in condition and true branch');
+
+    test(() => {
+      let target = document.getElementById('e11b');
+      assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+    }, 'env() works inside if, in condition and false branch');
+
+    test(() => {
+      let target = document.getElementById('e12');
+      assert_equals(getComputedStyle(target).color, 'rgb(0, 0, 0)');
+    }, 'env() within a function should not see parameters from a calling mixin');
   </script>
   </body>
 </html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+</head>
+<style>
+  .block {
+    background-color: blue;
+    margin: 10px;
+    height: 100px;
+    width: 100px;
+  }
+  .fade-out {
+    opacity: 0.5;
+  }
+  .flex {
+    display: flex;
+  }
+</style>
+<body>
+  <div id="ancestor" class="flex">
+    <div id="scope" class="block fade-out"></div>
+    <div class="block"></div>
+  </div>
+</body>
+</html>

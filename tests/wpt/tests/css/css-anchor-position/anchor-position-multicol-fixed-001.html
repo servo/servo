@@ -3,19 +3,16 @@
 <link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-pos">
 <link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-size">
 <link rel="author" href="mailto:kojii@chromium.org">
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script src="/resources/check-layout-th.js"></script>
-<script src="support/test-common.js"></script>
+<link rel="author" href="mailto:mstensho@chromium.org">
+<link rel="match" href="anchor-position-multicol-fixed-001-ref.html">
 <style>
 .transform {
   transform: translate(0);
 }
 .columns {
-  column-count: 2;
+  columns: 2;
   column-fill: auto;
   column-gap: 10px;
-  column-width: 100px;
   width: 210px;
   height: 50px;
 }
@@ -24,19 +21,16 @@
 }
 .spacer {
   height: 10px;
-  background: silver;
 }
-.anchor {
+.anchor1 {
   anchor-name: --a1;
-  background: orange;
   margin-left: 10px;
   width: 40px;
   height: 10px;
 }
-.fixedpos {
+.anchor2 {
+  anchor-name: --a1;
   position: fixed;
-  background: blue;
-  margin-left: 0;
   left: 20px;
   top: 20px;
   width: 20px;
@@ -44,39 +38,52 @@
 }
 .target {
   position: absolute;
-  background: lime;
-  opacity: .3;
   left: anchor(--a1 left);
   top: anchor(--a1 top);
   width: anchor-size(--a1 width);
   height: anchor-size(--a1 height);
 }
+.target::before {
+  position: absolute;
+  content: "";
+  background: green;
+}
+.target.inside::before {
+  width: 100%;
+  height: 50%;
+}
+.target.inside.part2::before {
+  top: 50%;
+}
+.target.outside::before {
+  width: calc(50% - 20px);
+  height: 100%;
+}
+.target.outside.part1::before {
+  left: 20px;
+}
+.target.outside.part2::before {
+  right: 20px;
+}
 </style>
-<body onload="checkLayoutForAnchorPos('.target')">
-  <!-- All targets should find the fixed positioned anchor -->
-  <div class="transform">
-    <div class="spacer" style="height: 10px"></div>
-    <div class="columns">
+<p>There should be a green rectangle below, no red.</p>
+<div class="transform">
+  <div style="height:10px;"></div>
+  <div style="position:absolute; z-index:-1; left:20px; width:130px; height:50px; background:red;"></div>
+  <div class="columns">
+    <div class="transform">
+      <div style="margin-left:20px; width:20px; height:20px; background:green;"></div>
       <div class="transform">
-        <div class="spacer" style="height: 20px"></div>
-        <div class="transform">
-          <div class="spacer" style="height: 20px"></div>
-          <div class="anchor"></div>
-          <div class="anchor fixedpos"></div>
-          <div class="target"
-               data-offset-x="20" data-offset-y="20"
-               data-expected-width=20 data-expected-height=30></div>
-        </div>
-        <div class="target"
-             data-offset-x="20" data-offset-y="40"
-             data-expected-width=20 data-expected-height=30></div>
+        <div style="margin-left:20px; width:20px; height:20px; background:green;"></div>
+        <div class="anchor1"></div>
+        <div class="anchor2"></div>
+        <div style="height:20px;"></div>
+        <div style="margin-left:20px; width:20px; height:30px; background:green;"></div>
+        <div class="target inside part1"></div>
       </div>
-      <div class="target"
-           data-offset-x="20" data-offset-y="10"
-           data-expected-width=130 data-expected-height=50></div>
+      <div class="target inside part2"></div>
     </div>
-    <div class="target"
-         data-offset-x="20" data-offset-y="10"
-         data-expected-width=130 data-expected-height=50></div>
+    <div class="target outside part1"></div>
   </div>
-</body>
+  <div class="target outside part2"></div>
+</div>

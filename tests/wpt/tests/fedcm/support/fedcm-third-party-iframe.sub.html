@@ -19,7 +19,11 @@ import {request_options_with_mediation_required,
 window.onload = async () => {
   window.test_driver.set_test_context(window.top);
   try {
-    const options = request_options_with_mediation_required("manifest_iframe.py");
+    let options = request_options_with_mediation_required("manifest_iframe.py");
+    if (location.search == "?active") {
+      options.identity.mode = "active";
+      await test_driver.bless();
+    }
     const credentialPromise = navigator.credentials.get(options);
     let type = await fedcm_expect_dialog(
       credentialPromise,

@@ -11,7 +11,7 @@
     test(() => {
       const target = document.querySelector("#target");
       document.adoptedStyleSheets = [ styleSheet ];
-      let backgroundStyle = window.getComputedStyle(target).background;
+      let backgroundStyle = window.getComputedStyle(target).backgroundImage;
       assert_not_equals(backgroundStyle.indexOf("css-module/resources/image.png"), -1);
     }, "A relative URL in a CSS module should be resolved relative to the CSS file's URL, not the importing document's URL");
   </script>

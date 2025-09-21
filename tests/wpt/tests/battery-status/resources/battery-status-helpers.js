@@ -11,6 +11,10 @@
 
 let mockBatteryMonitor = undefined;
 
+function assert_implements_battery() {
+  assert_implements(navigator.battery, 'missing navigator.battery');
+}
+
 function battery_status_test(func, name, properties) {
   promise_test(async t => {
     if (mockBatteryMonitor === undefined) {

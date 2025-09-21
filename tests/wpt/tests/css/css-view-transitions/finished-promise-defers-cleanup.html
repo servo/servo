@@ -37,7 +37,7 @@ promise_test(async t => {
       requestAnimationFrame(() => {
         t.step_timeout(() => {
           assert_equals(getComputedStyle(document.documentElement, "::view-transition").display, "block");
-          assert_equals(getComputedStyle(document.documentElement, "::view-transition").position, "fixed");
+          assert_equals(getComputedStyle(document.documentElement, "::view-transition").position, "absolute");
           resolve();
         }, 0);
       });

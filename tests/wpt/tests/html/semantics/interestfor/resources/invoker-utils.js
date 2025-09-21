@@ -106,8 +106,8 @@ async function createPopoverAndInvokerForHoverTests(test, showdelayMs, hideDelay
   let invoker = document.createElement('button');
   invoker.interestForElement = popover;
   invoker.setAttribute('style',`
-    interest-show-delay: ${showdelayMs}ms;
-    interest-hide-delay: ${hideDelayMs}ms;
+    interest-delay-start: ${showdelayMs}ms;
+    interest-delay-end: ${hideDelayMs}ms;
     position:fixed;
     top:200px;
     width:fit-content;
@@ -115,10 +115,10 @@ async function createPopoverAndInvokerForHoverTests(test, showdelayMs, hideDelay
     `);
   invoker.innerText = 'Invoker';
   document.body.appendChild(invoker);
-  const actualShowDelay = Number(getComputedStyle(invoker).interestShowDelay.slice(0,-1))*1000;
-  assert_equals(actualShowDelay,showdelayMs,'interest-show-delay is incorrect');
-  const actualHideDelay = Number(getComputedStyle(invoker).interestHideDelay.slice(0,-1))*1000;
-  assert_equals(actualHideDelay,hideDelayMs,'interest-hide-delay is incorrect');
+  const actualShowDelay = Number(getComputedStyle(invoker).interestDelayStart.slice(0,-1))*1000;
+  assert_equals(actualShowDelay,showdelayMs,'interest-delay-start is incorrect');
+  const actualHideDelay = Number(getComputedStyle(invoker).interestDelayEnd.slice(0,-1))*1000;
+  assert_equals(actualHideDelay,hideDelayMs,'interest-delay-end is incorrect');
   test.add_cleanup(() => {
     popover.remove();
     invoker.remove();

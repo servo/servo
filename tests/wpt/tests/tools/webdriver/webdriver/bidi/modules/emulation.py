@@ -119,3 +119,16 @@ class Emulation(BidiModule):
             params["userContexts"] = user_contexts
 
         return params
+
+    @command
+    def set_user_agent_override(
+            self,
+            user_agent: Union[str, None],
+            contexts: Union[List[str], Undefined] = UNDEFINED,
+            user_contexts: Union[List[str], Undefined] = UNDEFINED,
+    ) -> Mapping[str, Any]:
+        return {
+            "userAgent": user_agent,
+            "contexts": contexts,
+            "userContexts": user_contexts,
+        }

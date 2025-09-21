@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: flex column gaps are painted on overflowing items with negative margin.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="flex-gap-decorations-027-ref.html">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+    body {
+        margin: 0 0 0 200px;
+    }
+    #flexbox>* {
+        background-color: rgb(96 139 168 / 0.2);
+    }
+    #flexbox {
+        border: 2px solid rgb(96 139 168);
+        border-width: 2px;
+        display: flex;
+        column-gap: 10px;
+        column-rule-style: solid;
+        column-rule-width: 10px;
+        column-rule-color: red;
+        width: 200px;
+        flex-wrap: nowrap;
+    }
+    .items {
+        width: 50px;
+        height: 50px;
+        flex-shrink: 0;
+    }
+</style>
+<div id="flexbox">
+    <div class="items" style="margin-left: -150px">One</div>
+    <div class="items">Two</div>
+    <div class="items">Three</div>
+    <div class="items">Four</div>
+    <div class="items">Five</div>
+    <div class="items">Six</div>
+</div>

@@ -104,13 +104,8 @@ method = urlParams.get('method');
           assert_unreached();
       }
       assert_equals(loseInterestCount, 0, 'Lose interest should not be fired yet');
-      if (cancelTrigger) {
-        assert_equals(interestCount, 0, 'Because the trigger event was cancelled, interest should not be fired');
-        assert_false(el.matches(':interest-source'),':interest-source should not match');
-      } else {
-        assert_equals(interestCount, 1, 'Interest should be fired');
-        assert_true(el.matches(':interest-source'),':interest-source should match');
-      }
+      assert_equals(interestCount, 1, 'Interest should be fired (cancelling the trigger event shouldn\'t cancel interest)');
+      assert_true(el.matches(':interest-source'),':interest-source should match');
       interestCount = 0;
 
       switch (method) {
@@ -128,16 +123,8 @@ method = urlParams.get('method');
           assert_unreached();
       }
       assert_equals(interestCount, 0, 'No new interest event should be fired');
-      if (cancelTrigger || cancelLose) {
-        assert_equals(loseInterestCount, 0, 'No lose interest event should be fired');
-      } else {
-        assert_equals(loseInterestCount, 1, 'Lose interest event should be fired');
-      }
-      if (cancelLose) {
-        assert_true(el.matches(':interest-source'),':interest-source should still match because we canceled the triggering event');
-      } else {
-        assert_false(el.matches(':interest-source'),':interest-source should not match');
-      }
+      assert_equals(loseInterestCount, 1, 'Lose interest event should be fired (cancelling the trigger event shouldn\'t cancel loseinterest)' );
+      assert_false(el.matches(':interest-source'),':interest-source should not match');
     },`Basic behavior, ${description}`);
   });
 });

@@ -3,11 +3,9 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
 <body>
-<script type="module">
-import { ensureWindowLoadEventFired } from "../resources/helpers.mjs";
-
+<script>
 promise_test(async t => {
-  await ensureWindowLoadEventFired(t);
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
 
   let i = document.createElement("iframe");
   i.src = get_host_info().HTTP_ORIGIN_WITH_DIFFERENT_PORT + "/common/blank.html";

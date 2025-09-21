@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<meta name=variant content=?layout=plain&method=hover>
+<meta name=variant content=?layout=nested&method=hover>
+<meta name=variant content=?layout=nested-offset&method=hover>
+<meta name=variant content=?layout=plain&method=focus>
+<meta name=variant content=?layout=nested&method=focus>
+<meta name=variant content=?layout=nested-offset&method=focus>
+
+<body>
+<script>
+// The invokerLayout and invokerMethod parameters are provided by variants, to
+// effectively split this (slow) test into multiple runs.
+const urlParams = new URLSearchParams(window.location.search);
+invokerLayout = urlParams.get('layout');
+invokerMethod = urlParams.get('method');
+description = `layout ${invokerLayout}, method ${invokerMethod}`;
+
+// NOTE about testing methodology:
+// This test uses popovers as an invoker target, and checks whether they are
+// triggered *after* the appropriate hover/focus delay. The delay used for
+// testing is kept low, to avoid this test taking too long, but that means that
+// sometimes on a slow bot/client, the hover delay can elapse before we are able
+// to check the popover status. And that can make this test flaky. To avoid
+// that, the msSinceMouseOver() function is used to check that not-too-much time
+// has passed, and if it has, the test is simply skipped. Because of this
+// methodology, many/most of these tests will pass on browsers that do not
+// implement `interestfor`. See the `interestfor-basic-delays` test.
+
+const invokerShowDelayMs = 100; // The CSS delay setting.
+const hoverFocusWaitTimeMs = 200; // How long to wait to cover the delay for sure.
+
+async function makePopoverAndInvoker(test, invokerLayout, showdelayMs) {
+  // This ensures the tests in this file don't succeed sometimes, due to the above NOTE.
+  assert_true(HTMLAnchorElement.prototype.hasOwnProperty('interestForElement'),'interestfor is not supported');
+  if (showdelayMs === undefined) {
+    showdelayMs = invokerShowDelayMs;
+  }
+  let {popover, invoker, unrelated} = await createPopoverAndInvokerForHoverTests(test, showdelayMs, /*hidedelayMs*/10000000);
+  invoker.setAttribute('class','invoker');
+  const originalInvoker = invoker;
+  const reassignInvokerTargetFn = (p) => {originalInvoker.interestForElement = p};
+  switch (invokerLayout) {
+    case 'plain':
+      // Invoker is just a button.
+      invoker.textContent = 'Invoker';
+      break;
+    case 'nested':
+      // Invoker is just a button containing a div.
+      const child1 = invoker.appendChild(document.createElement('div'));
+      child1.textContent = 'Invoker';
+      break;
+    case 'nested-offset':
+      // Invoker is a child of the invoking button, and is not contained within
+      // the bounds of the interestfor element.
+      invoker.textContent = 'Invoker';
+      // Reassign invoker to the child:
+      invoker = invoker.appendChild(document.createElement('div'));
+      invoker.textContent = 'Invoker child';
+      invoker.tabIndex = 0;
+      invoker.setAttribute('style','position:relative; top:300px; left:300px;');
+      break;
+    default:
+      assert_unreached(`Invalid invokerLayout ${invokerLayout}`);
+  }
+  test.add_cleanup(() => {
+    originalInvoker.remove();
+  });
+  assert_false(popover.matches(':popover-open'),'Popover should start out closed');
+  return {popover,invoker,unrelated,reassignInvokerTargetFn};
+}
+
+promise_test(async (t) => {
+  const {popover,invoker} = await makePopoverAndInvoker(t,invokerLayout);
+  const token = await mouseOverOrFocusAndRecord(t,invokerMethod,invoker);
+  let showing = popover.matches(':popover-open');
+  // See NOTE above.
+  if (msSinceMouseOver(token) < invokerShowDelayMs)
+    assert_false(showing,'interest should not be shown immediately');
+  await waitForHoverTime(hoverFocusWaitTimeMs);
+  assert_true(msSinceMouseOver(token) >= hoverFocusWaitTimeMs,'waitForHoverTime should wait the specified time');
+  assert_true(popover.matches(':popover-open'),'interest should be shown after the delay');
+  assert_true(hoverFocusWaitTimeMs > invokerShowDelayMs,'invokerShowDelayMs is the CSS setting, hoverFocusWaitTimeMs should be longer than that');
+},`interestfor fires after a delay, ${description}`);
+
+promise_test(async (t) => {
+  const {popover,invoker} = await makePopoverAndInvoker(t,invokerLayout);
+  assert_false(popover.matches(':popover-open'));
+  invoker.click(); // Click the invoker
+  assert_false(popover.matches(':popover-open'),'Clicking the invoker should not "show interest"');
+},`interestfor should not trigger via mouse click, ${description}`);
+
+promise_test(async (t) => {
+  const longerHoverDelay = hoverFocusWaitTimeMs*2;
+  const {popover,invoker} = await makePopoverAndInvoker(t,invokerLayout,longerHoverDelay);
+  const token = await mouseOverOrFocusAndRecord(t,invokerMethod,invoker);
+  await waitForHoverTime(hoverFocusWaitTimeMs);
+  showing = popover.matches(':popover-open');
+  if (msSinceMouseOver(token) >= longerHoverDelay)
+    return; // The WPT runner was too slow.
+  assert_false(showing,'interestfor should respect CSS setting');
+},`interestfor interest-delay-start is respected, ${description}`);
+
+promise_test(async (t) => {
+  const longerHoverDelay = hoverFocusWaitTimeMs*4;
+  const {popover,invoker,unrelated} = await makePopoverAndInvoker(t,invokerLayout,longerHoverDelay);
+  const token = await mouseOverOrFocusAndRecord(t,invokerMethod,invoker);
+  await waitForHoverTime(hoverFocusWaitTimeMs);
+  showing1 = popover.matches(':popover-open');
+  await hoverOrFocus(invokerMethod,unrelated);
+  if (msSinceMouseOver(token) >= longerHoverDelay)
+    return; // The WPT runner was too slow.
+  await waitForHoverTime(longerHoverDelay);
+  showing2 = popover.matches(':popover-open');
+  assert_false(showing1,'interest shouldn\'t be shown immediately');
+  assert_false(showing2,'because target was de-hovered/de-focused before the delay elapsed, interest should never be shown');
+},`Show delay is cancelled if hover/focus changes, ${description}`);
+
+promise_test(async (t) => {
+  const {popover,invoker} = await makePopoverAndInvoker(t,invokerLayout);
+  popover.showPopover();
+  assert_true(popover.matches(':popover-open'));
+  let gotInterest = false;
+  popover.addEventListener('interest',() => (gotInterest=true),{once:true});
+  await hoverOrFocus(invokerMethod,invoker);
+  const stillOpen = popover.matches(':popover-open');
+  await waitForHoverTime(hoverFocusWaitTimeMs);
+  assert_true(popover.matches(':popover-open'),'popover should stay showing after delay');
+  assert_true(stillOpen,'popover should have been open before the delay also');
+  assert_true(gotInterest,'interest event should still be fired');
+},`interestfor does not close an already-open popover, ${description}`);
+
+promise_test(async (t) => {
+  const {popover,invoker} = await makePopoverAndInvoker(t,invokerLayout);
+  popover.remove(); // Remove from the document
+  let gotInterest = false;
+  popover.addEventListener('interest',() => (gotInterest=true),{once:true});
+  await hoverOrFocus(invokerMethod,invoker);
+  await waitForHoverTime(hoverFocusWaitTimeMs);
+  assert_false(gotInterest,'interest should not be shown if the target is removed');
+  // Now put it back in the document and make sure it doesn't trigger.
+  document.body.appendChild(popover);
+  await waitForHoverTime(hoverFocusWaitTimeMs);
+  assert_false(gotInterest,'interest should not be shown even when returned to the document');
+},`interestfor does nothing when the target is moved out of the document, ${description}`);
+
+promise_test(async (t) => {
+  const {popover,invoker,reassignInvokerTargetFn} = await makePopoverAndInvoker(t,invokerLayout);
+  const popover2 = document.createElement('div');
+  popover2.popover = 'auto';
+  document.body.appendChild(popover2);
+  t.add_cleanup(() => popover2.remove());
+  const token = await mouseOverOrFocusAndRecord(t,invokerMethod,invoker);
+  let eitherShowing = popover.matches(':popover-open') || popover2.matches(':popover-open');
+  reassignInvokerTargetFn(popover2);
+  // See NOTE above.
+  if (msSinceMouseOver(token) >= invokerShowDelayMs)
+    return; // The WPT runner was too slow.
+  assert_false(eitherShowing,'interest should should not be shown immediately');
+  await waitForHoverTime(hoverFocusWaitTimeMs);
+  assert_false(popover.matches(':popover-open'),'old target should not receive interest, since interestfor was reassigned');
+  assert_false(popover2.matches(':popover-open'),'new target should not receive interest, since interestfor was reassigned');
+},`interestfor does nothing when the target changes, ${description}`);
+
+promise_test(async (t) => {
+  const {popover,invoker,unrelated} = await makePopoverAndInvoker(t,invokerLayout,/*showdelayMs*/0);
+  const invoker2 = document.createElement('button');
+  invoker2.interestForElement = popover;
+  document.body.appendChild(invoker2);
+  t.add_cleanup(() => invoker2.remove());
+  invoker2.setAttribute('style',`
+    interest-delay-start: 0s;
+    interest-delay-end: 10000s;
+    position:fixed;
+    top:300px;
+  `);
+  invoker2.innerText = 'Invoker 2';
+  let events = [];
+  popover.addEventListener('interest',() => events.push('interest'));
+  popover.addEventListener('loseinterest',() => events.push('lose interest'));
+  popover.addEventListener('beforetoggle',(e) => events.push(e.newState));
+  assert_array_equals(events,[]);
+  await hoverOrFocus(invokerMethod,invoker);
+  assert_array_equals(events,['interest','open']);
+  // Different invoker for same target - should first (immediately) lose interest on old invoker.
+  await hoverOrFocus(invokerMethod,invoker2);
+  assert_array_equals(events,['interest','open','lose interest','closed','interest','open']);
+  // Lose interest delays are long, so nothing happens here.
+  events = [];
+  await hoverOrFocus(invokerMethod,unrelated);
+  assert_array_equals(events,[]);
+  // Back to the same invoker - shouldn't re-fire events.
+  await hoverOrFocus(invokerMethod,invoker2);
+  assert_array_equals(events,[]);
+  assert_true(popover.matches(':popover-open'));
+  popover.hidePopover();
+},`moving hover/focus between two invokers for the same target does the right thing, ${description}`);
+</script>

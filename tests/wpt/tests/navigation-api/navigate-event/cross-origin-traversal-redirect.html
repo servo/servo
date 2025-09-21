@@ -4,9 +4,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
 <script src=/common/get-host-info.sub.js></script>
-<script type="module">
-import { ensureWindowLoadEventFired } from "../resources/helpers.mjs";
-
+<script>
 promise_test(async t => {
   let i = document.createElement("iframe");
   i.src = "resources/cross-origin-redirect-on-second-visit.py?key=" + token() + "&remote_origin=" + get_host_info().HTTP_REMOTE_ORIGIN;
@@ -14,7 +12,7 @@ promise_test(async t => {
 
   // Wait for after the load event so that the navigation doesn't get converted
   // into a replace navigation.
-  await ensureWindowLoadEventFired(t);
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
 
   let original_iframe_url = i.contentWindow.location.href;
 

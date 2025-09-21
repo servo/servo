@@ -28,10 +28,12 @@
 <script>
   test(function() {
     const containerStyle = window.getComputedStyle(document.querySelector('#target1'));
-    const columnRuleWidth = containerStyle.getPropertyValue('column-rule-width');
-    assert_equals(columnRuleWidth, '0px');
 
-  }, "`column-rule-width` should be `0px` when `column-rule-style` is `none` with single value");
+    const thinWidth = getComputedStyle(document.getElementById('target1')).columnRuleWidth; // e.g. 1px
+    const columnRuleWidth = containerStyle.getPropertyValue('column-rule-width');
+    assert_equals(columnRuleWidth, thinWidth);
+
+  }, "`column-rule-width` should be independent of column-rule-style, hence should be as specified.");
 
   test(function() {
     const containerStyle = window.getComputedStyle(document.querySelector('#target2'));
