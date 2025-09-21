@@ -55,6 +55,9 @@ PACKAGES = {
     "mac": [
         "production/servo-tech-demo.dmg",
     ],
+    "mac-arm64": [
+        "production/servo-tech-demo.dmg",
+    ],
     "windows-msvc": [
         r"production\msi\Servo.exe",
         r"production\msi\Servo.zip",

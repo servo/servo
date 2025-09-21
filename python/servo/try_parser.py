@@ -24,6 +24,7 @@ from enum import Enum
 class Workflow(str, Enum):
     LINUX = "linux"
     MACOS = "macos"
+    MACOS_ARM = "macos-arm64"
     WINDOWS = "windows"
     ANDROID = "android"
     OHOS = "ohos"
@@ -96,6 +97,8 @@ def handle_preset(s: str) -> Optional[JobConfig]:
 
     if any(word in s for word in ["linux"]):
         return JobConfig("Linux", Workflow.LINUX)
+    elif any(word in s for word in ["mac-arm", "macos-arm", "mac-arm64", "macos-arm64"]):
+        return JobConfig("MacOS Arm64", Workflow.MACOS_ARM)
     elif any(word in s for word in ["mac", "macos"]):
         return JobConfig("MacOS", Workflow.MACOS)
     elif any(word in s for word in ["win", "windows"]):
@@ -200,14 +203,32 @@ class Config(object):
                 continue  # skip over keyword
             if word == "full":
                 words.extend(["linux-unit-tests", "linux-wpt", "linux-bencher"])
-                words.extend(["macos-unit-tests", "windows-unit-tests", "android", "ohos", "lint"])
+                words.extend(
+                    ["macos-arm-unit-tests", "macos-unit-tests", "windows-unit-tests", "android", "ohos", "lint"]
+                )
                 words.extend(["linux-build-libservo", "macos-build-libservo", "windows-build-libservo"])
                 continue  # skip over keyword
             if word == "bencher":
-                words.extend(["linux-bencher", "macos-bencher", "windows-bencher", "android-bencher", "ohos-bencher"])
+                words.extend(
+                    [
+                        "linux-bencher",
+                        "macos-bencher",
+                        "macos-arm-bencher",
+                        "windows-bencher",
+                        "android-bencher",
+                        "ohos-bencher",
+                    ]
+                )
                 continue  # skip over keyword
             if word == "production-bencher":
-                words.extend(["linux-production-bencher", "macos-production-bencher", "windows-production-bencher"])
+                words.extend(
+                    [
+                        "linux-production-bencher",
+                        "macos-production-bencher",
+                        "macos-arm-production-bencher",
+                        "windows-production-bencher",
+                    ]
+                )
                 words.extend(["ohos-production-bencher"])
                 continue  # skip over keyword
             if word in ["cov", "coverage", "test-coverage"]:
@@ -275,81 +296,94 @@ class TestParser(unittest.TestCase):
                 "matrix": [
                     {
                         "name": "Linux (Unit Tests, Build libservo, WPT, Bencher)",
-                        "number_of_wpt_chunks": 20,
                         "workflow": "linux",
                         "wpt": True,
                         "profile": "release",
                         "unit_tests": True,
                         "build_libservo": True,
                         "bencher": True,
-                        "wpt_args": "",
                         "build_args": "",
                         "coverage": False,
+                        "wpt_args": "",
+                        "number_of_wpt_chunks": 20,
+                    },
+                    {
+                        "name": "MacOS Arm64 (Unit Tests)",
+                        "workflow": "macos-arm64",
+                        "wpt": False,
+                        "profile": "release",
+                        "unit_tests": True,
+                        "build_libservo": False,
+                        "bencher": False,
+                        "build_args": "",
+                        "coverage": False,
+                        "wpt_args": "",
+                        "number_of_wpt_chunks": 20,
                     },
                     {
                         "name": "MacOS (Unit Tests, Build libservo)",
-                        "number_of_wpt_chunks": 20,
                         "workflow": "macos",
                         "wpt": False,
                         "profile": "release",
                         "unit_tests": True,
                         "build_libservo": True,
                         "bencher": False,
-                        "wpt_args": "",
                         "build_args": "",
                         "coverage": False,
+                        "wpt_args": "",
+                        "number_of_wpt_chunks": 20,
                     },
                     {
                         "name": "Windows (Unit Tests, Build libservo)",
-                        "number_of_wpt_chunks": 20,
                         "workflow": "windows",
                         "wpt": False,
                         "profile": "release",
                         "unit_tests": True,
                         "build_libservo": True,
                         "bencher": False,
-                        "wpt_args": "",
                         "build_args": "",
                         "coverage": False,
+                        "wpt_args": "",
+                        "number_of_wpt_chunks": 20,
                     },
                     {
                         "name": "Android",
-                        "number_of_wpt_chunks": 20,
                         "workflow": "android",
                         "wpt": False,
                         "profile": "release",
                         "unit_tests": False,
                         "build_libservo": False,
                         "bencher": False,
-                        "wpt_args": "",
                         "build_args": "",
                         "coverage": False,
+                        "wpt_args": "",
+                        "number_of_wpt_chunks": 20,
                     },
                     {
                         "name": "OpenHarmony",
-                        "number_of_wpt_chunks": 20,
                         "workflow": "ohos",
                         "wpt": False,
                         "profile": "release",
                         "unit_tests": False,
                         "build_libservo": False,
                         "bencher": False,
-                        "wpt_args": "",
                         "build_args": "",
                         "coverage": False,
+                        "wpt_args": "",
+                        "number_of_wpt_chunks": 20,
                     },
                     {
                         "name": "Lint",
-                        "number_of_wpt_chunks": 20,
                         "workflow": "lint",
                         "wpt": False,
                         "profile": "release",
                         "unit_tests": False,
                         "build_libservo": False,
                         "bencher": False,
-                        "wpt_args": "",
                         "build_args": "",
                         "coverage": False,
+                        "wpt_args": "",
+                        "number_of_wpt_chunks": 20,
                     },
                 ],
             },

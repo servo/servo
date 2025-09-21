@@ -60,6 +60,20 @@ jobs:
       wpt-args: ${{ inputs.wpt-args }}
       bencher: ${{ inputs.bencher }}
 
+  macos-arm64:
+    if: ${{ inputs.workflow == 'macos-arm64' }}
+    name: MacOS
+    uses: ./.github/workflows/mac-arm64.yml
+    secrets: inherit
+    with:
+      profile: ${{ inputs.profile }}
+      build-args: ${{ inputs.build-args }}
+      wpt: ${{ inputs.wpt }}
+      unit-tests: ${{ inputs.unit-tests }}
+      build-libservo: ${{ inputs.build-libservo }}
+      wpt-args: ${{ inputs.wpt-args }}
+      bencher: ${{ inputs.bencher }}
+
   linux:
     if: ${{ inputs.workflow == 'linux' }}
     name: Linux
