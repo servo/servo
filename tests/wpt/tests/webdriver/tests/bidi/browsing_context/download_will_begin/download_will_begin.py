@@ -10,6 +10,7 @@ from ... import any_int, any_string, recursive_compare
 pytestmark = pytest.mark.asyncio
 
 DOWNLOAD_WILL_BEGIN = "browsingContext.downloadWillBegin"
+NAVIGATION_STARTED = "browsingContext.navigationStarted"
 
 
 async def test_unsubscribe(bidi_session, inline, new_tab):
@@ -47,8 +48,8 @@ async def test_unsubscribe(bidi_session, inline, new_tab):
     remove_listener()
 
 
-async def test_subscribe(
-    bidi_session, new_tab, inline, wait_for_event, wait_for_future_safe
+async def test_download_attribute(
+    bidi_session, subscribe_events, new_tab, inline, wait_for_event, wait_for_future_safe
 ):
     download_filename = f"download_filename{random.random()}.txt"
     download_link = "data:text/plain;charset=utf-8,"
@@ -60,9 +61,16 @@ async def test_subscribe(
         context=new_tab["context"], url=page_url, wait="complete"
     )
 
-    await bidi_session.session.subscribe(events=[DOWNLOAD_WILL_BEGIN])
-    on_entry = wait_for_event(DOWNLOAD_WILL_BEGIN)
+    await subscribe_events(events=[DOWNLOAD_WILL_BEGIN, NAVIGATION_STARTED])
 
+    # Track all received events in the events array
+    navigation_started_events = []
+    async def on_event(method, data):
+        navigation_started_events.append(data)
+
+    remove_listener = bidi_session.add_event_listener(NAVIGATION_STARTED, on_event)
+
+    on_download_will_begin = wait_for_event(DOWNLOAD_WILL_BEGIN)
     # Test clicking on a link with a "download" attribute.
     await bidi_session.script.evaluate(
         expression="download_link.click()",
@@ -71,11 +79,13 @@ async def test_subscribe(
         user_activation=True,
     )
 
-    event = await wait_for_future_safe(on_entry)
+    event = await wait_for_future_safe(on_download_will_begin)
     recursive_compare(
         {
             "context": new_tab["context"],
-            "navigation": any_string,
+            # downloadWillBegin events created via a link with a download
+            # attribute should have a `null` navigation id.
+            "navigation": None,
             "suggestedFilename": download_filename,
             "timestamp": any_int,
             "url": download_link,
@@ -83,9 +93,15 @@ async def test_subscribe(
         event,
     )
 
+    # Check that no browsingContext.navigationStarted event was emitted
+    with pytest.raises(TimeoutException):
+        await wait_for_bidi_events(bidi_session, navigation_started_events, 1, timeout=0.5)
+
+    remove_listener()
+
 
 async def test_content_disposition_header(
-    bidi_session, new_tab, inline, wait_for_event, wait_for_future_safe, url
+    bidi_session, subscribe_events, new_tab, inline, wait_for_event, wait_for_future_safe, url
 ):
     content_disposition_filename = f"content_disposition_filename{random.random()}.txt"
     content_disposition_link = url(
@@ -100,9 +116,12 @@ async def test_content_disposition_header(
         context=new_tab["context"], url=page_url, wait="complete"
     )
 
+    await subscribe_events(events=[DOWNLOAD_WILL_BEGIN, NAVIGATION_STARTED])
+
     # Test clicking on a link which returns a response with a
     # Content-Disposition header.
-    on_entry = wait_for_event(DOWNLOAD_WILL_BEGIN)
+    on_navigation_started = wait_for_event(NAVIGATION_STARTED)
+    on_download_will_begin = wait_for_event(DOWNLOAD_WILL_BEGIN)
     await bidi_session.script.evaluate(
         expression="content_disposition_link.click()",
         target=ContextTarget(new_tab["context"]),
@@ -110,7 +129,7 @@ async def test_content_disposition_header(
         user_activation=True,
     )
 
-    event = await wait_for_future_safe(on_entry)
+    download_event = await wait_for_future_safe(on_download_will_begin)
     recursive_compare(
         {
             "context": new_tab["context"],
@@ -119,11 +138,20 @@ async def test_content_disposition_header(
             "timestamp": any_int,
             "url": content_disposition_link,
         },
-        event,
+        download_event,
     )
 
+    navigation_event = await wait_for_future_safe(on_navigation_started)
+
+    # Check that the navigation id and url are identical for navigationStarted
+    # and downloadWillBegin.
+    assert download_event["navigation"] == navigation_event["navigation"]
+    assert download_event["url"] == navigation_event["url"]
+
+
+
 async def test_redirect_to_content_disposition_header(
-    bidi_session, new_tab, inline, wait_for_event, wait_for_future_safe, url
+    bidi_session, subscribe_events, new_tab, inline, wait_for_event, wait_for_future_safe, url
 ):
     redirect_filename = f"redirect_filename{random.random()}.txt"
     content_disposition_link = url(
@@ -142,9 +170,12 @@ async def test_redirect_to_content_disposition_header(
         context=new_tab["context"], url=page_url, wait="complete"
     )
 
+    await subscribe_events(events=[DOWNLOAD_WILL_BEGIN, NAVIGATION_STARTED])
+
     # Test clicking on a link which redirects to a response with a
     # Content-Disposition header.
-    on_entry = wait_for_event(DOWNLOAD_WILL_BEGIN)
+    on_navigation_started = wait_for_event(NAVIGATION_STARTED)
+    on_download_will_begin = wait_for_event(DOWNLOAD_WILL_BEGIN)
     await bidi_session.script.evaluate(
         expression="redirect_link.click()",
         target=ContextTarget(new_tab["context"]),
@@ -152,7 +183,7 @@ async def test_redirect_to_content_disposition_header(
         user_activation=True,
     )
 
-    event = await wait_for_future_safe(on_entry)
+    download_event = await wait_for_future_safe(on_download_will_begin)
     recursive_compare(
         {
             "context": new_tab["context"],
@@ -161,5 +192,14 @@ async def test_redirect_to_content_disposition_header(
             "timestamp": any_int,
             "url": content_disposition_link,
         },
-        event,
+        download_event,
     )
+
+    navigation_event = await wait_for_future_safe(on_navigation_started)
+
+    # Check that the navigation id is identical for navigationStarted and
+    # downloadWillBegin.
+    assert download_event["navigation"] == navigation_event["navigation"]
+    # The url property will be different, the navigation event will have a url
+    # set to the initial redirect url.
+    assert navigation_event["url"] == redirect_link

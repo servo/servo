@@ -1,4 +1,5 @@
 import pytest
+import random
 from webdriver.bidi.modules.script import ScriptEvaluateResultException
 
 from .. import (
@@ -43,7 +44,7 @@ async def test_request_response_phases(
     response_started_events = network_events[RESPONSE_STARTED_EVENT]
     response_completed_events = network_events[RESPONSE_COMPLETED_EVENT]
 
-    text_url = url(PAGE_EMPTY_TEXT)
+    text_url = f"{url(PAGE_EMPTY_TEXT)}?nocache={random.random()}"
     intercept = await add_intercept(
         phases=phases,
         url_patterns=[{"type": "string", "pattern": text_url}],
@@ -111,7 +112,7 @@ async def test_not_listening_to_phase_event(
     await setup_network_test(events=events)
 
     # Add an intercept without listening to the corresponding network event
-    text_url = url(PAGE_EMPTY_TEXT)
+    text_url = f"{url(PAGE_EMPTY_TEXT)}?nocache={random.random()}"
     await add_intercept(
         phases=[phase],
         url_patterns=[{"type": "string", "pattern": text_url}],

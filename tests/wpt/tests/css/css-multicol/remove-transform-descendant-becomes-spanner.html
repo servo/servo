@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>A transform inside multicol prevents descendants from becoming spanners. If the transform is removed, descendants may become spanners.</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/445210793">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:2; width:100px; background:red;">
+  <div id="elm" style="transform:rotate(45deg);">
+    <div>
+      <div style="column-span:all; padding-bottom:100px; background:green;"></div>
+    </div>
+  </div>
+</div>
+<script>
+  document.body.offsetTop;
+  elm.style.transform = "none";
+</script>

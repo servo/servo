@@ -128,10 +128,10 @@ promise_test(async t => {
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
   const scroller = animation.timeline.source;
-  // Make the scroll timeline inactive.
-  scroller.style.overflow = 'visible';
-  scroller.scrollTop;
-  await waitForNextFrame();
+  await runAndWaitForFrameUpdate(() => {
+    // Make the scroll timeline inactive.
+    scroller.style.overflow = 'visible';
+  });
 
   assert_throws_dom('InvalidStateError', () => { animation.reverse(); });
 }, 'Reversing an animation without an active timeline throws an ' +

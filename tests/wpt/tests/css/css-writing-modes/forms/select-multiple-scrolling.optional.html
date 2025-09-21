@@ -39,12 +39,14 @@ for (const writingMode of ["horizontal-tb", "vertical-lr", "vertical-rl", "sidew
     const scrollBlock = isHorizontal ? "scrollHeight" : "scrollWidth";
     const scrollInline = isHorizontal ? "scrollWidth" : "scrollHeight";
 
-    test(t => {
-        select.scrollTop = select.scrollLeft = 0;
+    promise_test(async t => {
         select.style.writingMode = writingMode;
+        select.scrollTop = select.scrollLeft = 0;
+
         t.add_cleanup(() => {
             select.removeAttribute("style");
             select.scrollTop = select.scrollLeft = 0;
+            return new Promise(resolve => requestAnimationFrame(resolve));
         });
 
         assert_true(

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: test reference</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<style>
+div {
+    columns: 3;
+    border: solid 1px;
+}
+div p {
+    break-after: column;
+}
+.spanner {
+    column-span: all;
+    text-align: center;
+}
+
+/* incidental to the example, but needed for a controlled rendering :*/
+div p { margin: 0; }
+div {
+    margin: 1em;
+    width: 47ch;
+    font-family: monospace;
+    gap: 1ch;
+}
+</style>
+<p>Test passes if the two boxes bellow are identical.
+
+<div>
+    <p>Column 1</p>
+    <p>Column 2</p>
+    <p>Column 3</p>
+</div>
+<div>
+    <p>Column 1</p>
+    <p>Column 2</p>
+    <p>Column 3</p>
+</div>

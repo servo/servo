@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+
+<title>Computed root element writing-mode style when propagating writing-mode from body</title>
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#principal-flow">
+
+<body>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+        const writingModes = ["horizontal-tb", "vertical-lr", "vertical-rl", "sideways-lr", "sideways-rl"];
+        for (const rootWM of writingModes) {
+            for (const bodyWM of writingModes) {
+                test(function(t) {
+                    t.add_cleanup(() => {
+                        document.documentElement.style.removeProperty("writing-mode");
+                        document.body.style.removeProperty("writing-mode");
+                    });
+                    document.documentElement.style.writingMode = rootWM;
+                    document.body.style.writingMode = bodyWM;
+                    assert_equals(getComputedStyle(document.documentElement).writingMode, rootWM, "root computed writing mode should be correct");
+                    assert_equals(getComputedStyle(document.body).writingMode, bodyWM, "body computed writing mode should be correct");
+                }, `Computed style is as specified with ${bodyWM} on body & ${rootWM} on html`);
+            }
+        }
+    </script>
+</body>
+
+</html>

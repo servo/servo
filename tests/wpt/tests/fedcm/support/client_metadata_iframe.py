@@ -15,6 +15,6 @@ def main(request, response):
 
   return """
 {
-  "client_matches_top_frame_origin": false
+  "client_is_third_party_to_top_frame_origin": true
 }
 """

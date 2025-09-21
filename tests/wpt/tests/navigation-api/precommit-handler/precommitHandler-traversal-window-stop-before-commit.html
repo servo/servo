@@ -3,13 +3,11 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="../navigation-methods/return-value/resources/helpers.js"></script>
 <body>
-<script type="module">
-import { ensureWindowLoadEventFired } from "../resources/helpers.mjs";
-
+<script>
 promise_test(async t => {
   // Wait for after the load event because window.stop() hangs the test harness
   // if called before the load event.
-  await ensureWindowLoadEventFired(t);
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
 
   let start_length = navigation.entries().length;
   let start_index = navigation.currentEntry.index;

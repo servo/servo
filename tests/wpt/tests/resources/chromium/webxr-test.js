@@ -1052,15 +1052,13 @@ class MockRuntime {
     if (!this.supportedModes_.includes(xrSessionMojom.XRSessionMode.kImmersiveAr)) {
       // Reject outside of AR.
       return Promise.resolve({
-        result : vrMojom.SubscribeToHitTestResult.FAILURE_GENERIC,
-        subscriptionId : 0n
+        subscriptionId : null
       });
     }
 
     if (!this._nativeOriginKnown(nativeOriginInformation)) {
       return Promise.resolve({
-        result : vrMojom.SubscribeToHitTestResult.FAILURE_GENERIC,
-        subscriptionId : 0n
+        subscriptionId : null
       });
     }
 
@@ -1077,13 +1075,11 @@ class MockRuntime {
           this.hitTestSubscriptions_.set(id, { nativeOriginInformation, entityTypes, ray, controller });
 
           return Promise.resolve({
-            result : vrMojom.SubscribeToHitTestResult.SUCCESS,
-            subscriptionId : id
+            subscriptionId : { idValue : id }
           });
         } else {
           return Promise.resolve({
-            result : vrMojom.SubscribeToHitTestResult.FAILURE_GENERIC,
-            subscriptionId : 0n
+            subscriptionId : null
           });
         }
       });
@@ -1093,8 +1089,7 @@ class MockRuntime {
     if (!this.supportedModes_.includes(xrSessionMojom.XRSessionMode.kImmersiveAr)) {
       // Reject outside of AR.
       return Promise.resolve({
-        result : vrMojom.SubscribeToHitTestResult.FAILURE_GENERIC,
-        subscriptionId : 0n
+        subscriptionId : null
       });
     }
 
@@ -1112,26 +1107,25 @@ class MockRuntime {
           this.transientHitTestSubscriptions_.set(id, { profileName, entityTypes, ray, controller });
 
           return Promise.resolve({
-            result : vrMojom.SubscribeToHitTestResult.SUCCESS,
-            subscriptionId : id
+            subscriptionId : { idValue : id }
           });
         } else {
           return Promise.resolve({
-            result : vrMojom.SubscribeToHitTestResult.FAILURE_GENERIC,
-            subscriptionId : 0n
+            subscriptionId : null
           });
         }
       });
   }
 
   unsubscribeFromHitTest(subscriptionId) {
+    let id = subscriptionId.idValue;
     let controller = null;
-    if(this.transientHitTestSubscriptions_.has(subscriptionId)){
-      controller = this.transientHitTestSubscriptions_.get(subscriptionId).controller;
-      this.transientHitTestSubscriptions_.delete(subscriptionId);
-    } else if(this.hitTestSubscriptions_.has(subscriptionId)){
-      controller = this.hitTestSubscriptions_.get(subscriptionId).controller;
-      this.hitTestSubscriptions_.delete(subscriptionId);
+    if(this.transientHitTestSubscriptions_.has(id)){
+      controller = this.transientHitTestSubscriptions_.get(id).controller;
+      this.transientHitTestSubscriptions_.delete(id);
+    } else if(this.hitTestSubscriptions_.has(id)){
+      controller = this.hitTestSubscriptions_.get(id).controller;
+      this.hitTestSubscriptions_.delete(id);
     }
 
     if(controller) {
@@ -1139,12 +1133,11 @@ class MockRuntime {
     }
   }
 
-  createAnchor(nativeOriginInformation, nativeOriginFromAnchor) {
+  createAnchor(nativeOriginInformation, nativeOriginFromAnchor, planeId) {
     return new Promise((resolve) => {
       if(this.anchor_creation_callback_ == null) {
         resolve({
-          result : vrMojom.CreateAnchorResult.FAILURE,
-          anchorId : 0n
+          anchorId : null
         });
 
         return;
@@ -1153,8 +1146,7 @@ class MockRuntime {
       const mojoFromNativeOrigin = this._getMojoFromNativeOrigin(nativeOriginInformation);
       if(mojoFromNativeOrigin == null) {
         resolve({
-          result : vrMojom.CreateAnchorResult.FAILURE,
-          anchorId : 0n
+          anchorId : null
         });
 
         return;
@@ -1183,36 +1175,23 @@ class MockRuntime {
                 anchorController.id = anchor_id;
 
                 resolve({
-                  result : vrMojom.CreateAnchorResult.SUCCESS,
-                  anchorId : anchor_id
+                  anchorId : {
+                    idValue: anchor_id
+                  }
                 });
               } else {
                 // The test has rejected anchor creation.
                 resolve({
-                  result : vrMojom.CreateAnchorResult.FAILURE,
-                  anchorId : 0n
+                  anchorId : null
                 });
               }
             })
             .catch(() => {
               // The test threw an error, treat anchor creation as failed.
               resolve({
-                result : vrMojom.CreateAnchorResult.FAILURE,
-                anchorId : 0n
+                anchorId : null
               });
             });
-    });
-  }
-
-  createPlaneAnchor(planeFromAnchor, planeId) {
-    return new Promise((resolve) => {
-
-      // Not supported yet.
-
-      resolve({
-        result : vrMojom.CreateAnchorResult.FAILURE,
-        anchorId : 0n,
-      });
     });
   }
 
@@ -1397,11 +1376,11 @@ class MockRuntime {
 
     frameData.anchorsData = {allAnchorsIds: [], updatedAnchorsData: []};
     for(const [id, controller] of this.anchor_controllers_) {
-      frameData.anchorsData.allAnchorsIds.push(id);
+      frameData.anchorsData.allAnchorsIds.push({ idValue : id });
 
       // Send the entire anchor data over if there was a change since last GetFrameData().
       if(controller.dirty) {
-        const anchorData = {id};
+        const anchorData = { id : { idValue : id }};
         if(!controller.paused) {
           anchorData.mojoFromAnchor = getPoseFromTransform(
               XRMathHelper.decomposeRigidTransform(
@@ -1685,14 +1664,14 @@ class MockRuntime {
 
       const results = this._hitTestWorld(mojo_ray_origin, mojo_ray_direction, subscription.entityTypes);
       frameData.hitTestSubscriptionResults.results.push(
-          {subscriptionId: id, hitTestResults: results});
+          {subscriptionId: { idValue: id }, hitTestResults: results});
     }
 
     // Transient hit test:
     const mojo_from_viewer = this._getMojoFromViewer();
 
     for (const [id, subscription] of this.transientHitTestSubscriptions_) {
-      const result = {subscriptionId: id,
+      const result = {subscriptionId: { idValue: id },
                       inputSourceIdToHitTestResults: new Map()};
 
       // Find all input sources that match the profile name:
@@ -1860,7 +1839,7 @@ class MockRuntime {
           return null;
         }
 
-        const hitResult = {planeId: 0n};
+        const hitResult = {};
         hitResult.distance = distance;  // Extend the object with additional information used by higher layers.
                                         // It will not be serialized over mojom.
 

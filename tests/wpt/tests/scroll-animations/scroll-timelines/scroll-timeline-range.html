@@ -71,8 +71,9 @@
       anim.cancel();
     });
     await anim.ready;
-    scroller.scrollTop = 600;
-    await waitForNextFrame();
+    await runAndWaitForFrameUpdate(() => {
+      scroller.scrollTop = 600;
+    });
 
     const expectedProgress =
         (600 - options.startOffset) / (options.endOffset - options.startOffset);

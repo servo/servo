@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>Placeholder should stretch input when field-sizing is applied.</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#field-sizing">
+<link rel=match href="field-sizing-placeholder-stretch-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+
+<style>
+::placeholder {
+  font: 30px Ahem;
+  color: green;
+}
+input {
+  field-sizing: content;
+  padding: 0px;
+  border: none;
+}
+</style>
+<input placeholder="PASS if not clipped">
+<input style="height: 0px;" placeholder="PASS if fully clipped">

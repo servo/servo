@@ -265,7 +265,6 @@ def run_info_browser_version(**kwargs):
 def update_properties():
     return ([
         "os",
-        "os_version",
         "debug",
         "display",
         "fission",
@@ -278,7 +277,7 @@ def update_properties():
         "remoteAsyncEvents",
         "sessionHistoryInParent",
         "subsuite"], {
-        "os": ["version"],
+        "os": ["version", "os_version"],
         "processor": ["bits"]})
 
 

@@ -1,4 +1,5 @@
 import pytest
+import random
 
 import asyncio
 
@@ -44,7 +45,7 @@ async def test_basic_authentication(
     auth_required_events = network_events[AUTH_REQUIRED_EVENT]
     response_completed_events = network_events[RESPONSE_COMPLETED_EVENT]
 
-    auth_url = url("/webdriver/tests/support/http_handlers/authentication.py")
+    auth_url = url(f"/webdriver/tests/support/http_handlers/authentication.py?nocache={random.random()}")
     intercept = await add_intercept(
         phases=["authRequired"],
         url_patterns=[{"type": "string", "pattern": auth_url}],
@@ -105,7 +106,7 @@ async def test_no_authentication(
     auth_required_events = network_events[AUTH_REQUIRED_EVENT]
     response_completed_events = network_events[RESPONSE_COMPLETED_EVENT]
 
-    text_url = url(PAGE_EMPTY_TEXT)
+    text_url = f"{url(PAGE_EMPTY_TEXT)}?nocache={random.random()}"
     intercept = await add_intercept(
         phases=["authRequired"],
         url_patterns=[{"type": "string", "pattern": text_url}],

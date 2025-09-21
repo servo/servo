@@ -3,28 +3,21 @@
 <link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-pos">
 <link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-size">
 <link rel="author" href="mailto:kojii@chromium.org">
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script src="/resources/check-layout-th.js"></script>
-<script src="support/test-common.js"></script>
+<link rel="author" href="mailto:mstensho@chromium.org">
+<link rel="match" href="anchor-position-multicol-002-ref.html">
 <style>
 .cb {
   transform: translate(0);  /* Make it a containing block. */
+  border: solid transparent;
   border-width: 5px 6px 7px 8px;
-  border-style: solid;
   padding: 5px 6px 7px 8px;
 }
 .columns {
-  column-count: 4;
+  columns: 3;
   column-fill: auto;
   column-gap: 10px;
-  column-width: 100px;
   width: 320px;
   height: 100px;
-}
-.spacer {
-  height: 10px;
-  background: silver;
 }
 .anchor1 {
   anchor-name: --a1;
@@ -36,86 +29,95 @@
 .target {
   position: absolute;
 }
-.fixed {
+.target.fixed {
   position: fixed;
 }
-.target1 {
+.all {
   left: anchor(--a1 left);
   top: anchor(--a1 top);
   width: anchor-size(--a1 width);
   height: anchor-size(--a1 height);
-  border: dashed 4px aqua;
-  opacity: .2;
-  box-sizing: border-box;
 }
-.target1-rb {
+.rb {
   right: anchor(--a1 right);
   bottom: anchor(--a1 bottom);
   width: 10px;
   height: 10px;
-  background: teal;
 }
-
-.inner .target1 {
-  border-color: fuchsia;
-  border-style: solid;
+.target::before {
+  position: absolute;
+  content: "";
+  background: green;
 }
-.inner .target1-rb {
-  background: purple;
+.target.inner.all::before {
+  width: 100%;
+  height: 50%;
 }
-
+.target.inner.all.part2::before {
+  top: 50%;
+}
+/* Mark the .rb area red again. */
+.target.inner.all.part2::after {
+  position: absolute;
+  content: "";
+  right: 0;
+  bottom: 0;
+  width: 10px;
+  height: 10px;
+  background: red;
+}
+.target.inner.rb::before {
+  width: 50%;
+  height: 100%;
+}
+.target.inner.rb.part2::before {
+  left: 50%;
+}
+.target.outer::before {
+  left: 50px;
+  right: 50px;
+  height: 25%;
+}
+.target.outer.part2::before {
+  top: 25%;
+}
+.target.outer.part3::before {
+  top: 50%;
+}
+.target.outer.part4::before {
+  top: 75%;
+}
 </style>
-<body onload="checkLayoutForAnchorPos('.target')">
-  <p>The dashed aqua rectangle should encompass both yellow fragments,
-    and the teal box should be at the bottom-right of the aqua box.
-  <p>The fuchsia rectangle should match the edge of the yellow box except where it's split across columns,
-    and the purple box should be at the bottom-right of the fuchsia rectangle.
-  <div class="spacer" style="height: 10px"></div>
-  <div class="cb outer">
-    <div class="columns">
-      <div class="spacer" style="height: 30px"></div>
-      <div class="cb inner">
-        <!-- This spacer fills up to the middle of the 2nd column. -->
-        <div class="spacer" style="height: 130px"></div>
-        <div class="anchor1"></div>
-        <div class="spacer" style="height: 100px"></div>
+<p>There should be a green rectangle below, no red.</p>
+<div class="cb outer">
+  <div style="position:absolute; z-index:-1; left:144px; width:160px; height:100px; background:red;"></div>
+  <div class="columns">
+    <div style="height:30px;"></div>
+    <div class="cb inner">
+      <!-- This spacer fills up to the middle of the 2nd column. -->
+      <div style="height:60px;"></div>
+      <div style="margin-left:10px; width:50px; height:70px; background:green;"></div>
+      <div class="anchor1"></div>
+      <div style="margin-right:12px; height:40px; background:green;"></div>
+      <div style="height:60px;"></div>
 
-        <!-- The containing block of querying elements is block-fragmented. -->
-        <div class="target target1"
-             data-offset-x=18 data-offset-y=135
-             data-expected-width=50 data-expected-height=90></div>
-        <div class="target target1-rb"
-             data-offset-x=58 data-offset-y=215></div>
-        <div class="target fixed target1"
-             data-offset-x=26 data-offset-y=140
-             data-expected-width=50 data-expected-height=90></div>
-        <div class="target fixed target1-rb"
-             data-offset-x=58 data-offset-y=215></div>
-      </div>
-
-      <!-- The containing block of querying elements is a multi-column.  -->
-      <div class="target target1"
-           data-offset-x=144 data-offset-y=5
-           data-expected-width=160 data-expected-height=100></div>
-      <div class="target target1-rb"
-           data-offset-x=294 data-offset-y=95></div>
-      <div class="target fixed target1"
-           data-offset-x=144 data-offset-y=5
-           data-expected-width=160 data-expected-height=100></div>
-      <div class="target fixed target1-rb"
-           data-offset-x=294 data-offset-y=95></div>
+      <!-- The containing block of querying elements is block-fragmented. -->
+      <div class="target all inner part1"></div>
+      <div class="target all fixed inner part2"></div>
+      <div class="target rb inner part1"></div>
+      <div class="target rb fixed inner part2"></div>
     </div>
 
-    <!-- The containing block of querying elements is not fragmented.  -->
-    <div class="target target1"
-         data-offset-x=144 data-offset-y=5
-         data-expected-width=160 data-expected-height=100></div>
-    <div class="target target1-rb"
-         data-offset-x=294 data-offset-y=95></div>
-    <div class="target fixed target1"
-         data-offset-x=144 data-offset-y=5
-         data-expected-width=160 data-expected-height=100></div>
-    <div class="target fixed target1-rb"
-         data-offset-x=294 data-offset-y=95></div>
+    <!-- The containing block of querying elements is a multi-column, i.e. not fragmented.  -->
+    <div class="target all outer part1"></div>
+    <div class="target all fixed outer part2"></div>
+    <div class="target rb outer part1"></div>
+    <div class="target rb fixed outer part2"></div>
   </div>
-</body>
+
+  <!-- The containing block of querying elements is not fragmented.  -->
+  <div class="target all outer part3"></div>
+  <div class="target all fixed outer part4"></div>
+  <div class="target rb outer part3"></div>
+  <div class="target rb fixed outer part4"></div>
+</div>

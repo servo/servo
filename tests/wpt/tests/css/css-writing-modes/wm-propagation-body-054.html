@@ -13,7 +13,7 @@
   -->
   <link rel="match" href="wm-propagation-body-054-ref.html">
 
-  <meta name="assert" content="This test checks that when the root element has a &lt;body&gt; child element, then the principal writing mode is instead taken from the values of writing-mode and direction on the first such child element instead of taken from the root element. Also, a small script in this test verifies that the computed value of 'writing-mode' of the root element itself is not affected by such propagation. Finally, in order to make sure that the principal writing mode is indeed 'vertical-lr', the test checks that a simple text is affected by 'text-orientation: upright' since 'text-orientation: upright' should have a rendering effect on it.">
+  <meta name="assert" content="This test checks that when the root element has a &lt;body&gt; child element, then the principal writing mode is instead taken from the values of writing-mode and direction on the first such child element instead of taken from the root element. Finally, in order to make sure that the principal writing mode is indeed 'vertical-lr', the test checks that a simple text is affected by 'text-orientation: upright' since 'text-orientation: upright' should have a rendering effect on it.">
 
   <!--
   Tests 032 to 035: html's writing-mode is not specified
@@ -54,31 +54,9 @@
       height: 100px;
       width: 100px;
     }
-
-  h1#second-test-condition
-    {
-      background-color: red;
-      color: yellow;
-    }
   </style>
 
-  <script>
-  function verifyComputedValueDocRoot()
-  {
-  if(getComputedStyle(document.documentElement)["writing-mode"] == "sideways-lr")
-    {
-    document.getElementById("second-test-condition").style.display = "none";
-    };
-
-    /*
-    If the computed value of 'writing-mode' of the root element
-    itself is not affected by such propagation, then the big FAIL
-    word will not be displayed.
-    */
-  }
-  </script>
-
- <body onload="verifyComputedValueDocRoot();">
+ <body>
 
   <div></div>
 
@@ -89,5 +67,3 @@
   Test passes if there is an orange square
   in the <strong>upper-left corner</strong> of the page.
   -->
-
-  <h1 id="second-test-condition">FAIL</h1>

@@ -50,7 +50,7 @@ from .protocol import (BaseProtocolPart,
                        DisplayFeaturesProtocolPart,
                        merge_dicts)
 
-from typing import Any, List, Dict, Optional, Tuple
+from typing import Any, List, Dict, Optional
 from webdriver.client import Session
 from webdriver import error as webdriver_error
 from webdriver.bidi import error as webdriver_bidi_error
@@ -273,7 +273,7 @@ class WebDriverBidiBrowsingContextProtocolPart(BidiBrowsingContextProtocolPart):
 
 
 class WebDriverBidiEventsProtocolPart(BidiEventsProtocolPart):
-    _subscriptions: List[Tuple[List[str], Optional[List[str]]]] = []
+    _subscriptions: List[str] = []
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -312,15 +312,10 @@ class WebDriverBidiEventsProtocolPart(BidiEventsProtocolPart):
 
     async def subscribe(self, events, contexts):
         self.logger.info("Subscribing to events %s in %s" % (events, contexts))
-        # The BiDi subscriptions are done for top context even if the sub-context is provided. We need to get the
-        # top-level contexts list to handle the scenario when subscription is done for a sub-context which is closed
-        # afterwards. However, the subscription itself is done for the provided contexts in order to throw in case of
-        # the sub-context is removed.
-        top_contexts = await self._contexts_to_top_contexts(contexts)
         result = await self.webdriver.bidi_session.session.subscribe(events=events, contexts=contexts)
         # The `subscribe` method either raises an exception or adds subscription. The command is atomic, meaning in case
         # of exception no subscription is added.
-        self._subscriptions.append((events, top_contexts))
+        self._subscriptions.append(result["subscription"])
         return result
 
     async def unsubscribe(self, subscriptions):
@@ -331,10 +326,10 @@ class WebDriverBidiEventsProtocolPart(BidiEventsProtocolPart):
     async def unsubscribe_all(self):
         self.logger.info("Unsubscribing from all the events")
         while self._subscriptions:
-            events, contexts = self._subscriptions.pop()
-            self.logger.debug("Unsubscribing from events %s in %s" % (events, contexts))
+            subscription = self._subscriptions.pop()
+            self.logger.debug("Unsubscribing from event %s" % subscription)
             try:
-                await self.webdriver.bidi_session.session.unsubscribe(events=events, contexts=contexts)
+                await self.webdriver.bidi_session.session.unsubscribe(subscriptions=[subscription])
             except webdriver_bidi_error.NoSuchFrameException:
                 # The browsing context is already removed. Nothing to do.
                 pass
@@ -345,7 +340,7 @@ class WebDriverBidiEventsProtocolPart(BidiEventsProtocolPart):
                 else:
                     raise e
             except Exception as e:
-                self.logger.error("Failed to unsubscribe from events %s in %s: %s" % (events, contexts, e))
+                self.logger.error("Failed to unsubscribe from event %s: %s" % (subscription, e))
                 # Re-raise the exception to identify regressions.
                 # TODO: consider to continue the loop in case of the exception.
                 raise e

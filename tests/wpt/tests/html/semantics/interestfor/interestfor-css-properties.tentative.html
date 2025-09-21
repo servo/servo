@@ -18,6 +18,7 @@ function testprop(prop) {
   test_computed_value(prop, '0ms', '0s');
   test_computed_value(prop, '32s');
   test_computed_value(prop, '123ms', '0.123s');
+  test_computed_value(prop, 'normal', 'normal');
 
   // Valid values:
   test_valid_value(prop, '0s');
@@ -26,6 +27,7 @@ function testprop(prop) {
   test_valid_value(prop, '123ms');
   test_valid_value(prop, 'inherit');
   test_valid_value(prop, 'calc(2s * sibling-index())');
+  test_valid_value(prop, 'normal');
 
   // Invalid values:
   test_invalid_value(prop, '0', '0s');
@@ -49,6 +51,6 @@ function testprop(prop) {
   ]);
 }
 
-testprop('interest-show-delay');
-testprop('interest-hide-delay');
+testprop('interest-delay-start');
+testprop('interest-delay-end');
 </script>

@@ -2,13 +2,11 @@
 <script src="/resources/testharness.js"></script>
 <!-- Put this page in a sandbox to give it an opaque origin -->
 
-<script type="module">
-import { ensureWindowLoadEventFired } from "../../resources/helpers.mjs";
-
+<script>
 promise_test(async t => {
   // Wait for after the load event so that the navigation doesn't get converted
   // into a replace navigation.
-  await ensureWindowLoadEventFired(t);
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
 
   location.hash = "#1";
   await new Promise(resolve => window.onhashchange = resolve);

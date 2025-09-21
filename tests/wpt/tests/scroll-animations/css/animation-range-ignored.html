@@ -63,8 +63,9 @@
       const anim = startAnimation(t);
       await anim.ready;
 
-      scroller.scrollTop = 650;
-      await waitForNextFrame();
+      await runAndWaitForFrameUpdate(() => {
+        scroller.scrollTop = 650;
+      });
 
       // Timline time = (scroll pos - cover 0%) / (cover 100% - cover 0%) * 100%
       //              = (650 - 600)/(900 - 600) * 100% = 100/6%

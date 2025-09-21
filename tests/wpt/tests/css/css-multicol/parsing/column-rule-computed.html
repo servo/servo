@@ -25,12 +25,12 @@
 const currentColor = 'rgb(0, 255, 0)';
 const mediumWidth = getComputedStyle(document.getElementById('reference')).columnRuleWidth; // e.g. 3px
 
-test_computed_value("column-rule", "10px", "0px " + currentColor);
+test_computed_value("column-rule", "10px", "10px " + currentColor);
 test_computed_value("column-rule", "dotted", mediumWidth + " dotted " + currentColor);
 test_computed_value("column-rule", "0px none rgb(255, 0, 255)", "0px rgb(255, 0, 255)");
 test_computed_value("column-rule", "10px dotted rgb(255, 0, 255)");
 
-test_computed_value("column-rule", "medium hidden currentcolor", "0px hidden " + currentColor);
+test_computed_value("column-rule", "medium hidden currentcolor", mediumWidth + " hidden " + currentColor);
 test_computed_value("column-rule", "medium solid currentcolor", mediumWidth + " solid " + currentColor);
 </script>
 </body>
