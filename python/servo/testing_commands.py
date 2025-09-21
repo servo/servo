@@ -268,11 +268,6 @@ class MachCommands(CommandBase):
         assert isinstance(result, int)
         return result
 
-    @Command("test-content", description="Run the content tests", category="testing")
-    def test_content(self) -> int:
-        print("Content tests have been replaced by web-platform-tests under tests/wpt/mozilla/.")
-        return 0
-
     @Command("test-tidy", description="Run the source code tidiness check", category="testing")
     @CommandArgument(
         "--all",
