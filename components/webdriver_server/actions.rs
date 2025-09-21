@@ -375,7 +375,7 @@ impl Handler {
 
         // Step 6. Add button to the set corresponding to source's pressed property
         pointer_input_state.pressed.insert(action.button);
-
+        // Step 7 - 15: Variable namings already done.
         // Step 16. Perform implementation-specific action dispatch steps
         // TODO: We have not considered pen/touch pointer type
         self.increment_num_pending_actions();
