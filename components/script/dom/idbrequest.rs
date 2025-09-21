@@ -5,12 +5,12 @@
 use std::cell::Cell;
 use std::iter::repeat_n;
 
+use base::IpcSend;
 use dom_struct::dom_struct;
 use ipc_channel::router::ROUTER;
 use js::jsapi::Heap;
 use js::jsval::{DoubleValue, JSVal, ObjectValue, UndefinedValue};
 use js::rust::HandleValue;
-use net_traits::IpcSend;
 use net_traits::indexeddb_thread::{
     AsyncOperation, AsyncReadOnlyOperation, BackendError, BackendResult, IndexedDBKeyType,
     IndexedDBRecord, IndexedDBThreadMsg, IndexedDBTxnMode, PutItemResult,

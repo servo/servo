@@ -11,6 +11,7 @@ use std::thread::{self, JoinHandle};
 use base::cross_process_instant::CrossProcessInstant;
 use base::generic_channel::{GenericSend, GenericSender, SendResult};
 use base::id::{CookieStoreId, HistoryStateId};
+use base::{IpcSend, IpcSendResult};
 use content_security_policy::{self as csp};
 use cookie::Cookie;
 use crossbeam_channel::{Receiver, Sender, unbounded};
@@ -18,8 +19,7 @@ use headers::{ContentType, HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader}
 use http::{Error as HttpError, HeaderMap, HeaderValue, StatusCode, header};
 use hyper_serde::Serde;
 use hyper_util::client::legacy::Error as HyperError;
-use ipc_channel::Error as IpcError;
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
@@ -415,21 +415,6 @@ pub trait AsyncRuntime: Send {
 /// Handle to a resource thread
 pub type CoreResourceThread = IpcSender<CoreResourceMsg>;
 
-pub type IpcSendResult = Result<(), IpcError>;
-
-/// Abstraction of the ability to send a particular type of message,
-/// used by net_traits::ResourceThreads to ease the use its IpcSender sub-fields
-/// XXX: If this trait will be used more in future, some auto derive might be appealing
-pub trait IpcSend<T>
-where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de>,
-{
-    /// send message T
-    fn send(&self, _: T) -> IpcSendResult;
-    /// get underlying sender
-    fn sender(&self) -> IpcSender<T>;
-}
-
 // FIXME: Originally we will construct an Arc<ResourceThread> from ResourceThread
 // in script_thread to avoid some performance pitfall. Now we decide to deal with
 // the "Arc" hack implicitly in future.
@@ -462,7 +447,7 @@ impl ResourceThreads {
 
 impl IpcSend<CoreResourceMsg> for ResourceThreads {
     fn send(&self, msg: CoreResourceMsg) -> IpcSendResult {
-        self.core_thread.send(msg)
+        self.core_thread.send(msg).map_err(IpcError::Bincode)
     }
 
     fn sender(&self) -> IpcSender<CoreResourceMsg> {
@@ -472,7 +457,7 @@ impl IpcSend<CoreResourceMsg> for ResourceThreads {
 
 impl IpcSend<IndexedDBThreadMsg> for ResourceThreads {
     fn send(&self, msg: IndexedDBThreadMsg) -> IpcSendResult {
-        self.idb_thread.send(msg)
+        self.idb_thread.send(msg).map_err(IpcError::Bincode)
     }
 
     fn sender(&self) -> IpcSender<IndexedDBThreadMsg> {

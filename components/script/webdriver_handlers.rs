@@ -6,6 +6,7 @@ use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
 use std::ptr::NonNull;
 
+use base::IpcSend;
 use base::generic_channel::GenericSender;
 use base::id::{BrowsingContextId, PipelineId};
 use cookie::Cookie;
@@ -27,7 +28,6 @@ use net_traits::CookieSource::{HTTP, NonHTTP};
 use net_traits::CoreResourceMsg::{
     DeleteCookie, DeleteCookies, GetCookiesDataForUrl, SetCookieForUrl,
 };
-use net_traits::IpcSend;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::conversions::is_array_like;
 use script_bindings::num::Finite;

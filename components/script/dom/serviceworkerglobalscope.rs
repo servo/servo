@@ -7,6 +7,7 @@ use std::sync::atomic::AtomicBool;
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
+use base::IpcSend;
 use base::generic_channel::GenericSender;
 use base::id::PipelineId;
 use constellation_traits::{
@@ -20,10 +21,10 @@ use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
 use js::jsapi::{JS_AddInterruptCallback, JSContext};
 use js::jsval::UndefinedValue;
+use net_traits::CustomResponseMediator;
 use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer, RequestBuilder,
 };
-use net_traits::{CustomResponseMediator, IpcSend};
 use servo_config::pref;
 use servo_rand::random;
 use servo_url::ServoUrl;

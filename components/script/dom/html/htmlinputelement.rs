@@ -11,7 +11,7 @@ use std::ptr::NonNull;
 use std::str::FromStr;
 use std::{f64, ptr};
 
-use base::generic_channel;
+use base::{IpcSend, generic_channel};
 use dom_struct::dom_struct;
 use embedder_traits::{
     EmbedderMsg, FilterPattern, FormControl as EmbedderFormControl, InputMethodType, RgbColor,
@@ -26,9 +26,9 @@ use js::jsapi::{
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{CheckRegExpSyntax, ExecuteRegExpNoStatics, ObjectIsRegExp};
 use js::rust::{HandleObject, MutableHandleObject};
+use net_traits::CoreResourceMsg;
 use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadMsg};
-use net_traits::{CoreResourceMsg, IpcSend};
 use script_bindings::codegen::GenericBindings::CharacterDataBinding::CharacterDataMethods;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use servo_config::pref;

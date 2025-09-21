@@ -6,6 +6,7 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::thread::{self, JoinHandle};
 
+use base::IpcSend;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use constellation_traits::{WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use crossbeam_channel::{Receiver, Sender, unbounded};
@@ -18,13 +19,13 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::{Heap, JS_AddInterruptCallback, JSContext, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use net_traits::Metadata;
 use net_traits::image_cache::ImageCache;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer, RequestBuilder,
     RequestMode,
 };
-use net_traits::{IpcSend, Metadata};
 use servo_rand::random;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};

@@ -14,7 +14,7 @@ use std::time::Duration;
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::WebViewId;
-use base::{Epoch, generic_channel};
+use base::{Epoch, IpcSend, generic_channel};
 use canvas_traits::canvas::CanvasId;
 use canvas_traits::webgl::{WebGLContextId, WebGLMsg};
 use chrono::Local;
@@ -41,7 +41,7 @@ use net_traits::policy_container::PolicyContainer;
 use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::{InsecureRequestsPolicy, RequestBuilder};
 use net_traits::response::HttpsState;
-use net_traits::{FetchResponseListener, IpcSend, ReferrerPolicy};
+use net_traits::{FetchResponseListener, ReferrerPolicy};
 use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::TimerMetadataFrameType;

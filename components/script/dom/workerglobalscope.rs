@@ -9,6 +9,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
+use base::IpcSend;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PipelineId, PipelineNamespace};
 use constellation_traits::WorkerGlobalScopeInit;
@@ -21,12 +22,12 @@ use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
 use js::rust::{HandleValue, MutableHandleValue, ParentRuntime};
+use net_traits::ReferrerPolicy;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata,
     RequestBuilder as NetRequestInit,
 };
-use net_traits::{IpcSend, ReferrerPolicy};
 use profile_traits::mem::{ProcessReports, perform_memory_report};
 use servo_url::{MutableOrigin, ServoUrl};
 use timers::TimerScheduler;

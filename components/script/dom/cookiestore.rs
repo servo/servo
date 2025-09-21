@@ -6,6 +6,7 @@ use std::borrow::Cow;
 use std::collections::VecDeque;
 use std::rc::Rc;
 
+use base::IpcSend;
 use base::id::CookieStoreId;
 use cookie::{Cookie, SameSite};
 use dom_struct::dom_struct;
@@ -16,7 +17,7 @@ use ipc_channel::router::ROUTER;
 use itertools::Itertools;
 use js::jsval::NullValue;
 use net_traits::CookieSource::NonHTTP;
-use net_traits::{CookieAsyncResponse, CookieData, CoreResourceMsg, IpcSend};
+use net_traits::{CookieAsyncResponse, CookieData, CoreResourceMsg};
 use script_bindings::script_runtime::CanGc;
 use servo_url::ServoUrl;
 

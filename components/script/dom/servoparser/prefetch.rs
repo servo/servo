@@ -5,6 +5,7 @@
 use std::cell::{Cell, RefCell};
 use std::ops::Deref;
 
+use base::IpcSend;
 use base::id::{PipelineId, WebViewId};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tokenizer::states::RawKind;
@@ -18,7 +19,7 @@ use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer,
 };
-use net_traits::{CoreResourceMsg, FetchChannels, IpcSend, ReferrerPolicy, ResourceThreads};
+use net_traits::{CoreResourceMsg, FetchChannels, ReferrerPolicy, ResourceThreads};
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::dom::bindings::reflector::DomGlobal;
