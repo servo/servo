@@ -956,6 +956,11 @@ impl Node {
             .box_area_query(self, BoxAreaType::Border)
     }
 
+    pub(crate) fn padding_box(&self) -> Option<Rect<Au>> {
+        self.owner_window()
+            .box_area_query(self, BoxAreaType::Padding)
+    }
+
     pub(crate) fn border_boxes(&self) -> Vec<Rect<Au>> {
         self.owner_window()
             .box_areas_query(self, BoxAreaType::Border)
