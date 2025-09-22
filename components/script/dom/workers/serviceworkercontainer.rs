@@ -189,7 +189,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
     }
 
     /// <https://w3c.github.io/ServiceWorker/#navigator-service-worker-getRegistration>
-    fn GetRegistration(&self, _client_url: USVString) -> Rc<Promise> {
+    fn GetRegistration(&self, client_url: USVString) -> Rc<Promise> {
         let global = self.global();
         // Step 1. Let client be this’s service worker client.
         // self.client is the client.
@@ -203,11 +203,24 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             },
         };
         // Step 3. Let clientURL be the result of parsing clientURL with this’s relevant settings object’s API base URL.
-        // FIXME(arihant2math): Not implemented correctly
-        let client_url = self.client.creation_url();
-        // TODO: Step 4. If clientURL is failure, return a promise rejected with a TypeError.
-        // TODO: Step 5. Set clientURL’s fragment to null.
-        // TODO: Step 6. If the origin of clientURL is not client’s origin, return a promise rejected with a "SecurityError" DOMException.
+        // FIXME(arihant2math): This should be the API base of the settings object, but that's not implemented yet.
+        let mut client_url = match global.creation_url().join(client_url.0.as_str()) {
+            Ok(url) => url,
+            Err(_) => {
+                // Step 4. If clientURL is failure, return a promise rejected with a TypeError.
+                let promise = Promise::new(&global, CanGc::note());
+                promise.reject_error(Error::Type("Invalid URL".to_string()), CanGc::note());
+                return promise;
+            },
+        };
+        // Step 5. Set clientURL’s fragment to null.
+        client_url.set_fragment(None);
+        // Step 6. If the origin of clientURL is not client’s origin, return a promise rejected with a "SecurityError" DOMException.
+        if client_url.origin() != self.client.creation_url().origin() {
+            let promise = Promise::new(&global, CanGc::note());
+            promise.reject_error(Error::Security, CanGc::note());
+            return promise;
+        }
         // Step 7. Let promise be a new promise.
         let promise = Promise::new(&global, CanGc::note());
         // Step 8. Run the following substeps in parallel:
