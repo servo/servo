@@ -18,12 +18,12 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicIsize, Ordering};
 use std::thread;
 
+use base::IpcSend;
 use base::id::PipelineId;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use dom_struct::dom_struct;
 use js::jsapi::{GCReason, JS_GC, JS_GetGCParameter, JSGCParamKey, JSTracer};
 use malloc_size_of::malloc_size_of_is_0;
-use net_traits::IpcSend;
 use net_traits::request::{Destination, RequestBuilder, RequestMode};
 use rustc_hash::FxHashMap;
 use servo_url::{ImmutableOrigin, ServoUrl};

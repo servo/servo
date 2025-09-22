@@ -18,8 +18,6 @@ use profile_traits::path;
 use rustc_hash::FxHashMap;
 use servo_url::ServoUrl;
 
-use crate::resource_thread;
-
 const QUOTA_SIZE_LIMIT: usize = 5 * 1024 * 1024;
 
 pub trait StorageThreadFactory {
@@ -62,7 +60,7 @@ impl StorageManager {
     fn new(port: GenericReceiver<StorageThreadMsg>, config_dir: Option<PathBuf>) -> StorageManager {
         let mut local_data = HashMap::new();
         if let Some(ref config_dir) = config_dir {
-            resource_thread::read_json_from_file(&mut local_data, config_dir, "local_data.json");
+            base::read_json_from_file(&mut local_data, config_dir, "local_data.json");
         }
         StorageManager {
             port,
@@ -142,7 +140,7 @@ impl StorageManager {
 
     fn save_state(&self) {
         if let Some(ref config_dir) = self.config_dir {
-            resource_thread::write_json_to_file(&self.local_data, config_dir, "local_data.json");
+            base::write_json_to_file(&self.local_data, config_dir, "local_data.json");
         }
     }
 

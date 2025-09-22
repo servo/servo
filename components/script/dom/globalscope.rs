@@ -14,6 +14,7 @@ use std::thread::JoinHandle;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use std::{mem, ptr};
 
+use base::IpcSend;
 use base::id::{
     BlobId, BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineId,
     ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
@@ -52,8 +53,8 @@ use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{InsecureRequestsPolicy, Referrer, RequestBuilder};
 use net_traits::response::HttpsState;
 use net_traits::{
-    CoreResourceMsg, CoreResourceThread, FetchResponseListener, IpcSend, ReferrerPolicy,
-    ResourceThreads, fetch_async,
+    CoreResourceMsg, CoreResourceThread, FetchResponseListener, ReferrerPolicy, ResourceThreads,
+    fetch_async,
 };
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
 use rustc_hash::{FxBuildHasher, FxHashMap};

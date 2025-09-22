@@ -104,7 +104,7 @@ use base::id::{
     BrowsingContextGroupId, BrowsingContextId, HistoryStateId, MessagePortId, MessagePortRouterId,
     PipelineId, PipelineNamespace, PipelineNamespaceId, PipelineNamespaceRequest, WebViewId,
 };
-use base::{Epoch, generic_channel};
+use base::{Epoch, IpcSend, generic_channel};
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas::canvas_paint_thread::CanvasPaintThread;
@@ -153,8 +153,7 @@ use net_traits::pub_domains::reg_host;
 use net_traits::request::Referrer;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use net_traits::{
-    self, AsyncRuntime, IpcSend, ReferrerPolicy, ResourceThreads, exit_fetch_thread,
-    start_fetch_thread,
+    self, AsyncRuntime, ReferrerPolicy, ResourceThreads, exit_fetch_thread, start_fetch_thread,
 };
 use profile_traits::mem::ProfilerMsg;
 use profile_traits::{mem, time};
