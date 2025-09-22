@@ -481,9 +481,9 @@ class PackageCommands(CommandBase):
             g = Github(os.environ["NIGHTLY_REPO_TOKEN"])
             nightly_repo = g.get_repo(os.environ["NIGHTLY_REPO"])
             release = nightly_repo.get_release(github_release_id)
-            package_hash_fileobj = io.BytesIO(package_hash.encode("utf-8"))
 
             asset_name = f"servo-latest.{extension}"
+            package_hash_fileobj = io.BytesIO(f"{package_hash}  {asset_name}".encode("utf-8"))
             release.upload_asset(package, name=asset_name)
             # pyrefly: ignore[missing-attribute]
             release.upload_asset_from_memory(
@@ -507,7 +507,7 @@ class PackageCommands(CommandBase):
             extension = path.basename(package).partition(".")[2]
             latest_upload_key = "{}/servo-latest.{}".format(nightly_dir, extension)
 
-            package_hash_fileobj = io.BytesIO(package_hash.encode("utf-8"))
+            package_hash_fileobj = io.BytesIO(f"{package_hash}  {filename}".encode("utf-8"))
             latest_hash_upload_key = f"{latest_upload_key}.sha256"
 
             s3.upload_file(package, BUCKET, package_upload_key)
