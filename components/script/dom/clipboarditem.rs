@@ -63,9 +63,8 @@ impl Callback for RepresentationDataPromiseFulfillmentHandler {
             self.promise.resolve_native(&blob_data, can_gc);
         }
         // 2. If v is a Blob, then follow the below steps:
-        if v.get().is_object() &&
-            DomRoot::<Blob>::safe_from_jsval(cx, v, ())
-                .is_ok_and(|result| result.get_success_value().is_some())
+        else if DomRoot::<Blob>::safe_from_jsval(cx, v, ())
+            .is_ok_and(|result| result.get_success_value().is_some())
         {
             // 2.1 Resolve p with v.
             self.promise.resolve(cx, v, can_gc);
