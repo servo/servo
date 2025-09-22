@@ -11,7 +11,12 @@
 /components/compositing @mrobinson
 
 # Reviewers for layout-related code
-/components/layout @mrobinson @Loirooriol @nicoburns
+/components/layout @mrobinson @Loirooriol
+/components/layout/taffy @nicoburns
+
+# Reviewers for font-related code
+/components/fonts @nicoburns
+/components/shared/fonts @nicoburns
 
 # Reviewers for Minibrowser related code
 /ports/servoshell/desktop @atbrakhi
