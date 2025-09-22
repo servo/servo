@@ -1411,15 +1411,14 @@ impl IOCompositor {
                     current_epoch,
                     pipeline_id.into(),
                 ) {
-                    #[cfg(feature = "tracing")]
-                    let _ = tracing::debug_span!(
-                        "largest-contentful-paint",
-                        servo_profiling = true,
-                        timestamp = ?lcp.paint_time,
-                    )
-                    .entered();
-                    // TODO(boluochoufeng): Add LCP to PaintMetric.
-                    let _ = lcp;
+                    if let Err(error) = self.global.borrow().constellation_sender.send(
+                        EmbedderToConstellationMessage::PaintMetric(
+                            *pipeline_id,
+                            PaintMetricEvent::LargestContentfulPaint(lcp.paint_time, lcp.area),
+                        ),
+                    ) {
+                        warn!("Sending paint metric event to constellation failed ({error:?}).");
+                    }
                 }
             }
         }
