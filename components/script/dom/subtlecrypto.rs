@@ -13,7 +13,9 @@ use aes::cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit, StreamCipher};
 use aes::{Aes128, Aes192, Aes256};
 use aes_gcm::{AeadInPlace, AesGcm, KeyInit};
 use aes_kw::{KekAes128, KekAes192, KekAes256};
-use aws_lc_rs::{digest, hkdf, hmac, pbkdf2};
+use aws_lc_rs::encoding::AsBigEndian;
+use aws_lc_rs::signature::KeyPair;
+use aws_lc_rs::{digest, hkdf, hmac, pbkdf2, signature};
 use base64::prelude::*;
 use cipher::consts::{U12, U16, U32};
 use dom_struct::dom_struct;
@@ -24,11 +26,14 @@ use js::rust::wrappers::JS_ParseJSON;
 use js::rust::{HandleValue, MutableHandleObject};
 use js::typedarray::ArrayBufferU8;
 use servo_rand::{RngCore, ServoRng};
+use spki::der::asn1::BitStringRef;
+use spki::der::{AnyRef, Decode, Encode};
+use spki::{ObjectIdentifier, SubjectPublicKeyInfo};
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
-    CryptoKeyMethods, KeyType, KeyUsage,
+    CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesGcmParams, AesKeyAlgorithm,
@@ -69,6 +74,7 @@ const ALG_RSA_OAEP: &str = "RSA-OAEP";
 const ALG_RSA_PSS: &str = "RSA-PSS";
 const ALG_ECDH: &str = "ECDH";
 const ALG_ECDSA: &str = "ECDSA";
+const ALG_ED25519: &str = "Ed25519";
 
 #[allow(dead_code)]
 static SUPPORTED_ALGORITHMS: &[&str] = &[
@@ -88,7 +94,10 @@ static SUPPORTED_ALGORITHMS: &[&str] = &[
     ALG_RSA_PSS,
     ALG_ECDH,
     ALG_ECDSA,
+    ALG_ED25519,
 ];
+
+const OID_ED25519: &str = "1.3.101.112";
 
 const NAMED_CURVE_P256: &str = "P-256";
 const NAMED_CURVE_P384: &str = "P-384";
@@ -528,7 +537,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 8. Let result be the result of performing the generate key operation
                 // specified by normalizedAlgorithm using algorithm, extractable and usages.
                 let key = match normalized_algorithm
-                    .generate_key(&subtle, key_usages, extractable, CanGc::note())
+                    .generate_key(&subtle.global(), &subtle, key_usages, extractable, CanGc::note())
                 {
                     Ok(key) => key,
                     Err(error) => {
@@ -544,11 +553,20 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // If result is a CryptoKeyPair object:
                 //     If the [[usages]] internal slot of the privateKey attribute of result is the
                 //     empty sequence, then throw a SyntaxError.
-                // TODO: Implement CryptoKeyPair case
                 match &key {
                     CryptoKeyOrCryptoKeyPair::CryptoKey(crpyto_key) => {
                         if matches!(crpyto_key.Type(), KeyType::Secret | KeyType::Private)
                             && crpyto_key.usages().is_empty()
+                        {
+                            promise.reject_error(Error::Syntax(None), CanGc::note());
+                            return;
+                        }
+                    },
+                    CryptoKeyOrCryptoKeyPair::CryptoKeyPair(crypto_key_pair) => {
+                        if crypto_key_pair
+                            .privateKey
+                            .as_ref()
+                            .is_none_or(|private_key| private_key.usages().is_empty())
                         {
                             promise.reject_error(Error::Syntax(None), CanGc::note());
                             return;
@@ -562,10 +580,11 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 11. Let result be the result of converting result to an ECMAScript Object
                 // in realm, as defined by [WebIDL].
                 // Step 12. Resolve promise with result.
-                // TODO: Implement CryptoKeyPair case
                 match key {
                     CryptoKeyOrCryptoKeyPair::CryptoKey(crypto_key) =>
                         promise.resolve_native(&crypto_key, CanGc::note()),
+                    CryptoKeyOrCryptoKeyPair::CryptoKeyPair(crypto_key_pair) =>
+                        promise.resolve_native(&crypto_key_pair, CanGc::note()),
                 };
             }));
 
@@ -673,6 +692,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // normalizedDerivedKeyAlgorithmImport using "raw" as format, secret as keyData, derivedKeyType as
                 // algorithm and using extractable and usages.
                 let result = normalized_derived_key_algorithm_import.import_key(
+                    &subtle.global(),
                     &subtle,
                     KeyFormat::Raw,
                     &secret,
@@ -885,6 +905,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // import key operation specified by normalizedAlgorithm using keyData, algorithm,
                 // format, extractable and usages.
                 let result = match normalized_algorithm.import_key(
+                    &subtle.global(),
                     &subtle,
                     format,
                     &key_data,
@@ -954,6 +975,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     return;
                 }
                 let exported_key = match alg_name.as_str() {
+                    ALG_ED25519 => {
+                        ExportKeyAlgorithm::export_key_ed25519(format, &key)
+                    }
                     ALG_AES_CBC | ALG_AES_CTR | ALG_AES_KW | ALG_AES_GCM => subtle.export_key_aes(format, &key),
                     ALG_HMAC => subtle.export_key_hmac(format, &key),
                     _ => Err(Error::NotSupported),
@@ -1030,7 +1054,18 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     return;
                 }
 
-                let exported_key = match subtle.export_key_aes(format, &key) {
+                let exported_key = match alg_name.as_str() {
+                    ALG_ED25519 => {
+                        ExportKeyAlgorithm::export_key_ed25519(format, &key)
+                    }
+                    ALG_AES_CTR | ALG_AES_CBC | ALG_AES_GCM | ALG_AES_KW => subtle.export_key_aes(format, &key),
+                    ALG_HMAC => subtle.export_key_hmac(format, &key),
+                    _ => {
+                        promise.reject_error(Error::NotSupported, CanGc::note());
+                        return;
+                    }
+                };
+                let exported_key = match exported_key {
                     Ok(k) => k,
                     Err(e) => {
                         promise.reject_error(e, CanGc::note());
@@ -1038,44 +1073,19 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     },
                 };
 
+                let cx = GlobalScope::get_cx();
                 let bytes = match exported_key {
-                    ExportedKey::Raw(k) => k,
-                    ExportedKey::Jwk(key) => {
-                        // The spec states to convert this to an ECMAscript object and stringify it, but since we know
-                        // that the output will be a string of JSON we can just construct it manually
-                        // TODO: Support more than just a subset of the JWK dict, or find a way to
-                        // stringify via SM internals
-                        let Some(k) = key.k else {
-                            promise.reject_error(Error::Syntax(None), CanGc::note());
+                    ExportedKey::Raw(bytes) => bytes,
+                    ExportedKey::Jwk(jwk) => match jwk.stringify(cx) {
+                        Ok(stringified) => stringified.as_bytes().to_vec(),
+                        Err(e) => {
+                            promise.reject_error(e, CanGc::note());
                             return;
-                        };
-                        let Some(alg) = key.alg else {
-                            promise.reject_error(Error::Syntax(None), CanGc::note());
-                            return;
-                        };
-                        let Some(ext) = key.ext else {
-                            promise.reject_error(Error::Syntax(None), CanGc::note());
-                            return;
-                        };
-                        let Some(key_ops) = key.key_ops else {
-                            promise.reject_error(Error::Syntax(None), CanGc::note());
-                            return;
-                        };
-                        let key_ops_str = key_ops.iter().map(|op| op.to_string()).collect::<Vec<String>>();
-                        format!("{{
-                            \"kty\": \"oct\",
-                            \"k\": \"{}\",
-                            \"alg\": \"{}\",
-                            \"ext\": {},
-                            \"key_ops\": {:?}
-                        }}", k, alg, ext, key_ops_str)
-                        .into_bytes()
+                        },
                     },
                 };
 
-                let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-
                 let result = match normalized_algorithm {
                     KeyWrapAlgorithm::AesKw => {
                         subtle.wrap_key_aes_kw(&wrapping_key, &bytes, cx, array_buffer_ptr.handle_mut(), CanGc::note())
@@ -1216,7 +1226,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     },
                 };
 
-                match normalized_key_algorithm.import_key(&subtle, format, &import_key_bytes,
+                match normalized_key_algorithm.import_key(&subtle.global(), &subtle, format, &import_key_bytes,
                     extractable, key_usages, CanGc::note()) {
                     Ok(imported_key) => promise.resolve_native(&imported_key, CanGc::note()),
                     Err(e) => promise.reject_error(e, CanGc::note()),
@@ -1493,20 +1503,6 @@ enum DigestAlgorithm {
     Sha512,
 }
 
-/// A normalized algorithm returned by [`normalize_algorithm`] with operation `"importKey"`
-///
-/// [`normalize_algorithm`]: https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm
-#[derive(Clone)]
-enum ImportKeyAlgorithm {
-    AesCbc,
-    AesCtr,
-    AesKw,
-    AesGcm,
-    Hmac(SubtleHmacImportParams),
-    Pbkdf2,
-    Hkdf,
-}
-
 /// A normalized algorithm returned by [`normalize_algorithm`] with operation `"deriveBits"`
 ///
 /// [`normalize_algorithm`]: https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm
@@ -1529,6 +1525,7 @@ enum EncryptionAlgorithm {
 ///
 /// [`normalize_algorithm`]: https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm
 enum SignatureAlgorithm {
+    Ed25519,
     Hmac,
 }
 
@@ -1536,9 +1533,32 @@ enum SignatureAlgorithm {
 ///
 /// [`normalize_algorithm`]: https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm
 enum KeyGenerationAlgorithm {
+    Ed25519,
     Aes(SubtleAesKeyGenParams),
     Hmac(SubtleHmacKeyGenParams),
 }
+
+/// A normalized algorithm returned by [`normalize_algorithm`] with operation `"importKey"`
+///
+/// [`normalize_algorithm`]: https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm
+#[derive(Clone)]
+enum ImportKeyAlgorithm {
+    AesCbc,
+    AesCtr,
+    AesKw,
+    AesGcm,
+    Hmac(SubtleHmacImportParams),
+    Pbkdf2,
+    Hkdf,
+    Ed25519,
+}
+
+/// A normalized algorithm with operation `"exportKey"`
+///
+/// The WebCrypto API spec does not have normalized algorithms for operation `"exportKey"`, but we
+/// create this ExportKeyAlgorithm type for grouping `"exportKey"` operation from different
+/// cryptographic algorithms together, aligning with other operation types.
+struct ExportKeyAlgorithm {}
 
 /// A normalized algorithm returned by [`normalize_algorithm`] with operation `"wrapKey"` or `"unwrapKey"`
 ///
@@ -1767,43 +1787,6 @@ fn normalize_algorithm_for_digest(
     Ok(normalized_algorithm)
 }
 
-/// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm> with operation `"importKey"`
-fn normalize_algorithm_for_import_key(
-    cx: JSContext,
-    algorithm: &AlgorithmIdentifier,
-    can_gc: CanGc,
-) -> Result<ImportKeyAlgorithm, Error> {
-    let name = match algorithm {
-        AlgorithmIdentifier::Object(obj) => {
-            rooted!(in(*cx) let value = ObjectValue(obj.get()));
-            let algorithm = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
-
-            let name = algorithm.name.str().to_uppercase();
-            if name == ALG_HMAC {
-                let params =
-                    boxed_value_from_js_object::<HmacImportParams>(cx, value.handle(), can_gc)?;
-                let subtle_params = SubtleHmacImportParams::new(cx, params, can_gc)?;
-                return Ok(ImportKeyAlgorithm::Hmac(subtle_params));
-            }
-
-            name
-        },
-        AlgorithmIdentifier::String(name) => name.str().to_uppercase(),
-    };
-
-    let normalized_algorithm = match name.as_str() {
-        ALG_AES_CBC => ImportKeyAlgorithm::AesCbc,
-        ALG_AES_CTR => ImportKeyAlgorithm::AesCtr,
-        ALG_AES_KW => ImportKeyAlgorithm::AesKw,
-        ALG_AES_GCM => ImportKeyAlgorithm::AesGcm,
-        ALG_PBKDF2 => ImportKeyAlgorithm::Pbkdf2,
-        ALG_HKDF => ImportKeyAlgorithm::Hkdf,
-        _ => return Err(Error::NotSupported),
-    };
-
-    Ok(normalized_algorithm)
-}
-
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm> with operation `"deriveBits"`
 fn normalize_algorithm_for_derive_bits(
     cx: JSContext,
@@ -1872,18 +1855,20 @@ fn normalize_algorithm_for_sign_or_verify(
     can_gc: CanGc,
 ) -> Result<SignatureAlgorithm, Error> {
     let name = match algorithm {
-        AlgorithmIdentifier::Object(obj) => {
-            rooted!(in(*cx) let value = ObjectValue(obj.get()));
+        AlgorithmIdentifier::Object(object) => {
+            rooted!(in(*cx) let value = ObjectValue(object.get()));
             let algorithm = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
-
-            algorithm.name.str().to_uppercase()
+            algorithm.name
         },
-        AlgorithmIdentifier::String(name) => name.str().to_uppercase(),
+        AlgorithmIdentifier::String(name) => name.to_owned(),
     };
 
-    let normalized_algorithm = match name.as_str() {
-        ALG_HMAC => SignatureAlgorithm::Hmac,
-        _ => return Err(Error::NotSupported),
+    let normalized_algorithm = match &name {
+        name if name.eq_ignore_ascii_case(ALG_ED25519) => SignatureAlgorithm::Ed25519,
+        name if name.eq_ignore_ascii_case(ALG_HMAC) => SignatureAlgorithm::Hmac,
+        _ => {
+            return Err(Error::NotSupported);
+        },
     };
 
     Ok(normalized_algorithm)
@@ -1895,28 +1880,86 @@ fn normalize_algorithm_for_generate_key(
     algorithm: &AlgorithmIdentifier,
     can_gc: CanGc,
 ) -> Result<KeyGenerationAlgorithm, Error> {
-    let AlgorithmIdentifier::Object(obj) = algorithm else {
-        // All algorithms that support "generateKey" require additional parameters
-        return Err(Error::NotSupported);
+    let (name, object) = match algorithm {
+        AlgorithmIdentifier::Object(object) => {
+            rooted!(in(*cx) let value = ObjectValue(object.get()));
+            let algorithm = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+            (algorithm.name, Some(object))
+        },
+        AlgorithmIdentifier::String(name) => (name.to_owned(), None),
     };
 
-    rooted!(in(*cx) let value = ObjectValue(obj.get()));
-    let algorithm = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+    let normalized_algorithm = match &name {
+        name if name.eq_ignore_ascii_case(ALG_ED25519) => KeyGenerationAlgorithm::Ed25519,
+        name if name.eq_ignore_ascii_case(ALG_AES_CBC) ||
+            name.eq_ignore_ascii_case(ALG_AES_CTR) ||
+            name.eq_ignore_ascii_case(ALG_AES_GCM) ||
+            name.eq_ignore_ascii_case(ALG_AES_KW) =>
+        {
+            if let Some(object) = object {
+                rooted!(in(*cx) let value = ObjectValue(object.get()));
+                let params = value_from_js_object::<AesKeyGenParams>(cx, value.handle(), can_gc)?;
+                KeyGenerationAlgorithm::Aes(params.into())
+            } else {
+                return Err(Error::Syntax(None));
+            }
+        },
+        name if name.eq_ignore_ascii_case(ALG_HMAC) => {
+            if let Some(object) = object {
+                rooted!(in(*cx) let value = ObjectValue(object.get()));
+                let params =
+                    boxed_value_from_js_object::<HmacKeyGenParams>(cx, value.handle(), can_gc)?;
+                let subtle_params = SubtleHmacKeyGenParams::new(cx, params, can_gc)?;
+                KeyGenerationAlgorithm::Hmac(subtle_params)
+            } else {
+                return Err(Error::Syntax(None));
+            }
+        },
+        _ => {
+            return Err(Error::NotSupported);
+        },
+    };
 
-    let name = algorithm.name.str();
-    let normalized_algorithm = if name.eq_ignore_ascii_case(ALG_AES_CBC) ||
-        name.eq_ignore_ascii_case(ALG_AES_CTR) ||
-        name.eq_ignore_ascii_case(ALG_AES_KW) ||
-        name.eq_ignore_ascii_case(ALG_AES_GCM)
-    {
-        let params = value_from_js_object::<AesKeyGenParams>(cx, value.handle(), can_gc)?;
-        KeyGenerationAlgorithm::Aes(params.into())
-    } else if name.eq_ignore_ascii_case(ALG_HMAC) {
-        let params = boxed_value_from_js_object::<HmacKeyGenParams>(cx, value.handle(), can_gc)?;
-        let subtle_params = SubtleHmacKeyGenParams::new(cx, params, can_gc)?;
-        KeyGenerationAlgorithm::Hmac(subtle_params)
-    } else {
-        return Err(Error::NotSupported);
+    Ok(normalized_algorithm)
+}
+
+/// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm> with operation `"importKey"`
+fn normalize_algorithm_for_import_key(
+    cx: JSContext,
+    algorithm: &AlgorithmIdentifier,
+    can_gc: CanGc,
+) -> Result<ImportKeyAlgorithm, Error> {
+    let (name, object) = match algorithm {
+        AlgorithmIdentifier::Object(object) => {
+            rooted!(in(*cx) let value = ObjectValue(object.get()));
+            let algorithm = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+            (algorithm.name, Some(object))
+        },
+        AlgorithmIdentifier::String(name) => (name.to_owned(), None),
+    };
+
+    let normalized_algorithm = match &name {
+        name if name.eq_ignore_ascii_case(ALG_ED25519) => ImportKeyAlgorithm::Ed25519,
+        name if name.eq_ignore_ascii_case(ALG_AES_CTR) => ImportKeyAlgorithm::AesCtr,
+        name if name.eq_ignore_ascii_case(ALG_AES_CBC) => ImportKeyAlgorithm::AesCbc,
+        name if name.eq_ignore_ascii_case(ALG_AES_GCM) => ImportKeyAlgorithm::AesGcm,
+        name if name.eq_ignore_ascii_case(ALG_AES_KW) => ImportKeyAlgorithm::AesKw,
+        name if name.eq_ignore_ascii_case(ALG_HMAC) => {
+            if let Some(object) = object {
+                rooted!(in(*cx) let value = ObjectValue(object.get()));
+                let params =
+                    boxed_value_from_js_object::<HmacImportParams>(cx, value.handle(), can_gc)?;
+                let subtle_params = SubtleHmacImportParams::new(cx, params, can_gc)?;
+                ImportKeyAlgorithm::Hmac(subtle_params)
+            } else {
+                return Err(Error::Syntax(None));
+            }
+        },
+        name if name.eq_ignore_ascii_case(ALG_HKDF) => ImportKeyAlgorithm::Hkdf,
+        name if name.eq_ignore_ascii_case(ALG_PBKDF2) => ImportKeyAlgorithm::Pbkdf2,
+        _ => {
+            return Err(Error::NotSupported);
+        },
     };
 
     Ok(normalized_algorithm)
@@ -3415,60 +3458,6 @@ impl DigestAlgorithm {
     }
 }
 
-impl ImportKeyAlgorithm {
-    fn import_key(
-        &self,
-        subtle: &SubtleCrypto,
-        format: KeyFormat,
-        key_data: &[u8],
-        extractable: bool,
-        key_usages: Vec<KeyUsage>,
-        can_gc: CanGc,
-    ) -> Result<DomRoot<CryptoKey>, Error> {
-        match self {
-            Self::AesCbc => subtle.import_key_aes(
-                format,
-                key_data,
-                extractable,
-                key_usages,
-                ALG_AES_CBC,
-                can_gc,
-            ),
-            Self::AesCtr => subtle.import_key_aes(
-                format,
-                key_data,
-                extractable,
-                key_usages,
-                ALG_AES_CTR,
-                can_gc,
-            ),
-            Self::AesKw => subtle.import_key_aes(
-                format,
-                key_data,
-                extractable,
-                key_usages,
-                ALG_AES_KW,
-                can_gc,
-            ),
-            Self::AesGcm => subtle.import_key_aes(
-                format,
-                key_data,
-                extractable,
-                key_usages,
-                ALG_AES_GCM,
-                can_gc,
-            ),
-            Self::Hmac(params) => {
-                subtle.import_key_hmac(params, format, key_data, extractable, key_usages, can_gc)
-            },
-            Self::Pbkdf2 => {
-                subtle.import_key_pbkdf2(format, key_data, extractable, key_usages, can_gc)
-            },
-            Self::Hkdf => subtle.import_key_hkdf(format, key_data, extractable, key_usages, can_gc),
-        }
-    }
-}
-
 impl DeriveBitsAlgorithm {
     fn derive_bits(&self, key: &CryptoKey, length: Option<u32>) -> Result<Vec<u8>, Error> {
         match self {
@@ -3530,6 +3519,7 @@ impl EncryptionAlgorithm {
 impl SignatureAlgorithm {
     fn name(&self) -> &str {
         match self {
+            Self::Ed25519 => ALG_ED25519,
             Self::Hmac => ALG_HMAC,
         }
     }
@@ -3542,6 +3532,7 @@ impl SignatureAlgorithm {
         can_gc: CanGc,
     ) -> Result<Vec<u8>, Error> {
         match self {
+            Self::Ed25519 => Self::sign_ed25519(key, data),
             Self::Hmac => sign_hmac(cx, key, data, can_gc).map(|s| s.as_ref().to_vec()),
         }
     }
@@ -3555,8 +3546,60 @@ impl SignatureAlgorithm {
         can_gc: CanGc,
     ) -> Result<bool, Error> {
         match self {
+            Self::Ed25519 => Self::verify_ed25519(key, data, signature),
             Self::Hmac => verify_hmac(cx, key, data, signature, can_gc),
         }
+    }
+
+    /// <https://w3c.github.io/webcrypto/#ed25519-operations-sign>
+    fn sign_ed25519(key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
+        // Step 1. If the [[type]] internal slot of key is not "private", then throw an
+        // InvalidAccessError.
+        if key.Type() != KeyType::Private {
+            return Err(Error::InvalidAccess);
+        }
+
+        // Step 2. Let result be the result of performing the Ed25519 signing process, as specified
+        // in [RFC8032], Section 5.1.6, with message as M, using the Ed25519 private key associated
+        // with key.
+        let key_pair = signature::Ed25519KeyPair::from_seed_unchecked(key.handle().as_bytes())
+            .map_err(|_| Error::Data)?;
+        let result = key_pair.sign(message).as_ref().to_vec();
+
+        // Step 3. Return result.
+        Ok(result)
+    }
+
+    /// <https://w3c.github.io/webcrypto/#ed25519-operations-verify>
+    fn verify_ed25519(key: &CryptoKey, message: &[u8], signature: &[u8]) -> Result<bool, Error> {
+        // Step 1. If the [[type]] internal slot of key is not "public", then throw an
+        // InvalidAccessError.
+        if key.Type() != KeyType::Public {
+            return Err(Error::InvalidAccess);
+        }
+
+        // Step 2. If the key data of key represents an invalid point or a small-order element on
+        // the Elliptic Curve of Ed25519, return false.
+        // NOTE: Not all implementations perform this check. See WICG/webcrypto-secure-curves issue 27.
+
+        // Step 3. If the point R, encoded in the first half of signature, represents an invalid
+        // point or a small-order element on the Elliptic Curve of Ed25519, return false.
+        // NOTE: Not all implementations perform this check. See WICG/webcrypto-secure-curves issue 27.
+
+        // Step 4. Perform the Ed25519 verification steps, as specified in [RFC8032], Section
+        // 5.1.7, using the cofactorless (unbatched) equation, [S]B = R + [k]A', on the signature,
+        // with message as M, using the Ed25519 public key associated with key.
+        // Step 5. Let result be a boolean with the value true if the signature is valid and the
+        // value false otherwise.
+        let public_key =
+            signature::UnparsedPublicKey::new(&signature::ED25519, key.handle().as_bytes());
+        let result = match public_key.verify(message, signature) {
+            Ok(()) => true,
+            Err(aws_lc_rs::error::Unspecified) => false,
+        };
+
+        // Step 6. Return result.
+        Ok(result)
     }
 }
 
@@ -3564,6 +3607,7 @@ impl KeyGenerationAlgorithm {
     // FIXME: This doesn't really need the "SubtleCrypto" argument
     fn generate_key(
         &self,
+        global: &GlobalScope,
         subtle: &SubtleCrypto,
         usages: Vec<KeyUsage>,
         extractable: bool,
@@ -3571,6 +3615,9 @@ impl KeyGenerationAlgorithm {
     ) -> Result<CryptoKeyOrCryptoKeyPair, Error> {
         let key_or_key_pair =
             match self {
+                Self::Ed25519 => CryptoKeyOrCryptoKeyPair::CryptoKeyPair(
+                    Self::generate_key_ed25519(global, usages, extractable, can_gc)?,
+                ),
                 Self::Aes(params) => CryptoKeyOrCryptoKeyPair::CryptoKey(subtle.generate_key_aes(
                     usages,
                     params,
@@ -3583,6 +3630,584 @@ impl KeyGenerationAlgorithm {
             };
 
         Ok(key_or_key_pair)
+    }
+
+    /// <https://w3c.github.io/webcrypto/#ed25519-operations-generate-key>
+    #[allow(unsafe_code)]
+    fn generate_key_ed25519(
+        global: &GlobalScope,
+        usages: Vec<KeyUsage>,
+        extractable: bool,
+        can_gc: CanGc,
+    ) -> Result<CryptoKeyPair, Error> {
+        // Step 1. If usages contains any entry which is not "sign" or "verify", then throw a SyntaxError.
+        if usages
+            .iter()
+            .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
+        {
+            return Err(Error::Syntax(None));
+        }
+
+        // Step 2. Generate an Ed25519 key pair, as defined in [RFC8032], section 5.1.5.
+        let key_pair = signature::Ed25519KeyPair::generate().map_err(|_| Error::Operation)?;
+
+        // Step 3. Let algorithm be a new KeyAlgorithm object.
+        // Step 4. Set the name attribute of algorithm to "Ed25519".
+        let name = DOMString::from(ALG_ED25519);
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut algorithm_object = unsafe { JS_NewObject(*cx, ptr::null()) });
+        assert!(!algorithm_object.is_null());
+        KeyAlgorithm::from_name(name.clone(), algorithm_object.handle_mut(), cx);
+
+        // Step 5. Let publicKey be a new CryptoKey representing the public key of the generated key pair.
+        // Step 6. Set the [[type]] internal slot of publicKey to "public"
+        // Step 7. Set the [[algorithm]] internal slot of publicKey to algorithm.
+        // Step 8. Set the [[extractable]] internal slot of publicKey to true.
+        // Step 9. Set the [[usages]] internal slot of publicKey to be the usage intersection of
+        // usages and [ "verify" ].
+        let public_key = CryptoKey::new(
+            global,
+            KeyType::Public,
+            true,
+            name.clone(),
+            algorithm_object.handle(),
+            usages
+                .clone()
+                .into_iter()
+                .filter(|usage| *usage == KeyUsage::Verify)
+                .collect(),
+            Handle::Ed25519(key_pair.public_key().as_ref().to_vec()),
+            can_gc,
+        );
+
+        // Step 10. Let privateKey be a new CryptoKey representing the private key of the generated key pair.
+        // Step 11. Set the [[type]] internal slot of privateKey to "private"
+        // Step 12. Set the [[algorithm]] internal slot of privateKey to algorithm.
+        // Step 13. Set the [[extractable]] internal slot of privateKey to extractable.
+        // Step 14. Set the [[usages]] internal slot of privateKey to be the usage intersection of
+        // usages and [ "sign" ].
+        let private_key = CryptoKey::new(
+            global,
+            KeyType::Private,
+            extractable,
+            name,
+            algorithm_object.handle(),
+            usages
+                .into_iter()
+                .filter(|usage| *usage == KeyUsage::Sign)
+                .collect(),
+            Handle::Ed25519(
+                key_pair
+                    .seed()
+                    .map_err(|_| Error::Data)?
+                    .as_be_bytes()
+                    .map_err(|_| Error::Data)?
+                    .as_ref()
+                    .to_vec(),
+            ),
+            can_gc,
+        );
+
+        // Step 16. Let result be a new CryptoKeyPair dictionary.
+        let result = CryptoKeyPair {
+            // Step 17. Set the publicKey attribute of result to be publicKey.
+            publicKey: Some(public_key),
+            // Step 18. Set the privateKey attribute of result to be privateKey.
+            privateKey: Some(private_key),
+        };
+
+        // Step 19. Return result.
+        Ok(result)
+    }
+}
+
+impl ImportKeyAlgorithm {
+    #[allow(clippy::too_many_arguments)]
+    fn import_key(
+        &self,
+        global: &GlobalScope,
+        subtle: &SubtleCrypto,
+        format: KeyFormat,
+        key_data: &[u8],
+        extractable: bool,
+        key_usages: Vec<KeyUsage>,
+        can_gc: CanGc,
+    ) -> Result<DomRoot<CryptoKey>, Error> {
+        match self {
+            Self::AesCbc => subtle.import_key_aes(
+                format,
+                key_data,
+                extractable,
+                key_usages,
+                ALG_AES_CBC,
+                can_gc,
+            ),
+            Self::AesCtr => subtle.import_key_aes(
+                format,
+                key_data,
+                extractable,
+                key_usages,
+                ALG_AES_CTR,
+                can_gc,
+            ),
+            Self::AesKw => subtle.import_key_aes(
+                format,
+                key_data,
+                extractable,
+                key_usages,
+                ALG_AES_KW,
+                can_gc,
+            ),
+            Self::AesGcm => subtle.import_key_aes(
+                format,
+                key_data,
+                extractable,
+                key_usages,
+                ALG_AES_GCM,
+                can_gc,
+            ),
+            Self::Hmac(params) => {
+                subtle.import_key_hmac(params, format, key_data, extractable, key_usages, can_gc)
+            },
+            Self::Pbkdf2 => {
+                subtle.import_key_pbkdf2(format, key_data, extractable, key_usages, can_gc)
+            },
+            Self::Hkdf => subtle.import_key_hkdf(format, key_data, extractable, key_usages, can_gc),
+            Self::Ed25519 => {
+                Self::import_key_ed25519(global, format, key_data, extractable, key_usages, can_gc)
+            },
+        }
+    }
+
+    /// <https://w3c.github.io/webcrypto/#ed25519-operations-import-key>
+    #[allow(unsafe_code)]
+    fn import_key_ed25519(
+        global: &GlobalScope,
+        format: KeyFormat,
+        key_data: &[u8],
+        extractable: bool,
+        usages: Vec<KeyUsage>,
+        can_gc: CanGc,
+    ) -> Result<DomRoot<CryptoKey>, Error> {
+        // Step 1. Let keyData be the key data to be imported.
+        // NOTE: It is given as a method parameter.
+
+        // Step 2.
+        let key = match format {
+            // If format is "spki":
+            KeyFormat::Spki => {
+                // Step 2.1. If usages contains a value which is not "verify" then throw a SyntaxError.
+                if usages.iter().any(|usage| *usage != KeyUsage::Verify) {
+                    return Err(Error::Syntax(None));
+                }
+
+                // Step 2.2. Let spki be the result of running the parse a subjectPublicKeyInfo
+                // algorithm over keyData.
+                // Step 2.3. If an error occurred while parsing, then throw a DataError.
+                let spki = SubjectPublicKeyInfo::<AnyRef, BitStringRef>::from_der(key_data)
+                    .map_err(|_| Error::Data)?;
+
+                // Step 2.4. If the algorithm object identifier field of the algorithm
+                // AlgorithmIdentifier field of spki is not equal to the id-Ed25519 object
+                // identifier defined in [RFC8410], then throw a DataError.
+                if spki.algorithm.oid != ObjectIdentifier::new_unwrap(OID_ED25519) {
+                    return Err(Error::Data);
+                }
+
+                // Step 2.5. If the parameters field of the algorithm AlgorithmIdentifier field of
+                // spki is present, then throw a DataError.
+                if spki.algorithm.parameters.is_some() {
+                    return Err(Error::Data);
+                }
+
+                // Step 2.6. Let publicKey be the Ed25519 public key identified by the
+                // subjectPublicKey field of spki.
+                let public_key = spki.subject_public_key.as_bytes().ok_or(Error::Data)?;
+
+                // Step 2.9. Let algorithm be a new KeyAlgorithm.
+                // Step 2.10. Set the name attribute of algorithm to "Ed25519".
+                let name = DOMString::from(ALG_ED25519);
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut algorithm_object = unsafe { JS_NewObject(*cx, ptr::null()) });
+                assert!(!algorithm_object.is_null());
+                KeyAlgorithm::from_name(name.clone(), algorithm_object.handle_mut(), cx);
+
+                // Step 2.7. Let key be a new CryptoKey that represents publicKey.
+                // Step 2.8. Set the [[type]] internal slot of key to "public"
+                // Step 2.11. Set the [[algorithm]] internal slot of key to algorithm.
+                CryptoKey::new(
+                    global,
+                    KeyType::Public,
+                    extractable,
+                    name,
+                    algorithm_object.handle(),
+                    usages,
+                    Handle::Ed25519(public_key.to_vec()),
+                    can_gc,
+                )
+            },
+            // If format is "pkcs8":
+            KeyFormat::Pkcs8 => {
+                // Step 2.1. If usages contains a value which is not "sign" then throw a SyntaxError.
+                if usages.iter().any(|usage| *usage != KeyUsage::Sign) {
+                    return Err(Error::Syntax(None));
+                }
+
+                // Step 2.2. Let privateKeyInfo be the result of running the parse a privateKeyInfo
+                // algorithm over keyData.
+                // Step 2.3. If an error occurs while parsing, then throw a DataError.
+                // Step 2.4. If the algorithm object identifier field of the privateKeyAlgorithm
+                // PrivateKeyAlgorithm field of privateKeyInfo is not equal to the id-Ed25519
+                // object identifier defined in [RFC8410], then throw a DataError.
+                // Step 2.5. If the parameters field of the privateKeyAlgorithm
+                // PrivateKeyAlgorithmIdentifier field of privateKeyInfo is present, then throw a
+                // DataError.
+                let private_key_info =
+                    signature::Ed25519KeyPair::from_pkcs8(key_data).map_err(|_| Error::Data)?;
+
+                // Step 2.6. Let curvePrivateKey be the result of performing the parse an ASN.1
+                // structure algorithm, with data as the privateKey field of privateKeyInfo,
+                // structure as the ASN.1 CurvePrivateKey structure specified in Section 7 of
+                // [RFC8410], and exactData set to true.
+                // Step 2.7. If an error occurred while parsing, then throw a DataError.
+                let curve_private_key = private_key_info
+                    .seed()
+                    .map_err(|_| Error::Data)?
+                    .as_be_bytes()
+                    .map_err(|_| Error::Data)?
+                    .as_ref()
+                    .to_vec();
+
+                // Step 2.10. Let algorithm be a new KeyAlgorithm.
+                // Step 2.11. Set the name attribute of algorithm to "Ed25519".
+                let name = DOMString::from(ALG_ED25519);
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut algorithm_object = unsafe { JS_NewObject(*cx, ptr::null()) });
+                assert!(!algorithm_object.is_null());
+                KeyAlgorithm::from_name(name.clone(), algorithm_object.handle_mut(), cx);
+
+                // Step 2.8. Let key be a new CryptoKey that represents the Ed25519 private key
+                // identified by curvePrivateKey.
+                // Step 2.9. Set the [[type]] internal slot of key to "private"
+                // Step 2.12. Set the [[algorithm]] internal slot of key to algorithm.
+                CryptoKey::new(
+                    global,
+                    KeyType::Private,
+                    extractable,
+                    name,
+                    algorithm_object.handle(),
+                    usages,
+                    Handle::Ed25519(curve_private_key),
+                    can_gc,
+                )
+            },
+            // If format is "jwk":
+            KeyFormat::Jwk => {
+                // Step 2.1. If keyData is a JsonWebKey dictionary: Let jwk equal keyData.
+                // Otherwise: Throw a DataError.
+                let cx = GlobalScope::get_cx();
+                let jwk = JsonWebKey::parse(cx, key_data)?;
+
+                // Step 2.7 If the key_ops field of jwk is present, and is invalid according to the
+                // requirements of JSON Web Key [JWK], or it does not contain all of the specified
+                // usages values, then throw a DataError.
+                // NOTE: Step 2.2 - 2.6 and 2.8 partially borrow jwk, so we do Step 7 first.
+                jwk.check_key_ops(&usages)?;
+
+                // Step 2.2 If the d field is present and usages contains a value which is not
+                // "sign", or, if the d field is not present and usages contains a value which is
+                // not "verify" then throw a SyntaxError.
+                if (jwk.d.is_some() && usages.iter().any(|usage| *usage != KeyUsage::Sign)) ||
+                    (jwk.d.is_none() && usages.iter().any(|usage| *usage != KeyUsage::Verify))
+                {
+                    return Err(Error::Syntax(None));
+                }
+
+                // Step 2.3 If the kty field of jwk is not "OKP", then throw a DataError.
+                if jwk.kty.is_none_or(|kty| kty != "OKP") {
+                    return Err(Error::Data);
+                }
+
+                // Step 2.4 If the crv field of jwk is not "Ed25519", then throw a DataError.
+                if jwk.crv.is_none_or(|crv| crv != ALG_ED25519) {
+                    return Err(Error::Data);
+                }
+
+                // Step 2.5 If the alg field of jwk is present and is not "Ed25519" or "EdDSA",
+                // then throw a DataError.
+                if jwk
+                    .alg
+                    .is_some_and(|alg| !matches!(alg.str(), ALG_ED25519 | "EdDSA"))
+                {
+                    return Err(Error::Data);
+                }
+
+                // Step 2.6 If usages is non-empty and the use field of jwk is present and is not
+                // "sig", then throw a DataError.
+                if !usages.is_empty() && jwk.use_.is_some_and(|use_| use_ != "sig") {
+                    return Err(Error::Data);
+                }
+
+                // Step 2.8 If the ext field of jwk is present and has the value false and
+                // extractable is true, then throw a DataError.
+                if jwk.ext.is_some_and(|ext| !ext) && extractable {
+                    return Err(Error::Data);
+                }
+
+                // Step 2.10. Let algorithm be a new instance of a KeyAlgorithm object.
+                // Step 2.11. Set the name attribute of algorithm to "Ed25519".
+                let name = DOMString::from(ALG_ED25519);
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut algorithm_object = unsafe { JS_NewObject(*cx, ptr::null()) });
+                assert!(!algorithm_object.is_null());
+                KeyAlgorithm::from_name(name.clone(), algorithm_object.handle_mut(), cx);
+
+                // Step 2.12. Set the [[algorithm]] internal slot of key to algorithm.
+                // NOTE: Done in Step 2.9
+
+                // Step 2.9
+                match jwk.d {
+                    // If the d field is present:
+                    Some(d) => {
+                        // Step 2.9.1. If jwk does not meet the requirements of the JWK private key
+                        // format described in Section 2 of [RFC8037], then throw a DataError.
+                        if jwk.x.is_none() {
+                            return Err(Error::Data);
+                        }
+
+                        // Step 2.9.2. Let key be a new CryptoKey object that represents the
+                        // Ed25519 private key identified by interpreting jwk according to Section
+                        // 2 of [RFC8037]
+                        // Step 2.9.3. Set the [[type]] internal slot of Key to "private".
+                        //
+                        // NOTE: Section 2 of [RFC8037] specifies that the private key is encoded
+                        // using the base64url encoding.
+                        let key_bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
+                            .decode(d.as_bytes())
+                            .map_err(|_| Error::Data)?;
+                        CryptoKey::new(
+                            global,
+                            KeyType::Private,
+                            extractable,
+                            name,
+                            algorithm_object.handle(),
+                            usages,
+                            Handle::Ed25519(key_bytes),
+                            can_gc,
+                        )
+                    },
+                    // Otherwise:
+                    None => {
+                        // Step 2.9.1. If jwk does not meet the requirements of the JWK public key
+                        // format described in Section 2 of [RFC8037], then throw a DataError.
+                        let x = jwk.x.ok_or(Error::Data)?;
+
+                        // Step 2.9.2. Let key be a new CryptoKey object that represents the
+                        // Ed25519 public key identified by interpreting jwk according to Section 2
+                        // of [RFC8037].
+                        // using the base64url encoding.
+                        // Step 2.9.3. Set the [[type]] internal slot of Key to "public".
+                        //
+                        // NOTE: Section 2 of [RFC8037] specifies that the public key is encoded
+                        // using the base64url encoding.
+                        let key_bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
+                            .decode(x.as_bytes())
+                            .map_err(|_| Error::Data)?;
+                        CryptoKey::new(
+                            global,
+                            KeyType::Public,
+                            extractable,
+                            name,
+                            algorithm_object.handle(),
+                            usages,
+                            Handle::Ed25519(key_bytes),
+                            can_gc,
+                        )
+                    },
+                }
+            },
+            // If format is "raw":
+            KeyFormat::Raw => {
+                // Step 2.1. If usages contains a value which is not "verify" then throw a SyntaxError.
+                if usages.iter().any(|usage| *usage != KeyUsage::Verify) {
+                    return Err(Error::Syntax(None));
+                }
+
+                // Step 2.2. If the length in bits of keyData is not 256 then throw a DataError.
+                if key_data.len() * 8 != 256 {
+                    return Err(Error::Data);
+                }
+
+                // Step 2.3. Let algorithm be a new KeyAlgorithm object.
+                // Step 2.4. Set the name attribute of algorithm to "Ed25519".
+                let name = DOMString::from(ALG_ED25519);
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut algorithm_object = unsafe { JS_NewObject(*cx, ptr::null()) });
+                assert!(!algorithm_object.is_null());
+                KeyAlgorithm::from_name(name.clone(), algorithm_object.handle_mut(), cx);
+
+                // Step 2.5. Let key be a new CryptoKey representing the key data provided in keyData.
+                // Step 2.6. Set the [[type]] internal slot of key to "public"
+                // Step 2.7. Set the [[algorithm]] internal slot of key to algorithm.
+                CryptoKey::new(
+                    global,
+                    KeyType::Public,
+                    extractable,
+                    name,
+                    algorithm_object.handle(),
+                    usages,
+                    Handle::Ed25519(key_data.to_vec()),
+                    can_gc,
+                )
+            },
+        };
+
+        // Step 3. Return key
+        Ok(key)
+    }
+}
+
+impl ExportKeyAlgorithm {
+    /// <https://w3c.github.io/webcrypto/#ed25519-operations-export-key>
+    fn export_key_ed25519(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+        // Step 1. Let key be the CryptoKey to be exported.
+        // NOTE: It is given as a method parameter.
+
+        // Step 2. If the underlying cryptographic key material represented by the [[handle]]
+        // internal slot of key cannot be accessed, then throw an OperationError.
+        // NOTE: key.handle() guarantees access.
+        let key_data = key.handle().as_bytes();
+
+        // Step 3.
+        let result = match format {
+            // If format is "spki":
+            KeyFormat::Spki => {
+                // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
+                // InvalidAccessError.
+                if key.Type() != KeyType::Public {
+                    return Err(Error::InvalidAccess);
+                }
+
+                // Step 3.2. Let data be an instance of the SubjectPublicKeyInfo ASN.1 structure
+                // defined in [RFC5280] with the following properties:
+                //     Set the algorithm field to an AlgorithmIdentifier ASN.1 type with the
+                //     following properties:
+                //         Set the algorithm object identifier to the id-Ed25519 OID defined in [RFC8410].
+                //     Set the subjectPublicKey field to keyData.
+                let data = SubjectPublicKeyInfo::<AnyRef, BitStringRef> {
+                    algorithm: spki::AlgorithmIdentifier {
+                        oid: ObjectIdentifier::new_unwrap(OID_ED25519),
+                        parameters: None,
+                    },
+                    subject_public_key: BitStringRef::from_bytes(key_data)
+                        .map_err(|_| Error::Data)?,
+                };
+
+                // Step 3.3. Let result be the result of DER-encoding data.
+                ExportedKey::Raw(data.to_der().map_err(|_| Error::Data)?)
+            },
+            // If format is "pkcs8":
+            KeyFormat::Pkcs8 => {
+                // Step 3.1. If the [[type]] internal slot of key is not "private", then throw an
+                // InvalidAccessError.
+                if key.Type() != KeyType::Private {
+                    return Err(Error::InvalidAccess);
+                }
+
+                // Step 3.2. Let data be an instance of the PrivateKeyInfo ASN.1 structure defined
+                // in [RFC5208] with the following properties:
+                //     Set the version field to 0.
+                //     Set the privateKeyAlgorithm field to a PrivateKeyAlgorithmIdentifier ASN.1
+                //     type with the following properties:
+                //         Set the algorithm object identifier to the id-Ed25519 OID defined in
+                //         [RFC8410].
+                //     Set the privateKey field to the result of DER-encoding a CurvePrivateKey
+                //     ASN.1 type, as defined in Section 7 of [RFC8410], that represents the
+                //     Ed25519 private key represented by the [[handle]] internal slot of key
+                let data = signature::Ed25519KeyPair::from_seed_unchecked(key_data)
+                    .map_err(|_| Error::Data)?
+                    .to_pkcs8v1()
+                    .map_err(|_| Error::Data)?;
+
+                // Step 3.3. Let result be the result of DER-encoding data.
+                ExportedKey::Raw(data.as_ref().to_vec())
+            },
+            // If format is "jwk":
+            KeyFormat::Jwk => {
+                // Step 3.5. Set the x attribute of jwk according to the definition in Section 2 of [RFC8037].
+                // Step 3.6. If the [[type]] internal slot of key is "private"
+                // Set the d attribute of jwk according to the definition in Section 2 of [RFC8037].
+                //
+                // NOTE: Section 2 of [RFC8037] specifies that the private key and public key are
+                // encoded using the base64url encoding.
+                let (x, d) = match key.Type() {
+                    KeyType::Public => {
+                        let public_key =
+                            base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(key_data);
+                        (Some(DOMString::from(public_key)), None)
+                    },
+                    KeyType::Private => {
+                        let key_pair = signature::Ed25519KeyPair::from_seed_unchecked(key_data)
+                            .map_err(|_| Error::Data)?;
+                        let public_key = base64::engine::general_purpose::URL_SAFE_NO_PAD
+                            .encode(key_pair.public_key().as_ref());
+                        let private_key =
+                            base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(key_data);
+                        (
+                            Some(DOMString::from(public_key)),
+                            Some(DOMString::from(private_key)),
+                        )
+                    },
+                    KeyType::Secret => {
+                        return Err(Error::Data);
+                    },
+                };
+
+                // Step 3.7. Set the key_ops attribute of jwk to the usages attribute of key.
+                let key_ops = Some(
+                    key.usages()
+                        .iter()
+                        .map(|usage| DOMString::from(usage.as_str()))
+                        .collect::<Vec<DOMString>>(),
+                );
+
+                // Step 3.1. Let jwk be a new JsonWebKey dictionary.
+                // Step 3.2. Set the kty attribute of jwk to "OKP".
+                // Step 3.3. Set the alg attribute of jwk to "Ed25519".
+                // Step 3.4. Set the crv attribute of jwk to "Ed25519".
+                // Step 3.8. Set the ext attribute of jwk to the [[extractable]] internal slot of key.
+                let jwk = JsonWebKey {
+                    kty: Some(DOMString::from("OKP")),
+                    alg: Some(DOMString::from(ALG_ED25519)),
+                    crv: Some(DOMString::from(ALG_ED25519)),
+                    x,
+                    d,
+                    key_ops,
+                    ext: Some(key.Extractable()),
+                    ..Default::default()
+                };
+
+                // Step 9. Let result be jwk.
+                ExportedKey::Jwk(Box::new(jwk))
+            },
+            // If format is "raw":
+            KeyFormat::Raw => {
+                // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
+                // InvalidAccessError.
+                if key.Type() != KeyType::Public {
+                    return Err(Error::InvalidAccess);
+                }
+
+                // Step 3.2. Let data be a byte sequence representing the Ed25519 public key
+                // represented by the [[handle]] internal slot of key.
+                // Step 3.3. Let result be data.
+                ExportedKey::Raw(key_data.to_vec())
+            },
+            // Otherwise: throw a NotSupportedError. (Unreachable)
+        };
+
+        // Step 4. Return result.
+        Ok(result)
     }
 }
 

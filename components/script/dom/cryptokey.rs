@@ -12,7 +12,7 @@ use script_bindings::conversions::SafeToJSValConvertible;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
-    CryptoKeyMethods, KeyType, KeyUsage,
+    CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
 };
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
@@ -22,19 +22,20 @@ use crate::script_runtime::{CanGc, JSContext};
 
 pub(crate) enum CryptoKeyOrCryptoKeyPair {
     CryptoKey(DomRoot<CryptoKey>),
-    // TODO: CryptoKeyPair(CryptoKeyPair),
+    CryptoKeyPair(CryptoKeyPair),
 }
 
 /// The underlying cryptographic data this key represents
 #[allow(dead_code)]
 #[derive(MallocSizeOf)]
 pub(crate) enum Handle {
+    Ed25519(Vec<u8>),
     Aes128(Vec<u8>),
     Aes192(Vec<u8>),
     Aes256(Vec<u8>),
-    Pbkdf2(Vec<u8>),
-    Hkdf(Vec<u8>),
     Hmac(Vec<u8>),
+    Hkdf(Vec<u8>),
+    Pbkdf2(Vec<u8>),
 }
 
 /// <https://w3c.github.io/webcrypto/#cryptokey-interface>
@@ -160,12 +161,13 @@ impl CryptoKeyMethods<crate::DomTypeHolder> for CryptoKey {
 impl Handle {
     pub(crate) fn as_bytes(&self) -> &[u8] {
         match self {
+            Self::Ed25519(bytes) => bytes,
             Self::Aes128(bytes) => bytes,
             Self::Aes192(bytes) => bytes,
             Self::Aes256(bytes) => bytes,
-            Self::Pbkdf2(bytes) => bytes,
-            Self::Hkdf(bytes) => bytes,
             Self::Hmac(bytes) => bytes,
+            Self::Hkdf(bytes) => bytes,
+            Self::Pbkdf2(bytes) => bytes,
         }
     }
 }
