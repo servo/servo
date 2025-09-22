@@ -366,7 +366,7 @@ fn map_debug_options(arg: String) -> Vec<String> {
 }
 
 #[derive(Bpaf, Clone, Debug)]
-#[bpaf(options, version(VERSION), usage("servo [OPTIONS] [ARGUMENT] URL"))]
+#[bpaf(options, version(VERSION), usage("servo [OPTIONS] URL"))]
 struct CmdArgs {
     /// Background Hang Monitor enabled.
     #[bpaf(short('B'), long("bhm"))]
