@@ -12,6 +12,7 @@ use constellation_traits::{
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
+use js::jsval::UndefinedValue;
 
 use script_bindings::codegen::GenericBindings::ClientBinding::ClientMethods;
 use js::realm::CurrentRealm;
@@ -188,34 +189,83 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
     }
 
     /// <https://w3c.github.io/ServiceWorker/#navigator-service-worker-getRegistration>
-    // fn GetRegistration(&self) -> Rc<Promise> {
-    //     // Step 1. Let client be this’s service worker client.
-    //     // self.client is the client.
-    //     // Step 2. Let storage key be the result of running obtain a storage key given client.
-    //     let storage_key = match self.client.obtain_storage_key() {
-    //         Ok(key) => key,
-    //         Err(()) => {
-    //             let promise = Promise::new(&*self.global(), CanGc::note());
-    //             promise.reject_error(Error::InvalidAccess, CanGc::note());
-    //             return promise;
-    //         },
-    //     };
-    //     // Step 3. Let clientURL be the result of parsing clientURL with this’s relevant settings object’s API base URL.
-    //     let client_url = self.client.url;
-    //     // TODO: Step 4. If clientURL is failure, return a promise rejected with a TypeError.
-    //     // TODO: Step 5. Set clientURL’s fragment to null.
-    //     // TODO: Step 6. If the origin of clientURL is not client’s origin, return a promise rejected with a "SecurityError" DOMException.
-    //     // Step 7. Let promise be a new promise.
-    //     let promise = Promise::new(&*self.global(), CanGc::note());
-    //     // Step 8. Run the following substeps in parallel:
-    //     // TODO: do in parallel
-    //     // Step 8.1. Let registration be the result of running Match Service Worker Registration given storage key and clientURL.
-    //     let registration = self.global().
-    //     // Step 8.2. If registration is null, resolve promise with undefined and abort these steps.
-    //     // Step 8.3. Resolve promise with the result of getting the service worker registration object that represents registration in promise’s relevant settings object.
-    //     // Step 9. Return promise.
-    //     promise
-    // }
+    fn GetRegistration(&self, client_url: USVString) -> Rc<Promise> {
+        let global = self.global();
+        // Step 1. Let client be this’s service worker client.
+        // self.client is the client.
+        // Step 2. Let storage key be the result of running obtain a storage key given client.
+        let storage_key = match self.client.obtain_storage_key() {
+            Ok(key) => key,
+            Err(()) => {
+                let promise = Promise::new(&*global, CanGc::note());
+                promise.reject_error(Error::InvalidAccess, CanGc::note());
+                return promise;
+            },
+        };
+        // Step 3. Let clientURL be the result of parsing clientURL with this’s relevant settings object’s API base URL.
+        // FIXME(arihant2math): Not implemented correctly
+        let client_url = self.client.creation_url();
+        // TODO: Step 4. If clientURL is failure, return a promise rejected with a TypeError.
+        // TODO: Step 5. Set clientURL’s fragment to null.
+        // TODO: Step 6. If the origin of clientURL is not client’s origin, return a promise rejected with a "SecurityError" DOMException.
+        // Step 7. Let promise be a new promise.
+        let promise = Promise::new(&*global, CanGc::note());
+        // Step 8. Run the following substeps in parallel:
+        let script_to_constellation_chan = global.script_to_constellation_chan();
+        let (sender, receiver) = ipc::channel().unwrap();
+        let task_source = global
+            .task_manager()
+            .dom_manipulation_task_source()
+            .to_sendable();
+        // Step 8.1. Let registration be the result of running Match Service Worker Registration given storage key and clientURL.
+        let message = ScriptToConstellationMessage::MatchRegistration {
+            storage_key,
+            url: client_url,
+            sender: sender.clone(),
+        };
+        let _ = script_to_constellation_chan.send(message);
+        ROUTER.add_typed_route(
+            receiver,
+            Box::new({
+                let mut trusted_promise = Some(TrustedPromise::new(promise.clone()));
+                let creation_url = self.client.creation_url();
+                let trusted_self = Trusted::new(self);
+
+                move |message| {                    // FIXME(arihant2math): Can be made more ergonomic once servo/ipc-channel#418 is merged.
+                    let creation_url = creation_url.clone();
+                    let trusted_self = trusted_self.clone();
+                    let trusted_promise = trusted_promise
+                        .take()
+                        .expect("router handler is only called once");
+
+                    task_source.queue(task!(resolve_promise: move || {
+                    let message = message.unwrap_or(None);
+                    // Step 8.2. If registration is null, resolve promise with undefined and abort these steps.
+                    match message {
+                        Some(id) => {
+                            let registration = trusted_self.root().global().get_serviceworker_registration(
+                                &creation_url,
+                                &creation_url,
+                                id,
+                                None,
+                                None,
+                                None,
+                                CanGc::note(),
+                            );
+                            trusted_promise.root().resolve_native(&registration, CanGc::note());
+                        }
+                        None => {
+                            trusted_promise.root().resolve_native(&UndefinedValue(), CanGc::note());
+                        }
+                    }
+                    }));
+                    // Step 8.3. Resolve promise with the result of getting the service worker registration object that represents registration in promise’s relevant settings object.
+                }
+            })
+        );
+        // Step 9. Return promise.
+        promise
+    }
 
     /// <https://w3c.github.io/ServiceWorker/#navigator-service-worker-getRegistrations>
     #[allow(unsafe_code)]
