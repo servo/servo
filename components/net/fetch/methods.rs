@@ -260,10 +260,7 @@ pub async fn main_fetch(
 ) -> Response {
     // Step 1: Let request be fetchParam's request.
     let request = &mut fetch_params.request;
-    // send early HTTP request to DevTools if not data
-    if request.url().scheme() != "data" {
-        send_early_httprequest_to_devtools(request, context);
-    }
+    send_early_httprequest_to_devtools(request, context);
     // Step 2: Let response be null.
     let mut response = None;
 

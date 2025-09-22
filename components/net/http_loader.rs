@@ -430,6 +430,11 @@ pub fn send_request_to_devtools(
     msg: ChromeToDevtoolsControlMsg,
     devtools_chan: &Sender<DevtoolsControlMsg>,
 ) {
+    if let ChromeToDevtoolsControlMsg::NetworkEvent(_, ref network_event) = msg {
+        if !network_event.forward_to_devtools() {
+            return;
+        }
+    }
     if let Err(e) = devtools_chan.send(DevtoolsControlMsg::FromChrome(msg)) {
         error!("DevTools send failed: {e}");
     }
