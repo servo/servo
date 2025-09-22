@@ -36,12 +36,14 @@ pub enum EncodedBytes<'a> {
 }
 
 impl<'a> EncodedBytes<'a> {
-    pub fn encode_utf16(self) -> EncodeUtf16<'a> {
+    pub fn encode_utf16(self) -> Vec<u16> {
         match self {
             EncodedBytes::Latin1Bytes(s) => {
-                String::from_iter(s.iter().map(|c| latin1_u8_to_char(*c))).encode_utf16()
+                String::from_iter(s.iter().map(|c| latin1_u8_to_char(*c)))
+                    .encode_utf16()
+                    .collect()
             },
-            EncodedBytes::Utf8Bytes(s) => s.encode_utf16(),
+            EncodedBytes::Utf8Bytes(s) => s.encode_utf16().collect(),
         }
     }
 
@@ -244,7 +246,8 @@ impl LazyDOMString {
     }
 
     pub fn encode_utf16(&self) -> EncodeUtf16<'_> {
-        self.bytes().encode_utf16()
+        self.make_me_string();
+        self.rust_str().encode_utf16()
     }
 
     pub fn rust_str(&self) -> &str {
@@ -362,7 +365,7 @@ impl ToJSValConvertible for LazyDOMString {
 impl std::hash::Hash for LazyDOMString {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.make_me_string();
-        self.rust_string.hash(state);
+        self.rust_string.get().hash(state);
     }
 }
 
