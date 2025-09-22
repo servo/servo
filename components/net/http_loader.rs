@@ -2157,7 +2157,6 @@ async fn http_network_fetch(
     let timing_ptr3 = context.timing.clone();
     let devtools_request = request.clone();
     let url1 = devtools_request.url();
-    let url2 = url1.clone();
 
     let status = response.status.clone();
     let headers = response.headers.clone();
@@ -2165,14 +2164,14 @@ async fn http_network_fetch(
 
     spawn_task(
         res.into_body()
-            .map_err(|e| {
-                warn!("Error streaming response body: {:?}", e);
-            })
             .try_fold(res_body, move |res_body, chunk| {
                 if cancellation_listener.cancelled() {
                     *res_body.lock().unwrap() = ResponseBody::Done(vec![]);
                     let _ = done_sender.send(Data::Cancelled);
-                    return future::ready(Err(()));
+                    return future::ready(Err(std::io::Error::new(
+                        std::io::ErrorKind::Interrupted,
+                        "Fetch aborted",
+                    )));
                 }
                 if let ResponseBody::Receiving(ref mut body) = *res_body.lock().unwrap() {
                     let bytes = chunk;
@@ -2204,19 +2203,34 @@ async fn http_network_fetch(
                 let _ = done_sender2.send(Data::Done);
                 future::ready(Ok(()))
             })
-            .map_err(move |_| {
-                debug!("finished response for {:?}", url2);
-                let mut body = res_body2.lock().unwrap();
-                let completed_body = match *body {
-                    ResponseBody::Receiving(ref mut body) => std::mem::take(body),
-                    _ => vec![],
+            .map_err(move |e| {
+                match e.kind() {
+                    std::io::ErrorKind::InvalidData => {
+                        let mut body = res_body2.lock().unwrap();
+                        *body = ResponseBody::Done(vec![]);
+                        let _ = done_sender3
+                            .send(Data::Error(String::from("Content decompression failed")));
+                    },
+                    std::io::ErrorKind::Interrupted => {
+                        let mut body = res_body2.lock().unwrap();
+                        *body = ResponseBody::Done(vec![]);
+                        let _ = done_sender3.send(Data::Cancelled);
+                    },
+                    _ => {
+                        let mut body = res_body2.lock().unwrap();
+                        *body = ResponseBody::Done(vec![]);
+                        let completed_body = match *body {
+                            ResponseBody::Receiving(ref mut body) => std::mem::take(body),
+                            _ => vec![],
+                        };
+                        *body = ResponseBody::Done(completed_body);
+                        timing_ptr3
+                            .lock()
+                            .unwrap()
+                            .set_attribute(ResourceAttribute::ResponseEnd);
+                        let _ = done_sender3.send(Data::Done);
+                    },
                 };
-                *body = ResponseBody::Done(completed_body);
-                timing_ptr3
-                    .lock()
-                    .unwrap()
-                    .set_attribute(ResourceAttribute::ResponseEnd);
-                let _ = done_sender3.send(Data::Done);
             }),
     );
 
