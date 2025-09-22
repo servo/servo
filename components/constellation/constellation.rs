@@ -490,6 +490,10 @@ pub struct Constellation<STF, SWF> {
 
     /// The image cache for the single-process mode
     image_cache: Box<dyn ImageCache>,
+
+    /// Pending viewport changes for browsing contexts that are not
+    /// yet known to the constellation.
+    pending_viewport_changes: HashMap<BrowsingContextId, ViewportDetails>,
 }
 
 /// State needed to construct a constellation.
@@ -743,6 +747,7 @@ where
                         state.compositor_proxy.cross_process_compositor_api,
                         rippy_data,
                     )),
+                    pending_viewport_changes: Default::default(),
                 };
 
                 constellation.run();
@@ -1164,6 +1169,12 @@ where
                 return;
             },
         };
+
+        // Override the viewport details if we have a pending change for that browsing context.
+        let viewport_details = self
+            .pending_viewport_changes
+            .remove(&browsing_context_id)
+            .unwrap_or(viewport_details);
         let browsing_context = BrowsingContext::new(
             bc_group_id,
             browsing_context_id,
@@ -5036,7 +5047,7 @@ where
     ) {
         debug!(
             "handle_change_viewport_details_msg: {:?}",
-            new_viewport_details.size.to_untyped()
+            new_viewport_details
         );
 
         let browsing_context_id = BrowsingContextId::from(webview_id);
@@ -5222,6 +5233,9 @@ where
                         ));
                 }
             }
+        } else {
+            self.pending_viewport_changes
+                .insert(browsing_context_id, new_viewport_details);
         }
 
         // Send resize message to any pending pipelines that aren't loaded yet.
@@ -5305,6 +5319,8 @@ where
             DiscardBrowsingContext::Yes,
             exit_mode,
         );
+
+        let _ = self.pending_viewport_changes.remove(&browsing_context_id);
 
         let browsing_context = match self.browsing_contexts.remove(&browsing_context_id) {
             Some(ctx) => ctx,
