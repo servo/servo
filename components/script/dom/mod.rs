@@ -325,6 +325,8 @@ pub(crate) mod formdata;
 pub(crate) mod formdataevent;
 pub(crate) mod gamepad;
 pub(crate) use self::gamepad::*;
+pub(crate) mod geolocation;
+pub(crate) use self::geolocation::*;
 #[allow(dead_code)]
 pub(crate) mod globalscope;
 pub(crate) mod hashchangeevent;
