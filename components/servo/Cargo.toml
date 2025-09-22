@@ -83,6 +83,8 @@ embedder_traits = { workspace = true }
 env_logger = { workspace = true }
 euclid = { workspace = true }
 fonts = { path = "../fonts" }
+geolocation = { path = "../geolocation" }
+geolocation_traits = { workspace = true }
 gleam = { workspace = true }
 gstreamer = { workspace = true, optional = true }
 image = { workspace = true }

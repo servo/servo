@@ -16,6 +16,7 @@ use constellation_traits::ScriptToConstellationMessage;
 use crossbeam_channel::{Receiver, SendError, Sender, select};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};
 use embedder_traits::ScriptToEmbedderChan;
+use geolocation_traits::GeolocationRequest;
 use ipc_channel::ipc::IpcSender;
 use net_traits::FetchResponseMsg;
 use net_traits::image_cache::ImageCacheResponseMessage;
@@ -336,6 +337,10 @@ pub(crate) struct ScriptThreadSenders {
     #[no_trace]
     #[cfg(feature = "bluetooth")]
     pub(crate) bluetooth_sender: IpcSender<BluetoothRequest>,
+
+    /// A handle to the geolocation thread.
+    #[no_trace]
+    pub(crate) geolocation_sender: IpcSender<GeolocationRequest>,
 
     /// A [`Sender`] that sends messages to the `Constellation`.
     #[no_trace]

@@ -30,6 +30,7 @@ use embedder_traits::{
     AnimationState, FocusSequenceNumber, ScriptToEmbedderChan, Theme, ViewportDetails,
 };
 use fonts::{SystemFontServiceProxy, SystemFontServiceProxySender};
+use geolocation_traits::GeolocationRequest;
 use ipc_channel::Error;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -154,6 +155,9 @@ pub struct InitialPipelineState {
     /// A channel to the bluetooth thread.
     #[cfg(feature = "bluetooth")]
     pub bluetooth_thread: IpcSender<BluetoothRequest>,
+
+    /// A channel to the geolocation thread.
+    pub geolocation_thread: IpcSender<GeolocationRequest>,
 
     /// A channel to the service worker manager thread
     pub swmanager_thread: GenericSender<SWManagerMsg>,
@@ -293,6 +297,7 @@ impl Pipeline {
                     devtools_ipc_sender: script_to_devtools_ipc_sender,
                     #[cfg(feature = "bluetooth")]
                     bluetooth_thread: state.bluetooth_thread,
+                    geolocation_thread: state.geolocation_thread,
                     swmanager_thread: state.swmanager_thread,
                     system_font_service: state.system_font_service.to_sender(),
                     resource_threads: state.resource_threads,
@@ -491,6 +496,7 @@ pub struct UnprivilegedPipelineContent {
     devtools_ipc_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     #[cfg(feature = "bluetooth")]
     bluetooth_thread: IpcSender<BluetoothRequest>,
+    geolocation_thread: IpcSender<GeolocationRequest>,
     swmanager_thread: GenericSender<SWManagerMsg>,
     system_font_service: SystemFontServiceProxySender,
     resource_threads: ResourceThreads,
@@ -550,6 +556,7 @@ impl UnprivilegedPipelineContent {
                 background_hang_monitor_register: background_hang_monitor_register.clone(),
                 #[cfg(feature = "bluetooth")]
                 bluetooth_sender: self.bluetooth_thread,
+                geolocation_sender: self.geolocation_thread,
                 resource_threads: self.resource_threads,
                 storage_threads: self.storage_threads,
                 image_cache,

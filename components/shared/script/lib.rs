@@ -32,6 +32,7 @@ use embedder_traits::{
     MediaSessionActionType, ScriptToEmbedderChan, Theme, ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::{Rect, Scale, Size2D, UnknownUnit};
+use geolocation_traits::GeolocationRequest;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use keyboard_types::Modifiers;
 use malloc_size_of_derive::MallocSizeOf;
@@ -340,6 +341,8 @@ pub struct InitialScriptState {
     /// A channel to the bluetooth thread.
     #[cfg(feature = "bluetooth")]
     pub bluetooth_sender: IpcSender<BluetoothRequest>,
+    /// A channel to the geolocation thread.
+    pub geolocation_sender: IpcSender<GeolocationRequest>,
     /// The image cache for this script thread.
     pub image_cache: Arc<dyn ImageCache>,
     /// A channel to the time profiler thread.

@@ -43,6 +43,7 @@ use embedder_traits::{
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
 use fonts::FontContext;
+use geolocation_traits::GeolocationRequest;
 use ipc_channel::ipc::IpcSender;
 use js::glue::DumpJSStack;
 use js::jsapi::{
@@ -328,6 +329,10 @@ pub(crate) struct Window {
 
     #[cfg(feature = "bluetooth")]
     bluetooth_extra_permission_data: BluetoothExtraPermissionData,
+
+    /// Handle for communicating messages to the geolocation thread.
+    #[no_trace]
+    geolocation_thread: IpcSender<GeolocationRequest>,
 
     /// See the documentation for [`LayoutBlocker`]. Essentially, this flag prevents
     /// layouts from happening before the first load event, apart from a few exceptional
@@ -631,6 +636,10 @@ impl Window {
     #[cfg(feature = "bluetooth")]
     pub(crate) fn bluetooth_extra_permission_data(&self) -> &BluetoothExtraPermissionData {
         &self.bluetooth_extra_permission_data
+    }
+
+    pub(crate) fn geolocation_thread(&self) -> IpcSender<GeolocationRequest> {
+        self.geolocation_thread.clone()
     }
 
     pub(crate) fn css_error_reporter(&self) -> Option<&dyn ParseErrorReporter> {
@@ -3219,6 +3228,7 @@ impl Window {
         resource_threads: ResourceThreads,
         storage_threads: StorageThreads,
         #[cfg(feature = "bluetooth")] bluetooth_thread: IpcSender<BluetoothRequest>,
+        geolocation_thread: IpcSender<GeolocationRequest>,
         mem_profiler_chan: MemProfilerChan,
         time_profiler_chan: TimeProfilerChan,
         devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
@@ -3301,6 +3311,7 @@ impl Window {
             bluetooth_thread,
             #[cfg(feature = "bluetooth")]
             bluetooth_extra_permission_data: BluetoothExtraPermissionData::new(),
+            geolocation_thread,
             unhandled_resize_event: Default::default(),
             viewport_details: Cell::new(viewport_details),
             current_viewport_size: Cell::new(initial_viewport.to_untyped().size),

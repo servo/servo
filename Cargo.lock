@@ -1579,6 +1579,8 @@ dependencies = [
  "euclid",
  "fonts",
  "gaol",
+ "geolocation",
+ "geolocation_traits",
  "ipc-channel",
  "keyboard-types",
  "layout_api",
@@ -3062,6 +3064,22 @@ checksum = "85649ca51fd72272d7821adaf274ad91c288277713d9c18820d8499a7ff69e9a"
 dependencies = [
  "typenum",
  "version_check",
+]
+
+[[package]]
+name = "geolocation"
+version = "0.0.1"
+dependencies = [
+ "geolocation_traits",
+ "ipc-channel",
+]
+
+[[package]]
+name = "geolocation_traits"
+version = "0.0.1"
+dependencies = [
+ "ipc-channel",
+ "serde",
 ]
 
 [[package]]
@@ -4999,6 +5017,8 @@ dependencies = [
  "euclid",
  "fonts",
  "gaol",
+ "geolocation",
+ "geolocation_traits",
  "gleam",
  "gstreamer",
  "http 1.3.1",
@@ -7311,6 +7331,7 @@ dependencies = [
  "euclid",
  "fonts",
  "fonts_traits",
+ "geolocation_traits",
  "glow",
  "headers 0.4.1",
  "html5ever",
@@ -7453,6 +7474,7 @@ dependencies = [
  "devtools_traits",
  "embedder_traits",
  "euclid",
+ "geolocation_traits",
  "ipc-channel",
  "keyboard-types",
  "log",

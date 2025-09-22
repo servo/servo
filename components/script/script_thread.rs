@@ -234,6 +234,9 @@ pub struct ScriptThread {
     incomplete_loads: DomRefCell<Vec<InProgressLoad>>,
     /// A vector containing parser contexts which have not yet been fully processed
     incomplete_parser_contexts: IncompleteParserContexts,
+    // The platform services
+    // #[no_trace]
+    // platform_services: Arc<()>,
     /// Image cache for this script thread.
     #[no_trace]
     image_cache: Arc<dyn ImageCache>,
@@ -914,6 +917,7 @@ impl ScriptThread {
             self_sender,
             #[cfg(feature = "bluetooth")]
             bluetooth_sender: state.bluetooth_sender,
+            geolocation_sender: state.geolocation_sender,
             constellation_sender: state.constellation_sender,
             pipeline_to_constellation_sender: state.pipeline_to_constellation_sender.sender.clone(),
             pipeline_to_embedder_sender: state.pipeline_to_embedder_sender.clone(),
@@ -3188,6 +3192,7 @@ impl ScriptThread {
             self.storage_threads.clone(),
             #[cfg(feature = "bluetooth")]
             self.senders.bluetooth_sender.clone(),
+            self.senders.geolocation_sender.clone(),
             self.senders.memory_profiler_sender.clone(),
             self.senders.time_profiler_sender.clone(),
             self.senders.devtools_server_sender.clone(),

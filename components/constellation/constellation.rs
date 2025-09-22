@@ -141,6 +141,7 @@ use embedder_traits::{
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
 use fonts::SystemFontServiceProxy;
+use geolocation_traits::GeolocationRequest;
 use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -373,6 +374,9 @@ pub struct Constellation<STF, SWF> {
     #[cfg(feature = "bluetooth")]
     bluetooth_ipc_sender: IpcSender<BluetoothRequest>,
 
+    /// An IPC channel for the constellation to send messages to the geolocation thread.
+    geolocation_ipc_sender: IpcSender<GeolocationRequest>,
+
     /// A map of origin to sender to a Service worker manager.
     sw_managers: HashMap<ImmutableOrigin, GenericSender<ServiceWorkerMsg>>,
 
@@ -528,6 +532,9 @@ pub struct InitialConstellationState {
     /// A channel to the bluetooth thread.
     #[cfg(feature = "bluetooth")]
     pub bluetooth_thread: IpcSender<BluetoothRequest>,
+
+    /// A channel to the geolocation thread.
+    pub geolocation_thread: IpcSender<GeolocationRequest>,
 
     /// A proxy to the `SystemFontService` which manages the list of system fonts.
     pub system_font_service: Arc<SystemFontServiceProxy>,
@@ -707,6 +714,7 @@ where
                     devtools_sender: state.devtools_sender,
                     #[cfg(feature = "bluetooth")]
                     bluetooth_ipc_sender: state.bluetooth_thread,
+                    geolocation_ipc_sender: state.geolocation_thread,
                     public_resource_threads: state.public_resource_threads,
                     private_resource_threads: state.private_resource_threads,
                     public_storage_threads: state.public_storage_threads,
@@ -1026,6 +1034,7 @@ where
             devtools_sender: self.devtools_sender.clone(),
             #[cfg(feature = "bluetooth")]
             bluetooth_thread: self.bluetooth_ipc_sender.clone(),
+            geolocation_thread: self.geolocation_ipc_sender.clone(),
             swmanager_thread: self.swmanager_ipc_sender.clone(),
             system_font_service: self.system_font_service.clone(),
             resource_threads,

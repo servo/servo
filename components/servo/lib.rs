@@ -80,6 +80,8 @@ use fonts::SystemFontService;
     not(target_env = "ohos"),
 ))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
+use geolocation::GeolocationThreadFactory;
+use geolocation_traits::{GeolocationProvider, GeolocationRequest};
 pub use gleam::gl;
 use gleam::gl::RENDERER;
 pub use image::RgbaImage;
@@ -190,6 +192,10 @@ mod media_platform {
     }
 }
 
+pub struct PlatformServices {
+    geolocation: Arc<Option<Box<dyn GeolocationProvider + Send + Sync>>>,
+}
+
 /// The in-process interface to Servo.
 ///
 /// It does everything necessary to render the web, primarily
@@ -263,6 +269,9 @@ impl Servo {
         opts::initialize_options(opts.unwrap_or_default());
         let opts = opts::get();
 
+        let platform_services = PlatformServices {
+            geolocation: Arc::new(builder.geolocation_provider),
+        };
         // Set the preferences globally.
         // TODO: It would be better to make these private to a particular Servo instance.
         let preferences = builder.preferences.map(|opts| *opts);
@@ -460,6 +469,7 @@ impl Servo {
             #[cfg(feature = "webgpu")]
             wgpu_image_map,
             protocols,
+            platform_services,
             builder.user_content_manager,
         );
 
@@ -1125,14 +1135,19 @@ fn create_constellation(
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     #[cfg(feature = "webgpu")] wgpu_image_map: WGPUImageMap,
     protocols: ProtocolRegistry,
+    platform_services: PlatformServices,
     user_content_manager: UserContentManager,
 ) -> Sender<EmbedderToConstellationMessage> {
+    let platform_services = Arc::new(platform_services);
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
 
     #[cfg(feature = "bluetooth")]
     let bluetooth_thread: IpcSender<BluetoothRequest> =
         BluetoothThreadFactory::new(embedder_proxy.clone());
+
+    let geolocation_thread: IpcSender<GeolocationRequest> =
+        GeolocationThreadFactory::new(platform_services.geolocation.clone());
 
     let privileged_urls = protocols.privileged_urls();
 
@@ -1164,6 +1179,7 @@ fn create_constellation(
         devtools_sender,
         #[cfg(feature = "bluetooth")]
         bluetooth_thread,
+        geolocation_thread,
         system_font_service,
         public_resource_threads,
         private_resource_threads,
@@ -1343,6 +1359,7 @@ impl webxr::WebXrRegistry for DefaultWebXrRegistry {}
 pub struct ServoBuilder {
     rendering_context: Rc<dyn RenderingContext>,
     opts: Option<Box<Opts>>,
+    geolocation_provider: Option<Box<dyn GeolocationProvider + Send + Sync>>,
     preferences: Option<Box<Preferences>>,
     event_loop_waker: Box<dyn EventLoopWaker>,
     user_content_manager: UserContentManager,
@@ -1358,6 +1375,7 @@ impl ServoBuilder {
             opts: None,
             preferences: None,
             event_loop_waker: Box::new(DefaultEventLoopWaker),
+            geolocation_provider: None,
             user_content_manager: UserContentManager::default(),
             protocol_registry: ProtocolRegistry::default(),
             #[cfg(feature = "webxr")]
@@ -1381,6 +1399,14 @@ impl ServoBuilder {
 
     pub fn event_loop_waker(mut self, event_loop_waker: Box<dyn EventLoopWaker>) -> Self {
         self.event_loop_waker = event_loop_waker;
+        self
+    }
+
+    pub fn geolocation_provider(
+        mut self,
+        geolocation_provider: Box<dyn GeolocationProvider + Send + Sync>,
+    ) -> Self {
+        self.geolocation_provider = Some(geolocation_provider);
         self
     }
 
