@@ -587,11 +587,27 @@ impl FetchResponseListener for FetchContext {
     fn process_response_eof(
         &mut self,
         _: RequestId,
-        _response: Result<ResourceFetchTiming, NetworkError>,
+        response_result: Result<ResourceFetchTiming, NetworkError>,
     ) {
         let response = self.response_object.root();
         let _ac = enter_realm(&*response);
-        response.finish(CanGc::note());
+        match response_result {
+            Ok(_) => {
+                response.finish(CanGc::note());
+            },
+            Err(network_error) => {
+                // Convert network error to a TypeError and error the stream
+                response.set_type(DOMResponseType::Error, CanGc::note());
+                if let Some(body) = response.body() {
+                    if body.is_readable() {
+                        response.error_stream(
+                            Error::Type(format!("Network error: {:?}", network_error)),
+                            CanGc::note(),
+                        );
+                    }
+                }
+            },
+        }
         // TODO
         // ... trailerObject is not supported in Servo yet.
     }
