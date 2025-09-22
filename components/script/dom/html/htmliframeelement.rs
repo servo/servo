@@ -95,7 +95,7 @@ pub(crate) struct HTMLIFrameElement {
     sandbox_allowance: Cell<Option<SandboxAllowance>>,
     load_blocker: DomRefCell<Option<LoadBlocker>>,
     throttled: Cell<bool>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     script_window_proxies: Rc<ScriptWindowProxies>,
 }
 

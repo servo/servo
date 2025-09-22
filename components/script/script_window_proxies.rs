@@ -18,7 +18,7 @@ use crate::dom::types::{GlobalScope, Window};
 use crate::dom::windowproxy::{CreatorBrowsingContextInfo, WindowProxy};
 use crate::messaging::ScriptThreadSenders;
 
-#[derive(JSTraceable, Default)]
+#[derive(JSTraceable, Default, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_in_rc)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ScriptWindowProxies {
