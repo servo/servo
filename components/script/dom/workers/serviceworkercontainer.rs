@@ -189,7 +189,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
     }
 
     /// <https://w3c.github.io/ServiceWorker/#navigator-service-worker-getRegistration>
-    fn GetRegistration(&self, client_url: USVString) -> Rc<Promise> {
+    fn GetRegistration(&self, _client_url: USVString) -> Rc<Promise> {
         let global = self.global();
         // Step 1. Let client be this’s service worker client.
         // self.client is the client.
@@ -197,7 +197,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
         let storage_key = match self.client.obtain_storage_key() {
             Ok(key) => key,
             Err(()) => {
-                let promise = Promise::new(&*global, CanGc::note());
+                let promise = Promise::new(&global, CanGc::note());
                 promise.reject_error(Error::InvalidAccess, CanGc::note());
                 return promise;
             },
@@ -209,7 +209,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
         // TODO: Step 5. Set clientURL’s fragment to null.
         // TODO: Step 6. If the origin of clientURL is not client’s origin, return a promise rejected with a "SecurityError" DOMException.
         // Step 7. Let promise be a new promise.
-        let promise = Promise::new(&*global, CanGc::note());
+        let promise = Promise::new(&global, CanGc::note());
         // Step 8. Run the following substeps in parallel:
         let script_to_constellation_chan = global.script_to_constellation_chan();
         let (sender, receiver) = ipc::channel().unwrap();
@@ -276,13 +276,13 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
         let storage_key = match self.client.obtain_storage_key() {
             Ok(key) => key,
             Err(()) => {
-                let promise = Promise::new(&*global, CanGc::note());
+                let promise = Promise::new(&global, CanGc::note());
                 promise.reject_error(Error::InvalidAccess, CanGc::note());
                 return promise;
             },
         };
         // Step 3. Let promise be a new promise.
-        let promise = Promise::new(&*global, CanGc::note());
+        let promise = Promise::new(&global, CanGc::note());
         // Step 4. Run the following steps in parallel:
         let (sender, receiver) = ipc::channel().unwrap();
         let task_source = global

@@ -497,10 +497,8 @@ impl ServiceWorkerManager {
         }
         // Step 6. Set matchingScopeString to the longest value in scopeStringSet which the value of clientURLString starts with, if it exists.
         for scope in scope_string_set {
-            if client_url_string.starts_with(scope) {
-                if scope.len() > matching_scope_string.len() {
-                    matching_scope_string = scope.to_owned();
-                }
+            if client_url_string.starts_with(scope) && scope.len() > matching_scope_string.len() {
+                matching_scope_string = scope.to_owned();
             }
         }
         // Step 7. Let matchingScope be null.
