@@ -34,7 +34,7 @@ use crate::dom::bindings::error::{
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{AsHandleValue, Dom, DomRoot};
-use crate::dom::bindings::settings_stack::is_execution_stack_empty;
+use crate::dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::domexception::{DOMErrorName, DOMException};
@@ -720,35 +720,31 @@ impl CustomElementDefinition {
         self.name == self.local_name
     }
 
-    /// <https://dom.spec.whatwg.org/#concept-create-element> Step 4.1
+    /// <https://dom.spec.whatwg.org/#concept-create-element> Step 5.1
     #[allow(unsafe_code)]
     pub(crate) fn create_element(
         &self,
         document: &Document,
         prefix: Option<Prefix>,
-        can_gc: CanGc,
+        // This function can cause GC through AutoEntryScript::Drop, but we can't pass a CanGc there
+        _can_gc: CanGc,
     ) -> Fallible<DomRoot<Element>> {
         let window = document.window();
         let cx = GlobalScope::get_cx();
-        // Step 4.1.1. Let C be definition’s constructor.
+        // Step 5.1.1. Let C be definition’s constructor.
         rooted!(in(*cx) let constructor = ObjectValue(self.constructor.callback()));
         rooted!(in(*cx) let mut element = ptr::null_mut::<JSObject>());
         {
             // Go into the constructor's realm
             let _ac = JSAutoRealm::new(*cx, self.constructor.callback());
-            // Step 4.1.2. Set result to the result of constructing C, with no arguments.
+            // Step 5.3.1. Set result to the result of constructing C, with no arguments.
+            // https://webidl.spec.whatwg.org/#construct-a-callback-function
+            let _script_guard = AutoEntryScript::new(window.upcast());
+            let _callback_guard = AutoIncumbentScript::new(window.upcast());
             let args = HandleValueArray::empty();
             if unsafe { !Construct1(*cx, constructor.handle(), &args, element.handle_mut()) } {
                 return Err(Error::JSFailed);
             }
-        }
-
-        // https://heycam.github.io/webidl/#construct-a-callback-function
-        // https://html.spec.whatwg.org/multipage/#clean-up-after-running-script
-        if is_execution_stack_empty() {
-            window
-                .as_global_scope()
-                .perform_a_microtask_checkpoint(can_gc);
         }
 
         rooted!(in(*cx) let element_val = ObjectValue(element.get()));
@@ -911,12 +907,13 @@ pub(crate) fn upgrade_element(
 }
 
 /// <https://html.spec.whatwg.org/multipage/#concept-upgrade-an-element>
-/// Steps 8.1-8.3
+/// Steps 9.1-9.4
 #[allow(unsafe_code)]
 fn run_upgrade_constructor(
     definition: &CustomElementDefinition,
     element: &Element,
-    can_gc: CanGc,
+    // This function can cause GC through AutoEntryScript::Drop, but we can't pass a CanGc there
+    _can_gc: CanGc,
 ) -> ErrorResult {
     let constructor = &definition.constructor;
     let window = element.owner_window();
@@ -926,7 +923,7 @@ fn run_upgrade_constructor(
     element.safe_to_jsval(cx, element_val.handle_mut());
     rooted!(in(*cx) let mut construct_result = ptr::null_mut::<JSObject>());
     {
-        // Step 8.1. If definition's disable shadow is true and element's shadow root is non-null,
+        // Step 9.1. If definition's disable shadow is true and element's shadow root is non-null,
         // then throw a "NotSupportedError" DOMException.
         if definition.disable_shadow && element.is_shadow_host() {
             return Err(Error::NotSupported);
@@ -938,29 +935,27 @@ fn run_upgrade_constructor(
         // Step 8.2. Set element's custom element state to "precustomized".
         element.set_custom_element_state(CustomElementState::Precustomized);
 
-        if unsafe {
-            !Construct1(
-                *cx,
-                constructor_val.handle(),
-                &args,
-                construct_result.handle_mut(),
-            )
-        } {
-            return Err(Error::JSFailed);
+        // Step 9.3. Let constructResult be the result of constructing C, with no arguments.
+        // https://webidl.spec.whatwg.org/#construct-a-callback-function
+        {
+            let _script_guard = AutoEntryScript::new(window.upcast());
+            let _callback_guard = AutoIncumbentScript::new(window.upcast());
+            if unsafe {
+                !Construct1(
+                    *cx,
+                    constructor_val.handle(),
+                    &args,
+                    construct_result.handle_mut(),
+                )
+            } {
+                return Err(Error::JSFailed);
+            }
         }
 
-        // https://heycam.github.io/webidl/#construct-a-callback-function
-        // https://html.spec.whatwg.org/multipage/#clean-up-after-running-script
-        if is_execution_stack_empty() {
-            window
-                .as_global_scope()
-                .perform_a_microtask_checkpoint(can_gc);
-        }
-
-        // Step 8.3. Let constructResult be the result of constructing C, with no arguments.
         let mut same = false;
         rooted!(in(*cx) let construct_result_val = ObjectValue(construct_result.get()));
-        // Step 8.4. If SameValue(constructResult, element) is false, then throw a TypeError.
+
+        // Step 9.4. If SameValue(constructResult, element) is false, then throw a TypeError.
         if unsafe {
             !SameValue(
                 *cx,

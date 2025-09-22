@@ -63,6 +63,7 @@ impl<D: DomTypes> Drop for GenericAutoEntryScript<D> {
     /// <https://html.spec.whatwg.org/multipage/#clean-up-after-running-script>
     fn drop(&mut self) {
         let settings_stack = <D as DomHelpers<D>>::settings_stack();
+        let mut stack_is_empty = false;
         settings_stack.with(|stack| {
             let mut stack = stack.borrow_mut();
             let entry = stack.pop().unwrap();
@@ -72,10 +73,11 @@ impl<D: DomTypes> Drop for GenericAutoEntryScript<D> {
             );
             assert_eq!(entry.kind, StackEntryKind::Entry);
             trace!("Clean up after running script with {:p}", &*entry.global);
+            stack_is_empty = stack.is_empty();
         });
 
         // Step 5
-        if !thread::panicking() && D::GlobalScope::incumbent().is_none() {
+        if !thread::panicking() && stack_is_empty {
             self.global.perform_a_microtask_checkpoint(CanGc::note());
         }
     }
