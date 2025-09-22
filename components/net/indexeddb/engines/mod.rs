@@ -9,7 +9,7 @@ use tokio::sync::oneshot;
 
 pub use self::sqlite::SqliteEngine;
 
-mod sqlite;
+pub mod sqlite;
 
 pub struct KvsOperation {
     pub store_name: String,
