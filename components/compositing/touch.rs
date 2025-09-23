@@ -283,10 +283,6 @@ impl TouchHandler {
         debug_assert!(old.is_some(), "Sequence already removed?");
     }
 
-    pub fn try_get_current_touch_sequence(&self) -> Option<&TouchSequenceInfo> {
-        self.touch_sequence_map.get(&self.current_sequence_id)
-    }
-
     pub fn get_current_touch_sequence_mut(&mut self) -> &mut TouchSequenceInfo {
         self.touch_sequence_map
             .get_mut(&self.current_sequence_id)

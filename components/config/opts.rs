@@ -128,9 +128,6 @@ pub struct DebugOptions {
     /// Whether to show in stdout style sharing cache stats after a restyle.
     pub dump_style_statistics: bool,
 
-    /// Translate mouse input into touch events.
-    pub convert_mouse_to_touch: bool,
-
     /// Log GC passes and their durations.
     pub gc_profile: bool,
 }
@@ -140,7 +137,6 @@ impl DebugOptions {
         for option in debug_string.split(',') {
             match option {
                 "help" => self.help = true,
-                "convert-mouse-to-touch" => self.convert_mouse_to_touch = true,
                 "disable-share-style-cache" => self.disable_share_style_cache = true,
                 "dump-display-list" => self.dump_display_list = true,
                 "dump-stacking-context-tree" => self.dump_stacking_context_tree = true,
