@@ -11,6 +11,7 @@ use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
+use utf16string::Utf16String;
 
 use crate::clipboard_provider::EmbedderClipboardProvider;
 use crate::dom::attr::Attr;
@@ -44,7 +45,6 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 use crate::textinput::{
     ClipboardEventReaction, Direction, KeyReaction, Lines, SelectionDirection, TextInput,
-    UTF8Bytes, UTF16CodeUnits,
 };
 
 #[dom_struct]
@@ -75,10 +75,11 @@ impl<'dom> LayoutDom<'dom, HTMLTextAreaElement> {
                 .textinput
                 .borrow_for_layout()
                 .get_content()
+                .into()
         }
     }
 
-    fn textinput_sorted_selection_offsets_range(self) -> Range<UTF8Bytes> {
+    fn textinput_sorted_selection_offsets_range(self) -> Range<usize> {
         unsafe {
             self.unsafe_get()
                 .textinput
@@ -108,9 +109,7 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutDom<'_, HTMLTextAreaElement> {
         if !self.upcast::<Element>().focus_state() {
             return None;
         }
-        Some(UTF8Bytes::unwrap_range(
-            self.textinput_sorted_selection_offsets_range(),
-        ))
+        Some(self.textinput_sorted_selection_offsets_range())
     }
 
     fn get_cols(self) -> u32 {
@@ -156,7 +155,7 @@ impl HTMLTextAreaElement {
             placeholder: DomRefCell::new(DOMString::new()),
             textinput: DomRefCell::new(TextInput::new(
                 Lines::Multiple,
-                DOMString::new(),
+                Default::default(),
                 EmbedderClipboardProvider {
                     embedder_sender,
                     webview_id: document.webview_id(),
@@ -323,7 +322,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-value
     fn Value(&self) -> DOMString {
-        self.textinput.borrow().get_content()
+        self.textinput.borrow().get_content().to_string().into()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-value
@@ -335,7 +334,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
             let old_value = textinput.get_content();
 
             // Step 2
-            textinput.set_content(value);
+            textinput.set_content(Utf16String::from(value));
 
             // Step 3
             self.value_dirty.set(true);
@@ -353,8 +352,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-textlength
     fn TextLength(&self) -> u32 {
-        let UTF16CodeUnits(num_units) = self.textinput.borrow().utf16_len();
-        num_units as u32
+        self.textinput.borrow().utf16_len() as u32
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
@@ -402,8 +400,12 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
     fn SetRangeText(&self, replacement: DOMString) -> ErrorResult {
-        self.selection()
-            .set_dom_range_text(replacement, None, None, Default::default())
+        self.selection().set_dom_range_text(
+            Utf16String::from(replacement),
+            None,
+            None,
+            Default::default(),
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
@@ -414,8 +416,12 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
         end: u32,
         selection_mode: SelectionMode,
     ) -> ErrorResult {
-        self.selection()
-            .set_dom_range_text(replacement, Some(start), Some(end), selection_mode)
+        self.selection().set_dom_range_text(
+            Utf16String::from(replacement),
+            Some(start),
+            Some(end),
+            selection_mode,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate
@@ -454,13 +460,13 @@ impl HTMLTextAreaElement {
     /// Used by WebDriver to clear the textarea element.
     pub(crate) fn clear(&self) {
         self.value_dirty.set(false);
-        self.textinput.borrow_mut().set_content(DOMString::from(""));
+        self.textinput.borrow_mut().set_content(Default::default());
     }
 
     pub(crate) fn reset(&self) {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-form-reset-control
         let mut textinput = self.textinput.borrow_mut();
-        textinput.set_content(self.DefaultValue());
+        textinput.set_content(self.DefaultValue().str().into());
         self.value_dirty.set(false);
     }
 
@@ -508,7 +514,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                     if value < 0 {
                         textinput.set_max_length(None);
                     } else {
-                        textinput.set_max_length(Some(UTF16CodeUnits(value as usize)))
+                        textinput.set_max_length(Some(value as usize))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),
@@ -520,7 +526,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                     if value < 0 {
                         textinput.set_min_length(None);
                     } else {
-                        textinput.set_min_length(Some(UTF16CodeUnits(value as usize)))
+                        textinput.set_min_length(Some(value as usize))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),
@@ -776,7 +782,7 @@ impl Validatable for HTMLTextAreaElement {
         let mut failed_flags = ValidationFlags::empty();
 
         let textinput = self.textinput.borrow();
-        let UTF16CodeUnits(value_len) = textinput.utf16_len();
+        let value_len = textinput.utf16_len();
         let last_edit_by_user = !textinput.was_last_change_by_set_content();
         let value_dirty = self.value_dirty.get();
 

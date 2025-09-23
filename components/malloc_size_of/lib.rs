@@ -149,6 +149,12 @@ macro_rules! malloc_size_of_is_0(
     );
 );
 
+impl MallocSizeOf for utf16string::Utf16String {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        unsafe { ops.malloc_size_of(self.as_ptr()) }
+    }
+}
+
 impl MallocSizeOf for keyboard_types::Key {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         match &self {
