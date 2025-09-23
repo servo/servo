@@ -57,7 +57,7 @@ use layout_api::{
     BoxAreaType, ElementsFromPointFlags, ElementsFromPointResult, FragmentType, Layout,
     LayoutImageDestination, PendingImage, PendingImageState, PendingRasterizationImage, QueryMsg,
     ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, RestyleReason,
-    ScrollContainerQueryType, ScrollContainerResponse, TrustedNodeAddress,
+    ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
     combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
@@ -2629,12 +2629,12 @@ impl Window {
     pub(crate) fn scroll_container_query(
         &self,
         node: &Node,
-        query_type: ScrollContainerQueryType,
+        flags: ScrollContainerQueryFlags,
     ) -> Option<ScrollContainerResponse> {
         self.layout_reflow(QueryMsg::ScrollParentQuery);
         self.layout
             .borrow()
-            .query_scroll_container(node.to_trusted_node_address(), query_type)
+            .query_scroll_container(node.to_trusted_node_address(), flags)
     }
 
     pub(crate) fn text_index_query(

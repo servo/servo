@@ -1,0 +1,195 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS test: Calc expressions with numbers should still serialize as calc()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+    body {
+        margin: 0;
+    }
+    .scroller, #iframe {
+        position: fixed;
+        width: 200px;
+        height: 200px;
+        outline: solid;
+    }
+    .scroller {
+        overflow: scroll;
+    }
+</style>
+
+<!-- This is a DIV with `overflow: scroll` that is not focusable -->
+<div id="box" class="scroller" style="left: 100px; top: 100px;">
+    <div style="width: 600px; height: 600px; background: blue;">Lorem ipsum dolor sit amet,</div>
+</div>
+
+<!-- This is a DIV with `overflow: scroll` that is is focusable due to tabindex. -->
+<div id="focusableBox" class="scroller" tabindex="1" style="left: 300px; top: 100px;">
+    <div style="width: 600px; height: 600px; background: blue;">Lorem ipsum dolor sit amet,</div>
+</div>
+
+<!-- This is a DIV with `overflow: scroll` that should not be keyboard scrollable as its content is smaller than the DIV. -->
+<div id="boxWithSmallContent" class="scroller" tabindex="1" style="left: 100px; top: 300px;">
+    <div style="width: 100px; height: 100px; background: blue;">Lorem ipsum dolor sit amet,</div>
+</div>
+
+<!-- This is an IFRAME that should be scrollable via keyboard. -->
+<iframe id="iframe" style="left: 300px; top: 300px;" srcdoc='
+    <!doctype html><meta charset="utf-8">
+    <body style="margin: 0;">
+    <div style="width: 600px; height: 600px; background: blue;">Lorem ipsum dolor sit amet,</div>
+'></iframe>
+
+<!-- This is a DIV with `overflow: hidden` that should not be keyboard scrollable as its content is smaller than the DIV. -->
+<div id="boxWithOverflowHidden" class="scroller" style="overflow: hidden; left: 500px; top: 300px;">
+    <div style="width: 600px; height: 600px; background: blue;">Lorem ipsum dolor sit amet,</div>
+</div>
+
+<div style="width: 300vw; height: 300vh; background: green;">
+    Lorem ipsum dolor sit amet,
+</div>
+
+<script>
+const end = "\uE010";
+const home = "\uE011";
+const arrowDown = "\uE015";
+const arrowUp = "\uE013";
+const arrowRight = "\uE014";
+const arrowLeft = "\uE012";
+const pageDown = "\uE00F";
+const pageUp = "\uE00E";
+const lineSize = 76;
+const pageSize = scrollportHeight => scrollportHeight - 2 * lineSize;
+const pressKeyAndAssert = async (key, element, [expectedX, expectedY], description) => {
+    await test_driver.send_keys(document.body, key);
+    const actualX =
+        element == null ? scrollX
+        : element.nodeName == "IFRAME" ? element.contentWindow.scrollX
+        : element.scrollLeft;
+    const actualY =
+        element == null ? scrollY
+        : element.nodeName == "IFRAME" ? element.contentWindow.scrollY
+        : element.scrollTop;
+    assert_array_equals([actualX, actualY], [expectedX, expectedY], description);
+};
+
+promise_test(async () => {
+    await pressKeyAndAssert(end, null, [0, document.documentElement.scrollHeight - innerHeight], "End key scrolls viewport to bottom");
+    await pressKeyAndAssert(home, null, [0, 0], "Home key scrolls viewport to top");
+    await pressKeyAndAssert(arrowDown, null, [0, lineSize], "ArrowDown key scrolls viewport down by a line");
+    await pressKeyAndAssert(arrowDown, null, [0, lineSize * 2], "ArrowDown key scrolls viewport down by a line");
+    await pressKeyAndAssert(arrowUp, null, [0, lineSize], "ArrowUp key scrolls viewport up by a line");
+    await pressKeyAndAssert(arrowUp, null, [0, 0], "ArrowUp key scrolls viewport up by a line");
+    await pressKeyAndAssert(arrowRight, null, [lineSize, 0], "ArrowRight key scrolls viewport right by a line");
+    await pressKeyAndAssert(arrowRight, null, [lineSize * 2, 0], "ArrowRight key scrolls viewport right by a line");
+    await pressKeyAndAssert(arrowLeft, null, [lineSize, 0], "ArrowLeft key scrolls viewport left by a line");
+    await pressKeyAndAssert(arrowLeft, null, [0, 0], "ArrowLeft key scrolls viewport left by a line");
+    await pressKeyAndAssert(pageDown, null, [0, pageSize(innerHeight)], "PageDown key scrolls viewport down by almost a screenful");
+    await pressKeyAndAssert(pageDown, null, [0, pageSize(innerHeight) * 2], "PageDown key scrolls viewport down by almost a screenful");
+    await pressKeyAndAssert(pageUp, null, [0, pageSize(innerHeight)], "PageUp key scrolls viewport up by almost a screenful");
+    await pressKeyAndAssert(pageUp, null, [0, 0], "PageUp key scrolls viewport up by almost a screenful");
+}, "Keyboard scrolling works in the viewport");
+
+promise_test(async () => {
+    await test_driver.click(box);
+
+    await pressKeyAndAssert(end, box, [0, box.scrollHeight - box.clientHeight], "End key scrolls #box to bottom");
+    await pressKeyAndAssert(home, box, [0, 0], "Home key scrolls #box to top");
+    await pressKeyAndAssert(arrowDown, box, [0, lineSize], "ArrowDown key scrolls #box down by a line");
+    await pressKeyAndAssert(arrowDown, box, [0, lineSize * 2], "ArrowDown key scrolls #box down by a line");
+    await pressKeyAndAssert(arrowUp, box, [0, lineSize], "ArrowUp key scrolls #box up by a line");
+    await pressKeyAndAssert(arrowUp, box, [0, 0], "ArrowUp key scrolls #box up by a line");
+    await pressKeyAndAssert(arrowRight, box, [lineSize, 0], "ArrowRight key scrolls #box right by a line");
+    await pressKeyAndAssert(arrowRight, box, [lineSize * 2, 0], "ArrowRight key scrolls #box right by a line");
+    await pressKeyAndAssert(arrowLeft, box, [lineSize, 0], "ArrowLeft key scrolls #box left by a line");
+    await pressKeyAndAssert(arrowLeft, box, [0, 0], "ArrowLeft key scrolls #box left by a line");
+    await pressKeyAndAssert(pageDown, box, [0, pageSize(box.clientHeight)], "PageDown key scrolls #box down by almost a screenful");
+    await pressKeyAndAssert(pageDown, box, [0, pageSize(box.clientHeight) * 2], "PageDown key scrolls #box down by almost a screenful");
+    await pressKeyAndAssert(pageUp, box, [0, pageSize(box.clientHeight)], "PageUp key scrolls #box up by almost a screenful");
+    await pressKeyAndAssert(pageUp, box, [0, 0], "PageUp key scrolls #box up by almost a screenful");
+
+    // At the bottom of the DIV, we should not chain up to scrolling the document.
+    let bottom = box.scrollHeight - box.clientHeight;
+    await pressKeyAndAssert(end, box, [0, bottom], "End key scrolls #box to bottom");
+    await pressKeyAndAssert(arrowDown, box, [0, bottom], "ArrowDown should not move the box past the max Y position");
+    await pressKeyAndAssert(arrowDown, box, [0, bottom], "ArrowDown should not move the box past the max Y position");
+    await pressKeyAndAssert(arrowDown, box, [0, bottom], "ArrowDown should not move the box past the max Y position");
+    assert_array_equals([scrollX, scrollY], [0, 0], "Keyboard scroll on a div should not chain to body");
+    await pressKeyAndAssert(home, box, [0, 0], "Home key scrolls #box to top");
+}, "Keyboard scrolling works in #box");
+
+promise_test(async () => {
+    focusableBox.focus();
+    await pressKeyAndAssert(end, focusableBox, [0, box.scrollHeight - box.clientHeight], "End key scrolls #focusableBox to bottom");
+    await pressKeyAndAssert(home, focusableBox, [0, 0], "Home key scrolls #focusableBox to top");
+    await pressKeyAndAssert(arrowDown, focusableBox, [0, lineSize], "ArrowDown key scrolls #focusableBox down by a line");
+    await pressKeyAndAssert(arrowDown, focusableBox, [0, lineSize * 2], "ArrowDown key scrolls #focusableBox down by a line");
+    await pressKeyAndAssert(arrowUp, focusableBox, [0, lineSize], "ArrowUp key scrolls #focusableBox up by a line");
+    await pressKeyAndAssert(arrowUp, focusableBox, [0, 0], "ArrowUp key scrolls #focusableBox up by a line");
+    await pressKeyAndAssert(arrowRight, focusableBox, [lineSize, 0], "ArrowRight key scrolls #focusableBox right by a line");
+    await pressKeyAndAssert(arrowRight, focusableBox, [lineSize * 2, 0], "ArrowRight key scrolls #focusableBox right by a line");
+    await pressKeyAndAssert(arrowLeft, focusableBox, [lineSize, 0], "ArrowLeft key scrolls #focusableBox left by a line");
+    await pressKeyAndAssert(arrowLeft, focusableBox, [0, 0], "ArrowLeft key scrolls #focusableBox left by a line");
+    await pressKeyAndAssert(pageDown, focusableBox, [0, pageSize(box.clientHeight)], "PageDown key scrolls #focusableBox down by almost a screenful");
+    await pressKeyAndAssert(pageDown, focusableBox, [0, pageSize(box.clientHeight) * 2], "PageDown key scrolls #focusableBox down by almost a screenful");
+    await pressKeyAndAssert(pageUp, focusableBox, [0, pageSize(box.clientHeight)], "PageUp key scrolls #focusableBox up by almost a screenful");
+    await pressKeyAndAssert(pageUp, focusableBox, [0, 0], "PageUp key scrolls #focusableBox up by almost a screenful");
+    focusableBox.blur();
+}, "Keyboard scrolling works in #focusableBox");
+
+promise_test(async () => {
+    await test_driver.click(boxWithSmallContent);
+
+    await pressKeyAndAssert(arrowDown, boxWithSmallContent, [0, 0], "Arrow down key should not scroll #boxWithSmallContent");
+    assert_array_equals([scrollX, scrollY], [0, lineSize], "The body should scroll instead of boxWithSmallContent");
+    await pressKeyAndAssert(arrowDown, boxWithSmallContent, [0, 0], "Arrow down key should not scroll #boxWithSmallContent");
+    assert_array_equals([scrollX, scrollY], [0, lineSize * 2], "The body should scroll instead of boxWithSmallContent");
+
+    await pressKeyAndAssert(arrowUp, boxWithSmallContent, [0, 0], "Arrow up key should not scroll #boxWithSmallContent");
+    assert_array_equals([scrollX, scrollY], [0, lineSize], "The body should scroll instead of boxWithSmallContent");
+    await pressKeyAndAssert(arrowUp, boxWithSmallContent, [0, 0], "Arrow up key should not scroll #boxWithSmallContent");
+    assert_array_equals([scrollX, scrollY], [0, 0], "The body should scroll instead of boxWithSmallContent");
+
+    await pressKeyAndAssert(home, null, [0, 0], "Home key scrolls viewport to top");
+}, "Keyboard scrolling chains past inactive overflow:scroll DIVs");
+
+promise_test(async () => {
+    await test_driver.click(iframe);
+
+    await pressKeyAndAssert(end, iframe, [0, iframe.contentDocument.documentElement.scrollHeight - iframe.contentWindow.innerHeight], "End key scrolls #iframe to bottom");
+    await pressKeyAndAssert(home, iframe, [0, 0], "Home key scrolls #iframe to top");
+    await pressKeyAndAssert(arrowDown, iframe, [0, lineSize], "ArrowDown key scrolls #iframe down by a line");
+    await pressKeyAndAssert(arrowDown, iframe, [0, lineSize * 2], "ArrowDown key scrolls #iframe down by a line");
+    await pressKeyAndAssert(arrowUp, iframe, [0, lineSize], "ArrowUp key scrolls #iframe up by a line");
+    await pressKeyAndAssert(arrowUp, iframe, [0, 0], "ArrowUp key scrolls #iframe up by a line");
+    await pressKeyAndAssert(arrowRight, iframe, [lineSize, 0], "ArrowRight key scrolls #iframe right by a line");
+    await pressKeyAndAssert(arrowRight, iframe, [lineSize * 2, 0], "ArrowRight key scrolls #iframe right by a line");
+    await pressKeyAndAssert(arrowLeft, iframe, [lineSize, 0], "ArrowLeft key scrolls #iframe left by a line");
+    await pressKeyAndAssert(arrowLeft, iframe, [0, 0], "ArrowLeft key scrolls #iframe left by a line");
+    await pressKeyAndAssert(pageDown, iframe, [0, pageSize(iframe.contentWindow.innerHeight)], "PageDown key scrolls #iframe down by almost a screenful");
+    await pressKeyAndAssert(pageDown, iframe, [0, pageSize(iframe.contentWindow.innerHeight) * 2], "PageDown key scrolls #iframe down by almost a screenful");
+    await pressKeyAndAssert(pageUp, iframe, [0, pageSize(iframe.contentWindow.innerHeight)], "PageUp key scrolls #iframe up by almost a screenful");
+    await pressKeyAndAssert(pageUp, iframe, [0, 0], "PageUp key scrolls #iframe up by almost a screenful");
+
+    // TODO: test that scrolls chain up from iframe when they fail.
+}, "Keyboard scrolling works in #iframe");
+
+promise_test(async () => {
+    await test_driver.click(boxWithOverflowHidden);
+
+    await pressKeyAndAssert(arrowDown, boxWithOverflowHidden, [0, 0], "Arrow down key should not scroll #boxWithOverflowHidden");
+    assert_array_equals([scrollX, scrollY], [0, lineSize], "The body should scroll instead of boxWithOverflowHidden");
+    await pressKeyAndAssert(arrowDown, boxWithOverflowHidden, [0, 0], "Arrow down key should not scroll #boxWithOverflowHidden");
+    assert_array_equals([scrollX, scrollY], [0, lineSize * 2], "The body should scroll instead of boxWithOverflowHidden");
+
+    await pressKeyAndAssert(arrowUp, boxWithOverflowHidden, [0, 0], "Arrow up key should not scroll #boxWithOverflowHidden");
+    assert_array_equals([scrollX, scrollY], [0, lineSize], "The body should scroll instead of boxWithOverflowHidden");
+    await pressKeyAndAssert(arrowUp, boxWithOverflowHidden, [0, 0], "Arrow up key should not scroll #boxWithOverflowHidden");
+    assert_array_equals([scrollX, scrollY], [0, 0], "The body should scroll instead of boxWithOverflowHidden");
+
+    await pressKeyAndAssert(home, null, [0, 0], "Home key scrolls viewport to top");
+}, "Keyboard scrolling chains past overflow:hidden DIVs");
+</script>

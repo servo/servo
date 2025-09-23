@@ -428,6 +428,7 @@ pub(crate) mod resizeobserverentry;
 pub(crate) mod resizeobserversize;
 pub(crate) mod response;
 pub(crate) mod screen;
+mod scrolling_box;
 pub(crate) mod securitypolicyviolationevent;
 pub(crate) mod selection;
 #[allow(dead_code)]

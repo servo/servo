@@ -17,6 +17,7 @@ use super::app_state::RunningAppState;
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
 pub(crate) const LINE_HEIGHT: f32 = 76.0;
 pub(crate) const LINE_WIDTH: f32 = 76.0;
+
 // MouseScrollDelta::PixelDelta is default for MacOS, which is high precision and very slow
 // in winit. Therefore we use a factor of 4.0 to make it more usable.
 // See https://github.com/servo/servo/pull/34063#discussion_r2197729507
@@ -31,7 +32,6 @@ pub trait WindowPortsMethods {
     fn screen_geometry(&self) -> ScreenGeometry;
     fn device_hidpi_scale_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel>;
     fn hidpi_scale_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel>;
-    fn page_height(&self) -> f32;
     fn get_fullscreen(&self) -> bool;
     fn handle_winit_event(&self, state: Rc<RunningAppState>, event: winit::event::WindowEvent);
     fn set_title(&self, _title: &str) {}

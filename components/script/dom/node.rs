@@ -121,6 +121,7 @@ use crate::dom::shadowroot::{IsUserAgentWidget, LayoutShadowRootHelpers, ShadowR
 use crate::dom::stylesheetlist::StyleSheetListOwner;
 use crate::dom::svgsvgelement::{LayoutSVGSVGElementHelpers, SVGSVGElement};
 use crate::dom::text::Text;
+use crate::dom::types::KeyboardEvent;
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -4082,6 +4083,14 @@ impl VirtualMethods for Node {
         // drain any ranges.
         if !self.is_in_a_shadow_tree() && !self.ranges_is_empty() {
             self.ranges().drain_to_parent(context, self);
+        }
+    }
+
+    fn handle_event(&self, event: &Event, _: CanGc) {
+        if let Some(event) = event.downcast::<KeyboardEvent>() {
+            self.owner_document()
+                .event_handler()
+                .run_default_keyboard_event_handler(event);
         }
     }
 }

@@ -174,6 +174,7 @@ use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::promise::Promise;
 use crate::dom::range::Range;
 use crate::dom::resizeobserver::{ResizeObservationDepth, ResizeObserver};
+use crate::dom::scrolling_box::{ScrollingBox, ScrollingBoxSource};
 use crate::dom::selection::Selection;
 use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::ShadowRoot;
@@ -4446,6 +4447,10 @@ impl Document {
 
     pub(crate) fn set_active_sandboxing_flag_set(&self, flags: SandboxingFlagSet) {
         self.active_sandboxing_flag_set.set(flags)
+    }
+
+    pub(crate) fn viewport_scrolling_box(&self) -> ScrollingBox {
+        ScrollingBox::new(ScrollingBoxSource::Viewport(DomRoot::from_ref(self)))
     }
 }
 

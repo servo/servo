@@ -29,7 +29,7 @@ use layout_api::{
     BoxAreaType, IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutFactory,
     OffsetParentResponse, PropertyRegistration, QueryMsg, ReflowGoal, ReflowPhasesRun,
     ReflowRequest, ReflowRequestRestyle, ReflowResult, RegisterPropertyError,
-    ScrollContainerQueryType, ScrollContainerResponse, TrustedNodeAddress,
+    ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
 };
 use log::{debug, error, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
@@ -334,10 +334,10 @@ impl Layout for LayoutThread {
     fn query_scroll_container(
         &self,
         node: TrustedNodeAddress,
-        query_type: ScrollContainerQueryType,
+        flags: ScrollContainerQueryFlags,
     ) -> Option<ScrollContainerResponse> {
         let node = unsafe { ServoLayoutNode::new(&node) };
-        process_scroll_container_query(node, query_type)
+        process_scroll_container_query(node, flags)
     }
 
     #[servo_tracing::instrument(skip_all)]
