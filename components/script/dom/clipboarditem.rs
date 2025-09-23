@@ -270,7 +270,7 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
         let p = Promise::new(&global, can_gc);
 
         // Step 8 For each representation in itemTypeList
-        item_type_list.iter().for_each(|representation| {
+        for representation in item_type_list.iter() {
             // Step 8.1 If representation’s MIME type is mimeType and representation’s isCustom is isCustom, then:
             if representation.mime_type == mime_type && representation.is_custom == is_custom {
                 // Step 8.1.1 Let representationDataPromise be the representation’s data.
@@ -292,8 +292,11 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
                 let realm = enter_realm(&*global);
                 let comp = InRealm::Entered(&realm);
                 representation_data_promise.append_native_handler(&handler, comp, can_gc);
+
+                // Step 8.1.3 Return p.
+                return Ok(p);
             }
-        });
+        }
 
         // Step 9 Reject p with "NotFoundError" DOMException in realm.
         p.reject_error(Error::NotFound, can_gc);
