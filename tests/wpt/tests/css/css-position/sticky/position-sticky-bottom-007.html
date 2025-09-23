@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS Position Test: sticky element with bottom offset</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-position/#stickypos-insets">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="
+  When the scroll container is scrolled to the top, then #sticky is visible.
+  If we scroll 100px down, then #sticky should update its sticky offsets
+  to still be visible.
+">
+
+<style>
+#scroll-container {
+  overflow: hidden;
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+#sticky {
+  position: sticky;
+  bottom: 0;
+  height: 100px;
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="scroll-container">
+  <div style="height: 500px"></div>
+  <div id="sticky"></div>
+</div>
+
+<script>
+scroller.scrollTop = 100;
+</script>

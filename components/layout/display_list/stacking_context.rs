@@ -1558,12 +1558,12 @@ impl BoxFragment {
         // This is the minimum negative offset and then the maximum positive offset. We just
         // specify every edge, but if the corresponding margin is None, that offset has no effect.
         let vertical_offset_bounds = wr::StickyOffsetBounds::new(
-            containing_block_rect.min.y - frame_rect.min.y,
-            containing_block_rect.max.y - frame_rect.max.y,
+            (containing_block_rect.min.y - frame_rect.min.y).min(0.),
+            (containing_block_rect.max.y - frame_rect.max.y).max(0.),
         );
         let horizontal_offset_bounds = wr::StickyOffsetBounds::new(
-            containing_block_rect.min.x - frame_rect.min.x,
-            containing_block_rect.max.x - frame_rect.max.x,
+            (containing_block_rect.min.x - frame_rect.min.x).min(0.),
+            (containing_block_rect.max.x - frame_rect.max.x).max(0.),
         );
 
         let margins = SideOffsets2D::new(
