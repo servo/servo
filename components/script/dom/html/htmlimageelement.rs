@@ -1670,6 +1670,12 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-src
     make_url_setter!(SetSrcset, "srcset");
 
+    // <https://html.spec.whatwg.org/multipage/#dom-img-sizes>
+    make_getter!(Sizes, "sizes");
+
+    // <https://html.spec.whatwg.org/multipage/#dom-img-sizes>
+    make_setter!(SetSizes, "sizes");
+
     // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
     fn GetCrossOrigin(&self) -> Option<DOMString> {
         reflect_cross_origin_attribute(self.upcast::<Element>())
