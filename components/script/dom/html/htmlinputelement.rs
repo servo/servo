@@ -9,6 +9,7 @@ use std::ops::Range;
 use std::path::PathBuf;
 use std::ptr::NonNull;
 use std::str::FromStr;
+use std::sync::LazyLock;
 use std::{f64, ptr};
 
 use base::generic_channel;
@@ -30,6 +31,7 @@ use js::rust::{HandleObject, MutableHandleObject};
 use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadMsg};
 use net_traits::{CoreResourceMsg, IpcSend};
+use regex::Regex;
 use script_bindings::codegen::GenericBindings::CharacterDataBinding::CharacterDataMethods;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::lazydomstring::{EncodedBytes, LazyDOMString, StringTrait};
@@ -214,6 +216,17 @@ fn create_ua_widget_div_with_text_node(
             .unwrap();
     }
     el
+}
+
+fn is_valid_email_address_string(string: &str) -> bool {
+    static RE: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(concat!(
+            r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?",
+            r"(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
+        ))
+        .unwrap()
+    });
+    RE.is_match(string)
 }
 
 /// <https://html.spec.whatwg.org/multipage/#attr-input-type>
@@ -1038,11 +1051,10 @@ impl HTMLInputElement {
             InputType::Email => {
                 if self.Multiple() {
                     !value
-                        .bytes()
-                        .split_commas()
-                        .all(|string| string.is_valid_email_address_string())
+                        .split(',')
+                        .all(|string| is_valid_email_address_string(string))
                 } else {
-                    !value.bytes().is_valid_email_address_string()
+                    !is_valid_email_address_string(value.rust_str())
                 }
             },
             // Other input types don't suffer from type mismatch
@@ -1067,11 +1079,10 @@ impl HTMLInputElement {
         if compile_pattern(cx, &pattern_str, pattern.handle_mut()) {
             if self.Multiple() && self.does_multiple_apply() {
                 !value
-                    .bytes()
-                    .split_commas()
+                    .split(',')
                     .all(|s| matches_js_regex(cx, pattern.handle(), s).unwrap_or(true))
             } else {
-                !matches_js_regex(cx, pattern.handle(), value.bytes()).unwrap_or(true)
+                !matches_js_regex(cx, pattern.handle(), value.rust_str()).unwrap_or(true)
             }
         } else {
             // Element doesn't suffer from pattern mismatch if pattern is invalid.
@@ -3720,9 +3731,9 @@ pub(crate) fn new_js_regex(
 fn matches_js_regex<'a>(
     cx: SafeJSContext,
     regex_obj: HandleObject,
-    value: EncodedBytes<'a>,
+    value: &str,
 ) -> Result<bool, ()> {
-    let mut value: Vec<u16> = value.encode_utf16();
+    let mut value: Vec<u16> = value.encode_utf16().collect();
 
     unsafe {
         let mut is_regex = false;

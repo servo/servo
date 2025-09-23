@@ -2,10 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::LazyLock;
-
 use num_traits::Zero;
-use regex::Regex;
 use script_bindings::lazydomstring::StringTrait;
 pub use script_bindings::str::*;
 use time::{Date, Month, OffsetDateTime, Time, Weekday};
@@ -295,9 +292,6 @@ where
 
     /// <https://html.spec.whatwg.org/multipage/#valid-simple-colour>
     fn is_valid_simple_color_string(self) -> bool;
-
-    /// <https://html.spec.whatwg.org/multipage/#valid-e-mail-address>
-    fn is_valid_email_address_string(self) -> bool;
 }
 
 impl<'a, 'b, T> FromInputValueString for T
@@ -497,18 +491,5 @@ where
         } else {
             false
         }
-    }
-
-    fn is_valid_email_address_string(self) -> bool {
-        static RE: LazyLock<Regex> = LazyLock::new(|| {
-            Regex::new(concat!(
-                r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?",
-                r"(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
-            ))
-            .unwrap()
-        });
-        // This should be safe to use unchecked but better safe than sorry.
-        let s = String::from_utf8(self.chars().map(|c| c as u8).collect::<Vec<u8>>()).unwrap();
-        RE.is_match(&s)
     }
 }

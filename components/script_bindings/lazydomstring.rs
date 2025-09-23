@@ -1,7 +1,10 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use std::borrow::ToOwned;
 use std::cell::OnceCell;
 use std::default::Default;
-use std::ffi::CString;
 use std::ops::Deref;
 use std::ptr::{self, NonNull};
 use std::str::{EncodeUtf16, FromStr};
@@ -36,17 +39,6 @@ pub enum EncodedBytes<'a> {
 }
 
 impl<'a> EncodedBytes<'a> {
-    pub fn encode_utf16(self) -> Vec<u16> {
-        match self {
-            EncodedBytes::Latin1Bytes(s) => {
-                String::from_iter(s.iter().map(|c| latin1_u8_to_char(*c)))
-                    .encode_utf16()
-                    .collect()
-            },
-            EncodedBytes::Utf8Bytes(s) => s.encode_utf16().collect(),
-        }
-    }
-
     pub fn split_commas(self) -> Box<dyn Iterator<Item = EncodedBytes<'a>> + 'a> {
         match self {
             EncodedBytes::Latin1Bytes(s) => Box::new(
@@ -347,7 +339,7 @@ impl LazyDOMString {
         LazyDOMString::from_string(new_string.replace(needle, replace_char))
     }
 
-    pub fn split(&mut self, c: char) -> impl Iterator<Item = &str> {
+    pub fn split(&self, c: char) -> impl Iterator<Item = &str> {
         self.make_me_string();
         self.rust_string.get().unwrap().split(c)
     }
