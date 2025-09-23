@@ -586,20 +586,15 @@ impl VirtualMethods for ShadowRoot {
 
         shadow_root.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
 
+        let context = BindContext::new(shadow_root);
+
         // avoid iterate over the shadow root itself
         for node in shadow_root.traverse_preorder(ShadowIncluding::Yes).skip(1) {
             node.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
 
             // Out-of-document elements never have the descendants flag set
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
-            vtable_for(&node).bind_to_tree(
-                &BindContext {
-                    tree_connected: context.tree_connected,
-                    tree_is_in_a_document_tree: false,
-                    tree_is_in_a_shadow_tree: true,
-                },
-                can_gc,
-            );
+            vtable_for(&node).bind_to_tree(&context, can_gc);
         }
     }
 

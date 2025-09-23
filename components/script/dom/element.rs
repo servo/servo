@@ -738,11 +738,7 @@ impl Element {
             .upcast::<Node>()
             .set_containing_shadow_root(Some(&shadow_root));
 
-        let bind_context = BindContext {
-            tree_connected: self.upcast::<Node>().is_connected(),
-            tree_is_in_a_document_tree: self.upcast::<Node>().is_in_a_document_tree(),
-            tree_is_in_a_shadow_tree: true,
-        };
+        let bind_context = BindContext::new(&self.node);
         shadow_root.bind_to_tree(&bind_context, can_gc);
 
         let node = self.upcast::<Node>();

@@ -1926,6 +1926,7 @@ impl VirtualMethods for HTMLImageElement {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#the-img-element:html-element-insertion-steps>
     fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
             s.bind_to_tree(context, can_gc);
@@ -1935,23 +1936,24 @@ impl VirtualMethods for HTMLImageElement {
             document.register_responsive_image(self);
         }
 
-        // The element is inserted into a picture parent element
-        // https://html.spec.whatwg.org/multipage/#relevant-mutations
-        if let Some(parent) = self.upcast::<Node>().GetParentElement() {
-            if parent.is::<HTMLPictureElement>() {
-                self.update_the_image_data(can_gc);
-            }
+        let parent = self.upcast::<Node>().GetParentNode().unwrap();
+
+        // Step 1. If insertedNode's parent is a picture element, then, count this as a relevant
+        // mutation for insertedNode.
+        if parent.is::<HTMLPictureElement>() && std::ptr::eq(&*parent, context.parent) {
+            self.update_the_image_data(can_gc);
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#the-img-element:html-element-removing-steps>
     fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
         self.super_type().unwrap().unbind_from_tree(context, can_gc);
         let document = self.owner_document();
         document.unregister_responsive_image(self);
 
-        // The element is removed from a picture parent element
-        // https://html.spec.whatwg.org/multipage/#relevant-mutations
-        if context.parent.is::<HTMLPictureElement>() {
+        // Step 1. If oldParent is a picture element, then, count this as a relevant mutation for
+        // removedNode.
+        if context.parent.is::<HTMLPictureElement>() && !self.upcast::<Node>().has_parent() {
             self.update_the_image_data(can_gc);
         }
     }
