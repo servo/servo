@@ -300,6 +300,8 @@ impl Node {
         let parent_is_connected = self.is_connected();
         let parent_is_in_ua_widget = self.is_in_ua_widget();
 
+        let context = BindContext::new(self);
+
         for node in new_child.traverse_preorder(ShadowIncluding::No) {
             if parent_in_shadow_tree {
                 if let Some(shadow_root) = self.containing_shadow_root() {
@@ -317,14 +319,7 @@ impl Node {
 
             // Out-of-document elements never have the descendants flag set.
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
-            vtable_for(&node).bind_to_tree(
-                &BindContext {
-                    tree_connected: parent_is_connected,
-                    tree_is_in_a_document_tree: parent_is_in_a_document_tree,
-                    tree_is_in_a_shadow_tree: parent_in_shadow_tree,
-                },
-                can_gc,
-            );
+            vtable_for(&node).bind_to_tree(&context, can_gc);
         }
     }
 
@@ -4259,7 +4254,10 @@ impl<'a> ChildrenMutation<'a> {
 }
 
 /// The context of the binding to tree of a node.
-pub(crate) struct BindContext {
+pub(crate) struct BindContext<'a> {
+    /// The parent of the inclusive ancestor that was inserted.
+    pub(crate) parent: &'a Node,
+
     /// Whether the tree is connected.
     ///
     /// <https://dom.spec.whatwg.org/#connected>
@@ -4274,7 +4272,17 @@ pub(crate) struct BindContext {
     pub(crate) tree_is_in_a_shadow_tree: bool,
 }
 
-impl BindContext {
+impl<'a> BindContext<'a> {
+    /// Create a new `BindContext` value.
+    pub(crate) fn new(parent: &'a Node) -> Self {
+        BindContext {
+            parent,
+            tree_connected: parent.is_connected(),
+            tree_is_in_a_document_tree: parent.is_in_a_document_tree(),
+            tree_is_in_a_shadow_tree: parent.is_in_a_shadow_tree(),
+        }
+    }
+
     /// Return true iff the tree is inside either a document- or a shadow tree.
     pub(crate) fn is_in_tree(&self) -> bool {
         self.tree_is_in_a_document_tree || self.tree_is_in_a_shadow_tree

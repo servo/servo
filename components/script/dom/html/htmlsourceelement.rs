@@ -17,6 +17,7 @@ use crate::dom::element::AttributeMutation;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::html::htmlmediaelement::HTMLMediaElement;
+use crate::dom::html::htmlpictureelement::HTMLPictureElement;
 use crate::dom::node::{BindContext, Node, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
@@ -81,38 +82,58 @@ impl VirtualMethods for HTMLSourceElement {
             &local_name!("sizes") |
             &local_name!("media") |
             &local_name!("type") => {
-                let next_sibling_iterator = self.upcast::<Node>().following_siblings();
-                HTMLSourceElement::iterate_next_html_image_element_siblings(
-                    next_sibling_iterator,
-                    CanGc::note(),
-                );
+                if let Some(parent) = self.upcast::<Node>().GetParentElement() {
+                    if parent.is::<HTMLPictureElement>() {
+                        let next_sibling_iterator = self.upcast::<Node>().following_siblings();
+                        HTMLSourceElement::iterate_next_html_image_element_siblings(
+                            next_sibling_iterator,
+                            can_gc,
+                        );
+                    }
+                }
             },
             _ => {},
         }
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#the-source-element:nodes-are-inserted>
+    /// <https://html.spec.whatwg.org/multipage/#the-source-element:html-element-insertion-steps>
     fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         self.super_type().unwrap().bind_to_tree(context, can_gc);
-        let parent = self.upcast::<Node>().GetParentNode().unwrap();
-        if let Some(media) = parent.downcast::<HTMLMediaElement>() {
-            media.handle_source_child_insertion(CanGc::note());
-        }
-        let next_sibling_iterator = self.upcast::<Node>().following_siblings();
-        HTMLSourceElement::iterate_next_html_image_element_siblings(
-            next_sibling_iterator,
-            CanGc::note(),
-        );
-    }
 
-    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
-        self.super_type().unwrap().unbind_from_tree(context, can_gc);
-        if let Some(next_sibling) = context.next_sibling {
-            let next_sibling_iterator = next_sibling.inclusively_following_siblings();
+        // Step 1. Let parent be insertedNode's parent.
+        let parent = self.upcast::<Node>().GetParentNode().unwrap();
+
+        // Step 2. If parent is a media element that has no src attribute and whose networkState has
+        // the value NETWORK_EMPTY, then invoke that media element's resource selection algorithm.
+        if let Some(media) = parent.downcast::<HTMLMediaElement>() {
+            media.handle_source_child_insertion(can_gc);
+        }
+
+        // Step 3. If parent is a picture element, then for each child of parent's children, if
+        // child is an img element, then count this as a relevant mutation for child.
+        if parent.is::<HTMLPictureElement>() && std::ptr::eq(&*parent, context.parent) {
+            let next_sibling_iterator = self.upcast::<Node>().following_siblings();
             HTMLSourceElement::iterate_next_html_image_element_siblings(
                 next_sibling_iterator,
-                CanGc::note(),
+                can_gc,
             );
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#the-source-element:html-element-removing-steps>
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        self.super_type().unwrap().unbind_from_tree(context, can_gc);
+
+        // Step 1. If oldParent is a picture element, then for each child of oldParent's children,
+        // if child is an img element, then count this as a relevant mutation for child.
+        if context.parent.is::<HTMLPictureElement>() && !self.upcast::<Node>().has_parent() {
+            if let Some(next_sibling) = context.next_sibling {
+                let next_sibling_iterator = next_sibling.inclusively_following_siblings();
+                HTMLSourceElement::iterate_next_html_image_element_siblings(
+                    next_sibling_iterator,
+                    can_gc,
+                );
+            }
         }
     }
 }
