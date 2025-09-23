@@ -29,24 +29,14 @@ use crate::xpath::context::PredicateCtx;
 #[derive(Clone, Debug)]
 pub(crate) enum Error {
     NotANodeset,
-    InvalidPath,
-    UnknownFunction {
-        name: QualName,
-    },
     /// It is not clear where variables used in XPath expression should come from.
     /// Firefox throws "NS_ERROR_ILLEGAL_VALUE" when using them, chrome seems to return
     /// an empty result. We also error out.
     ///
     /// See <https://github.com/whatwg/dom/issues/67>
     CannotUseVariables,
-    UnknownNamespace {
-        prefix: String,
-    },
     InvalidQName {
         qname: ParserQualName,
-    },
-    FunctionEvaluation {
-        fname: String,
     },
     Internal {
         msg: String,
@@ -59,17 +49,9 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Error::NotANodeset => write!(f, "expression did not evaluate to a nodeset"),
-            Error::InvalidPath => write!(f, "invalid path expression"),
-            Error::UnknownFunction { name } => write!(f, "unknown function {:?}", name),
             Error::CannotUseVariables => write!(f, "cannot use variables"),
-            Error::UnknownNamespace { prefix } => {
-                write!(f, "unknown namespace prefix {:?}", prefix)
-            },
             Error::InvalidQName { qname } => {
                 write!(f, "invalid QName {:?}", qname)
-            },
-            Error::FunctionEvaluation { fname } => {
-                write!(f, "error while evaluating function: {}", fname)
             },
             Error::Internal { msg } => {
                 write!(f, "internal error: {}", msg)
@@ -92,8 +74,6 @@ pub(crate) fn try_extract_nodeset(v: Value) -> Result<Vec<DomRoot<Node>>, Error>
 
 pub(crate) trait Evaluatable: fmt::Debug {
     fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error>;
-    /// Returns true if this expression evaluates to a primitive value, without needing to touch the DOM
-    fn is_primitive(&self) -> bool;
 }
 
 impl<T: ?Sized> Evaluatable for Box<T>
@@ -102,10 +82,6 @@ where
 {
     fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error> {
         (**self).evaluate(context)
-    }
-
-    fn is_primitive(&self) -> bool {
-        (**self).is_primitive()
     }
 }
 
@@ -118,10 +94,6 @@ where
             Some(expr) => expr.evaluate(context),
             None => Ok(Value::Nodeset(vec![])),
         }
-    }
-
-    fn is_primitive(&self) -> bool {
-        self.as_ref().is_some_and(|t| T::is_primitive(t))
     }
 }
 
@@ -201,20 +173,6 @@ impl Evaluatable for Expr {
             Expr::Path(path_expr) => path_expr.evaluate(context),
         }
     }
-
-    fn is_primitive(&self) -> bool {
-        match self {
-            Expr::Or(left, right) => left.is_primitive() && right.is_primitive(),
-            Expr::And(left, right) => left.is_primitive() && right.is_primitive(),
-            Expr::Equality(left, _, right) => left.is_primitive() && right.is_primitive(),
-            Expr::Relational(left, _, right) => left.is_primitive() && right.is_primitive(),
-            Expr::Additive(left, _, right) => left.is_primitive() && right.is_primitive(),
-            Expr::Multiplicative(left, _, right) => left.is_primitive() && right.is_primitive(),
-            Expr::Unary(_, expr) => expr.is_primitive(),
-            Expr::Union(_, _) => false,
-            Expr::Path(path_expr) => path_expr.is_primitive(),
-        }
-    }
 }
 
 impl Evaluatable for PathExpr {
@@ -267,13 +225,6 @@ impl Evaluatable for PathExpr {
         trace!("[PathExpr] Got nodes: {:?}", current_nodes);
 
         Ok(Value::Nodeset(current_nodes))
-    }
-
-    fn is_primitive(&self) -> bool {
-        !self.is_absolute &&
-            !self.is_descendant &&
-            self.steps.len() == 1 &&
-            self.steps[0].is_primitive()
     }
 }
 
@@ -612,13 +563,6 @@ impl Evaluatable for StepExpr {
             },
         }
     }
-
-    fn is_primitive(&self) -> bool {
-        match self {
-            StepExpr::Filter(filter_expr) => filter_expr.is_primitive(),
-            StepExpr::Axis(_) => false,
-        }
-    }
 }
 
 impl Evaluatable for PredicateListExpr {
@@ -668,10 +612,6 @@ impl Evaluatable for PredicateListExpr {
             })
         }
     }
-
-    fn is_primitive(&self) -> bool {
-        self.predicates.len() == 1 && self.predicates[0].is_primitive()
-    }
 }
 
 impl Evaluatable for PredicateExpr {
@@ -704,10 +644,6 @@ impl Evaluatable for PredicateExpr {
 
         Ok(Value::Nodeset(narrowed_nodes?))
     }
-
-    fn is_primitive(&self) -> bool {
-        self.expr.is_primitive()
-    }
 }
 
 impl Evaluatable for FilterExpr {
@@ -738,10 +674,6 @@ impl Evaluatable for FilterExpr {
             (true, _) => Err(Error::NotANodeset),
         }
     }
-
-    fn is_primitive(&self) -> bool {
-        self.predicates.predicates.is_empty() && self.primary.is_primitive()
-    }
 }
 
 impl Evaluatable for PrimaryExpr {
@@ -752,16 +684,6 @@ impl Evaluatable for PrimaryExpr {
             PrimaryExpr::Parenthesized(expr) => expr.evaluate(context),
             PrimaryExpr::ContextItem => Ok(Value::Nodeset(vec![context.context_node.clone()])),
             PrimaryExpr::Function(core_function) => core_function.evaluate(context),
-        }
-    }
-
-    fn is_primitive(&self) -> bool {
-        match self {
-            PrimaryExpr::Literal(_) => true,
-            PrimaryExpr::Variable(_qname) => false,
-            PrimaryExpr::Parenthesized(expr) => expr.is_primitive(),
-            PrimaryExpr::ContextItem => false,
-            PrimaryExpr::Function(_) => false,
         }
     }
 }
@@ -776,9 +698,5 @@ impl Evaluatable for Literal {
             },
             Literal::String(s) => Ok(Value::String(s.into())),
         }
-    }
-
-    fn is_primitive(&self) -> bool {
-        true
     }
 }

@@ -304,63 +304,6 @@ impl Evaluatable for CoreFunction {
             },
         }
     }
-
-    fn is_primitive(&self) -> bool {
-        match self {
-            CoreFunction::Last => false,
-            CoreFunction::Position => false,
-            CoreFunction::Count(_) => false,
-            CoreFunction::Id(_) => false,
-            CoreFunction::LocalName(_) => false,
-            CoreFunction::NamespaceUri(_) => false,
-            CoreFunction::Name(_) => false,
-            CoreFunction::String(expr_opt) => expr_opt
-                .as_ref()
-                .map(|expr| expr.is_primitive())
-                .unwrap_or(false),
-            CoreFunction::Concat(vec) => vec.iter().all(|expr| expr.is_primitive()),
-            CoreFunction::StartsWith(expr, substr) => expr.is_primitive() && substr.is_primitive(),
-            CoreFunction::Contains(expr, substr) => expr.is_primitive() && substr.is_primitive(),
-            CoreFunction::SubstringBefore(expr, substr) => {
-                expr.is_primitive() && substr.is_primitive()
-            },
-            CoreFunction::SubstringAfter(expr, substr) => {
-                expr.is_primitive() && substr.is_primitive()
-            },
-            CoreFunction::Substring(expr, start_pos, length_opt) => {
-                expr.is_primitive() &&
-                    start_pos.is_primitive() &&
-                    length_opt
-                        .as_ref()
-                        .map(|length| length.is_primitive())
-                        .unwrap_or(false)
-            },
-            CoreFunction::StringLength(expr_opt) => expr_opt
-                .as_ref()
-                .map(|expr| expr.is_primitive())
-                .unwrap_or(false),
-            CoreFunction::NormalizeSpace(expr_opt) => expr_opt
-                .as_ref()
-                .map(|expr| expr.is_primitive())
-                .unwrap_or(false),
-            CoreFunction::Translate(expr, from_chars, to_chars) => {
-                expr.is_primitive() && from_chars.is_primitive() && to_chars.is_primitive()
-            },
-            CoreFunction::Number(expr_opt) => expr_opt
-                .as_ref()
-                .map(|expr| expr.is_primitive())
-                .unwrap_or(false),
-            CoreFunction::Sum(expr) => expr.is_primitive(),
-            CoreFunction::Floor(expr) => expr.is_primitive(),
-            CoreFunction::Ceiling(expr) => expr.is_primitive(),
-            CoreFunction::Round(expr) => expr.is_primitive(),
-            CoreFunction::Boolean(expr) => expr.is_primitive(),
-            CoreFunction::Not(expr) => expr.is_primitive(),
-            CoreFunction::True => true,
-            CoreFunction::False => true,
-            CoreFunction::Lang(_) => false,
-        }
-    }
 }
 #[cfg(test)]
 mod tests {

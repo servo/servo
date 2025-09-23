@@ -86,10 +86,6 @@ impl Value {
         }
     }
 
-    pub(crate) fn into_boolean(self) -> bool {
-        self.boolean()
-    }
-
     pub(crate) fn number(&self) -> f64 {
         match *self {
             Value::Boolean(val) => {
@@ -103,10 +99,6 @@ impl Value {
             Value::String(ref s) => str_to_num(s),
             Value::Nodeset(..) => str_to_num(&self.string()),
         }
-    }
-
-    pub(crate) fn into_number(self) -> f64 {
-        self.number()
     }
 
     pub(crate) fn string(&self) -> string::String {
@@ -131,13 +123,6 @@ impl Value {
                 Some(n) => n.GetTextContent().unwrap_or_default().to_string(),
                 None => "".to_owned(),
             },
-        }
-    }
-
-    pub(crate) fn into_string(self) -> string::String {
-        match self {
-            Value::String(val) => val,
-            other => other.string(),
         }
     }
 }

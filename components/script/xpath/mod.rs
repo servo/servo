@@ -14,12 +14,9 @@ use crate::dom::bindings::codegen::Bindings::XPathNSResolverBinding::XPathNSReso
 use crate::dom::bindings::error::{Error as JsError, Error, Fallible};
 
 mod context;
-#[allow(dead_code)]
 mod eval;
 mod eval_function;
-#[allow(dead_code)]
 mod eval_value;
-#[allow(dead_code)]
 mod parser;
 
 /// Parse an XPath expression from a string
