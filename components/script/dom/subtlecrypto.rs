@@ -3959,17 +3959,11 @@ impl NormalizedAlgorithm {
     #[allow(unused)]
     fn digest(&self, message: &[u8]) -> Result<Vec<u8>, Error> {
         match self {
-            NormalizedAlgorithm::Algorithm(algo) if algo.name == ALG_SHA1 => {
-                sha_operation::digest(algo, message)
-            },
-            NormalizedAlgorithm::Algorithm(algo) if algo.name == ALG_SHA256 => {
-                sha_operation::digest(algo, message)
-            },
-            NormalizedAlgorithm::Algorithm(algo) if algo.name == ALG_SHA384 => {
-                sha_operation::digest(algo, message)
-            },
-            NormalizedAlgorithm::Algorithm(algo) if algo.name == ALG_SHA512 => {
-                sha_operation::digest(algo, message)
+            NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
+                ALG_SHA1 | ALG_SHA256 | ALG_SHA384 | ALG_SHA512 => {
+                    sha_operation::digest(algo, message)
+                },
+                _ => Err(Error::NotSupported),
             },
             _ => Err(Error::NotSupported),
         }
