@@ -53,7 +53,7 @@ jobs:
     outputs:
       unique-id: ${{ steps.select.outputs.unique-id }}
       selected-runner-label: ${{ steps.select.outputs.selected-runner-label }}
-      selected-runner-host: ${{ steps.select.outputs.selected-runner-host }}
+      runner-type-label: ${{ steps.select.outputs.runner-type-label }}
       is-self-hosted: ${{ steps.select.outputs.is-self-hosted }}
     steps:
       - name: Checkout
@@ -199,8 +199,7 @@ jobs:
         continue-on-error: true
         run: |
           ./etc/ci/bencher.py merge ${{ env.SERVO_FILE_SIZE_RESULT }} ${{ env.SERVO_STRIPPED_FILE_SIZE_RESULT }} ${{ env.SERVO_SPEEDOMETER_RESULT }} ${{ env.SERVO_DROMAEO_RESULT }} --bmf-output b.json
-          selected_runner_host='${{ needs.runner-select.outputs.selected-runner-host }}'
-          testbed=${selected_runner_host:-'${{ needs.runner-select.outputs.selected-runner-label }}'}
+          testbed='${{ needs.runner-select.outputs.runner-type-label }}'
           bencher run --adapter json --file b.json \
             --project ${{ env.BENCHER_PROJECT }} --token ${{ secrets.BENCHER_API_TOKEN }} --testbed "$testbed" \
             $RUN_BENCHER_OPTIONS
