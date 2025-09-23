@@ -134,6 +134,34 @@ impl SubtleCrypto {
     }
 }
 
+impl SubtleCrypto {
+    /// Queue a global task on the crypto task source, given realm's global object, to resolve
+    /// promise with a CryptoKey.
+    fn resolve_promise_with_key(&self, promise: Rc<Promise>, key: DomRoot<CryptoKey>) {
+        let trusted_key = Trusted::new(&*key);
+        let trusted_promise = TrustedPromise::new(promise);
+        self.global().task_manager().crypto_task_source().queue(
+            task!(generate_key_result: move || {
+                let key = trusted_key.root();
+                let promise = trusted_promise.root();
+                promise.resolve_native(&key, CanGc::note());
+            }),
+        );
+    }
+
+    /// Queue a global task on the crypto task source, given realm's global object, to reject
+    /// promise with an error.
+    fn reject_promise_with_error(&self, promise: Rc<Promise>, error: Error) {
+        let trusted_promise = TrustedPromise::new(promise);
+        self.global().task_manager().crypto_task_source().queue(
+            task!(generate_key_result: move || {
+                let promise = trusted_promise.root();
+                promise.reject_error(error, CanGc::note());
+            }),
+        );
+    }
+}
+
 impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
     /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-encrypt>
     fn Encrypt(
@@ -556,17 +584,16 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     },
                 };
 
-                // TODO: Step 10. Queue a global task on the crypto task source, given realm's
-                // global object, to perform the remaining steps.
-
+                // Step 10. Queue a global task on the crypto task source, given realm's global
+                // object, to perform the remaining steps.
                 // Step 11. Let result be the result of converting result to an ECMAScript Object
                 // in realm, as defined by [WebIDL].
                 // Step 12. Resolve promise with result.
-                // TODO: Implement CryptoKeyPair case
                 match key {
-                    CryptoKeyOrCryptoKeyPair::CryptoKey(crypto_key) =>
-                        promise.resolve_native(&crypto_key, CanGc::note()),
-                };
+                    CryptoKeyOrCryptoKeyPair::CryptoKey(key) => {
+                        subtle.resolve_promise_with_key(promise, key);
+                    },
+                }
             }));
 
         promise
@@ -876,10 +903,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let subtle = this.root();
                 let promise = trusted_promise.root();
 
-                // TODO: Step 8. If the following steps or referenced procedures say to throw an
-                // error, queue a global task on the crypto task source, given realm's global
-                // object, to reject promise with the returned error; and then terminate the
-                // algorithm.
+                // Step 8. If the following steps or referenced procedures say to throw an error,
+                // queue a global task on the crypto task source, given realm's global object, to
+                // reject promise with the returned error; and then terminate the algorithm.
 
                 // Step 9. Let result be the CryptoKey object that results from performing the
                 // import key operation specified by normalizedAlgorithm using keyData, algorithm,
@@ -894,7 +920,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 ) {
                     Ok(key) => key,
                     Err(error) => {
-                        promise.reject_error(error, CanGc::note());
+                        subtle.reject_promise_with_error(promise, error);
                         return;
                     },
                 };
@@ -902,7 +928,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 10. If the [[type]] internal slot of result is "secret" or "private" and
                 // usages is empty, then throw a SyntaxError.
                 if matches!(result.Type(), KeyType::Secret | KeyType::Private) && key_usages.is_empty() {
-                    promise.reject_error(Error::Syntax(None), CanGc::note());
+                    subtle.reject_promise_with_error(promise, Error::Syntax(None));
                     return;
                 }
 
@@ -912,13 +938,12 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 12. Set the [[usages]] internal slot of result to the normalized value of usages.
                 result.set_usages(&key_usages);
 
-                // TODO: Step 13. Queue a global task on the crypto task source, given realm's
-                // global object, to perform the remaining steps.
-
+                // Step 13. Queue a global task on the crypto task source, given realm's global
+                // object, to perform the remaining steps.
                 // Step 14. Let result be the result of converting result to an ECMAScript Object
                 // in realm, as defined by [WebIDL].
                 // Step 15. Resolve promise with result.
-                promise.resolve_native(&result, CanGc::note());
+                subtle.resolve_promise_with_key(promise, result);
             }));
 
         promise
