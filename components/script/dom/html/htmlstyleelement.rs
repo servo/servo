@@ -97,7 +97,10 @@ impl HTMLStyleElement {
 
     pub(crate) fn parse_own_css(&self) {
         let node = self.upcast::<Node>();
-        assert!(node.is_connected());
+        assert!(
+            node.is_in_a_document_tree() || node.is_in_a_shadow_tree(),
+            "This stylesheet does not have an owner, so there's no reason to parse its contents"
+        );
 
         // Step 4. of <https://html.spec.whatwg.org/multipage/#the-style-element%3Aupdate-a-style-block>
         let mut type_attribute = self.Type();
