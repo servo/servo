@@ -95,6 +95,15 @@
       {}
      ]
     ]
+   },
+   "shadow-dom": {
+    "move-element-with-ua-shadow-tree-crash.html": [
+     "c834ebc7bb778457b02aa6f4306498275eb956b0",
+     [
+      null,
+      {}
+     ]
+    ]
    }
   },
   "reftest": {
