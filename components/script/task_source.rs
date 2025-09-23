@@ -26,6 +26,8 @@ pub(crate) enum TaskSourceName {
     Bitmap,
     Canvas,
     Clipboard,
+    /// <https://w3c.github.io/webcrypto/#dfn-crypto-task-source-0>
+    Crypto,
     DatabaseAccess,
     DOMManipulation,
     FileReading,
@@ -56,6 +58,7 @@ impl From<TaskSourceName> for ScriptThreadEventCategory {
             TaskSourceName::Bitmap => ScriptThreadEventCategory::ScriptEvent,
             TaskSourceName::Canvas => ScriptThreadEventCategory::ScriptEvent,
             TaskSourceName::Clipboard => ScriptThreadEventCategory::ScriptEvent,
+            TaskSourceName::Crypto => ScriptThreadEventCategory::ScriptEvent,
             TaskSourceName::DatabaseAccess => ScriptThreadEventCategory::ScriptEvent,
             TaskSourceName::DOMManipulation => ScriptThreadEventCategory::ScriptEvent,
             TaskSourceName::FileReading => ScriptThreadEventCategory::FileRead,
