@@ -3852,6 +3852,8 @@ fn normalize_algorithm(
         ObjectOrString::Object(obj) => {
             // Step 1. Let registeredAlgorithms be the associative container stored at the op key
             // of supportedAlgorithms.
+            // NOTE: The supportedAlgorithms and registeredAlgorithms are expressed as match arms
+            // in Step 5.2 - Step 10.
 
             // Stpe 2. Let initialAlg be the result of converting the ECMAScript object represented
             // by alg to the IDL dictionary type Algorithm, as defined by [WebIDL].
@@ -3900,9 +3902,6 @@ fn normalize_algorithm(
             //                 to the result of normalizing an algorithm, with the alg set to
             //                 idlValue and the op set to the operation defined by the
             //                 specification that defines the algorithm identified by algName.
-            //
-            // NOTE: The suuportedAlgorithms and registeredAlgorithms in Step 1 are expressed as
-            // match arms here.
             //
             // NOTE: Instead of calculating the desiredType in Step 5.2 and filling in the IDL
             // dictionary in Step 7-10, we directly convert the JS object to our "subtle" binding
