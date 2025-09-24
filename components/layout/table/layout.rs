@@ -2819,12 +2819,11 @@ impl TableSlotCell {
 
         let cell_content_rect = cell_rect.deflate(&(layout.padding + layout.border));
         let content_block_size = layout.layout.content_block_size;
+        let free_space = || Au::zero().max(cell_content_rect.size.block - content_block_size);
         let vertical_align_offset = match self.effective_vertical_align() {
             VerticalAlignKeyword::Top => Au::zero(),
-            VerticalAlignKeyword::Bottom => cell_content_rect.size.block - content_block_size,
-            VerticalAlignKeyword::Middle => {
-                (cell_content_rect.size.block - content_block_size).scale_by(0.5)
-            },
+            VerticalAlignKeyword::Bottom => free_space(),
+            VerticalAlignKeyword::Middle => free_space().scale_by(0.5),
             _ => {
                 cell_baseline -
                     (layout.padding.block_start + layout.border.block_start) -

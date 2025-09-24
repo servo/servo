@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-align/#distribution-block">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12220">
+<link rel="match" href="../../reference/ref-filled-green-300px-square.html">
+<meta name="assert" content="
+  The contents of the cells are 600px tall, but since we are collapsing one row,
+  the cells shrink to be only 300px tall. Therefore, the contents overflow.
+  Since the cells have the default `align-content: normal`, the alignment is
+  decided depending on `vertical-align`:
+   - `vertical-align: top` maps to `align-self: safe start`
+   - `vertical-align: middle` maps to `align-self: safe center`
+   - `vertical-align: bottom` maps to `align-self: safe end`
+">
+
+<style>
+table {
+  overflow: hidden;
+}
+tr {
+  height: 300px;
+}
+td::before {
+  content: "";
+  display: block;
+  width: 50px;
+  height: 600px;
+  background: linear-gradient(to bottom, green 50%, red 50%);
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<table cellspacing="0" cellpadding="0">
+  <tr>
+    <td rowspan="2" style="vertical-align: top"></td>
+    <td rowspan="2" style="vertical-align: middle"></td>
+    <td rowspan="2" style="vertical-align: bottom"></td>
+    <td rowspan="2" style="overflow: hidden; vertical-align: top"></td>
+    <td rowspan="2" style="overflow: hidden; vertical-align: middle"></td>
+    <td rowspan="2" style="overflow: hidden; vertical-align: bottom"></td>
+  </tr>
+  <tr style="visibility: collapse"></tr>
+</table>
