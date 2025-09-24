@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+mod aes_operation;
+mod sha_operation;
+
 use std::num::NonZero;
 use std::ptr;
 use std::rc::Rc;
@@ -18,7 +21,7 @@ use base64::prelude::*;
 use cipher::consts::{U12, U16, U32};
 use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
-use js::jsapi::{JS_NewObject, JSObject};
+use js::jsapi::{Heap, JS_NewObject, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::wrappers::JS_ParseJSON;
 use js::rust::{HandleValue, MutableHandleObject};
@@ -37,7 +40,7 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     RsaOtherPrimesInfo, SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
-    ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey,
+    ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey, ObjectOrString,
 };
 use crate::dom::bindings::conversions::SafeToJSValConvertible;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -95,6 +98,24 @@ const NAMED_CURVE_P384: &str = "P-384";
 const NAMED_CURVE_P521: &str = "P-521";
 #[allow(dead_code)]
 static SUPPORTED_CURVES: &[&str] = &[NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521];
+
+/// <https://w3c.github.io/webcrypto/#supported-operation>
+#[allow(unused)]
+enum Operation {
+    Encrypt,
+    Decrypt,
+    Sign,
+    Verify,
+    Digest,
+    GenerateKey,
+    DeriveKey,
+    DeriveBits,
+    ImportKey,
+    ExportKey,
+    WrapKey,
+    UnwrapKey,
+    GetKeyLength,
+}
 
 type Aes128CbcEnc = cbc::Encryptor<Aes128>;
 type Aes128CbcDec = cbc::Decryptor<Aes128>;
@@ -1254,17 +1275,16 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 // These "subtle" structs are proxies for the codegen'd dicts which don't hold a DOMString
 // so they can be sent safely when running steps in parallel.
 
-#[allow(dead_code)]
+/// <https://w3c.github.io/webcrypto/#dfn-Algorithm>
 #[derive(Clone, Debug)]
-pub(crate) struct SubtleAlgorithm {
-    #[allow(dead_code)]
-    pub(crate) name: String,
+struct SubtleAlgorithm {
+    name: String,
 }
 
-impl From<DOMString> for SubtleAlgorithm {
-    fn from(name: DOMString) -> Self {
+impl From<Algorithm> for SubtleAlgorithm {
+    fn from(params: Algorithm) -> Self {
         SubtleAlgorithm {
-            name: name.to_string(),
+            name: params.name.to_string(),
         }
     }
 }
@@ -3816,4 +3836,168 @@ impl JsonWebKeyExt for JsonWebKey {
 
         Ok(())
     }
+}
+
+/// The successful output of [`normalize_algorithm`], in form of an union type of (our "subtle"
+/// binding of) IDL dictionary types.
+///
+/// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm>
+#[allow(unused)]
+enum NormalizedAlgorithm {
+    Algorithm(SubtleAlgorithm),
+    AesCtrParams(SubtleAesCtrParams),
+}
+
+/// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm>
+#[allow(unused)]
+fn normalize_algorithm(
+    cx: JSContext,
+    op: &Operation,
+    alg: &AlgorithmIdentifier,
+    can_gc: CanGc,
+) -> Result<NormalizedAlgorithm, Error> {
+    match alg {
+        // If alg is an instance of a DOMString:
+        ObjectOrString::String(name) => {
+            // Return the result of running the normalize an algorithm algorithm, with the alg set
+            // to a new Algorithm dictionary whose name attribute is alg, and with the op set to
+            // op.
+            let alg = Algorithm {
+                name: name.to_owned(),
+            };
+            rooted!(in(*cx) let mut alg_value = UndefinedValue());
+            alg.safe_to_jsval(cx, alg_value.handle_mut());
+            let alg_obj = RootedTraceableBox::new(Heap::default());
+            alg_obj.set(alg_value.to_object());
+            normalize_algorithm(cx, op, &ObjectOrString::Object(alg_obj), can_gc)
+        },
+        // If alg is an object:
+        ObjectOrString::Object(obj) => {
+            // Step 1. Let registeredAlgorithms be the associative container stored at the op key
+            // of supportedAlgorithms.
+            // NOTE: The supportedAlgorithms and registeredAlgorithms are expressed as match arms
+            // in Step 5.2 - Step 10.
+
+            // Stpe 2. Let initialAlg be the result of converting the ECMAScript object represented
+            // by alg to the IDL dictionary type Algorithm, as defined by [WebIDL].
+            // Step 3. If an error occurred, return the error and terminate this algorithm.
+            rooted!(in(*cx) let value = ObjectValue(obj.get()));
+            let initial_alg = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+
+            // Step 4. Let algName be the value of the name attribute of initialAlg.
+            // Step 5.
+            //     If registeredAlgorithms contains a key that is a case-insensitive string match
+            //     for algName:
+            //         Step 5.1. Set algName to the value of the matching key.
+            //     Otherwise:
+            //         Return a new NotSupportedError and terminate this algorithm.
+            let Some(&alg_name) = SUPPORTED_ALGORITHMS.iter().find(|supported_algorithm| {
+                supported_algorithm.eq_ignore_ascii_case(initial_alg.name.str())
+            }) else {
+                return Err(Error::NotSupported);
+            };
+
+            // Step 5.2. Let desiredType be the IDL dictionary type stored at algName in
+            // registeredAlgorithms.
+            // Step 6. Let normalizedAlgorithm be the result of converting the ECMAScript object
+            // represented by alg to the IDL dictionary type desiredType, as defined by [WebIDL].
+            // Step 7. Set the name attribute of normalizedAlgorithm to algName.
+            // Step 8. If an error occurred, return the error and terminate this algorithm.
+            // Step 9. Let dictionaries be a list consisting of the IDL dictionary type desiredType
+            // and all of desiredType's inherited dictionaries, in order from least to most
+            // derived.
+            // Step 10. For each dictionary dictionary in dictionaries:
+            //     Step 10.1. For each dictionary member member declared on dictionary, in order:
+            //         Step 10.1.1. Let key be the identifier of member.
+            //         Step 10.1.2. Let idlValue be the value of the dictionary member with key
+            //         name of key on normalizedAlgorithm.
+            //         Step 10.1.3.
+            //             If member is of the type BufferSource and is present:
+            //                 Set the dictionary member on normalizedAlgorithm with key name key
+            //                 to the result of getting a copy of the bytes held by idlValue,
+            //                 replacing the current value.
+            //             If member is of the type HashAlgorithmIdentifier:
+            //                 Set the dictionary member on normalizedAlgorithm with key name key
+            //                 to the result of normalizing an algorithm, with the alg set to
+            //                 idlValue and the op set to "digest".
+            //             If member is of the type AlgorithmIdentifier:
+            //                 Set the dictionary member on normalizedAlgorithm with key name key
+            //                 to the result of normalizing an algorithm, with the alg set to
+            //                 idlValue and the op set to the operation defined by the
+            //                 specification that defines the algorithm identified by algName.
+            //
+            // NOTE: Instead of calculating the desiredType in Step 5.2 and filling in the IDL
+            // dictionary in Step 7-10, we directly convert the JS object to our "subtle" binding
+            // structs to complete Step 6, and put it in the NormalizedAlgorithm enum.
+            let normalized_algorithm = match (alg_name, op) {
+                // <https://w3c.github.io/webcrypto/#aes-ctr-registration>
+                (ALG_AES_CTR, Operation::Encrypt) => {
+                    let params =
+                        boxed_value_from_js_object::<AesCtrParams>(cx, value.handle(), can_gc)?;
+                    NormalizedAlgorithm::AesCtrParams(params.into())
+                },
+
+                // <https://w3c.github.io/webcrypto/#sha-registration>
+                (ALG_SHA1, Operation::Digest) => {
+                    let params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+                (ALG_SHA256, Operation::Digest) => {
+                    let params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+                (ALG_SHA384, Operation::Digest) => {
+                    let params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+                (ALG_SHA512, Operation::Digest) => {
+                    let params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+                _ => return Err(Error::NotSupported),
+            };
+
+            // Step 11. Return normalizedAlgorithm.
+            Ok(normalized_algorithm)
+        },
+    }
+}
+
+impl NormalizedAlgorithm {
+    #[allow(unused)]
+    fn encrypt(&self, key: &CryptoKey, plaintext: &[u8]) -> Result<Vec<u8>, Error> {
+        match self {
+            NormalizedAlgorithm::AesCtrParams(algo) => {
+                aes_operation::encrypt_aes_ctr(algo, key, plaintext)
+            },
+            _ => Err(Error::NotSupported),
+        }
+    }
+
+    // TODO:
+    // decrypt
+    // sign
+    // verify
+
+    #[allow(unused)]
+    fn digest(&self, message: &[u8]) -> Result<Vec<u8>, Error> {
+        match self {
+            NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
+                ALG_SHA1 | ALG_SHA256 | ALG_SHA384 | ALG_SHA512 => {
+                    sha_operation::digest(algo, message)
+                },
+                _ => Err(Error::NotSupported),
+            },
+            _ => Err(Error::NotSupported),
+        }
+    }
+
+    // TODO:
+    // derive_bits
+    // wrap_key
+    // unwrap_key
+    // generate_key
+    // import_key
+    // export_key
+    // get_key_length
 }
