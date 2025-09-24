@@ -132,9 +132,7 @@ impl SubtleCrypto {
     pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<SubtleCrypto> {
         reflect_dom_object(Box::new(SubtleCrypto::new_inherited()), global, can_gc)
     }
-}
 
-impl SubtleCrypto {
     /// Queue a global task on the crypto task source, given realm's global object, to resolve
     /// promise with a CryptoKey.
     fn resolve_promise_with_key(&self, promise: Rc<Promise>, key: DomRoot<CryptoKey>) {
