@@ -245,11 +245,14 @@ impl Zero for CellOrTrackMeasure {
 
 impl<'a> TableLayout<'a> {
     fn new(table: &'a Table) -> TableLayout<'a> {
-        // The CSSWG resolved that only `inline-size: auto` can prevent fixed table mode.
-        // <https://github.com/w3c/csswg-drafts/issues/10937#issuecomment-2669150397>
+        // The CSSWG resolved that `auto` and `max-content` inline sizes prevent fixed table mode.
+        // <https://github.com/w3c/csswg-drafts/issues/10937>
         let style = &table.style;
         let is_in_fixed_mode = style.get_table().table_layout == TableLayoutMode::Fixed &&
-            !style.box_size(style.writing_mode).inline.is_initial();
+            !matches!(
+                style.box_size(style.writing_mode).inline,
+                Size::Initial | Size::MaxContent
+            );
         Self {
             table,
             pbm: PaddingBorderMargin::zero(),
