@@ -2111,9 +2111,9 @@ impl HTMLMediaElement {
         self.upcast::<Node>().dirty(NodeDamage::Other);
     }
 
-    fn remove_controls(&self, can_gc: CanGc) {
+    fn remove_controls(&self) {
         if let Some(id) = self.media_controls_id.borrow_mut().take() {
-            self.owner_document().unregister_media_controls(&id, can_gc);
+            self.owner_document().unregister_media_controls(&id);
         }
     }
 
@@ -2696,7 +2696,7 @@ impl VirtualMethods for HTMLMediaElement {
                 if mutation.new_value(attr).is_some() {
                     self.render_controls(can_gc);
                 } else {
-                    self.remove_controls(can_gc);
+                    self.remove_controls();
                 }
             },
             _ => (),
@@ -2707,7 +2707,7 @@ impl VirtualMethods for HTMLMediaElement {
     fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
         self.super_type().unwrap().unbind_from_tree(context, can_gc);
 
-        self.remove_controls(can_gc);
+        self.remove_controls();
 
         if context.tree_connected {
             let task = MediaElementMicrotask::PauseIfNotInDocument {

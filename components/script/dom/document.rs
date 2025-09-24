@@ -95,7 +95,6 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionName;
-use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
     FrameRequestCallback, ScrollBehavior, ScrollOptions, WindowMethods,
 };
@@ -2633,13 +2632,12 @@ impl Document {
         id
     }
 
-    pub(crate) fn unregister_media_controls(&self, id: &str, can_gc: CanGc) {
-        if let Some(ref media_controls) = self.media_controls.borrow_mut().remove(id) {
-            let media_controls = DomRoot::from_ref(&**media_controls);
-            media_controls.Host().detach_shadow(can_gc);
-        } else {
-            debug_assert!(false, "Trying to unregister unknown media controls");
-        }
+    pub(crate) fn unregister_media_controls(&self, id: &str) {
+        let did_have_these_media_controls = self.media_controls.borrow_mut().remove(id).is_some();
+        debug_assert!(
+            did_have_these_media_controls,
+            "Trying to unregister unknown media controls"
+        );
     }
 
     pub(crate) fn add_dirty_webgl_canvas(&self, context: &WebGLRenderingContext) {

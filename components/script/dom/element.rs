@@ -730,19 +730,6 @@ impl Element {
         root
     }
 
-    pub(crate) fn detach_shadow(&self, can_gc: CanGc) {
-        let Some(ref shadow_root) = self.shadow_root() else {
-            unreachable!("Trying to detach a non-attached shadow root");
-        };
-
-        let node = self.upcast::<Node>();
-        node.note_dirty_descendants();
-        node.rev_version();
-
-        shadow_root.detach(can_gc);
-        self.ensure_rare_data().shadow_root = None;
-    }
-
     // https://html.spec.whatwg.org/multipage/#translation-mode
     pub(crate) fn is_translate_enabled(&self) -> bool {
         let name = &local_name!("translate");
