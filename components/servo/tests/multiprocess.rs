@@ -32,7 +32,9 @@ fn test_multiprocess_preference_observer(servo_test: &ServoTest) -> Result<(), a
     prefs.dom_servo_helpers_enabled = true;
     prefs::set(prefs);
 
+    delegate.load_status_changed.set(false);
     webview.reload();
+    let _ = servo_test.spin(move || Ok(!delegate.load_status_changed.get()));
 
     let result = evaluate_javascript(servo_test, webview.clone(), "window.gc");
     ensure!(matches!(result, Ok(JSValue::Object(..))));

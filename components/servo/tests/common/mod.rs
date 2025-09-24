@@ -143,6 +143,7 @@ pub(crate) struct WebViewDelegateImpl {
     pub(crate) url_changed: Cell<bool>,
     pub(crate) cursor_changed: Cell<bool>,
     pub(crate) new_frame_ready: Cell<bool>,
+    pub(crate) load_status_changed: Cell<bool>,
 }
 
 impl WebViewDelegateImpl {
@@ -165,6 +166,12 @@ impl WebViewDelegate for WebViewDelegateImpl {
     fn notify_new_frame_ready(&self, webview: WebView) {
         self.new_frame_ready.set(true);
         webview.paint();
+    }
+
+    fn notify_load_status_changed(&self, _webview: WebView, status: LoadStatus) {
+        if status == LoadStatus::Complete {
+            self.load_status_changed.set(true);
+        }
     }
 }
 
