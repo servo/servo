@@ -6,6 +6,7 @@ use embedder_traits::{CompositorHitTestResult, TouchId, TouchSequenceId};
 use euclid::{Point2D, Scale, Vector2D};
 use log::{debug, error, warn};
 use rustc_hash::FxHashMap;
+use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint, LayoutVector2D};
 
 use self::TouchSequenceState::*;
@@ -40,8 +41,9 @@ pub enum TouchMoveAllowed {
 }
 
 /// Cache for the last touch hit test result.
-pub(crate) struct HitTestResultCache {
+struct HitTestResultCache {
     value: CompositorHitTestResult,
+    device_pixels_per_page: Scale<f32, CSSPixel, DevicePixel>,
     is_valid: bool,
 }
 
@@ -136,6 +138,16 @@ impl TouchSequenceInfo {
             self.state,
             Finished | Flinging { .. } | PendingFling { .. } | PendingClick(_)
         )
+    }
+
+    fn update_hit_test_result_cache_pointer(&mut self, delta: Vector2D<f32, DevicePixel>) {
+        if let Some(ref mut hit_test_result_cache) = self.hit_test_result_cache {
+            if hit_test_result_cache.is_valid {
+                let scaled_delta = delta / hit_test_result_cache.device_pixels_per_page;
+                // Update the point of the hit test result to match the current touch point.
+                hit_test_result_cache.value.point_in_viewport += scaled_delta;
+            }
+        }
     }
 }
 
@@ -404,6 +416,7 @@ impl TouchHandler {
         };
         let old_point = touch_sequence.active_touch_points[idx].point;
         let delta = point - old_point;
+        touch_sequence.update_hit_test_result_cache_pointer(delta);
 
         let action = match touch_sequence.touch_count() {
             1 => {
@@ -595,15 +608,13 @@ impl TouchHandler {
         &mut self,
         sequence_id: TouchSequenceId,
         value: CompositorHitTestResult,
+        device_pixels_per_page: Scale<f32, CSSPixel, DevicePixel>,
     ) {
         if let Some(sequence) = self.touch_sequence_map.get_mut(&sequence_id) {
-            if let Some(ref mut hit_test_result_cache) = sequence.hit_test_result_cache {
-                if !hit_test_result_cache.is_valid {
-                    hit_test_result_cache.value = value;
-                }
-            } else {
+            if sequence.hit_test_result_cache.is_none() {
                 sequence.hit_test_result_cache = Some(HitTestResultCache {
                     value,
+                    device_pixels_per_page,
                     // Only single touch points have a valid hit test result.
                     is_valid: sequence.touch_count() == 1,
                 });

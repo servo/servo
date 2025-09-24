@@ -332,6 +332,7 @@ impl WebViewRenderer {
                                 self.touch_handler.set_hit_test_result_cache_value(
                                     self.touch_handler.current_sequence_id,
                                     value.clone(),
+                                    self.device_pixels_per_page_pixel(),
                                 );
                             }
                             hit_test_result
