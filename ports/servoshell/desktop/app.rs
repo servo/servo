@@ -522,7 +522,7 @@ impl App {
                             InputEvent::MouseButton(MouseButtonEvent::new(
                                 mouse_event_type,
                                 mouse_button,
-                                Point2D::new(x, y),
+                                Point2D::new(x, y) * webview.hidpi_scale_factor(),
                             ))
                             .with_webdriver_message_id(webdriver_message_id),
                         );
