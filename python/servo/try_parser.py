@@ -153,6 +153,8 @@ def handle_modifier(config: Optional[JobConfig], s: str) -> Optional[JobConfig]:
         config.build_libservo = True
     if "production" in s:
         config.profile = "production"
+    elif "dev" in s:
+        config.profile = "dev"
     if "bencher" in s:
         config.bencher = True
     elif "wpt" in s:
@@ -400,6 +402,11 @@ class TestParser(unittest.TestCase):
 
     def test_wpt_alias(self) -> None:
         self.assertDictEqual(json.loads(Config("wpt").to_json()), json.loads(Config("linux-wpt").to_json()))
+
+    def test_dev(self) -> None:
+        a = handle_preset("dev-linux-unit-tests")
+        a = handle_modifier(a, "dev-linux-unit-tests")
+        self.assertEqual(a, JobConfig("Linux (Dev, Unit Tests)", Workflow.LINUX, unit_tests=True, profile="dev"))
 
 
 def run_tests() -> bool:
