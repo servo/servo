@@ -31,6 +31,10 @@ updates:
         - "glib*"
         - "gobject*"
         - "gstreamer*"
+    serde-related:
+      patterns:
+        - "serde"
+        - "serde_core"
     napi-ohos-related:
       patterns:
         - "napi-ohos*"
