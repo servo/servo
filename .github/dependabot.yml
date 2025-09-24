@@ -31,10 +31,6 @@ updates:
         - "glib*"
         - "gobject*"
         - "gstreamer*"
-    serde-related:
-      patterns:
-        - "serde"
-        - "serde_core"
     napi-ohos-related:
       patterns:
         - "napi-ohos*"
@@ -42,6 +38,10 @@ updates:
     objc2-related:
       patterns:
         - "objc2*"
+    serde-related:
+      patterns:
+        - "serde"
+        - "serde_core"
     servo-media-related:
       patterns:
         - "servo-media*"

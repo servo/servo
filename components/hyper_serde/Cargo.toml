@@ -21,8 +21,8 @@ headers = { workspace = true }
 http = { workspace = true }
 hyper = { workspace = true }
 mime = { workspace = true }
-serde_core = { workspace = true }
 serde_bytes = { workspace = true }
+serde_core = { workspace = true }
 
 [dev-dependencies]
 serde = { workspace = true }
