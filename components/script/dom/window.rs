@@ -157,6 +157,7 @@ use crate::dom::promise::Promise;
 use crate::dom::reportingendpoint::{ReportingEndpoint, SendReportsToEndpoints};
 use crate::dom::reportingobserver::ReportingObserver;
 use crate::dom::screen::Screen;
+use crate::dom::scrolling_box::{ScrollingBox, ScrollingBoxSource};
 use crate::dom::selection::Selection;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::storage::Storage;
@@ -2628,13 +2629,37 @@ impl Window {
 
     pub(crate) fn scroll_container_query(
         &self,
-        node: &Node,
+        node: Option<&Node>,
         flags: ScrollContainerQueryFlags,
     ) -> Option<ScrollContainerResponse> {
         self.layout_reflow(QueryMsg::ScrollParentQuery);
         self.layout
             .borrow()
-            .query_scroll_container(node.to_trusted_node_address(), flags)
+            .query_scroll_container(node.map(Node::to_trusted_node_address), flags)
+    }
+
+    #[allow(unsafe_code)]
+    pub(crate) fn scrolling_box_query(
+        &self,
+        node: Option<&Node>,
+        flags: ScrollContainerQueryFlags,
+    ) -> Option<ScrollingBox> {
+        self.scroll_container_query(node, flags)
+            .and_then(|response| {
+                Some(match response {
+                    ScrollContainerResponse::Viewport(overflow) => {
+                        (ScrollingBoxSource::Viewport(self.Document()), overflow)
+                    },
+                    ScrollContainerResponse::Element(parent_node_address, overflow) => {
+                        let node = unsafe { from_untrusted_node_address(parent_node_address) };
+                        (
+                            ScrollingBoxSource::Element(DomRoot::downcast(node)?),
+                            overflow,
+                        )
+                    },
+                })
+            })
+            .map(|(source, overflow)| ScrollingBox::new(source, overflow))
     }
 
     pub(crate) fn text_index_query(

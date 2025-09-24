@@ -1911,6 +1911,11 @@ impl ScriptThread {
                 }
                 prefs::set(current_preferences);
             },
+            ScriptThreadMessage::ForwardKeyboardScroll(pipeline_id, scroll) => {
+                if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
+                    document.event_handler().do_keyboard_scroll(scroll);
+                }
+            },
         }
     }
 

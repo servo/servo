@@ -1985,6 +1985,20 @@ where
                     warn!("No webdriver_input_command_reponse_sender");
                 }
             },
+            ScriptToConstellationMessage::ForwardKeyboardScroll(pipeline_id, scroll) => {
+                if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+                    if let Err(error) =
+                        pipeline
+                            .event_loop
+                            .send(ScriptThreadMessage::ForwardKeyboardScroll(
+                                pipeline_id,
+                                scroll,
+                            ))
+                    {
+                        warn!("Could not forward {scroll:?} to {pipeline_id}: {error:?}");
+                    }
+                }
+            },
         }
     }
 

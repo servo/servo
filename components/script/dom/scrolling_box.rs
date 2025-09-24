@@ -16,6 +16,7 @@ use crate::dom::types::{Document, Element};
 
 pub(crate) struct ScrollingBox {
     target: ScrollingBoxSource,
+    overflow: AxesOverflow,
     cached_content_size: Cell<Option<LayoutSize>>,
     cached_size: Cell<Option<LayoutSize>>,
 }
@@ -23,7 +24,7 @@ pub(crate) struct ScrollingBox {
 /// Represents a scrolling box that can be either an element or the viewport
 /// <https://drafts.csswg.org/cssom-view/#scrolling-box>
 pub(crate) enum ScrollingBoxSource {
-    Element(DomRoot<Element>, AxesOverflow),
+    Element(DomRoot<Element>),
     Viewport(DomRoot<Document>),
 }
 
@@ -34,9 +35,10 @@ pub(crate) enum ScrollingBoxAxis {
 }
 
 impl ScrollingBox {
-    pub(crate) fn new(target: ScrollingBoxSource) -> Self {
+    pub(crate) fn new(target: ScrollingBoxSource, overflow: AxesOverflow) -> Self {
         Self {
             target,
+            overflow,
             cached_content_size: Default::default(),
             cached_size: Default::default(),
         }
@@ -52,7 +54,7 @@ impl ScrollingBox {
 
     pub(crate) fn scroll_position(&self) -> LayoutVector2D {
         match &self.target {
-            ScrollingBoxSource::Element(element, _) => element
+            ScrollingBoxSource::Element(element) => element
                 .owner_window()
                 .scroll_offset_query(element.upcast::<Node>()),
             ScrollingBoxSource::Viewport(document) => document.window().scroll_offset(),
@@ -65,7 +67,7 @@ impl ScrollingBox {
         }
 
         let (document, node_to_query) = match &self.target {
-            ScrollingBoxSource::Element(element, _) => {
+            ScrollingBoxSource::Element(element) => {
                 (element.owner_document(), Some(element.upcast()))
             },
             ScrollingBoxSource::Viewport(document) => (document.clone(), None),
@@ -87,9 +89,7 @@ impl ScrollingBox {
         }
 
         let size = match &self.target {
-            ScrollingBoxSource::Element(element, _) => {
-                element.client_rect().size.to_f32().cast_unit()
-            },
+            ScrollingBoxSource::Element(element) => element.client_rect().size.to_f32().cast_unit(),
             ScrollingBoxSource::Viewport(document) => {
                 document.window().viewport_details().size.cast_unit()
             },
@@ -100,7 +100,7 @@ impl ScrollingBox {
 
     pub(crate) fn parent(&self) -> Option<ScrollingBox> {
         match &self.target {
-            ScrollingBoxSource::Element(element, _) => {
+            ScrollingBoxSource::Element(element) => {
                 element.scrolling_box(ScrollContainerQueryFlags::empty())
             },
             ScrollingBoxSource::Viewport(_) => None,
@@ -109,14 +109,14 @@ impl ScrollingBox {
 
     pub(crate) fn node(&self) -> &Node {
         match &self.target {
-            ScrollingBoxSource::Element(element, _) => element.upcast(),
+            ScrollingBoxSource::Element(element) => element.upcast(),
             ScrollingBoxSource::Viewport(document) => document.upcast(),
         }
     }
 
     pub(crate) fn scroll_to(&self, position: LayoutVector2D, behavior: ScrollBehavior) {
         match &self.target {
-            ScrollingBoxSource::Element(element, _) => {
+            ScrollingBoxSource::Element(element) => {
                 element
                     .owner_window()
                     .scroll_an_element(element, position.x, position.y, behavior);
@@ -128,15 +128,11 @@ impl ScrollingBox {
     }
 
     pub(crate) fn can_keyboard_scroll_in_axis(&self, axis: ScrollingBoxAxis) -> bool {
-        let axes_overflow = match &self.target {
-            ScrollingBoxSource::Element(_, axes_overflow) => axes_overflow,
-            ScrollingBoxSource::Viewport(_) => return true,
-        };
         let overflow = match axis {
-            ScrollingBoxAxis::X => axes_overflow.x,
-            ScrollingBoxAxis::Y => axes_overflow.x,
+            ScrollingBoxAxis::X => self.overflow.x,
+            ScrollingBoxAxis::Y => self.overflow.y,
         };
-        if !overflow.is_scrollable() || overflow == Overflow::Hidden {
+        if overflow == Overflow::Hidden {
             return false;
         }
         match axis {

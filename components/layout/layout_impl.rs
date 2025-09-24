@@ -333,11 +333,17 @@ impl Layout for LayoutThread {
     #[servo_tracing::instrument(skip_all)]
     fn query_scroll_container(
         &self,
-        node: TrustedNodeAddress,
+        node: Option<TrustedNodeAddress>,
         flags: ScrollContainerQueryFlags,
     ) -> Option<ScrollContainerResponse> {
-        let node = unsafe { ServoLayoutNode::new(&node) };
-        process_scroll_container_query(node, flags)
+        let node = unsafe { node.as_ref().map(|node| ServoLayoutNode::new(node)) };
+        let viewport_overflow = self
+            .box_tree
+            .borrow()
+            .as_ref()
+            .expect("Should have a BoxTree for all scroll container queries.")
+            .viewport_overflow;
+        process_scroll_container_query(node, flags, viewport_overflow)
     }
 
     #[servo_tracing::instrument(skip_all)]

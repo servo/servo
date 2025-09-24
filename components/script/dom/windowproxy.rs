@@ -107,7 +107,9 @@ pub(crate) struct WindowProxy {
     /// <https://html.spec.whatwg.org/multipage/#is-closing>
     is_closing: Cell<bool>,
 
-    /// The containing iframe element, if this is a same-origin iframe
+    /// If the containing `<iframe>` of this [`WindowProxy`] is from a same-origin page,
+    /// this will be the [`Element`] of the `<iframe>` element in the realm of the
+    /// parent page. Otherwise, it is `None`.
     frame_element: Option<Dom<Element>>,
 
     /// The parent browsing context's window proxy, if this is a nested browsing context
@@ -630,6 +632,9 @@ impl WindowProxy {
         self.webview_id
     }
 
+    /// If the containing `<iframe>` of this [`WindowProxy`] is from a same-origin page,
+    /// this will return an [`Element`] of the `<iframe>` element in the realm of the parent
+    /// page.
     pub(crate) fn frame_element(&self) -> Option<&Element> {
         self.frame_element.as_deref()
     }
