@@ -91,92 +91,13 @@ impl Request {
         r
     }
 
-    /// <https://fetch.spec.whatwg.org/#concept-request-clone>
-    fn clone_from(r: &Request, can_gc: CanGc) -> Fallible<DomRoot<Request>> {
-        // Step 1. Let newRequest be a copy of request, except for its body.
-        let req = r.request.borrow();
-        let url = req.url();
-        let headers_guard = r.Headers(can_gc).get_guard();
-        let r_clone = Request::new(&r.global(), None, url, can_gc);
-        r_clone.request.borrow_mut().pipeline_id = req.pipeline_id;
-        {
-            let mut borrowed_r_request = r_clone.request.borrow_mut();
-            borrowed_r_request.origin = req.origin.clone();
-        }
-        *r_clone.request.borrow_mut() = req.clone();
-        r_clone
-            .Headers(can_gc)
-            .copy_from_headers(r.Headers(can_gc))?;
-        r_clone.Headers(can_gc).set_guard(headers_guard);
-        // Step 2. If request’s body is non-null, set newRequest’s body to the result of cloning request’s body.
-        // TODO
-        // Step 3. Return newRequest.
-        Ok(r_clone)
-    }
-
-    pub(crate) fn get_request(&self) -> NetTraitsRequest {
-        self.request.borrow().clone()
-    }
-}
-
-fn net_request_from_global(global: &GlobalScope, url: ServoUrl) -> NetTraitsRequest {
-    RequestBuilder::new(global.webview_id(), url, global.get_referrer())
-        .origin(global.get_url().origin())
-        .pipeline_id(Some(global.pipeline_id()))
-        .https_state(global.get_https_state())
-        .insecure_requests_policy(global.insecure_requests_policy())
-        .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_or_current_origin())
-        .build()
-}
-
-// https://fetch.spec.whatwg.org/#concept-method-normalize
-fn normalize_method(m: &str) -> Result<HttpMethod, InvalidMethod> {
-    match_ignore_ascii_case! { m,
-        "delete" => return Ok(HttpMethod::DELETE),
-        "get" => return Ok(HttpMethod::GET),
-        "head" => return Ok(HttpMethod::HEAD),
-        "options" => return Ok(HttpMethod::OPTIONS),
-        "post" => return Ok(HttpMethod::POST),
-        "put" => return Ok(HttpMethod::PUT),
-        _ => (),
-    }
-    debug!("Method: {:?}", m);
-    HttpMethod::from_str(m)
-}
-
-// https://fetch.spec.whatwg.org/#concept-method
-fn is_method(m: &ByteString) -> bool {
-    m.as_str().is_some()
-}
-
-// https://fetch.spec.whatwg.org/#cors-safelisted-method
-fn is_cors_safelisted_method(m: &HttpMethod) -> bool {
-    m == HttpMethod::GET || m == HttpMethod::HEAD || m == HttpMethod::POST
-}
-
-// https://url.spec.whatwg.org/#include-credentials
-fn includes_credentials(input: &ServoUrl) -> bool {
-    !input.username().is_empty() || input.password().is_some()
-}
-
-// https://fetch.spec.whatwg.org/#concept-body-disturbed
-fn request_is_disturbed(input: &Request) -> bool {
-    input.is_disturbed()
-}
-
-// https://fetch.spec.whatwg.org/#concept-body-locked
-fn request_is_locked(input: &Request) -> bool {
-    input.is_locked()
-}
-
-impl RequestMethods<crate::DomTypeHolder> for Request {
     // https://fetch.spec.whatwg.org/#dom-request
-    fn Constructor(
+    fn constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
         mut input: RequestInfo,
-        init: RootedTraceableBox<RequestInit>,
+        init: &RequestInit,
     ) -> Fallible<DomRoot<Request>> {
         // Step 1. Let request be null.
         let temporary_request: NetTraitsRequest;
@@ -591,6 +512,96 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
         r.request.borrow_mut().body = input_body;
 
         Ok(r)
+    }
+
+    /// <https://fetch.spec.whatwg.org/#concept-request-clone>
+    fn clone_from(r: &Request, can_gc: CanGc) -> Fallible<DomRoot<Request>> {
+        // Step 1. Let newRequest be a copy of request, except for its body.
+        let req = r.request.borrow();
+        let url = req.url();
+        let headers_guard = r.Headers(can_gc).get_guard();
+        let r_clone = Request::new(&r.global(), None, url, can_gc);
+        r_clone.request.borrow_mut().pipeline_id = req.pipeline_id;
+        {
+            let mut borrowed_r_request = r_clone.request.borrow_mut();
+            borrowed_r_request.origin = req.origin.clone();
+        }
+        *r_clone.request.borrow_mut() = req.clone();
+        r_clone
+            .Headers(can_gc)
+            .copy_from_headers(r.Headers(can_gc))?;
+        r_clone.Headers(can_gc).set_guard(headers_guard);
+        // Step 2. If request’s body is non-null, set newRequest’s body to the result of cloning request’s body.
+        // TODO
+        // Step 3. Return newRequest.
+        Ok(r_clone)
+    }
+
+    pub(crate) fn get_request(&self) -> NetTraitsRequest {
+        self.request.borrow().clone()
+    }
+}
+
+fn net_request_from_global(global: &GlobalScope, url: ServoUrl) -> NetTraitsRequest {
+    RequestBuilder::new(global.webview_id(), url, global.get_referrer())
+        .origin(global.get_url().origin())
+        .pipeline_id(Some(global.pipeline_id()))
+        .https_state(global.get_https_state())
+        .insecure_requests_policy(global.insecure_requests_policy())
+        .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_or_current_origin())
+        .build()
+}
+
+// https://fetch.spec.whatwg.org/#concept-method-normalize
+fn normalize_method(m: &str) -> Result<HttpMethod, InvalidMethod> {
+    match_ignore_ascii_case! { m,
+        "delete" => return Ok(HttpMethod::DELETE),
+        "get" => return Ok(HttpMethod::GET),
+        "head" => return Ok(HttpMethod::HEAD),
+        "options" => return Ok(HttpMethod::OPTIONS),
+        "post" => return Ok(HttpMethod::POST),
+        "put" => return Ok(HttpMethod::PUT),
+        _ => (),
+    }
+    debug!("Method: {:?}", m);
+    HttpMethod::from_str(m)
+}
+
+// https://fetch.spec.whatwg.org/#concept-method
+fn is_method(m: &ByteString) -> bool {
+    m.as_str().is_some()
+}
+
+// https://fetch.spec.whatwg.org/#cors-safelisted-method
+fn is_cors_safelisted_method(m: &HttpMethod) -> bool {
+    m == HttpMethod::GET || m == HttpMethod::HEAD || m == HttpMethod::POST
+}
+
+// https://url.spec.whatwg.org/#include-credentials
+fn includes_credentials(input: &ServoUrl) -> bool {
+    !input.username().is_empty() || input.password().is_some()
+}
+
+// https://fetch.spec.whatwg.org/#concept-body-disturbed
+fn request_is_disturbed(input: &Request) -> bool {
+    input.is_disturbed()
+}
+
+// https://fetch.spec.whatwg.org/#concept-body-locked
+fn request_is_locked(input: &Request) -> bool {
+    input.is_locked()
+}
+
+impl RequestMethods<crate::DomTypeHolder> for Request {
+    // https://fetch.spec.whatwg.org/#dom-request
+    fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+        input: RequestInfo,
+        init: RootedTraceableBox<RequestInit>,
+    ) -> Fallible<DomRoot<Request>> {
+        Self::constructor(global, proto, can_gc, input, &init)
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-method
