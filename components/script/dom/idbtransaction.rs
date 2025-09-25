@@ -114,7 +114,7 @@ impl IDBTransaction {
             )))
             .unwrap();
 
-        receiver.recv().unwrap()
+        receiver.recv().unwrap().unwrap()
     }
 
     // Runs the transaction and waits for it to finish
