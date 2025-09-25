@@ -199,7 +199,6 @@ pub struct LayoutThread {
     previously_highlighted_dom_node: Cell<Option<OpaqueNode>>,
 
     /// Whether is recording LCP.
-    /// TODO(shubhamg13): Add a prefs to enable/disable this.
     is_recording_lcp: bool,
 }
 
@@ -696,7 +695,7 @@ impl LayoutThread {
             resolved_images_cache: Default::default(),
             debug: opts::get().debug.clone(),
             previously_highlighted_dom_node: Cell::new(None),
-            is_recording_lcp: true,
+            is_recording_lcp: pref!(largest_contentful_paint_enabled),
         }
     }
 
