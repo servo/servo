@@ -56,6 +56,7 @@ pub struct PlatformFont {
     requested_face_size: Au,
     actual_face_size: Au,
     variations: Vec<FontVariation>,
+    synthetic_bold: bool,
 
     /// A member that allows using `skrifa` to read values from this font.
     table_provider_data: FreeTypeFaceTableProviderData,
@@ -67,6 +68,7 @@ impl PlatformFontMethods for PlatformFont {
         font_data: &FontData,
         requested_size: Option<Au>,
         variations: &[FontVariation],
+        synthetic_bold: Option<bool>,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
         let data: &[u8] = font_data.as_ref();
@@ -85,6 +87,7 @@ impl PlatformFontMethods for PlatformFont {
             actual_face_size,
             table_provider_data: FreeTypeFaceTableProviderData::Web(font_data.clone()),
             variations: normalized_variations,
+            synthetic_bold: synthetic_bold.unwrap_or_default(),
         })
     }
 
@@ -92,6 +95,7 @@ impl PlatformFontMethods for PlatformFont {
         font_identifier: LocalFontIdentifier,
         requested_size: Option<Au>,
         variations: &[FontVariation],
+        synthetic_bold: Option<bool>
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
         let filename = CString::new(&*font_identifier.path).expect("filename contains NUL byte!");
@@ -124,6 +128,7 @@ impl PlatformFontMethods for PlatformFont {
                 font_identifier.index(),
             ),
             variations: normalized_variations,
+            synthetic_bold: synthetic_bold.unwrap_or_default(),
         })
     }
 
@@ -183,6 +188,8 @@ impl PlatformFontMethods for PlatformFont {
         let void_glyph = face.as_ref().glyph;
         let slot: FT_GlyphSlot = void_glyph;
         assert!(!slot.is_null());
+
+        // TODO: mozilla_glyphslot_embolden_less
 
         let advance = unsafe { (*slot).metrics.horiAdvance };
         Some(fixed_26_dot_6_to_float(advance) * self.unscalable_font_metrics_scale())

@@ -183,6 +183,7 @@ windows-sys = "0.61"
 winit = "0.30.12"
 wio = "0.2"
 wr_malloc_size_of = { git = "https://github.com/servo/webrender", branch = "0.67" }
+wr_glyph_raterizer = { git = "https://github.com/servo/webrender", branch = "0.67" }
 xi-unicode = "0.3.0"
 xml5ever = "0.35"
 
@@ -231,15 +232,15 @@ codegen-units = 1
 #
 # Or for Stylo:
 #
-# [patch."https://github.com/servo/stylo"]
-# selectors = { path = "../stylo/selectors" }
-# servo_arc = { path = "../stylo/servo_arc" }
-# stylo = { path = "../stylo/style" }
-# stylo_atoms = { path = "../stylo/stylo_atoms" }
-# stylo_config = { path = "../stylo/stylo_config" }
-# stylo_dom = { path = "../stylo/stylo_dom" }
-# stylo_malloc_size_of = { path = "../stylo/malloc_size_of" }
-# stylo_traits = { path = "../stylo/style_traits" }
+[patch."https://github.com/servo/stylo"]
+selectors = { path = "../stylo/selectors" }
+servo_arc = { path = "../stylo/servo_arc" }
+stylo = { path = "../stylo/style" }
+stylo_atoms = { path = "../stylo/stylo_atoms" }
+stylo_config = { path = "../stylo/stylo_config" }
+stylo_dom = { path = "../stylo/stylo_dom" }
+stylo_malloc_size_of = { path = "../stylo/malloc_size_of" }
+stylo_traits = { path = "../stylo/style_traits" }
 #
 # Or for WebRender:
 #

@@ -10,7 +10,7 @@ use style::computed_values::font_variant_caps;
 use style::font_face::{FontFaceRuleData, FontStyle as FontFaceStyle};
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::{FixedPoint, FontStyleFixedPoint};
-use style::values::computed::{Au, FontStretch, FontStyle, FontWeight};
+use style::values::computed::{Au, FontStretch, FontStyle, FontWeight, FontSynthesis};
 use style::values::specified::FontStretch as SpecifiedFontStretch;
 use webrender_api::FontVariation;
 
@@ -26,6 +26,7 @@ pub struct FontDescriptor {
     pub variant: font_variant_caps::T,
     pub pt_size: Au,
     pub variation_settings: Vec<FontVariation>,
+    pub synthesis_weight: FontSynthesis,
 }
 
 impl Eq for FontDescriptor {}
@@ -41,6 +42,7 @@ impl<'a> From<&'a FontStyleStruct> for FontDescriptor {
                 value: setting.value,
             })
             .collect();
+        let synthesis_weight = style.clone_font_synthesis_weight();
         FontDescriptor {
             weight: style.font_weight,
             stretch: style.font_stretch,
@@ -48,6 +50,7 @@ impl<'a> From<&'a FontStyleStruct> for FontDescriptor {
             variant: style.font_variant_caps,
             pt_size: Au::from_f32_px(style.font_size.computed_size().px()),
             variation_settings,
+            synthesis_weight,
         }
     }
 }

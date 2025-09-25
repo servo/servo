@@ -66,13 +66,14 @@ pub trait PlatformFontMethods: Sized {
         pt_size: Option<Au>,
         variations: &[FontVariation],
         data: &Option<FontData>,
+        synthetic_bold: Option<bool>
     ) -> Result<PlatformFont, &'static str> {
         let template = template.borrow();
         let font_identifier = template.identifier.clone();
 
         match font_identifier {
             FontIdentifier::Local(font_identifier) => {
-                Self::new_from_local_font_identifier(font_identifier, pt_size, variations)
+                Self::new_from_local_font_identifier(font_identifier, pt_size, variations, synthetic_bold)
             },
             FontIdentifier::Web(_) => Self::new_from_data(
                 font_identifier,
@@ -80,6 +81,7 @@ pub trait PlatformFontMethods: Sized {
                     .expect("Should never create a web font without data."),
                 pt_size,
                 variations,
+                synthetic_bold,
             ),
         }
     }
@@ -88,6 +90,7 @@ pub trait PlatformFontMethods: Sized {
         font_identifier: LocalFontIdentifier,
         pt_size: Option<Au>,
         variations: &[FontVariation],
+        synthetic_bold: Option<bool>,
     ) -> Result<PlatformFont, &'static str>;
 
     fn new_from_data(
@@ -95,6 +98,7 @@ pub trait PlatformFontMethods: Sized {
         data: &FontData,
         pt_size: Option<Au>,
         variations: &[FontVariation],
+        synthetic_bold: Option<bool>,
     ) -> Result<PlatformFont, &'static str>;
 
     /// Get a [`FontTemplateDescriptor`] from a [`PlatformFont`]. This is used to get
@@ -264,11 +268,16 @@ impl Font {
         data: Option<FontData>,
         synthesized_small_caps: Option<FontRef>,
     ) -> Result<Font, &'static str> {
+        let synthetic_bold = descriptor.is_synthetic_bold() &&
+                            !template.is_bold() &&
+                            descriptor.synthetic_bold_allowed();
+
         let handle = PlatformFont::new_from_template(
             template.clone(),
             Some(descriptor.pt_size),
             &descriptor.variation_settings,
             &data,
+            Some(synthetic_bold),
         )?;
         let metrics = handle.metrics();
 
