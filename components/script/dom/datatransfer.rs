@@ -112,7 +112,7 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-dropeffect>
     fn SetDropEffect(&self, value: DOMString) {
-        if VALID_DROP_EFFECTS.contains(&value.as_ref()) {
+        if VALID_DROP_EFFECTS.contains(&value.str()) {
             *self.drop_effect.borrow_mut() = value;
         }
     }
@@ -129,7 +129,7 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
             .borrow()
             .as_ref()
             .is_some_and(|data_store| data_store.mode() == Mode::ReadWrite) &&
-            VALID_EFFECTS_ALLOWED.contains(&value.as_ref())
+            VALID_EFFECTS_ALLOWED.contains(&value.str())
         {
             *self.drop_effect.borrow_mut() = value;
         }
@@ -187,7 +187,7 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
         // Step 4 Let convert-to-URL be false.
         let mut convert_to_url = false;
 
-        let type_ = match format.as_ref() {
+        let type_ = match format.str() {
             // Step 5 If format equals "text", change it to "text/plain".
             "text" => DOMString::from("text/plain"),
             // Step 6 If format equals "url", change it to "text/uri-list" and set convert-to-URL to true.

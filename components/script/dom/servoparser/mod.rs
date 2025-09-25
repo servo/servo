@@ -1684,7 +1684,7 @@ fn create_element_for_token(
     let is = attrs
         .iter()
         .find(|attr| attr.name.local.eq_str_ignore_ascii_case("is"))
-        .map(|attr| LocalName::from(&*attr.value));
+        .map(|attr| LocalName::from(attr.value.str()));
 
     // Step 4.
     let definition = document.lookup_custom_element_definition(&name.ns, &name.local, is.as_ref());

@@ -1792,7 +1792,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://drafts.csswg.org/cssom-view/#dom-window-matchmedia
     fn MatchMedia(&self, query: DOMString) -> DomRoot<MediaQueryList> {
-        let media_query_list = MediaList::parse_media_list(&query, self);
+        let media_query_list = MediaList::parse_media_list(query.str(), self);
         let document = self.Document();
         let mql = MediaQueryList::new(&document, media_query_list, CanGc::note());
         self.media_query_lists.track(&*mql);
@@ -1881,7 +1881,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
         let iframe_iter = iframes.iter().map(|iframe| iframe.upcast::<Element>());
 
-        let name = Atom::from(&*name);
+        let name = Atom::from(name);
 
         // Step 1.
         let elements_with_name = document.get_elements_with_name(&name);

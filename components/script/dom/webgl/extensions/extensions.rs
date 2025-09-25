@@ -10,6 +10,7 @@ use canvas_traits::webgl::{GlType, TexFormat, WebGLSLVersion, WebGLVersion};
 use js::jsapi::JSObject;
 use malloc_size_of::MallocSizeOf;
 use rustc_hash::{FxHashMap, FxHashSet};
+use script_bindings::str::DOMString;
 type GLenum = u32;
 
 use super::wrapper::{TypedWebGLExtensionWrapper, WebGLExtensionWrapper};
@@ -229,7 +230,7 @@ impl WebGLExtensions {
 
     pub(crate) fn get_or_init_extension(
         &self,
-        name: &str,
+        name: &DOMString,
         ctx: &WebGLRenderingContext,
     ) -> Option<NonNull<JSObject>> {
         let name = name.to_uppercase();

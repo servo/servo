@@ -151,7 +151,7 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
             url_data: &url_data,
             for_supports_rule: false,
         };
-        let mut css_parser = CssParserInput::new(&value);
+        let mut css_parser = CssParserInput::new(value.str());
         let mut css_parser = CssParser::new(&mut css_parser);
         // TODO: Maybe allow setting relative selectors from the OM, if we're in a nested style
         // rule?

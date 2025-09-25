@@ -70,7 +70,7 @@ impl TrustedHTML {
 impl fmt::Display for TrustedHTML {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(&self.data)
+        f.write_str(self.data.str())
     }
 }
 

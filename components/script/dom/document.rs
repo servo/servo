@@ -3108,7 +3108,7 @@ impl Document {
                 &format!("{} {}", containing_class, field),
                 can_gc,
             )?
-            .as_ref()
+            .str()
             .to_owned();
         }
         // Step 5: If lineFeed is true, append U+000A LINE FEED to string.
@@ -3219,7 +3219,7 @@ impl<'dom> LayoutDocumentHelpers<'dom> for LayoutDom<'dom, Document> {
 // The spec says to return a bool, we actually return an Option<Host> containing
 // the parsed host in the successful case, to avoid having to re-parse the host.
 fn get_registrable_domain_suffix_of_or_is_equal_to(
-    host_suffix_string: &str,
+    host_suffix_string: &DOMString,
     original_host: Host,
 ) -> Option<Host> {
     // Step 1
@@ -3228,7 +3228,7 @@ fn get_registrable_domain_suffix_of_or_is_equal_to(
     }
 
     // Step 2-3.
-    let host = match Host::parse(host_suffix_string) {
+    let host = match Host::parse(host_suffix_string.str()) {
         Ok(host) => host,
         Err(_) => return None,
     };
@@ -3684,7 +3684,7 @@ impl Document {
         if element.namespace() != &ns!(html) {
             return false;
         }
-        element.get_name().is_some_and(|n| *n == **name)
+        element.get_name().is_some_and(|n| *n == *name)
     }
 
     fn count_node_list<F: Fn(&Node) -> bool>(&self, callback: F) -> u32 {
@@ -4669,7 +4669,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         qualified_name: DOMString,
         can_gc: CanGc,
     ) -> DomRoot<HTMLCollection> {
-        let qualified_name = LocalName::from(&*qualified_name);
+        let qualified_name = LocalName::from(qualified_name.str());
         if let Some(entry) = self.tag_map.borrow_mut().get(&qualified_name) {
             return DomRoot::from_ref(entry);
         }
@@ -4708,7 +4708,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
     fn GetElementsByClassName(&self, classes: DOMString, can_gc: CanGc) -> DomRoot<HTMLCollection> {
-        let class_atoms: Vec<Atom> = split_html_space_chars(&classes).map(Atom::from).collect();
+        let class_atoms: Vec<Atom> = split_html_space_chars(classes.str())
+            .map(Atom::from)
+            .collect();
         if let Some(collection) = self.classes_map.borrow().get(&class_atoms) {
             return DomRoot::from_ref(collection);
         }

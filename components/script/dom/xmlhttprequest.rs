@@ -552,7 +552,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         // Step 4 (first half)
         let mut extracted_or_serialized = match data {
             Some(DocumentOrXMLHttpRequestBodyInit::Document(ref doc)) => {
-                let bytes = Vec::from(serialize_document(doc)?.as_ref());
+                let bytes = Vec::from(serialize_document(doc)?.str());
                 let content_type = if doc.is_html_document() {
                     "text/html;charset=UTF-8"
                 } else {
@@ -720,7 +720,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
             if !request.headers.contains_key(header::CONTENT_TYPE) {
                 request.headers.insert(
                     header::CONTENT_TYPE,
-                    HeaderValue::from_str(&content_type).unwrap(),
+                    HeaderValue::from_str(content_type.str()).unwrap(),
                 );
                 content_type_set = true;
             }
