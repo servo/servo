@@ -483,7 +483,7 @@ impl WindowProxy {
         can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<WindowProxy>>> {
         // Step 5. If target is the empty string, then set target to "_blank".
-        let non_empty_target = match target.as_ref() {
+        let non_empty_target = match target.str() {
             "" => DOMString::from("_blank"),
             _ => target,
         };

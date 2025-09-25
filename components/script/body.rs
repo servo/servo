@@ -507,7 +507,7 @@ impl Extractable for Vec<u8> {
 impl Extractable for Blob {
     fn extract(&self, _global: &GlobalScope, can_gc: CanGc) -> Fallible<ExtractedBody> {
         let blob_type = self.Type();
-        let content_type = if blob_type.as_ref().is_empty() {
+        let content_type = if blob_type.is_empty() {
             None
         } else {
             Some(blob_type)

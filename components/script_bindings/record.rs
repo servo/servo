@@ -36,7 +36,7 @@ pub trait RecordKey: Eq + Hash + Sized {
 
 impl RecordKey for DOMString {
     fn to_utf16_vec(&self) -> Vec<u16> {
-        self.encode_utf16().collect::<Vec<_>>()
+        self.str().encode_utf16().collect::<Vec<_>>()
     }
 
     unsafe fn from_id(cx: *mut JSContext, id: HandleId) -> Result<ConversionResult<Self>, ()> {

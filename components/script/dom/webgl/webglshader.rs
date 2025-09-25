@@ -206,7 +206,7 @@ impl WebGLShader {
             options.set_clampIndirectArrayBounds(1);
         }
 
-        match validator.compile(&[&source], options) {
+        match validator.compile(&[source.str()], options) {
             Ok(()) => {
                 let translated_source = validator.object_code();
                 debug!("Shader translated: {}", translated_source);

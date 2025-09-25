@@ -8,7 +8,7 @@ use std::default::Default;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
-use std::str::FromStr;
+use std::str::{Chars, EncodeUtf16, FromStr};
 use std::sync::LazyLock;
 use std::{fmt, ops, slice, str};
 
@@ -18,6 +18,7 @@ use js::rust::wrappers::ToJSON;
 use js::rust::{HandleObject, HandleValue};
 use num_traits::Zero;
 use regex::Regex;
+use style::str::HTML_SPACE_CHARACTERS;
 use stylo_atoms::Atom;
 
 use crate::error::Error;
@@ -296,6 +297,67 @@ impl DOMString {
             self.0 = parsed_value.to_string()
         }
     }
+
+    // What follows are the functions inherited from std::string
+    pub fn make_ascii_lowercase(&mut self) {
+        self.0.make_ascii_lowercase();
+    }
+
+    pub fn to_ascii_lowercase(&self) -> String {
+        self.0.to_ascii_lowercase()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn chars(&self) -> Chars<'_> {
+        self.0.chars()
+    }
+
+    pub fn parse<T: FromStr>(&self) -> Result<T, <T as FromStr>::Err> {
+        self.0.parse::<T>()
+    }
+
+    pub fn contains(&self, needle: &str) -> bool {
+        self.0.contains(needle)
+    }
+
+    pub fn to_lowercase(&self) -> String {
+        self.0.to_lowercase()
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        self.0.as_bytes()
+    }
+
+    pub fn to_uppercase(&self) -> String {
+        self.0.to_uppercase()
+    }
+
+    pub fn encode_utf16(&self) -> EncodeUtf16<'_> {
+        self.0.encode_utf16()
+    }
+
+    pub fn find(&self, c: char) -> Option<usize> {
+        self.0.find(c)
+    }
+
+    pub fn starts_with(&self, c: char) -> bool {
+        self.0.starts_with(c)
+    }
+
+    pub fn starts_with_str(&self, needle: &str) -> bool {
+        self.0.starts_with(needle)
+    }
+
+    pub fn contains_html_space_characters(&self) -> bool {
+        self.0.contains(HTML_SPACE_CHARACTERS)
+    }
 }
 
 /// Because this converts to a DOMString it becomes UTF-8 encoded which is closer to
@@ -401,6 +463,12 @@ impl fmt::Display for DOMString {
 impl PartialEq<str> for DOMString {
     fn eq(&self, other: &str) -> bool {
         &**self == other
+    }
+}
+
+impl PartialEq<DOMString> for str {
+    fn eq(&self, other: &DOMString) -> bool {
+        self == other.str()
     }
 }
 

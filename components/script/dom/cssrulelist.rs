@@ -9,6 +9,7 @@ use std::cell::RefCell;
 use dom_struct::dom_struct;
 use itertools::izip;
 use script_bindings::inheritance::Castable;
+use script_bindings::str::DOMString;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, SharedRwLockReadGuard};
 use style::stylesheets::{
@@ -105,7 +106,7 @@ impl CSSRuleList {
     /// for keyframes-backed rules.
     pub(crate) fn insert_rule(
         &self,
-        rule: &str,
+        rule: &DOMString,
         idx: u32,
         containing_rule_types: CssRuleTypes,
         parse_relative_rule_type: Option<CssRuleType>,
@@ -138,7 +139,7 @@ impl CSSRuleList {
         let new_rule = css_rules
             .insert_rule(
                 &parent_stylesheet.shared_lock,
-                rule,
+                rule.str(),
                 &parent_stylesheet.contents,
                 index,
                 containing_rule_types,

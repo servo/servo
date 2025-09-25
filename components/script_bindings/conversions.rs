@@ -75,7 +75,7 @@ pub enum StringificationBehavior {
 // https://heycam.github.io/webidl/#es-DOMString
 impl ToJSValConvertible for DOMString {
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        (**self).to_jsval(cx, rval);
+        self.str().to_jsval(cx, rval);
     }
 }
 

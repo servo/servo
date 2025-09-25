@@ -465,7 +465,7 @@ impl JsTimers {
                 // If this throws an exception, catch it, report it for global, and abort these steps.
                 if global
                     .get_csp_list()
-                    .is_js_evaluation_allowed(global, code_str.as_ref())
+                    .is_js_evaluation_allowed(global, code_str.str())
                 {
                     // Step 9.6.2. Assert: handler is a string.
                     InternalTimerCallback::StringTimerCallback(code_str)
@@ -611,7 +611,7 @@ impl JsTimerTask {
                 //
                 // FIXME(cybai): Use base url properly by saving private reference for timers (#27260)
                 _ = global.evaluate_js_on_global_with_result(
-                    code_str,
+                    code_str.str(),
                     rval.handle_mut(),
                     ScriptFetchOptions::default_classic_script(&global),
                     // Step 9.6. Let base URL be settings object's API base URL.

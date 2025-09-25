@@ -345,7 +345,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
     ) -> ErrorResult {
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let constructor = constructor_.callback());
-        let name = LocalName::from(&*name);
+        let name = LocalName::from(name);
 
         // Step 1. If IsConstructor(constructor) is false, then throw a TypeError.
         // We must unwrap the constructor as all wrappers are constructable if they are callable.
@@ -392,19 +392,19 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             // TODO Step 7.1 If this's is scoped is true, then throw a "NotSupportedError" DOMException.
 
             // Step 7.2 If extends is a valid custom element name, then throw a "NotSupportedError" DOMException.
-            if is_valid_custom_element_name(extended_name) {
+            if is_valid_custom_element_name(extended_name.str()) {
                 return Err(Error::NotSupported);
             }
 
             // Step 7.3 If the element interface for extends and the HTML namespace is HTMLUnknownElement
             // (e.g., if extends does not indicate an element definition in this specification)
             // then throw a "NotSupportedError" DOMException.
-            if !is_extendable_element_interface(extended_name) {
+            if !is_extendable_element_interface(extended_name.str()) {
                 return Err(Error::NotSupported);
             }
 
             // Step 7.4 Set localName to extends.
-            LocalName::from(&**extended_name)
+            LocalName::from(extended_name.str())
         } else {
             // Step 5. Let localName be name.
             name.clone()
@@ -556,7 +556,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-get>
     fn Get(&self, cx: JSContext, name: DOMString, mut retval: MutableHandleValue) {
-        match self.definitions.borrow().get(&LocalName::from(&*name)) {
+        match self.definitions.borrow().get(&LocalName::from(name)) {
             Some(definition) => definition.constructor.safe_to_jsval(cx, retval),
             None => retval.set(UndefinedValue()),
         }
@@ -574,7 +574,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-whendefined>
     fn WhenDefined(&self, name: DOMString, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
-        let name = LocalName::from(&*name);
+        let name = LocalName::from(name);
 
         // Step 1
         if !is_valid_custom_element_name(&name) {
@@ -1291,7 +1291,6 @@ impl ElementQueue {
 pub(crate) fn is_valid_custom_element_name(name: &str) -> bool {
     // Custom elment names must match:
     // PotentialCustomElementName ::= [a-z] (PCENChar)* '-' (PCENChar)*
-
     let mut chars = name.chars();
     if !chars.next().is_some_and(|c| c.is_ascii_lowercase()) {
         return false;

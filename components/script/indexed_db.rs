@@ -106,11 +106,11 @@ pub(crate) fn is_valid_key_path(key_path: &StrOrStringSequence) -> Result<bool, 
 
         // An identifier, which is a string matching the IdentifierName production from the
         // ECMAScript Language Specification [ECMA-262].
-        let is_identifier = is_identifier_name(path)?;
+        let is_identifier = is_identifier_name(path.str())?;
 
         // A string consisting of two or more identifiers separated by periods (U+002E FULL STOP).
         let is_identifier_list = path
-            .split(".")
+            .split('.')
             .map(is_identifier_name)
             .try_collect::<bool, Vec<bool>, Error>()?
             .iter()

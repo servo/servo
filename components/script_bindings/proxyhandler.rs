@@ -517,7 +517,10 @@ pub(crate) fn report_cross_origin_denial<D: DomTypes>(
     debug!(
         "permission denied to {} property {} on cross-origin object",
         access,
-        id_to_source(cx, id).as_deref().unwrap_or("< error >"),
+        id_to_source(cx, id)
+            .as_ref()
+            .map(|source| source.str())
+            .unwrap_or("< error >"),
     );
     let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
     unsafe {
