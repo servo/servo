@@ -16,7 +16,7 @@ use aes::cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit, StreamCipher};
 use aes::{Aes128, Aes192, Aes256};
 use aes_gcm::{AeadInPlace, AesGcm, KeyInit};
 use aes_kw::{KekAes128, KekAes192, KekAes256};
-use aws_lc_rs::{digest, hkdf, hmac, pbkdf2};
+use aws_lc_rs::{hkdf, hmac, pbkdf2};
 use base64::prelude::*;
 use cipher::consts::{U12, U16, U32};
 use dom_struct::dom_struct;
@@ -73,7 +73,6 @@ const ALG_RSA_PSS: &str = "RSA-PSS";
 const ALG_ECDH: &str = "ECDH";
 const ALG_ECDSA: &str = "ECDSA";
 
-#[allow(dead_code)]
 static SUPPORTED_ALGORITHMS: &[&str] = &[
     ALG_AES_CBC,
     ALG_AES_CTR,
@@ -100,7 +99,7 @@ const NAMED_CURVE_P521: &str = "P-521";
 static SUPPORTED_CURVES: &[&str] = &[NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521];
 
 /// <https://w3c.github.io/webcrypto/#supported-operation>
-#[allow(unused)]
+#[allow(dead_code)]
 enum Operation {
     Encrypt,
     Decrypt,
@@ -155,29 +154,50 @@ impl SubtleCrypto {
     }
 
     /// Queue a global task on the crypto task source, given realm's global object, to resolve
+    /// promise with the result of creating an ArrayBuffer in realm, containing data. If it fails
+    /// to create buffer source, reject promise with a JSFailedError.
+    fn resolve_promise_with_data(&self, promise: Rc<Promise>, data: Vec<u8>) {
+        let trusted_promise = TrustedPromise::new(promise);
+        self.global().task_manager().crypto_task_source().queue(
+            task!(resolve_data: move || {
+                let promise = trusted_promise.root();
+
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
+                match create_buffer_source::<ArrayBufferU8>(cx, &data, array_buffer_ptr.handle_mut(), CanGc::note()) {
+                    Ok(_) => promise.resolve_native(&*array_buffer_ptr, CanGc::note()),
+                    Err(_) => promise.reject_error(Error::JSFailed, CanGc::note()),
+                }
+            }),
+        );
+    }
+
+    /// Queue a global task on the crypto task source, given realm's global object, to resolve
     /// promise with a CryptoKey.
     fn resolve_promise_with_key(&self, promise: Rc<Promise>, key: DomRoot<CryptoKey>) {
         let trusted_key = Trusted::new(&*key);
         let trusted_promise = TrustedPromise::new(promise);
-        self.global().task_manager().crypto_task_source().queue(
-            task!(generate_key_result: move || {
+        self.global()
+            .task_manager()
+            .crypto_task_source()
+            .queue(task!(resolve_key: move || {
                 let key = trusted_key.root();
                 let promise = trusted_promise.root();
                 promise.resolve_native(&key, CanGc::note());
-            }),
-        );
+            }));
     }
 
     /// Queue a global task on the crypto task source, given realm's global object, to reject
     /// promise with an error.
     fn reject_promise_with_error(&self, promise: Rc<Promise>, error: Error) {
         let trusted_promise = TrustedPromise::new(promise);
-        self.global().task_manager().crypto_task_source().queue(
-            task!(generate_key_result: move || {
+        self.global()
+            .task_manager()
+            .crypto_task_source()
+            .queue(task!(reject_error: move || {
                 let promise = trusted_promise.root();
                 promise.reject_error(error, CanGc::note());
-            }),
-        );
+            }));
     }
 }
 
@@ -487,6 +507,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         can_gc: CanGc,
     ) -> Rc<Promise> {
         // Step 1. Let algorithm be the algorithm parameter passed to the digest() method.
+        // NOTE: We did that in method parameter.
 
         // Step 2. Let data be the result of getting a copy of the bytes held by the
         // data parameter passed to the digest() method.
@@ -498,48 +519,51 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // Step 3. Let normalizedAlgorithm be the result of normalizing an algorithm,
         // with alg set to algorithm and op set to "digest".
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let normalized_algorithm = match normalize_algorithm_for_digest(cx, &algorithm, can_gc) {
-            Ok(normalized_algorithm) => normalized_algorithm,
-            Err(e) => {
-                // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-                promise.reject_error(e, can_gc);
-                return promise;
-            },
-        };
+        let normalized_algorithm =
+            match normalize_algorithm(cx, &Operation::Digest, &algorithm, can_gc) {
+                Ok(normalized_algorithm) => normalized_algorithm,
+                Err(error) => {
+                    // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
+                    promise.reject_error(error, can_gc);
+                    return promise;
+                },
+            };
 
-        // Step 5. Let promise be a new Promise.
-        // NOTE: We did that in preparation of Step 4.
+        // Step 5. Let realm be the relevant realm of this.
+        // Step 6. Let promise be a new Promise.
+        // NOTE: We did that in preparation of Step 3.
 
-        // Step 6. Return promise and perform the remaining steps in parallel.
+        // Step 7. Return promise and perform the remaining steps in parallel.
+        let this = Trusted::new(self);
         let trusted_promise = TrustedPromise::new(promise.clone());
-
-        self.global().task_manager().dom_manipulation_task_source().queue(
-            task!(generate_key: move || {
-                // Step 7. If the following steps or referenced procedures say to throw an error, reject promise
-                // with the returned error and then terminate the algorithm.
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(generate_key: move || {
+                let subtle = this.root();
                 let promise = trusted_promise.root();
 
-                // Step 8. Let result be the result of performing the digest operation specified by
+                // Step 8. If the following steps or referenced procedures say to throw an error,
+                // queue a global task on the crypto task source, given realm's global object, to
+                // reject promise with the returned error; and then terminate the algorithm.
+
+                // Step 9. Let digest be the result of performing the digest operation specified by
                 // normalizedAlgorithm using algorithm, with data as message.
                 let digest = match normalized_algorithm.digest(&data) {
                     Ok(digest) => digest,
-                    Err(e) => {
-                        promise.reject_error(e, CanGc::note());
+                    Err(error) => {
+                        subtle.reject_promise_with_error(promise, error);
                         return;
                     }
                 };
 
-                let cx = GlobalScope::get_cx();
-                rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-                create_buffer_source::<ArrayBufferU8>(cx, digest.as_ref(), array_buffer_ptr.handle_mut(), CanGc::note())
-                    .expect("failed to create buffer source for exported key.");
-
-
-                // Step 9. Resolve promise with result.
-                promise.resolve_native(&*array_buffer_ptr, CanGc::note());
-            })
-        );
-
+                // Step 10. Queue a global task on the crypto task source, given realm's global
+                // object, to perform the remaining steps.
+                // Step 11. Let result be the result of creating an ArrayBuffer in realm,
+                // containing digest.
+                // Step 12. Resolve promise with result.
+                subtle.resolve_promise_with_data(promise, digest);
+            }));
         promise
     }
 
@@ -3438,16 +3462,6 @@ impl DigestAlgorithm {
         .into()
     }
 
-    fn digest(&self, data: &[u8]) -> Result<impl AsRef<[u8]>, Error> {
-        let algorithm = match self {
-            Self::Sha1 => &digest::SHA1_FOR_LEGACY_USE_ONLY,
-            Self::Sha256 => &digest::SHA256,
-            Self::Sha384 => &digest::SHA384,
-            Self::Sha512 => &digest::SHA512,
-        };
-        Ok(digest::digest(algorithm, data))
-    }
-
     fn block_size_in_bits(&self) -> usize {
         match self {
             Self::Sha1 => 160,
@@ -3842,14 +3856,12 @@ impl JsonWebKeyExt for JsonWebKey {
 /// binding of) IDL dictionary types.
 ///
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm>
-#[allow(unused)]
 enum NormalizedAlgorithm {
     Algorithm(SubtleAlgorithm),
     AesCtrParams(SubtleAesCtrParams),
 }
 
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm>
-#[allow(unused)]
 fn normalize_algorithm(
     cx: JSContext,
     op: &Operation,
@@ -3939,19 +3951,23 @@ fn normalize_algorithm(
 
                 // <https://w3c.github.io/webcrypto/#sha-registration>
                 (ALG_SHA1, Operation::Digest) => {
-                    let params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+                    let mut params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::Algorithm(params.into())
                 },
                 (ALG_SHA256, Operation::Digest) => {
-                    let params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+                    let mut params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::Algorithm(params.into())
                 },
                 (ALG_SHA384, Operation::Digest) => {
-                    let params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+                    let mut params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::Algorithm(params.into())
                 },
                 (ALG_SHA512, Operation::Digest) => {
-                    let params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+                    let mut params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::Algorithm(params.into())
                 },
                 _ => return Err(Error::NotSupported),
@@ -3979,7 +3995,6 @@ impl NormalizedAlgorithm {
     // sign
     // verify
 
-    #[allow(unused)]
     fn digest(&self, message: &[u8]) -> Result<Vec<u8>, Error> {
         match self {
             NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
