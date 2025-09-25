@@ -2201,7 +2201,7 @@ fn block_size_is_zero_or_intrinsic(size: &StyleSize, containing_block: &Containi
         StyleSize::MaxContent |
         StyleSize::FitContent |
         StyleSize::FitContentFunction(_) => true,
-        StyleSize::Stretch => {
+        StyleSize::Stretch | StyleSize::WebkitFillAvailable => {
             // TODO: Should this return true when the containing block has a definite size of 0px?
             !containing_block.size.block.is_definite()
         },
