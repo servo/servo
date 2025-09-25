@@ -1298,7 +1298,7 @@ impl CanvasState {
             repetition.push_str("repeat");
         }
 
-        if let Ok(rep) = RepetitionStyle::from_str(&repetition) {
+        if let Ok(rep) = RepetitionStyle::from_str(repetition.str()) {
             let size = snapshot.size();
             Ok(Some(CanvasPattern::new(
                 global,
@@ -1357,7 +1357,7 @@ impl CanvasState {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
     pub(super) fn set_global_composite_operation(&self, op_str: DOMString) {
-        if let Ok(op) = CompositionOrBlending::from_str(&op_str) {
+        if let Ok(op) = CompositionOrBlending::from_str(op_str.str()) {
             self.state.borrow_mut().global_composition = op;
         }
     }
@@ -2506,9 +2506,9 @@ impl UnshapedTextRun<'_> {
 
 pub(super) fn parse_color(
     canvas: Option<&HTMLCanvasElement>,
-    string: &str,
+    string: &DOMString,
 ) -> Result<AbsoluteColor, ()> {
-    let mut input = ParserInput::new(string);
+    let mut input = ParserInput::new(string.str());
     let mut parser = Parser::new(&mut input);
     let url = Url::parse("about:blank").unwrap().into();
     let context = ParserContext::new(

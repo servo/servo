@@ -685,8 +685,8 @@ impl HTMLFormElement {
                 .get_string_attribute(&local_name!("accept-charset"));
 
             // Substep 2, 3, 4
-            let mut candidate_encodings =
-                split_html_space_chars(&input).filter_map(|c| Encoding::for_label(c.as_bytes()));
+            let mut candidate_encodings = split_html_space_chars(input.str())
+                .filter_map(|c| Encoding::for_label(c.as_bytes()));
 
             // Substep 5, 6
             return candidate_encodings.next().unwrap_or(UTF_8);
@@ -829,7 +829,7 @@ impl HTMLFormElement {
             action = DOMString::from(base.as_str());
         }
         // Step 12-13
-        let action_components = match base.join(&action) {
+        let action_components = match base.join(action.str()) {
             Ok(url) => url,
             Err(_) => return,
         };
@@ -940,7 +940,7 @@ impl HTMLFormElement {
             &mut load_data.url,
             form_data
                 .iter()
-                .map(|field| (&*field.name, field.replace_value(charset))),
+                .map(|field| (field.name.str(), field.replace_value(charset))),
         );
 
         self.plan_to_navigate(load_data, target);
@@ -969,7 +969,7 @@ impl HTMLFormElement {
                     &mut url,
                     form_data
                         .iter()
-                        .map(|field| (&*field.name, field.replace_value(charset))),
+                        .map(|field| (field.name.str(), field.replace_value(charset))),
                 );
 
                 url.query().unwrap_or("").to_string().into_bytes()
@@ -1491,7 +1491,7 @@ impl FormSubmitterElement<'_> {
                 |f| f.Enctype(),
             ),
         };
-        match &*attr {
+        match attr.str() {
             "multipart/form-data" => FormEncType::MultipartFormData,
             "text/plain" => FormEncType::TextPlain,
             // https://html.spec.whatwg.org/multipage/#attr-fs-enctype
@@ -1514,7 +1514,7 @@ impl FormSubmitterElement<'_> {
                 |f| f.Method(),
             ),
         };
-        match &*attr {
+        match attr.str() {
             "dialog" => FormMethod::Dialog,
             "post" => FormMethod::Post,
             _ => FormMethod::Get,
@@ -1896,7 +1896,7 @@ pub(crate) fn encode_multipart_form_data(
     let mut result = vec![];
 
     // Newline replacement routine as described in Step 1
-    fn clean_crlf(s: &str) -> DOMString {
+    fn clean_crlf(s: &DOMString) -> DOMString {
         let mut buf = "".to_owned();
         let mut prev = ' ';
         for ch in s.chars() {

@@ -1609,7 +1609,7 @@ fn get_correct_referrerpolicy_from_raw_token(token: &DOMString) -> DOMString {
         // so it should remain unchanged.
         DOMString::new()
     } else {
-        let policy = determine_policy_for_token(token);
+        let policy = determine_policy_for_token(token.str());
 
         if policy == ReferrerPolicy::EmptyString {
             return DOMString::new();

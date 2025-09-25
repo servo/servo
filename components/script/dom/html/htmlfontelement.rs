@@ -177,12 +177,12 @@ impl HTMLFontElementLayoutHelpers for LayoutDom<'_, HTMLFontElement> {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-legacy-font-size>
-fn parse_size(mut input: &str) -> AttrValue {
+fn parse_size(input: &DOMString) -> AttrValue {
     let original_input = input;
     // Steps 1 & 2 are not relevant
 
     // Step 3
-    input = input.trim_matches(HTML_SPACE_CHARACTERS);
+    let input = input.str().trim_matches(HTML_SPACE_CHARACTERS);
 
     enum ParseMode {
         RelativePlus,
@@ -192,7 +192,7 @@ fn parse_size(mut input: &str) -> AttrValue {
     let mut input_chars = input.chars().peekable();
     let parse_mode = match input_chars.peek() {
         // Step 4
-        None => return AttrValue::String(original_input.into()),
+        None => return AttrValue::String(original_input.str().into()),
 
         // Step 5
         Some(&'+') => {
@@ -209,7 +209,7 @@ fn parse_size(mut input: &str) -> AttrValue {
     // Steps 6, 7, 8
     let mut value = match read_numbers(input_chars) {
         (Some(v), _) if v >= 0 => v,
-        _ => return AttrValue::String(original_input.into()),
+        _ => return AttrValue::String(original_input.str().into()),
     };
 
     // Step 9
@@ -220,5 +220,5 @@ fn parse_size(mut input: &str) -> AttrValue {
     }
 
     // Steps 10, 11, 12
-    AttrValue::UInt(original_input.into(), value as u32)
+    AttrValue::UInt(original_input.str().into(), value as u32)
 }

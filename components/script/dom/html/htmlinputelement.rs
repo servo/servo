@@ -19,6 +19,7 @@ use embedder_traits::{
 use encoding_rs::Encoding;
 use euclid::{Point2D, Rect, Size2D};
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
+use itertools::Itertools;
 use js::jsapi::{
     ClippedTime, DateGetMsecSinceEpoch, Handle, JS_ClearPendingException, JSObject, NewDateObject,
     NewUCRegExpObject, ObjectIsDate, RegExpFlag_UnicodeSets, RegExpFlags,
@@ -34,7 +35,7 @@ use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use servo_config::pref;
 use style::attr::AttrValue;
 use style::selector_parser::PseudoElement;
-use style::str::{split_commas, str_join};
+use style::str::split_commas;
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
 use time::{Month, OffsetDateTime, Time};
@@ -1000,12 +1001,12 @@ impl HTMLInputElement {
 
         match self.input_type() {
             // https://html.spec.whatwg.org/multipage/#url-state-(type%3Durl)%3Asuffering-from-a-type-mismatch
-            InputType::Url => Url::parse(value).is_err(),
+            InputType::Url => Url::parse(value.str()).is_err(),
             // https://html.spec.whatwg.org/multipage/#e-mail-state-(type%3Demail)%3Asuffering-from-a-type-mismatch
             // https://html.spec.whatwg.org/multipage/#e-mail-state-(type%3Demail)%3Asuffering-from-a-type-mismatch-2
             InputType::Email => {
                 if self.Multiple() {
-                    !split_commas(value).all(|string| string.is_valid_email_address_string())
+                    !split_commas(value.str()).all(|string| string.is_valid_email_address_string())
                 } else {
                     !value.str().is_valid_email_address_string()
                 }
@@ -1029,12 +1030,12 @@ impl HTMLInputElement {
         let _ac = enter_realm(self);
         rooted!(in(*cx) let mut pattern = ptr::null_mut::<JSObject>());
 
-        if compile_pattern(cx, &pattern_str, pattern.handle_mut()) {
+        if compile_pattern(cx, pattern_str.str(), pattern.handle_mut()) {
             if self.Multiple() && self.does_multiple_apply() {
-                !split_commas(value)
+                !split_commas(value.str())
                     .all(|s| matches_js_regex(cx, pattern.handle(), s).unwrap_or(true))
             } else {
-                !matches_js_regex(cx, pattern.handle(), value).unwrap_or(true)
+                !matches_js_regex(cx, pattern.handle(), value.str()).unwrap_or(true)
             }
         } else {
             // Element doesn't suffer from pattern mismatch if pattern is invalid.
@@ -1495,8 +1496,8 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
                 let sel = UTF8Bytes::unwrap_range(sorted_selection_offsets_range);
 
                 // Translate indices from the raw value to indices in the replacement value.
-                let char_start = text[..sel.start].chars().count();
-                let char_end = char_start + text[sel].chars().count();
+                let char_start = text.str()[..sel.start].chars().count();
+                let char_end = char_start + text.str()[sel].chars().count();
 
                 let bytes_per_char = PASSWORD_REPLACEMENT_CHAR.len_utf8();
                 Some(char_start * bytes_per_char..char_end * bytes_per_char)
@@ -1666,7 +1667,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                     Some(ref fl) => match fl.Item(0) {
                         Some(ref f) => {
                             path.push_str("C:\\fakepath\\");
-                            path.push_str(f.name());
+                            path.push_str(f.name().str());
                             path
                         },
                         None => path,
@@ -2373,7 +2374,7 @@ impl HTMLInputElement {
             let opt_test_paths = opt_test_paths.map(|paths| {
                 paths
                     .iter()
-                    .filter_map(|p| PathBuf::from_str(p).ok())
+                    .filter_map(|p| PathBuf::from_str(p.str()).ok())
                     .collect()
             });
 
@@ -2559,15 +2560,14 @@ impl HTMLInputElement {
                     value.strip_newlines();
                     value.strip_leading_and_trailing_ascii_whitespace();
                 } else {
-                    let sanitized = str_join(
-                        split_commas(value).map(|token| {
-                            let mut token = DOMString::from_string(token.to_string());
+                    let sanitized = split_commas(value.str())
+                        .map(|token| {
+                            let mut token = DOMString::from(token.to_string());
                             token.strip_newlines();
                             token.strip_leading_and_trailing_ascii_whitespace();
                             token
-                        }),
-                        ",",
-                    );
+                        })
+                        .join(",");
                     value.clear();
                     value.push_str(sanitized.as_str());
                 }
@@ -2822,9 +2822,9 @@ impl HTMLInputElement {
             );
             let current_value = self.Value();
             let current_color = RgbColor {
-                red: u8::from_str_radix(&current_value[1..3], 16).unwrap(),
-                green: u8::from_str_radix(&current_value[3..5], 16).unwrap(),
-                blue: u8::from_str_radix(&current_value[5..7], 16).unwrap(),
+                red: u8::from_str_radix(&current_value.str()[1..3], 16).unwrap(),
+                green: u8::from_str_radix(&current_value.str()[3..5], 16).unwrap(),
+                blue: u8::from_str_radix(&current_value.str()[5..7], 16).unwrap(),
             };
             document.send_to_embedder(EmbedderMsg::ShowFormControl(
                 document.webview_id(),
@@ -3573,7 +3573,7 @@ impl Activatable for HTMLInputElement {
 // https://html.spec.whatwg.org/multipage/#attr-input-accept
 fn filter_from_accept(s: &DOMString) -> Vec<FilterPattern> {
     let mut filter = vec![];
-    for p in split_commas(s) {
+    for p in split_commas(s.str()) {
         let p = p.trim();
         if let Some('.') = p.chars().next() {
             filter.push(FilterPattern(p[1..].to_string()));

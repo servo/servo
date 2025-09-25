@@ -270,7 +270,9 @@ impl HTMLCollection {
         classes: DOMString,
         can_gc: CanGc,
     ) -> DomRoot<HTMLCollection> {
-        let class_atoms = split_html_space_chars(&classes).map(Atom::from).collect();
+        let class_atoms = split_html_space_chars(classes.str())
+            .map(Atom::from)
+            .collect();
         HTMLCollection::by_atomic_class_name(window, root, class_atoms, can_gc)
     }
 
