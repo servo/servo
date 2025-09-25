@@ -4051,6 +4051,7 @@ dependencies = [
  "mime",
  "serde",
  "serde_bytes",
+ "serde_core",
  "serde_test",
 ]
 
