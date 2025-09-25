@@ -190,6 +190,9 @@ impl PlatformFontMethods for PlatformFont {
         assert!(!slot.is_null());
 
         // TODO: mozilla_glyphslot_embolden_less
+        if self.synthetic_bold {
+            mozilla_glyphslot_embolden_less(slot);
+        }
 
         let advance = unsafe { (*slot).metrics.horiAdvance };
         Some(fixed_26_dot_6_to_float(advance) * self.unscalable_font_metrics_scale())
@@ -401,4 +404,47 @@ impl std::fmt::Debug for FreeTypeFaceTableProviderData {
     fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Ok(())
     }
+}
+
+// TODO: remove this once git dep of wr_glyph_rasterizer is solved
+// Method copied from webrender/wr_glyph_rasterizer/src/unix/font.rs
+//
+// Custom version of FT_GlyphSlot_Embolden to be less aggressive with outline
+// fonts than the default implementation in FreeType.
+#[no_mangle]
+pub extern "C" fn mozilla_glyphslot_embolden_less(slot: FT_GlyphSlot) {
+    if slot.is_null() {
+        return;
+    }
+
+    let slot_ = unsafe { &mut *slot };
+    let format = slot_.format;
+    if format != FT_Glyph_Format::FT_GLYPH_FORMAT_OUTLINE {
+        // For non-outline glyphs, just fall back to FreeType's function.
+        unsafe { FT_GlyphSlot_Embolden(slot) };
+        return;
+    }
+
+    let face_ = unsafe { *slot_.face };
+
+    // FT_GlyphSlot_Embolden uses a divisor of 24 here; we'll be only half as
+    // bold.
+    let size_ = unsafe { *face_.size };
+    let strength =
+        unsafe { FT_MulFix(face_.units_per_EM as FT_Long,
+                           size_.metrics.y_scale) / 48 };
+    unsafe { FT_Outline_Embolden(&mut slot_.outline, strength) };
+
+    // Adjust metrics to suit the fattened glyph.
+    if slot_.advance.x != 0 {
+        slot_.advance.x += strength;
+    }
+    if slot_.advance.y != 0 {
+        slot_.advance.y += strength;
+    }
+    slot_.metrics.width += strength;
+    slot_.metrics.height += strength;
+    slot_.metrics.horiAdvance += strength;
+    slot_.metrics.vertAdvance += strength;
+    slot_.metrics.horiBearingY += strength;
 }

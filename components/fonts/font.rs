@@ -28,7 +28,7 @@ use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::{
     FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
 };
-use style::values::computed::{FontStretch, FontStyle, FontWeight};
+use style::values::computed::{FontStretch, FontStyle, FontSynthesis, FontWeight};
 use unicode_script::Script;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontVariation};
 
@@ -268,9 +268,14 @@ impl Font {
         data: Option<FontData>,
         synthesized_small_caps: Option<FontRef>,
     ) -> Result<Font, &'static str> {
-        let synthetic_bold = descriptor.is_synthetic_bold() &&
-                            !template.is_bold() &&
-                            descriptor.synthetic_bold_allowed();
+        let synthetic_bold = {
+            let is_bold = descriptor.weight >= FontWeight::BOLD_THRESHOLD;
+            let template_is_bold = template.descriptor().weight.0 >= FontWeight::BOLD_THRESHOLD;
+            let allows_synthetic_bold = matches!(descriptor.synthesis_weight, FontSynthesis::Auto);
+
+            // TODO: Is the check for variation font necessary here?
+            is_bold && !template_is_bold && !template.descriptor().is_variation_font() && allows_synthetic_bold
+        };
 
         let handle = PlatformFont::new_from_template(
             template.clone(),
