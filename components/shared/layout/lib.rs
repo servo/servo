@@ -306,9 +306,11 @@ pub trait Layout {
     fn query_client_rect(&self, node: TrustedNodeAddress) -> Rect<i32>;
     fn query_element_inner_outer_text(&self, node: TrustedNodeAddress) -> String;
     fn query_offset_parent(&self, node: TrustedNodeAddress) -> OffsetParentResponse;
+    /// Query the scroll container for the given node. If node is `None`, the scroll container for
+    /// the viewport is returned.
     fn query_scroll_container(
         &self,
-        node: TrustedNodeAddress,
+        node: Option<TrustedNodeAddress>,
         flags: ScrollContainerQueryFlags,
     ) -> Option<ScrollContainerResponse>;
     fn query_resolved_style(
@@ -377,7 +379,7 @@ bitflags! {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, MallocSizeOf)]
 pub struct AxesOverflow {
     pub x: Overflow,
     pub y: Overflow,
@@ -401,9 +403,18 @@ impl From<&ComputedValues> for AxesOverflow {
     }
 }
 
+impl AxesOverflow {
+    pub fn to_scrollable(&self) -> Self {
+        Self {
+            x: self.x.to_scrollable(),
+            y: self.y.to_scrollable(),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub enum ScrollContainerResponse {
-    Viewport,
+    Viewport(AxesOverflow),
     Element(UntrustedNodeAddress, AxesOverflow),
 }
 

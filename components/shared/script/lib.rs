@@ -21,8 +21,8 @@ use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::{
-    LoadData, NavigationHistoryBehavior, ScriptToConstellationChan, StructuredSerializedData,
-    WindowSizeType,
+    KeyboardScroll, LoadData, NavigationHistoryBehavior, ScriptToConstellationChan,
+    StructuredSerializedData, WindowSizeType,
 };
 use crossbeam_channel::{RecvTimeoutError, Sender};
 use devtools_traits::ScriptToDevtoolsControlMsg;
@@ -265,6 +265,8 @@ pub enum ScriptThreadMessage {
     /// asynchronous image uploads for the given `Pipeline`. These are mainly used
     /// by canvas to perform uploads while the display list is being built.
     NoLongerWaitingOnAsychronousImageUpdates(PipelineId),
+    /// Forward a keyboard scroll operation from an `<iframe>` to a parent pipeline.
+    ForwardKeyboardScroll(PipelineId, KeyboardScroll),
 }
 
 impl fmt::Debug for ScriptThreadMessage {

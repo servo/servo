@@ -12,7 +12,7 @@ use euclid::{SideOffsets2D, Size2D};
 use itertools::Itertools;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use layout_api::{
-    BoxAreaType, LayoutElementType, LayoutNodeType, OffsetParentResponse,
+    AxesOverflow, BoxAreaType, LayoutElementType, LayoutNodeType, OffsetParentResponse,
     ScrollContainerQueryFlags, ScrollContainerResponse,
 };
 use script::layout_dom::{ServoLayoutNode, ServoThreadSafeLayoutNode};
@@ -676,9 +676,14 @@ pub fn process_offset_parent_query(
 ///
 #[inline]
 pub(crate) fn process_scroll_container_query(
-    node: ServoLayoutNode<'_>,
+    node: Option<ServoLayoutNode<'_>>,
     query_flags: ScrollContainerQueryFlags,
+    viewport_overflow: AxesOverflow,
 ) -> Option<ScrollContainerResponse> {
+    let Some(node) = node else {
+        return Some(ScrollContainerResponse::Viewport(viewport_overflow));
+    };
+
     let layout_data = node.to_threadsafe().inner_layout_data()?;
 
     // 1. If any of the following holds true, return null and terminate this algorithm:
@@ -776,7 +781,7 @@ pub(crate) fn process_scroll_container_query(
 
     match current_position_value {
         Position::Fixed => None,
-        _ => Some(ScrollContainerResponse::Viewport),
+        _ => Some(ScrollContainerResponse::Viewport(viewport_overflow)),
     }
 }
 

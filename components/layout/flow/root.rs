@@ -42,7 +42,7 @@ pub struct BoxTree {
     root: BlockFormattingContext,
 
     /// Whether or not the viewport should be sensitive to scrolling input events in two axes
-    viewport_scroll_sensitivity: AxesScrollSensitivity,
+    pub(crate) viewport_overflow: AxesOverflow,
 }
 
 impl BoxTree {
@@ -65,10 +65,7 @@ impl BoxTree {
             // From https://www.w3.org/TR/css-overflow-3/#overflow-propagation:
             // > If visible is applied to the viewport, it must be interpreted as auto.
             // > If clip is applied to the viewport, it must be interpreted as hidden.
-            viewport_scroll_sensitivity: AxesScrollSensitivity {
-                x: viewport_overflow.x.to_scrollable().into(),
-                y: viewport_overflow.y.to_scrollable().into(),
-            },
+            viewport_overflow: viewport_overflow.to_scrollable(),
         }
     }
 
@@ -266,11 +263,16 @@ impl BoxTree {
             &mut root_fragments,
         );
 
+        let viewport_scroll_sensitivity = AxesScrollSensitivity {
+            x: self.viewport_overflow.x.into(),
+            y: self.viewport_overflow.y.into(),
+        };
+
         FragmentTree::new(
             layout_context,
             root_fragments,
             physical_containing_block,
-            self.viewport_scroll_sensitivity,
+            viewport_scroll_sensitivity,
         )
     }
 }

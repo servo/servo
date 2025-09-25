@@ -33,7 +33,10 @@ use euclid::default::{Rect, Size2D};
 use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use hyper_serde::Serde;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
-use layout_api::{PendingRestyle, ReflowGoal, ReflowPhasesRun, RestyleReason, TrustedNodeAddress};
+use layout_api::{
+    PendingRestyle, ReflowGoal, ReflowPhasesRun, RestyleReason, ScrollContainerQueryFlags,
+    TrustedNodeAddress,
+};
 use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
@@ -173,7 +176,7 @@ use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::promise::Promise;
 use crate::dom::range::Range;
 use crate::dom::resizeobserver::{ResizeObservationDepth, ResizeObserver};
-use crate::dom::scrolling_box::{ScrollingBox, ScrollingBoxSource};
+use crate::dom::scrolling_box::ScrollingBox;
 use crate::dom::selection::Selection;
 use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::ShadowRoot;
@@ -4447,8 +4450,10 @@ impl Document {
         self.active_sandboxing_flag_set.set(flags)
     }
 
-    pub(crate) fn viewport_scrolling_box(&self) -> ScrollingBox {
-        ScrollingBox::new(ScrollingBoxSource::Viewport(DomRoot::from_ref(self)))
+    pub(crate) fn viewport_scrolling_box(&self, flags: ScrollContainerQueryFlags) -> ScrollingBox {
+        self.window()
+            .scrolling_box_query(None, flags)
+            .expect("We should always have a ScrollingBox for the Viewport")
     }
 }
 
