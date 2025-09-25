@@ -707,7 +707,7 @@ impl HTMLScriptElement {
                     global,
                     element,
                     InlineCheckType::Script,
-                    &text,
+                    text.str(),
                 )
         {
             warn!("Blocking inline script due to CSP");
@@ -751,14 +751,13 @@ impl HTMLScriptElement {
         let module_credentials_mode = match script_type {
             ScriptType::Classic => CredentialsMode::CredentialsSameOrigin,
             ScriptType::Module | ScriptType::ImportMap => reflect_cross_origin_attribute(element)
-                .map_or(
-                    CredentialsMode::CredentialsSameOrigin,
-                    |attr| match &*attr {
+                .map_or(CredentialsMode::CredentialsSameOrigin, |attr| {
+                    match attr.str() {
                         "use-credentials" => CredentialsMode::Include,
                         "anonymous" => CredentialsMode::CredentialsSameOrigin,
                         _ => CredentialsMode::CredentialsSameOrigin,
-                    },
-                ),
+                    }
+                }),
         };
 
         // Step 24. Let cryptographic nonce be el's [[CryptographicNonce]] internal slot's value.
@@ -1385,7 +1384,7 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
         )?;
         element.set_attribute(
             local_name,
-            AttrValue::String(value.as_ref().to_owned()),
+            AttrValue::String(value.str().to_owned()),
             can_gc,
         );
         Ok(())

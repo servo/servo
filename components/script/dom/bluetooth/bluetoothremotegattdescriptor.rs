@@ -101,7 +101,7 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
         let p = Promise::new_in_current_realm(comp, can_gc);
 
         // Step 1.
-        if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Reads) {
+        if uuid_is_blocklisted(self.uuid.str(), Blocklist::Reads) {
             p.reject_error(Security, can_gc);
             return p;
         }
@@ -138,7 +138,7 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
         let p = Promise::new_in_current_realm(comp, can_gc);
 
         // Step 1.
-        if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Writes) {
+        if uuid_is_blocklisted(self.uuid.str(), Blocklist::Writes) {
             p.reject_error(Security, can_gc);
             return p;
         }

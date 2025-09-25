@@ -932,7 +932,7 @@ impl HTMLElement {
     // returns Some if can infer direction by itself or from child nodes
     // returns None if requires to go up to parent
     pub(crate) fn directionality(&self) -> Option<String> {
-        let element_direction: &str = &self.Dir();
+        let element_direction = &self.Dir();
 
         if element_direction == "ltr" {
             return Some("ltr".to_owned());

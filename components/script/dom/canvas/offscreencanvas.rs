@@ -297,7 +297,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
             return Err(Error::InvalidState);
         }
 
-        match &*id {
+        match id.str() {
             "2d" => Ok(self
                 .get_or_init_2d_context(can_gc)
                 .map(RootedOffscreenRenderingContext::OffscreenCanvasRenderingContext2D)),

@@ -212,6 +212,10 @@ impl DOMString {
         &self.0
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
     /// Appends a given string slice onto the end of this String.
     pub fn push_str(&mut self, string: &str) {
         self.0.push_str(string)
@@ -309,10 +313,6 @@ impl DOMString {
 
     pub fn len(&self) -> usize {
         self.0.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
     }
 
     pub fn chars(&self) -> Chars<'_> {
@@ -433,7 +433,6 @@ impl Default for DOMString {
 
 impl Deref for DOMString {
     type Target = str;
-
     #[inline]
     fn deref(&self) -> &str {
         &self.0
@@ -456,13 +455,13 @@ impl AsRef<str> for DOMString {
 impl fmt::Display for DOMString {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Display::fmt(&**self, f)
+        fmt::Display::fmt(self.str(), f)
     }
 }
 
 impl PartialEq<str> for DOMString {
     fn eq(&self, other: &str) -> bool {
-        &**self == other
+        self.str() == other
     }
 }
 
@@ -474,7 +473,19 @@ impl PartialEq<DOMString> for str {
 
 impl<'a> PartialEq<&'a str> for DOMString {
     fn eq(&self, other: &&'a str) -> bool {
-        &**self == *other
+        self.str() == *other
+    }
+}
+
+impl PartialEq<DOMString> for String {
+    fn eq(&self, other: &DOMString) -> bool {
+        *other.0 == *self
+    }
+}
+
+impl PartialEq<String> for DOMString {
+    fn eq(&self, other: &String) -> bool {
+        self.0 == *other
     }
 }
 

@@ -217,12 +217,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         }
 
         // Step 6
-        if self
-            .object_store_names
-            .borrow()
-            .iter()
-            .any(|store_name| store_name.to_string() == name.to_string())
-        {
+        if self.object_store_names.borrow().contains(&name) {
             return Err(Error::Constraint);
         }
 
@@ -303,19 +298,14 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         }
 
         // Step 4
-        if !self
-            .object_store_names
-            .borrow()
-            .iter()
-            .any(|store_name| store_name.to_string() == name.to_string())
-        {
+        if !self.object_store_names.borrow().contains(&name) {
             return Err(Error::NotFound(None));
         }
 
         // Step 5
         self.object_store_names
             .borrow_mut()
-            .retain(|store_name| store_name.to_string() != name.to_string());
+            .retain(|store_name| *store_name != name);
 
         // Step 6
         // FIXME:(arihant2math) Remove from index set ...

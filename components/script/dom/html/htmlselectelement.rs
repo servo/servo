@@ -342,7 +342,7 @@ impl HTMLSelectElement {
             .unwrap_or_default();
 
         // Replace newlines with whitespace, then collapse and trim whitespace
-        let displayed_text = itertools::join(selected_option_text.split_whitespace(), " ");
+        let displayed_text = itertools::join(selected_option_text.str().split_whitespace(), " ");
 
         shadow_tree
             .selected_option

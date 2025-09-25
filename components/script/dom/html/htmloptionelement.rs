@@ -215,13 +215,13 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
 
             if node.is::<Text>() {
                 let characterdata = node.downcast::<CharacterData>().unwrap();
-                content.push_str(&characterdata.Data());
+                content.push_str(characterdata.Data().str());
             }
 
             iterator.next();
         }
 
-        DOMString::from(str_join(split_html_space_chars(&content), " "))
+        DOMString::from(str_join(split_html_space_chars(content.str()), " "))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-option-text>
