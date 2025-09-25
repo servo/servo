@@ -5428,17 +5428,18 @@ impl TaskOnce for ElementPerformFullscreenExit {
     }
 }
 
+/// <https://html.spec.whatwg.org/multipage/#cors-settings-attribute>
 pub(crate) fn reflect_cross_origin_attribute(element: &Element) -> Option<DOMString> {
-    let attr = element.get_attribute(&ns!(), &local_name!("crossorigin"));
-
-    if let Some(mut val) = attr.map(|v| v.Value()) {
-        val.make_ascii_lowercase();
-        if val == "anonymous" || val == "use-credentials" {
-            return Some(val);
-        }
-        return Some(DOMString::from("anonymous"));
-    }
-    None
+    element
+        .get_attribute(&ns!(), &local_name!("crossorigin"))
+        .map(|attribute| {
+            let value = attribute.value().to_ascii_lowercase();
+            if value == "anonymous" || value == "use-credentials" {
+                DOMString::from(value)
+            } else {
+                DOMString::from("anonymous")
+            }
+        })
 }
 
 pub(crate) fn set_cross_origin_attribute(
@@ -5454,38 +5455,38 @@ pub(crate) fn set_cross_origin_attribute(
     }
 }
 
+/// <https://html.spec.whatwg.org/multipage/#referrer-policy-attribute>
 pub(crate) fn reflect_referrer_policy_attribute(element: &Element) -> DOMString {
-    let attr =
-        element.get_attribute_by_name(DOMString::from_string(String::from("referrerpolicy")));
-
-    if let Some(mut val) = attr.map(|v| v.Value()) {
-        val.make_ascii_lowercase();
-        if val == "no-referrer" ||
-            val == "no-referrer-when-downgrade" ||
-            val == "same-origin" ||
-            val == "origin" ||
-            val == "strict-origin" ||
-            val == "origin-when-cross-origin" ||
-            val == "strict-origin-when-cross-origin" ||
-            val == "unsafe-url"
-        {
-            return val;
-        }
-    }
-    DOMString::new()
+    element
+        .get_attribute(&ns!(), &local_name!("referrerpolicy"))
+        .map(|attribute| {
+            let value = attribute.value().to_ascii_lowercase();
+            if value == "no-referrer" ||
+                value == "no-referrer-when-downgrade" ||
+                value == "same-origin" ||
+                value == "origin" ||
+                value == "strict-origin" ||
+                value == "origin-when-cross-origin" ||
+                value == "strict-origin-when-cross-origin" ||
+                value == "unsafe-url"
+            {
+                DOMString::from(value)
+            } else {
+                DOMString::new()
+            }
+        })
+        .unwrap_or_default()
 }
 
 pub(crate) fn referrer_policy_for_element(element: &Element) -> ReferrerPolicy {
     element
-        .get_attribute_by_name(DOMString::from_string(String::from("referrerpolicy")))
-        .map(|attribute: DomRoot<Attr>| determine_policy_for_token(attribute.Value().str()))
+        .get_attribute(&ns!(), &local_name!("referrerpolicy"))
+        .map(|attribute| determine_policy_for_token(&attribute.value()))
         .unwrap_or(element.owner_document().get_referrer_policy())
 }
 
 pub(crate) fn cors_setting_for_element(element: &Element) -> Option<CorsSettings> {
-    reflect_cross_origin_attribute(element).and_then(|attr| match attr.str() {
-        "anonymous" => Some(CorsSettings::Anonymous),
-        "use-credentials" => Some(CorsSettings::UseCredentials),
-        _ => unreachable!(),
-    })
+    element
+        .get_attribute(&ns!(), &local_name!("crossorigin"))
+        .map(|attribute| CorsSettings::from_enumerated_attribute(&attribute.value()))
 }
