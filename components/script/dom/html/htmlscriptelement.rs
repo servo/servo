@@ -275,7 +275,7 @@ impl ScriptOrigin {
             fetch_options,
             type_,
             unminified_dir,
-            import_map: Err(Error::NotFound),
+            import_map: Err(Error::NotFound(None)),
         }
     }
 
@@ -911,7 +911,7 @@ impl HTMLScriptElement {
                         options,
                         script_type,
                         self.global().unminified_js_dir(),
-                        Err(Error::NotFound),
+                        Err(Error::NotFound(None)),
                     ));
 
                     if was_parser_inserted &&

@@ -2339,7 +2339,7 @@ impl Node {
         // Step 3.
         if let Some(child) = child {
             if !parent.is_parent_of(child) {
-                return Err(Error::NotFound);
+                return Err(Error::NotFound(None));
             }
         }
 
@@ -2719,8 +2719,8 @@ impl Node {
     fn pre_remove(child: &Node, parent: &Node, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
         // Step 1.
         match child.GetParentNode() {
-            Some(ref node) if &**node != parent => return Err(Error::NotFound),
-            None => return Err(Error::NotFound),
+            Some(ref node) if &**node != parent => return Err(Error::NotFound(None)),
+            None => return Err(Error::NotFound(None)),
             _ => (),
         }
 
@@ -3485,7 +3485,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 
         // Step 3. If child’s parent is not parent, then throw a "NotFoundError" DOMException.
         if !self.is_parent_of(child) {
-            return Err(Error::NotFound);
+            return Err(Error::NotFound(None));
         }
 
         // Step 4. If node is not a DocumentFragment, DocumentType, Element, or CharacterData node,
