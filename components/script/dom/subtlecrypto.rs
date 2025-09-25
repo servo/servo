@@ -518,12 +518,12 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 3. Let normalizedAlgorithm be the result of normalizing an algorithm,
         // with alg set to algorithm and op set to "digest".
+        // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
         let promise = Promise::new_in_current_realm(comp, can_gc);
         let normalized_algorithm =
             match normalize_algorithm(cx, &Operation::Digest, &algorithm, can_gc) {
                 Ok(normalized_algorithm) => normalized_algorithm,
                 Err(error) => {
-                    // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
                     promise.reject_error(error, can_gc);
                     return promise;
                 },
