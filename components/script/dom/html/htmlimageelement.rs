@@ -22,7 +22,7 @@ use net_traits::image_cache::{
     Image, ImageCache, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable,
     ImageResponse, PendingImageId, UsePlaceholder,
 };
-use net_traits::request::{Destination, Initiator, RequestId};
+use net_traits::request::{CorsSettings, Destination, Initiator, RequestId};
 use net_traits::{
     FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError, ReferrerPolicy,
     ResourceFetchTiming, ResourceTimingType,
@@ -1603,22 +1603,6 @@ fn parse_a_sizes_attribute(value: &str) -> SourceSizeList {
     SourceSizeList::parse(&context, &mut parser)
 }
 
-fn get_correct_referrerpolicy_from_raw_token(token: &DOMString) -> DOMString {
-    if token.is_empty() {
-        // Empty token is treated as the default referrer policy inside determine_policy_for_token,
-        // so it should remain unchanged.
-        DOMString::new()
-    } else {
-        let policy = determine_policy_for_token(token.str());
-
-        if policy == ReferrerPolicy::EmptyString {
-            return DOMString::new();
-        }
-
-        DOMString::from_string(policy.to_string())
-    }
-}
-
 #[allow(non_snake_case)]
 impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-image
@@ -1784,24 +1768,8 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
         reflect_referrer_policy_attribute(self.upcast::<Element>())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-img-referrerpolicy
-    fn SetReferrerPolicy(&self, value: DOMString, can_gc: CanGc) {
-        let referrerpolicy_attr_name = local_name!("referrerpolicy");
-        let element = self.upcast::<Element>();
-        let previous_correct_attribute_value = get_correct_referrerpolicy_from_raw_token(
-            &element.get_string_attribute(&referrerpolicy_attr_name),
-        );
-        let correct_value_or_empty_string = get_correct_referrerpolicy_from_raw_token(&value);
-        if previous_correct_attribute_value != correct_value_or_empty_string {
-            // Setting the attribute to the same value will update the image.
-            // We don't want to start an update if referrerpolicy is set to the same value.
-            element.set_string_attribute(
-                &referrerpolicy_attr_name,
-                correct_value_or_empty_string,
-                can_gc,
-            );
-        }
-    }
+    // <https://html.spec.whatwg.org/multipage/#dom-img-referrerpolicy>
+    make_setter!(SetReferrerPolicy, "referrerpolicy");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-img-decode>
     fn Decode(&self, can_gc: CanGc) -> Rc<Promise> {
@@ -1874,9 +1842,51 @@ impl VirtualMethods for HTMLImageElement {
             &local_name!("src") |
             &local_name!("srcset") |
             &local_name!("width") |
-            &local_name!("crossorigin") |
-            &local_name!("sizes") |
-            &local_name!("referrerpolicy") => self.update_the_image_data(can_gc),
+            &local_name!("sizes") => {
+                // <https://html.spec.whatwg.org/multipage/#reacting-to-dom-mutations>
+                // The element's src, srcset, width, or sizes attributes are set, changed, or
+                // removed.
+                self.update_the_image_data(can_gc);
+            },
+            &local_name!("crossorigin") => {
+                // <https://html.spec.whatwg.org/multipage/#reacting-to-dom-mutations>
+                // The element's crossorigin attribute's state is changed.
+                let cross_origin_state_changed = match mutation {
+                    AttributeMutation::Removed | AttributeMutation::Set(None) => true,
+                    AttributeMutation::Set(Some(old_value)) => {
+                        let new_cors_setting =
+                            CorsSettings::from_enumerated_attribute(&attr.value());
+                        let old_cors_setting = CorsSettings::from_enumerated_attribute(old_value);
+
+                        new_cors_setting != old_cors_setting
+                    },
+                };
+
+                if cross_origin_state_changed {
+                    self.update_the_image_data(can_gc);
+                }
+            },
+            &local_name!("referrerpolicy") => {
+                // <https://html.spec.whatwg.org/multipage/#reacting-to-dom-mutations>
+                // The element's referrerpolicy attribute's state is changed.
+                let referrer_policy_state_changed = match mutation {
+                    AttributeMutation::Removed | AttributeMutation::Set(None) => {
+                        let referrer_policy = determine_policy_for_token(&attr.value());
+
+                        referrer_policy != ReferrerPolicy::EmptyString
+                    },
+                    AttributeMutation::Set(Some(old_value)) => {
+                        let new_referrer_policy = determine_policy_for_token(&attr.value());
+                        let old_referrer_policy = determine_policy_for_token(old_value);
+
+                        new_referrer_policy != old_referrer_policy
+                    },
+                };
+
+                if referrer_policy_state_changed {
+                    self.update_the_image_data(can_gc);
+                }
+            },
             _ => {},
         }
     }
