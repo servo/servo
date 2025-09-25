@@ -368,7 +368,13 @@ impl PlatformFontMethods for PlatformFont {
         // On other platforms, we only pass this when we know that we are loading a font with
         // color characters, but not passing this flag simply *prevents* WebRender from
         // loading bitmaps. There's no harm to always passing it.
-        FontInstanceFlags::EMBEDDED_BITMAPS
+        let mut flags = FontInstanceFlags::EMBEDDED_BITMAPS;
+
+        if self.synthetic_bold {
+            flags |= FontInstanceFlags::SYNTHETIC_BOLD;
+        }
+
+        flags
     }
 
     fn variations(&self) -> &[FontVariation] {
@@ -411,29 +417,31 @@ impl std::fmt::Debug for FreeTypeFaceTableProviderData {
 //
 // Custom version of FT_GlyphSlot_Embolden to be less aggressive with outline
 // fonts than the default implementation in FreeType.
-#[no_mangle]
-pub extern "C" fn mozilla_glyphslot_embolden_less(slot: FT_GlyphSlot) {
+fn mozilla_glyphslot_embolden_less(slot: FT_GlyphSlot) {
+    use freetype_sys::{FT_GlyphSlot_Embolden, FT_Outline_Embolden};
+    use freetype::freetype::{FT_Glyph_Format, FT_Long, FT_MulFix};
+
     if slot.is_null() {
         return;
     }
 
     let slot_ = unsafe { &mut *slot };
     let format = slot_.format;
-    if format != FT_Glyph_Format::FT_GLYPH_FORMAT_OUTLINE {
+    if format != FT_Glyph_Format::FT_GLYPH_FORMAT_OUTLINE as u32 {
         // For non-outline glyphs, just fall back to FreeType's function.
         unsafe { FT_GlyphSlot_Embolden(slot) };
         return;
     }
 
-    let face_ = unsafe { *slot_.face };
+    let face_ = unsafe { &*slot_.face };
 
     // FT_GlyphSlot_Embolden uses a divisor of 24 here; we'll be only half as
     // bold.
-    let size_ = unsafe { *face_.size };
+    let size_ = unsafe { &*face_.size };
     let strength =
         unsafe { FT_MulFix(face_.units_per_EM as FT_Long,
                            size_.metrics.y_scale) / 48 };
-    unsafe { FT_Outline_Embolden(&mut slot_.outline, strength) };
+    unsafe { FT_Outline_Embolden(&raw mut slot_.outline, strength) };
 
     // Adjust metrics to suit the fattened glyph.
     if slot_.advance.x != 0 {

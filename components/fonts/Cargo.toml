@@ -64,6 +64,7 @@ core-text = "20.1"
 [target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
 freetype-sys = { workspace = true }
 servo_allocator = { path = "../allocator" }
+freetype = { version = "0.7", default-features = false } # TODO: remove once wr_glyph_rasterizer is added
 
 [target.'cfg(all(target_os = "linux", not(target_env = "ohos")))'.dependencies]
 fontconfig_sys = { package = "yeslogic-fontconfig-sys", version = "6" }

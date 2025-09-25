@@ -2772,6 +2772,7 @@ dependencies = [
  "euclid",
  "fonts_traits",
  "fontsan",
+ "freetype",
  "freetype-sys",
  "harfbuzz-sys",
  "ipc-channel",
