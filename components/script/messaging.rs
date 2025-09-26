@@ -8,17 +8,20 @@ use std::cell::RefCell;
 use std::option::Option;
 use std::result::Result;
 
+use base::generic_channel::{GenericSender, RoutedReceiver};
 use base::id::PipelineId;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use constellation_traits::ScriptToConstellationMessage;
 use crossbeam_channel::{Receiver, SendError, Sender, select};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};
+use embedder_traits::ScriptToEmbedderChan;
 use ipc_channel::ipc::IpcSender;
 use net_traits::FetchResponseMsg;
 use net_traits::image_cache::ImageCacheResponseMessage;
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time};
+use rustc_hash::FxHashSet;
 use script_traits::{Painter, ScriptThreadMessage};
 use stylo_atoms::Atom;
 use timers::TimerScheduler;
@@ -36,6 +39,7 @@ use crate::task::TaskBox;
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 pub(crate) enum MixedMessage {
     FromConstellation(ScriptThreadMessage),
@@ -95,6 +99,9 @@ impl MixedMessage {
                 ScriptThreadMessage::SetScrollStates(id, ..) => Some(*id),
                 ScriptThreadMessage::EvaluateJavaScript(id, _, _) => Some(*id),
                 ScriptThreadMessage::SendImageKeysBatch(..) => None,
+                ScriptThreadMessage::PreferencesUpdated(..) => None,
+                ScriptThreadMessage::NoLongerWaitingOnAsychronousImageUpdates(_) => None,
+                ScriptThreadMessage::ForwardKeyboardScroll(id, _) => Some(*id),
             },
             MixedMessage::FromScript(inner_msg) => match inner_msg {
                 MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id, _)) => {
@@ -331,13 +338,17 @@ pub(crate) struct ScriptThreadSenders {
 
     /// A [`Sender`] that sends messages to the `Constellation`.
     #[no_trace]
-    pub(crate) constellation_sender: IpcSender<ScriptThreadMessage>,
+    pub(crate) constellation_sender: GenericSender<ScriptThreadMessage>,
 
     /// A [`Sender`] that sends messages to the `Constellation` associated with
     /// particular pipelines.
     #[no_trace]
     pub(crate) pipeline_to_constellation_sender:
-        IpcSender<(PipelineId, ScriptToConstellationMessage)>,
+        GenericSender<(PipelineId, ScriptToConstellationMessage)>,
+
+    /// A channel to send messages to the Embedder.
+    #[no_trace]
+    pub(crate) pipeline_to_embedder_sender: ScriptToEmbedderChan,
 
     /// The shared [`IpcSender`] which is sent to the `ImageCache` when requesting an image. The
     /// messages on this channel are routed to crossbeam [`Sender`] on the router thread, which
@@ -368,7 +379,7 @@ pub(crate) struct ScriptThreadSenders {
 pub(crate) struct ScriptThreadReceivers {
     /// A [`Receiver`] that receives messages from the constellation.
     #[no_trace]
-    pub(crate) constellation_receiver: Receiver<ScriptThreadMessage>,
+    pub(crate) constellation_receiver: RoutedReceiver<ScriptThreadMessage>,
 
     /// The [`Receiver`] which receives incoming messages from the `ImageCache`.
     #[no_trace]
@@ -393,16 +404,17 @@ impl ScriptThreadReceivers {
         &self,
         task_queue: &TaskQueue<MainThreadScriptMsg>,
         timer_scheduler: &TimerScheduler,
+        fully_active: &FxHashSet<PipelineId>,
     ) -> MixedMessage {
         select! {
             recv(task_queue.select()) -> msg => {
-                task_queue.take_tasks(msg.unwrap());
+                task_queue.take_tasks(msg.unwrap(), fully_active);
                 let event = task_queue
                     .recv()
                     .expect("Spurious wake-up of the event-loop, task-queue has no tasks available");
                 MixedMessage::FromScript(event)
             },
-            recv(self.constellation_receiver) -> msg => MixedMessage::FromConstellation(msg.unwrap()),
+            recv(self.constellation_receiver) -> msg => MixedMessage::FromConstellation(msg.unwrap().unwrap()),
             recv(self.devtools_server_receiver) -> msg => MixedMessage::FromDevtools(msg.unwrap()),
             recv(self.image_cache_receiver) -> msg => MixedMessage::FromImageCache(msg.unwrap()),
             recv(timer_scheduler.wait_channel()) -> _ => MixedMessage::TimerFired,
@@ -433,11 +445,20 @@ impl ScriptThreadReceivers {
     pub(crate) fn try_recv(
         &self,
         task_queue: &TaskQueue<MainThreadScriptMsg>,
+        fully_active: &FxHashSet<PipelineId>,
     ) -> Option<MixedMessage> {
         if let Ok(message) = self.constellation_receiver.try_recv() {
+            let message = message
+                .inspect_err(|e| {
+                    log::warn!(
+                        "ScriptThreadReceivers IPC error on constellation_receiver: {:?}",
+                        e
+                    );
+                })
+                .ok()?;
             return MixedMessage::FromConstellation(message).into();
         }
-        if let Ok(message) = task_queue.take_tasks_and_recv() {
+        if let Ok(message) = task_queue.take_tasks_and_recv(fully_active) {
             return MixedMessage::FromScript(message).into();
         }
         if let Ok(message) = self.devtools_server_receiver.try_recv() {

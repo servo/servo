@@ -8,6 +8,7 @@
 
 #![deny(unsafe_code)]
 
+pub mod generic_channel;
 pub mod ipc;
 pub mod mem;
 pub mod time;

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>Test that 'column-wrap' is reset by the 'columns' shorthand</title>
+<link rel="help" href="https://drafts.csswg.org/css-multicol/#propdef-columns">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#propdef-columns">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#propdef-column-wrap">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style id="style">
+  #multicol1 {
+    columns: 100px / 100px;
+  }
+  #multicol2 {
+    column-wrap: nowrap;
+    columns: 100px / 100px;
+  }
+  #multicol3 {
+    columns: 100px / 100px;
+    column-wrap: nowrap;
+  }
+</style>
+<div id="multicol1"></div>
+<div id="multicol2"></div>
+<div id="multicol3"></div>
+<script>
+  let sheet = style.sheet;
+
+  test(()=> {
+    let rule = sheet.rules[0];
+    assert_equals(rule.selectorText, "#multicol1");
+    assert_equals(rule.style.columnWrap, "auto");
+    assert_equals(getComputedStyle(multicol1).columnWrap, "auto");
+  }, "multicol1");
+
+  test(()=> {
+    let rule = sheet.rules[1];
+    assert_equals(rule.selectorText, "#multicol2");
+    assert_equals(rule.style.columnWrap, "auto");
+    assert_equals(getComputedStyle(multicol2).columnWrap, "auto");
+  }, "multicol2");
+
+  test(()=> {
+    let rule = sheet.rules[2];
+    assert_equals(rule.selectorText, "#multicol3");
+    assert_equals(rule.style.columnWrap, "nowrap");
+    assert_equals(getComputedStyle(multicol3).columnWrap, "nowrap");
+  }, "multicol3");
+</script>

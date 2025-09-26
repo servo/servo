@@ -5,17 +5,17 @@
 //! Machinery for [task-queue](https://html.spec.whatwg.org/multipage/#task-queue).
 
 use std::cell::Cell;
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::VecDeque;
 use std::default::Default;
 
 use base::id::PipelineId;
 use crossbeam_channel::{self, Receiver, Sender};
+use rustc_hash::{FxHashMap, FxHashSet};
 use strum::VariantArray;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::script_runtime::ScriptThreadEventCategory;
-use crate::script_thread::ScriptThread;
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
 
@@ -48,9 +48,9 @@ pub(crate) struct TaskQueue<T> {
     /// A "business" counter, reset for each iteration of the event-loop
     taken_task_counter: Cell<u64>,
     /// Tasks that will be throttled for as long as we are "busy".
-    throttled: DomRefCell<HashMap<TaskSourceName, VecDeque<QueuedTask>>>,
+    throttled: DomRefCell<FxHashMap<TaskSourceName, VecDeque<QueuedTask>>>,
     /// Tasks for not fully-active documents.
-    inactive: DomRefCell<HashMap<PipelineId, VecDeque<QueuedTask>>>,
+    inactive: DomRefCell<FxHashMap<PipelineId, VecDeque<QueuedTask>>>,
 }
 
 impl<T: QueuedTaskConversion> TaskQueue<T> {
@@ -69,7 +69,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
     /// <https://html.spec.whatwg.org/multipage/#event-loop-processing-model:fully-active>
     fn release_tasks_for_fully_active_documents(
         &self,
-        fully_active: &HashSet<PipelineId>,
+        fully_active: &FxHashSet<PipelineId>,
     ) -> Vec<T> {
         self.inactive
             .borrow_mut()
@@ -104,7 +104,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
 
     /// Process incoming tasks, immediately sending priority ones downstream,
     /// and categorizing potential throttles.
-    fn process_incoming_tasks(&self, first_msg: T, fully_active: &HashSet<PipelineId>) {
+    fn process_incoming_tasks(&self, first_msg: T, fully_active: &FxHashSet<PipelineId>) {
         // 1. Make any previously stored task from now fully-active document available.
         let mut incoming = self.release_tasks_for_fully_active_documents(fully_active);
 
@@ -197,19 +197,21 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
     }
 
     /// Take all tasks again and then run `recv()`.
-    pub(crate) fn take_tasks_and_recv(&self) -> Result<T, ()> {
-        self.take_tasks(T::wake_up_msg());
+    pub(crate) fn take_tasks_and_recv(
+        &self,
+        fully_active: &FxHashSet<PipelineId>,
+    ) -> Result<T, ()> {
+        self.take_tasks(T::wake_up_msg(), fully_active);
         self.recv()
     }
 
     /// Drain the queue for the current iteration of the event-loop.
     /// Holding-back throttles above a given high-water mark.
-    pub(crate) fn take_tasks(&self, first_msg: T) {
+    pub(crate) fn take_tasks(&self, first_msg: T, fully_active: &FxHashSet<PipelineId>) {
         // High-watermark: once reached, throttled tasks will be held-back.
         const PER_ITERATION_MAX: u64 = 5;
-        let fully_active = ScriptThread::get_fully_active_document_ids();
         // Always first check for new tasks, but don't reset 'taken_task_counter'.
-        self.process_incoming_tasks(first_msg, &fully_active);
+        self.process_incoming_tasks(first_msg, fully_active);
         let mut throttled = self.throttled.borrow_mut();
         let mut throttled_length: usize = throttled.values().map(|queue| queue.len()).sum();
         let mut task_source_cycler = TaskSourceName::VARIANTS.iter().cycle();

@@ -5,6 +5,7 @@
 use std::fmt;
 
 use html5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_prefix, ns};
+use script_bindings::script_runtime::CanGc;
 
 use super::parser::{
     AdditiveOp, Axis, EqualityOp, Expr, FilterExpr, KindTest, Literal, MultiplicativeOp, NodeTest,
@@ -15,6 +16,7 @@ use super::{EvaluationCtx, Value};
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::domname::namespace_from_domstring;
+use crate::dom::bindings::error::Error as JsError;
 use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, NodeTypeId};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -24,36 +26,38 @@ use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::xpath::context::PredicateCtx;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub(crate) enum Error {
     NotANodeset,
-    InvalidPath,
-    UnknownFunction { name: QualName },
-    UnknownVariable { name: QualName },
-    UnknownNamespace { prefix: String },
-    InvalidQName { qname: ParserQualName },
-    FunctionEvaluation { fname: String },
-    Internal { msg: String },
+    /// It is not clear where variables used in XPath expression should come from.
+    /// Firefox throws "NS_ERROR_ILLEGAL_VALUE" when using them, chrome seems to return
+    /// an empty result. We also error out.
+    ///
+    /// See <https://github.com/whatwg/dom/issues/67>
+    CannotUseVariables,
+    InvalidQName {
+        qname: ParserQualName,
+    },
+    Internal {
+        msg: String,
+    },
+    /// A JS exception that needs to be propagated to the caller.
+    JsException(JsError),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Error::NotANodeset => write!(f, "expression did not evaluate to a nodeset"),
-            Error::InvalidPath => write!(f, "invalid path expression"),
-            Error::UnknownFunction { name } => write!(f, "unknown function {:?}", name),
-            Error::UnknownVariable { name } => write!(f, "unknown variable {:?}", name),
-            Error::UnknownNamespace { prefix } => {
-                write!(f, "unknown namespace prefix {:?}", prefix)
-            },
+            Error::CannotUseVariables => write!(f, "cannot use variables"),
             Error::InvalidQName { qname } => {
                 write!(f, "invalid QName {:?}", qname)
             },
-            Error::FunctionEvaluation { fname } => {
-                write!(f, "error while evaluating function: {}", fname)
-            },
             Error::Internal { msg } => {
                 write!(f, "internal error: {}", msg)
+            },
+            Error::JsException(exception) => {
+                write!(f, "JS exception: {:?}", exception)
             },
         }
     }
@@ -70,8 +74,6 @@ pub(crate) fn try_extract_nodeset(v: Value) -> Result<Vec<DomRoot<Node>>, Error>
 
 pub(crate) trait Evaluatable: fmt::Debug {
     fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error>;
-    /// Returns true if this expression evaluates to a primitive value, without needing to touch the DOM
-    fn is_primitive(&self) -> bool;
 }
 
 impl<T: ?Sized> Evaluatable for Box<T>
@@ -80,10 +82,6 @@ where
 {
     fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error> {
         (**self).evaluate(context)
-    }
-
-    fn is_primitive(&self) -> bool {
-        (**self).is_primitive()
     }
 }
 
@@ -96,10 +94,6 @@ where
             Some(expr) => expr.evaluate(context),
             None => Ok(Value::Nodeset(vec![])),
         }
-    }
-
-    fn is_primitive(&self) -> bool {
-        self.as_ref().is_some_and(|t| T::is_primitive(t))
     }
 }
 
@@ -179,20 +173,6 @@ impl Evaluatable for Expr {
             Expr::Path(path_expr) => path_expr.evaluate(context),
         }
     }
-
-    fn is_primitive(&self) -> bool {
-        match self {
-            Expr::Or(left, right) => left.is_primitive() && right.is_primitive(),
-            Expr::And(left, right) => left.is_primitive() && right.is_primitive(),
-            Expr::Equality(left, _, right) => left.is_primitive() && right.is_primitive(),
-            Expr::Relational(left, _, right) => left.is_primitive() && right.is_primitive(),
-            Expr::Additive(left, _, right) => left.is_primitive() && right.is_primitive(),
-            Expr::Multiplicative(left, _, right) => left.is_primitive() && right.is_primitive(),
-            Expr::Unary(_, expr) => expr.is_primitive(),
-            Expr::Union(_, _) => false,
-            Expr::Path(path_expr) => path_expr.is_primitive(),
-        }
-    }
 }
 
 impl Evaluatable for PathExpr {
@@ -245,13 +225,6 @@ impl Evaluatable for PathExpr {
         trace!("[PathExpr] Got nodes: {:?}", current_nodes);
 
         Ok(Value::Nodeset(current_nodes))
-    }
-
-    fn is_primitive(&self) -> bool {
-        !self.is_absolute &&
-            !self.is_descendant &&
-            self.steps.len() == 1 &&
-            self.steps[0].is_primitive()
     }
 }
 
@@ -360,27 +333,22 @@ fn validate_and_extract(
     }
 }
 
-pub(crate) struct QualNameConverter<'a> {
-    qname: &'a ParserQualName,
-    context: &'a EvaluationCtx,
-}
+pub(crate) fn convert_parsed_qname_to_qualified_name(
+    qname: &ParserQualName,
+    context: &EvaluationCtx,
+    can_gc: CanGc,
+) -> Result<QualName, Error> {
+    let qname_as_str = qname.to_string();
+    let namespace = context
+        .resolve_namespace(qname.prefix.as_deref(), can_gc)
+        .map_err(Error::JsException)?;
 
-impl<'a> TryFrom<QualNameConverter<'a>> for QualName {
-    type Error = Error;
-
-    fn try_from(converter: QualNameConverter<'a>) -> Result<Self, Self::Error> {
-        let qname_as_str = converter.qname.to_string();
-        let namespace = converter
-            .context
-            .resolve_namespace(converter.qname.prefix.as_deref());
-
-        if let Ok((ns, prefix, local)) = validate_and_extract(namespace, &qname_as_str) {
-            Ok(QualName { prefix, ns, local })
-        } else {
-            Err(Error::InvalidQName {
-                qname: converter.qname.clone(),
-            })
-        }
+    if let Ok((ns, prefix, local)) = validate_and_extract(namespace, &qname_as_str) {
+        Ok(QualName { prefix, ns, local })
+    } else {
+        Err(Error::InvalidQName {
+            qname: qname.clone(),
+        })
     }
 }
 
@@ -434,11 +402,16 @@ pub(crate) fn element_name_test(
     }
 }
 
-fn apply_node_test(context: &EvaluationCtx, test: &NodeTest, node: &Node) -> Result<bool, Error> {
+fn apply_node_test(
+    context: &EvaluationCtx,
+    test: &NodeTest,
+    node: &Node,
+    can_gc: CanGc,
+) -> Result<bool, Error> {
     let result = match test {
         NodeTest::Name(qname) => {
             // Convert the unvalidated "parser QualName" into the proper QualName structure
-            let wanted_name: QualName = QualNameConverter { qname, context }.try_into()?;
+            let wanted_name = convert_parsed_qname_to_qualified_name(qname, context, can_gc)?;
             match node.type_id() {
                 NodeTypeId::Element(_) => {
                     let element = node.downcast::<Element>().unwrap();
@@ -563,7 +536,9 @@ impl Evaluatable for StepExpr {
                 let filtered_nodes: Vec<DomRoot<Node>> = nodes
                     .into_iter()
                     .map(|node| {
-                        apply_node_test(context, &axis_step.node_test, &node)
+                        // FIXME: propagate this can_gc up further. This likely requires removing the "Evaluate"
+                        // trait or changing the signature of "evaluate". The trait is not really necessary anyways.
+                        apply_node_test(context, &axis_step.node_test, &node, CanGc::note())
                             .map(|matches| matches.then_some(node))
                     })
                     .collect::<Result<Vec<_>, _>>()?
@@ -588,13 +563,6 @@ impl Evaluatable for StepExpr {
             },
         }
     }
-
-    fn is_primitive(&self) -> bool {
-        match self {
-            StepExpr::Filter(filter_expr) => filter_expr.is_primitive(),
-            StepExpr::Axis(_) => false,
-        }
-    }
 }
 
 impl Evaluatable for PredicateListExpr {
@@ -613,6 +581,7 @@ impl Evaluatable for PredicateListExpr {
                         context_node: node.clone(),
                         predicate_nodes: context.predicate_nodes.clone(),
                         predicate_ctx: Some(PredicateCtx { index: i + 1, size }),
+                        resolver: context.resolver.clone(),
                     };
 
                     let eval_result = predicate_expr.expr.evaluate(&predicate_ctx);
@@ -642,10 +611,6 @@ impl Evaluatable for PredicateListExpr {
                     .to_string(),
             })
         }
-    }
-
-    fn is_primitive(&self) -> bool {
-        self.predicates.len() == 1 && self.predicates[0].is_primitive()
     }
 }
 
@@ -679,10 +644,6 @@ impl Evaluatable for PredicateExpr {
 
         Ok(Value::Nodeset(narrowed_nodes?))
     }
-
-    fn is_primitive(&self) -> bool {
-        self.expr.is_primitive()
-    }
 }
 
 impl Evaluatable for FilterExpr {
@@ -713,30 +674,16 @@ impl Evaluatable for FilterExpr {
             (true, _) => Err(Error::NotANodeset),
         }
     }
-
-    fn is_primitive(&self) -> bool {
-        self.predicates.predicates.is_empty() && self.primary.is_primitive()
-    }
 }
 
 impl Evaluatable for PrimaryExpr {
     fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error> {
         match self {
             PrimaryExpr::Literal(literal) => literal.evaluate(context),
-            PrimaryExpr::Variable(_qname) => todo!(),
+            PrimaryExpr::Variable(_qname) => Err(Error::CannotUseVariables),
             PrimaryExpr::Parenthesized(expr) => expr.evaluate(context),
             PrimaryExpr::ContextItem => Ok(Value::Nodeset(vec![context.context_node.clone()])),
             PrimaryExpr::Function(core_function) => core_function.evaluate(context),
-        }
-    }
-
-    fn is_primitive(&self) -> bool {
-        match self {
-            PrimaryExpr::Literal(_) => true,
-            PrimaryExpr::Variable(_qname) => false,
-            PrimaryExpr::Parenthesized(expr) => expr.is_primitive(),
-            PrimaryExpr::ContextItem => false,
-            PrimaryExpr::Function(_) => false,
         }
     }
 }
@@ -751,9 +698,5 @@ impl Evaluatable for Literal {
             },
             Literal::String(s) => Ok(Value::String(s.into())),
         }
-    }
-
-    fn is_primitive(&self) -> bool {
-        true
     }
 }

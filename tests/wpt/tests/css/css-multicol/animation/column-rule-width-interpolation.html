@@ -46,17 +46,21 @@ test_interpolation({
   {at: 1.5, expect: '28.5px'},
 ]);
 
+// column-rule-width: inherit on .target means 30px (from .parent)
+// so we are interpolating from 30px to 20px here. column-rule-width is
+// now independent of column-rule-style, so we won't be interpolating
+// from 0px to 20px as before.
 test_interpolation({
   property: 'column-rule-width',
   from: 'inherit',
   to: '20px',
 }, [
-  {at: -0.3, expect: '0px'},
-  {at: 0, expect: '0px'},
-  {at: 0.3, expect: '6px'},
-  {at: 0.6, expect: '12px'},
+  {at: -0.3, expect: '33px'},
+  {at: 0, expect: '30px'},
+  {at: 0.3, expect: '27px'},
+  {at: 0.6, expect: '24px'},
   {at: 1, expect: '20px'},
-  {at: 1.5, expect: '30px'},
+  {at: 1.5, expect: '15px'},
 ]);
 
 test_interpolation({

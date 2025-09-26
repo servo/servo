@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use embedder_traits::UntrustedNodeAddress;
 use euclid::Size2D;
-use fnv::FnvHashMap;
 use fonts::FontContext;
-use fxhash::FxHashMap;
 use layout_api::wrapper_traits::ThreadSafeLayoutNode;
 use layout_api::{
-    IFrameSizes, ImageAnimationState, PendingImage, PendingImageState, PendingRasterizationImage,
+    IFrameSizes, ImageAnimationState, LayoutImageDestination, PendingImage, PendingImageState,
+    PendingRasterizationImage,
 };
 use net_traits::image_cache::{
     Image as CachedImage, ImageCache, ImageCacheResult, ImageOrMetadataAvailable, PendingImageId,
@@ -19,6 +19,7 @@ use net_traits::image_cache::{
 };
 use parking_lot::{Mutex, RwLock};
 use pixels::RasterImage;
+use rustc_hash::FxHashMap;
 use script::layout_dom::ServoThreadSafeLayoutNode;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::context::SharedStyleContext;
@@ -101,8 +102,7 @@ pub(crate) struct ImageResolver {
 
     // A cache that maps image resources used in CSS (e.g as the `url()` value
     // for `background-image` or `content` property) to the final resolved image data.
-    pub resolved_images_cache:
-        Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder), CachedImageOrError>>>,
+    pub resolved_images_cache: Arc<RwLock<HashMap<(ServoUrl, UsePlaceholder), CachedImageOrError>>>,
 
     /// The current animation timeline value used to properly initialize animating images.
     pub animation_timeline_value: f64,
@@ -128,6 +128,7 @@ impl ImageResolver {
         node: OpaqueNode,
         url: ServoUrl,
         use_placeholder: UsePlaceholder,
+        destination: LayoutImageDestination,
     ) -> LayoutImageCacheResult {
         // Check for available image or start tracking.
         let cache_result = self.image_cache.get_cached_image_status(
@@ -149,6 +150,7 @@ impl ImageResolver {
                     node: node.into(),
                     id,
                     origin: self.origin.clone(),
+                    destination,
                 };
                 self.pending_images.lock().push(image);
                 LayoutImageCacheResult::Pending
@@ -160,6 +162,7 @@ impl ImageResolver {
                     node: node.into(),
                     id,
                     origin: self.origin.clone(),
+                    destination,
                 };
                 self.pending_images.lock().push(image);
                 LayoutImageCacheResult::Pending
@@ -192,6 +195,7 @@ impl ImageResolver {
         node: OpaqueNode,
         url: ServoUrl,
         use_placeholder: UsePlaceholder,
+        destination: LayoutImageDestination,
     ) -> Result<CachedImage, ResolveImageError> {
         if let Some(cached_image) = self
             .resolved_images_cache
@@ -201,7 +205,8 @@ impl ImageResolver {
             return cached_image.clone();
         }
 
-        let result = self.get_or_request_image_or_meta(node, url.clone(), use_placeholder);
+        let result =
+            self.get_or_request_image_or_meta(node, url.clone(), use_placeholder, destination);
         match result {
             LayoutImageCacheResult::DataAvailable(img_or_meta) => match img_or_meta {
                 ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
@@ -280,6 +285,7 @@ impl ImageResolver {
                     node,
                     image_url.clone().into(),
                     UsePlaceholder::No,
+                    LayoutImageDestination::DisplayListBuilding,
                 )?;
                 let metadata = image.metadata();
                 let size = Size2D::new(metadata.width, metadata.height).to_f32();

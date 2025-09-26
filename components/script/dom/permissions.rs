@@ -4,9 +4,9 @@
 
 use std::rc::Rc;
 
+use base::generic_channel;
 use dom_struct::dom_struct;
 use embedder_traits::{self, AllowOrDeny, EmbedderMsg, PermissionFeature};
-use ipc_channel::ipc;
 use js::conversions::ConversionResult;
 use js::jsapi::JSObject;
 use js::jsval::{ObjectValue, UndefinedValue};
@@ -40,6 +40,7 @@ pub(crate) trait PermissionAlgorithm {
     fn create_descriptor(
         cx: JSContext,
         permission_descriptor_obj: *mut JSObject,
+        can_gc: CanGc,
     ) -> Result<Self::Descriptor, Error>;
     fn permission_query(
         cx: JSContext,
@@ -101,7 +102,7 @@ impl Permissions {
         };
 
         // (Query, Request, Revoke) Step 1.
-        let root_desc = match Permissions::create_descriptor(cx, permissionDesc) {
+        let root_desc = match Permissions::create_descriptor(cx, permissionDesc, can_gc) {
             Ok(descriptor) => descriptor,
             Err(error) => {
                 p.reject_error(error, can_gc);
@@ -116,7 +117,8 @@ impl Permissions {
         match root_desc.name {
             #[cfg(feature = "bluetooth")]
             PermissionName::Bluetooth => {
-                let bluetooth_desc = match Bluetooth::create_descriptor(cx, permissionDesc) {
+                let bluetooth_desc = match Bluetooth::create_descriptor(cx, permissionDesc, can_gc)
+                {
                     Ok(descriptor) => descriptor,
                     Err(error) => {
                         p.reject_error(error, can_gc);
@@ -221,12 +223,13 @@ impl PermissionAlgorithm for Permissions {
     fn create_descriptor(
         cx: JSContext,
         permission_descriptor_obj: *mut JSObject,
+        can_gc: CanGc,
     ) -> Result<PermissionDescriptor, Error> {
         rooted!(in(*cx) let mut property = UndefinedValue());
         property
             .handle_mut()
             .set(ObjectValue(permission_descriptor_obj));
-        match PermissionDescriptor::new(cx, property.handle()) {
+        match PermissionDescriptor::new(cx, property.handle(), can_gc) {
             Ok(ConversionResult::Success(descriptor)) => Ok(descriptor),
             Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
             Err(_) => Err(Error::JSFailed),
@@ -350,7 +353,7 @@ fn prompt_user_from_embedder(name: PermissionName, global_scope: &GlobalScope) -
         warn!("Requesting permissions from non-webview-associated global scope");
         return PermissionState::Denied;
     };
-    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
+    let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel!");
     global_scope.send_to_embedder(EmbedderMsg::PromptPermission(
         webview_id,
         name.convert(),

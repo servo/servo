@@ -290,12 +290,9 @@ pub unsafe fn get_dictionary_property(
 /// Set the property with name `property` from `object`.
 /// Returns `Err(())` on JSAPI failure, or null object,
 /// and Ok(()) otherwise
-///
-/// # Safety
-/// `cx` must point to a valid, non-null JSContext.
 #[allow(clippy::result_unit_err)]
-pub unsafe fn set_dictionary_property(
-    cx: *mut JSContext,
+pub fn set_dictionary_property(
+    cx: SafeJSContext,
     object: HandleObject,
     property: &str,
     value: HandleValue,
@@ -305,14 +302,20 @@ pub unsafe fn set_dictionary_property(
     }
 
     let property = CString::new(property).unwrap();
-    if !JS_SetProperty(cx, object, property.as_ptr(), value) {
-        return Err(());
+    unsafe {
+        if !JS_SetProperty(*cx, object, property.as_ptr(), value) {
+            return Err(());
+        }
     }
 
     Ok(())
 }
 
-/// Returns whether `proxy` has a property `id` on its prototype.
+/// Computes whether `proxy` has a property `id` on its prototype and stores
+/// the result in `found`.
+///
+/// Returns a boolean indicating whether the check succeeded.
+/// If `false` is returned then the value of `found` is unspecified.
 ///
 /// # Safety
 /// `cx` must point to a valid, non-null JSContext.
@@ -503,7 +506,7 @@ pub(crate) unsafe extern "C" fn generic_static_promise_method(
     let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));
     assert!(!info.is_null());
     // TODO: we need safe wrappers for this in mozjs!
-    //assert_eq!((*info)._bitfield_1, JSJitInfo_OpType::StaticMethod as u8)
+    // assert_eq!((*info)._bitfield_1, JSJitInfo_OpType::StaticMethod as u8)
     let static_fn = (*info).__bindgen_anon_1.staticMethod.unwrap();
     if static_fn(cx, argc, vp) {
         return true;

@@ -13,6 +13,7 @@ use bitflags::bitflags;
 use embedder_traits::ViewportDetails;
 use euclid::SideOffsets2D;
 use malloc_size_of_derive::MallocSizeOf;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_geometry::FastLayoutTransform;
 use style::values::specified::Overflow;
@@ -56,14 +57,14 @@ pub struct AxesScrollSensitivity {
     pub y: ScrollType,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum SpatialTreeNodeInfo {
     ReferenceFrame(ReferenceFrameNodeInfo),
     Scroll(ScrollableNodeInfo),
     Sticky(StickyNodeInfo),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct StickyNodeInfo {
     pub frame_rect: LayoutRect,
     pub margins: SideOffsets2D<Option<f32>, LayoutPixel>,
@@ -76,10 +77,11 @@ impl StickyNodeInfo {
     /// sticky positioning from its ancestors.
     ///
     /// This is originally taken from WebRender `SpatialTree` implementation.
-    fn calculate_sticky_offset(&self, ancestor_sticky_info: &AncestorStickyInfo) -> LayoutVector2D {
-        let viewport_scroll_offset = &ancestor_sticky_info.nearest_scrolling_ancestor_offset;
-        let viewport_rect = &ancestor_sticky_info.nearest_scrolling_ancestor_viewport;
-
+    fn calculate_sticky_offset(
+        &self,
+        viewport_scroll_offset: &LayoutVector2D,
+        viewport_rect: &LayoutRect,
+    ) -> LayoutVector2D {
         if self.margins.top.is_none() &&
             self.margins.bottom.is_none() &&
             self.margins.left.is_none() &&
@@ -160,7 +162,7 @@ impl StickyNodeInfo {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ReferenceFrameNodeInfo {
     pub origin: LayoutPoint,
     /// Origin of this frame relative to the document for bounding box queries.
@@ -172,7 +174,7 @@ pub struct ReferenceFrameNodeInfo {
 
 /// Data stored for nodes in the [ScrollTree] that actually scroll,
 /// as opposed to reference frames and sticky nodes which do not.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ScrollableNodeInfo {
     /// The external scroll id of this node, used to track
     /// it between successive re-layouts.
@@ -278,19 +280,16 @@ impl ScrollableNodeInfo {
 /// Potential ideas for improvement:
 ///  - Test optimizing simple translations to avoid having to do full matrix
 ///    multiplication when transforms are not involved.
-#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
 pub struct ScrollTreeNodeTransformationCache {
     node_to_root_transform: FastLayoutTransform,
     root_to_node_transform: Option<FastLayoutTransform>,
-}
-
-#[derive(Default)]
-struct AncestorStickyInfo {
     nearest_scrolling_ancestor_offset: LayoutVector2D,
     nearest_scrolling_ancestor_viewport: LayoutRect,
+    cumulative_sticky_offsets: LayoutVector2D,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 /// A node in a tree of scroll nodes. This may either be a scrollable
 /// node which responds to scroll events or a non-scrollable one.
 pub struct ScrollTreeNode {
@@ -412,7 +411,7 @@ impl ScrollTreeNode {
 
         for child_id in &self.children {
             scroll_tree
-                .get_node(child_id)
+                .get_node(*child_id)
                 .invalidate_cached_transforms(scroll_tree, invalid);
         }
     }
@@ -421,7 +420,7 @@ impl ScrollTreeNode {
 /// A tree of spatial nodes, which mirrors the spatial nodes in the WebRender
 /// display list, except these are used to scrolling in the compositor so that
 /// new offsets can be sent to WebRender.
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, MallocSizeOf, Serialize)]
 pub struct ScrollTree {
     /// A list of compositor-side scroll nodes that describe the tree
     /// of WebRender spatial nodes, used by the compositor to scroll the
@@ -433,11 +432,11 @@ impl ScrollTree {
     /// Add a scroll node to this ScrollTree returning the id of the new node.
     pub fn add_scroll_tree_node(
         &mut self,
-        parent: Option<&ScrollTreeNodeId>,
+        parent: Option<ScrollTreeNodeId>,
         info: SpatialTreeNodeInfo,
     ) -> ScrollTreeNodeId {
         self.nodes.push(ScrollTreeNode {
-            parent: parent.cloned(),
+            parent,
             children: Vec::new(),
             webrender_id: None,
             info,
@@ -464,24 +463,24 @@ impl ScrollTree {
     }
 
     /// Get a mutable reference to the node with the given index.
-    pub fn get_node_mut(&mut self, id: &ScrollTreeNodeId) -> &mut ScrollTreeNode {
+    pub fn get_node_mut(&mut self, id: ScrollTreeNodeId) -> &mut ScrollTreeNode {
         &mut self.nodes[id.index]
     }
 
     /// Get an immutable reference to the node with the given index.
-    pub fn get_node(&self, id: &ScrollTreeNodeId) -> &ScrollTreeNode {
+    pub fn get_node(&self, id: ScrollTreeNodeId) -> &ScrollTreeNode {
         &self.nodes[id.index]
     }
 
     /// Get the WebRender [`SpatialId`] for the given [`ScrollNodeId`]. This will
     /// panic if [`ScrollTree::build_display_list`] has not been called yet.
-    pub fn webrender_id(&self, id: &ScrollTreeNodeId) -> SpatialId {
+    pub fn webrender_id(&self, id: ScrollTreeNodeId) -> SpatialId {
         self.get_node(id).webrender_id()
     }
 
     pub fn scroll_node_or_ancestor_inner(
         &mut self,
-        scroll_node_id: &ScrollTreeNodeId,
+        scroll_node_id: ScrollTreeNodeId,
         scroll_location: ScrollLocation,
         context: ScrollType,
     ) -> Option<(ExternalScrollId, LayoutVector2D)> {
@@ -494,20 +493,19 @@ impl ScrollTree {
             node.parent
         };
 
-        parent.and_then(|parent| {
-            self.scroll_node_or_ancestor_inner(&parent, scroll_location, context)
-        })
+        parent
+            .and_then(|parent| self.scroll_node_or_ancestor_inner(parent, scroll_location, context))
     }
 
     fn node_with_external_scroll_node_id(
         &self,
-        external_id: &ExternalScrollId,
+        external_id: ExternalScrollId,
     ) -> Option<ScrollTreeNodeId> {
         self.nodes
             .iter()
             .enumerate()
             .find_map(|(index, node)| match &node.info {
-                SpatialTreeNodeInfo::Scroll(info) if info.external_id == *external_id => {
+                SpatialTreeNodeInfo::Scroll(info) if info.external_id == external_id => {
                     Some(ScrollTreeNodeId { index })
                 },
                 _ => None,
@@ -520,12 +518,12 @@ impl ScrollTree {
     /// new offset if a scroll was performed, otherwise returns None.
     pub fn scroll_node_or_ancestor(
         &mut self,
-        external_id: &ExternalScrollId,
+        external_id: ExternalScrollId,
         scroll_location: ScrollLocation,
         context: ScrollType,
     ) -> Option<(ExternalScrollId, LayoutVector2D)> {
         let scroll_node_id = self.node_with_external_scroll_node_id(external_id)?;
-        let result = self.scroll_node_or_ancestor_inner(&scroll_node_id, scroll_location, context);
+        let result = self.scroll_node_or_ancestor_inner(scroll_node_id, scroll_location, context);
         if result.is_some() {
             self.invalidate_cached_transforms();
         }
@@ -558,7 +556,10 @@ impl ScrollTree {
 
     /// Given a set of all scroll offsets coming from the Servo renderer, update all of the offsets
     /// for nodes that actually exist in this tree.
-    pub fn set_all_scroll_offsets(&mut self, offsets: &HashMap<ExternalScrollId, LayoutVector2D>) {
+    pub fn set_all_scroll_offsets(
+        &mut self,
+        offsets: &FxHashMap<ExternalScrollId, LayoutVector2D>,
+    ) {
         for node in self.nodes.iter_mut() {
             if let SpatialTreeNodeInfo::Scroll(ref mut scroll_info) = node.info {
                 if let Some(offset) = offsets.get(&scroll_info.external_id) {
@@ -583,7 +584,7 @@ impl ScrollTree {
 
     /// Collect all of the scroll offsets of the scrolling nodes of this tree into a
     /// [`HashMap`] which can be applied to another tree.
-    pub fn scroll_offsets(&self) -> HashMap<ExternalScrollId, LayoutVector2D> {
+    pub fn scroll_offsets(&self) -> FxHashMap<ExternalScrollId, LayoutVector2D> {
         HashMap::from_iter(self.nodes.iter().filter_map(|node| match node.info {
             SpatialTreeNodeInfo::Scroll(ref scroll_info) => {
                 Some((scroll_info.external_id, scroll_info.offset))
@@ -605,16 +606,10 @@ impl ScrollTree {
     /// point in the root coordinate system.
     pub fn cumulative_node_to_root_transform(
         &self,
-        node_id: &ScrollTreeNodeId,
+        node_id: ScrollTreeNodeId,
     ) -> FastLayoutTransform {
-        let node = self.get_node(node_id);
-        if let Some(cached_transforms) = node.transformation_cache.get() {
-            return cached_transforms.node_to_root_transform;
-        }
-
-        let (transforms, _) = self.cumulative_node_transform_inner(node);
-        node.transformation_cache.set(Some(transforms));
-        transforms.node_to_root_transform
+        self.cumulative_node_transform(node_id)
+            .node_to_root_transform
     }
 
     /// Find a transformation that can convert a point in the root coordinate system to a
@@ -622,79 +617,106 @@ impl ScrollTree {
     /// transform is uninvertible.
     pub fn cumulative_root_to_node_transform(
         &self,
-        node_id: &ScrollTreeNodeId,
+        node_id: ScrollTreeNodeId,
     ) -> Option<FastLayoutTransform> {
+        self.cumulative_node_transform(node_id)
+            .root_to_node_transform
+    }
+
+    /// Find the cumulative offsets of sticky positioned boxes from the given node up to
+    /// the root.
+    pub fn cumulative_sticky_offsets(&self, node_id: ScrollTreeNodeId) -> LayoutVector2D {
+        self.cumulative_node_transform(node_id)
+            .cumulative_sticky_offsets
+    }
+
+    fn cumulative_node_transform(
+        &self,
+        node_id: ScrollTreeNodeId,
+    ) -> ScrollTreeNodeTransformationCache {
         let node = self.get_node(node_id);
         if let Some(cached_transforms) = node.transformation_cache.get() {
-            return cached_transforms.root_to_node_transform;
+            return cached_transforms;
         }
 
-        let (transforms, _) = self.cumulative_node_transform_inner(node);
+        let transforms = self.cumulative_node_transform_inner(node);
         node.transformation_cache.set(Some(transforms));
-        transforms.root_to_node_transform
+        transforms
     }
 
     /// Traverse a scroll node to its root to calculate the transform.
     fn cumulative_node_transform_inner(
         &self,
         node: &ScrollTreeNode,
-    ) -> (ScrollTreeNodeTransformationCache, AncestorStickyInfo) {
-        let (parent_transforms, mut sticky_info) = match node.parent {
-            Some(parent_id) => self.cumulative_node_transform_inner(self.get_node(&parent_id)),
-            None => (Default::default(), Default::default()),
+    ) -> ScrollTreeNodeTransformationCache {
+        let parent_transforms = node
+            .parent
+            .map(|parent_id| self.cumulative_node_transform(parent_id))
+            .unwrap_or_default();
+
+        let node_to_root_transform = |node_to_parent_transform: FastLayoutTransform| {
+            node_to_parent_transform.then(&parent_transforms.node_to_root_transform)
+        };
+        let root_to_node_transform = |parent_to_node_transform: FastLayoutTransform| {
+            parent_transforms
+                .root_to_node_transform
+                .map_or(parent_to_node_transform, |parent_transform| {
+                    parent_transform.then(&parent_to_node_transform)
+                })
         };
 
-        let (node_to_parent_transform, parent_to_node_transform) = match &node.info {
+        match &node.info {
             SpatialTreeNodeInfo::ReferenceFrame(info) => {
                 // To apply a transformation we need to make sure the rectangle's
                 // coordinate space is the same as reference frame's coordinate space.
                 let offset = info.frame_origin_for_query.to_vector();
                 let node_to_parent_transform =
                     info.transform.pre_translate(-offset).then_translate(offset);
-
-                let parent_to_node_transform =
-                    FastLayoutTransform::Offset(-info.origin.to_vector());
-                let parent_to_node_transform = info
-                    .transform
-                    .inverse()
-                    .map(|inverse_transform| parent_to_node_transform.then(&inverse_transform));
-
-                sticky_info.nearest_scrolling_ancestor_viewport = sticky_info
-                    .nearest_scrolling_ancestor_viewport
-                    .translate(-info.origin.to_vector());
-
-                (node_to_parent_transform, parent_to_node_transform)
+                let parent_to_node_transform = info.transform.inverse().map(|inverse_transform| {
+                    FastLayoutTransform::Offset(-info.origin.to_vector()).then(&inverse_transform)
+                });
+                ScrollTreeNodeTransformationCache {
+                    node_to_root_transform: node_to_root_transform(node_to_parent_transform),
+                    root_to_node_transform: parent_to_node_transform.map(root_to_node_transform),
+                    nearest_scrolling_ancestor_viewport: parent_transforms
+                        .nearest_scrolling_ancestor_viewport
+                        .translate(-info.origin.to_vector()),
+                    nearest_scrolling_ancestor_offset: parent_transforms
+                        .nearest_scrolling_ancestor_offset,
+                    cumulative_sticky_offsets: parent_transforms.cumulative_sticky_offsets,
+                }
             },
             SpatialTreeNodeInfo::Scroll(info) => {
-                sticky_info.nearest_scrolling_ancestor_viewport = info.clip_rect;
-                sticky_info.nearest_scrolling_ancestor_offset = -info.offset;
-                let offset_transform = FastLayoutTransform::Offset(-info.offset);
-                (offset_transform, offset_transform.inverse())
+                let node_to_parent_transform = FastLayoutTransform::Offset(-info.offset);
+                let parent_to_node_transform = node_to_parent_transform.inverse();
+                ScrollTreeNodeTransformationCache {
+                    node_to_root_transform: node_to_root_transform(node_to_parent_transform),
+                    root_to_node_transform: parent_to_node_transform.map(root_to_node_transform),
+                    nearest_scrolling_ancestor_viewport: info.clip_rect,
+                    nearest_scrolling_ancestor_offset: -info.offset,
+                    cumulative_sticky_offsets: parent_transforms.cumulative_sticky_offsets,
+                }
             },
 
             SpatialTreeNodeInfo::Sticky(info) => {
-                let offset = info.calculate_sticky_offset(&sticky_info);
-                sticky_info.nearest_scrolling_ancestor_offset += offset;
-                let offset_transform = FastLayoutTransform::Offset(offset);
-                (offset_transform, offset_transform.inverse())
+                let offset = info.calculate_sticky_offset(
+                    &parent_transforms.nearest_scrolling_ancestor_offset,
+                    &parent_transforms.nearest_scrolling_ancestor_viewport,
+                );
+                let node_to_parent_transform = FastLayoutTransform::Offset(offset);
+                let parent_to_node_transform = node_to_parent_transform.inverse();
+                ScrollTreeNodeTransformationCache {
+                    node_to_root_transform: node_to_root_transform(node_to_parent_transform),
+                    root_to_node_transform: parent_to_node_transform.map(root_to_node_transform),
+                    nearest_scrolling_ancestor_viewport: parent_transforms
+                        .nearest_scrolling_ancestor_viewport,
+                    nearest_scrolling_ancestor_offset: parent_transforms
+                        .nearest_scrolling_ancestor_offset +
+                        offset,
+                    cumulative_sticky_offsets: parent_transforms.cumulative_sticky_offsets + offset,
+                }
             },
-        };
-
-        let node_to_root_transform =
-            node_to_parent_transform.then(&parent_transforms.node_to_root_transform);
-        let root_to_node_transform = parent_to_node_transform.map(|parent_to_node_transform| {
-            parent_transforms
-                .root_to_node_transform
-                .map_or(parent_to_node_transform, |parent_transform| {
-                    parent_transform.then(&parent_to_node_transform)
-                })
-        });
-
-        let transforms = ScrollTreeNodeTransformationCache {
-            node_to_root_transform,
-            root_to_node_transform,
-        };
-        (transforms, sticky_info)
+        }
     }
 
     fn invalidate_cached_transforms(&self) {
@@ -708,13 +730,13 @@ impl ScrollTree {
         &self,
         id: ScrollTreeNodeId,
     ) -> Option<ExternalScrollId> {
-        let mut maybe_node = Some(self.get_node(&id));
+        let mut maybe_node = Some(self.get_node(id));
 
         while let Some(node) = maybe_node {
             if let Some(external_scroll_id) = node.external_id() {
                 return Some(external_scroll_id);
             }
-            maybe_node = node.parent.map(|id| self.get_node(&id));
+            maybe_node = node.parent.map(|id| self.get_node(id));
         }
 
         None
@@ -748,12 +770,12 @@ impl ScrollTree {
     fn debug_print_traversal(
         &self,
         print_tree: &mut PrintTree,
-        current_id: &ScrollTreeNodeId,
+        current_id: ScrollTreeNodeId,
         adjacency_list: &[Vec<ScrollTreeNodeId>],
     ) {
         for node_id in &adjacency_list[current_id.index] {
             self.nodes[node_id.index].debug_print(print_tree, node_id.index);
-            self.debug_print_traversal(print_tree, node_id, adjacency_list);
+            self.debug_print_traversal(print_tree, *node_id, adjacency_list);
         }
         print_tree.end_level();
     }
@@ -771,14 +793,14 @@ impl ScrollTree {
         let root_id = ScrollTreeNodeId { index: 0 };
 
         self.nodes[root_id.index].debug_print(&mut print_tree, root_id.index);
-        self.debug_print_traversal(&mut print_tree, &root_id, &adj_list);
+        self.debug_print_traversal(&mut print_tree, root_id, &adj_list);
         print_tree.end_level();
     }
 }
 
 /// A data structure which stores compositor-side information about
 /// display lists sent to the compositor.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct CompositorDisplayListInfo {
     /// The WebRender [PipelineId] of this display list.
     pub pipeline_id: PipelineId,
@@ -838,7 +860,7 @@ impl CompositorDisplayListInfo {
             }),
         );
         let root_scroll_node_id = scroll_tree.add_scroll_tree_node(
-            Some(&root_reference_frame_id),
+            Some(root_reference_frame_id),
             SpatialTreeNodeInfo::Scroll(ScrollableNodeInfo {
                 external_id: ExternalScrollId(0, pipeline_id),
                 content_rect: LayoutRect::from_origin_and_size(LayoutPoint::zero(), content_size),

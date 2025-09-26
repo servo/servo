@@ -283,6 +283,19 @@ class Network(BidiModule):
         return params
 
     @command
+    def disown_data(
+            self,
+            request: str,
+            data_type: str,
+            collector: str) -> Mapping[str, Any]:
+        params: MutableMapping[str, Any] = {
+            "request": request,
+            "dataType": data_type,
+            "collector": collector,
+        }
+        return params
+
+    @command
     def set_cache_behavior(
             self,
             cache_behavior: CacheBehavior,

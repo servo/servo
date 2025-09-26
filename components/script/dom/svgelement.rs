@@ -9,11 +9,12 @@ use script_bindings::str::DOMString;
 use stylo_dom::ElementState;
 
 use crate::dom::attr::Attr;
+use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
 use crate::dom::bindings::codegen::Bindings::SVGElementBinding::SVGElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
-use crate::dom::document::Document;
+use crate::dom::document::{Document, FocusInitiator};
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::virtualmethods::VirtualMethods;
@@ -91,7 +92,7 @@ impl VirtualMethods for SVGElement {
 }
 
 impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
-    // https://html.spec.whatwg.org/multipage/#the-style-attribute
+    /// <https://html.spec.whatwg.org/multipage/#the-style-attribute>
     fn Style(&self) -> DomRoot<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
             let global = self.owner_window();
@@ -105,28 +106,41 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
         })
     }
 
-    // <https://html.spec.whatwg.org/multipage/#globaleventhandlers>
+    // https://html.spec.whatwg.org/multipage/#globaleventhandlers
     global_event_handlers!();
 
-    // https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce
+    /// <https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce>
     fn Nonce(&self) -> DOMString {
         self.as_element().nonce_value().into()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce
+    /// <https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce>
     fn SetNonce(&self, value: DOMString) {
         self.as_element()
             .update_nonce_internal_slot(value.to_string())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-fe-autofocus
+    /// <https://html.spec.whatwg.org/multipage/#dom-fe-autofocus>
     fn Autofocus(&self) -> bool {
         self.element.has_attribute(&local_name!("autofocus"))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-fe-autofocus
+    /// <https://html.spec.whatwg.org/multipage/#dom-fe-autofocus>
     fn SetAutofocus(&self, autofocus: bool, can_gc: CanGc) {
         self.element
             .set_bool_attribute(&local_name!("autofocus"), autofocus, can_gc);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-focus>
+    fn Focus(&self, options: &FocusOptions) {
+        let document = self.element.owner_document();
+        document.request_focus_with_options(
+            Some(&self.element),
+            FocusInitiator::Local,
+            FocusOptions {
+                preventScroll: options.preventScroll,
+            },
+            CanGc::note(),
+        );
     }
 }

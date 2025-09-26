@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use style::shared_lock::SharedRwLock;
-use style::stylesheets::{CssRuleType, CssRuleTypes};
+use servo_arc::Arc;
+use style::shared_lock::{Locked, SharedRwLock, SharedRwLockReadGuard};
+use style::stylesheets::{CssRuleType, CssRuleTypes, CssRules};
 
 use crate::dom::bindings::codegen::Bindings::CSSGroupingRuleBinding::CSSGroupingRuleMethods;
 use crate::dom::bindings::error::{ErrorResult, Fallible};
@@ -61,6 +62,16 @@ impl CSSGroupingRule {
 
     pub(crate) fn shared_lock(&self) -> &SharedRwLock {
         self.cssrule.shared_lock()
+    }
+
+    pub(crate) fn update_rules(
+        &self,
+        rules: &Arc<Locked<CssRules>>,
+        guard: &SharedRwLockReadGuard,
+    ) {
+        if let Some(rulelist) = self.rulelist.get() {
+            rulelist.update_rules(RulesSource::Rules(rules.clone()), guard);
+        }
     }
 }
 

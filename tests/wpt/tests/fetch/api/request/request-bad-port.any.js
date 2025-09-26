@@ -3,6 +3,7 @@
 // list of bad ports according to
 // https://fetch.spec.whatwg.org/#port-blocking
 var BLOCKED_PORTS_LIST = [
+    0,
     1,    // tcpmux
     7,    // echo
     9,    // discard

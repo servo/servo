@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: text-transform:full-width suppresses autospacing</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-autospace-property">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="match" href="text-autospace-transform-full-width-001-ref.html">
+
+<style>
+#container {
+  font-family: Ahem;
+  font-size: 20px;
+  text-autospace: normal;
+}
+.fw {
+  text-transform: full-width;
+}
+</style>
+
+<div id="container">
+  <div class="fw">国国XX国</div>
+  <div class="fw" style="writing-mode: vertical-rl" >国国XX国</div>
+</div>

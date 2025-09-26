@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<title>CSS Test: ::before pseudo-element as a flex container</title>
+<link rel="author" title="Deepith N" href="mailto:deekshithdeepith@gmail.com">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#generated-content">
+<link rel="match" href="before-as-flex-container-ref.html">
+
+<style>
+  div {
+    width: 200px;
+    height: 100px;
+    background: red; /* This will show up if the test fails */
+  }
+
+  div::before {
+    content: "A B"; /* Two "words" to become flex items */
+    display: flex;
+    justify-content: space-between; /* Pushes "A" and "B" to the edges */
+    width: 200px;
+    height: 100px;
+    background: green; /* This should cover the red background */
+  }
+</style>
+
+<div></div>

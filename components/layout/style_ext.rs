@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use layout_api::AxesOverflow;
 use malloc_size_of_derive::MallocSizeOf;
 use style::Zero;
 use style::color::AbsoluteColor;
@@ -58,12 +59,6 @@ pub(crate) enum DisplayGeneratingBox {
     /// <https://drafts.csswg.org/css-display-3/#layout-specific-display>
     LayoutInternal(DisplayLayoutInternal),
 }
-#[derive(Clone, Copy, Debug)]
-pub struct AxesOverflow {
-    pub x: Overflow,
-    pub y: Overflow,
-}
-
 impl DisplayGeneratingBox {
     pub(crate) fn display_inside(&self) -> DisplayInside {
         match *self {
@@ -225,7 +220,7 @@ impl AspectRatio {
         }
     }
 
-    pub(crate) fn from_content_ratio(i_over_b: CSSFloat) -> Self {
+    pub(crate) fn from_logical_content_ratio(i_over_b: CSSFloat) -> Self {
         Self {
             box_sizing_adjustment: LogicalVec2::zero(),
             i_over_b,
@@ -594,62 +589,60 @@ impl ComputedValuesExt for ComputedValues {
     /// flex containers, and grid containers. And some box types only accept a few values.
     /// <https://www.w3.org/TR/css-overflow-3/#overflow-control>
     fn effective_overflow(&self, fragment_flags: FragmentFlags) -> AxesOverflow {
-        let style_box = self.get_box();
-        let mut overflow_x = style_box.overflow_x;
-        let mut overflow_y = style_box.overflow_y;
+        // https://www.w3.org/TR/css-overflow-3/#overflow-propagation
+        // The element from which the value is propagated must then have a used overflow value of visible.
+        if fragment_flags.contains(FragmentFlags::PROPAGATED_OVERFLOW_TO_VIEWPORT) {
+            return AxesOverflow::default();
+        }
+
+        let mut overflow = AxesOverflow::from(self);
 
         // From <https://www.w3.org/TR/css-overflow-4/#overflow-control>:
         // "On replaced elements, the used values of all computed values other than visible is clip."
         if fragment_flags.contains(FragmentFlags::IS_REPLACED) {
-            if overflow_x != Overflow::Visible {
-                overflow_x = Overflow::Clip;
+            if overflow.x != Overflow::Visible {
+                overflow.x = Overflow::Clip;
             }
-            if overflow_y != Overflow::Visible {
-                overflow_y = Overflow::Clip;
+            if overflow.y != Overflow::Visible {
+                overflow.y = Overflow::Clip;
             }
-            return AxesOverflow {
-                x: overflow_x,
-                y: overflow_y,
-            };
+            return overflow;
         }
 
-        let ignores_overflow = match style_box.display.inside() {
+        let ignores_overflow = match self.get_box().display.inside() {
+            // <https://drafts.csswg.org/css-overflow-3/#overflow-control>
+            // `overflow` doesn't apply to inline boxes.
+            stylo::DisplayInside::Flow => self.is_inline_box(fragment_flags),
+
+            // According to <https://drafts.csswg.org/css-tables/#global-style-overrides>,
+            // - overflow applies to table-wrapper boxes and not to table grid boxes.
+            //   That's what Blink and WebKit do, however Firefox matches a CSSWG resolution that says
+            //   the opposite: <https://lists.w3.org/Archives/Public/www-style/2012Aug/0298.html>
+            //   Due to the way that we implement table-wrapper boxes, it's easier to align with Firefox.
+            // - Tables ignore overflow values different than visible, clip and hidden.
+            //   This affects both axes, to ensure they have the same scrollability.
             stylo::DisplayInside::Table => {
-                // According to <https://drafts.csswg.org/css-tables/#global-style-overrides>,
-                // - overflow applies to table-wrapper boxes and not to table grid boxes.
-                //   That's what Blink and WebKit do, however Firefox matches a CSSWG resolution that says
-                //   the opposite: <https://lists.w3.org/Archives/Public/www-style/2012Aug/0298.html>
-                //   Due to the way that we implement table-wrapper boxes, it's easier to align with Firefox.
-                // - Tables ignore overflow values different than visible, clip and hidden.
-                //   This affects both axes, to ensure they have the same scrollability.
                 !matches!(self.pseudo(), Some(PseudoElement::ServoTableGrid)) ||
-                    matches!(overflow_x, Overflow::Auto | Overflow::Scroll) ||
-                    matches!(overflow_y, Overflow::Auto | Overflow::Scroll)
+                    matches!(overflow.x, Overflow::Auto | Overflow::Scroll) ||
+                    matches!(overflow.y, Overflow::Auto | Overflow::Scroll)
             },
+
+            // <https://drafts.csswg.org/css-tables/#global-style-overrides>
+            // Table-track and table-track-group boxes ignore overflow.
             stylo::DisplayInside::TableColumn |
             stylo::DisplayInside::TableColumnGroup |
             stylo::DisplayInside::TableRow |
             stylo::DisplayInside::TableRowGroup |
             stylo::DisplayInside::TableHeaderGroup |
-            stylo::DisplayInside::TableFooterGroup => {
-                // <https://drafts.csswg.org/css-tables/#global-style-overrides>
-                // Table-track and table-track-group boxes ignore overflow.
-                true
-            },
+            stylo::DisplayInside::TableFooterGroup => true,
+
             _ => false,
         };
-
         if ignores_overflow {
-            AxesOverflow {
-                x: Overflow::Visible,
-                y: Overflow::Visible,
-            }
-        } else {
-            AxesOverflow {
-                x: overflow_x,
-                y: overflow_y,
-            }
+            return AxesOverflow::default();
         }
+
+        overflow
     }
 
     /// Return true if this style is a normal block and establishes
@@ -891,6 +884,14 @@ impl ComputedValuesExt for ComputedValues {
             preferred_ratio = PreferredRatio::None;
         }
 
+        let to_logical_ratio = |physical_ratio| {
+            if self.writing_mode.is_horizontal() {
+                physical_ratio
+            } else {
+                1.0 / physical_ratio
+            }
+        };
+
         match (auto, preferred_ratio) {
             // The value `auto`. Either the ratio was not specified, or was
             // degenerate and set to PreferredRatio::None above.
@@ -899,19 +900,20 @@ impl ComputedValuesExt for ComputedValues {
             // ratio; otherwise the box has no preferred aspect ratio. Size
             // calculations involving the aspect ratio work with the content box
             // dimensions always."
-            (_, PreferredRatio::None) => natural_aspect_ratio.map(AspectRatio::from_content_ratio),
+            (_, PreferredRatio::None) => natural_aspect_ratio
+                .map(to_logical_ratio)
+                .map(AspectRatio::from_logical_content_ratio),
             // "If both auto and a <ratio> are specified together, the preferred
             // aspect ratio is the specified ratio of width / height unless it
             // is a replaced element with a natural aspect ratio, in which case
             // that aspect ratio is used instead. In all cases, size
             // calculations involving the aspect ratio work with the content box
             // dimensions always."
-            (true, PreferredRatio::Ratio(preferred_ratio)) => {
-                Some(AspectRatio::from_content_ratio(
-                    natural_aspect_ratio
-                        .unwrap_or_else(|| (preferred_ratio.0).0 / (preferred_ratio.1).0),
-                ))
-            },
+            (true, PreferredRatio::Ratio(preferred_ratio)) => Some({
+                let physical_ratio = natural_aspect_ratio
+                    .unwrap_or_else(|| (preferred_ratio.0).0 / (preferred_ratio.1).0);
+                AspectRatio::from_logical_content_ratio(to_logical_ratio(physical_ratio))
+            }),
 
             // "The box’s preferred aspect ratio is the specified ratio of width
             // / height. Size calculations involving the aspect ratio work with
@@ -924,7 +926,7 @@ impl ComputedValuesExt for ComputedValues {
                     BoxSizing::BorderBox => *padding_border_sums,
                 };
                 Some(AspectRatio {
-                    i_over_b: (preferred_ratio.0).0 / (preferred_ratio.1).0,
+                    i_over_b: to_logical_ratio((preferred_ratio.0).0 / (preferred_ratio.1).0),
                     box_sizing_adjustment,
                 })
             },
@@ -1067,7 +1069,7 @@ impl LayoutStyle<'_> {
         // we instead resolve indefinite percentages against zero.
         let containing_block_size_or_zero =
             containing_block.size.map(|value| value.unwrap_or_default());
-        let writing_mode = containing_block.writing_mode;
+        let writing_mode = containing_block.style.writing_mode;
         let pbm = self.padding_border_margin_with_writing_mode_and_containing_block_inline_size(
             writing_mode,
             containing_block_size_or_zero.inline,

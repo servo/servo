@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<div id="host">
+</div>
+<script>
+  const host = document.querySelector("#host");
+  const shadow_root = host.attachShadow({ mode: 'open', slotAssignment: 'manual' });
+  const slot1 = document.createElement("slot");
+  const child1 = document.createElement("child");
+  shadow_root.appendChild(slot1);
+  window.onload = function() {
+    PerfTestRunner.measureTime({
+      description: "Measure performance of assign function in manual-slotting mode in shadow root.",
+      run: function() {
+        const start = PerfTestRunner.now();
+        for (let i = 0; i < 100; i++) {
+          host.appendChild(child1);
+          slot1.assign(child1);
+          child1.remove();
+        }
+
+        return PerfTestRunner.now() - start;
+      }
+    });
+  }
+</script>

@@ -636,11 +636,5 @@ const expTests = [
   }
 ];
 
-if (navigator.ml) {
-  expTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getExpPrecisionTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(
+    expTests, buildAndExecuteGraph, getExpPrecisionTolerance);

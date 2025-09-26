@@ -6,6 +6,11 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <style>
+      @mixin --m1() {  /* Will be overwritten. */
+        .cls {
+          color: red;
+        }
+      }
       @mixin --m1() {
         .cls {
           color: green;

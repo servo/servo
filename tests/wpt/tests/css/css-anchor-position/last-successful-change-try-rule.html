@@ -48,7 +48,7 @@
     anchor.style.top = "150px";
     await waitUntilNextAnimationFrame();
     await waitUntilNextAnimationFrame();
-    assert_equals(anchored.offsetTop, 250);
+    assert_equals(anchored.offsetTop, 200);
   }, "No successful position, keep --try");
 
   promise_test(async () => {
@@ -56,6 +56,6 @@
     anchor_sheet.sheet.cssRules[3].style.positionArea = "bottom";
     await waitUntilNextAnimationFrame();
     await waitUntilNextAnimationFrame();
-    assert_equals(anchored.offsetTop, -50);
+    assert_equals(anchored.offsetTop, 0);
   }, "No successful position, last successful invalidated by @position-try change");
 </script>

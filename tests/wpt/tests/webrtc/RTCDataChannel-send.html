@@ -5,6 +5,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="RTCPeerConnection-helper.js"></script>
+<script src="RTCDataChannel-helper.js"></script>
 <script src="third_party/sdp/sdp.js"></script>
 <script>
 'use strict';
@@ -427,6 +428,51 @@ for (const options of [{}, {negotiated: true, id: 0}]) {
     await pc1.setRemoteDescription(pc2.localDescription);
     await receivedMessages;
   }, `Sending multiple messages simultaneously in unordered mode works reliably`);
+
+promise_test(async () => {
+  const offerer = new RTCPeerConnection();
+  const answerer = new RTCPeerConnection();
+  const channel1 = offerer.createDataChannel('foo');
+
+  const toSend = [];
+  for (let i = 0; i < 100; i++) {
+    toSend.push(`So anyway I started blastin' ${i}`);
+  }
+
+  function blastMessages(channel) {
+    assert_equals(channel.readyState, 'open', 'channel should already be open');
+    for (const message of toSend) {
+      channel.send(message);
+    }
+  }
+
+  // Set up both channels to send messages as soon as they are open
+  channel1.onopen = () => blastMessages(channel1);
+
+  const channel2Created = new Promise(r => {
+    answerer.ondatachannel = ({channel}) => {
+      blastMessages(channel);
+      r(channel);
+    }
+  });
+
+  async function receiveMessages(channel) {
+    const received = [];
+    while (received.length < toSend.length) {
+      const {data} = await new Promise(r => channel.onmessage = r);
+      received.push(data);
+    }
+    return received;
+  }
+
+  const received1 = receiveMessages(channel1);
+
+  await negotiate(offerer, answerer);
+
+  const channel2 = await channel2Created;
+  assert_array_equals(await receiveMessages(channel2), toSend);
+  assert_array_equals(await received1, toSend);
+}, 'Sending before the other side is open should work');
 
 
 </script>

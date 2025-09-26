@@ -147,7 +147,7 @@ macro_rules! make_form_action_getter(
 macro_rules! make_labels_getter(
     ( $attr:ident, $memo:ident ) => (
         fn $attr(&self) -> DomRoot<NodeList> {
-            use $crate::dom::htmlelement::HTMLElement;
+            use $crate::dom::html::htmlelement::HTMLElement;
             use $crate::dom::nodelist::NodeList;
             self.$memo.or_init(|| NodeList::new_labels_list(
                 self.upcast::<Node>().owner_doc().window(),
@@ -524,8 +524,10 @@ macro_rules! global_event_handlers(
     (NoOnload) => (
         event_handler!(abort, GetOnabort, SetOnabort);
         event_handler!(auxclick, GetOnauxclick, SetOnauxclick);
-        event_handler!(animationend, GetOnanimationend, SetOnanimationend);
+        event_handler!(animationstart, GetOnanimationstart, SetOnanimationstart);
         event_handler!(animationiteration, GetOnanimationiteration, SetOnanimationiteration);
+        event_handler!(animationend, GetOnanimationend, SetOnanimationend);
+        event_handler!(animationcancel, GetOnanimationcancel, SetOnanimationcancel);
         event_handler!(beforeinput, GetOnbeforeinput, SetOnbeforeinput);
         event_handler!(beforematch, GetOnbeforematch, SetOnbeforematch);
         event_handler!(beforetoggle, GetOnbeforetoggle, SetOnbeforetoggle);

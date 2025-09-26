@@ -53,6 +53,7 @@
     });
 
     clickTimeMin = performance.now();
+    mainThreadBusy(2);
 
     let observedPointerDown = false;
     const observerPromise = new Promise(resolve => {

@@ -6,7 +6,7 @@
 
 [
   Exposed=(Window,Worker,Worklet,DissimilarOriginWindow),
-  // Serializable
+  Serializable
 ]
 interface QuotaExceededError : DOMException {
   [Throws] constructor(optional DOMString message = "", optional QuotaExceededErrorOptions options = {});

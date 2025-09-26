@@ -6,24 +6,26 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::thread::{self, JoinHandle};
 
+use base::IpcSend;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use constellation_traits::{WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
+use fonts::FontContext;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
 use js::jsapi::{Heap, JS_AddInterruptCallback, JSContext, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use net_traits::Metadata;
 use net_traits::image_cache::ImageCache;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer, RequestBuilder,
     RequestMode,
 };
-use net_traits::{IpcSend, Metadata};
 use servo_rand::random;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
@@ -39,7 +41,7 @@ use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
 use crate::dom::bindings::error::{ErrorInfo, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{DomRoot, RootCollection, ThreadLocalStackRoots};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::{CustomTraceable, RootedTraceableBox};
@@ -232,7 +234,10 @@ impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
         self.handle_mixed_message(event, can_gc)
     }
 
-    fn handle_worker_post_event(&self, worker: &TrustedWorkerAddress) -> Option<AutoWorkerReset> {
+    fn handle_worker_post_event(
+        &self,
+        worker: &TrustedWorkerAddress,
+    ) -> Option<AutoWorkerReset<'_>> {
         let ar = AutoWorkerReset::new(self, worker.clone());
         Some(ar)
     }
@@ -280,6 +285,7 @@ impl DedicatedWorkerGlobalScope {
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
+        font_context: Option<Arc<FontContext>>,
     ) -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -293,6 +299,7 @@ impl DedicatedWorkerGlobalScope {
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,
                 insecure_requests_policy,
+                font_context,
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
             own_sender,
@@ -321,8 +328,8 @@ impl DedicatedWorkerGlobalScope {
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
+        font_context: Option<Arc<FontContext>>,
     ) -> DomRoot<DedicatedWorkerGlobalScope> {
-        let cx = runtime.cx();
         let scope = Box::new(DedicatedWorkerGlobalScope::new_inherited(
             init,
             worker_name,
@@ -340,13 +347,12 @@ impl DedicatedWorkerGlobalScope {
             gpu_id_hub,
             control_receiver,
             insecure_requests_policy,
+            font_context,
         ));
-        unsafe {
-            DedicatedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
-                SafeJSContext::from_ptr(cx),
-                scope,
-            )
-        }
+        DedicatedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
+            GlobalScope::get_cx(),
+            scope,
+        )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-a-worker>
@@ -370,6 +376,7 @@ impl DedicatedWorkerGlobalScope {
         context_sender: Sender<ThreadSafeJSContext>,
         insecure_requests_policy: InsecureRequestsPolicy,
         policy_container: PolicyContainer,
+        font_context: Option<Arc<FontContext>>,
     ) -> JoinHandle<()> {
         let serialized_worker_url = worker_url.to_string();
         let webview_id = WebViewId::installed();
@@ -389,9 +396,6 @@ impl DedicatedWorkerGlobalScope {
                 if let Some(webview_id) = webview_id {
                     WebViewId::install(webview_id);
                 }
-
-                let roots = RootCollection::new();
-                let _stack_roots = ThreadLocalStackRoots::new(&roots);
 
                 let WorkerScriptLoadOrigin {
                     referrer_url,
@@ -427,7 +431,6 @@ impl DedicatedWorkerGlobalScope {
                     Runtime::new_with_parent(Some(parent), Some(task_source))
                 };
                 let debugger_global = DebuggerGlobalScope::new(
-                    &runtime,
                     pipeline_id,
                     init.to_devtools_sender.clone(),
                     init.from_devtools_sender
@@ -436,6 +439,7 @@ impl DedicatedWorkerGlobalScope {
                     init.mem_profiler_chan.clone(),
                     init.time_profiler_chan.clone(),
                     init.script_to_constellation_chan.clone(),
+                    init.script_to_embedder_chan.clone(),
                     init.resource_threads.clone(),
                     #[cfg(feature = "webgpu")]
                     gpu_id_hub.clone(),
@@ -486,6 +490,7 @@ impl DedicatedWorkerGlobalScope {
                     gpu_id_hub,
                     control_receiver,
                     insecure_requests_policy,
+                    font_context,
                 );
                 debugger_global.fire_add_debuggee(
                     CanGc::note(),

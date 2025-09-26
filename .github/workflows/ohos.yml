@@ -67,7 +67,7 @@ jobs:
         run: sudo apt update && ./mach bootstrap --skip-lints
       - name: Setup OpenHarmony SDK
         id: setup_sdk
-        uses: openharmony-rs/setup-ohos-sdk@v0.2.1
+        uses: openharmony-rs/setup-ohos-sdk@v0.2.3
         with:
           version: "5.0.2"
           fixup-path: true
@@ -289,7 +289,7 @@ jobs:
         continue-on-error: true
       - name: Run speedometer
         id: BencherRun
-        run: python3 ./mach test-speedometer-ohos --bmf-output speedometer.json --profile ${{ inputs.profile }}
+        run: ./mach test-speedometer-ohos --bmf-output speedometer.json --profile ${{ inputs.profile }}
         continue-on-error: true
       - name: Create empty speedometer.json if failed
         run: touch speedometer.json

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<button id=invoker interestfor=target>
+  Button content
+  <span id=inner-span tabindex=0>Inner content</span>
+</button>
+<div id=target>Target</div>
+<button id=otherbutton>Other button</button>
+<style>
+  [interestfor] { interest-delay: 0s; }
+</style>
+
+<script>
+const invoker = document.getElementById('invoker');
+const innerSpan = document.getElementById('inner-span');
+const target = document.getElementById('target');
+const otherbutton = document.getElementById('otherbutton');
+
+promise_test(async function (t) {
+  t.add_cleanup(() => focusOn(otherbutton));
+  const signal = t.get_signal();
+  let interestCount = 0;
+  let loseInterestCount = 0;
+  target.addEventListener('interest',() => (++interestCount),{signal});
+  target.addEventListener('loseinterest',() => (++loseInterestCount),{signal});
+  await focusOn(invoker);
+  assert_true(invoker.matches(':interest-source'),'focusing invoker should show interest');
+  assert_equals(interestCount,1,'One interest event');
+  interestCount = 0;
+  assert_equals(loseInterestCount,0,'No loseinterest events');
+  await focusOn(innerSpan);
+  assert_true(invoker.matches(':interest-source'),'focusing inner span should keep interest');
+  assert_equals(interestCount,0,'No extra interest events');
+  assert_equals(loseInterestCount,0,'No loseinterest events');
+  await focusOn(invoker);
+  assert_true(invoker.matches(':interest-source'),'focusing back to outer button should keep interest');
+  assert_equals(interestCount,0,'No extra interest events');
+  assert_equals(loseInterestCount,0,'No loseinterest events');
+  await focusOn(otherbutton);
+  assert_false(invoker.matches(':interest-source'),'focusing outside should lose interest');
+  assert_equals(interestCount,0,'No extra interest events');
+  assert_equals(loseInterestCount,1,'Finally got loseinterest event');
+},'Moving focus within invoker works correctly');
+
+promise_test(async function (t) {
+  t.add_cleanup(() => focusOn(otherbutton));
+  const signal = t.get_signal();
+  let interestCount = 0;
+  let loseInterestCount = 0;
+  target.addEventListener('interest',() => (++interestCount),{signal});
+  target.addEventListener('loseinterest',() => (++loseInterestCount),{signal});
+  await hoverOver(invoker);
+  assert_true(invoker.matches(':interest-source'),'hovering invoker should show interest');
+  assert_equals(interestCount,1,'One interest event');
+  interestCount = 0;
+  assert_equals(loseInterestCount,0,'No loseinterest events');
+  await hoverOver(innerSpan);
+  assert_true(invoker.matches(':interest-source'),'hovering inner span should keep interest');
+  assert_equals(interestCount,0,'No extra interest events');
+  assert_equals(loseInterestCount,0,'No loseinterest events');
+  await hoverOver(invoker);
+  assert_true(invoker.matches(':interest-source'),'hovering back to outer button should keep interest');
+  assert_equals(interestCount,0,'No extra interest events');
+  assert_equals(loseInterestCount,0,'No loseinterest events');
+  await hoverOver(otherbutton);
+  assert_false(invoker.matches(':interest-source'),'hovering outside should lose interest');
+  assert_equals(interestCount,0,'No extra interest events');
+  assert_equals(loseInterestCount,1,'Finally got loseinterest event');
+},'Moving hover within invoker works correctly');
+</script>
+
+<a id=outer href="#" interestfor="middle">Outer</a>
+<div id="middle" popover>
+  <a id="middle-link" href="#" interestfor="inner">Middle</a>
+</div>
+<div id="inner" popover>Inner <button id="inner-button">btn</button></div>
+
+<script>
+const outer = document.getElementById('outer');
+const middle = document.getElementById('middle');
+const middleLink = document.getElementById('middle-link');
+const inner = document.getElementById('inner');
+const innerButton = document.getElementById('inner-button');
+promise_test(async function (t) {
+  t.add_cleanup(() => focusOn(otherbutton));
+  assert_false(middle.matches(':popover-open'),'middle starts closed');
+  await focusOn(outer);
+  assert_true(outer.matches(':interest-source'),'focusing outer should show interest');
+  assert_true(middle.matches(':popover-open'),'outer popover open');
+
+  await focusOn(middleLink);
+  assert_true(middleLink.matches(':interest-source'),'focusing middle should show interest');
+  assert_true(outer.matches(':interest-source'),'outer keeps interest');
+  assert_true(middle.matches(':popover-open'),'middle popover stays open');
+  assert_true(inner.matches(':popover-open'),'inner popover opens');
+
+  await focusOn(innerButton);
+  assert_true(outer.matches(':interest-source'),'outer keeps interest');
+  assert_true(middleLink.matches(':interest-source'),'middle keeps interest');
+  assert_true(middle.matches(':popover-open'),'middle popover stays open');
+  assert_true(inner.matches(':popover-open'),'inner popover stays open');
+},'Nested invokers maintain interest properly (focus)');
+
+promise_test(async function (t) {
+  t.add_cleanup(() => focusOn(otherbutton));
+  assert_false(middle.matches(':popover-open'),'middle starts closed');
+  await hoverOver(outer);
+  assert_true(outer.matches(':interest-source'),'hovering outer should show interest');
+  assert_true(middle.matches(':popover-open'),'outer popover open');
+
+  await hoverOver(middleLink);
+  assert_true(outer.matches(':interest-source'),'outer keeps interest');
+  assert_true(middle.matches(':popover-open'),'middle popover stays open');
+  assert_true(middleLink.matches(':interest-source'),'hovering middle should show interest');
+  assert_true(inner.matches(':popover-open'),'inner popover opens');
+
+  await hoverOver(innerButton);
+  assert_true(outer.matches(':interest-source'),'outer keeps interest');
+  assert_true(middleLink.matches(':interest-source'),'middle keeps interest');
+  assert_true(middle.matches(':popover-open'),'middle popover stays open');
+  assert_true(inner.matches(':popover-open'),'inner popover stays open');
+},'Nested invokers maintain interest properly (hover)');
+</script>

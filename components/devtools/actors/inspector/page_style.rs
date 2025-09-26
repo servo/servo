@@ -175,42 +175,41 @@ impl PageStyleActor {
 
             // For each selector (plus an empty one that represents the style attribute)
             // get all of the rules associated with it.
-            let entries =
-                once(("".into(), usize::MAX))
-                    .chain(selectors)
-                    .filter_map(move |selector| {
-                        let rule = match node_actor.style_rules.borrow_mut().entry(selector) {
-                            Entry::Vacant(e) => {
-                                let name = registry.new_name("style-rule");
-                                let actor = StyleRuleActor::new(
-                                    name.clone(),
-                                    node_actor.name(),
-                                    (!e.key().0.is_empty()).then_some(e.key().clone()),
-                                );
-                                let rule = actor.applied(registry)?;
 
-                                registry.register_later(Box::new(actor));
-                                e.insert(name);
-                                rule
-                            },
-                            Entry::Occupied(e) => {
-                                let actor = registry.find::<StyleRuleActor>(e.get());
-                                actor.applied(registry)?
-                            },
-                        };
-                        if inherited.is_some() && rule.declarations.is_empty() {
-                            return None;
-                        }
+            once(("".into(), usize::MAX))
+                .chain(selectors)
+                .filter_map(move |selector| {
+                    let rule = match node_actor.style_rules.borrow_mut().entry(selector) {
+                        Entry::Vacant(e) => {
+                            let name = registry.new_name("style-rule");
+                            let actor = StyleRuleActor::new(
+                                name.clone(),
+                                node_actor.name(),
+                                (!e.key().0.is_empty()).then_some(e.key().clone()),
+                            );
+                            let rule = actor.applied(registry)?;
 
-                        Some(AppliedEntry {
-                            rule,
-                            // TODO: Handle pseudo elements
-                            pseudo_element: None,
-                            is_system: false,
-                            inherited: inherited.clone(),
-                        })
-                    });
-            entries
+                            registry.register_later(Box::new(actor));
+                            e.insert(name);
+                            rule
+                        },
+                        Entry::Occupied(e) => {
+                            let actor = registry.find::<StyleRuleActor>(e.get());
+                            actor.applied(registry)?
+                        },
+                    };
+                    if inherited.is_some() && rule.declarations.is_empty() {
+                        return None;
+                    }
+
+                    Some(AppliedEntry {
+                        rule,
+                        // TODO: Handle pseudo elements
+                        pseudo_element: None,
+                        is_system: false,
+                        inherited: inherited.clone(),
+                    })
+                })
         })
         .collect();
         let msg = GetAppliedReply {

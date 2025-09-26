@@ -1,5 +1,6 @@
 <!doctype html>
 <title>Video width and height attributes are used to infer aspect-ratio</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12053">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/media.js"></script>
@@ -7,7 +8,7 @@
 <style>
   video {
     width: 100%;
-    max-width: 100px;
+    max-width: 150px;
     height: auto;
   }
 </style>
@@ -70,8 +71,8 @@ promise_test(async function() {
   video.style.aspectRatio = "auto";
   video.src = getVideoURI('/media/2x2-green');
   document.body.appendChild(video);
-  // The aspect ratio is 2 because the default size is 300x150.
-  assert_ratio(video, 2, "aspect ratio before load");
+  // The size is 150x150 as there is no default aspect-ratio.
+  assert_ratio(video, 1, "aspect ratio before load");
   await new Promise(r => video.addEventListener("loadeddata", r, { once: true }));
   // But now we can use the natural ratio from the video source.
   assert_ratio(video, 1, "aspect ratio after load");

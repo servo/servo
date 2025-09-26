@@ -7,7 +7,6 @@
 // Source: WebGPU (https://gpuweb.github.io/gpuweb/)
 // Direct source: https://github.com/w3c/webref/blob/curated/ed/idl/webgpu.idl
 
-[Exposed=(Window)]
 interface mixin GPUObjectBase {
     attribute USVString label;
 };

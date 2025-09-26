@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <title>Federated Credential Management API getUserInfo() tests.</title>
+<meta name="timeout" content="long">
 <link rel="help" href="https://fedidcg.github.io/FedCM">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -40,8 +41,8 @@ fedcm/support/fedcm/userinfo-iframe.html`;
   assert_equals(message.firstAccountEmail, "john_doe@idp.example");
   assert_equals(message.firstAccountName, "John Doe");
   assert_equals(message.firstAccountGivenName, "John");
-  assert_equals(message.firstAccountPicture, "https://idp.example/profile/123");
-}, 'Test basic User InFo API flow');
+  assert_equals(message.firstAccountPicture, "https://localhost/profile/123");
+}, 'Test basic User Info API flow');
 
 fedcm_test(async t => {
   const cred = await fedcm_get_and_select_first_account(t, alt_request_options_with_mediation_required());

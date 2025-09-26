@@ -17,6 +17,7 @@ use super::app_state::RunningAppState;
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
 pub(crate) const LINE_HEIGHT: f32 = 76.0;
 pub(crate) const LINE_WIDTH: f32 = 76.0;
+
 // MouseScrollDelta::PixelDelta is default for MacOS, which is high precision and very slow
 // in winit. Therefore we use a factor of 4.0 to make it more usable.
 // See https://github.com/servo/servo/pull/34063#discussion_r2197729507
@@ -24,15 +25,13 @@ pub(crate) const PIXEL_DELTA_FACTOR: f64 = 4.0;
 
 /// <https://github.com/web-platform-tests/wpt/blob/9320b1f724632c52929a3fdb11bdaf65eafc7611/webdriver/tests/classic/set_window_rect/set.py#L287-L290>
 /// "A window size of 10x10px shouldn't be supported by any browser."
-pub(crate) const MIN_INNER_WIDTH: i32 = 20;
-pub(crate) const MIN_INNER_HEIGHT: i32 = 20;
+pub(crate) const MIN_WINDOW_INNER_SIZE: DeviceIntSize = DeviceIntSize::new(100, 100);
 
 pub trait WindowPortsMethods {
     fn id(&self) -> winit::window::WindowId;
     fn screen_geometry(&self) -> ScreenGeometry;
     fn device_hidpi_scale_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel>;
     fn hidpi_scale_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel>;
-    fn page_height(&self) -> f32;
     fn get_fullscreen(&self) -> bool;
     fn handle_winit_event(&self, state: Rc<RunningAppState>, event: winit::event::WindowEvent);
     fn set_title(&self, _title: &str) {}
@@ -43,6 +42,7 @@ pub trait WindowPortsMethods {
     fn set_position(&self, _point: DeviceIntPoint) {}
     fn set_fullscreen(&self, _state: bool) {}
     fn set_cursor(&self, _cursor: Cursor) {}
+    #[cfg(feature = "webxr")]
     fn new_glwindow(
         &self,
         event_loop: &winit::event_loop::ActiveEventLoop,

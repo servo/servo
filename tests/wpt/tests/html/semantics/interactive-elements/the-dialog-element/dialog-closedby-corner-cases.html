@@ -17,7 +17,7 @@
   function openDialog(openMethod) {
     dialog.close();
     if (!dialog.open) {
-      assert_false(dialog.matches(':open'),'Should be closed to start');
+      assert_false(dialog.matches('[open]'),'Should be closed to start');
       switch (openMethod) {
         case 'modeless' :
           dialog.show();
@@ -33,7 +33,7 @@
       }
     }
     assert_true(dialog.open,'Should be open now');
-    assert_true(dialog.matches(':open'),'Should be open now (pseudo)');
+    assert_true(dialog.matches('[open]'),'Should be open now (selector)');
   }
 
   function awaitClose(el, signal) {
@@ -131,7 +131,7 @@
   function runTest(openMethod, changeMethod) {
     function setup(t) {
       assert_false(dialog.open,'setup');
-      assert_false(dialog.matches(':open'), 'Dialog should start the test closed');
+      assert_false(dialog.matches('[open]'), 'Dialog should start the test closed');
       assert_equals(dialog.closedBy, "any", 'Dialog should be closedby=any');
 
       const signal = t.get_signal();
@@ -155,7 +155,7 @@
       await step;
 
       const respondsToEsc = !dialog.open;
-      assert_equals(!dialog.matches(':open'),respondsToEsc,':open should match dialog.open');
+      assert_equals(!dialog.matches('[open]'),respondsToEsc,'[open] should match dialog.open');
 
       const shouldRespond = changeMethod.respondsTo?.(openMethod) ?? true;
 
@@ -171,7 +171,7 @@
       await step;
 
       const respondsToLightDismiss = !dialog.open;
-      assert_equals(!dialog.matches(':open'),respondsToLightDismiss,':open should match dialog.open');
+      assert_equals(!dialog.matches('[open]'),respondsToLightDismiss,'[open] should match dialog.open');
 
       const shouldRespond = changeMethod.respondsTo?.(openMethod) ?? true;
 

@@ -981,11 +981,5 @@ const powTests = [
   }
 ];
 
-if (navigator.ml) {
-  powTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getPowPrecisionTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(
+    powTests, buildAndExecuteGraph, getPowPrecisionTolerance);

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="../resources/runner.js"></script>
+    <script src="resources/utils.js"></script>
+    <style>
+    </style>
+</head>
+<body>
+    <script>
+        for (let i = 0; i < 5000; i++) {
+            let div = document.createElement('div');
+            div.style = 'cursor: crosshair'; // Avoid matched properties cache.
+            document.body.appendChild(div);
+        }
+
+        let props = [];
+        let value = 2**32;
+        for (let i = 0; i < 1000; i++) {
+            props.push(`--property-with-long-name-and-value-${i}: ${value.toString(2)};`);
+            // Use a unique value every time to avoid optimization that might
+            // utilize identical values.
+            value--;
+        }
+
+        applyCSSRule(`body { ${props.join('\n')} }`);
+        applyCSSRule('body { --x: 0; --y: var(--x); }');
+
+        PerfTestRunner.measureTime({
+            description: 'Measure impact of unused custom properties at body.',
+            run: function() {
+                document.body.style = 'display: none';
+                forceStyleRecalc(document.body);
+                document.body.style = '';
+                forceStyleRecalc(document.body);
+            }
+        });
+    </script>
+</body>
+</html>

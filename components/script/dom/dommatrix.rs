@@ -2,10 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::id::{DomMatrixId, DomMatrixIndex};
+use constellation_traits::DomMatrix;
 use dom_struct::dom_struct;
 use euclid::default::Transform3D;
 use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{Float32Array, Float64Array};
+use rustc_hash::FxHashMap;
+use script_bindings::str::DOMString;
 
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::{DOMMatrixInit, DOMMatrixMethods};
 use crate::dom::bindings::codegen::Bindings::DOMMatrixReadOnlyBinding::DOMMatrixReadOnlyMethods;
@@ -15,6 +19,8 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::serializable::Serializable;
+use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::dommatrixreadonly::{
     DOMMatrixReadOnly, dommatrixinit_to_matrix, entries_to_matrix, transform_to_matrix,
 };
@@ -470,5 +476,107 @@ impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
         self.upcast::<DOMMatrixReadOnly>().invert_self();
         // Step 3.
         DomRoot::from_ref(self)
+    }
+
+    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrix-setmatrixvalue>
+    fn SetMatrixValue(&self, transformList: DOMString) -> Fallible<DomRoot<DOMMatrix>> {
+        // 1. Parse transformList into an abstract matrix, and let
+        // matrix and 2dTransform be the result. If the result is failure,
+        // then throw a "SyntaxError" DOMException.
+        match transform_to_matrix(transformList.to_string()) {
+            Ok(tuple) => {
+                // 2. Set is 2D to the value of 2dTransform.
+                self.parent.set_is2D(tuple.0);
+                // 3. Set m11 element through m44 element to the element values of matrix in column-major order.
+                self.parent.set_matrix(tuple.1);
+            },
+            Err(error) => return Err(error),
+        }
+
+        // 4. Return the current matrix.
+        Ok(DomRoot::from_ref(self))
+    }
+}
+
+impl Serializable for DOMMatrix {
+    type Index = DomMatrixIndex;
+    type Data = DomMatrix;
+
+    fn serialize(&self) -> Result<(DomMatrixId, Self::Data), ()> {
+        let serialized = if self.parent.is2D() {
+            DomMatrix {
+                matrix: Transform3D::new(
+                    self.M11(),
+                    self.M12(),
+                    f64::NAN,
+                    f64::NAN,
+                    self.M21(),
+                    self.M22(),
+                    f64::NAN,
+                    f64::NAN,
+                    f64::NAN,
+                    f64::NAN,
+                    f64::NAN,
+                    f64::NAN,
+                    self.M41(),
+                    self.M42(),
+                    f64::NAN,
+                    f64::NAN,
+                ),
+                is_2d: true,
+            }
+        } else {
+            DomMatrix {
+                matrix: *self.parent.matrix(),
+                is_2d: false,
+            }
+        };
+        Ok((DomMatrixId::new(), serialized))
+    }
+
+    fn deserialize(
+        owner: &GlobalScope,
+        serialized: Self::Data,
+        can_gc: CanGc,
+    ) -> Result<DomRoot<Self>, ()>
+    where
+        Self: Sized,
+    {
+        if serialized.is_2d {
+            Ok(Self::new(
+                owner,
+                true,
+                Transform3D::new(
+                    serialized.matrix.m11,
+                    serialized.matrix.m12,
+                    0.0,
+                    0.0,
+                    serialized.matrix.m21,
+                    serialized.matrix.m22,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                    0.0,
+                    serialized.matrix.m41,
+                    serialized.matrix.m42,
+                    0.0,
+                    1.0,
+                ),
+                can_gc,
+            ))
+        } else {
+            Ok(Self::new(owner, false, serialized.matrix, can_gc))
+        }
+    }
+
+    fn serialized_storage<'a>(
+        data: StructuredData<'a, '_>,
+    ) -> &'a mut Option<FxHashMap<DomMatrixId, Self::Data>> {
+        match data {
+            StructuredData::Reader(reader) => &mut reader.matrices,
+            StructuredData::Writer(writer) => &mut writer.matrices,
+        }
     }
 }

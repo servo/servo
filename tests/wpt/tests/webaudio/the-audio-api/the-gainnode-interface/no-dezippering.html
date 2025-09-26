@@ -7,82 +7,68 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="/webaudio/resources/audit-util.js"></script>
-    <script src="/webaudio/resources/audit.js"></script>
   </head>
   <body>
-    <script id="layout-test-code">
-      let audit = Audit.createTaskRunner();
+    <script>
+      promise_test(
+          () => testWithAutomation({prefix: ''}),
+          'Compare value setter and setValueAtTime');
 
-      audit.define(
-          {label: 'test0', description: 'Dezippering of GainNode removed'},
-          (task, should) => {
-            // Only need a few frames to verify that dezippering has been
-            // removed from the GainNode.  Sample rate is pretty arbitrary.
-            let context = new OfflineAudioContext(1, 1024, 16000);
+      promise_test(
+          () => testWithAutomation({
+            prefix: 'With modulation: ',
+            modulator: true
+          }),
+          'Automation effects');
 
-            // Send a unit source to the gain node so we can measure the effect
-            // of the gain node.
-            let src = new ConstantSourceNode(context, {offset: 1});
-            let g = new GainNode(context, {gain: 1});
-            src.connect(g).connect(context.destination);
+      promise_test(async () => {
+        // Only need a few frames to verify that dezippering has been
+        // removed from the GainNode.  Sample rate is pretty arbitrary.
+        const context = new OfflineAudioContext(1, 1024, 16000);
 
-            context.suspend(RENDER_QUANTUM_FRAMES / context.sampleRate)
-                .then(() => {
-                  g.gain.value = .5;
-                })
-                .then(() => context.resume());
+        // Send a unit source to the gain node so we can measure the effect
+        // of the gain node.
+        const src = new ConstantSourceNode(context, {offset: 1});
+        const g = new GainNode(context, {gain: 1});
+        src.connect(g).connect(context.destination);
 
-            src.start();
+        // Schedule the suspend but DON’T await it here
+        context
+            .suspend(RENDER_QUANTUM_FRAMES / context.sampleRate)
+            .then(() => {
+              g.gain.value = 0.5;
+              return context.resume();
+            });
 
-            context.startRendering()
-                .then(audio => {
-                  let c = audio.getChannelData(0);
+        src.start();
 
-                  // If dezippering has been removed, the gain output should
-                  // instantly jump at frame 128 to 0.5.
-                  should(c.slice(0, 128), 'output[0:127]').beConstantValueOf(1);
-                  should(c.slice(128), 'output[128:]').beConstantValueOf(0.5);
-                })
-                .then(() => task.done());
-          });
+        // Now start rendering and wait for it to finish
+        const audio = await context.startRendering();
+        const c = audio.getChannelData(0);
 
-      audit.define(
-          {
-            label: 'test2',
-            description: 'Compare value setter and setValueAtTime'
-          },
-          (task, should) => {
-            testWithAutomation(should, {prefix: ''}).then(() => task.done());
-          });
+        // If dezippering has been removed, the gain output should
+        // instantly jump at frame 128 to 0.5.
+        assert_constant_value(c.slice(0, 128), 1, 'output[0:127]');
+        assert_constant_value(c.slice(128), 0.5, 'output[128:]');
+      }, 'Dezippering of GainNode removed');
 
-      audit.define(
-          {label: 'test3', description: 'Automation effects'},
-          (task, should) => {
-            testWithAutomation(should, {
-              prefix: 'With modulation: ',
-              modulator: true
-            }).then(() => task.done());
-          });
-
-      audit.run();
-
-      function testWithAutomation(should, options) {
+      async function testWithAutomation(options) {
         // Sample rate must be a power of two to eliminate round-off in
         // computing the time at render quantum boundaries.
-        let context = new OfflineAudioContext(2, 1024, 16384);
-        let merger = new ChannelMergerNode(context, {numberOfChannels: 2});
+        const context = new OfflineAudioContext(2, 1024, 16384);
+        const merger = new ChannelMergerNode(context, {numberOfChannels: 2});
         merger.connect(context.destination);
 
-        let src = new OscillatorNode(context);
-        let gainTest = new GainNode(context);
-        let gainRef = new GainNode(context);
+        const src = new OscillatorNode(context);
+        const gainTest = new GainNode(context);
+        const gainRef = new GainNode(context);
 
         src.connect(gainTest).connect(merger, 0, 0);
         src.connect(gainRef).connect(merger, 0, 1);
 
         if (options.modulator) {
-          let mod = new OscillatorNode(context, {frequency: 1000});
-          let modGain = new GainNode(context);
+          const mod = new OscillatorNode(context, {frequency: 1000});
+          const modGain = new GainNode(context);
           mod.connect(modGain);
           modGain.connect(gainTest.gain);
           modGain.connect(gainRef.gain);
@@ -90,32 +76,30 @@
         }
 
         // Change the gains. Must do the change on a render boundary!
-        let changeTime = 3 * RENDER_QUANTUM_FRAMES / context.sampleRate;
-        let newGain = .3;
+        const changeTime = 3 * RENDER_QUANTUM_FRAMES / context.sampleRate;
+        const newGain = 0.3;
 
         gainRef.gain.setValueAtTime(newGain, changeTime);
-        context.suspend(changeTime)
-            .then(() => gainTest.gain.value = newGain)
-            .then(() => context.resume());
+        context
+            .suspend(changeTime)
+            .then(() => {
+              gainTest.gain.value = newGain;
+              return context.resume();
+            });
 
         src.start();
 
-        return context.startRendering().then(audio => {
-          let actual = audio.getChannelData(0);
-          let expected = audio.getChannelData(1);
+        const audio = await context.startRendering();
+        const actual = audio.getChannelData(0);
+        const expected = audio.getChannelData(1);
 
-          // The values using the .value setter must be identical to the
-          // values using setValueAtTime.
-          let match = should(actual, options.prefix + '.value setter output')
-                          .beEqualToArray(expected);
-
-          should(
-              match,
-              options.prefix +
-                  '.value setter output matches setValueAtTime output')
-              .beTrue();
-        });
+        // The values using the .value setter must be identical to the
+        // values using setValueAtTime.
+        assert_array_equals(
+            actual, expected,
+            options.prefix + '.value setter output matches setValueAtTime');
       }
+
     </script>
   </body>
 </html>

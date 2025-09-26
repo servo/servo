@@ -2,15 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
-
 use base::id::WebViewId;
+use rustc_hash::FxHashMap;
 
 #[derive(Debug)]
 pub struct WebViewManager<WebView> {
     /// Our top-level browsing contexts. In the WebRender scene, their pipelines are the children of
     /// a single root pipeline that also applies any pinch zoom transformation.
-    webviews: HashMap<WebViewId, WebView>,
+    webviews: FxHashMap<WebViewId, WebView>,
 
     /// The order in which they were focused, latest last.
     focus_order: Vec<WebViewId>,
@@ -22,7 +21,7 @@ pub struct WebViewManager<WebView> {
 impl<WebView> Default for WebViewManager<WebView> {
     fn default() -> Self {
         Self {
-            webviews: HashMap::default(),
+            webviews: FxHashMap::default(),
             focus_order: Vec::default(),
             is_focused: false,
         }
@@ -89,7 +88,7 @@ mod test {
     use crate::webview_manager::WebViewManager;
 
     fn id(namespace_id: u32, index: u32) -> WebViewId {
-        WebViewId(BrowsingContextId {
+        WebViewId::mock_for_testing(BrowsingContextId {
             namespace_id: PipelineNamespaceId(namespace_id),
             index: Index::new(index).expect("Incorrect test case"),
         })

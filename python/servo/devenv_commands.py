@@ -9,6 +9,7 @@
 
 from subprocess import CompletedProcess
 import json
+from typing import Any
 
 from mach.decorators import (
     Command,
@@ -27,7 +28,7 @@ class MachCommands(CommandBase):
         "params", default=None, nargs="...", help="Command-line arguments to be passed through to cargo check"
     )
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
-    def check(self, params, **kwargs) -> int:
+    def check(self, params: list[str], **kwargs: Any) -> int:
         if not params:
             params = []
 
@@ -42,7 +43,7 @@ class MachCommands(CommandBase):
 
     @Command("rustc", description="Run the Rust compiler", category="devenv")
     @CommandArgument("params", default=None, nargs="...", help="Command-line arguments to be passed through to rustc")
-    def rustc(self, params) -> int:
+    def rustc(self, params: list[str]) -> int:
         if params is None:
             params = []
 
@@ -54,7 +55,7 @@ class MachCommands(CommandBase):
         "params", default=None, nargs="...", help="Command-line arguments to be passed through to cargo-fix"
     )
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
-    def cargo_fix(self, params, **kwargs) -> int:
+    def cargo_fix(self, params: list[str], **kwargs: Any) -> int:
         if not params:
             params = []
 
@@ -73,7 +74,7 @@ class MachCommands(CommandBase):
         help="Emit the clippy warnings in the Github Actions annotations format",
     )
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
-    def cargo_clippy(self, params, github_annotations=False, **kwargs) -> int:
+    def cargo_clippy(self, params: list[str], github_annotations: bool = False, **kwargs: Any) -> int:
         if not params:
             params = []
 

@@ -168,37 +168,6 @@ async def test_with_new_navigation(
         await task
 
 
-async def test_with_new_navigation_inside_page(
-    bidi_session,
-    subscribe_events,
-    inline,
-    new_tab,
-    wait_for_event,
-    wait_for_future_safe,
-):
-    second_url = inline("<div>foo</div>")
-    slow_page_url = inline(
-        f"""
-<!DOCTYPE html>
-<html>
-    <body>
-        <img src="/webdriver/tests/bidi/browsing_context/support/empty.svg?pipe=trickle(d10)" />
-        <script>
-            location.href = "{second_url}"
-        </script>
-        <img src="/webdriver/tests/bidi/browsing_context/support/empty.svg?pipe=trickle(d10)" />
-    </body>
-</html>
-"""
-    )
-
-    # Make sure that the navigation failed.
-    with pytest.raises(UnknownErrorException):
-        await bidi_session.browsing_context.navigate(
-            context=new_tab["context"], url=slow_page_url, wait="complete"
-        )
-
-
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
 async def test_close_context(
     bidi_session,

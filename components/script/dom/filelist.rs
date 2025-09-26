@@ -45,7 +45,7 @@ impl FileList {
         )
     }
 
-    pub(crate) fn iter_files(&self) -> Iter<Dom<File>> {
+    pub(crate) fn iter_files(&self) -> Iter<'_, Dom<File>> {
         self.list.iter()
     }
 }

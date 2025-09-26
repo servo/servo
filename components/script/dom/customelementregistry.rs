@@ -15,6 +15,7 @@ use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor, JSAutoRealm, 
 use js::jsval::{BooleanValue, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{Construct1, JS_GetProperty, SameValue};
 use js::rust::{HandleObject, MutableHandleValue};
+use rustc_hash::FxBuildHasher;
 use script_bindings::conversions::{SafeFromJSValConvertible, SafeToJSValConvertible};
 
 use super::bindings::trace::HashMapTracedValues;
@@ -39,8 +40,8 @@ use crate::dom::document::Document;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
+use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
@@ -68,12 +69,15 @@ pub(crate) struct CustomElementRegistry {
     window: Dom<Window>,
 
     #[ignore_malloc_size_of = "Rc"]
-    when_defined: DomRefCell<HashMapTracedValues<LocalName, Rc<Promise>>>,
+    /// It is safe to use FxBuildHasher here as `LocalName` is an `Atom` in the string_cache.
+    /// These get a u32 hashed instead of a string.
+    when_defined: DomRefCell<HashMapTracedValues<LocalName, Rc<Promise>, FxBuildHasher>>,
 
     element_definition_is_running: Cell<bool>,
 
     #[ignore_malloc_size_of = "Rc"]
-    definitions: DomRefCell<HashMapTracedValues<LocalName, Rc<CustomElementDefinition>>>,
+    definitions:
+        DomRefCell<HashMapTracedValues<LocalName, Rc<CustomElementDefinition>, FxBuildHasher>>,
 }
 
 impl CustomElementRegistry {
@@ -81,9 +85,9 @@ impl CustomElementRegistry {
         CustomElementRegistry {
             reflector_: Reflector::new(),
             window: Dom::from_ref(window),
-            when_defined: DomRefCell::new(HashMapTracedValues::new()),
+            when_defined: DomRefCell::new(HashMapTracedValues::new_fx()),
             element_definition_is_running: Cell::new(false),
-            definitions: DomRefCell::new(HashMapTracedValues::new()),
+            definitions: DomRefCell::new(HashMapTracedValues::new_fx()),
         }
     }
 
@@ -341,9 +345,9 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
     ) -> ErrorResult {
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let constructor = constructor_.callback());
-        let name = LocalName::from(&*name);
+        let name = LocalName::from(name);
 
-        // Step 1
+        // Step 1. If IsConstructor(constructor) is false, then throw a TypeError.
         // We must unwrap the constructor as all wrappers are constructable if they are callable.
         rooted!(in(*cx) let unwrapped_constructor = unsafe { UnwrapObjectStatic(constructor.get()) });
 
@@ -358,17 +362,19 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             ));
         }
 
-        // Step 2
+        // Step 2. If name is not a valid custom element name, then throw a "SyntaxError" DOMException.
         if !is_valid_custom_element_name(&name) {
-            return Err(Error::Syntax);
+            return Err(Error::Syntax(None));
         }
 
-        // Step 3
+        // Step 3. If this's custom element definition set contains an item with name name,
+        // then throw a "NotSupportedError" DOMException.
         if self.definitions.borrow().contains_key(&name) {
             return Err(Error::NotSupported);
         }
 
-        // Step 4
+        // Step 4. If this's custom element definition set contains an
+        // item with constructor constructor, then throw a "NotSupportedError" DOMException.
         if self
             .definitions
             .borrow()
@@ -378,24 +384,29 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             return Err(Error::NotSupported);
         }
 
-        // Step 6
+        // Step 6. Let extends be options["extends"] if it exists; otherwise null.
         let extends = &options.extends;
 
         // Steps 5, 7
         let local_name = if let Some(ref extended_name) = *extends {
-            // Step 7.1
-            if is_valid_custom_element_name(extended_name) {
+            // TODO Step 7.1 If this's is scoped is true, then throw a "NotSupportedError" DOMException.
+
+            // Step 7.2 If extends is a valid custom element name, then throw a "NotSupportedError" DOMException.
+            if is_valid_custom_element_name(extended_name.str()) {
                 return Err(Error::NotSupported);
             }
 
-            // Step 7.2
-            if !is_extendable_element_interface(extended_name) {
+            // Step 7.3 If the element interface for extends and the HTML namespace is HTMLUnknownElement
+            // (e.g., if extends does not indicate an element definition in this specification)
+            // then throw a "NotSupportedError" DOMException.
+            if !is_extendable_element_interface(extended_name.str()) {
                 return Err(Error::NotSupported);
             }
 
-            LocalName::from(&**extended_name)
+            // Step 7.4 Set localName to extends.
+            LocalName::from(extended_name.str())
         } else {
-            // Step 7.3
+            // Step 5. Let localName be name.
             name.clone()
         };
 
@@ -545,7 +556,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-get>
     fn Get(&self, cx: JSContext, name: DOMString, mut retval: MutableHandleValue) {
-        match self.definitions.borrow().get(&LocalName::from(&*name)) {
+        match self.definitions.borrow().get(&LocalName::from(name)) {
             Some(definition) => definition.constructor.safe_to_jsval(cx, retval),
             None => retval.set(UndefinedValue()),
         }
@@ -563,7 +574,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-whendefined>
     fn WhenDefined(&self, name: DOMString, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
-        let name = LocalName::from(&*name);
+        let name = LocalName::from(name);
 
         // Step 1
         if !is_valid_custom_element_name(&name) {
@@ -591,16 +602,13 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             return promise;
         }
 
-        // Steps 3, 4, 5
+        // Steps 3, 4, 5, 6
         let existing_promise = self.when_defined.borrow().get(&name).cloned();
-        let promise = existing_promise.unwrap_or_else(|| {
+        existing_promise.unwrap_or_else(|| {
             let promise = Promise::new_in_current_realm(comp, can_gc);
             self.when_defined.borrow_mut().insert(name, promise.clone());
             promise
-        });
-
-        // Step 6
-        promise
+        })
     }
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-upgrade>
     fn Upgrade(&self, node: &Node) {
@@ -617,28 +625,28 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub(crate) struct LifecycleCallbacks {
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     connected_callback: Option<Rc<Function>>,
 
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     disconnected_callback: Option<Rc<Function>>,
 
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     adopted_callback: Option<Rc<Function>>,
 
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     attribute_changed_callback: Option<Rc<Function>>,
 
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     form_associated_callback: Option<Rc<Function>>,
 
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     form_reset_callback: Option<Rc<Function>>,
 
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     form_disabled_callback: Option<Rc<Function>>,
 
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     form_state_restore_callback: Option<Rc<Function>>,
 }
 
@@ -660,7 +668,7 @@ pub(crate) struct CustomElementDefinition {
     pub(crate) local_name: LocalName,
 
     /// <https://html.spec.whatwg.org/multipage/#concept-custom-element-definition-constructor>
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     pub(crate) constructor: Rc<CustomElementConstructor>,
 
     /// <https://html.spec.whatwg.org/multipage/#concept-custom-element-definition-observed-attributes>
@@ -808,11 +816,12 @@ pub(crate) fn upgrade_element(
     // Step 4. For each attribute in element's attribute list, in order, enqueue a custom element callback reaction
     // with element, callback name "attributeChangedCallback", and « attribute's local name, null, attribute's value,
     // attribute's namespace ».
+    let custom_element_reaction_stack = ScriptThread::custom_element_reaction_stack();
     for attr in element.attrs().iter() {
         let local_name = attr.local_name().clone();
         let value = DOMString::from(&**attr.value());
         let namespace = attr.namespace().clone();
-        ScriptThread::enqueue_callback_reaction(
+        custom_element_reaction_stack.enqueue_callback_reaction(
             element,
             CallbackReaction::AttributeChanged(local_name, None, Some(value), namespace),
             Some(definition.clone()),
@@ -991,9 +1000,9 @@ pub(crate) fn try_upgrade_element(element: &Element) {
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum CustomElementReaction {
-    Upgrade(#[ignore_malloc_size_of = "Rc"] Rc<CustomElementDefinition>),
+    Upgrade(#[conditional_malloc_size_of] Rc<CustomElementDefinition>),
     Callback(
-        #[ignore_malloc_size_of = "Rc"] Rc<Function>,
+        #[conditional_malloc_size_of] Rc<Function>,
         #[ignore_malloc_size_of = "mozjs"] Box<[Heap<JSVal>]>,
     ),
 }
@@ -1040,8 +1049,12 @@ enum BackupElementQueueFlag {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack>
+/// # Safety
+/// This can be shared inside an Rc because one of those Rc copies lives
+/// inside ScriptThread, so the GC can always reach this structure.
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_in_rc)]
 pub(crate) struct CustomElementReactionStack {
     stack: DomRefCell<Vec<ElementQueue>>,
     backup_queue: ElementQueue,
@@ -1278,7 +1291,6 @@ impl ElementQueue {
 pub(crate) fn is_valid_custom_element_name(name: &str) -> bool {
     // Custom elment names must match:
     // PotentialCustomElementName ::= [a-z] (PCENChar)* '-' (PCENChar)*
-
     let mut chars = name.chars();
     if !chars.next().is_some_and(|c| c.is_ascii_lowercase()) {
         return false;

@@ -1,8 +1,7 @@
 // META: global=window,dedicatedworker
 // META: script=/webcodecs/image-decoder-utils.js
 
-function testFourColorsDecode(filename, mimeType, options = {}) {
-  var decoder = null;
+async function testFourColorsDecode(filename, mimeType, options = {}) {
   return ImageDecoder.isTypeSupported(mimeType).then(support => {
     assert_implements_optional(
         support, 'Optional codec ' + mimeType + ' not supported.');
@@ -14,8 +13,7 @@ function testFourColorsDecode(filename, mimeType, options = {}) {
 
 // Note: Requiring all data to do YUV decoding is a Chromium limitation, other
 // implementations may support YUV decode with partial ReadableStream data.
-function testFourColorsYuvDecode(filename, mimeType, options = {}) {
-  var decoder = null;
+async function testFourColorsYuvDecode(filename, mimeType, options = {}) {
   return ImageDecoder.isTypeSupported(mimeType).then(support => {
     assert_implements_optional(
         support, 'Optional codec ' + mimeType + ' not supported.');
@@ -95,7 +93,6 @@ promise_test(t => {
   return testFourColorDecodeWithExifOrientation(8, null, /*useYuv=*/ true);
 }, 'Test 4:2:0 JPEG w/ EXIF orientation left-bottom.');
 
-
 promise_test(t => {
   return testFourColorsDecode('four-colors.png', 'image/png');
 }, 'Test PNG image decoding.');
@@ -157,6 +154,66 @@ promise_test(t => {
       'four-colors-limited-range-420-8bpc.webp', 'image/webp',
       {yuvFormat: 'I420', tolerance: 3});
 }, 'Test WEBP image YUV 4:2:0 decoding.');
+
+const FOUR_COLORS_AVIF_HLG_COLOR_SPACE = new VideoColorSpace({
+  primaries: 'bt2020',
+  transfer: 'hlg',
+  matrix: 'bt2020-ncl',
+  fullRange: true,
+});
+promise_test(t => {
+  return testFourColorsYuvDecode(
+      'four-colors-full-range-hlg-420-10bpc.avif', 'image/avif', {
+        yuvFormat: 'I420P10',
+        colorSpace: FOUR_COLORS_AVIF_HLG_COLOR_SPACE,
+        tolerance: 3
+      });
+}, 'Test AVIF image HDR YUV 10-bit 4:2:0 decoding.');
+
+promise_test(t => {
+  return testFourColorsYuvDecode(
+      'four-colors-full-range-hlg-422-10bpc.avif', 'image/avif', {
+        yuvFormat: 'I422P10',
+        colorSpace: FOUR_COLORS_AVIF_HLG_COLOR_SPACE,
+        tolerance: 3
+      });
+}, 'Test AVIF image HDR YUV 10-bit 4:2:2 decoding.');
+
+promise_test(t => {
+  return testFourColorsYuvDecode(
+      'four-colors-full-range-hlg-444-10bpc.avif', 'image/avif', {
+        yuvFormat: 'I444P10',
+        colorSpace: FOUR_COLORS_AVIF_HLG_COLOR_SPACE,
+        tolerance: 3
+      });
+}, 'Test AVIF image HDR YUV 10-bit 4:4:4 decoding.');
+
+promise_test(t => {
+  return testFourColorsYuvDecode(
+      'four-colors-full-range-hlg-420-12bpc.avif', 'image/avif', {
+        yuvFormat: 'I420P12',
+        colorSpace: FOUR_COLORS_AVIF_HLG_COLOR_SPACE,
+        tolerance: 3
+      });
+}, 'Test AVIF image HDR YUV 12-bit 4:2:0 decoding.');
+
+promise_test(t => {
+  return testFourColorsYuvDecode(
+      'four-colors-full-range-hlg-422-12bpc.avif', 'image/avif', {
+        yuvFormat: 'I422P12',
+        colorSpace: FOUR_COLORS_AVIF_HLG_COLOR_SPACE,
+        tolerance: 3
+      });
+}, 'Test AVIF image HDR YUV 12-bit 4:2:2 decoding.');
+
+promise_test(t => {
+  return testFourColorsYuvDecode(
+      'four-colors-full-range-hlg-444-12bpc.avif', 'image/avif', {
+        yuvFormat: 'I444P12',
+        colorSpace: FOUR_COLORS_AVIF_HLG_COLOR_SPACE,
+        tolerance: 3
+      });
+}, 'Test AVIF image HDR YUV 12-bit 4:4:4 decoding.');
 
 promise_test(t => {
   return fetch('four-colors.png').then(response => {

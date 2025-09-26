@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import pytest
 
 from webdriver.transport import HTTPWireProtocol
@@ -34,7 +36,7 @@ def fixture_configuration(configuration):
   """
 
     if "acceptInsecureCerts" in configuration["capabilities"]:
-        configuration = dict(configuration)
+        configuration = deepcopy(configuration)
         del configuration["capabilities"]["acceptInsecureCerts"]
     return configuration
 

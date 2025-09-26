@@ -17,10 +17,11 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::customstateset::CustomStateSet;
 use crate::dom::element::Element;
 use crate::dom::file::File;
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmlformelement::{FormDatum, FormDatumValue, HTMLFormElement};
+use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::html::htmlformelement::{FormDatum, FormDatumValue, HTMLFormElement};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
 use crate::dom::shadowroot::ShadowRoot;
@@ -69,6 +70,9 @@ pub(crate) struct ElementInternals {
     state: DomRefCell<SubmissionValue>,
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-elementinternals-states>
+    states: MutNullableDom<CustomStateSet>,
 }
 
 impl ElementInternals {
@@ -85,6 +89,7 @@ impl ElementInternals {
             state: DomRefCell::new(SubmissionValue::None),
             form_owner: MutNullableDom::new(None),
             labels_node_list: MutNullableDom::new(None),
+            states: MutNullableDom::new(None),
         }
     }
 
@@ -186,6 +191,10 @@ impl ElementInternals {
             self.is_instance_validatable() &&
             !self.satisfies_constraints()
     }
+
+    pub(crate) fn custom_states(&self) -> Option<DomRoot<CustomStateSet>> {
+        self.states.get()
+    }
 }
 
 impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
@@ -236,7 +245,8 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
         anchor: Option<&HTMLElement>,
         can_gc: CanGc,
     ) -> ErrorResult {
-        // Steps 1-2: Check form-associated custom element
+        // Step 1. Let element be this's target element.
+        // Step 2: If element is not a form-associated custom element, then throw a "NotSupportedError" DOMException.
         if !self.is_target_form_associated() {
             return Err(Error::NotSupported);
         }
@@ -273,21 +283,26 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
             self.set_custom_validity_error_message(DOMString::new());
         }
 
-        // Step 7: Set element's validation anchor to null if anchor is not given.
-        match anchor {
-            None => self.validation_anchor.set(None),
-            Some(a) => {
-                if a == &*self.target_element ||
-                    !self
-                        .target_element
-                        .upcast::<Node>()
-                        .is_shadow_including_inclusive_ancestor_of(a.upcast::<Node>())
+        let anchor = match anchor {
+            // Step 7: If anchor is not given, then set it to element.
+            None => &self.target_element,
+            // Step 8. Otherwise, if anchor is not a shadow-including inclusive descendant of element,
+            // then throw a "NotFoundError" DOMException.
+            Some(anchor) => {
+                if !self
+                    .target_element
+                    .upcast::<Node>()
+                    .is_shadow_including_inclusive_ancestor_of(anchor.upcast::<Node>())
                 {
-                    return Err(Error::NotFound);
+                    return Err(Error::NotFound(None));
                 }
-                self.validation_anchor.set(Some(a));
+                anchor
             },
-        }
+        };
+
+        // Step 9. Set element's validation anchor to anchor.
+        self.validation_anchor.set(Some(anchor));
+
         Ok(())
     }
 
@@ -353,6 +368,17 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
             return Err(Error::NotSupported);
         }
         Ok(self.report_validity(can_gc))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-elementinternals-states>
+    fn States(&self, can_gc: CanGc) -> DomRoot<CustomStateSet> {
+        self.states.or_init(|| {
+            CustomStateSet::new(
+                &self.target_element.owner_window(),
+                &self.target_element,
+                can_gc,
+            )
+        })
     }
 }
 

@@ -1,0 +1,42 @@
+steps:
+- powershell: |
+    # Configure Windows Error Reporting (Watson) for crash dump collection
+    # This enables automatic crash dump generation for debugging browser and WebDriver crashes
+    # Only enabled when System.Debug is true to avoid disk space issues in normal runs
+    try {
+        Write-Host "Configuring Windows Error Reporting (Watson) for crash dump collection..."
+        
+        # Enable Windows Error Reporting
+        Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting" -Name "Disabled" -Value 0 -Type DWord -Force
+        Write-Host "✓ Windows Error Reporting enabled"
+        
+        # Configure local dump collection
+        $localDumpsPath = "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps"
+        if (!(Test-Path $localDumpsPath)) {
+            New-Item -Path $localDumpsPath -Force | Out-Null
+            Write-Host "✓ LocalDumps registry key created"
+        }
+        
+        # Set dump folder to artifact staging directory so dumps are automatically published
+        Set-ItemProperty -Path $localDumpsPath -Name "DumpFolder" -Value "$(Build.ArtifactStagingDirectory)" -Type ExpandString -Force
+        Write-Host "✓ Dump folder configured: $(Build.ArtifactStagingDirectory)"
+        
+        # Configure dump type (2 = full dump with all memory)
+        Set-ItemProperty -Path $localDumpsPath -Name "DumpType" -Value 2 -Type DWord -Force
+        Write-Host "✓ Dump type set to full dump"
+
+        # Keep up to 10 crash dumps to avoid filling disk space
+        Set-ItemProperty -Path $localDumpsPath -Name "DumpCount" -Value 10 -Type DWord -Force
+        Write-Host "✓ Dump count limit set to 10"
+
+        Write-Host ""
+        Write-Host "Windows Error Reporting configured successfully!"
+        Write-Host "Any browser or WebDriver crashes will generate crash dumps in the artifacts."
+    }
+    catch {
+        Write-Warning "Failed to configure Windows Error Reporting: $($_.Exception.Message)"
+        Write-Warning "Registry access may be restricted on this machine."
+        Write-Host "Continuing without crash dump collection..."
+    }
+  displayName: 'Configure Watson crash reporting (debug mode)'
+  condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['System.Debug'], 'true'))

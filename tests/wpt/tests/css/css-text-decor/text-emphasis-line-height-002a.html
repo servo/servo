@@ -8,5 +8,9 @@
 <link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#text-emphasis-position-property">
 <meta name="assert" content="text emphasis marks should expand the line height like ruby if necessary">
 <link rel="match" href="text-emphasis-line-height-002-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+div { font: 25px Ahem; }
+</style>
 <p>Pass if the emphasis marks are over the black line:</p>
 <div lang="ja" style="line-height: 1; border-bottom: 1px solid black; writing-mode: horizontal-tb; text-emphasis-position: under right;text-emphasis: circle;">試験テスト</div>

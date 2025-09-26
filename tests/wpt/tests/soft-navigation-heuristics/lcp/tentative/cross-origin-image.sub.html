@@ -35,14 +35,12 @@
     const helper = new SoftNavigationTestHelper(t);
     const lcpEntries = await helper.getBufferedPerformanceEntriesWithTimeout(
       /*type=*/ "largest-contentful-paint",
-      /*includeSoftNavigationObservations=*/ false,
       /*minNumEntries=*/ 1,
     );
     assert_equals(lcpEntries.length, 1);
     assert_equals(lcpEntries[0].id, "click-target", "The first entry should be the button");
     const softLcpPromise = SoftNavigationTestHelper.getPerformanceEntries(
       /*type=*/ "interaction-contentful-paint",
-      /*includeSoftNavigationObservations=*/ true,
       /*minNumEntries=*/ 1,
     );
     if (test_driver) {

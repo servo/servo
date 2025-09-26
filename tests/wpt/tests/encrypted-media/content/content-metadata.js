@@ -51,7 +51,8 @@ content = addMemberListToObject( {
                         initDataType:   'cenc',
                         associatedInitData: true,       // indicates that initData for one key causes other keys to be returned as well
                         audio:  {   type:   'audio/mp4;codecs="mp4a.40.2"',
-                                    path:   '/encrypted-media/content/audio_aac-lc_128k_enc_dashinit.mp4' },
+                                    path:   '/encrypted-media/content/audio_aac-lc_128k_enc_dashinit.mp4',
+                                    sinfStart:   0x02aa },
                         video : {   type:   'video/mp4;codecs="avc1.4d401e"',
                                     path:   '/encrypted-media/content/video_512x288_h264-360k_enc_dashinit.mp4' },
                         keys :  [ { kid: [ 0xad, 0x13, 0xf9, 0xea, 0x2b, 0xe6, 0x98, 0xb8, 0x75, 0xf5, 0x04, 0xa8, 0xe3, 0xcc, 0xea, 0x64 ],

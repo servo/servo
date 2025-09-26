@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<head>
+<title>DOM Parts: Attribute part on documentElement crash test</title>
+<link rel=author href="mailto:vmpstr@chromium.org">
+</head>
+
+<div></div>
+
+<script>
+function runTest() {
+  try {
+    new AttributePart(document.getPartRoot(), document.documentElement, "", {});
+  } catch (e) {}
+}
+onload = requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>

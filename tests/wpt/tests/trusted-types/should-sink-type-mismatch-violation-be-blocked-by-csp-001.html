@@ -104,10 +104,10 @@ header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',Tr
   // per the spec's ABNF:
   // https://www.w3.org/TR/trusted-types/#require-trusted-types-for-csp-directive
   // https://w3c.github.io/webappsec-csp/#grammardef-required-ascii-whitespace
-  // U+00A LF breaks the header field value into two lines so make sure that
-  // "the continuation line begins with a space or horizontal tab" in accordance
-  // with https://www.rfc-editor.org/rfc/rfc2616
-  ["%09", "%0A%20", "%0C", "%0D", "%20"].forEach(whitespace => {
+  // U+00A and U+00D LF break the header field value into two lines so make sure
+  // that "the continuation line begins with a space or horizontal tab" in
+  // accordance with https://www.rfc-editor.org/rfc/rfc2616
+  ["%09", "%0A%20", "%0C", "%0D%20", "%20"].forEach(whitespace => {
     let directive = `require-trusted-types-for 'invalid'${whitespace}'script'`;
     promise_test(async t => {
       let results = await trySendingPlainStringToTrustedTypeSink(

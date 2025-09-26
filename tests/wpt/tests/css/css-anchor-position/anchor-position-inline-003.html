@@ -21,7 +21,12 @@
   position: absolute;
 }
 </style>
-<body onload="checkLayoutForAnchorPos('.target')">
+<script>
+  function onload() {
+    document.fonts.ready.then(() => checkLayoutForAnchorPos('.target'));
+  }
+</script>
+<body onload="onload()">
   <div id="container">
     <div>spacer</div>
     <div>

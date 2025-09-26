@@ -58,6 +58,9 @@ promise_test(async () => {
     await selectText(xShadow, 0, 50);
     const s = getSelection();
     assert_greater_than(s.toString().length, 0, "drag text will update selection.");
+
+    await typeFoo();
+    assert_equals(input.value, 'FOOFOO', "keyboard typing will update the input value.");
 }, 'shadow root has selectable text when focus is delegated. Selection goes to text control if it is the delegated focusable area.');
 
 </script>

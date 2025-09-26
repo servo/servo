@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: Cookie Store API (https://cookiestore.spec.whatwg.org/)
+// Source: Cookie Store API Standard (https://cookiestore.spec.whatwg.org/)
 
 [Exposed=(ServiceWorker,Window),
  SecureContext]
@@ -53,12 +53,6 @@ dictionary CookieStoreDeleteOptions {
 dictionary CookieListItem {
   USVString name;
   USVString value;
-  USVString? domain;
-  USVString path;
-  DOMHighResTimeStamp? expires;
-  boolean secure;
-  CookieSameSite sameSite;
-  boolean partitioned;
 };
 
 typedef sequence<CookieListItem> CookieList;

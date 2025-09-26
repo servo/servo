@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<script src="resources/paint.js"></script>
+<style>
+  table {
+    border-collapse: collapse;
+    will-change: transform;
+  }
+  table.zero-width-border td {
+    border: 0px solid blue;
+  }
+  table.visible-border td {
+    border: 1px solid blue;
+  }
+</style>
+<script>
+function createTable(rows, columns) {
+    var table = document.createElement("TABLE");
+    for (var i = 0; i < rows; ++i) {
+        var tr = document.createElement("TR");
+        for (var j = 0; j < columns; ++j) {
+            var td = document.createElement("TD");
+            tr.appendChild(td);
+        }
+        table.appendChild(tr);
+    }
+    return table;
+}
+
+var table1 = createTable(300, 300);
+table1.className = 'zero-width-border';
+document.body.appendChild(table1);
+
+var table2 = createTable(300, 300);
+table2.className = 'invisible-border';
+document.body.appendChild(table2);
+
+var table3 = createTable(300, 300);
+table3.className = 'visible-border';
+document.body.appendChild(table3);
+
+var count = 0;
+var ix = 30;
+var iy = 30;
+
+measurePaint({
+  iterationCount: 30,
+  run: function() {
+    var table = [table1, table2, table3][count % 3];
+    table.childNodes[iy].childNodes[ix].style.backgroundColor = 'teal';
+    ix++;
+    iy++;
+    count++;
+  },
+});
+</script>
+</body>

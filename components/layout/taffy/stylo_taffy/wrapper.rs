@@ -10,6 +10,7 @@ use style::values::computed::{GridTemplateAreas, LengthPercentage};
 use style::values::generics::grid::{TrackListValue, TrackRepeat, TrackSize};
 use style::values::specified::position::NamedArea;
 use style::{Atom, OwnedSlice};
+use taffy::prelude::TaffyAuto;
 
 use super::{convert, stylo};
 
@@ -73,6 +74,19 @@ impl<T: Deref<Target = ComputedValues>> taffy::CoreStyle for TaffyStyloStyle<T> 
 
     #[inline]
     fn inset(&self) -> taffy::Rect<taffy::LengthPercentageAuto> {
+        // Taffy doesn't support static nor sticky positionings, they are treated
+        // as relative. As a workaround, ignore the insets.
+        if matches!(
+            self.style.get_box().position,
+            stylo::Position::Static | stylo::Position::Sticky
+        ) {
+            return taffy::Rect {
+                left: taffy::LengthPercentageAuto::AUTO,
+                right: taffy::LengthPercentageAuto::AUTO,
+                top: taffy::LengthPercentageAuto::AUTO,
+                bottom: taffy::LengthPercentageAuto::AUTO,
+            };
+        }
         let position_styles = self.style.get_position();
         taffy::Rect {
             left: convert::inset(&position_styles.left),

@@ -114,6 +114,7 @@ WEBIDL_STANDARDS = [
     b"//dev.w3.org/fxtf",
     b"//dvcs.w3.org/hg",
     b"//www.w3.org/TR/trusted-types/",
+    b"//www.w3.org/TR/credential-management",
     b"//dom.spec.whatwg.org",
     b"//drafts.csswg.org",
     b"//drafts.css-houdini.org",
@@ -138,6 +139,7 @@ WEBIDL_STANDARDS = [
     b"//gpuweb.github.io",
     b"//notifications.spec.whatwg.org",
     b"//testutils.spec.whatwg.org/",
+    b"//cookiestore.spec.whatwg.org/",
     # Not a URL
     b"// This interface is entirely internal to Servo, and should not be" + b" accessible to\n// web pages.",
 ]
@@ -555,6 +557,9 @@ def check_rust(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
         return
 
     for idx, line in enumerate(map(lambda line: line.decode("utf-8"), lines)):
+        for match in re.finditer(r"(;|\s|^)//\w", line):
+            yield (idx + 1, "Comments starting with `//` should also include a space")
+
         line = re.sub(r"//.*?$|/\*.*?$|^\*.*?$", "//", line)
         rules = [
             # There should be any use of banned types:

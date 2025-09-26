@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>document.write in mutation observer</title>
+<link rel=help href="https://html.spec.whatwg.org/#parsing-main-incdata">
+<link rel=help href="https://html.spec.whatwg.org/#perform-a-microtask-checkpoint">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+[
+  {name: "classic", src: "resources/mutation-observer-iframe-script.html"},
+  {name: "module", src: "resources/mutation-observer-iframe-script-module.html"},
+  {name: "async", src: "resources/mutation-observer-iframe-script-async.html"},
+  {name: "defer", src: "resources/mutation-observer-iframe-script-defer.html"},
+].forEach(({name, src}) => {
+  promise_test(async t => {
+    const iframe = document.createElement("iframe");
+
+    iframe.onerror = t.unreached_func("Error loading iframe");
+    document.addEventListener("scriptRan", t.unreached_func("script should not run"));
+    document.addEventListener("documentWriteDone", t.step_func(() => {
+      assert_equals(iframe.contentDocument.body.textContent, "document.write body contents\n");
+    }));
+
+    let loadPromise = new Promise(resolve => {
+      iframe.onload = t.step_func(() => {
+        assert_equals(iframe.contentDocument.body.textContent, "document.write body contents\n");
+        resolve();
+      });
+    });
+
+    iframe.src = src;
+    document.body.appendChild(iframe);
+
+    await loadPromise;
+  }, `Mutation observer for ${name} script element`);
+});
+</script>

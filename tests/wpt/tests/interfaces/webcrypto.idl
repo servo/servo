@@ -28,8 +28,6 @@ dictionary KeyAlgorithm {
 
 enum KeyType { "public", "private", "secret" };
 
-enum KeyUsage { "encrypt", "decrypt", "sign", "verify", "deriveKey", "deriveBits", "wrapKey", "unwrapKey" };
-
 [SecureContext,Exposed=(Window,Worker),Serializable]
 interface CryptoKey {
   readonly attribute KeyType type;
@@ -37,8 +35,6 @@ interface CryptoKey {
   readonly attribute object algorithm;
   readonly attribute object usages;
 };
-
-enum KeyFormat { "raw", "spki", "pkcs8", "jwk" };
 
 [SecureContext,Exposed=(Window,Worker)]
 interface SubtleCrypto {

@@ -6,8 +6,8 @@
 
 use std::borrow::Cow;
 use std::cell::{Cell, Ref, RefCell, RefMut};
-use std::collections::HashMap;
 use std::collections::vec_deque::VecDeque;
+use std::rc::Rc;
 use std::thread;
 
 use crossbeam_channel::{Receiver, Sender, unbounded};
@@ -20,6 +20,7 @@ use html5ever::tree_builder::{
 };
 use html5ever::{Attribute as HtmlAttribute, ExpandedName, QualName, local_name, ns};
 use markup5ever::TokenizerResult;
+use rustc_hash::FxHashMap;
 use servo_url::ServoUrl;
 use style::context::QuirksMode as ServoQuirksMode;
 
@@ -29,12 +30,13 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::comment::Comment;
+use crate::dom::customelementregistry::CustomElementReactionStack;
 use crate::dom::document::Document;
 use crate::dom::documenttype::DocumentType;
 use crate::dom::element::{Element, ElementCreator};
-use crate::dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
-use crate::dom::htmlscriptelement::HTMLScriptElement;
-use crate::dom::htmltemplateelement::HTMLTemplateElement;
+use crate::dom::html::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
+use crate::dom::html::htmlscriptelement::HTMLScriptElement;
+use crate::dom::html::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::node::Node;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::servoparser::{
@@ -223,11 +225,13 @@ pub(crate) struct Tokenizer {
     #[ignore_malloc_size_of = "Defined in std"]
     #[no_trace]
     html_tokenizer_sender: Sender<ToHtmlTokenizerMsg>,
-    #[ignore_malloc_size_of = "Defined in std"]
-    nodes: RefCell<HashMap<ParseNodeId, Dom<Node>>>,
+    //#[ignore_malloc_size_of = "Defined in std"]
+    nodes: RefCell<FxHashMap<ParseNodeId, Dom<Node>>>,
     #[no_trace]
     url: ServoUrl,
     parsing_algorithm: ParsingAlgorithm,
+    #[conditional_malloc_size_of]
+    custom_element_reaction_stack: Rc<CustomElementReactionStack>,
 }
 
 impl Tokenizer {
@@ -246,13 +250,15 @@ impl Tokenizer {
             None => ParsingAlgorithm::Normal,
         };
 
+        let custom_element_reaction_stack = document.custom_element_reaction_stack();
         let tokenizer = Tokenizer {
             document: Dom::from_ref(document),
             receiver: tokenizer_receiver,
             html_tokenizer_sender: to_html_tokenizer_sender,
-            nodes: RefCell::new(HashMap::new()),
+            nodes: RefCell::new(FxHashMap::default()),
             url,
             parsing_algorithm: algorithm,
+            custom_element_reaction_stack,
         };
         tokenizer.insert_node(0, Dom::from_ref(document.upcast()));
 
@@ -397,7 +403,14 @@ impl Tokenizer {
             .GetParentNode()
             .expect("append_before_sibling called on node without parent");
 
-        super::insert(parent, Some(sibling), node, self.parsing_algorithm, can_gc);
+        super::insert(
+            parent,
+            Some(sibling),
+            node,
+            self.parsing_algorithm,
+            &self.custom_element_reaction_stack,
+            can_gc,
+        );
     }
 
     fn append(&self, parent: ParseNodeId, node: NodeOrText, can_gc: CanGc) {
@@ -409,7 +422,14 @@ impl Tokenizer {
         };
 
         let parent = &**self.get_node(&parent);
-        super::insert(parent, None, node, self.parsing_algorithm, can_gc);
+        super::insert(
+            parent,
+            None,
+            node,
+            self.parsing_algorithm,
+            &self.custom_element_reaction_stack,
+            can_gc,
+        );
     }
 
     fn has_parent_node(&self, node: ParseNodeId) -> bool {
@@ -454,6 +474,7 @@ impl Tokenizer {
                     &self.document,
                     ElementCreator::ParserCreated(current_line),
                     ParsingAlgorithm::Normal,
+                    &self.custom_element_reaction_stack,
                     can_gc,
                 );
                 self.insert_node(node, Dom::from_ref(element.upcast()));
@@ -676,7 +697,7 @@ struct ParseNodeData {
 
 pub(crate) struct Sink {
     current_line: Cell<u64>,
-    parse_node_data: RefCell<HashMap<ParseNodeId, ParseNodeData>>,
+    parse_node_data: RefCell<FxHashMap<ParseNodeId, ParseNodeData>>,
     next_parse_node_id: Cell<ParseNodeId>,
     document_node: ParseNode,
     sender: Sender<ToTokenizerMsg>,
@@ -687,7 +708,7 @@ impl Sink {
     fn new(sender: Sender<ToTokenizerMsg>, allow_declarative_shadow_roots: bool) -> Sink {
         let sink = Sink {
             current_line: Cell::new(1),
-            parse_node_data: RefCell::new(HashMap::new()),
+            parse_node_data: RefCell::new(FxHashMap::default()),
             next_parse_node_id: Cell::new(1),
             document_node: ParseNode {
                 id: 0,

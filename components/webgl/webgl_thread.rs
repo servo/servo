@@ -8,6 +8,8 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::{slice, thread};
 
+use base::Epoch;
+use base::generic_channel::RoutedReceiver;
 use bitflags::bitflags;
 use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
 use canvas_traits::webgl;
@@ -27,7 +29,6 @@ use compositing_traits::{
     WebrenderImageHandlerType,
 };
 use euclid::default::Size2D;
-use fnv::FnvHashMap;
 use glow::{
     self as gl, ActiveTransformFeedback, Context as Gl, HasContext, NativeTransformFeedback,
     NativeUniformLocation, NativeVertexArray, PixelUnpackData, ShaderPrecisionFormat,
@@ -38,6 +39,7 @@ use ipc_channel::ipc::IpcSharedMemory;
 use itertools::Itertools;
 use log::{debug, error, trace, warn};
 use pixels::{self, PixelFormat, SnapshotAlphaMode, unmultiply_inplace};
+use rustc_hash::FxHashMap;
 use surfman::chains::{PreserveBuffer, SwapChains, SwapChainsAPI};
 use surfman::{
     self, Adapter, Connection, Context, ContextAttributeFlags, ContextAttributes, Device,
@@ -208,16 +210,16 @@ pub(crate) struct WebGLThread {
     compositor_api: CrossProcessCompositorApi,
     webrender_api: RenderApi,
     /// Map of live WebGLContexts.
-    contexts: FnvHashMap<WebGLContextId, GLContextData>,
+    contexts: FxHashMap<WebGLContextId, GLContextData>,
     /// Cached information for WebGLContexts.
-    cached_context_info: FnvHashMap<WebGLContextId, WebGLContextInfo>,
+    cached_context_info: FxHashMap<WebGLContextId, WebGLContextInfo>,
     /// Current bound context.
     bound_context_id: Option<WebGLContextId>,
     /// List of registered webrender external images.
     /// We use it to get an unique ID for new WebGLContexts.
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     /// The receiver that will be used for processing WebGL messages.
-    receiver: crossbeam_channel::Receiver<WebGLMsg>,
+    receiver: RoutedReceiver<WebGLMsg>,
     /// The receiver that should be used to send WebGL messages for processing.
     sender: WebGLSender<WebGLMsg>,
     /// The swap chains used by webrender
@@ -275,7 +277,7 @@ impl WebGLThread {
             bound_context_id: None,
             external_images,
             sender,
-            receiver: receiver.into_inner(),
+            receiver: receiver.route_preserving_errors(),
             webrender_swap_chains,
             api_type,
             #[cfg(feature = "webxr")]
@@ -297,7 +299,7 @@ impl WebGLThread {
 
     fn process(&mut self) {
         let webgl_chan = WebGLChan(self.sender.clone());
-        while let Ok(msg) = self.receiver.recv() {
+        while let Ok(Ok(msg)) = self.receiver.recv() {
             let exit = self.handle_msg(msg, &webgl_chan);
             if exit {
                 break;
@@ -380,8 +382,8 @@ impl WebGLThread {
                 #[cfg(feature = "webxr")]
                 self.handle_webxr_command(_command);
             },
-            WebGLMsg::SwapBuffers(swap_ids, sender, sent_time) => {
-                self.handle_swap_buffers(swap_ids, sender, sent_time);
+            WebGLMsg::SwapBuffers(swap_ids, canvas_epoch, sent_time) => {
+                self.handle_swap_buffers(canvas_epoch, swap_ids, sent_time);
             },
             WebGLMsg::Exit(sender) => {
                 // Call remove_context functions in order to correctly delete WebRender image keys.
@@ -710,7 +712,7 @@ impl WebGLThread {
             .state
             .requested_flags
             .contains(ContextAttributeFlags::ALPHA);
-        self.update_wr_image_for_context(context_id, size.to_i32(), has_alpha);
+        self.update_wr_image_for_context(context_id, size.to_i32(), has_alpha, None);
 
         Ok(())
     }
@@ -765,8 +767,8 @@ impl WebGLThread {
 
     fn handle_swap_buffers(
         &mut self,
+        canvas_epoch: Option<Epoch>,
         context_ids: Vec<WebGLContextId>,
-        completed_sender: WebGLSender<u64>,
         _sent_time: u64,
     ) {
         debug!("handle_swap_buffers()");
@@ -845,12 +847,11 @@ impl WebGLThread {
                 .state
                 .requested_flags
                 .contains(ContextAttributeFlags::ALPHA);
-            self.update_wr_image_for_context(context_id, size, has_alpha);
+            self.update_wr_image_for_context(context_id, size, has_alpha, canvas_epoch);
         }
 
         #[allow(unused)]
         let mut end_swap = 0;
-        completed_sender.send(end_swap).unwrap();
     }
 
     /// Which access mode to use
@@ -862,7 +863,7 @@ impl WebGLThread {
     pub(crate) fn make_current_if_needed<'a>(
         device: &Device,
         context_id: WebGLContextId,
-        contexts: &'a FnvHashMap<WebGLContextId, GLContextData>,
+        contexts: &'a FxHashMap<WebGLContextId, GLContextData>,
         bound_id: &mut Option<WebGLContextId>,
     ) -> Option<&'a GLContextData> {
         let data = contexts.get(&context_id);
@@ -881,7 +882,7 @@ impl WebGLThread {
     pub(crate) fn make_current_if_needed_mut<'a>(
         device: &Device,
         context_id: WebGLContextId,
-        contexts: &'a mut FnvHashMap<WebGLContextId, GLContextData>,
+        contexts: &'a mut FxHashMap<WebGLContextId, GLContextData>,
         bound_id: &mut Option<WebGLContextId>,
     ) -> Option<&'a mut GLContextData> {
         let data = contexts.get_mut(&context_id);
@@ -920,6 +921,7 @@ impl WebGLThread {
         context_id: WebGLContextId,
         size: Size2D<i32>,
         has_alpha: bool,
+        canvas_epoch: Option<Epoch>,
     ) {
         let info = self.cached_context_info.get(&context_id).unwrap();
         let image_buffer_kind = current_wr_image_buffer_kind(&self.device);
@@ -928,7 +930,7 @@ impl WebGLThread {
         let image_data = Self::external_image_data(context_id, image_buffer_kind);
 
         self.compositor_api
-            .update_image(info.image_key, descriptor, image_data);
+            .update_image(info.image_key, descriptor, image_data, canvas_epoch);
     }
 
     /// Helper function to create a `ImageDescriptor`.

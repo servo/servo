@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
+
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use servo_arc::Arc;
-use style::shared_lock::{Locked, ToCssWithGuard};
+use style::shared_lock::{Locked, SharedRwLockReadGuard, ToCssWithGuard};
 use style::stylesheets::CssRuleType;
 use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframesRule};
 use style::values::KeyframesName;
@@ -28,7 +30,7 @@ pub(crate) struct CSSKeyframesRule {
     cssrule: CSSRule,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
-    keyframesrule: Arc<Locked<KeyframesRule>>,
+    keyframesrule: RefCell<Arc<Locked<KeyframesRule>>>,
     rulelist: MutNullableDom<CSSRuleList>,
 }
 
@@ -39,7 +41,7 @@ impl CSSKeyframesRule {
     ) -> CSSKeyframesRule {
         CSSKeyframesRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
-            keyframesrule,
+            keyframesrule: RefCell::new(keyframesrule),
             rulelist: MutNullableDom::new(None),
         }
     }
@@ -67,21 +69,22 @@ impl CSSKeyframesRule {
             CSSRuleList::new(
                 self.global().as_window(),
                 parent_stylesheet,
-                RulesSource::Keyframes(self.keyframesrule.clone()),
+                RulesSource::Keyframes(self.keyframesrule.borrow().clone()),
                 can_gc,
             )
         })
     }
 
     /// Given a keyframe selector, finds the index of the first corresponding rule if any
-    fn find_rule(&self, selector: &str) -> Option<usize> {
-        let mut input = ParserInput::new(selector);
+    fn find_rule(&self, selector: &DOMString) -> Option<usize> {
+        let mut input = ParserInput::new(selector.str());
         let mut input = Parser::new(&mut input);
         if let Ok(sel) = KeyframeSelector::parse(&mut input) {
             let guard = self.cssrule.shared_lock().read();
             // This finds the *last* element matching a selector
             // because that's the rule that applies. Thus, rposition
             self.keyframesrule
+                .borrow()
                 .read_with(&guard)
                 .keyframes
                 .iter()
@@ -89,6 +92,18 @@ impl CSSKeyframesRule {
         } else {
             None
         }
+    }
+
+    pub(crate) fn update_rule(
+        &self,
+        keyframesrule: Arc<Locked<KeyframesRule>>,
+        guard: &SharedRwLockReadGuard,
+    ) {
+        if let Some(rulelist) = self.rulelist.get() {
+            rulelist.update_rules(RulesSource::Keyframes(keyframesrule.clone()), guard);
+        }
+
+        *self.keyframesrule.borrow_mut() = keyframesrule;
     }
 }
 
@@ -102,18 +117,21 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
     fn AppendRule(&self, rule: DOMString, can_gc: CanGc) {
         let style_stylesheet = self.cssrule.parent_stylesheet().style_stylesheet();
         let rule = Keyframe::parse(
-            &rule,
+            rule.str(),
             &style_stylesheet.contents,
             &style_stylesheet.shared_lock,
         );
 
         if let Ok(rule) = rule {
+            self.cssrule.parent_stylesheet().will_modify();
             let mut guard = self.cssrule.shared_lock().write();
             self.keyframesrule
+                .borrow()
                 .write_with(&mut guard)
                 .keyframes
                 .push(rule);
             self.rulelist(can_gc).append_lazy_dom_rule();
+            self.cssrule.parent_stylesheet().notify_invalidations();
         }
     }
 
@@ -134,7 +152,7 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name
     fn Name(&self) -> DOMString {
         let guard = self.cssrule.shared_lock().read();
-        DOMString::from(&**self.keyframesrule.read_with(&guard).name.as_atom())
+        DOMString::from(&**self.keyframesrule.borrow().read_with(&guard).name.as_atom())
     }
 
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name
@@ -142,9 +160,11 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
         // Spec deviation: https://github.com/w3c/csswg-drafts/issues/801
         // Setting this property to a CSS-wide keyword or `none` does not throw,
         // it stores a value that serializes as a quoted string.
-        let name = KeyframesName::from_ident(&value);
+        self.cssrule.parent_stylesheet().will_modify();
+        let name = KeyframesName::from_ident(value.str());
         let mut guard = self.cssrule.shared_lock().write();
-        self.keyframesrule.write_with(&mut guard).name = name;
+        self.keyframesrule.borrow().write_with(&mut guard).name = name;
+        self.cssrule.parent_stylesheet().notify_invalidations();
         Ok(())
     }
 }
@@ -157,6 +177,7 @@ impl SpecificCSSRule for CSSKeyframesRule {
     fn get_css(&self) -> DOMString {
         let guard = self.cssrule.shared_lock().read();
         self.keyframesrule
+            .borrow()
             .read_with(&guard)
             .to_css_string(&guard)
             .into()

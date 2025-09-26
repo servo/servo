@@ -1,0 +1,13 @@
+<link rel=help href="https://bug1982469.bmoattachments.org/attachment.cgi?id=9506532">
+<script>
+let a;
+const func_01 = function(arg) {
+  try { arg.currentTarget.replaceChild(a, arg.currentTarget.childNodes[0]) } catch (e) {}
+}
+window.addEventListener("DOMContentLoaded", () => {
+  a = document.createElement("style")
+  document.documentElement.getBoundingClientRect();
+  document.addEventListener("readystatechange", func_01, {})
+  document.startViewTransition(func_01)
+})
+</script>

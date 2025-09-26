@@ -38,7 +38,6 @@ Notes:
     const helper = new SoftNavigationTestHelper(t);
     const lcpEntries = await helper.getBufferedPerformanceEntriesWithTimeout(
       /*type=*/ "largest-contentful-paint",
-      /*includeSoftNavigationObservations=*/ false,
       /*minNumEntries=*/ 1,
     );
     assert_equals(lcpEntries.length, 1);
@@ -54,7 +53,6 @@ Notes:
         }
       }).observe({
         type: "interaction-contentful-paint",
-        includeSoftNavigationObservations: true,
       });
     });
     if (test_driver) {

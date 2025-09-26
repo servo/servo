@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<div id="container" dir="auto"></div>
+
+<script>
+'use strict';
+container.style.display = 'none';
+
+PerfTestRunner.measureRunsPerSecond({
+  description: 'Measures performance of inserting a text node' +
+               'as a child of an element having dir=auto attribute',
+  setup() {
+    container.innerHTML = "";
+  },
+  run() {
+    for (var i = 0; i < 10000; i++)
+      container.appendChild(document.createTextNode('a'));
+  }
+});
+</script>

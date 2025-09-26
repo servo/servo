@@ -107,6 +107,7 @@ impl MediaQueryListMethods<crate::DomTypeHolder> for MediaQueryList {
                 parent: EventListenerOptions { capture: false },
                 once: false,
                 passive: None,
+                signal: None,
             },
         );
     }
@@ -115,8 +116,8 @@ impl MediaQueryListMethods<crate::DomTypeHolder> for MediaQueryList {
     fn RemoveListener(&self, listener: Option<Rc<EventListener>>) {
         self.upcast::<EventTarget>().remove_event_listener(
             DOMString::from_string("change".to_owned()),
-            listener,
-            EventListenerOptions { capture: false },
+            &listener,
+            &EventListenerOptions { capture: false },
         );
     }
 

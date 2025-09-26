@@ -89,11 +89,27 @@ tentative_tests = [
       u'true'
     ),
     (
+      u'script-src-unsupported-type',
+      u'utf-8',
+      u'<script src="{}" type=text/plain></script>',
+      None,
+      u'false',
+      u'true'
+    ),
+    (
       u'script-src-type-application-ecmascript',
       u'utf-8',
       u'<script src="{}" type=application/ecmascript></script>',
       None,
       u'true',
+      u'true'
+    ),
+    (
+      u'script-src-nomodule',
+      u'utf-8',
+      u'<script src="{}" nomodule></script>',
+      None,
+      u'false',
       u'true'
     ),
     (
@@ -510,38 +526,6 @@ tests = [
     # template_testcase_markup,
     # expect_load,
     # test_nonspeculative
-    (
-      u'script-src-unsupported-type',
-      u'utf-8',
-      u'<script src="{}" type="text/plain"></script>',
-      None,
-      u'false',
-      u'true'
-    ),
-    (
-      u'script-src-unsupported-language',
-      u'utf-8',
-      u'<script src="{}" language="vbscript"></script>',
-      None,
-      u'false',
-      u'false'
-    ),
-    (
-      u'script-src-nomodule',
-      u'utf-8',
-      u'<script src="{}" nomodule></script>',
-      None,
-      u'false',
-      u'true'
-    ),
-    (
-      u'script-src-event-handler',
-      u'utf-8',
-      u'<script src="{}" event="" for=""></script>',
-      None,
-      u'false',
-      u'false'
-    ),
 ]
 
 # Templates

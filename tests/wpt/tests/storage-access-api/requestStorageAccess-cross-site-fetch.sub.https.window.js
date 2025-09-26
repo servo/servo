@@ -24,6 +24,7 @@ async function SetUpResponderFrame(t, url) {
 }
 
 promise_test(async (t) => {
+  await SetFirstPartyCookie(altRoot, "initial-cookie=unpartitioned;Secure;SameSite=None;Path=/");
   const frame = await SetUpResponderFrame(t, altRootResponder);
   await SetDocumentCookieFromFrame(frame, domainCookieString);
 

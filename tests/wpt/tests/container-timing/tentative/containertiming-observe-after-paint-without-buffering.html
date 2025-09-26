@@ -12,7 +12,6 @@ body {
 <script src="/container-timing/resources/container-timing-helpers.js"></script>
 <script src="/element-timing/resources/element-timing-helpers.js"></script>
 <script>
-  let beforeRender;
   async_test(function (t) {
     assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
     t.step_timeout(() => {
@@ -26,17 +25,13 @@ body {
         t.done();
       }, 2000);
     }, 2000);
-    // Add the image during onload to be sure that the observer is registered
-    // in time.
-    window.onload = () => {
-      // Add image of width equal to 100 and height equal to 100.
-      const img = document.createElement('img');
-      img.src = '/container-timing/resources/square100.png';
-      img.setAttribute('containertiming', 'image_ct');
-      img.setAttribute('id', 'my_id');
-      document.body.appendChild(img);
-      beforeRender = performance.now();
-    };
+
+    // Add image of width equal to 100 and height equal to 100.
+    const img = document.createElement('img');
+    img.src = '/container-timing/resources/square100.png';
+    img.setAttribute('containertiming', 'image_ct');
+    img.setAttribute('id', 'my_id');
+    document.body.appendChild(img);
   }, 'containertiming does not report paints before observing if buffering is disabled.');
 </script>
 

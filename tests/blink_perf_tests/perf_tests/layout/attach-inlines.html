@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+    <div id="div" style="display: none;">
+        <span id="span"></span>
+    </div>
+<script src="../resources/runner.js"></script>
+<script>
+        var div = document.getElementById("div");
+        var style = div.style;
+
+        function test() {
+            style.display = "block";
+            PerfTestRunner.forceLayout();
+
+            for (var i = 0; i < 1000; ++i)
+                span.appendChild(document.createElement("span")).textContent = "span";
+            PerfTestRunner.forceLayout();
+
+            style.display = "none";
+            span.innerHTML = '';
+            PerfTestRunner.forceLayout();
+        }
+
+        PerfTestRunner.measureRunsPerSecond({
+        description: "Measures performance of attaching a large number of inlines to an inline.",
+        run: test
+        });
+</script>
+</html>

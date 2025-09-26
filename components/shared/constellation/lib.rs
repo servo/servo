@@ -11,7 +11,7 @@
 mod from_script_message;
 mod structured_data;
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::fmt;
 use std::time::Duration;
 
@@ -19,19 +19,19 @@ use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{MessagePortId, PipelineId, WebViewId};
 use embedder_traits::{
-    CompositorHitTestResult, FocusId, InputEvent, JavaScriptEvaluationId, MediaSessionActionType,
-    Theme, TraversalId, ViewportDetails, WebDriverCommandMsg, WebDriverCommandResponse,
+    CompositorHitTestResult, InputEvent, JavaScriptEvaluationId, MediaSessionActionType, Theme,
+    TraversalId, ViewportDetails, WebDriverCommandMsg, WebDriverCommandResponse,
 };
-use euclid::Point2D;
 pub use from_script_message::*;
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::mem::MemoryReportResult;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use servo_config::prefs::PrefValue;
 use servo_url::{ImmutableOrigin, ServoUrl};
 pub use structured_data::*;
 use strum_macros::IntoStaticStr;
-use style_traits::CSSPixel;
 use webrender_api::units::LayoutVector2D;
 use webrender_api::{ExternalScrollId, ImageKey};
 
@@ -42,7 +42,7 @@ pub enum EmbedderToConstellationMessage {
     /// Exit the constellation.
     Exit,
     /// Query the constellation to see if the current compositor output is stable
-    IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
+    IsReadyToSaveImage(FxHashMap<PipelineId, Epoch>),
     /// Whether to allow script to navigate.
     AllowNavigationResponse(PipelineId, bool),
     /// Request to load a page.
@@ -58,6 +58,10 @@ pub enum EmbedderToConstellationMessage {
     /// Requests that the constellation instruct script/layout to try to layout again and tick
     /// animations.
     TickAnimation(Vec<WebViewId>),
+    /// Notify the `ScriptThread` that the Servo renderer is no longer waiting on
+    /// asynchronous image uploads for the given `Pipeline`. These are mainly used
+    /// by canvas to perform uploads while the display list is being built.
+    NoLongerWaitingOnAsynchronousImageUpdates(Vec<PipelineId>),
     /// Dispatch a webdriver command
     WebDriverCommand(WebDriverCommandMsg),
     /// Reload a top-level browsing context.
@@ -72,14 +76,15 @@ pub enum EmbedderToConstellationMessage {
     SendError(Option<WebViewId>, String),
     /// Make a webview focused. [EmbedderMsg::WebViewFocused] will be sent with
     /// the result of this operation.
-    FocusWebView(WebViewId, FocusId),
+    FocusWebView(WebViewId),
     /// Make none of the webviews focused.
     BlurWebView,
     /// Forward an input event to an appropriate ScriptTask.
     ForwardInputEvent(WebViewId, InputEvent, Option<CompositorHitTestResult>),
-    /// Request that the given pipeline do a hit test at the location and reset the
-    /// cursor accordingly. This happens after a display list update is rendered.
-    RefreshCursor(PipelineId, Point2D<f32, CSSPixel>),
+    /// Request that the given pipeline refresh the cursor by doing a hit test at the most
+    /// recently hovered cursor position and resetting the cursor. This happens after a
+    /// display list update is rendered.
+    RefreshCursor(PipelineId),
     /// Enable the sampling profiler, with a given sampling rate and max total sampling duration.
     ToggleProfiler(Duration, Duration),
     /// Request to exit from fullscreen mode
@@ -90,7 +95,7 @@ pub enum EmbedderToConstellationMessage {
     SetWebViewThrottled(WebViewId, bool),
     /// The Servo renderer scrolled and is updating the scroll states of the nodes in the
     /// given pipeline via the constellation.
-    SetScrollStates(PipelineId, HashMap<ExternalScrollId, LayoutVector2D>),
+    SetScrollStates(PipelineId, FxHashMap<ExternalScrollId, LayoutVector2D>),
     /// Notify the constellation that a particular paint metric event has happened for the given pipeline.
     PaintMetric(PipelineId, PaintMetricEvent),
     /// Evaluate a JavaScript string in the context of a `WebView`. When execution is complete or an
@@ -102,6 +107,8 @@ pub enum EmbedderToConstellationMessage {
     SendImageKeysForPipeline(PipelineId, Vec<ImageKey>),
     /// Set WebDriver input event handled sender.
     SetWebDriverResponseSender(IpcSender<WebDriverCommandResponse>),
+    /// A set of preferences were updated with the given new values.
+    PreferencesUpdated(Vec<(&'static str, PrefValue)>),
 }
 
 /// A description of a paint metric that is sent from the Servo renderer to the
@@ -174,7 +181,7 @@ pub struct PortTransferInfo {
 #[allow(clippy::large_enum_variant)]
 pub enum MessagePortMsg {
     /// Complete the transfer for a batch of ports.
-    CompleteTransfer(HashMap<MessagePortId, PortTransferInfo>),
+    CompleteTransfer(FxHashMap<MessagePortId, PortTransferInfo>),
     /// Complete the transfer of a single port,
     /// whose transfer was pending because it had been requested
     /// while a previous failed transfer was being rolled-back.

@@ -514,7 +514,6 @@ const testReadTensor = (testName) => {
     mlContext.writeTensor(mlTensor, Uint32Array.from([0xBBBBBBBB]));
     await assert_tensor_data_equals(
         mlContext, mlTensor, Uint32Array.from([0xBBBBBBBB]));
-    ;
   }, `${testName} / overwrite`);
 
   promise_test(async t => {
@@ -533,6 +532,19 @@ const testReadTensor = (testName) => {
     await promise_rejects_js(
         t, TypeError, anotherMLContext.readTensor(mlTensor));
   }, `${testName} / context_mismatch`);
+
+  promise_test(async () => {
+    // Create a 128k tensor to test the data pipe.
+    let mlTensor = await mlContext.createTensor({
+      dataType: 'int32',
+      shape: [2, 128, 128],
+      readable: true,
+    });
+
+    // Read to an array larger than the 128k mlTensor
+    const largeArray = new Int32Array(140000);
+    await mlContext.readTensor(mlTensor, largeArray);
+  }, `${testName} / read with larger array`);
 };
 
 /**
@@ -1401,11 +1413,12 @@ const testExportToGPU = (testName) => {
 
     // Check if WebNN interop is supported.
     try {
-      await mlContext.createTensor({
+      let mlTensor = await mlContext.createTensor({
         dataType: 'float32',
         shape: shape,
         exportableToGPU: true,
       });
+      await mlContext.exportToGPU(mlTensor);
     } catch (e) {
       if (e.name === 'NotSupportedError') {
         isExportToGPUSupported = false;

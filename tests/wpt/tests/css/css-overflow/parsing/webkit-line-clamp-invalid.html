@@ -18,7 +18,9 @@ test_invalid_value("-webkit-line-clamp", '0');
 test_invalid_value("-webkit-line-clamp", '-5');
 
 test_invalid_value("-webkit-line-clamp", 'none "~"');
+test_invalid_value("-webkit-line-clamp", '1 no-ellipsis');
 test_invalid_value("-webkit-line-clamp", '1 "~"');
+test_invalid_value("-webkit-line-clamp", '1 -webkit-legacy');
 </script>
 </body>
 </html>

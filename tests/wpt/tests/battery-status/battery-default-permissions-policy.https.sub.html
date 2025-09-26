@@ -3,6 +3,7 @@
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src=/permissions-policy/resources/permissions-policy.js></script>
+<script src="resources/battery-status-helpers.js"></script>
 <script>
 'use strict';
 
@@ -21,6 +22,7 @@ async_test(t => {
 }, `${header} allows same-origin iframes.`);
 
 async_test(t => {
+  assert_implements_battery();
   test_feature_availability('navigator.getBattery()', t, cross_origin_src,
       expect_feature_unavailable_default);
 }, `${header} disallows cross-origin iframes.`);

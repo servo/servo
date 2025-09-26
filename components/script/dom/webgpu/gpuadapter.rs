@@ -139,7 +139,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
         let mut required_limits = wgpu_types::Limits::default();
         if let Some(limits) = &descriptor.requiredLimits {
             for (limit, value) in (*limits).iter() {
-                if !set_limit(&mut required_limits, limit.as_ref(), *value) {
+                if !set_limit(&mut required_limits, limit.str(), *value) {
                     warn!("Unknown GPUDevice limit: {limit}");
                     promise.reject_error(Error::Operation, can_gc);
                     return promise;
@@ -178,7 +178,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-isfallbackadapter>
     fn IsFallbackAdapter(&self) -> bool {
-        //TODO
+        // TODO
         false
     }
 
@@ -269,7 +269,7 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
                     can_gc,
                 );
                 // 2. Lose the device(device, "unknown").
-                device.lose(GPUDeviceLostReason::Unknown, e, can_gc);
+                device.lose(GPUDeviceLostReason::Unknown, e);
                 promise.resolve_native(&device, can_gc);
             },
         }

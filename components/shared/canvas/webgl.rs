@@ -7,6 +7,7 @@ use std::fmt;
 use std::num::{NonZeroU32, NonZeroU64};
 use std::ops::Deref;
 
+use base::Epoch;
 /// Receiver type used in WebGLCommands.
 pub use base::generic_channel::GenericReceiver as WebGLReceiver;
 /// Sender type used in WebGLCommands.
@@ -33,7 +34,7 @@ pub fn webgl_channel<T>() -> Option<(WebGLSender<T>, WebGLReceiver<T>)>
 where
     T: for<'de> Deserialize<'de> + Serialize,
 {
-    base::generic_channel::channel(servo_config::opts::get().multiprocess)
+    base::generic_channel::channel()
 }
 
 /// Entry point channel type used for sending WebGLMsg messages to the WebGL renderer.
@@ -107,7 +108,7 @@ pub enum WebGLMsg {
     /// The third field contains the time (in ns) when the request
     /// was initiated. The u64 in the second field will be the time the
     /// request is fulfilled
-    SwapBuffers(Vec<WebGLContextId>, WebGLSender<u64>, u64),
+    SwapBuffers(Vec<WebGLContextId>, Option<Epoch>, u64),
     /// Frees all resources and closes the thread.
     Exit(IpcSender<()>),
 }
@@ -769,7 +770,7 @@ pub struct ActiveUniformInfo {
 }
 
 impl ActiveUniformInfo {
-    pub fn name(&self) -> Cow<str> {
+    pub fn name(&self) -> Cow<'_, str> {
         if self.size.is_some() {
             let mut name = String::from(&*self.base_name);
             name.push_str("[0]");

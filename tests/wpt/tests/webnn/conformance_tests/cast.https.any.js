@@ -1492,11 +1492,5 @@ const castTests = [
   }
 ];
 
-if (navigator.ml) {
-  castTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getCastPrecisionTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(
+    castTests, buildAndExecuteGraph, getCastPrecisionTolerance);

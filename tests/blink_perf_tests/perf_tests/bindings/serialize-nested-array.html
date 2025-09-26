@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+
+var length = 1000;
+var obj = [];
+for (var i = 0; i < length; i++)
+    obj = [obj];
+var worker = new Worker('resources/worker.js');
+worker.onmessage = function(event) {
+    console.log("received");
+};
+
+PerfTestRunner.measureTime({
+    description: "Measures performance of serializing a long chaining nested array.",
+    run: function() {
+        worker.postMessage(obj);
+    }
+});
+</script>
+</body>

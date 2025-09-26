@@ -91,7 +91,7 @@ pub(crate) fn is_valid_element_local_name(name: &str) -> bool {
 }
 
 /// <https://dom.spec.whatwg.org/#valid-doctype-name>
-pub(crate) fn is_valid_doctype_name(name: &str) -> bool {
+pub(crate) fn is_valid_doctype_name(name: &DOMString) -> bool {
     // A string is a valid doctype name if it does not contain
     // ASCII whitespace, U+0000 NULL, or U+003E (>).
     !name
@@ -121,7 +121,7 @@ pub(crate) enum Context {
 /// <https://dom.spec.whatwg.org/#validate-and-extract>
 pub(crate) fn validate_and_extract(
     namespace: Option<DOMString>,
-    qualified_name: &str,
+    qualified_name: &DOMString,
     context: Context,
 ) -> Fallible<(Namespace, Option<Prefix>, LocalName)> {
     // Step 1. If namespace is the empty string, then set it to null.
@@ -130,12 +130,12 @@ pub(crate) fn validate_and_extract(
     // Step 2. Let prefix be null.
     let mut prefix = None;
     // Step 3. Let localName be qualifiedName.
-    let mut local_name = qualified_name;
+    let mut local_name = qualified_name.str();
     // Step 4. If qualifiedName contains a U+003A (:):
     if let Some(idx) = qualified_name.find(':') {
         //     Step 4.1. Let splitResult be the result of running
         //          strictly split given qualifiedName and U+003A (:).
-        let p = &qualified_name[..idx];
+        let p = &qualified_name.str()[..idx];
 
         // Step 5. If prefix is not a valid namespace prefix,
         // then throw an "InvalidCharacterError" DOMException.
@@ -148,7 +148,7 @@ pub(crate) fn validate_and_extract(
         prefix = Some(p);
 
         //     Step 4.3. Set localName to splitResult[1].
-        let remaining = &qualified_name[(idx + 1).min(qualified_name.len())..];
+        let remaining = &qualified_name.str()[(idx + 1).min(qualified_name.len())..];
         match remaining.find(':') {
             Some(end) => local_name = &remaining[..end],
             None => local_name = remaining,

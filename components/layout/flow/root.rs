@@ -8,13 +8,14 @@ use compositing_traits::display_list::AxesScrollSensitivity;
 use euclid::Rect;
 use euclid::default::Size2D as UntypedSize2D;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
-use layout_api::{LayoutElementType, LayoutNodeType};
+use layout_api::{AxesOverflow, LayoutElementType, LayoutNodeType};
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::{ServoLayoutNode, ServoThreadSafeLayoutNode};
 use servo_arc::Arc;
 use style::dom::{NodeInfo, TNode};
 use style::properties::ComputedValues;
 use style::values::computed::Overflow;
+use style::values::specified::box_::DisplayOutside;
 use style_traits::CSSPixel;
 
 use crate::cell::ArcRefCell;
@@ -26,7 +27,7 @@ use crate::flow::float::FloatBox;
 use crate::flow::inline::InlineItem;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragment_tree::FragmentTree;
+use crate::fragment_tree::{FragmentFlags, FragmentTree};
 use crate::geom::{LogicalVec2, PhysicalSize};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::replaced::ReplacedContents;
@@ -41,7 +42,7 @@ pub struct BoxTree {
     root: BlockFormattingContext,
 
     /// Whether or not the viewport should be sensitive to scrolling input events in two axes
-    viewport_scroll_sensitivity: AxesScrollSensitivity,
+    pub(crate) viewport_overflow: AxesOverflow,
 }
 
 impl BoxTree {
@@ -53,40 +54,7 @@ impl BoxTree {
         // Zero box for `:root { display: none }`, one for the root element otherwise.
         assert!(boxes.len() <= 1);
 
-        // From https://www.w3.org/TR/css-overflow-3/#overflow-propagation:
-        // > UAs must apply the overflow-* values set on the root element to the viewport when the
-        // > root element’s display value is not none. However, when the root element is an [HTML]
-        // > html element (including XML syntax for HTML) whose overflow value is visible (in both
-        // > axes), and that element has as a child a body element whose display value is also not
-        // > none, user agents must instead apply the overflow-* values of the first such child
-        // > element to the viewport. The element from which the value is propagated must then have a
-        // > used overflow value of visible.
-        let root_style = root_element.style(&context.style_context);
-
-        let mut viewport_overflow_x = root_style.clone_overflow_x();
-        let mut viewport_overflow_y = root_style.clone_overflow_y();
-        if viewport_overflow_x == Overflow::Visible &&
-            viewport_overflow_y == Overflow::Visible &&
-            !root_style.get_box().display.is_none()
-        {
-            for child in root_element.children() {
-                if !child
-                    .as_element()
-                    .is_some_and(|element| element.is_body_element_of_html_element_root())
-                {
-                    continue;
-                }
-
-                let style = child.style(&context.style_context);
-                if !style.get_box().display.is_none() {
-                    viewport_overflow_x = style.clone_overflow_x();
-                    viewport_overflow_y = style.clone_overflow_y();
-
-                    break;
-                }
-            }
-        }
-
+        let viewport_overflow = Self::viewport_overflow(root_element, boxes.first());
         let contents = BlockContainer::BlockLevelBoxes(boxes);
         let contains_floats = contents.contains_floats();
         Self {
@@ -97,11 +65,65 @@ impl BoxTree {
             // From https://www.w3.org/TR/css-overflow-3/#overflow-propagation:
             // > If visible is applied to the viewport, it must be interpreted as auto.
             // > If clip is applied to the viewport, it must be interpreted as hidden.
-            viewport_scroll_sensitivity: AxesScrollSensitivity {
-                x: viewport_overflow_x.to_scrollable().into(),
-                y: viewport_overflow_y.to_scrollable().into(),
-            },
+            viewport_overflow: viewport_overflow.to_scrollable(),
         }
+    }
+
+    fn viewport_overflow(
+        root_element: ServoThreadSafeLayoutNode<'_>,
+        root_box: Option<&ArcRefCell<BlockLevelBox>>,
+    ) -> AxesOverflow {
+        // From https://www.w3.org/TR/css-overflow-3/#overflow-propagation:
+        // > UAs must apply the overflow-* values set on the root element to the viewport when the
+        // > root element’s display value is not none. However, when the root element is an [HTML]
+        // > html element (including XML syntax for HTML) whose overflow value is visible (in both
+        // > axes), and that element has as a child a body element whose display value is also not
+        // > none, user agents must instead apply the overflow-* values of the first such child
+        // > element to the viewport. The element from which the value is propagated must then have a
+        // > used overflow value of visible.
+
+        // If there is no root box, the root element has `display: none`, so don't propagate.
+        // The spec isn't very clear about what value to use, but the initial value seems fine.
+        // See https://github.com/w3c/csswg-drafts/issues/12649
+        let Some(root_box) = root_box else {
+            return AxesOverflow::default();
+        };
+
+        let propagate_from_body = || {
+            // Unlike what the spec implies, we stop iterating when we find the first <body>,
+            // even if it's not suitable because it lacks a box. This matches other browsers.
+            // See https://github.com/w3c/csswg-drafts/issues/12644
+            let body = root_element.children().find(|child| {
+                child
+                    .as_element()
+                    .is_some_and(|element| element.is_body_element_of_html_element_root())
+            })?;
+
+            // We only propagate from the <body> if it generates a box. The spec only checks for
+            // `display: none`, but other browsers don't propagate for `display: contents` either.
+            // See https://github.com/w3c/csswg-drafts/issues/12643
+            let body_layout_data = body.inner_layout_data()?;
+            let mut body_box = body_layout_data.self_box.borrow_mut();
+            body_box.as_mut()?.with_base_mut_fold(None, |accum, base| {
+                base.base_fragment_info
+                    .flags
+                    .insert(FragmentFlags::PROPAGATED_OVERFLOW_TO_VIEWPORT);
+                accum.or_else(|| Some(AxesOverflow::from(&*base.style)))
+            })
+        };
+
+        root_box.borrow_mut().with_base_mut(|base| {
+            let root_overflow = AxesOverflow::from(&*base.style);
+            if root_overflow.x == Overflow::Visible && root_overflow.y == Overflow::Visible {
+                if let Some(body_overflow) = propagate_from_body() {
+                    return body_overflow;
+                }
+            }
+            base.base_fragment_info
+                .flags
+                .insert(FragmentFlags::PROPAGATED_OVERFLOW_TO_VIEWPORT);
+            root_overflow
+        })
     }
 
     /// This method attempts to incrementally update the box tree from an
@@ -241,11 +263,16 @@ impl BoxTree {
             &mut root_fragments,
         );
 
+        let viewport_scroll_sensitivity = AxesScrollSensitivity {
+            x: self.viewport_overflow.x.into(),
+            y: self.viewport_overflow.y.into(),
+        };
+
         FragmentTree::new(
             layout_context,
             root_fragments,
             physical_containing_block,
-            self.viewport_scroll_sensitivity,
+            viewport_scroll_sensitivity,
         )
     }
 }
@@ -325,6 +352,12 @@ impl<'dom> IncrementalBoxTreeUpdate<'dom> {
                     BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(_)
                         if box_style.position.is_absolutely_positioned() =>
                     {
+                        // If the outer type of its original display changed from block to inline,
+                        // a block-level abspos needs to be placed in an inline formatting context,
+                        // see [`BlockContainerBuilder::handle_absolutely_positioned_element()`].
+                        if box_style.original_display.outside() == DisplayOutside::Inline {
+                            return None;
+                        }
                         DirtyRootBoxTreeNode::AbsolutelyPositionedBlockLevelBox(
                             block_level_box.clone(),
                         )

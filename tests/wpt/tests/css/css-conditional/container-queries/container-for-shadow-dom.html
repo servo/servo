@@ -228,7 +228,7 @@
   </template></div>
 </div>
 
-<div id="no-container-for-part">
+<div id="container-for-part">
   <div>
     <template shadowrootmode="open">
       <style>
@@ -244,7 +244,7 @@
     </template>
     <style>
       @container (width = 200px) {
-        #no-container-for-part > div::part(part) { color: green; }
+        #container-for-part > div::part(part) { color: green; }
       }
     </style>
   </div>
@@ -277,7 +277,7 @@
       }
       #named-part1 {
         container: --part1 / inline-size;
-        color: green;
+        color: red;
       }
     </style>
     <div id="named-part1" part="part1">
@@ -290,7 +290,7 @@
   <style>
     #named-part-host::part(part2) { container: --part2 / inline-size; }
     @container --part1 (width >= 0px) {
-      #named-part-host::part(part1-child) { background-color: red; }
+      #named-part-host::part(part1-child) { color: green; }
     }
   </style>
 </div>
@@ -313,7 +313,7 @@
   <div id="slotted2"></div>
   <style>
     @container --slot-container (width >= 0px) {
-      #slotted2 { color: red; }
+      #slotted2 { color: green; }
     }
   </style>
 </div>
@@ -336,7 +336,7 @@
   <div id="host-slotted2"></div>
   <style>
     @container --host-container (width >= 0px) {
-      #host-slotted2 { color: red; }
+      #host-slotted2 { color: green; }
     }
   </style>
 </div>
@@ -402,9 +402,9 @@
   }, "Match container for slot light tree child fallback");
 
   test(() => {
-    const t11 = document.querySelector("#no-container-for-part > div").shadowRoot.querySelector("#t11");
+    const t11 = document.querySelector("#container-for-part > div").shadowRoot.querySelector("#t11");
     assert_equals(getComputedStyle(t11).color, green);
-  }, "Should not match container inside shadow tree for ::part()");
+  }, "Should match container inside shadow tree for ::part()");
 
   test(() => {
     const t12 = document.querySelector("#inner-scope-host-part > div").shadowRoot.querySelector("#t12");
@@ -414,7 +414,7 @@
   test(() => {
     const target = document.querySelector("#named-part-host").shadowRoot.querySelector("#named-part1-child");
     assert_equals(getComputedStyle(target).color, green);
-  }, "Container name set inside a shadow tree should not match query using ::part on the outside");
+  }, "Container name set inside a shadow tree should match query using ::part on the outside");
 
   test(() => {
     const target = document.querySelector("#named-part-host").shadowRoot.querySelector("#named-part2-child");
@@ -428,8 +428,8 @@
 
   test(() => {
     const target = document.querySelector("#slotted2");
-    assert_not_equals(getComputedStyle(target).color, red);
-  }, "Container name set inside a shadow tree should not match query for host child on the outside");
+    assert_equals(getComputedStyle(target).color, green);
+  }, "Container name set inside a shadow tree should match query for host child on the outside");
 
   test(() => {
     const target = document.querySelector("#named-host").shadowRoot.querySelector("#host-descendant");
@@ -443,7 +443,7 @@
 
   test(() => {
     const target = document.querySelector("#host-slotted2");
-    assert_not_equals(getComputedStyle(target).color, red);
-  }, "Container name set on :host from inside a shadow tree not matching query for slotted from the outside of the shadow tree");
+    assert_equals(getComputedStyle(target).color, green);
+  }, "Container name set on :host from inside a shadow tree should match query for slotted from the outside of the shadow tree");
 
 </script>

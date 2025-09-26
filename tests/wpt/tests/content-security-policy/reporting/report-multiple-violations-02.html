@@ -11,9 +11,11 @@
 </head>
 <body>
   <script>
-    for (var i = 0; i<5; i++)
-      setTimeout("document.body.innerHTML += ('<p>PASS: setTimeout #" + i + " executed.');", 0);
+    for (var i = 0; i<5; i++) {
+      setTimeout("document.body.innerHTML += ('<p>PASS: setTimeout executed.');", 0);
+    }
+    setTimeout("document.body.innerHTML += ('<p>PASS: different setTimeout executed.');", 0);
   </script>
-  <script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=script-src%20%27unsafe-inline%27%20%27self%27&reportCount=1'></script>
+  <script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=script-src%20%27unsafe-inline%27%20%27self%27&reportCount=2'></script>
 </body>
 </html>

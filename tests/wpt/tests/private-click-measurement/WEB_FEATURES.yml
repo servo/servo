@@ -1,0 +1,3 @@
+features:
+- name: private-click-measurement
+  files: "**"

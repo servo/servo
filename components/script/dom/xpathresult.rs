@@ -2,15 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 
 use crate::dom::bindings::codegen::Bindings::XPathResultBinding::{
     XPathResultConstants, XPathResultMethods,
 };
 use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
@@ -84,9 +86,11 @@ impl From<Value> for XPathResultValue {
 pub(crate) struct XPathResult {
     reflector_: Reflector,
     window: Dom<Window>,
-    result_type: XPathResultType,
-    value: XPathResultValue,
-    iterator_invalid: Cell<bool>,
+    /// The revision of the owner document when this result was created. When iterating over the
+    /// values in the result, this is used to invalidate the iterator when the document is modified.
+    version: Cell<u64>,
+    result_type: Cell<XPathResultType>,
+    value: RefCell<XPathResultValue>,
     iterator_pos: Cell<usize>,
 }
 
@@ -112,11 +116,25 @@ impl XPathResult {
         XPathResult {
             reflector_: Reflector::new(),
             window: Dom::from_ref(window),
-            result_type: inferred_result_type,
-            iterator_invalid: Cell::new(false),
+            version: Cell::new(
+                window
+                    .Document()
+                    .upcast::<Node>()
+                    .inclusive_descendants_version(),
+            ),
+            result_type: Cell::new(inferred_result_type),
             iterator_pos: Cell::new(0),
-            value,
+            value: RefCell::new(value),
         }
+    }
+
+    fn document_changed_since_creation(&self) -> bool {
+        let current_document_version = self
+            .window
+            .Document()
+            .upcast::<Node>()
+            .inclusive_descendants_version();
+        current_document_version != self.version.get()
     }
 
     /// NB: Blindly trusts `result_type` and constructs an object regardless of the contents
@@ -136,17 +154,29 @@ impl XPathResult {
             can_gc,
         )
     }
+
+    pub(crate) fn reinitialize_with(&self, result_type: XPathResultType, value: XPathResultValue) {
+        self.result_type.set(result_type);
+        *self.value.borrow_mut() = value;
+        self.version.set(
+            self.window
+                .Document()
+                .upcast::<Node>()
+                .inclusive_descendants_version(),
+        );
+        self.iterator_pos.set(0);
+    }
 }
 
 impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
     /// <https://dom.spec.whatwg.org/#dom-xpathresult-resulttype>
     fn ResultType(&self) -> u16 {
-        self.result_type as u16
+        self.result_type.get() as u16
     }
 
     /// <https://dom.spec.whatwg.org/#dom-xpathresult-numbervalue>
     fn GetNumberValue(&self) -> Fallible<f64> {
-        match (&self.value, self.result_type) {
+        match (&*self.value.borrow(), self.result_type.get()) {
             (XPathResultValue::Number(n), XPathResultType::Number) => Ok(*n),
             _ => Err(Error::Type(
                 "Can't get number value for non-number XPathResult".to_string(),
@@ -156,7 +186,7 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
 
     /// <https://dom.spec.whatwg.org/#dom-xpathresult-stringvalue>
     fn GetStringValue(&self) -> Fallible<DOMString> {
-        match (&self.value, self.result_type) {
+        match (&*self.value.borrow(), self.result_type.get()) {
             (XPathResultValue::String(s), XPathResultType::String) => Ok(s.clone()),
             _ => Err(Error::Type(
                 "Can't get string value for non-string XPathResult".to_string(),
@@ -166,7 +196,7 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
 
     /// <https://dom.spec.whatwg.org/#dom-xpathresult-booleanvalue>
     fn GetBooleanValue(&self) -> Fallible<bool> {
-        match (&self.value, self.result_type) {
+        match (&*self.value.borrow(), self.result_type.get()) {
             (XPathResultValue::Boolean(b), XPathResultType::Boolean) => Ok(*b),
             _ => Err(Error::Type(
                 "Can't get boolean value for non-boolean XPathResult".to_string(),
@@ -176,53 +206,46 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
 
     /// <https://dom.spec.whatwg.org/#dom-xpathresult-iteratenext>
     fn IterateNext(&self) -> Fallible<Option<DomRoot<Node>>> {
-        // TODO(vlindhol): actually set `iterator_invalid` somewhere
-        if self.iterator_invalid.get() {
-            return Err(Error::Range(
-                "Invalidated iterator for XPathResult, the DOM has mutated.".to_string(),
-            ));
+        if !matches!(
+            self.result_type.get(),
+            XPathResultType::OrderedNodeIterator | XPathResultType::UnorderedNodeIterator
+        ) {
+            return Err(Error::Type("Result is not an iterator".into()));
         }
 
-        match (&self.value, self.result_type) {
-            (
-                XPathResultValue::Nodeset(nodes),
-                XPathResultType::OrderedNodeIterator | XPathResultType::UnorderedNodeIterator,
-            ) => {
-                let pos = self.iterator_pos.get();
-                if pos >= nodes.len() {
-                    Ok(None)
-                } else {
-                    let node = nodes[pos].clone();
-                    self.iterator_pos.set(pos + 1);
-                    Ok(Some(node))
-                }
-            },
-            _ => Err(Error::Type(
+        if self.document_changed_since_creation() {
+            return Err(Error::InvalidState);
+        }
+
+        let XPathResultValue::Nodeset(nodes) = &*self.value.borrow() else {
+            return Err(Error::Type(
                 "Can't iterate on XPathResult that is not a node-set".to_string(),
-            )),
+            ));
+        };
+
+        let position = self.iterator_pos.get();
+        if position >= nodes.len() {
+            Ok(None)
+        } else {
+            let node = nodes[position].clone();
+            self.iterator_pos.set(position + 1);
+            Ok(Some(node))
         }
     }
 
     /// <https://dom.spec.whatwg.org/#dom-xpathresult-invaliditeratorstate>
-    fn GetInvalidIteratorState(&self) -> Fallible<bool> {
-        let is_iterator_invalid = self.iterator_invalid.get();
-        if is_iterator_invalid ||
-            matches!(
-                self.result_type,
-                XPathResultType::OrderedNodeIterator | XPathResultType::UnorderedNodeIterator
-            )
-        {
-            Ok(is_iterator_invalid)
-        } else {
-            Err(Error::Type(
-                "Can't iterate on XPathResult that is not a node-set".to_string(),
-            ))
-        }
+    fn InvalidIteratorState(&self) -> bool {
+        let is_iterable = matches!(
+            self.result_type.get(),
+            XPathResultType::OrderedNodeIterator | XPathResultType::UnorderedNodeIterator
+        );
+
+        is_iterable && self.document_changed_since_creation()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-xpathresult-snapshotlength>
     fn GetSnapshotLength(&self) -> Fallible<u32> {
-        match (&self.value, self.result_type) {
+        match (&*self.value.borrow(), self.result_type.get()) {
             (
                 XPathResultValue::Nodeset(nodes),
                 XPathResultType::OrderedNodeSnapshot | XPathResultType::UnorderedNodeSnapshot,
@@ -235,7 +258,7 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
 
     /// <https://dom.spec.whatwg.org/#dom-xpathresult-snapshotitem>
     fn SnapshotItem(&self, index: u32) -> Fallible<Option<DomRoot<Node>>> {
-        match (&self.value, self.result_type) {
+        match (&*self.value.borrow(), self.result_type.get()) {
             (
                 XPathResultValue::Nodeset(nodes),
                 XPathResultType::OrderedNodeSnapshot | XPathResultType::UnorderedNodeSnapshot,
@@ -248,7 +271,7 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
 
     /// <https://dom.spec.whatwg.org/#dom-xpathresult-singlenodevalue>
     fn GetSingleNodeValue(&self) -> Fallible<Option<DomRoot<Node>>> {
-        match (&self.value, self.result_type) {
+        match (&*self.value.borrow(), self.result_type.get()) {
             (
                 XPathResultValue::Nodeset(nodes),
                 XPathResultType::AnyUnorderedNode | XPathResultType::FirstOrderedNode,

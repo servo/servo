@@ -27,6 +27,7 @@ use crate::flow::BlockLevelBox;
 use crate::flow::inline::{InlineItem, SharedInlineStyles};
 use crate::fragment_tree::Fragment;
 use crate::geom::PhysicalSize;
+use crate::layout_box_base::LayoutBoxBase;
 use crate::replaced::CanvasInfo;
 use crate::table::TableLevelBox;
 use crate::taffy::TaffyItemBox;
@@ -73,7 +74,7 @@ impl InnerDOMLayoutData {
         self.self_box
             .borrow()
             .as_ref()
-            .map(LayoutBox::fragments)
+            .map(|layout_box| layout_box.with_base_flat(LayoutBoxBase::fragments))
             .unwrap_or_default()
     }
 
@@ -139,17 +140,58 @@ impl LayoutBox {
         }
     }
 
-    pub(crate) fn fragments(&self) -> Vec<Fragment> {
+    pub(crate) fn with_first_base<T>(
+        &self,
+        callback: impl FnOnce(&LayoutBoxBase) -> T,
+    ) -> Option<T> {
+        Some(match self {
+            LayoutBox::DisplayContents(..) => return None,
+            LayoutBox::BlockLevel(block_level_box) => block_level_box.borrow().with_base(callback),
+            LayoutBox::InlineLevel(inline_items) => {
+                inline_items.first()?.borrow().with_base(callback)
+            },
+            LayoutBox::FlexLevel(flex_level_box) => flex_level_box.borrow().with_base(callback),
+            LayoutBox::TaffyItemBox(taffy_item_box) => taffy_item_box.borrow().with_base(callback),
+            LayoutBox::TableLevelBox(table_box) => table_box.with_base(callback),
+        })
+    }
+
+    pub(crate) fn with_base_flat<T>(&self, callback: impl Fn(&LayoutBoxBase) -> Vec<T>) -> Vec<T> {
         match self {
             LayoutBox::DisplayContents(..) => vec![],
-            LayoutBox::BlockLevel(block_level_box) => block_level_box.borrow().fragments(),
+            LayoutBox::BlockLevel(block_level_box) => block_level_box.borrow().with_base(callback),
             LayoutBox::InlineLevel(inline_items) => inline_items
                 .iter()
-                .flat_map(|inline_item| inline_item.borrow().fragments())
+                .flat_map(|inline_item| inline_item.borrow().with_base(&callback))
                 .collect(),
-            LayoutBox::FlexLevel(flex_level_box) => flex_level_box.borrow().fragments(),
-            LayoutBox::TaffyItemBox(taffy_item_box) => taffy_item_box.borrow().fragments(),
-            LayoutBox::TableLevelBox(table_box) => table_box.fragments(),
+            LayoutBox::FlexLevel(flex_level_box) => flex_level_box.borrow().with_base(callback),
+            LayoutBox::TaffyItemBox(taffy_item_box) => taffy_item_box.borrow().with_base(callback),
+            LayoutBox::TableLevelBox(table_box) => table_box.with_base(callback),
+        }
+    }
+
+    pub(crate) fn with_base_mut_fold<T>(
+        &mut self,
+        init: T,
+        callback: impl Fn(T, &mut LayoutBoxBase) -> T,
+    ) -> T {
+        match self {
+            LayoutBox::DisplayContents(..) => init,
+            LayoutBox::BlockLevel(block_level_box) => block_level_box
+                .borrow_mut()
+                .with_base_mut(|base| callback(init, base)),
+            LayoutBox::InlineLevel(inline_items) => inline_items.iter().fold(init, |acc, item| {
+                item.borrow_mut().with_base_mut(|base| callback(acc, base))
+            }),
+            LayoutBox::FlexLevel(flex_level_box) => flex_level_box
+                .borrow_mut()
+                .with_base_mut(|base| callback(init, base)),
+            LayoutBox::TableLevelBox(table_level_box) => {
+                table_level_box.with_base_mut(|base| callback(init, base))
+            },
+            LayoutBox::TaffyItemBox(taffy_item_box) => taffy_item_box
+                .borrow_mut()
+                .with_base_mut(|base| callback(init, base)),
         }
     }
 

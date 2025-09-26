@@ -3,13 +3,11 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/helpers.js"></script>
 
-<script type="module">
-import { ensureWindowLoadEventFired } from "../../resources/helpers.mjs";
-
+<script>
 promise_test(async t => {
   // Wait for after the load event so that the navigation doesn't get converted
   // into a replace navigation.
-  await ensureWindowLoadEventFired(t);
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
 
   const key = navigation.currentEntry.key;
   const entry = navigation.currentEntry;

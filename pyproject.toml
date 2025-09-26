@@ -1,3 +1,8 @@
+[project]
+# `uv` logs warnings if this file doesn't contain a `project` table.
+name = "servo"
+version = "0.0.1"
+
 [tool.ruff]
 line-length = 120
 extend-exclude = [
@@ -8,7 +13,8 @@ extend-exclude = [
     # upstream
     "third_party/**",
     "python/mach/**",
-    "components/**",
+    "components/net/**",
+    "components/shared/**",
     "tests/**",
 ]
 
@@ -30,8 +36,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"!python/**/**.py" = ["ANN"]
-"python/servo/**.py" = ["ANN"]
+"etc/**" = ["ANN"]
 "**/test.py" = ["ANN"]
 "**/*_tests.py" = ["ANN"]
 "**/tests/**/*.py" = ["ANN"]
@@ -62,3 +67,6 @@ project-excludes = [
     "python/mach/**/*.py",
     "python/servo/mutation/**/*.py",
 ]
+
+[tool.uv]
+native-tls = true

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Modifying a style element in a disconnected shadow tree should not crash</title>
+        <link rel="help" href="https://github.com/servo/servo/issues/37781">
+    </head>
+    <body>
+        <script>
+        let d = document.createElement('div');
+        let s = d.attachShadow({mode: "open"});
+        let s2 = document.createElement('style');
+        s.appendChild(s2);
+        s2.textContent = "lol";
+        </script>
+    </body>
+</html>

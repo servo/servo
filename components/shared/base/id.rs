@@ -12,12 +12,13 @@ use std::marker::PhantomData;
 use std::num::NonZeroU32;
 use std::sync::{Arc, LazyLock};
 
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use webrender_api::{ExternalScrollId, PipelineId as WebRenderPipelineId};
+
+use crate::generic_channel::{self, GenericReceiver, GenericSender};
 
 /// Asserts the size of a type at compile time.
 macro_rules! size_of_test {
@@ -115,19 +116,19 @@ macro_rules! namespace_id {
 
 #[derive(Debug, Deserialize, Serialize)]
 /// Request a pipeline-namespace id from the constellation.
-pub struct PipelineNamespaceRequest(pub IpcSender<PipelineNamespaceId>);
+pub struct PipelineNamespaceRequest(pub GenericSender<PipelineNamespaceId>);
 
 /// A per-process installer of pipeline-namespaces.
 pub struct PipelineNamespaceInstaller {
-    request_sender: Option<IpcSender<PipelineNamespaceRequest>>,
-    namespace_sender: IpcSender<PipelineNamespaceId>,
-    namespace_receiver: IpcReceiver<PipelineNamespaceId>,
+    request_sender: Option<GenericSender<PipelineNamespaceRequest>>,
+    namespace_sender: GenericSender<PipelineNamespaceId>,
+    namespace_receiver: GenericReceiver<PipelineNamespaceId>,
 }
 
 impl Default for PipelineNamespaceInstaller {
     fn default() -> Self {
         let (namespace_sender, namespace_receiver) =
-            ipc::channel().expect("PipelineNamespaceInstaller ipc channel failure");
+            generic_channel::channel().expect("PipelineNamespaceInstaller channel failure");
         Self {
             request_sender: None,
             namespace_sender,
@@ -138,7 +139,7 @@ impl Default for PipelineNamespaceInstaller {
 
 impl PipelineNamespaceInstaller {
     /// Provide a request sender to send requests to the constellation.
-    pub fn set_sender(&mut self, sender: IpcSender<PipelineNamespaceRequest>) {
+    pub fn set_sender(&mut self, sender: GenericSender<PipelineNamespaceRequest>) {
         self.request_sender = Some(sender);
     }
 
@@ -207,7 +208,7 @@ impl PipelineNamespace {
 
     /// Setup the pipeline-namespace-installer, by providing it with a sender to the constellation.
     /// Idempotent in single-process mode.
-    pub fn set_installer_sender(sender: IpcSender<PipelineNamespaceRequest>) {
+    pub fn set_installer_sender(sender: GenericSender<PipelineNamespaceRequest>) {
         PIPELINE_NAMESPACE_INSTALLER.lock().set_sender(sender);
     }
 
@@ -301,7 +302,7 @@ thread_local!(pub static WEBVIEW_ID: Cell<Option<WebViewId>> =
 #[derive(
     Clone, Copy, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
 )]
-pub struct WebViewId(pub BrowsingContextId);
+pub struct WebViewId(BrowsingContextId);
 
 size_of_test!(WebViewId, 8);
 size_of_test!(Option<WebViewId>, 8);
@@ -331,6 +332,10 @@ impl WebViewId {
 
     pub fn installed() -> Option<WebViewId> {
         WEBVIEW_ID.with(|tls| tls.get())
+    }
+
+    pub fn mock_for_testing(browsing_context_id: BrowsingContextId) -> WebViewId {
+        WebViewId(browsing_context_id)
     }
 }
 
@@ -366,7 +371,15 @@ namespace_id! {BlobId, BlobIndex, "Blob"}
 
 namespace_id! {DomPointId, DomPointIndex, "DomPoint"}
 
+namespace_id! {DomRectId, DomRectIndex, "DomRect"}
+
+namespace_id! {DomQuadId, DomQuadIndex, "DomQuad"}
+
+namespace_id! {DomMatrixId, DomMatrixIndex, "DomMatrix"}
+
 namespace_id! {DomExceptionId, DomExceptionIndex, "DomException"}
+
+namespace_id! {QuotaExceededErrorId, QuotaExceededErrorIndex, "QuotaExceededError"}
 
 namespace_id! {HistoryStateId, HistoryStateIndex, "HistoryState"}
 
@@ -374,18 +387,18 @@ namespace_id! {ImageBitmapId, ImageBitmapIndex, "ImageBitmap"}
 
 namespace_id! {OffscreenCanvasId, OffscreenCanvasIndex, "OffscreenCanvas"}
 
+namespace_id! {CookieStoreId, CookieStoreIndex, "CookieStore"}
+
 // We provide ids just for unit testing.
 pub const TEST_NAMESPACE: PipelineNamespaceId = PipelineNamespaceId(1234);
-#[allow(unsafe_code)]
 pub const TEST_PIPELINE_INDEX: Index<PipelineIndex> =
-    unsafe { Index(NonZeroU32::new_unchecked(5678), PhantomData) };
+    Index(NonZeroU32::new(5678).unwrap(), PhantomData);
 pub const TEST_PIPELINE_ID: PipelineId = PipelineId {
     namespace_id: TEST_NAMESPACE,
     index: TEST_PIPELINE_INDEX,
 };
-#[allow(unsafe_code)]
 pub const TEST_BROWSING_CONTEXT_INDEX: Index<BrowsingContextIndex> =
-    unsafe { Index(NonZeroU32::new_unchecked(8765), PhantomData) };
+    Index(NonZeroU32::new(8765).unwrap(), PhantomData);
 pub const TEST_BROWSING_CONTEXT_ID: BrowsingContextId = BrowsingContextId {
     namespace_id: TEST_NAMESPACE,
     index: TEST_BROWSING_CONTEXT_INDEX,

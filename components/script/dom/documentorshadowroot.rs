@@ -9,6 +9,7 @@ use std::fmt;
 use embedder_traits::UntrustedNodeAddress;
 use js::rust::HandleValue;
 use layout_api::ElementsFromPointFlags;
+use rustc_hash::FxBuildHasher;
 use script_bindings::error::{Error, ErrorResult};
 use script_bindings::script_runtime::JSContext;
 use servo_arc::Arc;
@@ -30,7 +31,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::element::Element;
-use crate::dom::htmlelement::HTMLElement;
+use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::{self, Node, VecPreOrderInsertionHelper};
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::stylesheetlist::StyleSheetListOwner;
@@ -307,7 +308,7 @@ impl DocumentOrShadowRoot {
     /// Remove any existing association between the provided id/name and any elements in this document.
     pub(crate) fn unregister_named_element(
         &self,
-        id_map: &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>>,
+        id_map: &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>, FxBuildHasher>>,
         to_unregister: &Element,
         id: &Atom,
     ) {
@@ -335,7 +336,7 @@ impl DocumentOrShadowRoot {
     /// Associate an element present in this document with the provided id/name.
     pub(crate) fn register_named_element(
         &self,
-        id_map: &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>>,
+        id_map: &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>, FxBuildHasher>>,
         element: &Element,
         id: &Atom,
         root: DomRoot<Node>,
@@ -397,7 +398,7 @@ impl DocumentOrShadowRoot {
             if stylesheet_remove_set.insert(sheet_to_remove) {
                 owner.remove_stylesheet(
                     StylesheetSource::Constructed(sheet_to_remove.clone()),
-                    sheet_to_remove.style_stylesheet_arc(),
+                    &sheet_to_remove.style_stylesheet(),
                 );
                 sheet_to_remove.remove_adopter(owner);
             }
@@ -416,7 +417,7 @@ impl DocumentOrShadowRoot {
                 // around.
                 owner.remove_stylesheet(
                     StylesheetSource::Constructed(sheet.clone()),
-                    sheet.style_stylesheet_arc(),
+                    &sheet.style_stylesheet(),
                 );
             } else {
                 sheet.add_adopter(owner.clone());

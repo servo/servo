@@ -215,47 +215,6 @@ async def test_unsubscribe_partially_from_one_event(bidi_session, top_context, i
     remove_listener_2()
 
 
-async def test_unsubscribe_partially_from_one_context(
-    bidi_session, top_context, new_tab, wait_for_events
-):
-    # Subscribe for log events to multiple contexts at once
-    result = await bidi_session.session.subscribe(
-        events=["log.entryAdded"], contexts=[top_context["context"], new_tab["context"]]
-    )
-    # Unsubscribe from log events in one of the contexts
-    await bidi_session.session.unsubscribe(
-        events=["log.entryAdded"], contexts=[top_context["context"]]
-    )
-
-    with wait_for_events(["log.entryAdded"]) as waiter:
-        # Trigger console event in the unsubscribed context
-        await create_console_api_message(bidi_session, top_context, "text1")
-        events = await waiter.get_events(lambda events: len(events) >= 0)
-        assert len(events) == 0
-
-        # Trigger another console event in the still observed context
-        expected_text = await create_console_api_message(bidi_session, new_tab, "text2")
-        events = await waiter.get_events(lambda events: len(events) >= 1)
-
-        assert len(events) == 1
-        recursive_compare(
-            {
-                "text": expected_text,
-            },
-            events[0][1],
-        )
-
-        # Unsubscribe from subscription.
-        await bidi_session.session.unsubscribe(subscriptions=[result["subscription"]])
-
-        # Trigger another console event
-        await create_console_api_message(bidi_session, new_tab, "text2")
-
-        # Make sure that there're no new events
-        events = await waiter.get_events(lambda events: len(events) >= 1)
-        assert len(events) == 1
-
-
 async def test_unsubscribe_with_event_and_subscriptions(bidi_session, new_tab, inline):
     result = await bidi_session.session.subscribe(events=["browsingContext"])
 

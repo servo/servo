@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>CSS Animations: Crash when using neutral keyframes and a var()-cycle (registered)</title>
+<link rel="help" href="https://crbug.com/433196586">
+<style>
+    @property --x {
+        syntax: "<number>";
+        initial-value: 0;
+        inherits: false;
+    }
+    #test {
+        animation: anim 1s;
+    }
+
+    @keyframes anim {
+        to {
+            --x: var(--x);
+        }
+    }
+</style>
+<div id="test">PASS if no crash</div>

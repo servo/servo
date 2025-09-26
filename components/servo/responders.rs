@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::generic_channel;
 use crossbeam_channel::{Receiver, Sender, TryRecvError, unbounded};
 use log::warn;
 
@@ -15,7 +16,7 @@ pub(crate) struct ServoErrorSender {
 }
 
 impl ServoErrorSender {
-    pub(crate) fn raise_response_send_error(&self, error: bincode::Error) {
+    pub(crate) fn raise_response_send_error(&self, error: generic_channel::SendError) {
         if let Err(error) = self.sender.send(ServoError::ResponseFailedToSend(error)) {
             warn!("Failed to send Servo error: {error:?}");
         }

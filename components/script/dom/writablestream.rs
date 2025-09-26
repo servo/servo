@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, RefCell};
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::mem;
 use std::ptr::{self};
 use std::rc::Rc;
@@ -17,6 +17,7 @@ use js::rust::{
     HandleObject as SafeHandleObject, HandleValue as SafeHandleValue,
     MutableHandleValue as SafeMutableHandleValue,
 };
+use rustc_hash::FxHashMap;
 use script_bindings::codegen::GenericBindings::MessagePortBinding::MessagePortMethods;
 use script_bindings::conversions::SafeToJSValConvertible;
 
@@ -841,22 +842,24 @@ impl WritableStream {
 
         // Let writer be stream.[[writer]].
         let writer = self.get_writer();
-        if writer.is_some() && backpressure != self.get_backpressure() {
+
+        if let Some(writer) = writer {
             // If writer is not undefined
-            let writer = writer.expect("Writer is some, as per the above check.");
-            // and backpressure is not stream.[[backpressure]],
-            if backpressure {
-                // If backpressure is true, set writer.[[readyPromise]] to a new promise.
-                let promise = Promise::new(global, can_gc);
-                writer.set_ready_promise(promise);
-            } else {
-                // Otherwise,
-                // Assert: backpressure is false.
-                assert!(!backpressure);
-                // Resolve writer.[[readyPromise]] with undefined.
-                writer.resolve_ready_promise_with_undefined(can_gc);
+            if backpressure != self.get_backpressure() {
+                // and backpressure is not stream.[[backpressure]],
+                if backpressure {
+                    // If backpressure is true, set writer.[[readyPromise]] to a new promise.
+                    let promise = Promise::new(global, can_gc);
+                    writer.set_ready_promise(promise);
+                } else {
+                    // Otherwise,
+                    // Assert: backpressure is false.
+                    assert!(!backpressure);
+                    // Resolve writer.[[readyPromise]] with undefined.
+                    writer.resolve_ready_promise_with_undefined(can_gc);
+                }
             }
-        };
+        }
 
         // Set stream.[[backpressure]] to backpressure.
         self.set_backpressure(backpressure);
@@ -1023,7 +1026,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         // converted to an IDL value of type UnderlyingSink.
         let underlying_sink_dict = if !underlying_sink_obj.is_null() {
             rooted!(in(*cx) let obj_val = ObjectValue(underlying_sink_obj.get()));
-            match UnderlyingSink::new(cx, obj_val.handle()) {
+            match UnderlyingSink::new(cx, obj_val.handle(), can_gc) {
                 Ok(ConversionResult::Success(val)) => val,
                 Ok(ConversionResult::Failure(error)) => return Err(Error::Type(error.to_string())),
                 _ => {
@@ -1291,7 +1294,7 @@ impl Transferable for WritableStream {
     /// Note: we are relying on the port transfer, so the data returned here are related to the port.
     fn serialized_storage<'a>(
         data: StructuredData<'a, '_>,
-    ) -> &'a mut Option<HashMap<MessagePortId, Self::Data>> {
+    ) -> &'a mut Option<FxHashMap<MessagePortId, Self::Data>> {
         match data {
             StructuredData::Reader(r) => &mut r.port_impls,
             StructuredData::Writer(w) => &mut w.ports,

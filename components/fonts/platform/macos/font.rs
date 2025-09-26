@@ -17,20 +17,21 @@ use core_text::font_descriptor::{
     CTFontTraits, SymbolicTraitAccessors, TraitAccessors, kCTFontDefaultOrientation,
 };
 use euclid::default::{Point2D, Rect, Size2D};
+use fonts_traits::{FontIdentifier, LocalFontIdentifier};
 use log::debug;
+use skrifa::Tag;
 use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
-use webrender_api::FontInstanceFlags;
+use webrender_api::{FontInstanceFlags, FontVariation};
 
 use super::core_text_font_cache::CoreTextFontCache;
-use super::font_list::LocalFontIdentifier;
 use crate::{
-    CBDT, COLR, FontData, FontIdentifier, FontMetrics, FontTableMethods, FontTableTag,
-    FontTemplateDescriptor, FractionalPixel, GlyphId, KERN, PlatformFontMethods, SBIX,
-    map_platform_values_to_style_values,
+    CBDT, COLR, FontData, FontMetrics, FontTableMethods, FontTemplateDescriptor, FractionalPixel,
+    GlyphId, KERN, PlatformFontMethods, SBIX, map_platform_values_to_style_values,
 };
 
 const KERN_PAIR_LEN: usize = 6;
 
+#[derive(Clone)]
 pub struct FontTable {
     data: CFData,
 }
@@ -41,7 +42,7 @@ fn pt_to_px(pt: f64) -> f64 {
 }
 
 impl FontTable {
-    pub fn wrap(data: CFData) -> FontTable {
+    pub(crate) fn wrap(data: CFData) -> FontTable {
         FontTable { data }
     }
 }
@@ -52,9 +53,10 @@ impl FontTableMethods for FontTable {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct PlatformFont {
-    ctfont: CTFont,
+    pub(crate) ctfont: CTFont,
+    variations: Vec<FontVariation>,
     h_kern_subtable: Option<CachedKernTable>,
 }
 
@@ -70,10 +72,52 @@ unsafe impl Sync for PlatformFont {}
 unsafe impl Send for PlatformFont {}
 
 impl PlatformFont {
+    pub(crate) fn new_with_ctfont(ctfont: CTFont) -> Self {
+        Self::new_with_ctfont_and_variations(ctfont, vec![])
+    }
+
+    pub(crate) fn new_with_ctfont_and_variations(
+        ctfont: CTFont,
+        variations: Vec<FontVariation>,
+    ) -> PlatformFont {
+        Self {
+            ctfont,
+            variations,
+            h_kern_subtable: None,
+        }
+    }
+
+    fn new(
+        font_identifier: FontIdentifier,
+        data: Option<&FontData>,
+        requested_size: Option<Au>,
+        variations: &[FontVariation],
+    ) -> Result<PlatformFont, &'static str> {
+        let size = match requested_size {
+            Some(s) => s.to_f64_px(),
+            None => 0.0,
+        };
+        let Some(mut platform_font) =
+            CoreTextFontCache::core_text_font(font_identifier, data, size, variations)
+        else {
+            return Err("Could not generate CTFont for FontTemplateData");
+        };
+
+        platform_font.load_h_kern_subtable();
+        Ok(platform_font)
+    }
+
     /// Cache all the data needed for basic horizontal kerning. This is used only as a fallback or
     /// fast path (when the GPOS table is missing or unnecessary) so it needn't handle every case.
-    fn find_h_kern_subtable(&self) -> Option<CachedKernTable> {
-        let font_table = self.table_for_tag(KERN)?;
+    fn load_h_kern_subtable(&mut self) {
+        if self.h_kern_subtable.is_some() {
+            return;
+        }
+
+        let Some(font_table) = self.table_for_tag(KERN) else {
+            return;
+        };
+
         let mut result = CachedKernTable {
             font_table,
             pair_data_range: 0..0,
@@ -89,7 +133,7 @@ impl PlatformFont {
             let table = result.font_table.buffer();
             let version = BigEndian::read_u16(table);
             if version != 0 {
-                return None;
+                return;
             }
             let num_subtables = BigEndian::read_u16(&table[2..]);
             let mut start = 4;
@@ -102,7 +146,7 @@ impl PlatformFont {
                     // Found a matching subtable.
                     if !result.pair_data_range.is_empty() {
                         debug!("Found multiple horizontal kern tables. Disable fast path.");
-                        return None;
+                        return;
                     }
                     // Read the subtable header.
                     let subtable_start = start + SUBTABLE_HEADER_LEN;
@@ -112,7 +156,7 @@ impl PlatformFont {
                     result.pair_data_range = pair_data_start..end;
                     if result.pair_data_range.len() != n_pairs * KERN_PAIR_LEN {
                         debug!("Bad data in kern header. Disable fast path.");
-                        return None;
+                        return;
                     }
 
                     let pt_per_font_unit =
@@ -122,14 +166,14 @@ impl PlatformFont {
                 start = end;
             }
         }
+
         if !result.pair_data_range.is_empty() {
-            Some(result)
-        } else {
-            None
+            self.h_kern_subtable = Some(result);
         }
     }
 }
 
+#[derive(Clone)]
 struct CachedKernTable {
     font_table: FontTable,
     pair_data_range: Range<usize>,
@@ -164,44 +208,27 @@ impl fmt::Debug for CachedKernTable {
     }
 }
 
-impl PlatformFont {
-    fn new(
-        font_identifier: FontIdentifier,
-        data: Option<&FontData>,
-        requested_size: Option<Au>,
-    ) -> Result<PlatformFont, &'static str> {
-        let size = match requested_size {
-            Some(s) => s.to_f64_px(),
-            None => 0.0,
-        };
-        let Some(core_text_font) = CoreTextFontCache::core_text_font(font_identifier, data, size)
-        else {
-            return Err("Could not generate CTFont for FontTemplateData");
-        };
-
-        let mut handle = PlatformFont {
-            ctfont: core_text_font.clone_with_font_size(size),
-            h_kern_subtable: None,
-        };
-        handle.h_kern_subtable = handle.find_h_kern_subtable();
-        Ok(handle)
-    }
-}
-
 impl PlatformFontMethods for PlatformFont {
     fn new_from_data(
         font_identifier: FontIdentifier,
         data: &FontData,
         requested_size: Option<Au>,
+        variations: &[FontVariation],
     ) -> Result<PlatformFont, &'static str> {
-        Self::new(font_identifier, Some(data), requested_size)
+        Self::new(font_identifier, Some(data), requested_size, variations)
     }
 
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         requested_size: Option<Au>,
+        variations: &[FontVariation],
     ) -> Result<PlatformFont, &'static str> {
-        Self::new(FontIdentifier::Local(font_identifier), None, requested_size)
+        Self::new(
+            FontIdentifier::Local(font_identifier),
+            None,
+            requested_size,
+            variations,
+        )
     }
 
     fn descriptor(&self) -> FontTemplateDescriptor {
@@ -319,8 +346,9 @@ impl PlatformFontMethods for PlatformFont {
         metrics
     }
 
-    fn table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
-        let result: Option<CFData> = self.ctfont.get_font_table(tag);
+    fn table_for_tag(&self, tag: Tag) -> Option<FontTable> {
+        let tag_u32 = u32::from_be_bytes(tag.to_be_bytes());
+        let result: Option<CFData> = self.ctfont.get_font_table(tag_u32);
         result.map(FontTable::wrap)
     }
 
@@ -344,6 +372,10 @@ impl PlatformFontMethods for PlatformFont {
             Point2D::new(rect.origin.x as f32, rect.origin.y as f32),
             Size2D::new(rect.size.width as f32, rect.size.height as f32),
         )
+    }
+
+    fn variations(&self) -> &[FontVariation] {
+        &self.variations
     }
 }
 

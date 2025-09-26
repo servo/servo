@@ -56,6 +56,27 @@
   document.getElementById("input3").ariaLabelledByElements = [ document.getElementById("x-label3") ];
 </script>
 
+<!-- 1. Reference target dynamically set to null; label applies to host. -->
+<x-label1 id="x-label4">
+  <template shadowrootmode="open" shadowrootreferencetarget="label1">
+    <span>Label from host</span>
+    <label id="label1">Label 1</label>
+  </template>
+</x-label1>
+<input class="ex" aria-labelledby="x-label4" data-expectedlabel="Label from host Label 1">
+<script>
+  document.querySelector("#x-label4").shadowRoot.referenceTarget = null;
+</script>
+
+<!-- 1. Reference target is empty string; idref is treated as invalid, so no label is applied -->
+<x-label1 id="x-label5">
+  <template shadowrootmode="open" shadowrootreferencetarget="">
+    <span>Label from host</span>
+    <label id="label1">Label 1</label>
+  </template>
+</x-label1>
+<input class="ex" aria-labelledby="x-label5" data-expectedlabel="">
+
 <script>
   AriaUtils.verifyLabelsBySelector('.ex');
 </script>

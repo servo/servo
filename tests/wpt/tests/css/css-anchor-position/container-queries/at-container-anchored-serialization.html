@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>CSS Container Queries: anchored() conditionText serialization</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-2/#anchored-container-queries">
+<link rel="help" href="https://drafts.csswg.org/cssom/#serialize-a-css-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-conditional/container-queries/support/cq-testcommon.js"></script>
+<style id="testSheet">
+  @container anchored(        fallback:--foo) { }
+  @container ANChoreD(fallback:    ) { }
+  @container anchoRed(fallback) { }
+  @container  anchored(  ( fallback: flip-INLINE) OR ( FALLBACK : --bar  ) ) { }
+  @container anchored (fallback: top right) { }
+</style>
+<script>
+  setup(() => {
+    assert_equals(testSheet.sheet.cssRules.length, 5);
+  });
+
+  const tests = [
+      ["anchored(fallback: --foo)", "Normalize spaces"],
+      ["ANChoreD(fallback:    )", "No value - invalid, serializes as <general-enclosed>"],
+      ["anchored(fallback)", "Boolean context"],
+      ["anchored((fallback: flip-inline) or (fallback: --bar))", "Logical with 'or'"],
+      ["anchored (fallback: top right)", "Not an anchored() function with space before '('"]
+  ].map((e, i) => [testSheet.sheet.cssRules[i], ...e]);
+
+  tests.forEach((t) => {
+    test(() => assert_equals(t[0].conditionText, t[1]), t[2]);
+  });
+</script>

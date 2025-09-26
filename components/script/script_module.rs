@@ -66,7 +66,7 @@ use crate::dom::document::Document;
 use crate::dom::dynamicmoduleowner::{DynamicModuleId, DynamicModuleOwner};
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlscriptelement::{
+use crate::dom::html::htmlscriptelement::{
     HTMLScriptElement, SCRIPT_JS_MIMES, ScriptId, ScriptOrigin, ScriptType,
 };
 use crate::dom::node::NodeTraits;
@@ -105,7 +105,7 @@ impl ModuleObject {
 pub(crate) struct RethrowError(RootedTraceableBox<Heap<JSVal>>);
 
 impl RethrowError {
-    fn handle(&self) -> Handle<JSVal> {
+    fn handle(&self) -> Handle<'_, JSVal> {
         self.0.handle()
     }
 }
@@ -489,7 +489,7 @@ impl ModuleTree {
             module_script.set(CompileModule1(
                 *cx,
                 compile_options.ptr,
-                &mut transform_str_to_source_text(&module_source.source),
+                &mut transform_str_to_source_text(module_source.source.str()),
             ));
 
             if module_script.is_null() {
@@ -695,7 +695,7 @@ impl ModuleTree {
         // otherwise, specifier.
         let normalized_specifier = match &as_url {
             Some(url) => url.as_str(),
-            None => &specifier,
+            None => specifier.str(),
         };
 
         // Step 9. Let result be a URL-or-null, initially null.
@@ -768,13 +768,15 @@ impl ModuleTree {
         base_url: &ServoUrl,
     ) -> Option<ServoUrl> {
         // Step 1. If specifier starts with "/", "./", or "../", then:
-        if specifier.starts_with('/') || specifier.starts_with("./") || specifier.starts_with("../")
+        if specifier.starts_with('/') ||
+            specifier.starts_with_str("./") ||
+            specifier.starts_with_str("../")
         {
             // Step 1.1. Let url be the result of URL parsing specifier with baseURL.
-            return ServoUrl::parse_with_base(Some(base_url), specifier).ok();
+            return ServoUrl::parse_with_base(Some(base_url), specifier.str()).ok();
         }
         // Step 2. Let url be the result of URL parsing specifier (with no base URL).
-        ServoUrl::parse(specifier).ok()
+        ServoUrl::parse(specifier.str()).ok()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#finding-the-first-parse-error>
@@ -1079,7 +1081,7 @@ impl ModuleOwner {
                                 fetch_options,
                                 ScriptType::Module,
                                 global.unminified_js_dir(),
-                                Err(Error::NotFound),
+                                Err(Error::NotFound(None)),
                             )),
                         },
                     }
@@ -1440,7 +1442,7 @@ pub(crate) unsafe extern "C" fn host_import_module_dynamically(
     let global_scope = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
     let promise = Promise::new_with_js_promise(Handle::from_raw(promise), cx);
 
-    //Step 5 & 6.
+    // Step 5 & 6.
     if let Err(e) = fetch_an_import_module_script_graph(
         &global_scope,
         specifier,

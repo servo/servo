@@ -432,10 +432,7 @@ pub(crate) fn is_forbidden_request_header(name: &str, value: &[u8]) -> bool {
     // true
     let lowercase_name = name.to_lowercase();
 
-    if forbidden_header_names
-        .iter()
-        .any(|header| *header == lowercase_name.as_str())
-    {
+    if forbidden_header_names.contains(&lowercase_name.as_str()) {
         return true;
     }
 
@@ -527,7 +524,7 @@ fn is_legal_header_value(value: &[u8]) -> bool {
     // If accepting non-UTF8 header values causes breakage,
     // removing the above "true" and uncommenting the below code
     // would ameliorate it while still accepting most reasonable headers:
-    //match str::from_utf8(value) {
+    // match str::from_utf8(value) {
     //    Ok(_) => true,
     //    Err(_) => {
     //        warn!(

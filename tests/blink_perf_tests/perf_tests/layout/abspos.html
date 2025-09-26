@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<style>
+  .row {
+    position: relative;
+    font-size: 10px;
+  }
+
+  .cell {
+    position: absolute;
+    height: 10px;
+    width: 50px;
+  }
+</style>
+
+<div id="wrapper">
+</div>
+
+<pre id="log" style="position: absolute; left: 300px;"></pre>
+
+<template id="row-template">
+  <div class="row">
+    <div class="row-id cell" style="left: 0;">
+    </div>
+    <div class="row-title cell" style="left: 50px;">
+    </div>
+    <div class="row-text cell" style="left: 100px; width: 200px;">
+    </div>
+  </div>
+</template>
+
+<script src="../resources/runner.js"></script>
+<script>
+  function runTest() {
+
+    var index = 0;
+    PerfTestRunner.measureTime({
+      description: "Measures layout performance of a page with lots of absolute positioned elements.",
+      setup: function() {
+        document.body.style.display = "none";
+        PerfTestRunner.forceLayout();
+      },
+      run: function() {
+        document.body.style.display = "block";
+        PerfTestRunner.forceLayout();
+      }
+    });
+  }
+
+  const TOTAL_ROWS = 10000;
+  const ROW_HEIGHT = 10;
+
+  let wrapper = document.getElementById("wrapper");
+  let template = document.getElementById("row-template");
+
+  for (let i = 0; i < TOTAL_ROWS; i++) {
+    let clone = template.content.cloneNode(true);
+
+    let row = clone.querySelector(".row");
+    row.style.top = (i * ROW_HEIGHT) + "px";
+
+    let color = "#"+ ((1<<24)*Math.random()|0).toString(16);
+
+    let rowId = clone.querySelector(".row-id");
+    rowId.innerHTML = "<div style='width: 10px; height: 10px; background: " + color + ";'></div>";
+
+    let rowTitle = clone.querySelector(".row-title");
+    rowTitle.innerHTML = "<div style='width: 25px; height: 5px; background: " + color + ";'></div>";
+
+    let rowText = clone.querySelector(".row-text");
+    rowText.innerHTML = "<div style='width: 50px; height: 5px; background: " + color + ";'></div>";
+
+    wrapper.appendChild(clone);
+  }
+
+  runTest();
+</script>

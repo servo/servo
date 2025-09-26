@@ -1,0 +1,142 @@
+<!doctype html>
+<html>
+<head>
+  <title>Name Comp: Name From Pseudo Content Marker</title>
+  <meta charset="utf-8">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+  <style type="text/css">
+
+    #ul-custom-ascii::marker {
+      content: "* ";
+    }
+
+    #ul-custom-emoji::marker {
+      content: "🚅 ";
+    }
+
+    #ul-custom-alted::marker {
+      content: "❧ " / "Bullet";
+    }
+
+    #ul-custom-empty::marker {
+      content: "🫥 " / "";
+    }
+
+    #ol-custom-ascii::marker {
+      content: "Two ";
+    }
+
+    #ol-custom-emoji::marker {
+      content: "🥉 ";
+    }
+
+    #ol-custom-alted::marker {
+      content: "🍀 " / "A four leaf clover ";
+    }
+
+    #ol-custom-empty::marker {
+      content: "⚄⚄ " / "";
+    }
+
+  </style>
+</head>
+<body>
+
+<p>Tests the <a href="https://w3c.github.io/accname/#comp_name_from_content_pseudo_element_marker">#comp_name_from_content_pseudo_element_marker</a> portions of the AccName <em>Name Computation</em> algorithm.</p>
+
+<ul>
+  <li id="ul-default">the Blue Sky</li>
+  <li id="ul-custom-ascii">might be announced as “asterisk”</li>
+  <li id="ul-custom-emoji">from Osaka to Kobe</li>
+  <li id="ul-custom-alted">that looks like a radish</li>
+  <li id="ul-custom-empty">Dodged a bullet</li>
+</ul>
+
+<ol>
+  <li id="ol-default">does not simply walk into Mordor</li>
+  <li id="ol-custom-ascii">to tango</li>
+  <li id="ol-custom-emoji">winner!</li>
+  <li id="ol-custom-alted">brings good luck</li>
+  <li id="ol-custom-empty">Puppy paws</li>
+</ol>
+
+<button
+  class="ex"
+  aria-labelledby="ul-default"
+  data-testname="name from ul > listitem with default ::marker"
+  data-expectedlabel="• the Blue Sky"
+>Label</button>
+
+<button
+  class="ex"
+  aria-labelledby="ul-custom-ascii"
+  data-testname="name from ul > listitem with custom ASCII ::marker"
+  data-expectedlabel="* might be announced as “asterisk”"
+>Label</button>
+
+<button
+  class="ex"
+  aria-labelledby="ul-custom-emoji"
+  data-testname="name from ul > listitem with custom emoji ::marker"
+  data-expectedlabel="🚅 from Osaka to Kobe"
+>Label</button>
+
+<button
+  class="ex"
+  aria-labelledby="ul-custom-alted"
+  data-testname="name from ul > listitem with custom ::marker with explicit alt text"
+  data-expectedlabel="Bullet that looks like a radish"
+>Label</button>
+
+<button
+  class="ex"
+  aria-labelledby="ul-custom-empty"
+  data-testname="name from ul > listitem with custom ::marker with explicit empty alt text"
+  data-expectedlabel="Dodged a bullet"
+>Label</button>
+
+<button
+  class="ex"
+  aria-labelledby="ol-default"
+  data-testname="name from ol > listitem with default ::marker"
+  data-expectedlabel="1. does not simply walk into Mordor"
+>Label</button>
+
+<button
+  class="ex"
+  aria-labelledby="ol-custom-ascii"
+  data-testname="name from ol > listitem with custom ASCII ::marker"
+  data-expectedlabel="Two to tango"
+>Label</button>
+
+<button
+  class="ex"
+  aria-labelledby="ol-custom-emoji"
+  data-testname="name from ol > listitem with custom emoji ::marker"
+  data-expectedlabel="🥉 winner!"
+>Label</button>
+
+<button
+  class="ex"
+  aria-labelledby="ol-custom-alted"
+  data-testname="name from ol > listitem with custom ::marker with explicit alt text"
+  data-expectedlabel="A four leaf clover brings good luck"
+>Label</button>
+
+<button
+  class="ex"
+  aria-labelledby="ol-custom-empty"
+  data-testname="name from ol > listitem with custom ::marker with empty alt text"
+  data-expectedlabel="Puppy paws"
+>Label</button>
+
+<script>
+AriaUtils.verifyLabelsBySelector(".ex");
+</script>
+</body>
+</html>

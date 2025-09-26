@@ -33,11 +33,9 @@
 
     const softNavPromise = SoftNavigationTestHelper.getPerformanceEntries(
         "soft-navigation",
-        /* includeSoftNavigationObservations= */true,
         /* minNumEntries= */ 1);
     let icpPromise = SoftNavigationTestHelper.getPerformanceEntries(
         "interaction-contentful-paint",
-        /* includeSoftNavigationObservations= */true,
         /* minNumEntries= */ 1);
     const {promise, resolve} = Promise.withResolvers();
 
@@ -81,7 +79,6 @@
     // Set things up for the next ICP entry.
     icpPromise = SoftNavigationTestHelper.getPerformanceEntries(
         "interaction-contentful-paint",
-        /* includeSoftNavigationObservations= */true,
         /* minNumEntries= */ 1);
     resolve();
 

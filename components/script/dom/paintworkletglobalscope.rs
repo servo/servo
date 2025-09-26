@@ -19,8 +19,8 @@ use js::jsapi::{
     JS_IsExceptionPending, JSAutoRealm, JSObject, NewArrayObject, Value,
 };
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
+use js::rust::HandleValue;
 use js::rust::wrappers::{Call, Construct1};
-use js::rust::{HandleValue, Runtime};
 use net_traits::image_cache::ImageCache;
 use pixels::PixelFormat;
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter};
@@ -43,12 +43,13 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssstylevalue::CSSStyleValue;
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::paintrenderingcontext2d::PaintRenderingContext2D;
 use crate::dom::paintsize::PaintSize;
 use crate::dom::stylepropertymapreadonly::StylePropertyMapReadOnly;
 use crate::dom::worklet::WorkletExecutor;
 use crate::dom::workletglobalscope::{WorkletGlobalScope, WorkletGlobalScopeInit, WorkletTask};
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 /// <https://drafts.css-houdini.org/css-paint-api/#paintworkletglobalscope>
 #[dom_struct]
@@ -86,7 +87,6 @@ pub(crate) struct PaintWorkletGlobalScope {
 impl PaintWorkletGlobalScope {
     #[allow(unsafe_code)]
     pub(crate) fn new(
-        runtime: &Runtime,
         pipeline_id: PipelineId,
         base_url: ServoUrl,
         executor: WorkletExecutor,
@@ -119,12 +119,7 @@ impl PaintWorkletGlobalScope {
                 missing_image_urls: Vec::new(),
             }),
         });
-        unsafe {
-            PaintWorkletGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
-                JSContext::from_ptr(runtime.cx()),
-                global,
-            )
-        }
+        PaintWorkletGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), global)
     }
 
     pub(crate) fn image_cache(&self) -> Arc<dyn ImageCache> {
@@ -353,13 +348,13 @@ impl PaintWorkletGlobalScope {
             return self.invalid_image(size_in_dpx, missing_image_urls);
         }
 
-        let image_key = rendering_context.image_key();
+        rendering_context.update_rendering();
 
         DrawAPaintImageResult {
             width: size_in_dpx.width,
             height: size_in_dpx.height,
             format: PixelFormat::BGRA8,
-            image_key: Some(image_key),
+            image_key: Some(rendering_context.image_key()),
             missing_image_urls,
         }
     }
@@ -518,20 +513,17 @@ impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobal
 
         // Step 4-6.
         let mut property_names: Vec<String> =
-            unsafe { get_property(*cx, paint_obj.handle(), "inputProperties", ()) }?
-                .unwrap_or_default();
+            get_property(cx, paint_obj.handle(), "inputProperties", ())?.unwrap_or_default();
         let properties = property_names.drain(..).map(Atom::from).collect();
 
         // Step 7-9.
         let input_arguments: Vec<String> =
-            unsafe { get_property(*cx, paint_obj.handle(), "inputArguments", ()) }?
-                .unwrap_or_default();
+            get_property(cx, paint_obj.handle(), "inputArguments", ())?.unwrap_or_default();
 
         // TODO: Steps 10-11.
 
         // Steps 12-13.
-        let alpha: bool =
-            unsafe { get_property(*cx, paint_obj.handle(), "alpha", ()) }?.unwrap_or(true);
+        let alpha: bool = get_property(cx, paint_obj.handle(), "alpha", ())?.unwrap_or(true);
 
         // Step 14
         if unsafe { !IsConstructor(paint_obj.get()) } {
@@ -540,9 +532,7 @@ impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobal
 
         // Steps 15-16
         rooted!(in(*cx) let mut prototype = UndefinedValue());
-        unsafe {
-            get_property_jsval(*cx, paint_obj.handle(), "prototype", prototype.handle_mut())?;
-        }
+        get_property_jsval(cx, paint_obj.handle(), "prototype", prototype.handle_mut())?;
         if !prototype.is_object() {
             return Err(Error::Type(String::from("Prototype is not an object.")));
         }
@@ -550,14 +540,7 @@ impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobal
 
         // Steps 17-18
         rooted!(in(*cx) let mut paint_function = UndefinedValue());
-        unsafe {
-            get_property_jsval(
-                *cx,
-                prototype.handle(),
-                "paint",
-                paint_function.handle_mut(),
-            )?;
-        }
+        get_property_jsval(cx, prototype.handle(), "paint", paint_function.handle_mut())?;
         if !paint_function.is_object() || unsafe { !IsCallable(paint_function.to_object()) } {
             return Err(Error::Type(String::from("Paint function is not callable.")));
         }

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<meta name="timeout" content="long">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<button id=command command="toggle-interest">Command invoker</button>
+
+<button data-testcase="<button>" interestfor=target>Button</button>
+<a data-testcase="<a>" href=foo interestfor=target>Link</a>
+<img src="/images/blue.png" usemap="#map">
+<map id=map>
+  <area data-testcase="<area>" interestfor=target href="/" shape=default>
+</map>
+
+<div id=target popover>Popover</div>
+
+<style>
+  [interestfor] {
+    interest-delay: 1000s;
+  }
+</style>
+
+<script>
+const allInterestForElements = document.querySelectorAll('[data-testcase]');
+assert_true(allInterestForElements.length > 0);
+
+const commandInvoker = document.querySelector('#command');
+const target = document.querySelector('#target');
+
+allInterestForElements.forEach(el => {
+  const description = el.dataset.testcase;
+  promise_test(async function (t) {
+    commandInvoker.commandForElement = el;
+    t.add_cleanup(() => (commandInvoker.commandForElement = undefined));
+    target.hidePopover(); // Just in case
+    await focusOn(el);
+    assert_equals(document.activeElement,el,'Elements should all be focusable');
+    assert_false(target.matches(':popover-open'),'The show interest delay is long - no interest yet');
+    await focusOn(commandInvoker);
+    assert_false(el.matches(':interest-source'),'No interest yet');
+    assert_false(target.matches(':popover-open'),'Focusing the command invoker doesn\'t do anything');
+
+    const signal = t.get_signal();
+    let interestCount = 0;
+    let loseInterestCount = 0;
+    target.addEventListener('interest', (e) => (++interestCount), {signal});
+    target.addEventListener('loseinterest', () => (++loseInterestCount), {signal});
+
+    // Now click the invoker
+    await clickOn(commandInvoker);
+    assert_true(el.matches(':interest-source'),'Clicking the command invoker immediately shows interest');
+    assert_true(target.matches(':popover-open'),'Clicking the command invoker shows the popover immediately');
+    assert_equals(interestCount,1,'One interest event');
+    assert_equals(loseInterestCount,0,'No loseinterest events');
+
+    // Click the invoker again
+    await clickOn(commandInvoker);
+    assert_false(el.matches(':interest-source'),'Clicking the command invoker again immediately loses interest');
+    assert_false(target.matches(':popover-open'),'Clicking the command invoker again closes the popover immediately');
+    assert_equals(interestCount,1,'Still just one interest event');
+    assert_equals(loseInterestCount,1,'One loseinterest event');
+
+    // Make sure removing the command invoker stops this behavior
+    commandInvoker.commandForElement = undefined;
+    await clickOn(commandInvoker);
+    assert_false(el.matches(':interest-source'),'No more command invoker');
+    assert_false(target.matches(':popover-open'),'No more command invoker');
+    assert_equals(interestCount,1,'Still just one interest event');
+    assert_equals(loseInterestCount,1,'Still just one loseinterest event');
+  },`Basic command=toggle-interest behavior, ${description}`);
+
+  promise_test(async function (t) {
+    commandInvoker.commandForElement = el;
+    t.add_cleanup(() => (commandInvoker.commandForElement = undefined));
+    target.hidePopover(); // Just in case
+    await clickOn(commandInvoker);
+    assert_true(el.matches(':interest-source'),'Clicking the command invoker immediately shows interest');
+    assert_true(target.matches(':popover-open'),'Clicking the command invoker shows the popover immediately');
+    await clickOn(document.body);
+    assert_false(target.matches(':popover-open'),'Popover light dismisses');
+    assert_false(el.matches(':interest-source'),'Light dismissing loses interest');
+    await clickOn(commandInvoker);
+    assert_true(el.matches(':interest-source'),'Clicking the command invoker again immediately shows interest again');
+    assert_true(target.matches(':popover-open'),'Clicking the command invoker again shows the popover immediately again');
+    target.hidePopover(); // Cleanup
+  },`Light dismiss behavior, ${description}`);
+});
+</script>

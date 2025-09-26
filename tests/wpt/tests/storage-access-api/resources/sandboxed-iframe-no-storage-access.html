@@ -21,6 +21,9 @@
   }, '`allow-storage-access-by-user-activation` sandbox attribute is supported');
   promise_test(
       async t => {
+        t.add_cleanup(async () => {
+          await test_driver.set_permission({name: 'storage-access'}, 'prompt');
+        });
         await test_driver.set_permission({name: 'storage-access'}, 'granted');
         await MaybeSetStorageAccess('*', '*', 'blocked');
         return promise_rejects_dom(
@@ -31,6 +34,9 @@
           '] document.requestStorageAccess() should reject with a NotAllowedError with no user gesture.');
 
   promise_test(async t => {
+    t.add_cleanup(async () => {
+      await test_driver.set_permission({name: 'storage-access'}, 'prompt');
+    });
     await test_driver.set_permission({name: 'storage-access'}, 'granted');
     await MaybeSetStorageAccess('*', '*', 'blocked');
 

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>CSS Overflow Test: ::scroll-button on object element</title>
+<link rel="help" href="https://issues.chromium.org/issues/438321224">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<link rel="match" href="scroll-button-on-object-ref.html">
+<style>
+  #target {
+    height: 0;
+    width: 0;
+  }
+
+  #target::scroll-button(block-end) {
+    content: "scroll-button";
+  }
+</style>
+<object id="target"></object>

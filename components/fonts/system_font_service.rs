@@ -5,74 +5,29 @@
 use std::borrow::ToOwned;
 use std::cell::OnceCell;
 use std::collections::HashMap;
-use std::ops::{Deref, RangeInclusive};
-use std::{fmt, thread};
+use std::thread;
 
 use app_units::Au;
 use compositing_traits::CrossProcessCompositorApi;
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use log::debug;
+use fonts_traits::{
+    FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef, LowercaseFontFamilyName,
+    SystemFontServiceMessage, SystemFontServiceProxySender,
+};
+use ipc_channel::ipc::{self, IpcReceiver};
 use malloc_size_of::MallocSizeOf as MallocSizeOfTrait;
 use malloc_size_of_derive::MallocSizeOf;
-use parking_lot::{Mutex, RwLock};
 use profile_traits::mem::{
     ProcessReports, ProfilerChan, Report, ReportKind, ReportsChan, perform_memory_report,
 };
 use profile_traits::path;
-use serde::{Deserialize, Serialize};
 use servo_config::pref;
-use servo_url::ServoUrl;
-use style::font_face::{FontFaceRuleData, FontStyle as FontFaceStyle};
-use style::values::computed::font::{
-    FixedPoint, FontStyleFixedPoint, GenericFontFamily, SingleFontFamily,
-};
-use style::values::computed::{FontStretch, FontWeight};
-use style::values::specified::FontStretch as SpecifiedFontStretch;
-use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey};
+use style::values::computed::font::{GenericFontFamily, SingleFontFamily};
+use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey, FontVariation};
 
-use crate::font::FontDescriptor;
 use crate::font_store::FontStore;
-use crate::font_template::{FontTemplate, FontTemplateRef};
-use crate::platform::LocalFontIdentifier;
 use crate::platform::font_list::{
     default_system_generic_font_family, for_each_available_family, for_each_variation,
 };
-
-#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
-pub enum FontIdentifier {
-    Local(LocalFontIdentifier),
-    Web(ServoUrl),
-}
-
-impl FontIdentifier {
-    pub fn index(&self) -> u32 {
-        match *self {
-            Self::Local(ref local_font_identifier) => local_font_identifier.index(),
-            Self::Web(_) => 0,
-        }
-    }
-}
-
-/// Commands that the `FontContext` sends to the `SystemFontService`.
-#[derive(Debug, Deserialize, Serialize)]
-pub enum SystemFontServiceMessage {
-    GetFontTemplates(
-        Option<FontDescriptor>,
-        SingleFontFamily,
-        IpcSender<Vec<FontTemplate>>,
-    ),
-    GetFontInstance(
-        FontIdentifier,
-        Au,
-        FontInstanceFlags,
-        IpcSender<FontInstanceKey>,
-    ),
-    GetFontKey(IpcSender<FontKey>),
-    GetFontInstanceKey(IpcSender<FontInstanceKey>),
-    CollectMemoryReport(ReportsChan),
-    Exit(IpcSender<()>),
-    Ping,
-}
 
 #[derive(Default, MallocSizeOf)]
 struct ResolvedGenericFontFamilies {
@@ -94,7 +49,7 @@ pub struct SystemFontService {
     local_families: FontStore,
     compositor_api: CrossProcessCompositorApi,
     webrender_fonts: HashMap<FontIdentifier, FontKey>,
-    font_instances: HashMap<(FontKey, Au), FontInstanceKey>,
+    font_instances: HashMap<(FontKey, Au, Vec<FontVariation>), FontInstanceKey>,
     generic_fonts: ResolvedGenericFontFamilies,
 
     /// This is an optimization that allows the [`SystemFontService`] to send font data to
@@ -108,18 +63,6 @@ pub struct SystemFontService {
     /// instance key for the instance. Once the free keys are exhausted, the
     /// [`SystemFontService`] will fetch a new batch.
     free_font_instance_keys: Vec<FontInstanceKey>,
-}
-
-#[derive(Clone, Deserialize, Serialize)]
-pub struct SystemFontServiceProxySender(pub IpcSender<SystemFontServiceMessage>);
-
-impl SystemFontServiceProxySender {
-    pub fn to_proxy(&self) -> SystemFontServiceProxy {
-        SystemFontServiceProxy {
-            sender: Mutex::new(self.0.clone()),
-            templates: Default::default(),
-        }
-    }
 }
 
 impl SystemFontService {
@@ -176,8 +119,15 @@ impl SystemFontService {
                     let _ =
                         result_sender.send(self.get_font_templates(font_descriptor, font_family));
                 },
-                SystemFontServiceMessage::GetFontInstance(identifier, pt_size, flags, result) => {
-                    let _ = result.send(self.get_font_instance(identifier, pt_size, flags));
+                SystemFontServiceMessage::GetFontInstance(
+                    identifier,
+                    pt_size,
+                    flags,
+                    variations,
+                    result,
+                ) => {
+                    let _ =
+                        result.send(self.get_font_instance(identifier, pt_size, flags, variations));
                 },
                 SystemFontServiceMessage::GetFontKey(result_sender) => {
                     self.fetch_new_keys();
@@ -281,6 +231,7 @@ impl SystemFontService {
         identifier: FontIdentifier,
         pt_size: Au,
         flags: FontInstanceFlags,
+        variations: Vec<FontVariation>,
     ) -> FontInstanceKey {
         self.fetch_new_keys();
 
@@ -301,7 +252,7 @@ impl SystemFontService {
 
         *self
             .font_instances
-            .entry((font_key, pt_size))
+            .entry((font_key, pt_size, variations.clone()))
             .or_insert_with(|| {
                 let font_instance_key = self.free_font_instance_keys.pop().unwrap();
                 compositor_api.add_font_instance(
@@ -309,6 +260,7 @@ impl SystemFontService {
                     font_key,
                     pt_size.to_f32_px(),
                     flags,
+                    variations,
                 );
                 font_instance_key
             })
@@ -352,251 +304,5 @@ impl SystemFontService {
                 default_system_generic_font_family(*generic)
             })
             .clone()
-    }
-}
-
-#[derive(Debug, Eq, Hash, MallocSizeOf, PartialEq)]
-struct FontTemplateCacheKey {
-    font_descriptor: Option<FontDescriptor>,
-    family_descriptor: SingleFontFamily,
-}
-
-/// The public interface to the [`SystemFontService`], used by per-Document
-/// `FontContext` instances.
-#[derive(Debug)]
-pub struct SystemFontServiceProxy {
-    sender: Mutex<IpcSender<SystemFontServiceMessage>>,
-    templates: RwLock<HashMap<FontTemplateCacheKey, Vec<FontTemplateRef>>>,
-}
-
-/// A version of `FontStyle` from Stylo that is serializable. Normally this is not
-/// because the specified version of `FontStyle` contains floats.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum ComputedFontStyleDescriptor {
-    Italic,
-    Oblique(FontStyleFixedPoint, FontStyleFixedPoint),
-}
-
-/// This data structure represents the various optional descriptors that can be
-/// applied to a `@font-face` rule in CSS. These are used to create a [`FontTemplate`]
-/// from the given font data used as the source of the `@font-face` rule. If values
-/// like weight, stretch, and style are not specified they are initialized based
-/// on the contents of the font itself.
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct CSSFontFaceDescriptors {
-    pub family_name: LowercaseFontFamilyName,
-    pub weight: Option<(FontWeight, FontWeight)>,
-    pub stretch: Option<(FontStretch, FontStretch)>,
-    pub style: Option<ComputedFontStyleDescriptor>,
-    pub unicode_range: Option<Vec<RangeInclusive<u32>>>,
-}
-
-impl CSSFontFaceDescriptors {
-    pub fn new(family_name: &str) -> Self {
-        CSSFontFaceDescriptors {
-            family_name: family_name.into(),
-            ..Default::default()
-        }
-    }
-}
-
-impl From<&FontFaceRuleData> for CSSFontFaceDescriptors {
-    fn from(rule_data: &FontFaceRuleData) -> Self {
-        let family_name = rule_data
-            .family
-            .as_ref()
-            .expect("Expected rule to contain a font family.")
-            .name
-            .clone();
-        let weight = rule_data
-            .weight
-            .as_ref()
-            .map(|weight_range| (weight_range.0.compute(), weight_range.1.compute()));
-
-        let stretch_to_computed = |specified: SpecifiedFontStretch| match specified {
-            SpecifiedFontStretch::Stretch(percentage) => {
-                FontStretch::from_percentage(percentage.compute().0)
-            },
-            SpecifiedFontStretch::Keyword(keyword) => keyword.compute(),
-            SpecifiedFontStretch::System(_) => FontStretch::NORMAL,
-        };
-        let stretch = rule_data.stretch.as_ref().map(|stretch_range| {
-            (
-                stretch_to_computed(stretch_range.0),
-                stretch_to_computed(stretch_range.1),
-            )
-        });
-
-        fn style_to_computed(specified: &FontFaceStyle) -> ComputedFontStyleDescriptor {
-            match specified {
-                FontFaceStyle::Italic => ComputedFontStyleDescriptor::Italic,
-                FontFaceStyle::Oblique(angle_a, angle_b) => ComputedFontStyleDescriptor::Oblique(
-                    FixedPoint::from_float(angle_a.degrees()),
-                    FixedPoint::from_float(angle_b.degrees()),
-                ),
-            }
-        }
-        let style = rule_data.style.as_ref().map(style_to_computed);
-        let unicode_range = rule_data
-            .unicode_range
-            .as_ref()
-            .map(|ranges| ranges.iter().map(|range| range.start..=range.end).collect());
-
-        CSSFontFaceDescriptors {
-            family_name: family_name.into(),
-            weight,
-            stretch,
-            style,
-            unicode_range,
-        }
-    }
-}
-
-impl SystemFontServiceProxy {
-    pub fn exit(&self) {
-        let (response_chan, response_port) = ipc::channel().unwrap();
-        self.sender
-            .lock()
-            .send(SystemFontServiceMessage::Exit(response_chan))
-            .expect("Couldn't send SystemFontService exit message");
-        response_port
-            .recv()
-            .expect("Couldn't receive SystemFontService reply");
-    }
-
-    pub fn to_sender(&self) -> SystemFontServiceProxySender {
-        SystemFontServiceProxySender(self.sender.lock().clone())
-    }
-
-    pub(crate) fn get_system_font_instance(
-        &self,
-        identifier: FontIdentifier,
-        size: Au,
-        flags: FontInstanceFlags,
-    ) -> FontInstanceKey {
-        let (response_chan, response_port) = ipc::channel().expect("failed to create IPC channel");
-        self.sender
-            .lock()
-            .send(SystemFontServiceMessage::GetFontInstance(
-                identifier,
-                size,
-                flags,
-                response_chan,
-            ))
-            .expect("failed to send message to system font service");
-
-        let instance_key = response_port.recv();
-        if instance_key.is_err() {
-            let font_thread_has_closed = self
-                .sender
-                .lock()
-                .send(SystemFontServiceMessage::Ping)
-                .is_err();
-            assert!(
-                font_thread_has_closed,
-                "Failed to receive a response from live font cache"
-            );
-            panic!("SystemFontService has already exited.");
-        }
-        instance_key.unwrap()
-    }
-
-    pub(crate) fn find_matching_font_templates(
-        &self,
-        descriptor_to_match: Option<&FontDescriptor>,
-        family_descriptor: &SingleFontFamily,
-    ) -> Vec<FontTemplateRef> {
-        let cache_key = FontTemplateCacheKey {
-            font_descriptor: descriptor_to_match.cloned(),
-            family_descriptor: family_descriptor.clone(),
-        };
-        if let Some(templates) = self.templates.read().get(&cache_key).cloned() {
-            return templates;
-        }
-
-        debug!(
-            "SystemFontServiceProxy: cache miss for template_descriptor={:?} family_descriptor={:?}",
-            descriptor_to_match, family_descriptor
-        );
-
-        let (response_chan, response_port) = ipc::channel().expect("failed to create IPC channel");
-        self.sender
-            .lock()
-            .send(SystemFontServiceMessage::GetFontTemplates(
-                descriptor_to_match.cloned(),
-                family_descriptor.clone(),
-                response_chan,
-            ))
-            .expect("failed to send message to system font service");
-
-        let Ok(templates) = response_port.recv() else {
-            let font_thread_has_closed = self
-                .sender
-                .lock()
-                .send(SystemFontServiceMessage::Ping)
-                .is_err();
-            assert!(
-                font_thread_has_closed,
-                "Failed to receive a response from live font cache"
-            );
-            panic!("SystemFontService has already exited.");
-        };
-
-        let templates: Vec<_> = templates.into_iter().map(FontTemplateRef::new).collect();
-        self.templates.write().insert(cache_key, templates.clone());
-
-        templates
-    }
-
-    pub(crate) fn generate_font_key(&self) -> FontKey {
-        let (result_sender, result_receiver) =
-            ipc::channel().expect("failed to create IPC channel");
-        self.sender
-            .lock()
-            .send(SystemFontServiceMessage::GetFontKey(result_sender))
-            .expect("failed to send message to system font service");
-        result_receiver
-            .recv()
-            .expect("Failed to communicate with system font service.")
-    }
-
-    pub(crate) fn generate_font_instance_key(&self) -> FontInstanceKey {
-        let (result_sender, result_receiver) =
-            ipc::channel().expect("failed to create IPC channel");
-        self.sender
-            .lock()
-            .send(SystemFontServiceMessage::GetFontInstanceKey(result_sender))
-            .expect("failed to send message to system font service");
-        result_receiver
-            .recv()
-            .expect("Failed to communicate with system font service.")
-    }
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
-pub struct LowercaseFontFamilyName {
-    inner: String,
-}
-
-impl<T: AsRef<str>> From<T> for LowercaseFontFamilyName {
-    fn from(value: T) -> Self {
-        LowercaseFontFamilyName {
-            inner: value.as_ref().to_lowercase(),
-        }
-    }
-}
-
-impl Deref for LowercaseFontFamilyName {
-    type Target = str;
-
-    #[inline]
-    fn deref(&self) -> &str {
-        &self.inner
-    }
-}
-
-impl fmt::Display for LowercaseFontFamilyName {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.inner.fmt(f)
     }
 }

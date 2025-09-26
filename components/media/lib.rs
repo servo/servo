@@ -10,8 +10,8 @@ mod media_thread;
 use std::sync::{Arc, Mutex};
 
 use compositing_traits::{
-    WebrenderExternalImageApi, WebrenderExternalImageHandlers, WebrenderExternalImageRegistry,
-    WebrenderImageHandlerType, WebrenderImageSource,
+    ExternalImageSource, WebrenderExternalImageApi, WebrenderExternalImageHandlers,
+    WebrenderExternalImageRegistry, WebrenderImageHandlerType,
 };
 use euclid::default::Size2D;
 use ipc_channel::ipc::{IpcReceiver, IpcSender, channel};
@@ -194,7 +194,7 @@ impl PlayerGLContext for WindowGLContext {
 struct GLPlayerExternalImages {
     // @FIXME(victor): this should be added when GstGLSyncMeta is
     // added
-    //webrender_gl: Rc<dyn gl::Gl>,
+    // webrender_gl: Rc<dyn gl::Gl>,
     glplayer_channel: IpcSender<GLPlayerMsg>,
     // Used to avoid creating a new channel on each received WebRender
     // request.
@@ -214,7 +214,7 @@ impl GLPlayerExternalImages {
 }
 
 impl WebrenderExternalImageApi for GLPlayerExternalImages {
-    fn lock(&mut self, id: u64) -> (WebrenderImageSource, Size2D<i32>) {
+    fn lock(&mut self, id: u64) -> (ExternalImageSource<'_>, Size2D<i32>) {
         // The GLPlayerMsgForward::Lock message inserts a fence in the
         // GLPlayer command queue.
         self.glplayer_channel
@@ -226,9 +226,9 @@ impl WebrenderExternalImageApi for GLPlayerExternalImages {
         // order to avoid WR using a semi-ready GLPlayer texture.
         // glWaitSync doesn't block WR thread, it affects only
         // internal OpenGL subsystem.
-        //self.webrender_gl
+        // self.webrender_gl
         //    .wait_sync(gl_sync as gl::GLsync, 0, gl::TIMEOUT_IGNORED);
-        (WebrenderImageSource::TextureHandle(image_id), size)
+        (ExternalImageSource::NativeTexture(image_id), size)
     }
 
     fn unlock(&mut self, id: u64) {

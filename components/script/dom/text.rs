@@ -17,7 +17,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlslotelement::{HTMLSlotElement, Slottable};
+use crate::dom::html::htmlslotelement::{HTMLSlotElement, Slottable};
 use crate::dom::node::Node;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -117,7 +117,7 @@ impl TextMethods<crate::DomTypeHolder> for Text {
         let mut text = String::new();
         for ref node in nodes {
             let cdata = node.downcast::<CharacterData>().unwrap();
-            text.push_str(&cdata.data());
+            text.push_str(cdata.data().str());
         }
         DOMString::from(text)
     }

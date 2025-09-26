@@ -5,6 +5,8 @@
 use std::cell::Cell;
 use std::ptr;
 
+use base::generic_channel;
+use base::generic_channel::GenericSend;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use constellation_traits::{
     AuxiliaryWebViewCreationRequest, LoadData, LoadOrigin, NavigationHistoryBehavior,
@@ -32,7 +34,6 @@ use js::jsval::{NullValue, PrivateValue, UndefinedValue};
 use js::rust::wrappers::{JS_TransplantObject, NewWindowProxy, SetWindowProxy};
 use js::rust::{Handle, MutableHandle, MutableHandleValue, get_object_class};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use net_traits::IpcSend;
 use net_traits::request::Referrer;
 use net_traits::storage_thread::StorageThreadMsg;
 use script_traits::NewLayoutInfo;
@@ -106,7 +107,9 @@ pub(crate) struct WindowProxy {
     /// <https://html.spec.whatwg.org/multipage/#is-closing>
     is_closing: Cell<bool>,
 
-    /// The containing iframe element, if this is a same-origin iframe
+    /// If the containing `<iframe>` of this [`WindowProxy`] is from a same-origin page,
+    /// this will be the [`Element`] of the `<iframe>` element in the realm of the
+    /// parent page. Otherwise, it is `None`.
     frame_element: Option<Dom<Element>>,
 
     /// The parent browsing context's window proxy, if this is a nested browsing context
@@ -348,7 +351,7 @@ impl WindowProxy {
             // the session storage is copied over.
             // See https://html.spec.whatwg.org/multipage/#the-sessionstorage-attribute
 
-            let (sender, receiver) = ipc::channel().unwrap();
+            let (sender, receiver) = generic_channel::channel().unwrap();
 
             let msg = StorageThreadMsg::Clone {
                 sender,
@@ -356,12 +359,7 @@ impl WindowProxy {
                 dest: response.new_webview_id,
             };
 
-            document
-                .global()
-                .resource_threads()
-                .sender()
-                .send(msg)
-                .unwrap();
+            GenericSend::send(document.global().resource_threads(), msg).unwrap();
             receiver.recv().unwrap();
         }
         Some(new_window_proxy)
@@ -487,7 +485,7 @@ impl WindowProxy {
         can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<WindowProxy>>> {
         // Step 5. If target is the empty string, then set target to "_blank".
-        let non_empty_target = match target.as_ref() {
+        let non_empty_target = match target.str() {
             "" => DOMString::from("_blank"),
             _ => target,
         };
@@ -540,7 +538,7 @@ impl WindowProxy {
                 .unwrap();
             let url = match existing_document.url().join(&url) {
                 Ok(url) => url,
-                Err(_) => return Err(Error::Syntax),
+                Err(_) => return Err(Error::Syntax(None)),
             };
             let referrer = if noreferrer {
                 Referrer::NoReferrer
@@ -634,6 +632,9 @@ impl WindowProxy {
         self.webview_id
     }
 
+    /// If the containing `<iframe>` of this [`WindowProxy`] is from a same-origin page,
+    /// this will return an [`Element`] of the `<iframe>` element in the realm of the parent
+    /// page.
     pub(crate) fn frame_element(&self) -> Option<&Element> {
         self.frame_element.as_deref()
     }

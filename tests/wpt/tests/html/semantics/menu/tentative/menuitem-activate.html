@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -20,6 +21,18 @@
 </menulist>
 
 <div popover id=popover></div>
+
+<button popovertarget=popoverwithmenu>Open popover with menu</button>
+<div popover id=popoverwithmenu>
+  <button popovertarget=menuinpopover>Open menu in the popover</button>
+  <menulist id=menuinpopover>
+    <menuitem id=menuinpopoveritem1>First item</menuitem>
+    <menuitem id=menuinpopoveritem2 command=toggle-menu commandfor=menuinpopover2>Toggle menu 2</menuitem>
+  </menulist>
+  <menulist id=menuinpopover2>
+    <menuitem>Submenu item</menuitem>
+  </menulist>
+</div>
 
 <script>
 promise_test(async () => {
@@ -55,4 +68,46 @@ promise_test(async () => {
   assert_false(popover.matches(":popover-open"), "div popover gets closed");
   assert_true(mainmenu.matches(":popover-open"), "mainmenu still open");
 }, 'User menuitem activation works with show-popover command');
+
+promise_test(async (t) => {
+  assert_false(popoverwithmenu.matches(":popover-open"),
+      "popover with menu starts closed");
+
+  // Open the popover that hosts two menulists.
+  await test_driver.click(
+      document.querySelector("button[popovertarget=popoverwithmenu]"));
+  assert_true(popoverwithmenu.matches(":popover-open"),
+      "popover with menu opens");
+  assert_false(menuinpopover.matches(":popover-open"),
+      "menu in popover starts closed");
+
+  // Open the first menu in the popover.
+  await test_driver.click(
+      document.querySelector('button[popovertarget=menuinpopover]'));
+  assert_true(menuinpopover.matches(":popover-open"), "menu in popover opens");
+  assert_true(popoverwithmenu.matches(":popover-open"),
+      "outer popover remains open");
+  assert_false(menuinpopover2.matches(":popover-open"),
+      "menu 2 in popover starts closed");
+
+  // Open the second menu in the popover.
+  await test_driver.click(menuinpopoveritem2);
+  assert_true(menuinpopover2.matches(":popover-open"),
+      "menu 2 in popover opens");
+  assert_true(popoverwithmenu.matches(":popover-open"),
+      "outer popover remains open after opening menu 2");
+  assert_true(menuinpopover.matches(":popover-open"),
+      "menu in popover remains open");
+
+  // Close the second, "sub", menu within the popover by just clicking off of
+  // it.
+  await test_driver.click(menuinpopoveritem1);
+  assert_false(menuinpopover2.matches(":popover-open"),
+      "menu 2 in popover closes");
+  assert_true(popoverwithmenu.matches(":popover-open"),
+      "outer popover remains open after closing menu 2");
+  assert_true(menuinpopover.matches(":popover-open"),
+      "menu in popover remains open");
+}, 'Menulist inside a popover works correctly; does not get accidentally ' +
+   'dismissed by opening submenus');
 </script>

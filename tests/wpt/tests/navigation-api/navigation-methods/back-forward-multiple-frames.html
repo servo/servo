@@ -2,15 +2,13 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <iframe id="i" src="/common/blank.html"></iframe>
-<script type="module">
-import { ensureWindowLoadEventFired } from "../resources/helpers.mjs";
-
+<script>
 promise_test(async t => {
   // Wait for after the load event so that the navigation doesn't get converted
   // into a replace navigation.
   let start_length = navigation.entries().length;
   let start_index = navigation.currentEntry.index;
-  await ensureWindowLoadEventFired(t);
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
   // Step 1
   assert_equals(navigation.entries().length, start_length, "step 1 outer entries() length");
   assert_equals(i.contentWindow.navigation.entries().length, 1, "step 1 iframe entries() length");

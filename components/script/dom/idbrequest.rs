@@ -3,34 +3,39 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::iter::repeat_n;
 
-use constellation_traits::StructuredSerializedData;
+use base::IpcSend;
 use dom_struct::dom_struct;
 use ipc_channel::router::ROUTER;
 use js::jsapi::Heap;
-use js::jsval::{JSVal, UndefinedValue};
+use js::jsval::{DoubleValue, JSVal, ObjectValue, UndefinedValue};
 use js::rust::HandleValue;
-use net_traits::IpcSend;
 use net_traits::indexeddb_thread::{
-    AsyncOperation, IdbResult, IndexedDBThreadMsg, IndexedDBTxnMode,
+    AsyncOperation, AsyncReadOnlyOperation, BackendError, BackendResult, IndexedDBKeyType,
+    IndexedDBRecord, IndexedDBThreadMsg, IndexedDBTxnMode, PutItemResult,
 };
-use profile_traits::ipc;
+use profile_traits::ipc::IpcReceiver;
+use script_bindings::conversions::SafeToJSValConvertible;
+use serde::{Deserialize, Serialize};
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::IDBRequestBinding::{
     IDBRequestMethods, IDBRequestReadyState,
 };
 use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransactionMode;
-use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::error::{Error, Fallible, create_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::{DomGlobal, DomObject, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::structuredclone;
-use crate::dom::domexception::{DOMErrorName, DOMException};
+use crate::dom::domexception::DOMException;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::idbcursor::{IterationParam, iterate_cursor};
+use crate::dom::idbcursorwithvalue::IDBCursorWithValue;
 use crate::dom::idbobjectstore::IDBObjectStore;
 use crate::dom::idbtransaction::IDBTransaction;
 use crate::indexed_db::key_type_to_jsval;
@@ -40,38 +45,187 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 #[derive(Clone)]
 struct RequestListener {
     request: Trusted<IDBRequest>,
+    iteration_param: Option<IterationParam>,
+}
+
+pub enum IdbResult {
+    Key(IndexedDBKeyType),
+    Keys(Vec<IndexedDBKeyType>),
+    Value(Vec<u8>),
+    Values(Vec<Vec<u8>>),
+    Count(u64),
+    Iterate(Vec<IndexedDBRecord>),
+    Error(Error),
+    None,
+}
+
+impl From<IndexedDBKeyType> for IdbResult {
+    fn from(value: IndexedDBKeyType) -> Self {
+        IdbResult::Key(value)
+    }
+}
+
+impl From<Vec<IndexedDBKeyType>> for IdbResult {
+    fn from(value: Vec<IndexedDBKeyType>) -> Self {
+        IdbResult::Keys(value)
+    }
+}
+
+impl From<Vec<u8>> for IdbResult {
+    fn from(value: Vec<u8>) -> Self {
+        IdbResult::Value(value)
+    }
+}
+
+impl From<Vec<Vec<u8>>> for IdbResult {
+    fn from(value: Vec<Vec<u8>>) -> Self {
+        IdbResult::Values(value)
+    }
+}
+
+impl From<PutItemResult> for IdbResult {
+    fn from(value: PutItemResult) -> Self {
+        match value {
+            PutItemResult::Success => Self::None,
+            PutItemResult::CannotOverwrite => Self::Error(Error::Constraint),
+        }
+    }
+}
+
+impl From<Vec<IndexedDBRecord>> for IdbResult {
+    fn from(value: Vec<IndexedDBRecord>) -> Self {
+        Self::Iterate(value)
+    }
+}
+
+impl From<()> for IdbResult {
+    fn from(_value: ()) -> Self {
+        Self::None
+    }
+}
+
+impl<T> From<Option<T>> for IdbResult
+where
+    T: Into<IdbResult>,
+{
+    fn from(value: Option<T>) -> Self {
+        match value {
+            Some(value) => value.into(),
+            None => IdbResult::None,
+        }
+    }
+}
+
+impl From<u64> for IdbResult {
+    fn from(value: u64) -> Self {
+        IdbResult::Count(value)
+    }
 }
 
 impl RequestListener {
-    fn handle_async_request_finished(&self, result: Result<Option<IdbResult>, ()>) {
+    // https://www.w3.org/TR/IndexedDB-2/#async-execute-request
+    // Implements Step 5.4
+    fn handle_async_request_finished(&self, result: BackendResult<IdbResult>) {
         let request = self.request.root();
         let global = request.global();
         let cx = GlobalScope::get_cx();
 
+        // Substep 1: Set the result of request to result.
         request.set_ready_state_done();
 
         let _ac = enter_realm(&*request);
         rooted!(in(*cx) let mut answer = UndefinedValue());
 
-        if let Ok(Some(data)) = result {
+        if let Ok(data) = result {
             match data {
                 IdbResult::Key(key) => {
                     key_type_to_jsval(GlobalScope::get_cx(), &key, answer.handle_mut())
                 },
-                IdbResult::Data(serialized_data) => {
-                    let data = StructuredSerializedData {
-                        serialized: serialized_data,
-                        ..Default::default()
-                    };
-
-                    if structuredclone::read(&global, data, answer.handle_mut()).is_err() {
-                        warn!("Error reading structuredclone data");
+                IdbResult::Keys(keys) => {
+                    rooted_vec!(let mut array <- repeat_n(UndefinedValue(), keys.len()));
+                    for (count, key) in keys.into_iter().enumerate() {
+                        rooted!(in(*cx) let mut val = UndefinedValue());
+                        key_type_to_jsval(GlobalScope::get_cx(), &key, val.handle_mut());
+                        array[count] = val.get();
                     }
+                    array.safe_to_jsval(cx, answer.handle_mut());
+                },
+                IdbResult::Value(serialized_data) => {
+                    let result = bincode::deserialize(&serialized_data)
+                        .map_err(|_| Error::Data)
+                        .and_then(|data| structuredclone::read(&global, data, answer.handle_mut()));
+                    if let Err(e) = result {
+                        warn!("Error reading structuredclone data");
+                        Self::handle_async_request_error(&global, cx, request, e);
+                        return;
+                    };
+                },
+                IdbResult::Values(serialized_values) => {
+                    rooted_vec!(let mut values <- repeat_n(UndefinedValue(), serialized_values.len()));
+                    for (count, serialized_data) in serialized_values.into_iter().enumerate() {
+                        rooted!(in(*cx) let mut val = UndefinedValue());
+                        let result = bincode::deserialize(&serialized_data)
+                            .map_err(|_| Error::Data)
+                            .and_then(|data| {
+                                structuredclone::read(&global, data, val.handle_mut())
+                            });
+                        if let Err(e) = result {
+                            warn!("Error reading structuredclone data");
+                            Self::handle_async_request_error(&global, cx, request, e);
+                            return;
+                        };
+                        values[count] = val.get();
+                    }
+                    values.safe_to_jsval(cx, answer.handle_mut());
+                },
+                IdbResult::Count(count) => {
+                    answer.handle_mut().set(DoubleValue(count as f64));
+                },
+                IdbResult::Iterate(records) => {
+                    let param = self.iteration_param.as_ref().expect(
+                        "iteration_param must be provided by IDBRequest::execute_async for Iterate",
+                    );
+                    let cursor = match iterate_cursor(&global, cx, param, records) {
+                        Ok(cursor) => cursor,
+                        Err(e) => {
+                            warn!("Error reading structuredclone data");
+                            Self::handle_async_request_error(&global, cx, request, e);
+                            return;
+                        },
+                    };
+                    if let Some(cursor) = cursor {
+                        match cursor.downcast::<IDBCursorWithValue>() {
+                            Some(cursor_with_value) => {
+                                answer.handle_mut().set(ObjectValue(
+                                    *cursor_with_value.reflector().get_jsobject(),
+                                ));
+                            },
+                            None => {
+                                answer
+                                    .handle_mut()
+                                    .set(ObjectValue(*cursor.reflector().get_jsobject()));
+                            },
+                        }
+                    }
+                },
+                IdbResult::None => {
+                    // no-op
+                },
+                IdbResult::Error(error) => {
+                    // Substep 2
+                    Self::handle_async_request_error(&global, cx, request, error);
+                    return;
                 },
             }
 
+            // Substep 3.1: Set the result of request to answer.
             request.set_result(answer.handle());
 
+            // Substep 3.2: Set the error of request to undefined
+            request.set_error(None, CanGc::note());
+
+            // Substep 3.3: Fire a success event at request.
+            // TODO: follow spec here
             let transaction = request
                 .transaction
                 .get()
@@ -91,30 +245,48 @@ impl RequestListener {
                 .fire(request.upcast(), CanGc::note());
             transaction.set_active_flag(false);
         } else {
-            request.set_result(answer.handle());
-
-            // FIXME:(rasviitanen)
-            // Set the error of request to result
-
-            let transaction = request
-                .transaction
-                .get()
-                .expect("Request has no transaction");
-
-            let event = Event::new(
-                &global,
-                Atom::from("error"),
-                EventBubbles::Bubbles,
-                EventCancelable::Cancelable,
-                CanGc::note(),
-            );
-
-            transaction.set_active_flag(true);
-            event
-                .upcast::<Event>()
-                .fire(request.upcast(), CanGc::note());
-            transaction.set_active_flag(false);
+            // FIXME:(arihant2math) dispatch correct error
+            // Substep 2
+            Self::handle_async_request_error(&global, cx, request, Error::Data);
         }
+    }
+
+    // https://www.w3.org/TR/IndexedDB-2/#async-execute-request
+    // Implements Step 5.4.2
+    fn handle_async_request_error(
+        global: &GlobalScope,
+        cx: SafeJSContext,
+        request: DomRoot<IDBRequest>,
+        error: Error,
+    ) {
+        // Substep 1: Set the result of request to undefined.
+        rooted!(in(*cx) let undefined = UndefinedValue());
+        request.set_result(undefined.handle());
+
+        // Substep 2: Set the error of request to result.
+        request.set_error(Some(error), CanGc::note());
+
+        // Substep 3: Fire an error event at request.
+        // TODO: follow the spec here
+        let transaction = request
+            .transaction
+            .get()
+            .expect("Request has no transaction");
+
+        let event = Event::new(
+            global,
+            Atom::from("error"),
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            CanGc::note(),
+        );
+
+        // TODO: why does the transaction need to be active?
+        transaction.set_active_flag(true);
+        event
+            .upcast::<Event>()
+            .fire(request.upcast(), CanGc::note());
+        transaction.set_active_flag(false);
     }
 }
 
@@ -158,14 +330,13 @@ impl IDBRequest {
         self.result.set(result.get());
     }
 
-    pub fn set_error(&self, error: Error, can_gc: CanGc) {
-        // FIXME:(rasviitanen) Support all error types
-        if let Error::Version = error {
-            self.error.set(Some(&DOMException::new(
-                &self.global(),
-                DOMErrorName::VersionError,
-                can_gc,
-            )));
+    pub fn set_error(&self, error: Option<Error>, can_gc: CanGc) {
+        if let Some(error) = error {
+            if let Ok(exception) = create_dom_exception(&self.global(), error, can_gc) {
+                self.error.set(Some(&exception));
+            }
+        } else {
+            self.error.set(None);
         }
     }
 
@@ -174,14 +345,19 @@ impl IDBRequest {
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#asynchronously-execute-a-request
-    pub fn execute_async(
+    pub fn execute_async<T>(
         source: &IDBObjectStore,
         operation: AsyncOperation,
+        receiver: IpcReceiver<BackendResult<T>>,
         request: Option<DomRoot<IDBRequest>>,
+        iteration_param: Option<IterationParam>,
         can_gc: CanGc,
-    ) -> Fallible<DomRoot<IDBRequest>> {
+    ) -> Fallible<DomRoot<IDBRequest>>
+    where
+        T: Into<IdbResult> + for<'a> Deserialize<'a> + Serialize + Send + Sync + 'static,
+    {
         // Step 1: Let transaction be the transaction associated with source.
-        let transaction = source.transaction().expect("Store has no transaction");
+        let transaction = source.transaction();
         let global = transaction.global();
 
         // Step 2: Assert: transaction is active.
@@ -208,12 +384,24 @@ impl IDBRequest {
             IDBTransactionMode::Versionchange => IndexedDBTxnMode::Versionchange,
         };
 
-        let (sender, receiver) =
-            ipc::channel::<Result<Option<IdbResult>, ()>>(global.time_profiler_chan().clone())
-                .unwrap();
+        if matches!(
+            operation,
+            AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Iterate { .. })
+        ) {
+            assert!(
+                iteration_param.is_some(),
+                "iteration_param must be provided for Iterate"
+            );
+        } else {
+            assert!(
+                iteration_param.is_none(),
+                "iteration_param should not be provided for operation other than Iterate"
+            );
+        }
 
         let response_listener = RequestListener {
             request: Trusted::new(&request),
+            iteration_param,
         };
 
         let task_source = global
@@ -227,7 +415,11 @@ impl IDBRequest {
                 let response_listener = response_listener.clone();
                 task_source.queue(task!(request_callback: move || {
                     response_listener.handle_async_request_finished(
-                        message.expect("Could not unwrap message"));
+                        message.expect("Could not unwrap message").inspect_err(|e| {
+                            if let BackendError::DbErr(e) = e {
+                                error!("Error in IndexedDB operation: {}", e);
+                            }
+                        }).map(|t| t.into()));
                 }));
             }),
         );
@@ -235,9 +427,7 @@ impl IDBRequest {
         transaction
             .global()
             .resource_threads()
-            .sender()
             .send(IndexedDBThreadMsg::Async(
-                sender,
                 global.origin().immutable().clone(),
                 transaction.get_db_name().to_string(),
                 source.get_name().to_string(),

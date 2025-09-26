@@ -55,7 +55,11 @@ promise_setup(async () => {
   scroller.scrollLeft = 1300;
 
   // Ensure up-to-date scroll snapshot.
-  await new Promise(resolve => requestAnimationFrame(resolve));
+  await new Promise(resolve => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(resolve);
+    });
+  });
 });
 
 promise_test(async () => {

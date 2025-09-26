@@ -784,11 +784,5 @@ const lstmCellTests = [
   }
 ];
 
-if (navigator.ml) {
-  lstmCellTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getLstmCellPrecisionTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(
+    lstmCellTests, buildAndExecuteGraph, getLstmCellPrecisionTolerance);

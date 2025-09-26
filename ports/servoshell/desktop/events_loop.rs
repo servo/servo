@@ -33,6 +33,7 @@ impl From<accesskit_winit::Event> for AppEvent {
 
 /// The real or fake OS event loop.
 #[allow(dead_code)]
+#[allow(clippy::large_enum_variant)]
 enum EventLoop {
     /// A real Winit windowing event loop.
     Winit(winit::event_loop::EventLoop<AppEvent>),

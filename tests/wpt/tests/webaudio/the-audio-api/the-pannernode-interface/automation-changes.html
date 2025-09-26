@@ -5,7 +5,6 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="../../resources/audit-util.js"></script>
-    <script src="../../resources/audit.js"></script>
   </head>
 
   <body>
@@ -20,68 +19,8 @@
       // Initial panner positionX and final positionX for listener.
       const positionX = 2000;
 
-      const audit = Audit.createTaskRunner();
-
-      // Test that listener.positionX.value setter does the right thing.
-      audit.define('Set Listener.positionX.value', (task, should) => {
-        const context = new OfflineAudioContext(2, renderFrames, sampleRate);
-
-        createGraph(context);
-
-        // Frame at which the listener instantaneously moves to a new location.
-        const moveFrame = 512;
-
-        context.suspend(moveFrame / context.sampleRate)
-            .then(() => {
-              context.listener.positionX.value = positionX;
-            })
-            .then(() => context.resume());
-
-        verifyOutput(context, moveFrame, should, 'listenr.positionX.value')
-            .then(() => task.done());
-      });
-
-      // Test that listener.positionX.setValueAtTime() does the right thing.
-      audit.define('Listener.positionX.setValue', (task, should) => {
-        const context = new OfflineAudioContext(2, renderFrames, sampleRate);
-
-        createGraph(context);
-
-        // Frame at which the listener instantaneously moves to a new location.
-        const moveFrame = 512;
-
-        context.listener.positionX.setValueAtTime(
-            positionX, moveFrame / context.sampleRate);
-
-        verifyOutput(
-            context, moveFrame, should, 'listener.positionX.setValueATTime')
-            .then(() => task.done());
-      });
-
-      // Test that listener.setPosition() does the right thing.
-      audit.define('Listener.setPosition', (task, should) => {
-        const context = new OfflineAudioContext(2, renderFrames, sampleRate);
-
-        createGraph(context);
-
-        // Frame at which the listener instantaneously moves to a new location.
-        const moveFrame = 512;
-
-        context.suspend(moveFrame / context.sampleRate)
-            .then(() => {
-              context.listener.setPosition(positionX, 0, 0);
-            })
-            .then(() => context.resume());
-
-        verifyOutput(context, moveFrame, should, 'listener.setPostion')
-            .then(() => task.done());
-      });
-
-      audit.run();
-
-
-      // Create the basic graph for testing which consists of an oscillator node
-      // connected to a panner node.
+      // Create the basic graph for testing which consists of an
+      // oscillator node connected to a panner node.
       function createGraph(context) {
         const listener = context.listener;
 
@@ -106,7 +45,7 @@
 
 
       // Verify the output from the panner is correct.
-      function verifyOutput(context, moveFrame, should, prefix) {
+      function verifyOutput(context, moveFrame, prefix) {
         return context.startRendering().then(resultBuffer => {
           // Get the outputs (left and right)
           const c0 = resultBuffer.getChannelData(0);
@@ -117,23 +56,79 @@
           // should be 0 (or very nearly 0).
           const zero = new Float32Array(moveFrame);
 
-          should(
-              c0.slice(0, moveFrame), `${prefix}: output0[0:${moveFrame - 1}]`)
-              .beCloseToArray(zero, {absoluteThreshold: 1e-16});
-          should(
-              c1.slice(0, moveFrame), `${prefix}: output1[0:${moveFrame - 1}]`)
-              .notBeConstantValueOf(0);
+          assert_array_equal_within_eps(
+              c0.slice(0, moveFrame),
+              zero,
+              {absoluteThreshold: 1e-16},
+              `${prefix}: output0[0:${moveFrame - 1}]`);
+          assert_not_constant_value(
+              c1.slice(0, moveFrame),
+              0,
+              `${prefix}: output1[0:${moveFrame - 1}]`);
 
           // At |moveFrame| and beyond, the listener and source are at the
           // same position, so the outputs from the left and right should be
           // identical, and the left channel should not be 0 anymore.
-
-          should(c0.slice(moveFrame), `${prefix}: output0[${moveFrame}:]`)
-              .notBeConstantValueOf(0);
-          should(c1.slice(moveFrame), `${prefix}: output1[${moveFrame}:]`)
-              .beCloseToArray(c0.slice(moveFrame));
+          assert_not_constant_value(
+              c0.slice(moveFrame),
+              0,
+              `${prefix}: output0[${moveFrame}:]`);
+          assert_array_equal_within_eps(
+              c1.slice(moveFrame),
+              c0.slice(moveFrame),
+              0,
+              `${prefix}: output1[${moveFrame}:]`);
         });
       }
+
+      // Test that listener.positionX.value setter does the right thing.
+      promise_test(async t => {
+        const context = new OfflineAudioContext(2, renderFrames, sampleRate);
+        createGraph(context);
+
+        // Frame at which the listener instantaneously moves to a new location.
+        const moveFrame = 512;
+
+        // Schedule a suspend; when it trips, set the value and resume.
+        context.suspend(moveFrame / context.sampleRate).then(() => {
+          context.listener.positionX.value = positionX;
+          context.resume();
+        });
+
+        await verifyOutput(context, moveFrame, 'listener.positionX.value');
+      }, 'Set Listener.positionX.value');
+
+      // Test that listener.positionX.setValueAtTime() does the right thing.
+      promise_test(async t => {
+        const context = new OfflineAudioContext(2, renderFrames, sampleRate);
+        createGraph(context);
+
+        // Frame at which the listener instantaneously moves to a new location.
+        const moveFrame = 512;
+
+        context.listener.positionX.setValueAtTime(
+            positionX, moveFrame / context.sampleRate);
+
+        await verifyOutput(
+            context, moveFrame, 'listener.positionX.setValueAtTime');
+      }, 'Listener.positionX.setValue');
+
+      // Test that listener.setPosition() does the right thing.
+      promise_test(async t => {
+        const context = new OfflineAudioContext(2, renderFrames, sampleRate);
+        createGraph(context);
+
+        // Frame at which the listener instantaneously moves to a new location.
+        const moveFrame = 512;
+
+        context.suspend(moveFrame / context.sampleRate).then(() => {
+          context.listener.setPosition(positionX, 0, 0);
+          context.resume();
+        });
+
+        await verifyOutput(
+            context, moveFrame, 'listener.setPosition');
+      }, 'Listener.setPosition');
     </script>
   </body>
 </html>

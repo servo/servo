@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::collections::HashMap;
 use std::ptr::{self};
 use std::rc::Rc;
 
@@ -13,6 +12,7 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, IsPromiseObject, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle};
+use rustc_hash::FxHashMap;
 use script_bindings::callback::ExceptionHandling;
 use script_bindings::realms::InRealm;
 
@@ -968,7 +968,7 @@ impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
         // converted to an IDL value of type UnderlyingSink.
         let transformer_dict = if !transformer_obj.is_null() {
             rooted!(in(*cx) let obj_val = ObjectValue(transformer_obj.get()));
-            match Transformer::new(cx, obj_val.handle()) {
+            match Transformer::new(cx, obj_val.handle(), can_gc) {
                 Ok(ConversionResult::Success(val)) => val,
                 Ok(ConversionResult::Failure(error)) => return Err(Error::Type(error.to_string())),
                 _ => {
@@ -1049,8 +1049,7 @@ impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
                 }
             };
             let promise = if is_promise {
-                let promise = Promise::new_with_js_promise(result_object.handle(), cx);
-                promise
+                Promise::new_with_js_promise(result_object.handle(), cx)
             } else {
                 Promise::new_resolved(global, cx, result.get(), can_gc)
             };
@@ -1194,7 +1193,7 @@ impl Transferable for TransformStream {
 
     fn serialized_storage<'a>(
         data: StructuredData<'a, '_>,
-    ) -> &'a mut Option<HashMap<MessagePortId, Self::Data>> {
+    ) -> &'a mut Option<FxHashMap<MessagePortId, Self::Data>> {
         match data {
             StructuredData::Reader(r) => &mut r.transform_streams_port_impls,
             StructuredData::Writer(w) => &mut w.transform_streams_port,

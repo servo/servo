@@ -21,7 +21,8 @@ test(function() {
 
   // Check assigning various valid and invalid values.
   feConvolveMatrix.targetX.baseVal = -1;
-  assert_equals(feConvolveMatrix.targetX.baseVal, -1); // Negative values are allowed from SVG DOM, but should lead to an error when rendering (disable the filter)
+  // Negative values are allowed from SVG DOM, but should lead to an error when rendering (disable the filter)
+  assert_equals(feConvolveMatrix.targetX.baseVal, -1);
   feConvolveMatrix.targetX.baseVal = 300;
   assert_equals(feConvolveMatrix.targetX.baseVal, 300);
   // ECMA-262, 9.5, "ToInt32"
@@ -41,8 +42,12 @@ test(function() {
   feConvolveMatrix.setAttribute("order", "5");
   assert_equals(feConvolveMatrix.orderX.baseVal, 5);
   feConvolveMatrix.setAttribute("order", "-1.5");
-  assert_equals(feConvolveMatrix.orderX.baseVal, -1);
-  feConvolveMatrix.orderX.baseVal = -2.7;
-  assert_equals(feConvolveMatrix.orderX.baseVal, -2); // Negative values are allowed from SVG DOM, but should lead to an error when rendering (disable the filter)
+  // Invalid values should result in the initial value being returned
+  // For orderX that is 3 per
+  // https://www.w3.org/TR/filter-effects-1/#element-attrdef-order
+  assert_equals(feConvolveMatrix.orderX.baseVal, 3);
+  feConvolveMatrix.orderX.baseVal = -2;
+  // Negative values are allowed from SVG DOM, but should lead to an error when rendering (disable the filter)
+  assert_equals(feConvolveMatrix.orderX.baseVal, -2);
 });
 </script>

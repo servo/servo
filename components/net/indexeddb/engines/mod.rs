@@ -4,76 +4,60 @@
 
 use std::collections::VecDeque;
 
-use ipc_channel::ipc::IpcSender;
-use net_traits::indexeddb_thread::{AsyncOperation, IdbResult, IndexedDBTxnMode};
+use net_traits::indexeddb_thread::{AsyncOperation, CreateObjectResult, IndexedDBTxnMode, KeyPath};
 use tokio::sync::oneshot;
 
-pub use self::heed::HeedEngine;
+pub use self::sqlite::SqliteEngine;
 
-mod heed;
-
-#[derive(Eq, Hash, PartialEq)]
-pub struct SanitizedName {
-    name: String,
-}
-
-impl SanitizedName {
-    pub fn new(name: String) -> SanitizedName {
-        let name = name.replace("https://", "");
-        let name = name.replace("http://", "");
-        // FIXME:(arihant2math) Disallowing special characters might be a big problem,
-        // but better safe than sorry. E.g. the db name '../other_origin/db',
-        // would let us access databases from another origin.
-        let name = name
-            .chars()
-            .map(|c| match c {
-                'A'..='Z' => c,
-                'a'..='z' => c,
-                '0'..='9' => c,
-                '-' => c,
-                '_' => c,
-                _ => '-',
-            })
-            .collect();
-        SanitizedName { name }
-    }
-}
-
-impl std::fmt::Display for SanitizedName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name)
-    }
-}
+mod sqlite;
 
 pub struct KvsOperation {
-    pub sender: IpcSender<Result<Option<IdbResult>, ()>>,
-    pub store_name: SanitizedName,
+    pub store_name: String,
     pub operation: AsyncOperation,
 }
 
 pub struct KvsTransaction {
+    // Mode could be used by a more optimal implementation of transactions
+    // that has different allocated threadpools for reading and writing
+    #[allow(unused)]
     pub mode: IndexedDBTxnMode,
     pub requests: VecDeque<KvsOperation>,
 }
 
 pub trait KvsEngine {
-    type Error;
+    type Error: std::error::Error;
 
     fn create_store(
         &self,
-        store_name: SanitizedName,
+        store_name: &str,
+        key_path: Option<KeyPath>,
         auto_increment: bool,
-    ) -> Result<(), Self::Error>;
+    ) -> Result<CreateObjectResult, Self::Error>;
 
-    fn delete_store(&self, store_name: SanitizedName) -> Result<(), Self::Error>;
+    fn delete_store(&self, store_name: &str) -> Result<(), Self::Error>;
 
-    #[expect(dead_code)]
-    fn close_store(&self, store_name: SanitizedName) -> Result<(), Self::Error>;
+    fn close_store(&self, store_name: &str) -> Result<(), Self::Error>;
+
+    fn delete_database(self) -> Result<(), Self::Error>;
 
     fn process_transaction(
         &self,
         transaction: KvsTransaction,
     ) -> oneshot::Receiver<Option<Vec<u8>>>;
 
-    fn has_key_generator(&self, store_name: SanitizedName) -> bool;
+    fn has_key_generator(&self, store_name: &str) -> bool;
+    fn key_path(&self, store_name: &str) -> Option<KeyPath>;
+
+    fn create_index(
+        &self,
+        store_name: &str,
+        index_name: String,
+        key_path: KeyPath,
+        unique: bool,
+        multi_entry: bool,
+    ) -> Result<CreateObjectResult, Self::Error>;
+    fn delete_index(&self, store_name: &str, index_name: String) -> Result<(), Self::Error>;
+
+    fn version(&self) -> Result<u64, Self::Error>;
+    fn set_version(&self, version: u64) -> Result<(), Self::Error>;
 }

@@ -91,6 +91,8 @@
   // Insert inner <a> with JS, since the parser can't produce this result.
   let inner_a = document.createElement('a');
   inner_a.setAttribute('href', '');
+  inner_a.setAttribute('class', 'with_class_inner');
+  inner_a.setAttribute('style', 'color: green');
   inner_a.textContent = 'Visited2';
   outer_visited.append(inner_a);
 </script>

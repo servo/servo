@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>CSS Overflow: soft wrap opportunities created by word-break are not ignored for inserting block-ellipsis</title>
+<title>CSS Overflow: soft wrap opportunities created by word-break are ignored for inserting block-ellipsis when nowrap applies</title>
 <link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
 <link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
-<link rel="match" href="reference/block-ellipsis-017-ref.html">
-<meta name="assert" content="The block-ellipsis is placed after the last soft wrap opportunity in the line box that fits the ellipsis. This happens even with text-wrap: nowrap, since that only prevents line wrapping, rather than removing wrap opportunities.">
+<link rel="match" href="reference/block-ellipsis-013-ref.html">
+<meta name="assert" content="The block-ellipsis is not placed after the last soft wrap opportunity in the line box with text-wrap: nowrap.">
 <style>
 .clamp {
   line-clamp: 2;

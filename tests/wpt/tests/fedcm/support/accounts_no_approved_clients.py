@@ -15,7 +15,6 @@ def main(request, response):
    "given_name": "John",
    "name": "John Doe",
    "email": "john_doe@idp.example",
-   "picture": "https://idp.example/profile/123",
    "login_hints": ["john_doe"],
    "domain_hints": ["idp.example", "example"]
   },
@@ -23,8 +22,7 @@ def main(request, response):
    "id": "jane_doe",
    "given_name": "Jane",
    "name": "Jane Doe",
-   "email": "jane_doe@idp.example",
-   "picture": "https://idp.example/profile/5678"
+   "email": "jane_doe@idp.example"
   }]
 }
 """

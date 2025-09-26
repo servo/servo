@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="../resources/runner.js"></script>
+    <script src="resources/utils.js"></script>
+</head>
+<body>
+    <script>
+        createRegularDOMTree();
+        var allElements = document.body.getElementsByTagName("div");
+        for (var i = 0; i < allElements.length; ++i) {
+            if (i % 2 == 0) {
+                allElements[i].className = "a";
+            } else {
+                allElements[i].className = "b";
+            }
+        }
+
+        PerfTestRunner.measureTime({
+            description: "Measures the performance of a child class selector.",
+            run: function() {
+                var rule = applyCSSRule(".a > .b { cursor: crosshair; }");
+                forceStyleRecalc(document.body);
+                rule.remove();
+                forceStyleRecalc(document.body);
+            },
+            tracingCategories: 'blink',
+            traceEventsToMeasure: [
+                'Document::updateStyle',
+                'Document::recalcStyle',
+                'Document::rebuildLayoutTree'
+            ]
+        });
+    </script>
+</body>
+</html>

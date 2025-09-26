@@ -1,0 +1,2 @@
+Content-Security-Policy: script-src 'self' 'trusted-types-eval';
+Content-Security-Policy-Report-Only: require-trusted-types-for 'script';

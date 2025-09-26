@@ -1059,7 +1059,8 @@ class MarionetteRefTestExecutor(RefTestExecutor):
                  debug_info=None, reftest_internal=False,
                  reftest_screenshot="unexpected", ccov=False,
                  group_metadata=None, capabilities=None, debug=False,
-                 browser_version=None, debug_test=False, **kwargs):
+                 browser_version=None, debug_test=False,
+                 cache_screenshots=True, **kwargs):
         """Marionette-based executor for reftests"""
         RefTestExecutor.__init__(self,
                                  logger,
@@ -1082,6 +1083,7 @@ class MarionetteRefTestExecutor(RefTestExecutor):
         self.group_metadata = group_metadata
         self.debug = debug
         self.debug_test = debug_test
+        self.cache_screenshots = cache_screenshots
 
         self.install_extensions = browser.extensions
 
@@ -1225,7 +1227,9 @@ class InternalRefTestImplementation(RefTestImplementation):
         return self.executor.logger
 
     def setup(self, screenshot="unexpected", chrome_scope=False):
-        data = {"screenshot": screenshot, "isPrint": self.executor.is_print}
+        data = {"screenshot": screenshot,
+                "isPrint": self.executor.is_print,
+                "cacheScreenshots": self.executor.cache_screenshots}
         if self.executor.group_metadata is not None:
             data["urlCount"] = {urljoin(self.executor.server_url(key[0]), key[1]):value
                                 for key, value in self.executor.group_metadata.get("url_count", {}).items()
@@ -1234,6 +1238,7 @@ class InternalRefTestImplementation(RefTestImplementation):
         if chrome_scope:
             self.logger.debug("Using marionette Chrome scope for reftests")
             self.executor.protocol.marionette.set_context(self.executor.protocol.marionette.CONTEXT_CHROME)
+        self.logger.debug(f"Starting internal reftests with {data}")
         self.executor.protocol.marionette._send_message("reftest:setup", data)
 
     def reset(self, **kwargs):
@@ -1357,7 +1362,7 @@ class MarionettePrintRefTestExecutor(MarionetteRefTestExecutor):
                  screenshot_cache=None, close_after_done=True,
                  debug_info=None, reftest_screenshot="unexpected", ccov=False,
                  group_metadata=None, capabilities=None, debug=False,
-                 reftest_internal=False, **kwargs):
+                 reftest_internal=False, cache_screenshots=True, **kwargs):
         """Marionette-based executor for reftests"""
         MarionetteRefTestExecutor.__init__(self,
                                            logger,
@@ -1373,6 +1378,7 @@ class MarionettePrintRefTestExecutor(MarionetteRefTestExecutor):
                                            group_metadata=group_metadata,
                                            capabilities=capabilities,
                                            debug=debug,
+                                           cache_screenshots=cache_screenshots,
                                            **kwargs)
 
     def setup(self, runner, protocol=None):

@@ -18,7 +18,7 @@ import random
 test_summary = {test.Status.KILLED: 0, test.Status.SURVIVED: 0, test.Status.SKIPPED: 0, test.Status.UNEXPECTED: 0}
 
 
-def get_folders_list(path):
+def get_folders_list(path: str) -> list[str]:
     folder_list = []
     for filename in listdir(path):
         if isdir(join(path, filename)):

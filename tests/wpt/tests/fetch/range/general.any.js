@@ -88,10 +88,7 @@ promise_test(async () => {
     });
 
     const response = await fetch(stashTakeURL);
-
-    assert_regexp_match(await response.json(),
-                        /.*\bidentity\b.*/,
-                        `Expect identity accept-encoding if range header is ${JSON.stringify(rangeHeader)}`);
+    assert_equals(await response.json(), 'identity', `Expect identity accept-encoding if range header is ${JSON.stringify(rangeHeader)}`);
   }
 }, `Fetch with range header will be sent with Accept-Encoding: identity`);
 

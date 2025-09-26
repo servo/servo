@@ -20,12 +20,12 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
 use crate::dom::file::File;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlbuttonelement::HTMLButtonElement;
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmlformelement::{
+use crate::dom::html::htmlbuttonelement::HTMLButtonElement;
+use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::html::htmlformelement::{
     FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement,
 };
-use crate::dom::htmlinputelement::HTMLInputElement;
+use crate::dom::html::htmlinputelement::HTMLInputElement;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -107,7 +107,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
             // Step 1.1.2. If submitter’s form owner is not form, then throw a "NotFoundError"
             // DOMException.
             if !matches!(submit_button.form_owner(), Some(owner) if *owner == *form) {
-                return Err(Error::NotFound);
+                return Err(Error::NotFound(None));
             }
 
             Ok(submit_button)

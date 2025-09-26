@@ -16,6 +16,9 @@ features:
 - name: modal
   files:
   - modal-pseudo-class.html
+- name: not
+  files:
+  - not-*
 - name: nth-child-of
   files:
   - nth-child-of-*

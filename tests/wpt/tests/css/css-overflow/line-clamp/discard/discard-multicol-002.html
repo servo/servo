@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: continue:discard with ellipsis on multicol</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#continue">
+<link rel="match" href="reference/discard-multicol-002-ref.html">
+<meta name="assert" content="Content overflowing a multicol gets discarded with continue: discard, ellipsis insertion works">
+<style>
+div {
+  font-family: monospace;
+  gap: 1ch;
+  width: 27ch;
+  columns: 3;
+  height: 2lh;
+
+  border: 1px solid;
+  margin: 1em;
+}
+.test {
+  continue: discard;
+  block-ellipsis: auto;
+}
+</style>
+<p>Test passes if the two boxes bellow are identical.
+<div class="test">
+Line 1
+Line 2
+Line 3
+Line 4
+Line 5
+Line 6
+Line 7
+</div>
+<div class="ref">
+Line 1
+Line 2
+Line 3
+Line 4
+Line 5
+Line 6…
+</div>

@@ -7,12 +7,15 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+from __future__ import annotations
+
 import dataclasses
 import json
 import os
 import subprocess
 import sys
-from typing import Generator, List, Optional
+from typing import Optional
+from collections.abc import Generator
 
 COMPATIBLE_MSVC_VERSIONS = {
     "2019": "16.0",
@@ -30,7 +33,7 @@ class VisualStudioInstallation:
     installation_path: str
     vc_install_path: str
 
-    def __lt__(self, other) -> bool:
+    def __lt__(self, other: VisualStudioInstallation) -> bool:
         return self.version_number < other.version_number
 
 
@@ -108,7 +111,7 @@ def find_compatible_msvc_with_environment_variables() -> Optional[VisualStudioIn
     )
 
 
-def find_msvc_installations() -> List[VisualStudioInstallation]:
+def find_msvc_installations() -> list[VisualStudioInstallation]:
     # First try to find Visual Studio via `vswhere.exe` and in well-known paths.
     installations = list(find_compatible_msvc_with_vswhere())
     installations.extend(find_compatible_msvc_with_path())

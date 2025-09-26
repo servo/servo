@@ -58,8 +58,10 @@
     })
 
     timeBeforeFirstClick = performance.now();
+    mainThreadBusy(2);
     await clickAndBlockMain('button');
     timeAfterFirstClick = performance.now();
+    mainThreadBusy(2);
     await clickAndBlockMain('button');
     timeAfterSecondClick = performance.now();
 

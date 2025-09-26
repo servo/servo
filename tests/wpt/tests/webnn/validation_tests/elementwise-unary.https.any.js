@@ -9,7 +9,7 @@
 
 const kElementwiseUnaryOperators = [
   'abs', 'ceil', 'cos', 'erf', 'exp', 'floor', 'identity', 'log', 'neg',
-  'reciprocal', 'sign', 'sin', 'sqrt', 'tan'
+  'reciprocal', 'roundEven', 'sign', 'sin', 'sqrt', 'tan'
 ];
 
 kElementwiseUnaryOperators.forEach((operatorName) => {

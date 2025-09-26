@@ -98,7 +98,7 @@ impl BluetoothScanfilterSequence {
         self.0.iter().any(BluetoothScanfilter::is_empty_or_invalid)
     }
 
-    pub fn iter(&self) -> Iter<BluetoothScanfilter> {
+    pub fn iter(&self) -> Iter<'_, BluetoothScanfilter> {
         self.0.iter()
     }
 

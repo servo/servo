@@ -8,11 +8,12 @@ from ... import remote_mapping_to_dict
 
 @pytest_asyncio.fixture
 async def get_screen_orientation(bidi_session):
-    async def get_screen_orientation(context):
+    async def get_screen_orientation(context, top_context=None):
         # Activation is required, as orientation is only available on an active
         # context.
-        await bidi_session.browsing_context.activate(context=context["context"])
-
+        await bidi_session.browsing_context.activate(
+            context=top_context["context"] if top_context else context["context"]
+        )
         result = await bidi_session.script.evaluate(
             expression="""({
                     angle: screen.orientation.angle,

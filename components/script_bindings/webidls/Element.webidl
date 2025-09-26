@@ -45,9 +45,9 @@ interface Element : Node {
   [CEReactions, Throws]
   boolean toggleAttribute(DOMString name, optional boolean force);
   [CEReactions, Throws]
-  undefined setAttribute(DOMString name, DOMString value);
+  undefined setAttribute(DOMString name, (TrustedType or DOMString) value);
   [CEReactions, Throws]
-  undefined setAttributeNS(DOMString? namespace, DOMString name, DOMString value);
+  undefined setAttributeNS(DOMString? namespace, DOMString name, (TrustedType or DOMString) value);
   [CEReactions]
   undefined removeAttribute(DOMString name);
   [CEReactions]

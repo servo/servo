@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<style>
+  div {
+    display: flex;
+    border: 1px solid grey;
+    align-items: center;
+  }
+
+  p {
+    margin: 0.2em;
+    font-family: Ahem;
+  }
+</style>
+<div>
+  <p>1</p>
+  <div>
+    <p>2</p>
+    <div>
+      <p>3</p>
+      <div>
+        <p>4</p>
+        <div>
+          <p>5</p>
+          <div>
+            <p>6</p>
+            <div>
+              <p>7</p>
+              <div>
+                <p>8</p>
+                <div>
+                  <p>9</p>
+                  <div>
+                    <p>10</p>
+                    <div>
+                      <p>11</p>
+                      <div>
+                        <p>12</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function runTest() {
+  // 320, 30 is where the "12" is in Ahem font.
+  document.elementsFromPoint(320, 30);
+}
+
+PerfTestRunner.measureRunsPerSecond({
+  description: "Measure elementsFromPoint from a deeply nested flexbox.",
+  run: runTest,
+});
+</script>

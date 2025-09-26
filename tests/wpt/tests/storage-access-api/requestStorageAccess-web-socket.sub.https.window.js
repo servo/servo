@@ -26,7 +26,7 @@ async function SetUpResponderFrame(t, url) {
 
 promise_test(async (t) => {
   await MaybeSetStorageAccess("*", "*", "blocked");
-  await SetFirstPartyCookieAndUnsetStorageAccessPermission(altRoot);
+  await SetFirstPartyCookie(altRoot);
 
   const frame = await SetUpResponderFrame(t, altRootResponder);
 
@@ -42,7 +42,7 @@ promise_test(async (t) => {
 promise_test(async (t) => {
 
   await MaybeSetStorageAccess("*", "*", "blocked");
-  await SetFirstPartyCookieAndUnsetStorageAccessPermission(altRoot);
+  await SetFirstPartyCookie(altRoot);
   const frame = await SetUpResponderFrame(t, altRootResponder);
 
   assert_false(cookieStringHasCookie("cookie", "unpartitioned",

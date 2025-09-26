@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::generic_channel;
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderMsg, ScreenMetrics};
-use ipc_channel::ipc;
 
 use crate::dom::bindings::codegen::Bindings::ScreenBinding::ScreenMethods;
 use crate::dom::bindings::num::Finite;
@@ -33,7 +33,7 @@ impl Screen {
 
     /// Retrives [`ScreenMetrics`] from the embedder.
     fn screen_metrics(&self) -> ScreenMetrics {
-        let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
+        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel!");
 
         self.window.send_to_embedder(EmbedderMsg::GetScreenMetrics(
             self.window.webview_id(),

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script type="text/javascript" src="../resources/runner.js"></script>
+  <script type="text/javascript" src="./v1-common.js"></script>
+</head>
+<body>
+<div id="parent"></div>
+
+<script>
+const hostChildren = 500;
+const host = createHostTreeWithDeepComponentChild(hostChildren);
+document.querySelector('#parent').appendChild(host);
+for (let i = 0; i < hostChildren; ++i) {
+  host.children[i].id = i;
+}
+
+PerfTestRunner.measureTime({
+  description: `Ensure slot assignment doesn't run for a disconnected and reconnected tree`,
+  run: () => {
+    for (let i = 0; i < hostChildren; ++i) {
+      const firstChild = host.firstChild;
+      firstChild.remove();
+      firstChild.shadowRoot.querySelector('slot').assignedNodes();
+      host.appendChild(firstChild);
+      firstChild.shadowRoot.querySelector('slot').assignedNodes();
+    }
+    PerfTestRunner.assert_true(host.firstChild.id === "0", 'The test loop should end as it started');
+  },
+});
+</script>
+</body>
+</html>

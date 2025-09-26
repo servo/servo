@@ -27,7 +27,6 @@
 use std::cell::{OnceCell, UnsafeCell};
 use std::default::Default;
 use std::hash::{Hash, Hasher};
-use std::marker::PhantomData;
 use std::{mem, ptr};
 
 use js::jsapi::{Heap, JSObject, JSTracer, Value};
@@ -43,32 +42,17 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::node::Node;
 
-pub(crate) struct ThreadLocalStackRoots<'a>(PhantomData<&'a u32>);
-
-impl<'a> ThreadLocalStackRoots<'a> {
-    pub(crate) fn new(roots: &'a RootCollection) -> Self {
-        STACK_ROOTS.with(|r| r.set(Some(roots)));
-        ThreadLocalStackRoots(PhantomData)
-    }
-}
-
-impl Drop for ThreadLocalStackRoots<'_> {
-    fn drop(&mut self) {
-        STACK_ROOTS.with(|r| r.set(None));
-    }
-}
-
 pub(crate) trait ToLayout<T> {
     /// Returns `LayoutDom<T>` containing the same pointer.
     ///
     /// # Safety
     ///
     /// The `self` parameter to this method must meet all the requirements of [`ptr::NonNull::as_ref`].
-    unsafe fn to_layout(&self) -> LayoutDom<T>;
+    unsafe fn to_layout(&self) -> LayoutDom<'_, T>;
 }
 
 impl<T: DomObject> ToLayout<T> for Dom<T> {
-    unsafe fn to_layout(&self) -> LayoutDom<T> {
+    unsafe fn to_layout(&self) -> LayoutDom<'_, T> {
         assert_in_layout();
         LayoutDom {
             value: unsafe { self.as_ptr().as_ref().unwrap() },
@@ -266,7 +250,7 @@ impl<T: DomObject> MutNullableDom<T> {
     /// Retrieve a copy of the inner optional `Dom<T>` as `LayoutDom<T>`.
     /// For use by layout, which can't use safe types like Temporary.
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) unsafe fn get_inner_as_layout(&self) -> Option<LayoutDom<T>> {
+    pub(crate) unsafe fn get_inner_as_layout(&self) -> Option<LayoutDom<'_, T>> {
         assert_in_layout();
         unsafe { (*self.ptr.get()).as_ref().map(|js| js.to_layout()) }
     }

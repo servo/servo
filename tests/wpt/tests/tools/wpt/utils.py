@@ -145,7 +145,7 @@ def get_download_to_descriptor(fd, url, max_retries=5):
                 # Maximum retries or unknown error
                 raise
 
-def rmtree(path):
+def rmtree(path: str) -> None:
     # This works around two issues:
     # 1. Cannot delete read-only files owned by us (e.g. files extracted from tarballs)
     # 2. On Windows, we sometimes just need to retry in case the file handler

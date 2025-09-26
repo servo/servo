@@ -16,7 +16,7 @@ pub enum Error {
     /// IndexSizeError DOMException
     IndexSize,
     /// NotFoundError DOMException
-    NotFound,
+    NotFound(Option<String>),
     /// HierarchyRequestError DOMException
     HierarchyRequest,
     /// WrongDocumentError DOMException
@@ -30,7 +30,7 @@ pub enum Error {
     /// InvalidStateError DOMException
     InvalidState,
     /// SyntaxError DOMException
-    Syntax,
+    Syntax(Option<String>),
     /// NamespaceError DOMException
     Namespace,
     /// InvalidAccessError DOMException

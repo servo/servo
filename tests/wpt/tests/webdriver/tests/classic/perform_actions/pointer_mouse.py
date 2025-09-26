@@ -316,7 +316,11 @@ def test_move_to_origin_position_within_frame(
 
     events = get_events(session)
     assert len(events) == 1
-    assert events[0] == target_point
+
+    # For now we are allowing any of floor, ceil, or precise values, because
+    # it's unclear what the actual spec requirements really are
+    assert events[0][0] == pytest.approx(target_point[0], abs=1.0)
+    assert events[0][1] == pytest.approx(target_point[1], abs=1.0)
 
 
 @pytest.mark.parametrize("missing", ["x", "y"])

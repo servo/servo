@@ -1,0 +1,48 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>HTML5 Media Elements: timeupdate is emitted after a seek before the data is received.</title>
+    <meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+    <link rel="author" title="Alicia Boya García" href="mailto:aboya@igalia.com"/>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body onload="runTests()">
+<script>
+    const seekTime = 60 * 4;
+
+    function testTimeupdateOnSeek(mediaType) {
+        async_test(function (test) {
+            const video = document.createElement("video");
+            video.src = `timeout_on_seek.py?extension=${mediaType}`;
+            video.controls = true;
+            video.defaultMuted = true;
+            document.body.appendChild(video);
+
+            video.addEventListener("canplay", test.step_func(videoCanPlay), {once: true});
+
+            function videoCanPlay() {
+                video.addEventListener("timeupdate", test.step_func(onTimeUpdate));
+                video.play();
+                video.currentTime = seekTime;
+            }
+
+            function onTimeUpdate() {
+                if (Math.abs(video.currentTime - seekTime) <= 1) {
+                    document.body.removeChild(video);
+                    test.done();
+                }
+            }
+        }, `timeupdate is emitted after a seek before the data is received: ${mediaType}.`);
+    }
+
+    function runTests() {
+        const testerVideo = document.createElement("video");
+        if (testerVideo.canPlayType("video/mp4"))
+            testTimeupdateOnSeek("mp4");
+        if (testerVideo.canPlayType("video/ogg"))
+            testTimeupdateOnSeek("ogv");
+    }
+</script>
+</body>
+</html>

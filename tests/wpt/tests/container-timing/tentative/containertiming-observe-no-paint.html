@@ -20,17 +20,14 @@ body {
       }
     );
     observer.observe({entryTypes: ['container']});
-    t.step_timeout(() => {
-      t.done();
-    }, 2000);
-    // Add the image during onload to be sure that the observer is registered
-    // in time.
-    window.onload = () => {
-      const div = document.createElement('div');
-      div.setAttribute('containertiming', 'div_ct');
-      document.body.appendChild(div);
-      beforeRender = performance.now();
-    };
+
+    finishOnElementTiming(t);
+
+    const div = document.createElement('div');
+    div.setAttribute('containertiming', 'div_ct');
+    document.body.appendChild(div);
+
+    addPaintingElementTimingAfterDoubleRAF(document.body);
   }, 'Container timing did not report paints when there was nothing to paint.');
 </script>
 

@@ -64,7 +64,7 @@ impl DOMTokenList {
 
     fn check_token_exceptions(&self, token: &str) -> Fallible<Atom> {
         match token {
-            "" => Err(Error::Syntax),
+            "" => Err(Error::Syntax(None)),
             slice if slice.find(HTML_SPACE_CHARACTERS).is_some() => Err(Error::InvalidCharacter),
             slice => Ok(Atom::from(slice)),
         }
@@ -89,10 +89,7 @@ impl DOMTokenList {
             )),
             Some(supported_tokens) => {
                 let token = Atom::from(token).to_ascii_lowercase();
-                if supported_tokens
-                    .iter()
-                    .any(|supported_token| *supported_token == token)
-                {
+                if supported_tokens.contains(&token) {
                     return Ok(true);
                 }
                 Ok(false)
@@ -123,12 +120,8 @@ impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-contains>
     fn Contains(&self, token: DOMString) -> bool {
         let token = Atom::from(token);
-        self.attribute().is_some_and(|attr| {
-            attr.value()
-                .as_tokens()
-                .iter()
-                .any(|atom: &Atom| *atom == token)
-        })
+        self.attribute()
+            .is_some_and(|attr| attr.value().as_tokens().contains(&token))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-add>
@@ -136,7 +129,7 @@ impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
         let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
         for token in &tokens {
             let token = self.check_token_exceptions(token)?;
-            if !atoms.iter().any(|atom| *atom == token) {
+            if !atoms.contains(&token) {
                 atoms.push(token);
             }
         }
@@ -197,9 +190,9 @@ impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
     fn Replace(&self, token: DOMString, new_token: DOMString, can_gc: CanGc) -> Fallible<bool> {
         if token.is_empty() || new_token.is_empty() {
             // Step 1.
-            return Err(Error::Syntax);
+            return Err(Error::Syntax(None));
         }
-        if token.contains(HTML_SPACE_CHARACTERS) || new_token.contains(HTML_SPACE_CHARACTERS) {
+        if token.contains_html_space_characters() || new_token.contains_html_space_characters() {
             // Step 2.
             return Err(Error::InvalidCharacter);
         }

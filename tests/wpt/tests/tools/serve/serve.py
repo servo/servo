@@ -801,6 +801,7 @@ class RoutesBuilder:
             ("*", "/.well-known/private-aggregation/*", handlers.PythonScriptHandler),
             ("GET", "/.well-known/shared-storage/trusted-origins", handlers.PythonScriptHandler),
             ("*", "/.well-known/web-identity", handlers.PythonScriptHandler),
+            ("*", "/.well-known/device-bound-sessions", handlers.PythonScriptHandler),
             ("*", "*.py", handlers.PythonScriptHandler),
             ("GET", "*", handlers.FileHandler)
         ]

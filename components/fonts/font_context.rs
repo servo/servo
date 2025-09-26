@@ -4,22 +4,26 @@
 
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
-use std::hash::{BuildHasherDefault, Hash, Hasher};
+use std::hash::{Hash, Hasher};
+use std::ops::Deref;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use app_units::Au;
 use base::id::WebViewId;
 use compositing_traits::CrossProcessCompositorApi;
-use fnv::FnvHasher;
-use fonts_traits::StylesheetWebFontLoadFinishedCallback;
+use fonts_traits::{
+    CSSFontFaceDescriptors, FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef,
+    FontTemplateRefMethods, StylesheetWebFontLoadFinishedCallback,
+};
 use log::{debug, trace};
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::request::{Destination, Referrer, RequestBuilder};
 use net_traits::{CoreResourceThread, FetchResponseMsg, ResourceThreads, fetch_async};
 use parking_lot::{Mutex, RwLock};
+use rustc_hash::FxHashSet;
 use servo_arc::Arc as ServoArc;
+use servo_config::pref;
 use servo_url::ServoUrl;
 use style::Atom;
 use style::computed_values::font_variant_caps::T as FontVariantCaps;
@@ -32,25 +36,36 @@ use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::{CssRule, DocumentStyleSheet, FontFaceRule, StylesheetInDocument};
 use style::values::computed::font::{FamilyName, FontFamilyNameSyntax, SingleFontFamily};
 use url::Url;
-use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey};
+use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey, FontVariation};
 
-use crate::font::{
-    Font, FontDescriptor, FontFamilyDescriptor, FontGroup, FontRef, FontSearchScope,
-};
+use crate::font::{Font, FontFamilyDescriptor, FontGroup, FontRef, FontSearchScope};
 use crate::font_store::CrossThreadFontStore;
-use crate::font_template::{FontTemplate, FontTemplateRef, FontTemplateRefMethods};
 use crate::platform::font::PlatformFont;
-use crate::system_font_service::{CSSFontFaceDescriptors, FontIdentifier};
 use crate::{FontData, LowercaseFontFamilyName, PlatformFontMethods, SystemFontServiceProxy};
 
 static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
+
+pub(crate) type FontParameters = (FontKey, Au, Vec<FontVariation>);
+
+#[derive(MallocSizeOf)]
+struct FontGroupRef(#[conditional_malloc_size_of] Arc<RwLock<FontGroup>>);
+
+impl Deref for FontGroupRef {
+    type Target = Arc<RwLock<FontGroup>>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 /// The FontContext represents the per-thread/thread state necessary for
 /// working with fonts. It is the public API used by the layout and
 /// paint code. It talks directly to the system font service where
 /// required.
+#[derive(MallocSizeOf)]
 pub struct FontContext {
+    #[conditional_malloc_size_of]
     system_font_service_proxy: Arc<SystemFontServiceProxy>,
+
     resource_threads: Mutex<CoreResourceThread>,
 
     /// A sender that can send messages and receive replies from the compositor.
@@ -63,8 +78,7 @@ pub struct FontContext {
     /// A caching map between the specification of a font in CSS style and
     /// resolved [`FontGroup`] which contains information about all fonts that
     /// can be selected with that style.
-    resolved_font_groups:
-        RwLock<HashMap<FontGroupCacheKey, Arc<RwLock<FontGroup>>, BuildHasherDefault<FnvHasher>>>,
+    resolved_font_groups: RwLock<HashMap<FontGroupCacheKey, FontGroupRef>>,
 
     web_fonts: CrossThreadFontStore,
 
@@ -74,33 +88,13 @@ pub struct FontContext {
 
     /// A collection of WebRender [`FontInstanceKey`]s generated for the web fonts that
     /// this [`FontContext`] controls.
-    webrender_font_instance_keys: RwLock<HashMap<(FontKey, Au), FontInstanceKey>>,
+    webrender_font_instance_keys: RwLock<HashMap<FontParameters, FontInstanceKey>>,
 
     /// The data for each web font [`FontIdentifier`]. This data might be used by more than one
     /// [`FontTemplate`] as each identifier refers to a URL.
     font_data: RwLock<HashMap<FontIdentifier, FontData>>,
 
     have_removed_web_fonts: AtomicBool,
-}
-
-impl MallocSizeOf for FontContext {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let font_cache_size = self
-            .fonts
-            .read()
-            .iter()
-            .map(|(key, font)| {
-                key.size_of(ops) + font.as_ref().map_or(0, |font| (*font).size_of(ops))
-            })
-            .sum::<usize>();
-        let font_group_cache_size = self
-            .resolved_font_groups
-            .read()
-            .iter()
-            .map(|(key, font_group)| key.size_of(ops) + (*font_group.read()).size_of(ops))
-            .sum::<usize>();
-        font_cache_size + font_group_cache_size
-    }
 }
 
 impl FontContext {
@@ -116,7 +110,7 @@ impl FontContext {
             compositor_api: Mutex::new(compositor_api),
             fonts: Default::default(),
             resolved_font_groups: Default::default(),
-            web_fonts: Arc::new(RwLock::default()),
+            web_fonts: Default::default(),
             webrender_font_keys: RwLock::default(),
             webrender_font_instance_keys: RwLock::default(),
             have_removed_web_fonts: AtomicBool::new(false),
@@ -152,7 +146,7 @@ impl FontContext {
     ) -> Arc<RwLock<FontGroup>> {
         let cache_key = FontGroupCacheKey { size, style };
         if let Some(font_group) = self.resolved_font_groups.read().get(&cache_key) {
-            return font_group.clone();
+            return font_group.0.clone();
         }
 
         let mut descriptor = FontDescriptor::from(&*cache_key.style);
@@ -161,7 +155,7 @@ impl FontContext {
         let font_group = Arc::new(RwLock::new(FontGroup::new(&cache_key.style, descriptor)));
         self.resolved_font_groups
             .write()
-            .insert(cache_key, font_group.clone());
+            .insert(cache_key, FontGroupRef(font_group.clone()));
         font_group
     }
 
@@ -275,12 +269,12 @@ impl FontContext {
         font_descriptor: FontDescriptor,
         synthesized_small_caps: Option<FontRef>,
     ) -> Result<FontRef, &'static str> {
-        Ok(Arc::new(Font::new(
+        Ok(FontRef(Arc::new(Font::new(
             font_template.clone(),
-            font_descriptor.clone(),
+            font_descriptor,
             self.get_font_data(&font_template.identifier()),
             synthesized_small_caps,
-        )?))
+        )?)))
     }
 
     pub(crate) fn create_font_instance_key(&self, font: &Font) -> FontInstanceKey {
@@ -289,11 +283,13 @@ impl FontContext {
                 font.template.identifier(),
                 font.descriptor.pt_size,
                 font.webrender_font_instance_flags(),
+                font.variations().to_owned(),
             ),
             FontIdentifier::Web(_) => self.create_web_font_instance(
                 font.template.clone(),
                 font.descriptor.pt_size,
                 font.webrender_font_instance_flags(),
+                font.variations().to_owned(),
             ),
         }
     }
@@ -303,6 +299,7 @@ impl FontContext {
         font_template: FontTemplateRef,
         pt_size: Au,
         flags: FontInstanceFlags,
+        variations: Vec<FontVariation>,
     ) -> FontInstanceKey {
         let identifier = font_template.identifier().clone();
         let font_data = self
@@ -322,10 +319,10 @@ impl FontContext {
                 font_key
             });
 
-        let key = *self
+        *self
             .webrender_font_instance_keys
             .write()
-            .entry((font_key, pt_size))
+            .entry((font_key, pt_size, variations.clone()))
             .or_insert_with(|| {
                 let font_instance_key = self.system_font_service_proxy.generate_font_instance_key();
                 self.compositor_api.lock().add_font_instance(
@@ -333,10 +330,10 @@ impl FontContext {
                     font_key,
                     pt_size.to_f32_px(),
                     flags,
+                    variations,
                 );
                 font_instance_key
-            });
-        key
+            })
     }
 
     fn invalidate_font_groups_after_web_font_load(&self) {
@@ -366,10 +363,16 @@ impl FontContext {
         }
 
         if let FontFaceSourceFormat::String(string) = format_hint {
-            return string == "truetype" ||
-                string == "opentype" ||
-                string == "woff" ||
-                string == "woff2";
+            if string == "truetype" || string == "opentype" || string == "woff" || string == "woff2"
+            {
+                return true;
+            }
+
+            return pref!(layout_variable_fonts_enabled) &&
+                (string == "truetype-variations" ||
+                    string == "opentype-variations" ||
+                    string == "woff-variations" ||
+                    string == "woff2-variations");
         }
 
         false
@@ -608,7 +611,7 @@ impl FontContextWebFontMethods for Arc<FontContext> {
 
         self.have_removed_web_fonts.store(false, Ordering::Relaxed);
 
-        let mut removed_keys: HashSet<FontKey> = HashSet::new();
+        let mut removed_keys: FxHashSet<FontKey> = FxHashSet::default();
         webrender_font_keys.retain(|identifier, font_key| {
             if unused_identifiers.contains(identifier) {
                 removed_keys.insert(*font_key);
@@ -619,7 +622,7 @@ impl FontContextWebFontMethods for Arc<FontContext> {
         });
 
         let mut removed_instance_keys: HashSet<FontInstanceKey> = HashSet::new();
-        webrender_font_instance_keys.retain(|(font_key, _), instance_key| {
+        webrender_font_instance_keys.retain(|(font_key, _, _), instance_key| {
             if removed_keys.contains(font_key) {
                 removed_instance_keys.insert(*instance_key);
                 false
@@ -745,7 +748,7 @@ impl FontContext {
     }
 }
 
-pub type ScriptWebFontLoadFinishedCallback =
+pub(crate) type ScriptWebFontLoadFinishedCallback =
     Box<dyn FnOnce(LowercaseFontFamilyName, Option<FontTemplate>) + Send>;
 
 pub(crate) enum WebFontLoadInitiator {
@@ -864,11 +867,11 @@ impl RemoteWebFontDownloader {
 
         let url: ServoUrl = self.url.clone().into();
         let identifier = FontIdentifier::Web(url.clone());
-        let Ok(handle) = PlatformFont::new_from_data(identifier, &font_data, None) else {
+        let Ok(handle) = PlatformFont::new_from_data(identifier, &font_data, None, &[]) else {
             return false;
         };
-
         let state = self.take_state();
+
         let mut descriptor = handle.descriptor();
         descriptor
             .override_values_with_css_font_template_descriptors(&state.css_font_face_descriptors);

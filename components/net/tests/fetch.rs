@@ -1299,7 +1299,7 @@ fn test_fetch_with_devtools() {
     let devhttprequests = expect_devtools_http_request(&devtools_port);
     let mut devhttpresponse = devtools_response_with_body(&devtools_port);
 
-    //Creating default headers for request
+    // Creating default headers for request
     let mut headers = HeaderMap::new();
 
     headers.insert(header::ACCEPT, HeaderValue::from_static("*/*"));
@@ -1313,7 +1313,7 @@ fn test_fetch_with_devtools() {
 
     headers.insert(
         header::ACCEPT_ENCODING,
-        HeaderValue::from_static("gzip, deflate, br"),
+        HeaderValue::from_static("gzip, deflate, br, zstd"),
     );
 
     // Append fetch metadata headers
@@ -1342,7 +1342,7 @@ fn test_fetch_with_devtools() {
         send_time: devhttprequests.1.send_time,
         destination: Destination::None,
         is_xhr: true,
-        browsing_context_id: TEST_WEBVIEW_ID.0,
+        browsing_context_id: TEST_WEBVIEW_ID.into(),
     };
 
     let content = "Yay!";
@@ -1359,7 +1359,7 @@ fn test_fetch_with_devtools() {
         status: HttpStatus::default(),
         body: Some(content.as_bytes().to_vec()),
         pipeline_id: TEST_PIPELINE_ID,
-        browsing_context_id: TEST_WEBVIEW_ID.0,
+        browsing_context_id: TEST_WEBVIEW_ID.into(),
     };
 
     assert_eq!(devhttprequests.1, httprequest);

@@ -1,4 +1,5 @@
 import pytest
+from webdriver.bidi.modules.script import ContextTarget
 
 pytestmark = pytest.mark.asyncio
 
@@ -83,6 +84,10 @@ async def test_iframe(
     # Assert locale is emulated in the iframe context.
     assert await get_current_locale(iframe) == some_locale
 
+    sandbox_name = "test"
+    # Assert locale is emulated in the newly created sandbox in the iframe context.
+    assert await get_current_locale(iframe, sandbox_name) == some_locale
+
     # Set another locale override.
     await bidi_session.emulation.set_locale_override(
         contexts=[new_tab["context"]], locale=another_locale
@@ -90,3 +95,32 @@ async def test_iframe(
 
     # Assert locale is emulated in the iframe context.
     assert await get_current_locale(iframe) == another_locale
+    # Assert locale is emulated in the existing sandbox in the iframe context.
+    assert await get_current_locale(iframe, sandbox_name) == another_locale
+
+
+async def test_locale_override_applies_to_new_sandbox(
+    bidi_session, new_tab, some_locale, get_current_locale
+):
+    await bidi_session.emulation.set_locale_override(
+        contexts=[new_tab["context"]], locale=some_locale
+    )
+
+    # Make sure the override got applied to the newly created sandbox.
+    assert await get_current_locale(new_tab, "test") == some_locale
+
+
+async def test_locale_override_applies_to_existing_sandbox(
+    bidi_session, new_tab, default_locale, another_locale, get_current_locale
+):
+    sandbox_name = "test"
+
+    # Create a sandbox.
+    assert await get_current_locale(new_tab, sandbox_name) == default_locale
+
+    await bidi_session.emulation.set_locale_override(
+        contexts=[new_tab["context"]], locale=another_locale
+    )
+
+    # Make sure the override got applied to the existing sandbox.
+    assert await get_current_locale(new_tab, sandbox_name) == another_locale

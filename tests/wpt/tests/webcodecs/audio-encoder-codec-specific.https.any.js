@@ -187,6 +187,80 @@ promise_test(async t => {
   assert_less_than(vbr_total_bytes, (cbr_total_bytes / 2));
 }, 'Test the Opus bitrateMode flag works.');
 
+// Opus can handle configs with a frameDuration that is any multiple of 2.5ms,
+// up to 120ms. This test ensures that we can handle multiples and encoders
+// return encoded packets with the correct frameDuration.
+promise_test(async t => {
+  let sample_rate = 48000;
+  let total_duration_s = 10;
+  let data_count = 100;
+
+  let valid_frame_durations = [7500, 30000, 120000];
+  for(const duration of valid_frame_durations) {
+    let outputs = [];
+    // We use an AudioDecoder to verify that the EncodedAudioChunks from
+    // encoder.encode() can be decoded.
+    let decoder = new AudioDecoder({
+      error: e => {
+        assert_unreached(`Duration ${duration} received this error: ` + e);
+      },
+      output: chunk => {
+        chunk.close();
+      }
+    });
+    decoder.configure({
+      codec: "opus",
+      numberOfChannels: 2,
+      sampleRate: sample_rate
+    });
+
+    let encoder = new AudioEncoder({
+      error: e => {
+        assert_unreached(`Duration ${duration} received this error: ` + e);
+      },
+      output: chunk => {
+        outputs.push(chunk);
+        decoder.decode(chunk);
+      }
+    });
+    let config = {
+      codec: 'opus',
+      sampleRate: sample_rate,
+      numberOfChannels: 2,
+      bitrate: 256000,  // 256kbit
+      bitrateMode: "constant",
+      opus: {
+        frameDuration: duration,
+      },
+    };
+
+    encoder.configure(config);
+
+    let timestamp_us = 0;
+    let data_duration_s = total_duration_s / data_count;
+    let data_length = data_duration_s * config.sampleRate;
+    for (let i = 0; i < data_count; i++) {
+      let data = make_audio_data(
+          timestamp_us, config.numberOfChannels, config.sampleRate,
+          data_length);
+      encoder.encode(data);
+      data.close();
+
+      timestamp_us += data_duration_s * 1_000_000;
+    }
+
+    await encoder.flush()
+    await decoder.flush();
+
+    encoder.close();
+    decoder.close();
+
+    assert_true(outputs.every((chunk) => chunk.duration === duration));
+
+  }
+}, 'Test Opus valid frame durations.');
+
+
 
 // The AAC bitrateMode enum chooses whether we use a constant or variable bitrate.
 // This test exercises the VBR/CBR paths. Some platforms don't support VBR for AAC,

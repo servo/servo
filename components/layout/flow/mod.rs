@@ -139,11 +139,7 @@ impl BlockLevelBox {
         self.with_base(|base| base.clear_fragment_layout_cache());
     }
 
-    pub(crate) fn fragments(&self) -> Vec<Fragment> {
-        self.with_base(LayoutBoxBase::fragments)
-    }
-
-    pub(crate) fn with_base<T>(&self, callback: impl Fn(&LayoutBoxBase) -> T) -> T {
+    pub(crate) fn with_base<T>(&self, callback: impl FnOnce(&LayoutBoxBase) -> T) -> T {
         match self {
             BlockLevelBox::Independent(independent_formatting_context) => {
                 callback(&independent_formatting_context.base)
@@ -157,7 +153,7 @@ impl BlockLevelBox {
         }
     }
 
-    pub(crate) fn with_base_mut<T>(&mut self, callback: impl Fn(&mut LayoutBoxBase) -> T) -> T {
+    pub(crate) fn with_base_mut<T>(&mut self, callback: impl FnOnce(&mut LayoutBoxBase) -> T) -> T {
         match self {
             BlockLevelBox::Independent(independent_formatting_context) => {
                 callback(&mut independent_formatting_context.base)
@@ -242,7 +238,7 @@ impl BlockLevelBox {
         let get_inline_content_sizes = || {
             let constraint_space = ConstraintSpace::new(
                 tentative_block_size,
-                style.writing_mode,
+                style,
                 None, /* TODO: support preferred aspect ratios on non-replaced boxes */
             );
             self.inline_content_sizes(layout_context, &constraint_space)
@@ -512,16 +508,11 @@ fn compute_inline_content_sizes_for_block_level_boxes(
                     false, /* auto_block_size_stretches_to_containing_block */
                 );
                 let style = &float_box.contents.style();
+                let container_writing_mode = containing_block.style.writing_mode;
                 Some((
                     inline_content_sizes_result,
-                    FloatSide::from_style_and_container_writing_mode(
-                        style,
-                        containing_block.writing_mode,
-                    ),
-                    Clear::from_style_and_container_writing_mode(
-                        style,
-                        containing_block.writing_mode,
-                    ),
+                    FloatSide::from_style_and_container_writing_mode(style, container_writing_mode),
+                    Clear::from_style_and_container_writing_mode(style, container_writing_mode),
                 ))
             },
             BlockLevelBox::SameFormattingContextBlock { base, contents, .. } => {
@@ -555,7 +546,7 @@ fn compute_inline_content_sizes_for_block_level_boxes(
                     None,
                     Clear::from_style_and_container_writing_mode(
                         independent.style(),
-                        containing_block.writing_mode,
+                        containing_block.style.writing_mode,
                     ),
                 ))
             },
@@ -1377,21 +1368,19 @@ impl IndependentFormattingContext {
 
         // With the tentative block size we can compute the inline min/max-content sizes.
         let get_inline_content_sizes = || {
-            let constraint_space = ConstraintSpace::new(
-                tentative_block_size,
-                style.writing_mode,
-                preferred_aspect_ratio,
-            );
+            let constraint_space =
+                ConstraintSpace::new(tentative_block_size, style, preferred_aspect_ratio);
             self.inline_content_sizes(layout_context, &constraint_space)
                 .sizes
         };
 
         let justify_self = resolve_justify_self(style, containing_block.style);
-        let is_replaced = self.is_replaced();
+        let automatic_inline_size =
+            automatic_inline_size(justify_self, is_table, self.is_replaced());
         let compute_inline_size = |stretch_size| {
             content_box_sizes.inline.resolve(
                 Direction::Inline,
-                automatic_inline_size(justify_self, is_table, is_replaced),
+                automatic_inline_size,
                 Au::zero,
                 Some(stretch_size),
                 get_inline_content_sizes,
@@ -1685,7 +1674,6 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     } = layout_style.content_box_sizes_and_padding_border_margin(&containing_block.into());
 
     let pbm_sums = pbm.sums_auto_is_zero(ignore_block_margins_for_stretch);
-    let writing_mode = style.writing_mode;
     let available_inline_size = Au::zero().max(containing_block.size.inline - pbm_sums.inline);
     let available_block_size = containing_block
         .size
@@ -1725,7 +1713,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     let get_inline_content_sizes = || {
         get_inline_content_sizes(&ConstraintSpace::new(
             tentative_block_size,
-            writing_mode,
+            style,
             preferred_aspect_ratio,
         ))
     };
@@ -2213,7 +2201,7 @@ fn block_size_is_zero_or_intrinsic(size: &StyleSize, containing_block: &Containi
         StyleSize::MaxContent |
         StyleSize::FitContent |
         StyleSize::FitContentFunction(_) => true,
-        StyleSize::Stretch => {
+        StyleSize::Stretch | StyleSize::WebkitFillAvailable => {
             // TODO: Should this return true when the containing block has a definite size of 0px?
             !containing_block.size.block.is_definite()
         },
@@ -2242,7 +2230,6 @@ impl IndependentFormattingContext {
         containing_block: &ContainingBlock,
     ) -> IndependentFloatOrAtomicLayoutResult {
         let style = self.style();
-        let writing_mode = style.writing_mode;
         let container_writing_mode = containing_block.style.writing_mode;
         let layout_style = self.layout_style();
         let content_box_sizes_and_pbm =
@@ -2281,7 +2268,7 @@ impl IndependentFormattingContext {
 
         let get_content_size = || {
             let constraint_space =
-                ConstraintSpace::new(tentative_block_size, writing_mode, preferred_aspect_ratio);
+                ConstraintSpace::new(tentative_block_size, style, preferred_aspect_ratio);
             self.inline_content_sizes(layout_context, &constraint_space)
                 .sizes
         };
@@ -2304,7 +2291,7 @@ impl IndependentFormattingContext {
         };
         assert_eq!(
             container_writing_mode.is_horizontal(),
-            writing_mode.is_horizontal(),
+            style.writing_mode.is_horizontal(),
             "Mixed horizontal and vertical writing modes are not supported yet"
         );
 

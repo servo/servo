@@ -22,6 +22,12 @@
     width: 100px;
 }
 
+/* Setting the line-height to be it's container height would align the text vertically. */
+.definite-height-vertically-center {
+    height: 50px;
+    line-height: 50px;
+}
+
 .placeholder-color {
     color: grey;
 }

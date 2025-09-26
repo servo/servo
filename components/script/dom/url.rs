@@ -4,11 +4,12 @@
 
 use std::default::Default;
 
+use base::IpcSend;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use net_traits::CoreResourceMsg;
 use net_traits::blob_url_store::{get_blob_origin, parse_blob_url};
 use net_traits::filemanager_thread::FileManagerThreadMsg;
-use net_traits::{CoreResourceMsg, IpcSend};
 use profile_traits::ipc;
 use servo_url::ServoUrl;
 use uuid::Uuid;
@@ -198,7 +199,7 @@ impl URLMethods<crate::DomTypeHolder> for URL {
         // this method call does nothing. User agents may display a message on the error console.
         let origin = get_blob_origin(&global.get_url());
 
-        if let Ok(url) = ServoUrl::parse(&url) {
+        if let Ok(url) = ServoUrl::parse(url.str()) {
             if url.fragment().is_none() && origin == get_blob_origin(&url) {
                 if let Ok((id, _)) = parse_blob_url(&url) {
                     let resource_threads = global.resource_threads();

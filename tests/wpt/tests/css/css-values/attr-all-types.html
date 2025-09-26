@@ -94,6 +94,9 @@
     test_invalid_attr('content', 'attr(data-foo string)', 'abc');
     test_valid_attr('content', 'attr(data-foo raw-string)', 'abc', '"abc"');
     test_valid_attr('content', 'attr(data-foo,)', 'abc', '"abc"');
+    test_valid_attr('content', 'attr(data-foo, 3)', 'attr(', '"attr("');
+    test_valid_attr('content', 'attr(data-foo)', 'attr(', '"attr("');
+    test_valid_attr('content', 'attr(data-foo raw-string)', 'attr(', '"attr("');
 
     test_valid_attr('content', 'attr(data-foo type(<string>))', '"abc"', '"abc"');
     test_valid_attr('content', 'attr(data-foo type(<string>),)', '"abc"', '"abc"');
@@ -106,6 +109,10 @@
     test_valid_attr('animation-name', 'attr(data-foo type(<custom-ident>))', 'anim', 'anim');
     test_valid_attr('animation-name', 'attr(data-foo type(<custom-ident>), anim-fallback)', '"anim"', 'anim-fallback');
     test_valid_attr('animation-name', 'attr(data-foo type(<custom-ident>), anim-fallback)', 'initial', 'anim-fallback');
+    test_valid_attr('animation-name', 'attr(data-foo type(<custom-ident>))', 'var(', '');
+    test_valid_attr('animation-name', 'attr(data-foo type(<custom-ident>), anim)', 'var(', 'anim');
+    test_valid_attr('animation-name', 'attr(data-foo type(<custom-ident>))', 'var(--x fallback)', '');
+    test_valid_attr('animation-name', 'attr(data-foo type(<custom-ident>))', 'attr(data-bar type(number))', '');
 
     test_valid_attr('background-color', 'attr(data-foo type(<color>))', 'red', 'red');
     test_valid_attr('background-color', 'attr(data-foo type(<color>))', '#ff0099aa', '#ff0099aa');
@@ -121,6 +128,10 @@
     test_valid_attr('font-weight', 'attr(data-foo type(<number> |  lighter | bold), lighter)', '10px', 'lighter');
     test_valid_attr('font-weight', 'attr(data-foo type(<number>))', 'calc(3 + 3)', '6');
     test_valid_attr('font-weight', 'attr(data-foo type(<number>), calc(10 + 20))', '10px', '30');
+    test_valid_attr('font-weight', 'attr(data-foo type(<number>))', 'attr(', '');
+    test_valid_attr('font-weight', 'attr(data-foo type(<number>), 10)', 'attr(', '10');
+    test_valid_attr('font-weight', 'attr(data-foo type(<number>))', 'attr(data-bar type(number))', '');
+    test_valid_attr('font-weight', 'attr(data-foo type(<number>))', 'attr(data-bar type(<number>) 3)', '');
 
     test_valid_attr('font-size', 'attr(data-foo type(<percentage>))', '10%', '10%');
     test_valid_attr('font-size', 'attr(data-foo type(<percentage>), 10px)', 'abc', '10px');
@@ -157,6 +168,8 @@
     test_valid_attr('--y', 'attr(data-foo type(*))', 'attr(data-bar type(<number>), 11)', '3');
     test_valid_attr('width', 'attr(data-foo type(*))', 'attr(data-bar type(<number>), 11)', '3');
     test_valid_attr('--y', 'attr(data-foo type(*))', 'attr(data-bar type(<number>), 11) var(--length, 3px)', '3 10px');
+    test_valid_attr('animation-name', 'attr(data-foo type(*))', 'attr(', '');
+    test_valid_attr('animation-name', 'attr(data-foo type(*), anim)', 'attr(', 'anim');
 
     test_dimension_types_and_units();
 

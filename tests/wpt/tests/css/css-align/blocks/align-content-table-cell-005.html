@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-align/#distribution-blocks">
+<link rel="help" href="https://drafts.csswg.org/css-align/#auto-safety">
+<link rel="match" href="../../reference/ref-filled-green-300px-square.html">
+<link rel="match" href="align-content-table-cell-005-ref-alt.html">
+<meta name="assert" content="
+  The contents of the cells are 600px tall, but since we are collapsing one row,
+  the cells shrink to be only 300px tall. Therefore, the contents overflow.
+  This test checks various alignments with no overflow alignment specified,
+  they should behave as unsafe.
+  However, for cells which aren't scroll containers, UAs that have not implemented
+  the “smart” default behavior must behave as safe, hence there are 2 expectations.
+">
+
+<style>
+table {
+  overflow: hidden;
+}
+tr {
+  height: 300px;
+}
+td::before {
+  content: "";
+  display: block;
+  width: 50px;
+  height: 600px;
+  background: linear-gradient(to bottom, var(--gradient));
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<table cellspacing="0" cellpadding="0">
+  <tr>
+    <td rowspan="2" style="align-content: start; --gradient: green 50%, red 50%"></td>
+    <td rowspan="2" style="align-content: center; --gradient: red 25%, green 25% 75%, red 75%"></td>
+    <td rowspan="2" style="align-content: end; --gradient: red 50%, green 50%"></td>
+    <td rowspan="2" style="overflow: hidden; align-content: start; --gradient: green 50%, red 50%"></td>
+    <td rowspan="2" style="overflow: hidden; align-content: center; --gradient: red 25%, green 25% 75%, red 75%"></td>
+    <td rowspan="2" style="overflow: hidden; align-content: end; --gradient: red 50%, green 50%"></td>
+  </tr>
+  <tr style="visibility: collapse"></tr>
+</table>

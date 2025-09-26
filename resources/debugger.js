@@ -38,5 +38,15 @@ addEventListener("addDebuggee", event => {
 
 addEventListener("getPossibleBreakpoints", event => {
     const {spidermonkeyId} = event;
-    getPossibleBreakpointsResult(event, sourceIdsToScripts.get(spidermonkeyId).getPossibleBreakpoints(/* TODO: `query` */));
+    const script = sourceIdsToScripts.get(spidermonkeyId);
+    function getPossibleBreakpointsRecursive(script) {
+        const result = script.getPossibleBreakpoints(/* TODO: `query` */);
+        for (const child of script.getChildScripts()) {
+            for (const location of getPossibleBreakpointsRecursive(child)) {
+                result.push(location);
+            }
+        }
+        return result;
+    }
+    getPossibleBreakpointsResult(event, getPossibleBreakpointsRecursive(script));
 });

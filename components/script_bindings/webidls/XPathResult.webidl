@@ -21,7 +21,7 @@ interface XPathResult {
   [Throws] readonly attribute DOMString stringValue;
   [Throws] readonly attribute boolean booleanValue;
   [Throws] readonly attribute Node? singleNodeValue;
-  [Throws] readonly attribute boolean invalidIteratorState;
+  readonly attribute boolean invalidIteratorState;
   [Throws] readonly attribute unsigned long snapshotLength;
 
   [Throws] Node? iterateNext();

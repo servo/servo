@@ -28,7 +28,7 @@
   </template>
 </div>
 
-<div data-name="::part() can not see inner named containers">
+<div data-name="::part() can see inner named containers">
   <template shadowrootmode=open>
     <style>
       @function --b() {
@@ -41,7 +41,7 @@
       }
       ::part(target) {
         --actual: --b();
-        --expected: 10px;
+        --expected: 5px;
       }
       .container {
         container: --cont / size;
@@ -104,7 +104,7 @@
           }
           ::slotted(#target) {
             --actual: --b() --c();
-            --expected: 10px 5px;
+            --expected: 5px 5px;
           }
         </style>
         <div class=container>

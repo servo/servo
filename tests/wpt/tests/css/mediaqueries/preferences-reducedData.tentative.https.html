@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>WebPreferences Test: reducedData attribute tests</title>
+    <link rel="author" title="Luke Warlow" href="mailto:lwarlow@igalia.com" />
+    <link rel="help" href="https://drafts.csswg.org/mediaqueries-5/#auto-pref%E2%91%A0" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src=./resources/preferences-helper.js></script>
+  </head>
+  <body>
+    <script>
+      test(() => {
+        assert_true('preferences' in navigator, 'navigator.preferences defined');
+        assert_true('reducedData' in navigator.preferences, 'navigator.preferences.reducedData defined');
+      }, "navigator.preferences.reducedData supported");
+      test(() => {
+        assert_true('override' in navigator.preferences.reducedData, 'navigator.preferences.reducedData.override defined');
+        assert_equals(navigator.preferences.reducedData.override, null);
+      }, "navigator.preferences.reducedData.override supported");
+      test(() => {
+        assert_true('value' in navigator.preferences.reducedData, 'navigator.preferences.reducedData.value defined');
+        assert_equals(navigator.preferences.reducedData.value, 'no-preference');
+      }, "navigator.preferences.reducedData.value supported");
+      test(() => {
+        assert_true('validValues' in navigator.preferences.reducedData, 'navigator.preferences.reducedData.validValues defined');
+        assert_true(navigator.preferences.reducedData.validValues.includes('reduce'), 'navigator.preferences.reducedData.validValues includes "reduce"');
+        assert_true(navigator.preferences.reducedData.validValues.includes('no-preference'), 'navigator.preferences.reducedData.validValues includes "no-preference"');
+      }, "navigator.preferences.reducedData.validValues supported");
+      promise_test((t) => {
+        assert_true('requestOverride' in navigator.preferences.reducedData, 'navigator.preferences.reducedData.requestOverride() defined');
+        return navigator.preferences.reducedData.requestOverride('this-is-an-invalid-value')
+          .then(() => {
+            assert_not_reached('requestOverride with invalid value should not resolve');
+          })
+          .catch((e) => {
+            assert_true(e instanceof DOMException);
+            assert_equals(navigator.preferences.reducedData.override, null);
+            t.done();
+          });
+      }, "navigator.preferences.reducedData.requestOverride() with invalid value throws");
+      promise_test(async (t) => {
+        assert_true('clearOverride' in navigator.preferences.reducedData, 'navigator.preferences.reducedData.clearOverride() defined');
+        await navigator.preferences.reducedData.requestOverride('reduce');
+        assert_equals(navigator.preferences.reducedData.override, 'reduce');
+        navigator.preferences.reducedData.clearOverride();
+        assert_equals(navigator.preferences.reducedData.override, null);
+        t.done();
+      }, "navigator.preferences.reducedData.clearOverride() supported");
+      promise_test(async (t) => {
+        await navigator.preferences.reducedData.requestOverride('reduce');
+        assert_equals(navigator.preferences.reducedData.override, 'reduce');
+        await navigator.preferences.reducedData.requestOverride(null);
+        assert_equals(navigator.preferences.reducedData.override, null);
+        t.done();
+      }, "navigator.preferences.reducedData.requestOverride(null) works like clearOverride()");
+      promise_test(async (t) => {
+        await navigator.preferences.reducedData.requestOverride('reduce');
+        assert_equals(navigator.preferences.reducedData.override, 'reduce');
+        await navigator.preferences.reducedData.requestOverride('');
+        assert_equals(navigator.preferences.reducedData.override, null);
+        t.done();
+      }, "navigator.preferences.reducedData.requestOverride('') works like clearOverride()");
+      promise_test(async (t) => {
+        await navigator.preferences.reducedData.requestOverride('no-preference');
+        assert_true(window.matchMedia('(prefers-reduced-data: no-preference)').matches, '(prefers-reduced-data: no-preference) matches');
+        assert_equals(navigator.preferences.reducedData.value, 'no-preference');
+        await navigator.preferences.reducedData.requestOverride('reduce');
+        assert_true(window.matchMedia('(prefers-reduced-data: reduce)').matches, '(prefers-reduced-data: reduce) matches');
+        assert_equals(navigator.preferences.reducedData.value, 'reduce');
+        navigator.preferences.reducedData.clearOverride();
+        assert_true(window.matchMedia('(prefers-reduced-data: no-preference)').matches);
+        assert_equals(navigator.preferences.reducedData.value, 'no-preference');
+        t.done();
+      }, "navigator.preferences.reducedData.requestOverride() updates (prefers-reduced-data)");
+      async_test((t) => {
+        t.add_cleanup(() => {
+          navigator.preferences.reducedData.clearOverride();
+          navigator.preferences.reducedData.onchange = null;
+        });
+        navigator.preferences.reducedData.onchange = t.step_func_done();
+        navigator.preferences.reducedData.requestOverride('reduce');
+      }, "navigator.preferences.reducedData fires change event when requesting override");
+      async_test((t) => {
+        t.add_cleanup(() => {
+          navigator.preferences.reducedData.clearOverride();
+          navigator.preferences.reducedData.onchange = null;
+        });
+        navigator.preferences.reducedData.onchange = t.step_func_done();
+        navigator.preferences.reducedData.requestOverride('no-preference');
+      }, "navigator.preferences.reducedData fires change event when requesting override (without value change)");
+      promise_test(async (t) => {
+        t.add_cleanup(() => {
+          navigator.preferences.reducedData.clearOverride();
+          navigator.preferences.reducedData.onchange = null;
+        });
+        await navigator.preferences.reducedData.requestOverride('reduce');
+        const eventPromise = changeEventPromise("reducedData", t);
+        await navigator.preferences.reducedData.clearOverride();
+        await eventPromise;
+      }, "navigator.preferences.reducedData fires change event when clearing override");
+      promise_test(async (t) => {
+        t.add_cleanup(() => {
+          navigator.preferences.reducedData.clearOverride();
+          navigator.preferences.reducedData.onchange = null;
+        });
+        await navigator.preferences.reducedData.requestOverride('no-preference');
+        const eventPromise = changeEventPromise("reducedData", t);
+        await navigator.preferences.reducedData.clearOverride();
+        await eventPromise;
+      }, "navigator.preferences.reducedData fires change event when clearing override (without value change)");
+    </script>
+  </body>
+</html>

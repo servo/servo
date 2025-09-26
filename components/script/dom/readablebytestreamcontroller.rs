@@ -1180,7 +1180,7 @@ impl ReadableByteStreamController {
         // Assert: bytesFilled ≤ pullIntoDescriptor’s byte length.
         assert!(bytes_filled <= pull_into_descriptor.byte_length);
 
-        //Assert: the remainder after dividing bytesFilled by elementSize is 0.
+        // Assert: the remainder after dividing bytesFilled by elementSize is 0.
         assert!(bytes_filled % element_size == 0);
 
         // Let buffer be ! TransferArrayBuffer(pullIntoDescriptor’s buffer).
@@ -1486,10 +1486,8 @@ impl ReadableByteStreamController {
 
         // Let descriptor be controller.[[pendingPullIntos]][0].
         // Remove descriptor from controller.[[pendingPullIntos]].
-        let descriptor = self.pending_pull_intos.borrow_mut().remove(0);
-
         // Return descriptor.
-        descriptor
+        self.pending_pull_intos.borrow_mut().remove(0)
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontrollerprocessreadrequestsusingqueue>

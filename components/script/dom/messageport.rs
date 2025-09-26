@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
 use std::ptr;
 use std::rc::Rc;
 
@@ -13,6 +12,7 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, JS_NewObject, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use rustc_hash::FxHashMap;
 use script_bindings::conversions::SafeToJSValConvertible;
 
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
@@ -222,16 +222,12 @@ impl MessagePort {
         type_.safe_to_jsval(cx, type_string.handle_mut());
 
         // Perform ! CreateDataProperty(message, "type", type).
-        unsafe {
-            set_dictionary_property(*cx, message.handle(), "type", type_string.handle())
-                .expect("Setting the message type should not fail.");
-        }
+        set_dictionary_property(cx, message.handle(), "type", type_string.handle())
+            .expect("Setting the message type should not fail.");
 
         // Perform ! CreateDataProperty(message, "value", value).
-        unsafe {
-            set_dictionary_property(*cx, message.handle(), "value", value)
-                .expect("Setting the message value should not fail.");
-        }
+        set_dictionary_property(cx, message.handle(), "value", value)
+            .expect("Setting the message value should not fail.");
 
         // Let targetPort be the port with which port is entangled, if any; otherwise let it be null.
         // Done in `global.post_messageport_msg`.
@@ -284,7 +280,7 @@ impl Transferable for MessagePort {
 
     fn serialized_storage<'a>(
         data: StructuredData<'a, '_>,
-    ) -> &'a mut Option<HashMap<MessagePortId, Self::Data>> {
+    ) -> &'a mut Option<FxHashMap<MessagePortId, Self::Data>> {
         match data {
             StructuredData::Reader(r) => &mut r.port_impls,
             StructuredData::Writer(w) => &mut w.ports,

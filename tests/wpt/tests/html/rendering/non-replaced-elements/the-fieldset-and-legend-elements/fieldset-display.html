@@ -13,8 +13,10 @@
   const inlineWidth = getComputedStyle(document.querySelector('#inline-ref')).width;
   const testElm = document.querySelector('#test');
   // Please only add canonical values to these lists:
+  // (Also, note that we're not testing "display:run-in" here; it's mentioned
+  // in several CSS specs, but no browser engines appear likely to support it.)
   const blocks = ['block', 'table', 'table-row-group', 'table-header-group', 'table-footer-group', 'table-row', 'table-cell',
-                  'table-column-group', 'table-column', 'table-caption', 'list-item', 'flow-root', 'run-in', 'block ruby'];
+                  'table-column-group', 'table-column', 'table-caption', 'list-item', 'flow-root', 'block ruby'];
   const inlines = ['inline', 'inline-block', 'inline-table', 'ruby', 'ruby-base', 'ruby-text', 'ruby-base-container', 'ruby-text-container'];
 
   function test_display(val, expectedWidth) {

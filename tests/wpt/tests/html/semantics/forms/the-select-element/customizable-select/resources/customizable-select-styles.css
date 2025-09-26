@@ -1,6 +1,4 @@
-/* These are UA styles for select and customizable select. */
-/* TODO(crbug.com/41483940): These rules will probably change here:
- * https://github.com/w3c/csswg-drafts/issues/10857 */
+/* These are standardized UA styles for base appearance select. */
 
 .customizable-select-button, .customizable-select-popover {
   box-sizing: border-box;

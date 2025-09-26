@@ -9,9 +9,12 @@
 
 <body>
   <script>
+    // Helper function to obtain IndexedDB usage data for this test window.
     const usageDetails = async () =>
       (await navigator.storage.estimate()).usageDetails.indexedDB || 0;
 
+    // Helper function to create usage of the IndexedDB so that our test
+    // can estimate that usage.
     const createSomeUsage = async (test) => {
       // We use 100KB here because db compaction usually happens every few MB
       // 100KB is large enough to avoid a false positive (small amounts of
@@ -31,46 +34,114 @@
       return db;
     }
 
+    // Helper function for creating pathnames to test resources.
     const testPath = () => location.pathname.split("/").slice(0, -1).join("/");
 
+    // Define our test variables.
     let alt_origin = "https://{{hosts[alt][]}}:{{ports[https][0]}}";
     let details = {};
 
+    // Step 0: Construct an iframe. The content of this iframe includes
+    // a script that will intercept and send postMessages back to this test
+    // window.
     const iframe = document.createElement("iframe");
     iframe.src = `https://{{host}}:{{ports[https][0]}}${testPath()}/resources` +
       `/partitioned-estimate-usage-details-indexeddb-helper-frame.html`;
     document.body.appendChild(iframe);
 
+    // Our test will perform the following steps to demonstrate the partitioning
+    // of storage estimate usage details for IndexedDB. Some steps are in:
+    // wpt/storage/resources/partitioned-estimate-usage-details-indexeddb-helper-frame.html
+    // --------------------
+    // (0) Construct a same-partition iframe on our test page. The content of
+    // this iframe includes a script that will intercept and send postMessages
+    // back to this test window.
+    // (1) The same-partition iframe sends a postMessage notifying that the
+    // iframe was constructed and we are ready to proceed with the test.
+    // (2) Our test window intercepts this "iframe-is-ready" message.
+    // (3) We create some IndexedDB usage and ensure that the IndexedDB usage
+    // data reflects that increase in the test window.
+    // (4) postMessage the same-partition iframe to obtain the IndexedDB usage
+    // data from that frame.
+    // (5) Our same-partition iframe intercepts the "get-details" postMessage,
+    // obtains the IndexedDB usage details available to the iframe, and
+    // postMessages the usage back to the test window.
+    // (6) Our test window intercepts the "same-site" message from the same-
+    // partition iframe containing usage data obtained there.
+    // (7) We record the same-partition usage data. Then, we open a cross-
+    // site window containing this test script. As a result, Step 0 will
+    // be repeated, and an iframe will be created in that cross-site
+    // window (referred to from here on out as the "cross-partition iframe").
+    // Our cross-partition iframe will receive the same script as our same-
+    // partition iframe. We then return early to avoid running another
+    // instance of this test.
+    // (8) Once created and loaded, our cross-partition iframe has an on-load
+    // listener that is triggered. To check that our script is executing in the
+    // cross-partition iframe (and not the same-partition iframe), we check that
+    // our parent has a valid opener value.
+    // (9) Then, our cross-partition iframe obtains the IndexedDB usage details
+    // available to it and postMessages the usage back to the test window.
+    // (10) Our test window intercepts the "cross-site" message from the cross-
+    // partition iframe containing the usage data obtained there.
+    // (11) We record the cross-partition usage data. Then we make our final
+    // assertions.
     async_test(test => {
+      // Since this script is loaded in two windows (our original test window
+      // and the cross-site window opened later in the test), and we only want
+      // to run the test body in the original test window, we return early
+      // if our origin matches the "cross-site" window.
       if (location.origin === alt_origin)
         return;
 
+      // Step 2: Our test window intercepts the "iframe-is-ready" message from
+      // the same-partition iframe.
       let db;
       window.addEventListener("message", test.step_func(async event => {
         if (event.data === "iframe-is-ready") {
+          // Step 3: We create some IndexedDB usage and ensure that the
+          // IndexedDB usage data reflects that increase in the test window.
           details.init = await usageDetails();
           db = await createSomeUsage(test);
           details.after = await usageDetails();
           assert_greater_than(details.after, details.init);
 
+          // Step 4: postMessage the same-partition iframe to request that
+          // IndexedDB usage data be obtained and sent from that frame.
           iframe.contentWindow.postMessage("get-details", iframe.origin);
         }
       }));
 
       window.addEventListener("message", test.step_func(event => {
+        // Step 6: Our test window intercepts the "same-site" message from the
+        // same-partition iframe containing usage data obtained there.
         if (event.data.source === "same-site") {
+          // Step 7: We record the same-partition data here. Then, we open a
+          // cross-site window containing this test script. As a result,
+          // Step 0 will be repeated, and a cross-partition iframe will be
+          // created in that cross-site window. Our cross-partition iframe
+          // will receive the same script as our same-partition iframe.
+          // We return early to avoid running another instance of this test.
           details.same_site = event.data;
 
           const cross_site_window = window
             .open(`${alt_origin}${location.pathname}`, "", "noopener=false");
           test.add_cleanup(() => cross_site_window.close());
         }
+        // Step 10: Our test window intercepts the "cross-site" message from
+        // the cross-partition iframe containing the usage data obtained there.
         if (event.data.source === "cross-site") {
+          // Step 11: We record the cross-partition data. Then we make our final
+          // assertions.
           details.cross_site = event.data;
 
-          // Some cleanup
+          // Some cleanup.
           test.step(async () => await db.close());
 
+          // Usage data is correctly partitioned if:
+          // a. Our cross-partition iframe recorded no IndexedDB usage data AND
+          // b. The IndexedDB usage data for our test window (after the usage
+          // was created) is equal to the IndexedDB usage data recorded by our
+          // same-partition iframe.
           test.step(() => {
             assert_true(details.cross_site.init == 0, "Usage should be 0.");
             assert_equals(details.same_site.init, details.after);

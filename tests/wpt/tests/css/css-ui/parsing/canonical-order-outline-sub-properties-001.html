@@ -101,11 +101,12 @@ are not tested.
 */
 
 
-    verifyComputedStyle("outline", "blue", "0px none rgb(0, 0, 255)", "testing outline: blue");
+    var mediumWidth = getComputedStyle(targetElement).outlineWidth; // e.g. 3px
+    verifyComputedStyle("outline", "blue", mediumWidth + " none rgb(0, 0, 255)", "testing outline: blue");
 
-    verifyComputedStyle("outline", "invert", "0px none invert", "testing outline: invert");
+    verifyComputedStyle("outline", "invert", mediumWidth + " none invert", "testing outline: invert");
 
-    verifyComputedStyle("outline", "4px", "0px none invert", "testing outline: 4px");
+    verifyComputedStyle("outline", "4px", "4px none invert", "testing outline: 4px");
 
     verifyComputedStyle("outline", "solid", "3px solid invert", "testing outline: solid");
 
@@ -121,13 +122,13 @@ are not tested.
 
     verifyComputedStyle("outline", "invert solid", "3px solid invert", "testing outline: invert solid");
 
-    verifyComputedStyle("outline", "black 4px", "0px none rgb(0, 0, 0)", "testing outline: black 4px");
+    verifyComputedStyle("outline", "black 4px", "4px none rgb(0, 0, 0)", "testing outline: black 4px");
 
-    verifyComputedStyle("outline", "invert 4px", "0px none invert", "testing outline: invert 4px");
+    verifyComputedStyle("outline", "invert 4px", "4px none invert", "testing outline: invert 4px");
 
-    verifyComputedStyle("outline", "5px blue", "0px none rgb(0, 0, 255)", "testing outline: 5px blue");
+    verifyComputedStyle("outline", "5px blue", "5px none rgb(0, 0, 255)", "testing outline: 5px blue");
 
-    verifyComputedStyle("outline", "5px invert", "0px none invert", "testing outline: 5px invert");
+    verifyComputedStyle("outline", "5px invert", "5px none invert", "testing outline: 5px invert");
 
     verifyComputedStyle("outline", "black solid 6px", "6px solid rgb(0, 0, 0)", "testing outline: black solid 6px");
 

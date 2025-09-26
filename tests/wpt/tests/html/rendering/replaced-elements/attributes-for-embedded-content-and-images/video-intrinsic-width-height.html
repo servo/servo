@@ -14,10 +14,10 @@
         <video title="no width/height attributes"
                data-expected-width="300" data-expected-height="150"></video>
         <video title="only width attribute"
-               data-expected-width="100" data-expected-height="50"
+               data-expected-width="100" data-expected-height="150"
                width="100"></video>
         <video title="only height attribute"
-               data-expected-width="200" data-expected-height="100"
+               data-expected-width="300" data-expected-height="100"
                height="100"></video>
         <video title="both width/height attributes"
                data-expected-width="100" data-expected-height="100"
@@ -29,7 +29,7 @@
                width="100" height="100" style="width: auto; height: auto; aspect-ratio: auto"></video>
         <!-- Same, but now keeping the `aspect-ratio` presentational hint -->
         <video title="both width/height attributes and style keeping aspect-ratio"
-               data-expected-width="300" data-expected-height="300"
+               data-expected-width="500" data-expected-height="500"
                width="100" height="100" style="width: auto; height: auto"></video>
         <script>
             Array.prototype.forEach.call(document.querySelectorAll('video'), function(video)

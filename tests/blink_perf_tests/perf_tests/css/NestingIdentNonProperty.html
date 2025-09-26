@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<script src="./resources/utils.js"></script>
+<script>
+const RULES = 200;
+const DECLARATIONS_PER_RULE = 10;
+
+// Returns a style like this:
+//
+// div {
+//   not-a-property:is(.a0) {
+//     --x0: a b c d e f g;
+//     --x1: a b c d e f g;
+//     ...
+//     --x9: a b c d e f g;
+//   }
+//
+//   not-a-property:is(.a1) {
+//     --x0: a b c d e f g;
+//     --x1: a b c d e f g;
+//     ...
+//     --x9: a b c d e f g;
+//   }
+//
+//   ...
+//
+//   not-a-property:is(.a99) {
+//     --x0: a b c d e f g;
+//     --x1: a b c d e f g;
+//     ...
+//     --x9: a b c d e f g;
+//   }
+// }
+//
+// Each nested rule looks like a declaration, because it's an ident followed by
+// a colon. This case can be optimized by an implementation that recognizes
+// early (enough) that not-a-property is not a known property.
+function makeStyle() {
+  let rules = [];
+
+  for (let i = 0; i < RULES; i++) {
+    rules.push(`
+      not-a-property:is(.a${i}) {
+        ${[...Array(DECLARATIONS_PER_RULE).keys()]
+          .map(x => `--x${x}:a b c d e f g;`).join('\n')}
+      }
+    `);
+  }
+
+  return `
+    div {
+      ${rules.join('\n')}
+    }
+  `
+}
+
+let globalCounter = 0;
+const stylesheetText = makeStyle();
+let stylesheet = new CSSStyleSheet();
+
+PerfTestRunner.measureTime({
+    description: 'Many nested rules that look like declarations',
+    run: () => {
+      // This is a parsing test: we don't care about style recalc.
+      // We append a rule based on globalCounter to prevent caching
+      // on the stylesheet string.
+      stylesheet.replaceSync(stylesheetText + `\n .b${globalCounter++} {}`);
+    }
+});
+
+</script>
+

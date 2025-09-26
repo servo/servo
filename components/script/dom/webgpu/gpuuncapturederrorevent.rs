@@ -62,10 +62,6 @@ impl GPUUncapturedErrorEvent {
         );
         ev
     }
-
-    pub(crate) fn event(&self) -> &Event {
-        &self.event
-    }
 }
 
 impl GPUUncapturedErrorEventMethods<crate::DomTypeHolder> for GPUUncapturedErrorEvent {

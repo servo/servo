@@ -58,74 +58,70 @@ pub(crate) type SharedStyle = ArcRefCell<ServoArc<ComputedValues>>;
 
 /// Represents the set of constraints that we use when computing the min-content
 /// and max-content inline sizes of an element.
-pub(crate) struct ConstraintSpace {
+pub(crate) struct ConstraintSpace<'a> {
     pub block_size: SizeConstraint,
-    pub writing_mode: WritingMode,
+    pub style: &'a ComputedValues,
     pub preferred_aspect_ratio: Option<AspectRatio>,
 }
 
-impl ConstraintSpace {
+impl<'a> ConstraintSpace<'a> {
     fn new(
         block_size: SizeConstraint,
-        writing_mode: WritingMode,
+        style: &'a ComputedValues,
         preferred_aspect_ratio: Option<AspectRatio>,
     ) -> Self {
         Self {
             block_size,
-            writing_mode,
+            style,
             preferred_aspect_ratio,
         }
     }
 
     fn new_for_style_and_ratio(
-        style: &ComputedValues,
+        style: &'a ComputedValues,
         preferred_aspect_ratio: Option<AspectRatio>,
     ) -> Self {
-        Self::new(
-            SizeConstraint::default(),
-            style.writing_mode,
-            preferred_aspect_ratio,
-        )
+        Self::new(SizeConstraint::default(), style, preferred_aspect_ratio)
     }
 }
 
 /// A variant of [`ContainingBlock`] that allows an indefinite inline size.
 /// Useful for code that is shared for both layout (where we know the inline size
 /// of the containing block) and intrinsic sizing (where we don't know it).
-pub(crate) struct IndefiniteContainingBlock {
+pub(crate) struct IndefiniteContainingBlock<'a> {
     pub size: LogicalVec2<Option<Au>>,
-    pub writing_mode: WritingMode,
+    pub style: &'a ComputedValues,
 }
 
-impl From<&ConstraintSpace> for IndefiniteContainingBlock {
-    fn from(constraint_space: &ConstraintSpace) -> Self {
+impl<'a> From<&ConstraintSpace<'a>> for IndefiniteContainingBlock<'a> {
+    fn from(constraint_space: &ConstraintSpace<'a>) -> Self {
         Self {
             size: LogicalVec2 {
                 inline: None,
                 block: constraint_space.block_size.to_definite(),
             },
-            writing_mode: constraint_space.writing_mode,
+            style: constraint_space.style,
         }
     }
 }
 
-impl<'a> From<&'_ ContainingBlock<'a>> for IndefiniteContainingBlock {
+impl<'a> From<&'_ ContainingBlock<'a>> for IndefiniteContainingBlock<'a> {
     fn from(containing_block: &ContainingBlock<'a>) -> Self {
         Self {
             size: LogicalVec2 {
                 inline: Some(containing_block.size.inline),
                 block: containing_block.size.block.to_definite(),
             },
-            writing_mode: containing_block.style.writing_mode,
+            style: containing_block.style,
         }
     }
 }
 
-impl<'a> From<&'_ DefiniteContainingBlock<'a>> for IndefiniteContainingBlock {
+impl<'a> From<&'_ DefiniteContainingBlock<'a>> for IndefiniteContainingBlock<'a> {
     fn from(containing_block: &DefiniteContainingBlock<'a>) -> Self {
         Self {
             size: containing_block.size.map(|v| Some(*v)),
-            writing_mode: containing_block.style.writing_mode,
+            style: containing_block.style,
         }
     }
 }

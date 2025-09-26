@@ -10,7 +10,8 @@
  * related or neighboring rights to this work.
  */
 
-[Exposed=(Window,Worker,PaintWorklet)]
+[Exposed=(Window,Worker,PaintWorklet),
+ Serializable]
 interface DOMMatrixReadOnly {
     [Throws] constructor(optional (DOMString or sequence<unrestricted double>) init);
 

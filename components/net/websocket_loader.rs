@@ -48,6 +48,8 @@ use crate::fetch::methods::{
 };
 use crate::hosts::replace_host;
 use crate::http_loader::HttpState;
+
+#[allow(clippy::result_large_err)]
 /// Create a tungstenite Request object for the initial HTTP request.
 /// This request contains `Origin`, `Sec-WebSocket-Protocol`, `Authorization`,
 /// and `Cookie` headers as appropriate.
@@ -105,6 +107,7 @@ fn create_request(
     Ok(request)
 }
 
+#[allow(clippy::result_large_err)]
 /// Process an HTTP response resulting from a WS handshake.
 /// This ensures that any `Cookie` or HSTS headers are recognized.
 /// Returns an error if the protocol selected by the handshake doesn't

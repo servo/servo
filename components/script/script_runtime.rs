@@ -20,28 +20,29 @@ use std::{os, ptr, thread};
 
 use background_hang_monitor_api::ScriptHangAnnotation;
 use js::conversions::jsstr_to_string;
+use js::gc::StackGCVector;
 use js::glue::{
-    CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchableRun, JS_GetReservedSlot,
-    JobQueueTraps, RUST_js_GetErrorMessage, SetBuildId, StreamConsumerConsumeChunk,
-    StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd, StreamConsumerStreamError,
+    CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchablePointer, DispatchableRun,
+    JS_GetReservedSlot, JobQueueTraps, RUST_js_GetErrorMessage, SetBuildId, SetUpEventLoopDispatch,
+    StreamConsumerConsumeChunk, StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd,
+    StreamConsumerStreamError,
 };
 use js::jsapi::{
-    AsmJSOption, BuildIdCharVector, CompilationType, ContextOptionsRef, Dispatchable as JSRunnable,
+    AsmJSOption, BuildIdCharVector, CompilationType, ContextOptionsRef,
     Dispatchable_MaybeShuttingDown, GCDescription, GCOptions, GCProgress, GCReason,
-    GetPromiseUserInputEventHandlingState, HandleObject, HandleString,
-    HandleValue as RawHandleValue, Heap, InitConsumeStreamCallback, InitDispatchToEventLoop,
-    JS_AddExtraGCRootsTracer, JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback,
-    JS_NewObject, JS_NewStringCopyN, JS_SetGCCallback, JS_SetGCParameter,
-    JS_SetGlobalJitCompilerOption, JS_SetOffthreadIonCompilationEnabled,
-    JS_SetParallelParsingEnabled, JS_SetReservedSlot, JS_SetSecurityCallbacks,
+    GetPromiseUserInputEventHandlingState, Handle as RawHandle, HandleObject, HandleString,
+    HandleValue as RawHandleValue, Heap, InitConsumeStreamCallback, JS_AddExtraGCRootsTracer,
+    JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback, JS_NewObject,
+    JS_NewStringCopyN, JS_SetGCCallback, JS_SetGCParameter, JS_SetGlobalJitCompilerOption,
+    JS_SetOffthreadIonCompilationEnabled, JS_SetReservedSlot, JS_SetSecurityCallbacks,
     JSCLASS_RESERVED_SLOTS_MASK, JSCLASS_RESERVED_SLOTS_SHIFT, JSClass, JSClassOps,
     JSContext as RawJSContext, JSGCParamKey, JSGCStatus, JSJitCompilerOption, JSObject,
-    JSSecurityCallbacks, JSTracer, JobQueue, MimeType, MutableHandleObject, MutableHandleString,
-    PromiseRejectionHandlingState, PromiseUserInputEventHandlingState, RuntimeCode,
-    SetDOMCallbacks, SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks,
+    JSSecurityCallbacks, JSString, JSTracer, JobQueue, MimeType, MutableHandleObject,
+    MutableHandleString, PromiseRejectionHandlingState, PromiseUserInputEventHandlingState,
+    RuntimeCode, SetDOMCallbacks, SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks,
     SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback, StreamConsumer as JSStreamConsumer,
 };
-use js::jsval::{ObjectValue, UndefinedValue};
+use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::panic::wrap_panic;
 pub(crate) use js::rust::ThreadSafeJSContext;
 use js::rust::wrappers::{GetPromiseIsHandled, JS_GetPromiseResult};
@@ -62,6 +63,7 @@ use crate::body::BodyMixin;
 use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::Response_Binding::ResponseMethods;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
+use crate::dom::bindings::codegen::UnionTypes::TrustedScriptOrString;
 use crate::dom::bindings::conversions::{
     get_dom_class, private_from_object, root_from_handleobject, root_from_object,
 };
@@ -504,9 +506,9 @@ unsafe extern "C" fn content_security_policy_allows(
     runtime_code: RuntimeCode,
     code_string: HandleString,
     compilation_type: CompilationType,
-    parameter_strings: u8, //FIXME in bindings generation
+    parameter_strings: RawHandle<StackGCVector<*mut JSString>>,
     body_string: HandleString,
-    parameter_args: u8, //FIXME in bindings generation
+    parameter_args: RawHandle<StackGCVector<JSVal>>,
     body_arg: RawHandleValue,
     can_compile_strings: *mut bool,
 ) -> bool {
@@ -516,21 +518,66 @@ unsafe extern "C" fn content_security_policy_allows(
         // SpiderMonkey provides null pointer when executing webassembly.
         let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
         let global = &GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
+        let csp_list = global.get_csp_list();
 
-        allowed = match runtime_code {
-            RuntimeCode::JS => TrustedScript::can_compile_string_with_trusted_type(
-                cx,
-                global,
-                safely_convert_null_to_string(cx, code_string),
-                compilation_type,
-                parameter_strings,
-                safely_convert_null_to_string(cx, body_string),
-                parameter_args,
-                HandleValue::from_raw(body_arg),
-                CanGc::note(),
-            ),
-            RuntimeCode::WASM => global.get_csp_list().is_wasm_evaluation_allowed(global),
-        };
+        // If we don't have any CSP checks to run, short-circuit all logic here
+        allowed = csp_list.is_none() ||
+            match runtime_code {
+                RuntimeCode::JS => {
+                    let parameter_strings = Handle::from_raw(parameter_strings);
+                    let parameter_strings_length = parameter_strings.len();
+                    let mut parameter_strings_vec =
+                        Vec::with_capacity(parameter_strings_length as usize);
+
+                    for i in 0..parameter_strings_length {
+                        let Some(str_) = parameter_strings.at(i) else {
+                            unreachable!();
+                        };
+                        parameter_strings_vec.push(safely_convert_null_to_string(cx, str_.into()));
+                    }
+
+                    let parameter_args = Handle::from_raw(parameter_args);
+                    let parameter_args_length = parameter_args.len();
+                    let mut parameter_args_vec = Vec::with_capacity(parameter_args_length as usize);
+
+                    for i in 0..parameter_args_length {
+                        let Some(arg) = parameter_args.at(i) else {
+                            unreachable!();
+                        };
+                        let value = arg.into_handle().get();
+                        if value.is_object() {
+                            if let Ok(trusted_script) =
+                                root_from_object::<TrustedScript>(value.to_object(), *cx)
+                            {
+                                parameter_args_vec
+                                    .push(TrustedScriptOrString::TrustedScript(trusted_script));
+                            } else {
+                                unreachable!();
+                            }
+                        } else if value.is_string() {
+                            let string_ptr = std::ptr::NonNull::new(value.to_string()).unwrap();
+                            let dom_string = unsafe { jsstr_to_string(*cx, string_ptr) };
+                            parameter_args_vec
+                                .push(TrustedScriptOrString::String(dom_string.into()));
+                        } else {
+                            unreachable!();
+                        }
+                    }
+
+                    TrustedScript::can_compile_string_with_trusted_type(
+                        cx,
+                        global,
+                        safely_convert_null_to_string(cx, code_string),
+                        compilation_type,
+                        parameter_strings_vec,
+                        safely_convert_null_to_string(cx, body_string),
+                        parameter_args_vec,
+                        HandleValue::from_raw(body_arg),
+                        CanGc::note(),
+                    )
+                },
+                RuntimeCode::WASM => global.get_csp_list().is_wasm_evaluation_allowed(global),
+            };
     });
     *can_compile_strings = allowed;
     true
@@ -543,7 +590,7 @@ pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
     let cx = GlobalScope::get_cx();
     unsafe {
         // Step 2.
-        if global.get_uncaught_rejections().borrow().len() > 0 {
+        if !global.get_uncaught_rejections().borrow().is_empty() {
             // Step 1.
             let uncaught_rejections: Vec<TrustedPromise> = global
                 .get_uncaught_rejections()
@@ -694,7 +741,7 @@ impl Runtime {
 
         unsafe extern "C" fn dispatch_to_event_loop(
             closure: *mut c_void,
-            dispatchable: *mut JSRunnable,
+            dispatchable: *mut DispatchablePointer,
         ) -> bool {
             let networking_task_src: &SendableTaskSource = &*(closure as *mut SendableTaskSource);
             let runnable = Runnable(dispatchable);
@@ -711,7 +758,7 @@ impl Runtime {
         let mut networking_task_src_ptr = std::ptr::null_mut();
         if let Some(source) = networking_task_source {
             networking_task_src_ptr = Box::into_raw(Box::new(source));
-            InitDispatchToEventLoop(
+            SetUpEventLoopDispatch(
                 cx,
                 Some(dispatch_to_event_loop),
                 networking_task_src_ptr as *mut c_void,
@@ -777,7 +824,6 @@ impl Runtime {
             JSJitCompilerOption::JSJITCOMPILER_NATIVE_REGEXP_ENABLE,
             pref!(js_native_regex_enabled) as u32,
         );
-        JS_SetParallelParsingEnabled(cx, pref!(js_parallel_parsing_enabled));
         JS_SetOffthreadIonCompilationEnabled(cx, pref!(js_offthread_compilation_enabled));
         JS_SetGlobalJitCompilerOption(
             cx,
@@ -1177,14 +1223,14 @@ unsafe extern "C" fn consume_stream(
     let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
     let global = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
 
-    //Step 2.1 Upon fulfillment of source, store the Response with value unwrappedSource.
+    // Step 2.1 Upon fulfillment of source, store the Response with value unwrappedSource.
     if let Ok(unwrapped_source) =
         root_from_handleobject::<Response>(RustHandleObject::from_raw(obj), *cx)
     {
-        //Step 2.2 Let mimeType be the result of extracting a MIME type from response’s header list.
+        // Step 2.2 Let mimeType be the result of extracting a MIME type from response’s header list.
         let mimetype = unwrapped_source.Headers(CanGc::note()).extract_mime_type();
 
-        //Step 2.3 If mimeType is not `application/wasm`, return with a TypeError and abort these substeps.
+        // Step 2.3 If mimeType is not `application/wasm`, return with a TypeError and abort these substeps.
         if !&mimetype[..].eq_ignore_ascii_case(b"application/wasm") {
             throw_dom_exception(
                 cx,
@@ -1195,7 +1241,7 @@ unsafe extern "C" fn consume_stream(
             return false;
         }
 
-        //Step 2.4 If response is not CORS-same-origin, return with a TypeError and abort these substeps.
+        // Step 2.4 If response is not CORS-same-origin, return with a TypeError and abort these substeps.
         match unwrapped_source.Type() {
             DOMResponseType::Basic | DOMResponseType::Cors | DOMResponseType::Default => {},
             _ => {
@@ -1209,7 +1255,7 @@ unsafe extern "C" fn consume_stream(
             },
         }
 
-        //Step 2.5 If response’s status is not an ok status, return with a TypeError and abort these substeps.
+        // Step 2.5 If response’s status is not an ok status, return with a TypeError and abort these substeps.
         if !unwrapped_source.Ok() {
             throw_dom_exception(
                 cx,
@@ -1243,7 +1289,7 @@ unsafe extern "C" fn consume_stream(
         }
         unwrapped_source.set_stream_consumer(Some(StreamConsumer(_consumer)));
     } else {
-        //Step 3 Upon rejection of source, return with reason.
+        // Step 3 Upon rejection of source, return with reason.
         throw_dom_exception(
             cx,
             &global,
@@ -1263,7 +1309,7 @@ unsafe extern "C" fn report_stream_error(_cx: *mut RawJSContext, error_code: usi
     );
 }
 
-pub(crate) struct Runnable(*mut JSRunnable);
+pub(crate) struct Runnable(*mut DispatchablePointer);
 
 #[allow(unsafe_code)]
 unsafe impl Sync for Runnable {}

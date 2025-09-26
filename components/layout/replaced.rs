@@ -7,8 +7,8 @@ use base::id::{BrowsingContextId, PipelineId};
 use data_url::DataUrl;
 use embedder_traits::ViewportDetails;
 use euclid::{Scale, Size2D};
-use layout_api::IFrameSize;
 use layout_api::wrapper_traits::ThreadSafeLayoutNode;
+use layout_api::{IFrameSize, LayoutImageDestination};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{Image, ImageOrMetadataAvailable, UsePlaceholder, VectorImage};
 use script::layout_dom::ServoThreadSafeLayoutNode;
@@ -132,13 +132,13 @@ pub(crate) enum ReplacedContentKind {
 
 impl ReplacedContents {
     pub fn for_element(
-        element: ServoThreadSafeLayoutNode<'_>,
+        node: ServoThreadSafeLayoutNode<'_>,
         context: &LayoutContext,
     ) -> Option<Self> {
-        if let Some(ref data_attribute_string) = element.as_typeless_object_with_data_attribute() {
+        if let Some(ref data_attribute_string) = node.as_typeless_object_with_data_attribute() {
             if let Some(url) = try_to_parse_image_data_url(data_attribute_string) {
                 return Self::from_image_url(
-                    element,
+                    node,
                     context,
                     &ComputedUrl::Valid(ServoArc::new(url)),
                 );
@@ -146,17 +146,17 @@ impl ReplacedContents {
         }
 
         let (kind, natural_size) = {
-            if let Some((image, natural_size_in_dots)) = element.as_image() {
+            if let Some((image, natural_size_in_dots)) = node.as_image() {
                 (
                     ReplacedContentKind::Image(image),
                     NaturalSizes::from_natural_size_in_dots(natural_size_in_dots),
                 )
-            } else if let Some((canvas_info, natural_size_in_dots)) = element.as_canvas() {
+            } else if let Some((canvas_info, natural_size_in_dots)) = node.as_canvas() {
                 (
                     ReplacedContentKind::Canvas(canvas_info),
                     NaturalSizes::from_natural_size_in_dots(natural_size_in_dots),
                 )
-            } else if let Some((pipeline_id, browsing_context_id)) = element.as_iframe() {
+            } else if let Some((pipeline_id, browsing_context_id)) = node.as_iframe() {
                 (
                     ReplacedContentKind::IFrame(IFrameInfo {
                         pipeline_id,
@@ -164,20 +164,20 @@ impl ReplacedContents {
                     }),
                     NaturalSizes::empty(),
                 )
-            } else if let Some((image_key, natural_size_in_dots)) = element.as_video() {
+            } else if let Some((image_key, natural_size_in_dots)) = node.as_video() {
                 (
                     ReplacedContentKind::Video(image_key.map(|key| VideoInfo { image_key: key })),
                     natural_size_in_dots
                         .map_or_else(NaturalSizes::empty, NaturalSizes::from_natural_size_in_dots),
                 )
-            } else if let Some(svg_data) = element.as_svg() {
+            } else if let Some(svg_data) = node.as_svg() {
                 let svg_source = match svg_data.source {
                     None => {
                         // The SVGSVGElement is not yet serialized, so we add it to a list
                         // and hand it over to script to peform the serialization.
                         context
                             .image_resolver
-                            .queue_svg_element_for_serialization(element);
+                            .queue_svg_element_for_serialization(node);
                         return None;
                     },
                     Some(Err(_)) => {
@@ -189,7 +189,12 @@ impl ReplacedContents {
 
                 let result = context
                     .image_resolver
-                    .get_cached_image_for_url(element.opaque(), svg_source, UsePlaceholder::No)
+                    .get_cached_image_for_url(
+                        node.opaque(),
+                        svg_source,
+                        UsePlaceholder::No,
+                        LayoutImageDestination::BoxTreeConstruction,
+                    )
                     .ok();
 
                 let vector_image = result.map(|result| match result {
@@ -210,27 +215,27 @@ impl ReplacedContents {
         if let ReplacedContentKind::Image(Some(Image::Raster(ref image))) = kind {
             context
                 .image_resolver
-                .handle_animated_image(element.opaque(), image.clone());
+                .handle_animated_image(node.opaque(), image.clone());
         }
 
-        let base_fragment_info = BaseFragmentInfo::new_for_node(element.opaque());
         Some(Self {
             kind,
             natural_size,
-            base_fragment_info,
+            base_fragment_info: node.into(),
         })
     }
 
     pub fn from_image_url(
-        element: ServoThreadSafeLayoutNode<'_>,
+        node: ServoThreadSafeLayoutNode<'_>,
         context: &LayoutContext,
         image_url: &ComputedUrl,
     ) -> Option<Self> {
         if let ComputedUrl::Valid(image_url) = image_url {
             let (image, width, height) = match context.image_resolver.get_or_request_image_or_meta(
-                element.opaque(),
+                node.opaque(),
                 image_url.clone().into(),
                 UsePlaceholder::No,
+                LayoutImageDestination::BoxTreeConstruction,
             ) {
                 LayoutImageCacheResult::DataAvailable(img_or_meta) => match img_or_meta {
                     ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
@@ -251,7 +256,7 @@ impl ReplacedContents {
             return Some(Self {
                 kind: ReplacedContentKind::Image(image),
                 natural_size: NaturalSizes::from_width_and_height(width, height),
-                base_fragment_info: BaseFragmentInfo::new_for_node(element.opaque()),
+                base_fragment_info: node.into(),
             });
         }
         None
@@ -266,19 +271,6 @@ impl ReplacedContents {
             ComputedImage::Url(image_url) => Self::from_image_url(element, context, image_url),
             _ => None, // TODO
         }
-    }
-
-    fn inline_size_over_block_size_intrinsic_ratio(
-        &self,
-        style: &ComputedValues,
-    ) -> Option<CSSFloat> {
-        self.natural_size.ratio.map(|width_over_height| {
-            if style.writing_mode.is_vertical() {
-                1. / width_over_height
-            } else {
-                width_over_height
-            }
-        })
     }
 
     #[inline]
@@ -475,20 +467,7 @@ impl ReplacedContents {
         style: &ComputedValues,
         padding_border_sums: &LogicalVec2<Au>,
     ) -> Option<AspectRatio> {
-        style
-            .preferred_aspect_ratio(
-                self.inline_size_over_block_size_intrinsic_ratio(style),
-                padding_border_sums,
-            )
-            .or_else(|| {
-                matches!(self.kind, ReplacedContentKind::Video(_)).then(Self::default_aspect_ratio)
-            })
-    }
-
-    /// The aspect ratio of the default object sizes.
-    /// <https://drafts.csswg.org/css-images-3/#default-object-size>
-    pub(crate) fn default_aspect_ratio() -> AspectRatio {
-        AspectRatio::from_content_ratio(2.0)
+        style.preferred_aspect_ratio(self.natural_size.ratio, padding_border_sums)
     }
 
     /// The inline size that would result from combining the natural size
@@ -567,7 +546,7 @@ impl ComputeInlineContentSizes for ReplacedContents {
             Direction::Inline,
             constraint_space.preferred_aspect_ratio,
             &|| constraint_space.block_size,
-            &|| self.fallback_inline_size(constraint_space.writing_mode),
+            &|| self.fallback_inline_size(constraint_space.style.writing_mode),
         );
         InlineContentSizesResult {
             sizes: inline_content_size.into(),

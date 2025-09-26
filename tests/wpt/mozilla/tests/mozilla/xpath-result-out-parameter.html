@@ -1,0 +1,40 @@
+<!doctype html>
+<head>
+    <link rel="help" href="https://www.w3.org/TR/DOM-Level-3-XPath/xpath.html#XPathEvaluator-evaluate">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<script>
+const xmlString = `
+<root>
+  <section>
+    <item id="a"><name>Item A</name></item>
+    <item id="b"><name>Item B</name></item>
+  </section>
+</root>
+`;
+
+const parser = new DOMParser();
+const test_document = parser.parseFromString(xmlString, "application/xml");
+
+test(function () {
+    const first_result = test_document.evaluate(
+      "//section/item",
+      test_document,
+      null,
+      XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+      null
+    );
+
+    const second_result = test_document.evaluate(
+      "//section/item[@id='b']",
+      test_document,
+      null,
+      XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+      first_result
+    );
+
+    assert_equals(first_result, second_result);
+}, "Passing an existing xpath result as an out-parameter should overwrite the result");
+
+</script>

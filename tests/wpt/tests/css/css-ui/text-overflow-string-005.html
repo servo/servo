@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: text-overflow with string and bidi text</title>
+<link rel="author" title="Minseong Kim" href="mailto:jja08111@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4">
+<link rel="match" href="reference/text-overflow-string-005-ref.html">
+<meta name="assert" content="When text-overflow is a string and the content overflows, the string should appear as ellipsis, and it should work correctly with bidirectional text.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  div {
+    font-family: monospace;
+    font-size: 20px;
+    white-space: pre;
+    width: 9ch;
+    overflow: hidden;
+  }
+  div.test {
+    text-overflow: "-";
+  }
+</style>
+<body>
+  <p>Test passes if each pair of lines looks identical</p>
+  <div class="test">שלום 123456</div>
+  <div>ם 123456-</div>
+  <br/>
+  <div class="test" dir=rtl>שלום 123456</div>
+  <div dir=rtl>שלום 456-</div>
+</body>

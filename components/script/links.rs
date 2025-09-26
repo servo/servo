@@ -15,10 +15,10 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::referrer_policy_for_element;
-use crate::dom::htmlanchorelement::HTMLAnchorElement;
-use crate::dom::htmlareaelement::HTMLAreaElement;
-use crate::dom::htmlformelement::HTMLFormElement;
-use crate::dom::htmllinkelement::HTMLLinkElement;
+use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
+use crate::dom::html::htmlareaelement::HTMLAreaElement;
+use crate::dom::html::htmlformelement::HTMLFormElement;
+use crate::dom::html::htmllinkelement::HTMLLinkElement;
 use crate::dom::node::NodeTraits;
 use crate::dom::types::Element;
 use crate::script_runtime::CanGc;
@@ -415,7 +415,7 @@ pub(crate) fn follow_hyperlink(
         if let Some(suffix) = hyperlink_suffix {
             href.push_str(&suffix);
         }
-        let Ok(url) = document.base_url().join(&href) else {
+        let Ok(url) = document.base_url().join(href.str()) else {
             return;
         };
 

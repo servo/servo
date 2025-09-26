@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<script src="resources/line-layout-perf-test.js"></script>
+<style>
+#container {
+  width: 400px;
+  white-space: nowrap;
+}
+</style>
+<body onload="run()">
+<div id="container"></div>
+<script>
+'use strict';
+
+function run() {
+  var test = new LineLayoutPerfTest(container);
+  test.spanCount = 0;
+  test.lineCount = 1000;
+  test.wordSeparator = '  '; // Make all word separators collapsible.
+  test.run('Measures performance of "white-space: nowrap" with collapsible spaces.');
+}
+</script>
+</body>

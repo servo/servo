@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::collections::hash_map::{Entry, Keys};
 use std::rc::Rc;
 
@@ -17,11 +16,12 @@ use constellation_traits::{EmbedderToConstellationMessage, WindowSizeType};
 use embedder_traits::{
     AnimationState, CompositorHitTestResult, InputEvent, MouseButton, MouseButtonAction,
     MouseButtonEvent, MouseMoveEvent, ScrollEvent as EmbedderScrollEvent, ShutdownState,
-    TouchEvent, TouchEventResult, TouchEventType, TouchId, ViewportDetails,
+    TouchEvent, TouchEventResult, TouchEventType, ViewportDetails,
 };
 use euclid::{Point2D, Scale, Vector2D};
-use fnv::FnvHashSet;
 use log::{debug, warn};
+use malloc_size_of::MallocSizeOf;
+use rustc_hash::{FxHashMap, FxHashSet};
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::{CSSPixel, PinchZoomFactor};
 use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint, DeviceRect, LayoutVector2D};
@@ -79,7 +79,7 @@ pub(crate) struct WebViewRenderer {
     /// The rectangle of the [`WebView`] in device pixels, which is the viewport.
     pub rect: DeviceRect,
     /// Tracks details about each active pipeline that the compositor knows about.
-    pub pipelines: HashMap<PipelineId, PipelineDetails>,
+    pub pipelines: FxHashMap<PipelineId, PipelineDetails>,
     /// Data that is shared by all WebView renderers.
     pub(crate) global: Rc<RefCell<ServoRenderer>>,
     /// Pending scroll/zoom events.
@@ -99,15 +99,6 @@ pub(crate) struct WebViewRenderer {
     /// A [`ViewportDescription`] for this [`WebViewRenderer`], which contains the limitations
     /// and initial values for zoom derived from the `viewport` meta tag in web content.
     viewport_description: Option<ViewportDescription>,
-}
-
-impl Drop for WebViewRenderer {
-    fn drop(&mut self) {
-        self.global
-            .borrow_mut()
-            .pipeline_to_webview_map
-            .retain(|_, webview_id| self.id != *webview_id);
-    }
 }
 
 impl WebViewRenderer {
@@ -154,13 +145,9 @@ impl WebViewRenderer {
         &mut self,
         pipeline_id: PipelineId,
     ) -> &mut PipelineDetails {
-        self.pipelines.entry(pipeline_id).or_insert_with(|| {
-            self.global
-                .borrow_mut()
-                .pipeline_to_webview_map
-                .insert(pipeline_id, self.id);
-            PipelineDetails::new()
-        })
+        self.pipelines
+            .entry(pipeline_id)
+            .or_insert_with(PipelineDetails::new)
     }
 
     pub(crate) fn pipeline_exited(&mut self, pipeline_id: PipelineId, source: PipelineExitSource) {
@@ -179,15 +166,11 @@ impl WebViewRenderer {
         }
 
         pipeline.remove_entry();
-        self.global
-            .borrow_mut()
-            .pipeline_to_webview_map
-            .remove(&pipeline_id);
     }
 
     pub(crate) fn set_frame_tree(&mut self, frame_tree: &SendableFrameTree) {
         let pipeline_id = frame_tree.pipeline.id;
-        let old_pipeline_id = std::mem::replace(&mut self.root_pipeline_id, Some(pipeline_id));
+        let old_pipeline_id = self.root_pipeline_id.replace(pipeline_id);
 
         if old_pipeline_id != self.root_pipeline_id {
             debug!(
@@ -244,7 +227,7 @@ impl WebViewRenderer {
         // state for some unattached pipelines in order to preserve scroll position when
         // navigating backward and forward.
         fn collect_pipelines(
-            pipelines: &mut FnvHashSet<PipelineId>,
+            pipelines: &mut FxHashSet<PipelineId>,
             frame_tree: &SendableFrameTree,
         ) {
             pipelines.insert(frame_tree.pipeline.id);
@@ -253,7 +236,7 @@ impl WebViewRenderer {
             }
         }
 
-        let mut attached_pipelines: FnvHashSet<PipelineId> = FnvHashSet::default();
+        let mut attached_pipelines: FxHashSet<PipelineId> = FxHashSet::default();
         collect_pipelines(&mut attached_pipelines, frame_tree);
 
         self.pipelines
@@ -355,7 +338,7 @@ impl WebViewRenderer {
             InputEvent::MouseMove(_) => {
                 self.global.borrow_mut().last_mouse_move_position = event_point;
             },
-            InputEvent::MouseLeave(_) => {
+            InputEvent::MouseLeftViewport(_) => {
                 self.global.borrow_mut().last_mouse_move_position = None;
             },
             InputEvent::MouseButton(_) | InputEvent::Wheel(_) => {},
@@ -380,62 +363,6 @@ impl WebViewRenderer {
         if let InputEvent::Touch(event) = event {
             self.on_touch_event(event);
             return;
-        }
-
-        if self.global.borrow().convert_mouse_to_touch {
-            match event {
-                InputEvent::MouseButton(event) => {
-                    match (event.button, event.action) {
-                        (MouseButton::Left, MouseButtonAction::Down) => self.on_touch_down(
-                            TouchEvent::new(TouchEventType::Down, TouchId(0), event.point),
-                        ),
-                        (MouseButton::Left, MouseButtonAction::Up) => self.on_touch_up(
-                            TouchEvent::new(TouchEventType::Up, TouchId(0), event.point),
-                        ),
-                        _ => {},
-                    }
-                    return;
-                },
-                InputEvent::MouseMove(event) => {
-                    if let Some(state) = self.touch_handler.try_get_current_touch_sequence() {
-                        // We assume that the debug option `-Z convert-mouse-to-touch` will only
-                        // be used on devices without native touch input, so we can directly
-                        // reuse the touch handler for tracking the state of pressed buttons.
-                        match state.state {
-                            TouchSequenceState::Touching | TouchSequenceState::Panning { .. } => {
-                                self.on_touch_move(TouchEvent::new(
-                                    TouchEventType::Move,
-                                    TouchId(0),
-                                    event.point,
-                                ));
-                            },
-                            TouchSequenceState::MultiTouch => {
-                                // Multitouch simulation currently is not implemented.
-                                // Since we only get one mouse move event, we would need to
-                                // dispatch one mouse move event per currently pressed mouse button.
-                            },
-                            TouchSequenceState::Pinching => {
-                                // We only have one mouse button, so Pinching should be impossible.
-                                #[cfg(debug_assertions)]
-                                log::error!(
-                                    "Touch handler is in Pinching state, which should be unreachable with \
-                                -Z convert-mouse-to-touch debug option."
-                                );
-                            },
-                            TouchSequenceState::PendingFling { .. } |
-                            TouchSequenceState::Flinging { .. } |
-                            TouchSequenceState::PendingClick(_) |
-                            TouchSequenceState::Finished => {
-                                // Mouse movement without a button being pressed is not
-                                // translated to touch events.
-                            },
-                        }
-                    }
-                    // We don't want to (directly) dispatch mouse events when simulating touch input.
-                    return;
-                },
-                _ => {},
-            }
         }
 
         self.dispatch_input_event_with_hit_testing(event);
@@ -868,7 +795,7 @@ impl WebViewRenderer {
                 Some(&hit_test_result.pipeline_id)
             {
                 let scroll_result = pipeline_details.scroll_tree.scroll_node_or_ancestor(
-                    &hit_test_result.external_scroll_id,
+                    hit_test_result.external_scroll_id,
                     scroll_location,
                     ScrollType::InputEvents,
                 );
@@ -1017,6 +944,16 @@ impl WebViewRenderer {
                     .clamp_zoom(viewport_description.initial_scale.get()),
             ));
         self.viewport_description = Some(viewport_description);
+    }
+
+    pub(crate) fn scroll_trees_memory_usage(
+        &self,
+        ops: &mut malloc_size_of::MallocSizeOfOps,
+    ) -> usize {
+        self.pipelines
+            .values()
+            .map(|pipeline| pipeline.scroll_tree.size_of(ops))
+            .sum::<usize>()
     }
 }
 

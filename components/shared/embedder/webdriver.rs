@@ -6,24 +6,24 @@
 
 use std::collections::HashMap;
 
+use base::generic_channel::GenericSender;
 use base::id::{BrowsingContextId, WebViewId};
 use cookie::Cookie;
 use euclid::default::Rect as UntypedRect;
 use euclid::{Rect, Size2D};
 use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;
-use keyboard_types::KeyboardEvent;
-use keyboard_types::webdriver::Event as WebDriverInputEvent;
+use keyboard_types::{CompositionEvent, KeyboardEvent};
 use pixels::RasterImage;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_geometry::DeviceIndependentIntRect;
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
-use webdriver::common::{WebElement, WebFrame, WebWindow};
 use webdriver::error::ErrorStatus;
 use webrender_api::units::DevicePixel;
 
-use crate::{FocusId, MouseButton, MouseButtonAction, TraversalId};
+use crate::{JSValue, MouseButton, MouseButtonAction, TraversalId};
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WebDriverMessageId(pub usize);
@@ -83,18 +83,18 @@ pub enum WebDriverCommandMsg {
     /// Get the viewport size.
     GetViewportSize(WebViewId, IpcSender<Size2D<u32, DevicePixel>>),
     /// Load a URL in the top-level browsing context with the given ID.
-    LoadUrl(WebViewId, ServoUrl, IpcSender<WebDriverLoadStatus>),
+    LoadUrl(WebViewId, ServoUrl, GenericSender<WebDriverLoadStatus>),
     /// Refresh the top-level browsing context with the given ID.
-    Refresh(WebViewId, IpcSender<WebDriverLoadStatus>),
+    Refresh(WebViewId, GenericSender<WebDriverLoadStatus>),
     /// Navigate the webview with the given ID to the previous page in the browsing context's history.
-    GoBack(WebViewId, IpcSender<WebDriverLoadStatus>),
+    GoBack(WebViewId, GenericSender<WebDriverLoadStatus>),
     /// Navigate the webview with the given ID to the next page in the browsing context's history.
-    GoForward(WebViewId, IpcSender<WebDriverLoadStatus>),
+    GoForward(WebViewId, GenericSender<WebDriverLoadStatus>),
     /// Pass a webdriver command to the script thread of the current pipeline
     /// of a browsing context.
     ScriptCommand(BrowsingContextId, WebDriverScriptCommand),
-    /// Act as if keys were pressed in the browsing context with the given ID.
-    SendKeys(WebViewId, Vec<WebDriverInputEvent>),
+    /// Dispatch composition event from element send keys command.
+    DispatchComposition(WebViewId, CompositionEvent),
     /// Act as if keys were pressed or release in the browsing context with the given ID.
     KeyboardAction(
         WebViewId,
@@ -149,16 +149,18 @@ pub enum WebDriverCommandMsg {
     /// Create a new webview that loads about:blank. The embedder will use
     /// the provided channels to return the top level browsing context id
     /// associated with the new webview, and sets a "load status sender" if provided.
-    NewWebView(IpcSender<WebViewId>, Option<IpcSender<WebDriverLoadStatus>>),
+    NewWebView(
+        IpcSender<WebViewId>,
+        Option<GenericSender<WebDriverLoadStatus>>,
+    ),
     /// Close the webview associated with the provided id.
     CloseWebView(WebViewId, IpcSender<()>),
     /// Focus the webview associated with the provided id.
-    /// Sends back a bool indicating whether the focus was successfully set.
-    FocusWebView(WebViewId, IpcSender<bool>),
+    FocusWebView(WebViewId),
     /// Get focused webview. For now, this is only used when start new session.
     GetFocusedWebView(IpcSender<Option<WebViewId>>),
-    /// Get all webviews
-    GetAllWebViews(IpcSender<Result<Vec<WebViewId>, ErrorStatus>>),
+    /// Get webviews state
+    GetAllWebViews(IpcSender<Vec<WebViewId>>),
     /// Check whether top-level browsing context is open.
     IsWebViewOpen(WebViewId, IpcSender<bool>),
     /// Check whether browsing context is open.
@@ -171,6 +173,7 @@ pub enum WebDriverCommandMsg {
     ),
     GetAlertText(WebViewId, IpcSender<Result<String, ()>>),
     SendAlertText(WebViewId, String),
+    FocusBrowsingContext(BrowsingContextId),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -226,17 +229,13 @@ pub enum WebDriverScriptCommand {
         String,
         IpcSender<Result<Option<String>, ErrorStatus>>,
     ),
-    GetElementProperty(
-        String,
-        String,
-        IpcSender<Result<WebDriverJSValue, ErrorStatus>>,
-    ),
+    GetElementProperty(String, String, IpcSender<Result<JSValue, ErrorStatus>>),
     GetElementCSS(String, String, IpcSender<Result<String, ErrorStatus>>),
     GetElementRect(String, IpcSender<Result<UntypedRect<f64>, ErrorStatus>>),
     GetElementTagName(String, IpcSender<Result<String, ErrorStatus>>),
     GetElementText(String, IpcSender<Result<String, ErrorStatus>>),
     GetElementInViewCenterPoint(String, IpcSender<Result<Option<(i64, i64)>, ErrorStatus>>),
-    GetBoundingClientRect(String, IpcSender<Result<UntypedRect<f32>, ErrorStatus>>),
+    ScrollAndGetBoundingClientRect(String, IpcSender<Result<UntypedRect<f32>, ErrorStatus>>),
     GetBrowsingContextId(
         WebDriverFrameId,
         IpcSender<Result<BrowsingContextId, ErrorStatus>>,
@@ -249,24 +248,8 @@ pub enum WebDriverScriptCommand {
     GetTitle(IpcSender<String>),
     /// Deal with the case of input element for Element Send Keys, which does not send keys.
     WillSendKeys(String, String, bool, IpcSender<Result<bool, ErrorStatus>>),
-    AddLoadStatusSender(WebViewId, IpcSender<WebDriverLoadStatus>),
+    AddLoadStatusSender(WebViewId, GenericSender<WebDriverLoadStatus>),
     RemoveLoadStatusSender(WebViewId),
-    GetWindowHandle(IpcSender<Result<String, ErrorStatus>>),
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum WebDriverJSValue {
-    Undefined,
-    Null,
-    Boolean(bool),
-    Int(i32),
-    Number(f64),
-    String(String),
-    Element(WebElement),
-    Frame(WebFrame),
-    Window(WebWindow),
-    ArrayLike(Vec<WebDriverJSValue>),
-    Object(HashMap<String, WebDriverJSValue>),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -274,14 +257,15 @@ pub enum WebDriverJSError {
     /// Occurs when handler received an event message for a layout channel that is not
     /// associated with the current script thread
     BrowsingContextNotFound,
-    JSException(WebDriverJSValue),
+    DetachedShadowRoot,
+    JSException(JSValue),
     JSError,
     StaleElementReference,
     Timeout,
     UnknownType,
 }
 
-pub type WebDriverJSResult = Result<WebDriverJSValue, WebDriverJSError>;
+pub type WebDriverJSResult = Result<JSValue, WebDriverJSError>;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverFrameId {
@@ -311,8 +295,7 @@ pub enum WebDriverLoadStatus {
 /// to a WebDriver server with information about application state.
 #[derive(Clone, Default)]
 pub struct WebDriverSenders {
-    pub load_status_senders: HashMap<WebViewId, IpcSender<WebDriverLoadStatus>>,
+    pub load_status_senders: FxHashMap<WebViewId, GenericSender<WebDriverLoadStatus>>,
     pub script_evaluation_interrupt_sender: Option<IpcSender<WebDriverJSResult>>,
-    pub pending_traversals: HashMap<TraversalId, IpcSender<WebDriverLoadStatus>>,
-    pub pending_focus: HashMap<FocusId, IpcSender<bool>>,
+    pub pending_traversals: HashMap<TraversalId, GenericSender<WebDriverLoadStatus>>,
 }

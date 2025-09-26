@@ -9,29 +9,29 @@
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
 
-use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
 
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use base::cross_process_instant::CrossProcessInstant;
+use base::generic_channel::{GenericReceiver, GenericSender};
 use base::id::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId, WebViewId};
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::{
-    LoadData, NavigationHistoryBehavior, ScriptToConstellationChan, StructuredSerializedData,
-    WindowSizeType,
+    KeyboardScroll, LoadData, NavigationHistoryBehavior, ScriptToConstellationChan,
+    StructuredSerializedData, WindowSizeType,
 };
 use crossbeam_channel::{RecvTimeoutError, Sender};
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
     CompositorHitTestResult, FocusSequenceNumber, InputEvent, JavaScriptEvaluationId,
-    MediaSessionActionType, Theme, ViewportDetails, WebDriverScriptCommand,
+    MediaSessionActionType, ScriptToEmbedderChan, Theme, ViewportDetails, WebDriverScriptCommand,
 };
-use euclid::{Point2D, Rect, Scale, Size2D, UnknownUnit};
+use euclid::{Rect, Scale, Size2D, UnknownUnit};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use keyboard_types::Modifiers;
 use malloc_size_of_derive::MallocSizeOf;
@@ -41,7 +41,9 @@ use net_traits::image_cache::ImageCache;
 use net_traits::storage_thread::StorageType;
 use pixels::PixelFormat;
 use profile_traits::mem;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use servo_config::prefs::PrefValue;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use strum_macros::IntoStaticStr;
 use style_traits::{CSSPixel, SpeculativePainter};
@@ -145,9 +147,10 @@ pub enum ScriptThreadMessage {
     ExitScriptThread,
     /// Sends a DOM event.
     SendInputEvent(PipelineId, ConstellationInputEvent),
-    /// Ask that the given pipeline refreshes the cursor (after a display list render) based
-    /// on the hit test at the given point.
-    RefreshCursor(PipelineId, Point2D<f32, CSSPixel>),
+    /// Request that the given pipeline refresh the cursor by doing a hit test at the most
+    /// recently hovered cursor position and resetting the cursor. This happens after a
+    /// display list update is rendered.
+    RefreshCursor(PipelineId),
     /// Notifies script of the viewport.
     Viewport(PipelineId, Rect<f32, UnknownUnit>),
     /// Requests that the script thread immediately send the constellation the title of a pipeline.
@@ -180,7 +183,7 @@ pub enum ScriptThreadMessage {
         /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-origin>
         source_origin: ImmutableOrigin,
         /// The data to be posted.
-        data: StructuredSerializedData,
+        data: Box<StructuredSerializedData>,
     },
     /// Updates the current pipeline ID of a given iframe.
     /// First PipelineId is for the parent, second is the new PipelineId for the frame.
@@ -250,12 +253,20 @@ pub enum ScriptThreadMessage {
     SetWebGPUPort(IpcReceiver<WebGPUMsg>),
     /// The compositor scrolled and is updating the scroll states of the nodes in the given
     /// pipeline via the Constellation.
-    SetScrollStates(PipelineId, HashMap<ExternalScrollId, LayoutVector2D>),
+    SetScrollStates(PipelineId, FxHashMap<ExternalScrollId, LayoutVector2D>),
     /// Evaluate the given JavaScript and return a result via a corresponding message
     /// to the Constellation.
     EvaluateJavaScript(PipelineId, JavaScriptEvaluationId, String),
     /// A new batch of keys for the image cache for the specific pipeline.
     SendImageKeysBatch(PipelineId, Vec<ImageKey>),
+    /// Preferences were updated in the parent process.
+    PreferencesUpdated(Vec<(String, PrefValue)>),
+    /// Notify the `ScriptThread` that the Servo renderer is no longer waiting on
+    /// asynchronous image uploads for the given `Pipeline`. These are mainly used
+    /// by canvas to perform uploads while the display list is being built.
+    NoLongerWaitingOnAsychronousImageUpdates(PipelineId),
+    /// Forward a keyboard scroll operation from an `<iframe>` to a parent pipeline.
+    ForwardKeyboardScroll(PipelineId, KeyboardScroll),
 }
 
 impl fmt::Debug for ScriptThreadMessage {
@@ -307,11 +318,14 @@ pub struct InitialScriptState {
     /// Loading into a Secure Context
     pub inherited_secure_context: Option<bool>,
     /// A channel with which messages can be sent to us (the script thread).
-    pub constellation_sender: IpcSender<ScriptThreadMessage>,
+    pub constellation_sender: GenericSender<ScriptThreadMessage>,
     /// A port on which messages sent by the constellation to script can be received.
-    pub constellation_receiver: IpcReceiver<ScriptThreadMessage>,
+    pub constellation_receiver: GenericReceiver<ScriptThreadMessage>,
     /// A channel on which messages can be sent to the constellation from script.
     pub pipeline_to_constellation_sender: ScriptToConstellationChan,
+    /// A channel which allows script to send messages directly to the Embedder
+    /// This will pump the embedder event loop.
+    pub pipeline_to_embedder_sender: ScriptToEmbedderChan,
     /// A handle to register script-(and associated layout-)threads for hang monitoring.
     pub background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
     /// A channel to the resource manager thread.
@@ -345,6 +359,8 @@ pub struct InitialScriptState {
     pub player_context: WindowGLContext,
     /// User content manager
     pub user_content_manager: UserContentManager,
+    /// A list of URLs that can access privileged internal APIs.
+    pub privileged_urls: Vec<ServoUrl>,
 }
 
 /// Errors from executing a paint worklet

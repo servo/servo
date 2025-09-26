@@ -13,6 +13,7 @@ interface HTMLImageElement : HTMLElement {
            attribute USVString src;
   [CEReactions]
            attribute USVString srcset;
+  [CEReactions] attribute DOMString sizes;
   [CEReactions]
            attribute DOMString? crossOrigin;
   [CEReactions]

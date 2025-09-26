@@ -3,11 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![deny(unsafe_code)]
+#![allow(clippy::too_many_arguments)]
 
 mod backend;
-
-#[cfg(feature = "raqote")]
-mod raqote_backend;
 
 #[cfg(any(feature = "vello", feature = "vello_cpu"))]
 mod peniko_conversions;

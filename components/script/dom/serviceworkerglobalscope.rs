@@ -7,6 +7,8 @@ use std::sync::atomic::AtomicBool;
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
+use base::IpcSend;
+use base::generic_channel::GenericSender;
 use base::id::PipelineId;
 use constellation_traits::{
     ScopeThings, ServiceWorkerMsg, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
@@ -14,14 +16,15 @@ use constellation_traits::{
 use crossbeam_channel::{Receiver, Sender, after, unbounded};
 use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use fonts::FontContext;
+use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
 use js::jsapi::{JS_AddInterruptCallback, JSContext};
 use js::jsval::UndefinedValue;
+use net_traits::CustomResponseMediator;
 use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer, RequestBuilder,
 };
-use net_traits::{CustomResponseMediator, IpcSend};
 use servo_config::pref;
 use servo_rand::random;
 use servo_url::ServoUrl;
@@ -34,7 +37,7 @@ use crate::dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding::ServiceWorkerGlobalScopeMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{DomRoot, RootCollection, ThreadLocalStackRoots};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::CustomTraceable;
@@ -160,7 +163,7 @@ pub(crate) struct ServiceWorkerGlobalScope {
 
     #[ignore_malloc_size_of = "Defined in std"]
     #[no_trace]
-    swmanager_sender: IpcSender<ServiceWorkerMsg>,
+    swmanager_sender: GenericSender<ServiceWorkerMsg>,
 
     #[no_trace]
     scope_url: ServoUrl,
@@ -185,7 +188,10 @@ impl WorkerEventLoopMethods for ServiceWorkerGlobalScope {
         self.handle_mixed_message(event, can_gc)
     }
 
-    fn handle_worker_post_event(&self, _worker: &TrustedWorkerAddress) -> Option<AutoWorkerReset> {
+    fn handle_worker_post_event(
+        &self,
+        _worker: &TrustedWorkerAddress,
+    ) -> Option<AutoWorkerReset<'_>> {
         None
     }
 
@@ -220,10 +226,11 @@ impl ServiceWorkerGlobalScope {
         own_sender: Sender<ServiceWorkerScriptMsg>,
         receiver: Receiver<ServiceWorkerScriptMsg>,
         time_out_port: Receiver<Instant>,
-        swmanager_sender: IpcSender<ServiceWorkerMsg>,
+        swmanager_sender: GenericSender<ServiceWorkerMsg>,
         scope_url: ServoUrl,
         control_receiver: Receiver<ServiceWorkerControlMsg>,
         closing: Arc<AtomicBool>,
+        font_context: Arc<FontContext>,
     ) -> ServiceWorkerGlobalScope {
         ServiceWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -236,8 +243,9 @@ impl ServiceWorkerGlobalScope {
                 closing,
                 #[cfg(feature = "webgpu")]
                 Arc::new(IdentityHub::default()),
-                InsecureRequestsPolicy::DoNotUpgrade, // FIXME: investigate what environment this value comes from for
-                                                      // service workers.
+                // FIXME: investigate what environment this value comes from for service workers.
+                InsecureRequestsPolicy::DoNotUpgrade,
+                Some(font_context),
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
             own_sender,
@@ -257,12 +265,12 @@ impl ServiceWorkerGlobalScope {
         own_sender: Sender<ServiceWorkerScriptMsg>,
         receiver: Receiver<ServiceWorkerScriptMsg>,
         time_out_port: Receiver<Instant>,
-        swmanager_sender: IpcSender<ServiceWorkerMsg>,
+        swmanager_sender: GenericSender<ServiceWorkerMsg>,
         scope_url: ServoUrl,
         control_receiver: Receiver<ServiceWorkerControlMsg>,
         closing: Arc<AtomicBool>,
+        font_context: Arc<FontContext>,
     ) -> DomRoot<ServiceWorkerGlobalScope> {
-        let cx = runtime.cx();
         let scope = Box::new(ServiceWorkerGlobalScope::new_inherited(
             init,
             worker_url,
@@ -275,13 +283,9 @@ impl ServiceWorkerGlobalScope {
             scope_url,
             control_receiver,
             closing,
+            font_context,
         ));
-        unsafe {
-            ServiceWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
-                SafeJSContext::from_ptr(cx),
-                scope,
-            )
-        }
+        ServiceWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), scope)
     }
 
     /// <https://w3c.github.io/ServiceWorker/#run-service-worker-algorithm>
@@ -291,11 +295,12 @@ impl ServiceWorkerGlobalScope {
         own_sender: Sender<ServiceWorkerScriptMsg>,
         receiver: Receiver<ServiceWorkerScriptMsg>,
         devtools_receiver: IpcReceiver<DevtoolScriptControlMsg>,
-        swmanager_sender: IpcSender<ServiceWorkerMsg>,
+        swmanager_sender: GenericSender<ServiceWorkerMsg>,
         scope_url: ServoUrl,
         control_receiver: Receiver<ServiceWorkerControlMsg>,
         context_sender: Sender<ThreadSafeJSContext>,
         closing: Arc<AtomicBool>,
+        font_context: Arc<FontContext>,
     ) -> JoinHandle<()> {
         let ScopeThings {
             script_url,
@@ -313,9 +318,6 @@ impl ServiceWorkerGlobalScope {
                 let runtime = Runtime::new(None);
                 let context_for_interrupt = runtime.thread_safe_js_context();
                 let _ = context_sender.send(context_for_interrupt);
-
-                let roots = RootCollection::new();
-                let _stack_roots = ThreadLocalStackRoots::new(&roots);
 
                 let WorkerScriptLoadOrigin {
                     referrer_url,
@@ -345,6 +347,7 @@ impl ServiceWorkerGlobalScope {
                     scope_url,
                     control_receiver,
                     closing,
+                    font_context,
                 );
 
                 let scope = global.upcast::<WorkerGlobalScope>();

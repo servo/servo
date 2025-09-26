@@ -2,6 +2,7 @@
     <html:link rel="help" href="https://www.w3.org/TR/2016/CR-SVG2-20160915/painting.html#OrientAttribute"/>
     <html:link rel="match" href="marker-009-ref.svg"/>
     <html:meta name="assert" content="Tests correct number of markers are drawn on multiple sub-paths"/>
+    <html:meta name="fuzzy" content="maxDifference=0-2;totalPixels=0-50"/>
     <defs>
         <marker id="m1" markerUnits="userSpaceOnUse" overflow="visible">
             <circle cx="0" cy="0" r="25" fill="green"/>

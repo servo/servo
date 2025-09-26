@@ -265,7 +265,7 @@
 
       // Error
       if (this.state == ERRORED) {
-        //XXX render errored state
+        // XXX render errored state
         return;
       }
 

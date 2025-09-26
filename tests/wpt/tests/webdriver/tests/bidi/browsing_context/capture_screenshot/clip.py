@@ -221,14 +221,20 @@ async def test_clip_box_partially_visible(
         bidi_session,
         inline,
         top_context["context"],
-        f"""<div style="{element_styles}"></div>""",
+        f"""
+            <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+            <div style="{element_styles}"></div>
+        """,
     )
 
     reference_data_dimensions = png_dimensions(reference_data)
 
     element_styles = f"background-color: black; width: {viewport_dimensions['width'] + 100}px; height: 50px;"
 
-    url = inline(f"""<div style="{element_styles}"></div>""")
+    url = inline(f"""
+        <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+        <div style="{element_styles}"></div>
+    """)
     await bidi_session.browsing_context.navigate(
         context=top_context["context"], url=url, wait="complete"
     )

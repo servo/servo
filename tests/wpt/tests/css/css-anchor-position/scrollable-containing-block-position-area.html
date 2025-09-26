@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<title>Tests the scrollable containing-block usage with position-area.</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/">
+<link rel="help" href="https://drafts.csswg.org/css-position-4/#scrollable-containing-block">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12552">
+<style>
+.scroller {
+  /* Use overflow hidden instead of scroll to mitigate scrollbar differences. */
+  overflow: hidden;
+  position: relative;
+  width: 80px;
+  height: 80px;
+  margin: 10px;
+  border: solid 3px;
+  padding: 10px;
+}
+
+.filler {
+  min-width: 180px;
+  min-height: 180px;
+}
+
+.anchor {
+  anchor-name: --a;
+  width: 50px;
+  height: 50px;
+  position: relative;
+  left: 60px;
+  top: 60px;
+  background: orange;
+}
+
+.target {
+  position: absolute;
+  position-anchor: --a;
+  place-self: stretch;
+  background: cyan;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.target')">
+
+<!-- top -->
+<div class="scroller">
+  <div class="filler"><div class="anchor"></div></div>
+  <div class="target" style="position-area: top;" data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="70"></div>
+</div>
+
+<!-- right -->
+<div class="scroller">
+  <div class="filler"><div class="anchor"></div></div>
+  <div class="target" style="position-area: right;" data-offset-x="120" data-offset-y="0" data-expected-width="80" data-expected-height="200"></div>
+</div>
+
+<!-- bottom -->
+<div class="scroller">
+  <div class="filler"><div class="anchor"></div></div>
+  <div class="target" style="position-area: bottom;" data-offset-x="0" data-offset-y="120" data-expected-width="200" data-expected-height="80"></div>
+</div>
+
+<!-- left -->
+<div class="scroller">
+  <div class="filler"><div class="anchor"></div></div>
+  <div class="target" style="position-area: left;" data-offset-x="0" data-offset-y="0" data-expected-width="70" data-expected-height="200"></div>
+</div>

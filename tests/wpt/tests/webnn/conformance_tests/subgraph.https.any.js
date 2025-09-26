@@ -2345,7 +2345,7 @@ const subgraphTests = [
         },
         {
           'name': 'softmax',
-          'arguments': [{'input': 'convTranspose2dOutput'}, , {'axis': 1}],
+          'arguments': [{'input': 'convTranspose2dOutput'}, {'axis': 1}],
           'outputs': 'output'
         },
       ],
@@ -2394,7 +2394,7 @@ const subgraphTests = [
         },
         {
           'name': 'softmax',
-          'arguments': [{'input': 'convTranspose2dOutput'}, , {'axis': 1}],
+          'arguments': [{'input': 'convTranspose2dOutput'}, {'axis': 1}],
           'outputs': 'output'
         },
       ],
@@ -2564,10 +2564,5 @@ const subgraphTests = [
   },
 ];
 
-if (navigator.ml) {
-  subgraphTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(
+    subgraphTests, buildAndExecuteGraph, getPrecisionTolerance);

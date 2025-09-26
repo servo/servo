@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+document.addEventListener("DOMContentLoaded", () => {
+  const range = document.createRange();
+  range.selectNode(document.querySelector("cite"));
+  getSelection().removeAllRanges();
+  getSelection().addRange(range);
+  getSelection().modify("move", "left", "word");
+  getSelection().modify("extend", "forward", "line");
+  document.documentElement.style.display = "none";
+  document.documentElement.getBoundingClientRect();
+  getSelection().removeAllRanges();
+}, {once: true});
+</script>
+</head>
+<body>
+<cite dir="rtl">
+<select contenteditable="true">
+<!-- Do NOT put any white spaces after the close tag of select -->
+</select></cite></body></html>

@@ -38,9 +38,10 @@
     const anim = target.getAnimations()[0];
     await anim.ready;
     assert_equals(getComputedStyle(target).stroke, 'rgb(0, 0, 254)');
-    scroller.scrollTop =
-        0.5*(scroller.scrollHeight - scroller.clientHeight);
-    await waitForNextFrame();
+    await runAndWaitForFrameUpdate(() => {
+      scroller.scrollTop =
+          0.5*(scroller.scrollHeight - scroller.clientHeight);
+    });
     assert_equals(getComputedStyle(target).stroke, 'rgb(0, 64, 127)');
   }, 'View timeline attached to SVG graphics element');
 </script>

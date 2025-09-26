@@ -1,0 +1,7 @@
+{
+  "name": "ws-speed-test",
+  "version": "0.1.0",
+  "dependencies": {
+    "ws": "^5.2.2"
+  }
+}

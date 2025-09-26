@@ -37,7 +37,7 @@ impl PartialEq for Reflector {
 impl Reflector {
     /// Get the reflector.
     #[inline]
-    pub fn get_jsobject(&self) -> HandleObject {
+    pub fn get_jsobject(&self) -> HandleObject<'_> {
         // We're rooted, so it's safe to hand out a handle to object in Heap
         unsafe { HandleObject::from_raw(self.object.handle()) }
     }

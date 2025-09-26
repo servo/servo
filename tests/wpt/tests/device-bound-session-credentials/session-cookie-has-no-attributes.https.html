@@ -13,7 +13,7 @@
     addCookieAndSessionCleanup(t);
 
     // Configure server to set up a session with a cookie that has no attributes.
-    configureServer({ cookieDetails: [{ attributes: "" }] });
+    await configureServer({ cookieDetails: [{ attributes: "" }] });
 
     // Prompt starting a session, and wait until registration completes.
     const loginResponse = await fetch('login.py');

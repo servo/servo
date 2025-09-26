@@ -20,5 +20,5 @@ interface PerformanceElementTiming : PerformanceEntry {
 PerformanceElementTiming includes PaintTimingMixin;
 
 partial interface Element {
-    [CEReactions] attribute DOMString elementTiming;
+    [CEReactions, Reflect] attribute DOMString elementTiming;
 };

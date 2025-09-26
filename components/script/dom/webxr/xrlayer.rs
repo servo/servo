@@ -10,7 +10,7 @@ use crate::canvas_context::CanvasContext as _;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::Dom;
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::dom::webgl::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::xrframe::XRFrame;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrwebgllayer::XRWebGLLayer;

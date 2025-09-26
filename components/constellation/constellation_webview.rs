@@ -2,12 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
-
 use base::id::{BrowsingContextId, PipelineId};
-use embedder_traits::{InputEvent, MouseLeaveEvent, Theme};
+use embedder_traits::{InputEvent, MouseLeftViewportEvent, Theme};
 use euclid::Point2D;
 use log::warn;
+use rustc_hash::FxHashMap;
 use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
 use style_traits::CSSPixel;
 
@@ -64,7 +63,7 @@ impl ConstellationWebView {
     fn target_pipeline_id_for_input_event(
         &self,
         event: &ConstellationInputEvent,
-        browsing_contexts: &HashMap<BrowsingContextId, BrowsingContext>,
+        browsing_contexts: &FxHashMap<BrowsingContextId, BrowsingContext>,
     ) -> Option<PipelineId> {
         if let Some(hit_test_result) = &event.hit_test_result {
             return Some(hit_test_result.pipeline_id);
@@ -72,7 +71,7 @@ impl ConstellationWebView {
 
         // If there's no hit test, send the event to either the hovered or focused browsing context,
         // depending on the event type.
-        let browsing_context_id = if matches!(event.event, InputEvent::MouseLeave(_)) {
+        let browsing_context_id = if matches!(event.event, InputEvent::MouseLeftViewport(_)) {
             self.hovered_browsing_context_id
                 .unwrap_or(self.focused_browsing_context_id)
         } else {
@@ -85,8 +84,8 @@ impl ConstellationWebView {
     pub(crate) fn forward_input_event(
         &mut self,
         event: ConstellationInputEvent,
-        pipelines: &HashMap<PipelineId, Pipeline>,
-        browsing_contexts: &HashMap<BrowsingContextId, BrowsingContext>,
+        pipelines: &FxHashMap<PipelineId, Pipeline>,
+        browsing_contexts: &FxHashMap<BrowsingContextId, BrowsingContext>,
     ) {
         let Some(pipeline_id) = self.target_pipeline_id_for_input_event(&event, browsing_contexts)
         else {
@@ -98,44 +97,46 @@ impl ConstellationWebView {
             return;
         };
 
-        let mut update_hovered_browsing_context = |newly_hovered_browsing_context_id| {
-            let old_hovered_context_id = std::mem::replace(
-                &mut self.hovered_browsing_context_id,
-                newly_hovered_browsing_context_id,
-            );
-            if old_hovered_context_id == newly_hovered_browsing_context_id {
-                return;
-            }
-            let Some(old_hovered_context_id) = old_hovered_context_id else {
-                return;
+        let mut update_hovered_browsing_context =
+            |newly_hovered_browsing_context_id, focus_moving_to_another_iframe: bool| {
+                let old_hovered_context_id = std::mem::replace(
+                    &mut self.hovered_browsing_context_id,
+                    newly_hovered_browsing_context_id,
+                );
+                if old_hovered_context_id == newly_hovered_browsing_context_id {
+                    return;
+                }
+                let Some(old_hovered_context_id) = old_hovered_context_id else {
+                    return;
+                };
+                let Some(pipeline) = browsing_contexts
+                    .get(&old_hovered_context_id)
+                    .and_then(|browsing_context| pipelines.get(&browsing_context.pipeline_id))
+                else {
+                    return;
+                };
+
+                let mut synthetic_mouse_leave_event = event.clone();
+                synthetic_mouse_leave_event.event =
+                    InputEvent::MouseLeftViewport(MouseLeftViewportEvent {
+                        focus_moving_to_another_iframe,
+                    });
+
+                let _ = pipeline
+                    .event_loop
+                    .send(ScriptThreadMessage::SendInputEvent(
+                        pipeline.id,
+                        synthetic_mouse_leave_event,
+                    ));
             };
-            let Some(pipeline) = browsing_contexts
-                .get(&old_hovered_context_id)
-                .and_then(|browsing_context| pipelines.get(&browsing_context.pipeline_id))
-            else {
-                return;
-            };
 
-            let mut synthetic_mouse_leave_event = event.clone();
-            synthetic_mouse_leave_event.event = InputEvent::MouseLeave(MouseLeaveEvent {
-                focus_moving_to_another_iframe: true,
-            });
-
-            let _ = pipeline
-                .event_loop
-                .send(ScriptThreadMessage::SendInputEvent(
-                    pipeline.id,
-                    synthetic_mouse_leave_event,
-                ));
-        };
-
-        if let InputEvent::MouseLeave(_) = &event.event {
-            update_hovered_browsing_context(None);
+        if let InputEvent::MouseLeftViewport(_) = &event.event {
+            update_hovered_browsing_context(None, false);
             return;
         }
 
         if let InputEvent::MouseMove(_) = &event.event {
-            update_hovered_browsing_context(Some(pipeline.browsing_context_id));
+            update_hovered_browsing_context(Some(pipeline.browsing_context_id), true);
             self.last_mouse_move_point = event
                 .hit_test_result
                 .as_ref()

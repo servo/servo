@@ -56,8 +56,8 @@
   }, `cookieStore.set with ${prefix} prefix a path option`);
 });
 
-['__HostHttp-', '__hosthttp-', '__Http-', '__http-', '  __Http-', '\t__Http-',
- '  __HostHttp-', '\t__HostHttp-'].forEach(prefix => {
+['__Host-Http-', '__host-http-', '__Http-', '__http-', '  __Http-', '\t__Http-',
+ '  __Host-Http-', '\t__Host-Http-'].forEach(prefix => {
   promise_test(async testCase => {
     await promise_rejects_js(testCase, TypeError,
         cookieStore.set({ name: `${prefix}cookie-name`, value: 'cookie-value'}));
@@ -75,8 +75,8 @@ promise_test(async testCase => {
     assert_true(exceptionThrown, "No exception thrown.");
 }, 'cookieStore.set with malformed name.');
 
-['__Host-', '__Secure-', '__Http-', '__HostHttp-', ' __Host-', '\t__Host-', ' __Secure-',
- '\t__Secure-', ' __Http-', '\t__Http-', ' __HostHttp-', '\t__HostHttp-'].forEach(prefix => {
+['__Host-', '__Secure-', '__Http-', '__Host-Http-', ' __Host-', '\t__Host-', ' __Secure-',
+ '\t__Secure-', ' __Http-', '\t__Http-', ' __Host-Http-', '\t__Host-Http-'].forEach(prefix => {
   promise_test(async testCase => {
     // Nameless cookies cannot have special prefixes
     await cookieStore.delete('');

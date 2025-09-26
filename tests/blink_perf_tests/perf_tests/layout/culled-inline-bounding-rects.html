@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>Bounding box of culled inline</title>
+<script src="../resources/runner.js"></script>
+<body>
+<div id="container" style="width: 800px"></div>
+<script>
+let span_count = 0;
+
+function createTree(container, children, depth) {
+  container.appendChild(document.createTextNode('text '));
+  for (let i = 0; i < children; ++i) {
+    const span = document.createElement('span');
+    if (depth)
+      createTree(span, children, depth - 1);
+    container.appendChild(span);
+    ++span_count;
+  }
+}
+
+function setup() {
+  // Adjust the number of children of each span, and the depth of the tree to
+  // ensure we're linear to both of them. crbug.com/1111154
+  createTree(container, 5, 5);
+}
+
+function test() {
+  for (let element of document.getElementsByTagName('span'))
+    element.getBoundingClientRect();
+}
+
+function run() {
+  PerfTestRunner.measureTime({
+    description: `Measures performance of bounding box of ${span_count} culled inline.`,
+    run: test
+  });
+}
+
+setup();
+run();
+</script>
+</body>

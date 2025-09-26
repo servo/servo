@@ -34,6 +34,7 @@ num-traits = { workspace = true }
 percent-encoding = { workspace = true }
 pixels = { path = "../../pixels" }
 profile_traits = { path = "../profile" }
+rustc-hash = { workspace = true }
 rustls-pki-types = { workspace = true }
 serde = { workspace = true }
 servo_arc = { workspace = true }

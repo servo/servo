@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <textarea>Hello</textarea>
+</body>
+<script>
+test(() => {
+  const textarea = document.querySelector('textarea');
+  const range = new FormControlRange();
+
+  range.setFormControlRange(textarea, 1, 4);
+  assert_equals(range.toString(), "ell");
+
+  assert_throws_dom("IndexSizeError", () => range.setFormControlRange(textarea, 10, 15));
+  assert_equals(range.toString(), "ell", "State preserved after error");
+  assert_equals(range.startOffset, 1, "Start offset preserved");
+  assert_equals(range.endOffset, 4, "End offset preserved");
+}, "FormControlRange preserves state when setFormControlRange throws.");
+
+test(() => {
+  const textarea = document.querySelector('textarea');
+  const range = new FormControlRange();
+
+  // [start, end, shouldThrow, expectedStart, expectedEnd, expectedText, expectedCollapsed].
+  [
+    // Valid forward ranges.
+    [0, 5, false, 0, 5, "Hello", false],
+    [1, 4, false, 1, 4, "ell", false],
+    [0, 0, false, 0, 0, "", true],
+    [5, 5, false, 5, 5, "", true],
+
+    // Backwards ranges that auto-collapse, but don't throw.
+    [5, 2, false, 5, 5, "", true],
+    [4, 1, false, 4, 4, "", true],
+    [3, 0, false, 3, 3, "", true],
+
+    // Ranges that are out-of-bounds and should throw.
+    // End offset exceeds value length.
+    [0, 6, true],
+    // Start offset exceeds value length.
+    [6, 6, true],
+    // Both start and end offset exceeds length in a backwards range.
+    [10, 5, true],
+    // Both start and end offsets exceeds value length in a forward range.
+    [10, 15, true],
+  ].forEach(([start, end, shouldThrow, expectedStart, expectedEnd, expectedText, expectedCollapsed]) => {
+    if (shouldThrow) {
+      assert_throws_dom("IndexSizeError", () => range.setFormControlRange(textarea, start, end),
+                       `[${start}, ${end}] should throw`);
+    } else {
+      range.setFormControlRange(textarea, start, end);
+      assert_equals(range.startOffset, expectedStart, `[${start}, ${end}] startOffset`);
+      assert_equals(range.endOffset, expectedEnd, `[${start}, ${end}] endOffset`);
+      assert_equals(range.toString(), expectedText, `[${start}, ${end}] toString`);
+      assert_equals(range.collapsed, expectedCollapsed, `[${start}, ${end}] collapsed`);
+    }
+  });
+}, "FormControlRange handles all range types correctly: forward, backwards, and out-of-bounds.");
+</script>

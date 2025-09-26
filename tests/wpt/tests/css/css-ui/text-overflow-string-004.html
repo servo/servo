@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: text-overflow - string with text-emphasis</title>
+<link rel="author" title="Minseong Kim" href="mailto:jja08111@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4">
+<link rel="match" href="reference/text-overflow-string-004-ref.html">
+<meta name="assert" content="Test checks that text-emphasis is not shown on the string ellipsis">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  div {
+    font-size: 10px;
+    overflow: hidden;
+    text-overflow: "123";
+    text-emphasis: dot;
+    width: 150px;
+  }
+  span {
+    font-family: Ahem;
+    font-size: 30px;
+  }
+</style>
+<body>
+  <p>Test passes if text-emphasis is only on a black rectangle, not on the <strong>123</strong></p>
+  <div>
+    <span>TestChecksThatTheBrokenContentRepalcedBy123</span>
+  </div>
+</body>

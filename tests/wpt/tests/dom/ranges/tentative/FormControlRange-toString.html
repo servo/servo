@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+test(() => {
+  document.body.innerHTML = '<input type="text" value="Test">';
+  const input = document.body.firstElementChild;
+  const range = new FormControlRange();
+
+  range.setFormControlRange(input, 0, 4);
+  assert_equals(range.toString(), "Test");
+
+  input.value = "New";
+  assert_equals(range.toString(), "New");
+}, "FormControlRange toString() reflects current value.");
+
+test(() => {
+  document.body.innerHTML = '<input type="text" value="Hello">';
+  const input = document.body.firstElementChild;
+  const range = new FormControlRange();
+
+  range.setFormControlRange(input, 1, 4);
+  input.value = "Hi";
+  assert_equals(range.toString(), "i");
+}, "FormControlRange toString() clamps to available length.");
+
+test(() => {
+  document.body.innerHTML = '<textarea>LongText</textarea>';
+  const textarea = document.body.firstElementChild;
+  const range = new FormControlRange();
+
+  range.setFormControlRange(textarea, 2, 6);
+  // Value length is shorter than range.
+  textarea.value = "Hi";
+  assert_equals(range.toString(), "");
+}, "FormControlRange toString() handles value shorter than range.");
+
+test(() => {
+  document.body.innerHTML = '<input type="text" value="Test">';
+  const input = document.body.firstElementChild;
+  const range = new FormControlRange();
+
+  range.setFormControlRange(input, 3, 1);
+  assert_equals(range.toString(), "");
+  assert_true(range.collapsed);
+}, "FormControlRange toString() handles auto-collapsed backwards ranges.");
+
+test(() => {
+  // Test input with value attribute vs IDL value.
+  document.body.innerHTML = '<input type="text" value="AttrValue">';
+  const input = document.body.firstElementChild;
+
+  input.value = "NewValue";
+
+  const range = new FormControlRange();
+  range.setFormControlRange(input, 0, input.value.length);
+
+  // FormControlRange should use current .value, not attribute.
+  assert_equals(range.toString(), "NewValue");
+
+  input.setAttribute("value", "AttrChanged");
+  assert_equals(input.value, "NewValue");
+  assert_equals(range.toString(), "NewValue");
+
+}, "FormControlRange uses current input.value, not value attribute.");
+</script>

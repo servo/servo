@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::generic_channel::GenericSender;
 use base::id::WebViewId;
-use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::mem::ReportsChan;
 use serde::{Deserialize, Serialize};
@@ -19,11 +19,11 @@ pub enum StorageType {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum StorageThreadMsg {
     /// gets the number of key/value pairs present in the associated storage data
-    Length(IpcSender<usize>, StorageType, WebViewId, ServoUrl),
+    Length(GenericSender<usize>, StorageType, WebViewId, ServoUrl),
 
     /// gets the name of the key at the specified index in the associated storage data
     Key(
-        IpcSender<Option<String>>,
+        GenericSender<Option<String>>,
         StorageType,
         WebViewId,
         ServoUrl,
@@ -31,11 +31,11 @@ pub enum StorageThreadMsg {
     ),
 
     /// Gets the available keys in the associated storage data
-    Keys(IpcSender<Vec<String>>, StorageType, WebViewId, ServoUrl),
+    Keys(GenericSender<Vec<String>>, StorageType, WebViewId, ServoUrl),
 
     /// gets the value associated with the given key in the associated storage data
     GetItem(
-        IpcSender<Option<String>>,
+        GenericSender<Option<String>>,
         StorageType,
         WebViewId,
         ServoUrl,
@@ -44,7 +44,7 @@ pub enum StorageThreadMsg {
 
     /// sets the value of the given key in the associated storage data
     SetItem(
-        IpcSender<Result<(bool, Option<String>), ()>>,
+        GenericSender<Result<(bool, Option<String>), ()>>,
         StorageType,
         WebViewId,
         ServoUrl,
@@ -54,7 +54,7 @@ pub enum StorageThreadMsg {
 
     /// removes the key/value pair for the given key in the associated storage data
     RemoveItem(
-        IpcSender<Option<String>>,
+        GenericSender<Option<String>>,
         StorageType,
         WebViewId,
         ServoUrl,
@@ -62,18 +62,18 @@ pub enum StorageThreadMsg {
     ),
 
     /// clears the associated storage data by removing all the key/value pairs
-    Clear(IpcSender<bool>, StorageType, WebViewId, ServoUrl),
+    Clear(GenericSender<bool>, StorageType, WebViewId, ServoUrl),
 
     /// clones all storage data of the given top-level browsing context for a new browsing context.
     /// should only be used for sessionStorage.
     Clone {
-        sender: IpcSender<()>,
+        sender: GenericSender<()>,
         src: WebViewId,
         dest: WebViewId,
     },
 
     /// send a reply when done cleaning up thread resources and then shut it down
-    Exit(IpcSender<()>),
+    Exit(GenericSender<()>),
 
     /// Measure memory used by this thread and send the report over the provided channel.
     CollectMemoryReport(ReportsChan),

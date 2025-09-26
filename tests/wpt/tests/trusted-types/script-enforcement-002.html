@@ -40,12 +40,34 @@
     let messages = await script_messages_for(_ => {
       let script = document.createElement("script");
       window.log_message("SET");
+      Object.getOwnPropertyDescriptor(HTMLElement.prototype, "innerText").set.call(script, LOG_RUN_MESSAGE);
+      window.log_message("APPEND");
+      container.appendChild(script);
+    });
+    assert_array_equals(messages, ["SET", "APPEND", "CREATE_SCRIPT", "HTMLScriptElement text", "RUN_TRUSTED_SCRIPT"]);
+  }, "Verify when the default policy is called for script source via HTMLElement.innerText.");
+
+  promise_test(async t => {
+    let messages = await script_messages_for(_ => {
+      let script = document.createElement("script");
+      window.log_message("SET");
       script.textContent = LOG_RUN_MESSAGE;
       window.log_message("APPEND");
       container.appendChild(script);
     });
     assert_array_equals(messages, ["SET", "CREATE_SCRIPT", "HTMLScriptElement textContent", "APPEND", "RUN_TRUSTED_SCRIPT"]);
   }, "Default policy's calls when setting script source via HTMLScriptElement.textContent.");
+
+  promise_test(async t => {
+    let messages = await script_messages_for(_ => {
+      let script = document.createElement("script");
+      window.log_message("SET");
+      Object.getOwnPropertyDescriptor(Node.prototype, "textContent").set.call(script, LOG_RUN_MESSAGE);
+      window.log_message("APPEND");
+      container.appendChild(script);
+    });
+    assert_array_equals(messages, ["SET", "APPEND", "CREATE_SCRIPT", "HTMLScriptElement text", "RUN_TRUSTED_SCRIPT"]);
+  }, "Verify when the default policy is called for script source set via Node.textContent.");
 
   promise_test(async t => {
     let messages = await script_messages_for(_ => {

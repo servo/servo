@@ -321,6 +321,7 @@ def get_actions_origin_page(inline):
     def get_actions_origin_page(inner_style, outer_style=""):
         return inline(
             f"""
+          <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
           <div id="outer" style="{outer_style}"
                onmousemove="window.coords = {{x: event.clientX, y: event.clientY}}">
             <div id="inner" style="{inner_style}"></div>

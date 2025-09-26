@@ -5,12 +5,11 @@
 use std::default::Default;
 use std::rc::Rc;
 
+use base::generic_channel::GenericCallback;
 use constellation_traits::{
     Job, JobError, JobResult, JobResultValue, JobType, ScriptToConstellationMessage,
 };
 use dom_struct::dom_struct;
-use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
 
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{
     RegistrationOptions, ServiceWorkerContainerMethods,
@@ -155,15 +154,11 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             task_source: global.task_manager().dom_manipulation_task_source().into(),
         };
 
-        let (job_result_sender, job_result_receiver) = ipc::channel().expect("ipc channel failure");
-
-        ROUTER.add_typed_route(
-            job_result_receiver,
-            Box::new(move |message| match message {
-                Ok(msg) => handler.handle(msg),
-                Err(err) => warn!("Error receiving a JobResult: {:?}", err),
-            }),
-        );
+        let result_handler = GenericCallback::new(move |message| match message {
+            Ok(msg) => handler.handle(msg),
+            Err(err) => warn!("Error receiving a JobResult: {:?}", err),
+        })
+        .expect("Failed to create callback");
 
         let scope_things =
             ServiceWorkerRegistration::create_scope_things(&global, script_url.clone());
@@ -173,7 +168,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             JobType::Register,
             scope,
             script_url,
-            job_result_sender,
+            result_handler,
             self.client.creation_url(),
             Some(scope_things),
         );

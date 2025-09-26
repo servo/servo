@@ -17,14 +17,16 @@ use std::collections::HashMap;
 use std::ffi::c_void;
 use std::fmt::{Debug, Display, Error, Formatter};
 use std::hash::Hash;
+use std::ops::Range;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use base::generic_channel::{GenericCallback, GenericSender, SendResult};
 use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use euclid::{Point2D, Scale, Size2D};
 use http::{HeaderMap, Method, StatusCode};
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use log::warn;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
@@ -55,9 +57,10 @@ pub enum ShutdownState {
 /// A cursor for the window. This is different from a CSS cursor (see
 /// `CursorKind`) in that it has no `Auto` value.
 #[repr(u8)]
-#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum Cursor {
     None,
+    #[default]
     Default,
     Pointer,
     ContextMenu,
@@ -145,20 +148,20 @@ pub enum SimpleDialog {
     /// TODO: Include details about the document origin.
     Alert {
         message: String,
-        response_sender: IpcSender<AlertResponse>,
+        response_sender: GenericSender<AlertResponse>,
     },
     /// [`confirm()`](https://html.spec.whatwg.org/multipage/#dom-confirm).
     /// TODO: Include details about the document origin.
     Confirm {
         message: String,
-        response_sender: IpcSender<ConfirmResponse>,
+        response_sender: GenericSender<ConfirmResponse>,
     },
     /// [`prompt()`](https://html.spec.whatwg.org/multipage/#dom-prompt).
     /// TODO: Include details about the document origin.
     Prompt {
         message: String,
         default: String,
-        response_sender: IpcSender<PromptResponse>,
+        response_sender: GenericSender<PromptResponse>,
     },
 }
 
@@ -335,17 +338,6 @@ pub struct ScreenMetrics {
     pub available_size: DeviceIndependentIntSize,
 }
 
-/// An opaque identifier for a single webview focus operation.
-#[derive(Clone, Deserialize, Eq, Hash, PartialEq, Serialize)]
-pub struct FocusId(String);
-
-impl FocusId {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
-        Self(Uuid::new_v4().to_string())
-    }
-}
-
 /// An opaque identifier for a single history traversal operation.
 #[derive(Clone, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct TraversalId(String);
@@ -354,6 +346,54 @@ impl TraversalId {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self(Uuid::new_v4().to_string())
+    }
+}
+
+#[derive(Clone, Copy, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub enum PixelFormat {
+    /// Luminance channel only
+    K8,
+    /// Luminance + alpha
+    KA8,
+    /// RGB, 8 bits per channel
+    RGB8,
+    /// RGB + alpha, 8 bits per channel
+    RGBA8,
+    /// BGR + alpha, 8 bits per channel
+    BGRA8,
+}
+
+/// A raster image buffer.
+#[derive(Clone, Deserialize, Serialize)]
+pub struct Image {
+    pub width: u32,
+    pub height: u32,
+    pub format: PixelFormat,
+    /// A shared memory block containing the data of one or more image frames.
+    data: IpcSharedMemory,
+    range: Range<usize>,
+}
+
+impl Image {
+    pub fn new(
+        width: u32,
+        height: u32,
+        data: IpcSharedMemory,
+        range: Range<usize>,
+        format: PixelFormat,
+    ) -> Self {
+        Self {
+            width,
+            height,
+            format,
+            data,
+            range,
+        }
+    }
+
+    /// Return the bytes belonging to the first image frame.
+    pub fn data(&self) -> &[u8] {
+        &self.data[self.range.clone()]
     }
 }
 
@@ -376,29 +416,31 @@ pub enum EmbedderMsg {
         WebViewId,
         ServoUrl,
         bool, /* for proxy */
-        IpcSender<Option<AuthenticationResponse>>,
+        GenericSender<Option<AuthenticationResponse>>,
     ),
     /// Show a context menu to the user
     ShowContextMenu(
         WebViewId,
-        IpcSender<ContextMenuResult>,
+        GenericSender<ContextMenuResult>,
         Option<String>,
         Vec<String>,
     ),
     /// Whether or not to allow a pipeline to load a url.
     AllowNavigationRequest(WebViewId, PipelineId, ServoUrl),
     /// Whether or not to allow script to open a new tab/browser
-    AllowOpeningWebView(WebViewId, IpcSender<Option<(WebViewId, ViewportDetails)>>),
+    AllowOpeningWebView(
+        WebViewId,
+        GenericSender<Option<(WebViewId, ViewportDetails)>>,
+    ),
     /// A webview was destroyed.
     WebViewClosed(WebViewId),
-    /// A webview potentially gained focus for keyboard events, as initiated
-    /// by the provided focus id. If the boolean value is false, the webiew
-    /// could not be focused.
-    WebViewFocused(WebViewId, FocusId, bool),
+    /// A webview potentially gained focus for keyboard events.
+    /// If the boolean value is false, the webiew could not be focused.
+    WebViewFocused(WebViewId, bool),
     /// All webviews lost focus for keyboard events.
     WebViewBlurred,
     /// Wether or not to unload a document
-    AllowUnload(WebViewId, IpcSender<AllowOrDeny>),
+    AllowUnload(WebViewId, GenericSender<AllowOrDeny>),
     /// Sends an unconsumed key event back to the embedder.
     Keyboard(WebViewId, KeyboardEvent),
     /// Inform embedder to clear the clipboard
@@ -410,15 +452,15 @@ pub enum EmbedderMsg {
     /// Changes the cursor.
     SetCursor(WebViewId, Cursor),
     /// A favicon was detected
-    NewFavicon(WebViewId, ServoUrl),
+    NewFavicon(WebViewId, Image),
     /// The history state has changed.
     HistoryChanged(WebViewId, Vec<ServoUrl>, usize),
     /// A history traversal operation completed.
     HistoryTraversalComplete(WebViewId, TraversalId),
     /// Get the device independent window rectangle.
-    GetWindowRect(WebViewId, IpcSender<DeviceIndependentIntRect>),
+    GetWindowRect(WebViewId, GenericSender<DeviceIndependentIntRect>),
     /// Get the device independent screen size and available size.
-    GetScreenMetrics(WebViewId, IpcSender<ScreenMetrics>),
+    GetScreenMetrics(WebViewId, GenericSender<ScreenMetrics>),
     /// Entered or exited fullscreen.
     NotifyFullscreenStateChanged(WebViewId, bool),
     /// The [`LoadStatus`] of the Given `WebView` has changed.
@@ -426,21 +468,21 @@ pub enum EmbedderMsg {
     WebResourceRequested(
         Option<WebViewId>,
         WebResourceRequest,
-        IpcSender<WebResourceResponseMsg>,
+        GenericSender<WebResourceResponseMsg>,
     ),
     /// A pipeline panicked. First string is the reason, second one is the backtrace.
     Panic(WebViewId, String, Option<String>),
     /// Open dialog to select bluetooth device.
-    GetSelectedBluetoothDevice(WebViewId, Vec<String>, IpcSender<Option<String>>),
+    GetSelectedBluetoothDevice(WebViewId, Vec<String>, GenericSender<Option<String>>),
     /// Open file dialog to select files. Set boolean flag to true allows to select multiple files.
     SelectFiles(
         WebViewId,
         Vec<FilterPattern>,
         bool,
-        IpcSender<Option<Vec<PathBuf>>>,
+        GenericSender<Option<Vec<PathBuf>>>,
     ),
     /// Open interface to request permission specified by prompt.
-    PromptPermission(WebViewId, PermissionFeature, IpcSender<AllowOrDeny>),
+    PromptPermission(WebViewId, PermissionFeature, GenericSender<AllowOrDeny>),
     /// Request to present an IME to the user when an editable element is focused.
     /// If the input is text, the second parameter defines the pre-existing string
     /// text content and the zero-based index into the string locating the insertion point.
@@ -462,7 +504,7 @@ pub enum EmbedderMsg {
     /// Report the status of Devtools Server with a token that can be used to bypass the permission prompt.
     OnDevtoolsStarted(Result<u16, ()>, String),
     /// Ask the user to allow a devtools client to connect.
-    RequestDevtoolsConnection(IpcSender<AllowOrDeny>),
+    RequestDevtoolsConnection(GenericSender<AllowOrDeny>),
     /// Request to play a haptic effect on a connected gamepad.
     PlayGamepadHapticEffect(WebViewId, usize, GamepadHapticEffectType, IpcSender<bool>),
     /// Request to stop a haptic effect on a connected gamepad.
@@ -496,10 +538,10 @@ pub enum FormControl {
     SelectElement(
         Vec<SelectElementOptionOrOptgroup>,
         Option<usize>,
-        IpcSender<Option<usize>>,
+        GenericSender<Option<usize>>,
     ),
     /// Indicates that the user has activated a `<input type=color>` element.
-    ColorPicker(RgbColor, IpcSender<Option<RgbColor>>),
+    ColorPicker(RgbColor, GenericSender<Option<RgbColor>>),
 }
 
 /// Filter for file selection;
@@ -997,34 +1039,11 @@ pub enum JSValue {
     Number(f64),
     String(String),
     Element(String),
+    ShadowRoot(String),
     Frame(String),
     Window(String),
     Array(Vec<JSValue>),
     Object(HashMap<String, JSValue>),
-}
-
-impl From<&WebDriverJSValue> for JSValue {
-    fn from(value: &WebDriverJSValue) -> Self {
-        match value {
-            WebDriverJSValue::Undefined => Self::Undefined,
-            WebDriverJSValue::Null => Self::Null,
-            WebDriverJSValue::Boolean(value) => Self::Boolean(*value),
-            WebDriverJSValue::Int(value) => Self::Number(*value as f64),
-            WebDriverJSValue::Number(value) => Self::Number(*value),
-            WebDriverJSValue::String(value) => Self::String(value.clone()),
-            WebDriverJSValue::Element(web_element) => Self::Element(web_element.0.clone()),
-            WebDriverJSValue::Frame(web_frame) => Self::Frame(web_frame.0.clone()),
-            WebDriverJSValue::Window(web_window) => Self::Window(web_window.0.clone()),
-            WebDriverJSValue::ArrayLike(vector) => {
-                Self::Array(vector.iter().map(Into::into).collect())
-            },
-            WebDriverJSValue::Object(map) => Self::Object(
-                map.iter()
-                    .map(|(key, value)| (key.clone(), value.into()))
-                    .collect(),
-            ),
-        }
-    }
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -1049,4 +1068,35 @@ pub struct RgbColor {
     pub red: u8,
     pub green: u8,
     pub blue: u8,
+}
+
+/// A Script to Embedder Channel
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct ScriptToEmbedderChan(GenericCallback<EmbedderMsg>);
+
+impl ScriptToEmbedderChan {
+    /// Create a new Channel allowing script to send messages to the Embedder
+    pub fn new(
+        embedder_chan: Sender<EmbedderMsg>,
+        waker: Box<dyn EventLoopWaker>,
+    ) -> ScriptToEmbedderChan {
+        let embedder_callback = GenericCallback::new(move |embedder_msg| {
+            let msg = match embedder_msg {
+                Ok(embedder_msg) => embedder_msg,
+                Err(err) => {
+                    log::warn!("Script to Embedder message error: {err}");
+                    return;
+                },
+            };
+            let _ = embedder_chan.send(msg);
+            waker.wake();
+        })
+        .expect("Failed to create channel");
+        ScriptToEmbedderChan(embedder_callback)
+    }
+
+    /// Send a message to and wake the Embedder
+    pub fn send(&self, msg: EmbedderMsg) -> SendResult {
+        self.0.send(msg)
+    }
 }

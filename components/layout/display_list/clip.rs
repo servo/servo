@@ -4,6 +4,7 @@
 
 use app_units::Au;
 use base::id::ScrollTreeNodeId;
+use malloc_size_of_derive::MallocSizeOf;
 use style::values::computed::basic_shape::{BasicShape, ClipPath};
 use style::values::computed::length_percentage::NonNegativeLengthPercentage;
 use style::values::computed::position::Position;
@@ -16,7 +17,7 @@ use super::{BuilderForBoxFragment, compute_margin_box_radius, normalize_radii};
 
 /// An identifier for a clip used during StackingContextTree construction. This is a simple index in
 /// a [`ClipStore`]s vector of clips.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 pub(crate) struct ClipId(pub usize);
 
 impl ClipId {
@@ -27,7 +28,7 @@ impl ClipId {
 /// All the information needed to create a clip on a WebRender display list. These are created at
 /// two times: during `StackingContextTree` creation and during WebRender display list construction.
 /// Only the former are stored in a [`ClipStore`].
-#[derive(Clone)]
+#[derive(Clone, MallocSizeOf)]
 pub(crate) struct Clip {
     pub id: ClipId,
     pub radii: BorderRadius,
@@ -39,7 +40,7 @@ pub(crate) struct Clip {
 /// A simple vector of [`Clip`] that is built during `StackingContextTree` construction.
 /// These are later turned into WebRender clips and clip chains during WebRender display
 /// list construction.
-#[derive(Clone, Default)]
+#[derive(Clone, Default, MallocSizeOf)]
 pub(crate) struct StackingContextTreeClipStore(pub Vec<Clip>);
 
 impl StackingContextTreeClipStore {
@@ -68,8 +69,8 @@ impl StackingContextTreeClipStore {
     pub(super) fn add_for_clip_path(
         &mut self,
         clip_path: ClipPath,
-        parent_scroll_node_id: &ScrollTreeNodeId,
-        parent_clip_chain_id: &ClipId,
+        parent_scroll_node_id: ScrollTreeNodeId,
+        parent_clip_chain_id: ClipId,
         fragment_builder: BuilderForBoxFragment,
     ) -> Option<ClipId> {
         let geometry_box = match clip_path {
@@ -107,8 +108,8 @@ impl StackingContextTreeClipStore {
                     _ => fragment_builder.border_radius,
                 },
                 layout_rect,
-                *parent_scroll_node_id,
-                *parent_clip_chain_id,
+                parent_scroll_node_id,
+                parent_clip_chain_id,
             ))
         }
     }
@@ -118,8 +119,8 @@ impl StackingContextTreeClipStore {
         &mut self,
         shape: BasicShape,
         layout_box: LayoutRect,
-        parent_scroll_node_id: &ScrollTreeNodeId,
-        parent_clip_chain_id: &ClipId,
+        parent_scroll_node_id: ScrollTreeNodeId,
+        parent_clip_chain_id: ClipId,
     ) -> Option<ClipId> {
         match shape {
             BasicShape::Rect(rect) => {
@@ -158,8 +159,8 @@ impl StackingContextTreeClipStore {
                 Some(self.add(
                     radii,
                     shape_rect,
-                    *parent_scroll_node_id,
-                    *parent_clip_chain_id,
+                    parent_scroll_node_id,
+                    parent_clip_chain_id,
                 ))
             },
             BasicShape::Circle(circle) => {
@@ -206,7 +207,7 @@ impl StackingContextTreeClipStore {
                 let start = center.add_size(&-radius);
                 let rect = LayoutRect::from_origin_and_size(start, radius * 2.);
                 normalize_radii(&layout_box, &mut radii);
-                Some(self.add(radii, rect, *parent_scroll_node_id, *parent_clip_chain_id))
+                Some(self.add(radii, rect, parent_scroll_node_id, parent_clip_chain_id))
             },
             BasicShape::Ellipse(ellipse) => {
                 let center = match ellipse.position {
@@ -246,7 +247,7 @@ impl StackingContextTreeClipStore {
                 let start = center.add_size(&-size);
                 let rect = LayoutRect::from_origin_and_size(start, size * 2.);
                 normalize_radii(&rect, &mut radii);
-                Some(self.add(radii, rect, *parent_scroll_node_id, *parent_clip_chain_id))
+                Some(self.add(radii, rect, parent_scroll_node_id, parent_clip_chain_id))
             },
             _ => None,
         }

@@ -109,7 +109,7 @@
         test_invalid_value(`color`, `${colorSpace}(from ${colorSpace}(.70 45 30) l c calc(h + 1deg))`);
     }
 
-    for (const colorSpace of [ "srgb", "srgb-linear", "a98-rgb", "rec2020", "prophoto-rgb", "display-p3" ]) {
+    for (const colorSpace of [ "srgb", "srgb-linear", "a98-rgb", "rec2020", "prophoto-rgb", "display-p3", "display-p3-linear" ]) {
         // Testing invalid values.
         test_invalid_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} 10deg g b)`);
         test_invalid_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} r 10deg b)`);

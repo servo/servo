@@ -12,13 +12,15 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{self, JoinHandle};
 
+use base::generic_channel::{self, GenericSender, ReceiveError, RoutedReceiver};
 use base::id::{PipelineNamespace, ServiceWorkerId, ServiceWorkerRegistrationId};
 use constellation_traits::{
     DOMMessage, Job, JobError, JobResult, JobResultValue, JobType, SWManagerMsg, SWManagerSenders,
     ScopeThings, ServiceWorkerManagerFactory, ServiceWorkerMsg,
 };
-use crossbeam_channel::{Receiver, RecvError, Sender, select, unbounded};
-use ipc_channel::ipc::{self, IpcSender};
+use crossbeam_channel::{Receiver, Sender, select, unbounded};
+use fonts::FontContext;
+use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{CoreResourceMsg, CustomResponseMediator};
 use servo_config::pref;
@@ -216,21 +218,24 @@ pub struct ServiceWorkerManager {
     registrations: HashMap<ServoUrl, ServiceWorkerRegistration>,
     // Will be useful to implement posting a message to a client.
     // See https://github.com/servo/servo/issues/24660
-    _constellation_sender: IpcSender<SWManagerMsg>,
+    _constellation_sender: GenericSender<SWManagerMsg>,
     // own sender to send messages here
-    own_sender: IpcSender<ServiceWorkerMsg>,
+    own_sender: GenericSender<ServiceWorkerMsg>,
     // receiver to receive messages from constellation
-    own_port: Receiver<ServiceWorkerMsg>,
+    own_port: RoutedReceiver<ServiceWorkerMsg>,
     // to receive resource messages
     resource_receiver: Receiver<CustomResponseMediator>,
+    /// A shared [`FontContext`] to use for all service workers spawned by this [`ServiceWorkerManager`].
+    font_context: Arc<FontContext>,
 }
 
 impl ServiceWorkerManager {
     fn new(
-        own_sender: IpcSender<ServiceWorkerMsg>,
-        from_constellation_receiver: Receiver<ServiceWorkerMsg>,
+        own_sender: GenericSender<ServiceWorkerMsg>,
+        from_constellation_receiver: RoutedReceiver<ServiceWorkerMsg>,
         resource_port: Receiver<CustomResponseMediator>,
-        constellation_sender: IpcSender<SWManagerMsg>,
+        constellation_sender: GenericSender<SWManagerMsg>,
+        font_context: Arc<FontContext>,
     ) -> ServiceWorkerManager {
         // Install a pipeline-namespace in the current thread.
         PipelineNamespace::auto_install();
@@ -241,6 +246,7 @@ impl ServiceWorkerManager {
             own_port: from_constellation_receiver,
             resource_receiver: resource_port,
             _constellation_sender: constellation_sender,
+            font_context,
         }
     }
 
@@ -284,10 +290,10 @@ impl ServiceWorkerManager {
         true
     }
 
-    fn receive_message(&mut self) -> Result<Message, RecvError> {
+    fn receive_message(&mut self) -> generic_channel::ReceiveResult<Message> {
         select! {
-            recv(self.own_port) -> msg => msg.map(|m| Message::FromConstellation(Box::new(m))),
-            recv(self.resource_receiver) -> msg => msg.map(Message::FromResource),
+            recv(self.own_port) -> result_msg => generic_channel::to_receive_result::<ServiceWorkerMsg>(result_msg).map(|msg| Message::FromConstellation(Box::new(msg))),
+            recv(self.resource_receiver) -> msg => msg.map(Message::FromResource).map_err(|_e| ReceiveError::Disconnected),
         }
     }
 
@@ -406,8 +412,12 @@ impl ServiceWorkerManager {
 
             // Very roughly steps 5 to 18.
             // TODO: implement all steps precisely.
-            let (new_worker, join_handle, control_sender, context, closing) =
-                update_serviceworker(self.own_sender.clone(), job.scope_url.clone(), scope_things);
+            let (new_worker, join_handle, control_sender, context, closing) = update_serviceworker(
+                self.own_sender.clone(),
+                job.scope_url.clone(),
+                scope_things,
+                self.font_context.clone(),
+            );
 
             // Since we've just started the worker thread, ensure we can shut it down later.
             registration.note_worker_thread(join_handle, control_sender, context, closing);
@@ -443,9 +453,10 @@ impl ServiceWorkerManager {
 
 /// <https://w3c.github.io/ServiceWorker/#update-algorithm>
 fn update_serviceworker(
-    own_sender: IpcSender<ServiceWorkerMsg>,
+    own_sender: GenericSender<ServiceWorkerMsg>,
     scope_url: ServoUrl,
     scope_things: ScopeThings,
+    font_context: Arc<FontContext>,
 ) -> (
     ServiceWorker,
     JoinHandle<()>,
@@ -471,6 +482,7 @@ fn update_serviceworker(
         control_receiver,
         context_sender,
         closing.clone(),
+        font_context,
     );
 
     let context = context_receiver
@@ -491,21 +503,33 @@ impl ServiceWorkerManagerFactory for ServiceWorkerManager {
         let (resource_chan, resource_port) = ipc::channel().unwrap();
 
         let SWManagerSenders {
-            resource_sender,
+            resource_threads,
             own_sender,
             receiver,
             swmanager_sender: constellation_sender,
+            system_font_service_sender,
+            compositor_api,
         } = sw_senders;
 
-        let from_constellation = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(receiver);
+        let from_constellation = receiver.route_preserving_errors();
         let resource_port = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(resource_port);
-        let _ = resource_sender.send(CoreResourceMsg::NetworkMediator(resource_chan, origin));
+        let _ = resource_threads
+            .core_thread
+            .send(CoreResourceMsg::NetworkMediator(resource_chan, origin));
+
+        let font_context = Arc::new(FontContext::new(
+            Arc::new(system_font_service_sender.to_proxy()),
+            compositor_api,
+            resource_threads,
+        ));
+
         let swmanager_thread = move || {
             ServiceWorkerManager::new(
                 own_sender,
                 from_constellation,
                 resource_port,
                 constellation_sender,
+                font_context,
             )
             .handle_message()
         };

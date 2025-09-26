@@ -15,7 +15,7 @@ body {
 
 .cb {
   position: relative;
-  font: 20px/1 Ahem, monospace;
+  font: 20px/1 Ahem;
 }
 
 .scroller {
@@ -64,6 +64,8 @@ body {
 
 <script>
 promise_test(async () => {
+  await document.fonts.load('20px/1 Ahem');
+
   await waitUntilNextAnimationFrame();
   await waitUntilNextAnimationFrame();
 

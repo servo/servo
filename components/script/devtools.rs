@@ -11,11 +11,13 @@ use devtools_traits::{
     AttrModification, AutoMargins, ComputedNodeLayout, CssDatabaseProperty, EvaluateJSReply,
     NodeInfo, NodeStyle, RuleModification, TimelineMarker, TimelineMarkerType,
 };
+use html5ever::LocalName;
 use ipc_channel::ipc::IpcSender;
 use js::conversions::jsstr_to_string;
 use js::jsval::UndefinedValue;
 use js::rust::ToString;
 use servo_config::pref;
+use style::attr::AttrValue;
 use uuid::Uuid;
 
 use crate::document_collection::DocumentCollection;
@@ -38,7 +40,7 @@ use crate::dom::cssstylerule::CSSStyleRule;
 use crate::dom::document::AnimationFrameCallback;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlscriptelement::SourceCode;
+use crate::dom::html::htmlscriptelement::SourceCode;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::types::HTMLElement;
 use crate::realms::enter_realm;
@@ -435,9 +437,9 @@ pub(crate) fn handle_modify_attribute(
     for modification in modifications {
         match modification.new_value {
             Some(string) => {
-                let _ = elem.SetAttribute(
-                    DOMString::from(modification.attribute_name),
-                    DOMString::from(string),
+                elem.set_attribute(
+                    &LocalName::from(modification.attribute_name),
+                    AttrValue::String(string),
                     can_gc,
                 );
             },

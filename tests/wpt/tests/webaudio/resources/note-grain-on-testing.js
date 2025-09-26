@@ -130,10 +130,12 @@ function verifyStartAndEndFrames(startEndFrames, should) {
     let expectedEnd = expectedStart +
         grainLengthInSampleFrames(k * grainOffsetStep, duration, sampleRate);
 
-    if (startFrames[k] != expectedStart)
+    if (startFrames[k] != expectedStart) {
       ++errorCountStart;
-    if (endFrames[k] != expectedEnd)
+    }
+    if (endFrames[k] != expectedEnd) {
       ++errorCountEnd;
+    }
 
     should([startFrames[k], endFrames[k]], 'Pulse ' + k + ' boundary')
         .beEqualToArray([expectedStart, expectedEnd]);
@@ -161,5 +163,60 @@ function verifyStartAndEndFrames(startEndFrames, should) {
         'Number of grains out of ' + numberOfTests +
             ' that ended at the wrong time')
         .beEqualTo(0);
+  }
+}
+
+function verifyStartAndEndFrames_W3CTH(startEndFrames) {
+  const startFrames = startEndFrames.start;
+  const endFrames = startEndFrames.end;
+
+  let errorCountStart = 0;
+  let errorCountEnd = 0;
+
+  assert_equals(
+      startFrames.length, endFrames.length,
+      'Found all grain starts and ends');
+  assert_equals(startFrames.length, numberOfTests, 'Number of start frames');
+  assert_equals(endFrames.length, numberOfTests, 'Number of end frames');
+
+  for (let k = 0; k < startFrames.length; ++k) {
+    const expectedStart = timeToSampleFrame(k * timeStep, sampleRate);
+    const expectedEnd =
+        expectedStart + grainLengthInSampleFrames(
+            k * grainOffsetStep, duration, sampleRate);
+
+    if (startFrames[k] !== expectedStart) {
+      ++errorCountStart;
+    }
+    if (endFrames[k] !== expectedEnd) {
+      ++errorCountEnd;
+    }
+
+    assert_array_equals(
+        [startFrames[k], endFrames[k]],
+        [expectedStart, expectedEnd],
+        'Pulse ' + k + ' boundary');
+  }
+
+  if (!errorCountStart) {
+    assert_equals(
+        startFrames.length, numberOfTests,
+        'Number of grains that started at the correct time');
+  } else {
+    assert_equals(
+        errorCountStart, 0,
+        `Number of grains out of ${numberOfTests} that ` +
+            `started at the wrong time`);
+  }
+
+  if (!errorCountEnd) {
+    assert_equals(
+        endFrames.length, numberOfTests,
+        'Number of grains that ended at the correct time');
+  } else {
+    assert_equals(
+        errorCountEnd, 0,
+        `Number of grains out of ${numberOfTests} that ` +
+            `ended at the wrong time`);
   }
 }

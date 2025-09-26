@@ -175,14 +175,14 @@ pub(crate) fn outer_inline(
                         available_block_size,
                     )
                 };
-            ConstraintSpace::new(block_size, style.writing_mode, aspect_ratio)
+            ConstraintSpace::new(block_size, style, aspect_ratio)
         } else {
             // This assumes that there is no preferred aspect ratio, or that there is no
             // block size constraint to be transferred so the ratio is irrelevant.
             // We only get into here for anonymous blocks, for which the assumption holds.
             ConstraintSpace::new(
                 containing_block.size.block.into(),
-                containing_block.writing_mode,
+                containing_block.style,
                 None,
             )
         };
@@ -246,13 +246,14 @@ pub(crate) fn outer_inline(
             // We need a comment here to avoid breaking `./mach test-tidy`.
             matches!(size, Size::Numeric(numeric) if numeric.has_percentage())
         };
+        let writing_mode = containing_block.style.writing_mode;
         if content_box_sizes.inline.preferred.is_initial() &&
-            has_percentage(style.box_size(containing_block.writing_mode).inline)
+            has_percentage(style.box_size(writing_mode).inline)
         {
             preferred_min_content = Au::zero();
         }
         if content_box_sizes.inline.max.is_initial() &&
-            has_percentage(style.max_box_size(containing_block.writing_mode).inline)
+            has_percentage(style.max_box_size(writing_mode).inline)
         {
             max_min_content = Some(Au::zero());
         }
@@ -382,7 +383,7 @@ impl From<StyleSize> for Size<LengthPercentage> {
             StyleSize::MaxContent => Size::MaxContent,
             StyleSize::FitContent => Size::FitContent,
             StyleSize::FitContentFunction(lp) => Size::FitContentFunction(lp.0),
-            StyleSize::Stretch => Size::Stretch,
+            StyleSize::Stretch | StyleSize::WebkitFillAvailable => Size::Stretch,
             StyleSize::AnchorSizeFunction(_) | StyleSize::AnchorContainingCalcFunction(_) => {
                 unreachable!("anchor-size() should be disabled")
             },
@@ -399,7 +400,7 @@ impl From<StyleMaxSize> for Size<LengthPercentage> {
             StyleMaxSize::MaxContent => Size::MaxContent,
             StyleMaxSize::FitContent => Size::FitContent,
             StyleMaxSize::FitContentFunction(lp) => Size::FitContentFunction(lp.0),
-            StyleMaxSize::Stretch => Size::Stretch,
+            StyleMaxSize::Stretch | StyleMaxSize::WebkitFillAvailable => Size::Stretch,
             StyleMaxSize::AnchorSizeFunction(_) | StyleMaxSize::AnchorContainingCalcFunction(_) => {
                 unreachable!("anchor-size() should be disabled")
             },

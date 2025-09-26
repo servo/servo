@@ -31,7 +31,7 @@
     assert_equals(alternateAuthResponse.status, 401);
 
     // Configure server to change the cookie in the session config on next refresh.
-    configureServer({ cookieDetails: [{ nameAndValue: expectedCookieAndValue2 }] });
+    await configureServer({ cookieDetails: [{ nameAndValue: expectedCookieAndValue2 }] });
 
     // Expire the first cookie and send a request, which triggers the refresh with the new session config.
     expireCookie(expectedCookieAndAttributes1);
@@ -76,7 +76,7 @@
     assert_equals(authResponse.status, 200);
 
     // Configure server to change the session identifier in the session config on next refresh.
-    configureServer({ responseSessionIdOverride: 12345 });
+    await configureServer({ responseSessionIdOverride: 12345 });
 
     // Expire the first cookie and send a request, which triggers the refresh with the new session config.
     expireCookie(expectedCookieAndAttributes);

@@ -1357,10 +1357,5 @@ const l2Pool2dTests = [
   }
 ];
 
-if (navigator.ml) {
-  l2Pool2dTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(
+    l2Pool2dTests, buildAndExecuteGraph, getPrecisionTolerance);

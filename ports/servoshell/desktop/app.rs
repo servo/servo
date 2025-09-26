@@ -16,7 +16,6 @@ use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::unbounded;
 use euclid::{Point2D, Vector2D};
 use ipc_channel::ipc;
-use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use log::{info, trace, warn};
 use net::protocols::ProtocolRegistry;
 use servo::config::opts::Opts;
@@ -42,7 +41,6 @@ use super::{headed_window, headless_window};
 use crate::desktop::app_state::RunningAppState;
 use crate::desktop::protocols;
 use crate::desktop::tracing::trace_winit_event;
-use crate::desktop::webxr::XrDiscoveryWebXrRegistry;
 use crate::desktop::window_trait::WindowPortsMethods;
 use crate::parser::{get_default_url, location_bar_input_to_url};
 use crate::prefs::ServoShellPreferences;
@@ -121,6 +119,7 @@ impl App {
                     event_loop,
                     proxy,
                     self.initial_url.clone(),
+                    &self.servoshell_preferences,
                 ));
                 Rc::new(window)
             },
@@ -159,11 +158,12 @@ impl App {
             .event_loop_waker(self.waker.clone());
 
         #[cfg(feature = "webxr")]
-        let servo_builder = servo_builder.webxr_registry(XrDiscoveryWebXrRegistry::new_boxed(
-            window.clone(),
-            event_loop,
-            &self.preferences,
-        ));
+        let servo_builder =
+            servo_builder.webxr_registry(super::webxr::XrDiscoveryWebXrRegistry::new_boxed(
+                window.clone(),
+                event_loop,
+                &self.preferences,
+            ));
 
         let servo = servo_builder.build();
         servo.setup_logging();
@@ -322,6 +322,12 @@ impl App {
                         focused_webview.reload();
                     }
                 },
+                MinibrowserEvent::ReloadAll => {
+                    minibrowser.update_location_dirty(false);
+                    for (_, webview) in state.webviews() {
+                        webview.reload();
+                    }
+                },
                 MinibrowserEvent::NewWebView => {
                     minibrowser.update_location_dirty(false);
                     state.create_and_focus_toplevel_webview(Url::parse("servo:newtab").unwrap());
@@ -375,20 +381,18 @@ impl App {
                         warn!("Failed to send response of CloseWebView: {error}");
                     }
                 },
-                WebDriverCommandMsg::FocusWebView(webview_id, response_sender) => {
+                WebDriverCommandMsg::FocusWebView(webview_id) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        let focus_id = webview.focus();
-                        running_state.set_pending_focus(focus_id, response_sender);
+                        webview.focus_and_raise_to_top(true);
                     }
                 },
+                WebDriverCommandMsg::FocusBrowsingContext(..) => {
+                    running_state.servo().execute_webdriver_command(msg);
+                },
                 WebDriverCommandMsg::GetAllWebViews(response_sender) => {
-                    let webviews = running_state
-                        .webviews()
-                        .iter()
-                        .map(|(id, _)| *id)
-                        .collect::<Vec<_>>();
+                    let webviews = running_state.webviews().iter().map(|(id, _)| *id).collect();
 
-                    if let Err(error) = response_sender.send(Ok(webviews)) {
+                    if let Err(error) = response_sender.send(webviews) {
                         warn!("Failed to send response of GetAllWebViews: {error}");
                     }
                 },
@@ -490,28 +494,14 @@ impl App {
                     }
                 },
                 // Key events don't need hit test so can be forwarded to constellation for now
-                WebDriverCommandMsg::SendKeys(webview_id, webdriver_input_events) => {
-                    let Some(webview) = running_state.webview_by_id(webview_id) else {
-                        continue;
-                    };
-
-                    for event in webdriver_input_events {
-                        match event {
-                            WebDriverInputEvent::Keyboard(event) => {
-                                webview.notify_input_event(InputEvent::Keyboard(
-                                    KeyboardEvent::new(event),
-                                ));
-                            },
-                            WebDriverInputEvent::Composition(event) => {
-                                webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
-                                    event,
-                                )));
-                            },
-                        }
+                WebDriverCommandMsg::DispatchComposition(webview_id, composition_event) => {
+                    if let Some(webview) = running_state.webview_by_id(webview_id) {
+                        webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
+                            composition_event,
+                        )));
                     }
                 },
                 WebDriverCommandMsg::KeyboardAction(webview_id, key_event, msg_id) => {
-                    // TODO: We should do processing like in `headed_window:handle_keyboard_input`.
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
                         webview.notify_input_event(
                             InputEvent::Keyboard(KeyboardEvent::new(key_event))
@@ -532,7 +522,7 @@ impl App {
                             InputEvent::MouseButton(MouseButtonEvent::new(
                                 mouse_event_type,
                                 mouse_button,
-                                Point2D::new(x, y),
+                                Point2D::new(x, y) * webview.hidpi_scale_factor(),
                             ))
                             .with_webdriver_message_id(webdriver_message_id),
                         );

@@ -13,12 +13,12 @@
 
 use std::borrow::ToOwned;
 use std::collections::HashMap;
-use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::io::Read;
 use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+use base::generic_channel;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{
@@ -27,9 +27,10 @@ use devtools_traits::{
     ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::IpcSender;
 use log::{trace, warn};
 use resource::{ResourceArrayType, ResourceAvailable};
+use rustc_hash::FxHashMap;
 use serde::Serialize;
 use servo_rand::RngCore;
 
@@ -60,6 +61,7 @@ mod actors {
     pub mod device;
     pub mod framerate;
     pub mod inspector;
+    pub mod long_string;
     pub mod memory;
     pub mod network_event;
     pub mod object;
@@ -115,12 +117,12 @@ pub(crate) struct StreamId(u32);
 struct DevtoolsInstance {
     actors: Arc<Mutex<ActorRegistry>>,
     id_map: Arc<Mutex<IdMap>>,
-    browsing_contexts: HashMap<BrowsingContextId, String>,
+    browsing_contexts: FxHashMap<BrowsingContextId, String>,
     receiver: Receiver<DevtoolsControlMsg>,
-    pipelines: HashMap<PipelineId, BrowsingContextId>,
-    actor_workers: HashMap<WorkerId, String>,
+    pipelines: FxHashMap<PipelineId, BrowsingContextId>,
+    actor_workers: FxHashMap<WorkerId, String>,
     actor_requests: HashMap<String, String>,
-    connections: HashMap<StreamId, TcpStream>,
+    connections: FxHashMap<StreamId, TcpStream>,
     next_resource_id: u64,
 }
 
@@ -178,12 +180,12 @@ impl DevtoolsInstance {
         let instance = Self {
             actors,
             id_map: Arc::new(Mutex::new(IdMap::default())),
-            browsing_contexts: HashMap::new(),
-            pipelines: HashMap::new(),
+            browsing_contexts: FxHashMap::default(),
+            pipelines: FxHashMap::default(),
             receiver,
             actor_requests: HashMap::new(),
-            actor_workers: HashMap::new(),
-            connections: HashMap::new(),
+            actor_workers: FxHashMap::default(),
+            connections: FxHashMap::default(),
             next_resource_id: 1,
         };
 
@@ -510,7 +512,10 @@ impl DevtoolsInstance {
             .watcher
             .clone();
 
-        let netevent_actor_name = self.find_network_event_actor(request_id, watcher_name);
+        let netevent_actor_name = match self.actor_requests.get(&request_id) {
+            Some(name) => name.clone(),
+            None => self.create_network_event_actor(request_id, watcher_name),
+        };
 
         handle_network_event(
             Arc::clone(&self.actors),
@@ -520,25 +525,19 @@ impl DevtoolsInstance {
         )
     }
 
-    // Find the name of NetworkEventActor corresponding to request_id
-    // Create a new one if it does not exist, add it to the actor_requests hashmap
-    fn find_network_event_actor(&mut self, request_id: String, watcher_name: String) -> String {
+    /// Create a new NetworkEventActor for a given request ID and watcher name.
+    fn create_network_event_actor(&mut self, request_id: String, watcher_name: String) -> String {
         let mut actors = self.actors.lock().unwrap();
-        match self.actor_requests.entry(request_id) {
-            Occupied(name) => {
-                //TODO: Delete from map like Firefox does?
-                name.into_mut().clone()
-            },
-            Vacant(entry) => {
-                let resource_id = self.next_resource_id;
-                self.next_resource_id += 1;
-                let actor_name = actors.new_name("netevent");
-                let actor = NetworkEventActor::new(actor_name.clone(), resource_id, watcher_name);
-                entry.insert(actor_name.clone());
-                actors.register(Box::new(actor));
-                actor_name
-            },
-        }
+        let resource_id = self.next_resource_id;
+        self.next_resource_id += 1;
+
+        let actor_name = actors.new_name("netevent");
+        let actor = NetworkEventActor::new(actor_name.clone(), resource_id, watcher_name);
+
+        self.actor_requests.insert(request_id, actor_name.clone());
+        actors.register(Box::new(actor));
+
+        actor_name
     }
 
     fn handle_create_source_actor(
@@ -654,7 +653,8 @@ fn allow_devtools_client(stream: &mut TcpStream, embedder: &EmbedderProxy, token
     };
 
     // No token found. Prompt user
-    let (request_sender, request_receiver) = ipc::channel().expect("Failed to create IPC channel!");
+    let (request_sender, request_receiver) =
+        generic_channel::channel().expect("Failed to create IPC channel!");
     embedder.send(EmbedderMsg::RequestDevtoolsConnection(request_sender));
     request_receiver.recv().unwrap() == AllowOrDeny::Allow
 }

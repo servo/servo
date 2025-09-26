@@ -11,51 +11,128 @@ test_valid_value('animation-trigger', 'inherit');
 test_valid_value('animation-trigger', 'unset');
 test_valid_value('animation-trigger', 'revert');
 
+// Valid: Single attachment per animation.
 test_valid_value('animation-trigger', 'none');
-test_valid_value('animation-trigger', '--abc');
-test_valid_value('animation-trigger', '  --abc', '--abc');
-test_valid_value('animation-trigger', '--aBc');
-test_valid_value('animation-trigger', '--foo, --bar');
-test_valid_value('animation-trigger', '--bar, --foo');
+test_valid_value('animation-trigger', 'trigger(--abc, click play)');
+test_valid_value('animation-trigger',
+                 '  trigger(--abc, click play)', 'trigger(--abc, click play)');
+test_valid_value('animation-trigger', 'trigger(--aBc, click play)');
+test_valid_value('animation-trigger',
+                 'trigger(--foo, click play), trigger(--bar, click play)');
+test_valid_value('animation-trigger',
+                 'trigger(--bar, click play), trigger(--foo, click play)');
 test_valid_value('animation-trigger', 'none, none');
-test_valid_value('animation-trigger', '--a, none, --b');
+test_valid_value('animation-trigger',
+                 'trigger(--a, click play), none, trigger(--b, click play)');
+// Valid: Single attachment per animation, multiple action-behavior pairs
+test_valid_value('animation-trigger',
+                 'trigger(--abc, click play, dblclick pause)');
+test_valid_value('animation-trigger',
+                 'trigger(--abc, click play, dblclick pause, touch reset)');
+test_valid_value('animation-trigger',
+                 'trigger(--abc, click play, dblclick pause, touch reset), ' +
+                 'trigger(--def, click pause, dblclick reset, touch play)');
 
-test_valid_value('animation-trigger', '--abc --bcd, --cde --def');
-test_valid_value('animation-trigger', '--abc --abc');
-test_valid_value('animation-trigger', '  --abc --abc', '--abc --abc');
-test_valid_value('animation-trigger', '  --abc --bcd', '--abc --bcd');
-test_valid_value('animation-trigger', '--aBc --abc');
-test_valid_value('animation-trigger', '--aBc --abc --aBc');
-test_valid_value('animation-trigger', '--aBc, --aBc', '--aBc, --aBc');
-test_valid_value('animation-trigger', '--abc --bcd, --abc --bcd');
-test_valid_value('animation-trigger', '---abc');
+// Valid: Multiple attachments per animation.
+test_valid_value('animation-trigger',
+                 'trigger(--abc, click play) trigger(--abc, click play)');
+test_valid_value('animation-trigger',
+  'trigger(--abc, click play) trigger(--bcd, click play), ' +
+  'trigger(--cde, click play) trigger(--def, click play)');
+test_valid_value('animation-trigger',
+  ' trigger(--abc, click play) trigger(--bcd, click play), ' +
+  ' trigger(--cde, click play) trigger(--def, click play)',
+  'trigger(--abc, click play) trigger(--bcd, click play), ' +
+  'trigger(--cde, click play) trigger(--def, click play)');
+test_valid_value('animation-trigger',
+'trigger(--aBc, click play) trigger(--abc, click play) ' +
+'trigger(--aBc, click play)'
+);
+test_valid_value('animation-trigger',
+'trigger(--aBc, click play) trigger(--abc, click play), ' +
+'trigger(--aBc, click play)'
+);
+test_valid_value('animation-trigger', 'trigger(---aBc, click play)');
+test_valid_value('animation-trigger', 'trigger(--aBc-dEf, click play)');
+test_valid_value('animation-trigger', 'trigger(---aBc-dEf, click play)');
+// Valid: Multiple attachments per animation, multiple action-behavior pairs.
+test_valid_value('animation-trigger',
+                 'trigger(--abc, click play, dblclick pause) ' +
+                 'trigger(--def, click play, dblclick reset)');
 
+// Computed: Single attachment per animation.
 test_computed_value('animation-trigger', 'none');
-test_computed_value('animation-trigger', '--abc');
-test_computed_value('animation-trigger', '  --abc', '--abc');
-test_computed_value('animation-trigger', '--aBc');
-test_computed_value('animation-trigger', '--foo, --bar');
-test_computed_value('animation-trigger', '--bar, --foo');
+test_computed_value('animation-trigger', 'trigger(--abc, click play)');
+test_computed_value('animation-trigger','  trigger(--abc, click play)',
+                                        'trigger(--abc, click play)');
+test_computed_value('animation-trigger', 'trigger(--aBc, click play)');
+test_computed_value('animation-trigger', 'trigger(--foo, click play), ' +
+                                         'trigger(--bar, click play)');
+test_computed_value('animation-trigger', 'trigger(--bar, click play), ' +
+                                         'trigger(--foo, click play)');
 test_computed_value('animation-trigger', 'none, none');
-test_computed_value('animation-trigger', '--abc --bcd, --cde --def');
-test_computed_value('animation-trigger', '--abc --abc');
-test_computed_value('animation-trigger', '  --abc --abc', '--abc --abc');
-test_computed_value('animation-trigger', '  --abc --bcd', '--abc --bcd');
-test_computed_value('animation-trigger', '--aBc --abc');
-test_computed_value('animation-trigger', '--aBc --abc --aBc');
-test_computed_value('animation-trigger', '--aBc, --aBc', '--aBc, --aBc');
-test_computed_value('animation-trigger', '--abc --bcd, --abc --bcd');
-test_computed_value('animation-trigger', '--a, none, --b');
-test_computed_value('animation-trigger', '---abc');
+test_computed_value('animation-trigger', 'trigger(--aBc, click play), ' +
+                                         'trigger(--aBc, click play)');
+// Computed: Single attachment per animation, multiple action-behavior pairs
+test_computed_value('animation-trigger',
+                    'trigger(--abc, click play, dblclick pause)');
+test_computed_value('animation-trigger',
+                    'trigger(--abc, click play, dblclick pause, touch reset)');
+test_computed_value('animation-trigger',
+                  'trigger(--abc, click play, dblclick pause, touch reset), ' +
+                  'trigger(--def, click pause, dblclick reset, touch play)');
+// Computed: Multiple attachments per animation, multiple action-behavior pairs.
+test_computed_value('animation-trigger',
+                 'trigger(--abc, click play, dblclick pause) ' +
+                 'trigger(--def, click play, dblclick reset)');
 
-test_invalid_value('animation-trigger', '--abc none');
-test_invalid_value('animation-trigger', '--a --b, --a none, --b');
-test_invalid_value('animation-trigger', 'none --abc');
+// Computed: Multiple attachments per animation
+test_computed_value('animation-trigger',
+                    'trigger(--abc, click play) trigger(--abc, click play)');
+test_computed_value('animation-trigger',
+                    'trigger(--abc, click play) trigger(--bcd, click play), ' +
+                    'trigger(--abc, click play) trigger(--bcd, click play)');
+test_computed_value('animation-trigger',
+                    'trigger(--abc, click play) trigger(--bcd, click play), ' +
+                    'trigger(--cde, click play) trigger(--def, click play)');
+test_computed_value('animation-trigger',
+                    '  trigger(--abc, click play) trigger(--abc, click play)',
+                    'trigger(--abc, click play) trigger(--abc, click play)');
+test_computed_value('animation-trigger',
+                    '  trigger(--abc, click play) trigger(--bcd, click play)',
+                    'trigger(--abc, click play) trigger(--bcd, click play)');
+test_computed_value('animation-trigger',
+                    'trigger(--aBc, click play) trigger(--abc, click play)');
+test_computed_value('animation-trigger',
+  'trigger(--aBc, click play) trigger(--abc, click play) trigger(--aBc, click play)');
+test_computed_value('animation-trigger',
+                    'trigger(--a, click play), none, trigger(--b, click play)');
+test_computed_value('animation-trigger', 'trigger(---abc, click play)');
+
+// Invalid
+test_invalid_value('animation-trigger', 'trigger(--abc, click play) none');
+test_invalid_value('animation-trigger',
+  'trigger(--a, click play) trigger(--b, click play), trigger(--a, click play) none, trigger(--b, click play)');
+test_invalid_value('animation-trigger', 'none trigger(--abc, click play)');
 test_invalid_value('animation-trigger', 'none none');
 test_invalid_value('animation-trigger', 'none none, none', 'none, none');
 test_invalid_value('animation-trigger', 'auto');
 test_invalid_value('animation-trigger', 'abc');
-test_invalid_value('animation-trigger', '-abc');
+test_invalid_value('animation-trigger', '--abc');
+test_invalid_value('animation-trigger', 'trigger');
+test_invalid_value('animation-trigger', 'trigger(--abc');
+test_invalid_value('animation-trigger', 'trigger()');
+test_invalid_value('animation-trigger', 'trigger(click)');
+test_invalid_value('animation-trigger', 'trigger(play)');
+test_invalid_value('animation-trigger', 'trigger(-abc, click play)');
+test_invalid_value('animation-trigger', 'trigger(--abc)');
+test_invalid_value('animation-trigger', 'trigger(--abc, click)');
+test_invalid_value('animation-trigger', 'trigger(--abc, play)');
+test_invalid_value('animation-trigger', 'trigger(--abc click play)');
+test_invalid_value('animation-trigger', 'trigger(--abc, click play click play)');
+test_invalid_value('animation-trigger', 'trigger(--abc click play, click play)');
+test_invalid_value('animation-trigger', 'trigger(--abc, click, play)');
+test_invalid_value('animation-trigger', 'trigger(--abc, click, click play)');
 test_invalid_value('animation-trigger', 'default');
 test_invalid_value('animation-trigger', '10px');
 test_invalid_value('animation-trigger', 'foo bar');

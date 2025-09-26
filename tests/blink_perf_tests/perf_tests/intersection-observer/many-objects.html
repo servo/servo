@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<style>
+body {
+  display: flex;
+  flex-wrap: wrap;
+}
+div {
+  position: relative;
+  padding: 2px;
+  border: 1px solid black;
+  min-width: 10px;
+  min-height: 10px;
+}
+</style>
+
+<body></body>
+
+<script src='../resources/runner.js'></script>
+<script src='../resources/generate-chrome-class-name.js'></script>
+<script>
+
+// To generate profile data for analysis with pprof, set generateProfile to
+// 'true' and run chrome with "--enable-gpu-benchmarking --no-sandbox".
+const generateProfile = false;
+
+// How many targets.
+const breadth = 32;
+// How many levels of DOM hierarchy above each target.
+const depth = 16;
+// How many observers.
+const redundancy = 1000;
+
+// The total number of observations is breadth * redundancy.
+
+function populate(level) {
+  let div = document.createElement('div');
+  if (level == 0) {
+    div.classList = ['leaf'];
+  } else {
+    let child = populate(level - 1);
+    div.appendChild(child);
+  }
+  return div;
+}
+
+for (let i = 0; i < breadth; i++) {
+  document.body.appendChild(populate(depth));
+}
+
+for (let i = 0; i < redundancy; i++) {
+  let observer = new IntersectionObserver(() => {});
+  document.querySelectorAll('.leaf').forEach((target) => { observer.observe(target) });
+}
+
+PerfTestRunner.measureFrameTime({
+  description: 'Frame time with lots of intersection observers in a deep layer tree.',
+  tracingCategories: 'blink',
+  traceEventsToMeasure: ['LocalFrameView::UpdateViewportIntersectionsForSubtree'],
+  setup: () => {
+    document.querySelectorAll('.leaf').forEach(leaf => {
+      leaf.innerText = generateChromeClassName();
+    });
+    // Force layout so that layout cost isn't included in measured time.
+    document.querySelector('.leaf').offsetTop;
+    if (window.internals)
+      internals.clearGeometryMapperCache();
+    if (generateProfile && self.chrome && chrome.gpuBenchmarking) {
+      chrome.gpuBenchmarking.startProfiling('perf.data');
+    }
+  },
+  run: () => {},
+  done: () => {
+    if (generateProfile && self.chrome && chrome.gpuBenchmarking) {
+      chrome.gpuBenchmarking.stopProfiling();
+    }
+  }
+});
+</script>

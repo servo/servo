@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  // Test setting, getting, and default values of globalHDRHeadroom
+  const canvas = new OffscreenCanvas(64, 64);
+  const ctx = canvas.getContext('2d');
+  if (ctx.globalHDRHeadroom !== undefined) {
+    // Default value is 0.
+    assert_equals(ctx.globalHDRHeadroom, 0);
+
+    // Negative and NaN values are rejected.
+    ctx.globalHDRHeadroom = -1.0;
+    assert_equals(ctx.globalHDRHeadroom, 0);
+    ctx.globalHDRHeadroom = NaN;
+    assert_equals(ctx.globalHDRHeadroom, 0);
+    ctx.globalHDRHeadroom = -Infinity;
+    assert_equals(ctx.globalHDRHeadroom, 0);
+
+    // Nonnegative values are not rejected.
+    ctx.globalHDRHeadroom = 1;
+    assert_equals(ctx.globalHDRHeadroom, 1);
+    ctx.globalHDRHeadroom = 0;
+    assert_equals(ctx.globalHDRHeadroom, 0);
+
+    // Infinity is a valid value.
+    ctx.globalHDRHeadroom = Infinity;
+    assert_equals(ctx.globalHDRHeadroom, Infinity);
+
+    // Strings from dynamic-range-limit are rejected.
+    ctx.globalHDRHeadroom = 'constrained';
+    assert_equals(ctx.globalHDRHeadroom, Infinity);
+  }
+});
+</script>

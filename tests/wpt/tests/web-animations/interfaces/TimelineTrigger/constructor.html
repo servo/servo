@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>TimelineTrigger constructor</title>
+<link rel="help"
+      href="https://drafts.csswg.org/web-animations-2/#the-animationtrigger-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<script>
+
+  test(t => {
+    const trigger = new TimelineTrigger();
+    assert_equals(trigger.timeline, document.timeline,
+      "default timeline is document.timeline.");
+    assert_equals(trigger.rangeStart, "normal", "default rangeStart is normal");
+    assert_equals(trigger.rangeEnd, "normal", "default rangeEnd is normal");
+    assert_equals(trigger.exitRangeStart, "auto",
+      "default exitRangeStart is normal");
+    assert_equals(trigger.exitRangeStart, "auto",
+      "default exitRangeEnd is normal");
+  }, "Default values when no property bag is supplied");
+
+  test(t => {
+    const trigger = new TimelineTrigger({});
+    assert_equals(trigger.timeline, document.timeline,
+      "default timeline is document.timeline.");
+    assert_equals(trigger.rangeStart, "normal", "default rangeStart is normal");
+    assert_equals(trigger.rangeEnd, "normal", "default rangeEnd is normal");
+    assert_equals(trigger.exitRangeStart, "auto",
+      "default exitRangeStart is normal");
+    assert_equals(trigger.exitRangeEnd, "auto",
+      "default exitRangeEnd is normal");
+  }, "Default values when an empty property bag is supplied.");
+
+  test(t => {
+    const scroll_timeline = new ScrollTimeline();
+    const trigger = new TimelineTrigger({
+      timeline: scroll_timeline,
+      rangeStart: "contain 10%",
+      rangeEnd: "contain 90%",
+      exitRangeStart: "cover 10%",
+      exitRangeEnd: "cover 90%"
+    });
+    assert_equals(trigger.timeline, scroll_timeline,
+      "timeline is supplied scroll timeline.");
+    assert_equals(trigger.rangeStart, "contain 10%",
+      "rangeStart is supplied value");
+    assert_equals(trigger.rangeEnd, "contain 90%",
+      "rangeEnd is supplied value");
+    assert_equals(trigger.exitRangeStart, "cover 10%",
+      "exitRangeStart is supplied value");
+    assert_equals(trigger.exitRangeEnd, "cover 90%",
+      "exitRangeEnd is supplied value");
+  }, "All values supplied (scroll timeline).");
+
+  test(t => {
+    const view_timeline = new ViewTimeline();
+    const trigger = new TimelineTrigger({
+      timeline: view_timeline,
+      rangeStart: "contain 10%",
+      rangeEnd: "contain 90%",
+      exitRangeStart: "cover 10%",
+      exitRangeEnd: "cover 90%"
+    });
+    assert_equals(trigger.timeline, view_timeline,
+      "timeline is supplied scroll timeline.");
+    assert_equals(trigger.rangeStart, "contain 10%",
+      "rangeStart is supplied value");
+    assert_equals(trigger.rangeEnd, "contain 90%",
+      "rangeEnd is supplied value");
+    assert_equals(trigger.exitRangeStart, "cover 10%",
+      "exitRangeStart is supplied value");
+    assert_equals(trigger.exitRangeEnd, "cover 90%",
+      "exitRangeEnd is supplied value");
+  }, "All values supplied (view timeline).");
+</script>

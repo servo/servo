@@ -67,12 +67,12 @@
         iir.getFrequencyResponse(frequencies, iirMag, iirPhase);
 
         // Thresholds were experimentally determined.
-        assert_close_to_array(
+        assert_array_equal_within_eps(
             iirMag, trueMag, 2.8611e-6, '1‑pole IIR magnitude response ' +
-            'should be closed to calculated magnitude response');
-        assert_close_to_array(
+                'should be closed to calculated magnitude response');
+        assert_array_equal_within_eps(
             iirPhase, truePhase, 1.7882e-7, '1‑pole IIR phase response ' +
-            ' should be closed to calculated phase response');
+                ' should be closed to calculated phase response');
       }, '1‑pole IIR getFrequencyResponse() matches analytic response');
 
       test(t => {
@@ -101,12 +101,12 @@
         biquad.getFrequencyResponse(frequencies, biquadMag, biquadPhase);
         iir.getFrequencyResponse(frequencies, iirMag, iirPhase);
       // Thresholds were experimentally determined.
-        assert_close_to_array(
+        assert_array_equal_within_eps(
             iirMag, biquadMag, 2.7419e-5, 'IIR magnitude response should be' +
-            'close to Biquad magnitude response');
-        assert_close_to_array(
+                'close to Biquad magnitude response');
+        assert_array_equal_within_eps(
             iirPhase, biquadPhase, 2.7657e-5, 'IIR phase response should be' +
-            'close to Biquad phase response');
+                'close to Biquad phase response');
       }, 'IIR filter equivalent to biquad has matching frequency response');
 
       test(t => {

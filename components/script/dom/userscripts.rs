@@ -8,8 +8,8 @@ use js::jsval::UndefinedValue;
 use script_bindings::root::DomRoot;
 
 use crate::dom::bindings::str::DOMString;
-use crate::dom::htmlheadelement::HTMLHeadElement;
-use crate::dom::htmlscriptelement::SourceCode;
+use crate::dom::html::htmlheadelement::HTMLHeadElement;
+use crate::dom::html::htmlscriptelement::SourceCode;
 use crate::dom::node::NodeTraits;
 use crate::dom::window::Window;
 use crate::script_module::ScriptFetchOptions;

@@ -2,6 +2,7 @@
 <title>@scope - nesting (&)</title>
 <link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scope-atrule">
 <link rel="help" href="https://drafts.csswg.org/css-nesting-1/#nest-selector">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/9740">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <main id=main></main>
@@ -9,12 +10,18 @@
 <template id=test_nest_scope_end>
   <div>
     <style>
-      @scope (.a) to (& > &) {
-        * { z-index:1; }
+      /* (& > .b) behaves like (:where(:scope) > .b), due & mapping to :where(:scope).*/
+      @scope (.a) to (& > .b) {
+        :scope { z-index:1; }
+      }
+
+      /* Should not match, since <scope-end> refers to the scope itself. */
+      @scope (.a) to (.b&) {
+        :scope { z-index:42; }
       }
     </style>
-    <div class=a> <!-- This scope is limited by the element below. -->
-      <div class=a> <!-- This scope is limited by its own root. -->
+    <div class="a b">
+      <div class=b>
         <div id=below></div>
       </div>
     </div>
@@ -25,7 +32,10 @@
 test((t) => {
   t.add_cleanup(() => main.replaceChildren());
   main.append(test_nest_scope_end.content.cloneNode(true));
-
+  let a = document.querySelector('.a');
+  let b = document.querySelector('.a > .b');
+  assert_equals(getComputedStyle(a).zIndex, '1');
+  assert_equals(getComputedStyle(b).zIndex, 'auto');
   assert_equals(getComputedStyle(below).zIndex, 'auto');
   assert_equals(getComputedStyle(outside).zIndex, 'auto');
 }, 'Nesting-selector in <scope-end>');
@@ -97,16 +107,16 @@ test((t) => {
 <template id=test_inner_nest>
   <div>
     <style>
-      @scope (.a) {
-        & + & {
-          z-index:1;
+      @scope (#div) {
+        & {
+          z-index: 1;
+          & {
+            z-index: 2;
+          }
         }
       }
     </style>
-    <div class=a>
-      <div id=inner1 class=a></div>
-      <div id=inner2 class=a></div>
-    </div>
+    <div id=div></div>
   </div>
 </template>
 <script>
@@ -114,9 +124,8 @@ test((t) => {
   t.add_cleanup(() => main.replaceChildren());
   main.append(test_inner_nest.content.cloneNode(true));
 
-  assert_equals(getComputedStyle(inner1).zIndex, 'auto');
-  assert_equals(getComputedStyle(inner2).zIndex, '1');
-}, 'Nesting-selector in the scope\'s <stylesheet>');
+  assert_equals(getComputedStyle(div).zIndex, '2');
+}, 'Nested nesting-selectors within scope\'s <stylesheet> select inclusive descendants of the scope root');
 </script>
 
 <template id=test_parent_in_pseudo_scope>
@@ -227,38 +236,6 @@ test((t) => {
 }, 'Parent pseudo class within scope-start');
 </script>
 
-<template id=test_parent_pseudo_in_nested_scope_end>
-  <div>
-    <style>
-      .a {
-        /* Note that & in <scope-end> refers to <scope-start>,
-           not the outer style rule. */
-        @scope (&.b) to (&.c) {
-           :scope, * { z-index: 1; }
-        }
-      }
-    </style>
-    <div class="a b">
-      <div class="a c">
-        <div class="a b c">
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-<script>
-test((t) => {
-  t.add_cleanup(() => main.replaceChildren());
-  main.append(test_parent_pseudo_in_nested_scope_end.content.cloneNode(true));
-
-  let ab = document.querySelector('.a.b:not(.c)');
-  let ac = document.querySelector('.a.c:not(.b)');
-  let abc = document.querySelector('.a.b.c');
-  assert_equals(getComputedStyle(ab).zIndex, '1');
-  assert_equals(getComputedStyle(ac).zIndex, '1');
-  assert_equals(getComputedStyle(abc).zIndex, 'auto', 'limit element is not in scope');
-}, 'Parent pseudo class within scope-end');
-</script>
 
 <template id=test_parent_pseudo_in_nested_scope_body>
   <div>
@@ -621,7 +598,12 @@ test((t) => {
   main.append(test_insert_ampersand_rule_within_scope.content.cloneNode(true));
   assert_equals(getComputedStyle(child).color, 'rgb(255, 0, 0)');
   let scope_rule = main.querySelector('style').sheet.cssRules[0].cssRules[0];
-  scope_rule.insertRule('& #child { color: green; }');
+  // & does not add specificity - inserting it up front does nothing...
+  scope_rule.insertRule('& #child { color: green; }', 0);
+  assert_equals(getComputedStyle(child).color, 'rgb(255, 0, 0)');
+  scope_rule.deleteRule(0);
+  // ... But inserting it at the end makes it win by order of appearance.
+  scope_rule.insertRule('& #child { color: green; }', scope_rule.cssRules.length);
   assert_equals(getComputedStyle(child).color, 'rgb(0, 128, 0)');
 }, 'Insert a nested style rule within @scope, &');
 </script>

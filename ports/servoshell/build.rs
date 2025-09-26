@@ -50,7 +50,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     if target_os == "windows" {
         #[cfg(windows)]
         {
-            let mut res = winres::WindowsResource::new();
+            let mut res = winresource::WindowsResource::new();
             res.set_icon("../../resources/servo.ico");
             res.set_manifest_file("platform/windows/servo.exe.manifest");
             res.compile().unwrap();

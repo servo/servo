@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+
+  <link rel="stylesheet" href="./resources/compressed.css">
+</head>
+
+<body>
+  <script>
+const check_report_format = ([reports, observer]) => {
+  const report = reports[0];
+  assert_equals(report.type, "document-policy-violation");
+  assert_equals(report.body.featureId, "network-efficiency-guardrails");
+  assert_equals(report.body.disposition, "report");
+  assert_equals(report.body.sourceFile, document.styleSheets[0].href);
+};
+
+promise_test(async t => {
+  const report = new Promise(resolve => {
+    new ReportingObserver((reports, observer) => resolve([reports, observer]),
+      { types: ['document-policy-violation'], buffered: true }).observe();
+  });
+  check_report_format(await report);
+}, "NetworkEfficiencyGuardrails compression");
+  </script>
+  <h1>Network Efficiency Guardrails</h1>
+</body>
+
+</html>

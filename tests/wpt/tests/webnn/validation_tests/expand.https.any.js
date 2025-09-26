@@ -17,7 +17,7 @@ multi_builder_test(async (t, builder, otherBuilder) => {
 }, '[expand] throw if input is from another builder');
 
 const label = 'xxx_expand';
-const regrexp = new RegExp('\\[' + label + '\\]');
+const regexp = new RegExp('\\[' + label + '\\]');
 const tests = [
   {
     name: '[expand] Test with 0-D scalar to 3-D tensor.',
@@ -77,7 +77,7 @@ tests.forEach(
         const options = {...test.options};
         if (options.label) {
           assert_throws_with_label(
-              () => builder.expand(input, test.newShape, options), regrexp);
+              () => builder.expand(input, test.newShape, options), regexp);
         } else {
           assert_throws_js(
               TypeError, () => builder.expand(input, test.newShape, options));
@@ -113,5 +113,19 @@ promise_test(async t => {
 
   const options = {label};
   assert_throws_with_label(
-      () => builder.expand(input, newShape, options), regrexp);
+      () => builder.expand(input, newShape, options), regexp);
 }, '[expand] throw if the output tensor byte length exceeds limit');
+
+promise_test(async t => {
+  const builder = new MLGraphBuilder(context);
+
+  const input = builder.input('input', {dataType: 'float32', shape: [2]});
+  const newShape =
+      new Array(context.opSupportLimits().expand.output.rankRange.max + 1)
+          .fill(1);
+  newShape[newShape.length - 1] = 2;
+
+  const options = {label};
+  assert_throws_with_label(
+      () => builder.expand(input, newShape, options), regexp);
+}, '[expand] throw if new shape rank exceeds limit');

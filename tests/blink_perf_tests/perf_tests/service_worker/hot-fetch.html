@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src='../resources/runner.js'></script>
+</head>
+<body>
+<script>
+let isDone = false;
+function testDone() {
+  isDone = true;
+}
+
+function addIframe(url) {
+  return new Promise((resolve) => {
+    var frame = document.createElement('iframe');
+    frame.src = url;
+    frame.onload = () => { resolve(frame); };
+    document.body.appendChild(frame);
+  });
+}
+
+function waitForWorkerActive(worker) {
+  return new Promise((resolve) => {
+    worker.addEventListener('statechange', () => {
+      if (worker.state == 'activated')
+        resolve();
+    });
+  });
+}
+
+async function runTest() {
+  const script = '/service_worker/resources/fetch-service-worker.js';
+  const scope = '/service_worker/resources/';
+  const client = '/service_worker/resources/simple.html';
+  const resource = '/service_worker/resources/data/1K_0.txt';
+
+  const registration = await navigator.serviceWorker.register(
+      script, { scope: scope });
+  await waitForWorkerActive(registration.installing);
+  const frame = await addIframe(client);
+
+  while (!isDone) {
+    const startTime = performance.now();
+    const response = await frame.contentWindow.fetch(resource);
+    PerfTestRunner.measureValueAsync(performance.now() - startTime);
+  }
+  return;
+}
+
+PerfTestRunner.startMeasureValuesAsync({
+  description: 'Measure the performance of fetch with live service worker.',
+  unit: 'ms',
+  run: runTest,
+  done: testDone,
+  iterationCount: 30
+});
+</script>
+</body>
+</html>

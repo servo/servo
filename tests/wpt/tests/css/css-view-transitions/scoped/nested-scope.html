@@ -8,11 +8,11 @@
 <style>
 
 .box { position: relative; contain: strict; }
-#scopeA { background: #ddd;
+#scopeA { background: #ddd; view-transition-name: none;
           left: 0; top: 0; width: 300px; height: 300px; }
 #partA { background: #4af;
          left: 30px; top: 30px; width: 240px; height: 240px; }
-#scopeB { background: #eee;
+#scopeB { background: #eee; contain: view-transition;
           left: 30px; top: 30px; width: 180px; height: 180px; }
 #partB { background: cyan;
          left: 30px; top: 30px; width: 120px; height: 120px; }
@@ -43,12 +43,6 @@ failIfNot(scopeA.startViewTransition, "Missing element.startViewTransition");
 async function runTest() {
   await waitForCompositorReady();
   await scopeB.startViewTransition().ready;
-
-  // Untag partB to avoid a collision when the outer transition looks for its
-  // participants. (We can stop doing this once we have contain: view-transition
-  // or similar.)
-  partB.classList.remove("tr");
-
   await scopeA.startViewTransition(() => {
     scopeA.style.background = "#ccc";
   }).ready;

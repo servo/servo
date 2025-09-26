@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>The revert-rule keyword: interaction with env()</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10443">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  #test1 {
+    color: green;
+  }
+  #test1 {
+    color: red;
+    color: env(unknown-env, revert-rule);
+  }
+</style>
+<div id=test1></div>
+<script>
+  test(() => {
+    assert_true(CSS.supports('color:revert-rule'));
+    assert_equals(getComputedStyle(test1).color, 'rgb(0, 128, 0)')
+  }, 'The revert-rule works in an env() fallback');
+</script>

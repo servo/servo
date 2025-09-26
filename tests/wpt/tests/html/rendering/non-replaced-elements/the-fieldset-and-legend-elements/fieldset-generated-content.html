@@ -4,7 +4,7 @@
 <script src=/resources/testharnessreport.js></script>
 <link rel="stylesheet" href="/fonts/ahem.css">
 <style>
-body {
+.wrapper {
   /* Use Ahem to avoid fractional letter widths. */
   font: 20px/1 Ahem;
 }
@@ -18,8 +18,10 @@ fieldset {
 
 #test::before, #test::after { content:"X"; }
 </style>
-<fieldset id=test><legend>A</legend>Y</fieldset>
-<fieldset id=ref><legend>A</legend>XYX</fieldset>
+<div class="wrapper">
+  <fieldset id=test><legend>A</legend>Y</fieldset>
+  <fieldset id=ref><legend>A</legend>XYX</fieldset>
+</div>
 <script>
 test(() => {
   const testElm = document.querySelector('#test');

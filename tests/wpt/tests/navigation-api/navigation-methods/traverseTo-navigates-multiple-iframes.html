@@ -4,14 +4,12 @@
 <body>
 <iframe id="i1" src="/common/blank.html"></iframe>
 <iframe id="i2" src="resources/slow-no-store.py"></iframe>
-<script type="module">
-import { ensureWindowLoadEventFired } from "../resources/helpers.mjs";
-
+<script>
 promise_test(async t => {
   let start_length = navigation.entries().length;
   // Wait for after the load event so that the navigation doesn't get converted
   // into a replace navigation.
-  await ensureWindowLoadEventFired(t);
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
 
   i1.src = "/common/blank.html?navigated";
   await new Promise(resolve => i1.onload = resolve);

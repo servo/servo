@@ -14,6 +14,7 @@ use std::thread::JoinHandle;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use std::{mem, ptr};
 
+use base::IpcSend;
 use base::id::{
     BlobId, BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineId,
     ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
@@ -26,7 +27,8 @@ use content_security_policy::CspList;
 use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
-use embedder_traits::{EmbedderMsg, JavaScriptEvaluationError};
+use embedder_traits::{EmbedderMsg, JavaScriptEvaluationError, ScriptToEmbedderChan};
+use fonts::FontContext;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
@@ -51,10 +53,11 @@ use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{InsecureRequestsPolicy, Referrer, RequestBuilder};
 use net_traits::response::HttpsState;
 use net_traits::{
-    CoreResourceMsg, CoreResourceThread, FetchResponseListener, IpcSend, ReferrerPolicy,
-    ResourceThreads, fetch_async,
+    CoreResourceMsg, CoreResourceThread, FetchResponseListener, ReferrerPolicy, ResourceThreads,
+    fetch_async,
 };
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
+use rustc_hash::{FxBuildHasher, FxHashMap};
 use script_bindings::interfaces::GlobalScopeHelpers;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use timers::{TimerEventRequest, TimerId};
@@ -104,7 +107,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
-use crate::dom::htmlscriptelement::{ScriptId, SourceCode};
+use crate::dom::html::htmlscriptelement::{ScriptId, SourceCode};
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::Performance;
@@ -115,7 +118,7 @@ use crate::dom::reportingobserver::ReportingObserver;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
-use crate::dom::types::{DebuggerGlobalScope, MessageEvent};
+use crate::dom::types::{CookieStore, DebuggerGlobalScope, MessageEvent};
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpudevice::GPUDevice;
@@ -202,15 +205,22 @@ pub(crate) struct GlobalScope {
     broadcast_channel_state: DomRefCell<BroadcastChannelState>,
 
     /// The blobs managed by this global, if any.
-    blob_state: DomRefCell<HashMapTracedValues<BlobId, BlobInfo>>,
+    blob_state: DomRefCell<HashMapTracedValues<BlobId, BlobInfo, FxBuildHasher>>,
 
     /// <https://w3c.github.io/ServiceWorker/#environment-settings-object-service-worker-registration-object-map>
     registration_map: DomRefCell<
-        HashMapTracedValues<ServiceWorkerRegistrationId, Dom<ServiceWorkerRegistration>>,
+        HashMapTracedValues<
+            ServiceWorkerRegistrationId,
+            Dom<ServiceWorkerRegistration>,
+            FxBuildHasher,
+        >,
     >,
 
+    /// <https://cookiestore.spec.whatwg.org/#globals>
+    cookie_store: MutNullableDom<CookieStore>,
+
     /// <https://w3c.github.io/ServiceWorker/#environment-settings-object-service-worker-object-map>
-    worker_map: DomRefCell<HashMapTracedValues<ServiceWorkerId, Dom<ServiceWorker>>>,
+    worker_map: DomRefCell<HashMapTracedValues<ServiceWorkerId, Dom<ServiceWorker>, FxBuildHasher>>,
 
     /// Pipeline id associated with this global.
     #[no_trace]
@@ -229,7 +239,7 @@ pub(crate) struct GlobalScope {
     module_map: DomRefCell<HashMapTracedValues<ServoUrl, Rc<ModuleTree>>>,
 
     #[ignore_malloc_size_of = "mozjs"]
-    inline_module_map: DomRefCell<HashMap<ScriptId, Rc<ModuleTree>>>,
+    inline_module_map: DomRefCell<FxHashMap<ScriptId, Rc<ModuleTree>>>,
 
     /// For providing instructions to an optional devtools server.
     #[no_trace]
@@ -249,6 +259,11 @@ pub(crate) struct GlobalScope {
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     script_to_constellation_chan: ScriptToConstellationChan,
+
+    /// A handle for communicating messages to the Embedder.
+    #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
+    script_to_embedder_chan: ScriptToEmbedderChan,
 
     /// <https://html.spec.whatwg.org/multipage/#in-error-reporting-mode>
     in_error_reporting_mode: Cell<bool>,
@@ -326,7 +341,7 @@ pub(crate) struct GlobalScope {
 
     /// WebGPU devices
     #[cfg(feature = "webgpu")]
-    gpu_devices: DomRefCell<HashMapTracedValues<WebGPUDevice, WeakRef<GPUDevice>>>,
+    gpu_devices: DomRefCell<HashMapTracedValues<WebGPUDevice, WeakRef<GPUDevice>, FxBuildHasher>>,
 
     // https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute
     #[ignore_malloc_size_of = "mozjs"]
@@ -380,6 +395,13 @@ pub(crate) struct GlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#resolved-module-set>
     resolved_module_set: DomRefCell<HashSet<ResolvedModule>>,
+
+    /// The [`FontContext`] for this [`GlobalScope`] if it has one. This is used for
+    /// canvas and layout, so if this [`GlobalScope`] doesn't need to use either, this
+    /// might be `None`.
+    #[conditional_malloc_size_of]
+    #[no_trace]
+    font_context: Option<Arc<FontContext>>,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
@@ -493,7 +515,7 @@ pub(crate) enum MessagePortState {
     /// The message-port router id for this global, and a map of managed ports.
     Managed(
         #[no_trace] MessagePortRouterId,
-        HashMapTracedValues<MessagePortId, ManagedMessagePort>,
+        HashMapTracedValues<MessagePortId, ManagedMessagePort, FxBuildHasher>,
     ),
     /// This global is not managing any ports at this time.
     UnManaged,
@@ -545,7 +567,7 @@ impl MessageListener {
                         };
 
                         let mut succeeded = vec![];
-                        let mut failed = HashMap::new();
+                        let mut failed = FxHashMap::default();
 
                         for (id, info) in ports.into_iter() {
                             if global.is_managing_port(&id) {
@@ -730,6 +752,7 @@ impl GlobalScope {
         mem_profiler_chan: profile_mem::ProfilerChan,
         time_profiler_chan: profile_time::ProfilerChan,
         script_to_constellation_chan: ScriptToConstellationChan,
+        script_to_embedder_chan: ScriptToEmbedderChan,
         resource_threads: ResourceThreads,
         origin: MutableOrigin,
         creation_url: ServoUrl,
@@ -738,6 +761,7 @@ impl GlobalScope {
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
         unminify_js: bool,
+        font_context: Option<Arc<FontContext>>,
     ) -> Self {
         Self {
             task_manager: Default::default(),
@@ -746,8 +770,9 @@ impl GlobalScope {
             blob_state: Default::default(),
             eventtarget: EventTarget::new_inherited(),
             crypto: Default::default(),
-            registration_map: DomRefCell::new(HashMapTracedValues::new()),
-            worker_map: DomRefCell::new(HashMapTracedValues::new()),
+            registration_map: DomRefCell::new(HashMapTracedValues::new_fx()),
+            cookie_store: Default::default(),
+            worker_map: DomRefCell::new(HashMapTracedValues::new_fx()),
             pipeline_id,
             devtools_wants_updates: Default::default(),
             console_timers: DomRefCell::new(Default::default()),
@@ -757,6 +782,7 @@ impl GlobalScope {
             mem_profiler_chan,
             time_profiler_chan,
             script_to_constellation_chan,
+            script_to_embedder_chan,
             in_error_reporting_mode: Default::default(),
             resource_threads,
             timers: OnceCell::default(),
@@ -772,7 +798,7 @@ impl GlobalScope {
             #[cfg(feature = "webgpu")]
             gpu_id_hub,
             #[cfg(feature = "webgpu")]
-            gpu_devices: DomRefCell::new(HashMapTracedValues::new()),
+            gpu_devices: DomRefCell::new(HashMapTracedValues::new_fx()),
             frozen_supported_performance_entry_types: CachedFrozenArray::new(),
             https_state: Cell::new(HttpsState::None),
             console_group_stack: DomRefCell::new(Vec::new()),
@@ -785,6 +811,7 @@ impl GlobalScope {
             notification_permission_request_callback_map: Default::default(),
             import_map: Default::default(),
             resolved_module_set: Default::default(),
+            font_context,
         }
     }
 
@@ -809,6 +836,10 @@ impl GlobalScope {
 
     fn timers(&self) -> &OneshotTimers {
         self.timers.get_or_init(|| OneshotTimers::new(self))
+    }
+
+    pub(crate) fn font_context(&self) -> Option<&Arc<FontContext>> {
+        self.font_context.as_ref()
     }
 
     /// <https://w3c.github.io/ServiceWorker/#get-the-service-worker-registration-object>
@@ -925,7 +956,7 @@ impl GlobalScope {
         let dom_port = if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
-            let dom_port = if let Some(managed_port) = message_ports.get_mut(&port_id) {
+            if let Some(managed_port) = message_ports.get_mut(&port_id) {
                 if managed_port.pending {
                     unreachable!("CompleteDisentanglement msg received for a pending port.");
                 }
@@ -940,8 +971,7 @@ impl GlobalScope {
                 // can happen if the port has already been transferred out of this global,
                 // in which case the disentanglement will complete along with the transfer.
                 return;
-            };
-            dom_port
+            }
         } else {
             return;
         };
@@ -1678,7 +1708,7 @@ impl GlobalScope {
                 }),
             );
             let router_id = MessagePortRouterId::new();
-            *current_state = MessagePortState::Managed(router_id, HashMapTracedValues::new());
+            *current_state = MessagePortState::Managed(router_id, HashMapTracedValues::new_fx());
             let _ = self.script_to_constellation_chan().send(
                 ScriptToConstellationMessage::NewMessagePortRouter(router_id, port_control_sender),
             );
@@ -2038,8 +2068,8 @@ impl GlobalScope {
     /// Promote non-Slice blob:
     /// 1. Memory-based: The bytes in data slice will be transferred to file manager thread.
     /// 2. File-based: If set_valid, then activate the FileID so it can serve as URL
-    ///     Depending on set_valid, the returned FileID can be part of
-    ///     valid or invalid Blob URL.
+    ///    Depending on set_valid, the returned FileID can be part of
+    ///    valid or invalid Blob URL.
     pub(crate) fn promote(&self, blob_info: &mut BlobInfo, set_valid: bool) -> Uuid {
         let mut bytes = vec![];
         let global_url = self.get_url();
@@ -2250,16 +2280,16 @@ impl GlobalScope {
     #[allow(unsafe_code)]
     pub(crate) unsafe fn from_object(obj: *mut JSObject) -> DomRoot<Self> {
         assert!(!obj.is_null());
-        let global = GetNonCCWObjectGlobal(obj);
-        global_scope_from_global_static(global)
+        let global = unsafe { GetNonCCWObjectGlobal(obj) };
+        unsafe { global_scope_from_global_static(global) }
     }
 
     /// Returns the global scope for the given JSContext
     #[allow(unsafe_code)]
     pub(crate) unsafe fn from_context(cx: *mut JSContext, _realm: InRealm) -> DomRoot<Self> {
-        let global = CurrentGlobalOrNull(cx);
+        let global = unsafe { CurrentGlobalOrNull(cx) };
         assert!(!global.is_null());
-        global_scope_from_global(global, cx)
+        unsafe { global_scope_from_global(global, cx) }
     }
 
     /// Returns the global scope for the given SafeJSContext
@@ -2275,11 +2305,13 @@ impl GlobalScope {
         mut obj: *mut JSObject,
         cx: *mut JSContext,
     ) -> DomRoot<Self> {
-        if IsWrapper(obj) {
-            obj = UnwrapObjectDynamic(obj, cx, /* stopAtWindowProxy = */ false);
-            assert!(!obj.is_null());
+        unsafe {
+            if IsWrapper(obj) {
+                obj = UnwrapObjectDynamic(obj, cx, /* stopAtWindowProxy = */ false);
+                assert!(!obj.is_null());
+            }
+            GlobalScope::from_object(obj)
         }
-        GlobalScope::from_object(obj)
     }
 
     pub(crate) fn add_uncaught_rejection(&self, rejection: HandleObject) {
@@ -2346,7 +2378,7 @@ impl GlobalScope {
             .insert(script_id, Rc::new(module));
     }
 
-    pub(crate) fn get_inline_module_map(&self) -> &DomRefCell<HashMap<ScriptId, Rc<ModuleTree>>> {
+    pub(crate) fn get_inline_module_map(&self) -> &DomRefCell<FxHashMap<ScriptId, Rc<ModuleTree>>> {
         &self.inline_module_map
     }
 
@@ -2360,6 +2392,10 @@ impl GlobalScope {
 
     pub(crate) fn crypto(&self, can_gc: CanGc) -> DomRoot<Crypto> {
         self.crypto.or_init(|| Crypto::new(self, can_gc))
+    }
+
+    pub(crate) fn cookie_store(&self, can_gc: CanGc) -> DomRoot<CookieStore> {
+        self.cookie_store.or_init(|| CookieStore::new(self, can_gc))
     }
 
     pub(crate) fn live_devtools_updates(&self) -> bool {
@@ -2454,8 +2490,12 @@ impl GlobalScope {
         &self.script_to_constellation_chan
     }
 
+    pub(crate) fn script_to_embedder_chan(&self) -> &ScriptToEmbedderChan {
+        &self.script_to_embedder_chan
+    }
+
     pub(crate) fn send_to_embedder(&self, msg: EmbedderMsg) {
-        self.send_to_constellation(ScriptToConstellationMessage::ForwardToEmbedder(msg));
+        self.script_to_embedder_chan().send(msg).unwrap();
     }
 
     pub(crate) fn send_to_constellation(&self, msg: ScriptToConstellationMessage) {
@@ -2691,7 +2731,7 @@ impl GlobalScope {
                             type_: "PageError".to_string(),
                             error_message: error_info.message.clone(),
                             source_name: error_info.filename.clone(),
-                            line_text: "".to_string(), //TODO
+                            line_text: "".to_string(), // TODO
                             line_number: error_info.lineno,
                             column_number: error_info.column,
                             category: "script".to_string(),
@@ -2894,7 +2934,8 @@ impl GlobalScope {
         arguments: Vec<HandleValue>,
         timeout: Duration,
         is_interval: IsInterval,
-    ) -> i32 {
+        can_gc: CanGc,
+    ) -> Fallible<i32> {
         self.timers().set_timeout_or_interval(
             self,
             callback,
@@ -2902,6 +2943,7 @@ impl GlobalScope {
             timeout,
             is_interval,
             self.timer_source(),
+            can_gc,
         )
     }
 
@@ -3166,7 +3208,6 @@ impl GlobalScope {
         device: WebGPUDevice,
         reason: DeviceLostReason,
         msg: String,
-        can_gc: CanGc,
     ) {
         let reason = match reason {
             DeviceLostReason::Unknown => GPUDeviceLostReason::Unknown,
@@ -3180,7 +3221,7 @@ impl GlobalScope {
             .expect("GPUDevice should still be in devices hashmap")
             .root()
         {
-            device.lose(reason, msg, can_gc);
+            device.lose(reason, msg);
         }
     }
 
@@ -3189,7 +3230,6 @@ impl GlobalScope {
         &self,
         device: WebGPUDevice,
         error: webgpu_traits::Error,
-        can_gc: CanGc,
     ) {
         if let Some(gpu_device) = self
             .gpu_devices
@@ -3197,7 +3237,7 @@ impl GlobalScope {
             .get(&device)
             .and_then(|device| device.root())
         {
-            gpu_device.fire_uncaptured_error(error, can_gc);
+            gpu_device.fire_uncaptured_error(error);
         } else {
             warn!("Recived error for lost GPUDevice!")
         }
@@ -3237,7 +3277,7 @@ impl GlobalScope {
         }
     }
 
-    pub(crate) fn dynamic_module_list(&self) -> RefMut<DynamicModuleList> {
+    pub(crate) fn dynamic_module_list(&self) -> RefMut<'_, DynamicModuleList> {
         self.dynamic_modules.borrow_mut()
     }
 
@@ -3448,31 +3488,37 @@ unsafe fn global_scope_from_global(
     global: *mut JSObject,
     cx: *mut JSContext,
 ) -> DomRoot<GlobalScope> {
-    assert!(!global.is_null());
-    let clasp = get_object_class(global);
-    assert_ne!(
-        ((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)),
-        0
-    );
-    root_from_object(global, cx).unwrap()
+    unsafe {
+        assert!(!global.is_null());
+        let clasp = get_object_class(global);
+        assert_ne!(
+            ((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)),
+            0
+        );
+        root_from_object(global, cx).unwrap()
+    }
 }
 
 /// Returns the Rust global scope from a JS global object.
 #[allow(unsafe_code)]
 unsafe fn global_scope_from_global_static(global: *mut JSObject) -> DomRoot<GlobalScope> {
     assert!(!global.is_null());
-    let clasp = get_object_class(global);
-    assert_ne!(
-        ((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)),
-        0
-    );
+    let clasp = unsafe { get_object_class(global) };
+
+    unsafe {
+        assert_ne!(
+            ((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)),
+            0
+        );
+    }
+
     root_from_object_static(global).unwrap()
 }
 
 #[allow(unsafe_code)]
 impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
     unsafe fn from_context(cx: *mut JSContext, realm: InRealm) -> DomRoot<Self> {
-        GlobalScope::from_context(cx, realm)
+        unsafe { GlobalScope::from_context(cx, realm) }
     }
 
     fn get_cx() -> SafeJSContext {

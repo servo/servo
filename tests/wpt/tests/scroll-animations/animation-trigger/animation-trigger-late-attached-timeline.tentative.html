@@ -21,7 +21,7 @@
       }
       .target {
         animation: myAnim linear 0.5s forwards;
-        animation-trigger: once 150px 200px;
+        timeline-trigger: --trigger once 150px 200px;
       }
       .deferred.subject {
         view-timeline: --viewtimeline;
@@ -77,7 +77,8 @@
         // Now attach a view timeline. Since we are in the trigger range, we
         // should trigger.
         await testAnimationTrigger(test, async () => {
-          target.style.animationTriggerTimeline = "--viewtimeline";
+          target.style.animationTrigger = "trigger(--trigger, enter play-once)";
+          target.style.timelineTriggerTimeline = "--viewtimeline";
           await waitForAnimationFrames(5);
         }, target, ["animationstart", "animationend", "animationcancel"],
            [true, true, false]);

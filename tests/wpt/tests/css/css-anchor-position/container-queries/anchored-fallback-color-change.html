@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Conditional Test: @container anchored(fallback) changes background-color</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-2/#anchored-container-queries">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  #wrapper {
+    position: relative;
+    height: 200px;
+  }
+  #anchor {
+    position: relative;
+    anchor-name: --a;
+    width: 100px;
+    height: 100px;
+  }
+  #anchored {
+    position: absolute;
+    position-anchor: --a;
+    position-area: top;
+    position-try-fallbacks: flip-block;
+    width: 100px;
+    height: 100px;
+    container-type: anchored;
+    background-color: red;
+  }
+  #target {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    left: 100px;
+  }
+  @container anchored(fallback: none) {
+    #target {
+      background-color: green;
+      left: auto;
+    }
+  }
+  @container anchored(fallback: flip-block) {
+    #target {
+      background-color: red;
+    }
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="wrapper">
+  <div id="anchor"></div>
+  <div id="anchored">
+    <div id="target"></div>
+  </div>
+</div>
+<script>
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      anchor.style.top = "100px";
+      takeScreenshot();
+    });
+  });
+</script>

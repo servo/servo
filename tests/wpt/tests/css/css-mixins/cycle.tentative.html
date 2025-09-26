@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Mixins: Cycles</title>
+    <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12595">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+       @mixin --a() {
+         --last-processed: a;
+         @apply --b;
+       }
+       @mixin --b() {
+         --last-processed: b;
+         @apply --c;
+       }
+       @mixin --c() {
+         --last-processed: c;
+         @apply --b;
+       }
+       #target {
+         @apply --a;
+       }
+     </style>
+   </head>
+   <body>
+     <div id="target"></div>
+     <script>
+        test(() => {
+          let target = document.getElementById('target');
+          assert_equals(getComputedStyle(target).getPropertyValue('--last-processed'), 'c');
+        });
+     </script>
+  </body>
+</html>

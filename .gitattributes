@@ -1,4 +1,5 @@
 * text=auto eol=lf
+tests/blink_perf_tests/** linguist-vendored
 tests/wpt/** linguist-vendored
 support/openharmony/**/*.ets linguist-language=ts
 

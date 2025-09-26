@@ -7,6 +7,7 @@ var elements = [
   ["area", "Area"],
   ["article", ""],
   ["aside", ""],
+  ["attachment", "Unknown"],
   ["audio", "Audio"],
   ["b", ""],
   ["base", "Base"],
@@ -74,6 +75,7 @@ var elements = [
   ["kbd", ""],
   ["keygen", "Unknown"],
   ["label", "Label"],
+  ["layer", "Unknown"],
   ["legend", "Legend"],
   ["li", "LI"],
   ["link", "Link"],
@@ -92,6 +94,7 @@ var elements = [
   ["nobr", ""],
   ["noembed", ""],
   ["noframes", ""],
+  ["nolayer", "Unknown"],
   ["noscript", ""],
   ["object", "Object"],
   ["ol", "OList"],
@@ -100,7 +103,6 @@ var elements = [
   ["output", "Output"],
   ["p", "Paragraph"],
   ["param", "Param"],
-  ["permission", "Permission"],
   ["picture", "Picture"],
   ["plaintext", ""],
   ["pre", "Pre"],
@@ -146,5 +148,6 @@ var elements = [
   ["video", "Video"],
   ["wbr", ""],
   ["xmp", "Pre"],
+  ["xxx", "Unknown"],
   ["\u00E5-bar", "Unknown"], // not a valid custom element name
 ];

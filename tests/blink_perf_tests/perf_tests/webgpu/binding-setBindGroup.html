@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>
+    Test CPU performance of the GPURenderPassEncoder.setBindGroup binding
+  </title>
+  <script src="../resources/runner.js"></script>
+  <script src="./resources/webgpu-perf-utils.js"></script>
+</head>
+
+<body>
+  <canvas id="canvas" width=400 height=400></canvas>
+  <script>
+    (async () => {
+      const adapter = navigator.gpu && await navigator.gpu.requestAdapter();
+      if (!adapter) {
+        return skipTest('WebGPU not supported');
+      }
+
+      const device = await adapter.requestDevice();
+      const canvas = document.getElementById('canvas');
+      const context = canvas.getContext('webgpu');
+      const contextFormat = navigator.gpu.getPreferredCanvasFormat();
+
+      context.configure({
+        device,
+        format: contextFormat,
+      });
+
+      const pipeline = await device.createRenderPipelineAsync({
+        layout: 'auto',
+        vertex: {
+          module: device.createShaderModule({
+            code: `
+              @group(0) @binding(0) var<storage, read> pos : array<vec2f, 3>;
+
+              @vertex
+              fn main(@builtin(vertex_index) VertexIndex : u32) -> @builtin(position) vec4<f32> {
+                return vec4f(pos[VertexIndex], 0.0, 1.0);
+              }`
+          }),
+        },
+        fragment: {
+          module: device.createShaderModule({
+            code: `
+              @fragment
+              fn main() -> @location(0) vec4f {
+                return vec4f(0.0, 1.0, 0.0, 1.0);
+              }`
+          }),
+          targets: [{
+            format: contextFormat,
+          }],
+        },
+      });
+
+      const renderPassDescriptor = {
+        colorAttachments: [{
+          view: undefined,
+          loadOp: 'clear',
+          clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+          storeOp: 'store',
+        }],
+      };
+
+      const posBuffer = device.createBuffer({
+        size: Float32Array.BYTES_PER_ELEMENT * 2 * 3,
+        mappedAtCreation: true,
+        usage: GPUBufferUsage.STORAGE,
+      });
+      new Float32Array(posBuffer.getMappedRange()).set([
+        0.0, 0.5,
+        -0.5, -0.5,
+        0.5, -0.5,
+      ]);
+      posBuffer.unmap();
+
+      const bindGroup = device.createBindGroup({
+        layout: pipeline.getBindGroupLayout(0),
+        entries: [{
+          binding: 0,
+          resource: { buffer: posBuffer },
+        }],
+      });
+
+      const iterations = 10000;
+      PerfTestRunner.measureInnerRAFTime({
+        description: `CPU time for ${iterations} calls to GPURenderPassEncoder.setBindGroup`,
+        warmUpCount: 100,
+        run() {
+          const commandEncoder = device.createCommandEncoder();
+          renderPassDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+
+          const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+          passEncoder.setPipeline(pipeline);
+          for (let i = 0; i < iterations; ++i) {
+            passEncoder.setBindGroup(0, bindGroup);
+          }
+          passEncoder.draw(3, 1, 0, 0);
+          passEncoder.end();
+
+          device.queue.submit([commandEncoder.finish()]);
+        }
+      });
+    })();
+  </script>
+</body>
+
+</html>

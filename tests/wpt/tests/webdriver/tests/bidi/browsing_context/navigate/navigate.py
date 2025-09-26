@@ -5,11 +5,12 @@ import webdriver.bidi.error as error
 from webdriver.bidi.modules.script import ContextTarget
 
 from . import navigate_and_assert
+from .. import assert_navigation_info
 from ... import any_string
 
 pytestmark = pytest.mark.asyncio
 
-USER_PROMPT_OPENED_EVENT = "browsingContext.userPromptOpened"
+CONTEXT_LOAD_EVENT = "browsingContext.load"
 
 
 async def test_payload(bidi_session, inline, new_tab):
@@ -80,14 +81,15 @@ async def test_interactive_simultaneous_navigation(bidi_session, wait_for_future
 
 
 async def test_relative_url(bidi_session, new_tab, url):
-    url_before = url(
-        "/webdriver/tests/bidi/browsing_context/support/empty.html"
+    url_before = url("/webdriver/tests/bidi/browsing_context/support/empty.html")
+
+    await navigate_and_assert(bidi_session, new_tab, url_before, wait="none")
+
+    relative_url = "other.html"
+    url_after = url_before.replace("empty.html", relative_url)
+    await navigate_and_assert(
+        bidi_session, new_tab, relative_url, wait="none", expected_url=url_after
     )
-
-    await navigate_and_assert(bidi_session, new_tab, url_before, "none")
-
-    url_after = url_before.replace("empty.html", "other.html")
-    await navigate_and_assert(bidi_session, new_tab, url_after, "none")
 
 
 async def test_same_document_navigation_in_before_unload(bidi_session, new_tab, url):
@@ -95,7 +97,7 @@ async def test_same_document_navigation_in_before_unload(bidi_session, new_tab, 
         "/webdriver/tests/bidi/browsing_context/support/empty.html"
     )
 
-    await navigate_and_assert(bidi_session, new_tab, url_before, "complete")
+    await navigate_and_assert(bidi_session, new_tab, url_before, wait="complete")
 
     await bidi_session.script.evaluate(
         expression="""window.addEventListener(
@@ -107,4 +109,46 @@ async def test_same_document_navigation_in_before_unload(bidi_session, new_tab, 
         await_promise=False)
 
     url_after = url_before.replace("empty.html", "other.html")
-    await navigate_and_assert(bidi_session, new_tab, url_after, "complete")
+    await navigate_and_assert(bidi_session, new_tab, url_after, wait="complete")
+
+
+@pytest.mark.parametrize(
+    "script",
+    [
+        "<script>window.location='{url}'</script>",
+        """<script>window.addEventListener('DOMContentLoaded', () => {{
+            window.location = '{url}';
+        }});</script>""",
+        """<script>window.addEventListener('load', () => {{
+            window.location = '{url}';
+       }});</script>""",
+    ],
+    ids=[
+        "Interrupted immediately",
+        "Interrupted on DOMContentLoaded",
+        "Interrupted on load",
+    ],
+)
+@pytest.mark.parametrize("wait", ["none", "interactive", "complete"])
+async def test_interrupted_navigation(
+    bidi_session,
+    subscribe_events,
+    new_tab,
+    url,
+    inline,
+    wait_for_events,
+    script,
+    wait,
+):
+    url_after = url("/webdriver/tests/bidi/browsing_context/support/empty.html")
+    url_before = inline(script.format(url=url_after))
+
+    await subscribe_events([CONTEXT_LOAD_EVENT], contexts=[new_tab["context"]])
+    with wait_for_events([CONTEXT_LOAD_EVENT]) as waiter:
+        result = await bidi_session.browsing_context.navigate(
+            context=new_tab["context"], url=url_before, wait=wait
+        )
+        # Wait until we received the load event for the final URL.
+        load_events = await waiter.get_events(
+            lambda events: any(event["url"] == url_after for [name, event] in events)
+        )

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>CSS Conditional Test: @container anchored(fallback) changes display type</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-2/#anchored-container-queries">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-conditional/container-queries/support/cq-testcommon.js"></script>
+<style>
+  body { margin: 0; }
+  #anchor {
+    anchor-name: --a;
+    margin-top: 100px;
+    width: 100px;
+    height: 100px;
+  }
+  #anchored {
+    position: absolute;
+    position-anchor: --a;
+    position-area: top;
+    position-try-fallbacks: flip-block;
+    width: 100px;
+    height: 100px;
+    container-type: anchored;
+  }
+  #t1 { height: 100%; }
+  @container anchored(fallback: none) {
+    #t1 { display: none; }
+  }
+  @container anchored(fallback: flip-block) {
+    #t1 { display: block; }
+  }
+</style>
+<div id="anchor"></div>
+<div id="anchored">
+  <span id="t1"></span>
+</div>
+<script>
+  test(() => {
+    assert_equals(anchored.offsetTop, 0, "Non-fallback rendering");
+    assert_equals(t1.offsetHeight, 0, "display:none - zero offsetHeight");
+  }, "@container anchored() without applied fallback");
+
+  test(() => {
+    anchor.style.marginTop = "50px"; // Trigger fallback
+    assert_equals(anchored.offsetTop, 150, "Anchored element rendered below anchor");
+      assert_equals(t1.offsetHeight, 100, "Fallback applies display:block");
+  }, "@container anchored() with fallback applied");
+</script>

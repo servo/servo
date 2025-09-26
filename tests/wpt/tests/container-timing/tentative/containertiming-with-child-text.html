@@ -23,20 +23,18 @@ body {
       })
     );
     observer.observe({entryTypes: ['container']});
-    // Add the text during onload to be sure that the observer is registered
-    // in time.
-    window.onload = () => {
-      // Add a div that is the container timing root
-      const div = document.createElement('div');
-      div.setAttribute('containertiming', 'div_ct');
-      document.body.appendChild(div);
 
-      const p = document.createElement('p');
-      p.id = 'p_id';
-      p.innerText = "This is a text";
-      div.appendChild(p);
-      beforeRender = performance.now();
-    };
+    // Add a div that is the container timing root
+    const div = document.createElement('div');
+    div.setAttribute('containertiming', 'div_ct');
+    document.body.appendChild(div);
+
+    const p = document.createElement('p');
+    p.id = 'p_id';
+    p.innerText = "This is a text";
+    div.appendChild(p);
+
+    beforeRender = performance.now();
   }, 'Paint of the text child of container timing is reported.');
 </script>
 

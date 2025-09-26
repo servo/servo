@@ -22,7 +22,7 @@ fedcm_test(async t => {
       nonce: '2'
     });
   }
-  assert_throws_js(TypeError, navigator.credentials.get({
+  return promise_rejects_js(t, TypeError, navigator.credentials.get({
     identity: {
       providers: providers,
     }

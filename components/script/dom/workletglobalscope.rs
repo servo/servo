@@ -4,15 +4,15 @@
 
 use std::sync::Arc;
 
+use base::generic_channel::GenericSender;
 use base::id::PipelineId;
 use constellation_traits::{ScriptToConstellationChan, ScriptToConstellationMessage};
 use crossbeam_channel::Sender;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
-use embedder_traits::JavaScriptEvaluationError;
+use embedder_traits::{JavaScriptEvaluationError, ScriptToEmbedderChan};
 use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
-use js::rust::Runtime;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
 use profile_traits::{mem, time};
@@ -55,7 +55,6 @@ impl WorkletGlobalScope {
     /// Create a new heap-allocated `WorkletGlobalScope`.
     pub(crate) fn new(
         scope_type: WorkletGlobalScopeType,
-        runtime: &Runtime,
         pipeline_id: PipelineId,
         base_url: ServoUrl,
         executor: WorkletExecutor,
@@ -64,14 +63,12 @@ impl WorkletGlobalScope {
         let scope: DomRoot<WorkletGlobalScope> = match scope_type {
             #[cfg(feature = "testbinding")]
             WorkletGlobalScopeType::Test => DomRoot::upcast(TestWorkletGlobalScope::new(
-                runtime,
                 pipeline_id,
                 base_url,
                 executor,
                 init,
             )),
             WorkletGlobalScopeType::Paint => DomRoot::upcast(PaintWorkletGlobalScope::new(
-                runtime,
                 pipeline_id,
                 base_url,
                 executor,
@@ -103,6 +100,7 @@ impl WorkletGlobalScope {
                 init.mem_profiler_chan.clone(),
                 init.time_profiler_chan.clone(),
                 script_to_constellation_chan,
+                init.to_embedder_sender.clone(),
                 init.resource_threads.clone(),
                 MutableOrigin::new(ImmutableOrigin::new_opaque()),
                 base_url.clone(),
@@ -112,6 +110,7 @@ impl WorkletGlobalScope {
                 init.gpu_id_hub.clone(),
                 init.inherited_secure_context,
                 false,
+                None, // font_context
             ),
             base_url,
             to_script_thread_sender: init.to_script_thread_sender.clone(),
@@ -199,7 +198,9 @@ pub(crate) struct WorkletGlobalScopeInit {
     /// Channel to devtools
     pub(crate) devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// Messages to send to constellation
-    pub(crate) to_constellation_sender: IpcSender<(PipelineId, ScriptToConstellationMessage)>,
+    pub(crate) to_constellation_sender: GenericSender<(PipelineId, ScriptToConstellationMessage)>,
+    /// Messages to send to the Embedder
+    pub(crate) to_embedder_sender: ScriptToEmbedderChan,
     /// The image cache
     pub(crate) image_cache: Arc<dyn ImageCache>,
     /// Identity manager for WebGPU resources

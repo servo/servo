@@ -91,13 +91,13 @@
   // ABNF:
   // https://w3c.github.io/trusted-types/dist/spec/#serialized-tt-configuration
   // https://w3c.github.io/webappsec-csp/#grammardef-required-ascii-whitespace
-  // U+00A LF breaks the header field value into two lines so make sure that
-  // "the continuation line begins with a space or horizontal tab" in accordance
-  // with https://www.rfc-editor.org/rfc/rfc2616
+  // U+00A / U+00D LF breaks the header field value into two lines so make sure
+  // that "the continuation line begins with a space or horizontal tab" in
+  // accordance with https://www.rfc-editor.org/rfc/rfc2616
   promise_test(async t => {
     let results = await tryCreatingTrustedTypePoliciesWithCSP(
       ["_TTP1_", "_TTP2_", "_TTP3_", "_TTP4_", "_TTP5_", "_TTP6_"],
-      "header(Content-Security-Policy,trusted-types _TTP1_%09_TTP2_%0A%20_TTP3_%0C_TTP4_%0D_TTP5_%20_TTP6_,True)"
+      "header(Content-Security-Policy,trusted-types _TTP1_%09_TTP2_%0A%20_TTP3_%0C_TTP4_%0D%20_TTP5_%20_TTP6_,True)"
     );
     assert_equals(results.length, 6);
     results.forEach((result, index) => {

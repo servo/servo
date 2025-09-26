@@ -9,6 +9,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use async_recursion::async_recursion;
 use base::cross_process_instant::CrossProcessInstant;
+use base::generic_channel;
 use base::id::{BrowsingContextId, HistoryStateId, PipelineId};
 use crossbeam_channel::Sender;
 use devtools_traits::{
@@ -26,7 +27,7 @@ use headers::{
 };
 use http::header::{
     self, ACCEPT, ACCESS_CONTROL_REQUEST_HEADERS, AUTHORIZATION, CONTENT_ENCODING,
-    CONTENT_LANGUAGE, CONTENT_LOCATION, CONTENT_TYPE, HeaderValue, RANGE,
+    CONTENT_LANGUAGE, CONTENT_LOCATION, CONTENT_TYPE, HeaderValue, RANGE, WWW_AUTHENTICATE,
 };
 use http::{HeaderMap, Method, Request as HyperRequest, StatusCode};
 use http_body_util::combinators::BoxBody;
@@ -58,6 +59,7 @@ use net_traits::{
 };
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
+use rustc_hash::FxHashMap;
 use servo_arc::Arc;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use tokio::sync::mpsc::{
@@ -101,7 +103,7 @@ pub struct HttpState {
     /// or whether a concurrent pending store should be awaited.
     pub http_cache_state: HttpCacheState,
     pub auth_cache: RwLock<AuthCache>,
-    pub history_states: RwLock<HashMap<HistoryStateId, Vec<u8>>>,
+    pub history_states: RwLock<FxHashMap<HistoryStateId, Vec<u8>>>,
     pub client: Client<Connector, crate::connector::BoxedBody>,
     pub override_manager: CertificateErrorOverrideManager,
     pub embedder_proxy: Mutex<EmbedderProxy>,
@@ -138,7 +140,7 @@ impl HttpState {
         }
 
         let embedder_proxy = self.embedder_proxy.lock().unwrap();
-        let (ipc_sender, ipc_receiver) = ipc::channel().unwrap();
+        let (ipc_sender, ipc_receiver) = generic_channel::channel().unwrap();
         embedder_proxy.send(EmbedderMsg::RequestAuthentication(
             webview_id,
             request.url(),
@@ -182,7 +184,7 @@ fn set_default_accept_encoding(headers: &mut HeaderMap) {
     // TODO(eijebong): Change this once typed headers are done
     headers.insert(
         header::ACCEPT_ENCODING,
-        HeaderValue::from_static("gzip, deflate, br"),
+        HeaderValue::from_static("gzip, deflate, br, zstd"),
     );
 }
 
@@ -428,9 +430,9 @@ pub fn send_request_to_devtools(
     msg: ChromeToDevtoolsControlMsg,
     devtools_chan: &Sender<DevtoolsControlMsg>,
 ) {
-    devtools_chan
-        .send(DevtoolsControlMsg::FromChrome(msg))
-        .unwrap();
+    if let Err(e) = devtools_chan.send(DevtoolsControlMsg::FromChrome(msg)) {
+        error!("DevTools send failed: {e}");
+    }
 }
 
 pub fn send_response_to_devtools(
@@ -469,7 +471,7 @@ pub fn send_response_values_to_devtools(
         request.pipeline_id,
         request.target_webview_id,
     ) {
-        let browsing_context_id = webview_id.0;
+        let browsing_context_id = webview_id.into();
 
         let devtoolsresponse = DevtoolsHttpResponse {
             headers,
@@ -493,7 +495,7 @@ pub fn send_response_values_to_devtools(
 pub fn send_early_httprequest_to_devtools(request: &Request, context: &FetchContext) {
     if let (Some(devtools_chan), Some(browsing_context_id), Some(pipeline_id)) = (
         context.devtools_chan.as_ref(),
-        request.target_webview_id.map(|id| id.0),
+        request.target_webview_id.map(|id| id.into()),
         request.pipeline_id,
     ) {
         // Build the partial DevtoolsHttpRequest
@@ -1718,8 +1720,12 @@ async fn http_network_or_cache_fetch(
     // Step 14. If response’s status is 401, httpRequest’s response tainting is not "cors",
     // includeCredentials is true, and request’s window is an environment settings object, then:
     // TODO(#33616): Figure out what to do with request window objects
-    if let (Some(StatusCode::UNAUTHORIZED), false, true) =
-        (response.status.try_code(), cors_flag, include_credentials)
+    // NOTE: Requiring a WWW-Authenticate header here is ad-hoc, but seems to match what other browsers are
+    // doing. See Step 14.1.
+    if response.status.try_code() == Some(StatusCode::UNAUTHORIZED) &&
+        !cors_flag &&
+        include_credentials &&
+        response.headers.contains_key(WWW_AUTHENTICATE)
     {
         // TODO: Step 14.1 Spec says requires testing on multiple WWW-Authenticate headers
 
@@ -1964,7 +1970,7 @@ async fn http_network_fetch(
         let _ = fetch_terminated_sender.send(false);
     }
 
-    let browsing_context_id = request.target_webview_id.map(|id| id.0);
+    let browsing_context_id = request.target_webview_id.map(Into::into);
 
     let response_future = obtain_response(
         &context.state.client,
@@ -2017,7 +2023,7 @@ async fn http_network_fetch(
         .iter()
         .map(|header_value| header_value.to_str().unwrap_or(""))
         .collect();
-    let wildcard_present = header_strings.iter().any(|header_str| *header_str == "*");
+    let wildcard_present = header_strings.contains(&"*");
     // The spec: https://www.w3.org/TR/resource-timing-2/#sec-timing-allow-origin
     // says that a header string is either an origin or a wildcard so we can just do a straight
     // check against the document origin
@@ -2203,7 +2209,10 @@ async fn cors_preflight_fetch(
     cache: &mut CorsCache,
     context: &FetchContext,
 ) -> Response {
-    // Step 1
+    // Step 1. Let preflight be a new request whose method is `OPTIONS`, URL list is a clone
+    // of request’s URL list, initiator is request’s initiator, destination is request’s destination,
+    // origin is request’s origin, referrer is request’s referrer, referrer policy is request’s
+    // referrer policy, mode is "cors", and response tainting is "cors".
     let mut preflight = RequestBuilder::new(
         request.target_webview_id,
         request.current_url(),
@@ -2224,19 +2233,19 @@ async fn cors_preflight_fetch(
     .response_tainting(ResponseTainting::CorsTainting)
     .build();
 
-    // Step 2
+    // Step 2. Append (`Accept`, `*/*`) to preflight’s header list.
     preflight
         .headers
         .insert(ACCEPT, HeaderValue::from_static("*/*"));
 
-    // Step 3
+    // Step 3. Append (`Access-Control-Request-Method`, request’s method) to preflight’s header list.
     preflight
         .headers
         .typed_insert::<AccessControlRequestMethod>(AccessControlRequestMethod::from(
             request.method.clone(),
         ));
 
-    // Step 4
+    // Step 4. Let headers be the CORS-unsafe request-header names with request’s header list.
     let headers = get_cors_unsafe_header_names(&request.headers);
 
     // Step 5 If headers is not empty, then:
@@ -2250,20 +2259,23 @@ async fn cors_preflight_fetch(
         );
     }
 
-    // Step 6
+    // Step 6. Let response be the result of running HTTP-network-or-cache fetch given a
+    // new fetch params whose request is preflight.
     let mut fetch_params = FetchParams::new(preflight);
     let response =
         http_network_or_cache_fetch(&mut fetch_params, false, false, &mut None, context).await;
-    // Step 7
+
+    // Step 7. If a CORS check for request and response returns success and response’s status is an ok status, then:
     if cors_check(request, &response).is_ok() && response.status.code().is_success() {
-        // Substep 1
+        // Step 7.1 Let methods be the result of extracting header list values given
+        // `Access-Control-Allow-Methods` and response’s header list.
         let mut methods = if response
             .headers
             .contains_key(header::ACCESS_CONTROL_ALLOW_METHODS)
         {
             match response.headers.typed_get::<AccessControlAllowMethods>() {
                 Some(methods) => methods.iter().collect(),
-                // Substep 3
+                // Step 7.3 If either methods or headerNames is failure, return a network error.
                 None => {
                     return Response::network_error(NetworkError::Internal(
                         "CORS ACAM check failed".into(),
@@ -2274,14 +2286,15 @@ async fn cors_preflight_fetch(
             vec![]
         };
 
-        // Substep 2
+        // Step 7.2 Let headerNames be the result of extracting header list values given
+        // `Access-Control-Allow-Headers` and response’s header list.
         let header_names = if response
             .headers
             .contains_key(header::ACCESS_CONTROL_ALLOW_HEADERS)
         {
             match response.headers.typed_get::<AccessControlAllowHeaders>() {
                 Some(names) => names.iter().collect(),
-                // Substep 3
+                // Step 7.3 If either methods or headerNames is failure, return a network error.
                 None => {
                     return Response::network_error(NetworkError::Internal(
                         "CORS ACAH check failed".into(),
@@ -2297,18 +2310,20 @@ async fn cors_preflight_fetch(
             methods, request.method
         );
 
-        // Substep 4
+        // Step 7.4 If methods is null and request’s use-CORS-preflight flag is set,
+        // then set methods to a new list containing request’s method.
         if methods.is_empty() && request.use_cors_preflight {
             methods = vec![request.method.clone()];
         }
 
-        // Substep 5
+        // Step 7.5 If request’s method is not in methods, request’s method is not a CORS-safelisted method,
+        // and request’s credentials mode is "include" or methods does not contain `*`, then return a network error.
         if methods
             .iter()
-            .all(|m| *m.as_str() != *request.method.as_ref()) &&
+            .all(|method| *method.as_str() != *request.method.as_ref()) &&
             !is_cors_safelisted_method(&request.method) &&
             (request.credentials_mode == CredentialsMode::Include ||
-                methods.iter().all(|m| m.as_ref() != "*"))
+                methods.iter().all(|method| method.as_ref() != "*"))
         {
             return Response::network_error(NetworkError::Internal(
                 "CORS method check failed".into(),
@@ -2320,21 +2335,25 @@ async fn cors_preflight_fetch(
             header_names, request.headers
         );
 
-        // Substep 6
+        // Step 7.6 If one of request’s header list’s names is a CORS non-wildcard request-header name
+        // and is not a byte-case-insensitive match for an item in headerNames, then return a network error.
         if request.headers.iter().any(|(name, _)| {
             is_cors_non_wildcard_request_header_name(name) &&
-                header_names.iter().all(|hn| hn != name)
+                header_names.iter().all(|header_name| header_name != name)
         }) {
             return Response::network_error(NetworkError::Internal(
                 "CORS authorization check failed".into(),
             ));
         }
 
-        // Substep 7
+        // Step 7.7 For each unsafeName of the CORS-unsafe request-header names with request’s header list,
+        // if unsafeName is not a byte-case-insensitive match for an item in headerNames and request’s credentials
+        // mode is "include" or headerNames does not contain `*`, return a network error.
         let unsafe_names = get_cors_unsafe_header_names(&request.headers);
-        #[allow(clippy::mutable_key_type)] // We don't mutate the items in the set
         let header_names_set: HashSet<&HeaderName> = HashSet::from_iter(header_names.iter());
-        let header_names_contains_star = header_names.iter().any(|hn| hn.as_str() == "*");
+        let header_names_contains_star = header_names
+            .iter()
+            .any(|header_name| header_name.as_str() == "*");
         for unsafe_name in unsafe_names.iter() {
             if !header_names_set.contains(unsafe_name) &&
                 (request.credentials_mode == CredentialsMode::Include ||
@@ -2346,32 +2365,43 @@ async fn cors_preflight_fetch(
             }
         }
 
-        // Substep 8, 9
-        let max_age: Duration = response
+        // Step 7.8 Let max-age be the result of extracting header list values given
+        // `Access-Control-Max-Age` and response’s header list.
+        let max_age: Option<Duration> = response
             .headers
             .typed_get::<AccessControlMaxAge>()
-            .map(|acma| acma.into())
-            .unwrap_or(Duration::from_secs(5));
-        // Substep 10
+            .map(|acma| acma.into());
+
+        // Step 7.9 If max-age is failure or null, then set max-age to 5.
+        let max_age = max_age.unwrap_or(Duration::from_secs(5));
+
+        // Step 7.10 If max-age is greater than an imposed limit on max-age, then set max-age to the imposed limit.
         // TODO: Need to define what an imposed limit on max-age is
 
-        // Substep 11 ignored, we do have a CORS cache
+        // Step 7.11 If the user agent does not provide for a cache, then return response.
+        // NOTE: This can be ignored, we do have a CORS cache
 
-        // Substep 12, 13
+        // Step 7.12 For each method in methods for which there is a method cache entry match using request,
+        // set matching entry’s max-age to max-age.
+        // Step 7.13 For each method in methods for which there is no method cache entry match using request,
+        // create a new cache entry with request, max-age, method, and null.
         for method in &methods {
             cache.match_method_and_update(request, method.clone(), max_age);
         }
 
-        // Substep 14, 15
+        // Step 7.14 For each headerName in headerNames for which there is a header-name cache entry match using request,
+        // set matching entry’s max-age to max-age.
+        // Step 7.15 For each headerName in headerNames for which there is no header-name cache entry match using request,
+        // create a new cache entry with request, max-age, null, and headerName.
         for header_name in &header_names {
             cache.match_header_and_update(request, header_name, max_age);
         }
 
-        // Substep 16
+        // Step 7.16 Return response.
         return response;
     }
 
-    // Step 8
+    // Step 8. Otherwise, return a network error.
     Response::network_error(NetworkError::Internal("CORS check failed".into()))
 }
 

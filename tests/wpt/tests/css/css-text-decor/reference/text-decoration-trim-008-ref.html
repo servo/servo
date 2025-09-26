@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Text Decoration 4: text-decoration-trim</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-trim">
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+
+<style>
+body {
+  background: white;
+  color: black;
+  font-family: times new roman, serif;
+}
+div {
+  position: relative;
+}
+h1 {
+  position: absolute;
+}
+span {
+  display: inline-block;
+  position: relative;
+}
+u {
+  display: inline-block;
+  position: absolute;
+  text-decoration-color: black;
+  text-underline-offset: 10px;
+  width: calc(100% - 20px);
+  text-wrap-mode: nowrap;
+  overflow-x: clip;
+}
+</style>
+
+<p>The underline for "quick براؤن" should be trimmed by 10px at each end, and not interrupted at the direction boundary:</p>
+
+<div>
+  <h1>
+    the quick براؤن fox
+  </h1>
+  <h1 style="left: 10px; color: transparent">
+    the <span><u>quick براؤن</u>quick براؤن</span> fox
+  </h1>
+</div>

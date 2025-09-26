@@ -29,7 +29,7 @@ async def check_beforeunload_implicitly_accepted(
     async def check_beforeunload_implicitly_accepted():
         current_session.window_handle = new_tab["context"]
 
-        page_beforeunload = await setup_beforeunload_page(new_tab)
+        await setup_beforeunload_page(new_tab)
         page_target = url("/webdriver/tests/support/html/default.html")
 
         on_prompt_closed = wait_for_event(USER_PROMPT_CLOSED_EVENT)
@@ -44,7 +44,8 @@ async def check_beforeunload_implicitly_accepted(
             current_session.url = page_target
 
         await wait_for_future_safe(
-            asyncio.create_task(execute_as_async(sync_navigate)))
+            asyncio.create_task(execute_as_async(sync_navigate))
+        )
 
         # Wait for BiDi events.
         opened_event = await wait_for_future_safe(on_prompt_opened)

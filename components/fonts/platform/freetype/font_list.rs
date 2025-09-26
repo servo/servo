@@ -21,6 +21,7 @@ use fontconfig_sys::{
     FcObjectSetCreate, FcObjectSetDestroy, FcPattern, FcPatternAddString, FcPatternCreate,
     FcPatternDestroy, FcPatternGetInteger, FcPatternGetString, FcResultMatch, FcSetSystem,
 };
+use fonts_traits::{FontTemplate, FontTemplateDescriptor, LocalFontIdentifier};
 use libc::{c_char, c_int};
 use log::debug;
 use style::Atom;
@@ -28,16 +29,14 @@ use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{FontStretch, FontStyle, FontWeight};
 use unicode_script::Script;
 
-use super::LocalFontIdentifier;
 use crate::font::map_platform_values_to_style_values;
-use crate::font_template::{FontTemplate, FontTemplateDescriptor};
 use crate::platform::add_noto_fallback_families;
 use crate::{
     EmojiPresentationPreference, FallbackFontSelectionOptions, FontIdentifier,
     LowercaseFontFamilyName,
 };
 
-pub fn for_each_available_family<F>(mut callback: F)
+pub(crate) fn for_each_available_family<F>(mut callback: F)
 where
     F: FnMut(String),
 {
@@ -72,7 +71,7 @@ where
     }
 }
 
-pub fn for_each_variation<F>(family_name: &str, mut callback: F)
+pub(crate) fn for_each_variation<F>(family_name: &str, mut callback: F)
 where
     F: FnMut(FontTemplate),
 {
@@ -126,7 +125,8 @@ where
 
             let local_font_identifier = LocalFontIdentifier {
                 path: Atom::from(c_str_to_string(path as *const c_char)),
-                variation_index: index as i32,
+                face_index: (index & 0xFFFF) as u16,
+                named_instance_index: (index >> 16) as u16,
             };
             let descriptor = FontTemplateDescriptor::new(weight, stretch, style);
 
@@ -183,7 +183,9 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
     families
 }
 
-pub fn default_system_generic_font_family(generic: GenericFontFamily) -> LowercaseFontFamilyName {
+pub(crate) fn default_system_generic_font_family(
+    generic: GenericFontFamily,
+) -> LowercaseFontFamilyName {
     let generic_string = match generic {
         GenericFontFamily::None | GenericFontFamily::Serif => "serif",
         GenericFontFamily::SansSerif => "sans-serif",

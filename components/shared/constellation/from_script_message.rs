@@ -4,31 +4,34 @@
 
 //! Messages send from the ScriptThread to the Constellation.
 
-use std::collections::HashMap;
 use std::fmt;
 
 use base::Epoch;
+use base::generic_channel::{GenericCallback, GenericReceiver, GenericSender, SendResult};
 use base::id::{
     BroadcastChannelRouterId, BrowsingContextId, HistoryStateId, MessagePortId,
     MessagePortRouterId, PipelineId, ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
 };
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
+use compositing_traits::CrossProcessCompositorApi;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::{
-    AnimationState, EmbedderMsg, FocusSequenceNumber, JSValue, JavaScriptEvaluationError,
-    JavaScriptEvaluationId, MediaSessionEvent, Theme, TouchEventResult, ViewportDetails,
-    WebDriverMessageId,
+    AnimationState, FocusSequenceNumber, JSValue, JavaScriptEvaluationError,
+    JavaScriptEvaluationId, MediaSessionEvent, ScriptToEmbedderChan, Theme, TouchEventResult,
+    ViewportDetails, WebDriverMessageId,
 };
 use euclid::default::Size2D as UntypedSize2D;
+use fonts_traits::SystemFontServiceProxySender;
 use http::{HeaderMap, Method};
-use ipc_channel::Error as IpcError;
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use ipc_channel::ipc::IpcSender;
+use malloc_size_of_derive::MallocSizeOf;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{Destination, InsecureRequestsPolicy, Referrer, RequestBody};
 use net_traits::storage_thread::StorageType;
-use net_traits::{CoreResourceMsg, ReferrerPolicy, ResourceThreads};
+use net_traits::{ReferrerPolicy, ResourceThreads};
 use profile_traits::mem::MemoryReportResult;
 use profile_traits::{mem, time as profile_time};
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use strum_macros::IntoStaticStr;
@@ -42,17 +45,17 @@ use crate::{
 };
 
 /// A Script to Constellation channel.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ScriptToConstellationChan {
     /// Sender for communicating with constellation thread.
-    pub sender: IpcSender<(PipelineId, ScriptToConstellationMessage)>,
+    pub sender: GenericSender<(PipelineId, ScriptToConstellationMessage)>,
     /// Used to identify the origin of the message.
     pub pipeline_id: PipelineId,
 }
 
 impl ScriptToConstellationChan {
     /// Send ScriptMsg and attach the pipeline_id to the message.
-    pub fn send(&self, msg: ScriptToConstellationMessage) -> Result<(), IpcError> {
+    pub fn send(&self, msg: ScriptToConstellationMessage) -> SendResult {
         self.sender.send((self.pipeline_id, msg))
     }
 }
@@ -203,13 +206,17 @@ pub struct DOMMessage {
 #[derive(Deserialize, Serialize)]
 pub struct SWManagerSenders {
     /// Sender of messages to the constellation.
-    pub swmanager_sender: IpcSender<SWManagerMsg>,
-    /// Sender for communicating with resource thread.
-    pub resource_sender: IpcSender<CoreResourceMsg>,
+    pub swmanager_sender: GenericSender<SWManagerMsg>,
+    /// [`ResourceThreads`] for initating fetches or using i/o.
+    pub resource_threads: ResourceThreads,
+    /// [`CrossProcessCompositorApi`] for communicating with the compositor.
+    pub compositor_api: CrossProcessCompositorApi,
+    /// The [`SystemFontServiceProxy`] used to communicate with the `SystemFontService`.
+    pub system_font_service_sender: SystemFontServiceProxySender,
     /// Sender of messages to the manager.
-    pub own_sender: IpcSender<ServiceWorkerMsg>,
+    pub own_sender: GenericSender<ServiceWorkerMsg>,
     /// Receiver of messages from the constellation.
-    pub receiver: IpcReceiver<ServiceWorkerMsg>,
+    pub receiver: GenericReceiver<ServiceWorkerMsg>,
 }
 
 /// Messages sent to Service Worker Manager thread
@@ -283,7 +290,7 @@ pub struct Job {
     /// <https://w3c.github.io/ServiceWorker/#dfn-job-script-url>
     pub script_url: ServoUrl,
     /// <https://w3c.github.io/ServiceWorker/#dfn-job-client>
-    pub client: IpcSender<JobResult>,
+    pub client: GenericCallback<JobResult>,
     /// <https://w3c.github.io/ServiceWorker/#job-referrer>
     pub referrer: ServoUrl,
     /// Various data needed to process job.
@@ -296,7 +303,7 @@ impl Job {
         job_type: JobType,
         scope_url: ServoUrl,
         script_url: ServoUrl,
-        client: IpcSender<JobResult>,
+        client: GenericCallback<JobResult>,
         referrer: ServoUrl,
         scope_things: Option<ScopeThings>,
     ) -> Job {
@@ -437,6 +444,8 @@ pub struct WorkerGlobalScopeInit {
     pub from_devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
     /// Messages to send to constellation
     pub script_to_constellation_chan: ScriptToConstellationChan,
+    /// Messages to send to the Embedder
+    pub script_to_embedder_chan: ScriptToEmbedderChan,
     /// The worker id
     pub worker_id: WorkerId,
     /// The pipeline id
@@ -471,6 +480,27 @@ pub struct IFrameSizeMsg {
     pub type_: WindowSizeType,
 }
 
+/// An enum that describe a type of keyboard scroll.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub enum KeyboardScroll {
+    /// Scroll the container one line up.
+    Up,
+    /// Scroll the container one line down.
+    Down,
+    /// Scroll the container one "line" left.
+    Left,
+    /// Scroll the container one "line" right.
+    Right,
+    /// Scroll the container one page up.
+    PageUp,
+    /// Scroll the container one page down.
+    PageDown,
+    /// Scroll the container to the vertical start.
+    Home,
+    /// Scroll the container to the vertical end.
+    End,
+}
+
 /// Messages from the script to the constellation.
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum ScriptToConstellationMessage {
@@ -483,7 +513,7 @@ pub enum ScriptToConstellationMessage {
         /* The ids of ports transferred successfully */
         Vec<MessagePortId>,
         /* The ids, and buffers, of ports whose transfer failed */
-        HashMap<MessagePortId, PortTransferInfo>,
+        FxHashMap<MessagePortId, PortTransferInfo>,
     ),
     /// A new message-port was created or transferred, with corresponding control-sender.
     NewMessagePort(MessagePortRouterId, MessagePortId),
@@ -518,8 +548,6 @@ pub enum ScriptToConstellationMessage {
     /// Broadcast a message to all same-origin broadcast channels,
     /// excluding the source of the broadcast.
     ScheduleBroadcast(BroadcastChannelRouterId, BroadcastChannelMsg),
-    /// Forward a message to the embedder.
-    ForwardToEmbedder(EmbedderMsg),
     /// Broadcast a storage event to every same-origin pipeline.
     /// The strings are key, old value and new value.
     BroadcastStorageEvent(
@@ -535,7 +563,7 @@ pub enum ScriptToConstellationMessage {
     /// 2D canvases may use the GPU and we don't want to give untrusted content access to the GPU.)
     CreateCanvasPaintThread(
         UntypedSize2D<u64>,
-        IpcSender<Option<(IpcSender<CanvasMsg>, CanvasId, ImageKey)>>,
+        IpcSender<Option<(GenericSender<CanvasMsg>, CanvasId, ImageKey)>>,
     ),
     /// Notifies the constellation that this pipeline is requesting focus.
     ///
@@ -658,6 +686,8 @@ pub enum ScriptToConstellationMessage {
     ),
     /// Notify the completion of a webdriver command.
     WebDriverInputComplete(WebDriverMessageId),
+    /// Forward a keyboard scroll operation from an `<iframe>` to a parent pipeline.
+    ForwardKeyboardScroll(PipelineId, KeyboardScroll),
 }
 
 impl fmt::Debug for ScriptToConstellationMessage {

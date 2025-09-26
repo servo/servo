@@ -50,7 +50,7 @@ use crate::dom::bindings::inheritance::{
 use crate::dom::bindings::root::LayoutDom;
 use crate::dom::characterdata::LayoutCharacterDataHelpers;
 use crate::dom::element::{Element, LayoutElementHelpers};
-use crate::dom::htmlslotelement::HTMLSlotElement;
+use crate::dom::html::htmlslotelement::HTMLSlotElement;
 use crate::dom::node::{LayoutNodeHelpers, Node, NodeFlags};
 use crate::layout_dom::{ServoLayoutNode, ServoShadowRoot, ServoThreadSafeLayoutNode};
 
@@ -249,7 +249,7 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
             .is_some()
     }
 
-    fn style_attribute(&self) -> Option<ArcBorrow<StyleLocked<PropertyDeclarationBlock>>> {
+    fn style_attribute(&self) -> Option<ArcBorrow<'_, StyleLocked<PropertyDeclarationBlock>>> {
         unsafe {
             (*self.element.style_attribute())
                 .as_ref()
@@ -421,7 +421,7 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
         unsafe { self.as_node().get_jsmanaged().clear_style_and_layout_data() }
     }
 
-    unsafe fn ensure_data(&self) -> AtomicRefMut<ElementData> {
+    unsafe fn ensure_data(&self) -> AtomicRefMut<'_, ElementData> {
         unsafe {
             self.as_node().get_jsmanaged().initialize_style_data();
         };
@@ -434,12 +434,12 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
     }
 
     /// Immutably borrows the ElementData.
-    fn borrow_data(&self) -> Option<AtomicRef<ElementData>> {
+    fn borrow_data(&self) -> Option<AtomicRef<'_, ElementData>> {
         self.get_style_data().map(|data| data.element_data.borrow())
     }
 
     /// Mutably borrows the ElementData.
-    fn mutate_data(&self) -> Option<AtomicRefMut<ElementData>> {
+    fn mutate_data(&self) -> Option<AtomicRefMut<'_, ElementData>> {
         self.get_style_data()
             .map(|data| data.element_data.borrow_mut())
     }
@@ -560,10 +560,11 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
             .intersection(ElementSelectorFlags::RELATIVE_SELECTOR_SEARCH_DIRECTION_ANCESTOR_SIBLING)
     }
 
-    fn each_custom_state<F>(&self, _callback: F)
+    fn each_custom_state<F>(&self, callback: F)
     where
         F: FnMut(&AtomIdent),
     {
+        self.element.each_custom_state(callback);
     }
 
     /// Returns the implicit scope root for given sheet index and host.
@@ -610,6 +611,12 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
             if old_box.display != new_box.display ||
                 old_box.float != new_box.float ||
                 old_box.position != new_box.position
+            {
+                return true;
+            }
+
+            if new_box.position.is_absolutely_positioned() &&
+                old_box.original_display != new_box.original_display
             {
                 return true;
             }
@@ -960,8 +967,12 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
         true
     }
 
-    fn has_custom_state(&self, _name: &AtomIdent) -> bool {
-        false
+    fn has_custom_state(&self, name: &AtomIdent) -> bool {
+        let mut has_state = false;
+        self.element
+            .each_custom_state(|state| has_state |= state == name);
+
+        has_state
     }
 }
 
@@ -969,10 +980,10 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
 /// ever access safe properties and cannot race on elements.
 #[derive(Clone, Copy, Debug)]
 pub struct ServoThreadSafeLayoutElement<'dom> {
-    /// The wrapped [`ServoLayoutNode`].
+    /// The wrapped [`ServoLayoutElement`].
     pub(super) element: ServoLayoutElement<'dom>,
 
-    /// The possibly nested [`PseudoElementChain`] for this node.
+    /// The possibly nested [`PseudoElementChain`] for this element.
     pub(super) pseudo_element_chain: PseudoElementChain,
 }
 
@@ -1063,7 +1074,7 @@ impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> 
         self.element.get_attr(namespace, name)
     }
 
-    fn style_data(&self) -> AtomicRef<ElementData> {
+    fn style_data(&self) -> AtomicRef<'_, ElementData> {
         self.element.borrow_data().expect("Unstyled layout node?")
     }
 

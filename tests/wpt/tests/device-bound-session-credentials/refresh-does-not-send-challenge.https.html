@@ -14,7 +14,7 @@
     addCookieAndSessionCleanup(t);
 
     // Configure server to avoid sending back a challenge during refresh.
-    configureServer({ refreshSendsChallenge: false });
+    await configureServer({ refreshSendsChallenge: false });
 
     // Prompt starting a session, and wait until registration completes.
     const loginResponse = await fetch('login.py');

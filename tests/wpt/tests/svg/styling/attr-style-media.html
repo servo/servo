@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Media - SVG Style element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg>
+<style id=style1></style>
+<style id=style2 media="foo"></style>
+</svg>
+
+<script>
+  test(() => {
+    assert_equals(style1.media, "", "missing media reflects as empty string IDL attribute on the style element");
+    assert_equals(style2.media, "foo", "media reflects correctly IDL attribute on the style element");
+  }, "media attribute on SVG <style> elements should reflect correctly");
+</script>

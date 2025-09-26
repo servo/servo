@@ -25,10 +25,12 @@
 'use strict';
 
 promise_test(async t => {
-  const animation = createScrollLinkedAnimation(t);
+  let animation;
   // Wait for new animation frame which allows the timeline to compute new
   // current time.
-  await waitForNextFrame();
+  await runAndWaitForFrameUpdate(() => {
+    animation = createScrollLinkedAnimation(t);
+  });
   animation.play();
   animation.cancel();
 
@@ -170,9 +172,9 @@ promise_test(async t => {
   await animation.ready;
 
   // Make the scroll timeline inactive.
-  scroller.style.overflow = 'visible';
-  scroller.scrollTop;
-  await waitForNextFrame();
+  await runAndWaitForFrameUpdate(() => {
+    scroller.style.overflow = 'visible';
+  });
   assert_equals(animation.timeline.currentTime, null,
                 'Sanity check the timeline is inactive.');
   animation.cancel();
@@ -194,9 +196,9 @@ promise_test(async t => {
   await animation.ready;
 
   // Make the scroll timeline inactive.
-  scroller.style.overflow = 'visible';
-  scroller.scrollTop;
-  await waitForNextFrame();
+  await runAndWaitForFrameUpdate(() => {
+    scroller.style.overflow = 'visible';
+  });
   assert_equals(animation.timeline.currentTime, null,
                 'Sanity check the timeline is inactive.');
 

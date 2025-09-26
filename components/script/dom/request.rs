@@ -23,6 +23,7 @@ use servo_url::ServoUrl;
 
 use crate::body::{BodyMixin, BodyType, Extractable, consume_body};
 use crate::conversions::Convert;
+use crate::dom::abortsignal::AbortSignal;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
 use crate::dom::bindings::codegen::Bindings::RequestBinding::{
@@ -44,9 +45,14 @@ use crate::script_runtime::CanGc;
 pub(crate) struct Request {
     reflector_: Reflector,
     #[no_trace]
+    /// <https://fetch.spec.whatwg.org/#concept-request-request>
     request: DomRefCell<NetTraitsRequest>,
+    /// <https://fetch.spec.whatwg.org/#concept-request-body>
     body_stream: MutNullableDom<ReadableStream>,
+    /// <https://fetch.spec.whatwg.org/#request-headers>
     headers: MutNullableDom<Headers>,
+    /// <https://fetch.spec.whatwg.org/#request-signal>
+    signal: MutNullableDom<AbortSignal>,
 }
 
 impl Request {
@@ -56,6 +62,7 @@ impl Request {
             request: DomRefCell::new(net_request_from_global(global, url)),
             body_stream: MutNullableDom::new(None),
             headers: Default::default(),
+            signal: MutNullableDom::new(None),
         }
     }
 
@@ -84,7 +91,432 @@ impl Request {
         r
     }
 
+    // https://fetch.spec.whatwg.org/#dom-request
+    fn constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+        mut input: RequestInfo,
+        init: &RequestInit,
+    ) -> Fallible<DomRoot<Request>> {
+        // Step 1. Let request be null.
+        let temporary_request: NetTraitsRequest;
+
+        // Step 2. Let fallbackMode be null.
+        let mut fallback_mode: Option<NetTraitsRequestMode> = None;
+
+        // Step 3. Let baseURL be this’s relevant settings object’s API base URL.
+        let base_url = global.api_base_url();
+
+        // Step 4. Let signal be null.
+        let mut signal: Option<DomRoot<AbortSignal>> = None;
+
+        match input {
+            // Step 5. If input is a string, then:
+            RequestInfo::USVString(USVString(ref usv_string)) => {
+                // Step 5.1. Let parsedURL be the result of parsing input with baseURL.
+                let parsed_url = base_url.join(usv_string);
+                // Step 5.2. If parsedURL is failure, then throw a TypeError.
+                if parsed_url.is_err() {
+                    return Err(Error::Type("Url could not be parsed".to_string()));
+                }
+                // Step 5.3. If parsedURL includes credentials, then throw a TypeError.
+                let url = parsed_url.unwrap();
+                if includes_credentials(&url) {
+                    return Err(Error::Type("Url includes credentials".to_string()));
+                }
+                // Step 5.4. Set request to a new request whose URL is parsedURL.
+                temporary_request = net_request_from_global(global, url);
+                // Step 5.5. Set fallbackMode to "cors".
+                fallback_mode = Some(NetTraitsRequestMode::CorsMode);
+            },
+            // Step 6. Otherwise:
+            // Step 6.1. Assert: input is a Request object.
+            RequestInfo::Request(ref input_request) => {
+                // This looks like Step 38
+                // TODO do this in the right place to not mask other errors
+                if request_is_disturbed(input_request) || request_is_locked(input_request) {
+                    return Err(Error::Type("Input is disturbed or locked".to_string()));
+                }
+                // Step 6.2. Set request to input’s request.
+                temporary_request = input_request.request.borrow().clone();
+                // Step 6.3. Set signal to input’s signal.
+                signal = Some(input_request.Signal());
+            },
+        }
+
+        // Step 7. Let origin be this’s relevant settings object’s origin.
+        // TODO: `entry settings object` is not implemented yet.
+        let origin = base_url.origin();
+
+        // Step 8. Let traversableForUserPrompts be "client".
+        let mut window = Window::Client;
+
+        // Step 9. If request’s traversable for user prompts is an environment settings object
+        // and its origin is same origin with origin, then set traversableForUserPrompts
+        // to request’s traversable for user prompts.
+        // TODO: `environment settings object` is not implemented in Servo yet.
+
+        // Step 10. If init["window"] exists and is non-null, then throw a TypeError.
+        if !init.window.handle().is_null_or_undefined() {
+            return Err(Error::Type("Window is present and is not null".to_string()));
+        }
+
+        // Step 11. If init["window"] exists, then set traversableForUserPrompts to "no-traversable".
+        if !init.window.handle().is_undefined() {
+            window = Window::NoWindow;
+        }
+
+        // Step 12. Set request to a new request with the following properties:
+        let mut request: NetTraitsRequest;
+        request = net_request_from_global(global, temporary_request.current_url());
+        request.method = temporary_request.method;
+        request.headers = temporary_request.headers.clone();
+        request.unsafe_request = true;
+        request.window = window;
+        // TODO: `entry settings object` is not implemented in Servo yet.
+        request.origin = Origin::Client;
+        request.referrer = temporary_request.referrer;
+        request.referrer_policy = temporary_request.referrer_policy;
+        request.mode = temporary_request.mode;
+        request.credentials_mode = temporary_request.credentials_mode;
+        request.cache_mode = temporary_request.cache_mode;
+        request.redirect_mode = temporary_request.redirect_mode;
+        request.integrity_metadata = temporary_request.integrity_metadata;
+
+        // Step 13. If init is not empty, then:
+        if init.body.is_some() ||
+            init.cache.is_some() ||
+            init.credentials.is_some() ||
+            init.integrity.is_some() ||
+            init.headers.is_some() ||
+            init.method.is_some() ||
+            init.mode.is_some() ||
+            init.redirect.is_some() ||
+            init.referrer.is_some() ||
+            init.referrerPolicy.is_some() ||
+            !init.window.handle().is_undefined()
+        {
+            // Step 13.1. If request’s mode is "navigate", then set it to "same-origin".
+            if request.mode == NetTraitsRequestMode::Navigate {
+                request.mode = NetTraitsRequestMode::SameOrigin;
+            }
+            // Step 13.2. Unset request’s reload-navigation flag.
+            // TODO
+            // Step 13.3. Unset request’s history-navigation flag.
+            // TODO
+            // Step 13.4. Set request’s origin to "client".
+            // TODO
+            // Step 13.5. Set request’s referrer to "client".
+            request.referrer = global.get_referrer();
+            // Step 13.6. Set request’s referrer policy to the empty string.
+            request.referrer_policy = MsgReferrerPolicy::EmptyString;
+            // Step 13.7. Set request’s URL to request’s current URL.
+            // TODO
+            // Step 13.8. Set request’s URL list to « request’s URL ».
+            // TODO
+        }
+
+        // Step 14. If init["referrer"] exists, then:
+        if let Some(init_referrer) = init.referrer.as_ref() {
+            // Step 14.1. Let referrer be init["referrer"].
+            let referrer = &init_referrer.0;
+            // Step 14.2. If referrer is the empty string, then set request’s referrer to "no-referrer".
+            if referrer.is_empty() {
+                request.referrer = NetTraitsRequestReferrer::NoReferrer;
+            // Step 14.3. Otherwise:
+            } else {
+                // Step 14.3.1. Let parsedReferrer be the result of parsing referrer with baseURL.
+                let parsed_referrer = base_url.join(referrer);
+                // Step 14.3.2. If parsedReferrer is failure, then throw a TypeError.
+                if parsed_referrer.is_err() {
+                    return Err(Error::Type("Failed to parse referrer url".to_string()));
+                }
+                // Step 14.3.3. If one of the following is true
+                // parsedReferrer’s scheme is "about" and path is the string "client"
+                // parsedReferrer’s origin is not same origin with origin
+                if let Ok(parsed_referrer) = parsed_referrer {
+                    if (parsed_referrer.cannot_be_a_base() &&
+                        parsed_referrer.scheme() == "about" &&
+                        parsed_referrer.path() == "client") ||
+                        parsed_referrer.origin() != origin
+                    {
+                        // then set request’s referrer to "client".
+                        request.referrer = global.get_referrer();
+                    } else {
+                        // Step 14.3.4. Otherwise, set request’s referrer to parsedReferrer.
+                        request.referrer = NetTraitsRequestReferrer::ReferrerUrl(parsed_referrer);
+                    }
+                }
+            }
+        }
+
+        // Step 15. If init["referrerPolicy"] exists, then set request’s referrer policy to it.
+        if let Some(init_referrerpolicy) = init.referrerPolicy.as_ref() {
+            let init_referrer_policy = (*init_referrerpolicy).convert();
+            request.referrer_policy = init_referrer_policy;
+        }
+
+        // Step 16. Let mode be init["mode"] if it exists, and fallbackMode otherwise.
+        let mode = init.mode.as_ref().map(|m| (*m).convert()).or(fallback_mode);
+
+        // Step 17. If mode is "navigate", then throw a TypeError.
+        if let Some(NetTraitsRequestMode::Navigate) = mode {
+            return Err(Error::Type("Request mode is Navigate".to_string()));
+        }
+
+        // Step 18. If mode is non-null, set request’s mode to mode.
+        if let Some(m) = mode {
+            request.mode = m;
+        }
+
+        // Step 19. If init["credentials"] exists, then set request’s credentials mode to it.
+        if let Some(init_credentials) = init.credentials.as_ref() {
+            let credentials = (*init_credentials).convert();
+            request.credentials_mode = credentials;
+        }
+
+        // Step 20. If init["cache"] exists, then set request’s cache mode to it.
+        if let Some(init_cache) = init.cache.as_ref() {
+            let cache = (*init_cache).convert();
+            request.cache_mode = cache;
+        }
+
+        // Step 21. If request’s cache mode is "only-if-cached" and request’s mode
+        // is not "same-origin", then throw a TypeError.
+        if request.cache_mode == NetTraitsRequestCache::OnlyIfCached &&
+            request.mode != NetTraitsRequestMode::SameOrigin
+        {
+            return Err(Error::Type(
+                "Cache is 'only-if-cached' and mode is not 'same-origin'".to_string(),
+            ));
+        }
+
+        // Step 22. If init["redirect"] exists, then set request’s redirect mode to it.
+        if let Some(init_redirect) = init.redirect.as_ref() {
+            let redirect = (*init_redirect).convert();
+            request.redirect_mode = redirect;
+        }
+
+        // Step 23. If init["integrity"] exists, then set request’s integrity metadata to it.
+        if let Some(init_integrity) = init.integrity.as_ref() {
+            let integrity = init_integrity.clone().to_string();
+            request.integrity_metadata = integrity;
+        }
+
+        // Step 24.If init["keepalive"] exists, then set request’s keepalive to it.
+        // TODO
+
+        // Step 25. If init["method"] exists, then:
+        // Step 25.1. Let method be init["method"].
+        if let Some(init_method) = init.method.as_ref() {
+            // Step 25.2. If method is not a method or method is a forbidden method, then throw a TypeError.
+            if !is_method(init_method) {
+                return Err(Error::Type("Method is not a method".to_string()));
+            }
+            if is_forbidden_method(init_method) {
+                return Err(Error::Type("Method is forbidden".to_string()));
+            }
+            // Step 25.3. Normalize method.
+            let method = match init_method.as_str() {
+                Some(s) => normalize_method(s)
+                    .map_err(|e| Error::Type(format!("Method is not valid: {:?}", e)))?,
+                None => return Err(Error::Type("Method is not a valid UTF8".to_string())),
+            };
+            // Step 25.4. Set request’s method to method.
+            request.method = method;
+        }
+
+        // Step 26. If init["signal"] exists, then set signal to it.
+        if let Some(init_signal) = init.signal.as_ref() {
+            signal = init_signal.clone();
+        }
+        // Step 27. If init["priority"] exists, then:
+        // TODO
+        // Step 27.1. If request’s internal priority is not null,
+        // then update request’s internal priority in an implementation-defined manner.
+        // TODO
+        // Step 27.2. Otherwise, set request’s priority to init["priority"].
+        // TODO
+
+        // Step 28. Set this’s request to request.
+        let r = Request::from_net_request(global, proto, request, can_gc);
+
+        // Step 29. Let signals be « signal » if signal is non-null; otherwise « ».
+        let signals = signal.map_or(vec![], |s| vec![s]);
+        // Step 30. Set this’s signal to the result of creating a dependent
+        // abort signal from signals, using AbortSignal and this’s relevant realm.
+        r.signal
+            .set(Some(&AbortSignal::create_dependent_abort_signal(
+                signals, global, can_gc,
+            )));
+
+        // Step 31. Set this’s headers to a new Headers object with this’s relevant realm,
+        // whose header list is request’s header list and guard is "request".
+        //
+        // "or_init" looks unclear here, but it always enters the block since r
+        // hasn't had any other way to initialize its headers
+        r.headers
+            .or_init(|| Headers::for_request(&r.global(), can_gc));
+
+        // Step 33. If init is not empty, then:
+        //
+        // but spec says this should only be when non-empty init?
+        let headers_copy = init
+            .headers
+            .as_ref()
+            .map(|possible_header| match possible_header {
+                HeadersInit::ByteStringSequenceSequence(init_sequence) => {
+                    HeadersInit::ByteStringSequenceSequence(init_sequence.clone())
+                },
+                HeadersInit::ByteStringByteStringRecord(init_map) => {
+                    HeadersInit::ByteStringByteStringRecord(init_map.clone())
+                },
+            });
+
+        // Step 33.3
+        // We cannot empty `r.Headers().header_list` because
+        // we would undo the Step 25 above.  One alternative is to set
+        // `headers_copy` as a deep copy of `r.Headers()`. However,
+        // `r.Headers()` is a `DomRoot<T>`, and therefore it is difficult
+        // to obtain a mutable reference to `r.Headers()`. Without the
+        // mutable reference, we cannot mutate `r.Headers()` to be the
+        // deep copied headers in Step 25.
+
+        // Step 32. If this’s request’s mode is "no-cors", then:
+        if r.request.borrow().mode == NetTraitsRequestMode::NoCors {
+            let borrowed_request = r.request.borrow();
+            // Step 32.1. If this’s request’s method is not a CORS-safelisted method, then throw a TypeError.
+            if !is_cors_safelisted_method(&borrowed_request.method) {
+                return Err(Error::Type(
+                    "The mode is 'no-cors' but the method is not a cors-safelisted method"
+                        .to_string(),
+                ));
+            }
+            // Step 32.2. Set this’s headers’s guard to "request-no-cors".
+            r.Headers(can_gc).set_guard(Guard::RequestNoCors);
+        }
+
+        match headers_copy {
+            None => {
+                // Step 33.4. If headers is a Headers object, then for each header of its header list, append header to this’s headers.
+                //
+                // This is equivalent to the specification's concept of
+                // "associated headers list". If an init headers is not given,
+                // but an input with headers is given, set request's
+                // headers as the input's Headers.
+                if let RequestInfo::Request(ref input_request) = input {
+                    r.Headers(can_gc)
+                        .copy_from_headers(input_request.Headers(can_gc))?;
+                }
+            },
+            // Step 33.5. Otherwise, fill this’s headers with headers.
+            Some(headers_copy) => r.Headers(can_gc).fill(Some(headers_copy))?,
+        }
+
+        // Step 33.5 depending on how we got here
+        // Copy the headers list onto the headers of net_traits::Request
+        r.request.borrow_mut().headers = r.Headers(can_gc).get_headers_list();
+
+        // Step 34. Let inputBody be input’s request’s body if input is a Request object; otherwise null.
+        let mut input_body = if let RequestInfo::Request(ref mut input_request) = input {
+            let mut input_request_request = input_request.request.borrow_mut();
+            input_request_request.body.take()
+        } else {
+            None
+        };
+
+        // Step 35. If either init["body"] exists and is non-null or inputBody is non-null,
+        // and request’s method is `GET` or `HEAD`, then throw a TypeError.
+        if let Some(init_body_option) = init.body.as_ref() {
+            if init_body_option.is_some() || input_body.is_some() {
+                let req = r.request.borrow();
+                let req_method = &req.method;
+                match *req_method {
+                    HttpMethod::GET => {
+                        return Err(Error::Type(
+                            "Init's body is non-null, and request method is GET".to_string(),
+                        ));
+                    },
+                    HttpMethod::HEAD => {
+                        return Err(Error::Type(
+                            "Init's body is non-null, and request method is HEAD".to_string(),
+                        ));
+                    },
+                    _ => {},
+                }
+            }
+        }
+
+        // Step 36. Let initBody be null.
+        // Step 37. If init["body"] exists and is non-null, then:
+        if let Some(Some(ref init_body)) = init.body {
+            // Step 37.1. Let bodyWithType be the result of extracting init["body"], with keepalive set to request’s keepalive.
+            // TODO
+
+            // Step 37.2. Set initBody to bodyWithType’s body.
+            let mut extracted_body = init_body.extract(global, can_gc)?;
+
+            // Step 37.3. Let type be bodyWithType’s type.
+            if let Some(contents) = extracted_body.content_type.take() {
+                let ct_header_name = b"Content-Type";
+                // Step 37.4. If type is non-null and this’s headers’s header list
+                // does not contain `Content-Type`, then append (`Content-Type`, type) to this’s headers.
+                if !r
+                    .Headers(can_gc)
+                    .Has(ByteString::new(ct_header_name.to_vec()))
+                    .unwrap()
+                {
+                    let ct_header_val = contents.as_bytes();
+                    r.Headers(can_gc).Append(
+                        ByteString::new(ct_header_name.to_vec()),
+                        ByteString::new(ct_header_val.to_vec()),
+                    )?;
+
+                    // In Servo r.Headers's header list isn't a pointer to
+                    // the same actual list as r.request's, and so we need to
+                    // append to both lists to keep them in sync.
+                    if let Ok(v) = HeaderValue::from_bytes(ct_header_val) {
+                        r.request
+                            .borrow_mut()
+                            .headers
+                            .insert(HeaderName::from_bytes(ct_header_name).unwrap(), v);
+                    }
+                }
+            }
+
+            let (net_body, stream) = extracted_body.into_net_request_body();
+            r.body_stream.set(Some(&*stream));
+            input_body = Some(net_body);
+        }
+
+        // Step 38. Let inputOrInitBody be initBody if it is non-null; otherwise inputBody.
+
+        // Step 39. If inputOrInitBody is non-null and inputOrInitBody’s source is null, then:
+        // TODO
+        // This looks like where we need to set the use-preflight flag
+        // if the request has a body and nothing else has set the flag.
+
+        // Step 40. Let finalBody be inputOrInitBody.
+        //
+        // is done earlier
+
+        // Step 41. If initBody is null and inputBody is non-null, then:
+        // TODO
+        // Step 41.1. If input is unusable, then throw a TypeError.
+        // TODO
+        // Step 41.2. Set finalBody to the result of creating a proxy for inputBody.
+        // TODO
+
+        // Step 42. Set this’s request’s body to finalBody.
+        r.request.borrow_mut().body = input_body;
+
+        Ok(r)
+    }
+
+    /// <https://fetch.spec.whatwg.org/#concept-request-clone>
     fn clone_from(r: &Request, can_gc: CanGc) -> Fallible<DomRoot<Request>> {
+        // Step 1. Let newRequest be a copy of request, except for its body.
         let req = r.request.borrow();
         let url = req.url();
         let headers_guard = r.Headers(can_gc).get_guard();
@@ -99,6 +531,9 @@ impl Request {
             .Headers(can_gc)
             .copy_from_headers(r.Headers(can_gc))?;
         r_clone.Headers(can_gc).set_guard(headers_guard);
+        // Step 2. If request’s body is non-null, set newRequest’s body to the result of cloning request’s body.
+        // TODO
+        // Step 3. Return newRequest.
         Ok(r_clone)
     }
 
@@ -163,368 +598,10 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
-        mut input: RequestInfo,
+        input: RequestInfo,
         init: RootedTraceableBox<RequestInit>,
     ) -> Fallible<DomRoot<Request>> {
-        // Step 1
-        let temporary_request: NetTraitsRequest;
-
-        // Step 2
-        let mut fallback_mode: Option<NetTraitsRequestMode> = None;
-
-        // Step 3
-        let base_url = global.api_base_url();
-
-        // Step 4 TODO: "Let signal be null."
-
-        match input {
-            // Step 5
-            RequestInfo::USVString(USVString(ref usv_string)) => {
-                // Step 5.1
-                let parsed_url = base_url.join(usv_string);
-                // Step 5.2
-                if parsed_url.is_err() {
-                    return Err(Error::Type("Url could not be parsed".to_string()));
-                }
-                // Step 5.3
-                let url = parsed_url.unwrap();
-                if includes_credentials(&url) {
-                    return Err(Error::Type("Url includes credentials".to_string()));
-                }
-                // Step 5.4
-                temporary_request = net_request_from_global(global, url);
-                // Step 5.5
-                fallback_mode = Some(NetTraitsRequestMode::CorsMode);
-            },
-            // Step 6
-            RequestInfo::Request(ref input_request) => {
-                // This looks like Step 38
-                // TODO do this in the right place to not mask other errors
-                if request_is_disturbed(input_request) || request_is_locked(input_request) {
-                    return Err(Error::Type("Input is disturbed or locked".to_string()));
-                }
-                // Step 6.1
-                temporary_request = input_request.request.borrow().clone();
-                // Step 6.2 TODO: "Set signal to input's signal."
-            },
-        }
-
-        // Step 7
-        // TODO: `entry settings object` is not implemented yet.
-        let origin = base_url.origin();
-
-        // Step 8
-        let mut window = Window::Client;
-
-        // Step 9
-        // TODO: `environment settings object` is not implemented in Servo yet.
-
-        // Step 10
-        if !init.window.handle().is_null_or_undefined() {
-            return Err(Error::Type("Window is present and is not null".to_string()));
-        }
-
-        // Step 11
-        if !init.window.handle().is_undefined() {
-            window = Window::NoWindow;
-        }
-
-        // Step 12
-        let mut request: NetTraitsRequest;
-        request = net_request_from_global(global, temporary_request.current_url());
-        request.method = temporary_request.method;
-        request.headers = temporary_request.headers.clone();
-        request.unsafe_request = true;
-        request.window = window;
-        // TODO: `entry settings object` is not implemented in Servo yet.
-        request.origin = Origin::Client;
-        request.referrer = temporary_request.referrer;
-        request.referrer_policy = temporary_request.referrer_policy;
-        request.mode = temporary_request.mode;
-        request.credentials_mode = temporary_request.credentials_mode;
-        request.cache_mode = temporary_request.cache_mode;
-        request.redirect_mode = temporary_request.redirect_mode;
-        request.integrity_metadata = temporary_request.integrity_metadata;
-
-        // Step 13
-        if init.body.is_some() ||
-            init.cache.is_some() ||
-            init.credentials.is_some() ||
-            init.integrity.is_some() ||
-            init.headers.is_some() ||
-            init.method.is_some() ||
-            init.mode.is_some() ||
-            init.redirect.is_some() ||
-            init.referrer.is_some() ||
-            init.referrerPolicy.is_some() ||
-            !init.window.handle().is_undefined()
-        {
-            // Step 13.1
-            if request.mode == NetTraitsRequestMode::Navigate {
-                request.mode = NetTraitsRequestMode::SameOrigin;
-            }
-            // Step 13.2 TODO: "Unset request's reload-navigation flag."
-            // Step 13.3 TODO: "Unset request's history-navigation flag."
-            // Step 13.4
-            request.referrer = global.get_referrer();
-            // Step 13.5
-            request.referrer_policy = MsgReferrerPolicy::EmptyString;
-        }
-
-        // Step 14
-        if let Some(init_referrer) = init.referrer.as_ref() {
-            // Step 14.1
-            let referrer = &init_referrer.0;
-            // Step 14.2
-            if referrer.is_empty() {
-                request.referrer = NetTraitsRequestReferrer::NoReferrer;
-            } else {
-                // Step 14.3.1
-                let parsed_referrer = base_url.join(referrer);
-                // Step 14.3.2
-                if parsed_referrer.is_err() {
-                    return Err(Error::Type("Failed to parse referrer url".to_string()));
-                }
-                // Step 14.3.3
-                if let Ok(parsed_referrer) = parsed_referrer {
-                    if (parsed_referrer.cannot_be_a_base() &&
-                        parsed_referrer.scheme() == "about" &&
-                        parsed_referrer.path() == "client") ||
-                        parsed_referrer.origin() != origin
-                    {
-                        request.referrer = global.get_referrer();
-                    } else {
-                        // Step 14.3.4
-                        request.referrer = NetTraitsRequestReferrer::ReferrerUrl(parsed_referrer);
-                    }
-                }
-            }
-        }
-
-        // Step 15
-        if let Some(init_referrerpolicy) = init.referrerPolicy.as_ref() {
-            let init_referrer_policy = (*init_referrerpolicy).convert();
-            request.referrer_policy = init_referrer_policy;
-        }
-
-        // Step 16
-        let mode = init.mode.as_ref().map(|m| (*m).convert()).or(fallback_mode);
-
-        // Step 17
-        if let Some(NetTraitsRequestMode::Navigate) = mode {
-            return Err(Error::Type("Request mode is Navigate".to_string()));
-        }
-
-        // Step 18
-        if let Some(m) = mode {
-            request.mode = m;
-        }
-
-        // Step 19
-        if let Some(init_credentials) = init.credentials.as_ref() {
-            let credentials = (*init_credentials).convert();
-            request.credentials_mode = credentials;
-        }
-
-        // Step 20
-        if let Some(init_cache) = init.cache.as_ref() {
-            let cache = (*init_cache).convert();
-            request.cache_mode = cache;
-        }
-
-        // Step 21
-        if request.cache_mode == NetTraitsRequestCache::OnlyIfCached &&
-            request.mode != NetTraitsRequestMode::SameOrigin
-        {
-            return Err(Error::Type(
-                "Cache is 'only-if-cached' and mode is not 'same-origin'".to_string(),
-            ));
-        }
-
-        // Step 22
-        if let Some(init_redirect) = init.redirect.as_ref() {
-            let redirect = (*init_redirect).convert();
-            request.redirect_mode = redirect;
-        }
-
-        // Step 23
-        if let Some(init_integrity) = init.integrity.as_ref() {
-            let integrity = init_integrity.clone().to_string();
-            request.integrity_metadata = integrity;
-        }
-
-        // Step 24 TODO: "If init["keepalive"] exists..."
-
-        // Step 25.1
-        if let Some(init_method) = init.method.as_ref() {
-            if !is_method(init_method) {
-                return Err(Error::Type("Method is not a method".to_string()));
-            }
-            // Step 25.2
-            if is_forbidden_method(init_method) {
-                return Err(Error::Type("Method is forbidden".to_string()));
-            }
-            // Step 25.3
-            let method = match init_method.as_str() {
-                Some(s) => normalize_method(s)
-                    .map_err(|e| Error::Type(format!("Method is not valid: {:?}", e)))?,
-                None => return Err(Error::Type("Method is not a valid UTF8".to_string())),
-            };
-            // Step 25.4
-            request.method = method;
-        }
-
-        // Step 26 TODO: "If init["signal"] exists..."
-        // Step 27 TODO: "If init["priority"] exists..."
-
-        // Step 28
-        let r = Request::from_net_request(global, proto, request, can_gc);
-
-        // Step 29 TODO: "Set this's signal to new AbortSignal object..."
-        // Step 30 TODO: "If signal is not null..."
-
-        // Step 31
-        // "or_init" looks unclear here, but it always enters the block since r
-        // hasn't had any other way to initialize its headers
-        r.headers
-            .or_init(|| Headers::for_request(&r.global(), can_gc));
-
-        // Step 33 - but spec says this should only be when non-empty init?
-        let headers_copy = init
-            .headers
-            .as_ref()
-            .map(|possible_header| match possible_header {
-                HeadersInit::ByteStringSequenceSequence(init_sequence) => {
-                    HeadersInit::ByteStringSequenceSequence(init_sequence.clone())
-                },
-                HeadersInit::ByteStringByteStringRecord(init_map) => {
-                    HeadersInit::ByteStringByteStringRecord(init_map.clone())
-                },
-            });
-
-        // Step 33.3
-        // We cannot empty `r.Headers().header_list` because
-        // we would undo the Step 25 above.  One alternative is to set
-        // `headers_copy` as a deep copy of `r.Headers()`. However,
-        // `r.Headers()` is a `DomRoot<T>`, and therefore it is difficult
-        // to obtain a mutable reference to `r.Headers()`. Without the
-        // mutable reference, we cannot mutate `r.Headers()` to be the
-        // deep copied headers in Step 25.
-
-        // Step 32
-        if r.request.borrow().mode == NetTraitsRequestMode::NoCors {
-            let borrowed_request = r.request.borrow();
-            // Step 32.1
-            if !is_cors_safelisted_method(&borrowed_request.method) {
-                return Err(Error::Type(
-                    "The mode is 'no-cors' but the method is not a cors-safelisted method"
-                        .to_string(),
-                ));
-            }
-            // Step 32.2
-            r.Headers(can_gc).set_guard(Guard::RequestNoCors);
-        }
-
-        // Step 33.5
-        match headers_copy {
-            None => {
-                // This is equivalent to the specification's concept of
-                // "associated headers list". If an init headers is not given,
-                // but an input with headers is given, set request's
-                // headers as the input's Headers.
-                if let RequestInfo::Request(ref input_request) = input {
-                    r.Headers(can_gc)
-                        .copy_from_headers(input_request.Headers(can_gc))?;
-                }
-            },
-            Some(headers_copy) => r.Headers(can_gc).fill(Some(headers_copy))?,
-        }
-
-        // Step 33.5 depending on how we got here
-        // Copy the headers list onto the headers of net_traits::Request
-        r.request.borrow_mut().headers = r.Headers(can_gc).get_headers_list();
-
-        // Step 34
-        let mut input_body = if let RequestInfo::Request(ref mut input_request) = input {
-            let mut input_request_request = input_request.request.borrow_mut();
-            input_request_request.body.take()
-        } else {
-            None
-        };
-
-        // Step 35
-        if let Some(init_body_option) = init.body.as_ref() {
-            if init_body_option.is_some() || input_body.is_some() {
-                let req = r.request.borrow();
-                let req_method = &req.method;
-                match *req_method {
-                    HttpMethod::GET => {
-                        return Err(Error::Type(
-                            "Init's body is non-null, and request method is GET".to_string(),
-                        ));
-                    },
-                    HttpMethod::HEAD => {
-                        return Err(Error::Type(
-                            "Init's body is non-null, and request method is HEAD".to_string(),
-                        ));
-                    },
-                    _ => {},
-                }
-            }
-        }
-
-        // Step 36-37
-        if let Some(Some(ref init_body)) = init.body {
-            // Step 37.1 TODO "If init["keepalive"] exists and is true..."
-
-            // Step 37.2
-            let mut extracted_body = init_body.extract(global, can_gc)?;
-
-            // Step 37.3
-            if let Some(contents) = extracted_body.content_type.take() {
-                let ct_header_name = b"Content-Type";
-                if !r
-                    .Headers(can_gc)
-                    .Has(ByteString::new(ct_header_name.to_vec()))
-                    .unwrap()
-                {
-                    let ct_header_val = contents.as_bytes();
-                    r.Headers(can_gc).Append(
-                        ByteString::new(ct_header_name.to_vec()),
-                        ByteString::new(ct_header_val.to_vec()),
-                    )?;
-
-                    // Step 37.4
-                    // In Servo r.Headers's header list isn't a pointer to
-                    // the same actual list as r.request's, and so we need to
-                    // append to both lists to keep them in sync.
-                    if let Ok(v) = HeaderValue::from_bytes(ct_header_val) {
-                        r.request
-                            .borrow_mut()
-                            .headers
-                            .insert(HeaderName::from_bytes(ct_header_name).unwrap(), v);
-                    }
-                }
-            }
-
-            let (net_body, stream) = extracted_body.into_net_request_body();
-            r.body_stream.set(Some(&*stream));
-            input_body = Some(net_body);
-        }
-
-        // Step 38 is done earlier
-
-        // Step 39 "TODO if body is non-null and body's source is null..."
-        // This looks like where we need to set the use-preflight flag
-        // if the request has a body and nothing else has set the flag.
-
-        // Step 40 is done earlier
-
-        // Step 41
-        r.request.borrow_mut().body = input_body;
-
-        // Step 42
-        Ok(r)
+        Self::constructor(global, proto, can_gc, input, &init)
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-method
@@ -607,9 +684,16 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
         self.is_disturbed()
     }
 
+    /// <https://fetch.spec.whatwg.org/#dom-request-signal>
+    fn Signal(&self) -> DomRoot<AbortSignal> {
+        self.signal
+            .get()
+            .expect("Should always be initialized in constructor and clone")
+    }
+
     // https://fetch.spec.whatwg.org/#dom-request-clone
     fn Clone(&self, can_gc: CanGc) -> Fallible<DomRoot<Request>> {
-        // Step 1
+        // Step 1. If this is unusable, then throw a TypeError.
         if request_is_locked(self) {
             return Err(Error::Type("Request is locked".to_string()));
         }
@@ -617,8 +701,21 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
             return Err(Error::Type("Request is disturbed".to_string()));
         }
 
-        // Step 2
-        Request::clone_from(self, can_gc)
+        // Step 2. Let clonedRequest be the result of cloning this’s request.
+        let cloned_request = Request::clone_from(self, can_gc)?;
+        // Step 3. Assert: this’s signal is non-null.
+        let signal = self.signal.get().expect("Should always be initialized");
+        // Step 4. Let clonedSignal be the result of creating a dependent
+        // abort signal from « this’s signal », using AbortSignal and this’s relevant realm.
+        let cloned_signal =
+            AbortSignal::create_dependent_abort_signal(vec![signal], &self.global(), can_gc);
+        // Step 5. Let clonedRequestObject be the result of creating a Request object,
+        // given clonedRequest, this’s headers’s guard, clonedSignal and this’s relevant realm.
+        //
+        // These steps already happen in `clone_from`
+        cloned_request.signal.set(Some(&cloned_signal));
+        // Step 6. Return clonedRequestObject.
+        Ok(cloned_request)
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-text

@@ -42,7 +42,7 @@
     const expectedCookieAndAttributes = `${expectedCookieAndValue};${expectedCookieAttributes}`;
     addCookieAndSessionCleanup(t);
 
-    configureServer({ allowedRefreshInitiators: [get_host_info().NOTSAMESITE_HOST],
+    await configureServer({ allowedRefreshInitiators: [get_host_info().NOTSAMESITE_HOST],
                       cookieDetails: [ {attributes: expectedCookieAttributes} ],
                     });
 

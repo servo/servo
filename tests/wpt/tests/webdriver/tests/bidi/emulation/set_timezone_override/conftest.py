@@ -10,10 +10,10 @@ TIMEZONES = [
 
 @pytest_asyncio.fixture
 async def get_current_timezone(bidi_session):
-    async def get_current_timezone(context):
+    async def get_current_timezone(context, sandbox=None):
         result = await bidi_session.script.evaluate(
             expression="Intl.DateTimeFormat().resolvedOptions().timeZone",
-            target=ContextTarget(context["context"]),
+            target=ContextTarget(context["context"], sandbox=sandbox),
             await_promise=False,
         )
         return result["value"]
@@ -32,8 +32,7 @@ async def default_timezone(get_current_timezone, top_context):
 @pytest.fixture
 def some_timezone(default_timezone):
     """
-    Returns some timezone which is not equal to `default_timezone` nor to
-    `another_timezone`.
+    Returns some timezone which is not equal to `default_timezone`.
     """
     for timezone in TIMEZONES:
         if timezone != default_timezone:
@@ -50,8 +49,21 @@ def another_timezone(default_timezone, some_timezone):
     `some_timezone`.
     """
     for timezone in TIMEZONES:
-        if timezone != default_timezone and timezone != another_timezone:
+        if timezone != default_timezone and timezone != some_timezone:
             return timezone
 
     raise Exception(
-        f"Unexpectedly could not find timezone different from the default {default_timezone}")
+        f"Unexpectedly could not find timezone different from the default {default_timezone} and {some_timezone}")
+
+
+@pytest_asyncio.fixture
+async def get_timezone_offset(bidi_session):
+    async def get_timezone_offset(timestamp, context):
+        result = await bidi_session.script.evaluate(
+            expression=f"(new Date({timestamp})).getTimezoneOffset()",
+            target=ContextTarget(context["context"]),
+            await_promise=False,
+        )
+        return result["value"]
+
+    return get_timezone_offset

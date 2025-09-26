@@ -4,13 +4,14 @@
 
 #![deny(unsafe_code)]
 
-use std::collections::HashMap;
 use std::fmt::Display;
 use std::sync::{LazyLock, OnceLock};
 use std::thread::{self, JoinHandle};
 
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::HistoryStateId;
+use base::generic_channel::{GenericSend, GenericSender, SendResult};
+use base::id::{CookieStoreId, HistoryStateId};
+use base::{IpcSend, IpcSendResult};
 use content_security_policy::{self as csp};
 use cookie::Cookie;
 use crossbeam_channel::{Receiver, Sender, unbounded};
@@ -18,13 +19,13 @@ use headers::{ContentType, HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader}
 use http::{Error as HttpError, HeaderMap, HeaderValue, StatusCode, header};
 use hyper_serde::Serde;
 use hyper_util::client::legacy::Error as HyperError;
-use ipc_channel::Error as IpcError;
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use request::RequestId;
+use rustc_hash::FxHashMap;
 use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
 use servo_rand::RngCore;
@@ -136,6 +137,19 @@ pub enum ReferrerPolicy {
     StrictOriginWhenCrossOrigin,
 }
 
+impl ReferrerPolicy {
+    /// <https://w3c.github.io/webappsec-referrer-policy/#parse-referrer-policy-from-header>
+    pub fn parse_header_for_response(headers: &Option<Serde<HeaderMap>>) -> Self {
+        // Step 4. Return policy.
+        headers
+            .as_ref()
+            // Step 1. Let policy-tokens be the result of extracting header list values given `Referrer-Policy` and response’s header list.
+            .and_then(|headers| headers.typed_get::<ReferrerPolicyHeader>())
+            // Step 2-3.
+            .into()
+    }
+}
+
 impl Display for ReferrerPolicy {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let string = match self {
@@ -153,8 +167,11 @@ impl Display for ReferrerPolicy {
     }
 }
 
+/// <https://w3c.github.io/webappsec-referrer-policy/#parse-referrer-policy-from-header>
 impl From<Option<ReferrerPolicyHeader>> for ReferrerPolicy {
     fn from(header: Option<ReferrerPolicyHeader>) -> Self {
+        // Step 2. Let policy be the empty string.
+        // Step 3. For each token in policy-tokens, if token is a referrer policy and token is not the empty string, then set policy to token.
         header.map_or(ReferrerPolicy::EmptyString, |policy| match policy {
             ReferrerPolicyHeader::NO_REFERRER => ReferrerPolicy::NoReferrer,
             ReferrerPolicyHeader::NO_REFERRER_WHEN_DOWNGRADE => {
@@ -398,21 +415,6 @@ pub trait AsyncRuntime: Send {
 /// Handle to a resource thread
 pub type CoreResourceThread = IpcSender<CoreResourceMsg>;
 
-pub type IpcSendResult = Result<(), IpcError>;
-
-/// Abstraction of the ability to send a particular type of message,
-/// used by net_traits::ResourceThreads to ease the use its IpcSender sub-fields
-/// XXX: If this trait will be used more in future, some auto derive might be appealing
-pub trait IpcSend<T>
-where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de>,
-{
-    /// send message T
-    fn send(&self, _: T) -> IpcSendResult;
-    /// get underlying sender
-    fn sender(&self) -> IpcSender<T>;
-}
-
 // FIXME: Originally we will construct an Arc<ResourceThread> from ResourceThread
 // in script_thread to avoid some performance pitfall. Now we decide to deal with
 // the "Arc" hack implicitly in future.
@@ -421,14 +423,14 @@ where
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ResourceThreads {
     pub core_thread: CoreResourceThread,
-    storage_thread: IpcSender<StorageThreadMsg>,
+    storage_thread: GenericSender<StorageThreadMsg>,
     idb_thread: IpcSender<IndexedDBThreadMsg>,
 }
 
 impl ResourceThreads {
     pub fn new(
         c: CoreResourceThread,
-        s: IpcSender<StorageThreadMsg>,
+        s: GenericSender<StorageThreadMsg>,
         i: IpcSender<IndexedDBThreadMsg>,
     ) -> ResourceThreads {
         ResourceThreads {
@@ -445,7 +447,7 @@ impl ResourceThreads {
 
 impl IpcSend<CoreResourceMsg> for ResourceThreads {
     fn send(&self, msg: CoreResourceMsg) -> IpcSendResult {
-        self.core_thread.send(msg)
+        self.core_thread.send(msg).map_err(IpcError::Bincode)
     }
 
     fn sender(&self) -> IpcSender<CoreResourceMsg> {
@@ -455,7 +457,7 @@ impl IpcSend<CoreResourceMsg> for ResourceThreads {
 
 impl IpcSend<IndexedDBThreadMsg> for ResourceThreads {
     fn send(&self, msg: IndexedDBThreadMsg) -> IpcSendResult {
-        self.idb_thread.send(msg)
+        self.idb_thread.send(msg).map_err(IpcError::Bincode)
     }
 
     fn sender(&self) -> IpcSender<IndexedDBThreadMsg> {
@@ -463,12 +465,12 @@ impl IpcSend<IndexedDBThreadMsg> for ResourceThreads {
     }
 }
 
-impl IpcSend<StorageThreadMsg> for ResourceThreads {
-    fn send(&self, msg: StorageThreadMsg) -> IpcSendResult {
+impl GenericSend<StorageThreadMsg> for ResourceThreads {
+    fn send(&self, msg: StorageThreadMsg) -> SendResult {
         self.storage_thread.send(msg)
     }
 
-    fn sender(&self) -> IpcSender<StorageThreadMsg> {
+    fn sender(&self) -> GenericSender<StorageThreadMsg> {
         self.storage_thread.clone()
     }
 }
@@ -526,6 +528,12 @@ pub enum CoreResourceMsg {
     SetCookieForUrl(ServoUrl, Serde<Cookie<'static>>, CookieSource),
     /// Store a set of cookies for a given originating URL
     SetCookiesForUrl(ServoUrl, Vec<Serde<Cookie<'static>>>, CookieSource),
+    SetCookieForUrlAsync(
+        CookieStoreId,
+        ServoUrl,
+        Serde<Cookie<'static>>,
+        CookieSource,
+    ),
     /// Retrieve the stored cookies for a given URL
     GetCookiesForUrl(ServoUrl, IpcSender<Option<String>>, CookieSource),
     /// Get a cookie by name for a given originating URL
@@ -534,8 +542,13 @@ pub enum CoreResourceMsg {
         IpcSender<Vec<Serde<Cookie<'static>>>>,
         CookieSource,
     ),
+    GetCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
+    GetAllCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
     DeleteCookies(ServoUrl),
     DeleteCookie(ServoUrl, String),
+    DeleteCookieAsync(CookieStoreId, ServoUrl, String),
+    NewCookieListener(CookieStoreId, IpcSender<CookieAsyncResponse>, ServoUrl),
+    RemoveCookieListener(CookieStoreId),
     /// Get a history state by a given history state id
     GetHistoryState(HistoryStateId, IpcSender<Option<Vec<u8>>>),
     /// Set a history state for a given history state id
@@ -576,7 +589,7 @@ pub type BoxedFetchCallback = Box<dyn FnMut(FetchResponseMsg) + Send + 'static>;
 struct FetchThread {
     /// A list of active fetches. A fetch is no longer active once the
     /// [`FetchResponseMsg::ProcessResponseEOF`] is received.
-    active_fetches: HashMap<RequestId, BoxedFetchCallback>,
+    active_fetches: FxHashMap<RequestId, BoxedFetchCallback>,
     /// A crossbeam receiver attached to the router proxy which converts incoming fetch
     /// updates from IPC messages to crossbeam messages as well as another sender which
     /// handles requests from clients wanting to do fetches.
@@ -603,7 +616,7 @@ impl FetchThread {
             .name("FetchThread".to_owned())
             .spawn(move || {
                 let mut fetch_thread = FetchThread {
-                    active_fetches: HashMap::new(),
+                    active_fetches: FxHashMap::default(),
                     receiver,
                     to_fetch_sender,
                 };
@@ -974,6 +987,26 @@ pub enum CookieSource {
     HTTP,
     /// A non-HTTP API
     NonHTTP,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CookieChange {
+    changed: Vec<Serde<Cookie<'static>>>,
+    deleted: Vec<Serde<Cookie<'static>>>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum CookieData {
+    Change(CookieChange),
+    Get(Option<Serde<Cookie<'static>>>),
+    GetAll(Vec<Serde<Cookie<'static>>>),
+    Set(Result<(), ()>),
+    Delete(Result<(), ()>),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CookieAsyncResponse {
+    pub data: CookieData,
 }
 
 /// Network errors that have to be exported out of the loaders

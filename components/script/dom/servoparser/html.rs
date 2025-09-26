@@ -30,8 +30,8 @@ use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
 use crate::dom::element::Element;
-use crate::dom::htmlscriptelement::HTMLScriptElement;
-use crate::dom::htmltemplateelement::HTMLTemplateElement;
+use crate::dom::html::htmlscriptelement::HTMLScriptElement;
+use crate::dom::html::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::node::Node;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::servoparser::{ParsingAlgorithm, Sink};
@@ -52,12 +52,14 @@ impl Tokenizer {
         fragment_context: Option<super::FragmentContext>,
         parsing_algorithm: ParsingAlgorithm,
     ) -> Self {
+        let custom_element_reaction_stack = document.custom_element_reaction_stack();
         let sink = Sink {
             base_url: url,
             document: Dom::from_ref(document),
             current_line: Cell::new(1),
             script: Default::default(),
             parsing_algorithm,
+            custom_element_reaction_stack,
         };
 
         let quirks_mode = match document.quirks_mode() {
@@ -301,23 +303,23 @@ pub(crate) fn serialize_html_fragment<S: Serializer>(
             SerializationCommand::SerializeNonelement(n) => match n.type_id() {
                 NodeTypeId::DocumentType => {
                     let doctype = n.downcast::<DocumentType>().unwrap();
-                    serializer.write_doctype(doctype.name())?;
+                    serializer.write_doctype(doctype.name().str())?;
                 },
 
                 NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => {
                     let cdata = n.downcast::<CharacterData>().unwrap();
-                    serializer.write_text(&cdata.data())?;
+                    serializer.write_text(cdata.data().str())?;
                 },
 
                 NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
                     let cdata = n.downcast::<CharacterData>().unwrap();
-                    serializer.write_comment(&cdata.data())?;
+                    serializer.write_comment(cdata.data().str())?;
                 },
 
                 NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
                     let pi = n.downcast::<ProcessingInstruction>().unwrap();
                     let data = pi.upcast::<CharacterData>().data();
-                    serializer.write_processing_instruction(pi.target(), &data)?;
+                    serializer.write_processing_instruction(pi.target().str(), data.str())?;
                 },
 
                 NodeTypeId::DocumentFragment(_) | NodeTypeId::Attr => {},

@@ -8,11 +8,10 @@ use base::id::{Index, PipelineId, PipelineNamespaceId};
 use constellation_traits::ScriptToConstellationChan;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId};
 use dom_struct::dom_struct;
-use embedder_traits::JavaScriptEvaluationError;
 use embedder_traits::resources::{self, Resource};
+use embedder_traits::{JavaScriptEvaluationError, ScriptToEmbedderChan};
 use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
-use js::rust::Runtime;
 use js::rust::wrappers::JS_DefineDebuggerObject;
 use net_traits::ResourceThreads;
 use profile_traits::{mem, time};
@@ -61,13 +60,13 @@ impl DebuggerGlobalScope {
     ///   those threads can’t generate pipeline ids, and they only contain one debuggee from one pipeline
     #[allow(unsafe_code, clippy::too_many_arguments)]
     pub(crate) fn new(
-        runtime: &Runtime,
         debugger_pipeline_id: PipelineId,
         script_to_devtools_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
         devtools_to_script_sender: IpcSender<DevtoolScriptControlMsg>,
         mem_profiler_chan: mem::ProfilerChan,
         time_profiler_chan: time::ProfilerChan,
         script_to_constellation_chan: ScriptToConstellationChan,
+        script_to_embedder_chan: ScriptToEmbedderChan,
         resource_threads: ResourceThreads,
         #[cfg(feature = "webgpu")] gpu_id_hub: std::sync::Arc<IdentityHub>,
         can_gc: CanGc,
@@ -79,6 +78,7 @@ impl DebuggerGlobalScope {
                 mem_profiler_chan,
                 time_profiler_chan,
                 script_to_constellation_chan,
+                script_to_embedder_chan,
                 resource_threads,
                 MutableOrigin::new(ImmutableOrigin::new_opaque()),
                 ServoUrl::parse_with_base(None, "about:internal/debugger")
@@ -89,16 +89,13 @@ impl DebuggerGlobalScope {
                 gpu_id_hub,
                 None,
                 false,
+                None, // font_context
             ),
             devtools_to_script_sender,
             get_possible_breakpoints_result_sender: RefCell::new(None),
         });
-        let global = unsafe {
-            DebuggerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
-                JSContext::from_ptr(runtime.cx()),
-                global,
-            )
-        };
+        let global =
+            DebuggerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), global);
 
         let realm = enter_realm(&*global);
         define_all_exposed_interfaces(global.upcast(), InRealm::entered(&realm), can_gc);

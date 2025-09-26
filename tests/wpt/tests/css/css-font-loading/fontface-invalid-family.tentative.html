@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-font-loading-3/">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1986533">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6236">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// These are values that are invalid as a family-name, or CSS generics.
+const kInvalidValues = [
+  "content:Segoe UI",
+  "sans-serif",
+  "A, B",
+  "inherit",
+  "a 1",
+  "",
+];
+
+for (let familyName of kInvalidValues) {
+  promise_test(async function() {
+    let face = new FontFace(familyName, "url('resources/Rochester.otf')");
+    assert_not_equals(face.status, "error", `FontFace should be quoted after construction with invalid family name ${familyName}`);
+    assert_equals(face.family, `"${familyName}"`, `FontFace.family should be the quoted string after construction with invalid family name ${familyName}`);
+    await face.load();
+    assert_true(true, `FontFace should load after invalid family name ${familyName} specified`);
+  }, `family: ${familyName}`);
+}
+</script>

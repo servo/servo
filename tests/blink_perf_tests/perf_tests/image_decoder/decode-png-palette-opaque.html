@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <script src="../resources/runner.js"></script>
+    <script src="resources/image_decoder_runner.js"></script>
+    <script>
+      /* Test case for decoding a typical PNG file with an RGB indexed colour palette.
+         The file is a deriviative of the original resources/droids.png. */
+      runImageDecoderPerfTests("resources/droids.palette.png", "Measures performance of png decoding.");
+    </script>
+  </body>
+</html>

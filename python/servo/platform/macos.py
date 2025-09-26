@@ -10,7 +10,7 @@
 import os
 import subprocess
 import tempfile
-from typing import Optional
+from typing import Optional, Any
 
 from .. import util
 from .base import Base
@@ -24,7 +24,7 @@ GSTREAMER_ROOT = "/Library/Frameworks/GStreamer.framework/Versions/1.0"
 
 
 class MacOS(Base):
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: str, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.is_macos = True
 

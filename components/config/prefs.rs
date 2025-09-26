@@ -11,10 +11,20 @@ pub use crate::pref_util::PrefValue;
 
 static PREFERENCES: RwLock<Preferences> = RwLock::new(Preferences::const_default());
 
+pub trait Observer: Send + Sync {
+    fn prefs_changed(&self, _changes: &[(&'static str, PrefValue)]) {}
+}
+
+static OBSERVERS: RwLock<Vec<Box<dyn Observer>>> = RwLock::new(Vec::new());
+
 #[inline]
 /// Get the current set of global preferences for Servo.
 pub fn get() -> RwLockReadGuard<'static, Preferences> {
     PREFERENCES.read().unwrap()
+}
+
+pub fn add_observer(observer: Box<dyn Observer>) {
+    OBSERVERS.write().unwrap().push(observer);
 }
 
 pub fn set(preferences: Preferences) {
@@ -38,8 +48,18 @@ pub fn set(preferences: Preferences) {
         "layout.container-queries.enabled",
         preferences.layout_container_queries_enabled,
     );
+    stylo_config::set_bool(
+        "layout.variable_fonts.enabled",
+        preferences.layout_variable_fonts_enabled,
+    );
+
+    let changed = preferences.diff(&PREFERENCES.read().unwrap());
 
     *PREFERENCES.write().unwrap() = preferences;
+
+    for observer in &*OBSERVERS.read().unwrap() {
+        observer.prefs_changed(&changed);
+    }
 }
 
 /// A convenience macro for accessing a preference value using its static path.
@@ -80,13 +100,13 @@ pub struct Preferences {
     ///
     /// Available values:
     /// - ` `/`auto`
-    /// - raqote
     /// - vello
     /// - vello_cpu
     pub dom_canvas_backend: String,
     pub dom_clipboardevent_enabled: bool,
     pub dom_composition_event_enabled: bool,
     pub dom_cookiestore_enabled: bool,
+    pub dom_credential_management_enabled: bool,
     pub dom_crypto_subtle_enabled: bool,
     pub dom_customelements_enabled: bool,
     pub dom_document_dblclick_timeout: i64,
@@ -125,7 +145,6 @@ pub struct Preferences {
     pub dom_testperf_enabled: bool,
     // https://testutils.spec.whatwg.org#availability
     pub dom_testutils_enabled: bool,
-    pub dom_trusted_types_enabled: bool,
     pub dom_xpath_enabled: bool,
     /// Enable WebGL2 APIs.
     pub dom_webgl2_enabled: bool,
@@ -196,7 +215,6 @@ pub struct Preferences {
     pub js_mem_max: i64,
     pub js_native_regex_enabled: bool,
     pub js_offthread_compilation_enabled: bool,
-    pub js_parallel_parsing_enabled: bool,
     pub js_shared_memory: bool,
     pub js_throw_on_asmjs_validation_failure: bool,
     pub js_throw_on_debuggee_would_run: bool,
@@ -213,6 +231,7 @@ pub struct Preferences {
     pub layout_flexbox_enabled: bool,
     pub layout_threads: i64,
     pub layout_unimplemented: bool,
+    pub layout_variable_fonts_enabled: bool,
     pub layout_writing_mode_enabled: bool,
     /// Enable hardware acceleration for video playback.
     pub media_glvideo_enabled: bool,
@@ -244,7 +263,8 @@ pub struct Preferences {
     /// The user-agent to use for Servo. This can also be set via [`UserAgentPlatform`] in
     /// order to set the value to the default value for the given platform.
     pub user_agent: String,
-
+    /// Whether or not the viewport meta tag is enabled.
+    pub viewport_meta_enabled: bool,
     pub log_filter: String,
 }
 
@@ -266,6 +286,7 @@ impl Preferences {
             dom_clipboardevent_enabled: true,
             dom_composition_event_enabled: false,
             dom_cookiestore_enabled: false,
+            dom_credential_management_enabled: false,
             dom_crypto_subtle_enabled: true,
             dom_customelements_enabled: true,
             dom_document_dblclick_dist: 1,
@@ -303,7 +324,6 @@ impl Preferences {
             dom_testing_html_input_element_select_files_enabled: false,
             dom_testperf_enabled: false,
             dom_testutils_enabled: false,
-            dom_trusted_types_enabled: false,
             dom_webgl2_enabled: false,
             dom_webgpu_enabled: false,
             dom_webgpu_wgpu_backend: String::new(),
@@ -373,7 +393,6 @@ impl Preferences {
             js_mem_max: -1,
             js_native_regex_enabled: true,
             js_offthread_compilation_enabled: true,
-            js_parallel_parsing_enabled: true,
             js_shared_memory: true,
             js_throw_on_asmjs_validation_failure: false,
             js_throw_on_debuggee_would_run: false,
@@ -391,6 +410,7 @@ impl Preferences {
             // TODO(mrobinson): This should likely be based on the number of processors.
             layout_threads: 3,
             layout_unimplemented: false,
+            layout_variable_fonts_enabled: false,
             layout_writing_mode_enabled: false,
             media_glvideo_enabled: false,
             media_testing_enabled: false,
@@ -410,6 +430,7 @@ impl Preferences {
             threadpools_webrender_workers_max: 4,
             webgl_testing_context_creation_error: false,
             user_agent: String::new(),
+            viewport_meta_enabled: false,
             log_filter: String::new(),
         }
     }
@@ -433,7 +454,7 @@ pub enum UserAgentPlatform {
 impl UserAgentPlatform {
     /// Return the default `UserAgentPlatform` for this platform. This is
     /// not an implementation of `Default` so that it can be `const`.
-    const fn default() -> Self {
+    pub const fn default() -> Self {
         if cfg!(target_os = "android") {
             Self::Android
         } else if cfg!(target_env = "ohos") {
@@ -461,12 +482,12 @@ impl UserAgentPlatform {
                 const ARCHITECTURE: &str = "";
 
                 format!(
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; {ARCHITECTURE}rv:128.0) Servo/{SERVO_VERSION} Firefox/128.0"
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; {ARCHITECTURE}rv:140.0) Servo/{SERVO_VERSION} Firefox/140.0"
                 )
             },
             UserAgentPlatform::Desktop if cfg!(target_os = "macos") => {
                 format!(
-                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:128.0) Servo/{SERVO_VERSION} Firefox/128.0"
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:140.0) Servo/{SERVO_VERSION} Firefox/140.0"
                 )
             },
             UserAgentPlatform::Desktop => {
@@ -477,19 +498,19 @@ impl UserAgentPlatform {
                 const ARCHITECTURE: &str = "i686";
 
                 format!(
-                    "Mozilla/5.0 (X11; Linux {ARCHITECTURE}; rv:128.0) Servo/{SERVO_VERSION} Firefox/128.0"
+                    "Mozilla/5.0 (X11; Linux {ARCHITECTURE}; rv:140.0) Servo/{SERVO_VERSION} Firefox/140.0"
                 )
             },
             UserAgentPlatform::Android => {
                 format!(
-                    "Mozilla/5.0 (Android 10; Mobile; rv:128.0) Servo/{SERVO_VERSION} Firefox/128.0"
+                    "Mozilla/5.0 (Android 10; Mobile; rv:140.0) Servo/{SERVO_VERSION} Firefox/140.0"
                 )
             },
             UserAgentPlatform::OpenHarmony => format!(
-                "Mozilla/5.0 (OpenHarmony; Mobile; rv:128.0) Servo/{SERVO_VERSION} Firefox/128.0"
+                "Mozilla/5.0 (OpenHarmony; Mobile; rv:140.0) Servo/{SERVO_VERSION} Firefox/140.0"
             ),
             UserAgentPlatform::Ios => format!(
-                "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X; rv:128.0) Servo/{SERVO_VERSION} Firefox/128.0"
+                "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X; rv:140.0) Servo/{SERVO_VERSION} Firefox/140.0"
             ),
         }
     }

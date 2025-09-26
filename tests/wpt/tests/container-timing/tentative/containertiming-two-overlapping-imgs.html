@@ -26,31 +26,28 @@ body {
       })
     );
     observer.observe({entryTypes: ['container']});
-    // Add the image during onload to be sure that the observer is registered
-    // in time.
-    window.onload = () => {
-      // Add a div that is the container timing root
-      const div = document.createElement('div');
-      div.setAttribute('containertiming', 'div_ct');
-      document.body.appendChild(div);
 
-      // Add two overlapping images
-      const img1 = document.createElement('img');
-      img1.src = '/container-timing/resources/square100.png';
-      img1.setAttribute('id', 'img1_id');
-      img1.style.position = 'absolute';
-      div.appendChild(img1);
+    // Add a div that is the container timing root
+    const div = document.createElement('div');
+    div.setAttribute('containertiming', 'div_ct');
+    document.body.appendChild(div);
 
-      const img2 = document.createElement('img');
-      img2.src = '/container-timing/resources/square100.png';
-      img2.setAttribute('id', 'img2_id');
-      img2.style.marginLeft = '50px';
-      img2.style.marginTop = '50px';
-      img2.style.position = 'absolute';
-      div.appendChild(img2);
+    // Add two overlapping images
+    const img1 = document.createElement('img');
+    img1.src = '/container-timing/resources/square100.png';
+    img1.setAttribute('id', 'img1_id');
+    img1.style.position = 'absolute';
+    div.appendChild(img1);
 
-      beforeRender = performance.now();
-    };
+    const img2 = document.createElement('img');
+    img2.src = '/container-timing/resources/square100.png';
+    img2.setAttribute('id', 'img2_id');
+    img2.style.marginLeft = '50px';
+    img2.style.marginTop = '50px';
+    img2.style.position = 'absolute';
+    div.appendChild(img2);
+
+    beforeRender = performance.now();
   }, 'Overlapping images report to containertiming.');
 </script>
 

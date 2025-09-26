@@ -146,14 +146,20 @@ pub fn init(
         });
     }
 
-    let (opts, preferences, servoshell_preferences) = match parse_command_line_arguments(args) {
+    let (opts, mut preferences, servoshell_preferences) = match parse_command_line_arguments(args) {
         ArgumentParsingResult::ContentProcess(..) => {
             unreachable!("OHOS does not have support for multiprocess yet.")
         },
         ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences) => {
             (opts, preferences, servoshell_preferences)
         },
+        ArgumentParsingResult::Exit => std::process::exit(0),
+        ArgumentParsingResult::ErrorParsing => std::process::exit(1),
     };
+
+    if native_values.device_type == ohos_deviceinfo::OhosDeviceType::Phone {
+        preferences.set_value("viewport_meta_enabled", servo::PrefValue::Bool(true));
+    }
 
     if servoshell_preferences.log_to_file {
         let mut servo_log = PathBuf::from(&native_values.cache_dir);

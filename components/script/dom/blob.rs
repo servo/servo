@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
 use std::ptr;
 use std::rc::Rc;
 
@@ -14,6 +13,7 @@ use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use js::typedarray::{ArrayBufferU8, Uint8};
 use net_traits::filemanager_thread::RelativePos;
+use rustc_hash::FxHashMap;
 use uuid::Uuid;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
@@ -120,7 +120,7 @@ impl Serializable for Blob {
 
     fn serialized_storage<'a>(
         reader: StructuredData<'a, '_>,
-    ) -> &'a mut Option<HashMap<BlobId, Self::Data>> {
+    ) -> &'a mut Option<FxHashMap<BlobId, Self::Data>> {
         match reader {
             StructuredData::Reader(r) => &mut r.blob_impls,
             StructuredData::Writer(w) => &mut w.blobs,
@@ -176,7 +176,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
             },
         };
 
-        let type_string = normalize_type_string(blobPropertyBag.type_.as_ref());
+        let type_string = normalize_type_string(blobPropertyBag.type_.str());
         let blob_impl = BlobImpl::new_from_bytes(bytes, type_string);
 
         Ok(Blob::new_with_proto(global, proto, blob_impl, can_gc))
@@ -206,7 +206,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
         can_gc: CanGc,
     ) -> DomRoot<Blob> {
         let global = self.global();
-        let type_string = normalize_type_string(&content_type.unwrap_or_default());
+        let type_string = normalize_type_string(content_type.unwrap_or_default().str());
 
         // If our parent is already a sliced blob then we reference the data from the grandparent instead,
         // to keep the blob ancestry chain short.

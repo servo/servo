@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>Comparing identical custom property sets</title>
+<script src="../resources/runner.js"></script>
+<script src="resources/utils.js"></script>
+<main id=main></main>
+<script>
+  const PROP_COUNT = 1000;
+  const TOKEN_COUNT = 3000; // Per custom property.
+  const NODE_COUNT = 20000;
+
+  // Generate declarations with values that have many tokens (i.e. values
+  // that would be expensive to call StyleVariables::operator== on).
+  //
+  // --x0:X X X ... 0
+  // --x1:X X X ... 1
+  // ...
+  let base_value = 'X '.repeat(TOKEN_COUNT / 2);
+  let declaration_array = [];
+  for (let i = 0; i < PROP_COUNT; i++) {
+    let value = base_value + i.toString(); // Make value unique.
+    declaration_array.push(`--x${i}:${value};`);
+  }
+
+  // Generate two rules which produce identical StyleVariables objects.
+  // It's important that they are identical, so that StyleVariables::operator==
+  // has to take the slowest possible path.
+  let declarations = declaration_array.join('\n');
+  applyCSSRule(`#main { ${declarations} }`);
+  applyCSSRule(`#main.change { ${declarations} }`);
+
+  createDOMTree(main, NODE_COUNT, 1 /* siblings */);
+
+  PerfTestRunner.measureTime({
+    description: 'Comparing identical custom property sets',
+    run: function() {
+      forceStyleRecalc(main);
+      main.classList.toggle('change');
+      forceStyleRecalc(main);
+    }
+  });
+</script>

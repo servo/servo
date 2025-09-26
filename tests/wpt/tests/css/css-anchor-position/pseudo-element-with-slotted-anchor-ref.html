@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<style>
+my-anchor {
+  display: block;
+}
+
+span {
+  display: block;
+  anchor-name: --anchor;
+  padding: 2rem;
+  background: red;
+  color: white;
+  inline-size: fit-content;
+}
+
+my-anchor::after {
+  content: 'target';
+  position: absolute;
+  position-anchor: --anchor;
+  position-area: bottom center;
+  background: lightblue;
+  padding: 1rem;
+}
+</style>
+<my-anchor>
+  <span>anchor</span>
+</my-anchor>

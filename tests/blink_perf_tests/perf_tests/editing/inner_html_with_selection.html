@@ -1,0 +1,19 @@
+<!doctype html>
+<script src="../resources/runner.js"></script>
+<div id="target">target</div>
+<div id="sample" style="display: none"></div>
+<script>
+var selection = window.getSelection();
+selection.selectAllChildren(document.getElementById('target'));
+var sample = document.getElementById('sample');
+var sampleHTML = new Array(1000).join('<br>');
+
+PerfTestRunner.measureTime({
+    description: 'Measures performance of innerHTML setter with selection.',
+
+    run: function() {
+        sample.innerHTML = sampleHTML;
+        sample.innerHTML = '';
+    },
+});
+</script>

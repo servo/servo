@@ -12,6 +12,7 @@ use background_hang_monitor_api::{
     BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
 };
 use base::Epoch;
+use base::generic_channel::{self, GenericReceiver, GenericSender};
 use base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, PipelineNamespaceId,
     PipelineNamespaceRequest, WebViewId,
@@ -26,7 +27,9 @@ use constellation_traits::{LoadData, SWManagerMsg, ScriptToConstellationChan};
 use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use embedder_traits::user_content_manager::UserContentManager;
-use embedder_traits::{AnimationState, FocusSequenceNumber, Theme, ViewportDetails};
+use embedder_traits::{
+    AnimationState, FocusSequenceNumber, ScriptToEmbedderChan, Theme, ViewportDetails,
+};
 use fonts::{SystemFontServiceProxy, SystemFontServiceProxySender};
 use ipc_channel::Error;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -130,15 +133,18 @@ pub struct InitialPipelineState {
     /// A channel to the associated constellation.
     pub script_to_constellation_chan: ScriptToConstellationChan,
 
+    /// A channel to the embedder.
+    pub script_to_embedder_chan: ScriptToEmbedderChan,
+
     /// A sender to request pipeline namespace ids.
-    pub namespace_request_sender: IpcSender<PipelineNamespaceRequest>,
+    pub namespace_request_sender: GenericSender<PipelineNamespaceRequest>,
 
     /// A handle to register components for hang monitoring.
     /// None when in multiprocess mode.
     pub background_monitor_register: Option<Box<dyn BackgroundHangMonitorRegister>>,
 
     /// A channel for the background hang monitor to send messages to the constellation.
-    pub background_hang_monitor_to_constellation_chan: IpcSender<HangMonitorAlert>,
+    pub background_hang_monitor_to_constellation_chan: GenericSender<HangMonitorAlert>,
 
     /// A fatory for creating layouts to be used by the ScriptThread.
     pub layout_factory: Arc<dyn LayoutFactory>,
@@ -154,7 +160,7 @@ pub struct InitialPipelineState {
     pub bluetooth_thread: IpcSender<BluetoothRequest>,
 
     /// A channel to the service worker manager thread
-    pub swmanager_thread: IpcSender<SWManagerMsg>,
+    pub swmanager_thread: GenericSender<SWManagerMsg>,
 
     /// A proxy to the system font service, responsible for managing the list of system fonts.
     pub system_font_service: Arc<SystemFontServiceProxy>,
@@ -203,11 +209,17 @@ pub struct InitialPipelineState {
 
     /// User content manager
     pub user_content_manager: UserContentManager,
+
+    /// A list of URLs that can access privileged internal APIs.
+    pub privileged_urls: Vec<ServoUrl>,
+
+    /// The image cache for the single-process mode
+    pub image_cache: Arc<dyn ImageCache>,
 }
 
 pub struct NewPipeline {
     pub pipeline: Pipeline,
-    pub bhm_control_chan: Option<IpcSender<BackgroundHangMonitorControlMsg>>,
+    pub bhm_control_chan: Option<GenericSender<BackgroundHangMonitorControlMsg>>,
     pub lifeline: Option<(IpcReceiver<()>, Process)>,
     pub join_handle: Option<JoinHandle<()>>,
 }
@@ -239,7 +251,8 @@ impl Pipeline {
                 (script_chan, (None, None, None))
             },
             None => {
-                let (script_chan, script_port) = ipc::channel().expect("Pipeline script chan");
+                let (script_chan, script_port) =
+                    base::generic_channel::channel().expect("Pipeline script chan");
 
                 // Route messages coming from content to devtools as appropriate.
                 let script_to_devtools_ipc_sender =
@@ -272,6 +285,7 @@ impl Pipeline {
                     parent_pipeline_id: state.parent_pipeline_id,
                     opener: state.opener,
                     script_to_constellation_chan: state.script_to_constellation_chan.clone(),
+                    script_to_embedder_chan: state.script_to_embedder_chan,
                     namespace_request_sender: state.namespace_request_sender,
                     background_hang_monitor_to_constellation_chan: state
                         .background_hang_monitor_to_constellation_chan
@@ -303,6 +317,7 @@ impl Pipeline {
                     rippy_data: state.rippy_data,
                     user_content_manager: state.user_content_manager,
                     lifeline_sender: None,
+                    privileged_urls: state.privileged_urls,
                 };
 
                 // Spawn the child process.
@@ -310,7 +325,7 @@ impl Pipeline {
                 // Yes, that's all there is to it!
                 let multiprocess_data = if opts::get().multiprocess {
                     let (bhm_control_chan, bhm_control_port) =
-                        ipc::channel().expect("Sampler chan");
+                        generic_channel::channel().expect("Sampler chan");
                     unprivileged_pipeline_content.bhm_control_port = Some(bhm_control_port);
                     let (sender, receiver) =
                         ipc::channel().expect("Failed to create lifeline channel");
@@ -326,6 +341,7 @@ impl Pipeline {
                         false,
                         state.layout_factory,
                         register,
+                        Some(state.image_cache),
                     );
                     (None, None, Some(join_handle))
                 };
@@ -468,23 +484,24 @@ pub struct UnprivilegedPipelineContent {
     browsing_context_id: BrowsingContextId,
     parent_pipeline_id: Option<PipelineId>,
     opener: Option<BrowsingContextId>,
-    namespace_request_sender: IpcSender<PipelineNamespaceRequest>,
+    namespace_request_sender: GenericSender<PipelineNamespaceRequest>,
     script_to_constellation_chan: ScriptToConstellationChan,
-    background_hang_monitor_to_constellation_chan: IpcSender<HangMonitorAlert>,
-    bhm_control_port: Option<IpcReceiver<BackgroundHangMonitorControlMsg>>,
+    script_to_embedder_chan: ScriptToEmbedderChan,
+    background_hang_monitor_to_constellation_chan: GenericSender<HangMonitorAlert>,
+    bhm_control_port: Option<GenericReceiver<BackgroundHangMonitorControlMsg>>,
     devtools_ipc_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     #[cfg(feature = "bluetooth")]
     bluetooth_thread: IpcSender<BluetoothRequest>,
-    swmanager_thread: IpcSender<SWManagerMsg>,
+    swmanager_thread: GenericSender<SWManagerMsg>,
     system_font_service: SystemFontServiceProxySender,
     resource_threads: ResourceThreads,
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: profile_mem::ProfilerChan,
     viewport_details: ViewportDetails,
     theme: Theme,
-    script_chan: IpcSender<ScriptThreadMessage>,
+    script_chan: GenericSender<ScriptThreadMessage>,
     load_data: LoadData,
-    script_port: IpcReceiver<ScriptThreadMessage>,
+    script_port: GenericReceiver<ScriptThreadMessage>,
     opts: Opts,
     prefs: Box<Preferences>,
     pipeline_namespace_id: PipelineNamespaceId,
@@ -495,6 +512,7 @@ pub struct UnprivilegedPipelineContent {
     rippy_data: Vec<u8>,
     user_content_manager: UserContentManager,
     lifeline_sender: Option<IpcSender<()>>,
+    privileged_urls: Vec<ServoUrl>,
 }
 
 impl UnprivilegedPipelineContent {
@@ -503,15 +521,20 @@ impl UnprivilegedPipelineContent {
         wait_for_completion: bool,
         layout_factory: Arc<dyn LayoutFactory>,
         background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
+        image_cache: Option<Arc<dyn ImageCache>>,
     ) -> JoinHandle<()> {
         // Setup pipeline-namespace-installing for all threads in this process.
         // Idempotent in single-process mode.
         PipelineNamespace::set_installer_sender(self.namespace_request_sender);
 
-        let image_cache = Arc::new(ImageCacheImpl::new(
-            self.cross_process_compositor_api.clone(),
-            self.rippy_data,
-        ));
+        let image_cache = image_cache.unwrap_or_else(|| {
+            // Create a new image cache (in the multiprocess case)
+            Arc::new(ImageCacheImpl::new(
+                self.cross_process_compositor_api.clone(),
+                self.rippy_data,
+            ))
+        });
+
         let (content_process_shutdown_chan, content_process_shutdown_port) = unbounded();
         let join_handle = STF::create(
             InitialScriptState {
@@ -523,11 +546,12 @@ impl UnprivilegedPipelineContent {
                 constellation_sender: self.script_chan.clone(),
                 constellation_receiver: self.script_port,
                 pipeline_to_constellation_sender: self.script_to_constellation_chan.clone(),
+                pipeline_to_embedder_sender: self.script_to_embedder_chan,
                 background_hang_monitor_register: background_hang_monitor_register.clone(),
                 #[cfg(feature = "bluetooth")]
                 bluetooth_sender: self.bluetooth_thread,
                 resource_threads: self.resource_threads,
-                image_cache: image_cache.clone(),
+                image_cache,
                 time_profiler_sender: self.time_profiler_chan.clone(),
                 memory_profiler_sender: self.mem_profiler_chan.clone(),
                 devtools_server_sender: self.devtools_ipc_sender,
@@ -541,6 +565,7 @@ impl UnprivilegedPipelineContent {
                 player_context: self.player_context.clone(),
                 inherited_secure_context: self.load_data.inherited_secure_context,
                 user_content_manager: self.user_content_manager,
+                privileged_urls: self.privileged_urls,
             },
             layout_factory,
             Arc::new(self.system_font_service.to_proxy()),

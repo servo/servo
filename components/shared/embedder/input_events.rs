@@ -20,7 +20,7 @@ pub enum InputEvent {
     Keyboard(KeyboardEvent),
     MouseButton(MouseButtonEvent),
     MouseMove(MouseMoveEvent),
-    MouseLeave(MouseLeaveEvent),
+    MouseLeftViewport(MouseLeftViewportEvent),
     Touch(TouchEvent),
     Wheel(WheelEvent),
     Scroll(ScrollEvent),
@@ -43,7 +43,7 @@ impl InputEvent {
             InputEvent::Keyboard(..) => None,
             InputEvent::MouseButton(event) => Some(event.point),
             InputEvent::MouseMove(event) => Some(event.point),
-            InputEvent::MouseLeave(_) => None,
+            InputEvent::MouseLeftViewport(_) => None,
             InputEvent::Touch(event) => Some(event.point),
             InputEvent::Wheel(event) => Some(event.point),
             InputEvent::Scroll(..) => None,
@@ -58,7 +58,7 @@ impl InputEvent {
             InputEvent::Keyboard(event) => event.webdriver_id,
             InputEvent::MouseButton(event) => event.webdriver_id,
             InputEvent::MouseMove(event) => event.webdriver_id,
-            InputEvent::MouseLeave(..) => None,
+            InputEvent::MouseLeftViewport(..) => None,
             InputEvent::Touch(..) => None,
             InputEvent::Wheel(event) => event.webdriver_id,
             InputEvent::Scroll(..) => None,
@@ -79,7 +79,7 @@ impl InputEvent {
             InputEvent::MouseMove(ref mut event) => {
                 event.webdriver_id = webdriver_id;
             },
-            InputEvent::MouseLeave(..) => {},
+            InputEvent::MouseLeftViewport(..) => {},
             InputEvent::Touch(..) => {},
             InputEvent::Wheel(ref mut event) => {
                 event.webdriver_id = webdriver_id;
@@ -219,7 +219,7 @@ impl MouseMoveEvent {
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
-pub struct MouseLeaveEvent {
+pub struct MouseLeftViewportEvent {
     pub focus_moving_to_another_iframe: bool,
 }
 

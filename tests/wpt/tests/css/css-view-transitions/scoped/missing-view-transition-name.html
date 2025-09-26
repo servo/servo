@@ -26,19 +26,23 @@
     const vt1 = document.startViewTransition(() => {
       target.style.opacity = 0.5;
     });
+    await vt1.ready;
 
     const vt2 = target.startViewTransition(() => {
       target.style.backgroundColor = 'green';
     });
-
-    await Promise.all([vt1.ready, vt2.ready]);
+    await vt2.ready;
 
     const expected_root_pseudos = [
       '::view-transition-group(root)',
       '::view-transition-new(root)',
       '::view-transition-old(root)'
     ];
-    const expected_target_pseudos = [];
+    const expected_target_pseudos = [
+      '::view-transition-group(root)',
+      '::view-transition-new(root)',
+      '::view-transition-old(root)'
+    ];
 
     assert_animation_pseudos(
         document.documentElement, expected_root_pseudos,

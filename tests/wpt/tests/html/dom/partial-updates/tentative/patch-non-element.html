@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html id="html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<template patchfor="html">abc</template>
+</html>
+<script>
+promise_test(async () => {
+    const fragment = document.createDocumentFragment();
+
+    assert_throws_dom('HierarchyRequestError', () => {
+        fragment.patchSelf();
+    });
+    assert_throws_dom('HierarchyRequestError', () => {
+        document.patchSelf();
+    });
+}, "Cannot patch container nodes without a context element");
+</script>

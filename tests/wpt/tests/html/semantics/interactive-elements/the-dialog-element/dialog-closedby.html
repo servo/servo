@@ -31,7 +31,7 @@
 <script>
   function openDialog(dialog,openMethod) {
     assert_false(dialog.open,'Should be closed to start');
-    assert_equals(dialog.matches(':open'),dialog.open,':open should match .open');
+    assert_equals(dialog.matches('[open]'),dialog.open,'[open] should match .open');
     switch (openMethod) {
       case 'modeless' :
         dialog.show();
@@ -46,7 +46,7 @@
         assert_unreached('Invalid open method');
     }
     assert_true(dialog.open,'Should be open now');
-    assert_equals(dialog.matches(':open'),dialog.open,':open should match .open');
+    assert_equals(dialog.matches('[open]'),dialog.open,'[open] should match .open');
   }
 
   function getDefaultExpectations(behavior, openMethod) {
@@ -96,7 +96,7 @@
   function runTest(dialog, openMethod) {
     promise_test(async (t) => {
       assert_false(dialog.open,'setup');
-      assert_false(dialog.matches(':open'));
+      assert_false(dialog.matches('[open]'));
       t.add_cleanup(() => dialog.close());
       let expectations = getDefaultExpectations(dialog.dataset.behavior, openMethod);
 
@@ -117,7 +117,7 @@
         await waitForRender();
       }
       const respondsToEsc = !dialog.open;
-      assert_equals(!dialog.matches(':open'),respondsToEsc,':open should match dialog.open');
+      assert_equals(!dialog.matches('[open]'),respondsToEsc,'[open] should match dialog.open');
       dialog.close();
 
       // Try clicking outside
@@ -125,7 +125,7 @@
       assert_equals(dialog.matches(':modal'),openMethod === 'modal',':modal incorrect');
       await clickOn(outside);
       const respondsToLightDismiss = !dialog.open;
-      assert_equals(!dialog.matches(':open'),respondsToLightDismiss,':open should match dialog.open');
+      assert_equals(!dialog.matches('[open]'),respondsToLightDismiss,'[open] should match dialog.open');
       dialog.close();
 
       // See if expectations match

@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::IpcSend;
 use dom_struct::dom_struct;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
-use net_traits::IpcSend;
-use net_traits::indexeddb_thread::{IndexedDBThreadMsg, SyncOperation};
+use net_traits::indexeddb_thread::{BackendResult, IndexedDBThreadMsg, SyncOperation};
 use profile_traits::ipc;
 use script_bindings::conversions::SafeToJSValConvertible;
 use stylo_atoms::Atom;
@@ -84,7 +84,7 @@ impl OpenRequestListener {
         }
     }
 
-    fn handle_delete_db(&self, result: Result<(), ()>, can_gc: CanGc) {
+    fn handle_delete_db(&self, result: BackendResult<()>, can_gc: CanGc) {
         let open_request = self.open_request.root();
         let global = open_request.global();
         open_request.idbrequest.set_ready_state_done();
@@ -108,7 +108,7 @@ impl OpenRequestListener {
                 event.fire(open_request.upcast(), can_gc);
             },
             Err(_e) => {
-                // FIXME(rasviitanen) Set the error of request to the
+                // FIXME(arihant2math) Set the error of request to the
                 // appropriate error
 
                 let event = Event::new(
@@ -220,11 +220,11 @@ impl IDBOpenDBRequest {
         self.idbrequest.set_result(result);
     }
 
-    pub fn set_error(&self, error: Error, can_gc: CanGc) {
+    pub fn set_error(&self, error: Option<Error>, can_gc: CanGc) {
         self.idbrequest.set_error(error, can_gc);
     }
 
-    pub fn open_database(&self, name: DOMString, version: Option<u64>) {
+    pub fn open_database(&self, name: DOMString, version: Option<u64>) -> Result<(), ()> {
         let global = self.global();
 
         let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
@@ -270,7 +270,7 @@ impl IDBOpenDBRequest {
                             },
                             Err(dom_exception) => {
                                 request.set_result(HandleValue::undefined());
-                                request.set_error(dom_exception, CanGc::note());
+                                request.set_error(Some(dom_exception), CanGc::note());
                                 let event = Event::new(
                                     &global,
                                     Atom::from("error"),
@@ -286,14 +286,17 @@ impl IDBOpenDBRequest {
             }),
         );
 
-        global
+        if global
             .resource_threads()
-            .sender()
             .send(IndexedDBThreadMsg::Sync(open_operation))
-            .unwrap();
+            .is_err()
+        {
+            return Err(());
+        }
+        Ok(())
     }
 
-    pub fn delete_database(&self, name: String) {
+    pub fn delete_database(&self, name: String) -> Result<(), ()> {
         let global = self.global();
 
         let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
@@ -318,11 +321,14 @@ impl IDBOpenDBRequest {
             }),
         );
 
-        global
+        if global
             .resource_threads()
-            .sender()
             .send(IndexedDBThreadMsg::Sync(delete_operation))
-            .unwrap();
+            .is_err()
+        {
+            return Err(());
+        }
+        Ok(())
     }
 
     pub fn dispatch_success(&self, result: &IDBDatabase) {

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<script src="./resources/utils.js"></script>
+<div id=container></div>
+<div id=root class=myscope></div>
+<script>
+const SELECTORS = 2000;
+
+let style = document.createElement('style');
+
+function makeStyle() {
+  let selectors = [...Array(SELECTORS).keys()].map(x => `.a${x}`);
+  // Creates a selector list which is expensive to evaluate:
+  // (.a1, .a2, .a3 ... .a<n-1>, .myscope)
+  return `
+    @scope (${selectors.join(',')}, .myscope) {
+      div {
+        margin: 1px;
+      }
+    }
+  `;
+}
+
+function setup() {
+  style.textContent = makeStyle();
+  createDOMTree(root, /* siblings */ 1, /* depth */ 50);
+}
+
+setup();
+
+PerfTestRunner.measureTime({
+    description: 'Inserting @scope with a deep tree',
+    run: () => {
+      container.append(style);
+      root.offsetTop;
+      style.remove();
+      root.offsetTop;
+    }
+});
+
+</script>
+

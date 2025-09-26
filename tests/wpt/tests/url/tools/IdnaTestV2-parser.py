@@ -15,13 +15,15 @@ import argparse
 import json
 import os
 import re
-import requests
+import urllib.request
 
 def get_IdnaTestV2_lines():
     IdnaTestV2 = os.path.join(os.path.dirname(__file__), "IdnaTestV2.txt")
     if not os.path.exists(IdnaTestV2):
         # Download IdnaTestV2.txt if it doesn't exist yet
-        open(IdnaTestV2, "w", encoding="utf-8").write(requests.get("https://unicode.org/Public/idna/latest/IdnaTestV2.txt").text)
+        url = "https://unicode.org/Public/idna/latest/IdnaTestV2.txt"
+        content = urllib.request.urlopen(url).read()
+        open(IdnaTestV2, "wb").write(content)
     return open(IdnaTestV2, "r", encoding="utf-8").readlines()
 
 def remove_escapes(input):

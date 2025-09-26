@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Text Decoration 4: text-decoration-trim</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-trim">
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+
+<link rel="mismatch" href="reference/text-decoration-trim-010-notref.html">
+
+<style>
+body {
+  background: white;
+  color: black;
+}
+div {
+  position: relative;
+}
+h1 {
+  position: absolute;
+}
+u {
+  text-decoration-color: blue;
+  text-decoration-trim: auto;
+  text-underline-position: under;
+}
+</style>
+
+<p>The underlines for "石井" and for "艾俐俐" should be visibly separate:</p>
+
+<div>
+  <h1 lang="zh">
+    <u>石井</u><u>艾俐俐</u>
+  </h1>
+</div>

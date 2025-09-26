@@ -27,6 +27,7 @@ use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, lo
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
 use resvg::{tiny_skia, usvg};
+use rustc_hash::FxHashMap;
 use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use webrender_api::units::DeviceIntSize;
@@ -185,7 +186,7 @@ type ImageKey = (ServoUrl, ImmutableOrigin, Option<CorsSettings>);
 struct AllPendingLoads {
     // The loads, indexed by a load key. Used during most operations,
     // for performance reasons.
-    loads: HashMap<LoadKey, PendingLoad>,
+    loads: FxHashMap<LoadKey, PendingLoad>,
 
     // Get a load key from its url and requesting origin. Used ony when starting and
     // finishing a load or when adding a new listener.
@@ -198,8 +199,8 @@ struct AllPendingLoads {
 impl AllPendingLoads {
     fn new() -> AllPendingLoads {
         AllPendingLoads {
-            loads: HashMap::new(),
-            url_to_load_key: HashMap::new(),
+            loads: FxHashMap::default(),
+            url_to_load_key: HashMap::default(),
             keygen: LoadKeyGenerator::new(),
         }
     }
@@ -486,12 +487,12 @@ struct ImageCacheStore {
     /// Vector (e.g. SVG) images that have been sucessfully loaded and parsed
     /// but are yet to be rasterized. Since the same SVG data can be used for
     /// rasterizing at different sizes, we use this hasmap to share the data.
-    vector_images: HashMap<PendingImageId, VectorImageData>,
+    vector_images: FxHashMap<PendingImageId, VectorImageData>,
 
     /// Vector images for which rasterization at a particular size has started
     /// or completed. If completed, the `result` member of `RasterizationTask`
     /// contains the rasterized image.
-    rasterized_vector_images: HashMap<(PendingImageId, DeviceIntSize), RasterizationTask>,
+    rasterized_vector_images: FxHashMap<(PendingImageId, DeviceIntSize), RasterizationTask>,
 
     /// The placeholder image used when an image fails to load
     #[conditional_malloc_size_of]
@@ -721,8 +722,8 @@ impl ImageCache for ImageCacheImpl {
             store: Arc::new(Mutex::new(ImageCacheStore {
                 pending_loads: AllPendingLoads::new(),
                 completed_loads: HashMap::new(),
-                vector_images: HashMap::new(),
-                rasterized_vector_images: HashMap::new(),
+                vector_images: FxHashMap::default(),
+                rasterized_vector_images: FxHashMap::default(),
                 placeholder_image: get_placeholder_image(&compositor_api, &rippy_data),
                 placeholder_url: ServoUrl::parse("chrome://resources/rippy.png").unwrap(),
                 compositor_api: compositor_api.clone(),
@@ -1018,7 +1019,7 @@ impl ImageCache for ImageCacheImpl {
                 let pending_load = store.pending_loads.get_by_key_mut(&id).unwrap();
                 pending_load.bytes.extend_from_slice(&data);
 
-                //jmr0 TODO: possibly move to another task?
+                // jmr0 TODO: possibly move to another task?
                 if pending_load.metadata.is_none() {
                     let mut reader = std::io::Cursor::new(pending_load.bytes.as_slice());
                     if let Ok(info) = imsz_from_reader(&mut reader) {
@@ -1082,8 +1083,8 @@ impl ImageCache for ImageCacheImpl {
                 placeholder_image,
                 placeholder_url,
                 compositor_api,
-                vector_images: HashMap::new(),
-                rasterized_vector_images: HashMap::new(),
+                vector_images: FxHashMap::default(),
+                rasterized_vector_images: FxHashMap::default(),
                 key_cache: KeyCache::new(),
                 pipeline_id,
             })),

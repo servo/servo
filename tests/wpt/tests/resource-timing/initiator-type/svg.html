@@ -16,8 +16,12 @@
   xmlns:xlink="http://www.w3.org/1999/xlink">
   <image href="/resource-timing/resources/blue.png" height="200" width="200"/>
 </svg>
+<svg style="display: none;">
+    <use href="/resource-timing/resources/dummy.svg"></use>
+</svg>
 <script>
   initiator_type_test("blue.png", "image", "<image> in an <svg>");
+  initiator_type_test("dummy.svg", "other", "<use> in an <svg>");
 </script>
 </body>
 </html>

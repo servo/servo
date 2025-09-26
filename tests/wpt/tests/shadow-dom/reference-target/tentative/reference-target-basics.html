@@ -24,11 +24,13 @@
 
 test(() => {
   const shadow1 = document.querySelector("#host1").shadowRoot;
-  assert_equals(shadow1.referenceTarget, "");
+  assert_equals(shadow1.referenceTarget, null);
+}, "ShadowRoot.referenceTarget defaults to null when shadow is created declaratively");
 
+test(() => {
   const shadow2 = document.querySelector("#host2").shadowRoot;
   assert_equals(shadow2.referenceTarget, "");
-}, "ShadowRoot.referenceTarget defaults to empty string when shadow is created declaratively");
+}, "Empty shadowrootreferencetarget attribute is reflected as empty string");
 
 test(() => {
   const shadow1 = document.querySelector("#host3").shadowRoot;
@@ -38,16 +40,18 @@ test(() => {
 test(() => {
   const host1 = document.createElement("div");
   const shadow1 = host1.attachShadow({"mode": "open"});
-  assert_equals(shadow1.referenceTarget, "");
+  assert_equals(shadow1.referenceTarget, null);
 
   const host2 = document.createElement("div");
   const shadow2 = host2.attachShadow({"mode": "open", "referenceTarget": null});
-  assert_equals(shadow2.referenceTarget, "null");
+  assert_equals(shadow2.referenceTarget, null);
+}, "ShadowRoot.referenceTarget defaults to null when shadow is created imperatively");
 
+test(() => {
   const host3 = document.createElement("div");
   const shadow3 = host3.attachShadow({"mode": "open", "referenceTarget": ""});
   assert_equals(shadow3.referenceTarget, "");
-}, "ShadowRoot.referenceTarget defaults to empty string when shadow is created imperatively");
+}, "Passing empty string referencetarget in ShadowRootInit is reflected as empty string");
 
 test(() => {
   const host1 = document.createElement("div");

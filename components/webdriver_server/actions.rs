@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::{HashMap, HashSet};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -11,6 +10,7 @@ use embedder_traits::{MouseButtonAction, WebDriverCommandMsg, WebDriverScriptCom
 use ipc_channel::ipc;
 use keyboard_types::webdriver::KeyInputState;
 use log::{error, info};
+use rustc_hash::FxHashSet;
 use webdriver::actions::{
     ActionSequence, ActionsType, GeneralAction, KeyAction, KeyActionItem, KeyDownAction,
     KeyUpAction, NullActionItem, PointerAction, PointerActionItem, PointerDownAction,
@@ -42,9 +42,8 @@ pub(crate) enum ActionItem {
 }
 
 // A set of actions with multiple sources executed within a single tick.
-// The order in which they are performed is not guaranteed.
 // The `id` is used to identify the source of the actions.
-pub(crate) type TickActions = HashMap<String, ActionItem>;
+pub(crate) type TickActions = Vec<(String, ActionItem)>;
 
 // Consumed by the `dispatch_actions` method.
 pub(crate) type ActionsByTick = Vec<TickActions>;
@@ -65,7 +64,7 @@ pub(crate) enum InputSourceState {
 #[allow(dead_code)]
 pub(crate) struct PointerInputState {
     subtype: PointerType,
-    pressed: HashSet<u64>,
+    pressed: FxHashSet<u64>,
     x: f64,
     y: f64,
 }
@@ -74,7 +73,7 @@ impl PointerInputState {
     pub fn new(subtype: PointerType) -> PointerInputState {
         PointerInputState {
             subtype,
-            pressed: HashSet::new(),
+            pressed: FxHashSet::default(),
             x: 0.0,
             y: 0.0,
         }
@@ -217,6 +216,8 @@ impl Handler {
         tick_actions: &TickActions,
         tick_duration: u64,
     ) -> Result<(), ErrorStatus> {
+        let session = self.session().unwrap();
+
         // Step 1. For each action object in tick actions:
         // Step 1.1. Let input_id be the value of the id property of action object.
         for (input_id, action) in tick_actions.iter() {
@@ -234,16 +235,12 @@ impl Handler {
                     // Step 9. If subtype is "keyDown", append a copy of action
                     // object with the subtype property changed to "keyUp" to
                     // input state's input cancel list.
-                    self.session()
-                        .unwrap()
-                        .input_cancel_list
-                        .borrow_mut()
-                        .push((
-                            input_id.clone(),
-                            ActionItem::Key(KeyActionItem::Key(KeyAction::Up(KeyUpAction {
-                                value: keydown_action.value.clone(),
-                            }))),
-                        ));
+                    session.input_cancel_list_mut().push((
+                        input_id.clone(),
+                        ActionItem::Key(KeyActionItem::Key(KeyAction::Up(KeyUpAction {
+                            value: keydown_action.value.clone(),
+                        }))),
+                    ));
                 },
                 ActionItem::Key(KeyActionItem::Key(KeyAction::Up(keyup_action))) => {
                     self.dispatch_keyup_action(input_id, keyup_action);
@@ -258,19 +255,15 @@ impl Handler {
                     // Step 10. If subtype is "pointerDown", append a copy of action
                     // object with the subtype property changed to "pointerUp" to
                     // input state's input cancel list.
-                    self.session()
-                        .unwrap()
-                        .input_cancel_list
-                        .borrow_mut()
-                        .push((
-                            input_id.clone(),
-                            ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Up(
-                                PointerUpAction {
-                                    button: pointer_down_action.button,
-                                    ..Default::default()
-                                },
-                            ))),
-                        ));
+                    session.input_cancel_list_mut().push((
+                        input_id.clone(),
+                        ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Up(
+                            PointerUpAction {
+                                button: pointer_down_action.button,
+                                ..Default::default()
+                            },
+                        ))),
+                    ));
                 },
                 ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Move(
                     pointer_move_action,
@@ -299,8 +292,7 @@ impl Handler {
     fn dispatch_general_action(&self, source_id: &str) {
         self.session()
             .unwrap()
-            .input_state_table
-            .borrow_mut()
+            .input_state_table_mut()
             .entry(source_id.to_string())
             .or_insert(InputSourceState::Null);
     }
@@ -308,9 +300,9 @@ impl Handler {
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-keydown-action>
     fn dispatch_keydown_action(&self, source_id: &str, action: &KeyDownAction) {
         let session = self.session().unwrap();
+        let mut input_state_table = session.input_state_table_mut();
 
         let raw_key = action.value.chars().next().unwrap();
-        let mut input_state_table = session.input_state_table.borrow_mut();
         let key_input_state = match input_state_table.get_mut(source_id).unwrap() {
             InputSourceState::Key(key_input_state) => key_input_state,
             _ => unreachable!(),
@@ -322,7 +314,7 @@ impl Handler {
         self.increment_num_pending_actions();
         let msg_id = self.current_action_id.get();
         let cmd_msg =
-            WebDriverCommandMsg::KeyboardAction(session.webview_id, keyboard_event, msg_id);
+            WebDriverCommandMsg::KeyboardAction(self.verified_webview_id(), keyboard_event, msg_id);
         let _ = self.send_message_to_embedder(cmd_msg);
     }
 
@@ -334,7 +326,7 @@ impl Handler {
         // See https://github.com/w3c/webdriver/issues/1905 &&
         // https://github.com/servo/servo/issues/37579#issuecomment-2990762713
         {
-            let mut input_cancel_list = session.input_cancel_list.borrow_mut();
+            let mut input_cancel_list = session.input_cancel_list_mut();
             if let Some(pos) = input_cancel_list.iter().rposition(|(id, item)| {
                 id == source_id &&
                     matches!(item,
@@ -347,7 +339,7 @@ impl Handler {
         }
 
         let raw_key = action.value.chars().next().unwrap();
-        let mut input_state_table = session.input_state_table.borrow_mut();
+        let mut input_state_table = session.input_state_table_mut();
         let key_input_state = match input_state_table.get_mut(source_id).unwrap() {
             InputSourceState::Key(key_input_state) => key_input_state,
             _ => unreachable!(),
@@ -357,8 +349,11 @@ impl Handler {
             // Step 12
             self.increment_num_pending_actions();
             let msg_id = self.current_action_id.get();
-            let cmd_msg =
-                WebDriverCommandMsg::KeyboardAction(session.webview_id, keyboard_event, msg_id);
+            let cmd_msg = WebDriverCommandMsg::KeyboardAction(
+                self.verified_webview_id(),
+                keyboard_event,
+                msg_id,
+            );
             let _ = self.send_message_to_embedder(cmd_msg);
         }
     }
@@ -367,21 +362,26 @@ impl Handler {
     pub(crate) fn dispatch_pointerdown_action(&self, source_id: &str, action: &PointerDownAction) {
         let session = self.session().unwrap();
 
-        let mut input_state_table = session.input_state_table.borrow_mut();
+        let mut input_state_table = session.input_state_table_mut();
         let pointer_input_state = match input_state_table.get_mut(source_id).unwrap() {
             InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
             _ => unreachable!(),
         };
 
+        // Step 3. If the source's pressed property contains button return success with data null.
         if pointer_input_state.pressed.contains(&action.button) {
             return;
         }
-        pointer_input_state.pressed.insert(action.button);
 
+        // Step 6. Add button to the set corresponding to source's pressed property
+        pointer_input_state.pressed.insert(action.button);
+        // Step 7 - 15: Variable namings already done.
+        // Step 16. Perform implementation-specific action dispatch steps
+        // TODO: We have not considered pen/touch pointer type
         self.increment_num_pending_actions();
         let msg_id = self.current_action_id.get();
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
-            session.webview_id,
+            self.verified_webview_id(),
             MouseButtonAction::Down,
             action.button.into(),
             pointer_input_state.x as f32,
@@ -389,28 +389,33 @@ impl Handler {
             msg_id,
         );
         let _ = self.send_message_to_embedder(cmd_msg);
+
+        // Step 17. Return success with data null.
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerup-action>
     pub(crate) fn dispatch_pointerup_action(&self, source_id: &str, action: &PointerUpAction) {
         let session = self.session().unwrap();
 
-        let mut input_state_table = session.input_state_table.borrow_mut();
+        let mut input_state_table = session.input_state_table_mut();
         let pointer_input_state = match input_state_table.get_mut(source_id).unwrap() {
             InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
             _ => unreachable!(),
         };
 
+        // Step 3. If the source's pressed property does not contain button, return success with data null.
         if !pointer_input_state.pressed.contains(&action.button) {
             return;
         }
+
+        // Step 6. Remove button from the set corresponding to source's pressed property,
         pointer_input_state.pressed.remove(&action.button);
 
         // Remove matching pointerUp(must be unique) from `[input_cancel_list]` due to bugs in spec
         // See https://github.com/w3c/webdriver/issues/1905 &&
         // https://github.com/servo/servo/issues/37579#issuecomment-2990762713
         {
-            let mut input_cancel_list = session.input_cancel_list.borrow_mut();
+            let mut input_cancel_list = session.input_cancel_list_mut();
             if let Some(pos) = input_cancel_list.iter().position(|(id, item)| {
                 id == source_id &&
                     matches!(item, ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Up(
@@ -424,10 +429,11 @@ impl Handler {
             }
         }
 
+        // Step 7. Perform implementation-specific action dispatch steps
         self.increment_num_pending_actions();
         let msg_id = self.current_action_id.get();
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
-            session.webview_id,
+            self.verified_webview_id(),
             MouseButtonAction::Up,
             action.button.into(),
             pointer_input_state.x as f32,
@@ -435,46 +441,8 @@ impl Handler {
             msg_id,
         );
         let _ = self.send_message_to_embedder(cmd_msg);
-    }
 
-    /// <https://w3c.github.io/webdriver/#dfn-get-coordinates-relative-to-an-origin>
-    fn get_origin_relative_coordinates(
-        &self,
-        origin: &PointerOrigin,
-        x_offset: f64,
-        y_offset: f64,
-        source_id: &str,
-    ) -> Result<(f64, f64), ErrorStatus> {
-        match origin {
-            PointerOrigin::Viewport => Ok((x_offset, y_offset)),
-            PointerOrigin::Pointer => {
-                // Step 1. Let start x be equal to the x property of source.
-                // Step 2. Let start y be equal to the y property of source.
-                let (start_x, start_y) = match self
-                    .session()
-                    .unwrap()
-                    .input_state_table
-                    .borrow()
-                    .get(source_id)
-                    .unwrap()
-                {
-                    InputSourceState::Pointer(pointer_input_state) => {
-                        (pointer_input_state.x, pointer_input_state.y)
-                    },
-                    _ => unreachable!(),
-                };
-                // Step 3. Let x equal start x + x offset and y equal start y + y offset.
-                Ok((start_x + x_offset, start_y + y_offset))
-            },
-            PointerOrigin::Element(web_element) => {
-                // Steps 1 - 2: Check "no such element", covered in script thread handler.
-
-                // Step 3. Let x element and y element be the result of calculating the in-view center point of element.
-                let (x_element, y_element) = self.get_element_in_view_center_point(web_element)?;
-                // Step 4. Let x equal x element + x offset, and y equal y element + y offset.
-                Ok((x_element as f64 + x_offset, y_element as f64 + y_offset))
-            },
-        }
+        // Step 8. Return success with data null.
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointermove-action>
@@ -488,6 +456,7 @@ impl Handler {
 
         // Step 1. Let x offset be equal to the x property of action object.
         let x_offset = action.x;
+
         // Step 2. Let y offset be equal to the y property of action object.
         let y_offset = action.y;
 
@@ -499,7 +468,10 @@ impl Handler {
 
         let (x, y) = self.get_origin_relative_coordinates(origin, x_offset, y_offset, source_id)?;
 
-        // Step 5 - 6
+        // Step 5. If x is less than 0 or greater than the width of the viewport in CSS pixels,
+        // then return error with error code move target out of bounds.
+        // Step 6. If y is less than 0 or greater than the height of the viewport in CSS pixels,
+        // then return error with error code move target out of bounds.
         self.check_viewport_bound(x, y)?;
 
         // Step 7. Let duration be equal to action object's duration property
@@ -518,8 +490,7 @@ impl Handler {
         let (start_x, start_y) = match self
             .session()
             .unwrap()
-            .input_state_table
-            .borrow()
+            .input_state_table()
             .get(source_id)
             .unwrap()
         {
@@ -530,9 +501,12 @@ impl Handler {
         };
 
         // Step 9 - 18
+        // Perform a pointer move with arguments source, global key state, duration, start x, start y,
+        // x, y, width, height, pressure, tangentialPressure, tiltX, tiltY, twist, altitudeAngle, azimuthAngle.
+        // TODO: We have not considered pen/touch pointer type
         self.perform_pointer_move(source_id, duration, start_x, start_y, x, y, tick_start);
 
-        // Step 19
+        // Step 19. Return success with data null.
         Ok(())
     }
 
@@ -549,27 +523,34 @@ impl Handler {
         tick_start: Instant,
     ) {
         let session = self.session().unwrap();
-        let mut input_state_table = session.input_state_table.borrow_mut();
+        let mut input_state_table = session.input_state_table_mut();
         let pointer_input_state = match input_state_table.get_mut(source_id).unwrap() {
             InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
             _ => unreachable!(),
         };
 
         loop {
-            // Step 1
+            // Step 1. Let time delta be the time since the beginning of the
+            // current tick, measured in milliseconds on a monotonic clock.
             let time_delta = tick_start.elapsed().as_millis();
 
-            // Step 2
+            // Step 2. Let duration ratio be the ratio of time delta and duration,
+            // if duration is greater than 0, or 1 otherwise.
             let duration_ratio = if duration > 0 {
                 time_delta as f64 / duration as f64
             } else {
                 1.0
             };
 
-            // Step 3
+            // Step 3. If duration ratio is 1, or close enough to 1 that the
+            // implementation will not further subdivide the move action,
+            // let last be true. Otherwise let last be false.
             let last = 1.0 - duration_ratio < 0.001;
 
-            // Step 4
+            // Step 4. If last is true, let x equal target x and y equal target y.
+            // Otherwise
+            // let x equal an approximation to duration ratio × (target x - start x) + start x,
+            // and y equal an approximation to duration ratio × (target y - start y) + start y.
             let (x, y) = if last {
                 (target_x, target_y)
             } else {
@@ -579,15 +560,18 @@ impl Handler {
                 )
             };
 
-            // Steps 5 - 6
+            // Step 5. Let current x equal the x property of input state.
             let current_x = pointer_input_state.x;
+
+            // Step 6. Let current y equal the y property of input state.
             let current_y = pointer_input_state.y;
 
-            // Step 7
-            // Actually "last" should not be checked here based on spec.
+            // Step 7. If x != current x or y != current y, run the following steps:
+            // FIXME: Actually "last" should not be checked here based on spec.
             // However, we need to send the webdriver id at the final perform.
             if x != current_x || y != current_y || last {
-                // Step 7.2
+                // Step 7.1. Let buttons be equal to input state's buttons property.
+                // Step 7.2. Perform implementation-specific action dispatch steps
                 let msg_id = if last {
                     self.increment_num_pending_actions();
                     self.current_action_id.get()
@@ -595,24 +579,29 @@ impl Handler {
                     None
                 };
                 let cmd_msg = WebDriverCommandMsg::MouseMoveAction(
-                    session.webview_id,
+                    self.verified_webview_id(),
                     x as f32,
                     y as f32,
                     msg_id,
                 );
                 let _ = self.send_message_to_embedder(cmd_msg);
-                // Step 7.3
+                // Step 7.3. Let input state's x property equal x and y property equal y.
                 pointer_input_state.x = x;
                 pointer_input_state.y = y;
             }
 
-            // Step 8
+            // Step 8. If last is true, return.
             if last {
                 return;
             }
 
-            // Step 9
+            // Step 9. Run the following substeps in parallel:
+            // Step 9.1. Asynchronously wait for an implementationdefined amount of time to pass
             thread::sleep(Duration::from_millis(POINTERMOVE_INTERVAL));
+
+            // Step 9.2. Perform a pointer move with arguments
+            // input state, duration, start x, start y, target x, target y.
+            // Notice that this simply repeat what we have done until last is true.
         }
     }
 
@@ -623,10 +612,7 @@ impl Handler {
         action: &WheelScrollAction,
         tick_duration: u64,
     ) -> Result<(), ErrorStatus> {
-        // Note: We have not implemented `extract an action sequence` which will calls
-        // `process a wheel action` that validate many of the variable used here.
-        // Hence, we do all the checking here until those functions is properly
-        // implemented.
+        // TODO: We should verify each variable when processing a wheel action.
         // <https://w3c.github.io/webdriver/#dfn-process-a-wheel-action>
 
         let tick_start = Instant::now();
@@ -656,7 +642,10 @@ impl Handler {
         let (x, y) =
             self.get_origin_relative_coordinates(origin, x_offset as _, y_offset as _, source_id)?;
 
-        // Step 5 - 6
+        // Step 5. If x is less than 0 or greater than the width of the viewport in CSS pixels,
+        // then return error with error code move target out of bounds.
+        // Step 6. If y is less than 0 or greater than the height of the viewport in CSS pixels,
+        // then return error with error code move target out of bounds.
         self.check_viewport_bound(x, y)?;
 
         // Step 7. Let delta x be equal to the deltaX property of action object.
@@ -694,7 +683,7 @@ impl Handler {
             tick_start,
         );
 
-        // Step 12
+        // Step 12. Return success with data null.
         Ok(())
     }
 
@@ -711,81 +700,78 @@ impl Handler {
         mut curr_delta_y: f64,
         tick_start: Instant,
     ) {
-        let session = self.session().unwrap();
+        loop {
+            // Step 1. Let time delta be the time since the beginning of the current tick,
+            // measured in milliseconds on a monotonic clock.
+            let time_delta = tick_start.elapsed().as_millis();
 
-        // Step 1. Let time delta be the time since the beginning of the current tick,
-        // measured in milliseconds on a monotonic clock.
-        let time_delta = tick_start.elapsed().as_millis();
-
-        // Step 2. Let duration ratio be the ratio of time delta and duration,
-        // if duration is greater than 0, or 1 otherwise.
-        let duration_ratio = if duration > 0 {
-            time_delta as f64 / duration as f64
-        } else {
-            1.0
-        };
-
-        // Step 3. If duration ratio is 1, or close enough to 1 that
-        // the implementation will not further subdivide the move action,
-        // let last be true. Otherwise let last be false.
-        let last = 1.0 - duration_ratio < 0.001;
-
-        // Step 4
-        let (delta_x, delta_y) = if last {
-            (target_delta_x - curr_delta_x, target_delta_y - curr_delta_y)
-        } else {
-            (
-                duration_ratio * target_delta_x - curr_delta_x,
-                duration_ratio * target_delta_y - curr_delta_y,
-            )
-        };
-
-        // Step 5
-        // Actually "last" should not be checked here based on spec.
-        // However, we need to send the webdriver id at the final perform.
-        if delta_x != 0.0 || delta_y != 0.0 || last {
-            // Perform implementation-specific action dispatch steps
-            let msg_id = if last {
-                self.increment_num_pending_actions();
-                self.current_action_id.get()
+            // Step 2. Let duration ratio be the ratio of time delta and duration,
+            // if duration is greater than 0, or 1 otherwise.
+            let duration_ratio = if duration > 0 {
+                time_delta as f64 / duration as f64
             } else {
-                None
+                1.0
             };
-            let cmd_msg = WebDriverCommandMsg::WheelScrollAction(
-                session.webview_id,
-                x,
-                y,
-                delta_x,
-                delta_y,
-                msg_id,
-            );
-            let _ = self.send_message_to_embedder(cmd_msg);
 
-            curr_delta_x += delta_x;
-            curr_delta_y += delta_y;
+            // Step 3. If duration ratio is 1, or close enough to 1 that
+            // the implementation will not further subdivide the move action,
+            // let last be true. Otherwise let last be false.
+            let last = 1.0 - duration_ratio < 0.001;
+
+            // Step 4. If last is true,
+            // let delta x equal target delta x - current delta x and delta y equal target delta y - current delta y.
+            // Otherwise
+            // let delta x equal an approximation to duration ratio × target delta x - current delta x,
+            // and delta y equal an approximation to duration ratio × target delta y - current delta y.
+            let (delta_x, delta_y) = if last {
+                (target_delta_x - curr_delta_x, target_delta_y - curr_delta_y)
+            } else {
+                (
+                    duration_ratio * target_delta_x - curr_delta_x,
+                    duration_ratio * target_delta_y - curr_delta_y,
+                )
+            };
+
+            // Step 5. If delta x != 0 or delta y != 0, run the following steps:
+            // Actually "last" should not be checked here based on spec.
+            // However, we need to send the webdriver id at the final perform.
+            if delta_x != 0.0 || delta_y != 0.0 || last {
+                // Step 5.1. Perform implementation-specific action dispatch steps
+                let msg_id = if last {
+                    self.increment_num_pending_actions();
+                    self.current_action_id.get()
+                } else {
+                    None
+                };
+                let cmd_msg = WebDriverCommandMsg::WheelScrollAction(
+                    self.verified_webview_id(),
+                    x,
+                    y,
+                    delta_x,
+                    delta_y,
+                    msg_id,
+                );
+                let _ = self.send_message_to_embedder(cmd_msg);
+
+                // Step 5.2. Let current delta x property equal delta x + current delta x
+                // and current delta y property equal delta y + current delta y.
+                curr_delta_x += delta_x;
+                curr_delta_y += delta_y;
+            }
+
+            // Step 6. If last is true, return.
+            if last {
+                return;
+            }
+
+            // Step 7
+            // TODO: The two steps should be done in parallel
+            // 7.1. Asynchronously wait for an implementation defined amount of time to pass.
+            thread::sleep(Duration::from_millis(WHEELSCROLL_INTERVAL));
+            // 7.2. Perform a scroll with arguments duration, x, y, target delta x,
+            // target delta y, current delta x, current delta y.
+            // Notice that this simply repeat what we have done until last is true.
         }
-
-        // Step 6
-        if last {
-            return;
-        }
-
-        // Step 7
-        // TODO: The two steps should be done in parallel
-        // 7.1. Asynchronously wait for an implementation defined amount of time to pass.
-        thread::sleep(Duration::from_millis(WHEELSCROLL_INTERVAL));
-        // 7.2. Perform a scroll with arguments duration, x, y, target delta x,
-        // target delta y, current delta x, current delta y.
-        self.perform_scroll(
-            duration,
-            x,
-            y,
-            target_delta_x,
-            target_delta_y,
-            curr_delta_x,
-            curr_delta_y,
-            tick_start,
-        );
     }
 
     /// Verify that the given coordinates are within the boundary of the viewport.
@@ -796,8 +782,7 @@ impl Handler {
             return Err(ErrorStatus::MoveTargetOutOfBounds);
         }
         let (sender, receiver) = ipc::channel().unwrap();
-        let cmd_msg =
-            WebDriverCommandMsg::GetViewportSize(self.session.as_ref().unwrap().webview_id, sender);
+        let cmd_msg = WebDriverCommandMsg::GetViewportSize(self.verified_webview_id(), sender);
         self.send_message_to_embedder(cmd_msg)
             .map_err(|_| ErrorStatus::UnknownError)?;
 
@@ -812,21 +797,64 @@ impl Handler {
         }
     }
 
+    /// <https://w3c.github.io/webdriver/#dfn-get-coordinates-relative-to-an-origin>
+    fn get_origin_relative_coordinates(
+        &self,
+        origin: &PointerOrigin,
+        x_offset: f64,
+        y_offset: f64,
+        source_id: &str,
+    ) -> Result<(f64, f64), ErrorStatus> {
+        match origin {
+            PointerOrigin::Viewport => Ok((x_offset, y_offset)),
+            PointerOrigin::Pointer => {
+                // Step 1. Let start x be equal to the x property of source.
+                // Step 2. Let start y be equal to the y property of source.
+                let (start_x, start_y) = match self
+                    .session()
+                    .unwrap()
+                    .input_state_table()
+                    .get(source_id)
+                    .unwrap()
+                {
+                    InputSourceState::Pointer(pointer_input_state) => {
+                        (pointer_input_state.x, pointer_input_state.y)
+                    },
+                    _ => unreachable!(),
+                };
+                // Step 3. Let x equal start x + x offset and y equal start y + y offset.
+                Ok((start_x + x_offset, start_y + y_offset))
+            },
+            PointerOrigin::Element(web_element) => {
+                // Steps 1 - 3
+                let (x_element, y_element) = self.get_element_in_view_center_point(web_element)?;
+                // Step 4. Let x equal x element + x offset, and y equal y element + y offset.
+                Ok((x_element as f64 + x_offset, y_element as f64 + y_offset))
+            },
+        }
+    }
+
     /// <https://w3c.github.io/webdriver/#dfn-center-point>
     fn get_element_in_view_center_point(
         &self,
         web_element: &WebElement,
     ) -> Result<(i64, i64), ErrorStatus> {
         let (sender, receiver) = ipc::channel().unwrap();
+        // Step 1. Let element be the result of trying to run actions options'
+        // get element origin steps with origin and browsing context.
         self.browsing_context_script_command(
             WebDriverScriptCommand::GetElementInViewCenterPoint(web_element.to_string(), sender),
             VerifyBrowsingContextIsOpen::No,
         )
         .unwrap();
+
+        // Step 2. If element is null, return error with error code no such element.
         let response = match wait_for_ipc_response(receiver) {
             Ok(response) => response,
             Err(WebDriverError { error, .. }) => return Err(error),
         };
+
+        // Step 3. Let x element and y element be the result of calculating the in-view center point of element.
         match response? {
             Some(point) => Ok(point),
             None => Err(ErrorStatus::UnknownError),
@@ -836,7 +864,7 @@ impl Handler {
     /// <https://w3c.github.io/webdriver/#dfn-extract-an-action-sequence>
     pub(crate) fn extract_an_action_sequence(&self, params: ActionsParameters) -> ActionsByTick {
         // Step 1. Let actions be the result of getting a property named "actions" from parameters.
-        // Step 2 (ignored because params is already validated earlier). If actions is not a list,
+        // Step 2. (ignored because params is already validated earlier). If actions is not a list,
         // return an error with status InvalidArgument.
         let actions = params.actions;
 
@@ -859,12 +887,12 @@ impl Handler {
 
             // Step 4.2.2. Ensure we have enough ticks to hold all actions
             while actions_by_tick.len() < source_actions.len() {
-                actions_by_tick.push(HashMap::new());
+                actions_by_tick.push(Vec::new());
             }
 
-            // Step 4.2.3.
+            // Step 4.2.3. Append action to the List at index i in actions by tick.
             for (tick_index, action_item) in source_actions.into_iter().enumerate() {
-                actions_by_tick[tick_index].insert(id.clone(), action_item);
+                actions_by_tick[tick_index].push((id.clone(), action_item));
             }
         }
 
@@ -879,7 +907,7 @@ impl Handler {
         // Step 2. Let id be the value of the id property of action sequence.
         let id = action_sequence.id.clone();
 
-        let mut input_state_table = self.session().unwrap().input_state_table.borrow_mut();
+        let mut input_state_table = self.session().unwrap().input_state_table_mut();
 
         match action_sequence.actions {
             ActionsType::Null {

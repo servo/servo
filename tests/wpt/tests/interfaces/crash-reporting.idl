@@ -4,8 +4,8 @@
 // Source: Crash Reporting (https://wicg.github.io/crash-reporting/)
 
 dictionary CrashReportBody : ReportBody {
-  DOMString? reason;
-  DOMString? stack;
-  boolean? is_top_level;
-  DocumentVisibilityState? page_visibility;
+  DOMString reason;
+  DOMString stack;
+  boolean is_top_level;
+  DocumentVisibilityState page_visibility;
 };

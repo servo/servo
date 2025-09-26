@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>Test that resolving after-change style does not cause flicker in descendant pseudo-elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions-1/#after-change-style">
+<link rel="match" href="parent-after-change-style-pseudo-element-flicker-ref.html">
+
+<style>
+div {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+}
+
+@keyframes animation {
+    from, to { margin-left: 0 }
+}
+
+@starting-style {
+    .parent:after { }
+}
+
+.parent {
+    animation: animation 10000s;
+}
+
+.child:after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-color: black;
+    animation: animation 10000s;
+}
+
+</style>
+<body onload="test()">
+<div class="parent">
+    <div class="child"></div>
+</div>
+<script>
+async function test() {
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+}
+</script>

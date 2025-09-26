@@ -8,10 +8,10 @@ LOCALES = ["de-DE", "es-ES", "fr-FR", "it-IT"]
 
 @pytest_asyncio.fixture
 async def get_current_locale(bidi_session):
-    async def get_current_locale(context):
+    async def get_current_locale(context, sandbox=None):
         result = await bidi_session.script.evaluate(
             expression="new Intl.DateTimeFormat().resolvedOptions().locale",
-            target=ContextTarget(context["context"]),
+            target=ContextTarget(context["context"], sandbox=sandbox),
             await_promise=False,
         )
 
@@ -31,15 +31,15 @@ async def default_locale(get_current_locale, top_context):
 @pytest.fixture
 def some_locale(default_locale):
     """
-    Returns some locale which is not equal to `default_locale` nor to
-    `another_locale`.
+    Returns some locale which is not equal to `default_locale`.
     """
     for locale in LOCALES:
         if locale != default_locale:
             return locale
 
     raise Exception(
-        f"Unexpectedly could not find locale different from the default {default_locale}")
+        f"Unexpectedly could not find locale different from the default {default_locale}"
+    )
 
 
 @pytest.fixture
@@ -49,8 +49,9 @@ def another_locale(default_locale, some_locale):
     `some_locale`.
     """
     for locale in LOCALES:
-        if locale != default_locale and locale != another_locale:
+        if locale != default_locale and locale != some_locale:
             return locale
 
     raise Exception(
-        f"Unexpectedly could not find locale different from the default {default_locale}")
+        f"Unexpectedly could not find locale different from the default {default_locale} and {some_locale}"
+    )

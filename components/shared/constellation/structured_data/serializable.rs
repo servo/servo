@@ -8,13 +8,17 @@
 //! be passed through the Constellation.
 
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::path::PathBuf;
 
-use base::id::{BlobId, DomExceptionId, DomPointId, ImageBitmapId};
+use base::id::{
+    BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, ImageBitmapId,
+    QuotaExceededErrorId,
+};
+use euclid::default::Transform3D;
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::filemanager_thread::RelativePos;
 use pixels::Snapshot;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_url::ImmutableOrigin;
 use strum::EnumIter;
@@ -32,12 +36,15 @@ where
     /// Only return None if cloning is impossible.
     fn clone_for_broadcast(&self) -> Option<Self>;
     /// The field from which to clone values.
-    fn source(data: &StructuredSerializedData) -> &Option<HashMap<Self::Id, Self>>;
+    fn source(data: &StructuredSerializedData) -> &Option<FxHashMap<Self::Id, Self>>;
     /// The field into which to place cloned values.
-    fn destination(data: &mut StructuredSerializedData) -> &mut Option<HashMap<Self::Id, Self>>;
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<FxHashMap<Self::Id, Self>>;
 }
 
 /// All the DOM interfaces that can be serialized.
+///
+/// NOTE: Variants which are derived from other serializable interfaces must come before their
+/// parents because serialization is attempted in order of the variants.
 #[derive(Clone, Copy, Debug, EnumIter)]
 pub enum Serializable {
     /// The `Blob` interface.
@@ -46,6 +53,18 @@ pub enum Serializable {
     DomPoint,
     /// The `DOMPointReadOnly` interface.
     DomPointReadOnly,
+    /// The `DOMRect` interface.
+    DomRect,
+    /// The `DOMRectReadOnly` interface.
+    DomRectReadOnly,
+    /// The `DOMQuad` interface.
+    DomQuad,
+    /// The `DOMMatrix` interface.
+    DomMatrix,
+    /// The `DOMMatrixReadOnly` interface.
+    DomMatrixReadOnly,
+    /// The `QuotaExceededError` interface.
+    QuotaExceededError,
     /// The `DOMException` interface.
     DomException,
     /// The `ImageBitmap` interface.
@@ -58,15 +77,25 @@ impl Serializable {
     ) -> fn(&StructuredSerializedData, &mut StructuredSerializedData) {
         match self {
             Serializable::Blob => StructuredSerializedData::clone_all_of_type::<BlobImpl>,
+            Serializable::DomPoint => StructuredSerializedData::clone_all_of_type::<DomPoint>,
             Serializable::DomPointReadOnly => {
                 StructuredSerializedData::clone_all_of_type::<DomPoint>
             },
-            Serializable::DomPoint => StructuredSerializedData::clone_all_of_type::<DomPoint>,
+            Serializable::DomRect => StructuredSerializedData::clone_all_of_type::<DomRect>,
+            Serializable::DomRectReadOnly => StructuredSerializedData::clone_all_of_type::<DomRect>,
+            Serializable::DomQuad => StructuredSerializedData::clone_all_of_type::<DomQuad>,
+            Serializable::DomMatrix => StructuredSerializedData::clone_all_of_type::<DomMatrix>,
+            Serializable::DomMatrixReadOnly => {
+                StructuredSerializedData::clone_all_of_type::<DomMatrix>
+            },
             Serializable::DomException => {
                 StructuredSerializedData::clone_all_of_type::<DomException>
             },
             Serializable::ImageBitmap => {
                 StructuredSerializedData::clone_all_of_type::<SerializableImageBitmap>
+            },
+            Serializable::QuotaExceededError => {
+                StructuredSerializedData::clone_all_of_type::<SerializableQuotaExceededError>
             },
         }
     }
@@ -139,15 +168,11 @@ impl FileBlob {
 impl BroadcastClone for BlobImpl {
     type Id = BlobId;
 
-    fn source(
-        data: &StructuredSerializedData,
-    ) -> &Option<std::collections::HashMap<Self::Id, Self>> {
+    fn source(data: &StructuredSerializedData) -> &Option<FxHashMap<Self::Id, Self>> {
         &data.blobs
     }
 
-    fn destination(
-        data: &mut StructuredSerializedData,
-    ) -> &mut Option<std::collections::HashMap<Self::Id, Self>> {
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<FxHashMap<Self::Id, Self>> {
         &mut data.blobs
     }
 
@@ -275,16 +300,95 @@ pub struct DomPoint {
 impl BroadcastClone for DomPoint {
     type Id = DomPointId;
 
-    fn source(
-        data: &StructuredSerializedData,
-    ) -> &Option<std::collections::HashMap<Self::Id, Self>> {
+    fn source(data: &StructuredSerializedData) -> &Option<FxHashMap<Self::Id, Self>> {
         &data.points
     }
 
-    fn destination(
-        data: &mut StructuredSerializedData,
-    ) -> &mut Option<std::collections::HashMap<Self::Id, Self>> {
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<FxHashMap<Self::Id, Self>> {
         &mut data.points
+    }
+
+    fn clone_for_broadcast(&self) -> Option<Self> {
+        Some(self.clone())
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+/// A serializable version of the DOMRect/DOMRectReadOnly interface.
+pub struct DomRect {
+    /// The x coordinate.
+    pub x: f64,
+    /// The y coordinate.
+    pub y: f64,
+    /// The width.
+    pub width: f64,
+    /// The height.
+    pub height: f64,
+}
+
+impl BroadcastClone for DomRect {
+    type Id = DomRectId;
+
+    fn source(data: &StructuredSerializedData) -> &Option<FxHashMap<Self::Id, Self>> {
+        &data.rects
+    }
+
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<FxHashMap<Self::Id, Self>> {
+        &mut data.rects
+    }
+
+    fn clone_for_broadcast(&self) -> Option<Self> {
+        Some(self.clone())
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+/// A serializable version of the DOMQuad interface.
+pub struct DomQuad {
+    /// The first point.
+    pub p1: DomPoint,
+    /// The second point.
+    pub p2: DomPoint,
+    /// The third point.
+    pub p3: DomPoint,
+    /// The fourth point.
+    pub p4: DomPoint,
+}
+
+impl BroadcastClone for DomQuad {
+    type Id = DomQuadId;
+
+    fn source(data: &StructuredSerializedData) -> &Option<FxHashMap<Self::Id, Self>> {
+        &data.quads
+    }
+
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<FxHashMap<Self::Id, Self>> {
+        &mut data.quads
+    }
+
+    fn clone_for_broadcast(&self) -> Option<Self> {
+        Some(self.clone())
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+/// A serializable version of the DOMMatrix/DOMMatrixReadOnly interface.
+pub struct DomMatrix {
+    /// The matrix.
+    pub matrix: Transform3D<f64>,
+    /// Whether this matrix represents a 2D transformation.
+    pub is_2d: bool,
+}
+
+impl BroadcastClone for DomMatrix {
+    type Id = DomMatrixId;
+
+    fn source(data: &StructuredSerializedData) -> &Option<FxHashMap<Self::Id, Self>> {
+        &data.matrices
+    }
+
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<FxHashMap<Self::Id, Self>> {
+        &mut data.matrices
     }
 
     fn clone_for_broadcast(&self) -> Option<Self> {
@@ -302,16 +406,36 @@ pub struct DomException {
 impl BroadcastClone for DomException {
     type Id = DomExceptionId;
 
-    fn source(
-        data: &StructuredSerializedData,
-    ) -> &Option<std::collections::HashMap<Self::Id, Self>> {
+    fn source(data: &StructuredSerializedData) -> &Option<FxHashMap<Self::Id, Self>> {
         &data.exceptions
     }
 
-    fn destination(
-        data: &mut StructuredSerializedData,
-    ) -> &mut Option<std::collections::HashMap<Self::Id, Self>> {
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<FxHashMap<Self::Id, Self>> {
         &mut data.exceptions
+    }
+
+    fn clone_for_broadcast(&self) -> Option<Self> {
+        Some(self.clone())
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+/// A serializable version of the QuotaExceededError interface.
+pub struct SerializableQuotaExceededError {
+    pub dom_exception: DomException,
+    pub quota: Option<f64>,
+    pub requested: Option<f64>,
+}
+
+impl BroadcastClone for SerializableQuotaExceededError {
+    type Id = QuotaExceededErrorId;
+
+    fn source(data: &StructuredSerializedData) -> &Option<FxHashMap<Self::Id, Self>> {
+        &data.quota_exceeded_errors
+    }
+
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<FxHashMap<Self::Id, Self>> {
+        &mut data.quota_exceeded_errors
     }
 
     fn clone_for_broadcast(&self) -> Option<Self> {
@@ -328,15 +452,11 @@ pub struct SerializableImageBitmap {
 impl BroadcastClone for SerializableImageBitmap {
     type Id = ImageBitmapId;
 
-    fn source(
-        data: &StructuredSerializedData,
-    ) -> &Option<std::collections::HashMap<Self::Id, Self>> {
+    fn source(data: &StructuredSerializedData) -> &Option<FxHashMap<Self::Id, Self>> {
         &data.image_bitmaps
     }
 
-    fn destination(
-        data: &mut StructuredSerializedData,
-    ) -> &mut Option<std::collections::HashMap<Self::Id, Self>> {
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<FxHashMap<Self::Id, Self>> {
         &mut data.image_bitmaps
     }
 

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>
+    Test CPU performance of the WebGLRenderingContext.bufferSubData binding
+  </title>
+  <script src="../resources/runner.js"></script>
+</head>
+
+<body>
+  <canvas id="canvas" width=400 height=400></canvas>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const gl = canvas.getContext('webgl');
+
+    const vertexBuffer = gl.createBuffer();
+
+    const data = new Float32Array([
+      0.0, 0.5, 0.0,
+      -0.5, -0.5, 0.0,
+      0.5, -0.5, 0.0,
+    ]);
+    const dataCopy = new Float32Array([
+      0.0, 0.5, 0.0,
+      -0.5, -0.5, 0.0,
+      0.5, -0.5, 0.0,
+    ]);
+    const sizeInBytes = data.length * data.BYTES_PER_ELEMENT;
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+    // Ensure twice the size of `data`.
+    gl.bufferData(gl.ARRAY_BUFFER, sizeInBytes * 2, gl.STATIC_DRAW);
+
+    const iterations = 10000;
+    PerfTestRunner.measureInnerRAFTime({
+      description: `CPU time for ${iterations * 2} calls to WebGLRenderingContext.bufferSubData`,
+      warmUpCount: 10,
+      run() {
+        for (let i = 0; i < iterations; ++i) {
+          gl.bufferSubData(gl.ARRAY_BUFFER, 0, data);
+          gl.bufferSubData(gl.ARRAY_BUFFER, sizeInBytes, dataCopy);
+        }
+      }
+    });
+  </script>
+</body>
+
+</html>

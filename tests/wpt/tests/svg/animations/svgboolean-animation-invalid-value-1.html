@@ -1,0 +1,35 @@
+<!doctype html>
+<title>Test SVGBoolean animation with invalid value: String values in from and to attributes.</title>
+<link rel="help" href="https://www.w3.org/TR/2001/REC-smil-animation-20010904/#FromAttribute">
+<link rel="help" href="https://www.w3.org/TR/2001/REC-smil-animation-20010904/#ToAttribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg id="svg">
+    <defs>
+        <filter id="filter">
+            <feConvolveMatrix id="effect" kernelMatrix="0 0 0   0 1 0   0 0 0" preserveAlpha="false">
+                <animate attributeName="preserveAlpha" begin="0s" dur="4s" from="fa   lse" to="t   rue" />
+            </feConvolveMatrix>
+        </filter>
+    </defs>
+    <rect width="100" height="100" fill="green" filter="url(#filter)"></rect>
+</svg>
+
+<script>
+
+async_test(t => {
+    const svg = document.getElementById("svg");
+    const effect = document.getElementById("effect");
+
+    window.addEventListener('load', t.step_func(() => {
+        svg.setCurrentTime(2);
+
+        requestAnimationFrame(t.step_func_done(() => {
+            assert_equals(effect.preserveAlpha.baseVal, false);
+            assert_equals(effect.preserveAlpha.animVal, effect.preserveAlpha.baseVal);
+        }));
+    }));
+  });
+
+</script>

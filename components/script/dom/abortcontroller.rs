@@ -18,7 +18,7 @@ use crate::script_runtime::{CanGc, JSContext};
 pub(crate) struct AbortController {
     reflector_: Reflector,
 
-    /// An AbortController object has an associated signal (an AbortSignal object).
+    /// <https://dom.spec.whatwg.org/#dom-abortcontroller-signal>
     signal: Dom<AbortSignal>,
 }
 
@@ -27,7 +27,7 @@ impl AbortController {
     fn new_inherited(signal: &AbortSignal) -> AbortController {
         // Note: continuation of the constructor steps.
 
-        // Set this’s signal to signal.
+        // Step 2. Set this’s signal to signal.
         AbortController {
             reflector_: Reflector::new(),
             signal: Dom::from_ref(signal),
@@ -40,9 +40,9 @@ impl AbortController {
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> DomRoot<AbortController> {
-        // The new AbortController() constructor steps are:
-        // Let signal be a new AbortSignal object.
+        // Step 1. Let signal be a new AbortSignal object.
         let signal = AbortSignal::new_with_proto(global, None, can_gc);
+        // Step 2. Set this’s signal to signal.
         reflect_dom_object_with_proto(
             Box::new(AbortController::new_inherited(&signal)),
             global,
@@ -59,6 +59,7 @@ impl AbortController {
         realm: InRealm,
         can_gc: CanGc,
     ) {
+        // To signal abort on an AbortController controller with an optional reason,
         // signal abort on controller’s signal with reason if it is given.
         self.signal.signal_abort(cx, reason, realm, can_gc);
     }

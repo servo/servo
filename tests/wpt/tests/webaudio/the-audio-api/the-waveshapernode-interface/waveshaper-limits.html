@@ -7,32 +7,29 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="../../resources/audit-util.js"></script>
-    <script src="../../resources/audit.js"></script>
   </head>
   <body>
-    <script id="layout-test-code">
-      let audit = Audit.createTaskRunner();
-
+    <script>
       let context;
       let bufferData;
       let outputData;
       let reference;
 
-      let sampleRate = 48000;
+      const sampleRate = 48000;
       // Must be odd so we have an exact middle point.
-      let testFrames = 23;
-      let scale = 1 / ((testFrames - 1) / 2 - 1);
+      const testFrames = 23;
+      const scale = 1 / ((testFrames - 1) / 2 - 1);
       // Number of decimal digits to print
-      let decimals = 6;
+      const decimals = 6;
       // Required accuracy
-      let diffThreshold = Math.pow(10, -decimals);
+      const diffThreshold = Math.pow(10, -decimals);
 
       // Generate reference data
-      function generateReference() {
+      const generateReference = () => {
         // The curve data is 0, 1, 0, and the input data is a ramp from -1+eps
         // to 1+eps.  Then the output is a ramp from 0 to 1 back to 0.
-        let ref = new Float32Array(testFrames);
-        let midPoint = (testFrames - 1) / 2;
+        const ref = new Float32Array(testFrames);
+        const midPoint = (testFrames - 1) / 2;
         // First sample is below -1 at -1-scale.
         ref[0] = 0;
         // Generate ramp up to the mid-point
@@ -48,63 +45,52 @@
         // The last sample is out of range at 1+scale
         ref[testFrames - 1] = 0;
         return ref;
-      }
+      };
 
-      function checkResult(renderedBuffer, should) {
+      const checkResult = renderedBuffer => {
         outputData = renderedBuffer.getChannelData(0);
         reference = generateReference();
-        let success = true;
-        // Verify that every output value matches our expected reference value.
         for (let k = 0; k < outputData.length; ++k) {
-          let diff = outputData[k] - reference[k];
-          should(
+          const diff = outputData[k] - reference[k];
+          assert_less_than_equal(
               Math.abs(diff),
-              'Max error mapping ' + bufferData[k].toFixed(decimals) + ' to ' +
-                  outputData[k].toFixed(decimals))
-              .beLessThanOrEqualTo(diffThreshold);
+              diffThreshold,
+              `Max error mapping ${bufferData[k].toFixed(decimals)} to ` +
+                  `${outputData[k].toFixed(decimals)}`);
         }
-      }
+      };
 
-      audit.define(
-          {
-            label: 'test',
-            description:
-                'WaveShaperNode including values outside the range of [-1,1]'
-          },
-          function(task, should) {
-            context = new OfflineAudioContext(1, testFrames, sampleRate);
-            // Create input values between -1.1 and 1.1
-            let buffer =
-                context.createBuffer(1, testFrames, context.sampleRate);
-            bufferData = new Float32Array(testFrames);
-            let start = -1 - scale;
-            for (let k = 0; k < testFrames; ++k) {
-              bufferData[k] = k * scale + start;
-            }
-            buffer.copyToChannel(bufferData, 0);
+      promise_test(async t => {
+        context = new OfflineAudioContext(1, testFrames, sampleRate);
+        // Create input values between -1.1 and 1.1
+        const buffer = new AudioBuffer({ length: testFrames,
+            numberOfChannels: 1, sampleRate: context.sampleRate });
+        bufferData = new Float32Array(testFrames);
+        const start = -1 - scale;
+        for (let k = 0; k < testFrames; ++k) {
+          bufferData[k] = k * scale + start;
+        }
+        buffer.copyToChannel(bufferData, 0);
 
-            let source = context.createBufferSource();
-            source.buffer = buffer;
+        const source = new AudioBufferSourceNode(context, { buffer });
 
-            // Create simple waveshaper. It should map -1 to 0, 0 to 1, and +1
-            // to 0 and interpolate all points in between using a simple linear
-            // interpolator.
-            let shaper = context.createWaveShaper();
-            let curve = new Float32Array(3);
-            curve[0] = 0;
-            curve[1] = 1;
-            curve[2] = 0;
-            shaper.curve = curve;
-            source.connect(shaper);
-            shaper.connect(context.destination);
+        // Create simple waveshaper. It should map -1 to 0, 0 to 1, and +1
+        // to 0 and interpolate all points in between using a simple linear
+        // interpolator.
+        const curve = new Float32Array(3);
+        curve[0] = 0;
+        curve[1] = 1;
+        curve[2] = 0;
 
-            source.start();
-            context.startRendering()
-                .then(buffer => checkResult(buffer, should))
-                .then(() => task.done());
-          });
+        const shaper = new WaveShaperNode(context, { curve });
+        source.connect(shaper);
+        shaper.connect(context.destination);
 
-      audit.run();
+        source.start();
+        const renderedBuffer = await context.startRendering();
+        checkResult(renderedBuffer);
+      }, 'WaveShaperNode maps input values outside [-1,1] according to curve' +
+          ' and clamps output correctly');
     </script>
   </body>
 </html>

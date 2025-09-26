@@ -6,13 +6,14 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::rust::HandleValue;
-use strum_macros::IntoStaticStr;
+use strum_macros::AsRefStr;
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::TrustedTypePolicyBinding::TrustedTypePolicyMethods;
 use crate::dom::bindings::codegen::Bindings::TrustedTypePolicyFactoryBinding::{
     CreateHTMLCallback, CreateScriptCallback, CreateScriptURLCallback, TrustedTypePolicyOptions,
 };
+use crate::dom::bindings::codegen::UnionTypes::TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString as TrustedTypeOrString;
 use crate::dom::bindings::error::Error::Type;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject, Reflector, reflect_dom_object};
@@ -38,11 +39,27 @@ pub struct TrustedTypePolicy {
     create_script_url: Option<Rc<CreateScriptURLCallback>>,
 }
 
-#[derive(Clone, IntoStaticStr)]
+#[derive(AsRefStr, Clone)]
 pub(crate) enum TrustedType {
     TrustedHTML,
     TrustedScript,
     TrustedScriptURL,
+}
+
+impl TrustedType {
+    pub(crate) fn matches_idl_trusted_type(&self, idl_trusted_type: &TrustedTypeOrString) -> bool {
+        match self {
+            TrustedType::TrustedHTML => {
+                matches!(idl_trusted_type, TrustedTypeOrString::TrustedHTML(_))
+            },
+            TrustedType::TrustedScript => {
+                matches!(idl_trusted_type, TrustedTypeOrString::TrustedScript(_))
+            },
+            TrustedType::TrustedScriptURL => {
+                matches!(idl_trusted_type, TrustedTypeOrString::TrustedScriptURL(_))
+            },
+        }
+    }
 }
 
 impl TrustedTypePolicy {

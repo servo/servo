@@ -35,13 +35,17 @@ export async function getEventHandlerAttributeWithInterfaceNames() {
     addOnAttributes(htmlIDL, interfaceName);
   });
 
-  const encryptedMediaIDL = await (await fetch("/interfaces/encrypted-media.idl")).text();
-  // HTMLMediaElement (the parent for <audio> and <video>) has extra event handlers.
-  addOnAttributes(encryptedMediaIDL, "HTMLMediaElement");
+  if ("HTMLMediaElement" in self) {
+    const encryptedMediaIDL = await (await fetch("/interfaces/encrypted-media.idl")).text();
+    // HTMLMediaElement (the parent for <audio> and <video>) has extra event handlers.
+    addOnAttributes(encryptedMediaIDL, "HTMLMediaElement");
+  }
 
-  const svgAnimationsIDL = await (await fetch("/interfaces/svg-animations.idl")).text();
-  // SVGAnimationElement has extra event handlers.
-  addOnAttributes(svgAnimationsIDL, "SVGAnimationElement");
+  if ("SVGAnimationElement" in self) {
+    const svgAnimationsIDL = await (await fetch("/interfaces/svg-animations.idl")).text();
+    // SVGAnimationElement has extra event handlers.
+    addOnAttributes(svgAnimationsIDL, "SVGAnimationElement");
+  }
 
   return attributeNamesWithInterfaceName;
 }

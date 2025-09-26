@@ -1,0 +1,8 @@
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1976998">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const a = document.createElement("style")
+  document.head.appendChild(a)
+  a.sheet.insertRule("* { font-size: 30%; container-type: size; transition-duration: 1s, 2s, 1s, 37ms, 26s !important }")
+})
+</script>

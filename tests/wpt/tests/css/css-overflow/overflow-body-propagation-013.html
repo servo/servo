@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: HTML with display:none and BODY with overflow:scroll</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#overflow-propagation">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12649">
+<meta name="assert" content="The <body> doesn't propagate overflow to the
+  viewport when the root element doesn't generate a box. Therefore, there
+  shouldn't be scrollbars.">
+<link rel="match" href="about:blank">
+<style>
+:root {
+  display: none;
+  scrollbar-color: red red;
+}
+body {
+  overflow: scroll;
+}
+</style>
+<body></body>

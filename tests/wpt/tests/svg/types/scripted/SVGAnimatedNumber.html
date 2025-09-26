@@ -20,7 +20,8 @@ test(function() {
   assert_equals(feSpecularLightingElement.surfaceScale.baseVal, 1);
 
   // Check assigning various valid and invalid values.
-  feSpecularLightingElement.surfaceScale.baseVal = -1; // Negative values are allowed from SVG DOM, but should lead to an error when rendering (disable the filter)
+  // Negative values are allowed from SVG DOM, but should lead to an error when rendering (disable the filter)
+  feSpecularLightingElement.surfaceScale.baseVal = -1;
   assert_equals(feSpecularLightingElement.surfaceScale.baseVal, -1);
   feSpecularLightingElement.surfaceScale.baseVal = 300;
   assert_equals(feSpecularLightingElement.surfaceScale.baseVal, 300);

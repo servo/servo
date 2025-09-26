@@ -88,7 +88,7 @@ where
         node.layout_data().is_none() || !parent_data.damage.is_empty()
     }
 
-    fn shared_context(&self) -> &SharedStyleContext {
+    fn shared_context(&self) -> &SharedStyleContext<'_> {
         &self.context.style_context
     }
 }

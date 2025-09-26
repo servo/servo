@@ -6,10 +6,12 @@ use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
 use std::ptr::NonNull;
 
+use base::IpcSend;
+use base::generic_channel::GenericSender;
 use base::id::{BrowsingContextId, PipelineId};
 use cookie::Cookie;
 use embedder_traits::{
-    WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus,
+    JSValue, WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverLoadStatus,
 };
 use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
@@ -17,21 +19,19 @@ use ipc_channel::ipc::{self, IpcSender};
 use js::conversions::jsstr_to_string;
 use js::jsapi::{
     self, GetPropertyKeys, HandleValueArray, JS_GetOwnPropertyDescriptorById, JS_GetPropertyById,
-    JS_IsExceptionPending, JSAutoRealm, JSContext, JSType, PropertyDescriptor,
+    JS_IsExceptionPending, JSAutoRealm, JSContext, JSObject, JSType, PropertyDescriptor,
 };
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_CallFunctionName, JS_GetProperty, JS_HasOwnProperty, JS_TypeOfValue};
-use js::rust::{HandleObject, HandleValue, IdVector, ToString};
+use js::rust::{Handle, HandleObject, HandleValue, IdVector, ToString};
 use net_traits::CookieSource::{HTTP, NonHTTP};
 use net_traits::CoreResourceMsg::{
     DeleteCookie, DeleteCookies, GetCookiesDataForUrl, SetCookieForUrl,
 };
-use net_traits::IpcSend;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::conversions::is_array_like;
 use script_bindings::num::Finite;
 use servo_url::ServoUrl;
-use webdriver::common::{WebElement, WebFrame, WebWindow};
 use webdriver::error::ErrorStatus;
 
 use crate::document_collection::DocumentCollection;
@@ -39,18 +39,24 @@ use crate::dom::attr::is_boolean_attribute;
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use crate::dom::bindings::codegen::Bindings::ElementBinding::{
+    ElementMethods, ScrollIntoViewOptions, ScrollLogicalPosition,
+};
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
 use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::{
+    ScrollBehavior, ScrollOptions, WindowMethods,
+};
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
 use crate::dom::bindings::codegen::Bindings::XPathResultBinding::{
     XPathResultConstants, XPathResultMethods,
 };
+use crate::dom::bindings::codegen::UnionTypes::BooleanOrScrollIntoViewOptions;
 use crate::dom::bindings::conversions::{
     ConversionBehavior, ConversionResult, FromJSValConvertible, StringificationBehavior,
     get_property, get_property_jsval, jsid_to_string, root_from_object,
@@ -59,22 +65,23 @@ use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exc
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::domrect::DOMRect;
 use crate::dom::element::Element;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlbodyelement::HTMLBodyElement;
-use crate::dom::htmldatalistelement::HTMLDataListElement;
-use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmlformelement::FormControl;
-use crate::dom::htmliframeelement::HTMLIFrameElement;
-use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
-use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
-use crate::dom::htmloptionelement::HTMLOptionElement;
-use crate::dom::htmlselectelement::HTMLSelectElement;
-use crate::dom::htmltextareaelement::HTMLTextAreaElement;
+use crate::dom::html::htmlbodyelement::HTMLBodyElement;
+use crate::dom::html::htmldatalistelement::HTMLDataListElement;
+use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::html::htmlformelement::FormControl;
+use crate::dom::html::htmliframeelement::HTMLIFrameElement;
+use crate::dom::html::htmlinputelement::{HTMLInputElement, InputType};
+use crate::dom::html::htmloptgroupelement::HTMLOptGroupElement;
+use crate::dom::html::htmloptionelement::HTMLOptionElement;
+use crate::dom::html::htmlselectelement::HTMLSelectElement;
+use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::nodelist::NodeList;
 use crate::dom::types::ShadowRoot;
@@ -86,10 +93,18 @@ use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
 
+/// <https://w3c.github.io/webdriver/#dfn-is-stale>
 fn is_stale(element: &Element) -> bool {
     // An element is stale if its node document is not the active document
     // or if it is not connected.
     !element.owner_document().is_active() || !element.is_connected()
+}
+
+/// <https://w3c.github.io/webdriver/#dfn-is-detached>
+fn is_detached(shadow_root: &ShadowRoot) -> bool {
+    // A shadow root is detached if its node document is not the active document
+    // or if the element node referred to as its host is stale.
+    !shadow_root.owner_document().is_active() || is_stale(&shadow_root.Host())
 }
 
 /// <https://w3c.github.io/webdriver/#dfn-disabled>
@@ -170,12 +185,7 @@ fn get_known_shadow_root(
     // A shadow root is detached if its node document is not the active document
     // or if the element node referred to as its host is stale.
     let shadow_root = DomRoot::downcast::<ShadowRoot>(node).unwrap();
-    if !shadow_root.owner_document().is_active() {
-        return Err(ErrorStatus::DetachedShadowRoot);
-    }
-
-    let host = shadow_root.Host();
-    if is_stale(&host) {
+    if is_detached(&shadow_root) {
         return Err(ErrorStatus::DetachedShadowRoot);
     }
     // Step 5. Return success with data node.
@@ -337,7 +347,7 @@ impl From<HandleValue<'_>> for HashableJSVal {
 }
 
 #[allow(unsafe_code)]
-/// <https://w3c.github.io/webdriver/#dfn-json-deserialize>
+/// <https://w3c.github.io/webdriver/#dfn-json-clone>
 pub(crate) fn jsval_to_webdriver(
     cx: SafeJSContext,
     global_scope: &GlobalScope,
@@ -345,6 +355,7 @@ pub(crate) fn jsval_to_webdriver(
     realm: InRealm,
     can_gc: CanGc,
 ) -> WebDriverJSResult {
+    let _aes = AutoEntryScript::new(global_scope);
     let mut seen = HashSet::new();
     let result = unsafe { jsval_to_webdriver_inner(*cx, global_scope, val, &mut seen) };
     if result.is_err() {
@@ -354,6 +365,7 @@ pub(crate) fn jsval_to_webdriver(
 }
 
 #[allow(unsafe_code)]
+/// <https://w3c.github.io/webdriver/#dfn-internal-json-clone>
 unsafe fn jsval_to_webdriver_inner(
     cx: *mut JSContext,
     global_scope: &GlobalScope,
@@ -362,27 +374,20 @@ unsafe fn jsval_to_webdriver_inner(
 ) -> WebDriverJSResult {
     let _ac = enter_realm(global_scope);
     if val.get().is_undefined() {
-        Ok(WebDriverJSValue::Undefined)
+        Ok(JSValue::Undefined)
     } else if val.get().is_null() {
-        Ok(WebDriverJSValue::Null)
+        Ok(JSValue::Null)
     } else if val.get().is_boolean() {
-        Ok(WebDriverJSValue::Boolean(val.get().to_boolean()))
-    } else if val.get().is_int32() {
-        Ok(WebDriverJSValue::Int(
-            match FromJSValConvertible::from_jsval(cx, val, ConversionBehavior::Default).unwrap() {
-                ConversionResult::Success(c) => c,
-                _ => unreachable!(),
-            },
-        ))
-    } else if val.get().is_double() {
-        Ok(WebDriverJSValue::Number(
+        Ok(JSValue::Boolean(val.get().to_boolean()))
+    } else if val.get().is_number() {
+        Ok(JSValue::Number(
             match FromJSValConvertible::from_jsval(cx, val, ()).unwrap() {
                 ConversionResult::Success(c) => c,
                 _ => unreachable!(),
             },
         ))
     } else if val.get().is_string() {
-        //FIXME: use jsstr_to_string when jsval grows to_jsstring
+        // FIXME: use jsstr_to_string when jsval grows to_jsstring
         let string: DOMString =
             match FromJSValConvertible::from_jsval(cx, val, StringificationBehavior::Default)
                 .unwrap()
@@ -390,92 +395,46 @@ unsafe fn jsval_to_webdriver_inner(
                 ConversionResult::Success(c) => c,
                 _ => unreachable!(),
             };
-        Ok(WebDriverJSValue::String(String::from(string)))
-    }
-    // https://w3c.github.io/webdriver/#dfn-clone-an-object
-    else if val.get().is_object() {
-        let hashable = val.into();
-        // Step 1. If value is in `seen`, return error with error code javascript error.
-        if seen.contains(&hashable) {
-            return Err(WebDriverJSError::JSError);
-        }
-        //Step 2. Append value to `seen`.
-        seen.insert(hashable.clone());
-
+        Ok(JSValue::String(String::from(string)))
+    } else if val.get().is_object() {
         rooted!(in(cx) let object = match FromJSValConvertible::from_jsval(cx, val, ()).unwrap() {
             ConversionResult::Success(object) => object,
             _ => unreachable!(),
         });
         let _ac = JSAutoRealm::new(cx, *object);
 
-        let return_val = if is_array_like::<crate::DomTypeHolder>(cx, val) ||
-            is_arguments_object(cx, val)
-        {
-            let mut result: Vec<WebDriverJSValue> = Vec::new();
-
-            let length = match get_property::<u32>(
-                cx,
-                object.handle(),
-                "length",
-                ConversionBehavior::Default,
-            ) {
-                Ok(length) => match length {
-                    Some(length) => length,
-                    _ => return Err(WebDriverJSError::UnknownType),
-                },
-                Err(error) => {
-                    throw_dom_exception(
-                        SafeJSContext::from_ptr(cx),
-                        global_scope,
-                        error,
-                        CanGc::note(),
-                    );
-                    return Err(WebDriverJSError::JSError);
-                },
-            };
-            // Step 4. For each enumerable property in value, run the following substeps:
-            for i in 0..length {
-                rooted!(in(cx) let mut item = UndefinedValue());
-                match get_property_jsval(cx, object.handle(), &i.to_string(), item.handle_mut()) {
-                    Ok(_) => {
-                        match jsval_to_webdriver_inner(cx, global_scope, item.handle(), seen) {
-                            Ok(converted_item) => result.push(converted_item),
-                            err @ Err(_) => return err,
-                        }
-                    },
-                    Err(error) => {
-                        throw_dom_exception(
-                            SafeJSContext::from_ptr(cx),
-                            global_scope,
-                            error,
-                            CanGc::note(),
-                        );
-                        return Err(WebDriverJSError::JSError);
-                    },
-                }
+        if let Ok(element) = root_from_object::<Element>(*object, cx) {
+            // If the element is stale, return error with error code stale element reference.
+            if is_stale(&element) {
+                Err(WebDriverJSError::StaleElementReference)
+            } else {
+                Ok(JSValue::Element(
+                    element
+                        .upcast::<Node>()
+                        .unique_id(element.owner_window().pipeline_id()),
+                ))
             }
-            Ok(WebDriverJSValue::ArrayLike(result))
-        } else if let Ok(element) = root_from_object::<Element>(*object, cx) {
-            Ok(WebDriverJSValue::Element(WebElement(
-                element
-                    .upcast::<Node>()
-                    .unique_id(element.owner_document().window().pipeline_id()),
-            )))
+        } else if let Ok(shadow_root) = root_from_object::<ShadowRoot>(*object, cx) {
+            // If the shadow root is detached, return error with error code detached shadow root.
+            if is_detached(&shadow_root) {
+                Err(WebDriverJSError::DetachedShadowRoot)
+            } else {
+                Ok(JSValue::ShadowRoot(
+                    shadow_root
+                        .upcast::<Node>()
+                        .unique_id(shadow_root.owner_window().pipeline_id()),
+                ))
+            }
         } else if let Ok(window) = root_from_object::<Window>(*object, cx) {
             let window_proxy = window.window_proxy();
             if window_proxy.is_browsing_context_discarded() {
-                return Err(WebDriverJSError::StaleElementReference);
+                Err(WebDriverJSError::StaleElementReference)
+            } else if window_proxy.browsing_context_id() == window_proxy.webview_id() {
+                Ok(JSValue::Window(window.webview_id().to_string()))
             } else {
-                let pipeline = window.pipeline_id();
-                if window_proxy.browsing_context_id() == window_proxy.webview_id() {
-                    Ok(WebDriverJSValue::Window(WebWindow(
-                        window.Document().upcast::<Node>().unique_id(pipeline),
-                    )))
-                } else {
-                    Ok(WebDriverJSValue::Frame(WebFrame(
-                        window.Document().upcast::<Node>().unique_id(pipeline),
-                    )))
-                }
+                Ok(JSValue::Frame(
+                    window_proxy.browsing_context_id().to_string(),
+                ))
             }
         } else if object_has_to_json_property(cx, global_scope, object.handle()) {
             let name = CString::new("toJSON").unwrap();
@@ -500,67 +459,144 @@ unsafe fn jsval_to_webdriver_inner(
                     Error::JSFailed,
                     CanGc::note(),
                 );
-                return Err(WebDriverJSError::JSError);
+                Err(WebDriverJSError::JSError)
             }
         } else {
-            let mut result = HashMap::new();
-
-            let mut ids = IdVector::new(cx);
-            if !GetPropertyKeys(
-                cx,
-                object.handle().into(),
-                jsapi::JSITER_OWNONLY,
-                ids.handle_mut(),
-            ) {
-                return Err(WebDriverJSError::JSError);
-            }
-            for id in ids.iter() {
-                rooted!(in(cx) let id = *id);
-                rooted!(in(cx) let mut desc = PropertyDescriptor::default());
-
-                let mut is_none = false;
-                if !JS_GetOwnPropertyDescriptorById(
-                    cx,
-                    object.handle().into(),
-                    id.handle().into(),
-                    desc.handle_mut().into(),
-                    &mut is_none,
-                ) {
-                    return Err(WebDriverJSError::JSError);
-                }
-
-                rooted!(in(cx) let mut property = UndefinedValue());
-                if !JS_GetPropertyById(
-                    cx,
-                    object.handle().into(),
-                    id.handle().into(),
-                    property.handle_mut().into(),
-                ) {
-                    return Err(WebDriverJSError::JSError);
-                }
-                if !property.is_undefined() {
-                    let Some(name) = jsid_to_string(cx, id.handle()) else {
-                        return Err(WebDriverJSError::JSError);
-                    };
-
-                    if let Ok(value) =
-                        jsval_to_webdriver_inner(cx, global_scope, property.handle(), seen)
-                    {
-                        result.insert(name.into(), value);
-                    } else {
-                        return Err(WebDriverJSError::JSError);
-                    }
-                }
-            }
-            Ok(WebDriverJSValue::Object(result))
-        };
-        // Step 5. Remove the last element of `seen`.
-        seen.remove(&hashable);
-        // Step 6. Return success with data `result`.
-        return_val
+            clone_an_object(
+                SafeJSContext::from_ptr(cx),
+                global_scope,
+                val,
+                seen,
+                object.handle(),
+            )
+        }
     } else {
         Err(WebDriverJSError::UnknownType)
     }
+}
+
+#[allow(unsafe_code)]
+/// <https://w3c.github.io/webdriver/#dfn-clone-an-object>
+unsafe fn clone_an_object(
+    cx: SafeJSContext,
+    global_scope: &GlobalScope,
+    val: HandleValue,
+    seen: &mut HashSet<HashableJSVal>,
+    object_handle: Handle<'_, *mut JSObject>,
+) -> WebDriverJSResult {
+    let hashable = val.into();
+    // Step 1. If value is in `seen`, return error with error code javascript error.
+    if seen.contains(&hashable) {
+        return Err(WebDriverJSError::JSError);
+    }
+    // Step 2. Append value to `seen`.
+    seen.insert(hashable.clone());
+
+    let return_val = if unsafe {
+        is_array_like::<crate::DomTypeHolder>(*cx, val) || is_arguments_object(*cx, val)
+    } {
+        let mut result: Vec<JSValue> = Vec::new();
+
+        let get_property_result =
+            get_property::<u32>(cx, object_handle, "length", ConversionBehavior::Default);
+        let length = match get_property_result {
+            Ok(length) => match length {
+                Some(length) => length,
+                _ => return Err(WebDriverJSError::UnknownType),
+            },
+            Err(error) => {
+                throw_dom_exception(cx, global_scope, error, CanGc::note());
+                return Err(WebDriverJSError::JSError);
+            },
+        };
+        // Step 4. For each enumerable property in value, run the following substeps:
+        for i in 0..length {
+            rooted!(in(*cx) let mut item = UndefinedValue());
+            let get_property_result =
+                get_property_jsval(cx, object_handle, &i.to_string(), item.handle_mut());
+            match get_property_result {
+                Ok(_) => {
+                    let conversion_result =
+                        unsafe { jsval_to_webdriver_inner(*cx, global_scope, item.handle(), seen) };
+                    match conversion_result {
+                        Ok(converted_item) => result.push(converted_item),
+                        err @ Err(_) => return err,
+                    }
+                },
+                Err(error) => {
+                    throw_dom_exception(cx, global_scope, error, CanGc::note());
+                    return Err(WebDriverJSError::JSError);
+                },
+            }
+        }
+        Ok(JSValue::Array(result))
+    } else {
+        let mut result = HashMap::new();
+
+        let mut ids = unsafe { IdVector::new(*cx) };
+        let succeeded = unsafe {
+            GetPropertyKeys(
+                *cx,
+                object_handle.into(),
+                jsapi::JSITER_OWNONLY,
+                ids.handle_mut(),
+            )
+        };
+        if !succeeded {
+            return Err(WebDriverJSError::JSError);
+        }
+        for id in ids.iter() {
+            rooted!(in(*cx) let id = *id);
+            rooted!(in(*cx) let mut desc = PropertyDescriptor::default());
+
+            let mut is_none = false;
+            let succeeded = unsafe {
+                JS_GetOwnPropertyDescriptorById(
+                    *cx,
+                    object_handle.into(),
+                    id.handle().into(),
+                    desc.handle_mut().into(),
+                    &mut is_none,
+                )
+            };
+            if !succeeded {
+                return Err(WebDriverJSError::JSError);
+            }
+
+            rooted!(in(*cx) let mut property = UndefinedValue());
+            let succeeded = unsafe {
+                JS_GetPropertyById(
+                    *cx,
+                    object_handle.into(),
+                    id.handle().into(),
+                    property.handle_mut().into(),
+                )
+            };
+            if !succeeded {
+                return Err(WebDriverJSError::JSError);
+            }
+
+            if !property.is_undefined() {
+                let name = unsafe { jsid_to_string(*cx, id.handle()) };
+                let Some(name) = name else {
+                    return Err(WebDriverJSError::JSError);
+                };
+
+                if let Ok(value) =
+                    unsafe { jsval_to_webdriver_inner(*cx, global_scope, property.handle(), seen) }
+                {
+                    result.insert(name.into(), value);
+                } else {
+                    return Err(WebDriverJSError::JSError);
+                }
+            }
+        }
+        Ok(JSValue::Object(result))
+    };
+    // Step 5. Remove the last element of `seen`.
+    seen.remove(&hashable);
+    // Step 6. Return success with data `result`.
+    return_val
 }
 
 #[allow(unsafe_code)]
@@ -591,18 +627,15 @@ pub(crate) fn handle_execute_script(
                 Err(_) => Err(WebDriverJSError::JSError),
             };
 
-            if reply.send(result).is_err() {
-                error!("Webdriver might already be released by embedder before reply is sent");
-            };
+            reply.send(result).unwrap_or_else(|err| {
+                error!("ExecuteScript Failed to send reply: {err}");
+            });
         },
-        None => {
-            if reply
-                .send(Err(WebDriverJSError::BrowsingContextNotFound))
-                .is_err()
-            {
-                error!("Webdriver might already be released by embedder before reply is sent");
-            };
-        },
+        None => reply
+            .send(Err(WebDriverJSError::BrowsingContextNotFound))
+            .unwrap_or_else(|err| {
+                error!("ExecuteScript Failed to send reply: {err}");
+            }),
     }
 }
 
@@ -631,13 +664,19 @@ pub(crate) fn handle_execute_async_script(
                 )
                 .is_err()
             {
-                reply_sender.send(Err(WebDriverJSError::JSError)).unwrap();
+                reply_sender
+                    .send(Err(WebDriverJSError::JSError))
+                    .unwrap_or_else(|err| {
+                        error!("ExecuteAsyncScript Failed to send reply: {err}");
+                    });
             }
         },
         None => {
             reply
                 .send(Err(WebDriverJSError::BrowsingContextNotFound))
-                .unwrap();
+                .unwrap_or_else(|err| {
+                    error!("ExecuteAsyncScript Failed to send reply: {err}");
+                });
         },
     }
 }
@@ -1230,7 +1269,9 @@ pub(crate) fn handle_will_send_keys(
 
                 // Step 7. If file is false or the session's strict file interactability
                 if !is_file_input || strict_file_interactability {
-                    // TODO(24059): Step 7.1. Scroll Into View
+                    // Step 7.1. Scroll into view the element
+                    scroll_into_view(&element, documents, &pipeline, can_gc);
+
                     // TODO: Step 7.2 - 7.5
                     // Wait until element become keyboard-interactable
 
@@ -1244,7 +1285,12 @@ pub(crate) fn handle_will_send_keys(
                     // run the focusing steps for the element.
                     if let Some(html_element) = element.downcast::<HTMLElement>() {
                         if !element.is_active_element() {
-                            html_element.Focus(can_gc);
+                            html_element.Focus(
+                                &FocusOptions {
+                                    preventScroll: true,
+                                },
+                                can_gc,
+                            );
                         } else {
                             element_has_focus = element.focus_state();
                         }
@@ -1563,7 +1609,7 @@ pub(crate) fn handle_get_rect(
         .unwrap();
 }
 
-pub(crate) fn handle_get_bounding_client_rect(
+pub(crate) fn handle_scroll_and_get_bounding_client_rect(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
@@ -1573,6 +1619,8 @@ pub(crate) fn handle_get_bounding_client_rect(
     reply
         .send(
             get_known_element(documents, pipeline, element_id).map(|element| {
+                scroll_into_view(&element, documents, &pipeline, can_gc);
+
                 let rect = element.GetBoundingClientRect(can_gc);
                 Rect::new(
                     Point2D::new(rect.X() as f32, rect.Y() as f32),
@@ -1653,7 +1701,7 @@ pub(crate) fn handle_get_property(
     pipeline: PipelineId,
     node_id: String,
     name: String,
-    reply: IpcSender<Result<WebDriverJSValue, ErrorStatus>>,
+    reply: IpcSender<Result<JSValue, ErrorStatus>>,
     can_gc: CanGc,
 ) {
     reply
@@ -1664,14 +1712,12 @@ pub(crate) fn handle_get_property(
                 let cx = document.window().get_cx();
 
                 rooted!(in(*cx) let mut property = UndefinedValue());
-                match unsafe {
-                    get_property_jsval(
-                        *cx,
-                        element.reflector().get_jsobject(),
-                        &name,
-                        property.handle_mut(),
-                    )
-                } {
+                match get_property_jsval(
+                    cx,
+                    element.reflector().get_jsobject(),
+                    &name,
+                    property.handle_mut(),
+                ) {
                     Ok(_) => {
                         match jsval_to_webdriver(
                             cx,
@@ -1681,12 +1727,12 @@ pub(crate) fn handle_get_property(
                             can_gc,
                         ) {
                             Ok(property) => property,
-                            Err(_) => WebDriverJSValue::Undefined,
+                            Err(_) => JSValue::Undefined,
                         }
                     },
                     Err(error) => {
                         throw_dom_exception(cx, &element.global(), error, can_gc);
-                        WebDriverJSValue::Undefined
+                        JSValue::Undefined
                     },
                 }
             }),
@@ -1782,7 +1828,12 @@ fn clear_a_resettable_element(element: &Element, can_gc: CanGc) -> Result<(), Er
     }
 
     // Step 3. Invoke the focusing steps for the element.
-    html_element.Focus(can_gc);
+    html_element.Focus(
+        &FocusOptions {
+            preventScroll: true,
+        },
+        can_gc,
+    );
 
     // Step 4. Run clear algorithm for element.
     if let Some(input_element) = element.downcast::<HTMLInputElement>() {
@@ -1821,7 +1872,9 @@ pub(crate) fn handle_element_clear(
                     return Err(ErrorStatus::InvalidElementState);
                 }
 
-                // TODO: Step 5. Scroll Into View
+                // Step 5. Scroll Into View
+                scroll_into_view(&element, documents, &pipeline, can_gc);
+
                 // TODO: Step 6 - 10
                 // Wait until element become interactable and check.
 
@@ -1878,7 +1931,8 @@ pub(crate) fn handle_element_click(
         .send(
             // Step 3
             get_known_element(documents, pipeline, element_id).and_then(|element| {
-                // Step 4
+                // Step 4. If the element is an input element in the file upload state
+                // return error with error code invalid argument.
                 if let Some(input_element) = element.downcast::<HTMLInputElement>() {
                     if input_element.input_type() == InputType::File {
                         return Err(ErrorStatus::InvalidArgument);
@@ -1889,8 +1943,8 @@ pub(crate) fn handle_element_click(
                     return Err(ErrorStatus::UnknownError);
                 };
 
-                // Step 5
-                // TODO: scroll into view is not implemented in Servo
+                // Step 5. Scroll into view the element's container.
+                scroll_into_view(&container, documents, &pipeline, can_gc);
 
                 // Step 6. If element's container is still not in view
                 // return error with error code element not interactable.
@@ -1914,7 +1968,7 @@ pub(crate) fn handle_element_click(
                 // `paint_tree` is guaranteed not empty as element is "in view".
                 if !container
                     .upcast::<Node>()
-                    .Contains(Some(paint_tree[0].upcast::<Node>()))
+                    .is_shadow_including_inclusive_ancestor_of(paint_tree[0].upcast::<Node>())
                 {
                     return Err(ErrorStatus::ElementClickIntercepted);
                 }
@@ -1930,7 +1984,14 @@ pub(crate) fn handle_element_click(
 
                         // Step 8.5
                         match container.downcast::<HTMLElement>() {
-                            Some(html_element) => html_element.Focus(can_gc),
+                            Some(html_element) => {
+                                html_element.Focus(
+                                    &FocusOptions {
+                                        preventScroll: true,
+                                    },
+                                    can_gc,
+                                );
+                            },
                             None => return Err(ErrorStatus::UnknownError),
                         }
 
@@ -1982,11 +2043,9 @@ fn is_element_in_view(element: &Element, paint_tree: &[DomRoot<Element>]) -> boo
     // https://w3c.github.io/webdriver/#dfn-pointer-events-are-not-disabled
     // An element is said to have pointer events disabled
     // if the resolved value of its "pointer-events" style property is "none".
-    let pointer_events_not_disabled = element
+    element
         .style()
-        .is_none_or(|style| style.get_inherited_ui().pointer_events != PointerEvents::None);
-
-    pointer_events_not_disabled
+        .is_none_or(|style| style.get_inherited_ui().pointer_events != PointerEvents::None)
 }
 
 /// <https://w3c.github.io/webdriver/#dfn-pointer-interactable-paint-tree>
@@ -2069,7 +2128,7 @@ pub(crate) fn handle_is_selected(
 pub(crate) fn handle_add_load_status_sender(
     documents: &DocumentCollection,
     pipeline: PipelineId,
-    reply: IpcSender<WebDriverLoadStatus>,
+    reply: GenericSender<WebDriverLoadStatus>,
 ) {
     if let Some(document) = documents.find_document(pipeline) {
         let window = document.window();
@@ -2087,15 +2146,37 @@ pub(crate) fn handle_remove_load_status_sender(
     }
 }
 
-pub(crate) fn handle_get_window_handle(
-    pipeline_id: PipelineId,
-    reply: IpcSender<Result<String, ErrorStatus>>,
+/// <https://w3c.github.io/webdriver/#dfn-scrolls-into-view>
+fn scroll_into_view(
+    element: &Element,
+    documents: &DocumentCollection,
+    pipeline: &PipelineId,
+    can_gc: CanGc,
 ) {
-    if let Some(res) = ScriptThread::find_document(pipeline_id)
-        .map(|document| document.upcast::<Node>().unique_id(pipeline_id))
-    {
-        reply.send(Ok(res)).ok();
-    } else {
-        reply.send(Err(ErrorStatus::NoSuchWindow)).ok();
+    // Check if element is already in view
+    let paint_tree = get_element_pointer_interactable_paint_tree(
+        element,
+        &documents
+            .find_document(*pipeline)
+            .expect("Document existence guaranteed by `get_known_element`"),
+        can_gc,
+    );
+    if is_element_in_view(element, &paint_tree) {
+        return;
     }
+
+    // Step 1. Let options be the following ScrollIntoViewOptions:
+    // - "behavior": instant
+    // - Logical scroll position "block": end
+    // - Logical scroll position "inline": nearest
+    let options = BooleanOrScrollIntoViewOptions::ScrollIntoViewOptions(ScrollIntoViewOptions {
+        parent: ScrollOptions {
+            behavior: ScrollBehavior::Instant,
+        },
+        block: ScrollLogicalPosition::End,
+        inline: ScrollLogicalPosition::Nearest,
+        container: Default::default(),
+    });
+    // Step 2. Run scrollIntoView
+    element.ScrollIntoView(options);
 }

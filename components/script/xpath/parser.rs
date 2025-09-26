@@ -4,12 +4,14 @@
 
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take_while1};
-use nom::character::complete::{alpha1, alphanumeric1, char, digit1, multispace0};
+use nom::character::complete::{char, digit1, multispace0};
 use nom::combinator::{map, opt, recognize, value};
 use nom::error::{Error as NomError, ErrorKind as NomErrorKind, ParseError as NomParseError};
 use nom::multi::{many0, separated_list0};
 use nom::sequence::{delimited, pair, preceded};
-use nom::{Finish, IResult, Parser};
+use nom::{AsChar, Finish, IResult, Input, Parser};
+
+use crate::dom::bindings::xmlname::{is_valid_continuation, is_valid_start};
 
 pub(crate) fn parse(input: &str) -> Result<Expr, OwnedParserError> {
     let (_, ast) = expr(input).finish().map_err(OwnedParserError::from)?;
@@ -232,130 +234,6 @@ pub(crate) enum CoreFunction {
     Lang(Box<Expr>),
 }
 
-impl CoreFunction {
-    pub(crate) fn name(&self) -> &'static str {
-        match self {
-            CoreFunction::Last => "last",
-            CoreFunction::Position => "position",
-            CoreFunction::Count(_) => "count",
-            CoreFunction::Id(_) => "id",
-            CoreFunction::LocalName(_) => "local-name",
-            CoreFunction::NamespaceUri(_) => "namespace-uri",
-            CoreFunction::Name(_) => "name",
-            CoreFunction::String(_) => "string",
-            CoreFunction::Concat(_) => "concat",
-            CoreFunction::StartsWith(_, _) => "starts-with",
-            CoreFunction::Contains(_, _) => "contains",
-            CoreFunction::SubstringBefore(_, _) => "substring-before",
-            CoreFunction::SubstringAfter(_, _) => "substring-after",
-            CoreFunction::Substring(_, _, _) => "substring",
-            CoreFunction::StringLength(_) => "string-length",
-            CoreFunction::NormalizeSpace(_) => "normalize-space",
-            CoreFunction::Translate(_, _, _) => "translate",
-            CoreFunction::Number(_) => "number",
-            CoreFunction::Sum(_) => "sum",
-            CoreFunction::Floor(_) => "floor",
-            CoreFunction::Ceiling(_) => "ceiling",
-            CoreFunction::Round(_) => "round",
-            CoreFunction::Boolean(_) => "boolean",
-            CoreFunction::Not(_) => "not",
-            CoreFunction::True => "true",
-            CoreFunction::False => "false",
-            CoreFunction::Lang(_) => "lang",
-        }
-    }
-
-    pub(crate) fn min_args(&self) -> usize {
-        match self {
-            // No args
-            CoreFunction::Last |
-            CoreFunction::Position |
-            CoreFunction::True |
-            CoreFunction::False => 0,
-
-            // Optional single arg
-            CoreFunction::LocalName(_) |
-            CoreFunction::NamespaceUri(_) |
-            CoreFunction::Name(_) |
-            CoreFunction::String(_) |
-            CoreFunction::StringLength(_) |
-            CoreFunction::NormalizeSpace(_) |
-            CoreFunction::Number(_) => 0,
-
-            // Required single arg
-            CoreFunction::Count(_) |
-            CoreFunction::Id(_) |
-            CoreFunction::Sum(_) |
-            CoreFunction::Floor(_) |
-            CoreFunction::Ceiling(_) |
-            CoreFunction::Round(_) |
-            CoreFunction::Boolean(_) |
-            CoreFunction::Not(_) |
-            CoreFunction::Lang(_) => 1,
-
-            // Required two args
-            CoreFunction::StartsWith(_, _) |
-            CoreFunction::Contains(_, _) |
-            CoreFunction::SubstringBefore(_, _) |
-            CoreFunction::SubstringAfter(_, _) => 2,
-
-            // Special cases
-            CoreFunction::Concat(_) => 2,          // Minimum 2 args
-            CoreFunction::Substring(_, _, _) => 2, // 2 or 3 args
-            CoreFunction::Translate(_, _, _) => 3, // Exactly 3 args
-        }
-    }
-
-    pub(crate) fn max_args(&self) -> Option<usize> {
-        match self {
-            // No args
-            CoreFunction::Last |
-            CoreFunction::Position |
-            CoreFunction::True |
-            CoreFunction::False => Some(0),
-
-            // Optional single arg (0 or 1)
-            CoreFunction::LocalName(_) |
-            CoreFunction::NamespaceUri(_) |
-            CoreFunction::Name(_) |
-            CoreFunction::String(_) |
-            CoreFunction::StringLength(_) |
-            CoreFunction::NormalizeSpace(_) |
-            CoreFunction::Number(_) => Some(1),
-
-            // Exactly one arg
-            CoreFunction::Count(_) |
-            CoreFunction::Id(_) |
-            CoreFunction::Sum(_) |
-            CoreFunction::Floor(_) |
-            CoreFunction::Ceiling(_) |
-            CoreFunction::Round(_) |
-            CoreFunction::Boolean(_) |
-            CoreFunction::Not(_) |
-            CoreFunction::Lang(_) => Some(1),
-
-            // Exactly two args
-            CoreFunction::StartsWith(_, _) |
-            CoreFunction::Contains(_, _) |
-            CoreFunction::SubstringBefore(_, _) |
-            CoreFunction::SubstringAfter(_, _) => Some(2),
-
-            // Special cases
-            CoreFunction::Concat(_) => None, // Unlimited args
-            CoreFunction::Substring(_, _, _) => Some(3), // 2 or 3 args
-            CoreFunction::Translate(_, _, _) => Some(3), // Exactly 3 args
-        }
-    }
-
-    /// Returns true if the number of arguments is valid for this function
-    pub(crate) fn is_valid_arity(&self, num_args: usize) -> bool {
-        let min = self.min_args();
-        let max = self.max_args();
-
-        num_args >= min && max.is_none_or(|max| num_args <= max)
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct OwnedParserError {
     input: String,
@@ -512,7 +390,7 @@ fn union_expr(input: &str) -> IResult<&str, Expr> {
 }
 
 fn path_expr(input: &str) -> IResult<&str, Expr> {
-    alt((
+    ws(alt((
         // "//" RelativePathExpr
         map(
             pair(tag("//"), move |i| relative_path_expr(true, i)),
@@ -545,7 +423,7 @@ fn path_expr(input: &str) -> IResult<&str, Expr> {
         ),
         // RelativePathExpr
         move |i| relative_path_expr(false, i),
-    ))
+    )))
     .parse(input)
 }
 
@@ -955,7 +833,7 @@ fn string_literal(input: &str) -> IResult<&str, Literal> {
     .parse(input)
 }
 
-// QName parser
+/// <https://www.w3.org/TR/REC-xml-names/#NT-QName>
 fn qname(input: &str) -> IResult<&str, QName> {
     let (input, prefix) = opt((ncname, char(':'))).parse(input)?;
     let (input, local) = ncname(input)?;
@@ -969,13 +847,31 @@ fn qname(input: &str) -> IResult<&str, QName> {
     ))
 }
 
-// NCName parser
+/// <https://www.w3.org/TR/REC-xml-names/#NT-NCName>
 fn ncname(input: &str) -> IResult<&str, &str> {
-    recognize(pair(
-        alpha1,
-        many0(alt((alphanumeric1, tag("-"), tag("_")))),
-    ))
-    .parse(input)
+    fn name_start_character<T, E: NomParseError<T>>(input: T) -> IResult<T, T, E>
+    where
+        T: Input,
+        <T as Input>::Item: AsChar,
+    {
+        input.split_at_position1_complete(
+            |character| !is_valid_start(character.as_char()) || character.as_char() == ':',
+            NomErrorKind::OneOf,
+        )
+    }
+
+    fn name_character<T, E: NomParseError<T>>(input: T) -> IResult<T, T, E>
+    where
+        T: Input,
+        <T as Input>::Item: AsChar,
+    {
+        input.split_at_position1_complete(
+            |character| !is_valid_continuation(character.as_char()) || character.as_char() == ':',
+            NomErrorKind::OneOf,
+        )
+    }
+
+    recognize(pair(name_start_character, many0(name_character))).parse(input)
 }
 
 // Test functions to verify the parsers:

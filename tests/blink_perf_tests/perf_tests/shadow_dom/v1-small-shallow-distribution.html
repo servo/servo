@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script type="text/javascript" src="../resources/runner.js"></script>
+  <script type="text/javascript" src="./v1-common.js"></script>
+</head>
+<body>
+<div id="parent"></div>
+
+<script>
+const hostChildren = 10;
+const loop = 10;
+
+let host;
+
+PerfTestRunner.measureTime({
+  description: `Measure distribution (${hostChildren} shallow host children)`,
+  setup: () => {
+    host = createHostTree(hostChildren);
+    document.querySelector('#parent').appendChild(host);
+  },
+  run: () => {
+    runHostChildrenMutationThenGetDistribution(host, loop);
+  },
+  teardown: () => {
+    host.remove();
+  }
+});
+</script>
+</body>
+</html>

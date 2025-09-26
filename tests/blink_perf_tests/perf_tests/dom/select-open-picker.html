@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+
+<button>user activation button</button>
+
+<script>
+const numOptions = 3000;
+const numTestRuns = 6;
+let isDone = false;
+
+const button = document.querySelector('button');
+
+async function runTest() {
+  while (!isDone) {
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+
+    const select = document.createElement('select');
+    for (let i = 0; i < numOptions; i++) {
+      const option = document.createElement('option');
+      option.textContent = i;
+      select.appendChild(option);
+    }
+    document.body.appendChild(select);
+
+    // Get user activation for select.showPicker()
+    await new Promise(resolve => {
+      const buttonBox = button.getBoundingClientRect();
+      const x = buttonBox.x + (buttonBox.width / 2);
+      const y = buttonBox.y + (buttonBox.height / 2);
+      chrome.gpuBenchmarking.pointerActionSequence([{
+        source: 'mouse',
+        actions: [
+          {name: 'pointerDown', x: x, y: y},
+          {name: 'pointerUp', x: x, y: y}
+        ]
+      }], resolve);
+    });
+
+    PerfTestRunner.addRunTestStartMarker();
+    const startTime = PerfTestRunner.now();
+    select.showPicker();
+
+    PerfTestRunner.measureValueAsync(PerfTestRunner.now() - startTime);
+    PerfTestRunner.addRunTestEndMarker();
+    select.remove();
+  }
+}
+
+PerfTestRunner.startMeasureValuesAsync({
+  unit: 'ms',
+  done: function() {
+    isDone = true;
+  },
+  run: function() {
+    runTest();
+  },
+  iterationCount: numTestRuns,
+  description: "Measures performance of opening select's picker."
+});
+</script>

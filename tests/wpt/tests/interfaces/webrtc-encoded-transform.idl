@@ -137,7 +137,7 @@ partial interface DedicatedWorkerGlobalScope {
 interface RTCRtpScriptTransformer : EventTarget {
     // Attributes and methods related to the transformer source
     readonly attribute ReadableStream readable;
-    Promise<unsigned long long> generateKeyFrame(optional DOMString rid);
+    Promise<undefined> generateKeyFrame(optional DOMString rid);
     Promise<undefined> sendKeyFrameRequest();
     // Attributes and methods related to the transformer sink
     readonly attribute WritableStream writable;

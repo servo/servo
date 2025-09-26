@@ -9,7 +9,7 @@ use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::htmlelement::HTMLElement;
+use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::NodeTraits;
 use crate::script_runtime::CanGc;
 

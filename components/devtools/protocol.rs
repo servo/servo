@@ -5,7 +5,7 @@
 //! Low-level wire protocol implementation. Currently only supports
 //! [JSON packets](https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#json-packets).
 
-use std::io::{Read, Write};
+use std::io::{ErrorKind, Read, Write};
 use std::net::TcpStream;
 
 use log::debug;
@@ -49,7 +49,8 @@ impl JsonPacketStream for TcpStream {
         loop {
             let mut buf = [0];
             let byte = match self.read(&mut buf) {
-                Ok(0) => return Ok(None), // EOF
+                Ok(0) => return Ok(None),                                            // EOF
+                Err(e) if e.kind() == ErrorKind::ConnectionReset => return Ok(None), // EOF
                 Ok(1) => buf[0],
                 Ok(_) => unreachable!(),
                 Err(e) => return Err(e.to_string()),

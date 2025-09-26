@@ -12,14 +12,14 @@
 
 <body>
   <button id="toggle-button-1" command="toggle-popover" commandfor="x-popover-1">Toggle the popover</button>
-  <x-popover-1 id="x-popover-1">
+  <x-popover-1 id="x-popover-1" popover>
     <template shadowrootmode="open" shadowrootreferencetarget="popover">
       <div id="popover" popover>Popover content inside shadow root</div>
     </template>
   </x-popover-1>
 
   <button id="toggle-button-2" command="toggle-popover" commandfor="x-popover-2">Toggle the popover</button>
-  <x-popover-2 id="x-popover-2"></x-popover-2>
+  <x-popover-2 id="x-popover-2" popover></x-popover-2>
   <script>
     const customPopover2 = document.querySelector('x-popover-2');
     customPopover2.attachShadow({ mode: 'open', referenceTarget: 'popover' });
@@ -27,7 +27,7 @@
   </script>
 
   <button id="toggle-button-3" command="toggle-popover">Toggle the popover</button>
-  <x-popover-3 id="x-popover-3">
+  <x-popover-3 id="x-popover-3" popover>
     <template shadowrootmode="open" shadowrootreferencetarget="popover">
       <div id="popover" popover>Popover content inside shadow root</div>
     </template>
@@ -39,16 +39,36 @@
         const xPopover = document.getElementById(popoverId);
         const popover = xPopover.shadowRoot.getElementById("popover");
 
-        let showCount = 0;
+        let xPopoverShowCount = 0;
+        xPopover.addEventListener('beforetoggle', (e) => {
+          if (e.newState === "open")
+            ++xPopoverShowCount;
+        });
+        let popoverShowCount = 0;
         popover.addEventListener('beforetoggle', (e) => {
           if (e.newState === "open")
-            ++showCount;
+            ++popoverShowCount;
         });
 
         const toggleButton = document.getElementById(buttonId);
         toggleButton.click();
 
-        assert_equals(showCount, 1, "showCount");
+        assert_equals(xPopoverShowCount, 0, "host should not be toggled if valid reference target is set");
+        assert_equals(popoverShowCount, 1, "inner element should be target of toggle if reference target is set");
+        popover.hidePopover();
+
+        // Setting referenceTarget to null means the host element is the target of the idref.
+        xPopover.shadowRoot.referenceTarget = null;
+        toggleButton.click();
+        assert_equals(xPopoverShowCount, 1, "host should be toggled if reference target is null");
+        assert_equals(popoverShowCount, 1, "inner element should not be toggled if reference target is null");
+        popover.hidePopover();
+
+        // Setting referenceTarget to empty string means the idref is treated as invalid.
+        xPopover.shadowRoot.referenceTarget = "";
+        toggleButton.click();
+        assert_equals(xPopoverShowCount, 1, "no additional toggle on host if reference target is empty string");
+        assert_equals(popoverShowCount, 1, "no additional toggle on inner element if reference target is empty string");
       }, name);
     }
     testCommandFor('x-popover-1', 'toggle-button-1', "Shadow root reference target works with commandfor attribute.");

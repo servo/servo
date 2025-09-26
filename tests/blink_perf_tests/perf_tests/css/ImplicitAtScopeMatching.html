@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<script src="./resources/utils.js"></script>
+<main id=main></main>
+<style>
+  /* Explicit inheritance is used to trigger recalc of all elements. */
+  * { z-index: inherit; }
+  :root { z-index: 42; }
+</style>
+<script>
+
+g_counter = 0;
+
+// Create a tree where *each* leaf node has a stylesheet
+// with an implict @scope rule (with a matching style rule inside).
+function createTree(siblings, depth) {
+  let root = document.createElement('div');
+  if (depth >= 2) {
+    root.append(...[...Array(siblings).keys()].map(() => createTree(siblings, depth - 1)));
+  } else {
+    // Leaf nodes.
+    root.classList.add('leaf');
+    let style = document.createElement('style');
+    style.textContent = `
+      /* Prevent cache: ${g_counter++} */
+      @scope {
+        .leaf:scope { background-color: green; }
+      }
+    `;
+    root.append(style);
+  }
+  return root;
+}
+
+function setup() {
+  let root = createTree(/* siblings */ 5, /* depth */ 5);
+  main.append(root);
+}
+
+setup();
+
+PerfTestRunner.measureTime({
+    description: 'Many implicit whole-RuleSet @scopes with matching rules',
+    run: () => {
+      main.offsetTop;
+      main.style.zIndex = '43';
+      main.offsetTop;
+      main.style.zIndex = '42';
+    }
+});
+
+</script>

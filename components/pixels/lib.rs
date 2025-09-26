@@ -14,10 +14,9 @@ use euclid::default::{Point2D, Rect, Size2D};
 use image::codecs::{bmp, gif, ico, jpeg, png, webp};
 use image::error::ImageFormatHint;
 use image::imageops::{self, FilterType};
-use image::io::Limits;
 use image::{
     AnimationDecoder, DynamicImage, ImageBuffer, ImageDecoder, ImageError, ImageFormat,
-    ImageResult, Rgba,
+    ImageResult, Limits, Rgba,
 };
 use ipc_channel::ipc::IpcSharedMemory;
 use log::debug;
@@ -149,7 +148,7 @@ pub fn flip_y_rgba8_image_inplace(size: Size2D<u32>, pixels: &mut [u8]) {
     }
 }
 
-pub fn rgba8_get_rect(pixels: &[u8], size: Size2D<u32>, rect: Rect<u32>) -> Cow<[u8]> {
+pub fn rgba8_get_rect(pixels: &[u8], size: Size2D<u32>, rect: Rect<u32>) -> Cow<'_, [u8]> {
     assert!(!rect.is_empty());
     assert!(Rect::from_size(size).contains_rect(&rect));
     assert_eq!(pixels.len() % 4, 0);
@@ -288,7 +287,20 @@ pub struct RasterImage {
     pub frames: Vec<ImageFrame>,
 }
 
-#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+fn sensible_delay(delay: Duration) -> Duration {
+    // Very small timeout values are problematic for two reasons: we don't want
+    // to burn energy redrawing animated images extremely fast, and broken tools
+    // generate these values when they actually want a "default" value, so such
+    // images won't play back right without normalization.
+    // https://searchfox.org/firefox-main/rev/c79acad610ddbb31bd92e837e056b53716f5ccf2/image/FrameTimeout.h#35
+    if delay <= Duration::from_millis(10) {
+        Duration::from_millis(100)
+    } else {
+        delay
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ImageFrame {
     pub delay: Option<Duration>,
     /// References a range of the `bytes` field from the image that this
@@ -296,6 +308,12 @@ pub struct ImageFrame {
     pub byte_range: Range<usize>,
     pub width: u32,
     pub height: u32,
+}
+
+impl ImageFrame {
+    pub fn delay(&self) -> Option<Duration> {
+        self.delay.map(sensible_delay)
+    }
 }
 
 /// A non-owning reference to the data of an [ImageFrame]
@@ -306,23 +324,32 @@ pub struct ImageFrameView<'a> {
     pub height: u32,
 }
 
+impl ImageFrameView<'_> {
+    pub fn delay(&self) -> Option<Duration> {
+        self.delay.map(sensible_delay)
+    }
+}
+
 impl RasterImage {
     pub fn should_animate(&self) -> bool {
         self.frames.len() > 1
     }
 
-    pub fn frames(&self) -> impl Iterator<Item = ImageFrameView> {
-        self.frames.iter().map(|frame| ImageFrameView {
+    fn frame_view<'image>(&'image self, frame: &ImageFrame) -> ImageFrameView<'image> {
+        ImageFrameView {
             delay: frame.delay,
             bytes: self.bytes.get(frame.byte_range.clone()).unwrap(),
             width: frame.width,
             height: frame.height,
-        })
+        }
     }
 
-    pub fn first_frame(&self) -> ImageFrameView {
-        self.frames()
-            .next()
+    pub fn frame(&self, index: usize) -> Option<ImageFrameView<'_>> {
+        self.frames.get(index).map(|frame| self.frame_view(frame))
+    }
+
+    pub fn first_frame(&self) -> ImageFrameView<'_> {
+        self.frame(0)
             .expect("All images should have at least one frame")
     }
 }
@@ -363,8 +390,10 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Raster
             };
             match image_decoder {
                 GenericImageDecoder::Png(png_decoder) => {
-                    if png_decoder.is_apng() {
-                        let apng_decoder = png_decoder.apng();
+                    if png_decoder.is_apng().unwrap_or_default() {
+                        let Ok(apng_decoder) = png_decoder.apng() else {
+                            return None;
+                        };
                         decode_animated_image(cors_status, apng_decoder)
                     } else {
                         decode_static_image(cors_status, *png_decoder)
@@ -569,9 +598,9 @@ fn make_decoder(
     })
 }
 
-fn decode_static_image<'a>(
+fn decode_static_image(
     cors_status: CorsStatus,
-    image_decoder: impl ImageDecoder<'a>,
+    image_decoder: impl ImageDecoder,
 ) -> Option<RasterImage> {
     let Ok(dynamic_image) = DynamicImage::from_decoder(image_decoder) else {
         debug!("Image decoding error");

@@ -4,6 +4,7 @@
     <title>Geometry Interfaces: Test DOMMatrix non-mutating methods</title>
     <link href="mailto:peter.hall@algomi.com" rel="author" title="Peter Hall">
     <link rel="help" href="https://drafts.fxtf.org/geometry-1/#DOMMatrix">
+    <script src="support/dommatrix-test-util.js"></script>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
 </head>
@@ -105,7 +106,7 @@
             m.m43 += tx * m.m13 + ty * m.m23 + tz * m.m33;
             m.m44 += tx * m.m14 + ty * m.m24 + tz * m.m34;
           });
-          checkDOMMatrix(result, expected);
+          checkMatrix(result, expected, { epsilon });
         },"test translate()");
 
         test(function() {
@@ -127,7 +128,7 @@
             m.m33 *= sz;
             m.m34 *= sz;
           });
-          checkDOMMatrix(result, expected);
+          checkMatrix(result, expected, { epsilon });
         },"test scale() without offsets");
 
         test(function() {
@@ -136,35 +137,35 @@
                           .translate(11, 7, 13)
                           .scale(2, 5, 3)
                           .translate(-11, -7, -13);
-          checkDOMMatrix(result, expected);
+          checkMatrix(result, expected, { epsilon });
         },"test scale() with offsets");
 
         test(function() {
           var result = new DOMMatrixReadOnly([1, 2, 3, 4, 5, 6])
                           .scale(1, 1, 1, 1, 1, 1);
           var expected = new DOMMatrixReadOnly([1, 2, 0, 0, 3, 4, 0, 0, 0, 0, 1, 0, 5, 6, 0, 1]);
-          checkDOMMatrix(result, expected);
+          checkMatrix(result, expected, { epsilon });
         },"test scale() with identity scale and nonzero originZ");
 
         test(function() {
           var result = initialDOMMatrix().scaleNonUniform();
           var expected = initialDOMMatrix()
                           .scale(1, 1, 1, 0, 0, 0);
-          checkDOMMatrix(result, expected);
+          checkMatrix(result, expected, { epsilon });
         },"test scaleNonUniform()");
 
         test(function() {
           var result = initialDOMMatrix().scaleNonUniform(6);
           var expected = initialDOMMatrix()
                           .scale(6, 1, 1, 0, 0, 0);
-          checkDOMMatrix(result, expected);
+          checkMatrix(result, expected, { epsilon });
         },"test scaleNonUniform() with sx");
 
         test(function() {
           var result = initialDOMMatrix().scaleNonUniform(5, 7);
           var expected = initialDOMMatrix()
                           .scale(5, 7, 1, 0, 0, 0);
-          checkDOMMatrix(result, expected);
+          checkMatrix(result, expected, { epsilon });
         },"test scaleNonUniform() with sx, sy");
 
         test(function() {
@@ -173,19 +174,19 @@
                           .translate(5, 2, 3)
                           .scale(7, 7, 7)
                           .translate(-5, -2, -3);
-          checkDOMMatrix(result, expected);
+          checkMatrix(result, expected, { epsilon });
         },"test scale3d()");
 
         test(function() {
           var result = initialDOMMatrix().rotate(-90);
           var expected = initialDOMMatrix().multiply(getRotationMatrix(0, 0, 1, -90));
-          checkDOMMatrix(result, expected);
+          checkMatrix(result, expected, { epsilon });
         },"test rotate() 2d");
 
         test(function() {
           var result = initialDOMMatrix().rotate(180, 180, 90);
           var expected = initialDOMMatrix().rotate(0,0,-90);
-          checkDOMMatrix(result, expected);
+          checkMatrix(result, expected, { epsilon });
         },"test rotate()");
 
         test(function() {
@@ -194,43 +195,43 @@
                           .rotate(0, 0, 90)
                           .rotate(0, 90, 0)
                           .rotate(90, 0, 0);
-          checkDOMMatrix(result, expected);
+          checkMatrix(result, expected, { epsilon });
         },"test rotate() order");
 
         test(function() {
           var result = initialDOMMatrix().rotateFromVector(1, 1);
           var expected = initialDOMMatrix().rotate(45);
-          checkDOMMatrix(result, expected);
+          checkMatrix(result, expected, { epsilon });
         },"test rotateFromVector()");
 
         test(function() {
           var result = initialDOMMatrix().rotateFromVector(0, 1);
           var expected = initialDOMMatrix().rotate(90);
-          checkDOMMatrix(result, expected);
+          checkMatrix(result, expected, { epsilon });
         },"test rotateFromVector() with x being zero");
 
         test(function() {
           var result = initialDOMMatrix().rotateFromVector(1, 0);
           var expected = initialDOMMatrix()
-          checkDOMMatrix(result, expected);
+          checkMatrix(result, expected, { epsilon });
         },"test rotateFromVector() with y being zero");
 
         test(function() {
           var result = initialDOMMatrix().rotateFromVector(0, 0);
           var expected = initialDOMMatrix()
-          checkDOMMatrix(result, expected);
+          checkMatrix(result, expected, { epsilon });
         },"test rotateFromVector() with two zeros");
 
         test(function() {
           var result = initialDOMMatrix().rotateAxisAngle(3, 3, 3, 120);
           var expected = initialDOMMatrix().multiply(getRotationMatrix(3, 3, 3, 120));
-          checkDOMMatrix(result, expected);
+          checkMatrix(result, expected, { epsilon });
         },"test rotateAxisAngle() ");
 
         test(function() {
           var result = new DOMMatrix([1, 1, 1, 1, 1, 1]).rotateAxisAngle(0, 0, 3, 90);
           var expected = new DOMMatrix([1, 1, -1, -1, 1, 1]);
-          checkDOMMatrix(result, expected);
+          checkMatrix(result, expected, { epsilon });
         },"test rotateAxisAngle() on 2D matrix with 2D rotation");
 
         test(function() {
@@ -243,7 +244,7 @@
                 0,       0, 1, 0,
                 0,       0, 0, 1])
           var expected = initialDOMMatrix().multiply(skew);
-          checkDOMMatrix(result, expected);
+          checkMatrix(result, expected, { epsilon });
         },"test skewX()");
 
         test(function() {
@@ -256,24 +257,24 @@
                 0, 0,       1, 0,
                 0, 0,       0, 1])
           var expected = initialDOMMatrix().multiply(skew);
-          checkDOMMatrix(result, expected);
+          checkMatrix(result, result, { epsilon });
         },"test skewY()");
 
         test(function() {
           var result = initialDOMMatrix().multiply(initialDOMMatrix().inverse());
-          checkDOMMatrix(result, identity());
+          checkMatrix(result, identity(), { epsilon });
         },"test multiply with inverse is identity");
 
         test(function() {
           var result = initialDOMMatrix().flipX();
           var expected = initialDOMMatrix().multiply(new DOMMatrix([-1, 0, 0, 1, 0, 0]));
-          checkDOMMatrix(result, expected);
+          checkMatrix(result, expected, { epsilon });
         },"test flipX()");
 
         test(function() {
           var result = initialDOMMatrix().flipY();
           var expected = initialDOMMatrix().multiply(new DOMMatrix([1, 0, 0, -1, 0, 0]));
-          checkDOMMatrix(result, expected);
+          checkMatrix(result, expected, { epsilon });
         },"test flipY()");
 
         test(function() {
@@ -291,26 +292,6 @@
           var expected = getMatrixTransform(matrix, point);
           checkDOMPoint(result, expected);
         },"test transformPoint() - 3d matrix");
-
-        function checkDOMMatrix(m, exp) {
-          assert_approx_equals(m.m11, exp.m11, epsilon, "Expected value for m11 is " + exp.m11);
-          assert_approx_equals(m.m12, exp.m12, epsilon, "Expected value for m12 is " + exp.m12);
-          assert_approx_equals(m.m13, exp.m13, epsilon, "Expected value for m13 is " + exp.m13);
-          assert_approx_equals(m.m14, exp.m14, epsilon, "Expected value for m14 is " + exp.m14);
-          assert_approx_equals(m.m21, exp.m21, epsilon, "Expected value for m21 is " + exp.m21);
-          assert_approx_equals(m.m22, exp.m22, epsilon, "Expected value for m22 is " + exp.m22);
-          assert_approx_equals(m.m23, exp.m23, epsilon, "Expected value for m23 is " + exp.m23);
-          assert_approx_equals(m.m24, exp.m24, epsilon, "Expected value for m24 is " + exp.m24);
-          assert_approx_equals(m.m31, exp.m31, epsilon, "Expected value for m31 is " + exp.m31);
-          assert_approx_equals(m.m32, exp.m32, epsilon, "Expected value for m32 is " + exp.m32);
-          assert_approx_equals(m.m33, exp.m33, epsilon, "Expected value for m33 is " + exp.m33);
-          assert_approx_equals(m.m34, exp.m34, epsilon, "Expected value for m34 is " + exp.m34);
-          assert_approx_equals(m.m41, exp.m41, epsilon, "Expected value for m41 is " + exp.m41);
-          assert_approx_equals(m.m42, exp.m42, epsilon, "Expected value for m42 is " + exp.m42);
-          assert_approx_equals(m.m43, exp.m43, epsilon, "Expected value for m43 is " + exp.m43);
-          assert_approx_equals(m.m44, exp.m44, epsilon, "Expected value for m44 is " + exp.m44);
-          assert_equals(m.is2D, exp.is2D, "Expected value for is2D is " + exp.is2D);
-        }
 
         function checkDOMPoint(p, exp) {
             assert_equals(p.x, exp.x, "x is not matched");

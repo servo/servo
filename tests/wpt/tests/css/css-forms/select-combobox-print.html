@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Printing shows the right selected option</title>
+<link rel="mismatch" href="select-combobox-print-notref.html">
+<link rel="help" href="https://bugzil.la/1984884">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.com">
+<style>
+select {
+  width: 100px;
+  color: inherit;
+  /* Makes mismatches less likely by not using rounded corners etc */
+  appearance: none;
+  border: none;
+  background: none;
+}
+</style>
+<select><option>abc</option></select>

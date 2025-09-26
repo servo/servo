@@ -29,7 +29,7 @@
 promise_test(async () => {
   assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   let transition = document.startViewTransition(() => {
-    assert_equals(getComputedStyle(document.documentElement, "::view-transition").position, "fixed", "::view-transition");
+    assert_equals(getComputedStyle(document.documentElement, "::view-transition").position, "absolute", "::view-transition");
     assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").position, "absolute", "container(target)");
     // The position is set via the style rules, so it should be applied once
     // we create the pseudo elements.
@@ -53,7 +53,7 @@ promise_test(async () => {
   // we have updated the pseudo-element styles.
   await transition.ready;
 
-  assert_equals(getComputedStyle(document.documentElement, "::view-transition").position, "fixed", "raf ::view-transition");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition").position, "absolute", "raf ::view-transition");
   assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").position, "absolute", "raf container(target)");
   assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").mixBlendMode, "multiply", "raf container(target)");
   assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").textOrientation, "upright", "raf container(target)");
@@ -72,7 +72,7 @@ promise_test(async () => {
 promise_test(async () => {
   assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   let transition = document.startViewTransition(() => {
-    assert_equals(getComputedStyle(document.documentElement, "::view-transition").position, "fixed");
+    assert_equals(getComputedStyle(document.documentElement, "::view-transition").position, "absolute");
     assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").position, "absolute");
     // The position is set via the style rules, so it should be applied once
     // we create the pseudo elements.
@@ -88,7 +88,7 @@ promise_test(async () => {
 
   await transition.ready;
 
-  assert_equals(getComputedStyle(document.documentElement, "::view-transition").position, "fixed");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition").position, "absolute");
   assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").position, "absolute");
   assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").mixBlendMode, "multiply");
   assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").textOrientation, "upright");

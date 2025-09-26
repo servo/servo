@@ -32,7 +32,7 @@ pub struct PolicyContainer {
     /// <https://html.spec.whatwg.org/multipage/#policy-container-csp-list>
     pub csp_list: Option<CspList>,
     /// <https://html.spec.whatwg.org/multipage/#policy-container-referrer-policy>
-    referrer_policy: ReferrerPolicy,
+    pub referrer_policy: ReferrerPolicy,
     // https://html.spec.whatwg.org/multipage/#policy-container-embedder-policy
     // TODO: Embedder Policy
 }

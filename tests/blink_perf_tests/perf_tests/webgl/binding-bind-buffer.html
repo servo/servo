@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>
+    Test CPU performance of the WebGLRenderingContext.bindBuffer binding
+  </title>
+  <script src="../resources/runner.js"></script>
+</head>
+
+<body>
+  <canvas id="canvas" width=400 height=400></canvas>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const gl = canvas.getContext('webgl');
+
+    const vertexBuffer1 = gl.createBuffer();
+    const vertexBuffer2 = gl.createBuffer();
+
+    const iterations = 100000;
+    PerfTestRunner.measureInnerRAFTime({
+      description: `CPU time for ${iterations*3} calls to WebGLRenderingContext.bindBuffer`,
+      warmUpCount: 10,
+      run() {
+        for (let i = 0; i < iterations; ++i) {
+          gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer1);
+          gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer2);
+          gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        }
+      }
+    });
+  </script>
+</body>
+
+</html>

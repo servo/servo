@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<style>
+  div {
+    quotes: "A" "Z";
+  }
+  div::before {
+    content: open-quote;
+  }
+  div::after {
+    content: close-quote;
+  }
+</style>
+<body></body>
+<script>
+  function createTree(root, num_elements, depth) {
+    if (!depth) {
+      return;
+    }
+    for (let i = 0; i < num_elements; ++i) {
+      const div = document.createElement('div');
+      root.append(div);
+      createTree(div, num_elements, depth - 1);
+    }
+  }
+
+  PerfTestRunner.measureTime({
+    description: 'Measure the time of the css quotes creation',
+    run: function() {
+      document.body.innerHTML = '';
+      createTree(document.body, 5, 6);
+    },
+    iterationCount: 5,
+  });
+</script>

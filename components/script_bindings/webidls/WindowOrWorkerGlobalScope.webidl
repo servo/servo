@@ -4,7 +4,7 @@
 
 // https://html.spec.whatwg.org/multipage/#windoworworkerglobalscope
 
-typedef (DOMString or Function) TimerHandler;
+typedef (TrustedScript or DOMString or Function) TimerHandler;
 
 [Exposed=(Window,Worker)]
 interface mixin WindowOrWorkerGlobalScope {
@@ -15,9 +15,9 @@ interface mixin WindowOrWorkerGlobalScope {
   [Throws] DOMString atob(DOMString data);
 
   // timers
-  long setTimeout(TimerHandler handler, optional long timeout = 0, any... arguments);
+  [Throws] long setTimeout(TimerHandler handler, optional long timeout = 0, any... arguments);
   undefined clearTimeout(optional long handle = 0);
-  long setInterval(TimerHandler handler, optional long timeout = 0, any... arguments);
+  [Throws] long setInterval(TimerHandler handler, optional long timeout = 0, any... arguments);
   undefined clearInterval(optional long handle = 0);
 
   // microtask queuing
@@ -46,8 +46,12 @@ partial interface mixin WindowOrWorkerGlobalScope {
 
 // https://www.w3.org/TR/trusted-types/#extensions-to-the-windoworworkerglobalscope-interface
 partial interface mixin WindowOrWorkerGlobalScope {
-  [Pref="dom_trusted_types_enabled"]
   readonly attribute TrustedTypePolicyFactory trustedTypes;
+};
+
+// https://fetch.spec.whatwg.org/#fetch-method
+partial interface mixin WindowOrWorkerGlobalScope {
+  [NewObject] Promise<Response> fetch(RequestInfo input, optional RequestInit init = {});
 };
 
 Window includes WindowOrWorkerGlobalScope;

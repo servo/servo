@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read, Seek, SeekFrom};
 use std::ops::Index;
@@ -10,11 +9,12 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, RwLock, Weak};
 
+use base::generic_channel;
 use base::id::WebViewId;
 use embedder_traits::{EmbedderMsg, EmbedderProxy, FilterPattern};
 use headers::{ContentLength, ContentRange, ContentType, HeaderMap, HeaderMapExt, Range};
 use http::header::{self, HeaderValue};
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::IpcSender;
 use log::warn;
 use mime::{self, Mime};
 use net_traits::blob_url_store::{BlobBuf, BlobURLStoreError};
@@ -24,6 +24,7 @@ use net_traits::filemanager_thread::{
 };
 use net_traits::http_percent_encode;
 use net_traits::response::{Response, ResponseBody};
+use rustc_hash::{FxHashMap, FxHashSet};
 use servo_arc::Arc as ServoArc;
 use servo_config::pref;
 use tokio::sync::mpsc::UnboundedSender as TokioSender;
@@ -34,7 +35,7 @@ use crate::fetch::methods::{CancellationListener, Data, RangeRequestBounds};
 use crate::protocols::get_range_request_bounds;
 use crate::resource_thread::CoreResourceThreadPool;
 
-pub const FILE_CHUNK_SIZE: usize = 32768; //32 KB
+pub const FILE_CHUNK_SIZE: usize = 32768; // 32 KB
 
 /// FileManagerStore's entry
 struct FileStoreEntry {
@@ -53,7 +54,7 @@ struct FileStoreEntry {
     is_valid_url: AtomicBool,
     /// UUIDs of fetch instances that acquired an interest in this file,
     /// when the url was still valid.
-    outstanding_tokens: HashSet<Uuid>,
+    outstanding_tokens: FxHashSet<Uuid>,
 }
 
 #[derive(Clone)]
@@ -432,13 +433,13 @@ enum BlobBounds {
 /// from FileID to FileStoreEntry which might have different backend implementation.
 /// Access to the content is encapsulated as methods of this struct.
 struct FileManagerStore {
-    entries: RwLock<HashMap<Uuid, FileStoreEntry>>,
+    entries: RwLock<FxHashMap<Uuid, FileStoreEntry>>,
 }
 
 impl FileManagerStore {
     fn new() -> Self {
         FileManagerStore {
-            entries: RwLock::new(HashMap::new()),
+            entries: RwLock::new(FxHashMap::default()),
         }
     }
 
@@ -583,7 +584,8 @@ impl FileManagerStore {
         multiple_files: bool,
         embedder_proxy: EmbedderProxy,
     ) -> Option<Vec<PathBuf>> {
-        let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
+        let (ipc_sender, ipc_receiver) =
+            generic_channel::channel().expect("Failed to create IPC channel!");
         embedder_proxy.send(EmbedderMsg::SelectFiles(
             webview_id,
             patterns,

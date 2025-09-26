@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<title>FedCM Flexible Token Formats - Complex Types</title>
+<meta name="timeout" content="long">
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import {fedcm_test,
+        fedcm_get_flexible_tokens_credential} from '../support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  const credential = await fedcm_get_flexible_tokens_credential(t, 'array');
+  assert_true(credential instanceof IdentityCredential);
+  assert_true(Array.isArray(credential.token));
+  assert_array_equals(credential.token, ['token1', 'token2', 'token3']);
+}, 'FedCM should accept array tokens');
+
+fedcm_test(async t => {
+  const credential = await fedcm_get_flexible_tokens_credential(t, 'empty-array');
+  assert_true(credential instanceof IdentityCredential);
+  assert_true(Array.isArray(credential.token));
+  assert_equals(credential.token.length, 0);
+}, 'FedCM should accept empty array tokens');
+
+fedcm_test(async t => {
+  const credential = await fedcm_get_flexible_tokens_credential(t, 'mixed-array');
+  assert_true(credential instanceof IdentityCredential);
+  assert_true(Array.isArray(credential.token));
+  assert_equals(credential.token.length, 5);
+  assert_equals(credential.token[0], 'string');
+  assert_equals(credential.token[1], 123);
+  assert_equals(credential.token[2], true);
+  assert_equals(credential.token[3], null);
+  assert_equals(typeof credential.token[4], 'object');
+}, 'FedCM should accept mixed-type array tokens');
+
+fedcm_test(async t => {
+  const credential = await fedcm_get_flexible_tokens_credential(t, 'object');
+  assert_true(credential instanceof IdentityCredential);
+  assert_equals(typeof credential.token, 'object');
+  assert_not_equals(credential.token, null);
+  assert_equals(credential.token.access_token, 'abc123');
+  assert_equals(credential.token.token_type, 'Bearer');
+  assert_equals(credential.token.expires_in, 3600);
+}, 'FedCM should accept object tokens');
+
+fedcm_test(async t => {
+  const credential = await fedcm_get_flexible_tokens_credential(t, 'empty-object');
+  assert_true(credential instanceof IdentityCredential);
+  assert_equals(typeof credential.token, 'object');
+  assert_not_equals(credential.token, null);
+  assert_array_equals(Object.keys(credential.token), []);
+}, 'FedCM should accept empty object tokens');
+
+fedcm_test(async t => {
+  const credential = await fedcm_get_flexible_tokens_credential(t, 'nested-object');
+  assert_true(credential instanceof IdentityCredential);
+  assert_equals(typeof credential.token, 'object');
+  assert_equals(credential.token.user.id, '123');
+  assert_equals(credential.token.user.profile.name, 'Test User');
+  assert_equals(credential.token.user.profile.preferences.theme, 'dark');
+}, 'FedCM should accept nested object tokens');
+
+</script>

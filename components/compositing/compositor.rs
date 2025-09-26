@@ -4,6 +4,7 @@
 
 use std::cell::{Cell, Ref, RefCell};
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::env;
 use std::fs::create_dir_all;
 use std::iter::once;
@@ -13,6 +14,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
+use base::generic_channel::{GenericSender, RoutedReceiver};
 use base::id::{PipelineId, WebViewId};
 use bitflags::bitflags;
 use compositing_traits::display_list::{CompositorDisplayListInfo, ScrollTree, ScrollType};
@@ -22,16 +24,19 @@ use compositing_traits::{
     WebViewTrait,
 };
 use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
-use crossbeam_channel::{Receiver, Sender};
+use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{CompositorHitTestResult, InputEvent, ShutdownState, ViewportDetails};
 use euclid::{Point2D, Rect, Scale, Size2D, Transform3D};
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use log::{debug, info, trace, warn};
 use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage};
-use profile_traits::mem::{ProcessReports, ProfilerRegistration, Report, ReportKind};
+use profile_traits::mem::{
+    ProcessReports, ProfilerRegistration, Report, ReportKind, perform_memory_report,
+};
 use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::{path, time_profile};
+use rustc_hash::{FxHashMap, FxHashSet};
 use servo_config::{opts, pref};
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::CSSPixel;
@@ -43,9 +48,9 @@ use webrender_api::units::{
 use webrender_api::{
     self, BuiltDisplayList, DirtyRect, DisplayListPayload, DocumentId, Epoch as WebRenderEpoch,
     ExternalScrollId, FontInstanceFlags, FontInstanceKey, FontInstanceOptions, FontKey,
-    HitTestFlags, PipelineId as WebRenderPipelineId, PropertyBinding, ReferenceFrameKind,
-    RenderReasons, SampledScrollOffset, ScrollLocation, SpaceAndClipInfo, SpatialId,
-    SpatialTreeItemKey, TransformStyle,
+    FontVariation, HitTestFlags, ImageKey, PipelineId as WebRenderPipelineId, PropertyBinding,
+    ReferenceFrameKind, RenderReasons, SampledScrollOffset, ScrollLocation, SpaceAndClipInfo,
+    SpatialId, SpatialTreeItemKey, TransformStyle,
 };
 
 use crate::InitialCompositorState;
@@ -80,22 +85,18 @@ pub enum WebRenderDebugOption {
     TextureCacheDebug,
     RenderTargetDebug,
 }
+
 /// Data that is shared by all WebView renderers.
 pub struct ServoRenderer {
     /// The [`RefreshDriver`] which manages the rythym of painting.
     refresh_driver: RefreshDriver,
-
-    /// This is a temporary map between [`PipelineId`]s and their associated [`WebViewId`]. Once
-    /// all renderer operations become per-`WebView` this map can be removed, but we still sometimes
-    /// need to work backwards to figure out what `WebView` is associated with a `Pipeline`.
-    pub(crate) pipeline_to_webview_map: HashMap<PipelineId, WebViewId>,
 
     /// Tracks whether we are in the process of shutting down, or have shut down and should close
     /// the compositor. This is shared with the `Servo` instance.
     shutdown_state: Rc<Cell<ShutdownState>>,
 
     /// The port on which we receive messages.
-    compositor_receiver: Receiver<CompositorMsg>,
+    compositor_receiver: RoutedReceiver<CompositorMsg>,
 
     /// The channel on which messages can be sent to the constellation.
     pub(crate) constellation_sender: Sender<EmbedderToConstellationMessage>,
@@ -116,12 +117,14 @@ pub struct ServoRenderer {
     /// Some XR devices want to run on the main thread.
     webxr_main_thread: webxr::MainThreadRegistry,
 
-    /// True to translate mouse input into touch events.
-    pub(crate) convert_mouse_to_touch: bool,
-
     /// The last position in the rendered view that the mouse moved over. This becomes `None`
     /// when the mouse leaves the rendered view.
     pub(crate) last_mouse_move_position: Option<DevicePoint>,
+
+    /// A [`FrameRequestDelayer`] which is used to wait for canvas image updates to
+    /// arrive before requesting a new frame, as these happen asynchronously with
+    /// `ScriptThread` display list construction.
+    frame_delayer: FrameDelayer,
 }
 
 /// NB: Never block on the constellation, because sometimes the constellation blocks on us.
@@ -146,7 +149,7 @@ pub struct IOCompositor {
     rendering_context: Rc<dyn RenderingContext>,
 
     /// The number of frames pending to receive from WebRender.
-    pending_frames: usize,
+    pending_frames: Cell<usize>,
 
     /// A handle to the memory profiler which will automatically unregister
     /// when it's dropped.
@@ -300,7 +303,7 @@ impl ServoRenderer {
 }
 
 impl IOCompositor {
-    pub fn new(state: InitialCompositorState, convert_mouse_to_touch: bool) -> Self {
+    pub fn new(state: InitialCompositorState) -> Self {
         let registration = state.mem_profiler_chan.prepare_memory_reporting(
             "compositor".into(),
             state.sender.clone(),
@@ -313,7 +316,6 @@ impl IOCompositor {
                     state.event_loop_waker,
                 ),
                 shutdown_state: state.shutdown_state,
-                pipeline_to_webview_map: Default::default(),
                 compositor_receiver: state.receiver,
                 constellation_sender: state.constellation_chan,
                 time_profiler_chan: state.time_profiler_chan,
@@ -322,15 +324,15 @@ impl IOCompositor {
                 webrender_gl: state.webrender_gl,
                 #[cfg(feature = "webxr")]
                 webxr_main_thread: state.webxr_main_thread,
-                convert_mouse_to_touch,
                 last_mouse_move_position: None,
+                frame_delayer: Default::default(),
             })),
             webview_renderers: WebViewManager::default(),
             needs_repaint: Cell::default(),
             ready_to_save_state: ReadyState::Unknown,
             webrender: Some(state.webrender),
             rendering_context: state.rendering_context,
-            pending_frames: 0,
+            pending_frames: Cell::new(0),
             _mem_profiler_registration: registration,
         };
 
@@ -427,7 +429,7 @@ impl IOCompositor {
                 let ops =
                     wr_malloc_size_of::MallocSizeOfOps::new(servo_allocator::usable_size, None);
                 let report = self.global.borrow().webrender_api.report_memory(ops);
-                let reports = vec![
+                let mut reports = vec![
                     Report {
                         path: path!["webrender", "fonts"],
                         kind: ReportKind::ExplicitJemallocHeapSize,
@@ -444,6 +446,15 @@ impl IOCompositor {
                         size: report.display_list,
                     },
                 ];
+
+                perform_memory_report(|ops| {
+                    reports.push(Report {
+                        path: path!["compositor", "scroll-tree"],
+                        kind: ReportKind::ExplicitJemallocHeapSize,
+                        size: self.webview_renderers.scroll_trees_memory_usage(ops),
+                    });
+                });
+
                 sender.send(ProcessReports::new(reports));
             },
 
@@ -486,7 +497,7 @@ impl IOCompositor {
                     self.ready_to_save_state,
                     ReadyState::WaitingForConstellationReply
                 );
-                if is_ready && self.pending_frames == 0 {
+                if is_ready && self.pending_frames.get() == 0 {
                     self.ready_to_save_state = ReadyState::ReadyToSaveImage;
                 } else {
                     self.ready_to_save_state = ReadyState::Unknown;
@@ -655,7 +666,6 @@ impl IOCompositor {
                 }
 
                 let mut transaction = Transaction::new();
-
                 let is_root_pipeline =
                     Some(pipeline_id.into()) == webview_renderer.root_pipeline_id;
                 if is_root_pipeline && old_scale != webview_renderer.device_pixels_per_page_pixel()
@@ -666,8 +676,26 @@ impl IOCompositor {
                 transaction
                     .set_display_list(display_list_info.epoch, (pipeline_id, built_display_list));
                 self.update_transaction_with_all_scroll_offsets(&mut transaction);
-                self.generate_frame(&mut transaction, RenderReasons::SCENE);
                 self.global.borrow_mut().send_transaction(transaction);
+            },
+
+            CompositorMsg::GenerateFrame => {
+                let mut global = self.global.borrow_mut();
+                global.frame_delayer.set_pending_frame(true);
+
+                if global.frame_delayer.needs_new_frame() {
+                    let mut transaction = Transaction::new();
+                    self.generate_frame(&mut transaction, RenderReasons::SCENE);
+                    global.send_transaction(transaction);
+
+                    let waiting_pipelines = global.frame_delayer.take_waiting_pipelines();
+                    let _ = global.constellation_sender.send(
+                        EmbedderToConstellationMessage::NoLongerWaitingOnAsynchronousImageUpdates(
+                            waiting_pipelines,
+                        ),
+                    );
+                    global.frame_delayer.set_pending_frame(false);
+                }
             },
 
             CompositorMsg::GenerateImageKey(sender) => {
@@ -688,20 +716,45 @@ impl IOCompositor {
                 }
             },
             CompositorMsg::UpdateImages(updates) => {
+                let mut global = self.global.borrow_mut();
                 let mut txn = Transaction::new();
                 for update in updates {
                     match update {
                         ImageUpdate::AddImage(key, desc, data) => {
                             txn.add_image(key, desc, data.into(), None)
                         },
-                        ImageUpdate::DeleteImage(key) => txn.delete_image(key),
-                        ImageUpdate::UpdateImage(key, desc, data) => {
+                        ImageUpdate::DeleteImage(key) => {
+                            txn.delete_image(key);
+                            global.frame_delayer.delete_image(key);
+                        },
+                        ImageUpdate::UpdateImage(key, desc, data, epoch) => {
+                            if let Some(epoch) = epoch {
+                                global.frame_delayer.update_image(key, epoch);
+                            }
                             txn.update_image(key, desc, data.into(), &DirtyRect::All)
                         },
                     }
                 }
-                self.global.borrow_mut().send_transaction(txn);
+
+                if global.frame_delayer.needs_new_frame() {
+                    global.frame_delayer.set_pending_frame(false);
+                    self.generate_frame(&mut txn, RenderReasons::SCENE);
+                    let waiting_pipelines = global.frame_delayer.take_waiting_pipelines();
+                    let _ = global.constellation_sender.send(
+                        EmbedderToConstellationMessage::NoLongerWaitingOnAsynchronousImageUpdates(
+                            waiting_pipelines,
+                        ),
+                    );
+                }
+
+                global.send_transaction(txn);
             },
+
+            CompositorMsg::DelayNewFrameForCanvas(pipeline_id, canvas_epoch, image_keys) => self
+                .global
+                .borrow_mut()
+                .frame_delayer
+                .add_delay(pipeline_id, canvas_epoch, image_keys),
 
             CompositorMsg::AddFont(font_key, data, index) => {
                 self.add_font(font_key, index, data);
@@ -713,8 +766,14 @@ impl IOCompositor {
                 self.global.borrow_mut().send_transaction(transaction);
             },
 
-            CompositorMsg::AddFontInstance(font_instance_key, font_key, size, flags) => {
-                self.add_font_instance(font_instance_key, font_key, size, flags);
+            CompositorMsg::AddFontInstance(
+                font_instance_key,
+                font_key,
+                size,
+                flags,
+                variations,
+            ) => {
+                self.add_font_instance(font_instance_key, font_key, size, flags, variations);
             },
 
             CompositorMsg::RemoveFonts(keys, instance_keys) => {
@@ -735,18 +794,11 @@ impl IOCompositor {
                 number_of_font_instance_keys,
                 result_sender,
             ) => {
-                let font_keys = (0..number_of_font_keys)
-                    .map(|_| self.global.borrow().webrender_api.generate_font_key())
-                    .collect();
-                let font_instance_keys = (0..number_of_font_instance_keys)
-                    .map(|_| {
-                        self.global
-                            .borrow()
-                            .webrender_api
-                            .generate_font_instance_key()
-                    })
-                    .collect();
-                let _ = result_sender.send((font_keys, font_instance_keys));
+                self.handle_generate_font_keys(
+                    number_of_font_keys,
+                    number_of_font_instance_keys,
+                    result_sender,
+                );
             },
             CompositorMsg::Viewport(webview_id, viewport_description) => {
                 if let Some(webview) = self.webview_renderers.get_mut(webview_id) {
@@ -784,22 +836,15 @@ impl IOCompositor {
                 number_of_font_instance_keys,
                 result_sender,
             ) => {
-                let font_keys = (0..number_of_font_keys)
-                    .map(|_| self.global.borrow().webrender_api.generate_font_key())
-                    .collect();
-                let font_instance_keys = (0..number_of_font_instance_keys)
-                    .map(|_| {
-                        self.global
-                            .borrow()
-                            .webrender_api
-                            .generate_font_instance_key()
-                    })
-                    .collect();
-                let _ = result_sender.send((font_keys, font_instance_keys));
+                self.handle_generate_font_keys(
+                    number_of_font_keys,
+                    number_of_font_instance_keys,
+                    result_sender,
+                );
             },
             CompositorMsg::NewWebRenderFrameReady(..) => {
                 // Subtract from the number of pending frames, but do not do any compositing.
-                self.pending_frames -= 1;
+                self.pending_frames.set(self.pending_frames.get() - 1);
             },
             _ => {
                 debug!("Ignoring message ({:?} while shutting down", msg);
@@ -807,9 +852,30 @@ impl IOCompositor {
         }
     }
 
+    /// Generate the font keys and send them to the `result_sender`.
+    fn handle_generate_font_keys(
+        &self,
+        number_of_font_keys: usize,
+        number_of_font_instance_keys: usize,
+        result_sender: GenericSender<(Vec<FontKey>, Vec<FontInstanceKey>)>,
+    ) {
+        let font_keys = (0..number_of_font_keys)
+            .map(|_| self.global.borrow().webrender_api.generate_font_key())
+            .collect();
+        let font_instance_keys = (0..number_of_font_instance_keys)
+            .map(|_| {
+                self.global
+                    .borrow()
+                    .webrender_api
+                    .generate_font_instance_key()
+            })
+            .collect();
+        let _ = result_sender.send((font_keys, font_instance_keys));
+    }
+
     /// Queue a new frame in the transaction and increase the pending frames count.
-    pub(crate) fn generate_frame(&mut self, transaction: &mut Transaction, reason: RenderReasons) {
-        self.pending_frames += 1;
+    pub(crate) fn generate_frame(&self, transaction: &mut Transaction, reason: RenderReasons) {
+        self.pending_frames.set(self.pending_frames.get() + 1);
         transaction.generate_frame(0, true /* present */, reason);
     }
 
@@ -1114,7 +1180,7 @@ impl IOCompositor {
                 // complete (i.e. has *all* layers painted to the requested epoch).
                 // This gets sent to the constellation for comparison with the current
                 // frame tree.
-                let mut pipeline_epochs = HashMap::new();
+                let mut pipeline_epochs = FxHashMap::default();
                 for id in self
                     .webview_renderers
                     .iter()
@@ -1370,7 +1436,7 @@ impl IOCompositor {
     }
 
     /// Get the message receiver for this [`IOCompositor`].
-    pub fn receiver(&self) -> Ref<Receiver<CompositorMsg>> {
+    pub fn receiver(&self) -> Ref<'_, RoutedReceiver<CompositorMsg>> {
         Ref::map(self.global.borrow(), |global| &global.compositor_receiver)
     }
 
@@ -1383,7 +1449,7 @@ impl IOCompositor {
                 CompositorMsg::NewWebRenderFrameReady(..) if found_recomposite_msg => {
                     // Only take one of duplicate NewWebRendeFrameReady messages, but do subtract
                     // one frame from the pending frames.
-                    self.pending_frames -= 1;
+                    self.pending_frames.set(self.pending_frames.get() - 1);
                     false
                 },
                 CompositorMsg::NewWebRenderFrameReady(..) => {
@@ -1506,7 +1572,14 @@ impl IOCompositor {
         font_key: FontKey,
         size: f32,
         flags: FontInstanceFlags,
+        variations: Vec<FontVariation>,
     ) {
+        let variations = if pref!(layout_variable_fonts_enabled) {
+            variations
+        } else {
+            vec![]
+        };
+
         let mut transaction = Transaction::new();
 
         let font_instance_options = FontInstanceOptions {
@@ -1519,7 +1592,7 @@ impl IOCompositor {
             size,
             Some(font_instance_options),
             None,
-            Vec::new(),
+            variations,
         );
 
         self.global.borrow_mut().send_transaction(transaction);
@@ -1587,7 +1660,6 @@ impl IOCompositor {
                 .constellation_sender
                 .send(EmbedderToConstellationMessage::RefreshCursor(
                     hit_test_result.pipeline_id,
-                    hit_test_result.point_in_viewport,
                 ))
         {
             warn!("Sending event to constellation failed ({:?}).", error);
@@ -1595,12 +1667,86 @@ impl IOCompositor {
     }
 
     fn handle_new_webrender_frame_ready(&mut self, recomposite_needed: bool) {
-        self.pending_frames -= 1;
+        self.pending_frames.set(self.pending_frames.get() - 1);
         if recomposite_needed {
             self.refresh_cursor();
         }
         if recomposite_needed || self.animation_callbacks_running() {
             self.set_needs_repaint(RepaintReason::NewWebRenderFrame);
         }
+    }
+}
+
+/// A struct that is reponsible for delaying frame requests until all new canvas images
+/// for a particular "update the rendering" call in the `ScriptThread` have been
+/// sent to WebRender.
+///
+/// These images may be updated in WebRender asynchronously in the canvas task. A frame
+/// is then requested if:
+///
+///  - The renderer has received a GenerateFrame message from a `ScriptThread`.
+///  - All pending image updates have finished and have been noted in the [`FrameDelayer`].
+#[derive(Default)]
+struct FrameDelayer {
+    /// The latest [`Epoch`] of canvas images that have been sent to WebRender. Note
+    /// that this only records the `Epoch`s for canvases and only ones that are involved
+    /// in "update the rendering".
+    image_epochs: HashMap<ImageKey, Epoch>,
+    /// A map of all pending canvas images
+    pending_canvas_images: HashMap<ImageKey, Epoch>,
+    /// Whether or not we have a pending frame.
+    pending_frame: bool,
+    /// A list of pipelines that should be notified when we are no longer waiting for
+    /// canvas images.
+    waiting_pipelines: FxHashSet<PipelineId>,
+}
+
+impl FrameDelayer {
+    fn delete_image(&mut self, image_key: ImageKey) {
+        self.image_epochs.remove(&image_key);
+        self.pending_canvas_images.remove(&image_key);
+    }
+
+    fn update_image(&mut self, image_key: ImageKey, epoch: Epoch) {
+        self.image_epochs.insert(image_key, epoch);
+        let Entry::Occupied(entry) = self.pending_canvas_images.entry(image_key) else {
+            return;
+        };
+        if *entry.get() <= epoch {
+            entry.remove();
+        }
+    }
+
+    fn add_delay(
+        &mut self,
+        pipeline_id: PipelineId,
+        canvas_epoch: Epoch,
+        image_keys: Vec<ImageKey>,
+    ) {
+        for image_key in image_keys.into_iter() {
+            // If we've already seen the necessary epoch for this image, do not
+            // start waiting for it.
+            if self
+                .image_epochs
+                .get(&image_key)
+                .is_some_and(|epoch_seen| *epoch_seen >= canvas_epoch)
+            {
+                continue;
+            }
+            self.pending_canvas_images.insert(image_key, canvas_epoch);
+        }
+        self.waiting_pipelines.insert(pipeline_id);
+    }
+
+    fn needs_new_frame(&self) -> bool {
+        self.pending_frame && self.pending_canvas_images.is_empty()
+    }
+
+    fn set_pending_frame(&mut self, value: bool) {
+        self.pending_frame = value;
+    }
+
+    fn take_waiting_pipelines(&mut self) -> Vec<PipelineId> {
+        self.waiting_pipelines.drain().collect()
     }
 }

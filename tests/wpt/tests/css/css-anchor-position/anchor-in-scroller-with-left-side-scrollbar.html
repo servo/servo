@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+
+<title>Tests anchor positioning in a scroller with left-hand-side scrollbar</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/">
+<link rel="author" href="mailto:kiet.ho@apple.com">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+    .containing-block {
+        position: relative;
+        height: 100px;
+        width: 100px;
+
+        overflow: scroll;
+    }
+
+    #containing-block-vertical-rl {
+        writing-mode: vertical-rl;
+    }
+
+    .anchor {
+        width: 20px;
+        height: 20px;
+        background: red;
+
+        position: absolute;
+        left: 50px;
+        top: 50px;
+    }
+
+    #anchor-1 {
+        anchor-name: --anchor1;
+    }
+
+    #anchor-2 {
+        anchor-name: --anchor2;
+    }
+
+    .target-anchor-function {
+        position: absolute;
+        top: anchor(top);
+        left: anchor(left);
+        right: anchor(right);
+        bottom: anchor(bottom);
+
+        background: green;
+    }
+
+    #target-anchor-function-1 {
+        position-anchor: --anchor1;
+    }
+
+    #target-anchor-function-2 {
+        position-anchor: --anchor2;
+    }
+
+    .target-position-area {
+        position: absolute;
+        position-area: center center;
+        width: 100%;
+        height: 100%;
+
+        background: blue;
+    }
+
+    #target-position-area-1 {
+        position-anchor: --anchor1;
+    }
+
+    #target-position-area-2 {
+        position-anchor: --anchor2;
+    }
+</style>
+
+<div class="containing-block" dir="rtl">
+    <!-- Long content to force scrollbar. -->
+    <div style="height: 200px"></div>
+
+    <div class="anchor" id="anchor-1"></div>
+    <div class="target-anchor-function" id="target-anchor-function-1"></div>
+    <div class="target-position-area" id="target-position-area-1"></div>
+</div>
+
+<div class="containing-block" id="containing-block-vertical-rl">
+    <!-- Long content to force scrollbar. -->
+    <div style="height: 200px; width: 20px"></div>
+
+    <div class="anchor" id="anchor-2"></div>
+    <div class="target-anchor-function" id="target-anchor-function-2"></div>
+    <div class="target-position-area" id="target-position-area-2"></div>
+</div>
+
+<script>
+    function getBoundingClientRectAsArray(element) {
+        const rect = element.getBoundingClientRect();
+        return [rect.left, rect.top, rect.right, rect.bottom];
+    }
+
+    test(() => {
+        const anchor = document.getElementById("anchor-1");
+        const targetAnchorFunction = document.getElementById("target-anchor-function-1");
+
+        assert_array_equals(getBoundingClientRectAsArray(anchor), getBoundingClientRectAsArray(targetAnchorFunction));
+    }, "anchor-positioned element using anchor() in horizontal, right-to-left scroller");
+
+    test(() => {
+        const anchor = document.getElementById("anchor-1");
+        const targetPositionArea = document.getElementById("target-position-area-1");
+
+        assert_array_equals(getBoundingClientRectAsArray(anchor), getBoundingClientRectAsArray(targetPositionArea));
+    }, "anchor-positioned element using position-area in horizontal, right-to-left scroller");
+
+    test(() => {
+        const anchor = document.getElementById("anchor-2");
+        const targetAnchorFunction = document.getElementById("target-anchor-function-2");
+
+        assert_array_equals(getBoundingClientRectAsArray(anchor), getBoundingClientRectAsArray(targetAnchorFunction));
+    }, "anchor-positioned element using anchor() in vertical-rl scroller");
+
+    test(() => {
+        const anchor = document.getElementById("anchor-2");
+        const targetPositionArea = document.getElementById("target-position-area-2");
+
+        assert_array_equals(getBoundingClientRectAsArray(anchor), getBoundingClientRectAsArray(targetPositionArea));
+    }, "anchor-positioned element using position-area in vertical-rl scroller");
+</script>

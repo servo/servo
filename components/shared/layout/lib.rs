@@ -12,14 +12,15 @@ mod layout_damage;
 pub mod wrapper_traits;
 
 use std::any::Any;
-use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicIsize, AtomicU64, Ordering};
 use std::thread::JoinHandle;
+use std::time::Duration;
 
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use base::Epoch;
+use base::generic_channel::GenericSender;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use bitflags::bitflags;
 use compositing_traits::CrossProcessCompositorApi;
@@ -27,10 +28,7 @@ use constellation_traits::LoadData;
 use embedder_traits::{Cursor, Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::Point2D;
 use euclid::default::{Point2D as UntypedPoint2D, Rect};
-use fnv::FnvHashMap;
 use fonts::{FontContext, SystemFontServiceProxy};
-use fxhash::FxHashMap;
-use ipc_channel::ipc::IpcSender;
 pub use layout_damage::LayoutDamage;
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps, malloc_size_of_is_0};
@@ -40,6 +38,7 @@ use parking_lot::RwLock;
 use pixels::RasterImage;
 use profile_traits::mem::Report;
 use profile_traits::time;
+use rustc_hash::FxHashMap;
 use script_traits::{InitialScriptState, Painter, ScriptThreadMessage};
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
@@ -51,10 +50,11 @@ use style::data::ElementData;
 use style::dom::OpaqueNode;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::media_queries::Device;
-use style::properties::PropertyId;
 use style::properties::style_structs::Font;
+use style::properties::{ComputedValues, PropertyId};
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::stylesheets::{Stylesheet, UrlExtraData};
+use style::values::computed::Overflow;
 use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntSize, LayoutPoint, LayoutVector2D};
 use webrender_api::{ExternalScrollId, ImageKey};
@@ -154,6 +154,13 @@ pub enum PendingImageState {
     PendingResponse,
 }
 
+/// The destination in layout where an image is needed.
+#[derive(Debug, MallocSizeOf)]
+pub enum LayoutImageDestination {
+    BoxTreeConstruction,
+    DisplayListBuilding,
+}
+
 /// The data associated with an image that is not yet present in the image cache.
 /// Used by the script thread to hold on to DOM elements that need to be repainted
 /// when an image fetch is complete.
@@ -163,6 +170,7 @@ pub struct PendingImage {
     pub node: UntrustedNodeAddress,
     pub id: PendingImageId,
     pub origin: ImmutableOrigin,
+    pub destination: LayoutImageDestination,
 }
 
 /// A data structure to tarck vector image that are fully loaded (i.e has a parsed SVG
@@ -175,7 +183,7 @@ pub struct PendingRasterizationImage {
     pub size: DeviceIntSize,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, MallocSizeOf)]
 pub struct MediaFrame {
     pub image_key: webrender_api::ImageKey,
     pub width: i32,
@@ -197,7 +205,7 @@ pub struct LayoutConfig {
     pub webview_id: WebViewId,
     pub url: ServoUrl,
     pub is_iframe: bool,
-    pub script_chan: IpcSender<ScriptThreadMessage>,
+    pub script_chan: GenericSender<ScriptThreadMessage>,
     pub image_cache: Arc<dyn ImageCache>,
     pub font_context: Arc<FontContext>,
     pub time_profiler_chan: time::ProfilerChan,
@@ -280,7 +288,7 @@ pub trait Layout {
     /// Set the scroll states of this layout after a compositor scroll.
     fn set_scroll_offsets_from_renderer(
         &mut self,
-        scroll_states: &HashMap<ExternalScrollId, LayoutVector2D>,
+        scroll_states: &FxHashMap<ExternalScrollId, LayoutVector2D>,
     );
 
     /// Get the scroll offset of the given scroll node with id of [`ExternalScrollId`] or `None` if it does
@@ -290,11 +298,21 @@ pub trait Layout {
     /// Returns true if this layout needs to produce a new display list for rendering updates.
     fn needs_new_display_list(&self) -> bool;
 
-    fn query_content_box(&self, node: TrustedNodeAddress) -> Option<Rect<Au>>;
-    fn query_content_boxes(&self, node: TrustedNodeAddress) -> Vec<Rect<Au>>;
+    /// Marks that this layout needs to produce a new display list for rendering updates.
+    fn set_needs_new_display_list(&self);
+
+    fn query_box_area(&self, node: TrustedNodeAddress, area: BoxAreaType) -> Option<Rect<Au>>;
+    fn query_box_areas(&self, node: TrustedNodeAddress, area: BoxAreaType) -> Vec<Rect<Au>>;
     fn query_client_rect(&self, node: TrustedNodeAddress) -> Rect<i32>;
     fn query_element_inner_outer_text(&self, node: TrustedNodeAddress) -> String;
     fn query_offset_parent(&self, node: TrustedNodeAddress) -> OffsetParentResponse;
+    /// Query the scroll container for the given node. If node is `None`, the scroll container for
+    /// the viewport is returned.
+    fn query_scroll_container(
+        &self,
+        node: Option<TrustedNodeAddress>,
+        flags: ScrollContainerQueryFlags,
+    ) -> Option<ScrollContainerResponse>;
     fn query_resolved_style(
         &self,
         node: TrustedNodeAddress,
@@ -335,22 +353,82 @@ pub trait ScriptThreadFactory {
         load_data: LoadData,
     ) -> JoinHandle<()>;
 }
+
+/// Type of the area of CSS box for query.
+/// See <https://www.w3.org/TR/css-box-3/#box-model>.
+#[derive(Copy, Clone)]
+pub enum BoxAreaType {
+    Content,
+    Padding,
+    Border,
+}
+
 #[derive(Clone, Default)]
 pub struct OffsetParentResponse {
     pub node_address: Option<UntrustedNodeAddress>,
     pub rect: Rect<Au>,
 }
 
+bitflags! {
+    #[derive(PartialEq)]
+    pub struct ScrollContainerQueryFlags: u8 {
+        /// Whether or not this query is for the purposes of a `scrollParent` layout query.
+        const ForScrollParent = 1 << 0;
+        /// Whether or not to consider the original element's scroll box for the return value.
+        const Inclusive = 1 << 1;
+    }
+}
+
+#[derive(Clone, Copy, Debug, MallocSizeOf)]
+pub struct AxesOverflow {
+    pub x: Overflow,
+    pub y: Overflow,
+}
+
+impl Default for AxesOverflow {
+    fn default() -> Self {
+        Self {
+            x: Overflow::Visible,
+            y: Overflow::Visible,
+        }
+    }
+}
+
+impl From<&ComputedValues> for AxesOverflow {
+    fn from(style: &ComputedValues) -> Self {
+        Self {
+            x: style.clone_overflow_x(),
+            y: style.clone_overflow_y(),
+        }
+    }
+}
+
+impl AxesOverflow {
+    pub fn to_scrollable(&self) -> Self {
+        Self {
+            x: self.x.to_scrollable(),
+            y: self.y.to_scrollable(),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub enum ScrollContainerResponse {
+    Viewport(AxesOverflow),
+    Element(UntrustedNodeAddress, AxesOverflow),
+}
+
 #[derive(Debug, PartialEq)]
 pub enum QueryMsg {
+    BoxArea,
+    BoxAreas,
     ClientRectQuery,
-    ContentBox,
-    ContentBoxes,
     ElementInnerOuterTextQuery,
     ElementsFromPoint,
     InnerWindowDimensionsQuery,
     NodesFromPointQuery,
     OffsetParentQuery,
+    ScrollParentQuery,
     ResolvedFontStyleQuery,
     ResolvedStyleQuery,
     ScrollingAreaOrOffsetQuery,
@@ -386,7 +464,7 @@ pub struct IFrameSize {
     pub viewport_details: ViewportDetails,
 }
 
-pub type IFrameSizes = FnvHashMap<BrowsingContextId, IFrameSize>;
+pub type IFrameSizes = FxHashMap<BrowsingContextId, IFrameSize>;
 
 bitflags! {
     /// Conditions which cause a [`Document`] to need to be restyled during reflow, which
@@ -441,6 +519,15 @@ bitflags! {
         const BuiltStackingContextTree = 1 << 2;
         const BuiltDisplayList = 1 << 3;
         const UpdatedScrollNodeOffset = 1 << 4;
+        const UpdatedCanvasContents = 1 << 5;
+    }
+}
+
+impl ReflowPhasesRun {
+    pub fn needs_frame(&self) -> bool {
+        self.intersects(
+            Self::BuiltDisplayList | Self::UpdatedScrollNodeOffset | Self::UpdatedCanvasContents,
+        )
     }
 }
 
@@ -569,7 +656,7 @@ pub struct ImageAnimationState {
     #[ignore_malloc_size_of = "Arc is hard"]
     pub image: Arc<RasterImage>,
     pub active_frame: usize,
-    last_update_time: f64,
+    frame_start_time: f64,
 }
 
 impl ImageAnimationState {
@@ -577,7 +664,7 @@ impl ImageAnimationState {
         Self {
             image,
             active_frame: 0,
-            last_update_time,
+            frame_start_time: last_update_time,
         }
     }
 
@@ -585,15 +672,18 @@ impl ImageAnimationState {
         self.image.id
     }
 
-    pub fn time_to_next_frame(&self, now: f64) -> f64 {
+    pub fn duration_to_next_frame(&self, now: f64) -> Duration {
         let frame_delay = self
             .image
             .frames
             .get(self.active_frame)
             .expect("Image frame should always be valid")
             .delay
-            .map_or(0., |delay| delay.as_secs_f64());
-        (frame_delay - now + self.last_update_time).max(0.0)
+            .unwrap_or_default();
+
+        let time_since_frame_start = (now - self.frame_start_time).max(0.0) * 1000.0;
+        let time_since_frame_start = Duration::from_secs_f64(time_since_frame_start);
+        frame_delay - time_since_frame_start.min(frame_delay)
     }
 
     /// check whether image active frame need to be updated given current time,
@@ -604,13 +694,13 @@ impl ImageAnimationState {
             return false;
         }
         let image = &self.image;
-        let time_interval_since_last_update = now - self.last_update_time;
+        let time_interval_since_last_update = now - self.frame_start_time;
         let mut remain_time_interval = time_interval_since_last_update -
             image
                 .frames
                 .get(self.active_frame)
                 .unwrap()
-                .delay
+                .delay()
                 .unwrap()
                 .as_secs_f64();
         let mut next_active_frame_id = self.active_frame;
@@ -620,7 +710,7 @@ impl ImageAnimationState {
                 .frames
                 .get(next_active_frame_id)
                 .unwrap()
-                .delay
+                .delay()
                 .unwrap()
                 .as_secs_f64();
         }
@@ -628,7 +718,7 @@ impl ImageAnimationState {
             return false;
         }
         self.active_frame = next_active_frame_id;
-        self.last_update_time = now;
+        self.frame_start_time = now;
         true
     }
 }
@@ -689,18 +779,18 @@ mod test {
         let mut image_animation_state = ImageAnimationState::new(Arc::new(image), 0.0);
 
         assert_eq!(image_animation_state.active_frame, 0);
-        assert_eq!(image_animation_state.last_update_time, 0.0);
+        assert_eq!(image_animation_state.frame_start_time, 0.0);
         assert_eq!(
             image_animation_state.update_frame_for_animation_timeline_value(0.101),
             true
         );
         assert_eq!(image_animation_state.active_frame, 1);
-        assert_eq!(image_animation_state.last_update_time, 0.101);
+        assert_eq!(image_animation_state.frame_start_time, 0.101);
         assert_eq!(
             image_animation_state.update_frame_for_animation_timeline_value(0.116),
             false
         );
         assert_eq!(image_animation_state.active_frame, 1);
-        assert_eq!(image_animation_state.last_update_time, 0.101);
+        assert_eq!(image_animation_state.frame_start_time, 0.101);
     }
 }

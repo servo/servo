@@ -13,6 +13,7 @@ use std::sync::{Arc, LazyLock};
 
 use app_units::Au;
 use base::Epoch;
+use base::generic_channel::GenericSender;
 use base::id::{PipelineId, WebViewId};
 use bitflags::bitflags;
 use compositing_traits::CrossProcessCompositorApi;
@@ -21,16 +22,14 @@ use cssparser::ParserInput;
 use embedder_traits::{Theme, ViewportDetails};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Scale, Size2D};
-use fnv::FnvHashMap;
 use fonts::{FontContext, FontContextWebFontMethods};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
-use fxhash::FxHashMap;
-use ipc_channel::ipc::IpcSender;
 use layout_api::wrapper_traits::LayoutNode;
 use layout_api::{
-    IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutFactory, OffsetParentResponse,
-    PropertyRegistration, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
-    ReflowRequestRestyle, ReflowResult, RegisterPropertyError, TrustedNodeAddress,
+    BoxAreaType, IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutFactory,
+    OffsetParentResponse, PropertyRegistration, QueryMsg, ReflowGoal, ReflowPhasesRun,
+    ReflowRequest, ReflowRequestRestyle, ReflowResult, RegisterPropertyError,
+    ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
 };
 use log::{debug, error, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
@@ -41,6 +40,7 @@ use profile_traits::time::{
     self as profile_time, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
 };
 use profile_traits::{path, time_profile};
+use rustc_hash::FxHashMap;
 use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThreadMessage};
 use servo_arc::Arc as ServoArc;
@@ -90,9 +90,10 @@ use webrender_api::units::{DevicePixel, LayoutVector2D};
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{DisplayListBuilder, HitTest, StackingContextTree};
 use crate::query::{
-    get_the_text_steps, process_client_rect_request, process_content_box_request,
-    process_content_boxes_request, process_node_scroll_area_request, process_offset_parent_query,
-    process_resolved_font_style_query, process_resolved_style_request, process_text_index_request,
+    get_the_text_steps, process_box_area_request, process_box_areas_request,
+    process_client_rect_request, process_node_scroll_area_request, process_offset_parent_query,
+    process_resolved_font_style_query, process_resolved_style_request,
+    process_scroll_container_query, process_text_index_request,
 };
 use crate::traversal::{RecalcStyle, compute_damage_and_repair_style};
 use crate::{BoxTree, FragmentTree};
@@ -135,7 +136,7 @@ pub struct LayoutThread {
     is_iframe: bool,
 
     /// The channel on which messages can be sent to the script thread.
-    script_chan: IpcSender<ScriptThreadMessage>,
+    script_chan: GenericSender<ScriptThreadMessage>,
 
     /// The channel on which messages can be sent to the time profiler.
     time_profiler_chan: profile_time::ProfilerChan,
@@ -180,7 +181,7 @@ pub struct LayoutThread {
     // A cache that maps image resources specified in CSS (e.g as the `url()` value
     // for `background-image` or `content` properties) to either the final resolved
     // image data, or an error if the image cache failed to load/decode the image.
-    resolved_images_cache: Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder), CachedImageOrError>>>,
+    resolved_images_cache: Arc<RwLock<HashMap<(ServoUrl, UsePlaceholder), CachedImageOrError>>>,
 
     /// The executors for paint worklets.
     registered_painters: RegisteredPaintersImpl,
@@ -262,14 +263,17 @@ impl Layout for LayoutThread {
             .remove_all_web_fonts_from_stylesheet(&stylesheet);
     }
 
-    /// Return the union of this node's content boxes in the coordinate space of the Document.
-    /// to implement `getBoundingClientRect()`.
+    /// Return the union of this node's areas in the coordinate space of the Document. This is used
+    /// to implement `getBoundingClientRect()` and support many other API where the such query is
+    /// required.
     ///
-    /// Part of <https://drafts.csswg.org/cssom-view-1/#element-get-the-bounding-box>
-    /// TODO(stevennovaryo): Rename and parameterize the function, allowing padding area
-    ///                      query and possibly, query without consideration of transform.
+    /// Part of <https://drafts.csswg.org/cssom-view-1/#element-get-the-bounding-box>.
     #[servo_tracing::instrument(skip_all)]
-    fn query_content_box(&self, node: TrustedNodeAddress) -> Option<UntypedRect<Au>> {
+    fn query_box_area(
+        &self,
+        node: TrustedNodeAddress,
+        area: BoxAreaType,
+    ) -> Option<UntypedRect<Au>> {
         // If we have not built a fragment tree yet, there is no way we have layout information for
         // this query, which can be run without forcing a layout (for IntersectionObserver).
         if self.fragment_tree.borrow().is_none() {
@@ -280,16 +284,16 @@ impl Layout for LayoutThread {
         let stacking_context_tree = self.stacking_context_tree.borrow();
         let stacking_context_tree = stacking_context_tree
             .as_ref()
-            .expect("Should always have a StackingContextTree for content box queries");
-        process_content_box_request(stacking_context_tree, node.to_threadsafe())
+            .expect("Should always have a StackingContextTree for box area queries");
+        process_box_area_request(stacking_context_tree, node.to_threadsafe(), area)
     }
 
-    /// Get a `Vec` of bounding boxes of this node's `Fragement`s in the coordinate space of the
-    /// Document. This is used to implement `getClientRects()`.
+    /// Get a `Vec` of bounding boxes of this node's `Fragment`s specific area in the coordinate space of
+    /// the Document. This is used to implement `getClientRects()`.
     ///
     /// See <https://drafts.csswg.org/cssom-view/#dom-element-getclientrects>.
     #[servo_tracing::instrument(skip_all)]
-    fn query_content_boxes(&self, node: TrustedNodeAddress) -> Vec<UntypedRect<Au>> {
+    fn query_box_areas(&self, node: TrustedNodeAddress, area: BoxAreaType) -> Vec<UntypedRect<Au>> {
         // If we have not built a fragment tree yet, there is no way we have layout information for
         // this query, which can be run without forcing a layout (for IntersectionObserver).
         if self.fragment_tree.borrow().is_none() {
@@ -300,8 +304,8 @@ impl Layout for LayoutThread {
         let stacking_context_tree = self.stacking_context_tree.borrow();
         let stacking_context_tree = stacking_context_tree
             .as_ref()
-            .expect("Should always have a StackingContextTree for content box queries");
-        process_content_boxes_request(stacking_context_tree, node.to_threadsafe())
+            .expect("Should always have a StackingContextTree for box area queries");
+        process_box_areas_request(stacking_context_tree, node.to_threadsafe(), area)
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -318,7 +322,28 @@ impl Layout for LayoutThread {
     #[servo_tracing::instrument(skip_all)]
     fn query_offset_parent(&self, node: TrustedNodeAddress) -> OffsetParentResponse {
         let node = unsafe { ServoLayoutNode::new(&node) };
-        process_offset_parent_query(node).unwrap_or_default()
+        let stacking_context_tree = self.stacking_context_tree.borrow();
+        let stacking_context_tree = stacking_context_tree
+            .as_ref()
+            .expect("Should always have a StackingContextTree for offset parent queries");
+        process_offset_parent_query(&stacking_context_tree.compositor_info.scroll_tree, node)
+            .unwrap_or_default()
+    }
+
+    #[servo_tracing::instrument(skip_all)]
+    fn query_scroll_container(
+        &self,
+        node: Option<TrustedNodeAddress>,
+        flags: ScrollContainerQueryFlags,
+    ) -> Option<ScrollContainerResponse> {
+        let node = unsafe { node.as_ref().map(|node| ServoLayoutNode::new(node)) };
+        let viewport_overflow = self
+            .box_tree
+            .borrow()
+            .as_ref()
+            .expect("Should have a BoxTree for all scroll container queries.")
+            .viewport_overflow;
+        process_scroll_container_query(node, flags, viewport_overflow)
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -459,6 +484,12 @@ impl Layout for LayoutThread {
                 .unwrap_or_default(),
         });
 
+        reports.push(Report {
+            path: path![formatted_url, "layout-thread", "stacking-context-tree"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: self.stacking_context_tree.size_of(ops),
+        });
+
         reports.push(self.image_cache.memory_report(formatted_url, ops));
     }
 
@@ -494,7 +525,7 @@ impl Layout for LayoutThread {
 
     fn set_scroll_offsets_from_renderer(
         &mut self,
-        scroll_states: &HashMap<ExternalScrollId, LayoutVector2D>,
+        scroll_states: &FxHashMap<ExternalScrollId, LayoutVector2D>,
     ) {
         let mut stacking_context_tree = self.stacking_context_tree.borrow_mut();
         let Some(stacking_context_tree) = stacking_context_tree.as_mut() else {
@@ -517,6 +548,10 @@ impl Layout for LayoutThread {
 
     fn needs_new_display_list(&self) -> bool {
         self.need_new_display_list.get()
+    }
+
+    fn set_needs_new_display_list(&self) {
+        self.need_new_display_list.set(true);
     }
 
     /// <https://drafts.css-houdini.org/css-properties-values-api-1/#the-registerproperty-function>
@@ -997,9 +1032,11 @@ impl LayoutThread {
         }
 
         let root_node = root_element.as_node();
-        let damage_from_environment = viewport_changed
-            .then_some(RestyleDamage::RELAYOUT)
-            .unwrap_or_default();
+        let damage_from_environment = if viewport_changed {
+            RestyleDamage::RELAYOUT
+        } else {
+            Default::default()
+        };
         let damage = compute_damage_and_repair_style(
             &layout_context.style_context,
             root_node.to_threadsafe(),
@@ -1200,11 +1237,11 @@ impl LayoutThread {
         stacking_context_tree.compositor_info.epoch = epoch.into();
 
         let built_display_list = DisplayListBuilder::build(
-            reflow_request,
             stacking_context_tree,
             fragment_tree,
             image_resolver.clone(),
             self.device().device_pixel_ratio(),
+            reflow_request.highlighted_dom_node,
             &self.debug,
         );
         self.compositor_api.send_display_list(
@@ -1396,7 +1433,7 @@ struct RegisteredPainterImpl {
     painter: Box<dyn Painter>,
     name: Atom,
     // FIXME: Should be a PrecomputedHashMap.
-    properties: FxHashMap<Atom, PropertyId>,
+    properties: fxhash::FxHashMap<Atom, PropertyId>,
 }
 
 impl SpeculativePainter for RegisteredPainterImpl {
@@ -1411,7 +1448,7 @@ impl SpeculativePainter for RegisteredPainterImpl {
 }
 
 impl RegisteredSpeculativePainter for RegisteredPainterImpl {
-    fn properties(&self) -> &FxHashMap<Atom, PropertyId> {
+    fn properties(&self) -> &fxhash::FxHashMap<Atom, PropertyId> {
         &self.properties
     }
     fn name(&self) -> Atom {
@@ -1432,7 +1469,7 @@ impl Painter for RegisteredPainterImpl {
     }
 }
 
-struct RegisteredPaintersImpl(FnvHashMap<Atom, RegisteredPainterImpl>);
+struct RegisteredPaintersImpl(HashMap<Atom, RegisteredPainterImpl>);
 
 impl RegisteredSpeculativePainters for RegisteredPaintersImpl {
     fn get(&self, name: &Atom) -> Option<&dyn RegisteredSpeculativePainter> {
@@ -1582,25 +1619,26 @@ impl ReflowPhases {
     /// so [`ReflowPhases::empty()`] implies that.
     fn necessary(reflow_goal: &ReflowGoal) -> Self {
         match reflow_goal {
-            ReflowGoal::UpdateTheRendering | ReflowGoal::UpdateScrollNode(..) => {
-                Self::StackingContextTreeConstruction | Self::DisplayListConstruction
-            },
             ReflowGoal::LayoutQuery(query) => match query {
                 QueryMsg::NodesFromPointQuery => {
                     Self::StackingContextTreeConstruction | Self::DisplayListConstruction
                 },
-                QueryMsg::ContentBox |
-                QueryMsg::ContentBoxes |
+                QueryMsg::BoxArea |
+                QueryMsg::BoxAreas |
+                QueryMsg::ElementsFromPoint |
+                QueryMsg::OffsetParentQuery |
                 QueryMsg::ResolvedStyleQuery |
-                QueryMsg::ScrollingAreaOrOffsetQuery |
-                QueryMsg::ElementsFromPoint => Self::StackingContextTreeConstruction,
+                QueryMsg::ScrollingAreaOrOffsetQuery => Self::StackingContextTreeConstruction,
                 QueryMsg::ClientRectQuery |
                 QueryMsg::ElementInnerOuterTextQuery |
                 QueryMsg::InnerWindowDimensionsQuery |
-                QueryMsg::OffsetParentQuery |
                 QueryMsg::ResolvedFontStyleQuery |
-                QueryMsg::TextIndexQuery |
-                QueryMsg::StyleQuery => Self::empty(),
+                QueryMsg::ScrollParentQuery |
+                QueryMsg::StyleQuery |
+                QueryMsg::TextIndexQuery => Self::empty(),
+            },
+            ReflowGoal::UpdateScrollNode(..) | ReflowGoal::UpdateTheRendering => {
+                Self::StackingContextTreeConstruction | Self::DisplayListConstruction
             },
         }
     }

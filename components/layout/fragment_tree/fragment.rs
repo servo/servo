@@ -9,6 +9,7 @@ use base::id::PipelineId;
 use base::print_tree::PrintTree;
 use euclid::{Point2D, Rect, Size2D, UnknownUnit};
 use fonts::{ByteIndex, FontMetrics, GlyphStore};
+use layout_api::BoxAreaType;
 use malloc_size_of_derive::MallocSizeOf;
 use range::Range as ServoRange;
 use servo_arc::Arc as ServoArc;
@@ -202,11 +203,13 @@ impl Fragment {
         }
     }
 
-    pub(crate) fn cumulative_border_box_rect(&self) -> Option<PhysicalRect<Au>> {
+    pub(crate) fn cumulative_box_area_rect(&self, area: BoxAreaType) -> Option<PhysicalRect<Au>> {
         match self {
-            Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                Some(fragment.borrow().cumulative_border_box_rect())
-            },
+            Fragment::Box(fragment) | Fragment::Float(fragment) => Some(match area {
+                BoxAreaType::Content => fragment.borrow().cumulative_content_box_rect(),
+                BoxAreaType::Padding => fragment.borrow().cumulative_padding_box_rect(),
+                BoxAreaType::Border => fragment.borrow().cumulative_border_box_rect(),
+            }),
             Fragment::Positioning(fragment) => {
                 let fragment = fragment.borrow();
                 Some(fragment.offset_by_containing_block(&fragment.rect))

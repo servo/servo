@@ -456,11 +456,5 @@ const floorTests = [
   }
 ];
 
-if (navigator.ml) {
-  floorTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getFloorPrecisionTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(
+    floorTests, buildAndExecuteGraph, getFloorPrecisionTolerance);

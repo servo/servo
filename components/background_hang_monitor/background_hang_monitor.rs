@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::thread::{self, Builder, JoinHandle};
 use std::time::{Duration, Instant};
 
@@ -11,9 +11,9 @@ use background_hang_monitor_api::{
     BackgroundHangMonitorExitSignal, BackgroundHangMonitorRegister, HangAlert, HangAnnotation,
     HangMonitorAlert, MonitoredComponentId,
 };
+use base::generic_channel::{GenericReceiver, GenericSender, RoutedReceiver};
 use crossbeam_channel::{Receiver, Sender, after, never, select, unbounded};
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use ipc_channel::router::ROUTER;
+use rustc_hash::FxHashMap;
 
 use crate::sampler::{NativeStack, Sampler};
 
@@ -27,8 +27,8 @@ impl HangMonitorRegister {
     /// Start a new hang monitor worker, and return a handle to register components for monitoring,
     /// as well as a join handle on the worker thread.
     pub fn init(
-        constellation_chan: IpcSender<HangMonitorAlert>,
-        control_port: IpcReceiver<BackgroundHangMonitorControlMsg>,
+        constellation_chan: GenericSender<HangMonitorAlert>,
+        control_port: GenericReceiver<BackgroundHangMonitorControlMsg>,
         monitoring_enabled: bool,
     ) -> (Box<dyn BackgroundHangMonitorRegister>, JoinHandle<()>) {
         let (sender, port) = unbounded();
@@ -208,11 +208,11 @@ struct MonitoredComponent {
 struct Sample(MonitoredComponentId, Instant, NativeStack);
 
 struct BackgroundHangMonitorWorker {
-    component_names: HashMap<MonitoredComponentId, String>,
-    monitored_components: HashMap<MonitoredComponentId, MonitoredComponent>,
-    constellation_chan: IpcSender<HangMonitorAlert>,
+    component_names: FxHashMap<MonitoredComponentId, String>,
+    monitored_components: FxHashMap<MonitoredComponentId, MonitoredComponent>,
+    constellation_chan: GenericSender<HangMonitorAlert>,
     port: Receiver<(MonitoredComponentId, MonitoredComponentMsg)>,
-    control_port: Receiver<BackgroundHangMonitorControlMsg>,
+    control_port: RoutedReceiver<BackgroundHangMonitorControlMsg>,
     sampling_duration: Option<Duration>,
     sampling_max_duration: Option<Duration>,
     last_sample: Instant,
@@ -228,12 +228,12 @@ type MonitoredComponentReceiver = Receiver<(MonitoredComponentId, MonitoredCompo
 
 impl BackgroundHangMonitorWorker {
     fn new(
-        constellation_chan: IpcSender<HangMonitorAlert>,
-        control_port: IpcReceiver<BackgroundHangMonitorControlMsg>,
+        constellation_chan: GenericSender<HangMonitorAlert>,
+        control_port: GenericReceiver<BackgroundHangMonitorControlMsg>,
         port: MonitoredComponentReceiver,
         monitoring_enabled: bool,
     ) -> Self {
-        let control_port = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(control_port);
+        let control_port = control_port.route_preserving_errors();
         Self {
             component_names: Default::default(),
             monitored_components: Default::default(),
@@ -317,7 +317,7 @@ impl BackgroundHangMonitorWorker {
             },
             recv(self.control_port) -> event => {
                 match event {
-                    Ok(BackgroundHangMonitorControlMsg::ToggleSampler(rate, max_duration)) => {
+                    Ok(Ok(BackgroundHangMonitorControlMsg::ToggleSampler(rate, max_duration))) => {
                         if self.sampling_duration.is_some() {
                             println!("Enabling profiler.");
                             self.finish_sampled_profile();
@@ -330,7 +330,7 @@ impl BackgroundHangMonitorWorker {
                         }
                         None
                     },
-                    Ok(BackgroundHangMonitorControlMsg::Exit) => {
+                    Ok(Ok(BackgroundHangMonitorControlMsg::Exit)) => {
                         for component in self.monitored_components.values_mut() {
                             component.exit_signal.signal_to_exit();
                         }
@@ -344,6 +344,10 @@ impl BackgroundHangMonitorWorker {
                         // Keep running; this worker thread will shutdown
                         // when the monitored components have shutdown,
                         // which we know has happened when `self.port` disconnects.
+                        None
+                    },
+                    Ok(Err(e)) => {
+                        log::warn!("BackgroundHangMonitorWorker control message deserialization error: {e:?}");
                         None
                     },
                     Err(_) => return false,

@@ -146,7 +146,8 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
             directive.max_age().is_some() ||
             directive.no_cache()
         {
-            is_cacheable = true;
+            // If cache-control is understood, we can use it and ignore pragma.
+            return true;
         }
     }
     if let Some(pragma) = headers.typed_get::<Pragma>() {
@@ -513,6 +514,10 @@ impl HttpCache {
         request: &Request,
         done_chan: &mut DoneChannel,
     ) -> Option<CachedResponse> {
+        if pref!(network_http_cache_disabled) {
+            return None;
+        }
+
         // TODO: generate warning headers as appropriate <https://tools.ietf.org/html/rfc7234#section-5.5>
         debug!("trying to construct cache response for {:?}", request.url());
         if request.method != Method::GET {

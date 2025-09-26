@@ -62,7 +62,7 @@ impl MediaStream {
         this
     }
 
-    pub(crate) fn get_tracks(&self) -> Ref<[Dom<MediaStreamTrack>]> {
+    pub(crate) fn get_tracks(&self) -> Ref<'_, [Dom<MediaStreamTrack>]> {
         Ref::map(self.tracks.borrow(), |tracks| &**tracks)
     }
 

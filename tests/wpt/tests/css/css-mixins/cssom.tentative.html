@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Mixins: CSSOM support</title>
+    <link rel="help" href="https://drafts.csswg.org/css-mixins/#cssom">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+       @mixin --m1() {
+         color: green;
+         & {
+           --foo: bar;
+         }
+       }
+       #foo {
+         @apply --m1;
+       }
+
+       @mixin --m2(@contents) {
+         @contents
+       }
+       #foo {
+         color: red;
+         @apply --m2 { color: green; }
+       }
+     </style>
+   </head>
+   <body>
+     <div id="target"></div>
+     <script>
+        let ss = document.styleSheets[0];
+
+        test(() => {
+          assert_equals(ss.cssRules.length, 4);
+          assert_equals(ss.cssRules[0].cssText,
+`@mixin --m1() {
+  color: green;
+  & { --foo: bar; }
+}`);
+        }, 'serialization of @mixin');
+
+        test(() => {
+          assert_equals(ss.cssRules[1].cssText,
+`#foo {
+  @apply --m1;
+}`);
+        }, 'serialization of rule with @apply');
+
+        test(() => {
+          assert_equals(ss.cssRules[2].cssText,
+`@mixin --m2(@contents) {
+  @contents;
+}`);
+        }, 'serialization of @mixin with @contents');
+
+        test(() => {
+          assert_equals(ss.cssRules[3].cssText,
+`#foo {
+  color: red;
+  @apply --m2 { color: green; }
+}`);
+        }, 'serialization of rule with @apply and contents argument');
+
+        test(() => {
+          assert_throws_dom('SyntaxError', () => {
+            ss.insertRule('@apply --m1();');
+          });
+        }, '@apply is not legal at top level');
+     </script>
+  </body>
+</html>

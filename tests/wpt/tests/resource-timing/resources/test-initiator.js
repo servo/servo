@@ -1,40 +1,38 @@
-function testResourceInitiatorUrl(resourceName, expectedUrl) {
-    return new Promise(( resolve , reject) => {
-      const observer = new PerformanceObserver(list => {
-        const entries = list.getEntriesByType('resource');
-        for (const entry of entries) {
-          if (entry.name.endsWith(resourceName)) {
-            observer.disconnect();
-            try {
-              assert_equals(entry.initiatorUrl, expectedUrl, `Test ${resourceName} initiatorUrl`);
-              resolve();
-            } catch(error) {
-              reject(error);
-            }
-          }
-        }
-        reject(resourceName + " not found");
-      });
-      observer.observe({type: "resource", buffered: true});
-    });
+
+const with_timeout_message = async (promise, message, timeout = 1000) => {
+  return Promise.race([
+    promise,
+    new Promise((resolve, reject) => {
+      step_timeout(() => {
+        reject(new Error(message));
+      }, timeout);
+    }),
+  ]);
 }
 
-// TODO(guohuideng@microsoft.com): The utility function below is used by some tests designed
-// for resource IDs. Either delete them or modify them when the resource-initiator feature
-// is complete.
-function testResourceInitiator(resourceName, expectedInitiator) {
-    return new Promise(resolve => {
-      const observer = new PerformanceObserver(list => {
-        const entries = list.getEntriesByType('resource');
-        for (const entry of entries) {
-          if (entry.name.endsWith(resourceName)) {
-            observer.disconnect();
-            assert_equals(entry.initiator, expectedInitiator, `Test ${resourceName} initiator`);
-            resolve();
-            return;
-          }
+const observe_entry_no_timeout = entry_name => {
+  const entry = new Promise(resolve => {
+    new PerformanceObserver((entry_list, observer) => {
+      for (const entry of entry_list.getEntries()) {
+        if (entry.name.endsWith(entry_name)) {
+          resolve(entry);
+          observer.disconnect();
+          return;
         }
-      });
-      observer.observe({entryTypes: ['resource']});
-    });
-}
+      }
+    }).observe({"type": "resource", "buffered": true});
+  });
+  return entry;
+};
+
+// Asserts that, for the given name, there is/will-be a
+// PerformanceResourceTiming entry that has the given 'initiatorUrl'. The test
+// is labeled according to the given descriptor.
+const initiator_url_test = (entry_name, expected_url, descriptor, timeout_msg) => {
+  promise_test(async () => {
+    const promise = observe_entry_no_timeout(entry_name);
+    const entry = await with_timeout_message(promise, timeout_msg, /* timeout = */ 2000);
+    assert_equals(entry.initiatorUrl, expected_url);
+  }, `The initiator Url for ${descriptor} must be '${expected_url}'`);
+};
+

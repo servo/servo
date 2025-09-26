@@ -39,20 +39,10 @@ html {
 </div>
 </body>
 <script>
-var element_scrollend_arrived = false;
-var document_scrollend_arrived = false;
+let invalid_scrollend_arrived = false;
 
-function onElementScrollEnd(event) {
-  assert_false(event.cancelable);
-  assert_false(event.bubbles);
-  element_scrollend_arrived = true;
-}
-
-function onDocumentScrollEnd(event) {
-  assert_false(event.cancelable);
-  // scrollend events are bubbled when the target node is document.
-  assert_true(event.bubbles);
-  document_scrollend_arrived = true;
+function onInvalidScrollEnd(event) {
+  invalid_scrollend_arrived = true;
 }
 
 let scroll_attr_change_variants = [
@@ -117,24 +107,25 @@ let scroll_attr_change_variants = [
 function runTest() {
 
   async function testScrollAttrChange(testInfo, t) {
-    targetDiv.addEventListener("scrollend", onElementScrollEnd);
-    document.addEventListener("scrollend", onDocumentScrollEnd);
-
     testInfo.target.style.scrollBehavior = testInfo.behavior;
 
     await waitForCompositorCommit();
 
+    let scrollendPromise = null;
+    const TIMEOUT = 2000;
+    if (testInfo.target == document.scrollingElement) {
+      targetDiv.addEventListener("scrollend", onInvalidScrollEnd);
+      scrollendPromise = createScrollendPromiseForTarget(t, document, TIMEOUT, true);
+    } else {
+      document.addEventListener("scrollend", onInvalidScrollEnd);
+      scrollendPromise = createScrollendPromiseForTarget(t, targetDiv, TIMEOUT, false);
+    }
+
     testInfo.target[testInfo.attribute] = 200;
 
-    await waitFor(() => {
-      return element_scrollend_arrived || document_scrollend_arrived;
-    }, testInfo.target.tagName + "." + testInfo.attribute + " did not receive scrollend event.");
+    await scrollendPromise;
+    assert_false(invalid_scrollend_arrived, "Scrollend should not fire to target that has not scrolled");
 
-    if (testInfo.target == document.scrollingElement) {
-      assert_false(element_scrollend_arrived);
-    } else {
-      assert_false(document_scrollend_arrived);
-    }
     assert_equals(testInfo.target[testInfo.attribute], 200,
                   testInfo.target.tagName + "." + testInfo.attribute + " " + testInfo.behavior);
   }

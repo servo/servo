@@ -67,3 +67,55 @@ async def test_multiple_contexts(
     assert await get_screen_orientation(new_tab) == default_screen_orientation
     assert await get_screen_orientation(
         top_context) == default_screen_orientation
+
+
+@pytest.mark.parametrize("domain", ["", "alt"], ids=["same_origin", "cross_origin"])
+async def test_iframe(
+    bidi_session,
+    new_tab,
+    get_screen_orientation,
+    some_bidi_screen_orientation,
+    some_web_screen_orientation,
+    another_bidi_screen_orientation,
+    another_web_screen_orientation,
+    inline,
+    domain,
+):
+    await bidi_session.emulation.set_screen_orientation_override(
+        contexts=[new_tab["context"]],
+        screen_orientation=some_bidi_screen_orientation,
+    )
+
+    # Assert screen orientation in the required context.
+    assert await get_screen_orientation(new_tab) == some_web_screen_orientation
+
+    iframe_url = inline("<div id='in-iframe'>foo</div>", domain=domain)
+    page_url = inline(f"<iframe src='{iframe_url}'></iframe>")
+
+    # Load the page with iframes.
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"],
+        url=page_url,
+        wait="complete",
+    )
+
+    contexts = await bidi_session.browsing_context.get_tree(root=new_tab["context"])
+    iframe = contexts[0]["children"][0]
+
+    # Assert locale is emulated in the iframe context.
+    assert (
+        await get_screen_orientation(iframe, top_context=new_tab)
+        == some_web_screen_orientation
+    )
+
+    # Set another screen orientation override.
+    await bidi_session.emulation.set_screen_orientation_override(
+        contexts=[new_tab["context"]],
+        screen_orientation=another_bidi_screen_orientation,
+    )
+
+    # Assert screen orientation is emulated in the iframe context.
+    assert (
+        await get_screen_orientation(iframe, top_context=new_tab)
+        == another_web_screen_orientation
+    )

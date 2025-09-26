@@ -10,7 +10,7 @@ async def test_when_browsingcontext_recreated(
 ):
     new_tab = await bidi_session.browsing_context.create(type_hint="tab")
 
-    page = inline("<div>foo</div>")
+    page = inline("""<div style="margin-top: 10000px;">foo</div>""")
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=page, wait="complete"
     )

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>Vertical-align: baseline of inline-block with phantom line box</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css2/#leading">
+<link rel="help" href="https://drafts.csswg.org/css2/#inline-formatting">
+<link rel="match" href="../../reference/ref-filled-green-200px-square.html">
+<meta name="assert" content="
+  From https://drafts.csswg.org/css2/#leading
+  > The baseline of an inline-block is the baseline of its last line box in the normal flow,
+  > unless it has either no in-flow line boxes or if its overflow property has a computed
+  > value other than visible, in which case the baseline is the bottom margin edge.
+
+  Here we have 2 inline-blocks. The 1st one is completely empty, so it baseline is its
+  bottom margin edge. The 2nd one has an empty span followed by a block.
+
+  The span would typically be placed in a line box. However, it's a phantom line box.
+  From https://drafts.csswg.org/css2/#inline-formatting
+  > Line boxes that contain no text, no preserved white space, no inline elements with
+  > non-zero margins, padding, or borders, and no other in-flow content (such as images,
+  > inline blocks or inline tables), and do not end with a preserved newline must be
+  > treated as zero-height line boxes for the purposes of determining the positions of
+  > any elements inside of them, and must be treated as not existing for any other purpose.
+
+  So for the purpose of finding the baseline of the 2nd inline-block we ignore the phantom
+  line box, and thus the baseline is also the bottom margin edge.
+
+  Therefore, the inline-blocks should have their bottom margin edges aligned.
+">
+
+<style>
+.wrapper {
+  width: 200px;
+  background: red;
+  line-height: 0;
+  font-size: 0;
+}
+.green {
+  width: 100px;
+  height: 200px;
+  background: green;
+}
+.inline-block {
+  display: inline-block;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div class="wrapper">
+  <div class="inline-block green"></div>
+  <div class="inline-block">
+    <span></span>
+    <div class="green"></div>
+  </div>
+</div>

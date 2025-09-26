@@ -13,7 +13,7 @@
     addCookieAndSessionCleanup(t);
 
     // Configure server send back an authorization header for registration.
-    configureServer({ authorizationValue: "authcode" });
+    await configureServer({ authorizationValue: "authcode" });
 
     // Prompt starting a session, and wait until registration completes.
     // The server will confirm that the authorization is sent in registration.

@@ -72,6 +72,15 @@
   }, "Script source set via Element.textContent drops trustworthiness.");
 
   promise_test(async t => {
+    let script = document.createElement("script");
+    Object.getOwnPropertyDescriptor(Node.prototype, "textContent").set.call(script, LOG_RUN_MESSAGE);
+    assert_equals(script.textContent, LOG_RUN_MESSAGE, "TrustedScript not required.");
+    await no_script_message_for(_ => {
+      container.appendChild(script);
+    });
+  }, "Script source set via Node.textContent drops trustworthiness.");
+
+  promise_test(async t => {
     await promise_rejects_js(t, TypeError, script_messages_for(_ => {
       document.createElementNS(NSURI_SVG, "script").innerHTML = LOG_RUN_MESSAGE;
     }), "TrustedHTML required.");

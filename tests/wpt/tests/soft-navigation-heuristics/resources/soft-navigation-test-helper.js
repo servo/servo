@@ -53,15 +53,13 @@ class SoftNavigationTestHelper {
    * Waits for a number of buffered performance entries of a given type,
    * optionally including soft navigation observations, with a timeout message.
    * @param {string} type The type of the entries to wait for.
-   * @param {boolean} includeSoftNavigationObservations Whether to include
-   *     soft navigation observations.
    * @param {number} minNumEntries The minimum number of entries to wait for.
    * @param {number=} timeout The timeout in milliseconds. Defaults to 1000.
    * @return {!Promise} The promise, which either resolves with the entries or
    *     rejects with a timeout message.
    */
   async getBufferedPerformanceEntriesWithTimeout(
-      type, includeSoftNavigationObservations, minNumEntries, timeout = 1000) {
+      type, minNumEntries, timeout = 1000) {
     let observer;
     return this
         .newPromiseWithTimeoutMessage(
@@ -76,14 +74,9 @@ class SoftNavigationTestHelper {
               observer.observe({
                 type: type,
                 buffered: true,
-                includeSoftNavigationObservations:
-                    includeSoftNavigationObservations,
               });
             },
-            `${minNumEntries} entries of type ${type}${
-                includeSoftNavigationObservations ?
-                    ' with soft navigation observations' :
-                    ''} never arrived`,
+            `${minNumEntries} entries of type ${type} never arrived`,
             timeout)
         .finally(() => {
           observer.disconnect();
@@ -94,13 +87,11 @@ class SoftNavigationTestHelper {
    * Waits for a number of performance entries of a given type,
    * optionally including soft navigation observations.
    * @param {string} type The type of the entries to wait for.
-   * @param {boolean} includeSoftNavigationObservations Whether to include
-   *     soft navigation observations.
    * @param {number} minNumEntries The minimum number of entries to wait for.
    * @return {!Promise} The promise, which resolves with the entries.
    */
   static getPerformanceEntries(
-      type, includeSoftNavigationObservations, minNumEntries) {
+      type, minNumEntries) {
     return new Promise((resolve) => {
       const entries = [];
       const observer = new PerformanceObserver((list) => {
@@ -112,7 +103,6 @@ class SoftNavigationTestHelper {
       })
       observer.observe({
         type: type,
-        includeSoftNavigationObservations: includeSoftNavigationObservations,
       });
     });
   }

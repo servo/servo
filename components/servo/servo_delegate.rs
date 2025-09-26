@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
+use base::generic_channel;
 use embedder_traits::Notification;
 
 use crate::Servo;
@@ -16,7 +16,7 @@ pub enum ServoError {
     /// to start.
     DevtoolsFailedToStart,
     /// Failed to send response to delegate request.
-    ResponseFailedToSend(bincode::Error),
+    ResponseFailedToSend(generic_channel::SendError),
 }
 
 pub trait ServoDelegate {

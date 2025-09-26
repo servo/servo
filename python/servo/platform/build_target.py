@@ -20,7 +20,7 @@ from enum import Enum
 
 from os import path
 from packaging.version import parse as parse_version
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import servo.platform
 import servo.util as util
@@ -70,7 +70,7 @@ class BuildTarget(object):
     def binary_name(self) -> str:
         return f"servo{servo.platform.get().executable_suffix()}"
 
-    def configure_build_environment(self, env: Dict[str, str], config: Dict[str, Any], topdir: pathlib.Path) -> None:
+    def configure_build_environment(self, env: dict[str, str], config: dict[str, Any], topdir: pathlib.Path) -> None:
         pass
 
     def is_cross_build(self) -> bool:
@@ -88,7 +88,7 @@ class CrossBuildTarget(BuildTarget):
 class AndroidTarget(CrossBuildTarget):
     DEFAULT_TRIPLE = "aarch64-linux-android"
 
-    def ndk_configuration(self) -> Dict[str, str]:
+    def ndk_configuration(self) -> dict[str, str]:
         target = self.triple()
         config = {}
         if target == "armv7-linux-androideabi":
@@ -125,7 +125,7 @@ class AndroidTarget(CrossBuildTarget):
 
         return config
 
-    def configure_build_environment(self, env: Dict[str, str], config: Dict[str, Any], topdir: pathlib.Path) -> None:
+    def configure_build_environment(self, env: dict[str, str], config: dict[str, Any], topdir: pathlib.Path) -> None:
         # Paths to Android build tools:
         if config["android"]["sdk"]:
             env["ANDROID_SDK_ROOT"] = config["android"]["sdk"]
@@ -296,7 +296,7 @@ class AndroidTarget(CrossBuildTarget):
 class OpenHarmonyTarget(CrossBuildTarget):
     DEFAULT_TRIPLE = "aarch64-unknown-linux-ohos"
 
-    def configure_build_environment(self, env: Dict[str, str], config: Dict[str, Any], topdir: pathlib.Path) -> None:
+    def configure_build_environment(self, env: dict[str, str], config: dict[str, Any], topdir: pathlib.Path) -> None:
         # Paths to OpenHarmony SDK and build tools:
         # Note: `OHOS_SDK_NATIVE` is the CMake variable name the `hvigor` build-system
         # uses for the native directory of the SDK, so we use the same name to be consistent.

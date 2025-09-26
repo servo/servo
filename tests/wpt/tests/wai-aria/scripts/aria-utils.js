@@ -20,7 +20,7 @@ const AriaUtils = {
         el.setAttribute("role", role); // el.role not yet supported by Gecko.
         document.body.appendChild(el);
         const computedRole = await test_driver.get_computed_role(el);
-        assert_equals(computedRole, role, el.outerHTML);
+        assert_equals(computedRole, role.toLowerCase(), el.outerHTML);
       }, `role: ${role}`);
     }
   },

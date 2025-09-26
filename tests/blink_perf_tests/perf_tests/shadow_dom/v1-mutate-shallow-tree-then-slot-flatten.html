@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script type="text/javascript" src="../resources/runner.js"></script>
+  <script type="text/javascript" src="./v1-common.js"></script>
+</head>
+<body>
+<div id="parent"></div>
+
+<script>
+const deepNestLevel = 50;
+const loop = 100;
+
+let host;
+let deepSlot;
+
+PerfTestRunner.measureTime({
+  description: `Measure distribution`,
+  setup: () => {
+    host = createDeepComponent(deepNestLevel);
+    document.querySelector('#parent').appendChild(host);
+    deepSlot = GetDeepestFirstChild(host).querySelector('slot');
+    document.body.offsetLeft;
+  },
+  run: () => {
+    for (let i = 0; i < loop; ++i) {
+      rotateChildren(host);
+      deepSlot.assignedNodes({ flatten: true });
+    }
+  },
+  teardown: () => {
+    host.remove();
+  }
+});
+</script>
+</body>
+</html>

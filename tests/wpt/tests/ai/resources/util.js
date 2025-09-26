@@ -240,6 +240,11 @@ async function createRewriter(options = {}) {
   return await Rewriter.create(options);
 }
 
+async function createProofreader(options = {}) {
+  await test_driver.bless();
+  return await Proofreader.create(options);
+}
+
 async function testDestroy(t, createMethod, options, instanceMethods) {
   const instance = await createMethod(options);
 

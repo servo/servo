@@ -58,7 +58,7 @@ impl Kind {
         }
     }
 
-    fn text_type_matches(&self, text_type: &str) -> bool {
+    fn text_type_matches(&self, text_type: &DOMString) -> bool {
         matches!(self, Kind::Text { type_, .. } if type_.eq(text_type))
     }
 
@@ -153,7 +153,7 @@ impl DragDataStore {
         types
     }
 
-    pub(crate) fn find_matching_text(&self, type_: &str) -> Option<DOMString> {
+    pub(crate) fn find_matching_text(&self, type_: &DOMString) -> Option<DOMString> {
         self.item_list
             .values()
             .find(|item| item.text_type_matches(type_))
@@ -277,7 +277,7 @@ fn normalize_mime(mut format: DOMString) -> DOMString {
     // Convert format to ASCII lowercase.
     format.make_ascii_lowercase();
 
-    match format.as_ref() {
+    match format.str() {
         // If format equals "text", change it to "text/plain".
         "text" => DOMString::from("text/plain"),
         // If format equals "url", change it to "text/uri-list".

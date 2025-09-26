@@ -11,8 +11,10 @@ legend { width:initial; }
   const refElm = document.querySelector('#ref');
   const refStyle = getComputedStyle(refElm);
   const testElm = document.querySelector('#test');
+  // Note that we're not testing "display:run-in" here; it's mentioned in
+  // several CSS specs, but no browser engines appear likely to support it.
   const values = ['block', 'table', 'table-row-group', 'table-header-group', 'table-footer-group', 'table-row', 'table-cell',
-                  'table-column-group', 'table-column', 'table-caption', 'list-item', 'flow', 'flow-root','run-in','inline',
+                  'table-column-group', 'table-column', 'table-caption', 'list-item', 'flow', 'flow-root', 'inline',
                   'inline-block', 'inline-table', 'block ruby', 'ruby', 'ruby-base', 'ruby-text', 'ruby-base-container', 'ruby-text-container',
                   'grid', 'inline-grid', 'flex', 'inline-flex'];
   const extraStyle = ['', 'overflow:hidden', 'columns:1', 'overflow:hidden;columns:1'];

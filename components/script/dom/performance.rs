@@ -306,7 +306,7 @@ impl Performance {
         }
 
         // Step 4.
-        //add the new entry to the buffer.
+        // add the new entry to the buffer.
         self.buffer
             .borrow_mut()
             .entries
@@ -490,7 +490,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         let global = self.global();
         // Step 1.
         if global.is::<Window>() && INVALID_ENTRY_NAMES.contains(&mark_name.as_ref()) {
-            return Err(Error::Syntax);
+            return Err(Error::Syntax(None));
         }
 
         // Steps 2 to 6.

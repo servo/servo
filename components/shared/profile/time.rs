@@ -7,7 +7,6 @@ use ipc_channel::ipc::IpcSender;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
-use servo_config::opts;
 use time::Duration;
 
 #[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
@@ -197,9 +196,6 @@ pub fn profile<T, F>(
 where
     F: FnOnce() -> T,
 {
-    if opts::get().debug.signpost {
-        signpost::start(category as u32, &[0, 0, 0, (category as usize) >> 4]);
-    }
     let start_time = CrossProcessInstant::now();
     let val = {
         #[cfg(feature = "tracing")]
@@ -207,10 +203,6 @@ where
         callback()
     };
     let end_time = CrossProcessInstant::now();
-
-    if opts::get().debug.signpost {
-        signpost::end(category as u32, &[0, 0, 0, (category as usize) >> 4]);
-    }
 
     send_profile_data(category, meta, &profiler_chan, start_time, end_time);
     val

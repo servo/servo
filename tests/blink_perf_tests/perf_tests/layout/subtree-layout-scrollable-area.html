@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<style>
+div {
+    width: 200px;
+    height: 50px;
+    position: absolute;
+    left: 0;
+    top: 0;
+    overflow: hidden;
+}
+</style>
+<script src="../resources/runner.js"></script>
+<script>
+  let textNodes = [];
+  const NUM_ELEMENTS = 5000;
+
+  function populateData() {
+      for (let i = 0; i < NUM_ELEMENTS; i++) {
+          let div = document.createElement('div');
+          let textNode = document.createTextNode('' + (100 * Math.random()).toFixed(2));
+          div.appendChild(textNode);
+          textNodes.push(textNode);
+          document.body.appendChild(div);
+      }
+  }
+
+  function startTest() {
+    populateData();
+
+    PerfTestRunner.forceLayout();
+
+    PerfTestRunner.measureTime({
+      description: "Measures performance of changing text nodes content.",
+      run: function() {
+        for (let i = 0; i < textNodes.length; i++) {
+          textNodes[i].data = '' + (100 * Math.random()).toFixed(2);
+        }
+
+        PerfTestRunner.forceLayout();
+      },
+    });
+  }
+</script>
+<body onload="startTest();">
+</body>

@@ -31,8 +31,7 @@ mod devtools;
 pub(crate) mod document_loader;
 #[macro_use]
 mod dom;
-mod canvas_context;
-mod canvas_state;
+pub(crate) use dom::canvas_context;
 pub(crate) mod fetch;
 pub(crate) mod indexed_db;
 mod init;
@@ -52,6 +51,7 @@ mod realms;
 mod routed_promise;
 #[allow(dead_code)]
 mod script_module;
+mod script_mutation_observers;
 pub(crate) mod script_runtime;
 #[allow(unsafe_code)]
 pub(crate) mod script_thread;

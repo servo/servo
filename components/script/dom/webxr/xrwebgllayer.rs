@@ -10,24 +10,23 @@ use euclid::{Rect, Size2D};
 use js::rust::HandleObject;
 use webxr_api::{ContextId as WebXRContextId, LayerId, LayerInit, Viewport};
 
-use crate::canvas_context::CanvasContext as _;
+use crate::canvas_context::CanvasContext;
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::{
     XRWebGLLayerInit, XRWebGLLayerMethods, XRWebGLRenderingContext,
 };
-use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::webglframebuffer::WebGLFramebuffer;
-use crate::dom::webglobject::WebGLObject;
-use crate::dom::webglrenderingcontext::WebGLRenderingContext;
-use crate::dom::webgltexture::WebGLTexture;
+use crate::dom::webgl::webglframebuffer::WebGLFramebuffer;
+use crate::dom::webgl::webglobject::WebGLObject;
+use crate::dom::webgl::webglrenderingcontext::WebGLRenderingContext;
+use crate::dom::webgl::webgltexture::WebGLTexture;
 use crate::dom::window::Window;
 use crate::dom::xrframe::XRFrame;
 use crate::dom::xrlayer::XRLayer;
@@ -125,14 +124,7 @@ impl XRWebGLLayer {
                 size.1.try_into().unwrap_or(0),
             )
         } else {
-            let size = match self.context().Canvas() {
-                HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => canvas.get_size(),
-                HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => {
-                    let size = canvas.get_size();
-                    Size2D::new(size.width, size.height)
-                },
-            };
-            Size2D::from_untyped(size)
+            Size2D::from_untyped(self.context().size())
         }
     }
 

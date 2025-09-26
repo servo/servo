@@ -7,7 +7,7 @@
     <link rel="help" title="7.5 Line-Relative Mappings" href="http://www.w3.org/TR/css-writing-modes-4/#line-mappings" />
     <link rel="help" title="10.8.1 Leading and half-leading" href="http://www.w3.org/TR/2011/REC-CSS2-20110607/visudet.html#leading" />
     <meta name="assert" content="This test checks the position of inline non-replaced box with vertical align property. When 'writing-mode' is 'sideways-lr', 'vertical-align' is 'bottom', the physical right (logical bottom) edge of an inline non-replaced box is aligned with the physical right (logical bottom) edge of its line box." />
-    <link rel="match" href="vertical-alignment-002-ref.xht" />
+    <link rel="match" href="vertical-alignment-slr-035-ref.xht" />
     <meta name="flags" content="ahem" />
     <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
     <style type="text/css"><![CDATA[
@@ -16,7 +16,6 @@
       writing-mode: sideways-lr;
       font: 60px/3 Ahem; /* computes to 60px/180px */
       color: blue;
-      margin-top: 46px; /* 30px (height of orange square) + 16px (p's margin-bottom) */
     }
 
     span#orange
@@ -24,7 +23,6 @@
       font-size: 0.5em;
       color: orange;
       vertical-align: bottom;
-      margin-bottom: -2em; /* computes to -60px */
     }
     ]]></style>
 
@@ -32,7 +30,7 @@
 
   <body>
 
-  <p>Test passes if the right edge of an blue square is aligned with the left edge of a orange square.</p>
+  <p>Test passes if the right edge of an blue square is vertically aligned with the left edge of a orange square.</p>
 
   <div id="slr">A<span id="orange">O</span></div>
 

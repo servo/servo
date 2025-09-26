@@ -9,15 +9,18 @@ use js::jsval::NullValue;
 use js::rust::HandleValue;
 use script_bindings::conversions::SafeToJSValConvertible;
 
+use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::TrustedTypePolicyFactoryBinding::{
     TrustedTypePolicyFactoryMethods, TrustedTypePolicyOptions,
 };
+use crate::dom::bindings::codegen::UnionTypes::TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString as TrustedTypeOrString;
 use crate::dom::bindings::conversions::root_from_handlevalue;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::CspReporting;
+use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::trustedhtml::TrustedHTML;
 use crate::dom::trustedscript::TrustedScript;
@@ -31,6 +34,19 @@ pub struct TrustedTypePolicyFactory {
 
     default_policy: MutNullableDom<TrustedTypePolicy>,
     policy_names: RefCell<Vec<String>>,
+}
+
+pub(crate) static DEFAULT_SCRIPT_SINK_GROUP: &str = "'script'";
+
+impl Convert<DOMString> for TrustedTypeOrString {
+    fn convert(self) -> DOMString {
+        match self {
+            TrustedTypeOrString::TrustedHTML(trusted_html) => trusted_html.data(),
+            TrustedTypeOrString::TrustedScript(trusted_script) => trusted_script.data(),
+            TrustedTypeOrString::TrustedScriptURL(trusted_script_url) => trusted_script_url.data(),
+            TrustedTypeOrString::String(str_) => str_,
+        }
+    }
 }
 
 impl TrustedTypePolicyFactory {
@@ -55,19 +71,20 @@ impl TrustedTypePolicyFactory {
         global: &GlobalScope,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<TrustedTypePolicy>> {
-        // Step 1: Let allowedByCSP be the result of executing Should Trusted Type policy creation be blocked by
-        // Content Security Policy? algorithm with global, policyName and factory’s created policy names value.
-        let allowed_by_csp = global
-            .get_csp_list()
-            .is_trusted_type_policy_creation_allowed(
-                global,
-                policy_name.clone(),
-                self.policy_names.borrow().clone(),
-            );
+        // Avoid double borrow on policy_names
+        {
+            // Step 1: Let allowedByCSP be the result of executing Should Trusted Type policy creation be blocked by
+            // Content Security Policy? algorithm with global, policyName and factory’s created policy names value.
+            let policy_names = self.policy_names.borrow();
+            let policy_names: Vec<&str> = policy_names.iter().map(String::as_ref).collect();
+            let allowed_by_csp = global
+                .get_csp_list()
+                .is_trusted_type_policy_creation_allowed(global, &policy_name, &policy_names);
 
-        // Step 2: If allowedByCSP is "Blocked", throw a TypeError and abort further steps.
-        if !allowed_by_csp {
-            return Err(Error::Type("Not allowed by CSP".to_string()));
+            // Step 2: If allowedByCSP is "Blocked", throw a TypeError and abort further steps.
+            if !allowed_by_csp {
+                return Err(Error::Type("Not allowed by CSP".to_string()));
+            }
         }
 
         // Step 3: If policyName is default and the factory’s default policy value is not null, throw a TypeError
@@ -97,45 +114,125 @@ impl TrustedTypePolicyFactory {
     /// <https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-get-trusted-type-data-for-attribute>
     #[allow(clippy::if_same_then_else)]
     fn get_trusted_type_data_for_attribute(
-        element: QualName,
-        attribute: String,
-        attribute_namespace: Option<Namespace>,
-    ) -> Option<DOMString> {
+        element_namespace: &Namespace,
+        element_name: &LocalName,
+        attribute: &str,
+        attribute_namespace: Option<&Namespace>,
+    ) -> Option<(TrustedType, String)> {
         // Step 1: Let data be null.
-        let mut data = None;
-        // Step 2: If attributeNs is null, and attribute is the name of an event handler content attribute, then:
-        // TODO(36258): look up event handlers
+        //
+        // We return the if directly
+        // Step 2: If attributeNs is null, « HTML namespace, SVG namespace, MathML namespace » contains
+        // element’s namespace, and attribute is the name of an event handler content attribute:
+        if attribute_namespace.is_none() &&
+            matches!(*element_namespace, ns!(html) | ns!(svg) | ns!(mathml)) &&
+            EventTarget::is_content_event_handler(attribute)
+        {
+            // Step 2.1. Return (Element, null, attribute, TrustedScript, "Element " + attribute).
+            return Some((
+                TrustedType::TrustedScript,
+                "Element ".to_owned() + attribute,
+            ));
+        }
         // Step 3: Find the row in the following table, where element is in the first column,
         // attributeNs is in the second column, and attribute is in the third column.
         // If a matching row is found, set data to that row.
-        if element.ns == ns!(html) &&
-            element.local == local_name!("iframe") &&
+        // Step 4: Return data.
+        if *element_namespace == ns!(html) &&
+            *element_name == local_name!("iframe") &&
             attribute_namespace.is_none() &&
             attribute == "srcdoc"
         {
-            data = Some(DOMString::from("TrustedHTML"))
-        } else if element.ns == ns!(html) &&
-            element.local == local_name!("script") &&
+            Some((
+                TrustedType::TrustedHTML,
+                "HTMLIFrameElement srcdoc".to_owned(),
+            ))
+        } else if *element_namespace == ns!(html) &&
+            *element_name == local_name!("script") &&
             attribute_namespace.is_none() &&
             attribute == "src"
         {
-            data = Some(DOMString::from("TrustedScriptURL"))
-        } else if element.ns == ns!(svg) &&
-            element.local == local_name!("script") &&
+            Some((
+                TrustedType::TrustedScriptURL,
+                "HTMLScriptElement src".to_owned(),
+            ))
+        } else if *element_namespace == ns!(svg) &&
+            *element_name == local_name!("script") &&
             attribute_namespace.is_none() &&
             attribute == "href"
         {
-            data = Some(DOMString::from("TrustedScriptURL"))
-        } else if element.ns == ns!(svg) &&
-            element.local == local_name!("script") &&
-            attribute_namespace == Some(ns!(xlink)) &&
+            Some((
+                TrustedType::TrustedScriptURL,
+                "SVGScriptElement href".to_owned(),
+            ))
+        } else if *element_namespace == ns!(svg) &&
+            *element_name == local_name!("script") &&
+            attribute_namespace == Some(&ns!(xlink)) &&
             attribute == "href"
         {
-            data = Some(DOMString::from("TrustedScriptURL"))
+            Some((
+                TrustedType::TrustedScriptURL,
+                "SVGScriptElement href".to_owned(),
+            ))
+        } else {
+            None
         }
-        // Step 4: Return data.
-        data
     }
+
+    /// <https://w3c.github.io/trusted-types/dist/spec/#validate-attribute-mutation>
+    pub(crate) fn get_trusted_types_compliant_attribute_value(
+        element_namespace: &Namespace,
+        element_name: &LocalName,
+        attribute: &str,
+        attribute_namespace: Option<&Namespace>,
+        new_value: TrustedTypeOrString,
+        global: &GlobalScope,
+        can_gc: CanGc,
+    ) -> Fallible<DOMString> {
+        // Step 1. If attributeNs is the empty string, set attributeNs to null.
+        let attribute_namespace =
+            attribute_namespace.and_then(|a| if *a == ns!() { None } else { Some(a) });
+        // Step 2. Set attributeData to the result of Get Trusted Type data for attribute algorithm,
+        // with the following arguments:
+        let Some(attribute_data) = Self::get_trusted_type_data_for_attribute(
+            element_namespace,
+            element_name,
+            attribute,
+            attribute_namespace,
+        ) else {
+            // Step 3. If attributeData is null, then:
+            // Step 3.1. If newValue is a string, return newValue.
+            // Step 3.2. Assert: newValue is TrustedHTML or TrustedScript or TrustedScriptURL.
+            // Step 3.3. Return value’s associated data.
+            return Ok(new_value.convert());
+        };
+        // Step 4. Let expectedType be the value of the fourth member of attributeData.
+        // Step 5. Let sink be the value of the fifth member of attributeData.
+        let (expected_type, sink) = attribute_data;
+        let new_value = if let TrustedTypeOrString::String(str_) = new_value {
+            str_
+        } else {
+            // If the type was already trusted, we should return immediately as
+            // all callers of `get_trusted_type_compliant_string` implement this
+            // check themselves. However, we should only do this if it matches
+            // the expected type.
+            if expected_type.matches_idl_trusted_type(&new_value) {
+                return Ok(new_value.convert());
+            }
+            new_value.convert()
+        };
+        // Step 6. Return the result of executing Get Trusted Type compliant string with the following arguments:
+        // If the algorithm threw an error, rethrow the error.
+        Self::get_trusted_type_compliant_string(
+            expected_type,
+            global,
+            new_value,
+            &sink,
+            DEFAULT_SCRIPT_SINK_GROUP,
+            can_gc,
+        )
+    }
+
     /// <https://w3c.github.io/trusted-types/dist/spec/#process-value-with-a-default-policy-algorithm>
     pub(crate) fn process_value_with_default_policy(
         expected_type: TrustedType,
@@ -154,8 +251,10 @@ impl TrustedTypePolicyFactory {
         // Step 2: Let policyValue be the result of executing Get Trusted Type policy value,
         // with the following arguments:
         rooted!(in(*cx) let mut trusted_type_name_value = NullValue());
-        let trusted_type_name: &'static str = expected_type.clone().into();
-        trusted_type_name.safe_to_jsval(cx, trusted_type_name_value.handle_mut());
+        expected_type
+            .clone()
+            .as_ref()
+            .safe_to_jsval(cx, trusted_type_name_value.handle_mut());
 
         rooted!(in(*cx) let mut sink_value = NullValue());
         sink.safe_to_jsval(cx, sink_value.handle_mut());
@@ -218,7 +317,10 @@ impl TrustedTypePolicyFactory {
                 let is_blocked = global
                     .get_csp_list()
                     .should_sink_type_mismatch_violation_be_blocked_by_csp(
-                        global, sink, sink_group, &input,
+                        global,
+                        sink,
+                        sink_group,
+                        input.str(),
                     );
                 // Step 6.2: If disposition is “Allowed”, return stringified input and abort further steps.
                 if !is_blocked {
@@ -243,7 +345,7 @@ impl TrustedTypePolicyFactory {
         cx: JSContext,
         value: HandleValue,
     ) -> Result<DomRoot<TrustedScript>, ()> {
-        unsafe { root_from_handlevalue::<TrustedScript>(value, *cx) }
+        root_from_handlevalue::<TrustedScript>(value, cx)
     }
 }
 
@@ -260,7 +362,7 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-ishtml>
     #[allow(unsafe_code)]
     fn IsHTML(&self, cx: JSContext, value: HandleValue) -> bool {
-        unsafe { root_from_handlevalue::<TrustedHTML>(value, *cx).is_ok() }
+        root_from_handlevalue::<TrustedHTML>(value, cx).is_ok()
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-isscript>
     #[allow(unsafe_code)]
@@ -270,7 +372,7 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-isscripturl>
     #[allow(unsafe_code)]
     fn IsScriptURL(&self, cx: JSContext, value: HandleValue) -> bool {
-        unsafe { root_from_handlevalue::<TrustedScriptURL>(value, *cx).is_ok() }
+        root_from_handlevalue::<TrustedScriptURL>(value, cx).is_ok()
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-emptyhtml>
     fn EmptyHTML(&self, can_gc: CanGc) -> DomRoot<TrustedHTML> {
@@ -303,23 +405,19 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
             Some(_) | None => None,
         };
         // Step 5: Let interface be the element interface for localName and elementNs.
-        let interface = QualName::new(None, element_namespace, LocalName::from(local_name));
         // Step 6: Let expectedType be null.
-        let mut expected_type = None;
         // Step 7: Set attributeData to the result of Get Trusted Type data for attribute algorithm,
         // with the following arguments: interface as element, attribute, attrNs
-        let attribute_data = TrustedTypePolicyFactory::get_trusted_type_data_for_attribute(
-            interface,
-            attribute,
-            attribute_namespace,
-        );
         // Step 8: If attributeData is not null, then set expectedType to the interface’s name of
         // the value of the fourth member of attributeData.
-        if let Some(trusted_type) = attribute_data {
-            expected_type = Some(trusted_type)
-        }
         // Step 9: Return expectedType.
-        expected_type
+        TrustedTypePolicyFactory::get_trusted_type_data_for_attribute(
+            &element_namespace,
+            &LocalName::from(local_name),
+            &attribute,
+            attribute_namespace.as_ref(),
+        )
+        .map(|tuple| DOMString::from(tuple.0.as_ref()))
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-getpropertytype>
     #[allow(clippy::if_same_then_else)]

@@ -8,7 +8,7 @@ use euclid::default::{Rect, Size2D};
 use image::codecs::jpeg::JpegEncoder;
 use image::codecs::png::PngEncoder;
 use image::codecs::webp::WebPEncoder;
-use image::{ColorType, ImageEncoder, ImageError};
+use image::{ExtendedColorType, GenericImageView, ImageEncoder, ImageError, Rgb};
 use ipc_channel::ipc::IpcSharedMemory;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
@@ -84,7 +84,7 @@ impl SnapshotAlphaMode {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum SnapshotData {
     // TODO: https://github.com/servo/servo/issues/36594
-    //IPC(IpcSharedMemory),
+    // IPC(IpcSharedMemory),
     Owned(Vec<u8>),
 }
 
@@ -93,7 +93,7 @@ impl Deref for SnapshotData {
 
     fn deref(&self) -> &Self::Target {
         match &self {
-            //Data::IPC(ipc_shared_memory) => ipc_shared_memory,
+            // Data::IPC(ipc_shared_memory) => ipc_shared_memory,
             SnapshotData::Owned(items) => items,
         }
     }
@@ -102,7 +102,7 @@ impl Deref for SnapshotData {
 impl DerefMut for SnapshotData {
     fn deref_mut(&mut self) -> &mut Self::Target {
         match self {
-            //Data::IPC(ipc_shared_memory) => unsafe { ipc_shared_memory.deref_mut() },
+            // Data::IPC(ipc_shared_memory) => unsafe { ipc_shared_memory.deref_mut() },
             SnapshotData::Owned(items) => items,
         }
     }
@@ -288,7 +288,7 @@ impl Snapshot<SnapshotData> {
             alpha_mode,
         } = self;
         let data = match data {
-            //Data::IPC(ipc_shared_memory) => ipc_shared_memory,
+            // Data::IPC(ipc_shared_memory) => ipc_shared_memory,
             SnapshotData::Owned(items) => IpcSharedMemory::from_bytes(&items),
         };
         Snapshot {
@@ -325,10 +325,10 @@ impl Snapshot<SnapshotData> {
             EncodedImageType::Png => {
                 // FIXME(nox): https://github.com/image-rs/image-png/issues/86
                 // FIXME(nox): https://github.com/image-rs/image-png/issues/87
-                PngEncoder::new(encoder).write_image(data, width, height, ColorType::Rgba8)
+                PngEncoder::new(encoder).write_image(data, width, height, ExtendedColorType::Rgba8)
             },
             EncodedImageType::Jpeg => {
-                let jpeg_encoder = if let Some(quality) = quality {
+                let mut jpeg_encoder = if let Some(quality) = quality {
                     // The specification allows quality to be in [0.0..1.0] but the JPEG encoder
                     // expects it to be in [1..100]
                     if (0.0..=1.0).contains(&quality) {
@@ -343,7 +343,38 @@ impl Snapshot<SnapshotData> {
                     JpegEncoder::new(encoder)
                 };
 
-                jpeg_encoder.write_image(data, width, height, ColorType::Rgba8)
+                // JPEG doesn't support transparency, so simply calling jpeg_encoder.write_image fails here.
+                // Instead we have to create a struct to translate from rgba to rgb.
+                struct RgbaDataForJpegEncoder<'a> {
+                    width: u32,
+                    height: u32,
+                    data: &'a [u8],
+                }
+
+                impl<'a> GenericImageView for RgbaDataForJpegEncoder<'a> {
+                    type Pixel = Rgb<u8>;
+
+                    fn dimensions(&self) -> (u32, u32) {
+                        (self.width, self.height)
+                    }
+
+                    fn get_pixel(&self, x: u32, y: u32) -> Self::Pixel {
+                        let offset = (self.width * y + x) as usize * 4;
+                        Rgb([
+                            self.data[offset],
+                            self.data[offset + 1],
+                            self.data[offset + 2],
+                        ])
+                    }
+                }
+
+                let image = RgbaDataForJpegEncoder {
+                    width,
+                    height,
+                    data,
+                };
+
+                jpeg_encoder.encode_image(&image)
             },
             EncodedImageType::Webp => {
                 // No quality support because of https://github.com/image-rs/image/issues/1984
@@ -351,7 +382,7 @@ impl Snapshot<SnapshotData> {
                     data,
                     width,
                     height,
-                    ColorType::Rgba8,
+                    ExtendedColorType::Rgba8,
                 )
             },
         }

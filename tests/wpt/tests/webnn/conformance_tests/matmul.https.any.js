@@ -1095,11 +1095,5 @@ const matmulTests = [
   }
 ];
 
-if (navigator.ml) {
-  matmulTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getMatmulPrecisionTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(
+    matmulTests, buildAndExecuteGraph, getMatmulPrecisionTolerance);

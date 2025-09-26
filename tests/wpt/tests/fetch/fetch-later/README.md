@@ -1,3 +1,3 @@
-# FetchLater Tests
+# `fetchLater()` Tests
 
-These tests cover [FetchLater method](https://whatpr.org/fetch/1647.html#dom-window-fetchlater) related behaviors.
+These tests cover [`fetchLater()` method](https://fetch.spec.whatwg.org/#dom-window-fetchlater) related behaviors.

@@ -5,6 +5,8 @@
 use std::cell::Cell;
 use std::{f64, ptr};
 
+use base::id::{DomMatrixId, DomMatrixIndex};
+use constellation_traits::DomMatrix;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::Angle;
@@ -14,6 +16,7 @@ use js::jsapi::JSObject;
 use js::jsval;
 use js::rust::{CustomAutoRooterGuard, HandleObject, ToString};
 use js::typedarray::{Float32Array, Float64Array};
+use rustc_hash::FxHashMap;
 use style::parser::ParserContext;
 use url::Url;
 
@@ -30,7 +33,9 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::dompoint::DOMPoint;
 use crate::dom::globalscope::GlobalScope;
@@ -77,12 +82,35 @@ impl DOMMatrixReadOnly {
         }
     }
 
-    pub(crate) fn matrix(&self) -> Ref<Transform3D<f64>> {
+    pub(crate) fn matrix(&self) -> Ref<'_, Transform3D<f64>> {
         self.matrix.borrow()
+    }
+
+    pub(crate) fn set_matrix(&self, value: Transform3D<f64>) {
+        self.set_m11(value.m11);
+        self.set_m12(value.m12);
+        self.set_m13(value.m13);
+        self.set_m14(value.m14);
+        self.set_m21(value.m21);
+        self.set_m22(value.m22);
+        self.set_m23(value.m23);
+        self.set_m24(value.m24);
+        self.set_m31(value.m31);
+        self.set_m32(value.m32);
+        self.set_m33(value.m33);
+        self.set_m34(value.m34);
+        self.set_m41(value.m41);
+        self.set_m42(value.m42);
+        self.set_m43(value.m43);
+        self.set_m44(value.m44);
     }
 
     pub(crate) fn is2D(&self) -> bool {
         self.is2D.get()
+    }
+
+    pub(crate) fn set_is2D(&self, value: bool) {
+        self.is2D.set(value);
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m11
@@ -404,12 +432,18 @@ impl DOMMatrixReadOnly {
         // Step 2 in DOMMatrix.SkewYSelf
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-invertself
+    /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrix-invertself>
     pub(crate) fn invert_self(&self) {
         let mut matrix = self.matrix.borrow_mut();
-        // Step 1.
-        *matrix = matrix.inverse().unwrap_or_else(|| {
-            // Step 2.
+        // Step 1. Invert the current matrix.
+        let inverted = match self.is2D() {
+            true => matrix.to_2d().inverse().map(|m| m.to_3d()),
+            false => matrix.inverse(),
+        };
+
+        // Step 2. If the current matrix is not invertible set all attributes to NaN
+        // and set is 2D to false.
+        *matrix = inverted.unwrap_or_else(|| -> Transform3D<f64> {
             self.is2D.set(false);
             Transform3D::new(
                 f64::NAN,
@@ -429,7 +463,7 @@ impl DOMMatrixReadOnly {
                 f64::NAN,
                 f64::NAN,
             )
-        })
+        });
         // Step 3 in DOMMatrix.InvertSelf
     }
 }
@@ -924,6 +958,89 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
     }
 }
 
+impl Serializable for DOMMatrixReadOnly {
+    type Index = DomMatrixIndex;
+    type Data = DomMatrix;
+
+    fn serialize(&self) -> Result<(DomMatrixId, Self::Data), ()> {
+        let serialized = if self.is2D() {
+            DomMatrix {
+                matrix: Transform3D::new(
+                    self.M11(),
+                    self.M12(),
+                    f64::NAN,
+                    f64::NAN,
+                    self.M21(),
+                    self.M22(),
+                    f64::NAN,
+                    f64::NAN,
+                    f64::NAN,
+                    f64::NAN,
+                    f64::NAN,
+                    f64::NAN,
+                    self.M41(),
+                    self.M42(),
+                    f64::NAN,
+                    f64::NAN,
+                ),
+                is_2d: true,
+            }
+        } else {
+            DomMatrix {
+                matrix: *self.matrix(),
+                is_2d: false,
+            }
+        };
+        Ok((DomMatrixId::new(), serialized))
+    }
+
+    fn deserialize(
+        owner: &GlobalScope,
+        serialized: Self::Data,
+        can_gc: CanGc,
+    ) -> Result<DomRoot<Self>, ()>
+    where
+        Self: Sized,
+    {
+        if serialized.is_2d {
+            Ok(Self::new(
+                owner,
+                true,
+                Transform3D::new(
+                    serialized.matrix.m11,
+                    serialized.matrix.m12,
+                    0.0,
+                    0.0,
+                    serialized.matrix.m21,
+                    serialized.matrix.m22,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                    0.0,
+                    serialized.matrix.m41,
+                    serialized.matrix.m42,
+                    0.0,
+                    1.0,
+                ),
+                can_gc,
+            ))
+        } else {
+            Ok(Self::new(owner, false, serialized.matrix, can_gc))
+        }
+    }
+
+    fn serialized_storage<'a>(
+        data: StructuredData<'a, '_>,
+    ) -> &'a mut Option<FxHashMap<DomMatrixId, Self::Data>> {
+        match data {
+            StructuredData::Reader(reader) => &mut reader.matrices,
+            StructuredData::Writer(writer) => &mut writer.matrices,
+        }
+    }
+}
+
 // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly-numbersequence
 pub(crate) fn entries_to_matrix(entries: &[f64]) -> Fallible<(bool, Transform3D<f64>)> {
     if let Ok(array) = entries.try_into() {
@@ -1108,12 +1225,12 @@ pub(crate) fn transform_to_matrix(value: String) -> Fallible<(bool, Transform3D<
 
     let transform = match parser.parse_entirely(|t| transform::parse(&context, t)) {
         Ok(result) => result,
-        Err(..) => return Err(error::Error::Syntax),
+        Err(..) => return Err(error::Error::Syntax(None)),
     };
 
     let (m, is_3d) = match transform.to_transform_3d_matrix_f64(None) {
         Ok(result) => result,
-        Err(..) => return Err(error::Error::Syntax),
+        Err(..) => return Err(error::Error::Syntax(None)),
     };
 
     Ok((!is_3d, m))

@@ -5,7 +5,8 @@
 // https://drafts.fxtf.org/geometry/#dommatrix
 
 [Exposed=(Window,Worker,PaintWorklet),
- LegacyWindowAlias=WebKitCSSMatrix]
+ LegacyWindowAlias=(SVGMatrix,WebKitCSSMatrix),
+ Serializable]
 interface DOMMatrix : DOMMatrixReadOnly {
     [Throws] constructor(optional (DOMString or sequence<unrestricted double>) init);
 
@@ -67,7 +68,7 @@ interface DOMMatrix : DOMMatrixReadOnly {
     DOMMatrix skewYSelf(optional unrestricted double sy = 0);
     DOMMatrix invertSelf();
 
-//  DOMMatrix setMatrixValue(DOMString transformList);
+    [Exposed=Window, Throws] DOMMatrix setMatrixValue(DOMString transformList);
 };
 
 dictionary DOMMatrix2DInit {

@@ -5,9 +5,8 @@
 //! Trait representing the concept of [serializable objects]
 //! (<https://html.spec.whatwg.org/multipage/#serializable-objects>).
 
-use std::collections::HashMap;
-
 use base::id::{Index, NamespaceIndex, PipelineNamespaceId};
+use rustc_hash::FxHashMap;
 use script_bindings::structuredclone::MarkedAsSerializableInIdl;
 
 use crate::dom::bindings::reflector::DomObject;
@@ -68,7 +67,7 @@ where
     /// should be used to read/store serialized instances of this type.
     fn serialized_storage<'a>(
         data: StructuredData<'a, '_>,
-    ) -> &'a mut Option<HashMap<NamespaceIndex<Self::Index>, Self::Data>>;
+    ) -> &'a mut Option<FxHashMap<NamespaceIndex<Self::Index>, Self::Data>>;
 }
 
 pub(crate) fn assert_serializable<T: Serializable>() {}

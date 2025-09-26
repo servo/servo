@@ -48,8 +48,9 @@
       await waitForNextFrame();
       const anim = document.getAnimations()[0];
       await anim.ready;
-      scroller1.scrollTop = 20;
-      await waitForNextFrame();
+      await runAndWaitForFrameUpdate(() => {
+        scroller1.scrollTop = 20;
+      });
       assert_equals(getComputedStyle(element).top, '120px');
     }, 'progress based animation timeline works');
   };

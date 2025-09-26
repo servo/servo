@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>CSS Filter Effects: ref filters on a hidden svg shape in hidden root</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#FilterProperty">
+<link rel="match" href="reference/green-100x100.html">
+<meta name="assert" content="This test ensures we properly render filters on a hidden svg shape that is in a hidden root.">
+
+<svg style="position: relative; visibility: hidden;">
+  <defs>
+    <filter id="myfilter" filterUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+      <feFlood flood-color="green" flood-opacity="1"/>
+    </filter>
+  </defs>
+
+  <rect fill="red" height="100px" width="100px" filter="url(#myfilter)"/>
+</svg>

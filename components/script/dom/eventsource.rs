@@ -570,7 +570,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         let url_record = match base_url.join(&url) {
             Ok(u) => u,
             // Step 4 If urlRecord is failure, then throw a "SyntaxError" DOMException.
-            Err(_) => return Err(Error::Syntax),
+            Err(_) => return Err(Error::Syntax(None)),
         };
         // Step 1 Let ev be a new EventSource object.
         let ev = EventSource::new(
@@ -718,7 +718,7 @@ impl EventSourceTimeoutCallback {
         let mut request = event_source.request();
         // Step 5.3
         if !event_source.last_event_id.borrow().is_empty() {
-            //TODO(eijebong): Change this once typed header support custom values
+            // TODO(eijebong): Change this once typed header support custom values
             request.headers.insert(
                 HeaderName::from_static("last-event-id"),
                 HeaderValue::from_str(&String::from(event_source.last_event_id.borrow().clone()))

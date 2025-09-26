@@ -104,14 +104,15 @@ function setupAnimationAndTrigger(target, subject, duration) {
       { duration: duration, fill: "both" }
     ));
 
-  let trigger = new AnimationTrigger({
+  let trigger = new TimelineTrigger({
     behavior: "alternate",
     timeline: new ViewTimeline({ subject: subject, axis: "y" }),
     rangeStart: "contain 0%",
     rangeEnd: "contain 100%"
   });
 
-  trigger.addAnimation(animation);
+  trigger.addAnimation(animation, "enter", "play-forwards");
+  trigger.addAnimation(animation, "exit", "play-backwards");
 }
 
 async function waitForAnimation(targetCurrentTime, animation) {

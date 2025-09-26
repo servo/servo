@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/resources/common.js"></script>
+<body></body>
+<script>
+test(() => {
+  const range = new FormControlRange();
+  const textNode = document.createTextNode("test");
+  assert_throws_dom("NotSupportedError", () => {
+    range.setFormControlRange(textNode, 0, 0);
+  });
+}, "FormControlRange throws NotSupportedError for text node.");
+
+// Test all HTML5 elements; only <textarea> and <input> support FormControlRange.
+test(() => {
+  const supportedElements = ['textarea', 'input'];
+
+  HTML5_ELEMENTS.forEach(elementName => {
+    if (supportedElements.includes(elementName)) {
+      return;
+    }
+
+    var doc = newHTMLDocument();
+    const element = doc.createElement(elementName);
+    doc.body.appendChild(element);
+
+    const range = new FormControlRange();
+    assert_throws_dom("NotSupportedError", () => {
+      range.setFormControlRange(element, 0, 0);
+    }, `FormControlRange should throw NotSupportedError for ${element.outerHTML}`);
+  });
+}, "FormControlRange should throw NotSupportedError for all unsupported HTML5 elements.");
+
+// Test all HTML5_INPUT_TYPES.
+// Only these input types support the Selection API: text, search, url, tel, password.
+// https://html.spec.whatwg.org/multipage/input.html#do-not-apply
+
+test(() => {
+  const supportedInputTypes = ['text', 'search', 'url', 'tel', 'password'];
+
+  HTML5_INPUT_TYPES.forEach(inputType => {
+    if (supportedInputTypes.includes(inputType)) {
+      return;
+    }
+    var doc = newHTMLDocument();
+    var input = doc.createElement('input');
+    input.type = inputType;
+    doc.body.appendChild(input);
+
+    const range = new FormControlRange();
+
+    assert_throws_dom("NotSupportedError", () => {
+      range.setFormControlRange(input, 0, 0);
+    }, `FormControlRange should throw NotSupportedError for ${input.outerHTML}`);
+  });
+}, "FormControlRange should throw NotSupportedError for unsupported input types.");
+
+// Test which error "wins" when both element type and index are invalid.
+test(() => {
+  var doc = newHTMLDocument();
+  doc.body.innerHTML = '<div contenteditable>Test</div>';
+  const element = doc.body.firstElementChild;
+
+  const range = new FormControlRange();
+
+  // Both element type (div) and index (-1, 100) are invalid.
+  assert_throws_dom("NotSupportedError", () => {
+    range.setFormControlRange(element, -1, 100);
+  });
+}, "NotSupportedError should take precedence over IndexSizeError when both element type and index are invalid for a FormControlRange.");
+</script>

@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>Typed arithmetic crash in Chrome</title>
+<link rel="help" href="https://crbug.com/443107131">
+<style>
+div {
+  height: calc(clamp(40px, 1px * 1px / 1px, 50px) + 60px);
+  width: calc(clamp(40px, 1px * 1rem / 1px, 50px) + 60px);
+  margin-left: calc(1% + 1% * (1vw - 1px) / 1px);
+}
+</style>
+<div></div>

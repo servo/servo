@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>CSS Filter Effects: ref filters on a hidden block element</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#FilterProperty">
+<link rel="match" href="reference/green-100x100.html">
+<meta name="assert" content="This test ensures we properly render filters on block elements that are visibility hidden.">
+<style>
+  .flood {
+    width: 100px;
+    height: 100px;
+    background: red;
+    visibility: hidden;
+    filter: url(#myfilter);
+  }
+</style>
+<div class="flood"></div>
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" version="1.1">
+  <defs>
+    <filter id="myfilter" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+      <feFlood flood-color="green" flood-opacity="1"/>
+    </filter>
+  </defs>
+</svg>

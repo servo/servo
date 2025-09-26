@@ -2,18 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::fs::File;
-use std::path::Path;
-
 use base::text::{UnicodeBlock, UnicodeBlockMethod, unicode_plane};
+use fonts_traits::LocalFontIdentifier;
 use log::debug;
-use malloc_size_of_derive::MallocSizeOf;
-use memmap2::Mmap;
-use serde::{Deserialize, Serialize};
 use style::Atom;
 use style::values::computed::font::GenericFontFamily;
 use unicode_script::Script;
-use webrender_api::NativeFontHandle;
 
 use crate::platform::add_noto_fallback_families;
 use crate::platform::font::CoreTextFontTraitsMapping;
@@ -22,41 +16,7 @@ use crate::{
     FontTemplateDescriptor, LowercaseFontFamilyName,
 };
 
-/// An identifier for a local font on a MacOS system. These values comes from the CoreText
-/// CTFontCollection. Note that `path` here is required. We do not load fonts that do not
-/// have paths.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
-pub struct LocalFontIdentifier {
-    pub postscript_name: Atom,
-    pub path: Atom,
-}
-
-impl LocalFontIdentifier {
-    pub(crate) fn native_font_handle(&self) -> NativeFontHandle {
-        NativeFontHandle {
-            name: self.postscript_name.to_string(),
-            path: self.path.to_string(),
-        }
-    }
-
-    pub(crate) fn index(&self) -> u32 {
-        0
-    }
-
-    pub(crate) fn read_data_from_file(&self) -> Option<Vec<u8>> {
-        // TODO: This is incorrect, if the font file is a TTC (collection) with more than
-        // one font. In that case we either need to reconstruct the pertinent tables into
-        // a bundle of font data (expensive) or make sure that the value returned by
-        // `index()` above is correct. The latter is potentially tricky as macOS might not
-        // do an accurate mapping between the PostScript name that it gives us and what is
-        // listed in the font.
-        let file = File::open(Path::new(&*self.path)).ok()?;
-        let mmap = unsafe { Mmap::map(&file).ok()? };
-        Some(mmap[..].to_vec())
-    }
-}
-
-pub fn for_each_available_family<F>(mut callback: F)
+pub(crate) fn for_each_available_family<F>(mut callback: F)
 where
     F: FnMut(String),
 {
@@ -66,7 +26,7 @@ where
     }
 }
 
-pub fn for_each_variation<F>(family_name: &str, mut callback: F)
+pub(crate) fn for_each_variation<F>(family_name: &str, mut callback: F)
 where
     F: FnMut(FontTemplate),
 {
@@ -215,14 +175,16 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
     families
 }
 
-pub fn default_system_generic_font_family(generic: GenericFontFamily) -> LowercaseFontFamilyName {
+pub(crate) fn default_system_generic_font_family(
+    generic: GenericFontFamily,
+) -> LowercaseFontFamilyName {
     match generic {
         GenericFontFamily::None | GenericFontFamily::Serif => "Times",
         GenericFontFamily::SansSerif => "Helvetica",
         GenericFontFamily::Monospace => "Menlo",
         GenericFontFamily::Cursive => "Apple Chancery",
         GenericFontFamily::Fantasy => "Papyrus",
-        GenericFontFamily::SystemUi => "Menlo",
+        GenericFontFamily::SystemUi => "Helvetica",
     }
     .into()
 }

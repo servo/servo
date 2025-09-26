@@ -11,7 +11,24 @@
 /components/compositing @mrobinson
 
 # Reviewers for layout-related code
-/components/layout @mrobinson @Loirooriol @nicoburns
+/components/layout @mrobinson @Loirooriol
+/components/layout/taffy @nicoburns
+
+# Reviewers for font-related code
+/components/fonts @nicoburns
+/components/shared/fonts @nicoburns
 
 # Reviewers for Minibrowser related code
 /ports/servoshell/desktop @atbrakhi
+
+# Reviewers for 2D canvas related code
+/components/canvas @sagudev
+/components/shared/canvas @sagudev
+
+# Reviewers for WebGPU related code
+/components/webgpu @sagudev
+/components/script/dom/webgpu @sagudev
+
+# Reviewers for WebDriver related code
+/components/webdriver_server @yezhizhen
+/components/script/webdriver_handlers.rs @yezhizhen

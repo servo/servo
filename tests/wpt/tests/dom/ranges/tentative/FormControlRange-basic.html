@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+test(() => {
+  const range = new FormControlRange();
+  assert_true(range instanceof FormControlRange, "|range| should be an instance of FormControlRange.");
+  assert_true(range instanceof AbstractRange, "|range| should also be an instance of AbstractRange.");
+  assert_false(range instanceof Range, "|range| should not be an instance of Range.");
+}, "Tests FormControlRange constructor and inheritance.");
+
+test(() => {
+  const range = new FormControlRange();
+
+  // Default values when no form control is set.
+  assert_equals(range.startContainer, null);
+  assert_equals(range.endContainer, null);
+  assert_equals(range.startOffset, 0);
+  assert_equals(range.endOffset, 0);
+  assert_true(range.collapsed);
+  assert_equals(range.toString(), "");
+}, "Tests FormControlRange default values when no form control is set.");
+
+test(() => {
+  document.body.innerHTML = '<input type="text" value="">';
+  const input = document.body.firstElementChild;
+  const range = new FormControlRange();
+
+  range.setFormControlRange(input, 0, 0);
+  assert_equals(range.toString(), "");
+  assert_true(range.collapsed);
+}, "FormControlRange handles empty value correctly.");
+</script>

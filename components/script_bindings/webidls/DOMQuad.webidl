@@ -10,7 +10,8 @@
  * related or neighboring rights to this work.
  */
 
-[Exposed=(Window,Worker)]
+[Exposed=(Window,Worker),
+ Serializable]
 interface DOMQuad {
     [Throws] constructor(optional DOMPointInit p1 = {}, optional DOMPointInit p2 = {},
                 optional DOMPointInit p3 = {}, optional DOMPointInit p4 = {});

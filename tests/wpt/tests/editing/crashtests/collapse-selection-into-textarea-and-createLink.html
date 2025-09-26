@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+function editingHostOnFocus() {
+  document.execCommand("selectAll", false)
+}
+function imgOnError() {
+  document.designMode = "on"
+}
+function unknownElementOnFocus() {
+  document.designMode = "off"
+  getSelection().setPosition(document.querySelector("textarea"));
+  document.execCommand("createLink", false, "x")
+}
+</script>
+</head>
+<body>
+<tt onfocusin="editingHostOnFocus()" contenteditable="true">
+<iframe></iframe>
+<textarea></textarea>
+<content onfocusout="unknownElementOnFocus()">
+<input autofocus="">
+<img onerror="imgOnError()" src="x">
+</content>
+</tt>
+</body>
+</html>

@@ -17,7 +17,7 @@ function waitForRender() {
 const dialog = document.querySelector('dialog');
 function openDialog(openMethod) {
   assert_false(dialog.open);
-  assert_false(dialog.matches(':open'));
+  assert_false(dialog.matches('[open]'));
   switch (openMethod) {
     case 'modeless':
       dialog.show();
@@ -32,7 +32,7 @@ function openDialog(openMethod) {
       assert_unreached('Unknown open method');
   }
   assert_true(dialog.open);
-  assert_true(dialog.matches(':open'));
+  assert_true(dialog.matches('[open]'));
   assert_equals(dialog.matches(':modal'),openMethod === 'modal');
 }
 
@@ -57,7 +57,7 @@ function setup(t,closedby) {
       openDialog(openMethod);
       dialog.requestClose();
       assert_false(dialog.open);
-      assert_false(dialog.matches(':open'));
+      assert_false(dialog.matches('[open]'));
     },`requestClose basic behavior ${testDescription}`);
 
     promise_test(async (t) => {
@@ -73,7 +73,7 @@ function setup(t,closedby) {
       assert_array_equals(events,[]);
       dialog.requestClose();
       assert_false(dialog.open);
-      assert_false(dialog.matches(':open'));
+      assert_false(dialog.matches('[open]'));
       assert_array_equals(events,['cancel'],'close is scheduled');
       await untilFullyClosed;
       assert_array_equals(events,['cancel','close']);
@@ -95,7 +95,7 @@ function setup(t,closedby) {
       assert_array_equals(events,[]);
       dialog.requestClose();
       assert_false(dialog.open,'Adding closedby after dialog is open');
-      assert_false(dialog.matches(':open'));
+      assert_false(dialog.matches('[open]'));
       assert_array_equals(events,['cancel']);
       await untilFullyClosed;
       events=[];
@@ -121,11 +121,11 @@ function setup(t,closedby) {
         openDialog(openMethod);
         dialog.requestClose();
         assert_true(dialog.open,'cancel event was cancelled - dialog shouldn\'t close');
-        assert_true(dialog.matches(':open'));
+        assert_true(dialog.matches('[open]'));
         shouldPreventDefault = false;
         dialog.requestClose();
         assert_false(dialog.open,'cancel event was not cancelled - dialog should now close');
-        assert_false(dialog.matches(':open'));
+        assert_false(dialog.matches('[open]'));
       },`requestClose can be cancelled ${testDescription}`);
 
       promise_test(async (t) => {
@@ -137,7 +137,7 @@ function setup(t,closedby) {
         dialog.requestClose();
         dialog.requestClose();
         assert_true(dialog.open,'cancel event was cancelled - dialog shouldn\'t close');
-        assert_true(dialog.matches(':open'));
+        assert_true(dialog.matches('[open]'));
       },`requestClose avoids abuse prevention logic ${testDescription}`);
 
       promise_test(async (t) => {
@@ -147,7 +147,7 @@ function setup(t,closedby) {
         const returnValue = 'The return value';
         dialog.requestClose(returnValue);
         assert_false(dialog.open);
-        assert_false(dialog.matches(':open'));
+        assert_false(dialog.matches('[open]'));
         assert_equals(dialog.returnValue,returnValue,'Return value should be set');
         dialog.show();
         dialog.close();
@@ -165,7 +165,7 @@ function setup(t,closedby) {
         assert_equals(dialog.returnValue,'foo');
         dialog.requestClose('This should not get saved');
         assert_true(dialog.open,'cancelled');
-        assert_true(dialog.matches(':open'));
+        assert_true(dialog.matches('[open]'));
         assert_equals(dialog.returnValue,'foo','Return value should not be changed');
       },`requestClose(returnValue) doesn't change returnvalue when cancelled ${testDescription}`);
     }

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: text-autospace:normal with ideographs that is outside of Basic Multilingual Plane.</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-autospace-property">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="match" href="text-autospace-002-ref.html">
+<style>
+.test {
+  font-family: Ahem;
+  font-size: 40px;
+}
+.normal {
+  text-autospace: normal;
+}
+</style>
+<div id="container">
+  <div class="test normal">&#x20000;&#x20000;XX&#x20000;</div>
+  <div class="test normal">&#x20000;。XX&#x20000;</div>
+  <div dir="rtl" class="test normal">&#x20000;&#x20000;XX&#x20000;</div>
+  <div dir="rtl" class="test normal">&#x20000;。XX&#x20000;</div>
+</div>

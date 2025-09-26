@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
-
 use app_units::Au;
 use base::id::ScrollTreeNodeId;
 use embedder_traits::Cursor;
 use euclid::{Box2D, Vector2D};
 use kurbo::{Ellipse, Shape};
 use layout_api::{ElementsFromPointFlags, ElementsFromPointResult};
+use rustc_hash::FxHashMap;
 use servo_geometry::FastLayoutTransform;
 use style::computed_values::backface_visibility::T as BackfaceVisibility;
 use style::computed_values::pointer_events::T as PointerEvents;
@@ -40,7 +39,7 @@ pub(crate) struct HitTest<'a> {
     /// The resulting [`HitTestResultItems`] for this hit test.
     results: Vec<ElementsFromPointResult>,
     /// A cache of hit test results for shared clip nodes.
-    clip_hit_test_results: HashMap<ClipId, bool>,
+    clip_hit_test_results: FxHashMap<ClipId, bool>,
 }
 
 impl<'a> HitTest<'a> {
@@ -55,7 +54,7 @@ impl<'a> HitTest<'a> {
             projected_point_to_test: None,
             stacking_context_tree,
             results: Vec::new(),
-            clip_hit_test_results: HashMap::new(),
+            clip_hit_test_results: FxHashMap::default(),
         };
         stacking_context_tree
             .root_stacking_context
@@ -104,7 +103,7 @@ impl<'a> HitTest<'a> {
             .stacking_context_tree
             .compositor_info
             .scroll_tree
-            .cumulative_root_to_node_transform(&scroll_tree_node_id)?;
+            .cumulative_root_to_node_transform(scroll_tree_node_id)?;
 
         let projected_point = transform.project_point2d(self.point_to_test)?;
 

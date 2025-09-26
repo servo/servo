@@ -22,7 +22,8 @@ use crate::context::LayoutContext;
 use crate::dom::LayoutBox;
 use crate::dom_traversal::{NodeAndStyleInfo, NonReplacedContents};
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragment_tree::{BaseFragmentInfo, Fragment};
+use crate::fragment_tree::BaseFragmentInfo;
+use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::AbsolutelyPositionedBox;
 
 mod geom;
@@ -151,6 +152,7 @@ impl FlexContainer {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, MallocSizeOf)]
 pub(crate) enum FlexLevelBox {
     FlexItem(FlexItemBox),
@@ -189,14 +191,24 @@ impl FlexLevelBox {
         }
     }
 
-    pub(crate) fn fragments(&self) -> Vec<Fragment> {
+    pub(crate) fn with_base<T>(&self, callback: impl FnOnce(&LayoutBoxBase) -> T) -> T {
         match self {
-            FlexLevelBox::FlexItem(flex_item_box) => flex_item_box
-                .independent_formatting_context
-                .base
-                .fragments(),
+            FlexLevelBox::FlexItem(flex_item_box) => {
+                callback(&flex_item_box.independent_formatting_context.base)
+            },
             FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => {
-                positioned_box.borrow().context.base.fragments()
+                callback(&positioned_box.borrow().context.base)
+            },
+        }
+    }
+
+    pub(crate) fn with_base_mut<T>(&mut self, callback: impl FnOnce(&mut LayoutBoxBase) -> T) -> T {
+        match self {
+            FlexLevelBox::FlexItem(flex_item_box) => {
+                callback(&mut flex_item_box.independent_formatting_context.base)
+            },
+            FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => {
+                callback(&mut positioned_box.borrow_mut().context.base)
             },
         }
     }

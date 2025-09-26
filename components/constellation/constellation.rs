@@ -99,11 +99,12 @@ use background_hang_monitor::HangMonitorRegister;
 use background_hang_monitor_api::{
     BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
 };
-use base::Epoch;
+use base::generic_channel::{GenericSender, RoutedReceiver};
 use base::id::{
     BrowsingContextGroupId, BrowsingContextId, HistoryStateId, MessagePortId, MessagePortRouterId,
     PipelineId, PipelineNamespace, PipelineNamespaceId, PipelineNamespaceRequest, WebViewId,
 };
+use base::{Epoch, IpcSend, generic_channel};
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas::canvas_paint_thread::CanvasPaintThread;
@@ -130,14 +131,14 @@ use devtools_traits::{
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    AnimationState, CompositorHitTestResult, EmbedderMsg, EmbedderProxy, FocusId,
-    FocusSequenceNumber, InputEvent, JSValue, JavaScriptEvaluationError, JavaScriptEvaluationId,
-    KeyboardEvent, MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState,
-    MouseButton, MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverCommandMsg,
-    WebDriverCommandResponse, WebDriverLoadStatus, WebDriverScriptCommand,
+    AnimationState, CompositorHitTestResult, EmbedderMsg, EmbedderProxy, FocusSequenceNumber,
+    InputEvent, JSValue, JavaScriptEvaluationError, JavaScriptEvaluationId, KeyboardEvent,
+    MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState, MouseButton,
+    MouseButtonAction, MouseButtonEvent, ScriptToEmbedderChan, Theme, ViewportDetails,
+    WebDriverCommandMsg, WebDriverCommandResponse, WebDriverLoadStatus, WebDriverScriptCommand,
 };
+use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
-use euclid::{Point2D, Size2D};
 use fonts::SystemFontServiceProxy;
 use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -146,26 +147,29 @@ use keyboard_types::{Key, KeyState, Modifiers, NamedKey};
 use layout_api::{LayoutFactory, ScriptThreadFactory};
 use log::{debug, error, info, trace, warn};
 use media::WindowGLContext;
+use net::image_cache::ImageCacheImpl;
+use net_traits::image_cache::ImageCache;
 use net_traits::pub_domains::reg_host;
 use net_traits::request::Referrer;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use net_traits::{
-    self, AsyncRuntime, IpcSend, ReferrerPolicy, ResourceThreads, exit_fetch_thread,
-    start_fetch_thread,
+    self, AsyncRuntime, ReferrerPolicy, ResourceThreads, exit_fetch_thread, start_fetch_thread,
 };
 use profile_traits::mem::ProfilerMsg;
 use profile_traits::{mem, time};
+use rustc_hash::{FxHashMap, FxHashSet};
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, ProgressiveWebMetricType,
     ScriptThreadMessage, UpdatePipelineIdReason,
 };
 use serde::{Deserialize, Serialize};
+use servo_config::prefs::{self, PrefValue};
 use servo_config::{opts, pref};
 use servo_rand::{Rng, ServoRng, SliceRandom, random};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
-use style_traits::CSSPixel;
+use style::global_style_data::StyleThreadPool;
 #[cfg(feature = "webgpu")]
-use webgpu::swapchain::WGPUImageMap;
+use webgpu::canvas_context::WGPUImageMap;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPU, WebGPURequest};
 use webrender::RenderApiSender;
@@ -187,7 +191,7 @@ use crate::session_history::{
 };
 use crate::webview_manager::WebViewManager;
 
-type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, NavigationHistoryBehavior)>;
+type PendingApprovalNavigations = FxHashMap<PipelineId, (LoadData, NavigationHistoryBehavior)>;
 
 #[derive(Debug)]
 /// The state used by MessagePortInfo to represent the various states the port can be in.
@@ -238,7 +242,7 @@ struct WebrenderWGPU {
 #[derive(Clone, Default)]
 struct BrowsingContextGroup {
     /// A browsing context group holds a set of top-level browsing contexts.
-    top_level_browsing_context_set: HashSet<WebViewId>,
+    top_level_browsing_context_set: FxHashSet<WebViewId>,
 
     /// The set of all event loops in this BrowsingContextGroup.
     /// We store the event loops in a map
@@ -252,6 +256,18 @@ struct BrowsingContextGroup {
     /// The set of all WebGPU channels in this BrowsingContextGroup.
     #[cfg(feature = "webgpu")]
     webgpus: HashMap<Host, WebGPU>,
+}
+
+struct PreferenceForwarder(Sender<EmbedderToConstellationMessage>);
+
+impl prefs::Observer for PreferenceForwarder {
+    fn prefs_changed(&self, changes: &[(&'static str, PrefValue)]) {
+        let _ = self
+            .0
+            .send(EmbedderToConstellationMessage::PreferencesUpdated(
+                changes.to_owned(),
+            ));
+    }
 }
 
 /// The `Constellation` itself. In the servo browser, there is one
@@ -271,12 +287,12 @@ pub struct Constellation<STF, SWF> {
     /// An ipc-sender/threaded-receiver pair
     /// to facilitate installing pipeline namespaces in threads
     /// via a per-process installer.
-    namespace_receiver: Receiver<Result<PipelineNamespaceRequest, IpcError>>,
-    namespace_ipc_sender: IpcSender<PipelineNamespaceRequest>,
+    namespace_receiver: RoutedReceiver<PipelineNamespaceRequest>,
+    namespace_ipc_sender: GenericSender<PipelineNamespaceRequest>,
 
     /// An IPC channel for script threads to send messages to the constellation.
     /// This is the script threads' view of `script_receiver`.
-    script_sender: IpcSender<(PipelineId, ScriptToConstellationMessage)>,
+    script_sender: GenericSender<(PipelineId, ScriptToConstellationMessage)>,
 
     /// A channel for the constellation to receive messages from script threads.
     /// This is the constellation's view of `script_sender`.
@@ -292,15 +308,15 @@ pub struct Constellation<STF, SWF> {
     /// Channels to control all background-hang monitors.
     /// TODO: store them on the relevant BrowsingContextGroup,
     /// so that they could be controlled on a "per-tab/event-loop" basis.
-    background_monitor_control_senders: Vec<IpcSender<BackgroundHangMonitorControlMsg>>,
+    background_monitor_control_senders: Vec<GenericSender<BackgroundHangMonitorControlMsg>>,
 
     /// A channel for the background hang monitor to send messages
     /// to the constellation.
-    background_hang_monitor_sender: IpcSender<HangMonitorAlert>,
+    background_hang_monitor_sender: GenericSender<HangMonitorAlert>,
 
     /// A channel for the constellation to receiver messages
     /// from the background hang monitor.
-    background_hang_monitor_receiver: Receiver<Result<HangMonitorAlert, IpcError>>,
+    background_hang_monitor_receiver: RoutedReceiver<HangMonitorAlert>,
 
     /// A factory for creating layouts. This allows customizing the kind
     /// of layout created for a [`Constellation`] and prevents a circular crate
@@ -345,17 +361,17 @@ pub struct Constellation<STF, SWF> {
     bluetooth_ipc_sender: IpcSender<BluetoothRequest>,
 
     /// A map of origin to sender to a Service worker manager.
-    sw_managers: HashMap<ImmutableOrigin, IpcSender<ServiceWorkerMsg>>,
+    sw_managers: HashMap<ImmutableOrigin, GenericSender<ServiceWorkerMsg>>,
 
     /// An IPC channel for Service Worker Manager threads to send
     /// messages to the constellation.  This is the SW Manager thread's
     /// view of `swmanager_receiver`.
-    swmanager_ipc_sender: IpcSender<SWManagerMsg>,
+    swmanager_ipc_sender: GenericSender<SWManagerMsg>,
 
     /// A channel for the constellation to receive messages from the
     /// Service Worker Manager thread. This is the constellation's view of
     /// `swmanager_sender`.
-    swmanager_receiver: Receiver<Result<SWManagerMsg, IpcError>>,
+    swmanager_receiver: RoutedReceiver<SWManagerMsg>,
 
     /// A channel for the constellation to send messages to the
     /// time profiler thread.
@@ -370,25 +386,25 @@ pub struct Constellation<STF, SWF> {
     webrender_wgpu: WebrenderWGPU,
 
     /// A map of message-port Id to info.
-    message_ports: HashMap<MessagePortId, MessagePortInfo>,
+    message_ports: FxHashMap<MessagePortId, MessagePortInfo>,
 
     /// A map of router-id to ipc-sender, to route messages to ports.
-    message_port_routers: HashMap<MessagePortRouterId, IpcSender<MessagePortMsg>>,
+    message_port_routers: FxHashMap<MessagePortRouterId, IpcSender<MessagePortMsg>>,
 
     /// Bookkeeping for BroadcastChannel functionnality.
     broadcast_channels: BroadcastChannels,
 
     /// The set of all the pipelines in the browser.  (See the `pipeline` module
     /// for more details.)
-    pipelines: HashMap<PipelineId, Pipeline>,
+    pipelines: FxHashMap<PipelineId, Pipeline>,
 
     /// The set of all the browsing contexts in the browser.
-    browsing_contexts: HashMap<BrowsingContextId, BrowsingContext>,
+    browsing_contexts: FxHashMap<BrowsingContextId, BrowsingContext>,
 
     /// A user agent holds a a set of browsing context groups.
     ///
     /// <https://html.spec.whatwg.org/multipage/#browsing-context-group-set>
-    browsing_context_group_set: HashMap<BrowsingContextGroupId, BrowsingContextGroup>,
+    browsing_context_group_set: FxHashMap<BrowsingContextGroupId, BrowsingContextGroup>,
 
     /// The Id counter for BrowsingContextGroup.
     browsing_context_group_next_id: u32,
@@ -405,13 +421,13 @@ pub struct Constellation<STF, SWF> {
     next_pipeline_namespace_id: PipelineNamespaceId,
 
     /// An [`IpcSender`] to notify navigation events to webdriver.
-    webdriver_load_status_sender: Option<(IpcSender<WebDriverLoadStatus>, PipelineId)>,
+    webdriver_load_status_sender: Option<(GenericSender<WebDriverLoadStatus>, PipelineId)>,
 
     /// An [`IpcSender`] to forward responses from the `ScriptThread` to the WebDriver server.
     webdriver_input_command_reponse_sender: Option<IpcSender<WebDriverCommandResponse>>,
 
     /// Document states for loaded pipelines (used only when writing screenshots).
-    document_states: HashMap<PipelineId, DocumentState>,
+    document_states: FxHashMap<PipelineId, DocumentState>,
 
     /// Are we shutting down?
     shutting_down: bool,
@@ -434,7 +450,7 @@ pub struct Constellation<STF, SWF> {
     webxr_registry: Option<webxr_api::Registry>,
 
     /// Lazily initialized channels for canvas paint thread.
-    canvas: OnceCell<(Sender<ConstellationCanvasMsg>, IpcSender<CanvasMsg>)>,
+    canvas: OnceCell<(Sender<ConstellationCanvasMsg>, GenericSender<CanvasMsg>)>,
 
     /// Navigation requests from script awaiting approval from the embedder.
     pending_approval_navigations: PendingApprovalNavigations,
@@ -467,7 +483,17 @@ pub struct Constellation<STF, SWF> {
     async_runtime: Box<dyn AsyncRuntime>,
 
     /// When in single-process mode, join handles for script-threads.
-    script_join_handles: HashMap<WebViewId, JoinHandle<()>>,
+    script_join_handles: FxHashMap<WebViewId, JoinHandle<()>>,
+
+    /// A list of URLs that can access privileged internal APIs.
+    privileged_urls: Vec<ServoUrl>,
+
+    /// The image cache for the single-process mode
+    image_cache: Box<dyn ImageCache>,
+
+    /// Pending viewport changes for browsing contexts that are not
+    /// yet known to the constellation.
+    pending_viewport_changes: HashMap<BrowsingContextId, ViewportDetails>,
 }
 
 /// State needed to construct a constellation.
@@ -520,6 +546,9 @@ pub struct InitialConstellationState {
 
     /// User content manager
     pub user_content_manager: UserContentManager,
+
+    /// A list of URLs that can access privileged internal APIs.
+    pub privileged_urls: Vec<ServoUrl>,
 
     /// The async runtime.
     pub async_runtime: Box<dyn AsyncRuntime>,
@@ -583,34 +612,27 @@ where
         hard_fail: bool,
     ) -> Sender<EmbedderToConstellationMessage> {
         let (compositor_sender, compositor_receiver) = unbounded();
+        let compositor_sender_self = compositor_sender.clone();
 
         // service worker manager to communicate with constellation
         let (swmanager_ipc_sender, swmanager_ipc_receiver) =
-            ipc::channel().expect("ipc channel failure");
+            generic_channel::channel().expect("ipc channel failure");
 
         thread::Builder::new()
             .name("Constellation".to_owned())
             .spawn(move || {
                 let (script_ipc_sender, script_ipc_receiver) =
-                    ipc::channel().expect("ipc channel failure");
-                let script_receiver =
-                    route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors(
-                        script_ipc_receiver,
-                    );
+                    generic_channel::channel().expect("ipc channel failure");
+                let script_receiver = script_ipc_receiver.route_preserving_errors();
 
                 let (namespace_ipc_sender, namespace_ipc_receiver) =
-                    ipc::channel().expect("ipc channel failure");
-                let namespace_receiver =
-                    route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors(
-                        namespace_ipc_receiver,
-                    );
+                    generic_channel::channel().expect("ipc channel failure");
+                let namespace_receiver = namespace_ipc_receiver.route_preserving_errors();
 
                 let (background_hang_monitor_ipc_sender, background_hang_monitor_ipc_receiver) =
-                    ipc::channel().expect("ipc channel failure");
+                    generic_channel::channel().expect("ipc channel failure");
                 let background_hang_monitor_receiver =
-                    route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors(
-                        background_hang_monitor_ipc_receiver,
-                    );
+                    background_hang_monitor_ipc_receiver.route_preserving_errors();
 
                 // If we are in multiprocess mode,
                 // a dedicated per-process hang monitor will be initialized later inside the content process.
@@ -625,7 +647,7 @@ where
                     let (
                         background_hang_monitor_control_ipc_sender,
                         background_hang_monitor_control_ipc_receiver,
-                    ) = ipc::channel().expect("ipc channel failure");
+                    ) = generic_channel::channel().expect("ipc channel failure");
                     let (register, join_handle) = HangMonitorRegister::init(
                         background_hang_monitor_ipc_sender.clone(),
                         background_hang_monitor_control_ipc_receiver,
@@ -638,10 +660,7 @@ where
                     )
                 };
 
-                let swmanager_receiver =
-                    route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors(
-                        swmanager_ipc_receiver,
-                    );
+                let swmanager_receiver = swmanager_ipc_receiver.route_preserving_errors();
 
                 // Zero is reserved for the embedder.
                 PipelineNamespace::install(PipelineNamespaceId(1));
@@ -653,6 +672,10 @@ where
                 };
 
                 let rippy_data = resources::read_bytes(Resource::RippyPNG);
+
+                if opts::get().multiprocess {
+                    prefs::add_observer(Box::new(PreferenceForwarder(compositor_sender_self)));
+                }
 
                 let mut constellation: Constellation<STF, SWF> = Constellation {
                     namespace_receiver,
@@ -667,7 +690,7 @@ where
                     compositor_receiver,
                     layout_factory,
                     embedder_proxy: state.embedder_proxy,
-                    compositor_proxy: state.compositor_proxy,
+                    compositor_proxy: state.compositor_proxy.clone(),
                     webviews: WebViewManager::default(),
                     devtools_sender: state.devtools_sender,
                     #[cfg(feature = "bluetooth")]
@@ -680,11 +703,11 @@ where
                     swmanager_ipc_sender,
                     browsing_context_group_set: Default::default(),
                     browsing_context_group_next_id: Default::default(),
-                    message_ports: HashMap::new(),
-                    message_port_routers: HashMap::new(),
+                    message_ports: Default::default(),
+                    message_port_routers: Default::default(),
                     broadcast_channels: Default::default(),
-                    pipelines: HashMap::new(),
-                    browsing_contexts: HashMap::new(),
+                    pipelines: Default::default(),
+                    browsing_contexts: Default::default(),
                     pending_changes: vec![],
                     // We initialize the namespace at 2, since we reserved
                     // namespace 0 for the embedder, and 0 for the constellation
@@ -694,7 +717,7 @@ where
                     phantom: PhantomData,
                     webdriver_load_status_sender: None,
                     webdriver_input_command_reponse_sender: None,
-                    document_states: HashMap::new(),
+                    document_states: Default::default(),
                     #[cfg(feature = "webgpu")]
                     webrender_wgpu,
                     shutting_down: false,
@@ -709,16 +732,22 @@ where
                     webgl_threads: state.webgl_threads,
                     webxr_registry: state.webxr_registry,
                     canvas: OnceCell::new(),
-                    pending_approval_navigations: HashMap::new(),
+                    pending_approval_navigations: Default::default(),
                     pressed_mouse_buttons: 0,
                     active_keyboard_modifiers: Modifiers::empty(),
                     hard_fail,
                     active_media_session: None,
-                    rippy_data,
+                    rippy_data: rippy_data.clone(),
                     user_content_manager: state.user_content_manager,
                     process_manager: ProcessManager::new(state.mem_profiler_chan),
                     async_runtime: state.async_runtime,
                     script_join_handles: Default::default(),
+                    privileged_urls: state.privileged_urls,
+                    image_cache: Box::new(ImageCacheImpl::new(
+                        state.compositor_proxy.cross_process_compositor_api,
+                        rippy_data,
+                    )),
+                    pending_viewport_changes: Default::default(),
                 };
 
                 constellation.run();
@@ -743,11 +772,21 @@ where
         }
         self.handle_shutdown();
 
+        if !opts::get().multiprocess {
+            StyleThreadPool::shutdown();
+        }
+
         // Shut down the fetch thread started above.
         exit_fetch_thread();
         join_handle
             .join()
             .expect("Failed to join on the fetch thread in the constellation");
+
+        // Note: the last thing the constellation does, is asking the embedder to
+        // shut down. This helps ensure we've shut down all our internal threads before
+        // de-initializing Servo (see the `thread_count` warning on MacOS).
+        debug!("Asking embedding layer to complete shutdown.");
+        self.embedder_proxy.send(EmbedderMsg::ShutdownComplete);
     }
 
     /// Generate a new pipeline id namespace.
@@ -941,6 +980,10 @@ where
             self.public_resource_threads.clone()
         };
 
+        let embedder_chan = self.embedder_proxy.sender.clone();
+        let eventloop_waker = self.embedder_proxy.event_loop_waker.clone();
+        let script_to_embedder_chan = ScriptToEmbedderChan::new(embedder_chan, eventloop_waker);
+
         let result = Pipeline::spawn::<STF>(InitialPipelineState {
             id: pipeline_id,
             browsing_context_id,
@@ -951,6 +994,7 @@ where
                 sender: self.script_sender.clone(),
                 pipeline_id,
             },
+            script_to_embedder_chan,
             namespace_request_sender: self.namespace_ipc_sender.clone(),
             pipeline_namespace_id: self.next_pipeline_namespace_id(),
             background_monitor_register: self.background_monitor_register.clone(),
@@ -980,6 +1024,11 @@ where
             player_context: WindowGLContext::get(),
             rippy_data: self.rippy_data.clone(),
             user_content_manager: self.user_content_manager.clone(),
+            privileged_urls: self.privileged_urls.clone(),
+            image_cache: self.image_cache.create_new_image_cache(
+                Some(pipeline_id),
+                self.compositor_proxy.cross_process_compositor_api.clone(),
+            ),
         });
 
         let pipeline = match result {
@@ -1019,7 +1068,7 @@ where
     fn fully_active_descendant_browsing_contexts_iter(
         &self,
         browsing_context_id: BrowsingContextId,
-    ) -> FullyActiveBrowsingContextsIterator {
+    ) -> FullyActiveBrowsingContextsIterator<'_> {
         FullyActiveBrowsingContextsIterator {
             stack: vec![browsing_context_id],
             pipelines: &self.pipelines,
@@ -1031,7 +1080,7 @@ where
     fn fully_active_browsing_contexts_iter(
         &self,
         webview_id: WebViewId,
-    ) -> FullyActiveBrowsingContextsIterator {
+    ) -> FullyActiveBrowsingContextsIterator<'_> {
         self.fully_active_descendant_browsing_contexts_iter(BrowsingContextId::from(webview_id))
     }
 
@@ -1039,7 +1088,7 @@ where
     fn all_descendant_browsing_contexts_iter(
         &self,
         browsing_context_id: BrowsingContextId,
-    ) -> AllBrowsingContextsIterator {
+    ) -> AllBrowsingContextsIterator<'_> {
         AllBrowsingContextsIterator {
             stack: vec![browsing_context_id],
             pipelines: &self.pipelines,
@@ -1120,6 +1169,12 @@ where
                 return;
             },
         };
+
+        // Override the viewport details if we have a pending change for that browsing context.
+        let viewport_details = self
+            .pending_viewport_changes
+            .remove(&browsing_context_id)
+            .unwrap_or(viewport_details);
         let browsing_context = BrowsingContext::new(
             bc_group_id,
             browsing_context_id,
@@ -1157,6 +1212,7 @@ where
     /// Handles loading pages, navigation, and granting access to the compositor
     #[servo_tracing::instrument(skip_all)]
     fn handle_request(&mut self) {
+        #[allow(clippy::large_enum_variant)]
         #[derive(Debug)]
         enum Request {
             PipelineNamespace(PipelineNamespaceRequest),
@@ -1397,8 +1453,8 @@ where
                 }
                 self.handle_panic(webview_id, error, None);
             },
-            EmbedderToConstellationMessage::FocusWebView(webview_id, focus_id) => {
-                self.handle_focus_web_view(webview_id, focus_id);
+            EmbedderToConstellationMessage::FocusWebView(webview_id) => {
+                self.handle_focus_web_view(webview_id);
             },
             EmbedderToConstellationMessage::BlurWebView => {
                 self.webviews.unfocus();
@@ -1434,6 +1490,9 @@ where
             EmbedderToConstellationMessage::TickAnimation(webview_ids) => {
                 self.handle_tick_animation(webview_ids)
             },
+            EmbedderToConstellationMessage::NoLongerWaitingOnAsynchronousImageUpdates(
+                pipeline_ids,
+            ) => self.handle_no_longer_waiting_on_asynchronous_image_updates(pipeline_ids),
             EmbedderToConstellationMessage::WebDriverCommand(command) => {
                 self.handle_webdriver_msg(command);
             },
@@ -1446,8 +1505,8 @@ where
             EmbedderToConstellationMessage::ForwardInputEvent(webview_id, event, hit_test) => {
                 self.forward_input_event(webview_id, event, hit_test);
             },
-            EmbedderToConstellationMessage::RefreshCursor(pipeline_id, point) => {
-                self.handle_refresh_cursor(pipeline_id, point)
+            EmbedderToConstellationMessage::RefreshCursor(pipeline_id) => {
+                self.handle_refresh_cursor(pipeline_id)
             },
             EmbedderToConstellationMessage::ToggleProfiler(rate, max_duration) => {
                 for background_monitor_control_sender in &self.background_monitor_control_senders {
@@ -1505,6 +1564,20 @@ where
             },
             EmbedderToConstellationMessage::SetWebDriverResponseSender(sender) => {
                 self.webdriver_input_command_reponse_sender = Some(sender);
+            },
+            EmbedderToConstellationMessage::PreferencesUpdated(updates) => {
+                let event_loops = self
+                    .pipelines
+                    .values()
+                    .map(|pipeline| pipeline.event_loop.clone());
+                for event_loop in event_loops {
+                    let _ = event_loop.send(ScriptThreadMessage::PreferencesUpdated(
+                        updates
+                            .iter()
+                            .map(|(name, value)| (String::from(*name), value.clone()))
+                            .collect(),
+                    ));
+                }
             },
         }
     }
@@ -1655,9 +1728,6 @@ where
                 }
                 self.broadcast_channels
                     .schedule_broadcast(router_id, message);
-            },
-            ScriptToConstellationMessage::ForwardToEmbedder(embedder_msg) => {
-                self.embedder_proxy.send(embedder_msg);
             },
             ScriptToConstellationMessage::PipelineExited => {
                 self.handle_pipeline_exited(source_pipeline_id);
@@ -1915,6 +1985,20 @@ where
                     warn!("No webdriver_input_command_reponse_sender");
                 }
             },
+            ScriptToConstellationMessage::ForwardKeyboardScroll(pipeline_id, scroll) => {
+                if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+                    if let Err(error) =
+                        pipeline
+                            .event_loop
+                            .send(ScriptThreadMessage::ForwardKeyboardScroll(
+                                pipeline_id,
+                                scroll,
+                            ))
+                    {
+                        warn!("Could not forward {scroll:?} to {pipeline_id}: {error:?}");
+                    }
+                }
+            },
         }
     }
 
@@ -2071,7 +2155,7 @@ where
 
     fn handle_message_port_transfer_failed(
         &mut self,
-        ports: HashMap<MessagePortId, PortTransferInfo>,
+        ports: FxHashMap<MessagePortId, PortTransferInfo>,
     ) {
         for (port_id, mut transfer_info) in ports.into_iter() {
             let entry = match self.message_ports.remove(&port_id) {
@@ -2153,7 +2237,7 @@ where
         router_id: MessagePortRouterId,
         ports: Vec<MessagePortId>,
     ) {
-        let mut response = HashMap::new();
+        let mut response = FxHashMap::default();
         for port_id in ports.into_iter() {
             let entry = match self.message_ports.remove(&port_id) {
                 None => {
@@ -2398,13 +2482,16 @@ where
         let sw_manager = match self.sw_managers.entry(origin.clone()) {
             Entry::Occupied(entry) => entry.into_mut(),
             Entry::Vacant(entry) => {
-                let (own_sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
+                let (own_sender, receiver) =
+                    generic_channel::channel().expect("Failed to create IPC channel!");
 
                 let sw_senders = SWManagerSenders {
                     swmanager_sender: self.swmanager_ipc_sender.clone(),
-                    resource_sender: self.public_resource_threads.sender(),
+                    resource_threads: self.public_resource_threads.clone(),
                     own_sender: own_sender.clone(),
                     receiver,
+                    compositor_api: self.compositor_proxy.cross_process_compositor_api.clone(),
+                    system_font_service_sender: self.system_font_service.to_sender(),
                 };
 
                 if opts::get().multiprocess {
@@ -2568,7 +2655,7 @@ where
         let (core_ipc_sender, core_ipc_receiver) =
             ipc::channel().expect("Failed to create IPC channel!");
         let (storage_ipc_sender, storage_ipc_receiver) =
-            ipc::channel().expect("Failed to create IPC channel!");
+            generic_channel::channel().expect("Failed to create IPC channel!");
         let mut webgl_threads_receiver = None;
 
         debug!("Exiting core resource threads.");
@@ -2588,10 +2675,10 @@ where
         }
 
         debug!("Exiting storage resource threads.");
-        if let Err(e) = self
-            .public_resource_threads
-            .send(StorageThreadMsg::Exit(storage_ipc_sender))
-        {
+        if let Err(e) = generic_channel::GenericSend::send(
+            &self.public_resource_threads,
+            StorageThreadMsg::Exit(storage_ipc_sender),
+        ) {
             warn!("Exit storage thread failed ({})", e);
         }
 
@@ -2683,9 +2770,6 @@ where
                 warn!("Exit WebGL thread failed ({:?})", e);
             }
         }
-
-        debug!("Asking embedding layer to complete shutdown.");
-        self.embedder_proxy.send(EmbedderMsg::ShutdownComplete);
 
         debug!("Shutting-down IPC router thread in constellation.");
         ROUTER.shutdown();
@@ -2822,13 +2906,13 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_focus_web_view(&mut self, webview_id: WebViewId, focus_id: FocusId) {
+    fn handle_focus_web_view(&mut self, webview_id: WebViewId) {
         let focused = self.webviews.focus(webview_id).is_ok();
         if !focused {
             warn!("{webview_id}: FocusWebView on unknown top-level browsing context");
         }
         self.embedder_proxy
-            .send(EmbedderMsg::WebViewFocused(webview_id, focus_id, focused));
+            .send(EmbedderMsg::WebViewFocused(webview_id, focused));
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -3174,7 +3258,8 @@ where
                     );
                 },
             };
-            let is_parent_private = match self.browsing_contexts.get(&parent_browsing_context_id) {
+
+            match self.browsing_contexts.get(&parent_browsing_context_id) {
                 Some(ctx) => ctx.is_private,
                 None => {
                     return warn!(
@@ -3182,8 +3267,7 @@ where
                         parent_browsing_context_id, browsing_context_id,
                     );
                 },
-            };
-            is_parent_private
+            }
         };
         let is_private = is_private || is_parent_private;
 
@@ -3307,13 +3391,10 @@ where
             response_sender,
         } = load_info;
 
-        let (webview_id_sender, webview_id_receiver) = match ipc::channel() {
-            Ok(result) => result,
-            Err(error) => {
-                warn!("Failed to create channel: {error:?}");
-                let _ = response_sender.send(None);
-                return;
-            },
+        let Some((webview_id_sender, webview_id_receiver)) = generic_channel::channel() else {
+            warn!("Failed to create channel");
+            let _ = response_sender.send(None);
+            return;
         };
         self.embedder_proxy.send(EmbedderMsg::AllowOpeningWebView(
             opener_webview_id,
@@ -3407,14 +3488,14 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_refresh_cursor(&self, pipeline_id: PipelineId, point: Point2D<f32, CSSPixel>) {
+    fn handle_refresh_cursor(&self, pipeline_id: PipelineId) {
         let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
             return;
         };
 
         if let Err(error) = pipeline
             .event_loop
-            .send(ScriptThreadMessage::RefreshCursor(pipeline_id, point))
+            .send(ScriptThreadMessage::RefreshCursor(pipeline_id))
         {
             warn!("Could not send RefreshCursor message to pipeline: {error:?}");
         }
@@ -3458,6 +3539,20 @@ where
             // low, so it's probably safe to ignore this error and handle the crashed ScriptThread on
             // some other message.
             let _ = event_loop.send(ScriptThreadMessage::TickAllAnimations(webview_ids.clone()));
+        }
+    }
+
+    #[servo_tracing::instrument(skip_all)]
+    fn handle_no_longer_waiting_on_asynchronous_image_updates(
+        &mut self,
+        pipeline_ids: Vec<PipelineId>,
+    ) {
+        for pipeline_id in pipeline_ids.into_iter() {
+            if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+                let _ = pipeline.event_loop.send(
+                    ScriptThreadMessage::NoLongerWaitingOnAsychronousImageUpdates(pipeline_id),
+                );
+            }
         }
     }
 
@@ -3725,9 +3820,10 @@ where
         webview_id: WebViewId,
         direction: TraversalDirection,
     ) {
-        let mut browsing_context_changes = HashMap::<BrowsingContextId, NeedsToReload>::new();
-        let mut pipeline_changes = HashMap::<PipelineId, (Option<HistoryStateId>, ServoUrl)>::new();
-        let mut url_to_load = HashMap::<PipelineId, ServoUrl>::new();
+        let mut browsing_context_changes = FxHashMap::<BrowsingContextId, NeedsToReload>::default();
+        let mut pipeline_changes =
+            FxHashMap::<PipelineId, (Option<HistoryStateId>, ServoUrl)>::default();
+        let mut url_to_load = FxHashMap::<PipelineId, ServoUrl>::default();
         {
             let session_history = self.get_joint_session_history(webview_id);
             match direction {
@@ -4135,7 +4231,7 @@ where
             source_browsing_context,
             target_origin: origin,
             source_origin,
-            data,
+            data: Box::new(data),
         };
         let result = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => pipeline.event_loop.send(msg),
@@ -4173,11 +4269,8 @@ where
 
         // Focus the top-level browsing context.
         let focused = self.webviews.focus(webview_id);
-        self.embedder_proxy.send(EmbedderMsg::WebViewFocused(
-            webview_id,
-            FocusId::new(),
-            focused.is_ok(),
-        ));
+        self.embedder_proxy
+            .send(EmbedderMsg::WebViewFocused(webview_id, focused.is_ok()));
 
         // If a container with a non-null nested browsing context is focused,
         // the nested browsing context's active document becomes the focused
@@ -4426,7 +4519,7 @@ where
     fn handle_create_canvas_paint_thread_msg(
         &mut self,
         size: UntypedSize2D<u64>,
-        response_sender: IpcSender<Option<(IpcSender<CanvasMsg>, CanvasId, ImageKey)>>,
+        response_sender: IpcSender<Option<(GenericSender<CanvasMsg>, CanvasId, ImageKey)>>,
     ) {
         let (canvas_data_sender, canvas_data_receiver) = unbounded();
         let (canvas_sender, canvas_ipc_sender) = self
@@ -4464,6 +4557,9 @@ where
             WebDriverCommandMsg::IsBrowsingContextOpen(browsing_context_id, response_sender) => {
                 let is_open = self.browsing_contexts.contains_key(&browsing_context_id);
                 let _ = response_sender.send(is_open);
+            },
+            WebDriverCommandMsg::FocusBrowsingContext(browsing_context_id) => {
+                self.handle_focus_remote_document_msg(browsing_context_id);
             },
             // TODO: This should use the ScriptThreadMessage::EvaluateJavaScript command
             WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd) => {
@@ -4504,7 +4600,7 @@ where
             WebDriverCommandMsg::MaximizeWebView(..) |
             WebDriverCommandMsg::LoadUrl(..) |
             WebDriverCommandMsg::Refresh(..) |
-            WebDriverCommandMsg::SendKeys(..) |
+            WebDriverCommandMsg::DispatchComposition(..) |
             WebDriverCommandMsg::KeyboardAction(..) |
             WebDriverCommandMsg::MouseButtonAction(..) |
             WebDriverCommandMsg::MouseMoveAction(..) |
@@ -4730,7 +4826,7 @@ where
                     };
 
                     let mut pipelines_to_close = vec![];
-                    let mut states_to_close = HashMap::new();
+                    let mut states_to_close = FxHashMap::default();
 
                     let diffs_to_close = self
                         .get_joint_session_history(change.webview_id)
@@ -4965,7 +5061,7 @@ where
     ) {
         debug!(
             "handle_change_viewport_details_msg: {:?}",
-            new_viewport_details.size.to_untyped()
+            new_viewport_details
         );
 
         let browsing_context_id = BrowsingContextId::from(webview_id);
@@ -4987,7 +5083,7 @@ where
     #[servo_tracing::instrument(skip_all)]
     fn handle_is_ready_to_save_image(
         &mut self,
-        pipeline_states: HashMap<PipelineId, Epoch>,
+        pipeline_states: FxHashMap<PipelineId, Epoch>,
     ) -> ReadyToSave {
         // Note that this function can panic, due to ipc-channel creation
         // failure. Avoiding this panic would require a mechanism for dealing
@@ -5151,6 +5247,9 @@ where
                         ));
                 }
             }
+        } else {
+            self.pending_viewport_changes
+                .insert(browsing_context_id, new_viewport_details);
         }
 
         // Send resize message to any pending pipelines that aren't loaded yet.
@@ -5234,6 +5333,8 @@ where
             DiscardBrowsingContext::Yes,
             exit_mode,
         );
+
+        let _ = self.pending_viewport_changes.remove(&browsing_context_id);
 
         let browsing_context = match self.browsing_contexts.remove(&browsing_context_id) {
             Some(ctx) => ctx,
@@ -5531,7 +5632,7 @@ where
     fn handle_set_scroll_states(
         &self,
         pipeline_id: PipelineId,
-        scroll_states: HashMap<ExternalScrollId, LayoutVector2D>,
+        scroll_states: FxHashMap<ExternalScrollId, LayoutVector2D>,
     ) {
         let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
             warn!("Discarding scroll offset update for unknown pipeline");
@@ -5576,11 +5677,9 @@ where
         }
     }
 
-    fn create_canvas_paint_thread(&self) -> (Sender<ConstellationCanvasMsg>, IpcSender<CanvasMsg>) {
-        CanvasPaintThread::start(
-            self.compositor_proxy.cross_process_compositor_api.clone(),
-            self.system_font_service.clone(),
-            self.public_resource_threads.clone(),
-        )
+    fn create_canvas_paint_thread(
+        &self,
+    ) -> (Sender<ConstellationCanvasMsg>, GenericSender<CanvasMsg>) {
+        CanvasPaintThread::start(self.compositor_proxy.cross_process_compositor_api.clone())
     }
 }

@@ -17,7 +17,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::trustedtypepolicy::TrustedType;
-use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
+use crate::dom::trustedtypepolicyfactory::{DEFAULT_SCRIPT_SINK_GROUP, TrustedTypePolicyFactory};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -53,7 +53,7 @@ impl TrustedHTML {
                     global,
                     value,
                     sink,
-                    "'script'",
+                    DEFAULT_SCRIPT_SINK_GROUP,
                     can_gc,
                 )
             },
@@ -61,12 +61,16 @@ impl TrustedHTML {
             TrustedHTMLOrString::TrustedHTML(trusted_html) => Ok(trusted_html.data.clone()),
         }
     }
+
+    pub(crate) fn data(&self) -> DOMString {
+        self.data.clone()
+    }
 }
 
 impl fmt::Display for TrustedHTML {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(&self.data)
+        f.write_str(self.data.str())
     }
 }
 

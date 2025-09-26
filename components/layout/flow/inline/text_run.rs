@@ -432,6 +432,7 @@ impl TextRun {
                     &shaping_options,
                     font,
                 );
+
                 segment
             })
             .collect();

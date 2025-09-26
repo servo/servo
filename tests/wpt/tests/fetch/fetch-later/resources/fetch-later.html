@@ -30,7 +30,11 @@
       fetchLater(TARGET_URL, REQUEST_INIT);
       postMessageBack({type: FetchLaterIframeMessageType.DONE});
     } catch (e) {
-      postMessageBack({type: FetchLaterIframeMessageType.ERROR, error: e});
+      postMessageBack({
+        type: FetchLaterIframeMessageType.ERROR,
+        // When an error is caught, it might not be cloneable across the boundary.
+        error: {name: e.name, message: e.message}
+      });
     }
   </script>
 </body>

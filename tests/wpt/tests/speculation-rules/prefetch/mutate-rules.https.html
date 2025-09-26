@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<title>Mutating speculationrules script elements</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+
+<script>
+"use strict";
+
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const win = await spawnWindow(t);
+  const nextURL = win.getExecutorURL({ executor: "counting-executor.py", page: 2 });
+
+  // Prefetch the URL which will count whether or not we're prefetched.
+  await win.forceSinglePrefetch(nextURL);
+
+  // Check that the server was indeed hit with a prefetch request.
+  const requestCount = await (await fetch(nextURL + "&check")).json();
+  assert_equals(requestCount.prefetch, 1, "prefetch count");
+  assert_equals(requestCount.nonPrefetch, 0, "non-prefetch count");
+
+  // Now remove the speculation rules.
+  await win.execute_script(() => {
+    document.querySelector("script[type=speculationrules]").remove();
+  });
+
+  // Navigating must not use the prefetched result.
+  await win.navigate(nextURL);
+  assert_not_prefetched(await win.getRequestHeaders());
+}, "Removing the <script type=speculationrules> must cancel the prefetch");
+
+promise_test(async t => {
+  const win = await spawnWindow(t);
+  const nextURL = win.getExecutorURL({ executor: "counting-executor.py", page: 2 });
+
+  // Prefetch the URL which will count whether or not we're prefetched.
+  await win.forceSinglePrefetch(nextURL);
+
+  // Check that the server was indeed hit with a prefetch request.
+  const requestCount = await (await fetch(nextURL + "&check")).json();
+  assert_equals(requestCount.prefetch, 1, "prefetch count");
+  assert_equals(requestCount.nonPrefetch, 0, "non-prefetch count");
+
+  // Now update the speculation rules to remove that rule.
+  await win.execute_script(() => {
+    document.querySelector("script[type=speculationrules]").textContent = JSON.stringify({
+      prefetch: []
+    });
+  });
+
+  // Navigating must use the prefetched result.
+  await win.navigate(nextURL);
+  assert_prefetched(await win.getRequestHeaders());
+}, "Removing a rule from the <script type=speculationrules> must not cancel the prefetch");
+
+promise_test(async t => {
+  const win = await spawnWindow(t);
+  const nextURL = win.getExecutorURL({ executor: "counting-executor.py", page: 2 });
+
+  // Insert some empty speculation rules
+  await win.forceSpeculationRules([]);
+
+  // Now update them to include a prefetch (and wait for a bit.)
+  await win.execute_script(([nextURL]) => {
+    document.querySelector("script[type=speculationrules]").textContent = JSON.stringify({
+      prefetch: [{ urls: [nextURL] }]
+    });
+  }, [nextURL]);
+  new Promise(resolve => t.step_timeout(resolve, 2000));
+
+  const requestCount = await (await fetch(nextURL + "&check")).json();
+  assert_equals(requestCount.prefetch, 0, "prefetch count");
+  assert_equals(requestCount.nonPrefetch, 0, "non-prefetch count");
+
+  // Navigating must not use the prefetched result.
+  await win.navigate(nextURL);
+  assert_not_prefetched(await win.getRequestHeaders());
+}, "Adding a rule to the <script type=speculationrules> must not prefetch");
+</script>

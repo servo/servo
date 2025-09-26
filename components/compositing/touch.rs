@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
-
 use embedder_traits::{TouchId, TouchSequenceId};
 use euclid::{Point2D, Scale, Vector2D};
 use log::{debug, error, warn};
+use rustc_hash::FxHashMap;
 use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint, LayoutVector2D};
 
 use self::TouchSequenceState::*;
@@ -26,7 +25,7 @@ const FLING_MAX_SCREEN_PX: f32 = 4000.0;
 pub struct TouchHandler {
     pub current_sequence_id: TouchSequenceId,
     // todo: VecDeque + modulo arithmetic would be more efficient.
-    touch_sequence_map: HashMap<TouchSequenceId, TouchSequenceInfo>,
+    touch_sequence_map: FxHashMap<TouchSequenceId, TouchSequenceInfo>,
 }
 
 /// Whether the default move action is allowed or not.
@@ -203,12 +202,14 @@ impl TouchHandler {
             prevent_move: TouchMoveAllowed::Pending,
             pending_touch_move_action: None,
         };
+        // We insert a simulated initial touch sequence, which is already finished,
+        // so that we always have one element in the map, which simplifies creating
+        // a new touch sequence on touch_down.
+        let mut touch_sequence_map = FxHashMap::default();
+        touch_sequence_map.insert(TouchSequenceId::new(), finished_info);
         TouchHandler {
             current_sequence_id: TouchSequenceId::new(),
-            // We insert a simulated initial touch sequence, which is already finished,
-            // so that we always have one element in the map, which simplifies creating
-            // a new touch sequence on touch_down.
-            touch_sequence_map: HashMap::from([(TouchSequenceId::new(), finished_info)]),
+            touch_sequence_map,
         }
     }
 
@@ -280,10 +281,6 @@ impl TouchHandler {
     pub(crate) fn remove_touch_sequence(&mut self, sequence_id: TouchSequenceId) {
         let old = self.touch_sequence_map.remove(&sequence_id);
         debug_assert!(old.is_some(), "Sequence already removed?");
-    }
-
-    pub fn try_get_current_touch_sequence(&self) -> Option<&TouchSequenceInfo> {
-        self.touch_sequence_map.get(&self.current_sequence_id)
     }
 
     pub fn get_current_touch_sequence_mut(&mut self) -> &mut TouchSequenceInfo {

@@ -78,6 +78,12 @@ impl AddAssign for UTF8Bytes {
 trait StrExt {
     fn len_utf8(&self) -> UTF8Bytes;
 }
+impl StrExt for DOMString {
+    fn len_utf8(&self) -> UTF8Bytes {
+        UTF8Bytes(self.len())
+    }
+}
+
 impl StrExt for str {
     fn len_utf8(&self) -> UTF8Bytes {
         UTF8Bytes(self.len())
@@ -121,7 +127,7 @@ impl AddAssign for UTF16CodeUnits {
 
 impl From<DOMString> for SelectionDirection {
     fn from(direction: DOMString) -> SelectionDirection {
-        match direction.as_ref() {
+        match direction.str() {
             "forward" => SelectionDirection::Forward,
             "backward" => SelectionDirection::Backward,
             _ => SelectionDirection::None,
@@ -246,7 +252,7 @@ pub(crate) const CMD_OR_CONTROL: Modifiers = Modifiers::CONTROL;
 ///
 /// If the string has fewer than n characters, returns the length of the whole string.
 /// If n is 0, returns 0
-fn len_of_first_n_chars(text: &str, n: usize) -> UTF8Bytes {
+fn len_of_first_n_chars(text: &DOMString, n: usize) -> UTF8Bytes {
     match text.char_indices().take(n).last() {
         Some((index, ch)) => UTF8Bytes(index + ch.len_utf8()),
         None => UTF8Bytes::zero(),
@@ -256,7 +262,7 @@ fn len_of_first_n_chars(text: &str, n: usize) -> UTF8Bytes {
 /// The length in bytes of the first n code units in a string when encoded in UTF-16.
 ///
 /// If the string is fewer than n code units, returns the length of the whole string.
-fn len_of_first_n_code_units(text: &str, n: UTF16CodeUnits) -> UTF8Bytes {
+fn len_of_first_n_code_units(text: &DOMString, n: UTF16CodeUnits) -> UTF8Bytes {
     let mut utf8_len = UTF8Bytes::zero();
     let mut utf16_len = UTF16CodeUnits::zero();
     for c in text.chars() {
@@ -460,15 +466,18 @@ impl<T: ClipboardProvider> TextInput<T> {
             let UTF8Bytes(end_offset) = end.index;
 
             if start.line == end.line {
-                f(&mut acc, &self.lines[start.line][start_offset..end_offset])
+                f(
+                    &mut acc,
+                    &self.lines[start.line].str()[start_offset..end_offset],
+                )
             } else {
-                f(&mut acc, &self.lines[start.line][start_offset..]);
+                f(&mut acc, &self.lines[start.line].str()[start_offset..]);
                 for line in &self.lines[start.line + 1..end.line] {
                     f(&mut acc, "\n");
                     f(&mut acc, line);
                 }
                 f(&mut acc, "\n");
-                f(&mut acc, &self.lines[end.line][..end_offset])
+                f(&mut acc, &self.lines[end.line].str()[..end_offset])
             }
         }
 
@@ -490,15 +499,15 @@ impl<T: ClipboardProvider> TextInput<T> {
 
         let UTF8Bytes(last_char_index) =
             len_of_first_n_code_units(&insert, allowed_to_insert_count);
-        let to_insert = &insert[..last_char_index];
+        let to_insert = &insert.str()[..last_char_index];
 
         let (start, end) = self.sorted_selection_bounds();
         let UTF8Bytes(start_offset) = start.index;
         let UTF8Bytes(end_offset) = end.index;
 
         let new_lines = {
-            let prefix = &self.lines[start.line][..start_offset];
-            let suffix = &self.lines[end.line][end_offset..];
+            let prefix = &self.lines[start.line].str()[..start_offset];
+            let suffix = &self.lines[end.line].str()[end_offset..];
             let lines_prefix = &self.lines[..start.line];
             let lines_suffix = &self.lines[end.line + 1..];
 
@@ -511,7 +520,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             // FIXME(ajeffrey): efficient append for DOMStrings
             let mut new_line = prefix.to_owned();
 
-            new_line.push_str(&insert_lines[0]);
+            new_line.push_str(insert_lines[0].str());
             insert_lines[0] = DOMString::from(new_line);
 
             let last_insert_lines_index = insert_lines.len() - 1;
@@ -583,7 +592,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         }
 
         let UTF8Bytes(edit_index) = self.edit_point.index;
-        let col = self.lines[self.edit_point.line][..edit_index]
+        let col = self.lines[self.edit_point.line].str()[..edit_index]
             .chars()
             .count();
         self.edit_point.line = target_line as usize;
@@ -625,7 +634,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             return;
         }
         let adjust = {
-            let current_line = &self.lines[self.edit_point.line];
+            let current_line = self.lines[self.edit_point.line].str();
             let UTF8Bytes(current_offset) = self.edit_point.index;
             let next_ch = match direction {
                 Direction::Forward => current_line[current_offset..].graphemes(true).next(),
@@ -836,8 +845,8 @@ impl<T: ClipboardProvider> TextInput<T> {
             let current_line = &self.lines[self.edit_point.line];
             let UTF8Bytes(current_offset) = self.edit_point.index;
             match direction {
-                Direction::Backward => current_line[..current_offset].len(),
-                Direction::Forward => current_line[current_offset..].len(),
+                Direction::Backward => current_line.str()[..current_offset].len(),
+                Direction::Forward => current_line.str()[current_offset..].len(),
             }
         };
         self.perform_horizontal_adjustment(UTF8Bytes(shift), direction, select);
@@ -1042,13 +1051,13 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     pub(crate) fn handle_compositionend(&mut self, event: &CompositionEvent) -> KeyReaction {
-        self.insert_string(event.data());
+        self.insert_string(event.data().str());
         KeyReaction::DispatchInput
     }
 
     pub(crate) fn handle_compositionupdate(&mut self, event: &CompositionEvent) -> KeyReaction {
         let start = self.selection_start_offset().0;
-        self.insert_string(event.data());
+        self.insert_string(event.data().str());
         self.set_selection_range(
             start as u32,
             (start + event.data().len_utf8().0) as u32,
@@ -1094,7 +1103,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     pub fn get_content(&self) -> DOMString {
         let mut content = "".to_owned();
         for (i, line) in self.lines.iter().enumerate() {
-            content.push_str(line);
+            content.push_str(line.str());
             if i < self.lines.len() - 1 {
                 content.push('\n');
             }
@@ -1201,6 +1210,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// Set the edit point index position based off of a given grapheme cluster offset
     pub fn set_edit_point_index(&mut self, index: usize) {
         let byte_offset = self.lines[self.edit_point.line]
+            .str()
             .graphemes(true)
             .take(index)
             .fold(UTF8Bytes::zero(), |acc, x| acc + x.len_utf8());

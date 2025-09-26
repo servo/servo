@@ -33,7 +33,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::blob::{Blob, normalize_type_string};
 use crate::dom::formdata::FormData;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlformelement::{encode_multipart_form_data, generate_boundary};
+use crate::dom::html::htmlformelement::{encode_multipart_form_data, generate_boundary};
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::{ReadableStream, get_read_promise_bytes, get_read_promise_done};
@@ -507,7 +507,7 @@ impl Extractable for Vec<u8> {
 impl Extractable for Blob {
     fn extract(&self, _global: &GlobalScope, can_gc: CanGc) -> Fallible<ExtractedBody> {
         let blob_type = self.Type();
-        let content_type = if blob_type.as_ref().is_empty() {
+        let content_type = if blob_type.is_empty() {
             None
         } else {
             Some(blob_type)

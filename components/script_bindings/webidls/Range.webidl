@@ -68,7 +68,7 @@ interface Range : AbstractRange {
 // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#extensions-to-the-range-interface
 partial interface Range {
   [CEReactions, NewObject, Throws]
-  DocumentFragment createContextualFragment(DOMString fragment);
+  DocumentFragment createContextualFragment((TrustedHTML or DOMString) fragment);
 };
 
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-range-interface

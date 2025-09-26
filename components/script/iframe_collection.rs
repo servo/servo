@@ -7,12 +7,12 @@ use std::default::Default;
 use base::id::BrowsingContextId;
 use constellation_traits::{IFrameSizeMsg, ScriptToConstellationMessage, WindowSizeType};
 use embedder_traits::ViewportDetails;
-use fnv::FnvHashMap;
 use layout_api::IFrameSizes;
+use rustc_hash::FxHashMap;
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::htmliframeelement::HTMLIFrameElement;
+use crate::dom::html::htmliframeelement::HTMLIFrameElement;
 use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::types::{Document, Window};
 use crate::script_thread::with_script_thread;
@@ -56,7 +56,7 @@ impl IFrameCollection {
 
         // Preserve any old sizes, but only for `<iframe>`s that already have a
         // BrowsingContextId and a set size.
-        let mut old_sizes: FnvHashMap<_, _> = self
+        let mut old_sizes: FxHashMap<_, _> = self
             .iframes
             .iter()
             .filter_map(

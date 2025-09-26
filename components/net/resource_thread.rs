@@ -7,20 +7,21 @@
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::prelude::*;
-use std::io::{self, BufReader, BufWriter};
+use std::io::{self, BufReader};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, RwLock, Weak};
 use std::thread;
 use std::time::Duration;
 
+use base::generic_channel::GenericSender;
+use base::id::CookieStoreId;
 use cookie::Cookie;
 use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::EmbedderProxy;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
-use log::{debug, trace, warn};
+use log::{debug, warn};
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::indexeddb_thread::IndexedDBThreadMsg;
@@ -29,9 +30,10 @@ use net_traits::request::{Destination, RequestBuilder, RequestId};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
 use net_traits::{
-    AsyncRuntime, CookieSource, CoreResourceMsg, CoreResourceThread, CustomResponseMediator,
-    DiscardFetch, FetchChannels, FetchTaskTarget, ResourceFetchTiming, ResourceThreads,
-    ResourceTimingType, WebSocketDomAction, WebSocketNetworkEvent,
+    AsyncRuntime, CookieAsyncResponse, CookieData, CookieSource, CoreResourceMsg,
+    CoreResourceThread, CustomResponseMediator, DiscardFetch, FetchChannels, FetchTaskTarget,
+    ResourceFetchTiming, ResourceThreads, ResourceTimingType, WebSocketDomAction,
+    WebSocketNetworkEvent,
 };
 use profile_traits::mem::{
     ProcessReports, ProfilerChan as MemProfilerChan, Report, ReportKind, ReportsChan,
@@ -39,6 +41,7 @@ use profile_traits::mem::{
 };
 use profile_traits::path;
 use profile_traits::time::ProfilerChan;
+use rustc_hash::FxHashMap;
 use rustls::RootCertStore;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
@@ -110,7 +113,7 @@ pub fn new_resource_threads(
         protocols,
     );
     let idb: IpcSender<IndexedDBThreadMsg> = IndexedDBThreadFactory::new(config_dir.clone());
-    let storage: IpcSender<StorageThreadMsg> =
+    let storage: GenericSender<StorageThreadMsg> =
         StorageThreadFactory::new(config_dir, mem_profiler_chan);
     (
         ResourceThreads::new(public_core, storage.clone(), idb.clone()),
@@ -152,6 +155,7 @@ pub fn new_core_resource_thread(
                 ca_certificates,
                 ignore_certificate_errors,
                 cancellation_listeners: Default::default(),
+                cookie_listeners: Default::default(),
             };
 
             mem_profiler_chan.run_with_memory_reporting(
@@ -178,7 +182,8 @@ struct ResourceChannelManager {
     config_dir: Option<PathBuf>,
     ca_certificates: CACertificates,
     ignore_certificate_errors: bool,
-    cancellation_listeners: HashMap<RequestId, Weak<CancellationListener>>,
+    cancellation_listeners: FxHashMap<RequestId, Weak<CancellationListener>>,
+    cookie_listeners: FxHashMap<CookieStoreId, IpcSender<CookieAsyncResponse>>,
 }
 
 fn create_http_states(
@@ -192,9 +197,9 @@ fn create_http_states(
     let http_cache = HttpCache::default();
     let mut cookie_jar = CookieStorage::new(150);
     if let Some(config_dir) = config_dir {
-        read_json_from_file(&mut auth_cache, config_dir, "auth_cache.json");
-        read_json_from_file(&mut hsts_list, config_dir, "hsts_list.json");
-        read_json_from_file(&mut cookie_jar, config_dir, "cookie_jar.json");
+        base::read_json_from_file(&mut auth_cache, config_dir, "auth_cache.json");
+        base::read_json_from_file(&mut hsts_list, config_dir, "hsts_list.json");
+        base::read_json_from_file(&mut cookie_jar, config_dir, "cookie_jar.json");
     }
 
     let override_manager = CertificateErrorOverrideManager::new();
@@ -202,7 +207,7 @@ fn create_http_states(
         hsts_list: RwLock::new(hsts_list),
         cookie_jar: RwLock::new(cookie_jar),
         auth_cache: RwLock::new(auth_cache),
-        history_states: RwLock::new(HashMap::new()),
+        history_states: RwLock::new(FxHashMap::default()),
         http_cache: RwLock::new(http_cache),
         http_cache_state: Mutex::new(HashMap::new()),
         client: create_http_client(create_tls_config(
@@ -219,7 +224,7 @@ fn create_http_states(
         hsts_list: RwLock::new(HstsList::default()),
         cookie_jar: RwLock::new(CookieStorage::new(150)),
         auth_cache: RwLock::new(AuthCache::default()),
-        history_states: RwLock::new(HashMap::new()),
+        history_states: RwLock::new(FxHashMap::default()),
         http_cache: RwLock::new(HttpCache::default()),
         http_cache_state: Mutex::new(HashMap::new()),
         client: create_http_client(create_tls_config(
@@ -335,6 +340,20 @@ impl ResourceChannelManager {
         cancellation_listener
     }
 
+    fn send_cookie_response(&self, store_id: CookieStoreId, data: CookieData) {
+        let Some(sender) = self.cookie_listeners.get(&store_id) else {
+            warn!(
+                "Async cookie request made for store id that is non-existent {:?}",
+                store_id
+            );
+            return;
+        };
+        let res = sender.send(CookieAsyncResponse { data });
+        if res.is_err() {
+            warn!("Unable to send cookie response to script thread");
+        }
+    }
+
     /// Returns false if the thread should exit.
     fn process_msg(
         &mut self,
@@ -398,6 +417,14 @@ impl ResourceChannelManager {
                     .delete_cookie_with_name(&request, name);
                 return true;
             },
+            CoreResourceMsg::DeleteCookieAsync(cookie_store_id, url, name) => {
+                http_state
+                    .cookie_jar
+                    .write()
+                    .unwrap()
+                    .delete_cookie_with_name(&url, name);
+                self.send_cookie_response(cookie_store_id, CookieData::Delete(Ok(())));
+            },
             CoreResourceMsg::FetchRedirect(request_builder, res_init, sender) => {
                 let cancellation_listener =
                     self.get_or_create_cancellation_listener(request_builder.id);
@@ -423,12 +450,48 @@ impl ResourceChannelManager {
                     );
                 }
             },
+            CoreResourceMsg::SetCookieForUrlAsync(cookie_store_id, url, cookie, source) => {
+                self.resource_manager.set_cookie_for_url(
+                    &url,
+                    cookie.into_inner().to_owned(),
+                    source,
+                    http_state,
+                );
+                self.send_cookie_response(cookie_store_id, CookieData::Set(Ok(())));
+            },
             CoreResourceMsg::GetCookiesForUrl(url, consumer, source) => {
                 let mut cookie_jar = http_state.cookie_jar.write().unwrap();
                 cookie_jar.remove_expired_cookies_for_url(&url);
                 consumer
                     .send(cookie_jar.cookies_for_url(&url, source))
                     .unwrap();
+            },
+            CoreResourceMsg::GetCookieDataForUrlAsync(cookie_store_id, url, name) => {
+                let mut cookie_jar = http_state.cookie_jar.write().unwrap();
+                cookie_jar.remove_expired_cookies_for_url(&url);
+                let cookie = cookie_jar
+                    .query_cookies(&url, name)
+                    .into_iter()
+                    .map(Serde)
+                    .next();
+                self.send_cookie_response(cookie_store_id, CookieData::Get(cookie));
+            },
+            CoreResourceMsg::GetAllCookieDataForUrlAsync(cookie_store_id, url, name) => {
+                let mut cookie_jar = http_state.cookie_jar.write().unwrap();
+                cookie_jar.remove_expired_cookies_for_url(&url);
+                let cookies = cookie_jar
+                    .query_cookies(&url, name)
+                    .into_iter()
+                    .map(Serde)
+                    .collect();
+                self.send_cookie_response(cookie_store_id, CookieData::GetAll(cookies));
+            },
+            CoreResourceMsg::NewCookieListener(cookie_store_id, sender, _url) => {
+                // TODO: Use the URL for setting up the actual monitoring
+                self.cookie_listeners.insert(cookie_store_id, sender);
+            },
+            CoreResourceMsg::RemoveCookieListener(cookie_store_id) => {
+                self.cookie_listeners.remove(&cookie_store_id);
             },
             CoreResourceMsg::NetworkMediator(mediator_chan, origin) => {
                 self.resource_manager
@@ -468,16 +531,16 @@ impl ResourceChannelManager {
                 if let Some(ref config_dir) = self.config_dir {
                     match http_state.auth_cache.read() {
                         Ok(auth_cache) => {
-                            write_json_to_file(&*auth_cache, config_dir, "auth_cache.json")
+                            base::write_json_to_file(&*auth_cache, config_dir, "auth_cache.json")
                         },
                         Err(_) => warn!("Error writing auth cache to disk"),
                     }
                     match http_state.cookie_jar.read() {
-                        Ok(jar) => write_json_to_file(&*jar, config_dir, "cookie_jar.json"),
+                        Ok(jar) => base::write_json_to_file(&*jar, config_dir, "cookie_jar.json"),
                         Err(_) => warn!("Error writing cookie jar to disk"),
                     }
                     match http_state.hsts_list.read() {
-                        Ok(hsts) => write_json_to_file(&*hsts, config_dir, "hsts_list.json"),
+                        Ok(hsts) => base::write_json_to_file(&*hsts, config_dir, "hsts_list.json"),
                         Err(_) => warn!("Error writing hsts list to disk"),
                     }
                 }
@@ -488,49 +551,6 @@ impl ResourceChannelManager {
         }
         true
     }
-}
-
-pub fn read_json_from_file<T>(data: &mut T, config_dir: &Path, filename: &str)
-where
-    T: for<'de> Deserialize<'de>,
-{
-    let path = config_dir.join(filename);
-    let display = path.display();
-
-    let mut file = match File::open(&path) {
-        Err(why) => {
-            warn!("couldn't open {}: {}", display, why);
-            return;
-        },
-        Ok(file) => file,
-    };
-
-    let mut string_buffer: String = String::new();
-    match file.read_to_string(&mut string_buffer) {
-        Err(why) => panic!("couldn't read from {}: {}", display, why),
-        Ok(_) => trace!("successfully read from {}", display),
-    }
-
-    match serde_json::from_str(&string_buffer) {
-        Ok(decoded_buffer) => *data = decoded_buffer,
-        Err(why) => warn!("Could not decode buffer{}", why),
-    }
-}
-
-pub fn write_json_to_file<T>(data: &T, config_dir: &Path, filename: &str)
-where
-    T: Serialize,
-{
-    let path = config_dir.join(filename);
-    let display = path.display();
-
-    let mut file = match File::create(&path) {
-        Err(why) => panic!("couldn't create {}: {}", display, why),
-        Ok(file) => file,
-    };
-    let mut writer = BufWriter::new(&mut file);
-    serde_json::to_writer_pretty(&mut writer, data).expect("Could not serialize to file");
-    trace!("successfully wrote to {display}");
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

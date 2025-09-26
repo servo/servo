@@ -30,6 +30,12 @@
 // META: variant=?op=logicalNot&device=cpu
 // META: variant=?op=logicalNot&device=gpu
 // META: variant=?op=logicalNot&device=npu
+// META: variant=?op=isNaN&device=cpu
+// META: variant=?op=isNaN&device=gpu
+// META: variant=?op=isNaN&device=npu
+// META: variant=?op=isInfinite&device=cpu
+// META: variant=?op=isInfinite&device=gpu
+// META: variant=?op=isInfinite&device=npu
 // META: script=../resources/utils_validation.js
 
 'use strict';
@@ -37,8 +43,10 @@
 const queryParams = new URLSearchParams(window.location.search);
 const operatorName = queryParams.get('op');
 
-if (operatorName === 'logicalNot') {
-  // The `logicalNot()` operator is unary.
+if (operatorName === 'logicalNot' ||
+  operatorName === 'isNaN' ||
+  operatorName === 'isInfinite') {
+  // The `logicalNot`, `isNaN` and `isInfinite` operators are unary.
   validateInputFromAnotherBuilder(operatorName);
 } else {
   const label = 'elementwise_logic_op';

@@ -27,12 +27,12 @@ mod webview_delegate;
 
 use std::cell::{Cell, RefCell};
 use std::cmp::max;
-use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+use base::generic_channel::{GenericCallback, RoutedReceiver};
 pub use base::id::WebViewId;
 use base::id::{PipelineNamespace, PipelineNamespaceId};
 #[cfg(feature = "bluetooth")]
@@ -82,7 +82,6 @@ use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 pub use gleam::gl;
 use gleam::gl::RENDERER;
 use ipc_channel::ipc::{self, IpcSender};
-use ipc_channel::router::ROUTER;
 use javascript_evaluator::JavaScriptEvaluator;
 pub use keyboard_types::{
     Code, CompositionEvent, CompositionState, Key, KeyState, Location, Modifiers, NamedKey,
@@ -96,8 +95,10 @@ use net_traits::{exit_fetch_thread, start_fetch_thread};
 use profile::{mem as profile_mem, time as profile_time};
 use profile_traits::mem::MemoryReportResult;
 use profile_traits::{mem, time};
+use rustc_hash::FxHashMap;
 use script::{JSEngineSetup, ServiceWorkerManager};
 use servo_config::opts::Opts;
+pub use servo_config::prefs::PrefValue;
 use servo_config::prefs::Preferences;
 use servo_config::{opts, pref, prefs};
 use servo_delegate::DefaultServoDelegate;
@@ -107,11 +108,12 @@ use servo_geometry::{
 use servo_media::ServoMedia;
 use servo_media::player::context::GlContext;
 use servo_url::ServoUrl;
+use style::global_style_data::StyleThreadPool;
 use webgl::WebGLComm;
 #[cfg(feature = "webgpu")]
 pub use webgpu;
 #[cfg(feature = "webgpu")]
-use webgpu::swapchain::WGPUImageMap;
+use webgpu::canvas_context::WGPUImageMap;
 use webrender::{ONE_TIME_USAGE_HINT, RenderApiSender, ShaderPrecacheFlags, UploadMethod};
 use webrender_api::{ColorF, DocumentId, FramePublishId};
 use webview::WebViewInner;
@@ -130,6 +132,7 @@ use crate::proxies::ConstellationProxy;
 use crate::responders::ServoErrorChannel;
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
 use crate::webrender_api::FrameReadyParams;
+use crate::webview::MINIMUM_WEBVIEW_SIZE;
 pub use crate::webview::{WebView, WebViewBuilder};
 pub use crate::webview_delegate::{
     AllowOrDenyRequest, AuthenticationRequest, ColorPicker, FormControl, NavigationRequest,
@@ -207,7 +210,7 @@ pub struct Servo {
     /// as `Weak` references so that the embedding application can control their lifetime.
     /// When accessed, `Servo` will be reponsible for cleaning up the invalid `Weak`
     /// references.
-    webviews: RefCell<HashMap<WebViewId, Weak<RefCell<WebViewInner>>>>,
+    webviews: RefCell<FxHashMap<WebViewId, Weak<RefCell<WebViewInner>>>>,
     servo_errors: ServoErrorChannel,
     /// For single-process Servo instances, this field controls the initialization
     /// and deinitialization of the JS Engine. Multiprocess Servo instances have their
@@ -312,12 +315,6 @@ impl Servo {
         };
 
         let (mut webrender, webrender_api_sender) = {
-            let mut debug_flags = webrender::DebugFlags::empty();
-            debug_flags.set(
-                webrender::DebugFlags::PROFILER_DBG,
-                opts.debug.webrender_stats,
-            );
-
             rendering_context.prepare_for_rendering();
             let render_notifier = Box::new(RenderNotifier::new(compositor_proxy.clone()));
             let clear_color = servo_config::pref!(shell_background_color_rgba);
@@ -356,7 +353,7 @@ impl Servo {
                     // See: https://github.com/servo/servo/issues/31726
                     use_optimized_shaders: true,
                     resource_override_path: opts.shaders_dir.clone(),
-                    debug_flags,
+                    debug_flags: webrender::DebugFlags::empty(),
                     precache_flags: if pref!(gfx_precache_shaders) {
                         ShaderPrecacheFlags::FULL_COMPILE
                     } else {
@@ -466,25 +463,22 @@ impl Servo {
         // The compositor coordinates with the client window to create the final
         // rendered page and display it somewhere.
         let shutdown_state = Rc::new(Cell::new(ShutdownState::NotShuttingDown));
-        let compositor = IOCompositor::new(
-            InitialCompositorState {
-                sender: compositor_proxy,
-                receiver: compositor_receiver,
-                constellation_chan: constellation_chan.clone(),
-                time_profiler_chan,
-                mem_profiler_chan,
-                webrender,
-                webrender_document,
-                webrender_api,
-                rendering_context,
-                webrender_gl,
-                #[cfg(feature = "webxr")]
-                webxr_main_thread,
-                shutdown_state: shutdown_state.clone(),
-                event_loop_waker,
-            },
-            opts.debug.convert_mouse_to_touch,
-        );
+        let compositor = IOCompositor::new(InitialCompositorState {
+            sender: compositor_proxy,
+            receiver: compositor_receiver,
+            constellation_chan: constellation_chan.clone(),
+            time_profiler_chan,
+            mem_profiler_chan,
+            webrender,
+            webrender_document,
+            webrender_api,
+            rendering_context,
+            webrender_gl,
+            #[cfg(feature = "webxr")]
+            webxr_main_thread,
+            shutdown_state: shutdown_state.clone(),
+            event_loop_waker,
+        });
 
         let constellation_proxy = ConstellationProxy::new(constellation_chan);
         Self {
@@ -543,7 +537,12 @@ impl Servo {
             let mut compositor = self.compositor.borrow_mut();
             let mut messages = Vec::new();
             while let Ok(message) = compositor.receiver().try_recv() {
-                messages.push(message);
+                match message {
+                    Ok(message) => messages.push(message),
+                    Err(error) => {
+                        warn!("Router deserialization error: {error}. Ignoring this CompositorMsg.")
+                    },
+                }
             }
             compositor.handle_messages(messages);
         }
@@ -686,7 +685,9 @@ impl Servo {
             },
             EmbedderMsg::ResizeTo(webview_id, size) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.delegate().request_resize_to(webview, size);
+                    webview
+                        .delegate()
+                        .request_resize_to(webview, size.max(MINIMUM_WEBVIEW_SIZE));
                 }
             },
             EmbedderMsg::ShowSimpleDialog(webview_id, prompt_definition) => {
@@ -728,7 +729,7 @@ impl Servo {
                     webview.delegate().notify_closed(webview);
                 }
             },
-            EmbedderMsg::WebViewFocused(webview_id, focus_id, focus_result) => {
+            EmbedderMsg::WebViewFocused(webview_id, focus_result) => {
                 if focus_result {
                     for id in self.webviews.borrow().keys() {
                         if let Some(webview) = self.get_webview_handle(*id) {
@@ -736,9 +737,6 @@ impl Servo {
                             webview.set_focused(focused);
                         }
                     }
-                }
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.complete_focus(focus_id);
                 }
             },
             EmbedderMsg::WebViewBlurred => {
@@ -792,9 +790,9 @@ impl Servo {
                     webview.set_cursor(cursor);
                 }
             },
-            EmbedderMsg::NewFavicon(webview_id, url) => {
+            EmbedderMsg::NewFavicon(webview_id, image) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.set_favicon_url(url.into_url());
+                    webview.set_favicon(image);
                 }
             },
             EmbedderMsg::NotifyLoadStatusChanged(webview_id, load_status) => {
@@ -1077,6 +1075,12 @@ impl Servo {
                 .send(EmbedderToConstellationMessage::WebDriverCommand(command));
         }
     }
+
+    pub fn set_preference(&self, name: &str, value: PrefValue) {
+        let mut preferences = prefs::get().clone();
+        preferences.set_value(name, value);
+        prefs::set(preferences);
+    }
 }
 
 fn create_embedder_channel(
@@ -1094,26 +1098,26 @@ fn create_embedder_channel(
 
 fn create_compositor_channel(
     event_loop_waker: Box<dyn EventLoopWaker>,
-) -> (CompositorProxy, Receiver<CompositorMsg>) {
+) -> (CompositorProxy, RoutedReceiver<CompositorMsg>) {
     let (sender, receiver) = unbounded();
+    let sender_clone = sender.clone();
+    let event_loop_waker_clone = event_loop_waker.clone();
+    // This callback is equivalent to `CompositorProxy::send`
+    let result_callback = move |msg: Result<CompositorMsg, ipc_channel::Error>| {
+        if let Err(err) = sender_clone.send(msg) {
+            warn!("Failed to send response ({:?}).", err);
+        }
+        event_loop_waker_clone.wake();
+    };
 
-    let (compositor_ipc_sender, compositor_ipc_receiver) =
-        ipc::channel().expect("ipc channel failure");
-
-    let cross_process_compositor_api = CrossProcessCompositorApi(compositor_ipc_sender);
+    let generic_callback =
+        GenericCallback::new(result_callback).expect("Failed to create callback");
+    let cross_process_compositor_api = CrossProcessCompositorApi::new(generic_callback);
     let compositor_proxy = CompositorProxy {
         sender,
         cross_process_compositor_api,
         event_loop_waker,
     };
-
-    let compositor_proxy_clone = compositor_proxy.clone();
-    ROUTER.add_typed_route(
-        compositor_ipc_receiver,
-        Box::new(move |message| {
-            compositor_proxy_clone.send(message.expect("Could not convert Compositor message"));
-        }),
-    );
 
     (compositor_proxy, receiver)
 }
@@ -1141,6 +1145,8 @@ fn create_constellation(
     #[cfg(feature = "bluetooth")]
     let bluetooth_thread: IpcSender<BluetoothRequest> =
         BluetoothThreadFactory::new(embedder_proxy.clone());
+
+    let privileged_urls = protocols.privileged_urls();
 
     let (public_resource_threads, private_resource_threads, async_runtime) = new_resource_threads(
         devtools_sender.clone(),
@@ -1184,6 +1190,7 @@ fn create_constellation(
         wgpu_image_map,
         user_content_manager,
         async_runtime,
+        privileged_urls,
     };
 
     let layout_factory = Arc::new(LayoutFactoryImpl());
@@ -1273,6 +1280,7 @@ pub fn run_content_process(token: String) {
                 true,
                 layout_factory,
                 background_hang_monitor_register,
+                None,
             );
 
             // Since wait_for_completion is true,
@@ -1285,6 +1293,8 @@ pub fn run_content_process(token: String) {
             join_handle
                 .join()
                 .expect("Failed to join on the BHM background thread.");
+
+            StyleThreadPool::shutdown();
 
             // Shut down the fetch thread started above.
             exit_fetch_thread();

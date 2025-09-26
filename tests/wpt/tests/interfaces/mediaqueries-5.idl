@@ -3,6 +3,14 @@
 // (https://github.com/w3c/webref)
 // Source: Media Queries Level 5 (https://drafts.csswg.org/mediaqueries-5/)
 
+typedef (MediaList or boolean) CustomMediaQuery;
+
+[Exposed=Window]
+interface CSSCustomMediaRule : CSSRule {
+  readonly attribute CSSOMString name;
+  readonly attribute CustomMediaQuery query;
+};
+
 [Exposed=Window, SecureContext]
 partial interface Navigator {
   [SameObject] readonly attribute PreferenceManager preferences;

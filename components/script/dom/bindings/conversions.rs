@@ -37,11 +37,12 @@ use std::ffi;
 pub(crate) use js::conversions::{
     ConversionBehavior, ConversionResult, FromJSValConvertible, ToJSValConvertible,
 };
-use js::jsapi::{JS_IsExceptionPending, JSContext, JSObject};
+use js::jsapi::{JS_IsExceptionPending, JSContext as RawJSContext, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_GetProperty, JS_HasProperty};
 use js::rust::{HandleObject, MutableHandleValue};
 pub(crate) use script_bindings::conversions::{is_dom_proxy, *};
+use script_bindings::script_runtime::JSContext;
 
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomObject;
@@ -63,7 +64,7 @@ where
 /// Get a `DomRoot<T>` for a DOM object accessible from a `HandleObject`.
 pub(crate) fn root_from_handleobject<T>(
     obj: HandleObject,
-    cx: *mut JSContext,
+    cx: *mut RawJSContext,
 ) -> Result<DomRoot<T>, ()>
 where
     T: DomObject + IDLInterface,
@@ -72,36 +73,38 @@ where
 }
 
 /// Get a property from a JS object.
-pub(crate) unsafe fn get_property_jsval(
-    cx: *mut JSContext,
+pub(crate) fn get_property_jsval(
+    cx: JSContext,
     object: HandleObject,
     name: &str,
     mut rval: MutableHandleValue,
 ) -> Fallible<()> {
     rval.set(UndefinedValue());
-    let cname = match ffi::CString::new(name) {
-        Ok(cname) => cname,
-        Err(_) => return Ok(()),
+
+    let Ok(cname) = ffi::CString::new(name) else {
+        return Ok(());
     };
+
     let mut found = false;
     unsafe {
-        if JS_HasProperty(cx, object, cname.as_ptr(), &mut found) && found {
-            JS_GetProperty(cx, object, cname.as_ptr(), rval);
-            if JS_IsExceptionPending(cx) {
+        if !JS_HasProperty(*cx, object, cname.as_ptr(), &mut found) || !found {
+            if JS_IsExceptionPending(*cx) {
                 return Err(Error::JSFailed);
             }
-            Ok(())
-        } else if JS_IsExceptionPending(cx) {
-            Err(Error::JSFailed)
-        } else {
-            Ok(())
+            return Ok(());
         }
+
+        JS_GetProperty(*cx, object, cname.as_ptr(), rval);
+        if JS_IsExceptionPending(*cx) {
+            return Err(Error::JSFailed);
+        }
+        Ok(())
     }
 }
 
 /// Get a property from a JS object, and convert it to a Rust value.
-pub(crate) unsafe fn get_property<T>(
-    cx: *mut JSContext,
+pub(crate) fn get_property<T>(
+    cx: JSContext,
     object: HandleObject,
     name: &str,
     option: T::Config,
@@ -110,14 +113,14 @@ where
     T: FromJSValConvertible,
 {
     debug!("Getting property {}.", name);
-    rooted!(in(cx) let mut result = UndefinedValue());
-    unsafe { get_property_jsval(cx, object, name, result.handle_mut())? };
+    rooted!(in(*cx) let mut result = UndefinedValue());
+    get_property_jsval(cx, object, name, result.handle_mut())?;
     if result.is_undefined() {
         debug!("No property {}.", name);
         return Ok(None);
     }
     debug!("Converting property {}.", name);
-    let value = unsafe { T::from_jsval(cx, result.handle(), option) };
+    let value = unsafe { T::from_jsval(*cx, result.handle(), option) };
     match value {
         Ok(ConversionResult::Success(value)) => Ok(Some(value)),
         Ok(ConversionResult::Failure(_)) => Ok(None),

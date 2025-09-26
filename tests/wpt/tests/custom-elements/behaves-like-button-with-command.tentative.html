@@ -1,0 +1,223 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+  <custom-element id="customElement"></custom-element>
+  <custom-button id="customButton"></custom-button>
+
+  <!-- Targets -->
+  <div id="target" popover>Popover content</div>
+  <dialog id="dialog">Dialog content</dialog>
+
+  <script>
+    class CustomElement extends HTMLElement {
+      constructor() {
+        super();
+        this.internals_ = this.attachInternals();
+      }
+    }
+    customElements.define('custom-element', CustomElement);
+
+    class CustomButton extends HTMLElement {
+      static formAssociated = true;
+      constructor() {
+        super();
+        this.internals_ = this.attachInternals();
+        this.internals_.type = "button";
+      }
+
+      get disabled() {
+        return this.hasAttribute('disabled');
+      }
+
+      set disabled(value) {
+        if (value) {
+          this.setAttribute('disabled', '');
+        } else {
+          this.removeAttribute('disabled');
+        }
+      }
+    }
+    customElements.define('custom-button', CustomButton);
+
+    function resetState() {
+      document.getElementById("target").hidePopover();
+      document.getElementById("dialog").close();
+      document.getElementById('customButton').outerHTML = '<custom-button id="customButton">';
+      document.getElementById('customElement').outerHTML = '<custom-element id="customElement">';
+    }
+
+    // Test popover commands
+    test(t => {
+      const customElement = document.getElementById("customElement");
+      const target = document.getElementById("target");
+      customElement.setAttribute('commandfor', 'target');
+      customElement.setAttribute('command', 'toggle-popover');
+      t.add_cleanup(() => resetState());
+
+      // Custom element without type=button should not work with commandfor
+      assert_false(target.matches(':popover-open'), "Popover should start closed");
+      customElement.click();
+      assert_false(target.matches(':popover-open'), "Custom element without type=button should not trigger popover");
+    }, "Custom element without type=button does not support commandfor attribute.");
+
+    test(t => {
+      const customButton = document.getElementById("customButton");
+      const target = document.getElementById("target");
+      customButton.setAttribute('commandfor', 'target');
+      customButton.setAttribute('command', 'toggle-popover');
+      t.add_cleanup(() => resetState());
+
+      // Custom button with type=button should work
+      assert_false(target.matches(':popover-open'), "Popover should start closed");
+      customButton.click();
+      assert_true(target.matches(':popover-open'), "Custom button with type=button should open popover");
+
+      // Second click should close
+      customButton.click();
+      assert_false(target.matches(':popover-open'), "Second click should close popover");
+    }, "Custom button with type=button and command='toggle-popover' toggles popover.");
+
+    test(t => {
+      const customButton = document.getElementById("customButton");
+      const target = document.getElementById("target");
+      customButton.setAttribute('commandfor', 'target');
+      customButton.setAttribute('command', 'show-popover');
+      t.add_cleanup(() => resetState());
+
+      assert_false(target.matches(':popover-open'), "Popover should start closed");
+      customButton.click();
+      assert_true(target.matches(':popover-open'), "show-popover should open popover");
+
+      // Second click should not close (show action only opens)
+      customButton.click();
+      assert_true(target.matches(':popover-open'), "show-popover should not close popover on second click");
+    }, "Custom button with command='show-popover' only opens popover.");
+
+    test(t => {
+      const customButton = document.getElementById("customButton");
+      const target = document.getElementById("target");
+      customButton.setAttribute('commandfor', 'target');
+      customButton.setAttribute('command', 'hide-popover');
+      t.add_cleanup(() => resetState());
+
+      // Start with popover open
+      target.showPopover();
+      assert_true(target.matches(':popover-open'), "Popover should start open");
+
+      customButton.click();
+      assert_false(target.matches(':popover-open'), "hide-popover should close popover");
+
+      // Second click should not open (hide action only closes)
+      customButton.click();
+      assert_false(target.matches(':popover-open'), "hide-popover should not open popover on second click");
+    }, "Custom button with command='hide-popover' only closes popover.");
+
+    test(t => {
+      const customButton = document.getElementById("customButton");
+      const target = document.getElementById("target");
+      customButton.setAttribute('commandfor', 'target');
+      customButton.setAttribute('command', 'toggle-popover');
+      customButton.disabled = true;
+      t.add_cleanup(() => resetState());
+
+      // Disabled custom button should not work
+      assert_true(customButton.disabled, "Custom button should be disabled");
+      assert_false(target.matches(':popover-open'), "Popover should start closed");
+      customButton.click();
+      assert_false(target.matches(':popover-open'), "Disabled custom button should not open popover");
+    }, "Disabled custom button does not support commandfor.");
+
+    // Test dialog commands
+    test(t => {
+      const customButton = document.getElementById("customButton");
+      const dialog = document.getElementById("dialog");
+      customButton.setAttribute('commandfor', 'dialog');
+      customButton.setAttribute('command', 'show-modal');
+      t.add_cleanup(() => resetState());
+
+      assert_false(dialog.open, "Dialog should start closed");
+      customButton.click();
+      assert_true(dialog.open, "show-modal should open dialog");
+    }, "Custom button with command='show-modal' opens dialog.");
+
+    test(t => {
+      const customButton = document.getElementById("customButton");
+      const dialog = document.getElementById("dialog");
+      customButton.setAttribute('commandfor', 'dialog');
+      customButton.setAttribute('command', 'close');
+      t.add_cleanup(() => resetState());
+
+      // Start with dialog open
+      dialog.showModal();
+      assert_true(dialog.open, "Dialog should start open");
+      customButton.click();
+      assert_false(dialog.open, "close command should close dialog");
+    }, "Custom button with command='close' closes dialog.");
+
+    test(t => {
+      const customButton = document.getElementById("customButton");
+      const dialog = document.getElementById("dialog");
+      customButton.setAttribute('commandfor', 'dialog');
+      customButton.setAttribute('command', 'request-close');
+      t.add_cleanup(() => resetState());
+
+      // Test with dialog open - should close it
+      dialog.showModal();
+      assert_true(dialog.open, "Dialog should start open");
+      customButton.click();
+      assert_false(dialog.open, "request-close command should close open dialog");
+
+      // Test with dialog already closed - should do nothing
+      assert_false(dialog.open, "Dialog should be closed");
+      customButton.click();
+      assert_false(dialog.open, "request-close command should not open closed dialog");
+    }, "Custom button with command='request-close' closes open dialog and does nothing when dialog is already closed.");
+
+    // Test custom commands
+    test(t => {
+      const customButton = document.getElementById("customButton");
+      const target = document.getElementById("target");
+      let commandEventFired = false;
+      let receivedCommand = '';
+      customButton.setAttribute('commandfor', 'target');
+      customButton.setAttribute('command', '--my-custom-action');
+
+      const commandListener = (e) => {
+        commandEventFired = true;
+        receivedCommand = e.command;
+      };
+      target.addEventListener('command', commandListener, { signal: t.get_signal() });
+      t.add_cleanup(() => resetState());
+
+      customButton.click();
+      assert_true(commandEventFired, "Custom command should fire command event");
+      assert_equals(receivedCommand, '--my-custom-action', "Command event should contain custom command");
+    }, "Custom button with custom command fires command event.");
+
+    // Test invalid commands
+    test(t => {
+      const customButton = document.getElementById("customButton");
+      const target = document.getElementById("target");
+      let commandEventFired = false;
+      customButton.setAttribute('commandfor', 'target');
+      customButton.setAttribute('command', 'invalid-action');
+      const commandListener = (e) => {
+        commandEventFired = true;
+      };
+      target.addEventListener('command', commandListener, { signal: t.get_signal() });
+      t.add_cleanup(() => resetState());
+
+      customButton.click();
+      assert_false(commandEventFired, "Invalid command should not fire command event");
+    }, "Custom button with invalid command does not fire command event.");
+  </script>
+</body>
+</html>

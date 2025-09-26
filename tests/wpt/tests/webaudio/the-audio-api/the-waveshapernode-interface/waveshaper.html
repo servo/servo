@@ -6,34 +6,34 @@
     </title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <script src="../../resources/audit-util.js"></script>
-    <script src="../../resources/audit.js"></script>
   </head>
   <body>
-    <script id="layout-test-code">
-      let audit = Audit.createTaskRunner();
+    <script>
 
-      let sampleRate = 44100;
-      let lengthInSeconds = 4;
-      let numberOfRenderFrames = sampleRate * lengthInSeconds;
-      let numberOfCurveFrames = 65536;
+      const sampleRate = 44100;
+      const lengthInSeconds = 4;
+      const numberOfRenderFrames = sampleRate * lengthInSeconds;
+      const numberOfCurveFrames = 65536;
+
+      let context;
       let inputBuffer;
       let waveShapingCurve;
 
-      let context;
-
       function generateInputBuffer() {
         // Create mono input buffer.
-        let buffer =
-            context.createBuffer(1, numberOfRenderFrames, context.sampleRate);
-        let data = buffer.getChannelData(0);
+        const buffer = new AudioBuffer({
+          length: numberOfRenderFrames,
+          numberOfChannels: 1,
+          sampleRate: context.sampleRate
+        });
+        const data = buffer.getChannelData(0);
 
         // Generate an input vector with values from -1 -> +1 over a duration of
         // lengthInSeconds. This exercises the full nominal input range and will
         // touch every point of the shaping curve.
         for (let i = 0; i < numberOfRenderFrames; ++i) {
-          let x = i / numberOfRenderFrames;  // 0 -> 1
-          x = 2 * x - 1;                     // -1 -> +1
+          let x = i / numberOfRenderFrames;
+          x = 2 * x - 1;
           data[i] = x;
         }
 
@@ -46,62 +46,72 @@
       // To some extent, the actual curve we choose is not important in this
       // test, since the input vector walks through all possible curve values.
       function generateWaveShapingCurve() {
-        let curve = new Float32Array(numberOfCurveFrames);
-
-        let n = numberOfCurveFrames;
-        let n2 = n / 2;
+        const curve = new Float32Array(numberOfCurveFrames);
+        const n = numberOfCurveFrames;
+        const n2 = n / 2;
 
         for (let i = 0; i < n; ++i) {
-          let x = (i - n2) / n2;
-          let y = Math.atan(5 * x) / (0.5 * Math.PI);
+          const x = (i - n2) / n2;
+          curve[i] = Math.atan(5 * x) / (0.5 * Math.PI);
         }
-
         return curve;
       }
+      // Following spec algorithm from
+      // https://webaudio.github.io/web-audio-api/#WaveShaperNode-attributes
+      function checkShapedCurve(buffer) {
+        const inputData = inputBuffer.getChannelData(0);
+        const outputData = buffer.getChannelData(0);
+        const c = waveShapingCurve;
+        const N = numberOfCurveFrames;
+        const tolerance = 1e-6;
 
-      function checkShapedCurve(buffer, should) {
-        let inputData = inputBuffer.getChannelData(0);
-        let outputData = buffer.getChannelData(0);
-
-        let success = true;
+        let firstMismatchIndex = -1;
+        let actual = 0;
+        let expected = 0;
 
         // Go through every sample and make sure it has been shaped exactly
         // according to the shaping curve we gave it.
         for (let i = 0; i < buffer.length; ++i) {
-          let input = inputData[i];
+          const x = inputData[i];
 
-          // Calculate an index based on input -1 -> +1 with 0 being at the
-          // center of the curve data.
-          let index = Math.floor(numberOfCurveFrames * 0.5 * (input + 1));
+          const v = ((N - 1) * 0.5) * (x + 1);
+          const k = Math.floor(v);
+          const f = v - k;
 
-          // Clip index to the input range of the curve.
-          // This takes care of input outside of nominal range -1 -> +1
-          index = index < 0 ? 0 : index;
-          index =
-              index > numberOfCurveFrames - 1 ? numberOfCurveFrames - 1 : index;
+          let y;
+          if (v < 0) {
+            y = c[0];
+          } else if (v >= N - 1) {
+            y = c[N - 1];
+          } else {
+            y = (1 - f) * c[k] + f * c[k + 1];
+          }
 
-          let expectedOutput = waveShapingCurve[index];
-
-          let output = outputData[i];
-
-          if (output != expectedOutput) {
-            success = false;
+          if (Math.abs(outputData[i] - y) > tolerance) {
+            firstMismatchIndex = i;
+            actual = outputData[i];
+            expected = y;
             break;
           }
         }
 
-        should(
-            success, 'WaveShaperNode applied non-linear distortion correctly')
-            .beTrue();
+        assert_equals(
+            firstMismatchIndex,
+            -1,
+            firstMismatchIndex === -1
+                ? 'WaveShaperNode output should match the spec.'
+                : `Mismatch at sample ${firstMismatchIndex}: ` +
+                    `actual = ${actual}, expected = ${expected}, ` +
+                    `tolerance = ${tolerance}`);
       }
 
-      audit.define('test', function(task, should) {
+      promise_test(async t => {
         // Create offline audio context.
         context = new OfflineAudioContext(1, numberOfRenderFrames, sampleRate);
 
         // source -> waveshaper -> destination
-        let source = context.createBufferSource();
-        let waveshaper = context.createWaveShaper();
+        const source = new AudioBufferSourceNode(context);
+        const waveshaper = new WaveShaperNode(context);
         source.connect(waveshaper);
         waveshaper.connect(context.destination);
 
@@ -113,14 +123,11 @@
         waveShapingCurve = generateWaveShapingCurve();
         waveshaper.curve = waveShapingCurve;
 
-        source.start(0);
+        source.start();
 
-        context.startRendering()
-            .then(buffer => checkShapedCurve(buffer, should))
-            .then(task.done.bind(task));
-      });
-
-      audit.run();
+        const renderedBuffer = await context.startRendering();
+        checkShapedCurve(renderedBuffer);
+      }, 'WaveShaperNode applies non-linear distortion correctly');
     </script>
   </body>
 </html>

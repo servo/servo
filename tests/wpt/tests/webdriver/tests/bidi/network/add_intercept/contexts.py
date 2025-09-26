@@ -1,4 +1,5 @@
 import asyncio
+import random
 
 import pytest
 from webdriver.bidi.modules.script import ScriptEvaluateResultException
@@ -52,7 +53,7 @@ async def test_frame_context(
     frame = contexts[0]["children"][0]
 
     # Add an intercept.
-    text_url = url(PAGE_EMPTY_TEXT)
+    text_url = f"{url(PAGE_EMPTY_TEXT)}?nocache={random.random()}"
     await add_intercept(
         phases=[phase],
         url_patterns=[{"type": "string", "pattern": text_url}],
@@ -97,12 +98,19 @@ async def test_other_context(
     )
 
     # Add an intercept.
-    text_url = url(PAGE_EMPTY_TEXT)
+    text_url = f"{url(PAGE_EMPTY_TEXT)}?nocache={random.random()}"
+
+    # Note: generate two distinct URLs matching the pattern to avoid cases
+    # where the blocked response of the first request is reused for the second
+    # request on Firefox (https://bugzilla.mozilla.org/show_bug.cgi?id=1966494).
+    text_url_other = f"{url(PAGE_EMPTY_TEXT)}?othercontext&nocache={random.random()}"
+
     await add_intercept(
         phases=[phase],
-        url_patterns=[{"type": "string", "pattern": text_url}],
+        # Use a pattern url_pattern to match both URLs using different search
+        # parameters.
+        url_patterns=[{"type": "pattern", "pathname": PAGE_EMPTY_TEXT}],
     )
-
 
     # Request to new_tab should be blocked.
     [event_name, assert_network_event] = PHASE_TO_EVENT_MAP[phase]
@@ -113,7 +121,7 @@ async def test_other_context(
 
     # Request to other_context should not be blocked because we are not
     # subscribed to network events. Wait for fetch to resolve successfully.
-    await asyncio.ensure_future(fetch(text_url, context=other_context))
+    await asyncio.ensure_future(fetch(text_url_other, context=other_context))
 
 
 @pytest.mark.asyncio
@@ -144,7 +152,7 @@ async def test_other_context_with_event_subscription(
     )
 
     # Add an intercept to new_tab only.
-    text_url = url(PAGE_EMPTY_TEXT)
+    text_url = f"{url(PAGE_EMPTY_TEXT)}?nocache={random.random()}"
     await add_intercept(
         phases=["beforeRequestSent"],
         url_patterns=[{"type": "string", "pattern": text_url}],
@@ -193,7 +201,7 @@ async def test_two_contexts_same_intercept(
     )
 
     # Add an intercept to both contexts
-    text_url = url(PAGE_EMPTY_TEXT)
+    text_url = f"{url(PAGE_EMPTY_TEXT)}?nocache={random.random()}"
     intercept = await add_intercept(
         phases=["beforeRequestSent"],
         url_patterns=[{"type": "string", "pattern": text_url}],
@@ -242,7 +250,7 @@ async def test_two_contexts_global_intercept(
     )
 
     # Add an intercept for new_tab and a global intercept.
-    text_url = url(PAGE_EMPTY_TEXT)
+    text_url = f"{url(PAGE_EMPTY_TEXT)}?nocache={random.random()}"
     context_intercept = await add_intercept(
         phases=["beforeRequestSent"],
         url_patterns=[{"type": "string", "pattern": text_url}],

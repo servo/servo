@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+<g id="testmeta">
+  <title>SVG Text Scaling with with font-size-adjust</title>
+  <html:link rel="author" title="ChangSeok Oh" href="mailto:changseok@chromium.org" />
+</g>
+<rect width="250" height="250" fill="black" />
+</svg>

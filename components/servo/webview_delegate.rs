@@ -4,10 +4,11 @@
 
 use std::path::PathBuf;
 
+use base::generic_channel::{GenericSender, SendResult};
 use base::id::PipelineId;
 use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{
-    AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, FilterPattern, FocusId,
+    AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, FilterPattern,
     GamepadHapticEffectType, InputMethodType, KeyboardEvent, LoadStatus, MediaSessionEvent,
     Notification, PermissionFeature, RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup,
     SimpleDialog, TraversalId, WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
@@ -63,14 +64,14 @@ impl Drop for NavigationRequest {
 
 /// Sends a response over an IPC channel, or a default response on [`Drop`] if no response was sent.
 pub(crate) struct IpcResponder<T: Serialize> {
-    response_sender: IpcSender<T>,
+    response_sender: GenericSender<T>,
     response_sent: bool,
     /// Always present, except when taken by [`Drop`].
     default_response: Option<T>,
 }
 
 impl<T: Serialize> IpcResponder<T> {
-    pub(crate) fn new(response_sender: IpcSender<T>, default_response: T) -> Self {
+    pub(crate) fn new(response_sender: GenericSender<T>, default_response: T) -> Self {
         Self {
             response_sender,
             response_sent: false,
@@ -78,13 +79,13 @@ impl<T: Serialize> IpcResponder<T> {
         }
     }
 
-    pub(crate) fn send(&mut self, response: T) -> bincode::Result<()> {
+    pub(crate) fn send(&mut self, response: T) -> SendResult {
         let result = self.response_sender.send(response);
         self.response_sent = true;
         result
     }
 
-    pub(crate) fn into_inner(self) -> IpcSender<T> {
+    pub(crate) fn into_inner(self) -> GenericSender<T> {
         self.response_sender.clone()
     }
 }
@@ -129,7 +130,7 @@ pub struct AllowOrDenyRequest(IpcResponder<AllowOrDeny>, ServoErrorSender);
 
 impl AllowOrDenyRequest {
     pub(crate) fn new(
-        response_sender: IpcSender<AllowOrDeny>,
+        response_sender: GenericSender<AllowOrDeny>,
         default_response: AllowOrDeny,
         error_sender: ServoErrorSender,
     ) -> Self {
@@ -166,7 +167,7 @@ impl AuthenticationRequest {
     pub(crate) fn new(
         url: Url,
         for_proxy: bool,
-        response_sender: IpcSender<Option<AuthenticationResponse>>,
+        response_sender: GenericSender<Option<AuthenticationResponse>>,
         error_sender: ServoErrorSender,
     ) -> Self {
         Self {
@@ -208,7 +209,7 @@ pub struct WebResourceLoad {
 impl WebResourceLoad {
     pub(crate) fn new(
         web_resource_request: WebResourceRequest,
-        response_sender: IpcSender<WebResourceResponseMsg>,
+        response_sender: GenericSender<WebResourceResponseMsg>,
         error_sender: ServoErrorSender,
     ) -> Self {
         Self {
@@ -244,7 +245,7 @@ impl WebResourceLoad {
 /// this interception will automatically be finished when dropped.
 pub struct InterceptedWebResourceLoad {
     pub request: WebResourceRequest,
-    pub(crate) response_sender: IpcSender<WebResourceResponseMsg>,
+    pub(crate) response_sender: GenericSender<WebResourceResponseMsg>,
     pub(crate) finished: bool,
     pub(crate) error_sender: ServoErrorSender,
 }
@@ -316,7 +317,7 @@ impl SelectElement {
         options: Vec<SelectElementOptionOrOptgroup>,
         selected_option: Option<usize>,
         position: DeviceIntRect,
-        ipc_sender: IpcSender<Option<usize>>,
+        ipc_sender: GenericSender<Option<usize>>,
     ) -> Self {
         Self {
             options,
@@ -369,7 +370,7 @@ impl ColorPicker {
     pub(crate) fn new(
         current_color: RgbColor,
         position: DeviceIntRect,
-        ipc_sender: IpcSender<Option<RgbColor>>,
+        ipc_sender: GenericSender<Option<RgbColor>>,
         error_sender: ServoErrorSender,
     ) -> Self {
         Self {
@@ -418,9 +419,6 @@ pub trait WebViewDelegate {
     /// This [`WebView`] has either become focused or lost focus. Whether or not the
     /// [`WebView`] is focused can be accessed via [`WebView::focused`].
     fn notify_focus_changed(&self, _webview: WebView, _focused: bool) {}
-    /// A focus operation that was initiated by this webview has completed.
-    /// The current focus status of this [`WebView`] can be accessed via [`WebView::focused`].
-    fn notify_focus_complete(&self, _webview: WebView, _focus_id: FocusId) {}
     /// This [`WebView`] has either started to animate or stopped animating. When a
     /// [`WebView`] is animating, it is up to the embedding application ensure that
     /// `Servo::spin_event_loop` is called at regular intervals in order to update the
@@ -432,15 +430,15 @@ pub trait WebViewDelegate {
     /// The [`Cursor`] of the currently loaded page in this [`WebView`] has changed. The new
     /// cursor can accessed via [`WebView::cursor`].
     fn notify_cursor_changed(&self, _webview: WebView, _: Cursor) {}
-    /// The favicon [`Url`] of the currently loaded page in this [`WebView`] has changed. The new
-    /// favicon [`Url`] can accessed via [`WebView::favicon_url`].
-    fn notify_favicon_url_changed(&self, _webview: WebView, _: Url) {}
-
+    /// The favicon of the currently loaded page in this [`WebView`] has changed. The new
+    /// favicon [`Image`] can accessed via [`WebView::favicon`].
+    fn notify_favicon_changed(&self, _webview: WebView) {}
     /// Notify the embedder that it needs to present a new frame.
     fn notify_new_frame_ready(&self, _webview: WebView) {}
-    /// The history state has changed.
-    // changed pattern; maybe wasteful if embedder doesn’t care?
-    fn notify_history_changed(&self, _webview: WebView, _: Vec<Url>, _: usize) {}
+    /// The navigation history of this [`WebView`] has changed. The navigation history is represented
+    /// as a `Vec<Url>` and `_current` denotes the current index in the history. New navigations,
+    /// back navigation, and forward navigation modify this index.
+    fn notify_history_changed(&self, _webview: WebView, _entries: Vec<Url>, _current: usize) {}
     /// A history traversal operation is complete.
     fn notify_traversal_complete(&self, _webview: WebView, _: TraversalId) {}
     /// Page content has closed this [`WebView`] via `window.close()`. It's the embedder's
@@ -473,7 +471,11 @@ pub trait WebViewDelegate {
     fn request_unload(&self, _webview: WebView, _unload_request: AllowOrDenyRequest) {}
     /// Move the window to a point.
     fn request_move_to(&self, _webview: WebView, _: DeviceIntPoint) {}
-    /// Try to resize the window that contains this [`WebView`] to the provided outer size.
+    /// Try to resize the window that contains this [`WebView`] to the provided outer
+    /// size. These resize requests can come from page content. Servo will ensure that the
+    /// values are greater than zero, but it is up to the embedder to limit the maximum
+    /// size. For instance, a reasonable limitation might be that the final size is no
+    /// larger than the screen size.
     fn request_resize_to(&self, _webview: WebView, _requested_outer_size: DeviceIntSize) {}
     /// Whether or not to allow script to open a new `WebView`. If not handled by the
     /// embedder, these requests are automatically denied.
@@ -516,7 +518,7 @@ pub trait WebViewDelegate {
     fn show_context_menu(
         &self,
         _webview: WebView,
-        result_sender: IpcSender<ContextMenuResult>,
+        result_sender: GenericSender<ContextMenuResult>,
         _: Option<String>,
         _: Vec<String>,
     ) {
@@ -529,7 +531,7 @@ pub trait WebViewDelegate {
         &self,
         _webview: WebView,
         _: Vec<String>,
-        response_sender: IpcSender<Option<String>>,
+        response_sender: GenericSender<Option<String>>,
     ) {
         let _ = response_sender.send(None);
     }
@@ -540,7 +542,7 @@ pub trait WebViewDelegate {
         _webview: WebView,
         _filter_pattern: Vec<FilterPattern>,
         _allow_select_mutiple: bool,
-        response_sender: IpcSender<Option<Vec<PathBuf>>>,
+        response_sender: GenericSender<Option<Vec<PathBuf>>>,
     ) {
         let _ = response_sender.send(None);
     }
@@ -596,14 +598,14 @@ impl WebViewDelegate for DefaultWebViewDelegate {}
 
 #[test]
 fn test_allow_deny_request() {
-    use ipc_channel::ipc;
+    use base::generic_channel;
 
     use crate::ServoErrorChannel;
 
     for default_response in [AllowOrDeny::Allow, AllowOrDeny::Deny] {
         // Explicit allow yields allow and nothing else
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
         let request = AllowOrDenyRequest::new(sender, default_response, errors.sender());
         request.allow();
         assert_eq!(receiver.try_recv().ok(), Some(AllowOrDeny::Allow));
@@ -612,7 +614,7 @@ fn test_allow_deny_request() {
 
         // Explicit deny yields deny and nothing else
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
         let request = AllowOrDenyRequest::new(sender, default_response, errors.sender());
         request.deny();
         assert_eq!(receiver.try_recv().ok(), Some(AllowOrDeny::Deny));
@@ -621,7 +623,7 @@ fn test_allow_deny_request() {
 
         // No response yields default response and nothing else
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
         let request = AllowOrDenyRequest::new(sender, default_response, errors.sender());
         drop(request);
         assert_eq!(receiver.try_recv().ok(), Some(default_response));
@@ -630,7 +632,7 @@ fn test_allow_deny_request() {
 
         // Explicit allow when receiver disconnected yields error
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
         let request = AllowOrDenyRequest::new(sender, default_response, errors.sender());
         drop(receiver);
         request.allow();
@@ -638,7 +640,7 @@ fn test_allow_deny_request() {
 
         // Explicit deny when receiver disconnected yields error
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
         let request = AllowOrDenyRequest::new(sender, default_response, errors.sender());
         drop(receiver);
         request.deny();
@@ -646,7 +648,7 @@ fn test_allow_deny_request() {
 
         // No response when receiver disconnected yields no error
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
         let request = AllowOrDenyRequest::new(sender, default_response, errors.sender());
         drop(receiver);
         drop(request);
@@ -656,7 +658,7 @@ fn test_allow_deny_request() {
 
 #[test]
 fn test_authentication_request() {
-    use ipc_channel::ipc;
+    use base::generic_channel;
 
     use crate::ServoErrorChannel;
 
@@ -664,7 +666,7 @@ fn test_authentication_request() {
 
     // Explicit response yields that response and nothing else
     let errors = ServoErrorChannel::default();
-    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+    let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
     let request = AuthenticationRequest::new(url.clone(), false, sender, errors.sender());
     request.authenticate("diffie".to_owned(), "hunter2".to_owned());
     assert_eq!(
@@ -679,7 +681,7 @@ fn test_authentication_request() {
 
     // No response yields None response and nothing else
     let errors = ServoErrorChannel::default();
-    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+    let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
     let request = AuthenticationRequest::new(url.clone(), false, sender, errors.sender());
     drop(request);
     assert_eq!(receiver.try_recv().ok(), Some(None));
@@ -688,7 +690,7 @@ fn test_authentication_request() {
 
     // Explicit response when receiver disconnected yields error
     let errors = ServoErrorChannel::default();
-    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+    let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
     let request = AuthenticationRequest::new(url.clone(), false, sender, errors.sender());
     drop(receiver);
     request.authenticate("diffie".to_owned(), "hunter2".to_owned());
@@ -696,7 +698,7 @@ fn test_authentication_request() {
 
     // No response when receiver disconnected yields no error
     let errors = ServoErrorChannel::default();
-    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+    let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
     let request = AuthenticationRequest::new(url.clone(), false, sender, errors.sender());
     drop(receiver);
     drop(request);
@@ -705,8 +707,8 @@ fn test_authentication_request() {
 
 #[test]
 fn test_web_resource_load() {
+    use base::generic_channel;
     use http::{HeaderMap, Method, StatusCode};
-    use ipc_channel::ipc;
 
     use crate::ServoErrorChannel;
 
@@ -724,7 +726,7 @@ fn test_web_resource_load() {
 
     // Explicit intercept with explicit cancel yields Start and Cancel and nothing else
     let errors = ServoErrorChannel::default();
-    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+    let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
     let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
     request.intercept(web_resource_response()).cancel();
     assert!(matches!(
@@ -740,7 +742,7 @@ fn test_web_resource_load() {
 
     // Explicit intercept with no further action yields Start and FinishLoad and nothing else
     let errors = ServoErrorChannel::default();
-    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+    let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
     let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
     drop(request.intercept(web_resource_response()));
     assert!(matches!(
@@ -756,7 +758,7 @@ fn test_web_resource_load() {
 
     // No response yields DoNotIntercept and nothing else
     let errors = ServoErrorChannel::default();
-    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+    let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
     let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
     drop(request);
     assert!(matches!(
@@ -768,7 +770,7 @@ fn test_web_resource_load() {
 
     // Explicit intercept with explicit cancel when receiver disconnected yields error
     let errors = ServoErrorChannel::default();
-    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+    let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
     let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
     drop(receiver);
     request.intercept(web_resource_response()).cancel();
@@ -776,7 +778,7 @@ fn test_web_resource_load() {
 
     // Explicit intercept with no further action when receiver disconnected yields error
     let errors = ServoErrorChannel::default();
-    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+    let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
     let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
     drop(receiver);
     drop(request.intercept(web_resource_response()));
@@ -784,7 +786,7 @@ fn test_web_resource_load() {
 
     // No response when receiver disconnected yields no error
     let errors = ServoErrorChannel::default();
-    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+    let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
     let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
     drop(receiver);
     drop(request);

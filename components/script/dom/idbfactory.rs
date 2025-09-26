@@ -58,7 +58,9 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         let request = IDBOpenDBRequest::new(&self.global(), CanGc::note());
 
         // Step 5: Runs in parallel
-        request.open_database(name, version);
+        if request.open_database(name, version).is_err() {
+            return Err(Error::Operation);
+        }
 
         // Step 6
         Ok(request)
@@ -81,7 +83,9 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         let request = IDBOpenDBRequest::new(&self.global(), CanGc::note());
 
         // Step 4: Runs in parallel
-        request.delete_database(name.to_string());
+        if request.delete_database(name.to_string()).is_err() {
+            return Err(Error::Operation);
+        }
 
         // Step 5: Return request
         Ok(request)
@@ -94,8 +98,8 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-cmp
     fn Cmp(&self, cx: SafeJSContext, first: HandleValue, second: HandleValue) -> Fallible<i16> {
-        let first_key = convert_value_to_key(cx, first, None)?;
-        let second_key = convert_value_to_key(cx, second, None)?;
+        let first_key = convert_value_to_key(cx, first, None)?.into_result()?;
+        let second_key = convert_value_to_key(cx, second, None)?.into_result()?;
         let cmp = first_key.partial_cmp(&second_key);
         if let Some(cmp) = cmp {
             match cmp {

@@ -113,6 +113,7 @@ test_interfaces([
   "TextDecoder",
   "TextDecoderStream",
   "TextEncoder",
+  "TextEncoderStream",
   "TrustedHTML",
   "TrustedScript",
   "TrustedScriptURL",

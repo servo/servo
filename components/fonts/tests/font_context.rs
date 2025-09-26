@@ -14,6 +14,7 @@ mod font_context {
     use std::thread;
 
     use app_units::Au;
+    use base::generic_channel;
     use compositing_traits::CrossProcessCompositorApi;
     use fonts::platform::font::PlatformFont;
     use fonts::{
@@ -48,7 +49,7 @@ mod font_context {
         fn new() -> TestContext {
             let (system_font_service, system_font_service_proxy) = MockSystemFontService::spawn();
             let (core_sender, _) = ipc::channel().unwrap();
-            let (storage_sender, _) = ipc::channel().unwrap();
+            let (storage_sender, _) = generic_channel::channel().unwrap();
             let (indexeddb_sender, _) = ipc::channel().unwrap();
             let mock_resource_threads =
                 ResourceThreads::new(core_sender, storage_sender, indexeddb_sender);
@@ -133,7 +134,7 @@ mod font_context {
                         );
                     },
                     SystemFontServiceMessage::GetFontInstanceKey(result_sender) |
-                    SystemFontServiceMessage::GetFontInstance(_, _, _, result_sender) => {
+                    SystemFontServiceMessage::GetFontInstance(_, _, _, _, result_sender) => {
                         let _ = result_sender.send(FontInstanceKey(IdNamespace(0), 0));
                     },
                     SystemFontServiceMessage::GetFontKey(result_sender) => {
@@ -185,11 +186,15 @@ mod font_context {
 
             let local_font_identifier = LocalFontIdentifier {
                 path: path.to_str().expect("Could not load test font").into(),
-                variation_index: 0,
+                face_index: 0,
+                named_instance_index: 0,
             };
-            let handle =
-                PlatformFont::new_from_local_font_identifier(local_font_identifier.clone(), None)
-                    .expect("Could not load test font");
+            let handle = PlatformFont::new_from_local_font_identifier(
+                local_font_identifier.clone(),
+                None,
+                &[],
+            )
+            .expect("Could not load test font");
 
             family.add_template(FontTemplate::new(
                 FontIdentifier::Local(local_font_identifier),
@@ -352,6 +357,7 @@ mod font_context {
             style: FontStyle::normal(),
             variant: FontVariantCaps::Normal,
             pt_size: Au(10),
+            variation_settings: vec![],
         };
 
         let family = SingleFontFamily::FamilyName(FamilyName {

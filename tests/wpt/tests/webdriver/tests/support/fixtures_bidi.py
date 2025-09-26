@@ -747,7 +747,7 @@ async def setup_network_test(
 
         # Listen for network.responseCompleted for the initial navigation to
         # make sure this event will not be captured unexpectedly by the tests.
-        await bidi_session.session.subscribe(
+        subscribe_result = await bidi_session.session.subscribe(
             events=["network.responseCompleted"], contexts=[context]
         )
         on_response_completed = wait_for_event("network.responseCompleted")
@@ -759,7 +759,7 @@ async def setup_network_test(
         )
         await wait_for_future_safe(on_response_completed)
         await bidi_session.session.unsubscribe(
-            events=["network.responseCompleted"], contexts=[context]
+            subscriptions=[subscribe_result["subscription"]]
         )
 
         await subscribe_events(events, contexts)

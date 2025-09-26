@@ -8,7 +8,7 @@ use std::num::NonZeroU32;
 use canvas_traits::webgl::{
     WebGLContextId, WebGLMsg, WebGLSender, WebXRCommand, WebXRLayerManagerId, webgl_channel,
 };
-use fnv::FnvHashMap;
+use rustc_hash::FxHashMap;
 use surfman::{Context, Device};
 use webxr::SurfmanGL as WebXRSurfman;
 use webxr_api::{
@@ -310,7 +310,7 @@ impl Drop for WebXRBridgeManager {
 }
 
 pub(crate) struct WebXRBridgeContexts<'a> {
-    pub(crate) contexts: &'a mut FnvHashMap<WebGLContextId, GLContextData>,
+    pub(crate) contexts: &'a mut FxHashMap<WebGLContextId, GLContextData>,
     pub(crate) bound_context_id: &'a mut Option<WebGLContextId>,
 }
 

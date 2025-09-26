@@ -58,6 +58,7 @@ impl DissimilarOriginWindow {
                 global_to_clone_from.mem_profiler_chan().clone(),
                 global_to_clone_from.time_profiler_chan().clone(),
                 global_to_clone_from.script_to_constellation_chan().clone(),
+                global_to_clone_from.script_to_embedder_chan().clone(),
                 global_to_clone_from.resource_threads().clone(),
                 global_to_clone_from.origin().clone(),
                 global_to_clone_from.creation_url().clone(),
@@ -69,11 +70,12 @@ impl DissimilarOriginWindow {
                 global_to_clone_from.wgpu_id_hub(),
                 Some(global_to_clone_from.is_secure_context()),
                 false,
+                global_to_clone_from.font_context().cloned(),
             ),
             window_proxy: Dom::from_ref(window_proxy),
             location: Default::default(),
         });
-        unsafe { DissimilarOriginWindowBinding::Wrap::<crate::DomTypeHolder>(cx, win) }
+        DissimilarOriginWindowBinding::Wrap::<crate::DomTypeHolder>(cx, win)
     }
 
     pub(crate) fn window_proxy(&self) -> DomRoot<WindowProxy> {
@@ -235,7 +237,7 @@ impl DissimilarOriginWindow {
             "/" => Some(source_origin.clone()),
             url => match ServoUrl::parse(url) {
                 Ok(url) => Some(url.origin().clone()),
-                Err(_) => return Err(Error::Syntax),
+                Err(_) => return Err(Error::Syntax(None)),
             },
         };
         let msg = ScriptToConstellationMessage::PostMessage {

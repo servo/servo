@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
 use std::rc::Rc;
 use std::str::FromStr;
 
@@ -47,7 +48,8 @@ pub(crate) struct Response {
     body_stream: MutNullableDom<ReadableStream>,
     #[ignore_malloc_size_of = "StreamConsumer"]
     stream_consumer: DomRefCell<Option<StreamConsumer>>,
-    redirected: DomRefCell<bool>,
+    redirected: Cell<bool>,
+    is_body_empty: Cell<bool>,
 }
 
 #[allow(non_snake_case)]
@@ -68,7 +70,8 @@ impl Response {
             url_list: DomRefCell::new(vec![]),
             body_stream: MutNullableDom::new(Some(&*stream)),
             stream_consumer: DomRefCell::new(None),
-            redirected: DomRefCell::new(false),
+            redirected: Cell::new(false),
+            is_body_empty: Cell::new(true),
         }
     }
 
@@ -153,6 +156,9 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         // 1. Set this’s response to a new response.
         // Our Response/Body types don't actually hold onto an internal fetch Response.
         let response = Response::new_with_proto(global, proto, can_gc);
+        if body_init.is_some() {
+            response.is_body_empty.set(false);
+        }
 
         // 2. Set this’s headers to a new Headers object with this’s relevant realm,
         // whose header list is this’s response’s header list and guard is "response".
@@ -252,7 +258,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
 
     /// <https://fetch.spec.whatwg.org/#dom-response-type>
     fn Type(&self) -> DOMResponseType {
-        *self.response_type.borrow() //into()
+        *self.response_type.borrow() // into()
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-response-url>
@@ -267,7 +273,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
 
     /// <https://fetch.spec.whatwg.org/#dom-response-redirected>
     fn Redirected(&self) -> bool {
-        return *self.redirected.borrow();
+        self.redirected.get()
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-response-status>
@@ -324,6 +330,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         if let Some(stream) = self.body_stream.get().clone() {
             new_response.body_stream.set(Some(&*stream));
         }
+        new_response.is_body_empty.set(self.is_body_empty.get());
 
         // Step 3
         // TODO: This step relies on promises, which are still unimplemented.
@@ -334,7 +341,8 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
 
     /// <https://fetch.spec.whatwg.org/#dom-body-bodyused>
     fn BodyUsed(&self) -> bool {
-        self.is_disturbed()
+        // bodyUsed returns true only if body is non-null
+        !self.is_body_empty() && self.is_disturbed()
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-body>
@@ -421,6 +429,7 @@ fn initialize_response(
 
         // 6.2 Set response’s body to body’s body.
         response.body_stream.set(Some(&*body.stream));
+        response.is_body_empty.set(false);
 
         // 6.3 If body’s type is non-null and response’s header list does not contain `Content-Type`,
         // then append (`Content-Type`, body’s type) to response’s header list.
@@ -478,7 +487,7 @@ impl Response {
     }
 
     pub(crate) fn set_redirected(&self, is_redirected: bool) {
-        *self.redirected.borrow_mut() = is_redirected;
+        self.redirected.set(is_redirected);
     }
 
     fn set_response_members_by_type(&self, response_type: DOMResponseType, can_gc: CanGc) {
@@ -509,6 +518,7 @@ impl Response {
     }
 
     pub(crate) fn stream_chunk(&self, chunk: Vec<u8>, can_gc: CanGc) {
+        self.is_body_empty.set(false);
         // Note, are these two actually mutually exclusive?
         if let Some(stream_consumer) = self.stream_consumer.borrow().as_ref() {
             stream_consumer.consume_chunk(chunk.as_slice());
@@ -526,5 +536,9 @@ impl Response {
         if let Some(stream_consumer) = stream_consumer {
             stream_consumer.stream_end();
         }
+    }
+
+    pub(crate) fn is_body_empty(&self) -> bool {
+        self.is_body_empty.get()
     }
 }

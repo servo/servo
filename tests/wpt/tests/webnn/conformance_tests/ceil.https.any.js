@@ -456,11 +456,5 @@ const ceilTests = [
   }
 ];
 
-if (navigator.ml) {
-  ceilTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(
-        buildAndExecuteGraph, getCeilPrecisionTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(
+    ceilTests, buildAndExecuteGraph, getCeilPrecisionTolerance);

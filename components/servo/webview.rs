@@ -13,7 +13,7 @@ use compositing_traits::WebViewTrait;
 use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
-    Cursor, FocusId, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus,
+    Cursor, Image, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus,
     MediaSessionActionType, ScreenGeometry, Theme, TraversalId, ViewportDetails,
 };
 use euclid::{Point2D, Scale, Size2D};
@@ -26,6 +26,8 @@ use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 use crate::javascript_evaluator::JavaScriptEvaluator;
 use crate::webview_delegate::{DefaultWebViewDelegate, WebViewDelegate};
 use crate::{ConstellationProxy, Servo, WebRenderDebugOption};
+
+pub(crate) const MINIMUM_WEBVIEW_SIZE: Size2D<i32, DevicePixel> = Size2D::new(1, 1);
 
 /// A handle to a Servo webview. If you clone this handle, it does not create a new webview,
 /// but instead creates a new handle to the webview. Once the last handle is dropped, Servo
@@ -84,7 +86,7 @@ pub(crate) struct WebViewInner {
     url: Option<Url>,
     status_text: Option<String>,
     page_title: Option<String>,
-    favicon_url: Option<Url>,
+    favicon: Option<Image>,
     focused: bool,
     animating: bool,
     cursor: Cursor,
@@ -126,7 +128,7 @@ impl WebView {
             url: None,
             status_text: None,
             page_title: None,
-            favicon_url: None,
+            favicon: None,
             focused: false,
             animating: false,
             cursor: Cursor::Pointer,
@@ -264,21 +266,13 @@ impl WebView {
         self.delegate().notify_page_title_changed(self, new_value);
     }
 
-    pub fn favicon_url(&self) -> Option<Url> {
-        self.inner().favicon_url.clone()
+    pub fn favicon(&self) -> Option<Ref<'_, Image>> {
+        Ref::filter_map(self.inner(), |inner| inner.favicon.as_ref()).ok()
     }
 
-    pub(crate) fn set_favicon_url(self, new_value: Url) {
-        if self
-            .inner()
-            .favicon_url
-            .as_ref()
-            .is_some_and(|url| url == &new_value)
-        {
-            return;
-        }
-        self.inner_mut().favicon_url = Some(new_value.clone());
-        self.delegate().notify_favicon_url_changed(self, new_value);
+    pub(crate) fn set_favicon(self, new_value: Image) {
+        self.inner_mut().favicon = Some(new_value);
+        self.delegate().notify_favicon_changed(self);
     }
 
     pub fn focused(&self) -> bool {
@@ -293,10 +287,6 @@ impl WebView {
         self.delegate().notify_focus_changed(self, new_value);
     }
 
-    pub(crate) fn complete_focus(self, focus_id: FocusId) {
-        self.delegate().notify_focus_complete(self, focus_id);
-    }
-
     pub fn cursor(&self) -> Cursor {
         self.inner().cursor
     }
@@ -309,15 +299,10 @@ impl WebView {
         self.delegate().notify_cursor_changed(self, new_value);
     }
 
-    pub fn focus(&self) -> FocusId {
-        let focus_id = FocusId::new();
+    pub fn focus(&self) {
         self.inner()
             .constellation_proxy
-            .send(EmbedderToConstellationMessage::FocusWebView(
-                self.id(),
-                focus_id.clone(),
-            ));
-        focus_id
+            .send(EmbedderToConstellationMessage::FocusWebView(self.id()));
     }
 
     pub fn blur(&self) {
@@ -351,6 +336,9 @@ impl WebView {
             return;
         }
 
+        let rect =
+            DeviceRect::from_origin_and_size(rect.min, rect.size().max(Size2D::new(1.0, 1.0)));
+
         self.inner_mut().rect = rect;
         self.inner()
             .compositor
@@ -358,7 +346,15 @@ impl WebView {
             .move_resize_webview(self.id(), rect);
     }
 
+    /// Request that the given [`WebView`]'s rendering area be resized. Note that the
+    /// minimum size for a WebView is 1 pixel by 1 pixel so any requested size will be
+    /// clamped by that value.
     pub fn resize(&self, new_size: PhysicalSize<u32>) {
+        let new_size = PhysicalSize {
+            width: new_size.width.max(MINIMUM_WEBVIEW_SIZE.width as u32),
+            height: new_size.height.max(MINIMUM_WEBVIEW_SIZE.height as u32),
+        };
+
         self.inner()
             .compositor
             .borrow_mut()
@@ -406,6 +402,11 @@ impl WebView {
             .borrow_mut()
             .raise_webview_to_top(self.id(), hide_others)
             .expect("BUG: invalid WebView instance");
+    }
+
+    pub fn focus_and_raise_to_top(&self, hide_others: bool) {
+        self.focus();
+        self.raise_to_top(hide_others);
     }
 
     pub fn notify_theme_change(&self, theme: Theme) {

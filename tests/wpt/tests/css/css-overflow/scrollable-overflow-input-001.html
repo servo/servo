@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<html class="reftest-wait">
 <meta charset="utf-8">
 <title>CSS Overflow Test: Test the text in an input is not clipped and reachable</title>
 <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
@@ -23,6 +24,8 @@ input {
      width (160px) to reproduce this bug.  -->
 <input id="input" value="X  XpX">
 
-<script>
-document.getElementById('input').scrollLeft = 1000;
+<script type="module">
+  await document.fonts.load('20px/1 Ahem');
+  document.getElementById('input').scrollLeft = 1000;
+  document.documentElement.classList.remove("reftest-wait");
 </script>

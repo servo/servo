@@ -10,10 +10,10 @@ use surfman::{Context, Device};
     target_os = "windows",
     all(target_os = "linux", not(target_env = "ohos"))
 )))]
-pub(crate) fn setup_gl_accelerated_media(_: RefMut<Device>, _: RefMut<Context>) {}
+pub(crate) fn setup_gl_accelerated_media(_: RefMut<'_, Device>, _: RefMut<'_, Context>) {}
 
 #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
-pub(crate) fn setup_gl_accelerated_media(device: RefMut<Device>, context: RefMut<Context>) {
+pub(crate) fn setup_gl_accelerated_media(device: RefMut<'_, Device>, context: RefMut<'_, Context>) {
     use servo::Servo;
     use servo::media::{GlContext, NativeDisplay};
     use surfman::platform::generic::multi::connection::NativeConnection;
@@ -42,7 +42,7 @@ pub(crate) fn setup_gl_accelerated_media(device: RefMut<Device>, context: RefMut
 }
 
 #[cfg(target_os = "windows")]
-pub(crate) fn setup_gl_accelerated_media(device: RefMut<Device>, context: RefMut<Context>) {
+pub(crate) fn setup_gl_accelerated_media(device: RefMut<'_, Device>, context: RefMut<'_, Context>) {
     use servo::Servo;
     use servo::media::{GlContext, NativeDisplay};
 

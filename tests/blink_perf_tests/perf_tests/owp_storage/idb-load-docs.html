@@ -1,0 +1,19 @@
+<!doctype html>
+<title>IDB Offline Google Docs Load</title>
+<script src="../resources/runner.js"></script>
+<script src="resources/shared.js"></script>
+<script src="resources/idb-load-docs-shared.js"></script>
+<script src="resources/idb-load-docs-setup.js"></script>
+<script>
+  deleteThenOpen(databaseName, populateFakeDocsDatabase, () => {
+    var test = {
+      description: 'Benchmark modeling the IndexedDB activity of a Google Docs offline page load.',
+      unit: 'ms',
+      iterationCount: 20,
+      tracingCategories: 'IndexedDB',
+      traceEventsToMeasure: ['IndexedDBTransaction::lifetime', 'IDBObjectStore::delete', 'IDBObjectStore::get', 'IDBObjectStore::put', 'IDBObjectStore::openCursor', 'IDBFactory::open'],
+      path: "resources/idb-load-docs-runner.html"
+    }
+    PerfTestRunner.measurePageLoadTimeAfterDoneMessage(test);
+  });
+</script>

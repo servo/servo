@@ -2,12 +2,52 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Selecting the default global allocator for Servo
+//! Selecting the default global allocator for Servo, and exposing common
+//! allocator introspection APIs for memory profiling.
 
+use std::os::raw::c_void;
+
+#[cfg(not(feature = "allocation-tracking"))]
 #[global_allocator]
 static ALLOC: Allocator = Allocator;
 
+#[cfg(feature = "allocation-tracking")]
+#[global_allocator]
+static ALLOC: crate::tracking::AccountingAlloc<Allocator> =
+    crate::tracking::AccountingAlloc::with_allocator(Allocator);
+
+#[cfg(feature = "allocation-tracking")]
+mod tracking;
+
+pub fn dump_unmeasured() {
+    #[cfg(feature = "allocation-tracking")]
+    ALLOC.dump_unmeasured_allocations();
+}
+
 pub use crate::platform::*;
+
+type EnclosingSizeFn = unsafe extern "C" fn(*const c_void) -> usize;
+
+/// # Safety
+/// No restrictions. The passed pointer is never dereferenced.
+/// This function is only marked unsafe because the MallocSizeOfOps APIs
+/// requires an unsafe function pointer.
+#[cfg(feature = "allocation-tracking")]
+unsafe extern "C" fn enclosing_size_impl(ptr: *const c_void) -> usize {
+    let (adjusted, size) = crate::ALLOC.enclosing_size(ptr);
+    if size != 0 {
+        crate::ALLOC.note_allocation(adjusted, size);
+    }
+    size
+}
+
+#[allow(non_upper_case_globals)]
+#[cfg(feature = "allocation-tracking")]
+pub static enclosing_size: Option<EnclosingSizeFn> = Some(crate::enclosing_size_impl);
+
+#[allow(non_upper_case_globals)]
+#[cfg(not(feature = "allocation-tracking"))]
+pub static enclosing_size: Option<EnclosingSizeFn> = None;
 
 #[cfg(not(any(windows, feature = "use-system-allocator", target_env = "ohos")))]
 mod platform {
@@ -21,7 +61,10 @@ mod platform {
     ///
     /// Passing a non-heap allocated pointer to this function results in undefined behavior.
     pub unsafe extern "C" fn usable_size(ptr: *const c_void) -> usize {
-        unsafe { tikv_jemallocator::usable_size(ptr) }
+        let size = unsafe { tikv_jemallocator::usable_size(ptr) };
+        #[cfg(feature = "allocation-tracking")]
+        crate::ALLOC.note_allocation(ptr, size);
+        size
     }
 
     /// Memory allocation APIs compatible with libc
@@ -46,12 +89,18 @@ mod platform {
     pub unsafe extern "C" fn usable_size(ptr: *const c_void) -> usize {
         #[cfg(target_vendor = "apple")]
         unsafe {
-            return libc::malloc_size(ptr);
+            let size = libc::malloc_size(ptr);
+            #[cfg(feature = "allocation-tracking")]
+            crate::ALLOC.note_allocation(ptr, size);
+            size
         }
 
         #[cfg(not(target_vendor = "apple"))]
         unsafe {
-            return libc::malloc_usable_size(ptr as *mut _);
+            let size = libc::malloc_usable_size(ptr as *mut _);
+            #[cfg(feature = "allocation-tracking")]
+            crate::ALLOC.note_allocation(ptr, size);
+            size
         }
     }
 
@@ -81,7 +130,10 @@ mod platform {
                 ptr = *(ptr as *const *const c_void).offset(-1)
             }
 
-            HeapSize(heap, 0, ptr) as usize
+            let size = HeapSize(heap, 0, ptr) as usize;
+            #[cfg(feature = "allocation-tracking")]
+            crate::ALLOC.note_allocation(ptr, size);
+            size
         }
     }
 }

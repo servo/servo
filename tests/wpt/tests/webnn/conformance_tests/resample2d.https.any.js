@@ -517,10 +517,5 @@ const resample2dTests = [
   }
 ];
 
-if (navigator.ml) {
-  resample2dTests.filter(isTargetTest).forEach((test) => {
-    webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
-  });
-} else {
-  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
-}
+webnn_conformance_test(
+    resample2dTests, buildAndExecuteGraph, getPrecisionTolerance);

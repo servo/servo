@@ -177,9 +177,9 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
             can_gc,
         )?;
         // Step 2-4.
-        let worker_url = match global.api_base_url().join(&compliant_script_url) {
+        let worker_url = match global.api_base_url().join(compliant_script_url.str()) {
             Ok(url) => url,
-            Err(_) => return Err(Error::Syntax),
+            Err(_) => return Err(Error::Syntax(None)),
         };
 
         let (sender, receiver) = unbounded();
@@ -244,7 +244,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
             sender,
             receiver,
             worker_load_origin,
-            String::from(&*worker_options.name),
+            String::from(worker_options.name.str()),
             worker_options.type_,
             closing.clone(),
             global.image_cache(),
@@ -255,6 +255,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
             context_sender,
             global.insecure_requests_policy(),
             global.policy_container(),
+            global.font_context().cloned(),
         );
 
         let context = context_receiver

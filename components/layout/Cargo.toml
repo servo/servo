@@ -26,7 +26,6 @@ cssparser = { workspace = true }
 data-url = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
-fnv = { workspace = true }
 fonts = { path = "../fonts" }
 fonts_traits = { workspace = true }
 fxhash = { workspace = true }
@@ -46,14 +45,17 @@ pixels = { path = "../pixels" }
 profile_traits = { workspace = true }
 range = { path = "../range" }
 rayon = { workspace = true }
+rustc-hash = { workspace = true }
 script = { path = "../script" }
 script_traits = { workspace = true }
 selectors = { workspace = true }
+servo-tracing = { workspace = true }
 servo_arc = { workspace = true }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
 smallvec = { workspace = true }
+strum = { workspace = true }
 stylo = { workspace = true }
 stylo_atoms = { workspace = true }
 stylo_traits = { workspace = true }
@@ -64,7 +66,6 @@ unicode-script = { workspace = true }
 url = { workspace = true }
 webrender_api = { workspace = true }
 xi-unicode = { workspace = true }
-servo-tracing = { workspace = true }
 
 [dev-dependencies]
 num-traits = { workspace = true }

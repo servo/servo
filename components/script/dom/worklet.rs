@@ -12,19 +12,20 @@
 
 use std::cell::OnceCell;
 use std::cmp::max;
-use std::collections::{HashMap, hash_map};
+use std::collections::hash_map;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicIsize, Ordering};
 use std::thread;
 
+use base::IpcSend;
 use base::id::PipelineId;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use dom_struct::dom_struct;
 use js::jsapi::{GCReason, JS_GC, JS_GetGCParameter, JSGCParamKey, JSTracer};
 use malloc_size_of::malloc_size_of_is_0;
-use net_traits::IpcSend;
 use net_traits::request::{Destination, RequestBuilder, RequestMode};
+use rustc_hash::FxHashMap;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
 use swapper::{Swapper, swapper};
@@ -38,7 +39,7 @@ use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::TrustedPromise;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
-use crate::dom::bindings::root::{Dom, DomRoot, RootCollection, ThreadLocalStackRoots};
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::trace::{CustomTraceable, JSTraceable, RootedTraceableBox};
 use crate::dom::csp::Violation;
@@ -143,7 +144,7 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
             Err(err) => {
                 // Step 4.
                 debug!("URL {:?} parse error {:?}.", module_url.0, err);
-                promise.reject_error(Error::Syntax, can_gc);
+                promise.reject_error(Error::Syntax(None), can_gc);
                 return promise;
             },
         };
@@ -458,7 +459,7 @@ struct WorkletThread {
     global_init: WorkletGlobalScopeInit,
 
     /// The global scopes created by this thread
-    global_scopes: HashMap<WorkletId, Dom<WorkletGlobalScope>>,
+    global_scopes: FxHashMap<WorkletId, Dom<WorkletGlobalScope>>,
 
     /// A one-place buffer for control messages
     control_buffer: Option<WorkletControl>,
@@ -495,8 +496,6 @@ impl WorkletThread {
                 // TODO: configure the JS runtime (e.g. discourage GC, encourage agressive JIT)
                 debug!("Initializing worklet thread.");
                 thread_state::initialize(ThreadState::SCRIPT | ThreadState::IN_WORKER);
-                let roots = RootCollection::new();
-                let _stack_roots = ThreadLocalStackRoots::new(&roots);
                 let mut thread = RootedTraceableBox::new(WorkletThread {
                     role,
                     control_receiver,
@@ -504,7 +503,7 @@ impl WorkletThread {
                     hot_backup_sender: init.hot_backup_sender,
                     cold_backup_sender: init.cold_backup_sender,
                     global_init: init.global_init,
-                    global_scopes: HashMap::new(),
+                    global_scopes: FxHashMap::default(),
                     control_buffer: None,
                     runtime: Runtime::new(None),
                     should_gc: false,
@@ -629,7 +628,6 @@ impl WorkletThread {
                 let executor = WorkletExecutor::new(worklet_id, self.primary_sender.clone());
                 let result = WorkletGlobalScope::new(
                     global_type,
-                    &self.runtime,
                     pipeline_id,
                     base_url,
                     executor,

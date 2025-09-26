@@ -6,6 +6,7 @@ use std::cmp::Ordering;
 use std::iter::Iterator;
 
 use dom_struct::dom_struct;
+use rustc_hash::FxBuildHasher;
 use style::custom_properties;
 use stylo_atoms::Atom;
 
@@ -21,7 +22,7 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct StylePropertyMapReadOnly {
     reflector: Reflector,
-    entries: HashMapTracedValues<Atom, Dom<CSSStyleValue>>,
+    entries: HashMapTracedValues<Atom, Dom<CSSStyleValue>, FxBuildHasher>,
 }
 
 impl StylePropertyMapReadOnly {
@@ -89,8 +90,8 @@ impl StylePropertyMapReadOnlyMethods<crate::DomTypeHolder> for StylePropertyMapR
         // https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-getproperties
         // requires this sort order
         result.sort_by(|key1, key2| {
-            if let Ok(key1) = custom_properties::parse_name(key1) {
-                if let Ok(key2) = custom_properties::parse_name(key2) {
+            if let Ok(key1) = custom_properties::parse_name(key1.str()) {
+                if let Ok(key2) = custom_properties::parse_name(key2.str()) {
                     key1.cmp(key2)
                 } else {
                     Ordering::Greater

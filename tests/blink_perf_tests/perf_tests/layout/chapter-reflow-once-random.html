@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chapter reflow performance test: random text</title>
+    <script src="../resources/runner.js"></script>
+</head>
+<body>
+    <pre id="log"></pre>
+    <div id="target" style="width: 300px; display: none;">
+
+    </div>
+    <script>
+        var RandomTextGenerator = function() {
+            this.letters = [
+                String.fromCharCode(RandomTextGenerator.firstCharCode),
+                String.fromCharCode(RandomTextGenerator.firstCharCode),
+                String.fromCharCode(RandomTextGenerator.firstCharCode),
+                String.fromCharCode(RandomTextGenerator.firstCharCode),
+                String.fromCharCode(RandomTextGenerator.firstCharCode),
+                String.fromCharCode(RandomTextGenerator.firstCharCode),
+                String.fromCharCode(RandomTextGenerator.firstCharCode),
+                String.fromCharCode(RandomTextGenerator.firstCharCode),
+                String.fromCharCode(RandomTextGenerator.firstCharCode),
+                String.fromCharCode(RandomTextGenerator.firstCharCode)
+            ]
+        }
+
+        RandomTextGenerator.firstCharCode = 65; // 'A'
+
+        RandomTextGenerator.lastCharCode = 123; // 'z'
+
+        RandomTextGenerator.prototype.advance = function(index) {
+            var charCode = this.letters[index].charCodeAt(0);
+            var newCharCode = charCode + 1;
+            if (newCharCode > RandomTextGenerator.lastCharCode)
+                newCharCode = RandomTextGenerator.firstCharCode;
+            this.letters[index] = String.fromCharCode(newCharCode);
+            return charCode;
+        }
+
+        RandomTextGenerator.prototype.generate = function() {
+            var result = this.letters.join("");
+
+            var index = 0;
+            while (1) {
+                var charCode = this.advance(index);
+                if (charCode != RandomTextGenerator.lastCharCode)
+                    break;
+                ++index;
+            }
+
+            return result;
+        }
+
+        var target = document.getElementById("target");
+        var style = target.style;
+        var randomTextGenerator = new RandomTextGenerator;
+
+        function test() {
+            var target = document.getElementById("target");
+            var style = target.style;
+
+            var innerHTML = "<p>";
+            for (var i = 0; i < 5000; ++i)
+                innerHTML += randomTextGenerator.generate() + " ";
+            innerHTML += "</p>";
+            target.innerHTML = innerHTML;
+
+            style.display = "block";
+            style.width = "280px";
+            PerfTestRunner.forceLayout();
+            style.display = "none";
+        }
+
+        PerfTestRunner.measureRunsPerSecond({
+            description: "Measures performance of 3 layouts (using 2 different font-sizes) on a page containing random text.",
+            run: test
+        });
+    </script>
+</body>
+</html>

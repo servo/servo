@@ -3,7 +3,7 @@
 <link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
 <link rel="help" href="https://drafts.csswg.org/css-tables-3/#in-fixed-mode">
 <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10937">
-<meta name="assert" content="Fixed table layout is triggered except when inline-size is auto.">
+<meta name="assert" content="Fixed table layout is triggered except when inline-size is auto or max-content.">
 <link rel="stylesheet" href="./support/base.css">
 
 <style>
@@ -103,7 +103,7 @@ function checkSize(size, allowsFixed) {
 
 for (let size of sizes) {
   if (CSS.supports("width", size)) {
-    let allowsFixed = size !== "auto";
+    let allowsFixed = size !== "auto" && size !== "max-content";
     checkSize(size, allowsFixed);
 
     // calc-size() should trigger fixed table layout.

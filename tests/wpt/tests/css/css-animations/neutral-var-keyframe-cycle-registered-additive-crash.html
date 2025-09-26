@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSS Animations: Crash when using neutral keyframes and a var()-cycle (additive)</title>
+<link rel="help" href="https://crbug.com/433196586">
+<style>
+    @property --x {
+        syntax: "<number>";
+        initial-value: 0;
+        inherits: false;
+    }
+    #test {
+        animation: anim1 100ms, anim2 100ms;
+        animation-composition: replace, add;
+    }
+
+    @keyframes anim1 {
+        from { --x: var(--x); }
+        to { --x: var(--x); }
+    }
+    @keyframes anim2 {
+        to { --x: var(--x); }
+    }
+</style>
+<div id="test">PASS if no crash</div>

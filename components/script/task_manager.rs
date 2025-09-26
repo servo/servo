@@ -5,9 +5,9 @@
 use core::cell::RefCell;
 use core::sync::atomic::Ordering;
 use std::cell::Ref;
-use std::collections::HashMap;
 
 use base::id::PipelineId;
+use rustc_hash::FxHashMap;
 use strum::VariantArray;
 
 use crate::messaging::ScriptEventLoopSender;
@@ -20,7 +20,7 @@ enum TaskCancellers {
     /// of them need to have the same canceller flag for all task sources.
     Shared(TaskCanceller),
     /// For `Window` each `TaskSource` has its own canceller.
-    OnePerTaskSource(RefCell<HashMap<TaskSourceName, TaskCanceller>>),
+    OnePerTaskSource(RefCell<FxHashMap<TaskSourceName, TaskCanceller>>),
 }
 
 impl TaskCancellers {
@@ -65,7 +65,7 @@ impl TaskCancellers {
 
 macro_rules! task_source_functions {
     ($self:ident, $task_source:ident, $task_source_name:ident) => {
-        pub(crate) fn $task_source(&$self) -> TaskSource {
+        pub(crate) fn $task_source(&$self) -> TaskSource<'_> {
             TaskSource {
                 task_manager: $self,
                 name: TaskSourceName::$task_source_name,
@@ -105,7 +105,7 @@ impl TaskManager {
         self.pipeline_id
     }
 
-    pub(crate) fn sender(&self) -> Ref<Option<ScriptEventLoopSender>> {
+    pub(crate) fn sender(&self) -> Ref<'_, Option<ScriptEventLoopSender>> {
         self.sender.borrow()
     }
 
@@ -135,6 +135,7 @@ impl TaskManager {
     task_source_functions!(self, bitmap_task_source, Bitmap);
     task_source_functions!(self, canvas_blob_task_source, Canvas);
     task_source_functions!(self, clipboard_task_source, Clipboard);
+    task_source_functions!(self, crypto_task_source, Crypto);
     task_source_functions!(self, database_access_task_source, DatabaseAccess);
     task_source_functions!(self, dom_manipulation_task_source, DOMManipulation);
     task_source_functions!(self, file_reading_task_source, FileReading);
@@ -153,4 +154,5 @@ impl TaskManager {
         intersection_observer_task_source,
         IntersectionObserver
     );
+    task_source_functions!(self, webgpu_task_source, WebGPU);
 }

@@ -13,7 +13,7 @@ import os.path as path
 import subprocess
 from subprocess import CompletedProcess
 from shutil import copy2
-from typing import List
+from typing import Any
 
 import mozdebug
 
@@ -36,7 +36,7 @@ from servo.platform.build_target import is_android
 ANDROID_APP_NAME = "org.servo.servoshell"
 
 
-def read_file(filename, if_exists=False) -> str | None:
+def read_file(filename: str, if_exists: bool = False) -> str | None:
     if if_exists and not path.exists(filename):
         return None
     with open(filename) as f:
@@ -44,7 +44,7 @@ def read_file(filename, if_exists=False) -> str | None:
 
 
 # Copied from Python 3.3+'s shlex.quote()
-def shell_quote(arg: str):
+def shell_quote(arg: str) -> str:
     # use single quotes, and put single quotes into double quotes
     # the string $'b is then quoted as '$'"'"'b'
     return "'" + arg.replace("'", "'\"'\"'") + "'"
@@ -75,26 +75,26 @@ class PostBuildCommands(CommandBase):
     def run(
         self,
         servo_binary: str,
-        params,
-        debugger=False,
-        debugger_cmd=None,
-        headless=False,
-        software=False,
-        emulator=False,
-        usb=False,
+        params: list[str],
+        debugger: bool = False,
+        debugger_cmd: str | None = None,
+        headless: bool = False,
+        software: bool = False,
+        emulator: bool = False,
+        usb: bool = False,
     ) -> int | None:
         return self._run(servo_binary, params, debugger, debugger_cmd, headless, software, emulator, usb)
 
     def _run(
         self,
         servo_binary: str,
-        params,
-        debugger=False,
-        debugger_cmd=None,
-        headless=False,
-        software=False,
-        emulator=False,
-        usb=False,
+        params: list[str],
+        debugger: bool = False,
+        debugger_cmd: str | None = None,
+        headless: bool = False,
+        software: bool = False,
+        emulator: bool = False,
+        usb: bool = False,
     ) -> int | None:
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
@@ -194,7 +194,7 @@ class PostBuildCommands(CommandBase):
 
     @Command("android-emulator", description="Run the Android emulator", category="post-build")
     @CommandArgument("args", nargs="...", help="Command-line arguments to be passed through to the emulator")
-    def android_emulator(self, args=None) -> int:
+    def android_emulator(self, args: list[str] | None = None) -> int:
         if not args:
             args = []
             print("AVDs created by `./mach bootstrap-android` are servo-arm and servo-x86.")
@@ -204,7 +204,7 @@ class PostBuildCommands(CommandBase):
     @Command("rr-record", description="Run Servo whilst recording execution with rr", category="post-build")
     @CommandArgument("params", nargs="...", help="Command-line arguments to be passed through to Servo")
     @CommandBase.common_command_arguments(binary_selection=True)
-    def rr_record(self, servo_binary: str, params=[]) -> None:
+    def rr_record(self, servo_binary: str, params: list[str] = []) -> None:
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
@@ -235,7 +235,7 @@ class PostBuildCommands(CommandBase):
     @Command("doc", description="Generate documentation", category="post-build")
     @CommandArgument("params", nargs="...", help="Command-line arguments to be passed through to cargo doc")
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
-    def doc(self, params: List[str], **kwargs) -> CompletedProcess[bytes] | int | None:
+    def doc(self, params: list[str], **kwargs: Any) -> CompletedProcess[bytes] | int | None:
         self.ensure_bootstrapped()
 
         docs = path.join(servo.util.get_target_dir(), "doc")

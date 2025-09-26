@@ -1,0 +1,126 @@
+<!doctype HTML>
+
+<!--
+This test appends 30,000 locked items to the page. The first 1,000 items are
+appended directly, and subsequent items are appended into a parent container
+in chunks of 1,000 items. The parent container is also locked.
+
+The structure of the page is as follows:
+item
+item
+...
+item
+parent
+  item
+  item
+  ...
+  item
+/parent
+parent
+  item
+  item
+  ...
+  item
+/parent
+...
+
+The test then unlocks items starting from the top one and measures the length
+of requestAnimationFrame.
+
+The test works with and without display locking. However, without display
+locking, this simply measures requestAnimationFrame.
+-->
+
+<head>
+<script src="../resources/runner.js"></script>
+<style>
+.container {
+  contain: style layout;
+}
+.small {
+  content-size: 100px;
+}
+.large {
+  content-size: 100px 100000px;
+}
+.box {
+  background: blue;
+  overflow: hidden;
+  width: 100%;
+  height: 100px;
+}
+</style>
+</head>
+
+<body>
+<!-- node template from which to construct items -->
+<template id="node_template">
+<div class="container">
+  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+  Quisque ante dui, posuere at pretium suscipit, condimentum at augue.
+  <div class="box">
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+    Quisque ante dui, posuere at pretium suscipit, condimentum at augue.
+  </div>
+  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+  Quisque ante dui, posuere at pretium suscipit, condimentum at augue.
+</div>
+</template>
+</body>
+
+<script>
+function construct(n) {
+  const specimen = document.importNode(
+    document.getElementById("node_template").content, true).firstElementChild;
+  let currentContainer;
+  for (let i = 0; i < n; ++i) {
+    if ((i % 1000) == 0) {
+      currentContainer = document.createElement("div");
+      currentContainer.classList = "container large";
+      if (i > 0)
+        currentContainer.hidden = 'until-found';
+      document.body.appendChild(currentContainer);
+    }
+    const clone = specimen.cloneNode(true);
+    clone.id = "id" + i;
+    clone.classList = "container small";
+    clone.hidden = 'until-found';
+    currentContainer.appendChild(clone);
+  }
+}
+
+let nextId = 0;
+function commitNextLock() {
+  const element = document.getElementById("id" + nextId);
+  ++nextId;
+  element.style = "";
+}
+
+let testDone = false;
+let startTime;
+function runTest() {
+  if (startTime) {
+    PerfTestRunner.measureValueAsync(PerfTestRunner.now() - startTime);
+    PerfTestRunner.addRunTestEndMarker();
+  }
+  if (testDone)
+    return;
+
+  startTime = PerfTestRunner.now();
+  PerfTestRunner.addRunTestEndMarker();
+
+  commitNextLock();
+  requestAnimationFrame(runTest);
+}
+
+construct(30000);
+
+PerfTestRunner.startMeasureValuesAsync({
+  unit: 'ms',
+  done: () => { testDone = true; },
+  run: runTest,
+  warmUpCount: 1,
+  iterationCount: 5
+});
+
+</script>

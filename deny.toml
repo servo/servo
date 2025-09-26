@@ -12,12 +12,10 @@ feature-depth = 1
 # https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html
 [advisories]
 ignore = [
-    # This has been yanked, but upgrading to the next version breaks some WPT tests.
-    # It needs investigation.
-    "url@2.5.3",
-
     # The crate `paste` is no longer maintained.
     "RUSTSEC-2024-0436",
+    # The crate `fxhash` is no longer maintained.
+    "RUSTSEC-2025-0057",
 ]
 
 # This section is considered when running `cargo deny check licenses`
@@ -52,6 +50,9 @@ confidence-threshold = 0.8
 # Allow 1 or more licenses on a per-crate basis, so that particular licenses
 # aren't accepted for every possible crate as with the normal allow list
 exceptions = [
+    # rav1e depends on libfuzzer-sys when cfg(fuzzing) is true, which it isn't for servo builds.
+    # cargo-deny is being run with --all-features, so we need to explicitly make an exception here.
+    { allow = ["NCSA"], crate = "libfuzzer-sys" },
 ]
 
 
@@ -90,23 +91,21 @@ skip = [
     "cookie",
     "futures",
     "redox_syscall",
-    "wayland-sys",
 
     # Duplicated by aws-lc-rs
     "bindgen",
 
     # New versions of these dependencies is pulled in by GStreamer / GLib.
     "itertools",
-    "toml",
 
     # Duplicated by egui
-    "nix",
     "windows-strings",
 
     # Duplicated by egui-file-dialog
     "windows",
     "windows-implement",
     "windows-interface",
+    "windows-link",
     "windows-result",
 
     # Duplicated by winit.
@@ -120,26 +119,11 @@ skip = [
     "windows_x86_64_gnullvm",
     "windows_x86_64_msvc",
 
+    # Duplicated by zbus.
+    "windows_i686_gnullvm",
+
     # wgpu has the latest and greatest.
-    "foreign-types",
-    "foreign-types-shared",
-    "metal",
     "windows-core",
-
-    # wgpu-hal depends on 0.5.0.
-    "ndk-sys",
-
-    # icu (from mozjs) uses old version
-    # tracing-subscriber (tokio-rs/tracing#3033) uses old version
-    # regex -> regex-automata 0.4.7
-    # icu_list -> regex-automata 0.2.0
-    # tracing-subscriber -> matchers -> regex-automata 0.1.0
-    "regex-automata",
-
-    # tracing-subscriber (tokio-rs/tracing#3033) uses old version
-    # regex [-> regex-automata 0.4.7] -> regex-syntax 0.8.4
-    # tracing-subscriber -> matchers -> regex-automata 0.1.0 -> regex-syntax 0.6.29
-    "regex-syntax",
 
     # rust-content-security-policy uses newest base64.
     "base64",
@@ -190,12 +174,34 @@ skip = [
     # duplicated by zbus-xml
     "quick-xml",
 
+    # duplicated by sea-query
+    "heck",
+
     # duplicated by bindgen as build dependency
     # Remove when cexpr updates its nom version
     # and bindgen updates the cexpr version
     "nom",
+
+    # duplicated by `cargo metadata` as a build-dependency of mozjs-sys.
+    # Can be removed if `icu_capi` exposes the C include dir via the `DEP_`
+    # variable in the future.
+    "ordered-float",
+
+    # duplicated by image 0.25
+    "cfg-expr",
+    "system-deps",
+    "target-lexicon",
+
+    # duplicated by core-graphics
+    "core-graphics-types",
+
+    # duplicated by winresource and proc-macro-crate. Once everything
+    # switches to the latest version of toml we can remove this. It's
+    # really just a build dep, so not a large problem.
+    "toml_datetime",
+    "toml_edit",
 ]
 
 # github.com organizations to allow git sources for
 [sources.allow-org]
-github = ["pcwalton", "servo", "linebender"]
+github = ["servo", "linebender"]

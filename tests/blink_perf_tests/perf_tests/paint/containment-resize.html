@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<!-- This case is based on the test in crbug.com/692614.
+     https://www.scirra.com/labs/bugs/containlayoutperf-workaround/ -->
+<style>
+#container {
+  border: 1px solid green;
+  contain: content;
+  width: 600px;
+}
+.item {
+  outline: 1px solid blue;
+  overflow: hidden;
+  contain: content;
+}
+</style>
+
+<div id="container">
+</div>
+
+<script src="../resources/runner.js"></script>
+<script src="resources/paint.js"></script>
+<script>
+const LOREM_IPSUM="Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
+function createListItem() {
+  let wrap = document.createElement("div");
+  let item = document.createElement("div");
+  item.classList.add('item');
+  item.textContent = LOREM_IPSUM;
+  wrap.appendChild(item);
+  container.appendChild(wrap);
+};
+
+for (let i = 0; i < 10000; ++i)
+  createListItem();
+
+var target = container.firstElementChild.firstElementChild;
+measurePaint({
+  run: function() {
+    target.style.height = (target.offsetHeight - 1) + 'px';
+  },
+});
+</script>

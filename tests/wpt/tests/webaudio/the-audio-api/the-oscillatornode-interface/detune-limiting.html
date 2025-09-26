@@ -49,7 +49,7 @@
             0,
             `Reference output (freq: ${refOsc.frequency.value}) must be zero`
         );
-        assert_array_approximately_equals(
+        assert_array_equal_within_eps(
             actual,
             expected,
             0,

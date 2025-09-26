@@ -14,6 +14,7 @@ use script_bindings::script_runtime::JSContext;
 use servo_arc::Arc;
 use style::author_styles::AuthorStyles;
 use style::dom::TElement;
+use style::invalidation::element::restyle_hints::RestyleHint;
 use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::Stylesheet;
 use style::stylist::{CascadeData, Stylist};
@@ -34,7 +35,7 @@ use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
@@ -43,7 +44,7 @@ use crate::dom::documentorshadowroot::{
     DocumentOrShadowRoot, ServoStylesheetInDocument, StylesheetSource,
 };
 use crate::dom::element::Element;
-use crate::dom::htmlslotelement::HTMLSlotElement;
+use crate::dom::html::htmlslotelement::HTMLSlotElement;
 use crate::dom::node::{
     BindContext, Node, NodeDamage, NodeFlags, NodeTraits, ShadowIncluding, UnbindContext,
     VecPreOrderInsertionHelper,
@@ -69,7 +70,7 @@ pub(crate) struct ShadowRoot {
     document_fragment: DocumentFragment,
     document_or_shadow_root: DocumentOrShadowRoot,
     document: Dom<Document>,
-    host: MutNullableDom<Element>,
+    host: Dom<Element>,
     /// List of author styles associated with nodes in this shadow tree.
     #[custom_trace]
     author_styles: DomRefCell<AuthorStyles<ServoStylesheetInDocument>>,
@@ -132,7 +133,7 @@ impl ShadowRoot {
             document_fragment,
             document_or_shadow_root: DocumentOrShadowRoot::new(document.window()),
             document: Dom::from_ref(document),
-            host: MutNullableDom::new(Some(host)),
+            host: Dom::from_ref(host),
             author_styles: DomRefCell::new(AuthorStyles::new()),
             stylesheet_list: MutNullableDom::new(None),
             window: Dom::from_ref(document.window()),
@@ -173,20 +174,12 @@ impl ShadowRoot {
         )
     }
 
-    pub(crate) fn detach(&self, can_gc: CanGc) {
-        self.document.unregister_shadow_root(self);
-        let node = self.upcast::<Node>();
-        node.set_containing_shadow_root(None);
-        Node::complete_remove_subtree(node, &UnbindContext::new(node, None, None, None), can_gc);
-        self.host.set(None);
-    }
-
     pub(crate) fn owner_doc(&self) -> &Document {
         &self.document
     }
 
     pub(crate) fn get_focused_element(&self) -> Option<DomRoot<Element>> {
-        //XXX get retargeted focused element
+        // XXX get retargeted focused element
         None
     }
 
@@ -241,7 +234,7 @@ impl ShadowRoot {
         debug_assert!(cssom_stylesheet.is_constructed());
 
         let stylesheets = &mut self.author_styles.borrow_mut().stylesheets;
-        let sheet = cssom_stylesheet.style_stylesheet_arc().clone();
+        let sheet = cssom_stylesheet.style_stylesheet().clone();
 
         let insertion_point = stylesheets.iter().last().cloned();
 
@@ -268,9 +261,12 @@ impl ShadowRoot {
         self.document.invalidate_shadow_roots_stylesheets();
         self.author_styles.borrow_mut().stylesheets.force_dirty();
         // Mark the host element dirty so a reflow will be performed.
-        if let Some(host) = self.host.get() {
-            host.upcast::<Node>().dirty(NodeDamage::Style);
-        }
+        self.host.upcast::<Node>().dirty(NodeDamage::Style);
+
+        // Also mark the host element with `RestyleHint::restyle_subtree` so a reflow
+        // can traverse into the shadow tree.
+        let mut restyle = self.document.ensure_pending_restyle(&self.host);
+        restyle.hint.insert(RestyleHint::restyle_subtree());
     }
 
     /// Remove any existing association between the provided id and any elements
@@ -435,8 +431,7 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
 
     /// <https://dom.spec.whatwg.org/#dom-shadowroot-host>
     fn Host(&self) -> DomRoot<Element> {
-        let host = self.host.get();
-        host.expect("Trying to get host from a detached shadow root")
+        self.host.as_rooted()
     }
 
     // https://drafts.csswg.org/cssom/#dom-document-stylesheets
@@ -580,20 +575,15 @@ impl VirtualMethods for ShadowRoot {
 
         shadow_root.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
 
+        let context = BindContext::new(shadow_root);
+
         // avoid iterate over the shadow root itself
         for node in shadow_root.traverse_preorder(ShadowIncluding::Yes).skip(1) {
             node.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
 
             // Out-of-document elements never have the descendants flag set
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
-            vtable_for(&node).bind_to_tree(
-                &BindContext {
-                    tree_connected: context.tree_connected,
-                    tree_is_in_a_document_tree: false,
-                    tree_is_in_a_shadow_tree: true,
-                },
-                can_gc,
-            );
+            vtable_for(&node).bind_to_tree(&context, can_gc);
         }
     }
 
@@ -624,12 +614,7 @@ impl<'dom> LayoutShadowRootHelpers<'dom> for LayoutDom<'dom, ShadowRoot> {
     #[inline]
     #[allow(unsafe_code)]
     fn get_host_for_layout(self) -> LayoutDom<'dom, Element> {
-        unsafe {
-            self.unsafe_get()
-                .host
-                .get_inner_as_layout()
-                .expect("We should never do layout on a detached shadow root")
-        }
+        unsafe { self.unsafe_get().host.to_layout() }
     }
 
     #[inline]

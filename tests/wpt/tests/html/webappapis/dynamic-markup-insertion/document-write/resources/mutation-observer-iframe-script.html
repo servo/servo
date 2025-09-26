@@ -1,0 +1,18 @@
+<!doctype html>
+<script>
+window.scriptRan = false;
+
+new MutationObserver((mutations, observer) => {
+  mutations.forEach(({ addedNodes }) => {
+    addedNodes.forEach(node => {
+      if (node.nodeType == 1 && node.tagName == "SCRIPT") {
+        document.write("document.write body contents\n");
+        document.close();
+        window.parent.document.dispatchEvent(new CustomEvent("documentWriteDone"));
+      }
+    });
+  });
+}).observe(document.documentElement, { childList: true, subtree: true });
+</script>
+Initial body contents
+<script>window.parent.document.dispatchEvent(new CustomEvent("scriptRan"));</script>

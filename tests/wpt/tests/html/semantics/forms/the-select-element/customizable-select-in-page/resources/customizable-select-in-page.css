@@ -2,6 +2,7 @@
   display: inline-block;
   overflow-inline: auto;
   overflow-block: auto;
+  border: 1px solid;
 }
 
 .customizable-select-in-page.disabled {

@@ -82,14 +82,13 @@ use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
 use style::properties::style_structs::Font;
 use style::selector_parser::PseudoElement;
-use style_traits::dom::OpaqueNode;
 
 use super::flow::BlockFormattingContext;
 use crate::SharedStyle;
 use crate::cell::ArcRefCell;
 use crate::flow::BlockContainer;
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragment_tree::{BaseFragmentInfo, Fragment};
+use crate::fragment_tree::BaseFragmentInfo;
 use crate::geom::PhysicalVec;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::BorderStyleColor;
@@ -232,7 +231,7 @@ impl TableSlotCell {
     pub fn mock_for_testing(id: usize, colspan: usize, rowspan: usize) -> Self {
         Self {
             base: LayoutBoxBase::new(
-                BaseFragmentInfo::new_for_node(OpaqueNode(id)),
+                BaseFragmentInfo::new_for_testing(id),
                 ComputedValues::initial_values_with_font_override(Font::initial_values()).to_arc(),
             ),
             contents: BlockFormattingContext {
@@ -413,12 +412,21 @@ impl TableLevelBox {
         }
     }
 
-    pub(crate) fn fragments(&self) -> Vec<Fragment> {
+    pub(crate) fn with_base<T>(&self, callback: impl FnOnce(&LayoutBoxBase) -> T) -> T {
         match self {
-            TableLevelBox::Caption(caption) => caption.borrow().context.base.fragments(),
-            TableLevelBox::Cell(cell) => cell.borrow().base.fragments(),
-            TableLevelBox::TrackGroup(track_group) => track_group.borrow().base.fragments(),
-            TableLevelBox::Track(track) => track.borrow().base.fragments(),
+            TableLevelBox::Caption(caption) => callback(&caption.borrow().context.base),
+            TableLevelBox::Cell(cell) => callback(&cell.borrow().base),
+            TableLevelBox::TrackGroup(track_group) => callback(&track_group.borrow().base),
+            TableLevelBox::Track(track) => callback(&track.borrow().base),
+        }
+    }
+
+    pub(crate) fn with_base_mut<T>(&mut self, callback: impl FnOnce(&mut LayoutBoxBase) -> T) -> T {
+        match self {
+            TableLevelBox::Caption(caption) => callback(&mut caption.borrow_mut().context.base),
+            TableLevelBox::Cell(cell) => callback(&mut cell.borrow_mut().base),
+            TableLevelBox::TrackGroup(track_group) => callback(&mut track_group.borrow_mut().base),
+            TableLevelBox::Track(track) => callback(&mut track.borrow_mut().base),
         }
     }
 

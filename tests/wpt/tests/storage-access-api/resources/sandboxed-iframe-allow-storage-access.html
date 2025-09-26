@@ -26,6 +26,10 @@
   // 'prompt' permission state is effectively the same as 'denied' from the
   // perspective of platform tests.
   promise_test(async t => {
+    t.add_cleanup(async () => {
+      await test_driver.set_permission({name: 'storage-access'}, 'prompt');
+    });
+    await SetFirstPartyCookie(location.origin, "initial-cookie=unpartitioned;Secure;SameSite=None;Path=/");
     await test_driver.set_permission({name: 'storage-access'}, 'granted');
     await MaybeSetStorageAccess('*', '*', 'blocked');
     await document.requestStorageAccess();
@@ -38,7 +42,11 @@
         'After obtaining storage access, scripts in the frame should be able to access cookies.');
   }, `[${testPrefix}] document.requestStorageAccess() should resolve even without a user gesture when already granted.`);
 
-  promise_test(async () => {
+  promise_test(async t => {
+    t.add_cleanup(async () => {
+      await test_driver.set_permission({name: 'storage-access'}, 'prompt');
+    });
+    await SetFirstPartyCookie(location.origin, "initial-cookie=unpartitioned;Secure;SameSite=None;Path=/");
     await test_driver.set_permission({name: 'storage-access'}, 'granted');
     await MaybeSetStorageAccess('*', '*', 'blocked');
 

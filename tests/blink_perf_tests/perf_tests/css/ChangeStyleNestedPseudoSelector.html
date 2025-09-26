@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="../resources/runner.js"></script>
+    <script src="resources/utils.js"></script>
+</head>
+<body>
+</body>
+    <script>
+        createDOMTree(document.body, 3, 3);
+        PerfTestRunner.measureTime({
+            description: "Measures the performance of a solo pseudo selector applied on a grandchild of a div.",
+            run: function() {
+                var rule = applyCSSRule("div div div:after { content: 'after'; }");
+                forceStyleRecalc(document.body);
+                rule.remove();
+                forceStyleRecalc(document.body);
+            },
+            tracingCategories: 'blink',
+            traceEventsToMeasure: [
+                'Document::updateStyle',
+                'Document::recalcStyle',
+                'Document::rebuildLayoutTree'
+            ]
+        });
+    </script>
+</html>

@@ -4,10 +4,10 @@
 
 use std::cell::Cell;
 
+use base::IpcSend;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use net_traits::IpcSend;
-use net_traits::indexeddb_thread::{IndexedDBThreadMsg, SyncOperation};
+use net_traits::indexeddb_thread::{IndexedDBThreadMsg, KeyPath, SyncOperation};
 use profile_traits::ipc;
 use stylo_atoms::Atom;
 
@@ -92,6 +92,13 @@ impl IDBDatabase {
         )
     }
 
+    pub(crate) fn object_store_exists(&self, name: &DOMString) -> bool {
+        self.object_store_names
+            .borrow()
+            .iter()
+            .any(|store_name| store_name == name)
+    }
+
     pub fn version(&self) -> u64 {
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let operation = SyncOperation::Version(
@@ -104,7 +111,10 @@ impl IDBDatabase {
             .get_idb_thread()
             .send(IndexedDBThreadMsg::Sync(operation));
 
-        receiver.recv().unwrap()
+        receiver.recv().unwrap().unwrap_or_else(|e| {
+            error!("{e:?}");
+            u64::MAX
+        })
     }
 
     pub fn set_transaction(&self, transaction: &IDBTransaction) {
@@ -185,7 +195,6 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         name: DOMString,
         options: &IDBObjectStoreParameters,
     ) -> Fallible<DomRoot<IDBObjectStore>> {
-        // FIXME:(arihant2math) ^^ Change idl to match above.
         // Step 2
         let upgrade_transaction = match self.upgrade_transaction.get() {
             Some(txn) => txn,
@@ -202,18 +211,13 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
 
         // Step 5
         if let Some(path) = key_path {
-            if !is_valid_key_path(path) {
-                return Err(Error::Syntax);
+            if !is_valid_key_path(path)? {
+                return Err(Error::Syntax(None));
             }
         }
 
         // Step 6
-        if self
-            .object_store_names
-            .borrow()
-            .iter()
-            .any(|store_name| store_name.to_string() == name.to_string())
-        {
+        if self.object_store_names.borrow().contains(&name) {
             return Err(Error::Constraint);
         }
 
@@ -224,7 +228,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         if auto_increment {
             match key_path {
                 Some(StringOrStringSequence::String(path)) => {
-                    if path == "" {
+                    if path.is_empty() {
                         return Err(Error::InvalidAccess);
                     }
                 },
@@ -242,16 +246,23 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
             name.clone(),
             Some(options),
             CanGc::note(),
+            &upgrade_transaction,
         );
-        object_store.set_transaction(&upgrade_transaction);
 
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
 
+        let key_paths = key_path.map(|p| match p {
+            StringOrStringSequence::String(s) => KeyPath::String(s.to_string()),
+            StringOrStringSequence::StringSequence(s) => {
+                KeyPath::Sequence(s.iter().map(|s| s.to_string()).collect())
+            },
+        });
         let operation = SyncOperation::CreateObjectStore(
             sender,
             self.global().origin().immutable().clone(),
             self.name.to_string(),
             name.to_string(),
+            key_paths,
             auto_increment,
         );
 
@@ -287,19 +298,14 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         }
 
         // Step 4
-        if !self
-            .object_store_names
-            .borrow()
-            .iter()
-            .any(|store_name| store_name.to_string() == name.to_string())
-        {
-            return Err(Error::NotFound);
+        if !self.object_store_names.borrow().contains(&name) {
+            return Err(Error::NotFound(None));
         }
 
         // Step 5
         self.object_store_names
             .borrow_mut()
-            .retain(|store_name| store_name.to_string() != name.to_string());
+            .retain(|store_name| *store_name != name);
 
         // Step 6
         // FIXME:(arihant2math) Remove from index set ...
