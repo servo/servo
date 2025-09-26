@@ -137,6 +137,17 @@ pub enum CorsSettings {
     UseCredentials,
 }
 
+impl CorsSettings {
+    /// <https://html.spec.whatwg.org/multipage/#cors-settings-attribute>
+    pub fn from_enumerated_attribute(value: &str) -> CorsSettings {
+        match value.to_ascii_lowercase().as_str() {
+            "anonymous" => CorsSettings::Anonymous,
+            "use-credentials" => CorsSettings::UseCredentials,
+            _ => CorsSettings::Anonymous,
+        }
+    }
+}
+
 /// [Parser Metadata](https://fetch.spec.whatwg.org/#concept-request-parser-metadata)
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum ParserMetadata {
