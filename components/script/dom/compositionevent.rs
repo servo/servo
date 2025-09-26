@@ -77,7 +77,7 @@ impl CompositionEvent {
         ev
     }
 
-    pub(crate) fn data(&self) -> &str {
+    pub(crate) fn data(&self) -> &DOMString {
         &self.data
     }
 }

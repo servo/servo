@@ -201,7 +201,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
             // Step 2
             let before_node = before_element.upcast::<Node>();
             if !root.is_ancestor_of(before_node) {
-                return Err(Error::NotFound);
+                return Err(Error::NotFound(None));
             }
 
             // Step 3

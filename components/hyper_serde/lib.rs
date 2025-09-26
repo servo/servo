@@ -73,10 +73,10 @@ use http::HeaderMap;
 use hyper::header::{HeaderName, HeaderValue};
 use hyper::{Method, StatusCode, Uri};
 use mime::Mime;
-use serde::de::{self, Error, MapAccess, SeqAccess, Visitor};
-use serde::ser::{SerializeMap, SerializeSeq};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_bytes::{ByteBuf, Bytes};
+use serde_core::de::{self, Error, MapAccess, SeqAccess, Visitor};
+use serde_core::ser::{SerializeMap, SerializeSeq};
+use serde_core::{Deserialize, Deserializer, Serialize, Serializer};
 
 /// Deserialises a `T` value with a given deserializer.
 ///
@@ -164,7 +164,7 @@ pub struct Ser<'a, T: 'a> {
 
 impl<'a, T> Ser<'a, T>
 where
-    Ser<'a, T>: serde::Serialize,
+    Ser<'a, T>: serde_core::Serialize,
 {
     /// Returns a new `Ser` wrapper.
     #[inline(always)]

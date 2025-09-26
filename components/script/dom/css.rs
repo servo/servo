@@ -31,16 +31,16 @@ impl CSSMethods<crate::DomTypeHolder> for CSS {
     /// <https://drafts.csswg.org/cssom/#the-css.escape()-method>
     fn Escape(_: &Window, ident: DOMString) -> Fallible<DOMString> {
         let mut escaped = String::new();
-        serialize_identifier(&ident, &mut escaped).unwrap();
+        serialize_identifier(ident.str(), &mut escaped).unwrap();
         Ok(DOMString::from(escaped))
     }
 
     /// <https://drafts.csswg.org/css-conditional/#dom-css-supports>
     fn Supports(win: &Window, property: DOMString, value: DOMString) -> bool {
         let mut decl = String::new();
-        serialize_identifier(&property, &mut decl).unwrap();
+        serialize_identifier(property.str(), &mut decl).unwrap();
         decl.push_str(": ");
-        decl.push_str(&value);
+        decl.push_str(value.str());
         let decl = Declaration(decl);
         let url_data = UrlExtraData(win.Document().url().get_arc());
         let context = ParserContext::new(
@@ -58,7 +58,7 @@ impl CSSMethods<crate::DomTypeHolder> for CSS {
 
     /// <https://drafts.csswg.org/css-conditional/#dom-css-supports>
     fn Supports_(win: &Window, condition: DOMString) -> bool {
-        let mut input = ParserInput::new(&condition);
+        let mut input = ParserInput::new(condition.str());
         let mut input = Parser::new(&mut input);
         let cond = match parse_condition_or_declaration(&mut input) {
             Ok(c) => c,

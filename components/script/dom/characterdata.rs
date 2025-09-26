@@ -136,7 +136,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
         let data = self.data.borrow();
         // Step 1.
         let mut substring = String::new();
-        let remaining = match split_at_utf16_code_unit_offset(&data, offset) {
+        let remaining = match split_at_utf16_code_unit_offset(data.str(), offset) {
             Ok((_, astral, s)) => {
                 // As if we had split the UTF-16 surrogate pair in half
                 // and then transcoded that to UTF-8 lossily,
@@ -169,7 +169,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     // https://dom.spec.whatwg.org/#dom-characterdata-appenddatadata
     fn AppendData(&self, data: DOMString) {
         // FIXME(ajeffrey): Efficient append on DOMStrings?
-        self.append_data(&data);
+        self.append_data(data.str());
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-insertdataoffset-data
@@ -190,7 +190,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
             let prefix;
             let replacement_before;
             let remaining;
-            match split_at_utf16_code_unit_offset(&data, offset) {
+            match split_at_utf16_code_unit_offset(data.str(), offset) {
                 Ok((p, astral, r)) => {
                     prefix = p;
                     // As if we had split the UTF-16 surrogate pair in half
@@ -231,7 +231,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
             );
             new_data.push_str(prefix);
             new_data.push_str(replacement_before);
-            new_data.push_str(&arg);
+            new_data.push_str(arg.str());
             new_data.push_str(replacement_after);
             new_data.push_str(suffix);
         }
@@ -290,7 +290,7 @@ impl<'dom> LayoutCharacterDataHelpers<'dom> for LayoutDom<'dom, CharacterData> {
     #[allow(unsafe_code)]
     #[inline]
     fn data_for_layout(self) -> &'dom str {
-        unsafe { self.unsafe_get().data.borrow_for_layout() }
+        unsafe { self.unsafe_get().data.borrow_for_layout().str() }
     }
 }
 

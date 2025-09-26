@@ -47,7 +47,7 @@ use crate::fragment_tree::{
     BoxFragment, ContainingBlockManager, Fragment, FragmentFlags, FragmentTree,
     PositioningFragment, SpecificLayoutInfo,
 };
-use crate::geom::{AuOrAuto, PhysicalRect, PhysicalSides};
+use crate::geom::{AuOrAuto, LengthPercentageOrAuto, PhysicalRect, PhysicalSides};
 use crate::style_ext::{ComputedValuesExt, TransformExt};
 
 #[derive(Clone)]
@@ -1546,26 +1546,82 @@ impl BoxFragment {
             return None;
         }
 
-        let frame_rect = self
-            .border_rect()
+        // https://drafts.csswg.org/css-position/#stickypos-insets
+        // > For each side of the box, if the corresponding inset property is not `auto`, and the
+        // > corresponding border edge of the box would be outside the corresponding edge of the
+        // > sticky view rectangle, the box must be visually shifted (as for relative positioning)
+        // > to be inward of that sticky view rectangle edge, insofar as it can while its position
+        // > box remains contained within its containing block.
+        // > The *position box* is its margin box, except that for any side for which the distance
+        // > between its margin edge and the corresponding edge of its containing block is less
+        // > than its corresponding margin, that distance is used in place of that margin.
+        //
+        // Amendments:
+        // - Using the "margin edge" seems nonsensical, the spec must mean "border edge" instead:
+        //   https://github.com/w3c/csswg-drafts/issues/12833
+        // - `auto` margins need to be treated as zero:
+        //   https://github.com/w3c/csswg-drafts/issues/12852
+        //
+        // We implement this by enforcing a minimum negative offset and a maximum positive offset.
+        // The logic below is a simplified (but equivalent) version of the description above.
+        let border_rect = self.border_rect();
+        let computed_margin = self.style.physical_margin();
+
+        // Signed distance between each side of the border box to the corresponding side of the
+        // containing block. Note that |border_rect| is already in the coordinate system of the
+        // containing block.
+        let distance_from_border_box_to_cb = PhysicalSides::new(
+            border_rect.min_y(),
+            containing_block_rect.width() - border_rect.max_x(),
+            containing_block_rect.height() - border_rect.max_y(),
+            border_rect.min_x(),
+        );
+
+        // Shrinks the signed distance by the margin, producing a limit on how much we can shift
+        // the sticky positioned box without forcing the margin to move outside of the containing
+        // block.
+        let offset_bound = |distance, used_margin, computed_margin: LengthPercentageOrAuto| {
+            let used_margin = if computed_margin.is_auto() {
+                Au::zero()
+            } else {
+                used_margin
+            };
+            Au::zero().max(distance - used_margin).to_f32_px()
+        };
+
+        // This is the minimum negative offset and then the maximum positive offset. We specify
+        // all sides, but they will have no effect if the corresponding inset property is `auto`.
+        let vertical_offset_bounds = wr::StickyOffsetBounds::new(
+            -offset_bound(
+                distance_from_border_box_to_cb.top,
+                self.margin.top,
+                computed_margin.top,
+            ),
+            offset_bound(
+                distance_from_border_box_to_cb.bottom,
+                self.margin.bottom,
+                computed_margin.bottom,
+            ),
+        );
+        let horizontal_offset_bounds = wr::StickyOffsetBounds::new(
+            -offset_bound(
+                distance_from_border_box_to_cb.left,
+                self.margin.left,
+                computed_margin.left,
+            ),
+            offset_bound(
+                distance_from_border_box_to_cb.right,
+                self.margin.right,
+                computed_margin.right,
+            ),
+        );
+
+        let frame_rect = border_rect
             .translate(containing_block_rect.origin.to_vector())
             .to_webrender();
 
-        // Position:sticky elements are always restricted based on the size and position of their
-        // containing block.
-        let containing_block_rect = containing_block_rect.to_webrender();
-
-        // This is the minimum negative offset and then the maximum positive offset. We just
-        // specify every edge, but if the corresponding margin is None, that offset has no effect.
-        let vertical_offset_bounds = wr::StickyOffsetBounds::new(
-            (containing_block_rect.min.y - frame_rect.min.y).min(0.),
-            (containing_block_rect.max.y - frame_rect.max.y).max(0.),
-        );
-        let horizontal_offset_bounds = wr::StickyOffsetBounds::new(
-            (containing_block_rect.min.x - frame_rect.min.x).min(0.),
-            (containing_block_rect.max.x - frame_rect.max.x).max(0.),
-        );
-
+        // These are the "margins" between the scrollport and |frame_rect|. They are not the same
+        // as CSS margins.
         let margins = SideOffsets2D::new(
             offsets.top.non_auto().map(|v| v.to_f32_px()),
             offsets.right.non_auto().map(|v| v.to_f32_px()),

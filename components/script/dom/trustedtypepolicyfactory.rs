@@ -317,7 +317,10 @@ impl TrustedTypePolicyFactory {
                 let is_blocked = global
                     .get_csp_list()
                     .should_sink_type_mismatch_violation_be_blocked_by_csp(
-                        global, sink, sink_group, &input,
+                        global,
+                        sink,
+                        sink_group,
+                        input.str(),
                     );
                 // Step 6.2: If disposition is “Allowed”, return stringified input and abort further steps.
                 if !is_blocked {

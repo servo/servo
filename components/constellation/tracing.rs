@@ -182,6 +182,7 @@ mod from_script {
                 Self::ReportMemory(..) => target!("ReportMemory"),
                 Self::WebDriverInputComplete(..) => target!("WebDriverInputComplete"),
                 Self::FinishJavaScriptEvaluation(..) => target!("FinishJavaScriptEvaluation"),
+                Self::ForwardKeyboardScroll(..) => target!("ForwardKeyboardScroll"),
             }
         }
     }

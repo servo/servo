@@ -76,8 +76,8 @@ impl CSSKeyframesRule {
     }
 
     /// Given a keyframe selector, finds the index of the first corresponding rule if any
-    fn find_rule(&self, selector: &str) -> Option<usize> {
-        let mut input = ParserInput::new(selector);
+    fn find_rule(&self, selector: &DOMString) -> Option<usize> {
+        let mut input = ParserInput::new(selector.str());
         let mut input = Parser::new(&mut input);
         if let Ok(sel) = KeyframeSelector::parse(&mut input) {
             let guard = self.cssrule.shared_lock().read();
@@ -117,7 +117,7 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
     fn AppendRule(&self, rule: DOMString, can_gc: CanGc) {
         let style_stylesheet = self.cssrule.parent_stylesheet().style_stylesheet();
         let rule = Keyframe::parse(
-            &rule,
+            rule.str(),
             &style_stylesheet.contents,
             &style_stylesheet.shared_lock,
         );
@@ -161,7 +161,7 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
         // Setting this property to a CSS-wide keyword or `none` does not throw,
         // it stores a value that serializes as a quoted string.
         self.cssrule.parent_stylesheet().will_modify();
-        let name = KeyframesName::from_ident(&value);
+        let name = KeyframesName::from_ident(value.str());
         let mut guard = self.cssrule.shared_lock().write();
         self.keyframesrule.borrow().write_with(&mut guard).name = name;
         self.cssrule.parent_stylesheet().notify_invalidations();

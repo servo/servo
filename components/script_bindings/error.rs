@@ -16,7 +16,7 @@ pub enum Error {
     /// IndexSizeError DOMException
     IndexSize,
     /// NotFoundError DOMException
-    NotFound,
+    NotFound(Option<String>),
     /// HierarchyRequestError DOMException
     HierarchyRequest,
     /// WrongDocumentError DOMException

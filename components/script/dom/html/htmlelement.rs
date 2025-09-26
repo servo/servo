@@ -450,9 +450,12 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     #[allow(unsafe_code)]
     fn GetScrollParent(&self) -> Option<DomRoot<Element>> {
         self.owner_window()
-            .scroll_container_query(self.upcast(), ScrollContainerQueryFlags::ForScrollParent)
+            .scroll_container_query(
+                Some(self.upcast()),
+                ScrollContainerQueryFlags::ForScrollParent,
+            )
             .and_then(|response| match response {
-                ScrollContainerResponse::Viewport => self.owner_document().GetScrollingElement(),
+                ScrollContainerResponse::Viewport(_) => self.owner_document().GetScrollingElement(),
                 ScrollContainerResponse::Element(parent_node_address, _) => {
                     let node = unsafe { from_untrusted_node_address(parent_node_address) };
                     DomRoot::downcast(node)
@@ -929,7 +932,7 @@ impl HTMLElement {
     // returns Some if can infer direction by itself or from child nodes
     // returns None if requires to go up to parent
     pub(crate) fn directionality(&self) -> Option<String> {
-        let element_direction: &str = &self.Dir();
+        let element_direction = &self.Dir();
 
         if element_direction == "ltr" {
             return Some("ltr".to_owned());

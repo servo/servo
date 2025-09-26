@@ -1045,7 +1045,7 @@ impl HTMLMediaElement {
                         SrcObject::Blob(blob) => {
                             let blob_url = URL::CreateObjectURL(&self.global(), blob);
                             *self.blob_url.borrow_mut() =
-                                Some(ServoUrl::parse(&blob_url).expect("infallible"));
+                                Some(ServoUrl::parse(blob_url.str()).expect("infallible"));
                             self.fetch_request(None, None);
                         },
                         SrcObject::MediaStream(stream) => {
@@ -1723,7 +1723,7 @@ impl HTMLMediaElement {
                 if let Some(servo_url) = self.resource_url.borrow().as_ref() {
                     let fragment = MediaFragmentParser::from(servo_url);
                     if let Some(id) = fragment.id() {
-                        if audio_track.id() == DOMString::from(id) {
+                        if audio_track.id() == id {
                             self.AudioTracks()
                                 .set_enabled(self.AudioTracks().len() - 1, true);
                         }
@@ -1784,7 +1784,7 @@ impl HTMLMediaElement {
                     if let Some(servo_url) = self.resource_url.borrow().as_ref() {
                         let fragment = MediaFragmentParser::from(servo_url);
                         if let Some(id) = fragment.id() {
-                            if track.id() == DOMString::from(id) {
+                            if track.id() == id {
                                 self.VideoTracks().set_selected(0, true);
                             }
                         } else if fragment.tracks().contains(&track.kind().into()) {
@@ -2350,7 +2350,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-canplaytype
     fn CanPlayType(&self, type_: DOMString) -> CanPlayTypeResult {
-        match ServoMedia::get().can_play_type(&type_) {
+        match ServoMedia::get().can_play_type(type_.str()) {
             SupportsMediaType::No => CanPlayTypeResult::_empty,
             SupportsMediaType::Maybe => CanPlayTypeResult::Maybe,
             SupportsMediaType::Probably => CanPlayTypeResult::Probably,

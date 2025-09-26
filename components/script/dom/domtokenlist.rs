@@ -192,7 +192,7 @@ impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
             // Step 1.
             return Err(Error::Syntax(None));
         }
-        if token.contains(HTML_SPACE_CHARACTERS) || new_token.contains(HTML_SPACE_CHARACTERS) {
+        if token.contains_html_space_characters() || new_token.contains_html_space_characters() {
             // Step 2.
             return Err(Error::InvalidCharacter);
         }

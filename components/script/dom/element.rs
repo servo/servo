@@ -25,7 +25,7 @@ use html5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_pr
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::HandleObject;
-use layout_api::{LayoutDamage, ScrollContainerQueryFlags, ScrollContainerResponse};
+use layout_api::{LayoutDamage, ScrollContainerQueryFlags};
 use net_traits::ReferrerPolicy;
 use net_traits::request::CorsSettings;
 use selectors::Element as SelectorsElement;
@@ -161,7 +161,7 @@ use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::namednodemap::NamedNodeMap;
 use crate::dom::node::{
     BindContext, ChildrenMutation, CloneChildrenFlag, LayoutNodeHelpers, Node, NodeDamage,
-    NodeFlags, NodeTraits, ShadowIncluding, UnbindContext, from_untrusted_node_address,
+    NodeFlags, NodeTraits, ShadowIncluding, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::promise::Promise;
@@ -822,22 +822,11 @@ impl Element {
             .retain(|reg_obs| *reg_obs.observer != *observer)
     }
 
-    #[allow(unsafe_code)]
+    /// Get the [`ScrollingBox`] that contains this element, if one does. `position:
+    /// fixed` elements do not have a containing [`ScrollingBox`].
     pub(crate) fn scrolling_box(&self, flags: ScrollContainerQueryFlags) -> Option<ScrollingBox> {
         self.owner_window()
-            .scroll_container_query(self.upcast(), flags)
-            .and_then(|response| match response {
-                ScrollContainerResponse::Viewport => Some(ScrollingBox::new(
-                    ScrollingBoxSource::Viewport(self.owner_document()),
-                )),
-                ScrollContainerResponse::Element(parent_node_address, axes_overflow) => {
-                    let node = unsafe { from_untrusted_node_address(parent_node_address) };
-                    Some(ScrollingBox::new(ScrollingBoxSource::Element(
-                        DomRoot::downcast(node)?,
-                        axes_overflow,
-                    )))
-                },
-            })
+            .scrolling_box_query(Some(self.upcast()), flags)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#scroll-a-target-into-view>
@@ -927,7 +916,7 @@ impl Element {
         let (adjusted_element_top_left, adjusted_element_bottom_right) =
             match scrolling_box.target() {
                 ScrollingBoxSource::Viewport(_) => (target_top_left, target_bottom_right),
-                ScrollingBoxSource::Element(scrolling_element, _) => {
+                ScrollingBoxSource::Element(scrolling_element) => {
                     let scrolling_padding_rect_top_left = scrolling_element
                         .upcast::<Node>()
                         .padding_box()
@@ -3192,7 +3181,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     // https://dom.spec.whatwg.org/#dom-element-removeattributenode
     fn RemoveAttributeNode(&self, attr: &Attr, can_gc: CanGc) -> Fallible<DomRoot<Attr>> {
         self.remove_first_matching_attribute(|a| a == attr, can_gc)
-            .ok_or(Error::NotFound)
+            .ok_or(Error::NotFound(None))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-hasattribute

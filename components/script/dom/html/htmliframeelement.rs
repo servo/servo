@@ -620,7 +620,7 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
         // Step 2: Set an attribute value given this, srcdoc's local name, and compliantString.
         element.set_attribute(
             &local_name!("srcdoc"),
-            AttrValue::String(value.as_ref().to_owned()),
+            AttrValue::String(value.str().to_owned()),
             can_gc,
         );
         Ok(())

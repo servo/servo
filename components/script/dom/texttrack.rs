@@ -165,7 +165,7 @@ impl TextTrackMethods<crate::DomTypeHolder> for TextTrack {
         let cues = self.get_cues();
         let index = match cues.find(cue) {
             Some(i) => Ok(i),
-            None => Err(Error::NotFound),
+            None => Err(Error::NotFound(None)),
         }?;
         // Step 2
         cues.remove(index);

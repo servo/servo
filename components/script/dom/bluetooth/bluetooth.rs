@@ -230,7 +230,7 @@ impl Bluetooth {
         if let PermissionState::Denied =
             descriptor_permission_state(PermissionName::Bluetooth, None)
         {
-            return p.reject_error(Error::NotFound, can_gc);
+            return p.reject_error(Error::NotFound(None), can_gc);
         }
 
         // Note: Step 3, 6 - 8 are implemented in
@@ -432,7 +432,7 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
             let mut map = HashMap::new();
             for (key, bdfi) in manufacturer_data_map.iter() {
                 // Step 7.1 - 7.2.
-                let manufacturer_id = match u16::from_str(key.as_ref()) {
+                let manufacturer_id = match u16::from_str(key.str()) {
                     Ok(id) => id,
                     Err(err) => {
                         return Err(Type(format!("{} {} {}", KEY_CONVERSION_ERROR, key, err)));
@@ -461,7 +461,7 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
             }
             let mut map = HashMap::new();
             for (key, bdfi) in service_data_map.iter() {
-                let service_name = match u32::from_str(key.as_ref()) {
+                let service_name = match u32::from_str(key.str()) {
                     // Step 9.1.
                     Ok(number) => StringOrUnsignedLong::UnsignedLong(number),
                     // Step 9.2.
@@ -530,7 +530,7 @@ impl Convert<Error> for BluetoothError {
         match self {
             BluetoothError::Type(message) => Error::Type(message),
             BluetoothError::Network => Error::Network,
-            BluetoothError::NotFound => Error::NotFound,
+            BluetoothError::NotFound => Error::NotFound(None),
             BluetoothError::NotSupported => Error::NotSupported,
             BluetoothError::Security => Error::Security,
             BluetoothError::InvalidState => Error::InvalidState,
@@ -687,7 +687,7 @@ impl PermissionAlgorithm for Bluetooth {
                     continue;
                 }
             }
-            let device_id = String::from(allowed_device.deviceId.as_ref());
+            let device_id = String::from(allowed_device.deviceId.str());
 
             // Step 6.2.
             if let Some(ref filters) = descriptor.filters {

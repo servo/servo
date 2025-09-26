@@ -61,7 +61,7 @@ pub(crate) enum DOMErrorName {
 
 impl DOMErrorName {
     pub(crate) fn from(s: &DOMString) -> Option<DOMErrorName> {
-        match s.as_ref() {
+        match s.str() {
             "IndexSizeError" => Some(DOMErrorName::IndexSizeError),
             "HierarchyRequestError" => Some(DOMErrorName::HierarchyRequestError),
             "WrongDocumentError" => Some(DOMErrorName::WrongDocumentError),

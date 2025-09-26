@@ -480,6 +480,27 @@ pub struct IFrameSizeMsg {
     pub type_: WindowSizeType,
 }
 
+/// An enum that describe a type of keyboard scroll.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub enum KeyboardScroll {
+    /// Scroll the container one line up.
+    Up,
+    /// Scroll the container one line down.
+    Down,
+    /// Scroll the container one "line" left.
+    Left,
+    /// Scroll the container one "line" right.
+    Right,
+    /// Scroll the container one page up.
+    PageUp,
+    /// Scroll the container one page down.
+    PageDown,
+    /// Scroll the container to the vertical start.
+    Home,
+    /// Scroll the container to the vertical end.
+    End,
+}
+
 /// Messages from the script to the constellation.
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum ScriptToConstellationMessage {
@@ -665,6 +686,8 @@ pub enum ScriptToConstellationMessage {
     ),
     /// Notify the completion of a webdriver command.
     WebDriverInputComplete(WebDriverMessageId),
+    /// Forward a keyboard scroll operation from an `<iframe>` to a parent pipeline.
+    ForwardKeyboardScroll(PipelineId, KeyboardScroll),
 }
 
 impl fmt::Debug for ScriptToConstellationMessage {

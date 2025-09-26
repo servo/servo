@@ -70,7 +70,7 @@ impl XPathEvaluatorMethods<crate::DomTypeHolder> for XPathEvaluator {
         // NB: this function is *not* Fallible according to the spec, so we swallow any parsing errors and
         // just pass a None as the expression... it's not great.
         let parsed_expression =
-            crate::xpath::parse(&expression).map_err(|_e| Error::Syntax(None))?;
+            crate::xpath::parse(expression.str()).map_err(|_e| Error::Syntax(None))?;
         Ok(XPathExpression::new(
             window,
             None,
@@ -98,7 +98,7 @@ impl XPathEvaluatorMethods<crate::DomTypeHolder> for XPathEvaluator {
         let global = self.global();
         let window = global.as_window();
         let parsed_expression =
-            crate::xpath::parse(&expression_str).map_err(|_| Error::Syntax(None))?;
+            crate::xpath::parse(expression_str.str()).map_err(|_| Error::Syntax(None))?;
         let expression = XPathExpression::new(window, None, can_gc, parsed_expression);
         expression.evaluate_internal(context_node, result_type, result, resolver, can_gc)
     }

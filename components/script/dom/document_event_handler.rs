@@ -10,7 +10,7 @@ use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 use base::generic_channel;
-use constellation_traits::ScriptToConstellationMessage;
+use constellation_traits::{KeyboardScroll, ScriptToConstellationMessage};
 use embedder_traits::{
     Cursor, EditingActionEvent, EmbedderMsg, GamepadEvent as EmbedderGamepadEvent,
     GamepadSupportedHapticEffects, GamepadUpdateType, ImeEvent, InputEvent,
@@ -20,6 +20,7 @@ use embedder_traits::{
 };
 use euclid::{Point2D, Vector2D};
 use ipc_channel::ipc;
+use js::jsapi::JSAutoRealm;
 use keyboard_types::{Code, Key, KeyState, Modifiers, NamedKey};
 use layout_api::{ScrollContainerQueryFlags, node_id_from_scroll_id};
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
@@ -31,6 +32,7 @@ use script_bindings::codegen::GenericBindings::TouchBinding::TouchMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::{ScrollBehavior, WindowMethods};
 use script_bindings::inheritance::Castable;
 use script_bindings::num::Finite;
+use script_bindings::reflector::DomObject;
 use script_bindings::root::{Dom, DomRoot, DomSlice};
 use script_bindings::script_runtime::CanGc;
 use script_bindings::str::DOMString;
@@ -48,7 +50,7 @@ use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventDefau
 use crate::dom::gamepad::gamepad::{Gamepad, contains_user_gesture};
 use crate::dom::gamepad::gamepadevent::GamepadEventType;
 use crate::dom::inputevent::HitTestResult;
-use crate::dom::node::{self, Node, ShadowIncluding};
+use crate::dom::node::{self, Node, NodeTraits, ShadowIncluding};
 use crate::dom::pointerevent::PointerId;
 use crate::dom::scrolling_box::ScrollingBoxAxis;
 use crate::dom::types::{
@@ -1486,18 +1488,24 @@ impl DocumentEventHandler {
         if !event.modifiers().is_empty() {
             return;
         }
-
-        let scroll_axis = match event.key() {
-            Key::Named(
-                NamedKey::Home |
-                NamedKey::End |
-                NamedKey::PageDown |
-                NamedKey::PageUp |
-                NamedKey::ArrowUp |
-                NamedKey::ArrowDown,
-            ) => ScrollingBoxAxis::Y,
-            Key::Named(NamedKey::ArrowLeft | NamedKey::ArrowRight) => ScrollingBoxAxis::X,
+        let scroll = match event.key() {
+            Key::Named(NamedKey::ArrowDown) => KeyboardScroll::Down,
+            Key::Named(NamedKey::ArrowLeft) => KeyboardScroll::Left,
+            Key::Named(NamedKey::ArrowRight) => KeyboardScroll::Right,
+            Key::Named(NamedKey::ArrowUp) => KeyboardScroll::Up,
+            Key::Named(NamedKey::End) => KeyboardScroll::End,
+            Key::Named(NamedKey::Home) => KeyboardScroll::Home,
+            Key::Named(NamedKey::PageDown) => KeyboardScroll::PageDown,
+            Key::Named(NamedKey::PageUp) => KeyboardScroll::PageUp,
             _ => return,
+        };
+        self.do_keyboard_scroll(scroll);
+    }
+
+    pub(crate) fn do_keyboard_scroll(&self, scroll: KeyboardScroll) {
+        let scroll_axis = match scroll {
+            KeyboardScroll::Left | KeyboardScroll::Right => ScrollingBoxAxis::X,
+            _ => ScrollingBoxAxis::Y,
         };
 
         let document = self.window.Document();
@@ -1505,41 +1513,69 @@ impl DocumentEventHandler {
             .get_focused_element()
             .or(self.most_recently_clicked_element.get())
             .and_then(|element| element.scrolling_box(ScrollContainerQueryFlags::Inclusive))
-            .unwrap_or_else(|| document.viewport_scrolling_box());
+            .unwrap_or_else(|| {
+                document.viewport_scrolling_box(ScrollContainerQueryFlags::Inclusive)
+            });
 
         while !scrolling_box.can_keyboard_scroll_in_axis(scroll_axis) {
             // Always fall back to trying to scroll the entire document.
             if scrolling_box.is_viewport() {
                 break;
             }
-            let parent = scrolling_box
-                .parent()
-                .unwrap_or_else(|| document.viewport_scrolling_box());
+            let parent = scrolling_box.parent().unwrap_or_else(|| {
+                document.viewport_scrolling_box(ScrollContainerQueryFlags::Inclusive)
+            });
             scrolling_box = parent;
+        }
+
+        // If this is the viewport and we cannot scroll, try to ask a parent viewport to scroll,
+        // if we are inside an `<iframe>`.
+        if !scrolling_box.can_keyboard_scroll_in_axis(scroll_axis) {
+            assert!(scrolling_box.is_viewport());
+
+            let window_proxy = document.window().window_proxy();
+            if let Some(iframe) = window_proxy.frame_element() {
+                // When the `<iframe>` is local (in this ScriptThread), we can
+                // synchronously chain up the keyboard scrolling event.
+                let cx = GlobalScope::get_cx();
+                let iframe_window = iframe.owner_window();
+                let _ac = JSAutoRealm::new(*cx, iframe_window.reflector().get_jsobject().get());
+                iframe_window
+                    .Document()
+                    .event_handler()
+                    .do_keyboard_scroll(scroll);
+            } else if let Some(parent_pipeline) = self.window.parent_info() {
+                // Otherwise, if we have a parent (presumably from a different origin)
+                // asynchronously ask the Constellation to forward the event to the parent
+                // pipeline, if we have one.
+                document.window().send_to_constellation(
+                    ScriptToConstellationMessage::ForwardKeyboardScroll(parent_pipeline, scroll),
+                );
+            };
+            return;
         }
 
         const LINE_HEIGHT: f32 = 76.0;
         const LINE_WIDTH: f32 = 76.0;
 
         let current_scroll_offset = scrolling_box.scroll_position();
-        let delta = match event.key() {
-            Key::Named(NamedKey::Home) => Vector2D::new(0.0, -current_scroll_offset.y),
-            Key::Named(NamedKey::End) => Vector2D::new(
+        let delta = match scroll {
+            KeyboardScroll::Home => Vector2D::new(0.0, -current_scroll_offset.y),
+            KeyboardScroll::End => Vector2D::new(
                 0.0,
                 -current_scroll_offset.y + scrolling_box.content_size().height -
                     scrolling_box.size().height,
             ),
-            Key::Named(NamedKey::PageDown) => {
+            KeyboardScroll::PageDown => {
                 Vector2D::new(0.0, scrolling_box.size().height - 2.0 * LINE_HEIGHT)
             },
-            Key::Named(NamedKey::PageUp) => {
+            KeyboardScroll::PageUp => {
                 Vector2D::new(0.0, 2.0 * LINE_HEIGHT - scrolling_box.size().height)
             },
-            Key::Named(NamedKey::ArrowUp) => Vector2D::new(0.0, -LINE_HEIGHT),
-            Key::Named(NamedKey::ArrowDown) => Vector2D::new(0.0, LINE_HEIGHT),
-            Key::Named(NamedKey::ArrowLeft) => Vector2D::new(-LINE_WIDTH, 0.0),
-            Key::Named(NamedKey::ArrowRight) => Vector2D::new(LINE_WIDTH, 0.0),
-            _ => return,
+            KeyboardScroll::Up => Vector2D::new(0.0, -LINE_HEIGHT),
+            KeyboardScroll::Down => Vector2D::new(0.0, LINE_HEIGHT),
+            KeyboardScroll::Left => Vector2D::new(-LINE_WIDTH, 0.0),
+            KeyboardScroll::Right => Vector2D::new(LINE_WIDTH, 0.0),
         };
 
         scrolling_box.scroll_to(delta + current_scroll_offset, ScrollBehavior::Auto);

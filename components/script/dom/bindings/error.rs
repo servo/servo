@@ -99,9 +99,18 @@ pub(crate) fn create_dom_exception(
     result: Error,
     can_gc: CanGc,
 ) -> Result<DomRoot<DOMException>, JsEngineError> {
+    let new_custom_exception = |error_name, message| {
+        Ok(DOMException::new_with_custom_message(
+            global, error_name, message, can_gc,
+        ))
+    };
+
     let code = match result {
         Error::IndexSize => DOMErrorName::IndexSizeError,
-        Error::NotFound => DOMErrorName::NotFoundError,
+        Error::NotFound(Some(custom_message)) => {
+            return new_custom_exception(DOMErrorName::NotFoundError, custom_message);
+        },
+        Error::NotFound(None) => DOMErrorName::NotFoundError,
         Error::HierarchyRequest => DOMErrorName::HierarchyRequestError,
         Error::WrongDocument => DOMErrorName::WrongDocumentError,
         Error::InvalidCharacter => DOMErrorName::InvalidCharacterError,
@@ -109,12 +118,7 @@ pub(crate) fn create_dom_exception(
         Error::InUseAttribute => DOMErrorName::InUseAttributeError,
         Error::InvalidState => DOMErrorName::InvalidStateError,
         Error::Syntax(Some(custom_message)) => {
-            return Ok(DOMException::new_with_custom_message(
-                global,
-                DOMErrorName::SyntaxError,
-                custom_message,
-                can_gc,
-            ));
+            return new_custom_exception(DOMErrorName::SyntaxError, custom_message);
         },
         Error::Syntax(None) => DOMErrorName::SyntaxError,
         Error::Namespace => DOMErrorName::NamespaceError,
@@ -125,12 +129,7 @@ pub(crate) fn create_dom_exception(
         Error::Timeout => DOMErrorName::TimeoutError,
         Error::InvalidNodeType => DOMErrorName::InvalidNodeTypeError,
         Error::DataClone(Some(custom_message)) => {
-            return Ok(DOMException::new_with_custom_message(
-                global,
-                DOMErrorName::DataCloneError,
-                custom_message,
-                can_gc,
-            ));
+            return new_custom_exception(DOMErrorName::DataCloneError, custom_message);
         },
         Error::DataClone(None) => DOMErrorName::DataCloneError,
         Error::Data => DOMErrorName::DataError,

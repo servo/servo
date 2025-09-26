@@ -80,7 +80,7 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
         let name = self.owner.parsed_name(name);
         self.owner
             .remove_attribute_by_name(&name, CanGc::note())
-            .ok_or(Error::NotFound)
+            .ok_or(Error::NotFound(None))
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-removenameditemns
@@ -92,7 +92,7 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
         let ns = namespace_from_domstring(namespace);
         self.owner
             .remove_attribute(&ns, &LocalName::from(local_name), CanGc::note())
-            .ok_or(Error::NotFound)
+            .ok_or(Error::NotFound(None))
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-item
