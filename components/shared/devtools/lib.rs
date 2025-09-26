@@ -475,11 +475,12 @@ pub enum NetworkEvent {
 
 impl NetworkEvent {
     pub fn forward_to_devtools(&self) -> bool {
-        match self {
-            NetworkEvent::HttpRequest(http_request) => http_request.url.scheme() != "data",
-            NetworkEvent::HttpRequestUpdate(..) => true,
-            NetworkEvent::HttpResponse(..) => true,
-        }
+        !matches!(self, NetworkEvent::HttpRequest(http_request) if http_request.url.scheme() == "data") ||
+            match self {
+                NetworkEvent::HttpRequest(http_request) => http_request.url.scheme() != "data",
+                NetworkEvent::HttpRequestUpdate(..) => true,
+                NetworkEvent::HttpResponse(..) => true,
+            }
     }
 }
 
