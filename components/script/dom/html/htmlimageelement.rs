@@ -59,7 +59,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::csp::{GlobalCspReporting, Violation};
-use crate::dom::document::{Document, determine_policy_for_token};
+use crate::dom::document::{Document, determine_referrer_policy_for_token};
 use crate::dom::element::{
     AttributeMutation, CustomElementCreationMode, Element, ElementCreator, LayoutElementHelpers,
     cors_setting_for_element, referrer_policy_for_element, reflect_cross_origin_attribute,
@@ -1605,11 +1605,11 @@ fn parse_a_sizes_attribute(value: &str) -> SourceSizeList {
 
 fn get_correct_referrerpolicy_from_raw_token(token: &DOMString) -> DOMString {
     if token.is_empty() {
-        // Empty token is treated as the default referrer policy inside determine_policy_for_token,
-        // so it should remain unchanged.
+        // Empty token is treated as the default referrer policy inside
+        // determine_referrer_policy_for_token, so it should remain unchanged.
         DOMString::new()
     } else {
-        let policy = determine_policy_for_token(token.str());
+        let policy = determine_referrer_policy_for_token(token.str());
 
         if policy == ReferrerPolicy::EmptyString {
             return DOMString::new();

@@ -108,7 +108,7 @@ use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReaction, CustomElementState,
     is_valid_custom_element_name,
 };
-use crate::dom::document::{Document, LayoutDocumentHelpers, determine_policy_for_token};
+use crate::dom::document::{Document, LayoutDocumentHelpers, determine_referrer_policy_for_token};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domrect::DOMRect;
 use crate::dom::domrectlist::DOMRectList;
@@ -5566,7 +5566,7 @@ pub(crate) fn reflect_referrer_policy_attribute(element: &Element) -> DOMString 
 pub(crate) fn referrer_policy_for_element(element: &Element) -> ReferrerPolicy {
     element
         .get_attribute_by_name(DOMString::from_string(String::from("referrerpolicy")))
-        .map(|attribute: DomRoot<Attr>| determine_policy_for_token(&attribute.Value()))
+        .map(|attribute: DomRoot<Attr>| determine_referrer_policy_for_token(&attribute.Value()))
         .unwrap_or(element.owner_document().get_referrer_policy())
 }
 

@@ -5961,8 +5961,23 @@ fn update_with_current_instant(marker: &Cell<Option<CrossProcessInstant>>) {
     }
 }
 
-/// <https://w3c.github.io/webappsec-referrer-policy/#determine-policy-for-token>
-pub(crate) fn determine_policy_for_token(token: &str) -> ReferrerPolicy {
+/// <https://w3c.github.io/webappsec-referrer-policy/#referrer-policy>
+pub(crate) fn determine_referrer_policy_for_token(token: &str) -> ReferrerPolicy {
+    match_ignore_ascii_case! { token,
+        "no-referrer" => ReferrerPolicy::NoReferrer,
+        "no-referrer-when-downgrade" => ReferrerPolicy::NoReferrerWhenDowngrade,
+        "origin" => ReferrerPolicy::Origin,
+        "same-origin" => ReferrerPolicy::SameOrigin,
+        "strict-origin" => ReferrerPolicy::StrictOrigin,
+        "strict-origin-when-cross-origin" => ReferrerPolicy::StrictOriginWhenCrossOrigin,
+        "origin-when-cross-origin" => ReferrerPolicy::OriginWhenCrossOrigin,
+        "unsafe-url" => ReferrerPolicy::UnsafeUrl,
+        _ => ReferrerPolicy::EmptyString,
+    }
+}
+
+/// <https://html.spec.whatwg.org/multipage/#meta-referrer>
+pub(crate) fn determine_referrer_policy_for_token_with_legacy(token: &str) -> ReferrerPolicy {
     match_ignore_ascii_case! { token,
         "never" | "no-referrer" => ReferrerPolicy::NoReferrer,
         "no-referrer-when-downgrade" => ReferrerPolicy::NoReferrerWhenDowngrade,
@@ -5970,7 +5985,7 @@ pub(crate) fn determine_policy_for_token(token: &str) -> ReferrerPolicy {
         "same-origin" => ReferrerPolicy::SameOrigin,
         "strict-origin" => ReferrerPolicy::StrictOrigin,
         "default" | "strict-origin-when-cross-origin" => ReferrerPolicy::StrictOriginWhenCrossOrigin,
-        "origin-when-cross-origin" => ReferrerPolicy::OriginWhenCrossOrigin,
+        "origin-when-crossorigin" | "origin-when-cross-origin" => ReferrerPolicy::OriginWhenCrossOrigin,
         "always" | "unsafe-url" => ReferrerPolicy::UnsafeUrl,
         _ => ReferrerPolicy::EmptyString,
     }
