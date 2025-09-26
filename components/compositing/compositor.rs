@@ -132,8 +132,8 @@ pub struct IOCompositor {
     /// The [`RenderingContext`] instance that webrender targets, which is the viewport.
     rendering_context: Rc<dyn RenderingContext>,
 
-    /// The number of frames pending to receive from WebRender.
-    pending_frames: Cell<usize>,
+    next_frame_id: Cell<u64>,
+    current_frame: Cell<u64>,
 
     /// A handle to the memory profiler which will automatically unregister
     /// when it's dropped.
@@ -206,6 +206,8 @@ pub(crate) struct PipelineDetails {
     /// Which parts of Servo have reported that this `Pipeline` has exited. Only when all
     /// have done so will it be discarded.
     pub exited: PipelineExitSource,
+
+    pub display_list_epoch: Option<Epoch>,
 }
 
 impl PipelineDetails {
@@ -231,6 +233,7 @@ impl PipelineDetails {
             first_paint_metric: PaintMetricState::Waiting,
             first_contentful_paint_metric: PaintMetricState::Waiting,
             exited: PipelineExitSource::empty(),
+            display_list_epoch: None,
         }
     }
 
@@ -316,7 +319,8 @@ impl IOCompositor {
             needs_repaint: Cell::default(),
             webrender: Some(state.webrender),
             rendering_context: state.rendering_context,
-            pending_frames: Cell::new(0),
+            next_frame_id: Default::default(),
+            current_frame: Default::default(),
             _mem_profiler_registration: registration,
         };
 
@@ -500,7 +504,7 @@ impl IOCompositor {
                 }
             },
 
-            CompositorMsg::NewWebRenderFrameReady(_document_id, recomposite_needed) => {
+            CompositorMsg::NewWebRenderFrameReady(_document_id, _, recomposite_needed) => {
                 self.handle_new_webrender_frame_ready(recomposite_needed);
             },
 
@@ -620,6 +624,8 @@ impl IOCompositor {
                     Some(display_list_info.viewport_details.hidpi_scale_factor);
 
                 let epoch = display_list_info.epoch;
+                details.display_list_epoch = Some(Epoch(epoch.0));
+
                 let first_reflow = display_list_info.first_reflow;
                 if details.first_paint_metric == PaintMetricState::Waiting {
                     details.first_paint_metric = PaintMetricState::Seen(epoch, first_reflow);
@@ -646,9 +652,10 @@ impl IOCompositor {
             },
 
             CompositorMsg::GenerateFrame => {
+                self.prepare_screenshot_requests_for_render();
+
                 let mut global = self.global.borrow_mut();
                 global.frame_delayer.set_pending_frame(true);
-
                 if global.frame_delayer.needs_new_frame() {
                     let mut transaction = Transaction::new();
                     self.generate_frame(&mut transaction, RenderReasons::SCENE);
@@ -811,10 +818,6 @@ impl IOCompositor {
                     result_sender,
                 );
             },
-            CompositorMsg::NewWebRenderFrameReady(..) => {
-                // Subtract from the number of pending frames, but do not do any compositing.
-                self.pending_frames.set(self.pending_frames.get() - 1);
-            },
             _ => {
                 debug!("Ignoring message ({:?} while shutting down", msg);
             },
@@ -844,8 +847,9 @@ impl IOCompositor {
 
     /// Queue a new frame in the transaction and increase the pending frames count.
     pub(crate) fn generate_frame(&self, transaction: &mut Transaction, reason: RenderReasons) {
-        self.pending_frames.set(self.pending_frames.get() + 1);
-        transaction.generate_frame(0, true /* present */, reason);
+        let next_frame_id = self.next_frame_id.get();
+        transaction.generate_frame(next_frame_id, true /* present */, reason);
+        self.next_frame_id.set(next_frame_id);
     }
 
     /// Set the root pipeline for our WebRender scene to a display list that consists of an iframe
@@ -1347,20 +1351,17 @@ impl IOCompositor {
     pub fn handle_messages(&mut self, mut messages: Vec<CompositorMsg>) {
         // Check for new messages coming from the other threads in the system.
         let mut found_recomposite_msg = false;
-        messages.retain(|message| {
-            match message {
-                CompositorMsg::NewWebRenderFrameReady(..) if found_recomposite_msg => {
-                    // Only take one of duplicate NewWebRendeFrameReady messages, but do subtract
-                    // one frame from the pending frames.
-                    self.pending_frames.set(self.pending_frames.get() - 1);
-                    false
-                },
-                CompositorMsg::NewWebRenderFrameReady(..) => {
-                    found_recomposite_msg = true;
-                    true
-                },
-                _ => true,
-            }
+        messages.retain(|message| match message {
+            CompositorMsg::NewWebRenderFrameReady(_, frame_id, _) if found_recomposite_msg => {
+                self.current_frame.set(*frame_id);
+                false
+            },
+            CompositorMsg::NewWebRenderFrameReady(_, frame_id, _) => {
+                self.current_frame.set(*frame_id);
+                found_recomposite_msg = true;
+                true
+            },
+            _ => true,
         });
 
         for message in messages {
@@ -1570,7 +1571,6 @@ impl IOCompositor {
     }
 
     fn handle_new_webrender_frame_ready(&mut self, recomposite_needed: bool) {
-        self.pending_frames.set(self.pending_frames.get() - 1);
         if recomposite_needed {
             self.refresh_cursor();
         }
@@ -1600,24 +1600,63 @@ impl IOCompositor {
         webview_id: WebViewId,
         expected_epochs: FxHashMap<PipelineId, Epoch>,
     ) {
-        let mut global = self.global.borrow_mut();
-        let expected_epochs = Rc::new(expected_epochs);
+        {
+            let mut global = self.global.borrow_mut();
+            let expected_epochs = Rc::new(expected_epochs);
 
+            for screenshot_request in global.screenshot_requests.iter_mut() {
+                if screenshot_request.webview_id != webview_id ||
+                    screenshot_request.state != ScreenshotRequestState::WaitingOnConstellation
+                {
+                    continue;
+                }
+                screenshot_request.state =
+                    ScreenshotRequestState::WaitingOnPipelines(expected_epochs.clone());
+            }
+        }
+
+        if self.prepare_screenshot_requests_for_render() {
+            let mut transaction = Transaction::new();
+            self.generate_frame(&mut transaction, RenderReasons::APZ);
+            self.global.borrow_mut().send_transaction(transaction);
+        }
+    }
+
+    fn prepare_screenshot_requests_for_render(&self) -> bool {
+        let mut global = self.global.borrow_mut();
+        let next_frame_id = self.next_frame_id.get();
         let mut any_became_ready = false;
+
         for screenshot_request in global.screenshot_requests.iter_mut() {
-            if screenshot_request.webview_id != webview_id ||
-                screenshot_request.state != ScreenshotRequestState::WaitingOnConstellation
-            {
+            let ScreenshotRequestState::WaitingOnPipelines(pipelines) = &screenshot_request.state
+            else {
+                continue;
+            };
+
+            let Some(webview) = self.webview_renderers.get(screenshot_request.webview_id) else {
+                continue;
+            };
+
+            let ready = pipelines.iter().all(|(pipeline_id, expected_epoch)| {
+                let Some(epoch) = webview
+                    .pipelines
+                    .get(pipeline_id)
+                    .and_then(|pipeline| pipeline.display_list_epoch)
+                else {
+                    return false;
+                };
+                epoch >= *expected_epoch
+            });
+
+            if !ready {
                 continue;
             }
-            screenshot_request.state =
-                ScreenshotRequestState::WaitingOnWebRender(expected_epochs.clone());
+
+            screenshot_request.state = ScreenshotRequestState::WaitingOnFrame(next_frame_id);
             any_became_ready = true;
         }
 
-        if any_became_ready {
-            self.set_needs_repaint(RepaintReason::ReadyForScreenshot);
-        }
+        any_became_ready
     }
 
     fn create_screenshots_after_paint(&self) {
@@ -1626,17 +1665,12 @@ impl IOCompositor {
             return;
         }
 
-        let document_id = global.webrender_document;
-        let Some(webrender) = self.webrender.as_ref() else {
-            return;
-        };
-
         // TODO: This can eventually just be `extract_if`. We need to have ownership
         // of the ScreenshotRequest in order to call the `FnOnce` callabck.
         let screenshots = global.screenshot_requests.drain(..);
         global.screenshot_requests = screenshots
             .filter_map(|screenshot_request| {
-                if !screenshot_request.screenshot_ready(webrender, &document_id) {
+                if !screenshot_request.screenshot_ready(self.current_frame.get()) {
                     return Some(screenshot_request);
                 }
 
@@ -1742,22 +1776,12 @@ struct ScreenshotRequest {
 #[derive(PartialEq)]
 enum ScreenshotRequestState {
     WaitingOnConstellation,
-    WaitingOnWebRender(Rc<FxHashMap<PipelineId, Epoch>>),
+    WaitingOnPipelines(Rc<FxHashMap<PipelineId, Epoch>>),
+    WaitingOnFrame(u64),
 }
 
 impl ScreenshotRequest {
-    fn screenshot_ready(&self, webrender: &webrender::Renderer, &document_id: &DocumentId) -> bool {
-        let ScreenshotRequestState::WaitingOnWebRender(pipelines_and_epochs) = &self.state else {
-            return false;
-        };
-        pipelines_and_epochs
-            .iter()
-            .all(|(pipeline_id, necessary_epoch)| {
-                webrender
-                    .current_epoch(document_id, pipeline_id.into())
-                    .is_some_and(|rendered_epoch| {
-                        rendered_epoch >= WebRenderEpoch(necessary_epoch.0)
-                    })
-            })
+    fn screenshot_ready(&self, current_frame_id: u64) -> bool {
+        matches!(self.state,ScreenshotRequestState::WaitingOnFrame(frame_id) if frame_id <= current_frame_id)
     }
 }

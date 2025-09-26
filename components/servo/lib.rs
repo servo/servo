@@ -241,12 +241,13 @@ impl webrender_api::RenderNotifier for RenderNotifier {
     fn new_frame_ready(
         &self,
         document_id: DocumentId,
-        _: FramePublishId,
+        frame_id: FramePublishId,
         frame_ready_params: &FrameReadyParams,
     ) {
         self.compositor_proxy
             .send(CompositorMsg::NewWebRenderFrameReady(
                 document_id,
+                frame_id.0,
                 frame_ready_params.render,
             ));
     }

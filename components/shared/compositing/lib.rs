@@ -93,7 +93,7 @@ pub enum CompositorMsg {
     /// WebRender has produced a new frame. This message informs the compositor that
     /// the frame is ready. It contains a bool to indicate if it needs to composite and the
     /// `DocumentId` of the new frame.
-    NewWebRenderFrameReady(DocumentId, bool),
+    NewWebRenderFrameReady(DocumentId, u64, bool),
     /// Script or the Constellation is notifying the renderer that a Pipeline has finished
     /// shutting down. The renderer will not discard the Pipeline until both report that
     /// they have fully shut it down, to avoid recreating it due to any subsequent
