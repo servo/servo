@@ -645,12 +645,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         preferences.js_ion_enabled = false;
     }
 
-    let device_pixel_ratio_override = if cmd_args.output.is_some() {
-        Some(1.0)
-    } else {
-        cmd_args.device_pixel_ratio
-    };
-
     // Make sure the default window size is not larger than any provided screen size.
     let default_window_size = Size2D::new(1024, 740);
     let default_window_size = cmd_args
@@ -662,7 +656,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
     let servoshell_preferences = ServoShellPreferences {
         url: Some(cmd_args.url),
         no_native_titlebar: cmd_args.no_native_titlebar,
-        device_pixel_ratio_override,
+        device_pixel_ratio_override: cmd_args.device_pixel_ratio,
         clean_shutdown: cmd_args.clean_shutdown,
         headless: cmd_args.headless,
         tracing_filter: cmd_args.tracing_filter,
@@ -881,11 +875,6 @@ fn test_profiling_args() {
 
 #[test]
 fn test_servoshell_cmd() {
-    assert_eq!(
-        test_parse("-o foo.png").2.device_pixel_ratio_override,
-        Some(1.0)
-    );
-
     assert_eq!(
         test_parse("--screen-size=1000x1000")
             .2
