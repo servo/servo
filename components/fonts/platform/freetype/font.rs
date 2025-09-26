@@ -191,7 +191,8 @@ impl PlatformFontMethods for PlatformFont {
 
         // TODO: mozilla_glyphslot_embolden_less
         if self.synthetic_bold {
-            mozilla_glyphslot_embolden_less(slot);
+            log::debug!("PlatformFontMethods::glyph_h_advance synthetic_bold");
+            // mozilla_glyphslot_embolden_less(slot);
         }
 
         let advance = unsafe { (*slot).metrics.horiAdvance };
@@ -418,8 +419,7 @@ impl std::fmt::Debug for FreeTypeFaceTableProviderData {
 // Custom version of FT_GlyphSlot_Embolden to be less aggressive with outline
 // fonts than the default implementation in FreeType.
 fn mozilla_glyphslot_embolden_less(slot: FT_GlyphSlot) {
-    use freetype_sys::{FT_GlyphSlot_Embolden, FT_Outline_Embolden};
-    use freetype::freetype::{FT_Glyph_Format, FT_Long, FT_MulFix};
+    use freetype_sys::{FT_GlyphSlot_Embolden, FT_Outline_Embolden, FT_Glyph_Format, FT_MulFix, FT_Long, FT_GLYPH_FORMAT_OUTLINE};
 
     if slot.is_null() {
         return;
@@ -427,7 +427,7 @@ fn mozilla_glyphslot_embolden_less(slot: FT_GlyphSlot) {
 
     let slot_ = unsafe { &mut *slot };
     let format = slot_.format;
-    if format != FT_Glyph_Format::FT_GLYPH_FORMAT_OUTLINE as u32 {
+    if format != FT_GLYPH_FORMAT_OUTLINE {
         // For non-outline glyphs, just fall back to FreeType's function.
         unsafe { FT_GlyphSlot_Embolden(slot) };
         return;
