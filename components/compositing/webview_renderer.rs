@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
-use std::collections::hash_map::{Entry, Keys};
+use std::collections::hash_map::Entry;
 use std::rc::Rc;
 
 use base::id::{PipelineId, WebViewId};
@@ -130,10 +130,6 @@ impl WebViewRenderer {
         self.pipelines
             .values()
             .any(PipelineDetails::animation_callbacks_running)
-    }
-
-    pub(crate) fn pipeline_ids(&self) -> Keys<'_, PipelineId, PipelineDetails> {
-        self.pipelines.keys()
     }
 
     pub(crate) fn animating(&self) -> bool {

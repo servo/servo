@@ -26,8 +26,9 @@ use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
 use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::{
-    DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptToConstellationChan,
-    ScriptToConstellationMessage, StructuredSerializedData, WindowSizeType,
+    LoadData, LoadOrigin, NavigationHistoryBehavior, ScreenshotReadinessResponse,
+    ScriptToConstellationChan, ScriptToConstellationMessage, StructuredSerializedData,
+    WindowSizeType,
 };
 use crossbeam_channel::{Sender, unbounded};
 use cssparser::SourceLocation;
@@ -42,7 +43,7 @@ use embedder_traits::{
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
 use fonts::FontContext;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::IpcSender;
 use js::glue::DumpJSStack;
 use js::jsapi::{
     GCReason, Heap, JS_GC, JSAutoRealm, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE,
@@ -79,7 +80,7 @@ use script_bindings::root::Root;
 use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
-use servo_config::{opts, pref};
+use servo_config::pref;
 use servo_geometry::{DeviceIndependentIntRect, f32_rect_to_au_rect};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
@@ -447,6 +448,9 @@ pub(crate) struct Window {
     /// The window proxies the script thread knows.
     #[ignore_malloc_size_of = "Rc"]
     script_window_proxies: Rc<ScriptWindowProxies>,
+
+    /// Whether or not this [`Window`] has a pending screenshot readiness request.
+    has_pending_screenshot_readiness_request: Cell<bool>,
 }
 
 impl Window {
@@ -2335,17 +2339,18 @@ impl Window {
         }
 
         document.update_animations_post_reflow();
-        self.update_constellation_epoch();
 
         reflow_result.reflow_phases_run
     }
 
-    pub(crate) fn maybe_send_idle_document_state_to_constellation(&self) {
-        if !opts::get().wait_for_stable_image {
-            return;
-        }
+    pub(crate) fn request_screenshot_readiness(&self) {
+        self.has_pending_screenshot_readiness_request.set(true);
+        self.maybe_resolve_pending_screenshot_readiness_requests();
+    }
 
-        if self.has_sent_idle_message.get() {
+    pub(crate) fn maybe_resolve_pending_screenshot_readiness_requests(&self) {
+        let pending_request = self.has_pending_screenshot_readiness_request.get();
+        if !pending_request {
             return;
         }
 
@@ -2382,17 +2387,18 @@ impl Window {
             return;
         }
 
-        // When all these conditions are met, notify the constellation
-        // that this pipeline is ready to write the image (from the script thread
-        // perspective at least).
-        debug!(
-            "{:?}: Sending DocumentState::Idle to Constellation",
-            self.pipeline_id()
+        // When all these conditions are met, notify the Constellation that we are ready to
+        // have our screenshot taken, when the given layout Epoch has been rendered.
+        let epoch = self.layout.borrow().current_epoch();
+        let pipeline_id = self.pipeline_id();
+        debug!("Ready to take screenshot of {pipeline_id:?} at epoch={epoch:?}");
+
+        self.send_to_constellation(
+            ScriptToConstellationMessage::RespondToScreenshotReadinessRequest(
+                ScreenshotReadinessResponse::Ready(epoch),
+            ),
         );
-        self.send_to_constellation(ScriptToConstellationMessage::SetDocumentState(
-            DocumentState::Idle,
-        ));
-        self.has_sent_idle_message.set(true);
+        self.has_pending_screenshot_readiness_request.set(false);
     }
 
     /// If parsing has taken a long time and reflows are still waiting for the `load` event,
@@ -2454,24 +2460,6 @@ impl Window {
 
     pub(crate) fn layout_blocked(&self) -> bool {
         self.layout_blocker.get().layout_blocked()
-    }
-
-    /// If writing a screenshot, synchronously update the layout epoch that it set
-    /// in the constellation.
-    pub(crate) fn update_constellation_epoch(&self) {
-        if !opts::get().wait_for_stable_image {
-            return;
-        }
-
-        let epoch = self.layout.borrow().current_epoch();
-        debug!(
-            "{:?}: Updating constellation epoch: {epoch:?}",
-            self.pipeline_id()
-        );
-        let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
-        let event = ScriptToConstellationMessage::SetLayoutEpoch(epoch, sender);
-        self.send_to_constellation(event);
-        let _ = receiver.recv();
     }
 
     /// Trigger a reflow that is required by a certain queries.
@@ -3203,9 +3191,7 @@ impl Window {
             node.dirty(NodeDamage::Other);
         }
     }
-}
 
-impl Window {
     #[allow(unsafe_code)]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
@@ -3339,6 +3325,7 @@ impl Window {
             report_list: Default::default(),
             endpoints_list: Default::default(),
             script_window_proxies: ScriptThread::window_proxies(),
+            has_pending_screenshot_readiness_request: Default::default(),
         });
 
         WindowBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), win)

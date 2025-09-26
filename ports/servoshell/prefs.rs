@@ -694,7 +694,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
 
     let opts = Opts {
         debug: debug_options,
-        wait_for_stable_image: cmd_args.exit,
         time_profiling: cmd_args.profile,
         time_profiler_trace_path: cmd_args
             .profiler_trace_path

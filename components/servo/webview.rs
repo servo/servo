@@ -14,9 +14,11 @@ use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
     Cursor, Image, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus,
-    MediaSessionActionType, ScreenGeometry, Theme, TraversalId, ViewportDetails,
+    MediaSessionActionType, ScreenGeometry, ScreenshotCaptureError, Theme, TraversalId,
+    ViewportDetails,
 };
 use euclid::{Point2D, Scale, Size2D};
+use image::RgbaImage;
 use servo_geometry::DeviceIndependentPixel;
 use url::Url;
 use webrender_api::ScrollLocation;
@@ -568,11 +570,9 @@ impl WebView {
             ));
     }
 
-    /// Paint the contents of this [`WebView`] into its `RenderingContext`. This will
-    /// always paint, unless the `Opts::wait_for_stable_image` option is enabled. In
-    /// that case, this might do nothing. Returns true if a paint was actually performed.
-    pub fn paint(&self) -> bool {
-        self.inner().compositor.borrow_mut().render()
+    /// Paint the contents of this [`WebView`] into its `RenderingContext`.
+    pub fn paint(&self) {
+        self.inner().compositor.borrow_mut().render();
     }
 
     /// Evaluate the specified string of JavaScript code. Once execution is complete or an error
@@ -587,6 +587,31 @@ impl WebView {
             script.to_string(),
             Box::new(callback),
         );
+    }
+
+    /// Asynchronously take a screenshot of the [`WebView`] contents. This method will
+    /// wait until the [`WebView`] is ready before the screenshot is taken. This includes
+    /// waiting for:
+    ///
+    ///  - all frames to fire their `load` event.
+    ///  - all render blocking elements, such as stylesheets included via the `<link>`
+    ///    element, to stop blocking the rendering.
+    ///  - all images to be loaded and displayed.
+    ///  - all web fonts are loaded.
+    ///  - the `reftest-wait` and `test-wait` classes have been removed from the root element.
+    ///  - the rendering is up-to-date
+    ///
+    /// Once all these conditions are met and the rendering does not have any pending frames
+    /// to render, the provided `callback` will be called with the results of the screenshot
+    /// operation.
+    pub fn take_screenshot(
+        &self,
+        callback: impl FnOnce(Result<RgbaImage, ScreenshotCaptureError>) + 'static,
+    ) {
+        self.inner()
+            .compositor
+            .borrow()
+            .request_screenshot(self.id(), Box::new(callback));
     }
 }
 

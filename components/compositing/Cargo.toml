@@ -31,6 +31,7 @@ dpi = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 gleam = { workspace = true }
+image = { workspace = true }
 ipc-channel = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }

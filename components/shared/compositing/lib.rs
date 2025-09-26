@@ -87,8 +87,6 @@ pub enum CompositorMsg {
     RemoveWebView(WebViewId),
     /// Script has handled a touch event, and either prevented or allowed default actions.
     TouchEventProcessed(WebViewId, TouchEventResult),
-    /// A reply to the compositor asking if the output image is stable.
-    IsReadyToSaveImageReply(bool),
     /// Set whether to use less resources by stopping animations.
     SetThrottled(WebViewId, PipelineId, bool),
     /// WebRender has produced a new frame. This message informs the compositor that
@@ -100,8 +98,6 @@ pub enum CompositorMsg {
     /// they have fully shut it down, to avoid recreating it due to any subsequent
     /// messages.
     PipelineExited(WebViewId, PipelineId, PipelineExitSource),
-    /// The load of a page has completed
-    LoadComplete(WebViewId),
     /// Inform WebRender of the existence of this pipeline.
     SendInitialTransaction(WebViewId, WebRenderPipelineId),
     /// Perform a scroll operation.
@@ -164,6 +160,9 @@ pub enum CompositorMsg {
     CollectMemoryReport(ReportsChan),
     /// A top-level frame has parsed a viewport metatag and is sending the new constraints.
     Viewport(WebViewId, ViewportDescription),
+    /// Let the compositor know that the given WebView is ready to have a screenshot taken
+    /// after the given pipeline's epochs have been rendered.
+    ScreenshotReadinessReponse(WebViewId, FxHashMap<PipelineId, Epoch>),
 }
 
 impl Debug for CompositorMsg {
