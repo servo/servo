@@ -589,7 +589,7 @@ fn keyboard_modifiers_from_winit_modifiers(mods: ModifiersState) -> Modifiers {
 }
 
 pub fn keyboard_event_from_winit(key_event: &KeyEvent, state: ModifiersState) -> KeyboardEvent {
-    KeyboardEvent::new_without_event(
+    let mut ev = KeyboardEvent::new_without_event(
         KeyState::from_winit_key_event(key_event),
         Key::from_winit_key_event(key_event),
         Code::from_winit_key_event(key_event),
@@ -597,5 +597,95 @@ pub fn keyboard_event_from_winit(key_event: &KeyEvent, state: ModifiersState) ->
         keyboard_modifiers_from_winit_modifiers(state),
         false,
         false,
-    )
+    );
+
+    // On macOS, the "Dvorak – QWERTY (⌘)" layout uses QWERTY positions for Command shortcuts.
+    // Respect that by mapping Command-modified keys to a US-QWERTY character based on the
+    // physical key Code. This only affects shortcuts (when META is held), not regular typing.
+    #[cfg(target_os = "macos")]
+    {
+        if ev.event.modifiers.contains(Modifiers::META) {
+            if let Some(ch) = us_qwerty_char_for_code(ev.event.code) {
+                ev.event.key = Key::Character(ch.to_string());
+            }
+        }
+    }
+
+    ev
+}
+
+#[cfg(target_os = "macos")]
+pub fn us_qwerty_char_for_code(code: Code) -> Option<char> {
+    use keyboard_types::Code::*;
+    let ch = match code {
+        KeyA => 'A',
+        KeyB => 'B',
+        KeyC => 'C',
+        KeyD => 'D',
+        KeyE => 'E',
+        KeyF => 'F',
+        KeyG => 'G',
+        KeyH => 'H',
+        KeyI => 'I',
+        KeyJ => 'J',
+        KeyK => 'K',
+        KeyL => 'L',
+        KeyM => 'M',
+        KeyN => 'N',
+        KeyO => 'O',
+        KeyP => 'P',
+        KeyQ => 'Q',
+        KeyR => 'R',
+        KeyS => 'S',
+        KeyT => 'T',
+        KeyU => 'U',
+        KeyV => 'V',
+        KeyW => 'W',
+        KeyX => 'X',
+        KeyY => 'Y',
+        KeyZ => 'Z',
+        Digit0 => '0',
+        Digit1 => '1',
+        Digit2 => '2',
+        Digit3 => '3',
+        Digit4 => '4',
+        Digit5 => '5',
+        Digit6 => '6',
+        Digit7 => '7',
+        Digit8 => '8',
+        Digit9 => '9',
+        Minus => '-',
+        Equal => '=',
+        BracketLeft => '[',
+        BracketRight => ']',
+        Backslash => '\\',
+        Semicolon => ';',
+        Quote => '\'',
+        Backquote => '`',
+        Comma => ',',
+        Period => '.',
+        Slash => '/',
+        _ => return None,
+    };
+    Some(ch)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn test_us_qwerty_char_for_code_letters() {
+        assert_eq!(us_qwerty_char_for_code(Code::KeyT), Some('T'));
+        assert_eq!(us_qwerty_char_for_code(Code::KeyK), Some('K'));
+        assert_eq!(us_qwerty_char_for_code(Code::KeyQ), Some('Q'));
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn test_us_qwerty_char_for_code_digits_and_punct() {
+        assert_eq!(us_qwerty_char_for_code(Code::Digit1), Some('1'));
+        assert_eq!(us_qwerty_char_for_code(Code::BracketLeft), Some('['));
+        assert_eq!(us_qwerty_char_for_code(Code::Minus), Some('-'));
+    }
 }
