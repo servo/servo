@@ -11,8 +11,6 @@ use log::warn;
 use servo::EventLoopWaker;
 use winit::error::EventLoopError;
 use winit::event_loop::EventLoop as WinitEventLoop;
-#[cfg(target_os = "macos")]
-use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};
 
 use super::app::App;
 
@@ -49,13 +47,13 @@ impl EventsLoop {
     // Ideally, we could use the winit event loop in both modes,
     // but on Linux, the event loop requires a X11 server.
     #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
-    pub fn new(_headless: bool, _has_output_file: bool) -> Result<EventsLoop, EventLoopError> {
+    pub fn new(_headless: bool) -> Result<EventsLoop, EventLoopError> {
         Ok(EventsLoop(EventLoop::Winit(
             WinitEventLoop::with_user_event().build()?,
         )))
     }
     #[cfg(any(target_os = "linux", target_os = "windows"))]
-    pub fn new(headless: bool, _has_output_file: bool) -> Result<EventsLoop, EventLoopError> {
+    pub fn new(headless: bool) -> Result<EventsLoop, EventLoopError> {
         Ok(EventsLoop(if headless {
             EventLoop::Headless(Arc::new((Mutex::new(false), Condvar::new())))
         } else {
@@ -63,17 +61,11 @@ impl EventsLoop {
         }))
     }
     #[cfg(target_os = "macos")]
-    pub fn new(headless: bool, _has_output_file: bool) -> Result<EventsLoop, EventLoopError> {
+    pub fn new(headless: bool) -> Result<EventsLoop, EventLoopError> {
         Ok(EventsLoop(if headless {
             EventLoop::Headless(Arc::new((Mutex::new(false), Condvar::new())))
         } else {
-            let mut event_loop_builder = WinitEventLoop::with_user_event();
-            if _has_output_file {
-                // Prevent the window from showing in Dock.app, stealing focus,
-                // when generating an output file.
-                event_loop_builder.with_activation_policy(ActivationPolicy::Prohibited);
-            }
-            EventLoop::Winit(event_loop_builder.build()?)
+            EventLoop::Winit(WinitEventLoop::with_user_event().build()?)
         }))
     }
 }

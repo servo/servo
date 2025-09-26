@@ -35,9 +35,8 @@ pub fn main() {
     crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
 
     let clean_shutdown = servoshell_preferences.clean_shutdown;
-    let has_output_file = servoshell_preferences.output_image_path.is_some();
-    let event_loop = EventsLoop::new(servoshell_preferences.headless, has_output_file)
-        .expect("Failed to create events loop");
+    let event_loop =
+        EventsLoop::new(servoshell_preferences.headless).expect("Failed to create events loop");
 
     {
         let mut app = App::new(opts, preferences, servoshell_preferences, &event_loop);
