@@ -59,7 +59,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::csp::{GlobalCspReporting, Violation};
-use crate::dom::document::{Document, determine_policy_for_token};
+use crate::dom::document::Document;
 use crate::dom::element::{
     AttributeMutation, CustomElementCreationMode, Element, ElementCreator, LayoutElementHelpers,
     cors_setting_for_element, referrer_policy_for_element, reflect_cross_origin_attribute,
@@ -1871,15 +1871,10 @@ impl VirtualMethods for HTMLImageElement {
                 // The element's referrerpolicy attribute's state is changed.
                 let referrer_policy_state_changed = match mutation {
                     AttributeMutation::Removed | AttributeMutation::Set(None) => {
-                        let referrer_policy = determine_policy_for_token(&attr.value());
-
-                        referrer_policy != ReferrerPolicy::EmptyString
+                        ReferrerPolicy::from(&**attr.value()) != ReferrerPolicy::EmptyString
                     },
                     AttributeMutation::Set(Some(old_value)) => {
-                        let new_referrer_policy = determine_policy_for_token(&attr.value());
-                        let old_referrer_policy = determine_policy_for_token(old_value);
-
-                        new_referrer_policy != old_referrer_policy
+                        ReferrerPolicy::from(&**attr.value()) != ReferrerPolicy::from(&**old_value)
                     },
                 };
 

@@ -24,7 +24,7 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::trace::{CustomTraceable, JSTraceable};
-use crate::dom::document::{Document, determine_policy_for_token};
+use crate::dom::document::Document;
 use crate::dom::html::htmlscriptelement::script_fetch_request;
 use crate::dom::processingoptions::determine_cors_settings_for_token;
 use crate::fetch::create_a_potential_cors_request;
@@ -263,7 +263,7 @@ impl PrefetchSink {
 
     fn get_referrer_policy(&self, tag: &Tag, name: LocalName) -> ReferrerPolicy {
         self.get_attr(tag, name)
-            .map(|attr| determine_policy_for_token(&attr.value))
+            .map(|attr| ReferrerPolicy::from(&*attr.value))
             .unwrap_or(self.referrer_policy)
     }
 

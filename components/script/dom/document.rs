@@ -22,7 +22,6 @@ use constellation_traits::{NavigationHistoryBehavior, ScriptToConstellationMessa
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use content_security_policy::{CspList, PolicyDisposition};
 use cookie::Cookie;
-use cssparser::match_ignore_ascii_case;
 use data_url::mime::Mime;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
@@ -5981,21 +5980,6 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 fn update_with_current_instant(marker: &Cell<Option<CrossProcessInstant>>) {
     if marker.get().is_none() {
         marker.set(Some(CrossProcessInstant::now()))
-    }
-}
-
-/// <https://w3c.github.io/webappsec-referrer-policy/#determine-policy-for-token>
-pub(crate) fn determine_policy_for_token(token: &str) -> ReferrerPolicy {
-    match_ignore_ascii_case! { token,
-        "never" | "no-referrer" => ReferrerPolicy::NoReferrer,
-        "no-referrer-when-downgrade" => ReferrerPolicy::NoReferrerWhenDowngrade,
-        "origin" => ReferrerPolicy::Origin,
-        "same-origin" => ReferrerPolicy::SameOrigin,
-        "strict-origin" => ReferrerPolicy::StrictOrigin,
-        "default" | "strict-origin-when-cross-origin" => ReferrerPolicy::StrictOriginWhenCrossOrigin,
-        "origin-when-cross-origin" => ReferrerPolicy::OriginWhenCrossOrigin,
-        "always" | "unsafe-url" => ReferrerPolicy::UnsafeUrl,
-        _ => ReferrerPolicy::EmptyString,
     }
 }
 

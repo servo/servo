@@ -8,6 +8,7 @@ use compositing_traits::viewport_description::ViewportDescription;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
+use net_traits::ReferrerPolicy;
 use servo_config::pref;
 use style::str::HTML_SPACE_CHARACTERS;
 
@@ -17,7 +18,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::document::{Document, determine_policy_for_token};
+use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlheadelement::HTMLHeadElement;
@@ -97,28 +98,32 @@ impl HTMLMetaElement {
         // From spec: For historical reasons, unlike other standard metadata names, the processing model for referrer
         // is not responsive to element removals, and does not use tree order. Only the most-recently-inserted or
         // most-recently-modified meta element in this state has an effect.
-        // 1. If element is not in a document tree, then return.
+        // Step 1. If element is not in a document tree, then return.
         let meta_node = self.upcast::<Node>();
         if !meta_node.is_in_a_document_tree() {
             return;
         }
 
-        // 2. If element does not have a name attribute whose value is an ASCII case-insensitive match for "referrer",
-        // then return.
+        // Step 2. If element does not have a name attribute whose value is an ASCII
+        // case-insensitive match for "referrer", then return.
         if self.upcast::<Element>().get_name() != Some(atom!("referrer")) {
             return;
         }
 
-        // 3. If element does not have a content attribute, or that attribute's value is the empty string, then return.
-        let content = self
+        // Step 3. If element does not have a content attribute, or that attribute's value is the
+        // empty string, then return.
+        if let Some(content) = self
             .upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("content"));
-        if let Some(attr) = content {
-            let attr = attr.value();
-            let attr_val = attr.trim();
-            if !attr_val.is_empty() {
-                doc.set_referrer_policy(determine_policy_for_token(attr_val));
-            }
+            .get_attribute(&ns!(), &local_name!("content"))
+            .filter(|attr| !attr.value().is_empty())
+        {
+            // Step 4. Let value be the value of element's content attribute, converted to ASCII
+            // lowercase.
+            // Step 5. If value is one of the values given in the first column of the following
+            // table, then set value to the value given in the second column:
+            // Step 6. If value is a referrer policy, then set element's node document's policy
+            // container's referrer policy to policy.
+            doc.set_referrer_policy(ReferrerPolicy::from_with_legacy(&content.value()));
         }
     }
 

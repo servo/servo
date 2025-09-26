@@ -30,7 +30,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::csp::{GlobalCspReporting, Violation};
-use crate::dom::document::{Document, determine_policy_for_token};
+use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::medialist::MediaList;
@@ -100,7 +100,7 @@ impl LinkProcessingOptions {
         // Step 4. If attribs["referrerpolicy"] exists and is an ASCII case-insensitive match for
         // some referrer policy, then set options's referrer policy to that referrer policy.
         if let Some(referrer_policy) = link_object.value_for_key_in_link_header("referrerpolicy") {
-            self.referrer_policy = determine_policy_for_token(referrer_policy);
+            self.referrer_policy = ReferrerPolicy::from(referrer_policy);
         }
         // Step 5. If attribs["nonce"] exists, then set options's nonce to attribs["nonce"].
         if let Some(nonce) = link_object.value_for_key_in_link_header("nonce") {
