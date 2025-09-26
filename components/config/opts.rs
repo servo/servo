@@ -15,11 +15,6 @@ use servo_url::ServoUrl;
 /// Global flags for Servo, currently set on the command line.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Opts {
-    /// Whether or not Servo should wait for web content to go into an idle state, therefore
-    /// likely producing a stable output image. This is useful for taking screenshots of pages
-    /// after they have loaded.
-    pub wait_for_stable_image: bool,
-
     /// `None` to disable the time profiler or `Some` to enable it with:
     ///
     ///  - an interval in seconds to cause it to produce output on that interval.
@@ -167,7 +162,6 @@ pub enum OutputOptions {
 impl Default for Opts {
     fn default() -> Self {
         Self {
-            wait_for_stable_image: false,
             time_profiling: None,
             time_profiler_trace_path: None,
             nonincremental_layout: false,

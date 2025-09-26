@@ -1059,14 +1059,10 @@ impl Servo {
     pub fn execute_webdriver_command(&self, command: WebDriverCommandMsg) {
         if let WebDriverCommandMsg::TakeScreenshot(webview_id, page_rect, response_sender) = command
         {
-            let res = self
+            let img = self
                 .compositor
                 .borrow_mut()
                 .render_to_shared_memory(webview_id, page_rect);
-            if let Err(ref e) = res {
-                error!("Error retrieving PNG: {:?}", e);
-            }
-            let img = res.unwrap_or(None);
             if let Err(e) = response_sender.send(img) {
                 error!("Sending reply to create png failed ({:?}).", e);
             }

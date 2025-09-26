@@ -38,8 +38,9 @@ use canvas_traits::webgl::WebGLPipeline;
 use chrono::{DateTime, Local};
 use compositing_traits::{CrossProcessCompositorApi, PipelineExitSource};
 use constellation_traits::{
-    JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptToConstellationChan,
-    ScriptToConstellationMessage, StructuredSerializedData, WindowSizeType,
+    JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, ScreenshotReadinessResponse,
+    ScriptToConstellationChan, ScriptToConstellationMessage, StructuredSerializedData,
+    WindowSizeType,
 };
 use crossbeam_channel::unbounded;
 use data_url::mime::Mime;
@@ -1302,17 +1303,14 @@ impl ScriptThread {
         }
     }
 
-    /// If waiting for an idle `Pipeline` state in order to dump a screenshot at
-    /// the right time, inform the `Constellation` this `Pipeline` has entered
-    /// the idle state when applicable.
-    fn maybe_send_idle_document_state_to_constellation(&self) {
-        if !opts::get().wait_for_stable_image {
-            return;
-        }
+    /// If any `Pipeline`s are waiting to become ready for the purpose of taking a
+    /// screenshot, check to see if the `Pipeline` is now ready and send a message to the
+    /// Constellation, if so.
+    fn maybe_resolve_pending_screenshot_readiness_requests(&self) {
         for (_, document) in self.documents.borrow().iter() {
             document
                 .window()
-                .maybe_send_idle_document_state_to_constellation();
+                .maybe_resolve_pending_screenshot_readiness_requests();
         }
     }
 
@@ -1539,7 +1537,7 @@ impl ScriptThread {
             self.update_the_rendering(can_gc);
 
         self.maybe_fulfill_font_ready_promises(can_gc);
-        self.maybe_send_idle_document_state_to_constellation();
+        self.maybe_resolve_pending_screenshot_readiness_requests();
 
         // This must happen last to detect if any change above makes a rendering update necessary.
         self.maybe_schedule_rendering_opportunity_after_ipc_message(built_any_display_lists);
@@ -1915,6 +1913,9 @@ impl ScriptThread {
                 if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
                     document.event_handler().do_keyboard_scroll(scroll);
                 }
+            },
+            ScriptThreadMessage::RequestScreenshotReadiness(pipeline_id) => {
+                self.handle_request_screenshot_readiness(pipeline_id);
             },
         }
     }
@@ -4023,6 +4024,19 @@ impl ScriptThread {
 
     pub(crate) fn is_servo_privileged(url: ServoUrl) -> bool {
         with_script_thread(|script_thread| script_thread.privileged_urls.contains(&url))
+    }
+
+    fn handle_request_screenshot_readiness(&self, pipeline_id: PipelineId) {
+        let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
+            let _ = self.senders.pipeline_to_constellation_sender.send((
+                pipeline_id,
+                ScriptToConstellationMessage::RespondToScreenshotReadinessRequest(
+                    ScreenshotReadinessResponse::NoLongerActive,
+                ),
+            ));
+            return;
+        };
+        window.request_screenshot_readiness();
     }
 }
 

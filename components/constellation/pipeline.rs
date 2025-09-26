@@ -11,7 +11,6 @@ use background_hang_monitor::HangMonitorRegister;
 use background_hang_monitor_api::{
     BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
 };
-use base::Epoch;
 use base::generic_channel::{self, GenericReceiver, GenericSender};
 use base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, PipelineNamespaceId,
@@ -102,10 +101,6 @@ pub struct Pipeline {
 
     /// The title of this pipeline's document.
     pub title: String,
-
-    /// The last compositor [`Epoch`] that was laid out in this pipeline if "exit after load" is
-    /// enabled.
-    pub layout_epoch: Epoch,
 
     pub focus_sequence: FocusSequenceNumber,
 }
@@ -395,7 +390,6 @@ impl Pipeline {
             history_states: HashSet::new(),
             completely_loaded: false,
             title: String::new(),
-            layout_epoch: Epoch(0),
             focus_sequence: FocusSequenceNumber::default(),
         };
 

@@ -85,7 +85,7 @@
 //! See <https://github.com/servo/servo/issues/14704>
 
 use std::borrow::ToOwned;
-use std::cell::OnceCell;
+use std::cell::{Cell, OnceCell, RefCell};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::marker::PhantomData;
@@ -120,8 +120,9 @@ use constellation_traits::{
     EmbedderToConstellationMessage, IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState,
     IFrameSizeMsg, Job, LoadData, LoadOrigin, LogEntry, MessagePortMsg, NavigationHistoryBehavior,
     PaintMetricEvent, PortMessageTask, PortTransferInfo, SWManagerMsg, SWManagerSenders,
-    ScriptToConstellationChan, ScriptToConstellationMessage, ServiceWorkerManagerFactory,
-    ServiceWorkerMsg, StructuredSerializedData, TraversalDirection, WindowSizeType,
+    ScreenshotReadinessResponse, ScriptToConstellationChan, ScriptToConstellationMessage,
+    ServiceWorkerManagerFactory, ServiceWorkerMsg, StructuredSerializedData, TraversalDirection,
+    WindowSizeType,
 };
 use crossbeam_channel::{Receiver, Select, Sender, unbounded};
 use devtools_traits::{
@@ -494,6 +495,11 @@ pub struct Constellation<STF, SWF> {
     /// Pending viewport changes for browsing contexts that are not
     /// yet known to the constellation.
     pending_viewport_changes: HashMap<BrowsingContextId, ViewportDetails>,
+
+    /// Pending screenshot requests. These are collected until the screenshot is ready to
+    /// take place, at which point the Constellation informs the renderer that it can start
+    /// the process of taking the screenshot.
+    screenshot_requests: Vec<ConstellationScreenshotRequest>,
 }
 
 /// State needed to construct a constellation.
@@ -552,18 +558,6 @@ pub struct InitialConstellationState {
 
     /// The async runtime.
     pub async_runtime: Box<dyn AsyncRuntime>,
-}
-
-/// When we are running reftests, we save an image to compare against a reference.
-/// This enum gives the possible states of preparing such an image.
-#[derive(Debug, PartialEq)]
-enum ReadyToSave {
-    NoTopLevelBrowsingContext,
-    PendingChanges,
-    DocumentLoading,
-    EpochMismatch,
-    PipelineUnknown,
-    Ready,
 }
 
 /// When we are exiting a pipeline, we can either force exiting or not.
@@ -748,6 +742,7 @@ where
                         rippy_data,
                     )),
                     pending_viewport_changes: Default::default(),
+                    screenshot_requests: Vec::new(),
                 };
 
                 constellation.run();
@@ -1428,14 +1423,6 @@ where
                     NavigationHistoryBehavior::Push,
                 );
             },
-            EmbedderToConstellationMessage::IsReadyToSaveImage(pipeline_states) => {
-                let is_ready = self.handle_is_ready_to_save_image(pipeline_states);
-                debug!("Ready to save image {:?}.", is_ready);
-                self.compositor_proxy
-                    .send(CompositorMsg::IsReadyToSaveImageReply(
-                        is_ready == ReadyToSave::Ready,
-                    ));
-            },
             // Create a new top level browsing context. Will use response_chan to return
             // the browsing context id.
             EmbedderToConstellationMessage::NewWebView(url, webview_id, viewport_details) => {
@@ -1578,6 +1565,9 @@ where
                             .collect(),
                     ));
                 }
+            },
+            EmbedderToConstellationMessage::RequestScreenshotReadiness(webview_id) => {
+                self.handle_request_screenshot_readiness(webview_id)
             },
         }
     }
@@ -1838,13 +1828,6 @@ where
             ScriptToConstellationMessage::SetDocumentState(state) => {
                 self.document_states.insert(source_pipeline_id, state);
             },
-            ScriptToConstellationMessage::SetLayoutEpoch(epoch, response_sender) => {
-                if let Some(pipeline) = self.pipelines.get_mut(&source_pipeline_id) {
-                    pipeline.layout_epoch = epoch;
-                }
-
-                response_sender.send(true).unwrap_or_default();
-            },
             ScriptToConstellationMessage::LogEntry(thread_name, entry) => {
                 self.handle_log_entry(Some(webview_id), thread_name, entry);
             },
@@ -1998,6 +1981,9 @@ where
                         warn!("Could not forward {scroll:?} to {pipeline_id}: {error:?}");
                     }
                 }
+            },
+            ScriptToConstellationMessage::RespondToScreenshotReadinessRequest(response) => {
+                self.handle_screenshot_readiness_response(source_pipeline_id, response);
             },
         }
     }
@@ -3746,6 +3732,8 @@ where
                 ExitPipelineMode::Normal,
             );
         }
+
+        self.process_pending_screenshot_requests();
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -3764,19 +3752,7 @@ where
             .get(&BrowsingContextId::from(webview_id))
             .map(|ctx| ctx.pipeline_id == pipeline_id)
             .unwrap_or(false);
-        if pipeline_is_top_level_pipeline {
-            // Is there any pending pipeline that will replace the current top level pipeline
-            let current_top_level_pipeline_will_be_replaced = self
-                .pending_changes
-                .iter()
-                .any(|change| change.browsing_context_id == webview_id);
-
-            if !current_top_level_pipeline_will_be_replaced {
-                // Notify embedder and compositor top level document finished loading.
-                self.compositor_proxy
-                    .send(CompositorMsg::LoadComplete(webview_id));
-            }
-        } else {
+        if !pipeline_is_top_level_pipeline {
             self.handle_subframe_loaded(pipeline_id);
         }
     }
@@ -5011,44 +4987,48 @@ where
         debug!("{}: Document ready to activate", pipeline_id);
 
         // Find the pending change whose new pipeline id is pipeline_id.
-        let pending_index = self
+        let Some(pending_index) = self
             .pending_changes
             .iter()
-            .rposition(|change| change.new_pipeline_id == pipeline_id);
+            .rposition(|change| change.new_pipeline_id == pipeline_id)
+        else {
+            return;
+        };
 
         // If it is found, remove it from the pending changes, and make it
         // the active document of its frame.
-        if let Some(pending_index) = pending_index {
-            let change = self.pending_changes.swap_remove(pending_index);
-            // Notify the parent (if there is one).
-            let parent_pipeline_id = match change.new_browsing_context_info {
-                // This will be a new browsing context.
-                Some(ref info) => info.parent_pipeline_id,
-                // This is an existing browsing context.
-                None => match self.browsing_contexts.get(&change.browsing_context_id) {
-                    Some(ctx) => ctx.parent_pipeline_id,
-                    None => {
-                        return warn!(
-                            "{}: Activated document after closure of {}",
-                            change.new_pipeline_id, change.browsing_context_id,
-                        );
-                    },
-                },
-            };
-            if let Some(parent_pipeline_id) = parent_pipeline_id {
-                if let Some(parent_pipeline) = self.pipelines.get(&parent_pipeline_id) {
-                    let msg = ScriptThreadMessage::UpdatePipelineId(
-                        parent_pipeline_id,
-                        change.browsing_context_id,
-                        change.webview_id,
-                        pipeline_id,
-                        UpdatePipelineIdReason::Navigation,
+        let change = self.pending_changes.swap_remove(pending_index);
+
+        self.process_pending_screenshot_requests();
+
+        // Notify the parent (if there is one).
+        let parent_pipeline_id = match change.new_browsing_context_info {
+            // This will be a new browsing context.
+            Some(ref info) => info.parent_pipeline_id,
+            // This is an existing browsing context.
+            None => match self.browsing_contexts.get(&change.browsing_context_id) {
+                Some(ctx) => ctx.parent_pipeline_id,
+                None => {
+                    return warn!(
+                        "{}: Activated document after closure of {}",
+                        change.new_pipeline_id, change.browsing_context_id,
                     );
-                    let _ = parent_pipeline.event_loop.send(msg);
-                }
+                },
+            },
+        };
+        if let Some(parent_pipeline_id) = parent_pipeline_id {
+            if let Some(parent_pipeline) = self.pipelines.get(&parent_pipeline_id) {
+                let msg = ScriptThreadMessage::UpdatePipelineId(
+                    parent_pipeline_id,
+                    change.browsing_context_id,
+                    change.webview_id,
+                    pipeline_id,
+                    UpdatePipelineIdReason::Navigation,
+                );
+                let _ = parent_pipeline.event_loop.send(msg);
             }
-            self.change_session_history(change);
         }
+        self.change_session_history(change);
     }
 
     /// Called when the window is resized.
@@ -5075,88 +5055,114 @@ where
         self.switch_fullscreen_mode(browsing_context_id);
     }
 
-    /// Checks the state of all script and layout pipelines to see if they are idle
-    /// and compares the current layout state to what the compositor has. This is used
-    /// to check if the output image is "stable" and can be written as a screenshot
-    /// for reftests.
-    /// Since this function is only used in reftests, we do not harden it against panic.
     #[servo_tracing::instrument(skip_all)]
-    fn handle_is_ready_to_save_image(
-        &mut self,
-        pipeline_states: FxHashMap<PipelineId, Epoch>,
-    ) -> ReadyToSave {
-        // Note that this function can panic, due to ipc-channel creation
-        // failure. Avoiding this panic would require a mechanism for dealing
-        // with low-resource scenarios.
-        //
-        // If there is no focus browsing context yet, the initial page has
-        // not loaded, so there is nothing to save yet.
-        let Some(webview_id) = self.webviews.focused_webview().map(|(id, _)| id) else {
-            return ReadyToSave::NoTopLevelBrowsingContext;
-        };
+    fn handle_request_screenshot_readiness(&mut self, webview_id: WebViewId) {
+        self.screenshot_requests
+            .push(ConstellationScreenshotRequest {
+                webview_id,
+                pipeline_states: Default::default(),
+                state: Default::default(),
+            });
+        self.process_pending_screenshot_requests();
+    }
+
+    fn process_pending_screenshot_requests(&mut self) {
+        for screenshot_request in &self.screenshot_requests {
+            self.maybe_trigger_pending_screenshot_readiness_request(screenshot_request);
+        }
+    }
+
+    fn maybe_trigger_pending_screenshot_readiness_request(
+        &self,
+        screenshot_request: &ConstellationScreenshotRequest,
+    ) {
+        // Ignore this request if it is not pending.
+        if screenshot_request.state.get() != ScreenshotRequestState::Pending {
+            return;
+        }
 
         // If there are pending loads, wait for those to complete.
         if !self.pending_changes.is_empty() {
-            return ReadyToSave::PendingChanges;
+            return;
         }
 
-        // Step through the fully active browsing contexts, checking that the script thread is idle,
-        // and that the current epoch of the layout matches what the compositor has painted. If all
-        // these conditions are met, then the output image should not change and a reftest
-        // screenshot can safely be written.
-        for browsing_context in self.fully_active_browsing_contexts_iter(webview_id) {
-            let pipeline_id = browsing_context.pipeline_id;
-            trace!(
-                "{}: Checking readiness of {}",
-                browsing_context.id, pipeline_id
-            );
+        *screenshot_request.pipeline_states.borrow_mut() = self
+            .fully_active_browsing_contexts_iter(screenshot_request.webview_id)
+            .filter_map(|browsing_context| {
+                let pipeline_id = browsing_context.pipeline_id;
+                let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
+                    // This can happen while Servo is shutting down, so just ignore it for now.
+                    return None;
+                };
+                // If the rectangle for this BrowsingContext is zero, it will never be
+                // painted. In this case, don't query screenshot readiness as it won't
+                // contribute to the final output image.
+                if browsing_context.viewport_details.size == Size2D::zero() {
+                    return None;
+                }
+                let _ = pipeline
+                    .event_loop
+                    .send(ScriptThreadMessage::RequestScreenshotReadiness(pipeline_id));
+                Some((pipeline_id, None))
+            })
+            .collect();
+        screenshot_request
+            .state
+            .set(ScreenshotRequestState::WaitingOnScript);
+    }
 
-            let pipeline = match self.pipelines.get(&pipeline_id) {
-                None => {
-                    warn!("{}: Screenshot while closing", pipeline_id);
-                    continue;
-                },
-                Some(pipeline) => pipeline,
-            };
-
-            // See if this pipeline has reached idle script state yet.
-            match self.document_states.get(&browsing_context.pipeline_id) {
-                Some(&DocumentState::Idle) => {},
-                Some(&DocumentState::Pending) | None => {
-                    return ReadyToSave::DocumentLoading;
-                },
-            }
-
-            // Check the visible rectangle for this pipeline. If the constellation has received a
-            // size for the pipeline, then its painting should be up to date.
-            //
-            // If the rectangle for this pipeline is zero sized, it will
-            // never be painted. In this case, don't query the layout
-            // thread as it won't contribute to the final output image.
-            if browsing_context.viewport_details.size == Size2D::zero() {
-                continue;
-            }
-
-            // Get the epoch that the compositor has drawn for this pipeline and then check if the
-            // last laid out epoch matches what the compositor has drawn. If they match (and script
-            // is idle) then this pipeline won't change again and can be considered stable.
-            let compositor_epoch = pipeline_states.get(&browsing_context.pipeline_id);
-            match compositor_epoch {
-                Some(compositor_epoch) => {
-                    if pipeline.layout_epoch != *compositor_epoch {
-                        return ReadyToSave::EpochMismatch;
-                    }
-                },
-                None => {
-                    // The compositor doesn't know about this pipeline yet.
-                    // Assume it hasn't rendered yet.
-                    return ReadyToSave::PipelineUnknown;
-                },
-            }
+    #[servo_tracing::instrument(skip_all)]
+    fn handle_screenshot_readiness_response(
+        &mut self,
+        updated_pipeline_id: PipelineId,
+        response: ScreenshotReadinessResponse,
+    ) {
+        if self.screenshot_requests.is_empty() {
+            return;
         }
 
-        // All script threads are idle and layout epochs match compositor, so output image!
-        ReadyToSave::Ready
+        self.screenshot_requests.retain(|screenshot_request| {
+            if screenshot_request.state.get() != ScreenshotRequestState::WaitingOnScript {
+                return true;
+            }
+
+            let mut has_pending_pipeline = false;
+            let mut pipeline_states = screenshot_request.pipeline_states.borrow_mut();
+            pipeline_states.retain(|pipeline_id, state| {
+                if *pipeline_id != updated_pipeline_id {
+                    has_pending_pipeline |= state.is_none();
+                    return true;
+                }
+                match response {
+                    ScreenshotReadinessResponse::Ready(epoch) => {
+                        *state = Some(epoch);
+                        true
+                    },
+                    ScreenshotReadinessResponse::NoLongerActive => false,
+                }
+            });
+
+            if has_pending_pipeline {
+                return true;
+            }
+
+            let pipelines_and_epochs = pipeline_states
+                .iter()
+                .map(|(pipeline_id, epoch)| {
+                    (
+                        *pipeline_id,
+                        epoch.expect("Should have an epoch when pipeline is ready."),
+                    )
+                })
+                .collect();
+            self.compositor_proxy
+                .send(CompositorMsg::ScreenshotReadinessReponse(
+                    screenshot_request.webview_id,
+                    pipelines_and_epochs,
+                ));
+
+            false
+        });
     }
 
     /// Get the current activity of a pipeline.
@@ -5510,6 +5516,13 @@ where
         // Inform script, compositor that this pipeline has exited.
         pipeline.send_exit_message_to_script(dbc);
 
+        // TODO: Also remove the pipeline from the screenshot requests?
+        self.process_pending_screenshot_requests();
+        self.handle_screenshot_readiness_response(
+            pipeline_id,
+            ScreenshotReadinessResponse::NoLongerActive,
+        );
+
         debug!("{}: Closed", pipeline_id);
     }
 
@@ -5682,4 +5695,20 @@ where
     ) -> (Sender<ConstellationCanvasMsg>, GenericSender<CanvasMsg>) {
         CanvasPaintThread::start(self.compositor_proxy.cross_process_compositor_api.clone())
     }
+}
+
+#[derive(Clone, Copy, Default, PartialEq)]
+enum ScreenshotRequestState {
+    /// The Constellation has not yet forwarded the request to the pipelines of the
+    /// request's WebView.
+    #[default]
+    Pending,
+    /// The Constellation has forwarded the request to the pipelines of the request's
+    /// WebView.
+    WaitingOnScript,
+}
+struct ConstellationScreenshotRequest {
+    webview_id: WebViewId,
+    state: Cell<ScreenshotRequestState>,
+    pipeline_states: RefCell<FxHashMap<PipelineId, Option<Epoch>>>,
 }

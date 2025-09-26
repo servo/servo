@@ -26,8 +26,11 @@ use compositing_traits::{
 use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
-use embedder_traits::{CompositorHitTestResult, InputEvent, ShutdownState, ViewportDetails};
+use embedder_traits::{
+    CompositorHitTestResult, InputEvent, ScreenshotCaptureError, ShutdownState, ViewportDetails,
+};
 use euclid::{Point2D, Rect, Scale, Size2D, Transform3D};
+use image::RgbaImage;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use log::{debug, info, trace, warn};
 use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage};
@@ -37,7 +40,7 @@ use profile_traits::mem::{
 use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::{path, time_profile};
 use rustc_hash::{FxHashMap, FxHashSet};
-use servo_config::{opts, pref};
+use servo_config::pref;
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::CSSPixel;
 use webrender::{CaptureBits, RenderApi, Transaction};
@@ -57,26 +60,6 @@ use crate::InitialCompositorState;
 use crate::refresh_driver::RefreshDriver;
 use crate::webview_manager::WebViewManager;
 use crate::webview_renderer::{PinchZoomResult, UnknownWebView, WebViewRenderer};
-
-#[derive(Debug, PartialEq)]
-pub enum UnableToComposite {
-    NotReadyToPaintImage(NotReadyToPaint),
-}
-
-#[derive(Debug, PartialEq)]
-pub enum NotReadyToPaint {
-    JustNotifiedConstellation,
-    WaitingOnConstellation,
-}
-
-/// Holds the state when running reftests that determines when it is
-/// safe to save the output image.
-#[derive(Clone, Copy, Debug, PartialEq)]
-enum ReadyState {
-    Unknown,
-    WaitingForConstellationReply,
-    ReadyToSaveImage,
-}
 
 /// An option to control what kind of WebRender debugging is enabled while Servo is running.
 #[derive(Clone)]
@@ -125,6 +108,11 @@ pub struct ServoRenderer {
     /// arrive before requesting a new frame, as these happen asynchronously with
     /// `ScriptThread` display list construction.
     frame_delayer: FrameDelayer,
+
+    /// A vector of pending screenshots to be taken. These will be resolved once the
+    /// pages have finished loading all content and the rendering reflects the finished
+    /// state.
+    screenshot_requests: Vec<ScreenshotRequest>,
 }
 
 /// NB: Never block on the constellation, because sometimes the constellation blocks on us.
@@ -137,10 +125,6 @@ pub struct IOCompositor {
 
     /// Tracks whether or not the view needs to be repainted.
     needs_repaint: Cell<RepaintReason>,
-
-    /// Used by the logic that determines when it is safe to output an
-    /// image for the reftest framework.
-    ready_to_save_state: ReadyState,
 
     /// The webrender renderer.
     webrender: Option<webrender::Renderer>,
@@ -326,10 +310,10 @@ impl IOCompositor {
                 webxr_main_thread: state.webxr_main_thread,
                 last_mouse_move_position: None,
                 frame_delayer: Default::default(),
+                screenshot_requests: Default::default(),
             })),
             webview_renderers: WebViewManager::default(),
             needs_repaint: Cell::default(),
-            ready_to_save_state: ReadyState::Unknown,
             webrender: Some(state.webrender),
             rendering_context: state.rendering_context,
             pending_frames: Cell::new(0),
@@ -492,18 +476,6 @@ impl IOCompositor {
                 };
                 webview_renderer.on_touch_event_processed(result);
             },
-            CompositorMsg::IsReadyToSaveImageReply(is_ready) => {
-                assert_eq!(
-                    self.ready_to_save_state,
-                    ReadyState::WaitingForConstellationReply
-                );
-                if is_ready && self.pending_frames.get() == 0 {
-                    self.ready_to_save_state = ReadyState::ReadyToSaveImage;
-                } else {
-                    self.ready_to_save_state = ReadyState::Unknown;
-                }
-                self.set_needs_repaint(RepaintReason::ReadyForScreenshot);
-            },
 
             CompositorMsg::SetThrottled(webview_id, pipeline_id, throttled) => {
                 let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
@@ -530,12 +502,6 @@ impl IOCompositor {
 
             CompositorMsg::NewWebRenderFrameReady(_document_id, recomposite_needed) => {
                 self.handle_new_webrender_frame_ready(recomposite_needed);
-            },
-
-            CompositorMsg::LoadComplete(_) => {
-                if opts::get().wait_for_stable_image {
-                    self.set_needs_repaint(RepaintReason::ReadyForScreenshot);
-                }
             },
 
             CompositorMsg::SendInitialTransaction(pipeline) => {
@@ -804,6 +770,9 @@ impl IOCompositor {
                 if let Some(webview) = self.webview_renderers.get_mut(webview_id) {
                     webview.set_viewport_description(viewport_description);
                 }
+            },
+            CompositorMsg::ScreenshotReadinessReponse(webview_id, pipelines_and_epochs) => {
+                self.handle_screenshot_readiness_reply(webview_id, pipelines_and_epochs);
             },
         }
     }
@@ -1168,78 +1137,19 @@ impl IOCompositor {
             .any(WebViewRenderer::animation_callbacks_running)
     }
 
-    /// Query the constellation to see if the current compositor
-    /// output matches the current frame tree output, and if the
-    /// associated script threads are idle.
-    fn is_ready_to_paint_image_output(&mut self) -> Result<(), NotReadyToPaint> {
-        match self.ready_to_save_state {
-            ReadyState::Unknown => {
-                // Unsure if the output image is stable.
-
-                // Collect the currently painted epoch of each pipeline that is
-                // complete (i.e. has *all* layers painted to the requested epoch).
-                // This gets sent to the constellation for comparison with the current
-                // frame tree.
-                let mut pipeline_epochs = FxHashMap::default();
-                for id in self
-                    .webview_renderers
-                    .iter()
-                    .flat_map(WebViewRenderer::pipeline_ids)
-                {
-                    if let Some(WebRenderEpoch(epoch)) = self
-                        .webrender
-                        .as_ref()
-                        .and_then(|wr| wr.current_epoch(self.webrender_document(), id.into()))
-                    {
-                        let epoch = Epoch(epoch);
-                        pipeline_epochs.insert(*id, epoch);
-                    }
-                }
-
-                // Pass the pipeline/epoch states to the constellation and check
-                // if it's safe to output the image.
-                let msg = EmbedderToConstellationMessage::IsReadyToSaveImage(pipeline_epochs);
-                if let Err(e) = self.global.borrow().constellation_sender.send(msg) {
-                    warn!("Sending ready to save to constellation failed ({:?}).", e);
-                }
-                self.ready_to_save_state = ReadyState::WaitingForConstellationReply;
-                Err(NotReadyToPaint::JustNotifiedConstellation)
-            },
-            ReadyState::WaitingForConstellationReply => {
-                // If waiting on a reply from the constellation to the last
-                // query if the image is stable, then assume not ready yet.
-                Err(NotReadyToPaint::WaitingOnConstellation)
-            },
-            ReadyState::ReadyToSaveImage => {
-                // Constellation has replied at some point in the past
-                // that the current output image is stable and ready
-                // for saving.
-                // Reset the flag so that we check again in the future
-                // TODO: only reset this if we load a new document?
-                self.ready_to_save_state = ReadyState::Unknown;
-                Ok(())
-            },
-        }
-    }
-
     /// Render the WebRender scene to the active `RenderingContext`. If successful, trigger
     /// the next round of animations.
-    pub fn render(&mut self) -> bool {
+    pub fn render(&mut self) {
         self.global
             .borrow()
             .refresh_driver
             .notify_will_paint(self.webview_renderers.iter());
 
-        if let Err(error) = self.render_inner() {
-            warn!("Unable to render: {error:?}");
-            return false;
-        }
+        self.render_inner();
 
         // We've painted the default target, which means that from the embedder's perspective,
         // the scene no longer needs to be repainted.
         self.needs_repaint.set(RepaintReason::empty());
-
-        true
     }
 
     /// Render the WebRender scene to the shared memory, without updating other state of this
@@ -1248,8 +1158,8 @@ impl IOCompositor {
         &mut self,
         webview_id: WebViewId,
         page_rect: Option<Rect<f32, CSSPixel>>,
-    ) -> Result<Option<RasterImage>, UnableToComposite> {
-        self.render_inner()?;
+    ) -> Option<RasterImage> {
+        self.render_inner();
 
         let size = self.rendering_context.size2d().to_i32();
         let rect = if let Some(rect) = page_rect {
@@ -1272,8 +1182,7 @@ impl IOCompositor {
             DeviceIntRect::from_origin_and_size(Point2D::origin(), size)
         };
 
-        Ok(self
-            .rendering_context
+        self.rendering_context
             .read_to_image(rect)
             .map(|image| RasterImage {
                 metadata: ImageMetadata {
@@ -1290,11 +1199,11 @@ impl IOCompositor {
                 bytes: ipc::IpcSharedMemory::from_bytes(&image),
                 id: None,
                 cors_status: CorsStatus::Safe,
-            }))
+            })
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn render_inner(&mut self) -> Result<(), UnableToComposite> {
+    fn render_inner(&mut self) {
         if let Err(err) = self.rendering_context.make_current() {
             warn!("Failed to make the rendering context current: {:?}", err);
         }
@@ -1302,12 +1211,6 @@ impl IOCompositor {
 
         if let Some(webrender) = self.webrender.as_mut() {
             webrender.update();
-        }
-
-        if opts::get().wait_for_stable_image {
-            if let Err(result) = self.is_ready_to_paint_image_output() {
-                return Err(UnableToComposite::NotReadyToPaintImage(result));
-            }
         }
 
         self.rendering_context.prepare_for_rendering();
@@ -1331,7 +1234,7 @@ impl IOCompositor {
         );
 
         self.send_pending_paint_metrics_messages_after_composite();
-        Ok(())
+        self.create_screenshots_after_paint();
     }
 
     /// Send all pending paint metrics messages after a composite operation, which may advance
@@ -1675,6 +1578,85 @@ impl IOCompositor {
             self.set_needs_repaint(RepaintReason::NewWebRenderFrame);
         }
     }
+
+    pub fn request_screenshot(
+        &self,
+        webview_id: WebViewId,
+        callback: Box<dyn FnOnce(Result<RgbaImage, ScreenshotCaptureError>) + 'static>,
+    ) {
+        let mut global = self.global.borrow_mut();
+        global.screenshot_requests.push(ScreenshotRequest {
+            webview_id,
+            state: ScreenshotRequestState::WaitingOnConstellation,
+            callback,
+        });
+        let _ = global.constellation_sender.send(
+            EmbedderToConstellationMessage::RequestScreenshotReadiness(webview_id),
+        );
+    }
+
+    fn handle_screenshot_readiness_reply(
+        &self,
+        webview_id: WebViewId,
+        expected_epochs: FxHashMap<PipelineId, Epoch>,
+    ) {
+        let mut global = self.global.borrow_mut();
+        let expected_epochs = Rc::new(expected_epochs);
+
+        let mut any_became_ready = false;
+        for screenshot_request in global.screenshot_requests.iter_mut() {
+            if screenshot_request.webview_id != webview_id ||
+                screenshot_request.state != ScreenshotRequestState::WaitingOnConstellation
+            {
+                continue;
+            }
+            screenshot_request.state =
+                ScreenshotRequestState::WaitingOnWebRender(expected_epochs.clone());
+            any_became_ready = true;
+        }
+
+        if any_became_ready {
+            self.set_needs_repaint(RepaintReason::ReadyForScreenshot);
+        }
+    }
+
+    fn create_screenshots_after_paint(&self) {
+        let mut global = self.global.borrow_mut();
+        if global.screenshot_requests.is_empty() {
+            return;
+        }
+
+        let document_id = global.webrender_document;
+        let Some(webrender) = self.webrender.as_ref() else {
+            return;
+        };
+
+        // TODO: This can eventually just be `extract_if`. We need to have ownership
+        // of the ScreenshotRequest in order to call the `FnOnce` callabck.
+        let screenshots = global.screenshot_requests.drain(..);
+        global.screenshot_requests = screenshots
+            .filter_map(|screenshot_request| {
+                if !screenshot_request.screenshot_ready(webrender, &document_id) {
+                    return Some(screenshot_request);
+                }
+
+                let callback = screenshot_request.callback;
+                let Some(webview_renderer) =
+                    self.webview_renderers.get(screenshot_request.webview_id)
+                else {
+                    callback(Err(ScreenshotCaptureError::WebViewDoesNotExist));
+                    return None;
+                };
+
+                let result = self
+                    .rendering_context
+                    .read_to_image(webview_renderer.rect.to_i32())
+                    .ok_or(ScreenshotCaptureError::CouldNotReadImage);
+                callback(result);
+                None
+            })
+            .collect();
+    }
 }
 
 /// A struct that is reponsible for delaying frame requests until all new canvas images
@@ -1748,5 +1730,34 @@ impl FrameDelayer {
 
     fn take_waiting_pipelines(&mut self) -> Vec<PipelineId> {
         self.waiting_pipelines.drain().collect()
+    }
+}
+
+struct ScreenshotRequest {
+    webview_id: WebViewId,
+    state: ScreenshotRequestState,
+    callback: Box<dyn FnOnce(Result<RgbaImage, ScreenshotCaptureError>) + 'static>,
+}
+
+#[derive(PartialEq)]
+enum ScreenshotRequestState {
+    WaitingOnConstellation,
+    WaitingOnWebRender(Rc<FxHashMap<PipelineId, Epoch>>),
+}
+
+impl ScreenshotRequest {
+    fn screenshot_ready(&self, webrender: &webrender::Renderer, &document_id: &DocumentId) -> bool {
+        let ScreenshotRequestState::WaitingOnWebRender(pipelines_and_epochs) = &self.state else {
+            return false;
+        };
+        pipelines_and_epochs
+            .iter()
+            .all(|(pipeline_id, necessary_epoch)| {
+                webrender
+                    .current_epoch(document_id, pipeline_id.into())
+                    .is_some_and(|rendered_epoch| {
+                        rendered_epoch >= WebRenderEpoch(necessary_epoch.0)
+                    })
+            })
     }
 }

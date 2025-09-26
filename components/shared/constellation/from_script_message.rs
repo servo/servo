@@ -501,6 +501,16 @@ pub enum KeyboardScroll {
     End,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub enum ScreenshotReadinessResponse {
+    /// The Pipeline associated with this response, is ready for a screenshot at the
+    /// provided [`Epoch`].
+    Ready(Epoch),
+    /// The Pipeline associated with this response is no longer active and should be
+    /// ignored for the purposes of the screenshot.
+    NoLongerActive,
+}
+
 /// Messages from the script to the constellation.
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum ScriptToConstellationMessage {
@@ -641,8 +651,6 @@ pub enum ScriptToConstellationMessage {
     ActivateDocument,
     /// Set the document state for a pipeline (used by screenshot / reftests)
     SetDocumentState(DocumentState),
-    /// Update the layout epoch in the constellation (used by screenshot / reftests).
-    SetLayoutEpoch(Epoch, IpcSender<bool>),
     /// Update the pipeline Url, which can change after redirections.
     SetFinalUrl(ServoUrl),
     /// Script has handled a touch event, and either prevented or allowed default actions.
@@ -688,6 +696,8 @@ pub enum ScriptToConstellationMessage {
     WebDriverInputComplete(WebDriverMessageId),
     /// Forward a keyboard scroll operation from an `<iframe>` to a parent pipeline.
     ForwardKeyboardScroll(PipelineId, KeyboardScroll),
+    /// Notify the Constellation of the screenshot readiness of a given pipeline.
+    RespondToScreenshotReadinessRequest(ScreenshotReadinessResponse),
 }
 
 impl fmt::Debug for ScriptToConstellationMessage {

@@ -471,6 +471,11 @@ impl Window {
                 );
             })
             .shortcut(CMD_OR_CONTROL, 'Q', || state.servo().start_shutting_down())
+            .shortcut(Modifiers::empty(), 'P', || {
+                focused_webview.take_screenshot(|image| {
+                    println!("Done taking screenshot: {:?}", image.is_ok());
+                });
+            })
             .otherwise(|| handled = false);
         handled
     }

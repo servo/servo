@@ -85,6 +85,7 @@ euclid = { workspace = true }
 fonts = { path = "../fonts" }
 gleam = { workspace = true }
 gstreamer = { workspace = true, optional = true }
+image = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 layout = { path = "../layout" }

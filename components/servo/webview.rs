@@ -14,9 +14,11 @@ use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
     Cursor, Image, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus,
-    MediaSessionActionType, ScreenGeometry, Theme, TraversalId, ViewportDetails,
+    MediaSessionActionType, ScreenGeometry, ScreenshotCaptureError, Theme, TraversalId,
+    ViewportDetails,
 };
 use euclid::{Point2D, Scale, Size2D};
+use image::RgbaImage;
 use servo_geometry::DeviceIndependentPixel;
 use url::Url;
 use webrender_api::ScrollLocation;
@@ -560,11 +562,9 @@ impl WebView {
             ));
     }
 
-    /// Paint the contents of this [`WebView`] into its `RenderingContext`. This will
-    /// always paint, unless the `Opts::wait_for_stable_image` option is enabled. In
-    /// that case, this might do nothing. Returns true if a paint was actually performed.
-    pub fn paint(&self) -> bool {
-        self.inner().compositor.borrow_mut().render()
+    /// Paint the contents of this [`WebView`] into its `RenderingContext`.
+    pub fn paint(&self) {
+        self.inner().compositor.borrow_mut().render();
     }
 
     /// Evaluate the specified string of JavaScript code. Once execution is complete or an error
@@ -579,6 +579,16 @@ impl WebView {
             script.to_string(),
             Box::new(callback),
         );
+    }
+
+    pub fn take_screenshot(
+        &self,
+        callback: impl FnOnce(Result<RgbaImage, ScreenshotCaptureError>) + 'static,
+    ) {
+        self.inner()
+            .compositor
+            .borrow()
+            .request_screenshot(self.id(), Box::new(callback));
     }
 }
 

@@ -50,7 +50,6 @@ mod from_compositor {
         fn log_target(&self) -> &'static str {
             match self {
                 Self::Exit => target!("Exit"),
-                Self::IsReadyToSaveImage(..) => target!("IsReadyToSaveImage"),
                 Self::AllowNavigationResponse(..) => target!("AllowNavigationResponse"),
                 Self::LoadUrl(..) => target!("LoadUrl"),
                 Self::ClearCache => target!("ClearCache"),
@@ -82,6 +81,7 @@ mod from_compositor {
                 Self::NoLongerWaitingOnAsynchronousImageUpdates(..) => {
                     target!("NoLongerWaitingOnCanvas")
                 },
+                Self::RequestScreenshotReadiness(..) => target!("RequestScreenshotReadiness"),
             }
         }
     }
@@ -163,7 +163,6 @@ mod from_script {
                 Self::CreateAuxiliaryWebView(..) => target!("ScriptNewAuxiliary"),
                 Self::ActivateDocument => target!("ActivateDocument"),
                 Self::SetDocumentState(..) => target!("SetDocumentState"),
-                Self::SetLayoutEpoch(..) => target!("SetLayoutEpoch"),
                 Self::SetFinalUrl(..) => target!("SetFinalUrl"),
                 Self::TouchEventProcessed(..) => target!("TouchEventProcessed"),
                 Self::LogEntry(..) => target!("LogEntry"),
@@ -183,6 +182,9 @@ mod from_script {
                 Self::WebDriverInputComplete(..) => target!("WebDriverInputComplete"),
                 Self::FinishJavaScriptEvaluation(..) => target!("FinishJavaScriptEvaluation"),
                 Self::ForwardKeyboardScroll(..) => target!("ForwardKeyboardScroll"),
+                Self::RespondToScreenshotReadinessRequest(..) => {
+                    target!("RespondToScreenshotReadinessRequest")
+                },
             }
         }
     }
