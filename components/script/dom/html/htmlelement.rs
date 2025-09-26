@@ -377,6 +377,8 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             return None;
         }
 
+        #[allow(clippy::mutable_key_type)]
+        // See `impl Hash for DOMString`.
         let mut item_attr_values = HashSet::new();
         for attr_value in &atoms {
             item_attr_values.insert(DOMString::from(String::from(attr_value.trim())));
@@ -395,6 +397,8 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             return None;
         }
 
+        #[allow(clippy::mutable_key_type)]
+        // See `impl Hash for DOMString`.
         let mut item_attr_values = HashSet::new();
         for attr_value in &atoms {
             item_attr_values.insert(DOMString::from(String::from(attr_value.trim())));

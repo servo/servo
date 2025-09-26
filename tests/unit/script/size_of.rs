@@ -35,5 +35,5 @@ sizeof_checker!(size_element, Element, 344);
 sizeof_checker!(size_htmlelement, HTMLElement, 360);
 sizeof_checker!(size_div, HTMLDivElement, 360);
 sizeof_checker!(size_span, HTMLSpanElement, 360);
-sizeof_checker!(size_text, Text, 200);
-sizeof_checker!(size_characterdata, CharacterData, 200);
+sizeof_checker!(size_text, Text, 232);
+sizeof_checker!(size_characterdata, CharacterData, 232);

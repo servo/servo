@@ -35,7 +35,7 @@ use xml5ever::tree_builder::{Tracer as XmlTracer, XmlTreeBuilder};
 use crate::JSTraceable;
 use crate::error::Error;
 use crate::reflector::Reflector;
-use crate::str::{DOMString, USVString};
+use crate::str::USVString;
 
 /// Trace the `JSObject` held by `reflector`.
 ///
@@ -82,7 +82,6 @@ macro_rules! unsafe_no_jsmanaged_fields(
     );
 );
 
-unsafe_no_jsmanaged_fields!(DOMString);
 unsafe_no_jsmanaged_fields!(USVString);
 unsafe_no_jsmanaged_fields!(Error);
 
