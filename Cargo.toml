@@ -28,6 +28,7 @@ aes-kw = { version = "0.2.1", features = ["alloc"] }
 app_units = "0.7"
 arboard = "3"
 arrayvec = "0.7"
+ascii = "1.1.0"
 async-tungstenite = { version = "0.29", features = ["tokio-rustls-webpki-roots"] }
 atomic_refcell = "0.1.13"
 aws-lc-rs = { version = "1.14", default-features = false, features = ["aws-lc-sys"] }
