@@ -617,7 +617,7 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
     let promise = Promise::new_in_current_realm(comp, can_gc);
 
     // If object is unusable, then return a promise rejected with a TypeError.
-    if object.is_disturbed() || object.is_locked() {
+    if object.is_unusable() {
         promise.reject_error(
             Error::Type("The body's stream is disturbed or locked".to_string()),
             can_gc,
@@ -874,12 +874,12 @@ pub(crate) fn decode_to_utf16_with_bom_removal(
 
 /// <https://fetch.spec.whatwg.org/#body>
 pub(crate) trait BodyMixin {
-    /// <https://fetch.spec.whatwg.org/#concept-body-disturbed>
-    fn is_disturbed(&self) -> bool;
+    /// <https://fetch.spec.whatwg.org/#dom-body-bodyused>
+    fn is_body_used(&self) -> bool;
+    /// <https://fetch.spec.whatwg.org/#body-unusable>
+    fn is_unusable(&self) -> bool;
     /// <https://fetch.spec.whatwg.org/#dom-body-body>
     fn body(&self) -> Option<DomRoot<ReadableStream>>;
-    /// <https://fetch.spec.whatwg.org/#concept-body-locked>
-    fn is_locked(&self) -> bool;
     /// <https://fetch.spec.whatwg.org/#concept-body-mime-type>
     fn get_mime_type(&self, can_gc: CanGc) -> Vec<u8>;
 }

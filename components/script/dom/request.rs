@@ -111,6 +111,9 @@ impl Request {
         // Step 4. Let signal be null.
         let mut signal: Option<DomRoot<AbortSignal>> = None;
 
+        // Required later for step 41.1
+        let mut input_body_is_unusable = false;
+
         match input {
             // Step 5. If input is a string, then:
             RequestInfo::USVString(USVString(ref usv_string)) => {
@@ -133,11 +136,8 @@ impl Request {
             // Step 6. Otherwise:
             // Step 6.1. Assert: input is a Request object.
             RequestInfo::Request(ref input_request) => {
-                // This looks like Step 38
-                // TODO do this in the right place to not mask other errors
-                if request_is_disturbed(input_request) || request_is_locked(input_request) {
-                    return Err(Error::Type("Input is disturbed or locked".to_string()));
-                }
+                // Preparation for step 41.1
+                input_body_is_unusable = input_request.is_unusable();
                 // Step 6.2. Set request to input’s request.
                 temporary_request = input_request.request.borrow().clone();
                 // Step 6.3. Set signal to input’s signal.
@@ -419,8 +419,9 @@ impl Request {
         r.request.borrow_mut().headers = r.Headers(can_gc).get_headers_list();
 
         // Step 34. Let inputBody be input’s request’s body if input is a Request object; otherwise null.
-        let mut input_body = if let RequestInfo::Request(ref mut input_request) = input {
+        let input_body = if let RequestInfo::Request(ref mut input_request) = input {
             let mut input_request_request = input_request.request.borrow_mut();
+            r.body_stream.set(input_request.body().as_deref());
             input_request_request.body.take()
         } else {
             None
@@ -428,37 +429,33 @@ impl Request {
 
         // Step 35. If either init["body"] exists and is non-null or inputBody is non-null,
         // and request’s method is `GET` or `HEAD`, then throw a TypeError.
-        if let Some(init_body_option) = init.body.as_ref() {
-            if init_body_option.is_some() || input_body.is_some() {
-                let req = r.request.borrow();
-                let req_method = &req.method;
-                match *req_method {
-                    HttpMethod::GET => {
-                        return Err(Error::Type(
-                            "Init's body is non-null, and request method is GET".to_string(),
-                        ));
-                    },
-                    HttpMethod::HEAD => {
-                        return Err(Error::Type(
-                            "Init's body is non-null, and request method is HEAD".to_string(),
-                        ));
-                    },
-                    _ => {},
-                }
+        if init.body.as_ref().is_some_and(|body| body.is_some()) || input_body.is_some() {
+            let req = r.request.borrow();
+            let req_method = &req.method;
+            match *req_method {
+                HttpMethod::GET => {
+                    return Err(Error::Type(
+                        "Init's body is non-null, and request method is GET".to_string(),
+                    ));
+                },
+                HttpMethod::HEAD => {
+                    return Err(Error::Type(
+                        "Init's body is non-null, and request method is HEAD".to_string(),
+                    ));
+                },
+                _ => {},
             }
         }
 
         // Step 36. Let initBody be null.
+        let mut init_body = None;
         // Step 37. If init["body"] exists and is non-null, then:
-        if let Some(Some(ref init_body)) = init.body {
+        if let Some(Some(ref input_init_body)) = init.body {
             // Step 37.1. Let bodyWithType be the result of extracting init["body"], with keepalive set to request’s keepalive.
-            // TODO
-
-            // Step 37.2. Set initBody to bodyWithType’s body.
-            let mut extracted_body = init_body.extract(global, can_gc)?;
+            let mut body_with_type = input_init_body.extract(global, can_gc)?;
 
             // Step 37.3. Let type be bodyWithType’s type.
-            if let Some(contents) = extracted_body.content_type.take() {
+            if let Some(contents) = body_with_type.content_type.take() {
                 let ct_header_name = b"Content-Type";
                 // Step 37.4. If type is non-null and this’s headers’s header list
                 // does not contain `Content-Type`, then append (`Content-Type`, type) to this’s headers.
@@ -485,31 +482,52 @@ impl Request {
                 }
             }
 
-            let (net_body, stream) = extracted_body.into_net_request_body();
+            // Step 37.2. Set initBody to bodyWithType’s body.
+            let (net_body, stream) = body_with_type.into_net_request_body();
             r.body_stream.set(Some(&*stream));
-            input_body = Some(net_body);
+            init_body = Some(net_body);
         }
 
         // Step 38. Let inputOrInitBody be initBody if it is non-null; otherwise inputBody.
+        // Step 40. Let finalBody be inputOrInitBody.
+        // Step 41.2. Set finalBody to the result of creating a proxy for inputBody.
+        //
+        // There are multiple reassignments to similar values. In the end, all end up as
+        // final_body. Therefore, final_body is equivalent to inputOrInitBody
+        let final_body = init_body.or(input_body);
 
         // Step 39. If inputOrInitBody is non-null and inputOrInitBody’s source is null, then:
-        // TODO
-        // This looks like where we need to set the use-preflight flag
-        // if the request has a body and nothing else has set the flag.
-
-        // Step 40. Let finalBody be inputOrInitBody.
-        //
-        // is done earlier
+        if final_body
+            .as_ref()
+            .is_some_and(|body| body.source_is_null())
+        {
+            // Step 39.1. If initBody is non-null and init["duplex"] does not exist, then throw a TypeError.
+            // TODO
+            // Step 39.2. If this’s request’s mode is neither "same-origin" nor "cors", then throw a TypeError.
+            let request_mode = &r.request.borrow().mode;
+            if *request_mode != NetTraitsRequestMode::CorsMode &&
+                *request_mode != NetTraitsRequestMode::SameOrigin
+            {
+                return Err(Error::Type(
+                    "Request mode must be Cors or SameOrigin".to_string(),
+                ));
+            }
+            // Step 39.3. Set this’s request’s use-CORS-preflight flag.
+            // TODO
+        }
 
         // Step 41. If initBody is null and inputBody is non-null, then:
-        // TODO
-        // Step 41.1. If input is unusable, then throw a TypeError.
-        // TODO
-        // Step 41.2. Set finalBody to the result of creating a proxy for inputBody.
-        // TODO
+        // Step 41.1. If inputBody is unusable, then throw a TypeError.
+        //
+        // We only perform this check on input_body. However, we already
+        // processed the input body. Therefore, we check it all the way
+        // above and throw the error at the last possible moment
+        if input_body_is_unusable {
+            return Err(Error::Type("Input body is unusable".to_string()));
+        }
 
         // Step 42. Set this’s request’s body to finalBody.
-        r.request.borrow_mut().body = input_body;
+        r.request.borrow_mut().body = final_body;
 
         Ok(r)
     }
@@ -580,16 +598,6 @@ fn is_cors_safelisted_method(m: &HttpMethod) -> bool {
 // https://url.spec.whatwg.org/#include-credentials
 fn includes_credentials(input: &ServoUrl) -> bool {
     !input.username().is_empty() || input.password().is_some()
-}
-
-// https://fetch.spec.whatwg.org/#concept-body-disturbed
-fn request_is_disturbed(input: &Request) -> bool {
-    input.is_disturbed()
-}
-
-// https://fetch.spec.whatwg.org/#concept-body-locked
-fn request_is_locked(input: &Request) -> bool {
-    input.is_locked()
 }
 
 impl RequestMethods<crate::DomTypeHolder> for Request {
@@ -681,7 +689,7 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
 
     // https://fetch.spec.whatwg.org/#dom-body-bodyused
     fn BodyUsed(&self) -> bool {
-        self.is_disturbed()
+        self.is_body_used()
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-request-signal>
@@ -694,11 +702,8 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
     // https://fetch.spec.whatwg.org/#dom-request-clone
     fn Clone(&self, can_gc: CanGc) -> Fallible<DomRoot<Request>> {
         // Step 1. If this is unusable, then throw a TypeError.
-        if request_is_locked(self) {
-            return Err(Error::Type("Request is locked".to_string()));
-        }
-        if request_is_disturbed(self) {
-            return Err(Error::Type("Request is disturbed".to_string()));
+        if self.is_unusable() {
+            return Err(Error::Type("Request is unusable".to_string()));
         }
 
         // Step 2. Let clonedRequest be the result of cloning this’s request.
@@ -750,16 +755,18 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
 }
 
 impl BodyMixin for Request {
-    fn is_disturbed(&self) -> bool {
+    fn is_body_used(&self) -> bool {
         let body_stream = self.body_stream.get();
         body_stream
             .as_ref()
             .is_some_and(|stream| stream.is_disturbed())
     }
 
-    fn is_locked(&self) -> bool {
+    fn is_unusable(&self) -> bool {
         let body_stream = self.body_stream.get();
-        body_stream.is_some_and(|stream| stream.is_locked())
+        body_stream
+            .as_ref()
+            .is_some_and(|stream| stream.is_disturbed() || stream.is_locked())
     }
 
     fn body(&self) -> Option<DomRoot<ReadableStream>> {

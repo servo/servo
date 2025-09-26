@@ -59,7 +59,6 @@ use script_bindings::script_runtime::{mark_runtime_dead, runtime_is_alive};
 use servo_config::{opts, pref};
 use style::thread_state::{self, ThreadState};
 
-use crate::body::BodyMixin;
 use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::Response_Binding::ResponseMethods;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
