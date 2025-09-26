@@ -144,7 +144,7 @@ pub enum WebDriverCommandMsg {
     TakeScreenshot(
         WebViewId,
         Option<Rect<f32, CSSPixel>>,
-        IpcSender<Option<RasterImage>>,
+        IpcSender<Result<Option<RasterImage>, ()>>,
     ),
     /// Create a new webview that loads about:blank. The embedder will use
     /// the provided channels to return the top level browsing context id
