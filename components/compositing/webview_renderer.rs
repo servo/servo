@@ -21,7 +21,7 @@ use embedder_traits::{
 use euclid::{Point2D, Scale, Vector2D};
 use log::{debug, warn};
 use malloc_size_of::MallocSizeOf;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::{CSSPixel, PinchZoomFactor};
 use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint, DeviceRect, LayoutVector2D};
@@ -180,8 +180,6 @@ impl WebViewRenderer {
         }
 
         self.set_frame_tree_on_pipeline_details(frame_tree, None);
-        self.reset_scroll_tree_for_unattached_pipelines(frame_tree);
-        self.send_scroll_positions_to_layout_for_pipeline(pipeline_id);
     }
 
     pub(crate) fn send_scroll_positions_to_layout_for_pipeline(&self, pipeline_id: PipelineId) {
@@ -217,32 +215,6 @@ impl WebViewRenderer {
         for kid in &frame_tree.children {
             self.set_frame_tree_on_pipeline_details(kid, Some(pipeline_id));
         }
-    }
-
-    pub(crate) fn reset_scroll_tree_for_unattached_pipelines(
-        &mut self,
-        frame_tree: &SendableFrameTree,
-    ) {
-        // TODO(mrobinson): Eventually this can selectively preserve the scroll trees
-        // state for some unattached pipelines in order to preserve scroll position when
-        // navigating backward and forward.
-        fn collect_pipelines(
-            pipelines: &mut FxHashSet<PipelineId>,
-            frame_tree: &SendableFrameTree,
-        ) {
-            pipelines.insert(frame_tree.pipeline.id);
-            for kid in &frame_tree.children {
-                collect_pipelines(pipelines, kid);
-            }
-        }
-
-        let mut attached_pipelines: FxHashSet<PipelineId> = FxHashSet::default();
-        collect_pipelines(&mut attached_pipelines, frame_tree);
-
-        self.pipelines
-            .iter_mut()
-            .filter(|(id, _)| !attached_pipelines.contains(id))
-            .for_each(|(_, details)| details.scroll_tree.reset_all_scroll_offsets());
     }
 
     /// Sets or unsets the animations-running flag for the given pipeline. Returns
