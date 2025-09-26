@@ -132,7 +132,7 @@ pub struct IOCompositor {
     /// The [`RenderingContext`] instance that webrender targets, which is the viewport.
     rendering_context: Rc<dyn RenderingContext>,
 
-    next_frame_id: Cell<u64>,
+    pending_frames: Cell<u64>,
     current_frame: Cell<u64>,
 
     /// A handle to the memory profiler which will automatically unregister
@@ -319,7 +319,7 @@ impl IOCompositor {
             needs_repaint: Cell::default(),
             webrender: Some(state.webrender),
             rendering_context: state.rendering_context,
-            next_frame_id: Default::default(),
+            pending_frames: Default::default(),
             current_frame: Default::default(),
             _mem_profiler_registration: registration,
         };
@@ -504,8 +504,8 @@ impl IOCompositor {
                 }
             },
 
-            CompositorMsg::NewWebRenderFrameReady(_document_id, _, recomposite_needed) => {
-                self.handle_new_webrender_frame_ready(recomposite_needed);
+            CompositorMsg::NewWebRenderFrameReady(..) => {
+                unreachable!("New WebRender frames should be handled in the caller.");
             },
 
             CompositorMsg::SendInitialTransaction(pipeline) => {
@@ -847,9 +847,8 @@ impl IOCompositor {
 
     /// Queue a new frame in the transaction and increase the pending frames count.
     pub(crate) fn generate_frame(&self, transaction: &mut Transaction, reason: RenderReasons) {
-        let next_frame_id = self.next_frame_id.get();
-        transaction.generate_frame(next_frame_id, true /* present */, reason);
-        self.next_frame_id.set(next_frame_id);
+        transaction.generate_frame(0, true /* present */, reason);
+        self.pending_frames.set(self.pending_frames.get() + 1);
     }
 
     /// Set the root pipeline for our WebRender scene to a display list that consists of an iframe
@@ -1238,7 +1237,7 @@ impl IOCompositor {
         );
 
         self.send_pending_paint_metrics_messages_after_composite();
-        self.create_screenshots_after_paint();
+        self.maybe_take_screenshots();
     }
 
     /// Send all pending paint metrics messages after a composite operation, which may advance
@@ -1349,17 +1348,12 @@ impl IOCompositor {
 
     #[servo_tracing::instrument(skip_all)]
     pub fn handle_messages(&mut self, mut messages: Vec<CompositorMsg>) {
-        // Check for new messages coming from the other threads in the system.
-        let mut found_recomposite_msg = false;
+        let mut repaint_needed = false;
         messages.retain(|message| match message {
-            CompositorMsg::NewWebRenderFrameReady(_, frame_id, _) if found_recomposite_msg => {
-                self.current_frame.set(*frame_id);
+            CompositorMsg::NewWebRenderFrameReady(_, need_recomposite) => {
+                self.pending_frames.set(self.pending_frames.get() - 1);
+                repaint_needed |= need_recomposite;
                 false
-            },
-            CompositorMsg::NewWebRenderFrameReady(_, frame_id, _) => {
-                self.current_frame.set(*frame_id);
-                found_recomposite_msg = true;
-                true
             },
             _ => true,
         });
@@ -1370,6 +1364,8 @@ impl IOCompositor {
                 return;
             }
         }
+
+        self.handle_new_webrender_frame_ready(repaint_needed);
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -1577,6 +1573,9 @@ impl IOCompositor {
         if recomposite_needed || self.animation_callbacks_running() {
             self.set_needs_repaint(RepaintReason::NewWebRenderFrame);
         }
+        if !recomposite_needed {
+            self.maybe_trigger_paint_for_screenshot();
+        }
     }
 
     pub fn request_screenshot(
@@ -1624,7 +1623,6 @@ impl IOCompositor {
 
     fn prepare_screenshot_requests_for_render(&self) -> bool {
         let mut global = self.global.borrow_mut();
-        let next_frame_id = self.next_frame_id.get();
         let mut any_became_ready = false;
 
         for screenshot_request in global.screenshot_requests.iter_mut() {
@@ -1638,28 +1636,44 @@ impl IOCompositor {
             };
 
             let ready = pipelines.iter().all(|(pipeline_id, expected_epoch)| {
-                let Some(epoch) = webview
+                webview
                     .pipelines
                     .get(pipeline_id)
                     .and_then(|pipeline| pipeline.display_list_epoch)
-                else {
-                    return false;
-                };
-                epoch >= *expected_epoch
+                    .is_some_and(|epoch| epoch >= *expected_epoch)
             });
 
             if !ready {
                 continue;
             }
 
-            screenshot_request.state = ScreenshotRequestState::WaitingOnFrame(next_frame_id);
+            screenshot_request.state = ScreenshotRequestState::WaitingOnFrame(0);
             any_became_ready = true;
         }
 
         any_became_ready
     }
 
-    fn create_screenshots_after_paint(&self) {
+    fn maybe_trigger_paint_for_screenshot(&self) {
+        if self.pending_frames.get() != 0 {
+            return;
+        }
+        if self
+            .global
+            .borrow()
+            .screenshot_requests
+            .iter()
+            .any(|screenshot_request| screenshot_request.screenshot_ready(self.current_frame.get()))
+        {
+            self.set_needs_repaint(RepaintReason::ReadyForScreenshot);
+        }
+    }
+
+    fn maybe_take_screenshots(&self) {
+        if self.pending_frames.get() != 0 {
+            return;
+        }
+
         let mut global = self.global.borrow_mut();
         if global.screenshot_requests.is_empty() {
             return;
