@@ -218,6 +218,31 @@ impl Response {
         }
     }
 
+    pub fn set_network_error(&mut self, e: NetworkError) {
+        let timing = self.resource_timing.clone();
+        let aborted = self.aborted.clone();
+        *self = Response {
+            response_type: ResponseType::Error(e),
+            termination_reason: None,
+            url: None,
+            url_list: vec![],
+            status: HttpStatus::new_error(),
+            headers: HeaderMap::new(),
+            body: Arc::new(Mutex::new(ResponseBody::Empty)),
+            cache_state: CacheState::None,
+            https_state: HttpsState::None,
+            referrer: None,
+            referrer_policy: ReferrerPolicy::EmptyString,
+            cors_exposed_header_name_list: vec![],
+            location_url: None,
+            internal_response: None,
+            return_internal: true,
+            aborted,
+            resource_timing: timing,
+            range_requested: false,
+        };
+    }
+
     pub fn to_actual(self) -> Response {
         if self.return_internal && self.internal_response.is_some() {
             *self.internal_response.unwrap()
