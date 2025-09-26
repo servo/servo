@@ -95,7 +95,7 @@ impl PlatformFontMethods for PlatformFont {
         font_identifier: LocalFontIdentifier,
         requested_size: Option<Au>,
         variations: &[FontVariation],
-        synthetic_bold: Option<bool>
+        synthetic_bold: Option<bool>,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
         let filename = CString::new(&*font_identifier.path).expect("filename contains NUL byte!");
@@ -418,7 +418,9 @@ impl std::fmt::Debug for FreeTypeFaceTableProviderData {
 // Custom version of FT_GlyphSlot_Embolden to be less aggressive with outline
 // fonts than the default implementation in FreeType.
 fn mozilla_glyphslot_embolden_less(slot: FT_GlyphSlot) {
-    use freetype_sys::{FT_GlyphSlot_Embolden, FT_Outline_Embolden, FT_MulFix, FT_Long, FT_GLYPH_FORMAT_OUTLINE};
+    use freetype_sys::{
+        FT_GLYPH_FORMAT_OUTLINE, FT_GlyphSlot_Embolden, FT_Long, FT_MulFix, FT_Outline_Embolden,
+    };
 
     if slot.is_null() {
         return;
@@ -437,9 +439,7 @@ fn mozilla_glyphslot_embolden_less(slot: FT_GlyphSlot) {
     // FT_GlyphSlot_Embolden uses a divisor of 24 here; we'll be only half as
     // bold.
     let size_ = unsafe { &*face_.size };
-    let strength =
-        unsafe { FT_MulFix(face_.units_per_EM as FT_Long,
-                           size_.metrics.y_scale) / 48 };
+    let strength = unsafe { FT_MulFix(face_.units_per_EM as FT_Long, size_.metrics.y_scale) / 48 };
     unsafe { FT_Outline_Embolden(&raw mut slot_.outline, strength) };
 
     // Adjust metrics to suit the fattened glyph.

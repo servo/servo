@@ -10,7 +10,7 @@ use style::computed_values::font_variant_caps;
 use style::font_face::{FontFaceRuleData, FontStyle as FontFaceStyle};
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::{FixedPoint, FontStyleFixedPoint};
-use style::values::computed::{Au, FontStretch, FontStyle, FontWeight, FontSynthesis};
+use style::values::computed::{Au, FontStretch, FontStyle, FontSynthesis, FontWeight};
 use style::values::specified::FontStretch as SpecifiedFontStretch;
 use webrender_api::FontVariation;
 

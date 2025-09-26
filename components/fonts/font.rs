@@ -66,15 +66,18 @@ pub trait PlatformFontMethods: Sized {
         pt_size: Option<Au>,
         variations: &[FontVariation],
         data: &Option<FontData>,
-        synthetic_bold: Option<bool>
+        synthetic_bold: Option<bool>,
     ) -> Result<PlatformFont, &'static str> {
         let template = template.borrow();
         let font_identifier = template.identifier.clone();
 
         match font_identifier {
-            FontIdentifier::Local(font_identifier) => {
-                Self::new_from_local_font_identifier(font_identifier, pt_size, variations, synthetic_bold)
-            },
+            FontIdentifier::Local(font_identifier) => Self::new_from_local_font_identifier(
+                font_identifier,
+                pt_size,
+                variations,
+                synthetic_bold,
+            ),
             FontIdentifier::Web(_) => Self::new_from_data(
                 font_identifier,
                 data.as_ref()
@@ -274,7 +277,10 @@ impl Font {
             let allows_synthetic_bold = matches!(descriptor.synthesis_weight, FontSynthesis::Auto);
 
             // TODO: Is the check for variation font necessary here?
-            is_bold && !template_is_bold && !template.descriptor().is_variation_font() && allows_synthetic_bold
+            is_bold &&
+                !template_is_bold &&
+                !template.descriptor().is_variation_font() &&
+                allows_synthetic_bold
         };
 
         let handle = PlatformFont::new_from_template(
