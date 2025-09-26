@@ -15,7 +15,7 @@ use fonts::{
 };
 use servo_url::ServoUrl;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
-use style::values::computed::{FontStretch, FontStyle, FontWeight, FontSynthesis};
+use style::values::computed::{FontStretch, FontStyle, FontSynthesis, FontWeight};
 use unicode_script::Script;
 
 fn make_font(path: PathBuf) -> Font {
@@ -27,7 +27,8 @@ fn make_font(path: PathBuf) -> Font {
     let data = FontData::from_bytes(&bytes);
 
     let identifier = FontIdentifier::Web(ServoUrl::from_file_path(path).unwrap());
-    let platform_font = PlatformFont::new_from_data(identifier.clone(), &data, None, &[], None).unwrap();
+    let platform_font =
+        PlatformFont::new_from_data(identifier.clone(), &data, None, &[], None).unwrap();
 
     let template = FontTemplate {
         identifier,

@@ -32,7 +32,7 @@ mod font_context {
     use style::properties::style_structs::Font as FontStyleStruct;
     use style::values::computed::font::{
         FamilyName, FontFamily, FontFamilyList, FontFamilyNameSyntax, FontStretch, FontStyle,
-        FontWeight, SingleFontFamily, FontSynthesis,
+        FontSynthesis, FontWeight, SingleFontFamily,
     };
     use stylo_atoms::Atom;
     use webrender_api::{FontInstanceKey, FontKey, IdNamespace};
