@@ -552,13 +552,16 @@ unsafe extern "C" fn content_security_policy_allows(
                                 parameter_args_vec
                                     .push(TrustedScriptOrString::TrustedScript(trusted_script));
                             } else {
-                                unreachable!();
+                                // It's not a trusted script but a different object. Treat it
+                                // as if it is a string, since we don't need the actual contents
+                                // of the object.
+                                parameter_args_vec
+                                    .push(TrustedScriptOrString::String(DOMString::new()));
                             }
                         } else if value.is_string() {
-                            let string_ptr = std::ptr::NonNull::new(value.to_string()).unwrap();
-                            let dom_string = unsafe { jsstr_to_string(*cx, string_ptr) };
+                            // We don't need to know the specific string, only that it is untrusted
                             parameter_args_vec
-                                .push(TrustedScriptOrString::String(dom_string.into()));
+                                .push(TrustedScriptOrString::String(DOMString::new()));
                         } else {
                             unreachable!();
                         }
