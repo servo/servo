@@ -569,6 +569,9 @@ impl RunningAppState {
             coordinates.viewport.width() as u32,
             coordinates.viewport.height() as u32,
         ));
+        let size = coordinates.viewport.size;
+        self.active_webview()
+            .move_resize(DeviceRect::from_size(size.to_f32()));
         *self.callbacks.coordinates.borrow_mut() = coordinates;
         self.perform_updates();
     }
