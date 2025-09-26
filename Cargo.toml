@@ -242,6 +242,7 @@ codegen-units = 1
 # stylo_malloc_size_of = { path = "../stylo/malloc_size_of" }
 # stylo_traits = { path = "../stylo/style_traits" }
 
+# TODO: remove the git deps below once https://github.com/servo/stylo/pull/244 lands
 selectors = { git = "https://github.com/minghuaw/stylo", branch = "feat/synthetic-bold" }
 servo_arc = { git = "https://github.com/minghuaw/stylo", branch = "feat/synthetic-bold" }
 stylo = { git = "https://github.com/minghuaw/stylo", branch = "feat/synthetic-bold" }
