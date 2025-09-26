@@ -652,23 +652,26 @@ impl IOCompositor {
             },
 
             CompositorMsg::GenerateFrame => {
-                self.prepare_screenshot_requests_for_render();
-
                 let mut global = self.global.borrow_mut();
                 global.frame_delayer.set_pending_frame(true);
-                if global.frame_delayer.needs_new_frame() {
-                    let mut transaction = Transaction::new();
-                    self.generate_frame(&mut transaction, RenderReasons::SCENE);
-                    global.send_transaction(transaction);
 
-                    let waiting_pipelines = global.frame_delayer.take_waiting_pipelines();
-                    let _ = global.constellation_sender.send(
-                        EmbedderToConstellationMessage::NoLongerWaitingOnAsynchronousImageUpdates(
-                            waiting_pipelines,
-                        ),
-                    );
-                    global.frame_delayer.set_pending_frame(false);
+                if !global.frame_delayer.needs_new_frame() {
+                    return;
                 }
+
+                let mut transaction = Transaction::new();
+                self.generate_frame(&mut transaction, RenderReasons::SCENE);
+                global.send_transaction(transaction);
+
+                let waiting_pipelines = global.frame_delayer.take_waiting_pipelines();
+                let _ = global.constellation_sender.send(
+                    EmbedderToConstellationMessage::NoLongerWaitingOnAsynchronousImageUpdates(
+                        waiting_pipelines,
+                    ),
+                );
+                global.frame_delayer.set_pending_frame(false);
+
+                self.prepare_screenshot_requests_for_render(&mut global);
             },
 
             CompositorMsg::GenerateImageKey(sender) => {
@@ -718,6 +721,7 @@ impl IOCompositor {
                             waiting_pipelines,
                         ),
                     );
+                    self.prepare_screenshot_requests_for_render(&mut *global);
                 }
 
                 global.send_transaction(txn);
@@ -1578,6 +1582,10 @@ impl IOCompositor {
         }
     }
 
+    fn has_pending_frames(&self) -> bool {
+        self.pending_frames.get() != 0 || self.global.borrow().frame_delayer.pending_frame
+    }
+
     pub fn request_screenshot(
         &self,
         webview_id: WebViewId,
@@ -1599,30 +1607,27 @@ impl IOCompositor {
         webview_id: WebViewId,
         expected_epochs: FxHashMap<PipelineId, Epoch>,
     ) {
-        {
-            let mut global = self.global.borrow_mut();
-            let expected_epochs = Rc::new(expected_epochs);
+        let mut global = self.global.borrow_mut();
+        let expected_epochs = Rc::new(expected_epochs);
 
-            for screenshot_request in global.screenshot_requests.iter_mut() {
-                if screenshot_request.webview_id != webview_id ||
-                    screenshot_request.state != ScreenshotRequestState::WaitingOnConstellation
-                {
-                    continue;
-                }
-                screenshot_request.state =
-                    ScreenshotRequestState::WaitingOnPipelines(expected_epochs.clone());
+        for screenshot_request in global.screenshot_requests.iter_mut() {
+            if screenshot_request.webview_id != webview_id ||
+                screenshot_request.state != ScreenshotRequestState::WaitingOnConstellation
+            {
+                continue;
             }
+            screenshot_request.state =
+                ScreenshotRequestState::WaitingOnPipelines(expected_epochs.clone());
         }
 
-        if self.prepare_screenshot_requests_for_render() {
+        if self.prepare_screenshot_requests_for_render(&mut global) {
             let mut transaction = Transaction::new();
             self.generate_frame(&mut transaction, RenderReasons::APZ);
-            self.global.borrow_mut().send_transaction(transaction);
+            global.send_transaction(transaction);
         }
     }
 
-    fn prepare_screenshot_requests_for_render(&self) -> bool {
-        let mut global = self.global.borrow_mut();
+    fn prepare_screenshot_requests_for_render(&self, global: &mut ServoRenderer) -> bool {
         let mut any_became_ready = false;
 
         for screenshot_request in global.screenshot_requests.iter_mut() {
@@ -1655,9 +1660,10 @@ impl IOCompositor {
     }
 
     fn maybe_trigger_paint_for_screenshot(&self) {
-        if self.pending_frames.get() != 0 {
+        if self.has_pending_frames() {
             return;
         }
+
         if self
             .global
             .borrow()
@@ -1670,7 +1676,7 @@ impl IOCompositor {
     }
 
     fn maybe_take_screenshots(&self) {
-        if self.pending_frames.get() != 0 {
+        if self.has_pending_frames() {
             return;
         }
 
