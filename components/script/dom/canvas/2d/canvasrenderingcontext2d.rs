@@ -8,7 +8,6 @@ use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use ipc_channel::ipc;
 use pixels::Snapshot;
-use script_bindings::inheritance::Castable;
 use servo_url::ServoUrl;
 use webrender_api::ImageKey;
 
@@ -37,7 +36,7 @@ use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::imagedata::ImageData;
-use crate::dom::node::{Node, NodeDamage, NodeTraits};
+use crate::dom::node::NodeTraits;
 use crate::dom::path2d::Path2D;
 use crate::dom::textmetrics::TextMetrics;
 use crate::script_runtime::CanGc;
@@ -158,7 +157,6 @@ impl CanvasContext for CanvasRenderingContext2D {
 
     fn mark_as_dirty(&self) {
         if let Some(canvas) = self.canvas.canvas() {
-            canvas.upcast::<Node>().dirty(NodeDamage::Other);
             canvas.owner_document().add_dirty_2d_canvas(self);
         }
     }
