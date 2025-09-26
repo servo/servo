@@ -1000,7 +1000,8 @@ impl ParserContext {
             },
             // Return the result of loading a media document given navigationParams and type.
             MediaType::Image | MediaType::AudioVideo => {
-                self.load_media_document(parser, media_type, &mime_type)
+                self.load_media_document(parser, media_type, &mime_type);
+                return;
             },
             MediaType::Font => {
                 let page = format!(
