@@ -360,7 +360,9 @@ impl DOMString {
     }
 
     pub fn split_html_space_characters(&self) -> impl Iterator<Item = &str> {
-        self.0.split(HTML_SPACE_CHARACTERS)
+        self.0
+            .split(HTML_SPACE_CHARACTERS)
+            .filter(|s| !s.is_empty())
     }
 
     pub fn char_indices(&self) -> CharIndices<'_> {
