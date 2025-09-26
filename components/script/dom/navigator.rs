@@ -396,7 +396,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
                 // since it lowercases `charset=UTF-8`: https://github.com/hyperium/mime/issues/116
                 headers.insert(
                     header::CONTENT_TYPE,
-                    HeaderValue::from_str(content_type).unwrap(),
+                    HeaderValue::from_str(content_type.str()).unwrap(),
                 );
             }
             request_body = Some(extracted_body.into_net_request_body().0);

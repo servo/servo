@@ -734,7 +734,8 @@ impl Element {
     pub(crate) fn is_translate_enabled(&self) -> bool {
         let name = &local_name!("translate");
         if self.has_attribute(name) {
-            match_ignore_ascii_case! { &*self.get_string_attribute(name),
+            let attribute = self.get_string_attribute(name);
+            match_ignore_ascii_case! { attribute.str(),
                 "yes" | "" => return true,
                 "no" => return false,
                 _ => {},
@@ -1631,7 +1632,7 @@ impl Element {
 
     /// Element branch of <https://dom.spec.whatwg.org/#locate-a-namespace>
     pub(crate) fn locate_namespace(&self, prefix: Option<DOMString>) -> Namespace {
-        let namespace_prefix = prefix.clone().map(|s| Prefix::from(&*s));
+        let namespace_prefix = prefix.clone().map(|s| Prefix::from(s.str()));
 
         // Step 1. If prefix is "xml", then return the XML namespace.
         if namespace_prefix == Some(namespace_prefix!("xml")) {
@@ -1643,7 +1644,7 @@ impl Element {
             return ns!(xmlns);
         }
 
-        let prefix = prefix.map(|s| LocalName::from(&*s));
+        let prefix = prefix.map(|s| LocalName::from(s.str()));
 
         let inclusive_ancestor_elements = self
             .upcast::<Node>()
@@ -2079,7 +2080,7 @@ impl Element {
         can_gc: CanGc,
     ) -> ErrorResult {
         // Step 1.
-        if !matches_name_production(&name) {
+        if !matches_name_production(name.str()) {
             return Err(Error::InvalidCharacter);
         }
 
@@ -3027,7 +3028,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     ) -> Fallible<bool> {
         // Step 1. If qualifiedName is not a valid attribute local name,
         //      then throw an "InvalidCharacterError" DOMException.
-        if !is_valid_attribute_local_name(&name) {
+        if !is_valid_attribute_local_name(name.str()) {
             return Err(Error::InvalidCharacter);
         }
 
@@ -3076,7 +3077,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     ) -> ErrorResult {
         // Step 1. If qualifiedName does not match the Name production in XML,
         // then throw an "InvalidCharacterError" DOMException.
-        if !is_valid_attribute_local_name(&name) {
+        if !is_valid_attribute_local_name(name.str()) {
             return Err(Error::InvalidCharacter);
         }
 
@@ -3200,7 +3201,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         HTMLCollection::by_qualified_name(
             &window,
             self.upcast(),
-            LocalName::from(&*localname),
+            LocalName::from(localname.str()),
             can_gc,
         )
     }
@@ -3822,7 +3823,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         let doc = self.owner_document();
         let url = doc.url();
         let selectors = match SelectorParser::parse_author_origin_no_namespace(
-            &selectors,
+            selectors.str(),
             &UrlExtraData(url.get_arc()),
         ) {
             Err(_) => return Err(Error::Syntax(None)),
@@ -3849,7 +3850,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         let doc = self.owner_document();
         let url = doc.url();
         let selectors = match SelectorParser::parse_author_origin_no_namespace(
-            &selectors,
+            selectors.str(),
             &UrlExtraData(url.get_arc()),
         ) {
             Err(_) => return Err(Error::Syntax(None)),
@@ -5566,12 +5567,12 @@ pub(crate) fn reflect_referrer_policy_attribute(element: &Element) -> DOMString 
 pub(crate) fn referrer_policy_for_element(element: &Element) -> ReferrerPolicy {
     element
         .get_attribute_by_name(DOMString::from_string(String::from("referrerpolicy")))
-        .map(|attribute: DomRoot<Attr>| determine_policy_for_token(&attribute.Value()))
+        .map(|attribute: DomRoot<Attr>| determine_policy_for_token(attribute.Value().str()))
         .unwrap_or(element.owner_document().get_referrer_policy())
 }
 
 pub(crate) fn cors_setting_for_element(element: &Element) -> Option<CorsSettings> {
-    reflect_cross_origin_attribute(element).and_then(|attr| match &*attr {
+    reflect_cross_origin_attribute(element).and_then(|attr| match attr.str() {
         "anonymous" => Some(CorsSettings::Anonymous),
         "use-credentials" => Some(CorsSettings::UseCredentials),
         _ => unreachable!(),

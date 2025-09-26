@@ -197,7 +197,7 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
             // Steps 6.1 - 6.2
             let entry_types = entry_types
                 .iter()
-                .filter(|e| VALID_ENTRY_TYPES.contains(&e.as_ref()))
+                .filter(|e| VALID_ENTRY_TYPES.contains(&e.str()))
                 .cloned()
                 .collect::<Vec<DOMString>>();
 
@@ -219,7 +219,7 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
             Ok(())
         } else if let Some(entry_type) = &options.type_ {
             // Step 7.2
-            if !VALID_ENTRY_TYPES.contains(&entry_type.as_ref()) {
+            if !VALID_ENTRY_TYPES.contains(&entry_type.str()) {
                 Console::internal_warn(
                     &self.global(),
                     DOMString::from("No valid entry type provided to observe()."),

@@ -419,7 +419,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
 
     // https://console.spec.whatwg.org/#timelog
     fn TimeLog(_cx: JSContext, global: &GlobalScope, label: DOMString, data: Vec<HandleValue>) {
-        if let Ok(delta) = global.time_log(label.str()) {
+        if let Ok(delta) = global.time_log(&label) {
             let message = format!("{label}: {delta}ms {}", stringify_handle_values(&data));
 
             Console::send_string_message(global, LogLevel::Log, message.clone());
@@ -428,7 +428,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
 
     // https://console.spec.whatwg.org/#timeend
     fn TimeEnd(global: &GlobalScope, label: DOMString) {
-        if let Ok(delta) = global.time_end(label.str()) {
+        if let Ok(delta) = global.time_end(&label) {
             let message = format!("{label}: {delta}ms");
 
             Console::send_string_message(global, LogLevel::Log, message.clone());

@@ -8,7 +8,7 @@ use std::default::Default;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
-use std::str::{Chars, EncodeUtf16, FromStr};
+use std::str::{CharIndices, Chars, EncodeUtf16, FromStr};
 use std::sync::LazyLock;
 use std::{fmt, ops, slice, str};
 
@@ -358,6 +358,22 @@ impl DOMString {
     pub fn contains_html_space_characters(&self) -> bool {
         self.0.contains(HTML_SPACE_CHARACTERS)
     }
+
+    pub fn split_html_space_characters(&self) -> impl Iterator<Item = &str> {
+        self.0.split(HTML_SPACE_CHARACTERS)
+    }
+
+    pub fn char_indices(&self) -> CharIndices<'_> {
+        self.0.char_indices()
+    }
+
+    pub fn strip_prefix(&self, pattern: &str) -> Option<&str> {
+        self.0.strip_prefix(pattern)
+    }
+
+    pub fn split(&self, c: char) -> impl Iterator<Item = &str> {
+        self.0.split(c)
+    }
 }
 
 /// Because this converts to a DOMString it becomes UTF-8 encoded which is closer to
@@ -428,27 +444,6 @@ impl Borrow<str> for DOMString {
 impl Default for DOMString {
     fn default() -> Self {
         DOMString(String::new(), PhantomData)
-    }
-}
-
-impl Deref for DOMString {
-    type Target = str;
-    #[inline]
-    fn deref(&self) -> &str {
-        &self.0
-    }
-}
-
-impl DerefMut for DOMString {
-    #[inline]
-    fn deref_mut(&mut self) -> &mut str {
-        &mut self.0
-    }
-}
-
-impl AsRef<str> for DOMString {
-    fn as_ref(&self) -> &str {
-        &self.0
     }
 }
 
