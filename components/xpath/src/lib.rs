@@ -9,10 +9,6 @@ use eval::{Error as EvaluationError, Evaluatable};
 pub(crate) use eval_value::{NodesetHelpers, Value};
 pub(crate) use parser::{Expr, parse as parse_impl};
 
-use super::dom::node::Node;
-use crate::dom::bindings::codegen::Bindings::XPathNSResolverBinding::XPathNSResolver;
-use crate::dom::bindings::error::{Error as JsError, Error, Fallible};
-
 mod context;
 mod eval;
 mod eval_function;
