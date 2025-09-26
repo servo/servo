@@ -32,7 +32,7 @@ mod font_context {
     use style::properties::style_structs::Font as FontStyleStruct;
     use style::values::computed::font::{
         FamilyName, FontFamily, FontFamilyList, FontFamilyNameSyntax, FontStretch, FontStyle,
-        FontWeight, SingleFontFamily,
+        FontWeight, SingleFontFamily, FontSynthesis,
     };
     use stylo_atoms::Atom;
     use webrender_api::{FontInstanceKey, FontKey, IdNamespace};
@@ -193,6 +193,7 @@ mod font_context {
                 local_font_identifier.clone(),
                 None,
                 &[],
+                None,
             )
             .expect("Could not load test font");
 
@@ -358,6 +359,7 @@ mod font_context {
             variant: FontVariantCaps::Normal,
             pt_size: Au(10),
             variation_settings: vec![],
+            synthesis_weight: FontSynthesis::Auto,
         };
 
         let family = SingleFontFamily::FamilyName(FamilyName {
