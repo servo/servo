@@ -1059,6 +1059,15 @@ impl Servo {
     pub fn execute_webdriver_command(&self, command: WebDriverCommandMsg) {
         if let WebDriverCommandMsg::TakeScreenshot(webview_id, page_rect, response_sender) = command
         {
+            if let Some(ref rect) = page_rect {
+                if rect.height() == 0.0 || rect.width() == 0.0 {
+                    error!("Taking screenshot of bounding box with zero area");
+                    if let Err(e) = response_sender.send(Err(())) {
+                        error!("Sending reply to create png failed {e:?}");
+                    }
+                }
+            }
+
             let res = self
                 .compositor
                 .borrow_mut()
@@ -1067,7 +1076,7 @@ impl Servo {
                 error!("Error retrieving PNG: {:?}", e);
             }
             let img = res.unwrap_or(None);
-            if let Err(e) = response_sender.send(img) {
+            if let Err(e) = response_sender.send(Ok(img)) {
                 error!("Sending reply to create png failed ({:?}).", e);
             }
         } else {
