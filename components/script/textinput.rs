@@ -474,7 +474,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                 f(&mut acc, &self.lines[start.line].str()[start_offset..]);
                 for line in &self.lines[start.line + 1..end.line] {
                     f(&mut acc, "\n");
-                    f(&mut acc, line);
+                    f(&mut acc, line.str());
                 }
                 f(&mut acc, "\n");
                 f(&mut acc, &self.lines[end.line].str()[..end_offset])
@@ -784,11 +784,11 @@ impl<T: ClipboardProvider> TextInput<T> {
                 Direction::Backward => {
                     let input: &str;
                     if current_index == UTF8Bytes::zero() && current_line > 0 {
-                        input = &self.lines[current_line - 1];
+                        input = self.lines[current_line - 1].str();
                         newline_adjustment = UTF8Bytes::one();
                     } else {
                         let UTF8Bytes(remaining) = current_index;
-                        input = &self.lines[current_line][..remaining];
+                        input = &self.lines[current_line].str()[..remaining];
                     }
 
                     let mut iter = input.split_word_bounds().rev();
@@ -809,11 +809,11 @@ impl<T: ClipboardProvider> TextInput<T> {
                     let remaining = self.current_line_length().saturating_sub(current_index);
                     if remaining == UTF8Bytes::zero() && self.lines.len() > self.edit_point.line + 1
                     {
-                        input = &self.lines[current_line + 1];
+                        input = self.lines[current_line + 1].str();
                         newline_adjustment = UTF8Bytes::one();
                     } else {
                         let UTF8Bytes(current_offset) = current_index;
-                        input = &self.lines[current_line][current_offset..];
+                        input = &self.lines[current_line].str()[current_offset..];
                     }
 
                     let mut iter = input.split_word_bounds();
@@ -1123,6 +1123,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.lines = if self.multiline {
             // https://html.spec.whatwg.org/multipage/#textarea-line-break-normalisation-transformation
             content
+                .str()
                 .replace("\r\n", "\n")
                 .split(['\n', '\r'])
                 .map(DOMString::from)

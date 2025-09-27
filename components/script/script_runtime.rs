@@ -492,7 +492,7 @@ unsafe extern "C" fn code_for_eval_gets(
         let script_string = trusted_script.data();
         let new_string = JS_NewStringCopyN(
             *cx,
-            script_string.as_ptr() as *const libc::c_char,
+            script_string.str().as_ptr() as *const libc::c_char,
             script_string.len(),
         );
         code_for_eval.set(new_string);

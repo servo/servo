@@ -562,7 +562,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
 
     /// <https://w3c.github.io/uievents/#dom-mouseevent-getmodifierstate>
     fn GetModifierState(&self, key_arg: DOMString) -> bool {
-        self.modifiers.get().contains(match &*key_arg {
+        self.modifiers.get().contains(match key_arg.str() {
             "Alt" => Modifiers::ALT,
             "AltGraph" => Modifiers::ALT_GRAPH,
             "CapsLock" => Modifiers::CAPS_LOCK,
