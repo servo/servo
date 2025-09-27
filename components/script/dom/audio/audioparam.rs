@@ -129,7 +129,7 @@ impl AudioParamMethods<crate::DomTypeHolder> for AudioParam {
             self.node_type == AudioNodeType::AudioBufferSourceNode &&
             (self.param == ParamType::Detune || self.param == ParamType::PlaybackRate)
         {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         self.automation_rate.set(automation_rate);
@@ -274,7 +274,7 @@ impl AudioParamMethods<crate::DomTypeHolder> for AudioParam {
             )));
         }
         if values.len() < 2. as usize {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         if *end_time < 0. {

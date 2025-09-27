@@ -1028,7 +1028,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             end.inclusive_ancestors(ShadowIncluding::No)
                 .any(|n| !n.is_inclusive_ancestor_of(&start) && !n.is::<Text>())
         {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         // Step 2.

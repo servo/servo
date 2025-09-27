@@ -198,12 +198,12 @@ impl Transferable for OffscreenCanvas {
         // Step 1. If value's context mode is not equal to none, then throw an
         // "InvalidStateError" DOMException.
         if !self.context.borrow().is_none() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         // TODO(#37882): Allow to transfer with a placeholder canvas element.
         if self.placeholder.is_some() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         // Step 2. Set value's context mode to detached.
@@ -294,7 +294,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         // Step 3. Throw an "InvalidStateError" DOMException if the
         // OffscreenCanvas object's context mode is detached.
         if let Some(OffscreenRenderingContext::Detached) = *self.context.borrow() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         match id.str() {
@@ -358,20 +358,20 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         // internal slot is set to true, then throw an "InvalidStateError"
         // DOMException.
         if let Some(OffscreenRenderingContext::Detached) = *self.context.borrow() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         // Step 2. If this OffscreenCanvas object's context mode is set to none,
         // then throw an "InvalidStateError" DOMException.
         if self.context.borrow().is_none() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         // Step 3. Let image be a newly created ImageBitmap object that
         // references the same underlying bitmap data as this OffscreenCanvas
         // object's bitmap.
         let Some(snapshot) = self.get_image_data() else {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         };
 
         let image_bitmap = ImageBitmap::new(&self.global(), snapshot, can_gc);
@@ -399,7 +399,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         // then return a promise rejected with an "InvalidStateError"
         // DOMException.
         if let Some(OffscreenRenderingContext::Detached) = *self.context.borrow() {
-            promise.reject_error(Error::InvalidState, can_gc);
+            promise.reject_error(Error::InvalidState(None), can_gc);
             return promise;
         }
 
@@ -421,7 +421,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
 
         // Step 4. Let bitmap be a copy of this's bitmap.
         let Some(mut snapshot) = self.get_image_data() else {
-            promise.reject_error(Error::InvalidState, can_gc);
+            promise.reject_error(Error::InvalidState(None), can_gc);
             return promise;
         };
 

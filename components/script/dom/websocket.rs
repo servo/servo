@@ -143,7 +143,7 @@ impl WebSocket {
     fn send_impl(&self, data_byte_len: u64) -> Fallible<bool> {
         let return_after_buffer = match self.ready_state.get() {
             WebSocketRequestState::Connecting => {
-                return Err(Error::InvalidState);
+                return Err(Error::InvalidState(None));
             },
             WebSocketRequestState::Open => false,
             WebSocketRequestState::Closing | WebSocketRequestState::Closed => true,

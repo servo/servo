@@ -57,12 +57,12 @@ impl XRMediaBindingMethods<crate::DomTypeHolder> for XRMediaBinding {
     ) -> Fallible<DomRoot<XRMediaBinding>> {
         // Step 1.
         if session.is_ended() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         // Step 2.
         if !session.is_immersive() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         // Steps 3-5.

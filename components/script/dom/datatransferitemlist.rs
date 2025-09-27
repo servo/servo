@@ -166,7 +166,7 @@ impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList 
         let mut option = self.data_store.borrow_mut();
         let data_store = match option.as_mut() {
             Some(value) if value.mode() == Mode::ReadWrite => value,
-            _ => return Err(Error::InvalidState),
+            _ => return Err(Error::InvalidState(None)),
         };
 
         let index = index as usize;

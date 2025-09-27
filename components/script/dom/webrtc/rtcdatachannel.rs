@@ -259,7 +259,7 @@ impl RTCDataChannel {
 
     fn send(&self, source: &SendSource) -> Fallible<()> {
         if self.ready_state.get() != RTCDataChannelState::Open {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         let message = match source {

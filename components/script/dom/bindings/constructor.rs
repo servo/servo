@@ -199,7 +199,7 @@ fn html_constructor(
             }
 
             if !check_type(&element) {
-                throw_dom_exception(cx, global, Error::InvalidState, can_gc);
+                throw_dom_exception(cx, global, Error::InvalidState(None), can_gc);
                 return Err(());
             } else {
                 // Step 7.9 Return element.
@@ -217,7 +217,7 @@ fn html_constructor(
 
             // Step 13
             if !check_type(&element) {
-                throw_dom_exception(cx, global, Error::InvalidState, can_gc);
+                throw_dom_exception(cx, global, Error::InvalidState(None), can_gc);
                 return Err(());
             } else {
                 element

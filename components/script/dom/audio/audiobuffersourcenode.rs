@@ -149,7 +149,7 @@ impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNod
         if new_buffer.is_some() {
             if self.buffer_set.get() {
                 // Step 2.
-                return Err(Error::InvalidState);
+                return Err(Error::InvalidState(None));
             }
             // Step 3.
             self.buffer_set.set(true);

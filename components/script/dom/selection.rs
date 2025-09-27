@@ -284,7 +284,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
                 can_gc,
             )
         } else {
-            Err(Error::InvalidState)
+            Err(Error::InvalidState(None))
         }
     }
 
@@ -293,7 +293,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         if let Some(range) = self.range.get() {
             self.Collapse(Some(&*range.end_container()), range.end_offset(), can_gc)
         } else {
-            Err(Error::InvalidState)
+            Err(Error::InvalidState(None))
         }
     }
 
@@ -365,7 +365,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
             };
         } else {
             // Step 2
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
         Ok(())
     }
