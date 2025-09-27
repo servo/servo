@@ -1065,6 +1065,7 @@ impl Servo {
                     if let Err(e) = response_sender.send(Err(())) {
                         error!("Sending reply to create png failed {e:?}");
                     }
+                    return;
                 }
             }
 

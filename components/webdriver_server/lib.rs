@@ -2312,6 +2312,11 @@ impl Handler {
     }
 
     fn take_screenshot(&self, rect: Option<Rect<f32, CSSPixel>>) -> WebDriverResult<String> {
+        // Spec: Take screenshot after running the animation frame callbacks.
+        let _ = self.handle_execute_async_script(JavascriptCommandParameters {
+            script: "requestAnimationFrame(() => arguments[0]());".to_string(),
+            args: None,
+        });
         let webview_id = self.webview_id()?;
         let mut img = None;
 
