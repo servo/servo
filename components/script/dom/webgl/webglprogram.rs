@@ -383,7 +383,7 @@ impl WebGLProgram {
             .active_attribs
             .borrow()
             .iter()
-            .find(|attrib| *attrib.name == *name)
+            .find(|attrib| *attrib.name == name)
             .and_then(|attrib| attrib.location.map(|l| l as i32))
             .unwrap_or(-1);
         Ok(location)

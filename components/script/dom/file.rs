@@ -136,7 +136,7 @@ impl FileMethods<crate::DomTypeHolder> for File {
             .map(|modified| OffsetDateTime::UNIX_EPOCH + Duration::milliseconds(modified))
             .map(Into::into);
 
-        let type_string = normalize_type_string(blobPropertyBag.type_.as_ref());
+        let type_string = normalize_type_string(blobPropertyBag.type_.str());
         Ok(File::new_with_proto(
             global,
             proto,

@@ -2423,7 +2423,7 @@ impl GlobalScope {
     /// Computes the delta time since a label has been created
     ///
     /// Returns an error if the label does not exist.
-    pub(crate) fn time_log(&self, label: &str) -> Result<u64, ()> {
+    pub(crate) fn time_log(&self, label: &DOMString) -> Result<u64, ()> {
         self.console_timers
             .borrow()
             .get(label)
@@ -2435,7 +2435,7 @@ impl GlobalScope {
     /// tracking the label.
     ///
     /// Returns an error if the label does not exist.
-    pub(crate) fn time_end(&self, label: &str) -> Result<u64, ()> {
+    pub(crate) fn time_end(&self, label: &DOMString) -> Result<u64, ()> {
         self.console_timers
             .borrow_mut()
             .remove(label)
@@ -2849,7 +2849,7 @@ impl GlobalScope {
                     compiled_script.set(Compile1(
                         *cx,
                         options.ptr,
-                        &mut transform_str_to_source_text(text_code),
+                        &mut transform_str_to_source_text(text_code.str()),
                     ));
 
                     if compiled_script.is_null() {
