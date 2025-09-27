@@ -490,7 +490,7 @@ impl FileReader {
 
         // If fr’s state is "loading", throw an InvalidStateError DOMException.
         if self.ready_state.get() == FileReaderReadyState::Loading {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         // Set fr’s state to "loading".

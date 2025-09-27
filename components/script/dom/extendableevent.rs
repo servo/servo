@@ -90,7 +90,7 @@ impl ExtendableEventMethods<crate::DomTypeHolder> for ExtendableEvent {
     fn WaitUntil(&self, _cx: JSContext, _val: HandleValue) -> ErrorResult {
         // Step 1
         if !self.extensions_allowed {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
         // Step 2
         // TODO add a extended_promises array to enqueue the `val`

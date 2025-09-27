@@ -860,7 +860,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
             !mat.m43.is_finite() ||
             !mat.m44.is_finite()
         {
-            return Err(error::Error::InvalidState);
+            return Err(error::Error::InvalidState(None));
         }
 
         let cx = GlobalScope::get_cx();

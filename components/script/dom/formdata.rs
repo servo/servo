@@ -129,7 +129,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
                     can_gc,
                 )),
                 // Step 1.3. If list is null, then throw an "InvalidStateError" DOMException.
-                None => Err(Error::InvalidState),
+                None => Err(Error::InvalidState(None)),
             };
         }
 

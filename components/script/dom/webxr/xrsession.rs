@@ -671,18 +671,18 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
     fn UpdateRenderState(&self, init: &XRRenderStateInit, _: InRealm) -> ErrorResult {
         // Step 2
         if self.ended.get() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
         // Step 3:
         if let Some(Some(ref layer)) = init.baseLayer {
             if Dom::from_ref(layer.session()) != Dom::from_ref(self) {
-                return Err(Error::InvalidState);
+                return Err(Error::InvalidState(None));
             }
         }
 
         // Step 4:
         if init.inlineVerticalFieldOfView.is_some() && self.is_immersive() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         // https://immersive-web.github.io/layers/#updaterenderstatechanges
@@ -1045,7 +1045,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
                 supported_frame_rates.is_empty() ||
                 self.ended.get()
             {
-                promise.reject_error(Error::InvalidState, can_gc);
+                promise.reject_error(Error::InvalidState(None), can_gc);
                 return promise;
             }
 

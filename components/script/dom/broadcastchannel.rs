@@ -81,7 +81,7 @@ impl BroadcastChannelMethods<crate::DomTypeHolder> for BroadcastChannel {
     fn PostMessage(&self, cx: SafeJSContext, message: HandleValue) -> ErrorResult {
         // Step 3, if closed.
         if self.closed.get() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         // Step 6, StructuredSerialize(message).

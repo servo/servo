@@ -594,7 +594,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     fn CreateOffer(&self, _options: &RTCOfferOptions, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let p = Promise::new_in_current_realm(comp, can_gc);
         if self.closed.get() {
-            p.reject_error(Error::InvalidState, can_gc);
+            p.reject_error(Error::InvalidState(None), can_gc);
             return p;
         }
         self.offer_promises.borrow_mut().push(p.clone());
@@ -611,7 +611,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     ) -> Rc<Promise> {
         let p = Promise::new_in_current_realm(comp, can_gc);
         if self.closed.get() {
-            p.reject_error(Error::InvalidState, can_gc);
+            p.reject_error(Error::InvalidState(None), can_gc);
             return p;
         }
         self.answer_promises.borrow_mut().push(p.clone());

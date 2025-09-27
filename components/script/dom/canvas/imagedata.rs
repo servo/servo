@@ -92,7 +92,7 @@ impl ImageData {
             // then throw an "InvalidStateError" DOMException.
             if !matches!(settings.pixelFormat, ImageDataPixelFormat::Rgba_unorm8) {
                 // we currently support only rgba-unorm8
-                return Err(Error::InvalidState);
+                return Err(Error::InvalidState(None));
             }
             // 3. Initialize the data attribute of imageData to source.
             HeapBufferSource::<ClampedU8>::from_view(source)
@@ -252,12 +252,12 @@ impl ImageDataMethods<crate::DomTypeHolder> for ImageData {
         // 2. Let length be the buffer source byte length of data.
         let length = data.len();
         if length == 0 {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
         // 3. If length is not a nonzero integral multiple of bytesPerPixel,
         // then throw an "InvalidStateError" DOMException.
         if length % bytes_per_pixel != 0 {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
         // 4. Let length be length divided by bytesPerPixel.
         let length = length / bytes_per_pixel;

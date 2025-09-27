@@ -192,7 +192,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
 
         let document = self.global().as_window().Document();
         if !document.is_fully_active() {
-            playing_effect_promise.reject_error(Error::InvalidState, can_gc);
+            playing_effect_promise.reject_error(Error::InvalidState(None), can_gc);
         }
 
         self.sequence_id.set(self.sequence_id.get().wrapping_add(1));
@@ -259,7 +259,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
 
         let document = self.global().as_window().Document();
         if !document.is_fully_active() {
-            promise.reject_error(Error::InvalidState, can_gc);
+            promise.reject_error(Error::InvalidState(None), can_gc);
             return promise;
         }
 

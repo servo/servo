@@ -292,7 +292,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
 
         // Step 2.
         if self.audio_context_impl.lock().unwrap().state() == ProcessingState::Closed {
-            promise.reject_error(Error::InvalidState, can_gc);
+            promise.reject_error(Error::InvalidState(None), can_gc);
             return promise;
         }
 

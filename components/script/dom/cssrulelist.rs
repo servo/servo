@@ -39,7 +39,7 @@ impl Convert<Error> for RulesMutateError {
             RulesMutateError::Syntax => Error::Syntax(None),
             RulesMutateError::IndexSize => Error::IndexSize,
             RulesMutateError::HierarchyRequest => Error::HierarchyRequest,
-            RulesMutateError::InvalidState => Error::InvalidState,
+            RulesMutateError::InvalidState => Error::InvalidState(None),
         }
     }
 }

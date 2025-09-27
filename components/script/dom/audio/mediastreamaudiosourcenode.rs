@@ -36,7 +36,7 @@ impl MediaStreamAudioSourceNode {
             .get_tracks()
             .iter()
             .find(|t| t.ty() == MediaStreamType::Audio)
-            .ok_or(Error::InvalidState)?
+            .ok_or(Error::InvalidState(None))?
             .id();
         let node = AudioNode::new_inherited(
             AudioNodeInit::MediaStreamSourceNode(track),
