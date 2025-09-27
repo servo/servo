@@ -473,6 +473,17 @@ pub enum NetworkEvent {
     HttpResponse(HttpResponse),
 }
 
+impl NetworkEvent {
+    pub fn forward_to_devtools(&self) -> bool {
+        !matches!(self, NetworkEvent::HttpRequest(http_request) if http_request.url.scheme() == "data") ||
+            match self {
+                NetworkEvent::HttpRequest(http_request) => http_request.url.scheme() != "data",
+                NetworkEvent::HttpRequestUpdate(..) => true,
+                NetworkEvent::HttpResponse(..) => true,
+            }
+    }
+}
+
 impl TimelineMarker {
     pub fn start(name: String) -> StartedTimelineMarker {
         StartedTimelineMarker {
