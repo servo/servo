@@ -234,6 +234,7 @@ impl TransmitBodyConnectHandler {
             task!(setup_native_body_promise_handler: move || {
                 let rooted_stream = stream.root();
                 let global = rooted_stream.global();
+                let cx = GlobalScope::get_cx();
 
                 // Step 4, the result of reading a chunk from body’s stream with reader.
                 let promise = rooted_stream.read_a_chunk(CanGc::note());
@@ -241,20 +242,20 @@ impl TransmitBodyConnectHandler {
                 // Step 5, the parallel steps waiting for and handling the result of the read promise,
                 // are a combination of the promise native handler here,
                 // and the corresponding IPC route in `component::net::http_loader`.
-                let promise_handler = Box::new(TransmitBodyPromiseHandler {
+                rooted!(in(*cx) let mut promise_handler = Some(TransmitBodyPromiseHandler {
                     bytes_sender: bytes_sender.clone(),
                     stream: Dom::from_ref(&rooted_stream.clone()),
                     control_sender: control_sender.clone(),
-                });
+                }));
 
-                let rejection_handler = Box::new(TransmitBodyPromiseRejectionHandler {
+                rooted!(in(*cx) let mut rejection_handler = Some(TransmitBodyPromiseRejectionHandler {
                     bytes_sender,
                     stream: Dom::from_ref(&rooted_stream.clone()),
                     control_sender,
-                });
+                }));
 
                 let handler =
-                    PromiseNativeHandler::new(&global, Some(promise_handler), Some(rejection_handler), CanGc::note());
+                    PromiseNativeHandler::new(&global, promise_handler.take().map(|h| Box::new(h) as Box<_>), rejection_handler.take().map(|h| Box::new(h) as Box<_>), CanGc::note());
 
                 let realm = enter_realm(&*global);
                 let comp = InRealm::Entered(&realm);
@@ -277,6 +278,8 @@ struct TransmitBodyPromiseHandler {
     #[no_trace]
     control_sender: IpcSender<BodyChunkRequest>,
 }
+
+impl js::gc::Rootable for TransmitBodyPromiseHandler {}
 
 impl Callback for TransmitBodyPromiseHandler {
     /// Step 5 of <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
@@ -331,6 +334,8 @@ struct TransmitBodyPromiseRejectionHandler {
     #[no_trace]
     control_sender: IpcSender<BodyChunkRequest>,
 }
+
+impl js::gc::Rootable for TransmitBodyPromiseRejectionHandler {}
 
 impl Callback for TransmitBodyPromiseRejectionHandler {
     /// <https://fetch.spec.whatwg.org/#concept-request-transmit-body>

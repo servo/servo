@@ -399,10 +399,10 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
                     n.as_str() == "default" ||
                     n.as_str() == "Wrap"
             },
-            visit::FnKind::Closure => return,
+            visit::FnKind::Closure => false,
         };
 
-        if !in_derive_expn(span) {
+        if !in_derive_expn(span) && !matches!(kind, visit::FnKind::Closure) {
             let sig = cx.tcx.type_of(def_id).skip_binder().fn_sig(cx.tcx);
 
             for (arg, ty) in decl.inputs.iter().zip(sig.inputs().skip_binder().iter()) {
