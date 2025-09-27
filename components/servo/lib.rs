@@ -127,7 +127,7 @@ pub use {
 };
 #[cfg(feature = "bluetooth")]
 pub use {bluetooth, bluetooth_traits};
-
+use geolocation_traits::GeolocationProvider;
 use crate::proxies::ConstellationProxy;
 use crate::responders::ServoErrorChannel;
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
@@ -187,6 +187,10 @@ mod media_platform {
     }
 }
 
+pub struct PlatformServices {
+    geolocation: Option<Box<dyn GeolocationProvider>>,
+}
+
 /// The in-process interface to Servo.
 ///
 /// It does everything necessary to render the web, primarily
@@ -200,6 +204,7 @@ pub struct Servo {
     compositor: Rc<RefCell<IOCompositor>>,
     constellation_proxy: ConstellationProxy,
     embedder_receiver: Receiver<EmbedderMsg>,
+    platform_services: Arc<PlatformServices>,
     /// A struct that tracks ongoing JavaScript evaluations and is responsible for
     /// calling the callback when the evaluation is complete.
     javascript_evaluator: Rc<RefCell<JavaScriptEvaluator>>,
@@ -260,6 +265,9 @@ impl Servo {
         opts::initialize_options(opts.unwrap_or_default());
         let opts = opts::get();
 
+        let platform_services = Arc::new(PlatformServices {
+            geolocation: builder.geolocation_provider,
+        });
         // Set the preferences globally.
         // TODO: It would be better to make these private to a particular Servo instance.
         let preferences = builder.preferences.map(|opts| *opts);
@@ -457,6 +465,7 @@ impl Servo {
             #[cfg(feature = "webgpu")]
             wgpu_image_map,
             protocols,
+            platform_services.clone(),
             builder.user_content_manager,
         );
 
@@ -484,6 +493,7 @@ impl Servo {
         Self {
             delegate: RefCell::new(Rc::new(DefaultServoDelegate)),
             compositor: Rc::new(RefCell::new(compositor)),
+            platform_services: platform_services.clone(),
             javascript_evaluator: Rc::new(RefCell::new(JavaScriptEvaluator::new(
                 constellation_proxy.clone(),
             ))),
@@ -1146,6 +1156,7 @@ fn create_constellation(
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     #[cfg(feature = "webgpu")] wgpu_image_map: WGPUImageMap,
     protocols: ProtocolRegistry,
+    platform_services: Arc<PlatformServices>,
     user_content_manager: UserContentManager,
 ) -> Sender<EmbedderToConstellationMessage> {
     // Global configuration options, parsed from the command line.
@@ -1359,6 +1370,7 @@ impl webxr::WebXrRegistry for DefaultWebXrRegistry {}
 pub struct ServoBuilder {
     rendering_context: Rc<dyn RenderingContext>,
     opts: Option<Box<Opts>>,
+    geolocation_provider: Option<Box<dyn GeolocationProvider>>,
     preferences: Option<Box<Preferences>>,
     event_loop_waker: Box<dyn EventLoopWaker>,
     user_content_manager: UserContentManager,
@@ -1374,6 +1386,7 @@ impl ServoBuilder {
             opts: None,
             preferences: None,
             event_loop_waker: Box::new(DefaultEventLoopWaker),
+            geolocation_provider: None,
             user_content_manager: UserContentManager::default(),
             protocol_registry: ProtocolRegistry::default(),
             #[cfg(feature = "webxr")]
@@ -1397,6 +1410,11 @@ impl ServoBuilder {
 
     pub fn event_loop_waker(mut self, event_loop_waker: Box<dyn EventLoopWaker>) -> Self {
         self.event_loop_waker = event_loop_waker;
+        self
+    }
+
+    pub fn geolocation_provider(mut self, geolocation_provider: Box<dyn GeolocationProvider>) -> Self {
+        self.geolocation_provider = Some(geolocation_provider);
         self
     }
 

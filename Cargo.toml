@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = [
+members = [ "components/geolocation",
     "ports/servoshell",
     "tests/unit/*",
 ]
@@ -63,6 +63,7 @@ euclid = "0.22"
 fonts_traits = { path = "components/shared/fonts" }
 freetype-sys = "0.20"
 fxhash = "0.2"
+geolocation_traits = { path = "components/shared/geolocation" }
 gleam = "0.15"
 glow = "0.16.0"
 gstreamer = { version = "0.23", features = ["v1_18"] }

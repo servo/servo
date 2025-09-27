@@ -3081,6 +3081,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "geolocation"
+version = "0.0.1"
+
+[[package]]
+name = "geolocation_traits"
+version = "0.0.1"
+
+[[package]]
 name = "gethostname"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5024,6 +5032,7 @@ dependencies = [
  "euclid",
  "fonts",
  "gaol",
+ "geolocation_traits",
  "gleam",
  "gstreamer",
  "http 1.3.1",
