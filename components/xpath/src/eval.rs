@@ -5,7 +5,6 @@
 use std::fmt;
 
 use html5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_prefix, ns};
-use script_bindings::script_runtime::CanGc;
 
 use super::parser::{
     AdditiveOp, Axis, EqualityOp, Expr, FilterExpr, KindTest, Literal, MultiplicativeOp, NodeTest,
@@ -13,83 +12,37 @@ use super::parser::{
     QName as ParserQualName, RelationalOp, StepExpr, UnaryOp,
 };
 use super::{EvaluationCtx, Value};
-use crate::dom::attr::Attr;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::domname::namespace_from_domstring;
-use crate::dom::bindings::error::Error as JsError;
-use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, NodeTypeId};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::xmlname;
-use crate::dom::element::Element;
-use crate::dom::node::{Node, ShadowIncluding};
-use crate::dom::processinginstruction::ProcessingInstruction;
-use crate::xpath::context::PredicateCtx;
+use crate::context::PredicateCtx;
+use crate::{
+    Attribute, Document, Dom, Element, Error, Node, ProcessingInstruction, is_valid_continuation,
+    is_valid_start,
+};
 
-#[derive(Clone, Debug)]
-pub(crate) enum Error {
-    NotANodeset,
-    /// It is not clear where variables used in XPath expression should come from.
-    /// Firefox throws "NS_ERROR_ILLEGAL_VALUE" when using them, chrome seems to return
-    /// an empty result. We also error out.
-    ///
-    /// See <https://github.com/whatwg/dom/issues/67>
-    CannotUseVariables,
-    InvalidQName {
-        qname: ParserQualName,
-    },
-    Internal {
-        msg: String,
-    },
-    /// A JS exception that needs to be propagated to the caller.
-    JsException(JsError),
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Error::NotANodeset => write!(f, "expression did not evaluate to a nodeset"),
-            Error::CannotUseVariables => write!(f, "cannot use variables"),
-            Error::InvalidQName { qname } => {
-                write!(f, "invalid QName {:?}", qname)
-            },
-            Error::Internal { msg } => {
-                write!(f, "internal error: {}", msg)
-            },
-            Error::JsException(exception) => {
-                write!(f, "JS exception: {:?}", exception)
-            },
-        }
-    }
-}
-
-impl std::error::Error for Error {}
-
-pub(crate) fn try_extract_nodeset(v: Value) -> Result<Vec<DomRoot<Node>>, Error> {
+pub(crate) fn try_extract_nodeset<E, N: Node>(v: Value<N>) -> Result<Vec<N>, Error<E>> {
     match v {
         Value::Nodeset(ns) => Ok(ns),
         _ => Err(Error::NotANodeset),
     }
 }
 
-pub(crate) trait Evaluatable: fmt::Debug {
-    fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error>;
+pub(crate) trait Evaluatable<D: Dom>: fmt::Debug {
+    fn evaluate(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error<D::JsError>>;
 }
 
-impl<T: ?Sized> Evaluatable for Box<T>
+impl<T: ?Sized, D: Dom> Evaluatable<D> for Box<T>
 where
-    T: Evaluatable,
+    T: Evaluatable<D>,
 {
-    fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error> {
+    fn evaluate(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error<D::JsError>> {
         (**self).evaluate(context)
     }
 }
 
-impl<T> Evaluatable for Option<T>
+impl<T, D: Dom> Evaluatable<D> for Option<T>
 where
-    T: Evaluatable,
+    T: Evaluatable<D>,
 {
-    fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error> {
+    fn evaluate(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error<D::JsError>> {
         match self {
             Some(expr) => expr.evaluate(context),
             None => Ok(Value::Nodeset(vec![])),
@@ -97,8 +50,8 @@ where
     }
 }
 
-impl Evaluatable for Expr {
-    fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error> {
+impl<D: Dom> Evaluatable<D> for Expr {
+    fn evaluate(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error<D::JsError>> {
         match self {
             Expr::And(left, right) => {
                 let left_bool = left.evaluate(context)?.boolean();
@@ -175,8 +128,8 @@ impl Evaluatable for Expr {
     }
 }
 
-impl Evaluatable for PathExpr {
-    fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error> {
+impl<D: Dom> Evaluatable<D> for PathExpr {
+    fn evaluate(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error<D::JsError>> {
         // Use starting_node for absolute/descendant paths, context_node otherwise
         let mut current_nodes = if self.is_absolute || self.is_descendant {
             vec![context.starting_node.clone()]
@@ -188,18 +141,18 @@ impl Evaluatable for PathExpr {
         if self.is_descendant {
             current_nodes = current_nodes
                 .iter()
-                .flat_map(|n| n.traverse_preorder(ShadowIncluding::No))
+                .flat_map(|node| node.traverse_preorder())
                 .collect();
         }
 
-        trace!("[PathExpr] Evaluating path expr: {:?}", self);
+        log::trace!("[PathExpr] Evaluating path expr: {:?}", self);
 
         let have_multiple_steps = self.steps.len() > 1;
 
         for step in &self.steps {
             let mut next_nodes = Vec::new();
             for node in current_nodes {
-                let step_context = context.subcontext_for_node(&node);
+                let step_context = context.subcontext_for_node(node.clone());
                 let step_result = step.evaluate(&step_context)?;
                 match (have_multiple_steps, step_result) {
                     (_, Value::Nodeset(mut nodes)) => {
@@ -207,13 +160,15 @@ impl Evaluatable for PathExpr {
                         next_nodes.append(&mut nodes);
                     },
                     (false, value) => {
-                        trace!("[PathExpr] Got single primitive value: {:?}", value);
+                        log::trace!("[PathExpr] Got single primitive value: {:?}", value);
                         return Ok(value);
                     },
                     (true, value) => {
-                        error!(
+                        log::error!(
                             "Expected nodeset from step evaluation, got: {:?} node: {:?}, step: {:?}",
-                            value, node, step
+                            value,
+                            node,
+                            step
                         );
                         return Ok(value);
                     },
@@ -222,7 +177,7 @@ impl Evaluatable for PathExpr {
             current_nodes = next_nodes;
         }
 
-        trace!("[PathExpr] Got nodes: {:?}", current_nodes);
+        log::trace!("[PathExpr] Got nodes: {:?}", current_nodes);
 
         Ok(Value::Nodeset(current_nodes))
     }
@@ -261,12 +216,12 @@ fn validate_and_extract_qualified_name(
         }
 
         if at_start_of_name {
-            if !xmlname::is_valid_start(c) {
+            if !is_valid_start(c) {
                 // Name segments must begin with a valid start character
                 return Err(ValidationError::InvalidCharacter);
             }
             at_start_of_name = false;
-        } else if !xmlname::is_valid_continuation(c) {
+        } else if !is_valid_continuation(c) {
             // Name segments must consist of valid characters
             return Err(ValidationError::InvalidCharacter);
         }
@@ -291,11 +246,11 @@ fn validate_and_extract_qualified_name(
 /// Validate a namespace and qualified name following the XML naming rules
 /// and extract their parts.
 fn validate_and_extract(
-    namespace: Option<DOMString>,
+    namespace: Option<&str>,
     qualified_name: &str,
 ) -> Result<(Namespace, Option<Prefix>, LocalName), ValidationError> {
     // Step 1. If namespace is the empty string, then set it to null.
-    let namespace = namespace_from_domstring(namespace);
+    let namespace = namespace.map(Namespace::from).unwrap_or(ns!());
 
     // Step 2. Validate qualifiedName.
     // Step 3. Let prefix be null.
@@ -333,17 +288,16 @@ fn validate_and_extract(
     }
 }
 
-pub(crate) fn convert_parsed_qname_to_qualified_name(
+pub(crate) fn convert_parsed_qname_to_qualified_name<D: Dom>(
     qname: &ParserQualName,
-    context: &EvaluationCtx,
-    can_gc: CanGc,
-) -> Result<QualName, Error> {
+    context: &EvaluationCtx<D>,
+) -> Result<QualName, Error<D::JsError>> {
     let qname_as_str = qname.to_string();
     let namespace = context
-        .resolve_namespace(qname.prefix.as_deref(), can_gc)
+        .resolve_namespace(qname.prefix.as_deref())
         .map_err(Error::JsException)?;
 
-    if let Ok((ns, prefix, local)) = validate_and_extract(namespace, &qname_as_str) {
+    if let Ok((ns, prefix, local)) = validate_and_extract(namespace.as_deref(), &qname_as_str) {
         Ok(QualName { prefix, ns, local })
     } else {
         Err(Error::InvalidQName {
@@ -402,53 +356,45 @@ pub(crate) fn element_name_test(
     }
 }
 
-fn apply_node_test(
-    context: &EvaluationCtx,
+fn apply_node_test<D: Dom>(
+    context: &EvaluationCtx<D>,
     test: &NodeTest,
-    node: &Node,
-    can_gc: CanGc,
-) -> Result<bool, Error> {
+    node: &D::Node,
+) -> Result<bool, Error<D::JsError>> {
     let result = match test {
         NodeTest::Name(qname) => {
             // Convert the unvalidated "parser QualName" into the proper QualName structure
-            let wanted_name = convert_parsed_qname_to_qualified_name(qname, context, can_gc)?;
-            match node.type_id() {
-                NodeTypeId::Element(_) => {
-                    let element = node.downcast::<Element>().unwrap();
-                    let comparison_mode = if node.owner_doc().is_html_document() {
-                        NameTestComparisonMode::Html
-                    } else {
-                        NameTestComparisonMode::XHtml
-                    };
-                    let element_qualname = QualName::new(
-                        element.prefix().as_ref().cloned(),
-                        element.namespace().clone(),
-                        element.local_name().clone(),
-                    );
-                    element_name_test(wanted_name, element_qualname, comparison_mode)
-                },
-                NodeTypeId::Attr => {
-                    let attr = node.downcast::<Attr>().unwrap();
-                    let attr_qualname = QualName::new(
-                        attr.prefix().cloned(),
-                        attr.namespace().clone(),
-                        attr.local_name().clone(),
-                    );
-                    // attributes are always compared with strict namespace matching
-                    let comparison_mode = NameTestComparisonMode::XHtml;
-                    element_name_test(wanted_name, attr_qualname, comparison_mode)
-                },
-                _ => false,
+            let wanted_name = convert_parsed_qname_to_qualified_name(qname, context)?;
+            if let Some(element) = node.as_element() {
+                let comparison_mode = if node.owner_document().is_html_document() {
+                    NameTestComparisonMode::Html
+                } else {
+                    NameTestComparisonMode::XHtml
+                };
+                let element_qualname = QualName::new(
+                    element.prefix(),
+                    element.namespace().clone(),
+                    element.local_name().clone(),
+                );
+                element_name_test(wanted_name, element_qualname, comparison_mode)
+            } else if let Some(attribute) = node.as_attribute() {
+                let attr_qualname = QualName::new(
+                    attribute.prefix(),
+                    attribute.namespace().clone(),
+                    attribute.local_name().clone(),
+                );
+                // attributes are always compared with strict namespace matching
+                let comparison_mode = NameTestComparisonMode::XHtml;
+                element_name_test(wanted_name, attr_qualname, comparison_mode)
+            } else {
+                false
             }
         },
-        NodeTest::Wildcard => matches!(node.type_id(), NodeTypeId::Element(_)),
+        NodeTest::Wildcard => node.as_element().is_some(),
         NodeTest::Kind(kind) => match kind {
             KindTest::PI(target) => {
-                if NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) ==
-                    node.type_id()
-                {
-                    let pi = node.downcast::<ProcessingInstruction>().unwrap();
-                    match (target, pi.target()) {
+                if let Some(processing_instruction) = node.as_processing_instruction() {
+                    match (target, processing_instruction.target()) {
                         (Some(target_name), node_target_name)
                             if target_name == &node_target_name.to_string() =>
                         {
@@ -461,37 +407,27 @@ fn apply_node_test(
                     false
                 }
             },
-            KindTest::Comment => matches!(
-                node.type_id(),
-                NodeTypeId::CharacterData(CharacterDataTypeId::Comment)
-            ),
-            KindTest::Text => matches!(
-                node.type_id(),
-                NodeTypeId::CharacterData(CharacterDataTypeId::Text(_))
-            ),
+            KindTest::Comment => node.is_comment(),
+            KindTest::Text => node.is_text(),
             KindTest::Node => true,
         },
     };
     Ok(result)
 }
 
-impl Evaluatable for StepExpr {
-    fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error> {
+impl<D: Dom> Evaluatable<D> for StepExpr {
+    fn evaluate(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error<D::JsError>> {
         match self {
             StepExpr::Filter(filter_expr) => filter_expr.evaluate(context),
             StepExpr::Axis(axis_step) => {
-                let nodes: Vec<DomRoot<Node>> = match axis_step.axis {
+                let nodes: Vec<D::Node> = match axis_step.axis {
                     Axis::Child => context.context_node.children().collect(),
-                    Axis::Descendant => context
-                        .context_node
-                        .traverse_preorder(ShadowIncluding::No)
-                        .skip(1)
-                        .collect(),
-                    Axis::Parent => vec![context.context_node.GetParentNode()]
+                    Axis::Descendant => context.context_node.traverse_preorder().skip(1).collect(),
+                    Axis::Parent => vec![context.context_node.parent()]
                         .into_iter()
                         .flatten()
                         .collect(),
-                    Axis::Ancestor => context.context_node.ancestors().collect(),
+                    Axis::Ancestor => context.context_node.inclusive_ancestors().skip(1).collect(),
                     Axis::Following => context
                         .context_node
                         .following_nodes(&context.context_node)
@@ -505,40 +441,29 @@ impl Evaluatable for StepExpr {
                     Axis::FollowingSibling => context.context_node.following_siblings().collect(),
                     Axis::PrecedingSibling => context.context_node.preceding_siblings().collect(),
                     Axis::Attribute => {
-                        if matches!(Node::type_id(&context.context_node), NodeTypeId::Element(_)) {
-                            let element = context.context_node.downcast::<Element>().unwrap();
+                        if let Some(element) = context.context_node.as_element() {
                             element
-                                .attrs()
-                                .iter()
-                                .map(|attr| attr.upcast::<Node>())
-                                .map(DomRoot::from_ref)
+                                .attributes()
+                                .map(|attribute| attribute.as_node())
                                 .collect()
                         } else {
                             vec![]
                         }
                     },
                     Axis::Self_ => vec![context.context_node.clone()],
-                    Axis::DescendantOrSelf => context
-                        .context_node
-                        .traverse_preorder(ShadowIncluding::No)
-                        .collect(),
-                    Axis::AncestorOrSelf => context
-                        .context_node
-                        .inclusive_ancestors(ShadowIncluding::No)
-                        .collect(),
+                    Axis::DescendantOrSelf => context.context_node.traverse_preorder().collect(),
+                    Axis::AncestorOrSelf => context.context_node.inclusive_ancestors().collect(),
                     Axis::Namespace => Vec::new(), // Namespace axis is not commonly implemented
                 };
 
-                trace!("[StepExpr] Axis {:?} got nodes {:?}", axis_step.axis, nodes);
+                log::trace!("[StepExpr] Axis {:?} got nodes {:?}", axis_step.axis, nodes);
 
                 // Filter nodes according to the step's node_test. Will error out if any NodeTest
                 // application errors out.
-                let filtered_nodes: Vec<DomRoot<Node>> = nodes
+                let filtered_nodes: Vec<D::Node> = nodes
                     .into_iter()
                     .map(|node| {
-                        // FIXME: propagate this can_gc up further. This likely requires removing the "Evaluate"
-                        // trait or changing the signature of "evaluate". The trait is not really necessary anyways.
-                        apply_node_test(context, &axis_step.node_test, &node, CanGc::note())
+                        apply_node_test(context, &axis_step.node_test, &node)
                             .map(|matches| matches.then_some(node))
                     })
                     .collect::<Result<Vec<_>, _>>()?
@@ -546,18 +471,18 @@ impl Evaluatable for StepExpr {
                     .flatten()
                     .collect();
 
-                trace!("[StepExpr] Filtering got nodes {:?}", filtered_nodes);
+                log::trace!("[StepExpr] Filtering got nodes {:?}", filtered_nodes);
 
                 if axis_step.predicates.predicates.is_empty() {
-                    trace!(
+                    log::trace!(
                         "[StepExpr] No predicates, returning nodes {:?}",
                         filtered_nodes
                     );
                     Ok(Value::Nodeset(filtered_nodes))
                 } else {
                     // Apply predicates
-                    let predicate_list_subcontext = context
-                        .update_predicate_nodes(filtered_nodes.iter().map(|n| &**n).collect());
+                    let predicate_list_subcontext =
+                        context.update_predicate_nodes(filtered_nodes.clone());
                     axis_step.predicates.evaluate(&predicate_list_subcontext)
                 }
             },
@@ -565,10 +490,10 @@ impl Evaluatable for StepExpr {
     }
 }
 
-impl Evaluatable for PredicateListExpr {
-    fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error> {
+impl<D: Dom> Evaluatable<D> for PredicateListExpr {
+    fn evaluate(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error<D::JsError>> {
         if let Some(ref predicate_nodes) = context.predicate_nodes {
-            let mut matched_nodes: Vec<DomRoot<Node>> = predicate_nodes.clone();
+            let mut matched_nodes = predicate_nodes.clone();
 
             for predicate_expr in &self.predicates {
                 let size = matched_nodes.len();
@@ -576,7 +501,7 @@ impl Evaluatable for PredicateListExpr {
 
                 for (i, node) in matched_nodes.iter().enumerate() {
                     // 1-based position, per XPath spec
-                    let predicate_ctx = EvaluationCtx {
+                    let predicate_ctx: EvaluationCtx<D> = EvaluationCtx {
                         starting_node: context.starting_node.clone(),
                         context_node: node.clone(),
                         predicate_nodes: context.predicate_nodes.clone(),
@@ -599,9 +524,10 @@ impl Evaluatable for PredicateListExpr {
                 }
 
                 matched_nodes = new_matched;
-                trace!(
+                log::trace!(
                     "[PredicateListExpr] Predicate {:?} matched nodes {:?}",
-                    predicate_expr, matched_nodes
+                    predicate_expr,
+                    matched_nodes
                 );
             }
             Ok(Value::Nodeset(matched_nodes))
@@ -614,9 +540,9 @@ impl Evaluatable for PredicateListExpr {
     }
 }
 
-impl Evaluatable for PredicateExpr {
-    fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error> {
-        let narrowed_nodes: Result<Vec<DomRoot<Node>>, Error> = context
+impl<D: Dom> Evaluatable<D> for PredicateExpr {
+    fn evaluate(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error<D::JsError>> {
+        let narrowed_nodes: Result<Vec<_>, _> = context
             .subcontext_iter_for_nodes()
             .filter_map(|ctx| {
                 if let Some(predicate_ctx) = ctx.predicate_ctx {
@@ -646,25 +572,24 @@ impl Evaluatable for PredicateExpr {
     }
 }
 
-impl Evaluatable for FilterExpr {
-    fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error> {
+impl<D: Dom> Evaluatable<D> for FilterExpr {
+    fn evaluate(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error<D::JsError>> {
         let primary_result = self.primary.evaluate(context)?;
         let have_predicates = !self.predicates.predicates.is_empty();
 
         match (have_predicates, &primary_result) {
             (false, _) => {
-                trace!(
+                log::trace!(
                     "[FilterExpr] No predicates, returning primary result: {:?}",
                     primary_result
                 );
                 Ok(primary_result)
             },
             (true, Value::Nodeset(vec)) => {
-                let predicate_list_subcontext =
-                    context.update_predicate_nodes(vec.iter().map(|n| &**n).collect());
+                let predicate_list_subcontext = context.update_predicate_nodes(vec.clone());
                 let result_filtered_by_predicates =
                     self.predicates.evaluate(&predicate_list_subcontext);
-                trace!(
+                log::trace!(
                     "[FilterExpr] Result filtered by predicates: {:?}",
                     result_filtered_by_predicates
                 );
@@ -676,8 +601,8 @@ impl Evaluatable for FilterExpr {
     }
 }
 
-impl Evaluatable for PrimaryExpr {
-    fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error> {
+impl<D: Dom> Evaluatable<D> for PrimaryExpr {
+    fn evaluate(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error<D::JsError>> {
         match self {
             PrimaryExpr::Literal(literal) => literal.evaluate(context),
             PrimaryExpr::Variable(_qname) => Err(Error::CannotUseVariables),
@@ -688,8 +613,8 @@ impl Evaluatable for PrimaryExpr {
     }
 }
 
-impl Evaluatable for Literal {
-    fn evaluate(&self, _context: &EvaluationCtx) -> Result<Value, Error> {
+impl<D: Dom> Evaluatable<D> for Literal {
+    fn evaluate(&self, _context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error<D::JsError>> {
         match self {
             Literal::Numeric(numeric_literal) => match numeric_literal {
                 // We currently make no difference between ints and floats

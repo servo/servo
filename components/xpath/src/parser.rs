@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use malloc_size_of_derive::MallocSizeOf;
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take_while1};
 use nom::character::complete::{char, digit1, multispace0};
@@ -11,7 +12,7 @@ use nom::multi::{many0, separated_list0};
 use nom::sequence::{delimited, pair, preceded};
 use nom::{AsChar, Finish, IResult, Input, Parser};
 
-use crate::dom::bindings::xmlname::{is_valid_continuation, is_valid_start};
+use crate::{is_valid_continuation, is_valid_start};
 
 pub(crate) fn parse(input: &str) -> Result<Expr, OwnedParserError> {
     let (_, ast) = expr(input).finish().map_err(OwnedParserError::from)?;
@@ -19,7 +20,7 @@ pub(crate) fn parse(input: &str) -> Result<Expr, OwnedParserError> {
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) enum Expr {
+pub enum Expr {
     Or(Box<Expr>, Box<Expr>),
     And(Box<Expr>, Box<Expr>),
     Equality(Box<Expr>, EqualityOp, Box<Expr>),
@@ -32,13 +33,13 @@ pub(crate) enum Expr {
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) enum EqualityOp {
+pub enum EqualityOp {
     Eq,
     NotEq,
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) enum RelationalOp {
+pub enum RelationalOp {
     Lt,
     Gt,
     LtEq,
@@ -46,25 +47,25 @@ pub(crate) enum RelationalOp {
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) enum AdditiveOp {
+pub enum AdditiveOp {
     Add,
     Sub,
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) enum MultiplicativeOp {
+pub enum MultiplicativeOp {
     Mul,
     Div,
     Mod,
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) enum UnaryOp {
+pub enum UnaryOp {
     Minus,
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) struct PathExpr {
+pub struct PathExpr {
     pub(crate) is_absolute: bool,
     pub(crate) is_descendant: bool,
     pub(crate) steps: Vec<StepExpr>,
@@ -124,7 +125,7 @@ pub(crate) enum NodeTest {
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) struct QName {
+pub struct QName {
     pub(crate) prefix: Option<String>,
     pub(crate) local_part: String,
 }
@@ -235,9 +236,9 @@ pub(crate) enum CoreFunction {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct OwnedParserError {
-    input: String,
-    kind: NomErrorKind,
+pub struct OwnedParserError {
+    pub input: String,
+    pub kind: NomErrorKind,
 }
 
 impl<'a> From<NomError<&'a str>> for OwnedParserError {
