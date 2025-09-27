@@ -60,7 +60,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::links::LinkRelations;
 use crate::network_listener::{PreInvoke, ResourceTimingListener, submit_timing};
 use crate::script_runtime::CanGc;
-use crate::stylesheet_loader::{StylesheetContextSource, StylesheetLoader, StylesheetOwner};
+use crate::stylesheet_loader::{ElementStylesheetLoader, StylesheetContextSource, StylesheetOwner};
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) struct RequestGenerationId(u32);
@@ -589,7 +589,7 @@ impl HTMLLinkElement {
         self.request_generation_id
             .set(self.request_generation_id.get().increment());
 
-        let loader = StylesheetLoader::for_element(self.upcast());
+        let loader = ElementStylesheetLoader::new(self.upcast());
         loader.load(
             StylesheetContextSource::LinkElement { media: Some(media) },
             link_url,

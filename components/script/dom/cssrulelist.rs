@@ -29,7 +29,7 @@ use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
-use crate::stylesheet_loader::StylesheetLoader;
+use crate::stylesheet_loader::ElementStylesheetLoader;
 
 unsafe_no_jsmanaged_fields!(RulesSource);
 
@@ -130,7 +130,7 @@ impl CSSRuleList {
             .and_then(DomRoot::downcast::<HTMLElement>);
         let loader = owner
             .as_ref()
-            .map(|element| StylesheetLoader::for_element(element));
+            .map(|element| ElementStylesheetLoader::new(element));
         let allow_import_rules = if self.parent_stylesheet.is_constructed() {
             AllowImportRules::No
         } else {
