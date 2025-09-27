@@ -54,6 +54,7 @@ use webrender_api::{
 };
 
 use crate::InitialCompositorState;
+use crate::largest_contentful_paint_calculator::LargestContentfulPaintCalculator;
 use crate::refresh_driver::RefreshDriver;
 use crate::webview_manager::WebViewManager;
 use crate::webview_renderer::{PinchZoomResult, UnknownWebView, WebViewRenderer};
@@ -154,6 +155,9 @@ pub struct IOCompositor {
     /// A handle to the memory profiler which will automatically unregister
     /// when it's dropped.
     _mem_profiler_registration: ProfilerRegistration,
+
+    /// Calculate largest-contentful-paint.
+    lcp_calculator: LargestContentfulPaintCalculator,
 }
 
 /// Why we need to be repainted. This is used for debugging.
@@ -334,6 +338,7 @@ impl IOCompositor {
             rendering_context: state.rendering_context,
             pending_frames: Cell::new(0),
             _mem_profiler_registration: registration,
+            lcp_calculator: LargestContentfulPaintCalculator::new(),
         };
 
         {
@@ -526,6 +531,8 @@ impl IOCompositor {
                 if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
                     webview_renderer.pipeline_exited(pipeline_id, pipeline_exit_source);
                 }
+                self.lcp_calculator
+                    .remove_lcp_candidates_for_pipeline(pipeline_id.into());
             },
 
             CompositorMsg::NewWebRenderFrameReady(_document_id, recomposite_needed) => {
@@ -805,6 +812,10 @@ impl IOCompositor {
                     webview.set_viewport_description(viewport_description);
                 }
             },
+            CompositorMsg::LCPCandidate(lcp_candidate, pipeline_id) => {
+                self.lcp_calculator
+                    .append_lcp_candidate(pipeline_id, lcp_candidate);
+            },
         }
     }
 
@@ -827,6 +838,8 @@ impl IOCompositor {
                 if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
                     webview_renderer.pipeline_exited(pipeline_id, pipeline_exit_source);
                 }
+                self.lcp_calculator
+                    .remove_lcp_candidates_for_pipeline(pipeline_id.into());
             },
             CompositorMsg::GenerateImageKey(sender) => {
                 let _ = sender.send(self.global.borrow().webrender_api.generate_image_key());
@@ -1392,6 +1405,21 @@ impl IOCompositor {
                     },
                     _ => {},
                 }
+
+                if let Some(lcp) = self.lcp_calculator.calculate_largest_contentful_paint(
+                    paint_time,
+                    current_epoch,
+                    pipeline_id.into(),
+                ) {
+                    if let Err(error) = self.global.borrow().constellation_sender.send(
+                        EmbedderToConstellationMessage::PaintMetric(
+                            *pipeline_id,
+                            PaintMetricEvent::LargestContentfulPaint(lcp.paint_time, lcp.area),
+                        ),
+                    ) {
+                        warn!("Sending paint metric event to constellation failed ({error:?}).");
+                    }
+                }
             }
         }
     }
@@ -1608,6 +1636,7 @@ impl IOCompositor {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
             webview_renderer.notify_input_event(event);
         }
+        self.disable_lcp_calculation();
     }
 
     pub fn notify_scroll_event(
@@ -1618,6 +1647,16 @@ impl IOCompositor {
     ) {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
             webview_renderer.notify_scroll_event(scroll_location, cursor);
+        }
+        self.disable_lcp_calculation();
+    }
+
+    /// Disable LCP calculation when the user interacts with the page.
+    fn disable_lcp_calculation(&mut self) {
+        let mut current_preferences = servo_config::prefs::get().clone();
+        if current_preferences.largest_contentful_paint_enabled {
+            current_preferences.largest_contentful_paint_enabled = false;
+            servo_config::prefs::set(current_preferences);
         }
     }
 
