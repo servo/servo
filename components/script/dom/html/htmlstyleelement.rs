@@ -34,7 +34,7 @@ use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::stylesheetcontentscache::{StylesheetContentsCache, StylesheetContentsCacheKey};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
-use crate::stylesheet_loader::{StylesheetLoader, StylesheetOwner};
+use crate::stylesheet_loader::{ElementStylesheetLoader, StylesheetOwner};
 
 #[dom_struct]
 pub(crate) struct HTMLStyleElement {
@@ -133,7 +133,7 @@ impl HTMLStyleElement {
             .expect("Element.textContent must be a string");
         let shared_lock = node.owner_doc().style_shared_lock().clone();
         let mq = Arc::new(shared_lock.wrap(self.create_media_list(self.Media().str())));
-        let loader = StylesheetLoader::for_element(self.upcast());
+        let loader = ElementStylesheetLoader::new(self.upcast());
 
         let stylesheetcontents_create_callback = || {
             #[cfg(feature = "tracing")]
