@@ -60,6 +60,7 @@ use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_tim
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use script_bindings::interfaces::GlobalScopeHelpers;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
+use storage_traits::StorageThreads;
 use timers::{TimerEventRequest, TimerId};
 use uuid::Uuid;
 #[cfg(feature = "webgpu")]
@@ -269,9 +270,14 @@ pub(crate) struct GlobalScope {
     in_error_reporting_mode: Cell<bool>,
 
     /// Associated resource threads for use by DOM objects like XMLHttpRequest,
-    /// including resource_thread, filemanager_thread and storage_thread
+    /// including resource_thread and filemanager_thread
     #[no_trace]
     resource_threads: ResourceThreads,
+
+    /// Associated resource threads for use by DOM objects like XMLHttpRequest,
+    /// including indexeddb_thread and storage_thread
+    #[no_trace]
+    storage_threads: StorageThreads,
 
     /// The mechanism by which time-outs and intervals are scheduled.
     /// <https://html.spec.whatwg.org/multipage/#timers>
@@ -754,6 +760,7 @@ impl GlobalScope {
         script_to_constellation_chan: ScriptToConstellationChan,
         script_to_embedder_chan: ScriptToEmbedderChan,
         resource_threads: ResourceThreads,
+        storage_threads: StorageThreads,
         origin: MutableOrigin,
         creation_url: ServoUrl,
         top_level_creation_url: Option<ServoUrl>,
@@ -785,6 +792,7 @@ impl GlobalScope {
             script_to_embedder_chan,
             in_error_reporting_mode: Default::default(),
             resource_threads,
+            storage_threads,
             timers: OnceCell::default(),
             origin,
             creation_url,
@@ -2759,6 +2767,11 @@ impl GlobalScope {
     /// Get the `CoreResourceThread` for this global scope.
     pub(crate) fn core_resource_thread(&self) -> CoreResourceThread {
         self.resource_threads().sender()
+    }
+
+    /// Get the `&StorageThreads` for this global scope.
+    pub(crate) fn storage_threads(&self) -> &StorageThreads {
+        &self.storage_threads
     }
 
     /// A sender to the event loop of this global scope. This either sends to the Worker event loop

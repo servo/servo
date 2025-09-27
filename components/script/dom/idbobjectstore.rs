@@ -7,13 +7,13 @@ use dom_struct::dom_struct;
 use js::gc::MutableHandleValue;
 use js::jsval::NullValue;
 use js::rust::HandleValue;
-use net_traits::indexeddb_thread::{
-    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, IndexedDBKeyType,
-    IndexedDBThreadMsg, SyncOperation,
-};
 use profile_traits::ipc;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::error::ErrorResult;
+use storage_traits::indexeddb_thread::{
+    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, IndexedDBKeyType,
+    IndexedDBThreadMsg, SyncOperation,
+};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::IDBCursorBinding::IDBCursorDirection;
@@ -131,7 +131,7 @@ impl IDBObjectStore {
         );
 
         self.global()
-            .resource_threads()
+            .storage_threads()
             .send(IndexedDBThreadMsg::Sync(operation))
             .unwrap();
 

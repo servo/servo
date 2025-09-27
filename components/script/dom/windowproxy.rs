@@ -35,10 +35,10 @@ use js::rust::wrappers::{JS_TransplantObject, NewWindowProxy, SetWindowProxy};
 use js::rust::{Handle, MutableHandle, MutableHandleValue, get_object_class};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::request::Referrer;
-use net_traits::storage_thread::StorageThreadMsg;
 use script_traits::NewLayoutInfo;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
+use storage_traits::storage_thread::StorageThreadMsg;
 use style::attr::parse_integer;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -359,7 +359,7 @@ impl WindowProxy {
                 dest: response.new_webview_id,
             };
 
-            GenericSend::send(document.global().resource_threads(), msg).unwrap();
+            GenericSend::send(document.global().storage_threads(), msg).unwrap();
             receiver.recv().unwrap();
         }
         Some(new_window_proxy)

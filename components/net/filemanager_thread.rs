@@ -11,6 +11,7 @@ use std::sync::{Arc, Mutex, RwLock, Weak};
 
 use base::generic_channel;
 use base::id::WebViewId;
+use base::threadpool::ThreadPool;
 use embedder_traits::{EmbedderMsg, EmbedderProxy, FilterPattern};
 use headers::{ContentLength, ContentRange, ContentType, HeaderMap, HeaderMapExt, Range};
 use http::header::{self, HeaderValue};
@@ -33,7 +34,6 @@ use uuid::Uuid;
 
 use crate::fetch::methods::{CancellationListener, Data, RangeRequestBounds};
 use crate::protocols::get_range_request_bounds;
-use crate::resource_thread::CoreResourceThreadPool;
 
 pub const FILE_CHUNK_SIZE: usize = 32768; // 32 KB
 
@@ -79,14 +79,11 @@ enum FileImpl {
 pub struct FileManager {
     embedder_proxy: EmbedderProxy,
     store: Arc<FileManagerStore>,
-    thread_pool: Weak<CoreResourceThreadPool>,
+    thread_pool: Weak<ThreadPool>,
 }
 
 impl FileManager {
-    pub fn new(
-        embedder_proxy: EmbedderProxy,
-        pool_handle: Weak<CoreResourceThreadPool>,
-    ) -> FileManager {
+    pub fn new(embedder_proxy: EmbedderProxy, pool_handle: Weak<ThreadPool>) -> FileManager {
         FileManager {
             embedder_proxy,
             store: Arc::new(FileManagerStore::new()),

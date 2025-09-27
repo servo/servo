@@ -1,0 +1,21 @@
+[package]
+name = "storage_traits"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "storage_traits"
+path = "lib.rs"
+
+[dependencies]
+base = { workspace = true }
+ipc-channel = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
+profile_traits = { path = "../profile" }
+serde = { workspace = true }
+servo_url = { path = "../../url" }

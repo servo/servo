@@ -73,7 +73,6 @@ use metrics::MAX_TASK_NS;
 use net_traits::image_cache::{ImageCache, ImageCacheResponseMessage};
 use net_traits::request::{Referrer, RequestId};
 use net_traits::response::ResponseInit;
-use net_traits::storage_thread::StorageType;
 use net_traits::{
     FetchMetadata, FetchResponseListener, FetchResponseMsg, Metadata, NetworkError,
     ResourceFetchTiming, ResourceThreads, ResourceTimingType,
@@ -89,6 +88,8 @@ use script_traits::{
 };
 use servo_config::{opts, prefs};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
+use storage_traits::StorageThreads;
+use storage_traits::storage_thread::StorageType;
 use style::thread_state::{self, ThreadState};
 use stylo_atoms::Atom;
 use timers::{TimerEventRequest, TimerId, TimerScheduler};
@@ -249,6 +250,9 @@ pub struct ScriptThread {
     /// there are many iframes.
     #[no_trace]
     resource_threads: ResourceThreads,
+
+    #[no_trace]
+    storage_threads: StorageThreads,
 
     /// A queue of tasks to be executed in this script-thread.
     task_queue: TaskQueue<MainThreadScriptMsg>,
@@ -751,6 +755,7 @@ impl ScriptThread {
                     let init = WorkletGlobalScopeInit {
                         to_script_thread_sender: script_thread.senders.self_sender.clone(),
                         resource_threads: script_thread.resource_threads.clone(),
+                        storage_threads: script_thread.storage_threads.clone(),
                         mem_profiler_chan: script_thread.senders.memory_profiler_sender.clone(),
                         time_profiler_chan: script_thread.senders.time_profiler_sender.clone(),
                         devtools_chan: script_thread.senders.devtools_server_sender.clone(),
@@ -950,6 +955,7 @@ impl ScriptThread {
             script_to_constellation_chan,
             senders.pipeline_to_embedder_sender.clone(),
             state.resource_threads.clone(),
+            state.storage_threads.clone(),
             #[cfg(feature = "webgpu")]
             gpu_id_hub.clone(),
             CanGc::note(),
@@ -966,6 +972,7 @@ impl ScriptThread {
             receivers,
             image_cache: state.image_cache.clone(),
             resource_threads: state.resource_threads,
+            storage_threads: state.storage_threads,
             task_queue,
             background_hang_monitor,
             closing,
@@ -3291,6 +3298,7 @@ impl ScriptThread {
             self.senders.image_cache_sender.clone(),
             image_cache.clone(),
             self.resource_threads.clone(),
+            self.storage_threads.clone(),
             #[cfg(feature = "bluetooth")]
             self.senders.bluetooth_sender.clone(),
             self.senders.memory_profiler_sender.clone(),

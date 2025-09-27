@@ -5,9 +5,9 @@ use base::generic_channel::{GenericSend, SendResult};
 use base::id::WebViewId;
 use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
-use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use profile_traits::generic_channel;
 use servo_url::ServoUrl;
+use storage_traits::storage_thread::{StorageThreadMsg, StorageType};
 
 use crate::dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
@@ -57,7 +57,7 @@ impl Storage {
     }
 
     fn send_storage_msg(&self, msg: StorageThreadMsg) -> SendResult {
-        GenericSend::send(self.global().resource_threads(), msg)
+        GenericSend::send(self.global().storage_threads(), msg)
     }
 }
 

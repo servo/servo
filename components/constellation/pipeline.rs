@@ -51,6 +51,7 @@ use serde::{Deserialize, Serialize};
 use servo_config::opts::{self, Opts};
 use servo_config::prefs::{self, Preferences};
 use servo_url::ServoUrl;
+use storage_traits::StorageThreads;
 
 use crate::event_loop::EventLoop;
 use crate::process_manager::Process;
@@ -167,6 +168,9 @@ pub struct InitialPipelineState {
 
     /// Channels to the resource-related threads.
     pub resource_threads: ResourceThreads,
+
+    /// Channels to the storage-related threads.
+    pub storage_threads: StorageThreads,
 
     /// A channel to the time profiler thread.
     pub time_profiler_chan: time::ProfilerChan,
@@ -297,6 +301,7 @@ impl Pipeline {
                     swmanager_thread: state.swmanager_thread,
                     system_font_service: state.system_font_service.to_sender(),
                     resource_threads: state.resource_threads,
+                    storage_threads: state.storage_threads,
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan,
                     viewport_details: state.viewport_details,
@@ -495,6 +500,7 @@ pub struct UnprivilegedPipelineContent {
     swmanager_thread: GenericSender<SWManagerMsg>,
     system_font_service: SystemFontServiceProxySender,
     resource_threads: ResourceThreads,
+    storage_threads: StorageThreads,
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: profile_mem::ProfilerChan,
     viewport_details: ViewportDetails,
@@ -551,6 +557,7 @@ impl UnprivilegedPipelineContent {
                 #[cfg(feature = "bluetooth")]
                 bluetooth_sender: self.bluetooth_thread,
                 resource_threads: self.resource_threads,
+                storage_threads: self.storage_threads,
                 image_cache,
                 time_profiler_sender: self.time_profiler_chan.clone(),
                 memory_profiler_sender: self.mem_profiler_chan.clone(),

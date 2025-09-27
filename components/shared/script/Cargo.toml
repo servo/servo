@@ -39,6 +39,7 @@ rustc-hash = { workspace = true }
 serde = { workspace = true }
 servo_config = { path = "../../config" }
 servo_url = { path = "../../url" }
+storage_traits = { workspace = true }
 strum = { workspace = true, features = ["derive"] }
 strum_macros = { workspace = true }
 stylo_atoms = { workspace = true }

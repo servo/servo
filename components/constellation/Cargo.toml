@@ -55,6 +55,7 @@ servo-tracing = { workspace = true }
 servo_config = { path = "../config" }
 servo_rand = { path = "../rand" }
 servo_url = { path = "../url" }
+storage_traits = { workspace = true }
 stylo = { workspace = true }
 stylo_traits = { workspace = true }
 tracing = { workspace = true, optional = true }

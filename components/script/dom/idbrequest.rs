@@ -11,13 +11,13 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::Heap;
 use js::jsval::{DoubleValue, JSVal, ObjectValue, UndefinedValue};
 use js::rust::HandleValue;
-use net_traits::indexeddb_thread::{
-    AsyncOperation, AsyncReadOnlyOperation, BackendError, BackendResult, IndexedDBKeyType,
-    IndexedDBRecord, IndexedDBThreadMsg, IndexedDBTxnMode, PutItemResult,
-};
 use profile_traits::ipc::IpcReceiver;
 use script_bindings::conversions::SafeToJSValConvertible;
 use serde::{Deserialize, Serialize};
+use storage_traits::indexeddb_thread::{
+    AsyncOperation, AsyncReadOnlyOperation, BackendError, BackendResult, IndexedDBKeyType,
+    IndexedDBRecord, IndexedDBThreadMsg, IndexedDBTxnMode, PutItemResult,
+};
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::IDBRequestBinding::{
@@ -426,7 +426,7 @@ impl IDBRequest {
 
         transaction
             .global()
-            .resource_threads()
+            .storage_threads()
             .send(IndexedDBThreadMsg::Async(
                 global.origin().immutable().clone(),
                 transaction.get_db_name().to_string(),
