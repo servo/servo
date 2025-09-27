@@ -106,17 +106,19 @@ impl MutationObserver {
         if !target.global().as_window().get_exists_mut_observer() {
             return;
         }
-        // Step 1
+        // Step 1 Let interestedObservers be an empty map.
         let mut interested_observers: HashMap<DomRoot<MutationObserver>, Option<DOMString>> =
             HashMap::new();
 
-        // Step 2
+        // Step 2 Let nodes be the inclusive ancestors of target.
+        // Step 3 For each node in nodes ...
         for node in target.inclusive_ancestors(ShadowIncluding::No) {
             let registered = node.registered_mutation_observers();
             if registered.is_none() {
                 continue;
             }
 
+            // Step 3 ... and then for each registered of node’s registered observer list:
             for registered in &*registered.unwrap() {
                 // 3.2 "1": node is not target and options["subtree"] is false
                 if &*node != target && !registered.options.subtree {
@@ -191,7 +193,7 @@ impl MutationObserver {
             }
         }
 
-        // Step 4
+        // Step 4 For each observer → mappedOldValue of interestedObservers:
         for (observer, mapped_old_value) in interested_observers {
             // Step 4.1 Let record be a new MutationRecord object ...
             let record = match *attr_type {
@@ -237,8 +239,8 @@ impl MutationObserver {
         }
 
         // Step 5 Queue a mutation observer microtask.
-        let mutation_observers = ScriptThread::mutation_observers();
-        mutation_observers.queue_mutation_observer_microtask(ScriptThread::microtask_queue());
+        ScriptThread::mutation_observers()
+            .queue_mutation_observer_microtask(ScriptThread::microtask_queue());
     }
 }
 
@@ -267,8 +269,8 @@ impl MutationObserverMethods<crate::DomTypeHolder> for MutationObserver {
         let subtree = options.subtree;
 
         // Step 1
-        if (options.attributeOldValue.is_some() || options.attributeFilter.is_some())
-            && options.attributes.is_none()
+        if (options.attributeOldValue.is_some() || options.attributeFilter.is_some()) &&
+            options.attributes.is_none()
         {
             attributes = true;
         }
