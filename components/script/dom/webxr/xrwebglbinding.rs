@@ -82,17 +82,17 @@ impl XRWebGLBindingMethods<crate::DomTypeHolder> for XRWebGLBinding {
         };
         // Step 2
         if session.is_ended() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         // step 3
         if context.IsContextLost() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         // Step 4
         if !session.is_immersive() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         };
 
         // Step 5 throw an InvalidStateError If context’s XR compatible boolean is false.

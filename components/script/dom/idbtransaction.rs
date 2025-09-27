@@ -263,7 +263,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
     fn ObjectStore(&self, name: DOMString) -> Fallible<DomRoot<IDBObjectStore>> {
         // Step 1: If transaction has finished, throw an "InvalidStateError" DOMException.
         if self.finished.get() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         // Step 2: Check that the object store exists
@@ -332,7 +332,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         // This only sets the flags, and does not abort the transaction
         // see https://www.w3.org/TR/IndexedDB-2/#abort-a-transaction
         if self.finished.get() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         self.active.set(false);

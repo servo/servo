@@ -86,7 +86,7 @@ impl PannerNode {
             return Err(Error::Range("rolloffFactor should be non-negative".into()));
         }
         if *options.coneOuterGain < 0. || *options.coneOuterGain > 1. {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
         let options = options.convert();
         let node = AudioNode::new_inherited(
@@ -356,7 +356,7 @@ impl PannerNodeMethods<crate::DomTypeHolder> for PannerNode {
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-coneoutergain
     fn SetConeOuterGain(&self, val: Finite<f64>) -> Fallible<()> {
         if *val < 0. || *val > 1. {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
         self.cone_outer_gain.set(*val);
         let msg = PannerNodeMessage::SetConeGain(self.cone_outer_gain.get());

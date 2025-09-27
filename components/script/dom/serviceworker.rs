@@ -100,7 +100,7 @@ impl ServiceWorker {
     ) -> ErrorResult {
         // Step 1
         if let ServiceWorkerState::Redundant = self.state.get() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
         // Step 7
         let data = structuredclone::write(cx, message, Some(transfer))?;

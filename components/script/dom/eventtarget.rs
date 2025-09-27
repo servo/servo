@@ -1132,7 +1132,7 @@ impl EventTargetMethods<crate::DomTypeHolder> for EventTarget {
     // https://dom.spec.whatwg.org/#dom-eventtarget-dispatchevent
     fn DispatchEvent(&self, event: &Event, can_gc: CanGc) -> Fallible<bool> {
         if event.dispatching() || !event.initialized() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
         event.set_trusted(false);
         Ok(self.dispatch_event(event, can_gc))

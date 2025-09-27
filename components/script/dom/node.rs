@@ -3202,13 +3202,13 @@ impl Node {
         )
         .map_err(|error| {
             error!("Cannot serialize node: {error}");
-            Error::InvalidState
+            Error::InvalidState(None)
         })?;
 
         // FIXME(ajeffrey): Directly convert UTF8 to DOMString
         let string = DOMString::from(String::from_utf8(writer).map_err(|error| {
             error!("Cannot serialize node: {error}");
-            Error::InvalidState
+            Error::InvalidState(None)
         })?);
 
         Ok(string)

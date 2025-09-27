@@ -105,11 +105,11 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
         can_gc: CanGc,
     ) -> Result<Option<DomRoot<XRViewerPose>>, Error> {
         if self.session != reference.upcast::<XRSpace>().session() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         if !self.active.get() || !self.animation_frame.get() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         let to_base = if let Some(to_base) = reference.get_base_transform(&self.data) {
@@ -139,10 +139,10 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
         can_gc: CanGc,
     ) -> Result<Option<DomRoot<XRPose>>, Error> {
         if self.session != space.session() || self.session != base_space.session() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
         if !self.active.get() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
         let space = if let Some(space) = self.get_pose(space) {
             space
@@ -168,10 +168,10 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
         if self.session != space.upcast::<XRSpace>().session() ||
             self.session != base_space.session()
         {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
         if !self.active.get() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
         let joint_frame = if let Some(frame) = space.frame(&self.data) {
             frame
@@ -210,12 +210,12 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
         mut radii: CustomAutoRooterGuard<Float32Array>,
     ) -> Result<bool, Error> {
         if !self.active.get() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         for joint_space in &joint_spaces {
             if self.session != joint_space.upcast::<XRSpace>().session() {
-                return Err(Error::InvalidState);
+                return Err(Error::InvalidState(None));
             }
         }
 
@@ -256,17 +256,17 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
         mut transforms: CustomAutoRooterGuard<Float32Array>,
     ) -> Result<bool, Error> {
         if !self.active.get() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         for space in &spaces {
             if self.session != space.session() {
-                return Err(Error::InvalidState);
+                return Err(Error::InvalidState(None));
             }
         }
 
         if self.session != base_space.session() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         if spaces.len() * 16 > transforms.len() {

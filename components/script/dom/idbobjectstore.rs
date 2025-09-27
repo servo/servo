@@ -148,7 +148,7 @@ impl IDBObjectStore {
     fn verify_not_deleted(&self) -> ErrorResult {
         let db = self.transaction.Db();
         if !db.object_store_exists(&self.name.borrow()) {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
         Ok(())
     }
@@ -253,7 +253,7 @@ impl IDBObjectStore {
         // Step 10. Let clone be a clone of value in targetRealm during transaction. Rethrow any exceptions.
         let cloned_value = structuredclone::write(cx, value, None)?;
         let Ok(serialized_value) = bincode::serialize(&cloned_value) else {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         };
 
         let (sender, receiver) = indexed_db::create_channel(self.global());
@@ -638,7 +638,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
         // Step 5. If transaction is not an upgrade transaction, throw an "InvalidStateError" DOMException.
         if transaction.Mode() != IDBTransactionMode::Versionchange {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
         // Step 6. If transaction’s state is not active, throw a "TransactionInactiveError" DOMException.
         self.check_transaction_active()?;

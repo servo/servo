@@ -184,7 +184,7 @@ impl ImageBitmapRenderingContextMethods<crate::DomTypeHolder> for ImageBitmapRen
         // is set to true, then throw an "InvalidStateError"
         // DOMException.
         if image_bitmap.is_detached() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         // Step 4. Run the steps to set an ImageBitmapRenderingContext's

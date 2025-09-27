@@ -179,7 +179,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
             }
 
             if self.pending_or_active_session() {
-                promise.reject_error(Error::InvalidState, can_gc);
+                promise.reject_error(Error::InvalidState(None), can_gc);
                 return promise;
             }
 

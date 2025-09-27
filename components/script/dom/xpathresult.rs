@@ -214,7 +214,7 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
         }
 
         if self.document_changed_since_creation() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         let XPathResultValue::Nodeset(nodes) = &*self.value.borrow() else {

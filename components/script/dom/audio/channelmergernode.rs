@@ -41,7 +41,7 @@ impl ChannelMergerNode {
         );
 
         if node_options.count != 1 || node_options.mode != ChannelCountMode::Explicit {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         if options.numberOfInputs < 1 || options.numberOfInputs > MAX_CHANNEL_COUNT {

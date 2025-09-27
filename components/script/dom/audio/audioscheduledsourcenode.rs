@@ -67,7 +67,7 @@ impl AudioScheduledSourceNodeMethods<crate::DomTypeHolder> for AudioScheduledSou
         }
 
         if self.has_start.get() || self.has_stop.get() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         let this = Trusted::new(self);
@@ -106,7 +106,7 @@ impl AudioScheduledSourceNodeMethods<crate::DomTypeHolder> for AudioScheduledSou
         }
 
         if !self.has_start.get() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
         self.has_stop.set(true);
         self.node

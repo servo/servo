@@ -163,7 +163,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
 
         // Step 2: if close flag is set, throw error
         if self.closing.get() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         // Step 3
@@ -198,7 +198,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         // Step 2
         let upgrade_transaction = match self.upgrade_transaction.get() {
             Some(txn) => txn,
-            None => return Err(Error::InvalidState),
+            None => return Err(Error::InvalidState(None)),
         };
 
         // Step 3
@@ -276,7 +276,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
             .is_err()
         {
             warn!("Object store creation failed in idb thread");
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         };
 
         self.object_store_names.borrow_mut().push(name);
@@ -289,7 +289,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         let transaction = self.upgrade_transaction.get();
         let transaction = match transaction {
             Some(transaction) => transaction,
-            None => return Err(Error::InvalidState),
+            None => return Err(Error::InvalidState(None)),
         };
 
         // Step 3
@@ -330,7 +330,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
             .is_err()
         {
             warn!("Object store deletion failed in idb thread");
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         };
         Ok(())
     }

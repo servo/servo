@@ -28,7 +28,7 @@ pub enum Error {
     /// InUseAttributeError DOMException
     InUseAttribute,
     /// InvalidStateError DOMException
-    InvalidState,
+    InvalidState(Option<String>),
     /// SyntaxError DOMException
     Syntax(Option<String>),
     /// NamespaceError DOMException

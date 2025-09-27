@@ -507,7 +507,7 @@ impl CanvasState {
             CanvasImageSource::HTMLCanvasElement(ref canvas) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
                 if canvas.get_size().is_empty() {
-                    return Err(Error::InvalidState);
+                    return Err(Error::InvalidState(None));
                 }
 
                 self.draw_html_canvas_element(canvas, htmlcanvas, sx, sy, sw, sh, dx, dy, dw, dh)
@@ -515,7 +515,7 @@ impl CanvasState {
             CanvasImageSource::ImageBitmap(ref bitmap) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
                 if bitmap.is_detached() {
-                    return Err(Error::InvalidState);
+                    return Err(Error::InvalidState(None));
                 }
 
                 self.draw_image_bitmap(bitmap, htmlcanvas, sx, sy, sw, sh, dx, dy, dw, dh);
@@ -524,7 +524,7 @@ impl CanvasState {
             CanvasImageSource::OffscreenCanvas(ref canvas) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
                 if canvas.get_size().is_empty() {
-                    return Err(Error::InvalidState);
+                    return Err(Error::InvalidState(None));
                 }
 
                 self.draw_offscreen_canvas(canvas, htmlcanvas, sx, sy, sw, sh, dx, dy, dw, dh)
@@ -532,7 +532,7 @@ impl CanvasState {
             CanvasImageSource::CSSStyleValue(ref value) => {
                 let url = value
                     .get_url(self.base_url.clone())
-                    .ok_or(Error::InvalidState)?;
+                    .ok_or(Error::InvalidState(None))?;
                 self.fetch_and_draw_image_data(
                     htmlcanvas, url, None, sx, sy, sw, sh, dx, dy, dw, dh,
                 )
@@ -705,7 +705,7 @@ impl CanvasState {
                         self.state.borrow().transform,
                     ));
                 },
-                OffscreenRenderingContext::Detached => return Err(Error::InvalidState),
+                OffscreenRenderingContext::Detached => return Err(Error::InvalidState(None)),
             }
         } else {
             self.send_canvas_2d_msg(Canvas2dMsg::DrawEmptyImage(
@@ -786,7 +786,7 @@ impl CanvasState {
                 },
                 RenderingContext::Placeholder(ref context) => {
                     let Some(context) = context.context() else {
-                        return Err(Error::InvalidState);
+                        return Err(Error::InvalidState(None));
                     };
                     match *context {
                         OffscreenRenderingContext::Context2d(ref context) => context
@@ -814,10 +814,12 @@ impl CanvasState {
                                 self.state.borrow().transform,
                             ));
                         },
-                        OffscreenRenderingContext::Detached => return Err(Error::InvalidState),
+                        OffscreenRenderingContext::Detached => {
+                            return Err(Error::InvalidState(None));
+                        },
                     }
                 },
-                _ => return Err(Error::InvalidState),
+                _ => return Err(Error::InvalidState(None)),
             }
         } else {
             self.send_canvas_2d_msg(Canvas2dMsg::DrawEmptyImage(
@@ -852,7 +854,7 @@ impl CanvasState {
         debug!("Fetching image {}.", url);
         let snapshot = self
             .fetch_image_data(url, cors_setting)
-            .ok_or(Error::InvalidState)?;
+            .ok_or(Error::InvalidState(None))?;
         let image_size = snapshot.size();
 
         let dw = dw.unwrap_or(image_size.width as f64);
@@ -1254,7 +1256,9 @@ impl CanvasState {
                     return Ok(None);
                 }
 
-                image.get_raster_image_data().ok_or(Error::InvalidState)?
+                image
+                    .get_raster_image_data()
+                    .ok_or(Error::InvalidState(None))?
             },
             CanvasImageSource::HTMLVideoElement(ref video) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
@@ -1262,36 +1266,41 @@ impl CanvasState {
                     return Ok(None);
                 }
 
-                video.get_current_frame_data().ok_or(Error::InvalidState)?
+                video
+                    .get_current_frame_data()
+                    .ok_or(Error::InvalidState(None))?
             },
             CanvasImageSource::HTMLCanvasElement(ref canvas) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
                 if canvas.get_size().is_empty() {
-                    return Err(Error::InvalidState);
+                    return Err(Error::InvalidState(None));
                 }
 
-                canvas.get_image_data().ok_or(Error::InvalidState)?
+                canvas.get_image_data().ok_or(Error::InvalidState(None))?
             },
             CanvasImageSource::ImageBitmap(ref bitmap) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
                 if bitmap.is_detached() {
-                    return Err(Error::InvalidState);
+                    return Err(Error::InvalidState(None));
                 }
 
-                bitmap.bitmap_data().clone().ok_or(Error::InvalidState)?
+                bitmap
+                    .bitmap_data()
+                    .clone()
+                    .ok_or(Error::InvalidState(None))?
             },
             CanvasImageSource::OffscreenCanvas(ref canvas) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
                 if canvas.get_size().is_empty() {
-                    return Err(Error::InvalidState);
+                    return Err(Error::InvalidState(None));
                 }
 
-                canvas.get_image_data().ok_or(Error::InvalidState)?
+                canvas.get_image_data().ok_or(Error::InvalidState(None))?
             },
             CanvasImageSource::CSSStyleValue(ref value) => value
                 .get_url(self.base_url.clone())
                 .and_then(|url| self.fetch_image_data(url, None))
-                .ok_or(Error::InvalidState)?,
+                .ok_or(Error::InvalidState(None))?,
         };
 
         if repetition.is_empty() {

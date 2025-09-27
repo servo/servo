@@ -204,7 +204,7 @@ impl HTMLImageElement {
 
         match self.current_request.borrow().state {
             // If image's current request's state is broken, then throw an "InvalidStateError" DOMException.
-            State::Broken => Err(Error::InvalidState),
+            State::Broken => Err(Error::InvalidState(None)),
             State::CompletelyAvailable => Ok(true),
             // If image is not fully decodable, then return bad.
             State::PartiallyAvailable | State::Unavailable => Ok(false),
