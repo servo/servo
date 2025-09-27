@@ -154,7 +154,7 @@ impl FetchResponseListener for StylesheetContext {
         _: RequestId,
         status: Result<ResourceFetchTiming, NetworkError>,
     ) {
-        let elem = self.elem.root();
+        let element = self.elem.root();
         let document = self.document.root();
         let mut successful = false;
 
@@ -201,12 +201,12 @@ impl FetchResponseListener for StylesheetContext {
             let protocol_encoding_label = metadata.charset.as_deref();
             let final_url = metadata.final_url;
 
-            let win = elem.owner_window();
+            let win = element.owner_window();
 
-            let loader = StylesheetLoader::for_element(&elem);
+            let loader = ElementStylesheetLoader::new(&element);
             match self.source {
                 StylesheetContextSource::LinkElement { ref mut media } => {
-                    let link = elem.downcast::<HTMLLinkElement>().unwrap();
+                    let link = element.downcast::<HTMLLinkElement>().unwrap();
                     // We must first check whether the generations of the context and the element match up,
                     // else we risk applying the wrong stylesheet when responses come out-of-order.
                     let is_stylesheet_load_applicable = self
@@ -268,7 +268,7 @@ impl FetchResponseListener for StylesheetContext {
             successful = metadata.status == http::StatusCode::OK;
         }
 
-        let owner = elem
+        let owner = element
             .upcast::<Element>()
             .as_stylesheet_owner()
             .expect("Stylesheet not loaded by <style> or <link> element!");
@@ -285,7 +285,8 @@ impl FetchResponseListener for StylesheetContext {
             } else {
                 atom!("load")
             };
-            elem.upcast::<EventTarget>()
+            element
+                .upcast::<EventTarget>()
                 .fire_event(event, CanGc::note());
         }
     }
@@ -325,17 +326,17 @@ impl ResourceTimingListener for StylesheetContext {
     }
 }
 
-pub(crate) struct StylesheetLoader<'a> {
-    elem: &'a HTMLElement,
+pub(crate) struct ElementStylesheetLoader<'a> {
+    element: &'a HTMLElement,
 }
 
-impl<'a> StylesheetLoader<'a> {
-    pub(crate) fn for_element(element: &'a HTMLElement) -> Self {
-        StylesheetLoader { elem: element }
+impl<'a> ElementStylesheetLoader<'a> {
+    pub(crate) fn new(element: &'a HTMLElement) -> Self {
+        ElementStylesheetLoader { element }
     }
 }
 
-impl StylesheetLoader<'_> {
+impl ElementStylesheetLoader<'_> {
     pub(crate) fn load(
         &self,
         source: StylesheetContextSource,
@@ -343,17 +344,17 @@ impl StylesheetLoader<'_> {
         cors_setting: Option<CorsSettings>,
         integrity_metadata: String,
     ) {
-        let document = self.elem.owner_document();
+        let document = self.element.owner_document();
         let shadow_root = self
-            .elem
+            .element
             .containing_shadow_root()
             .map(|sr| Trusted::new(&*sr));
         let generation = self
-            .elem
+            .element
             .downcast::<HTMLLinkElement>()
             .map(HTMLLinkElement::get_request_generation_id);
         let context = StylesheetContext {
-            elem: Trusted::new(self.elem),
+            elem: Trusted::new(self.element),
             source,
             url: url.clone(),
             metadata: None,
@@ -366,7 +367,7 @@ impl StylesheetLoader<'_> {
         };
 
         let owner = self
-            .elem
+            .element
             .upcast::<Element>()
             .as_stylesheet_owner()
             .expect("Stylesheet not loaded by <style> or <link> element!");
@@ -377,7 +378,7 @@ impl StylesheetLoader<'_> {
         }
 
         // https://html.spec.whatwg.org/multipage/#default-fetch-and-process-the-linked-resource
-        let global = self.elem.global();
+        let global = self.element.global();
         let request = create_a_potential_cors_request(
             Some(document.webview_id()),
             url.clone(),
@@ -390,7 +391,7 @@ impl StylesheetLoader<'_> {
             global.policy_container(),
         )
         .origin(document.origin().immutable().clone())
-        .pipeline_id(Some(self.elem.global().pipeline_id()))
+        .pipeline_id(Some(self.element.global().pipeline_id()))
         .referrer_policy(referrer_policy)
         .integrity_metadata(integrity_metadata);
 
@@ -398,7 +399,7 @@ impl StylesheetLoader<'_> {
     }
 }
 
-impl StyleStylesheetLoader for StylesheetLoader<'_> {
+impl StyleStylesheetLoader for ElementStylesheetLoader<'_> {
     /// Request a stylesheet after parsing a given `@import` rule, and return
     /// the constructed `@import` rule.
     fn request_stylesheet(
