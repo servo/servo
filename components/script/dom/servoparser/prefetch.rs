@@ -26,6 +26,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::trace::{CustomTraceable, JSTraceable};
 use crate::dom::document::{Document, determine_policy_for_token};
 use crate::dom::html::htmlscriptelement::script_fetch_request;
+use crate::dom::processingoptions::determine_cors_settings_for_token;
 use crate::fetch::create_a_potential_cors_request;
 use crate::script_module::ScriptFetchOptions;
 
@@ -267,13 +268,7 @@ impl PrefetchSink {
     }
 
     fn get_cors_settings(&self, tag: &Tag, name: LocalName) -> Option<CorsSettings> {
-        let crossorigin = self.get_attr(tag, name)?;
-        if crossorigin.value.eq_ignore_ascii_case("anonymous") {
-            Some(CorsSettings::Anonymous)
-        } else if crossorigin.value.eq_ignore_ascii_case("use-credentials") {
-            Some(CorsSettings::UseCredentials)
-        } else {
-            None
-        }
+        let attr = self.get_attr(tag, name)?;
+        determine_cors_settings_for_token(&attr.value)
     }
 }
