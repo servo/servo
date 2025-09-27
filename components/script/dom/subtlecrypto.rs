@@ -225,25 +225,38 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         comp: InRealm,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(comp, can_gc);
-        let normalized_algorithm =
-            match normalize_algorithm_for_encrypt_or_decrypt(cx, &algorithm, can_gc) {
-                Ok(algorithm) => algorithm,
-                Err(e) => {
-                    promise.reject_error(e, can_gc);
-                    return promise;
-                },
-            };
+        // Step 1. Let algorithm and key be the algorithm and key parameters passed to the
+        // encrypt() method, respectively.
+        // NOTE: We did that in method parameter.
+
+        // Step 2. Let data be the result of getting a copy of the bytes held by the data parameter
+        // passed to the encrypt() method.
         let data = match data {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
 
+        // Step 3. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set
+        // to algorithm and op set to "encrypt".
+        // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
+        let promise = Promise::new_in_current_realm(comp, can_gc);
+        let normalized_algorithm =
+            match normalize_algorithm(cx, &Operation::Encrypt, &algorithm, can_gc) {
+                Ok(normalized_algorithm) => normalized_algorithm,
+                Err(error) => {
+                    promise.reject_error(error, can_gc);
+                    return promise;
+                },
+            };
+
+        // Step 5. Let realm be the relevant realm of this.
+        // Step 6. Let promise be a new Promise.
+        // NOTE: We did that in preparation of Step 4.
+
+        // Step 7. Return promise and perform the remaining steps in parallel.
         let this = Trusted::new(self);
         let trusted_promise = TrustedPromise::new(promise.clone());
         let trusted_key = Trusted::new(key);
-        let key_alg = key.algorithm();
-        let valid_usage = key.usages().contains(&KeyUsage::Encrypt);
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
@@ -252,26 +265,42 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let promise = trusted_promise.root();
                 let key = trusted_key.root();
 
-                if !valid_usage || normalized_algorithm.name() != key_alg {
-                    promise.reject_error(Error::InvalidAccess, CanGc::note());
+                // Step 8. If the following steps or referenced procedures say to throw an error,
+                // queue a global task on the crypto task source, given realm's global object, to
+                // reject promise with the returned error; and then terminate the algorithm.
+
+                // Step 9. If the name member of normalizedAlgorithm is not equal to the name
+                // attribute of the [[algorithm]] internal slot of key then throw an
+                // InvalidAccessError.
+                if normalized_algorithm.name() != key.algorithm() {
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
                     return;
                 }
 
-                let cx = GlobalScope::get_cx();
-                rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-
-                if let Err(e) = normalized_algorithm.encrypt(
-                    &subtle,
-                    &key,
-                    &data,
-                    cx,
-                    array_buffer_ptr.handle_mut(),
-                    CanGc::note(),
-                ) {
-                    promise.reject_error(e, CanGc::note());
+                // Step 10. If the [[usages]] internal slot of key does not contain an entry that
+                // is "encrypt", then throw an InvalidAccessError.
+                if !key.usages().contains(&KeyUsage::Encrypt) {
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
                     return;
                 }
-                promise.resolve_native(&*array_buffer_ptr.handle(), CanGc::note());
+
+                // Step 11. Let ciphertext be the result of performing the encrypt operation
+                // specified by normalizedAlgorithm using algorithm and key and with data as
+                // plaintext.
+                let ciphertext = match normalized_algorithm.encrypt(&key, &data) {
+                    Ok(ciphertext) => ciphertext,
+                    Err(error) => {
+                        subtle.reject_promise_with_error(promise, error);
+                        return;
+                    },
+                };
+
+                // Step 12. Queue a global task on the crypto task source, given realm's global
+                // object, to perform the remaining steps.
+                // Step 13. Let result be the result of creating an ArrayBuffer in realm,
+                // containing ciphertext.
+                // Step 14. Resolve promise with result.
+                subtle.resolve_promise_with_data(promise, ciphertext);
             }));
         promise
     }
@@ -286,25 +315,38 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         comp: InRealm,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(comp, can_gc);
-        let normalized_algorithm =
-            match normalize_algorithm_for_encrypt_or_decrypt(cx, &algorithm, can_gc) {
-                Ok(algorithm) => algorithm,
-                Err(e) => {
-                    promise.reject_error(e, can_gc);
-                    return promise;
-                },
-            };
+        // Step 1. Let algorithm and key be the algorithm and key parameters passed to the
+        // decrypt() method, respectively.
+        // NOTE: We did that in method parameter.
+
+        // Step 2. Let data be the result of getting a copy of the bytes held by the data parameter
+        // passed to the decrypt() method.
         let data = match data {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
 
+        // Step 3. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set
+        // to algorithm and op set to "decrypt".
+        // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
+        let promise = Promise::new_in_current_realm(comp, can_gc);
+        let normalized_algorithm =
+            match normalize_algorithm(cx, &Operation::Decrypt, &algorithm, can_gc) {
+                Ok(normalized_algorithm) => normalized_algorithm,
+                Err(error) => {
+                    promise.reject_error(error, can_gc);
+                    return promise;
+                },
+            };
+
+        // Step 5. Let realm be the relevant realm of this.
+        // Step 6. Let promise be a new Promise.
+        // NOTE: We did that in preparation of Step 4.
+
+        // Step 7. Return promise and perform the remaining steps in parallel.
         let this = Trusted::new(self);
         let trusted_promise = TrustedPromise::new(promise.clone());
         let trusted_key = Trusted::new(key);
-        let key_alg = key.algorithm();
-        let valid_usage = key.usages().contains(&KeyUsage::Decrypt);
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
@@ -312,27 +354,43 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let subtle = this.root();
                 let promise = trusted_promise.root();
                 let key = trusted_key.root();
-                let cx = GlobalScope::get_cx();
-                rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
 
-                if !valid_usage || normalized_algorithm.name() != key_alg {
-                    promise.reject_error(Error::InvalidAccess, CanGc::note());
+                // Step 8. If the following steps or referenced procedures say to throw an error,
+                // queue a global task on the crypto task source, given realm's global object, to
+                // reject promise with the returned error; and then terminate the algorithm.
+
+                // Step 9. If the name member of normalizedAlgorithm is not equal to the name
+                // attribute of the [[algorithm]] internal slot of key then throw an
+                // InvalidAccessError.
+                if normalized_algorithm.name() != key.algorithm() {
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
                     return;
                 }
 
-                if let Err(e) = normalized_algorithm.decrypt(
-                    &subtle,
-                    &key,
-                    &data,
-                    cx,
-                    array_buffer_ptr.handle_mut(),
-                    CanGc::note(),
-                ) {
-                    promise.reject_error(e, CanGc::note());
+                // Step 10. If the [[usages]] internal slot of key does not contain an entry that
+                // is "decrypt", then throw an InvalidAccessError.
+                if !key.usages().contains(&KeyUsage::Decrypt) {
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
                     return;
                 }
 
-                promise.resolve_native(&*array_buffer_ptr.handle(), CanGc::note());
+                // Step 11. Let plaintext be the result of performing the decrypt operation
+                // specified by normalizedAlgorithm using key and algorithm and with data as
+                // ciphertext.
+                let plaintext = match normalized_algorithm.decrypt(&key, &data) {
+                    Ok(plaintext) => plaintext,
+                    Err(error) => {
+                        subtle.reject_promise_with_error(promise, error);
+                        return;
+                    },
+                };
+
+                // Step 12. Queue a global task on the crypto task source, given realm's global
+                // object, to perform the remaining steps.
+                // Step 13. Let result be the result of creating an ArrayBuffer in realm,
+                // containing plaintext.
+                // Step 14. Resolve promise with result.
+                subtle.resolve_promise_with_data(promise, plaintext);
             }));
         promise
     }
@@ -1340,7 +1398,6 @@ impl From<Algorithm> for SubtleAlgorithm {
 
 #[derive(Clone, Debug)]
 pub(crate) struct SubtleAesCbcParams {
-    #[allow(dead_code)]
     pub(crate) name: String,
     pub(crate) iv: Vec<u8>,
 }
@@ -1605,16 +1662,6 @@ enum ImportKeyAlgorithm {
 enum DeriveBitsAlgorithm {
     Pbkdf2(SubtlePbkdf2Params),
     Hkdf(SubtleHkdfParams),
-}
-
-/// A normalized algorithm returned by [`normalize_algorithm`] with operation `"encrypt"` or `"decrypt"`
-///
-/// [`normalize_algorithm`]: https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm
-#[allow(clippy::enum_variant_names)]
-enum EncryptionAlgorithm {
-    AesCbc(SubtleAesCbcParams),
-    AesCtr(SubtleAesCtrParams),
-    AesGcm(SubtleAesGcmParams),
 }
 
 /// A normalized algorithm returned by [`normalize_algorithm`] with operation `"generateKey"`
@@ -1911,37 +1958,6 @@ fn normalize_algorithm_for_derive_bits(
         let params = boxed_value_from_js_object::<HkdfParams>(cx, value.handle(), can_gc)?;
         let subtle_params = SubtleHkdfParams::new(cx, params, can_gc)?;
         DeriveBitsAlgorithm::Hkdf(subtle_params)
-    } else {
-        return Err(Error::NotSupported);
-    };
-
-    Ok(normalized_algorithm)
-}
-
-/// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm> with operation `"deriveBits"`
-fn normalize_algorithm_for_encrypt_or_decrypt(
-    cx: JSContext,
-    algorithm: &AlgorithmIdentifier,
-    can_gc: CanGc,
-) -> Result<EncryptionAlgorithm, Error> {
-    let AlgorithmIdentifier::Object(obj) = algorithm else {
-        // All algorithms that support "encrypt" or "decrypt" require additional parameters
-        return Err(Error::NotSupported);
-    };
-
-    rooted!(in(*cx) let value = ObjectValue(obj.get()));
-    let algorithm = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
-
-    let name = algorithm.name.str();
-    let normalized_algorithm = if name.eq_ignore_ascii_case(ALG_AES_CBC) {
-        let params = boxed_value_from_js_object::<AesCbcParams>(cx, value.handle(), can_gc)?;
-        EncryptionAlgorithm::AesCbc(params.into())
-    } else if name.eq_ignore_ascii_case(ALG_AES_CTR) {
-        let params = boxed_value_from_js_object::<AesCtrParams>(cx, value.handle(), can_gc)?;
-        EncryptionAlgorithm::AesCtr(params.into())
-    } else if name.eq_ignore_ascii_case(ALG_AES_GCM) {
-        let params = boxed_value_from_js_object::<AesGcmParams>(cx, value.handle(), can_gc)?;
-        EncryptionAlgorithm::AesGcm(params.into())
     } else {
         return Err(Error::NotSupported);
     };
@@ -3528,55 +3544,6 @@ impl DeriveBitsAlgorithm {
     }
 }
 
-impl EncryptionAlgorithm {
-    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
-    fn name(&self) -> &str {
-        match self {
-            Self::AesCbc(params) => &params.name,
-            Self::AesCtr(params) => &params.name,
-            Self::AesGcm(params) => &params.name,
-        }
-    }
-
-    // FIXME: This doesn't really need the "SubtleCrypto" argument
-    fn encrypt(
-        &self,
-        subtle: &SubtleCrypto,
-        key: &CryptoKey,
-        data: &[u8],
-        cx: JSContext,
-        result: MutableHandleObject,
-        can_gc: CanGc,
-    ) -> Result<Vec<u8>, Error> {
-        match self {
-            Self::AesCbc(params) => subtle.encrypt_aes_cbc(params, key, data, cx, result, can_gc),
-            Self::AesCtr(params) => {
-                subtle.encrypt_decrypt_aes_ctr(params, key, data, cx, result, can_gc)
-            },
-            Self::AesGcm(params) => subtle.encrypt_aes_gcm(params, key, data, cx, result, can_gc),
-        }
-    }
-
-    // FIXME: This doesn't really need the "SubtleCrypto" argument
-    fn decrypt(
-        &self,
-        subtle: &SubtleCrypto,
-        key: &CryptoKey,
-        data: &[u8],
-        cx: JSContext,
-        result: MutableHandleObject,
-        can_gc: CanGc,
-    ) -> Result<Vec<u8>, Error> {
-        match self {
-            Self::AesCbc(params) => subtle.decrypt_aes_cbc(params, key, data, cx, result, can_gc),
-            Self::AesCtr(params) => {
-                subtle.encrypt_decrypt_aes_ctr(params, key, data, cx, result, can_gc)
-            },
-            Self::AesGcm(params) => subtle.decrypt_aes_gcm(params, key, data, cx, result, can_gc),
-        }
-    }
-}
-
 impl KeyGenerationAlgorithm {
     // FIXME: This doesn't really need the "SubtleCrypto" argument
     fn generate_key(
@@ -3772,6 +3739,8 @@ impl JsonWebKeyExt for JsonWebKey {
 enum NormalizedAlgorithm {
     Algorithm(SubtleAlgorithm),
     AesCtrParams(SubtleAesCtrParams),
+    AesCbcParams(SubtleAesCbcParams),
+    AesGcmParams(SubtleAesGcmParams),
 }
 
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm>
@@ -3861,6 +3830,45 @@ fn normalize_algorithm(
                         boxed_value_from_js_object::<AesCtrParams>(cx, value.handle(), can_gc)?;
                     NormalizedAlgorithm::AesCtrParams(params.into())
                 },
+                (ALG_AES_CTR, Operation::Decrypt) => {
+                    let params =
+                        boxed_value_from_js_object::<AesCtrParams>(cx, value.handle(), can_gc)?;
+                    NormalizedAlgorithm::AesCtrParams(params.into())
+                },
+
+                // <https://w3c.github.io/webcrypto/#aes-cbc-registration>
+                (ALG_AES_CBC, Operation::Encrypt) => {
+                    let params =
+                        boxed_value_from_js_object::<AesCbcParams>(cx, value.handle(), can_gc)?;
+                    NormalizedAlgorithm::AesCbcParams(params.into())
+                },
+                (ALG_AES_CBC, Operation::Decrypt) => {
+                    let params =
+                        boxed_value_from_js_object::<AesCbcParams>(cx, value.handle(), can_gc)?;
+                    NormalizedAlgorithm::AesCbcParams(params.into())
+                },
+
+                // <https://w3c.github.io/webcrypto/#aes-gcm-registration>
+                (ALG_AES_GCM, Operation::Encrypt) => {
+                    let params =
+                        boxed_value_from_js_object::<AesGcmParams>(cx, value.handle(), can_gc)?;
+                    NormalizedAlgorithm::AesGcmParams(params.into())
+                },
+                (ALG_AES_GCM, Operation::Decrypt) => {
+                    let params =
+                        boxed_value_from_js_object::<AesGcmParams>(cx, value.handle(), can_gc)?;
+                    NormalizedAlgorithm::AesGcmParams(params.into())
+                },
+
+                // <https://w3c.github.io/webcrypto/#aes-kw-registration>
+                (ALG_AES_KW, Operation::Encrypt) => {
+                    let params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+                (ALG_AES_KW, Operation::Decrypt) => {
+                    let params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
 
                 // <https://w3c.github.io/webcrypto/#hmac-registration>
                 (ALG_HMAC, Operation::Sign) => {
@@ -3903,25 +3911,45 @@ fn normalize_algorithm(
 }
 
 impl NormalizedAlgorithm {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     fn name(&self) -> &str {
         match self {
             NormalizedAlgorithm::Algorithm(algo) => &algo.name,
             NormalizedAlgorithm::AesCtrParams(algo) => &algo.name,
+            NormalizedAlgorithm::AesCbcParams(algo) => &algo.name,
+            NormalizedAlgorithm::AesGcmParams(algo) => &algo.name,
         }
     }
 
-    #[allow(unused)]
     fn encrypt(&self, key: &CryptoKey, plaintext: &[u8]) -> Result<Vec<u8>, Error> {
         match self {
             NormalizedAlgorithm::AesCtrParams(algo) => {
                 aes_operation::encrypt_aes_ctr(algo, key, plaintext)
             },
+            NormalizedAlgorithm::AesCbcParams(algo) => {
+                aes_operation::encrypt_aes_cbc(algo, key, plaintext)
+            },
+            NormalizedAlgorithm::AesGcmParams(algo) => {
+                aes_operation::encrypt_aes_gcm(algo, key, plaintext)
+            },
             _ => Err(Error::NotSupported),
         }
     }
 
-    // TODO:
-    // decrypt
+    fn decrypt(&self, key: &CryptoKey, ciphertext: &[u8]) -> Result<Vec<u8>, Error> {
+        match self {
+            NormalizedAlgorithm::AesCtrParams(algo) => {
+                aes_operation::decrypt_aes_ctr(algo, key, ciphertext)
+            },
+            NormalizedAlgorithm::AesCbcParams(algo) => {
+                aes_operation::decrypt_aes_cbc(algo, key, ciphertext)
+            },
+            NormalizedAlgorithm::AesGcmParams(algo) => {
+                aes_operation::decrypt_aes_gcm(algo, key, ciphertext)
+            },
+            _ => Err(Error::NotSupported),
+        }
+    }
 
     fn sign(&self, key: &CryptoKey, message: &[u8], can_gc: CanGc) -> Result<Vec<u8>, Error> {
         match self {
