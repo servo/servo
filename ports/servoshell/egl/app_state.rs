@@ -565,10 +565,10 @@ impl RunningAppState {
     /// Let Servo know that the window has been resized.
     pub fn resize(&self, coordinates: Coordinates) {
         info!("resize to {:?}", coordinates,);
-        self.active_webview().resize(PhysicalSize::new(
-            coordinates.viewport.width() as u32,
-            coordinates.viewport.height() as u32,
-        ));
+        let size = coordinates.viewport.size;
+        self.active_webview().move_resize(size.to_f32().into());
+        self.active_webview()
+            .resize(PhysicalSize::new(size.width as u32, size.height as u32));
         *self.callbacks.coordinates.borrow_mut() = coordinates;
         self.perform_updates();
     }
