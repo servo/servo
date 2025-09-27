@@ -350,6 +350,9 @@ pub(crate) struct Document {
     pending_parsing_blocking_script: DomRefCell<Option<PendingScript>>,
     /// Number of stylesheets that block executing the next parser-inserted script
     script_blocking_stylesheets_count: Cell<u32>,
+    /// Number of elements that block the rendering of the page.
+    /// <https://html.spec.whatwg.org/multipage/#implicitly-potentially-render-blocking>
+    render_blocking_element_count: Cell<u32>,
     /// <https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-when-the-document-has-finished-parsing>
     deferred_scripts: PendingInOrderScriptVec,
     /// <https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-in-order-as-soon-as-possible>
@@ -1728,6 +1731,21 @@ impl Document {
         count_cell.set(count_cell.get() - 1);
     }
 
+    pub(crate) fn render_blocking_element_count(&self) -> u32 {
+        self.render_blocking_element_count.get()
+    }
+
+    pub(crate) fn increment_render_blocking_element_count(&self) {
+        let count_cell = &self.render_blocking_element_count;
+        count_cell.set(count_cell.get() + 1);
+    }
+
+    pub(crate) fn decrement_render_blocking_element_count(&self) {
+        let count_cell = &self.render_blocking_element_count;
+        assert!(count_cell.get() > 0);
+        count_cell.set(count_cell.get() - 1);
+    }
+
     pub(crate) fn invalidate_stylesheets(&self) {
         self.stylesheets.borrow_mut().force_dirty(OriginSet::all());
 
@@ -2705,6 +2723,10 @@ impl Document {
     //
     // Returns the set of reflow phases run as a [`ReflowPhasesRun`].
     pub(crate) fn update_the_rendering(&self) -> ReflowPhasesRun {
+        if self.render_blocking_element_count() > 0 {
+            return Default::default();
+        }
+
         if self.has_pending_animated_image_update.get() {
             self.image_animation_manager
                 .borrow()
@@ -3389,7 +3411,8 @@ impl Document {
             has_focus: Cell::new(has_focus),
             current_script: Default::default(),
             pending_parsing_blocking_script: Default::default(),
-            script_blocking_stylesheets_count: Cell::new(0u32),
+            script_blocking_stylesheets_count: Default::default(),
+            render_blocking_element_count: Default::default(),
             deferred_scripts: Default::default(),
             asap_in_order_scripts_list: Default::default(),
             asap_scripts_set: Default::default(),

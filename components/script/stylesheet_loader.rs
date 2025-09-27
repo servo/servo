@@ -277,6 +277,15 @@ impl FetchResponseListener for StylesheetContext {
             document.decrement_script_blocking_stylesheet_count();
         }
 
+        // From <https://html.spec.whatwg.org/multipage/#link-type-stylesheet>:
+        // > A link element of this type is implicitly potentially render-blocking if the element
+        // > was created by its node document's parser.
+        if matches!(self.source, StylesheetContextSource::LinkElement { .. }) &&
+            owner.parser_inserted()
+        {
+            document.decrement_render_blocking_element_count();
+        }
+
         document.finish_load(LoadType::Stylesheet(self.url.clone()), CanGc::note());
 
         if let Some(any_failed) = owner.load_finished(successful) {
@@ -375,6 +384,15 @@ impl ElementStylesheetLoader<'_> {
         owner.increment_pending_loads_count();
         if owner.parser_inserted() {
             document.increment_script_blocking_stylesheet_count();
+        }
+
+        // From <https://html.spec.whatwg.org/multipage/#link-type-stylesheet>:
+        // > A link element of this type is implicitly potentially render-blocking if the element
+        // > was created by its node document's parser.
+        if matches!(context.source, StylesheetContextSource::LinkElement { .. }) &&
+            owner.parser_inserted()
+        {
+            document.increment_render_blocking_element_count();
         }
 
         // https://html.spec.whatwg.org/multipage/#default-fetch-and-process-the-linked-resource
