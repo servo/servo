@@ -232,6 +232,7 @@ impl MutationObserver {
             };
             // Step 4.8
             observer.record_queue.borrow_mut().push(record);
+            ScriptThread::mutation_observers().add_mutation_observer(&observer);
         }
 
         // Step 5
