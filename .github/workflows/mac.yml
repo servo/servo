@@ -89,6 +89,7 @@ jobs:
     outputs:
       unique-id: ${{ steps.select.outputs.unique-id }}
       selected-runner-label: ${{ steps.select.outputs.selected-runner-label }}
+      runner-type-label: ${{ steps.select.outputs.runner-type-label }}
       is-self-hosted: ${{ steps.select.outputs.is-self-hosted }}
     steps:
       - name: Checkout
