@@ -56,6 +56,7 @@ pub struct PlatformFont {
     requested_face_size: Au,
     actual_face_size: Au,
     variations: Vec<FontVariation>,
+    synthetic_bold: bool,
 
     /// A member that allows using `skrifa` to read values from this font.
     table_provider_data: FreeTypeFaceTableProviderData,
@@ -67,6 +68,7 @@ impl PlatformFontMethods for PlatformFont {
         font_data: &FontData,
         requested_size: Option<Au>,
         variations: &[FontVariation],
+        synthetic_bold: Option<bool>,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
         let data: &[u8] = font_data.as_ref();
@@ -85,6 +87,7 @@ impl PlatformFontMethods for PlatformFont {
             actual_face_size,
             table_provider_data: FreeTypeFaceTableProviderData::Web(font_data.clone()),
             variations: normalized_variations,
+            synthetic_bold: synthetic_bold.unwrap_or_default(),
         })
     }
 
@@ -92,6 +95,7 @@ impl PlatformFontMethods for PlatformFont {
         font_identifier: LocalFontIdentifier,
         requested_size: Option<Au>,
         variations: &[FontVariation],
+        synthetic_bold: Option<bool>,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
         let filename = CString::new(&*font_identifier.path).expect("filename contains NUL byte!");
@@ -124,6 +128,7 @@ impl PlatformFontMethods for PlatformFont {
                 font_identifier.index(),
             ),
             variations: normalized_variations,
+            synthetic_bold: synthetic_bold.unwrap_or_default(),
         })
     }
 
@@ -183,6 +188,11 @@ impl PlatformFontMethods for PlatformFont {
         let void_glyph = face.as_ref().glyph;
         let slot: FT_GlyphSlot = void_glyph;
         assert!(!slot.is_null());
+
+        // TODO: mozilla_glyphslot_embolden_less
+        if self.synthetic_bold {
+            mozilla_glyphslot_embolden_less(slot);
+        }
 
         let advance = unsafe { (*slot).metrics.horiAdvance };
         Some(fixed_26_dot_6_to_float(advance) * self.unscalable_font_metrics_scale())
@@ -358,7 +368,13 @@ impl PlatformFontMethods for PlatformFont {
         // On other platforms, we only pass this when we know that we are loading a font with
         // color characters, but not passing this flag simply *prevents* WebRender from
         // loading bitmaps. There's no harm to always passing it.
-        FontInstanceFlags::EMBEDDED_BITMAPS
+        let mut flags = FontInstanceFlags::EMBEDDED_BITMAPS;
+
+        if self.synthetic_bold {
+            flags |= FontInstanceFlags::SYNTHETIC_BOLD;
+        }
+
+        flags
     }
 
     fn variations(&self) -> &[FontVariation] {
@@ -394,4 +410,48 @@ impl std::fmt::Debug for FreeTypeFaceTableProviderData {
     fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Ok(())
     }
+}
+
+// TODO: remove this once git dep of wr_glyph_rasterizer is solved
+// Method copied from webrender/wr_glyph_rasterizer/src/unix/font.rs
+//
+// Custom version of FT_GlyphSlot_Embolden to be less aggressive with outline
+// fonts than the default implementation in FreeType.
+fn mozilla_glyphslot_embolden_less(slot: FT_GlyphSlot) {
+    use freetype_sys::{
+        FT_GLYPH_FORMAT_OUTLINE, FT_GlyphSlot_Embolden, FT_Long, FT_MulFix, FT_Outline_Embolden,
+    };
+
+    if slot.is_null() {
+        return;
+    }
+
+    let slot_ = unsafe { &mut *slot };
+    let format = slot_.format;
+    if format != FT_GLYPH_FORMAT_OUTLINE {
+        // For non-outline glyphs, just fall back to FreeType's function.
+        unsafe { FT_GlyphSlot_Embolden(slot) };
+        return;
+    }
+
+    let face_ = unsafe { &*slot_.face };
+
+    // FT_GlyphSlot_Embolden uses a divisor of 24 here; we'll be only half as
+    // bold.
+    let size_ = unsafe { &*face_.size };
+    let strength = unsafe { FT_MulFix(face_.units_per_EM as FT_Long, size_.metrics.y_scale) / 48 };
+    unsafe { FT_Outline_Embolden(&raw mut slot_.outline, strength) };
+
+    // Adjust metrics to suit the fattened glyph.
+    if slot_.advance.x != 0 {
+        slot_.advance.x += strength;
+    }
+    if slot_.advance.y != 0 {
+        slot_.advance.y += strength;
+    }
+    slot_.metrics.width += strength;
+    slot_.metrics.height += strength;
+    slot_.metrics.horiAdvance += strength;
+    slot_.metrics.vertAdvance += strength;
+    slot_.metrics.horiBearingY += strength;
 }
