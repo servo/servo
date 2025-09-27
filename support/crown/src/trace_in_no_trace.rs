@@ -130,8 +130,7 @@ fn incorrect_no_trace<'tcx, I: Into<MultiSpan> + Copy>(
         };
         let recur_into_subtree = match t.kind() {
             ty::Adt(did, substs) => {
-                if let Some(pos) =
-                    get_must_not_have_traceable(sym, cx.tcx.get_attrs_unchecked(did.did()))
+                if let Some(pos) = get_must_not_have_traceable(sym, cx.tcx.get_all_attrs(did.did()))
                 {
                     let inner = substs.type_at(pos);
                     if inner.is_primitive_ty() {
