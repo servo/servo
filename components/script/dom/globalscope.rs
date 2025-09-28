@@ -2769,7 +2769,7 @@ impl GlobalScope {
         self.resource_threads().sender()
     }
 
-    /// Get the `&StorageThreads` for this global scope.
+    /// Get a reference to the [`StorageThreads`] for this [`GlobalScope`].
     pub(crate) fn storage_threads(&self) -> &StorageThreads {
         &self.storage_threads
     }
