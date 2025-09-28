@@ -17,7 +17,7 @@ pub enum StorageType {
 
 /// Request operations on the storage data associated with a particular url
 #[derive(Debug, Deserialize, Serialize)]
-pub enum StorageThreadMsg {
+pub enum WebStorageThreadMsg {
     /// gets the number of key/value pairs present in the associated storage data
     Length(GenericSender<usize>, StorageType, WebViewId, ServoUrl),
 

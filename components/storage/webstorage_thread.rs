@@ -16,30 +16,30 @@ use profile_traits::mem::{
 use profile_traits::path;
 use rustc_hash::FxHashMap;
 use servo_url::ServoUrl;
-use storage_traits::storage_thread::{StorageThreadMsg, StorageType};
+use storage_traits::webstorage_thread::{StorageType, WebStorageThreadMsg};
 
 const QUOTA_SIZE_LIMIT: usize = 5 * 1024 * 1024;
 
-pub trait StorageThreadFactory {
+pub trait WebStorageThreadFactory {
     fn new(config_dir: Option<PathBuf>, mem_profiler_chan: MemProfilerChan) -> Self;
 }
 
-impl StorageThreadFactory for GenericSender<StorageThreadMsg> {
+impl WebStorageThreadFactory for GenericSender<WebStorageThreadMsg> {
     /// Create a storage thread
     fn new(
         config_dir: Option<PathBuf>,
         mem_profiler_chan: MemProfilerChan,
-    ) -> GenericSender<StorageThreadMsg> {
+    ) -> GenericSender<WebStorageThreadMsg> {
         let (chan, port) = generic_channel::channel().unwrap();
         let chan2 = chan.clone();
         thread::Builder::new()
-            .name("StorageManager".to_owned())
+            .name("WebStorageManager".to_owned())
             .spawn(move || {
                 mem_profiler_chan.run_with_memory_reporting(
-                    || StorageManager::new(port, config_dir).start(),
+                    || WebStorageManager::new(port, config_dir).start(),
                     String::from("storage-reporter"),
                     chan2,
-                    StorageThreadMsg::CollectMemoryReport,
+                    WebStorageThreadMsg::CollectMemoryReport,
                 );
             })
             .expect("Thread spawning failed");
@@ -49,20 +49,23 @@ impl StorageThreadFactory for GenericSender<StorageThreadMsg> {
 
 type OriginEntry = (usize, BTreeMap<String, String>);
 
-struct StorageManager {
-    port: GenericReceiver<StorageThreadMsg>,
+struct WebStorageManager {
+    port: GenericReceiver<WebStorageThreadMsg>,
     session_data: FxHashMap<WebViewId, HashMap<String, OriginEntry>>,
     local_data: HashMap<String, OriginEntry>,
     config_dir: Option<PathBuf>,
 }
 
-impl StorageManager {
-    fn new(port: GenericReceiver<StorageThreadMsg>, config_dir: Option<PathBuf>) -> StorageManager {
+impl WebStorageManager {
+    fn new(
+        port: GenericReceiver<WebStorageThreadMsg>,
+        config_dir: Option<PathBuf>,
+    ) -> WebStorageManager {
         let mut local_data = HashMap::new();
         if let Some(ref config_dir) = config_dir {
             base::read_json_from_file(&mut local_data, config_dir, "local_data.json");
         }
-        StorageManager {
+        WebStorageManager {
             port,
             session_data: FxHashMap::default(),
             local_data,
@@ -71,35 +74,42 @@ impl StorageManager {
     }
 }
 
-impl StorageManager {
+impl WebStorageManager {
     fn start(&mut self) {
         loop {
             match self.port.recv().unwrap() {
-                StorageThreadMsg::Length(sender, storage_type, webview_id, url) => {
+                WebStorageThreadMsg::Length(sender, storage_type, webview_id, url) => {
                     self.length(sender, storage_type, webview_id, url)
                 },
-                StorageThreadMsg::Key(sender, storage_type, webview_id, url, index) => {
+                WebStorageThreadMsg::Key(sender, storage_type, webview_id, url, index) => {
                     self.key(sender, storage_type, webview_id, url, index)
                 },
-                StorageThreadMsg::Keys(sender, storage_type, webview_id, url) => {
+                WebStorageThreadMsg::Keys(sender, storage_type, webview_id, url) => {
                     self.keys(sender, storage_type, webview_id, url)
                 },
-                StorageThreadMsg::SetItem(sender, storage_type, webview_id, url, name, value) => {
+                WebStorageThreadMsg::SetItem(
+                    sender,
+                    storage_type,
+                    webview_id,
+                    url,
+                    name,
+                    value,
+                ) => {
                     self.set_item(sender, storage_type, webview_id, url, name, value);
                     self.save_state()
                 },
-                StorageThreadMsg::GetItem(sender, storage_type, webview_id, url, name) => {
+                WebStorageThreadMsg::GetItem(sender, storage_type, webview_id, url, name) => {
                     self.request_item(sender, storage_type, webview_id, url, name)
                 },
-                StorageThreadMsg::RemoveItem(sender, storage_type, webview_id, url, name) => {
+                WebStorageThreadMsg::RemoveItem(sender, storage_type, webview_id, url, name) => {
                     self.remove_item(sender, storage_type, webview_id, url, name);
                     self.save_state()
                 },
-                StorageThreadMsg::Clear(sender, storage_type, webview_id, url) => {
+                WebStorageThreadMsg::Clear(sender, storage_type, webview_id, url) => {
                     self.clear(sender, storage_type, webview_id, url);
                     self.save_state()
                 },
-                StorageThreadMsg::Clone {
+                WebStorageThreadMsg::Clone {
                     sender,
                     src: src_webview_id,
                     dest: dest_webview_id,
@@ -107,11 +117,11 @@ impl StorageManager {
                     self.clone(src_webview_id, dest_webview_id);
                     let _ = sender.send(());
                 },
-                StorageThreadMsg::CollectMemoryReport(sender) => {
+                WebStorageThreadMsg::CollectMemoryReport(sender) => {
                     let reports = self.collect_memory_reports();
                     sender.send(ProcessReports::new(reports));
                 },
-                StorageThreadMsg::Exit(sender) => {
+                WebStorageThreadMsg::Exit(sender) => {
                     // Nothing to do since we save localstorage set eagerly.
                     let _ = sender.send(());
                     break;

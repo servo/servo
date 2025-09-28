@@ -83,7 +83,7 @@ use servo_config::{opts, pref};
 use servo_geometry::{DeviceIndependentIntRect, f32_rect_to_au_rect};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
-use storage_traits::storage_thread::StorageType;
+use storage_traits::webstorage_thread::StorageType;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::properties::PropertyId;
 use style::properties::style_structs::Font;

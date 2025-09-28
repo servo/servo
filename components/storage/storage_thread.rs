@@ -9,10 +9,10 @@ use ipc_channel::ipc::IpcSender;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use storage_traits::StorageThreads;
 use storage_traits::indexeddb_thread::IndexedDBThreadMsg;
-use storage_traits::storage_thread::StorageThreadMsg;
+use storage_traits::webstorage_thread::WebStorageThreadMsg;
 
 use crate::indexeddb::IndexedDBThreadFactory;
-use crate::webstorage_thread::StorageThreadFactory;
+use crate::webstorage_thread::WebStorageThreadFactory;
 
 #[allow(clippy::too_many_arguments)]
 pub fn new_storage_threads(
@@ -20,8 +20,8 @@ pub fn new_storage_threads(
     config_dir: Option<PathBuf>,
 ) -> (StorageThreads, StorageThreads) {
     let idb: IpcSender<IndexedDBThreadMsg> = IndexedDBThreadFactory::new(config_dir.clone());
-    let storage: GenericSender<StorageThreadMsg> =
-        StorageThreadFactory::new(config_dir, mem_profiler_chan);
+    let storage: GenericSender<WebStorageThreadMsg> =
+        WebStorageThreadFactory::new(config_dir, mem_profiler_chan);
     (
         StorageThreads::new(storage.clone(), idb.clone()),
         StorageThreads::new(storage, idb),
