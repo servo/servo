@@ -2062,31 +2062,35 @@
     minimal clusters, keeping emojis together.
   size: [400, 200]
   code: |
+    function getClusterIndexes(text) {
+      const clusters = ctx.measureText(text).getTextClusters();
+      const result = [];
+      for (let i = 0; i < clusters.length; i++) {
+        const end = clusters[i].end;
+        if (end === (i + 1 < clusters.length ? clusters[i + 1].start : text.length)) {
+          result.push(clusters[i].start);
+        } else {
+          result.push([clusters[i].start, clusters[i].end]);
+        }
+      }
+      return result;
+    }
+
+    function assertClusterIndexes(text, expected) {
+      const actual = getClusterIndexes(text);
+      assert_array_equals(actual, expected);
+    }
+
     ctx.font = '50px serif';
     const text = 'ABC ☺️❤️';
     ctx.fillText(text, 20, 100);
-    const tm = ctx.measureText(text);
-    const clusters = tm.getTextClusters();
-    // Should return 6 clusters(A|B|C| |☺️|❤️).
-    @assert clusters.length === 6;
-    // A from position 0 to 1.
-    @assert clusters[0].start === 0;
-    @assert clusters[0].end === 1;
-    // B from position 1 to 2.
-    @assert clusters[1].start === 1;
-    @assert clusters[1].end === 2;
-    // C from position 2 to 3.
-    @assert clusters[2].start === 2;
-    @assert clusters[2].end === 3;
-    // space from position 3 to 4.
-    @assert clusters[3].start === 3;
-    @assert clusters[3].end === 4;
-    // ☺️ from position 4 to 6.
-    @assert clusters[4].start === 4;
-    @assert clusters[4].end === 6;
-    // ❤️ from position 6 to 8.
-    @assert clusters[5].start === 6;
-    @assert clusters[5].end === 8;
+    assertClusterIndexes(text, [0, 1, 2, 3, 4, 6]);
+
+    // [UAX#29]: https://unicode.org/reports/tr29/
+    // [UAX#29] GB9: × (Extend | ZWJ)
+    assertClusterIndexes('X\u200DY', [0, 2]);
+    // [UAX#29] GB11: \p{Extended_Pictographic} Extend* ZWJ × \p{Extended_Pictographic}
+    assertClusterIndexes('\u{1FFFD}\u200D\u{1FFFD}', [0]);
 
 - name: 2d.text.measure.text-clusters-exceptions.tentative
   desc: >-

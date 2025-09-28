@@ -26,7 +26,7 @@
     const url = `${location.protocol}//www1.${location.host}/device-bound-session-credentials/verify_authenticated.py`;
     const authResponseAfterExpiry = await fetch(url, {credentials: "include"});
     // The cookie should only be refreshed if the session includes the whole site.
-    assert_equals(authResponseAfterExpiry.status, includeSite ? 200 : 401);
+    assert_equals(authResponseAfterExpiry.status, includeSite ? 200 : 403);
     assert_equals(documentHasCookie(expectedCookieAndValue), includeSite);
   }
 

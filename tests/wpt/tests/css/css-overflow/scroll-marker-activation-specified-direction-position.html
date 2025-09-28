@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow Test: ::scroll-marker activation scrolls into view with doesn't override specified direction position with `start`</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-activation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  .toc {
+    overflow: auto;
+    overscroll-behavior: contain;
+    height: 150px;
+    scroll-marker-group: before links;
+    counter-reset: --section;
+    padding-left: 200px;
+
+    &::scroll-marker-group {
+      position: absolute;
+      width: 200px;
+    }
+
+    & div {
+      counter-increment: --section;
+      scroll-snap-align: end;
+
+      &::scroll-marker {
+        font-size: 1rem;
+        display: block;
+        content: counter(--section) ". " attr(data-label);
+      }
+
+      &::scroll-marker:target-current {
+        color: ActiveText;
+      }
+    }
+  }
+</style>
+<div id="scroller" class="toc">
+  <div data-label="Introduction">
+    <h3>Introduction</h3>
+    <p>Lorem ipsum</p>
+    <p>Lorem ipsum</p>
+  </div>
+
+  <div id="target" data-label="Focus">
+    <h3>Focus Behavior</h3>
+    <p>Lorem ipsum</p>
+    <p>Lorem ipsum</p>
+    <p>Lorem ipsum</p>
+    <p>Lorem ipsum</p>
+    <p>Lorem ipsum</p>
+    <p>Lorem ipsum</p>
+    <p>Lorem ipsum</p>
+    <p>Lorem ipsum</p>
+  </div>
+
+  <div data-label="Roles">
+    <h3>Roles</h3>
+    <p>Lorem ipsum</p>
+    <p>Lorem ipsum</p>
+    <p>Lorem ipsum</p>
+    <p>Lorem ipsum</p>
+    <p>Lorem ipsum</p>
+    <p>Lorem ipsum</p>
+  </div>
+</div>
+<script>
+  promise_test(async t => {
+    const secondScrollMarkerX = 34;
+    const secondScrollMarkerY = 37;
+    await new test_driver.Actions()
+      .pointerMove(secondScrollMarkerX, secondScrollMarkerY)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    const scrollMarkerActivationScrollTop = scroller.scrollTop;
+    scroller.scrollTop = 0; // reset scrollTop to 0
+    target.scrollIntoView({block: "end"});
+    assert_equals(scrollMarkerActivationScrollTop, scroller.scrollTop, "scroll marker activation shouldn scroll into view with specified direction position `end` and not default `start`");
+  });
+</script>

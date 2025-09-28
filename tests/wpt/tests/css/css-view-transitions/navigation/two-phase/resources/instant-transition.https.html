@@ -1,0 +1,41 @@
+<!doctype html>
+<script>
+onpageswap = e => {
+  window.opener.did_swap(e.viewTransition ? "with-transition" : "without-transition");
+}
+
+window.onload = async () => {
+  await new Promise((resolve) => requestAnimationFrame(resolve));
+  const pause_condition = new Date().valueOf();
+  const a = document.createElement("a");
+  a.href = `?pause=${pause_condition}`;
+  document.body.appendChild(a);
+  a.click();
+  await new Promise((resolve) => requestAnimationFrame(resolve));
+  const transition = document.startViewTransition(() => {
+    document.body.classList.add("vt-done");
+  });
+
+  await transition.ready;
+  window.opener.did_activate_transition(pause_condition);
+  try {
+    await transition.finished;
+  } catch (e) {
+    window.opener.did_finish_transition("skip");
+  } finally {
+    window.opener.did_finish_transition("success");
+  }
+};
+
+</script>
+<style>
+  @view-transition {
+    navigation: auto;
+  }
+
+  * {
+    animation-duration:800ms;
+  }
+
+</style>
+</body>

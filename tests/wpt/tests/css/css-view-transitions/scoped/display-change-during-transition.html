@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+  <link rel="match" href="display-change-during-transition-ref.html">
+  <meta name="fuzzy" content="maxDifference=0-2;totalPixels=0-14400">
+  <style>
+    .tr {
+      view-transition-name: demo;
+    }
+    ::view-transition {
+      pointer-events: none;
+    }
+    ::view-transition-group(demo) {
+      /* freeze animation at midpoint */
+      animation-duration: 10000s;
+      animation-delay: -5000s;
+      animation-timing-function: cubic-bezier(0, 1, 1, 0);
+      display: block;
+      outline: 5px solid red;
+    }
+    ::view-trnasition-image-pair(demo),
+    ::view-transition-old(demo),
+    ::view-transtion-new(demo) {
+      /* No cross-fade */
+      animaton: unset;
+    }
+    .box {
+      position: absolute;
+      z-index: 0;
+      will-change: transform;
+      contain: strict;
+    }
+    #scope {
+      position: absolute;
+      background: #eee;
+      left: 40px;
+      top: 40px;
+      width: 490px;
+      height: 190px;
+    }
+    .part {
+      left: 30px;
+      top: 30px;
+      width: 120px;
+      height: 120px;
+      background-color: purple;
+    }
+    .part.state2 {
+      transform: translateX(300px);
+    }
+  </style>
+</head>
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<body>
+  <div id=scope class=box>
+    <div class="part box tr state1"></div>
+  </div>
+</body>
+<script>
+  function animationStartPromise() {
+    return new Promise(resolve => {
+      const listener = event => {
+        document.removeEventListener('animationstart', listener);
+        resolve();
+      };
+      document.addEventListener('animationstart', listener);
+    });
+  }
+
+  window.onload = async () => {
+    const animationStarted = animationStartPromise();
+    const vt = scope.startViewTransition(() => {
+      scope.querySelector('.part').classList.toggle('state2');
+    });
+    await vt.ready;
+    await animationStarted;
+    await waitForNextFrame();
+    await runAndWaitForFrameUpdate(() => {
+      const new_style = document.createElement('style');
+      new_style.innerText =
+          "::view-transition-group(demo):not(:only-child) { " +
+          "  display: flex;" +
+          "  outline: 5px solid green;" +
+          "}";
+      document.head.appendChild(new_style);
+    });
+    takeScreenshot();
+  };
+</script>
+</html>

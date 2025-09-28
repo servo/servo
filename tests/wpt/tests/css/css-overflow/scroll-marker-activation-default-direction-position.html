@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow Test: ::scroll-marker activation scrolls into view with `start` as default direction position</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-activation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  .toc {
+    overflow: auto;
+    overscroll-behavior: contain;
+    height: 50vh;
+    scroll-marker-group: before links;
+    counter-reset: --section;
+    padding-left: 200px;
+
+    &::scroll-marker-group {
+      position: absolute;
+      width: 200px;
+    }
+
+    & h3 {
+      counter-increment: --section;
+
+      &::scroll-marker {
+        font-size: 1rem;
+        display: block;
+        content: counter(--section) ". " attr(data-label);
+      }
+
+      &::scroll-marker:target-current {
+        color: ActiveText;
+      }
+    }
+  }
+</style>
+<div id="scroller" class="toc">
+  <h3 data-label="Introduction">Introduction</h3>
+  <p>Lorem ipsum</p>
+  <p>Lorem ipsum</p>
+
+  <h3 data-label="Focus">Focus Behavior</h3>
+  <p>Lorem ipsum</p>
+  <p>Lorem ipsum</p>
+  <p>Lorem ipsum</p>
+  <p>Lorem ipsum</p>
+
+  <h3 data-label="Roles">Roles</h3>
+  <p>Lorem ipsum</p>
+  <p>Lorem ipsum</p>
+  <p>Lorem ipsum</p>
+  <p>Lorem ipsum</p>
+  <p>Lorem ipsum</p>
+  <p>Lorem ipsum</p>
+</div>
+<script>
+  promise_test(async t => {
+    const secondScrollMarkerX = 34;
+    const secondScrollMarkerY = 37;
+    actions_promise = new test_driver.Actions()
+      .pointerMove(secondScrollMarkerX, secondScrollMarkerY)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    await actions_promise;
+    assert_not_equals(scroller.scrollTop, 0, "scroll marker activation should scroll into view with `start` as direction position");
+  });
+</script>

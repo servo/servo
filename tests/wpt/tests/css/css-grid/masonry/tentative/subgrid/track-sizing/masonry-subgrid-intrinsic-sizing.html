@@ -12,10 +12,8 @@
   <link rel="match" href="masonry-subgrid-intrinsic-sizing-ref.html">
   <style>
     grid {
-      display: inline-grid;
       display: inline-masonry;
       grid-template-columns: auto min-content max-content;
-      grid-template-rows: masonry;
       border: 1px solid;
       background: lightgrey;
     }
@@ -77,7 +75,7 @@
 <!-- Verify behavior when subgrid is set to masonry too -->
 <grid>
   <item>1</item>
-  <subgrid style="grid-template-rows: masonry; display: masonry;">
+  <subgrid style="display: masonry;">
     <item>2</item>
     <item style="width: 3ch">3</item>
     <item>4</item>

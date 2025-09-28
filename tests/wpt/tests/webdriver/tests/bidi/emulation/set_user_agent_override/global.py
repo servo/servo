@@ -68,7 +68,7 @@ async def test_user_agent_set_override_and_reset_globally_and_per_context(
 
     # Reset global override.
     await bidi_session.emulation.set_user_agent_override(
-        user_agent=ANOTHER_USER_AGENT
+        user_agent=None
     )
 
     # The override should be disabled.

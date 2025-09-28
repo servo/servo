@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<style>
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, 100px);
+    background: gray;
+    width: 300px;
+    align-items: start;
+    justify-items: end;
+}
+.flex {
+    display: flex;
+    align-items: end;
+    flex-direction: column;
+}
+.two-span-item {
+    background-color: lightpink;
+}
+.fifty-width {
+    width: 50px;
+    background-color: lightblue;
+}
+</style>
+<body>
+  <p>Test that using justify-items moves each masonry item to the end of the grid-axis track it is on</p>
+  <p>and that justify-self overrides justify-items.</p>
+  <div class="grid">
+    <div class="flex">
+      <div class="fifty-width">
+        This is some text
+      </div>
+      <div class="two-span-item">
+        This is text
+      </div>
+      <div class="two-span-item">
+        This is text
+      </div>
+    </div>
+    <div class="fifty-width" style="justify-self: start">
+      Some larger words in this sentence
+    </div>
+    <div class="fifty-width">
+      The cat cannot be taken from milk
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async (t) => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(r => window.onload = () => t.step_timeout(r, 0));
+  const precommit = Promise.withResolvers();
+  const handler = Promise.withResolvers();
+  const handler_done = Promise.withResolvers();
+  const commit = Promise.withResolvers();
+  navigation.addEventListener("navigate", e => {
+    e.intercept({
+        async precommitHandler() {
+            precommit.resolve(e);
+            await commit.promise;
+        },
+        async handler() {
+            handler.resolve();
+            await handler_done.promise;
+        }
+    });
+  });
+
+  assert_equals(navigation.transition, null);
+  navigation.navigate("?next");
+  const navigate_event = await precommit.promise;
+  const old_entry = navigation.currentEntry;
+  assert_equals(navigation.transition.from, old_entry);
+  assert_equals(navigation.transition.to, navigate_event.destination);
+  commit.resolve();
+  await handler.promise;
+  assert_equals(navigation.transition.from, old_entry);
+  assert_equals(navigation.transition.to, navigate_event.destination);
+  assert_equals(navigation.transition.to.url, navigation.currentEntry.url);
+  handler_done.resolve();
+}, "navigation.transition.to matches the navigate event's destination");
+</script>

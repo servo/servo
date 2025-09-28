@@ -6,6 +6,11 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <style>
+    @property --number {
+        syntax: "<number>";
+        inherits: false;
+        initial-value: 3;
+    }
     @property --length {
         syntax: "<length>";
         inherits: false;
@@ -91,8 +96,9 @@
     }
 
     test_valid_attr('content', 'attr(data-foo)', 'abc', '"abc"');
-    test_invalid_attr('content', 'attr(data-foo string)', 'abc');
+    test_valid_attr('content', 'attr(data-foo)', 'var(--number)', '"var(--number)"');
     test_valid_attr('content', 'attr(data-foo raw-string)', 'abc', '"abc"');
+    test_valid_attr('content', 'attr(data-foo raw-string)', 'var(--number)', '"var(--number)"');
     test_valid_attr('content', 'attr(data-foo,)', 'abc', '"abc"');
     test_valid_attr('content', 'attr(data-foo, 3)', 'attr(', '"attr("');
     test_valid_attr('content', 'attr(data-foo)', 'attr(', '"attr("');
@@ -158,6 +164,8 @@
     test_valid_attr('font-size', 'attr(data-foo %)', '10', '10%');
     test_valid_attr('--x', 'attr(data-foo px) 11px', '10', '10px 11px');
 
+    test_valid_attr('font-weight', 'attr(data-foo number)', '10', '10');
+
     test_valid_attr('--x', 'attr(data-foo type(<number>)) 11', '10', '10 11');
     test_valid_attr('--string', 'attr(data-foo type(<string>))', '"hello"', '"hello"');
     test_valid_attr('--string-list', 'attr(data-foo type(<string>+))', '"hello" "hi"', '"hello" "hi"');
@@ -173,6 +181,7 @@
 
     test_dimension_types_and_units();
 
+    test_invalid_attr('content', 'attr(data-foo string)', 'abc');
     test_invalid_attr('animation-name', 'attr(data-foo type(string))', 'abc');
     test_invalid_attr('animation-name', 'attr(data-foo type(< string>))', 'abc');
     test_invalid_attr('animation-name', 'attr(data-foo type(<string >))', 'abc');
@@ -217,6 +226,12 @@
     test_invalid_attr('width', 'attr(data-foo px)', '10px');
     test_invalid_attr('width', 'attr(data-foo <px>)', '10');
     test_invalid_attr('width', 'attr(data-foo xx)', '10');
+    test_invalid_attr('width', 'attr(data-foo px)', 'calc(1 + 3)');
+    test_invalid_attr('width', 'attr(data-foo px)', 'var(--number)');
+
+    test_invalid_attr('font-weight', 'attr(data-foo number)', 'calc(1 + 3)');
+    test_invalid_attr('font-weight', 'attr(data-foo number)', 'var(--number)');
+
     test_invalid_attr('transition-duration', 'attr(data-foo ms)', '10px');
     test_invalid_attr('transition-duration', 'attr(data-foo ms)', '10px foo');
 

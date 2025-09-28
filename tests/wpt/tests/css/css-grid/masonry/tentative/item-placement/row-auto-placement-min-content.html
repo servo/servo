@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="row-auto-placement-min-content-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+html,body {
+  color:black; background-color:white; font:15px/1 monospace; padding:0; margin:0;
+}
+
+.masonry {
+    display: masonry;
+    background: gray;
+    position: relative;
+    item-tolerance: 0;
+    masonry-direction: row;
+    grid-template-rows: auto auto auto;
+    width: min-content;
+    padding: 10px;
+}
+</style>
+<body>
+  <p>Ensure that masonry containers are sized correctly under min-content constraints even if the items do not have the min-content style.</p>
+  <div class="masonry">
+    <div style="background: lightskyblue;" >
+      Number 1
+    </div>
+    <div style="background: lightcoral;" >
+      Number 2
+    </div>
+    <div style="background: lightgreen;">
+      Number 3
+    </div>
+    <div style="grid-row: span 2; background: brown;">
+      Number 4
+    </div>
+  </div>
+</body>
+</html>

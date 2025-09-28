@@ -63,8 +63,9 @@
       timeline.getCurrentTime('scroll'), 0, MAX_SCROLL,
       'Scroll aligned with scroll start');
 
-    container.scrollLeft = 600;
-    await waitForNextFrame();
+    await runAndWaitForFrameUpdate(() => {
+      container.scrollLeft = 600;
+    });
 
     assert_percents_approx_equal(timeline.getCurrentTime('cover'), 0,
                                  MAX_SCROLL, 'Scroll aligned with cover start');
@@ -78,8 +79,9 @@
       timeline.getCurrentTime('scroll'), scroll_pct, MAX_SCROLL,
       'getCurrentTime for "scroll" range scrollLeft=600');
 
-    container.scrollLeft = 650;
-    await waitForNextFrame();
+    await runAndWaitForFrameUpdate(() => {
+      container.scrollLeft = 650;
+    });
 
     assert_percents_approx_equal(timeline.getCurrentTime('entry'), 50,
                                  MAX_SCROLL, 'Scroll at entry midpoint');
@@ -88,38 +90,43 @@
       timeline.getCurrentTime('scroll'), scroll_pct, MAX_SCROLL,
       'getCurrentTime for "scroll" range scrollLeft=650');
 
-    container.scrollLeft = 700;
-    await waitForNextFrame();
+    await runAndWaitForFrameUpdate(() => {
+      container.scrollLeft = 700;
+    });
 
     assert_percents_approx_equal(timeline.getCurrentTime('entry'), 100,
                                  MAX_SCROLL, 'Scroll at entry end');
     assert_percents_approx_equal(timeline.getCurrentTime('contain'), 0,
                                  MAX_SCROLL, 'Scroll at contain start');
 
-    container.scrollLeft = 750;
-    await waitForNextFrame();
+    await runAndWaitForFrameUpdate(() => {
+      container.scrollLeft = 750;
+    });
 
     assert_percents_approx_equal(timeline.getCurrentTime('contain'), 50,
                                  MAX_SCROLL, 'Scroll at contain midpoint');
     assert_percents_approx_equal(timeline.getCurrentTime(), 50,
                                  MAX_SCROLL, 'Scroll at timeline midpoint');
 
-    container.scrollLeft = 800;
-    await waitForNextFrame();
+    await runAndWaitForFrameUpdate(() => {
+      container.scrollLeft = 800;
+    });
 
     assert_percents_approx_equal(timeline.getCurrentTime('exit'), 0,
                                  MAX_SCROLL, 'Scroll at exit start');
     assert_percents_approx_equal(timeline.getCurrentTime('contain'), 100,
                                  MAX_SCROLL, 'Scroll at contain end');
 
-    container.scrollLeft = 850;
-    await waitForNextFrame();
+    await runAndWaitForFrameUpdate(() => {
+      container.scrollLeft = 850;
+    });
 
     assert_percents_approx_equal(timeline.getCurrentTime('exit'), 50,
                                  MAX_SCROLL, 'Scroll at exit midpoint');
 
-    container.scrollLeft = 900;
-    await waitForNextFrame();
+    await runAndWaitForFrameUpdate(() => {
+      container.scrollLeft = 900;
+    });
 
     assert_percents_approx_equal(timeline.getCurrentTime('exit'), 100,
                                  MAX_SCROLL, 'Scroll at exit end');
@@ -135,8 +142,9 @@
     assert_equals(timeline.getCurrentTime('gibberish'), null,
                   'No current time for unknown named range');
 
-    container.scrollLeft = MAX_SCROLL;
-    await waitForNextFrame();
+    await runAndWaitForFrameUpdate(() => {
+      container.scrollLeft = MAX_SCROLL;
+    });
     assert_percents_approx_equal(
       timeline.getCurrentTime('scroll'), 100, MAX_SCROLL,
       'getCurrentTime for "scroll" range at max scroll offset');

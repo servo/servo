@@ -58,14 +58,15 @@
 <div id="target"></div>
 <script>
   promise_test(async t => {
+    // Click on the fourth scroll marker.
     await new test_driver.Actions()
-    .pointerMove(65, 20)
-    .pointerDown()
-    .pointerUp()
-    .pointerDown()
-    .pointerUp()
-    .send();
-    assert_equals(window.scrollY, 380);
+      .pointerMove(65, 20)
+      .pointerDown()
+      .pointerUp()
+      .pointerDown()
+      .pointerUp()
+      .send();
+    assert_equals(window.scrollY, 400);
     assert_equals(getComputedStyle(target, "::scroll-marker").backgroundColor, "rgb(0, 128, 0)");
   });
 </script>

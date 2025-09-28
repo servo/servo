@@ -40,9 +40,10 @@
     await anim.ready;
     assert_equals(getComputedStyle(anim.effect.target)
         .backgroundColor, 'rgb(0, 0, 255)');
-    scroller.scrollTop =
-        scroller.scrollHeight - scroller.clientHeight;
-    await waitForNextFrame();
+
+    await runAndWaitForFrameUpdate(() => {
+      scroller.scrollTop = scroller.scrollHeight - scroller.clientHeight;
+    });
     assert_equals(getComputedStyle(anim.effect.target)
           .backgroundColor, 'rgb(0, 128, 0)');
   }, 'View timeline attached to SVG graphics element');

@@ -11,6 +11,7 @@ pytestmark = pytest.mark.asyncio
 
 CONTENT = "SOME_FILE_CONTENT"
 DOWNLOAD_END = "browsingContext.downloadEnd"
+NAVIGATION_STARTED = "browsingContext.navigationStarted"
 
 
 @pytest.fixture
@@ -62,7 +63,7 @@ async def test_unsubscribe(bidi_session, inline, new_tab, wait_for_event,
     remove_listener()
 
 
-async def test_subscribe(bidi_session, subscribe_events, new_tab, inline,
+async def test_download_attribute(bidi_session, subscribe_events, new_tab, inline,
         wait_for_event, wait_for_future_safe, download_link, filename):
     url = inline(
         f"""<a id="download_link" href="{download_link}" download="{filename}">download</a>""")
@@ -86,7 +87,7 @@ async def test_subscribe(bidi_session, subscribe_events, new_tab, inline,
         {
             'filepath': any_string,
             'context': new_tab["context"],
-            'navigation': any_string,
+            'navigation': None,
             'status': 'complete',
             'timestamp': any_int,
             'url': download_link,
@@ -94,5 +95,65 @@ async def test_subscribe(bidi_session, subscribe_events, new_tab, inline,
 
     # Assert file content is available.
     with open(event['filepath'], mode='r', encoding='utf-8') as file:
+        file_content = file.read()
+    assert file_content == CONTENT
+
+
+async def test_content_disposition_header(
+    bidi_session,
+    subscribe_events,
+    new_tab,
+    url,
+    inline,
+    wait_for_event,
+    wait_for_future_safe,
+    filename,
+):
+    content_disposition_link = url(
+        "/webdriver/tests/support/http_handlers/headers.py?"
+        + f"content={CONTENT}"
+        + f"&header=Content-Disposition:attachment;%20filename={filename}"
+    )
+    page_url = inline(
+        f"""<a id="content_disposition_link" href="{content_disposition_link}">contentdisposition</a>"""
+    )
+
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=page_url, wait="complete"
+    )
+
+    await subscribe_events(events=[DOWNLOAD_END, NAVIGATION_STARTED])
+    on_navigation_started = wait_for_event(NAVIGATION_STARTED)
+    on_download_end = wait_for_event(DOWNLOAD_END)
+
+    await bidi_session.script.evaluate(
+        expression="content_disposition_link.click()",
+        target=ContextTarget(new_tab["context"]),
+        await_promise=True,
+        user_activation=True,
+    )
+
+    download_event = await wait_for_future_safe(on_download_end)
+    recursive_compare(
+        {
+            "filepath": any_string,
+            "context": new_tab["context"],
+            "navigation": any_string,
+            "status": "complete",
+            "timestamp": any_int,
+            "url": content_disposition_link,
+        },
+        download_event,
+    )
+
+    navigation_event = await wait_for_future_safe(on_navigation_started)
+
+    # Check that the navigation id and url are identical for navigationStarted
+    # and downloadWillBegin.
+    assert download_event["navigation"] == navigation_event["navigation"]
+    assert download_event["url"] == navigation_event["url"]
+
+    # Assert file content is available.
+    with open(download_event["filepath"], mode="r", encoding="utf-8") as file:
         file_content = file.read()
     assert file_content == CONTENT

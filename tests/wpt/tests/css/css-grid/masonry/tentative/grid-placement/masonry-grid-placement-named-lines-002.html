@@ -14,12 +14,10 @@
 body,html { color:black; background:white; font:15px/1 monospace; padding:0; margin:0; }
 
 .grid {
-  display: grid;
   display: masonry;
   position: relative;
   border: 1px solid;
   grid-template-columns: [A-start] 60px 60px 60px;
-  grid-template-rows: masonry;
   grid-template-areas: "B A";
   grid-auto-columns: 40px;
   grid-auto-flow: dense;

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<title>Auto repeat tracks with auto track sizes and spanning children with gap</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="row-auto-repeat-auto-004-ref.html">
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<style>
+.masonry {
+    display: masonry;
+    background: gray;
+    item-tolerance: 0;
+    masonry-direction: row;
+    grid-template-rows: auto auto auto auto;
+    grid-gap: 20px;
+    width: 260px;
+    height: 400px;
+}
+
+.masonry > div {
+    width: 50px;
+}
+</style>
+<body>
+  <div class="masonry">
+    <div style="background: lightskyblue; grid-row: span 2; height: 200px">
+      Number 1
+    </div>
+    <div style="background: lightcoral; grid-row: span 3; height: 300px;">
+      Number 2
+    </div>
+    <div style="background: lightgreen; grid-row: span 4; height: 400px;">
+      Number 3
+    </div>
+    <div style="background: lightpink; grid-row: span 2; height: 200px;">
+      Number 4
+    </div>
+  </div>
+</body>
+</html>

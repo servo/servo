@@ -4,7 +4,7 @@
 <link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
 <link rel="help" href="https://drafts.csswg.org/css-overflow-3/#webkit-line-clamp">
 <link rel="match" href="reference/webkit-line-clamp-029-ref.html">
-<meta name="assert" content="-webkit-line-clamp should apply to flex items that are scrollable.">
+<meta name="assert" content="-webkit-line-clamp should not count lines in descendents that are scrollable, since they establish a new BFC.">
 <style>
 .clamp {
   display: -webkit-box;

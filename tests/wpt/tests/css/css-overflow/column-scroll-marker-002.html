@@ -26,6 +26,9 @@
       height: 50px;
       background: cyan;
     }
+    #container::column {
+      scroll-snap-align: center;
+    }
     #container::column::scroll-marker {
       display: flex;
       justify-content: center;
@@ -64,7 +67,7 @@
   <script>
     async function run() {
       actions_promise = new test_driver.Actions()
-        .pointerMove(310, 10)
+        .pointerMove(210, 10)
         .pointerDown()
         .pointerUp()
         .send();

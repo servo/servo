@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.grid {
+    display: grid;
+    background: gray;
+    item-tolerance: 0;
+    grid-template-rows: repeat(5, auto fit-content(100px));
+    grid-template-columns: 100px 100px;
+    height: 300px;
+    width: 300px;
+    font: 15px/1 Ahem;
+}
+
+.grid > div {
+    width: 100px;
+}
+</style>
+<body>
+  <div class="grid">
+    <div style="background: lightskyblue;">
+      Number 1
+    </div>
+    <div style="background: lightcoral; grid-column: 1;">
+      Number 2
+    </div>
+    <div style="background: lightgreen; grid-column: 1;">
+      Number 3
+    </div>
+    <div style="background: lightpink; grid-column: 1;">
+      Number 4
+    </div>
+    <div style="background: orange; grid-column: 1;">
+      Number 5
+    </div>
+    <div style="background: brown; grid-column: 1;">
+      Number 6
+    </div>
+    <!-- Fit content in grid requires an item to be placed in that track for it to be
+    non-zero. In masonry, this is not the case. Add an item to mimic the spanner
+    in the masonry test case. -->
+    <div style="background: brown; color: transparent; grid-column: 1;">
+      Number 6
+    </div>
+    <div style="background: lightskyblue; grid-column: 1;">
+      Number 7
+    </div>
+    <div style="background: lightcoral; grid-column: 1;">
+      Number 8
+    </div>
+    <div style="background: lightgreen; grid-column: 1;">
+      Number 9
+    </div>
+    <div style="background: lightpink; grid-column: 2; grid-row: 1;">
+      Number 10
+    </div>
+    <div style="background: orange;grid-column: 2; grid-row: 2;">
+      Number 11
+    </div>
+    <div style="grid-column: 2; grid-row: 3 / span 2; background: brown;">
+      Number 12
+    </div>
+  </div>
+</body>
+</html>

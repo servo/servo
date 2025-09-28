@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+ <style>
+  body {
+    margin: 0px;
+  }
+
+  #container {
+    border: 2px solid rgb(96 139 168);
+    width: 200px;
+    height: 200px;
+    column-gap: 10px;
+    row-gap: 10px;
+    column-width: 60px;
+    column-count: 3;
+    column-fill: auto;
+  }
+
+  p {
+    background: rgb(96 139 168 / 0.2);
+    height: 50px;
+    margin: 0px;
+  }
+
+  h2 {
+    column-span: all;
+    background-color: #4d4e53;
+    color: #fff;
+    margin: 0px;
+    opacity: 0.5;
+  }
+
+  .column-decor-container {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    top: 2px;
+    left: 62px;
+    row-gap: 18px;
+    height: 200px;
+  }
+
+  .column-decor {
+    width: 10px;
+    height: 200px;
+    background: blue;
+  }
+
+</style>
+
+<body>
+  <div class="column-decor-container">
+    <div class="column-decor">
+    </div>
+  </div>
+  <div class="column-decor-container" style="left: 132px">
+    <div class="column-decor">
+    </div>
+  </div>
+  <div id="container">
+    <p>One</p>
+    <p>Two</p>
+    <h2>Spanner</h2>
+
+    <p>Three</p>
+    <p>Four</p>
+    <p>Five</p>
+    <h2>Spanner</h2>
+    <p>Six</p>
+    <p>Seven</p>
+    <p>Eight</p>
+  </div>
+</body>

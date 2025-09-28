@@ -14,17 +14,16 @@ body {
 <script>
   async_test(function (t) {
     assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
-    t.step_timeout(() => {
+
+    onElementTimingEvent(()=> {
       const observer = new PerformanceObserver(
-        t.step_func_done(function(entryList) {
+        t.step_func_done(function (entryList) {
           assert_unreached("Painting happened before observing, it should not create a containertiming entry");
         })
       );
-      observer.observe({type: 'container', buffered: false });
-      t.step_timeout(() => {
-        t.done();
-      }, 2000);
-    }, 2000);
+      observer.observe({ type: 'container', buffered: false });
+      t.step_timeout(() => { t.done(); }, 1000);
+    });
 
     // Add image of width equal to 100 and height equal to 100.
     const img = document.createElement('img');
@@ -32,7 +31,9 @@ body {
     img.setAttribute('containertiming', 'image_ct');
     img.setAttribute('id', 'my_id');
     document.body.appendChild(img);
-  }, 'containertiming does not report paints before observing if buffering is disabled.');
+
+    addPaintingElementTimingAfterDoubleRAF(document.body);
+}, 'containertiming does not report paints before observing if buffering is disabled.');
 </script>
 
 </body>

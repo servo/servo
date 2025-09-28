@@ -88,6 +88,17 @@
     background-color: red !important;
   }
 
+  .test-13::before {
+    background-color: green;
+    color: green;
+    content: "text";
+  }
+  .test-13::before {
+    & {
+      background-color: red;
+    }
+  }
+
   body * + * {
     margin-top: 8px;
   }
@@ -109,4 +120,5 @@
   <div class="test test-10"><div></div></div>
   <div class="test test-11"><div></div></div>
   <div class="test test-12"></div>
+  <div class="test test-13"></div>
 </body>

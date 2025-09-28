@@ -48,6 +48,7 @@ from .protocol import (BaseProtocolPart,
                        VirtualPressureSourceProtocolPart,
                        ProtectedAudienceProtocolPart,
                        DisplayFeaturesProtocolPart,
+                       GlobalPrivacyControlProtocolPart,
                        merge_dicts)
 
 from typing import Any, List, Dict, Optional
@@ -938,6 +939,17 @@ class WebDriverDisplayFeaturesProtocolPart(DisplayFeaturesProtocolPart):
     def clear_display_features(self):
         return self.webdriver.send_session_command("DELETE", "displayfeatures")
 
+class WebDriverGlobalPrivacyControlProtocolPart(GlobalPrivacyControlProtocolPart):
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    def set_global_privacy_control(self, gpc):
+        return self.webdriver.set_global_privacy_control(gpc)
+
+    def get_global_privacy_control(self):
+        return self.webdriver.get_global_privacy_control()
+
+
 class WebDriverProtocol(Protocol):
     enable_bidi = False
     implements = [WebDriverBaseProtocolPart,
@@ -963,7 +975,8 @@ class WebDriverProtocol(Protocol):
                   WebDriverStorageProtocolPart,
                   WebDriverVirtualPressureSourceProtocolPart,
                   WebDriverProtectedAudienceProtocolPart,
-                  WebDriverDisplayFeaturesProtocolPart]
+                  WebDriverDisplayFeaturesProtocolPart,
+                  WebDriverGlobalPrivacyControlProtocolPart]
 
     def __init__(self, executor, browser, capabilities, **kwargs):
         super().__init__(executor, browser)

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.grid {
+    display: grid;
+    background: gray;
+    item-tolerance: 0;
+    grid-template-rows: min-content max-content fit-content(100px) auto;
+    grid-template-columns: 100px 100px;
+    height: 500px;
+    width: 300px;
+    font: 15px/1 Ahem;
+}
+
+.grid > div {
+    width: 100px;
+    height: 100px;
+}
+</style>
+<body>
+  <div class="grid">
+    <div style="background: lightskyblue;">
+      Number 1
+    </div>
+    <div style="background: orange;">
+      Number 5
+    </div>
+    <div style="background: lightcoral;">
+      Number 2
+    </div>
+    <div style="grid-row: span 2; background: brown; height: 200px;">
+      Number 6
+    </div>
+    <div style="background: lightgreen;">
+      Number 3
+    </div>
+    <div style="background: lightpink; height: 100%;">
+      Number 4
+    </div>
+  </div>
+</body>
+</html>

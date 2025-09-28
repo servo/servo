@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link href="resources/masonry.css" rel="stylesheet">
+<link rel="match" href="row-explicit-placement-005-ref.html">
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<style>
+.masonry {
+    display: masonry;
+    masonry-direction: row;
+    background: gray;
+    item-tolerance: 0;
+    height: 200px;
+    width: 200px;
+    gap: 20px;
+    padding: 20px;
+}
+
+.first-track {
+    background: lightskyblue;
+    grid-row-start: 1;
+}
+
+.second-track {
+    background: lightcoral;
+    grid-row-start: 2;
+    height: 200%;
+}
+
+.third-track {
+    background: lightgreen;
+    grid-row-start: 3;
+}
+</style>
+<body>
+  <p>Test that masonry items with explicit placement are correctly positioned within the grid axis.</p>
+  <div class="masonry">
+    <div class="first-track">This is some text</div>
+    <div class="second-track">Some larger words in this sentence</div>
+    <div class="third-track">The cat cannot be separated from milk</div>
+    <div class="first-track">Some larger words in this sentence</div>
+    <div class="second-track">The cat cannot be separated from milk</div>
+  </div>
+</body>
+</html>

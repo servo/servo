@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: abspos in line-clamp in zero-sized div</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-with-abspos-023-ref.html">
+<meta name="assert" content="Absolute positioned boxes inside a line-clamp container are shown if their containing block is after the clamp point. This test specifically tests that this is the case where the container is an other-wise empty, zero-height div, which does fit before the clamp point.">
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 4lh;
+  font: 16px / 32px serif;
+  background-color: yellow;
+}
+.rel {
+  position: relative;
+}
+.abspos {
+  position: absolute;
+  right: 0;
+  width: 100px;
+  height: 100px;
+  background-color: green;
+}
+</style>
+<div class="clamp">
+Line 1<br>
+Line 2<br>
+Line 3<br>
+Line 4<br>
+<div class="rel"><div class="abspos">This abspos should be visible</div></div>
+Line 5
+</div>

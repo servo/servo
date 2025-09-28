@@ -1,6 +1,7 @@
-from typing import Any, Mapping, MutableMapping, Optional
+from typing import Any, List, Mapping, MutableMapping, Optional, Union
 
 from ._module import BidiModule, command
+from ..undefined import UNDEFINED, Undefined
 
 
 class Browser(BidiModule):
@@ -73,5 +74,20 @@ class Browser(BidiModule):
 
         if user_context is not None:
             params["userContext"] = user_context
+
+        return params
+
+    @command
+    def set_download_behavior(
+            self, download_behavior: Optional[Mapping[str, Any]] = None,
+            user_contexts: Union[Undefined, List[str]] = UNDEFINED
+
+    ) -> Mapping[str, Any]:
+        params: MutableMapping[str, Any] = {
+            "downloadBehavior": download_behavior,
+        }
+
+        if user_contexts != UNDEFINED:
+            params["userContexts"] = user_contexts
 
         return params

@@ -50,8 +50,9 @@
                   'Effect is inactive in the before phase');
 
     // Advance to the start offset, which triggers entry to the active phase.
-    container.scrollLeft = -600;
-    await waitForNextFrame();
+    await runAndWaitForFrameUpdate(() => {
+      container.scrollLeft = -600;
+    });
     assert_percents_equal(timeline.currentTime, 0,
                           "Timeline's current time at start offset");
     assert_percents_equal(anim.currentTime, 0,
@@ -60,8 +61,9 @@
                   'Effect at the start of the active phase');
 
     // Advance to the midpoint of the animation.
-    container.scrollLeft = -800;
-    await waitForNextFrame();
+    await runAndWaitForFrameUpdate(() => {
+      container.scrollLeft = -800;
+    });
     assert_percents_equal(timeline.currentTime, 50,
                           "Timeline's currentTime at midpoint");
     assert_percents_equal(anim.currentTime, 50,
@@ -70,9 +72,10 @@
                   'Effect at the midpoint of the active range');
 
     // Advance to the end of the animation.
-    container.scrollLeft = -1000;
-    anim.effect.updateTiming({ fill: 'forwards' });
-    await waitForNextFrame();
+    await runAndWaitForFrameUpdate(() => {
+      container.scrollLeft = -1000;
+      anim.effect.updateTiming({ fill: 'forwards' });
+    });
     assert_percents_equal(timeline.currentTime, 100,
                           "Timeline's currentTime at end offset");
     assert_percents_equal(anim.currentTime, 100,
@@ -84,8 +87,9 @@
                   'Opacity with fill none at effect end time');
 
     // Advance to the scroll limit.
-    container.scrollLeft = -1600;
-    await waitForNextFrame();
+    await runAndWaitForFrameUpdate(() => {
+      container.scrollLeft = -1600;
+    });
     assert_percents_equal(timeline.currentTime, 250,
                           "Timeline's currentTime at scroll limit");
     // Hold time set when the animation finishes, which clamps the value of

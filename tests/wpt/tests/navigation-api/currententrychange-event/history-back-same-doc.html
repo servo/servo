@@ -9,7 +9,7 @@ promise_test(async t => {
   // Wait for after the load event so that the navigation doesn't get converted
   // into a replace navigation.
   await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
-  await navigation.navigate("#foo");
+  await navigation.navigate("#foo").finished;
   assert_equals(navigation.entries().length, start_length + 1);
 
   let oncurrententrychange_called = false;

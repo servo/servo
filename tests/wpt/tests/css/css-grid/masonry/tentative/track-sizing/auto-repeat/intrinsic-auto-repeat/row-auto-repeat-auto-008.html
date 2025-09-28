@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Checks that a dynamic change in containing block height changes the number of auto repeat tracks.</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="../../../../../../reference/ref-filled-green-100px-square-only.html">
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<style>
+.masonry {
+    display: inline-masonry;
+    masonry-direction: row;
+    background: green;
+    width: 100px;
+    min-height: 60%;
+    grid-template-rows: repeat(auto-fill, auto);
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="target" style="width: 100px; height: 0px;">
+  <div class="masonry">
+    <div style="width: 1px; height: 50px;"></div>
+  </div>
+</div>
+<script>
+  document.body.offsetTop;
+  document.getElementById('target').style.height = '100px';
+</script>

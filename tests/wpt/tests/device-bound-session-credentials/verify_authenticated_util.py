@@ -12,5 +12,5 @@ def verify_authenticated(request, response):
 
     cookie = request.cookies.get(expected_name)
     if cookie == None or cookie.value != expected_value:
-        return (401, headers, "")
+        return (403, headers, "")
     return (200, headers, "")

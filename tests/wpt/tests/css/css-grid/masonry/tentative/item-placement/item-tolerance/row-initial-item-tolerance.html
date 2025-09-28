@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>CSS Masonry Test: Initial value of item-tolerance</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#item-slack">
+<link rel="match" href="row-initial-item-tolerance-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.masonry {
+    display: masonry;
+    masonry-direction: row;
+    background: gray;
+    font: 50px/1 Ahem;
+    grid-template-rows: repeat(2, 1fr);
+    item-tolerance: initial;
+    gap: 20px;
+    padding: 20px;
+    width: 170px;
+}
+
+.auto-item {
+    padding: 10px;
+    height: 100px;
+}
+
+.auto-item:nth-of-type(1) {
+    background: lightskyblue;
+}
+
+.auto-item:nth-of-type(2) {
+    background: lightcoral;
+}
+
+.auto-item:nth-of-type(3) {
+    background: lightgreen;
+}
+
+.auto-item:nth-of-type(4) {
+    background: palegoldenrod;
+}
+</style>
+<body>
+  <p>Test that the initial tie threshold for masonry is correctly resolved.</p>
+  <div class="masonry">
+    <div class="auto-item" style="width: 80px"></div>
+    <div class="auto-item" style="width: 30px"></div>
+    <div class="auto-item" style="width: 30px"></div>
+    <div class="auto-item" style="width: 80px"></div>
+  </div>
+</body>
+</html>

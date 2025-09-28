@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="column-dense-packing-multi-span-005-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+.masonry {
+    display: masonry;
+    item-tolerance: 0;
+    grid-template-columns: repeat(10001, 5px);
+    padding: 10px;
+    grid-auto-flow: dense;
+}
+</style>
+<body>
+  <p>Ensure that stack overflow does not occur for dense-packing for masonry with 10,000 tracks</p>
+  <div class="masonry">
+    <div style="background: pink; height: 20px;"></div>
+    <div style="background: red; height: 20px; grid-column: span 10001;"></div>
+    <div style="background: yellow; height: 20px; grid-column: span 10000;"></div>
+  </div>
+</body>
+</html>

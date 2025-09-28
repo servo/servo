@@ -736,6 +736,20 @@ class SetPermissionProtocolPart(ProtocolPart):
         pass
 
 
+class GlobalPrivacyControlProtocolPart(ProtocolPart):
+    """Protocol part for reading and writing the GPC signal"""
+    __metaclass__ = ABCMeta
+
+    name = "global_privacy_control"
+
+    @abstractmethod
+    def set_global_privacy_control(self, value):
+        pass
+
+    @abstractmethod
+    def get_global_privacy_control(self):
+        pass
+
 class ActionSequenceProtocolPart(ProtocolPart):
     """Protocol part for performing trusted clicks"""
     __metaclass__ = ABCMeta

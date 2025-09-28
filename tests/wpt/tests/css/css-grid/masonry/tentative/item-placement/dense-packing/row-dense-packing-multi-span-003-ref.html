@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<style>
+.grid {
+    display: grid;
+    grid-template-rows: repeat(3, 50px);
+    padding: 10px;
+    grid-auto-flow: dense;
+}
+.flex {
+    display: flex;
+    flex-direction: row;
+}
+</style>
+<body>
+  <p>Ensure that dense-packing places items that span more than 1 track correctly into gaps.</p>
+  <div class="grid">
+    <div class="flex">
+      <div style="background: lightskyblue; width: 20px;" >
+        1
+      </div>
+      <div style="background:orchid; width: 10px; height: 100px;">
+        5
+      </div>
+    </div>
+    <div style="background: lightcoral; width: 20px;" >
+      2
+    </div>
+    <div class="flex">
+      <div style="background: lightgreen; width: 40px;">
+        3
+      </div>
+      <div style="background: brown; width: 10px; height: 150px; transform: translateY(-100px);">
+        4
+      </div>
+    </div>
+  </div>
+</body>
+</html>

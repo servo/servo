@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="row-dense-packing-001-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+.masonry {
+    display: masonry;
+    background: gray;
+    item-tolerance: 0;
+    masonry-direction: row;
+    grid-template-rows: repeat(3, 50px);
+    width: 170px;
+    grid-auto-flow: dense;
+}
+</style>
+<body>
+  <p>Ensure that dense-packing places items correctly in masonry.</p>
+  <div class="masonry">
+    <div style="background: lightskyblue; width: 20px;" >
+     1
+    </div>
+    <div style="background: lightcoral; width: 60px;" >
+      2
+    </div>
+    <div style="background: lightgreen; width: 60px;">
+      3
+    </div>
+    <div style="background: brown; width: 10px; grid-row: span 2;">
+      4
+    </div>
+    <div style="background: red; width: 40px;">
+      5
+    </div>
+    <div style="background: pink; width: 45px;">
+      6
+    </div>
+    <div style="background: yellow; width: 40px;">
+      7
+    </div>
+    <div style="background: brown; width: 10px; grid-row: span 2;">
+      8
+    </div>
+    <div style="background: blueviolet; width: 12px; grid-row: 2; margin-left: 3px;">
+      9
+    </div>
+    <div style="background: orange; width: 20px; grid-row: 2;">
+      10
+    </div>
+  </div>
+</body>
+</html>
