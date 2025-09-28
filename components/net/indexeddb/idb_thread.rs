@@ -432,7 +432,9 @@ impl IndexedDBManager {
             SyncOperation::RegisterNewTxn(sender, origin, db_name) => {
                 if let Some(db) = self.get_database_mut(origin, db_name) {
                     db.serial_number_counter += 1;
-                    let _ = sender.send(db.serial_number_counter);
+                    let _ = sender.send(Ok(db.serial_number_counter));
+                } else {
+                    let _ = sender.send(Err(BackendError::DbNotFound));
                 }
             },
             SyncOperation::Exit(sender) => {

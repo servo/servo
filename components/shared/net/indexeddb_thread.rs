@@ -422,7 +422,7 @@ pub enum SyncOperation {
     /// Returns an unique identifier that is used to be able to
     /// commit/abort transactions.
     RegisterNewTxn(
-        IpcSender<u64>,
+        IpcSender<BackendResult<u64>>,
         ImmutableOrigin,
         String, // Database
     ),
