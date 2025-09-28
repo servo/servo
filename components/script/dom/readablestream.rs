@@ -10,7 +10,6 @@ use std::rc::Rc;
 use base::id::{MessagePortId, MessagePortIndex};
 use constellation_traits::MessagePortImpl;
 use dom_struct::dom_struct;
-use rustc_hash::FxHashMap;
 use ipc_channel::ipc::IpcSharedMemory;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
@@ -19,6 +18,7 @@ use js::rust::{
     MutableHandleValue as SafeMutableHandleValue,
 };
 use js::typedarray::ArrayBufferViewU8;
+use rustc_hash::FxHashMap;
 use script_bindings::conversions::SafeToJSValConvertible;
 
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
@@ -2354,6 +2354,20 @@ pub(crate) fn get_read_promise_bytes(
             Ok(false) => Err(Error::Type("Promise has no value property.".to_string())),
             Err(()) => Err(Error::JSFailed),
         }
+    }
+}
+
+/// Convert a raw stream `chunk` JS value to `Vec<u8>`.
+/// This mirrors the conversion used inside `get_read_promise_bytes`,
+/// but operates on the raw chunk (no `{ value, done }` wrapper).
+pub(crate) fn bytes_from_chunk_jsval(
+    cx: SafeJSContext,
+    chunk: &RootedTraceableBox<Heap<JSVal>>,
+) -> Result<Vec<u8>, Error> {
+    match Vec::<u8>::safe_from_jsval(cx, chunk.handle(), ConversionBehavior::EnforceRange) {
+        Ok(ConversionResult::Success(vec)) => Ok(vec),
+        Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.to_string())),
+        _ => Err(Error::Type("Unknown format for bytes read.".to_string())),
     }
 }
 
