@@ -64,28 +64,60 @@ pub(crate) enum LinkProcessingPhase {
 /// <https://html.spec.whatwg.org/multipage/#link-processing-options>
 #[derive(Debug)]
 pub(crate) struct LinkProcessingOptions {
+    /// <https://html.spec.whatwg.org/multipage/#link-options-href>
     pub(crate) href: String,
-    pub(crate) destination: Option<Destination>,
+    /// <https://html.spec.whatwg.org/multipage/#link-options-destination>
+    pub(crate) destination: Destination,
+    /// <https://html.spec.whatwg.org/multipage/#link-options-integrity>
     pub(crate) integrity: String,
+    /// <https://html.spec.whatwg.org/multipage/#link-options-type>
     pub(crate) link_type: String,
+    /// <https://html.spec.whatwg.org/multipage/#link-options-nonce>
     pub(crate) cryptographic_nonce_metadata: String,
+    /// <https://html.spec.whatwg.org/multipage/#link-options-crossorigin>
     pub(crate) cross_origin: Option<CorsSettings>,
+    /// <https://html.spec.whatwg.org/multipage/#link-options-referrer-policy>
     pub(crate) referrer_policy: ReferrerPolicy,
+    /// <https://html.spec.whatwg.org/multipage/#link-options-policy-container>
     pub(crate) policy_container: PolicyContainer,
+    /// <https://html.spec.whatwg.org/multipage/#link-options-source-set>
     pub(crate) source_set: Option<()>,
+    /// <https://html.spec.whatwg.org/multipage/#link-options-base-url>
     pub(crate) base_url: ServoUrl,
+    /// <https://html.spec.whatwg.org/multipage/#link-options-origin>
     pub(crate) origin: ImmutableOrigin,
     pub(crate) insecure_requests_policy: InsecureRequestsPolicy,
     pub(crate) has_trustworthy_ancestor_origin: bool,
-    // Some fields that we don't need yet are missing
+    // https://html.spec.whatwg.org/multipage/#link-options-environment
+    // TODO
+    // https://html.spec.whatwg.org/multipage/#link-options-document
+    // TODO
+    // https://html.spec.whatwg.org/multipage/#link-options-on-document-ready
+    // TODO
+    // https://html.spec.whatwg.org/multipage/#link-options-fetch-priority
+    // TODO
 }
 
 impl LinkProcessingOptions {
     /// <https://html.spec.whatwg.org/multipage/#apply-link-options-from-parsed-header-attributes>
-    fn apply_link_options_from_parsed_header(&mut self, link_object: &LinkHeader) {
-        // Step 1. If attribs["as"] exists, then set options's destination to the result of translating attribs["as"].
-        if let Some(as_) = link_object.value_for_key_in_link_header("as") {
-            self.destination = Some(Self::translate_a_preload_destination(as_));
+    fn apply_link_options_from_parsed_header(
+        &mut self,
+        link_object: &LinkHeader,
+        rel: &str,
+    ) -> bool {
+        // Step 1. If rel is "preload":
+        if rel == "preload" {
+            // Step 1.1. If attribs["as"] does not exist, then return false.
+            let Some(as_) = link_object.value_for_key_in_link_header("as") else {
+                return false;
+            };
+            // Step 1.2. Let destination be the result of translating attribs["as"].
+            let Some(destination) = Self::translate_a_preload_destination(as_) else {
+                // Step 1.3. If destination is null, then return false.
+                return false;
+            };
+            // Step 1.4. Set options's destination to destination.
+            self.destination = destination;
         }
         // Step 2. If attribs["crossorigin"] exists and is an ASCII case-insensitive match for one of the
         // CORS settings attribute keywords, then set options's crossorigin to the CORS settings attribute
@@ -114,6 +146,8 @@ impl LinkProcessingOptions {
         // for a fetch priority attribute keyword, then set options's fetch priority to that
         // fetch priority attribute keyword.
         // TODO
+        // Step 8. Return true.
+        true
     }
 
     /// <https://html.spec.whatwg.org/multipage/#process-a-link-header>
@@ -141,24 +175,27 @@ impl LinkProcessingOptions {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#translate-a-preload-destination>
-    pub(crate) fn translate_a_preload_destination(potential_destination: &str) -> Destination {
-        match potential_destination {
+    pub(crate) fn translate_a_preload_destination(
+        potential_destination: &str,
+    ) -> Option<Destination> {
+        // Step 2. Return the result of translating destination.
+        Some(match potential_destination {
             "fetch" => Destination::None,
             "font" => Destination::Font,
             "image" => Destination::Image,
             "script" => Destination::Script,
+            "style" => Destination::Style,
             "track" => Destination::Track,
-            _ => Destination::None,
-        }
+            // Step 1. If destination is not "fetch", "font", "image",
+            // "script", "style", or "track", then return null.
+            _ => return None,
+        })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#create-a-link-request>
     pub(crate) fn create_link_request(self, webview_id: WebViewId) -> Option<RequestBuilder> {
         // Step 1. Assert: options's href is not the empty string.
         assert!(!self.href.is_empty());
-
-        // Step 2. If options's destination is null, then return null.
-        let destination = self.destination?;
 
         // Step 3. Let url be the result of encoding-parsing a URL given options's href, relative to options's base URL.
         let Ok(url) = ServoUrl::parse_with_base(Some(&self.base_url), &self.href) else {
@@ -178,7 +215,7 @@ impl LinkProcessingOptions {
         let builder = create_a_potential_cors_request(
             Some(webview_id),
             url,
-            destination,
+            self.destination,
             self.cross_origin,
             None,
             Referrer::NoReferrer,
@@ -206,9 +243,7 @@ impl LinkProcessingOptions {
         //
         // Fetch is handled as an empty string destination in the spec:
         // https://fetch.spec.whatwg.org/#concept-potential-destination-translate
-        let Some(destination) = self.destination else {
-            return false;
-        };
+        let destination = self.destination;
         if destination == Destination::None {
             return true;
         }
@@ -359,7 +394,7 @@ pub(crate) fn process_link_headers(
         // Step 2.6. Let options be a new link processing options with
         let mut options = LinkProcessingOptions {
             href: link_object.url.clone(),
-            destination: None,
+            destination: Destination::None,
             integrity: String::new(),
             link_type: String::new(),
             cryptographic_nonce_metadata: String::new(),
@@ -372,8 +407,11 @@ pub(crate) fn process_link_headers(
             insecure_requests_policy: document.insecure_requests_policy(),
             has_trustworthy_ancestor_origin: document.has_trustworthy_ancestor_or_current_origin(),
         };
-        // Step 2.7. Apply link options from parsed header attributes to options given attribs.
-        options.apply_link_options_from_parsed_header(link_object);
+        // Step 2.7. Apply link options from parsed header attributes to options given attribs and rel.
+        // If that returned false, then return.
+        if !options.apply_link_options_from_parsed_header(link_object, rel) {
+            return;
+        }
         // Step 2.8. If attribs["imagesrcset"] exists and attribs["imagesizes"] exists,
         // then set options's source set to the result of creating a source set given
         // linkObject["target_uri"], attribs["imagesrcset"], attribs["imagesizes"], and null.

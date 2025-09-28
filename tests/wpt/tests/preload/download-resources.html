@@ -23,8 +23,8 @@
         if (numberOfResourceTimingEntries("resources/dummy.js") == 1 &&
             numberOfResourceTimingEntries("resources/dummy.css") == 1 &&
             numberOfResourceTimingEntries("/fonts/CanvasTest.ttf") == 1 &&
-            numberOfResourceTimingEntries("resources/white.mp4") == 1 &&
-            numberOfResourceTimingEntries("resources/sound_5.oga") == 1 &&
+            numberOfResourceTimingEntries("resources/white.mp4") == 0 &&
+            numberOfResourceTimingEntries("resources/sound_5.oga") == 0 &&
             numberOfResourceTimingEntries("resources/foo.vtt") == 1 &&
             numberOfResourceTimingEntries("resources/dummy.xml?foo=bar") == 0 &&
             numberOfResourceTimingEntries("resources/dummy.xml?novalue") == 0 &&
@@ -37,8 +37,8 @@
             verifyNumberOfResourceTimingEntries("resources/dummy.js", 1);
             verifyNumberOfResourceTimingEntries("resources/dummy.css", 1);
             verifyNumberOfResourceTimingEntries("/fonts/CanvasTest.ttf", 1);
-            verifyNumberOfResourceTimingEntries("resources/white.mp4", 1);
-            verifyNumberOfResourceTimingEntries("resources/sound_5.oga", 1);
+            verifyNumberOfResourceTimingEntries("resources/white.mp4", 0);
+            verifyNumberOfResourceTimingEntries("resources/sound_5.oga", 0);
             verifyNumberOfResourceTimingEntries("resources/foo.vtt", 1);
             verifyNumberOfResourceTimingEntries("resources/dummy.xml?foo=bar", 0);
             verifyNumberOfResourceTimingEntries("resources/dummy.xml?novalue", 0);
