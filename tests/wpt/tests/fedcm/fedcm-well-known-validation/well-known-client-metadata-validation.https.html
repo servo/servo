@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<title>FedCM Well-Known Client Metadata Validation</title>
+<meta name="timeout" content="long">
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import {fedcm_test,
+        set_well_known_format,
+        request_options_with_mediation_required,
+        select_manifest,
+        fedcm_get_and_select_first_account} from '../support/fedcm-helper.sub.js';
+
+// Test 1: Direct format(account_endpoint and login_url defined) should work with client_metadata
+fedcm_test(async t => {
+  await set_well_known_format('direct');
+
+  const options = request_options_with_mediation_required();
+  const credential = await fedcm_get_and_select_first_account(t, options);
+  assert_equals(credential.token, "token", "Should get credential with token");
+}, 'FedCM should succeed with direct well-known format and client_metadata');
+
+// Test 2: Missing format(account_endpoint and login_url are empty) should fail with client_metadata
+fedcm_test(async t => {
+  await set_well_known_format('missing');
+
+  const options = request_options_with_mediation_required();
+  return promise_rejects_dom(t, "NetworkError", navigator.credentials.get(options),
+    "Should fail when well-known has missing endpoints with client_metadata");
+}, 'FedCM should fail with missing well-known endpoints and client_metadata');
+
+// Test 3: Partial_accounts format(account_endpoint defined) should fail with client_metadata
+fedcm_test(async t => {
+  await set_well_known_format('partial_accounts');
+
+  const options = request_options_with_mediation_required();
+  return promise_rejects_dom(t, "NetworkError", navigator.credentials.get(options),
+    "Should fail when well-known has only accounts_endpoint with client_metadata");
+}, 'FedCM should fail with partial accounts endpoint and client_metadata');
+
+// Test 4: Partial_login format(login_url defined) should fail with client_metadata
+fedcm_test(async t => {
+  await set_well_known_format('partial_login');
+
+  const options = request_options_with_mediation_required();
+  return promise_rejects_dom(t, "NetworkError", navigator.credentials.get(options),
+    "Should fail when well-known has only login_url with client_metadata");
+}, 'FedCM should fail with partial login endpoint and client_metadata');
+
+// Test 5: Provider_urls format(provider_urls defined) should fail with client_metadata
+fedcm_test(async t => {
+  await set_well_known_format('provider_urls');
+
+  const options = request_options_with_mediation_required();
+  return promise_rejects_dom(t, "NetworkError", navigator.credentials.get(options),
+    "Should fail when using provider_urls format with client_metadata");
+}, 'FedCM should fail with provider_urls format and client_metadata (validation enforced)');
+
+// Test 6: Missing format(account_endpoint and login_url are empty) should work without client_metadata
+fedcm_test(async t => {
+  await set_well_known_format('missing');
+
+  const options = request_options_with_mediation_required("manifest_with_no_client_metadata.json");
+  await select_manifest(t, options);
+  const credential = await fedcm_get_and_select_first_account(t, options);
+  assert_equals(credential.token, "token", "Should get credential with token");
+}, 'FedCM should succeed with missing well-known endpoints without client_metadata');
+
+// Test 7: Empty format(account_endpoint and login_url entries doesnt exist) should work without client_metadata
+fedcm_test(async t => {
+  await set_well_known_format('empty');
+
+  const options = request_options_with_mediation_required("manifest_with_no_client_metadata.json");
+  await select_manifest(t, options);
+  const credential = await fedcm_get_and_select_first_account(t, options);
+  assert_equals(credential.token, "token", "Should get credential with token");
+}, 'FedCM should succeed with empty well-known endpoints without client_metadata');
+
+// Test 8: Default format (provider_urls) should work without client_metadata
+fedcm_test(async t => {
+  const options = request_options_with_mediation_required("manifest_with_no_client_metadata.json");
+  await select_manifest(t, options);
+  const credential = await fedcm_get_and_select_first_account(t, options);
+  assert_equals(credential.token, "token", "Should get credential with token");
+}, 'FedCM should succeed with provider_urls format without client_metadata (no validation)');
+
+</script>

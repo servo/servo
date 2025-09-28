@@ -6,33 +6,7 @@
 <script src="helper.js" type="module"></script>
 
 <script type="module">
-  import { expireCookie, documentHasCookie, waitForCookie, addCookieAndSessionCleanup, setupShardedServerState, configureServer } from "./helper.js";
-
-  // Create an iframe that fetches URLs on demand via postMessage.
-  async function createFrame(url) {
-    const frame = document.createElement('iframe');
-    const promise = new Promise((resolve, reject) => {
-      frame.onload = () => resolve(frame);
-      frame.onerror = () => {
-        reject();
-      };
-    });
-    frame.src = url;
-    document.body.appendChild(frame);
-    return promise;
-  }
-
-  async function crossSiteFetch(frame, url) {
-    let promise = new Promise((resolve) => {
-      const listener = (event) => {
-        window.removeEventListener("message", listener);
-        resolve(event.data);
-      };
-      window.addEventListener("message", listener);
-    });
-    frame.contentWindow.postMessage(url, "*");
-    return promise;
-  }
+  import { expireCookie, documentHasCookie, waitForCookie, addCookieAndSessionCleanup, setupShardedServerState, configureServer, crossSiteFetch } from "./helper.js";
 
   async function runTest(t, origin, refresh_expected) {
     await setupShardedServerState({crossSite: true});
@@ -51,14 +25,12 @@
     assert_equals(loginResponse.status, 200);
     await waitForCookie(expectedCookieAndValue, /*expectCookie=*/true);
 
-    const frame = await createFrame(`${origin}/device-bound-session-credentials/url_fetcher.html`);
-
     // Expire the cookie, and check whether a refresh has occurred.
     expireCookie(expectedCookieAndAttributes);
     assert_false(documentHasCookie(expectedCookieAndValue));
 
-    const authStatusAfterExpiry = await crossSiteFetch(frame, `${location.protocol}//${location.host}/device-bound-session-credentials/verify_authenticated.py`);
-    assert_equals(authStatusAfterExpiry, refresh_expected ? 200 : 401);
+    const authStatusAfterExpiry = await crossSiteFetch(origin, `${location.origin}/device-bound-session-credentials/verify_authenticated.py`, {credentials: "include"});
+    assert_equals(authStatusAfterExpiry, refresh_expected ? 200 : 403);
     assert_equals(documentHasCookie(expectedCookieAndValue), refresh_expected);
   }
 

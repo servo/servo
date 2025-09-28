@@ -1,4 +1,3 @@
-spec: https://wicg.github.io/import-maps/
+spec: https://html.spec.whatwg.org/multipage/webappapis.html#import-maps
 suggested_reviewers:
-  - domenic
   - hiroshige-g

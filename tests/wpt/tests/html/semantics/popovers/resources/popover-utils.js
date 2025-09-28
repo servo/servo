@@ -143,13 +143,21 @@ function assertNotAPopover(nonPopover) {
 async function verifyFocusOrder(order,description) {
   order[0].focus();
   for(let i=0;i<order.length;++i) {
+    // Press tab between each check, excluding first (because it should already be focused)
+    // and the last (because tabbing after the last element may send focus into browser chrome).
+    if (i != 0) {
+      await sendTab();
+    }
     const control = order[i];
     assert_equals(document.activeElement,control,`${description}: Step ${i+1}`);
-    await sendTab();
   }
   for(let i=order.length-1;i>=0;--i) {
     const control = order[i];
-    await sendShiftTab();
     assert_equals(document.activeElement,control,`${description}: Step ${i+1} (backwards)`);
+    // Press shift+tab between each check, excluding last (because it should already be focused)
+    // and the first (because shift+tabbing after the last element may send focus into browser chrome).
+    if (i != 0) {
+      await sendShiftTab();
+    }
   }
 }

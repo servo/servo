@@ -183,6 +183,30 @@ class SetPermissionAction:
         self.logger.debug("Setting permission %s to %s" % (name, state))
         self.protocol.set_permission.set_permission(descriptor, state)
 
+
+class SetGlobalPrivacyControlAction:
+    name = "set_global_privacy_control"
+
+    def __init__(self, logger, protocol):
+        self.logger = logger
+        self.protocol = protocol
+
+    def __call__(self, payload):
+        gpc = payload["gpc"]
+        return self.protocol.global_privacy_control.set_global_privacy_control(gpc)
+
+class GetGlobalPrivacyControlAction:
+    name = "get_global_privacy_control"
+
+    def __init__(self, logger, protocol):
+        self.logger = logger
+        self.protocol = protocol
+
+    def __call__(self, payload):
+        return self.protocol.global_privacy_control.get_global_privacy_control()
+
+
+
 class AddVirtualAuthenticatorAction:
     name = "add_virtual_authenticator"
 
@@ -586,4 +610,6 @@ actions = [ClickAction,
            RemoveVirtualPressureSourceAction,
            SetProtectedAudienceKAnonymityAction,
            SetDisplayFeaturesAction,
-           ClearDisplayFeaturesAction]
+           ClearDisplayFeaturesAction,
+           GetGlobalPrivacyControlAction,
+           SetGlobalPrivacyControlAction]

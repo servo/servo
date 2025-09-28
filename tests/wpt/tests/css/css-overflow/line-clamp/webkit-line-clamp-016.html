@@ -4,7 +4,7 @@
 <link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
 <link rel="help" href="https://drafts.csswg.org/css-overflow-3/#webkit-line-clamp">
 <link rel="match" href="reference/webkit-line-clamp-016-ref.html">
-<meta name="assert" content="-webkit-line-clamp value on the flex child should be ignored.">
+<meta name="assert" content="-webkit-line-clamp value on the child of the clamping context should be ignored (since it doesn't carry -webkit-box nor webkit-box-orient:vertical itself.">
 <style>
 .clamp {
   display: -webkit-box;

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>
+  Gap Decorations are shown in grid that's fragmented. Suppressed row gaps
+  do not have decorations. Test scenario with a sparse grid and a row gap
+  below an item that is split between fragmentainers.
+</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11520">
+<link rel="match" href="grid-gap-decorations-fragmentation-014-ref.html">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+  .multi-col {
+    height: 234px;
+    width: 320px;
+    columns: 3;
+    column-fill: auto;
+    column-gap: 10px;
+    background: lightgray;
+
+  }
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(13, 10px);
+    column-gap: 10px;
+    row-gap: 10px;
+    row-rule: solid 5px red;
+    column-rule: solid 6px blue;
+  }
+  .grid-container>div {
+    background-color: skyblue;
+  }
+</style>
+<div class="multi-col">
+  <div class="grid-container">
+    <div style="grid-row: 1/2;"></div>
+    <div style="grid-row: 12/13;"></div>
+  </div>
+</div>

@@ -2312,6 +2312,11 @@ impl Handler {
     }
 
     fn take_screenshot(&self, rect: Option<Rect<f32, CSSPixel>>) -> WebDriverResult<String> {
+        // Spec: Take screenshot after running the animation frame callbacks.
+        let _ = self.handle_execute_async_script(JavascriptCommandParameters {
+            script: "requestAnimationFrame(() => arguments[0]());".to_string(),
+            args: None,
+        });
         let webview_id = self.webview_id()?;
         let mut img = None;
 
@@ -2320,14 +2325,23 @@ impl Handler {
 
         for _ in 0..iterations {
             let (sender, receiver) = ipc::channel().unwrap();
-
             self.send_message_to_embedder(WebDriverCommandMsg::TakeScreenshot(
                 webview_id, rect, sender,
             ))?;
 
-            if let Some(x) = wait_for_ipc_response(receiver)? {
-                img = Some(x);
-                break;
+            match wait_for_ipc_response(receiver)? {
+                Ok(output_img) => {
+                    if let Some(x) = output_img {
+                        img = Some(x);
+                        break;
+                    }
+                },
+                Err(()) => {
+                    return Err(WebDriverError::new(
+                        ErrorStatus::UnknownError,
+                        "The bounding box of element has either 0 width or 0 height",
+                    ));
+                },
             };
 
             thread::sleep(Duration::from_millis(interval));
@@ -2384,8 +2398,6 @@ impl Handler {
         &self,
         element: &WebElement,
     ) -> WebDriverResult<WebDriverResponse> {
-        let (sender, receiver) = ipc::channel().unwrap();
-
         // Step 1. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
         let webview_id = self.webview_id()?;
@@ -2394,7 +2406,9 @@ impl Handler {
         // Step 2. Try to handle any user prompts with session.
         self.handle_any_user_prompts(webview_id)?;
 
-        // Step 3 - 4
+        // Step 3. Trying to get element.
+        // Step 4. Scroll into view into element.
+        let (sender, receiver) = ipc::channel().unwrap();
         let cmd =
             WebDriverScriptCommand::ScrollAndGetBoundingClientRect(element.to_string(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
@@ -2409,7 +2423,7 @@ impl Handler {
                     serde_json::to_value(encoded)?,
                 )))
             },
-            Err(error) => Err(WebDriverError::new(error, "Element not found")),
+            Err(error) => Err(WebDriverError::new(error, "")),
         }
     }
 

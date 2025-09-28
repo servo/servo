@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Auto repeat tracks with multiple tracks and gutters.</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="match" href="column-auto-repeat-auto-011-ref.html">
+<style>
+.masonry {
+  display: masonry;
+  border: solid thick;
+  margin: 10px;
+  grid-template-columns: repeat(auto-fill, auto auto);
+  grid-column-gap: 100px;
+  width: 300px;
+  background: pink;
+}
+.masonry > div {
+  background: lime;
+  width: 50px;
+  height: 50px;
+}
+</style>
+<p>The test passes if it has the same visual effect as reference.</p>
+<div class="masonry">
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+</div>

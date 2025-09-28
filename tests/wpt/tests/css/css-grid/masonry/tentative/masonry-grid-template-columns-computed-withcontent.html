@@ -10,9 +10,7 @@
   <script src="/css/support/computed-testcommon.js"></script>
   <style>
     #target {
-      display: grid;
       display: masonry;
-      grid-template-rows: masonry;
       font-size: 40px;
       min-width: 200px;
       width: 300px;
@@ -38,7 +36,7 @@
   </div>
 </div>
 <script>
-  test_computed_value("grid-template-rows", 'masonry', 'masonry');
+  test_computed_value("grid-template-rows", 'none', 'none');
   test_computed_value("grid-template-columns", 'none', 'none'); // "none" without #child
 
   // track-size <fixed-breadth> = <length-percentage> | <flex> | min-content | max-content | auto

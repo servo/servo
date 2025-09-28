@@ -1,80 +1,63 @@
-<!doctype html>
+<!DOCTYPE html>
 <meta charset=utf-8>
 <html>
   <head>
     <title>Test setTargetAtTime with start time in the past</title>
-    <script src=/resources/testharness.js></script>
-    <script src=/resources/testharnessreport.js></script>
-    <script src="/webaudio/resources/audit-util.js"></script>
-    <script src="/webaudio/resources/audit.js"></script>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
   </head>
   <body>
     <script>
-      let audit = Audit.createTaskRunner();
+      const suspendFrame = 128;
 
-      audit.define(
-          {
-            label: 'test',
-            description: 'Test setTargetAtTime with start time in the past'
-          },
-          (task, should) => {
-            // Use a sample rate that is a power of two to eliminate round-off
-            // in computing the currentTime.
-            let context = new OfflineAudioContext(2, 16384, 16384);
-            let source = new ConstantSourceNode(context);
+      promise_test(async () => {
+        // Use a sample rate that is a power of two to eliminate round-off
+        // in computing the currentTime.
+        const context = new OfflineAudioContext(2, 16384, 16384);
+        const source = new ConstantSourceNode(context);
 
-            // Suspend the context at this frame so we can synchronously set up
-            // automations.
-            const suspendFrame = 128;
+        const test = new GainNode(context);
+        const reference = new GainNode(context);
 
-            let test = new GainNode(context);
-            let reference = new GainNode(context);
+        source.connect(test);
+        source.connect(reference);
 
-            source.connect(test);
-            source.connect(reference);
+        const merger = new ChannelMergerNode(
+            context, {numberOfInputs: context.destination.channelCount});
+        test.connect(merger, 0, 0);
+        reference.connect(merger, 0, 1);
 
-            let merger = new ChannelMergerNode(
-                context, {numberOfInputs: context.destination.channelCount});
-            test.connect(merger, 0, 0);
-            reference.connect(merger, 0, 1);
+        merger.connect(context.destination);
 
-            merger.connect(context.destination);
+        context.suspend(suspendFrame / context.sampleRate).then(() => {
+          // Call setTargetAtTime with a time in the past
+          test.gain.setTargetAtTime(0.1, 0.5*context.currentTime, 0.1);
+          reference.gain.setTargetAtTime(0.1, context.currentTime, 0.1);
+          context.resume();
+        });
 
-            context.suspend(suspendFrame / context.sampleRate)
-                .then(() => {
-                  // Call setTargetAtTime with a time in the past
-                  test.gain.setTargetAtTime(0.1, 0.5*context.currentTime, 0.1);
-                  reference.gain.setTargetAtTime(0.1, context.currentTime, 0.1);
-                })
-                .then(() => context.resume());
+        source.start();
 
-            source.start();
+        const resultBuffer = await context.startRendering();
+        const testValue = resultBuffer.getChannelData(0);
+        const referenceValue = resultBuffer.getChannelData(1);
 
-            context.startRendering()
-                .then(resultBuffer => {
-                  let testValue = resultBuffer.getChannelData(0);
-                  let referenceValue = resultBuffer.getChannelData(1);
+        // Until the suspendFrame, both should be exactly equal to 1.
+        assert_array_equals(
+            testValue.slice(0, suspendFrame),
+            new Float32Array(suspendFrame).fill(1),
+            `Test[0:${suspendFrame - 1}]`);
+        assert_array_equals(
+            referenceValue.slice(0, suspendFrame),
+            new Float32Array(suspendFrame).fill(1),
+            `Reference[0:${suspendFrame - 1}]`);
 
-                  // Until the suspendFrame, both should be exactly equal to 1.
-                  should(
-                      testValue.slice(0, suspendFrame),
-                      `Test[0:${suspendFrame - 1}]`)
-                      .beConstantValueOf(1);
-                  should(
-                      referenceValue.slice(0, suspendFrame),
-                      `Reference[0:${suspendFrame - 1}]`)
-                      .beConstantValueOf(1);
-
-                  // After the suspendFrame, both should be equal (and not
-                  // constant)
-                  should(
-                      testValue.slice(suspendFrame), `Test[${suspendFrame}:]`)
-                      .beEqualToArray(referenceValue.slice(suspendFrame));
-                })
-                .then(() => task.done());
-          });
-
-      audit.run();
+        // After the suspendFrame, both should be equal (and not constant)
+        assert_array_equals(
+            testValue.slice(suspendFrame),
+            referenceValue.slice(suspendFrame),
+            `Test[${suspendFrame}:]`);
+      }, 'Test setTargetAtTime with start time in the past');
     </script>
   </body>
 </html>

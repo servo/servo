@@ -259,7 +259,7 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         match self.upcast::<EventTarget>().type_id() {
             EventTargetTypeId::AudioNode(AudioNodeTypeId::AudioDestinationNode) => {
                 if self.context.is_offline() {
-                    return Err(Error::InvalidState);
+                    return Err(Error::InvalidState(None));
                 } else if !(1..=MAX_CHANNEL_COUNT).contains(&value) {
                     return Err(Error::IndexSize);
                 }
@@ -277,10 +277,10 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
                 }
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelMergerNode) => {
-                return Err(Error::InvalidState);
+                return Err(Error::InvalidState(None));
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelSplitterNode) => {
-                return Err(Error::InvalidState);
+                return Err(Error::InvalidState(None));
             },
             // XXX We do not support any of the other AudioNodes with
             // constraints yet. Add more cases here as we add support
@@ -312,7 +312,7 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         match self.upcast::<EventTarget>().type_id() {
             EventTargetTypeId::AudioNode(AudioNodeTypeId::AudioDestinationNode) => {
                 if self.context.is_offline() {
-                    return Err(Error::InvalidState);
+                    return Err(Error::InvalidState(None));
                 }
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::PannerNode) => {
@@ -328,10 +328,10 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
                 }
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelMergerNode) => {
-                return Err(Error::InvalidState);
+                return Err(Error::InvalidState(None));
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelSplitterNode) => {
-                return Err(Error::InvalidState);
+                return Err(Error::InvalidState(None));
             },
             // XXX We do not support any of the other AudioNodes with
             // constraints yet. Add more cases here as we add support
@@ -359,7 +359,7 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         if let EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelSplitterNode) =
             self.upcast::<EventTarget>().type_id()
         {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         };
 
         self.channel_interpretation.set(value);

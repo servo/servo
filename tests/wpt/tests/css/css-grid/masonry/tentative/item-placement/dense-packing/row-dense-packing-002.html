@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="row-dense-packing-002-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+.masonry {
+    display: masonry;
+    background: gray;
+    item-tolerance: 0;
+    masonry-direction: row;
+    grid-template-rows: repeat(3, 50px);
+    padding: 10px;
+    grid-auto-flow: dense;
+}
+</style>
+<body>
+  <p>Ensure that dense-packing places items correctly based on the auto-placement cursor location when there are multiple gaps. Item 5 should go into the bottom-most gap.</p>
+  <div class="masonry">
+    <div style="background: lightskyblue; width: 20px;" >
+     1
+    </div>
+    <div style="background: lightcoral; width: 60px;" >
+      2
+    </div>
+    <div style="background: lightgreen; width: 20px;">
+      3
+    </div>
+    <div style="background: brown; width: 10px; grid-row: span 3;">
+      4
+    </div>
+    <div style="background:orchid; width: 10px; grid-row: span 2;">
+      5
+    </div>
+    <div style="background: red; width: 40px;">
+      6
+    </div>
+  </div>
+</body>
+</html>

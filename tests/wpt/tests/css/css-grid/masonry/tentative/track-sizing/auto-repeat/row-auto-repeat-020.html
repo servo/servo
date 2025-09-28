@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<title>Auto-fit repeat tracks with fixed size and auto/explicit spanning item placement</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="match" href="row-auto-repeat-019-ref.html">
+<style>
+.masonry {
+    display: masonry;
+    item-tolerance: 0;
+    masonry-direction: row;
+    grid-template-rows: 50px repeat(5, 50px) repeat(auto-fit, 50px);
+    width: 200px;
+    height: 500px;
+    gap: 10px;
+}
+
+.masonry > div {
+    height: 100%;
+    width: 50px;
+    background-color: orange;
+}
+</style>
+<div class="masonry">
+  <div style="grid-row: span 4;">1</div>
+  <div style="grid-row: 4 / span 2;">2</div>
+  <div style="grid-row: 9 / span 2;">3</div>
+  <div style="grid-row: 7;">4</div>
+  <div style="grid-row: span 2;">5</div>
+  <div>6</div>
+</div>
+</html>

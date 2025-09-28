@@ -8,9 +8,11 @@ dictionary PushPermissionDescriptor : PermissionDescriptor {
 };
 
 [SecureContext]
-partial interface ServiceWorkerRegistration {
+interface mixin PushManagerAttribute {
   readonly attribute PushManager pushManager;
 };
+Window includes PushManagerAttribute;
+ServiceWorkerRegistration includes PushManagerAttribute;
 
 [Exposed=(Window,Worker), SecureContext]
 interface PushManager {

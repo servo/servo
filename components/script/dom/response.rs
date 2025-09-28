@@ -98,19 +98,31 @@ impl Response {
             body.error_native(error, can_gc);
         }
     }
-}
 
-impl BodyMixin for Response {
-    fn is_disturbed(&self) -> bool {
-        self.body_stream
-            .get()
+    pub(crate) fn is_disturbed(&self) -> bool {
+        let body_stream = self.body_stream.get();
+        body_stream
+            .as_ref()
             .is_some_and(|stream| stream.is_disturbed())
     }
 
-    fn is_locked(&self) -> bool {
+    pub(crate) fn is_locked(&self) -> bool {
+        let body_stream = self.body_stream.get();
+        body_stream
+            .as_ref()
+            .is_some_and(|stream| stream.is_locked())
+    }
+}
+
+impl BodyMixin for Response {
+    fn is_body_used(&self) -> bool {
+        self.is_disturbed()
+    }
+
+    fn is_unusable(&self) -> bool {
         self.body_stream
             .get()
-            .is_some_and(|stream| stream.is_locked())
+            .is_some_and(|stream| stream.is_disturbed() || stream.is_locked())
     }
 
     fn body(&self) -> Option<DomRoot<ReadableStream>> {
@@ -300,7 +312,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
     /// <https://fetch.spec.whatwg.org/#dom-response-clone>
     fn Clone(&self, can_gc: CanGc) -> Fallible<DomRoot<Response>> {
         // Step 1
-        if self.is_locked() || self.is_disturbed() {
+        if self.is_unusable() {
             return Err(Error::Type("cannot clone a disturbed response".to_string()));
         }
 
@@ -341,8 +353,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
 
     /// <https://fetch.spec.whatwg.org/#dom-body-bodyused>
     fn BodyUsed(&self) -> bool {
-        // bodyUsed returns true only if body is non-null
-        !self.is_body_empty() && self.is_disturbed()
+        !self.is_body_empty.get() && self.is_body_used()
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-body>
@@ -536,9 +547,5 @@ impl Response {
         if let Some(stream_consumer) = stream_consumer {
             stream_consumer.stream_end();
         }
-    }
-
-    pub(crate) fn is_body_empty(&self) -> bool {
-        self.is_body_empty.get()
     }
 }

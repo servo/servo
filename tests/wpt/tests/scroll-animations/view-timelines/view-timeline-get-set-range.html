@@ -58,8 +58,9 @@
     });
     await anim.ready;
 
-    container.scrollLeft = 750;
-    await waitForNextFrame();
+    await runAndWaitForFrameUpdate(() => {
+      container.scrollLeft = 750;
+    });
 
     // normal ==> cover 0% to cover 100%
     // cover 0% @ 600px

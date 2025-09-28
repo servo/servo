@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<title>Auto repeat tracks with min-content track size</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="column-auto-repeat-fit-content-003-ref.html">
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.masonry {
+    display: masonry;
+    background: gray;
+    item-tolerance: 0;
+    /*
+      This is not currently a valid track definition and will fall back to
+      none. However, this is going to change in the future[1].
+
+      [1] https://github.com/w3c/csswg-drafts/issues/12580#issuecomment-3201090594
+    */
+    grid-template-columns: min-content repeat(auto-fill, min-content) min-content;
+    width: 300px;
+    height: 300px;
+    font: 15px/1 Ahem;
+}
+
+.masonry > div {
+    height: 100px;
+}
+</style>
+<body>
+  <div class="masonry">
+    <div style="background: lightskyblue;">
+      Number 1
+    </div>
+    <div style="background: lightcoral;">
+      Number 2
+    </div>
+    <div style="background: lightgreen;">
+      Number 3
+    </div>
+    <div style="background: lightpink;">
+      Number 4
+    </div>
+    <div style="background: orange;">
+      Number 5
+    </div>
+    <div style="grid-column: span 2; background: brown;">
+      Number 6
+    </div>
+  </div>
+</body>
+</html>

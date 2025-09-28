@@ -10,7 +10,7 @@ def main(request, response):
     if test_session_manager.get_refresh_endpoint_unavailable():
         return (500, response.headers, "")
 
-    session_id_header = request.headers.get("Sec-Session-Id")
+    session_id_header = request.headers.get("Sec-Secure-Session-Id")
     if session_id_header == None:
         return (400, response.headers, "")
     session_id_header = session_id_header.decode('utf-8')
@@ -29,19 +29,16 @@ def main(request, response):
 
     if test_session_manager.get_refresh_sends_challenge():
         challenge = "refresh_challenge_value"
-        if request.headers.get("Sec-Session-Response") == None:
-            return (401, [('Sec-Session-Challenge', f'"{challenge}";id="{session_id}"')], "")
+        if request.headers.get("Secure-Session-Response") == None:
+            return (403, [('Secure-Session-Challenge', f'"{challenge}";id="{session_id}"')], "")
 
-        jwt_header, jwt_payload, verified = jwt_helper.decode_jwt(request.headers.get("Sec-Session-Response").decode('utf-8'), session_key)
+        jwt_header, jwt_payload, verified = jwt_helper.decode_jwt(request.headers.get("Secure-Session-Response").decode('utf-8'), session_key)
 
         early_challenge = test_session_manager.get_early_challenge(session_id)
         if early_challenge is not None:
             challenge = early_challenge
 
         if not verified or jwt_payload.get("jti") != challenge:
-            return (400, response.headers, "")
-
-        if jwt_payload.get("sub") != session_id_header:
             return (400, response.headers, "")
 
     return test_session_manager.get_session_instructions_response(session_id, request)

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<style>
+.grid {
+    display: grid;
+    background: gray;
+    width: 300px;
+    height: 300px;
+}
+
+.grid > div {
+    width: 100px;
+    height: 100px;
+}
+</style>
+<body>
+  <div class="grid">
+    <div style="background: lightskyblue; grid-row: 1;">
+      Number 1
+    </div>
+    <div style="background: lightcoral; grid-row: 2;">
+      Number 2
+    </div>
+    <div style="background: lightgreen; grid-row: 1;">
+      Number 3
+    </div>
+    <div style="background: lightpink; grid-row: 2;">
+      Number 4
+    </div>
+    <div style="background: orange; grid-row: 1;">
+      Number 5
+    </div>
+    <div style="grid-row: 1 / span 2; background: brown; height: 200px;">
+      Number 6
+    </div>
+  </div>
+</body>
+</html>

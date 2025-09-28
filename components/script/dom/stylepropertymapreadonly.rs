@@ -96,7 +96,7 @@ impl StylePropertyMapReadOnlyMethods<crate::DomTypeHolder> for StylePropertyMapR
                 } else {
                     Ordering::Greater
                 }
-            } else if custom_properties::parse_name(key2).is_ok() {
+            } else if custom_properties::parse_name(key2.str()).is_ok() {
                 Ordering::Less
             } else {
                 key1.cmp(key2)

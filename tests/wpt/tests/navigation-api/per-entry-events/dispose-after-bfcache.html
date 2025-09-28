@@ -17,7 +17,7 @@ runBfcacheTest({
   targetOrigin: originSameOrigin,
   funcBeforeNavigation: async () => {
     window.events = [];
-    await navigation.navigate("#1");
+    await navigation.navigate("#1").finished;
     await navigation.back();
     window.originalEntry1 = navigation.entries()[1];
     window.originalEntry1.ondispose = () => events.push("dispose");

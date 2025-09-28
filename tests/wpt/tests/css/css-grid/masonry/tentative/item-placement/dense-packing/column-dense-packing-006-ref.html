@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<style>
+.grid {
+    display: grid;
+    grid-template-columns: repeat(4, 50px);
+}
+.upwards {
+    transform: translateY(-20px);
+}
+</style>
+<body>
+  <p>Ensure that dense-packing in masonry only places items with a specified track into track openings in that same specified track.</p>
+  <div class="grid">
+    <div style="background: brown; height: 20px;"></div>
+    <div style="background: brown; height: 40px; grid-column: 2;"></div>
+    <div style="background: pink; height: 20px; grid-column-start: 3;"></div>
+    <div style="background: brown; height: 60px; grid-column-start: 4;"></div>
+    <div class="upwards" style="background: brown; height: 20px; grid-column: span 2;"></div>
+    <div class="upwards" style="background: brown; height: 20px; grid-column: span 4;"></div>
+    <div class="upwards" style="background: brown; height: 20px; grid-column: span 3;"></div>
+    <div class="upwards" style="background: yellow; height: 20px; grid-column-start: 4;"></div>
+    <div class="upwards" style="background: brown; height: 20px; grid-column: span 4;"></div>
+  </div>
+</body>
+</html>

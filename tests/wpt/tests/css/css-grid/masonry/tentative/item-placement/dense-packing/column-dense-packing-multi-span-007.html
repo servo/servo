@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="column-dense-packing-multi-span-007-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+.masonry {
+    display: masonry;
+    item-tolerance: 0;
+    grid-template-columns: repeat(5, 50px);
+    grid-auto-flow: dense;
+}
+</style>
+<body>
+  <p>Ensure that dense-packing in masonry properly handles "split" track openings.</p>
+  <div class="masonry">
+    <div style="background: brown; height: 80px;"></div>
+    <div style="background: brown; height: 20px; grid-column: span 2"></div>
+    <div style="background: brown; height: 40px;"></div>
+    <div style="background: brown; height: 100px;"></div>
+    <div style="background: brown; height: 10px; grid-column: span 5;"></div>
+    <div style="background: pink; height: 10px; grid-column: span 4;"></div>
+    <div style="background: lightgreen; height: 10px; grid-column: span 2;"></div>
+  </div>
+</body>
+</html>

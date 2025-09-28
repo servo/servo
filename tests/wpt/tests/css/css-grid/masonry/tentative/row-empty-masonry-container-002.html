@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="column-empty-masonry-container-002-ref.html">
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<style>
+.masonry {
+    display: masonry;
+    masonry-direction: row;
+    background: gray;
+    position: relative;
+    item-tolerance: 0;
+    padding: 20px;
+}
+</style>
+<body>
+  <p>Test that an empty masonry container still renders padding.</p>
+  <div class="masonry"></div>
+</body>
+</html>

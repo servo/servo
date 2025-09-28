@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+.grid {
+    display: grid;
+    background: gray;
+    grid-template-columns: auto auto auto;
+    height: 200px;
+    width: 500px;
+    gap: 20px;
+    padding: 20px;
+}
+
+.first-track {
+    background: lightskyblue;
+    grid-column-start: 1;
+    writing-mode: vertical-rl;
+    height: max-content;
+}
+
+.second-track {
+    background: lightcoral;
+    grid-column-start: 2;
+    width: fit-content;
+    height: fit-content;
+}
+
+.third-track {
+    background: lightgreen;
+    grid-column-start: 3;
+    writing-mode: vertical-lr;
+    height: max-content;
+}
+
+.flex {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+</style>
+<body>
+  <p>Test that orthoganal masonry with explicit placement are correctly positioned within the grid axis and that the margins on the orthogonal items correctly affect track sizing.</p>
+  <div class="grid">
+    <div class="flex">
+      <div class="first-track">This is some text</div>
+      <div class="first-track" style="margin-right: 10px;">This is some text</div>
+      <div class="first-track" style="writing-mode: horizontal-tb;">This is some text</div>
+    </div>
+    <div class="second-track" style="margin-bottom: 10px;">Some larger words in this sentence</div>
+    <div class="flex" style="grid-column-start: 3;">
+      <div class="third-track">The cat cannot be separated from milk</div>
+      <div class="third-track">This is some other text</div>
+    </div>
+  </div>
+</body>
+</html>

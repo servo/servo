@@ -6,30 +6,12 @@
     </title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <script src="../../resources/audit-util.js"></script>
-    <script src="../../resources/audit.js"></script>
   </head>
   <body>
-    <script id="layout-test-code">
+    <script>
       // Fairly arbitrary sample rate and render frames.
-      let sampleRate = 16000;
-      let renderFrames = 2048;
-
-      let audit = Audit.createTaskRunner();
-
-      audit.define(
-          {
-            label: 'linear-clamp-high',
-            description: 'rolloffFactor clamping for linear distance model'
-          },
-          (task, should) => {
-            runTest(should, {
-              distanceModel: 'linear',
-              // Fairly arbitrary value outside the nominal range
-              rolloffFactor: 2,
-              clampedRolloff: 1
-            }).then(() => task.done());
-          });
+      const sampleRate = 16000;
+      const renderFrames = 2048;
 
       // Test clamping of the rolloffFactor.  The test is done by comparing the
       // output of a panner with the rolloffFactor set outside the nominal range
@@ -42,18 +24,18 @@
       //                    nominal range of the distance model.
       //   clampedRolloff - The rolloffFactor (above) clamped to the nominal
       //                    range for the given distance model.
-      function runTest(should, options) {
+      const runTest = async (options) => {
         // Offline context with two channels.  The first channel is the panner
         // node under test.  The second channel is the reference panner node.
-        let context = new OfflineAudioContext(2, renderFrames, sampleRate);
+        const context = new OfflineAudioContext(2, renderFrames, sampleRate);
 
         // The source for the panner nodes.  This is fairly arbitrary.
-        let src = new OscillatorNode(context, {type: 'sawtooth'});
+        const src = new OscillatorNode(context, {type: 'sawtooth'});
 
         // Create the test panner with the specified rolloff factor.  The
         // position is fairly arbitrary, but something that is not the default
         // is good to show the distance model had some effect.
-        let pannerTest = new PannerNode(context, {
+        const pannerTest = new PannerNode(context, {
           rolloffFactor: options.rolloffFactor,
           distanceModel: options.distanceModel,
           positionX: 5000
@@ -61,7 +43,7 @@
 
         // Create the reference panner with the rolloff factor clamped to the
         // appropriate limit.
-        let pannerRef = new PannerNode(context, {
+        const pannerRef = new PannerNode(context, {
           rolloffFactor: options.clampedRolloff,
           distanceModel: options.distanceModel,
           positionX: 5000
@@ -69,7 +51,7 @@
 
 
         // Connect the source to the panners to the destination appropriately.
-        let merger = new ChannelMergerNode(context, {numberOfInputs: 2});
+        const merger = new ChannelMergerNode(context, {numberOfInputs: 2});
 
 
         src.connect(pannerTest).connect(merger, 0, 0);
@@ -79,20 +61,20 @@
 
         src.start();
 
-        return context.startRendering().then(function(resultBuffer) {
-          // The two channels should be the same due to the clamping.  Verify
-          // that they are the same.
-          let actual = resultBuffer.getChannelData(0);
-          let expected = resultBuffer.getChannelData(1);
-
-          let message = 'Panner distanceModel: "' + options.distanceModel +
-              '", rolloffFactor: ' + options.rolloffFactor;
-
-          should(actual, message).beEqualToArray(expected);
-        });
-      }
-
-      audit.run();
+        const resultBuffer = await context.startRendering();
+        // The two channels should be the same due to the clamping.  Verify
+        // that they are the same.
+        const actual = resultBuffer.getChannelData(0);
+        const expected = resultBuffer.getChannelData(1);
+        const message = `Panner distanceModel: "${options.distanceModel}", ` +
+            `rolloffFactor: ${options.rolloffFactor}`;
+        assert_array_equals(actual, expected, message);
+      };
+      promise_test(() => runTest({
+        distanceModel: 'linear',
+        rolloffFactor: 2,
+        clampedRolloff: 1
+      }), 'rolloffFactor clamping for linear distance model');
     </script>
   </body>
 </html>

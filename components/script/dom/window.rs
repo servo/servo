@@ -2347,6 +2347,10 @@ impl Window {
             return;
         }
 
+        if document.render_blocking_element_count() > 0 {
+            return;
+        }
+
         // Checks if the html element has reftest-wait attribute present.
         // See http://testthewebforward.org/docs/reftests.html
         // and https://web-platform-tests.org/writing-tests/crashtest.html

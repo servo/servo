@@ -28,7 +28,7 @@
       method: 'POST',
       body: expectedCookieAndValue2
     });
-    assert_equals(alternateAuthResponse.status, 401);
+    assert_equals(alternateAuthResponse.status, 403);
 
     // Configure server to change the cookie in the session config on next refresh.
     await configureServer({ cookieDetails: [{ nameAndValue: expectedCookieAndValue2 }] });
@@ -37,7 +37,7 @@
     expireCookie(expectedCookieAndAttributes1);
     assert_false(documentHasCookie(expectedCookieAndValue1));
     const authResponseAfterExpiry1 = await fetch('verify_authenticated.py');
-    assert_equals(authResponseAfterExpiry1.status, 401);
+    assert_equals(authResponseAfterExpiry1.status, 403);
     assert_false(documentHasCookie(expectedCookieAndValue1));
 
     // Confirm the alternate cookie is set and included in requests.
@@ -91,7 +91,7 @@
     expireCookie(expectedCookieAndAttributes);
     assert_false(documentHasCookie(expectedCookieAndValue));
     const authResponseAfterTermination = await fetch('verify_authenticated.py');
-    assert_equals(authResponseAfterTermination.status, 401);
+    assert_equals(authResponseAfterTermination.status, 403);
 
     // Because refresh failed, we still do not have the cookie
     assert_false(documentHasCookie(expectedCookieAndValue));

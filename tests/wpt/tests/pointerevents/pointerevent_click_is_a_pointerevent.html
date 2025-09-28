@@ -76,25 +76,6 @@ promise_test(async test => {
 }, "click using " + pointer_type + " is a PointerEvent with correct properties"
     + " when no other PointerEvent listeners are present");
 
-promise_test(async test => {
-  await subframe_loaded;
-
-  const target = frames[0];
-  let pointerdown_promise = getEvent("pointerdown", target, test);
-  let pointerup_promise = getEvent("pointerup", target, test);
-  let click_promise = getEvent("click", target, test);
-
-  await clickInTarget(pointer_type, frames[0].document.body);
-
-  let pointerdown_event = await pointerdown_promise;
-  let pointerup_event = await pointerup_promise;
-  let click_event = await click_promise;
-
-  assertClickProperties(click_event, frames[0], pointerdown_event, pointerup_event);
-}, "click using " + pointer_type + " is a PointerEvent with correct properties"
-    + " in a subframe");
-
-
 // Run this part of the test only once, since it doesn't rely on the pointer_type.
 if (pointer_type == "mouse") {
   promise_test(async test => {
@@ -120,4 +101,25 @@ if (pointer_type == "mouse") {
   }, "click using " + pointer_type + " is a PointerEvent with correct properties"
       + " using non-pointing device");
 }
+
+promise_test(async test => {
+  // This subtest must be run last as workaround for a WebKit issue where webdriver
+  // fails to correctly direct focus after clicking outside of the frame. This bug
+  // does not occur during normal browsing. https://webkit.org/b/298676
+  await subframe_loaded;
+
+  const target = frames[0];
+  let pointerdown_promise = getEvent("pointerdown", target, test);
+  let pointerup_promise = getEvent("pointerup", target, test);
+  let click_promise = getEvent("click", target, test);
+
+  await clickInTarget(pointer_type, frames[0].document.body);
+
+  let pointerdown_event = await pointerdown_promise;
+  let pointerup_event = await pointerup_promise;
+  let click_event = await click_promise;
+
+  assertClickProperties(click_event, frames[0], pointerdown_event, pointerup_event);
+}, "click using " + pointer_type + " is a PointerEvent with correct properties"
+    + " in a subframe");
 </script>

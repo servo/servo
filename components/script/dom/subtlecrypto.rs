@@ -3791,7 +3791,7 @@ impl JsonWebKeyExt for JsonWebKey {
     fn get_usages_from_key_ops(&self) -> Result<Vec<KeyUsage>, Error> {
         let mut usages = vec![];
         for op in self.key_ops.as_ref().ok_or(Error::Data)? {
-            usages.push(KeyUsage::from_str(op).map_err(|_| Error::Data)?);
+            usages.push(KeyUsage::from_str(op.str()).map_err(|_| Error::Data)?);
         }
         Ok(usages)
     }

@@ -34,6 +34,7 @@ from .protocol import (AccessibilityProtocolPart,
                        DevicePostureProtocolPart,
                        DisplayFeaturesProtocolPart,
                        GenerateTestReportProtocolPart,
+                       GlobalPrivacyControlProtocolPart,
                        PrefsProtocolPart,
                        PrintProtocolPart,
                        Protocol,
@@ -620,6 +621,29 @@ class MarionetteSetPermissionProtocolPart(SetPermissionProtocolPart):
             raise NotImplementedError("set_permission not yet implemented") from e
 
 
+class MarionetteGlobalPrivacyControlProtocolPart(GlobalPrivacyControlProtocolPart):
+    def setup(self):
+        self.marionette = self.parent.marionette
+
+    def set_global_privacy_control(self, gpc):
+        body = {
+            "gpc": gpc,
+        }
+        try:
+            return self.marionette._send_message("WebDriver:SetGlobalPrivacyControl", body)["value"]
+        except errors.UnsupportedOperationException as e:
+            raise NotImplementedError("set_global_privacy_control not yet implemented") from e
+
+    def get_global_privacy_control(self):
+        try:
+            return self.marionette._send_message("WebDriver:GetGlobalPrivacyControl")["value"]
+        except errors.UnsupportedOperationException as e:
+            raise NotImplementedError("get_global_privacy_control not yet implemented") from e
+
+
+
+
+
 class MarionettePrintProtocolPart(PrintProtocolPart):
     def setup(self):
         self.marionette = self.parent.marionette
@@ -795,6 +819,7 @@ class MarionetteProtocol(Protocol):
                   MarionetteGenerateTestReportProtocolPart,
                   MarionetteVirtualAuthenticatorProtocolPart,
                   MarionetteSetPermissionProtocolPart,
+                  MarionetteGlobalPrivacyControlProtocolPart,
                   MarionettePrintProtocolPart,
                   MarionetteDebugProtocolPart,
                   MarionetteAccessibilityProtocolPart,

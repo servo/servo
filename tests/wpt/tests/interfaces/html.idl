@@ -137,6 +137,9 @@ interface HTMLElement : Element {
   undefined hidePopover();
   boolean togglePopover(optional (TogglePopoverOptions or boolean) options = {});
   [CEReactions] attribute DOMString? popover;
+
+  [CEReactions, Reflect, ReflectRange=(0, 8)] attribute unsigned long headingOffset;
+  [CEReactions, Reflect] attribute boolean headingReset;
 };
 
 dictionary ShowPopoverOptions {
@@ -1312,8 +1315,6 @@ typedef (HTMLOrSVGImageElement or
          OffscreenCanvas or
          VideoFrame) CanvasImageSource;
 
-enum PredefinedColorSpace { "srgb", "display-p3" };
-
 enum CanvasColorType { "unorm8", "float16" };
 
 enum CanvasFillRule { "nonzero", "evenodd" };
@@ -1611,6 +1612,8 @@ OffscreenCanvasRenderingContext2D includes CanvasImageData;
 OffscreenCanvasRenderingContext2D includes CanvasPathDrawingStyles;
 OffscreenCanvasRenderingContext2D includes CanvasTextDrawingStyles;
 OffscreenCanvasRenderingContext2D includes CanvasPath;
+
+enum PredefinedColorSpace { "srgb", "display-p3" };
 
 [Exposed=Window]
 interface CustomElementRegistry {

@@ -430,6 +430,10 @@ pub fn send_request_to_devtools(
     msg: ChromeToDevtoolsControlMsg,
     devtools_chan: &Sender<DevtoolsControlMsg>,
 ) {
+    if matches!(msg, ChromeToDevtoolsControlMsg::NetworkEvent(_, ref network_event) if !network_event.forward_to_devtools())
+    {
+        return;
+    }
     if let Err(e) = devtools_chan.send(DevtoolsControlMsg::FromChrome(msg)) {
         error!("DevTools send failed: {e}");
     }
@@ -493,6 +497,10 @@ pub fn send_response_values_to_devtools(
 }
 
 pub fn send_early_httprequest_to_devtools(request: &Request, context: &FetchContext) {
+    // Do not forward data requests to devtools
+    if request.url().scheme() == "data" {
+        return;
+    }
     if let (Some(devtools_chan), Some(browsing_context_id), Some(pipeline_id)) = (
         context.devtools_chan.as_ref(),
         request.target_webview_id.map(|id| id.into()),

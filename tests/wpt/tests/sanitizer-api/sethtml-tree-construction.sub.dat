@@ -237,7 +237,7 @@ TypeError
 <div id='div' title='div'>DIV</div>
 #config
 {
-  "elements": [{ "name": "div", "attributes": ["id", "title"] }],
+  "elements": [{ "name": "div", "attributes": [] }],
   "removeAttributes": ["id", "title"]
 }
 #document
@@ -253,8 +253,6 @@ TypeError
 }
 #document
 | <div>
-|   id="div"
-|   title="div"
 |   "DIV"
 
 #data

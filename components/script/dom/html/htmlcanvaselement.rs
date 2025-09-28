@@ -401,7 +401,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         // > is set to placeholder, the user agent must throw an "InvalidStateError" DOMException and leave the
         // > attribute's value unchanged.
         if let Some(RenderingContext::Placeholder(_)) = *self.context_mode.borrow() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         let value = if value > UNSIGNED_LONG_MAX {
@@ -423,7 +423,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         // > is set to placeholder, the user agent must throw an "InvalidStateError" DOMException and leave the
         // > attribute's value unchanged.
         if let Some(RenderingContext::Placeholder(_)) = *self.context_mode.borrow() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         let value = if value > UNSIGNED_LONG_MAX {
@@ -446,7 +446,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     ) -> Fallible<Option<RootedRenderingContext>> {
         // Always throw an InvalidState exception when the canvas is in Placeholder mode (See table in the spec).
         if let Some(RenderingContext::Placeholder(_)) = *self.context_mode.borrow() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         Ok(match id.str() {
@@ -599,7 +599,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         if self.context_mode.borrow().is_some() {
             // Step 1.
             // If this canvas element's context mode is not set to none, throw an "InvalidStateError" DOMException.
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         };
 
         // Step 2.

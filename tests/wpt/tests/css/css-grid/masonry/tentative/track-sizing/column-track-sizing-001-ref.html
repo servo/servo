@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<style>
+.grid {
+    display: grid;
+    grid-template-columns: 5% repeat(3, 10px 15%) repeat(1, 15px 5px 20px);
+    width: 500px;
+    gap: 10px;
+}
+</style>
+<body>
+  <p>Test that masonry tracks are correctly sized.</p>
+  <div class="grid">
+    <div style="width: 100%; height: 50px; background: orange;"></div>
+    <div style="width: 100%; height: 30px; background: yellow;"></div>
+    <div style="width: 100%; height: 25px; background: green;"></div>
+    <div style="width: 100%; height: 100px; background: blue;"></div>
+    <div style="width: 100%; height: 80px; background: purple;"></div>
+    <div style="width: 100%; height: 60px; background: pink;"></div>
+    <div style="width: 100%; height: 40px; background: lime;"></div>
+    <div style="width: 100%; height: 90px; background: teal;"></div>
+    <div style="width: 100%; height: 15px; background: coral;"></div>
+    <div style="width: 100%; height: 10px; background: fuchsia;"></div>
+
+    <div style="width: 100%; height: 60px; background: pink; transform: translateY(-50px);"></div>
+    <div style="width: 100%; height: 100px; background: blue; transform: translateY(-70px);"></div>
+    <div style="width: 100%; height: 25px; background: green; transform: translateY(-75px);"></div>
+    <div style="width: 100%; height: 80px; background: purple;"></div>
+    <div style="width: 100%; height: 50px; background: orange; transform: translateY(-20px);"></div>
+    <div style="width: 100%; height: 15px; background: coral; transform: translateY(-40px);"></div>
+    <div style="width: 100%; height: 80px; background: purple; transform: translateY(-60px);"></div>
+    <div style="width: 100%; height: 25px; background: green; transform: translateY(-10px);"></div>
+    <div style="width: 100%; height: 30px; background: yellow; transform: translateY(-85px);"></div>
+    <div style="width: 100%; height: 50px; background: orange; transform: translateY(-90px);"></div>
+
+    <div style="width: 100%; height: 40px; background: lime; transform: translateY(-90px);"></div>
+    <div style="width: 100%; height: 90px; background: teal; grid-column: 3; transform: translateY(-150px);"></div>
+    <div style="width: 100%; height: 30px; background: yellow; grid-column: 6; transform: translateY(-125px);"></div>
+    <div style="width: 100%; height: 10px; background: fuchsia; transform: translateY(-80px);"></div>
+    <div style="width: 100%; height: 15px; background: coral; transform: translateY(-85px);"></div>
+    <div style="width: 100%; height: 40px; background: lime; transform: translateY(-155px);"></div>
+    <div style="width: 100%; height: 10px; background: fuchsia; transform: translateY(-140px);"></div>
+
+    <div style="width: 100%; height: 90px; background: teal; grid-column: 6; transform: translateY(-185px);"></div>
+    <div style="width: 100%; height: 60px; background: pink; grid-column: 9; transform: translateY(-205px);"></div>
+    <div style="width: 100%; height: 100px; background: blue; transform: translateY(-220px);"></div>
+
+  </div>
+</body>
+</html>

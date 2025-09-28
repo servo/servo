@@ -140,7 +140,7 @@ for (const id of ['defaultbutton', 'custombutton']) {
     }, {once: true});
     await test_driver.send_keys(select, Enter);
     await new Promise(requestAnimationFrame);
-    assert_true(formWasSubmitted,
+    assert_false(formWasSubmitted,
       'Enter should submit the form when the listbox is closed.');
     assert_false(select.matches(':open'),
       'Enter should not open the listbox when it is in a form.');

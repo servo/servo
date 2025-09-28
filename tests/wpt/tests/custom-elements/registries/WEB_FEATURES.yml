@@ -4,6 +4,15 @@ features:
   - define.html
   - per-global.html
   - upgrade.html
+  - valid-custom-element-names.html
 - name: customized-built-in-elements
   files:
   - define-customized-builtins.html
+- name: scoped-custom-element-registries
+  files:
+  - "*"
+  - "!define-customized-builtins.html"
+  - "!define.html"
+  - "!per-global.html"
+  - "!upgrade.html"
+  - "!valid-custom-element-names.html"

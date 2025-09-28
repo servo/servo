@@ -1223,7 +1223,7 @@ impl IOCompositor {
     }
 
     /// Render the WebRender scene to the active `RenderingContext`. If successful, trigger
-    /// the next round of animations.
+    /// the next round of animations. Return false if unable to render.
     pub fn render(&mut self) -> bool {
         self.global
             .borrow()

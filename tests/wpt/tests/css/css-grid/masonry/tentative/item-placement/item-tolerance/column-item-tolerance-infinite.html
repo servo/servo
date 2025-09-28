@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>CSS Masonry Test: Infinite value of item-tolerance</title>
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#item-slack">
+<link rel="match" href="column-item-tolerance-infinite-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.masonry {
+    display: masonry;
+    masonry-direction: column;
+    background: gray;
+    grid-template-columns: repeat(4, 1fr);
+    item-tolerance: infinite;
+    gap: 20px;
+    padding: 20px;
+    width: 380px;
+    font: 15px/1 Ahem;
+}
+
+.auto-item {
+    padding: 10px;
+    width: 50px;
+    background: lightskyblue;
+}
+</style>
+<body>
+  <p>Test that the infinite tie threshold for masonry is correctly resolved.</p>
+  <div class="masonry">
+    <div class="auto-item" style="height: 40px">1</div>
+    <div class="auto-item" style="height: 30px">2</div>
+    <div class="auto-item" style="height: 20px">3</div>
+    <div class="auto-item" style="height: 10px">4</div>
+    <div class="auto-item" style="height: 40px">5</div>
+    <div class="auto-item" style="height: 30px">6</div>
+    <div class="auto-item" style="height: 20px">7</div>
+    <div class="auto-item" style="height: 10px">8</div>
+    <div class="auto-item" style="height: 40px">9</div>
+    <div class="auto-item" style="height: 30px">10</div>
+    <div class="auto-item" style="height: 20px">11</div>
+    <div class="auto-item" style="height: 10px">12</div>
+  </div>
+</body>
+</html>

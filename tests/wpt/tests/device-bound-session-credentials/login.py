@@ -37,7 +37,7 @@ def main(request, response):
 
     registrations = []
     for i in range(num_sessions):
-        registrations.append(('Sec-Session-Registration', ";".join(header_items)))
+        registrations.append(('Secure-Session-Registration', ";".join(header_items)))
 
     headers = []
     if request.headers.get(b"origin") is not None:
@@ -50,7 +50,7 @@ def main(request, response):
         ]
 
     if use_single_header:
-        combined_registrations = [("Sec-Session-Registration", ", ".join([registration[1] for registration in registrations]))]
+        combined_registrations = [("Secure-Session-Registration", ", ".join([registration[1] for registration in registrations]))]
         return (200, headers + combined_registrations, "")
     else:
         return (200, headers + registrations, "")

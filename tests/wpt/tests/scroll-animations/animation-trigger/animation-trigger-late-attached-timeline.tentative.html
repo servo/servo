@@ -78,7 +78,7 @@
         // should trigger.
         await testAnimationTrigger(test, async () => {
           target.style.animationTrigger = "trigger(--trigger, enter play-once)";
-          target.style.timelineTriggerTimeline = "--viewtimeline";
+          target.style.timelineTriggerSource = "--viewtimeline";
           await waitForAnimationFrames(5);
         }, target, ["animationstart", "animationend", "animationcancel"],
            [true, true, false]);

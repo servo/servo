@@ -21,6 +21,15 @@
     });
     const divAdoptedFromIframe =
           document.adoptNode(iframe.contentDocument.body.firstElementChild);
-    assert_throws_js(TypeError, _ => divAdoptedFromIframe.innerHTML = 'unsafe');
+
+    // There are cross-browser differences about which realm a node returned
+    // by Document.adoptNode belongs to. Here, we expect that Trusted Types will
+    // throw an exception from divAdoptedFromIframe's realm, but without
+    // taking a stance about whether this should be the window's or the iframe's
+    // realm.
+    // Discussion at: https://github.com/web-platform-tests/wpt/issues/45405
+    assert_throws_js(
+          divAdoptedFromIframe.ownerDocument.defaultView.TypeError,
+          _ => divAdoptedFromIframe.innerHTML = 'unsafe');
   }, "Setting innerHTML on a node adopted from a subframe.");
 </script>

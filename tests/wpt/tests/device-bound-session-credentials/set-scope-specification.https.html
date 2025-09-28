@@ -52,7 +52,7 @@
     async function expireCookieAndTriggerRequest(endpoint, expectRefresh) {
       expireCookie(expectedCookieAndAttributes);
       const authResponse = await fetch(endpoint, { credentials: "include" });
-      assert_equals(authResponse.status, expectRefresh ? 200 : 401);
+      assert_equals(authResponse.status, expectRefresh ? 200 : 403);
     }
 
     await expireCookieAndTriggerRequest("verify_authenticated.py", /*expectRefresh=*/false);

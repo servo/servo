@@ -2,4 +2,3 @@ spec: https://html.spec.whatwg.org/multipage/browsing-the-web.html#the-x-frame-o
 suggested_reviewers:
   - annevk
   - mikewest
-  - domenic

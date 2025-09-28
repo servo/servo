@@ -56,11 +56,11 @@ promise_test(async t => {
 
 promise_test(async t => {
   const result = await promises.get("child");
-  assert_equals(result.permission, "granted", `should grant the permission`);
-  assert_true(result.shown, `notification should be shown`);
+  assert_equals(result.permission, "denied", `should deny the permission`);
+  assert_false(result.shown, `notification should not be shown`);
 
   const childRequestResult = await promises.get("childRequest");
-  assert_equals(childRequestResult.permission, "granted", "should accept the permission request");
+  assert_equals(childRequestResult.permission, "denied", "should deny the permission request");
 }, "nested first party iframe");
 
 promise_test(async t => {
@@ -71,7 +71,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   const result = await promises.get("childWorker");
-  assert_equals(result.permission, "granted", `should grant the permission`);
-  assert_true(result.shown, `notification should be shown`);
+  assert_equals(result.permission, "denied", `should deny the permission`);
+  assert_false(result.shown, `notification should not be shown`);
 }, "nested first party worker");
 </script>

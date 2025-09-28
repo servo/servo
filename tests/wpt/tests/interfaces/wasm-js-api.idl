@@ -8,24 +8,39 @@ dictionary WebAssemblyInstantiatedSource {
     required Instance instance;
 };
 
+dictionary WebAssemblyCompileOptions {
+    USVString? importedStringConstants;
+    sequence<USVString> builtins;
+};
+
 [Exposed=*]
 namespace WebAssembly {
-    boolean validate(BufferSource bytes);
-    Promise<Module> compile(BufferSource bytes);
+    boolean validate(BufferSource bytes, optional WebAssemblyCompileOptions options = {});
+    Promise<Module> compile(BufferSource bytes, optional WebAssemblyCompileOptions options = {});
 
     Promise<WebAssemblyInstantiatedSource> instantiate(
-        BufferSource bytes, optional object importObject);
+        BufferSource bytes, optional object importObject, optional WebAssemblyCompileOptions options = {});
 
     Promise<Instance> instantiate(
         Module moduleObject, optional object importObject);
+
+    readonly attribute Tag JSTag;
 };
 
 enum ImportExportKind {
   "function",
   "table",
   "memory",
-  "global"
+  "global",
+  "tag"
 };
+
+enum AddressType {
+  "i32",
+  "i64",
+};
+
+typedef any AddressValue;
 
 dictionary ModuleExportDescriptor {
   required USVString name;
@@ -41,7 +56,7 @@ dictionary ModuleImportDescriptor {
 
 [LegacyNamespace=WebAssembly, Exposed=*]
 interface Module {
-  constructor(BufferSource bytes);
+  constructor(BufferSource bytes, optional WebAssemblyCompileOptions options = {});
   static sequence<ModuleExportDescriptor> exports(Module moduleObject);
   static sequence<ModuleImportDescriptor> imports(Module moduleObject);
   static sequence<ArrayBuffer> customSections(Module moduleObject, DOMString sectionName);
@@ -54,14 +69,15 @@ interface Instance {
 };
 
 dictionary MemoryDescriptor {
-  required [EnforceRange] unsigned long initial;
-  [EnforceRange] unsigned long maximum;
+  required AddressValue initial;
+  AddressValue maximum;
+  AddressType address;
 };
 
 [LegacyNamespace=WebAssembly, Exposed=*]
 interface Memory {
   constructor(MemoryDescriptor descriptor);
-  unsigned long grow([EnforceRange] unsigned long delta);
+  AddressValue grow(AddressValue delta);
   ArrayBuffer toFixedLengthBuffer();
   ArrayBuffer toResizableBuffer();
   readonly attribute ArrayBuffer buffer;
@@ -76,17 +92,18 @@ enum TableKind {
 
 dictionary TableDescriptor {
   required TableKind element;
-  required [EnforceRange] unsigned long initial;
-  [EnforceRange] unsigned long maximum;
+  required AddressValue initial;
+  AddressValue maximum;
+  AddressType address;
 };
 
 [LegacyNamespace=WebAssembly, Exposed=*]
 interface Table {
   constructor(TableDescriptor descriptor, optional any value);
-  unsigned long grow([EnforceRange] unsigned long delta, optional any value);
-  any get([EnforceRange] unsigned long index);
-  undefined set([EnforceRange] unsigned long index, optional any value);
-  readonly attribute unsigned long length;
+  AddressValue grow(AddressValue delta, optional any value);
+  any get(AddressValue index);
+  undefined set(AddressValue index, optional any value);
+  readonly attribute AddressValue length;
 };
 
 enum ValueType {
@@ -109,4 +126,25 @@ interface Global {
   constructor(GlobalDescriptor descriptor, optional any v);
   any valueOf();
   attribute any value;
+};
+
+dictionary TagType {
+  required sequence<ValueType> parameters;
+};
+
+[LegacyNamespace=WebAssembly, Exposed=(Window,Worker,Worklet)]
+interface Tag {
+  constructor(TagType type);
+};
+
+dictionary ExceptionOptions {
+  boolean traceStack = false;
+};
+
+[LegacyNamespace=WebAssembly, Exposed=(Window,Worker,Worklet)]
+interface Exception {
+  constructor(Tag exceptionTag, sequence<any> payload, optional ExceptionOptions options = {});
+  any getArg([EnforceRange] unsigned long index);
+  boolean is(Tag exceptionTag);
+  readonly attribute (DOMString or undefined) stack;
 };

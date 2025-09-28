@@ -350,6 +350,9 @@ pub(crate) struct Document {
     pending_parsing_blocking_script: DomRefCell<Option<PendingScript>>,
     /// Number of stylesheets that block executing the next parser-inserted script
     script_blocking_stylesheets_count: Cell<u32>,
+    /// Number of elements that block the rendering of the page.
+    /// <https://html.spec.whatwg.org/multipage/#implicitly-potentially-render-blocking>
+    render_blocking_element_count: Cell<u32>,
     /// <https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-when-the-document-has-finished-parsing>
     deferred_scripts: PendingInOrderScriptVec,
     /// <https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-in-order-as-soon-as-possible>
@@ -1534,7 +1537,7 @@ impl Document {
         title.map(|title| {
             // Steps 3-4.
             let value = title.child_text_content();
-            DOMString::from(str_join(split_html_space_chars(&value), " "))
+            DOMString::from(str_join(value.split_html_space_characters(), " "))
         })
     }
 
@@ -1724,6 +1727,21 @@ impl Document {
 
     pub(crate) fn decrement_script_blocking_stylesheet_count(&self) {
         let count_cell = &self.script_blocking_stylesheets_count;
+        assert!(count_cell.get() > 0);
+        count_cell.set(count_cell.get() - 1);
+    }
+
+    pub(crate) fn render_blocking_element_count(&self) -> u32 {
+        self.render_blocking_element_count.get()
+    }
+
+    pub(crate) fn increment_render_blocking_element_count(&self) {
+        let count_cell = &self.render_blocking_element_count;
+        count_cell.set(count_cell.get() + 1);
+    }
+
+    pub(crate) fn decrement_render_blocking_element_count(&self) {
+        let count_cell = &self.render_blocking_element_count;
         assert!(count_cell.get() > 0);
         count_cell.set(count_cell.get() - 1);
     }
@@ -2705,6 +2723,10 @@ impl Document {
     //
     // Returns the set of reflow phases run as a [`ReflowPhasesRun`].
     pub(crate) fn update_the_rendering(&self) -> ReflowPhasesRun {
+        if self.render_blocking_element_count() > 0 {
+            return Default::default();
+        }
+
         if self.has_pending_animated_image_update.get() {
             self.image_animation_manager
                 .borrow()
@@ -3117,13 +3139,13 @@ impl Document {
         }
         // Step 6: If document is an XML document, then throw an "InvalidStateError" DOMException.
         if !self.is_html_document() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         // Step 7: If document's throw-on-dynamic-markup-insertion counter is greater than 0,
         // then throw an "InvalidStateError" DOMException.
         if self.throw_on_dynamic_markup_insertion_counter.get() > 0 {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         // Step 8: If document's active parser was aborted is true, then return.
@@ -3389,7 +3411,8 @@ impl Document {
             has_focus: Cell::new(has_focus),
             current_script: Default::default(),
             pending_parsing_blocking_script: Default::default(),
-            script_blocking_stylesheets_count: Cell::new(0u32),
+            script_blocking_stylesheets_count: Default::default(),
+            render_blocking_element_count: Default::default(),
             deferred_scripts: Default::default(),
             asap_in_order_scripts_list: Default::default(),
             asap_scripts_set: Default::default(),
@@ -4740,7 +4763,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     ) -> Fallible<DomRoot<Element>> {
         // Step 1. If localName is not a valid element local name,
         //      then throw an "InvalidCharacterError" DOMException.
-        if !is_valid_element_local_name(&local_name) {
+        if !is_valid_element_local_name(local_name.str()) {
             debug!("Not a valid element name");
             return Err(Error::InvalidCharacter);
         }
@@ -4759,7 +4782,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         let is = match options {
             StringOrElementCreationOptions::String(_) => None,
             StringOrElementCreationOptions::ElementCreationOptions(options) => {
-                options.is.as_ref().map(|is| LocalName::from(&**is))
+                options.is.as_ref().map(|is| LocalName::from(is.str()))
             },
         };
         Ok(Element::create(
@@ -4793,7 +4816,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         let is = match options {
             StringOrElementCreationOptions::String(_) => None,
             StringOrElementCreationOptions::ElementCreationOptions(options) => {
-                options.is.as_ref().map(|is| LocalName::from(&**is))
+                options.is.as_ref().map(|is| LocalName::from(is.str()))
             },
         };
 
@@ -4813,7 +4836,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn CreateAttribute(&self, mut local_name: DOMString, can_gc: CanGc) -> Fallible<DomRoot<Attr>> {
         // Step 1. If localName is not a valid attribute local name,
         //      then throw an "InvalidCharacterError" DOMException
-        if !is_valid_attribute_local_name(&local_name) {
+        if !is_valid_attribute_local_name(local_name.str()) {
             debug!("Not a valid attribute name");
             return Err(Error::InvalidCharacter);
         }
@@ -4904,7 +4927,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         can_gc: CanGc,
     ) -> Fallible<DomRoot<ProcessingInstruction>> {
         // Step 1. If target does not match the Name production, then throw an "InvalidCharacterError" DOMException.
-        if !matches_name_production(&target) {
+        if !matches_name_production(target.str()) {
             return Err(Error::InvalidCharacter);
         }
 
@@ -4956,7 +4979,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     // https://dom.spec.whatwg.org/#dom-document-createevent
     fn CreateEvent(&self, mut interface: DOMString, can_gc: CanGc) -> Fallible<DomRoot<Event>> {
         interface.make_ascii_lowercase();
-        match &*interface {
+        match interface.str() {
             "beforeunloadevent" => Ok(DomRoot::upcast(BeforeUnloadEvent::new_uninitialized(
                 &self.window,
                 can_gc,
@@ -5640,12 +5663,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     ) -> Fallible<DomRoot<Document>> {
         // Step 1
         if !self.is_html_document() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         // Step 2
         if self.throw_on_dynamic_markup_insertion_counter.get() > 0 {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         // Step 3
@@ -5785,12 +5808,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn Close(&self, can_gc: CanGc) -> ErrorResult {
         if !self.is_html_document() {
             // Step 1.
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         // Step 2.
         if self.throw_on_dynamic_markup_insertion_counter.get() > 0 {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         let parser = match self.get_current_parser() {
@@ -5842,7 +5865,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     // Servo only API to get an instance of the controls of a specific
     // media element matching the given id.
     fn ServoGetMediaControls(&self, id: DOMString) -> Fallible<DomRoot<ShadowRoot>> {
-        match self.media_controls.borrow().get(&*id) {
+        match self.media_controls.borrow().get(id.str()) {
             Some(m) => Ok(DomRoot::from_ref(m)),
             None => Err(Error::InvalidAccess),
         }

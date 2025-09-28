@@ -22,7 +22,7 @@ def decode_jwt(token, key=None):
         # If there is a key passed in (for refresh), use that for checking the signature below.
         # Otherwise (for registration), use the key sent within the JWT to check the signature.
         if key == None:
-            key = decoded_payload.get('key')
+            key = decoded_header.get('jwk')
         public_key = serialization.load_pem_public_key(jwk_to_pem(key))
         # Verifying the signature will throw an exception if it fails.
         verify_rs256_signature(header, payload, signature, public_key)

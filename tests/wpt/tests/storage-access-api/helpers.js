@@ -133,31 +133,6 @@ async function DeleteCookieInFrame(frame, name, params) {
   assert_false(cookieStringHasCookie(name, '0', await GetJSCookiesFromFrame(frame)), `Verify that cookie '${name}' has been deleted.`);
 }
 
-// Tests whether the frame can write cookies via document.cookie. Note that this
-// overwrites, then optionally deletes, cookies named "cookie" and "foo".
-//
-// This function requires the caller to have included
-// /cookies/resources/cookie-helper.sub.js.
-async function CanFrameWriteCookies(frame, keep_after_writing = false) {
-  const cookie_suffix = "Secure;SameSite=None;Path=/";
-  await DeleteCookieInFrame(frame, "cookie", cookie_suffix);
-  await DeleteCookieInFrame(frame, "foo", cookie_suffix);
-
-  await SetDocumentCookieFromFrame(frame, `cookie=monster;${cookie_suffix}`);
-  await SetDocumentCookieFromFrame(frame, `foo=bar;${cookie_suffix}`);
-
-  const cookies = await GetJSCookiesFromFrame(frame);
-  const can_write = cookieStringHasCookie("cookie", "monster", cookies) &&
-      cookieStringHasCookie("foo", "bar", cookies);
-
-  if (!keep_after_writing) {
-    await DeleteCookieInFrame(frame, "cookie", cookie_suffix);
-    await DeleteCookieInFrame(frame, "foo", cookie_suffix);
-  }
-
-  return can_write;
-}
-
 // Sets a cookie in an unpartitioned context by opening a window that
 // writes a cookie using document.cookie.
 async function SetFirstPartyCookie(origin, cookie="cookie=unpartitioned;Secure;SameSite=None;Path=/") {

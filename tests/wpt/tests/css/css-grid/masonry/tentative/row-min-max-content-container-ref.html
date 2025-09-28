@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+html,body {
+  color:black; background-color:white; font:15px/1 monospace; padding:0; margin:0;
+}
+
+.grid {
+    display: grid;
+    grid-template-rows: auto auto auto;
+    align-items: start;
+    background: gray;
+    padding: 10px;
+}
+
+.flex {
+    display: flex;
+    flex-direction: row;
+    overflow: visible;
+    flex-wrap: nowrap;
+}
+
+.invisible {
+  visibility: hidden;
+}
+</style>
+<body>
+  <p>Ensure that containers with min and max-content constraints are sized correctly when all items inside are sized as min/max-content.</p>
+  <div class="grid" style="margin-bottom: 10px; width: min-content;">
+    <div class="flex" style="width: min-content;">
+      <div class="invisible" style="width: min-content;">
+        Number 1
+      </div>
+      <div class="invisible" style="width: min-content;">
+        Number 4
+      </div>
+    </div>
+    <div class="flex" style="width: min-content;">
+      <div class="invisible" style="width: min-content;">
+        Number 2
+    </div>
+    </div>
+    <div class="flex" style="width: min-content;">
+      <div class="invisible" style="width: min-content;">
+        Number 3
+      </div>
+    </div>
+  </div>
+
+  <div class="grid" style="width: max-content;">
+    <div class="flex" style="width: max-content;">
+      <div class="invisible" style="width: max-content;">
+        Number 1
+      </div>
+      <div class="invisible" style="width: max-content;">
+        Number 4
+      </div>
+    </div>
+    <div class="flex" style="width: max-content;">
+      <div class="invisible" style="width: max-content;">
+        Number 2
+      </div>
+    </div>
+    <div class="flex" style="width: max-content;">
+      <div class="invisible" style="width: max-content;">
+        Number 3
+      </div>
+    </div>
+  </div>
+</body>
+</html>

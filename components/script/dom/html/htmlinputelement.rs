@@ -846,13 +846,13 @@ impl HTMLInputElement {
     fn step_up_or_down(&self, n: i32, dir: StepDirection, can_gc: CanGc) -> ErrorResult {
         // Step 1
         if !self.does_value_as_number_apply() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
         let step_base = self.step_base();
         // Step 2
         let allowed_value_step = match self.allowed_value_step() {
             Some(avs) => avs,
-            None => return Err(Error::InvalidState),
+            None => return Err(Error::InvalidState(None)),
         };
         let minimum = self.minimum();
         let maximum = self.maximum();
@@ -1716,7 +1716,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                     let fl = FileList::new(&window, vec![], can_gc);
                     self.filelist.set(Some(&fl));
                 } else {
-                    return Err(Error::InvalidState);
+                    return Err(Error::InvalidState(None));
                 }
             },
         }
@@ -1765,7 +1765,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     ) -> ErrorResult {
         rooted!(in(*cx) let value = value);
         if !self.does_value_as_date_apply() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
         if value.is_null() {
             return self.SetValue(DOMString::from(""), can_gc);
@@ -1807,7 +1807,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         if value.is_infinite() {
             Err(Error::Type("value is not finite".to_string()))
         } else if !self.does_value_as_number_apply() {
-            Err(Error::InvalidState)
+            Err(Error::InvalidState(None))
         } else if value.is_nan() {
             self.SetValue(DOMString::from(""), can_gc)
         } else if let Some(converted) = self.convert_number_to_string(value) {

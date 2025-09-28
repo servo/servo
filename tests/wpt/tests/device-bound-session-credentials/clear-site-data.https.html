@@ -28,7 +28,7 @@
     expireCookie(expectedCookieAndAttributes);
     assert_false(documentHasCookie(expectedCookieAndValue));
     const authResponse = await fetch('verify_authenticated.py');
-    assert_equals(authResponse.status, 401);
+    assert_equals(authResponse.status, 403);
     assert_false(documentHasCookie(expectedCookieAndValue));
   }, "A session ended with Clear-Site-Data: 'cookies' does not refresh cookies");
 
@@ -53,7 +53,7 @@
     expireCookie(expectedCookieAndAttributes);
     assert_false(documentHasCookie(expectedCookieAndValue));
     const authResponse = await fetch('verify_authenticated.py');
-    assert_equals(authResponse.status, 401);
+    assert_equals(authResponse.status, 403);
     assert_false(documentHasCookie(expectedCookieAndValue));
   }, "A session ended with Clear-Site-Data: 'storage' does not refresh cookies")
 </script>

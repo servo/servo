@@ -48,7 +48,7 @@ impl IIRFilterNode {
             return Err(Error::NotSupported);
         }
         if options.feedforward.iter().all(|v| **v == 0.0) || *options.feedback[0] == 0.0 {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
         let node_options =
             options

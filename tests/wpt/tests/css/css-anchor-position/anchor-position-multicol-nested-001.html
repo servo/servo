@@ -4,40 +4,36 @@
 <link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-pos">
 <link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-size">
 <link rel="author" href="mailto:kojii@chromium.org">
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script src="/resources/check-layout-th.js"></script>
-<script src="support/test-common.js"></script>
+<link rel="author" href="mailto:mstensho@chromium.org">
+<link rel="match" href="anchor-position-multicol-nested-001-ref.html">
 <style>
 .cb {
   position: relative;
+}
+body > * .cb {
   border-style: solid;
+  border-color: transparent;
   border-width: 3px 2px 4px 1px;
   padding: 3px 2px 4px 1px;
 }
 .columns {
-  column-count: 4;
+  columns: 4;
   column-fill: auto;
   column-gap: 10px;
-  column-width: 150px;
   width: 630px;
   height: 100px;
 }
 .columns .columns {
-  column-count: 2;
-  column-width: 60px;
+  columns: 2;
   width: 130px;
   height: 200px;
-}
-.spacer {
-  background: pink;
 }
 .anchor1 {
   anchor-name: --a1;
   margin-left: 10px;
   width: 20px;
   height: 150px;
-  background: blue;
+  background: red;
 }
 .target {
   position: absolute;
@@ -45,36 +41,44 @@
   top: anchor(--a1 top);
   width: anchor-size(--a1 width);
   height: anchor-size(--a1 height);
-  background: lime;
-  opacity: .3;
 }
 </style>
-<body onload="checkLayoutForAnchorPos('.target')">
-  <p>The green box should be a union of blue boxes,
-    and the purple box should be at the right-bottom of the green box.
-  </p>
-  <div class="cb">
-    <div class="spacer" style="height: 10px"></div>
-    <div class="columns">
-      <div class="cb">
-        <div class="spacer" style="height: 110px"></div>
-        <div class="columns">
-          <div class="cb">
-            <div class="spacer" style="height: 60px"></div>
-            <div class="anchor1"></div>
-            <div class="spacer" style="height: 80px"></div>
-            <div class="target"
-                 data-offset-x=11 data-offset-y=-19
-                 data-expected-width=180 data-expected-height=100></div>
+<p>There should only be green below, and no red.</p>
+<div class="cb">
+  <div style="height: 10px"></div>
+  <div class="columns">
+    <div class="cb">
+      <div style="height: 110px"></div>
+      <div class="columns">
+        <div class="cb">
+          <div style="height: 60px"></div>
+          <div class="anchor1"></div>
+          <div style="height: 80px"></div>
+          <div class="target">
+            <div style="width:20px;">
+              <div style="height:10px; background:green;"></div>
+              <div style="margin-left:10px; height:8px; background:green;"></div>
+              <div style="margin-right:10px; height:10px; background:green;"></div>
+              <div style="height:74px; background:green;"></div>
+              <div style="margin-right:10px; height:10px; background:green;"></div>
+              <div style="height:28px; background:green;"></div>
+              <div style="margin-left:10px; height:10px; background:green;"></div>
+            </div>
           </div>
         </div>
-        <div class="target" style="background:hotpink;"
-             data-offset-x=173 data-offset-y=-3
-             data-expected-width=180 data-expected-height=100></div>
+      </div>
+      <div class="target">
+        <div style="position:absolute; top:0; left:0; width:10px; height:10px; background:green;"></div>
+        <div style="position:absolute; top:0; right:0; width:10px; height:10px; background:green;"></div>
+        <div style="position:absolute; bottom:0; left:0; width:10px; height:10px; background:green;"></div>
+        <div style="position:absolute; bottom:0; right:0; width:10px; height:10px; background:green;"></div>
       </div>
     </div>
-    <div class="target"
-         data-offset-x=175 data-offset-y=13
-         data-expected-width=180 data-expected-height=100></div>
   </div>
-</body>
+  <div class="target">
+    <div style="position:absolute; top:0; left:0; width:10px; height:10px; background:green;"></div>
+    <div style="position:absolute; top:0; right:0; width:10px; height:10px; background:green;"></div>
+    <div style="position:absolute; bottom:0; left:0; width:10px; height:10px; background:green;"></div>
+    <div style="position:absolute; bottom:0; right:0; width:10px; height:10px; background:green;"></div>
+  </div>
+</div>

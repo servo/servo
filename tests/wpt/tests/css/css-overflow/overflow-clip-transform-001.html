@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow Test: "overflow-x/y:clip" should not cause clipping in other axis, regardless of whether a transform is applied</title>
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#valdef-overflow-clip">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1990292">
+<link rel="match" href="overflow-clip-transform-001-ref.html">
+<style>
+body { margin-left: 50px; }
+body { margin-left: 50px; }
+.outer {
+    width: 50px;
+    height: 50px;
+    border: 4px solid grey;
+    display: inline-block;
+    margin: 30px;
+}
+.clip-x {
+    overflow-x: clip;
+}
+.clip-y {
+    overflow-y: clip;
+}
+.shift-left {
+    transform: translatex(-10px);
+}
+.shift-right {
+    transform: translatex(10px);
+}
+.shift-up {
+    transform: translatey(-10px);
+}
+.shift-down {
+    transform: translatey(10px);
+}
+.child {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    border: 4px solid blue;
+}
+.wide {
+    width: 90px;
+    margin-left: -20px;
+}
+.tall {
+    height: 90px;
+    margin-top: -20px;
+}
+</style>
+<body>
+  <!-- These elements have 'overflow-y: clip', but their only overflow is
+       in the horizontal axis, so there shouldn't be any clipping: -->
+  <div class="outer clip-y shift-left">
+    <div class="child wide"></div>
+  </div>
+  <div class="outer clip-y">
+    <div class="child wide"></div>
+  </div>
+  <div class="outer clip-y shift-right">
+    <div class="child wide"></div>
+  </div>
+  <br>
+
+  <!-- These elements have 'overflow-x: clip', but their only overflow is
+       in the vertical axis, so there shouldn't be any clipping: -->
+  <div class="outer clip-x shift-up">
+    <div class="child tall"></div>
+  </div>
+  <div class="outer clip-x">
+    <div class="child tall"></div>
+  </div>
+  <div class="outer clip-x shift-down">
+    <div class="child tall"></div>
+  </div>
+</body>

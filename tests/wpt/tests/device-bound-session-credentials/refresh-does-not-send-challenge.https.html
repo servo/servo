@@ -31,5 +31,5 @@
     const authResponseAfterExpiry = await fetch('verify_authenticated.py');
     assert_equals(authResponseAfterExpiry.status, 200);
     assert_true(documentHasCookie(expectedCookieAndValue));
-}, "Refresh does not send back Sec-Session-Challenge");
+}, "Refresh does not send back Secure-Session-Challenge");
 </script>

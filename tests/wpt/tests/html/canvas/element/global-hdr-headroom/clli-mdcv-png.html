@@ -1,0 +1,134 @@
+<!DOCTYPE HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// Render serveral equivalent ISO 21496-1 gainmap images with various values for
+// globalHdrHeadroom.
+// The test images used by this test have an SDR representation (at headroom 0)
+// with pixel values in sRGB of:
+//     #C08040, #8040C0, #40C080, #FFFFFF
+// They have an HDR representation (at headroom 1) with pixel values in sRGB of
+//     #40C080, #C08040,  #8040C0 color(srgb 0x17F/0xFF, 0x17F/0xFF, 0x17F/0xFF)
+// The test images vary in:
+//  * Some have SDR as the base image (encoded as sRGB) and some have HDR as the
+//    base image (encoded as Rec2100 PQ or Rec2100 HLG).
+//  * Some use sRGB as the gain application primaries, others use Rec2020
+// The tests that use a Rec2100 PQ or HLG base are allowed a higher amount of
+// error because of the brutal quantization error in those spaces.
+const tests = [
+  {
+    filename:'pq-clli_none-mdcv_none.png',
+    desc:'No CLLI or MDCV',
+    max_linear_value:1000/203,
+  },
+  {
+    filename:'pq-clli_100-mdcv_p3_5000.png',
+    desc:'CLLI 100, MDCV 5000',
+    max_linear_value:203/203,
+  },
+  {
+    filename:'pq-clli_500-mdcv_none.png',
+    desc:'CLLI 500',
+    max_linear_value:500/203,
+  },
+  {
+    filename:'pq-clli_none-mdcv_rec2020_5000.png',
+    desc:'MDCV 5000',
+    max_linear_value:5000/203,
+  },
+];
+for (const test of tests) {
+  promise_test(async () => {
+    filename = test.filename;
+    const canvas = new OffscreenCanvas(40, 40);
+    const ctx = canvas.getContext('2d', {colorType:'float16'});
+    if (ctx.globalHDRHeadroom === undefined) {
+      return;
+    }
+
+    const pixelLinearValues = [
+      100/203,
+      500/203,
+      1000/203,
+      5000/203,
+    ];
+    const globalHDRHeadroomValues = [
+      0,        // log2(1)
+      1.3045,   // log2(500/203)
+      4.6224,   // log2(5000/203)
+      Infinity,
+    ];
+    const globalHDRHeadroomLinear = [
+      203/203,
+      500/203,
+      5000/203,
+      Infinity,
+    ];
+
+    // Draw the image at the specified headrooms.
+    const image = new Image;
+    image.src = 'resources/' + filename;
+    await new Promise(resolve => image.onload = resolve);
+    for (let hdrHeadroomIndex = 0; hdrHeadroomIndex < 4; ++hdrHeadroomIndex) {
+      ctx.globalHDRHeadroom = globalHDRHeadroomValues[hdrHeadroomIndex];
+      ctx.drawImage(image, 0, 10*hdrHeadroomIndex);
+    }
+
+    // Read back a pixel in each solid color region.
+    for (let hdrHeadroomIndex = 0; hdrHeadroomIndex < 4; ++hdrHeadroomIndex) {
+      for (let pixelIndex = 0; pixelIndex < 4; ++pixelIndex) {
+        const name = 'globalHDRHeadroom: ' +
+                     globalHDRHeadroomValues[hdrHeadroomIndex] +
+                     ', hdrHeadroomIndex:' +
+                     hdrHeadroomIndex;
+        const data = ctx.getImageData(
+            5 + 10*pixelIndex, 5 + 10*hdrHeadroomIndex, 1, 1,
+            {colorSpace:'rec2100-linear', pixelFormat:'rgba-float16'});
+        if (test.max_linear_value <= globalHDRHeadroomLinear[hdrHeadroomIndex]) {
+          // If the test image's (max nits)/203 is <= exp2(globalHDRHeadroom),
+          // then no tone mapping is performed.
+          if (pixelLinearValues[pixelIndex] <=
+              globalHDRHeadroomLinear[hdrHeadroomIndex]) {
+            // Values below the target will be unchanged.
+            const kEps = 0.15;
+            assert_approx_equals(
+                data.data[0], pixelLinearValues[pixelIndex], kEps,
+                'No tone mapping');
+          } else {
+            // Values above the target may be clamped.
+            const kEps = 0.05;
+            assert_greater_than(
+                data.data[0], globalHDRHeadroomLinear[hdrHeadroomIndex] - kEps,
+                'Tone map to or above target max');
+          }
+        } else {
+          // If the test image doesn't fit in targeted headroom, then tone
+          // mapping will happen.
+          if (pixelLinearValues[pixelIndex] == test.max_linear_value) {
+            // Pixels equal to the content maximum will map to the target
+            // maximum.
+            const kEps = 0.05;
+            assert_approx_equals(
+                data.data[0], globalHDRHeadroomLinear[hdrHeadroomIndex], kEps,
+                'Tone map to target max');
+          } else if (pixelLinearValues[pixelIndex] > test.max_linear_value) {
+            // Pixels greater than content maximum will map to be greater or
+            // equal to the target maximum.
+            const kEps = 0.05;
+            assert_greater_than(
+                data.data[0], globalHDRHeadroomLinear[hdrHeadroomIndex] - kEps,
+                'Tone map to or above target max');
+          } else {
+            // Pixels less than the content maximum will map to a value less
+            // than the target maximum.
+            const kEps = 0.05;
+            assert_less_than(
+                data.data[0], globalHDRHeadroomLinear[hdrHeadroomIndex],
+                'Tone map below target max');
+          }
+        }
+      }
+    }
+  }, test.desc);
+}
+</script>

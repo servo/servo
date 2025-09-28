@@ -5,7 +5,7 @@ def main(request, response):
     """Simple handler that returns a response with Cache-Control max-age=3600.
     """
 
-    response.headers.set(b"Content-Type", b"application/json")
+    response.headers.set(b"Content-Type", b"text/plain")
 
     headers_dict = {}
     for key, value in request.headers.items():
@@ -24,4 +24,3 @@ def main(request, response):
     response.content = json.dumps({
         "headers": headers_dict
     })
-

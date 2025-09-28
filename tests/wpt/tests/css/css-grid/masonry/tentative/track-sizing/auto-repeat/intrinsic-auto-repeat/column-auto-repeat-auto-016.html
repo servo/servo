@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<title>Auto-fit repeat tracks with auto size and auto/explicit item placement</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.masonry {
+    display: masonry;
+    item-tolerance: 0;
+    grid-template-columns: repeat(auto-fit, auto);
+    height: 200px;
+    width: 1000px;
+}
+
+.masonry > div {
+    width: 100px;
+    height: 100px;
+}
+</style>
+<div class="masonry">
+  <div></div>
+  <div></div>
+  <div style="grid-column: 4"></div>
+  <div style="grid-column: 6"></div>
+  <div></div>
+</div>
+<script>
+  test(function() {
+    const container = document.querySelector('.masonry');
+    const computedStyle = window.getComputedStyle(container);
+    // These don't end up being 100px because auto tracks get stretched at the end of
+    // track sizing.
+    assert_equals(computedStyle.getPropertyValue('grid-template-columns'),
+      "200px 200px 200px 200px 0px 200px 0px 0px 0px 0px");
+  });
+</script>
+</html>

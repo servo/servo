@@ -1761,7 +1761,8 @@ const testExportToGPU = (testName) => {
       return;
     }
 
-    let anotherGPUDevice = await gpuAdapter.requestDevice();
+    let anotherGPUAdapter = await navigator.gpu.requestAdapter();
+    let anotherGPUDevice = await anotherGPUAdapter.requestDevice();
     let anotherMLContext = await navigator.ml.createContext(anotherGPUDevice);
 
     let mlTensor = await anotherMLContext.createTensor({
@@ -1790,7 +1791,8 @@ const testExportToGPU = (testName) => {
       return;
     }
 
-    let anotherGPUDevice = await gpuAdapter.requestDevice();
+    let anotherGPUAdapter = await navigator.gpu.requestAdapter();
+    let anotherGPUDevice = await anotherGPUAdapter.requestDevice();
     let anotherMLContext = await navigator.ml.createContext(anotherGPUDevice);
 
     let mlTensor = await anotherMLContext.createTensor({
@@ -1808,7 +1810,6 @@ const testExportToGPU = (testName) => {
 
     await promise_rejects_dom(
         t, 'InvalidStateError', anotherMLContext.exportToGPU(mlTensor));
-    await assert_tensor_data_equals(anotherMLContext, mlTensor, inputData);
   }, `${testName} / destroy device before export`);
 };
 

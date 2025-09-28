@@ -104,10 +104,12 @@
     animation.playbackRate = 2;
     animation.play();
     await animation.ready;
-    scroller.scrollTop = 0.2 * maxScroll;
+
     // Wait for new animation frame  which allows the timeline to compute new
     // current time.
-    await waitForNextFrame();
+    await runAndWaitForFrameUpdate(() => {
+      scroller.scrollTop = 0.2 * maxScroll;
+    });
 
     assert_percents_equal(animation.currentTime, 40,
                           'The current time should increase two times faster ' +
@@ -208,8 +210,9 @@
 
     animation.playbackRate = -1;
 
-    scroller.scrollTop = 0.8 * maxScroll;
-    await waitForNextFrame();
+    await runAndWaitForFrameUpdate(() => {
+      scroller.scrollTop = 0.8 * maxScroll;
+    });
     // -300 = 500 - 800
 
     // let timelineDiff =
@@ -219,8 +222,9 @@
     assert_percents_equal(animation.timeline.currentTime, 80);
     assert_percents_equal(animation.currentTime, 20);
 
-    scroller.scrollTop = 0.2 * maxScroll;
-    await waitForNextFrame();
+    await runAndWaitForFrameUpdate(() => {
+      scroller.scrollTop = 0.2 * maxScroll;
+    });
     // // 300 = 500 - 200
     // timelineDiff =
     //     startingTimelineTime.value - animation.timeline.currentTime.value;
@@ -259,9 +263,10 @@
 
     await animation.ready;
     assert_percents_equal(animation.currentTime, 20);
-    animation.playbackRate = 0;
-    scroller.scrollTop = 0.5 * maxScroll;
-    await waitForNextFrame();
+    await runAndWaitForFrameUpdate(() => {
+      animation.playbackRate = 0;
+      scroller.scrollTop = 0.5 * maxScroll;
+    });
 
     // Ensure that current time does not change.
     assert_percents_equal(animation.timeline.currentTime, 50);

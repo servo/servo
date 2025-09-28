@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<title>Auto-fit repeat tracks with max-content size and explicit item placement</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="column-auto-repeat-max-content-005-ref.html">
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.masonry {
+    display: masonry;
+    background: gray;
+    item-tolerance: 0;
+    grid-template-columns: repeat(auto-fit, max-content);
+    height: 300px;
+    width: 300px;
+    font: 15px/1 Ahem;
+}
+
+.masonry > div {
+    height: 100px;
+}
+</style>
+<body>
+  <div class="masonry">
+    <div style="background: lightskyblue; grid-column: 1;">
+      Number 1
+    </div>
+    <div style="background: lightcoral; grid-column: 3;">
+      Number 2
+    </div>
+    <div style="background: lightgreen; grid-column: 1;">
+      Number 3
+    </div>
+    <div style="background: lightpink; grid-column: 3;">
+      Number 4
+    </div>
+    <div style="background: orange; grid-column: 1;">
+      Number 5
+    </div>
+  </div>
+</body>
+</html>

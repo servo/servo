@@ -17,9 +17,8 @@ body { width:600px; height:600px; border:1px solid; box-sizing:border-box; }
 
 .grid {
   float: left;
-  display: grid;
   display: masonry;
-  grid: masonry / repeat(4, auto);
+  grid: none / repeat(4, auto);
   place-items: start;
   padding-block-start: 1px;
   margin-left: 1px;
@@ -28,7 +27,7 @@ body { width:600px; height:600px; border:1px solid; box-sizing:border-box; }
   width: 100px;
 }
 .c {
-  grid: repeat(4, auto) / masonry;
+  grid: repeat(4, auto) / none;
   masonry-direction: row;
 }
 .ae { align-content: end; }

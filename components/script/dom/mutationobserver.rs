@@ -138,7 +138,7 @@ impl MutationObserver {
                                 .options
                                 .attribute_filter
                                 .iter()
-                                .any(|s| **s == **name)
+                                .any(|s| *s == **name)
                             {
                                 continue;
                             }

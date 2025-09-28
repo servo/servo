@@ -69,3 +69,29 @@ export async function pullServerState() {
   assert_equals(response.status, 200);
   return await response.json();
 }
+
+// Create an iframe that fetches URLs on demand via postMessage.
+export async function crossSiteFetch(fromSite, url, fetchParams) {
+  const frame = document.createElement('iframe');
+  const frameLoadPromise = new Promise((resolve, reject) => {
+    frame.onload = resolve;
+    frame.onerror = reject;
+  });
+  frame.src = fromSite + "/device-bound-session-credentials/url_fetcher.html";
+  document.body.appendChild(frame);
+  await frameLoadPromise;
+
+  const fetchStatusPromise = new Promise((resolve) => {
+    const listener = (event) => {
+      window.removeEventListener("message", listener);
+      resolve(event.data);
+    };
+    window.addEventListener("message", listener);
+  });
+  frame.contentWindow.postMessage({url, fetchParams}, "*");
+
+  const fetchStatus = await fetchStatusPromise;
+  document.body.removeChild(frame);
+
+  return fetchStatus;
+}

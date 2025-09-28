@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<style>
+.grid {
+    display: grid;
+    grid-template-rows: repeat(4, 50px);
+    grid-template-columns: repeat(2, 20px) 40px repeat(2, 20px);
+    grid-auto-flow: column;
+}
+</style>
+<body>
+  <p>Ensure that dense-packing in masonry only places items with specified tracks into track openings in those same specified tracks.</p>
+  <div class="grid">
+    <div style="background: brown; width: 20px; grid-row: span 2;"></div>
+    <div style="background: pink; width: 20px; grid-row: span 2;"></div>
+    <div style="background: darkgoldenrod; width: 20px; grid-row: span 4;"></div>
+    <div style="background: yellow; width: 20px; grid-row: 1 / span 2;"></div>
+    <div style="background: tan; width: 40px; grid-row: 3 / span 2;"></div>
+    <div style="background: brown; width: 20px; grid-row: span 4;"></div>
+  </div>
+</body>
+</html>

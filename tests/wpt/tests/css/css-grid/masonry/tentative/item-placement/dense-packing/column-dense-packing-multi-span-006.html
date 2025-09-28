@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="column-dense-packing-multi-span-006-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+.masonry {
+    display: masonry;
+    item-tolerance: 0;
+    grid-template-columns: repeat(4, 50px);
+    width: 170px;
+    grid-auto-flow: dense;
+}
+</style>
+<body>
+  <p>Ensure that dense-packing correctly iterates through all possible track openings to find an opening span. Item that should be placed into opening is yellow.</p>
+  <div class="masonry">
+    <div style="background: aquamarine; height: 60px;" >
+      1
+    </div>
+    <div style="background: blue; height: 40px;" >
+      2
+    </div>
+    <div style="background: blueviolet; height: 20px;">
+      3
+    </div>
+    <div style="background: lightblue; height: 10px; grid-column: 1 / span 2;">
+      4
+    </div>
+    <div style="background: lightskyblue; grid-column: 1; height: 30px;">
+      5
+    </div>
+    <div style="background: lightsteelblue; height: 60px; grid-column: 4;">
+      6
+    </div>
+    <div style="background: aqua; height: 20px; grid-column: span 4;">
+      7
+    </div>
+    <div style="background: yellow; height: 10px; grid-column: span 3;">
+      8
+    </div>
+  </div>
+</body>
+</html>

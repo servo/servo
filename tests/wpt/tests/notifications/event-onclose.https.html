@@ -23,4 +23,14 @@ promise_test(async t => {
     assert_equals(Object.prototype.toString.call(event), "[object Event]")
     assert_equals(event.type, "close", "Checked the event type.")
 }, "Invoked the onclose event handler.")
+
+promise_test(async t => {
+    const notification = new Notification("New Email Received")
+    notification.close()
+    const event = await new Promise((resolve) => {
+        notification.onclose = resolve;
+        notification.onerror = resolve
+    })
+    assert_equals(event.type, "close", "Checked the event type.")
+}, "Invoked the onclose event handler on immediate close.")
 </script>

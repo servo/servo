@@ -28,7 +28,7 @@
     expireCookie(expectedCookieAndAttributes);
     assert_false(documentHasCookie(expectedCookieAndValue));
     const authResponseAfterExpiry = await fetch('verify_authenticated.py');
-    assert_equals(authResponseAfterExpiry.status, expectRefresh ? 200 : 401);
+    assert_equals(authResponseAfterExpiry.status, expectRefresh ? 200 : 403);
     assert_equals(documentHasCookie(expectedCookieAndValue), expectRefresh);
   }
 

@@ -4,7 +4,7 @@
 <link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
 <link rel="help" href="https://drafts.csswg.org/css-overflow-3/#webkit-line-clamp">
 <link rel="match" href="reference/webkit-line-clamp-007-ref.html">
-<meta name="assert" content="-webkit-line-clamp should apply to a flex item in a -webkit-box or -webkit-inline-box flex container.">
+<meta name="assert" content="When -webkit-line-clamp applies to a -webkit-box or -webkit-inline-box flex container, it becomes flow-root, there's no flexing, and clamping applies normally to an inflow child.">
 <style>
 .clamp {
   display: -webkit-box;

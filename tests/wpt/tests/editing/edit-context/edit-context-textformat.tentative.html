@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>EditContext: The TextFormat property</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+  test(function() {
+    const textFormat = new TextFormat();
+
+    assert_equals(textFormat.rangeStart, 0);
+    assert_equals(textFormat.rangeEnd, 0);
+    assert_equals(textFormat.underlineStyle, "none");
+    assert_equals(textFormat.underlineThickness, "none");
+  }, 'Test default values of TextFormat attributes');
+
+  test(function(){
+    const validUnderlineStyles = ["none", "solid", "dotted", "dashed", "wavy"];
+    const validUnderlineThicknesses = ["none", "thin", "thick"];
+
+    // Invalid value should throw type error.
+    assert_throws_js(TypeError, function() {
+      const textFormat = new TextFormat({underlineStyle: "Solid"});
+    }, 'TextFormat must throw a TypeError when underlineStyle is set to an invalid value');
+    assert_throws_js(TypeError, function() {
+      const textFormat = new TextFormat({underlineThickness: "Thick"});
+    }, 'TextFormat must throw a TypeError when underlineThickness is set to an invalid value');
+
+    // Verify valid values.
+    for (const style of validUnderlineStyles) {
+      const textFormat = new TextFormat({underlineStyle: style});
+      assert_equals(textFormat.underlineStyle, style, `underlineStyle should accept "${style}"`);
+      assert_equals(textFormat.underlineThickness, "none", 'default value of underlineThickness should be "none"');
+    }
+    for (const thickness of validUnderlineThicknesses) {
+      const textFormat = new TextFormat({underlineThickness: thickness});
+      assert_equals(textFormat.underlineStyle, "none", 'default value of underlineStyle should be "none"');
+      assert_equals(textFormat.underlineThickness, thickness, `underlineThickness should accept "${thickness}"`);
+    }
+  }, 'Test valid values of TextFormat underlineStyle and underlineThickness');
+</script>
+</body>
+</html>

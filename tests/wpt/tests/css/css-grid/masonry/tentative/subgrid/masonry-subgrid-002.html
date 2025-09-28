@@ -15,11 +15,9 @@ html,body {
 }
 
 grid {
-  display: inline-grid;
   display: inline-masonry;
   masonry-direction: row;
   grid-template-rows: 40px 30px 20px;
-  grid-template-columns: masonry;
   gap: 4px 2px;
   padding: 1px 3px 5px 7px;
   border: solid;
@@ -29,7 +27,6 @@ grid {
 .rows {
   masonry-direction: column;
   grid-template-columns: 40px 30px 20px;
-  grid-template-rows: masonry;
 }
 item {
   background: grey;
@@ -124,7 +121,7 @@ subgrid.extent {
   <item>1</item>
   <item>2</item>
   <item>3</item>
-  <subgrid style="grid: subgrid / masonry">
+  <subgrid style="grid: subgrid / none">
     <item>4a</item>
     <item>4b</item>
     <item>4c</item>
@@ -135,7 +132,7 @@ subgrid.extent {
 <!-- ... unless it's auto-placed in the first track ... -->
 <grid>
   <item>1</item>
-  <subgrid style="grid: subgrid / masonry">
+  <subgrid style="grid: subgrid / none">
     <item>4a</item>
     <item>4b</item>
     <item>4c</item>
@@ -241,7 +238,7 @@ subgrid.extent {
   <item>1</item>
   <item>2</item>
   <item>3</item>
-  <subgrid style="grid: masonry / subgrid">
+  <subgrid style="grid: none / subgrid">
     <item>4a</item>
     <item>4b</item>
     <item>4c</item>
@@ -252,7 +249,7 @@ subgrid.extent {
 <!-- ... unless it's auto-placed in the first track ... -->
 <grid class="rows">
   <item>1</item>
-  <subgrid style="grid: masonry / subgrid">
+  <subgrid style="grid: none / subgrid">
     <item>4a</item>
     <item>4b</item>
     <item>4c</item>

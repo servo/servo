@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+html,body {
+  color:black; font:15px/1 monospace; padding:0; margin:0;
+}
+
+.grid {
+    display: grid;
+    grid-template-rows: 15px auto auto;
+    width: min-content;
+    align-items: start;
+    padding: 10px;
+}
+
+#gray-bg {
+    background: gray;
+    position: absolute;
+    z-index: -1;
+}
+</style>
+<body>
+  <p>Ensure that masonry containers are sized correctly under min-content constraints even if the items do not have the min-content style.</p>
+  <div id="gray-bg"></div>
+  <div id="shown-items" class="grid">
+    <div style="background: lightskyblue; width: max-content; grid-row: 1; grid-column: 1;">
+        Number 1
+    </div>
+    <div style="background: brown; height: 30px; width: max-content; grid-row: 1; grid-column: 2;">
+      Number 4
+    </div>
+    <div style="grid-row: 2; grid-column: 1;">
+      <div style="background: lightcoral;">
+        Number 2
+    </div>
+    </div>
+    <div style="grid-row: 3; grid-column: 1;">
+      <div style="background: lightgreen;">
+        Number 3
+      </div>
+    </div>
+  </div>
+  <div id="grid-with-min-content" class="grid" style="visibility: hidden;">
+    <div id="number1" style="visibility: hidden; width: min-content; grid-row: 1; grid-column: 1;">
+      Number 1
+    </div>
+    <div id="number4" style="visibility: hidden; height: 30px; width: min-content; grid-row: 1; grid-column: 2;">
+      Number 4
+    </div>
+    <div style="grid-row: 2; grid-column: 1; width: min-content;">
+      <div style="visibility: hidden;">
+        Number 2
+    </div>
+    </div>
+    <div style="grid-row: 3; grid-column: 1; width: min-content;">
+      <div style="visibility: hidden;">
+        Number 3
+      </div>
+    </div>
+  </div>
+</body>
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+  const grid_with_min_content = document.getElementById('grid-with-min-content');
+  const shown_items = document.getElementById('shown-items');
+
+  let gray_bg = document.getElementById('gray-bg');
+
+  // Set grayBg size to match grid-with-min-content width and shown-items height
+  gray_bg.style.width = grid_with_min_content.offsetWidth + 'px';
+  gray_bg.style.height = shown_items.offsetHeight + 'px';
+});
+</script>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSSOM View Test: scrollIntoView in iframes</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollintoview">
+<meta name="assert" content="Checks that scrollIntoView inside and iframe can scroll in the parent document if it has the same origin.">
+
+<style>
+.scroller {
+  overflow: hidden;
+  height: 500px;
+  border: solid;
+}
+.scroller::before {
+  content: "";
+  display: block;
+  height: 500px;
+}
+.scroller::after {
+  content: "";
+  display: block;
+  height: 300px;
+}
+iframe {
+  height: 1000px;
+  border: none;
+}
+</style>
+
+<div id="log"></div>
+
+<div class="scroller">
+  <iframe id="same-origin-iframe"></iframe>
+</div>
+<div class="scroller">
+  <iframe id="cross-origin-iframe" sandbox="allow-scripts"></iframe>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+let sameOriginIframe = document.getElementById("same-origin-iframe");
+let crossOriginIframe = document.getElementById("cross-origin-iframe");
+let sameOriginWindow = sameOriginIframe.contentWindow;
+let crossOriginWindow = crossOriginIframe.contentWindow;
+
+promise_setup(() => Promise.all([
+  new Promise(resolve => {
+    sameOriginIframe.addEventListener("load", resolve);
+    sameOriginIframe.src = "support/scrollIntoView-iframes-child.html";
+  }),
+  new Promise(resolve => {
+    crossOriginIframe.addEventListener("load", resolve);
+    crossOriginIframe.src = "support/scrollIntoView-iframes-child.html";
+  })
+]));
+
+promise_test(async () => {
+  assert_equals(sameOriginWindow.scrollY, 100, "scrollY");
+}, "scrollIntoView in same-origin iframe can scroll in inner window");
+
+promise_test(async () => {
+  assert_equals(sameOriginIframe.parentElement.scrollTop, 1200, "scrollTop");
+}, "scrollIntoView in same-origin iframe can scroll in parent window");
+
+promise_test(async () => {
+  let scrollY = await new Promise(resolve => {
+    addEventListener("message", event => {
+      if (event.source === crossOriginWindow) {
+        resolve(event.data);
+      }
+    });
+    crossOriginWindow.postMessage("scrollY", "*");
+  });
+  assert_equals(scrollY, 100, "scrollY");
+}, "scrollIntoView in cross-origin iframe can scroll in inner window");
+
+promise_test(async () => {
+  assert_equals(crossOriginIframe.parentElement.scrollTop, 0, "scrollTop");
+}, "scrollIntoView in cross-origin iframe can't scroll in parent window");
+</script>

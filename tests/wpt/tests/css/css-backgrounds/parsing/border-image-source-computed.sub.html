@@ -21,9 +21,12 @@ test_computed_value("border-image-source", "none");
 test_computed_value("border-image-source", 'url("http://{{host}}/")');
 
 test_computed_value('border-image-source', 'linear-gradient(-45deg, red, currentcolor)', 'linear-gradient(-45deg, rgb(255, 0, 0), rgb(0, 0, 255))');
+test_computed_value("border-image-source", 'linear-gradient(45deg, red calc(10% + 5px), blue 90%)', 'linear-gradient(45deg, rgb(255, 0, 0) calc(10% + 5px), rgb(0, 0, 255) 90%)');
 test_computed_value('border-image-source', 'repeating-linear-gradient(-45deg, red, 30%, currentcolor 70%, lime)', 'repeating-linear-gradient(-45deg, rgb(255, 0, 0), 30%, rgb(0, 0, 255) 70%, rgb(0, 255, 0))');
 test_computed_value('border-image-source', 'radial-gradient(10px at 20px 30px, currentcolor, lime)', 'radial-gradient(10px at 20px 30px, rgb(0, 0, 255), rgb(0, 255, 0))');
+test_computed_value("border-image-source", 'radial-gradient(circle at calc(50% * 2 / 4) 40%, red, blue)', 'radial-gradient(circle at 25% 40%, rgb(255, 0, 0), rgb(0, 0, 255))');
 test_computed_value('border-image-source', 'conic-gradient(from 90deg at 80% 90%, lime, black)', 'conic-gradient(from 90deg at 80% 90%, rgb(0, 255, 0), rgb(0, 0, 0))');
+test_computed_value("border-image-source", 'conic-gradient(from 2rad at 50% 50%, red, blue calc(270deg - 20deg))', 'conic-gradient(from 114.592deg, rgb(255, 0, 0), rgb(0, 0, 255) 250deg)');
 
 test(() => {
   const target = document.getElementById('target');

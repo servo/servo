@@ -34,6 +34,12 @@ enum MediaSessionAction {
   "voiceactivity"
 };
 
+enum MediaSessionEnterPictureInPictureReason {
+  "other",
+  "useraction",
+  "contentoccluded"
+};
+
 callback MediaSessionActionHandler = undefined(MediaSessionActionDetails details);
 
 [Exposed=Window]
@@ -102,4 +108,5 @@ dictionary MediaSessionActionDetails {
   double seekTime;
   boolean fastSeek;
   boolean isActivating;
+  MediaSessionEnterPictureInPictureReason enterPictureInPictureReason;
 };

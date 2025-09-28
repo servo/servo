@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="column-dense-packing-004-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+.masonry {
+    display: masonry;
+    background: gray;
+    item-tolerance: 0;
+    grid-template-columns: 30px 40px 50px 30px;
+    padding: 10px;
+    grid-auto-flow: dense;
+}
+</style>
+<body>
+  <p>Ensure dense-packing only places items into gaps where the track size is the same as where the item would have been laid out WITHOUT dense packing.</p>
+  <div class="masonry">
+    <div style="background: lightskyblue; height: 40px; grid-column: 1" >
+      1
+    </div>
+    <div style="background: lightgreen; height: 40px; grid-column: 3">
+      2
+    </div>
+    <div style="background: brown; height: 10px; grid-column: span 4;">
+      3
+    </div>
+    <div style="background: red; height: 40px; width: 30px;">
+      4
+    </div>
+  </div>
+</body>
+</html>

@@ -99,7 +99,7 @@ impl PerformanceEntryList {
         entry_type: DOMString,
     ) {
         self.entries.retain(|e| {
-            *e.entry_type() != *entry_type || name.as_ref().is_some_and(|name_| *e.name() != *name_)
+            *e.entry_type() != entry_type || name.as_ref().is_some_and(|name_| e.name() != name_)
         });
     }
 
@@ -111,7 +111,7 @@ impl PerformanceEntryList {
         self.entries
             .iter()
             .rev()
-            .find(|e| *e.entry_type() == *entry_type && *e.name() == *name)
+            .find(|e| *e.entry_type() == entry_type && *e.name() == name)
             .and_then(|entry| entry.start_time())
     }
 }
@@ -489,7 +489,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
     fn Mark(&self, mark_name: DOMString, can_gc: CanGc) -> Fallible<()> {
         let global = self.global();
         // Step 1.
-        if global.is::<Window>() && INVALID_ENTRY_NAMES.contains(&mark_name.as_ref()) {
+        if global.is::<Window>() && INVALID_ENTRY_NAMES.contains(&mark_name.str()) {
             return Err(Error::Syntax(None));
         }
 

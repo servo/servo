@@ -30,10 +30,9 @@ jobs:
       - name: Convert WAST tests to WPT
         run: wasm-spec/test/build.py --dont-recompile --html wasm-spec/out/
       - name: Copy Wasm tests to WPT
-        # Replace wasm/core entirely.
+        # Replace wasm/core entirely, but preserve WEB_FEATURES.yml files.
         run: |
-          rm -rf wpt/wasm/core
-          cp -r wasm-spec/out/ wpt/wasm/core/
+          rsync -a --delete --exclude 'WEB_FEATURES.yml' wasm-spec/out/ wpt/wasm/core/
       - name: Commit changes
         id: commit
         continue-on-error: true
@@ -57,7 +56,7 @@ jobs:
         run: |
           cd wpt
           git push --set-upstream origin $BRANCH_NAME
-          gh pr create --title "$COMMIT_TITLE" --body "$PR_BODY" --reviewer past
+          gh pr create --title "$COMMIT_TITLE" --body "$PR_BODY" --reviewer jcscottiii,dschuff
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMMIT_TITLE: "Update Wasm tests"

@@ -59,7 +59,6 @@ use script_bindings::script_runtime::{mark_runtime_dead, runtime_is_alive};
 use servo_config::{opts, pref};
 use style::thread_state::{self, ThreadState};
 
-use crate::body::BodyMixin;
 use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::Response_Binding::ResponseMethods;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
@@ -492,7 +491,7 @@ unsafe extern "C" fn code_for_eval_gets(
         let script_string = trusted_script.data();
         let new_string = JS_NewStringCopyN(
             *cx,
-            script_string.as_ptr() as *const libc::c_char,
+            script_string.str().as_ptr() as *const libc::c_char,
             script_string.len(),
         );
         code_for_eval.set(new_string);
@@ -552,13 +551,16 @@ unsafe extern "C" fn content_security_policy_allows(
                                 parameter_args_vec
                                     .push(TrustedScriptOrString::TrustedScript(trusted_script));
                             } else {
-                                unreachable!();
+                                // It's not a trusted script but a different object. Treat it
+                                // as if it is a string, since we don't need the actual contents
+                                // of the object.
+                                parameter_args_vec
+                                    .push(TrustedScriptOrString::String(DOMString::new()));
                             }
                         } else if value.is_string() {
-                            let string_ptr = std::ptr::NonNull::new(value.to_string()).unwrap();
-                            let dom_string = unsafe { jsstr_to_string(*cx, string_ptr) };
+                            // We don't need to know the specific string, only that it is untrusted
                             parameter_args_vec
-                                .push(TrustedScriptOrString::String(dom_string.into()));
+                                .push(TrustedScriptOrString::String(DOMString::new()));
                         } else {
                             unreachable!();
                         }

@@ -44,7 +44,8 @@
 <script>
   promise_test(async t => {
     assert_equals(scroller.scrollLeft, 0);
+    // Click on the third scroll marker.
     await new test_driver.Actions().pointerMove(60, 10).pointerDown().pointerUp().send();
-    assert_equals(scroller.scrollLeft, 200);
+    assert_equals(scroller.scrollLeft, 400);
   }, "Click on third scroll marker");
 </script>

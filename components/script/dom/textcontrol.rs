@@ -63,7 +63,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     pub(crate) fn set_dom_start(&self, start: Option<u32>) -> ErrorResult {
         // Step 1
         if !self.element.selection_api_applies() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         // Step 2
@@ -96,7 +96,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     pub(crate) fn set_dom_end(&self, end: Option<u32>) -> ErrorResult {
         // Step 1
         if !self.element.selection_api_applies() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         // Step 2
@@ -118,7 +118,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     pub(crate) fn set_dom_direction(&self, direction: Option<DOMString>) -> ErrorResult {
         // Step 1
         if !self.element.selection_api_applies() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         // Step 2
@@ -140,7 +140,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     ) -> ErrorResult {
         // Step 1
         if !self.element.selection_api_applies() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         // Step 2
@@ -163,7 +163,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     ) -> ErrorResult {
         // Step 1
         if !self.element.selection_api_applies() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         // Step 2

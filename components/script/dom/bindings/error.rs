@@ -116,7 +116,10 @@ pub(crate) fn create_dom_exception(
         Error::InvalidCharacter => DOMErrorName::InvalidCharacterError,
         Error::NotSupported => DOMErrorName::NotSupportedError,
         Error::InUseAttribute => DOMErrorName::InUseAttributeError,
-        Error::InvalidState => DOMErrorName::InvalidStateError,
+        Error::InvalidState(Some(custom_message)) => {
+            return new_custom_exception(DOMErrorName::InvalidStateError, custom_message);
+        },
+        Error::InvalidState(None) => DOMErrorName::InvalidStateError,
         Error::Syntax(Some(custom_message)) => {
             return new_custom_exception(DOMErrorName::SyntaxError, custom_message);
         },

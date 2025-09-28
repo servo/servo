@@ -57,7 +57,7 @@ async def assert_fetch_user_agent(bidi_session, url):
     Helper to assert the right `user-agent` header sent in fetch.
     """
 
-    async def assert_navigation_user_agent(context, expected_user_agent):
+    async def assert_fetch_user_agent(context, expected_user_agent):
         echo_link = url("webdriver/tests/support/http_handlers/headers_echo.py")
         await bidi_session.browsing_context.navigate(context=context["context"],
                                                      url=echo_link,
@@ -75,7 +75,7 @@ async def assert_fetch_user_agent(bidi_session, url):
         assert user_agent == expected_user_agent, \
             f"Fetch expected to send user agent '{expected_user_agent}' but sent '{user_agent}'"
 
-    return assert_navigation_user_agent
+    return assert_fetch_user_agent
 
 
 @pytest_asyncio.fixture

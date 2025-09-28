@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>Tests the dialog keyword is parsed and computed as specified</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#conditional-centering">
+<link rel="match" href="align-dialog-002-ref.html">
+<link rel="author" href="mailto:tabatkins@google.com">
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+
+<style>
+.container {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border: 1px solid;
+  margin: 1em;
+  anchor-scope: all;
+}
+.anchor {
+  border: solid blue 15px;
+  width: 0;
+  margin: 25px;
+  anchor-name: --foo;
+}
+.abspos {
+  position: absolute;
+  position-anchor: --foo;
+  border: solid orange 10px;
+  place-self: dialog;
+  inset: 0;
+}
+</style>
+
+/* Should be centered, no position-area */
+<div class="container">
+  <div class="anchor"></div>
+  <div class="abspos"></div>
+</div>
+
+/* Centered in an offset box */
+<div class="container">
+  <div class="anchor"></div>
+  <div class="abspos" style="left: anchor(left); top: anchor(top)"></div>
+</div>
+
+/* Anchor-centered on the left side. */
+<div class="container">
+  <div class="anchor"></div>
+  <div class="abspos" style="position-area: left span-all"></div>
+</div>

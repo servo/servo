@@ -118,7 +118,7 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
         if !rotate.i.is_finite() {
             // if quaternion has zero norm, we'll get an infinite or NaN
             // value for each element. This is preferable to checking for zero.
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
         let transform = RigidTransform3D::new(rotate, translate);
         Ok(XRRigidTransform::new_with_proto(

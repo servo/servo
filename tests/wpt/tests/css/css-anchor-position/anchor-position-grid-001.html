@@ -2,10 +2,8 @@
 <link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-pos">
 <link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-size">
 <link rel="author" href="mailto:kojii@chromium.org">
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script src="/resources/check-layout-th.js"></script>
-<script src="support/test-common.js"></script>
+<link rel="author" href="mailto:mstensho@chromium.org">
+<link rel="match" href="anchor-position-grid-001-ref.html">
 <style>
 .cb {
   position: relative;
@@ -22,15 +20,13 @@
   grid-template-columns: repeat(2, 100px);
   grid-template-rows: 50px 100px;
 }
-.spacer {
-  background: yellow;
-}
 .anchor1 {
   anchor-name: --a1;
   grid-column: 2;
   grid-row: 2;
-  border: 2px solid orange;
+  border: 2px solid red;
   border-width: 5px 6px 7px 8px;
+  background: green;
 }
 .target {
   grid-column: 2;
@@ -39,7 +35,6 @@
   width: anchor-size(--a1 width);
   height: anchor-size(--a1 height);
   background: lime;
-  opacity: .2;
 }
 .target1-l {
   left: anchor(--a1 left);
@@ -59,25 +54,22 @@
 .target1-b {
   right: anchor(--a1 right);
   bottom: anchor(--a1 bottom);
-  height: 5px;
+  height: 7px;
 }
 </style>
-<body onload="checkLayoutForAnchorPos('.target')">
-  <div>
-    <div class="spacer" style="height: 10px"></div>
-    <div class="columns">
-      <div class="spacer" style="height: 10px"></div>
-      <div class="grid cb">
-        <div>1</div>
-        <div>2</div>
-        <div>3</div>
-        <div class="anchor1"></div>
+<p>There should be a green square with a lime border, split over two
+  columns. There should be no red.</p>
+<div class="columns">
+  <div style="height: 10px"></div>
+  <div class="grid cb">
+    <div><br></div>
+    <div><br></div>
+    <div><br></div>
+    <div class="anchor1"></div>
 
-        <div class="target target1-l" data-offset-x=100 data-expected-height=100></div>
-        <div class="target target1-r" data-offset-x=194 data-expected-height=100></div>
-        <div class="target target1-t" data-offset-y=50 data-expected-width=100></div>
-        <div class="target target1-b" data-offset-y=145 data-expected-width=100></div>
-      </div>
-    </div>
+    <div class="target target1-l" data-offset-x=100 data-expected-height=100></div>
+    <div class="target target1-r" data-offset-x=194 data-expected-height=100></div>
+    <div class="target target1-t" data-offset-y=50 data-expected-width=100></div>
+    <div class="target target1-b" data-offset-y=145 data-expected-width=100></div>
   </div>
-</body>
+</div>

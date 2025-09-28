@@ -74,7 +74,7 @@ pub struct FontFace {
 fn parse_font_face_descriptors(
     global: &GlobalScope,
     family_name: &DOMString,
-    sources: Option<&str>,
+    sources: Option<&DOMString>,
     input_descriptors: &FontFaceDescriptors,
 ) -> Fallible<FontFaceRule> {
     let window = global.as_window(); // TODO: Support calling FontFace APIs from Worker

@@ -183,3 +183,14 @@ const calculateScrollbarThickness = () => {
 
     return widthBefore - widthAfter;
 }
+
+// Drop callback used for `dropEffect` tests in `dnd/drop/`. This function
+// compares the text content of the drop target with the `dropEffect` and
+// `effectAllowed` values of the `dataTransfer` object. The only
+// `effectAllowed` values that will be compared are "copy", "move", and "link"
+// since they have to correspond to the `dropEffect` value of the event.
+function dropEffectOnDropCallBack(event) {
+  assert_equals(event.target.textContent, event.dataTransfer.dropEffect);
+  assert_equals(event.target.textContent, event.dataTransfer.effectAllowed);
+  return true;
+}

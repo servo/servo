@@ -136,7 +136,7 @@ async def test_set_to_user_context_and_then_to_context(bidi_session,
 
     # Remove user context override.
     await bidi_session.emulation.set_user_agent_override(
-        contexts=[context_in_user_context["context"]],
+        user_contexts=[user_context],
         user_agent=None,
     )
 
@@ -147,4 +147,4 @@ async def test_set_to_user_context_and_then_to_context(bidi_session,
     await bidi_session.browsing_context.reload(
         context=context_in_user_context["context"], wait="complete"
     )
-    await assert_user_agent(context_in_user_context, SOME_USER_AGENT)
+    await assert_user_agent(context_in_user_context, default_user_agent)

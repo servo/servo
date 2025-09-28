@@ -16,6 +16,7 @@
     const wwwAlt = "https://{{hosts[alt][www]}}:{{ports[https][0]}}";
 
     promise_test(async t => {
+      await SetFirstPartyCookie(wwwAlt);
       await MaybeSetStorageAccess("*", "*", "blocked");
       t.add_cleanup(async () => {
         await test_driver.delete_all_cookies();
@@ -25,7 +26,7 @@
       const responder_html = `${wwwAlt}/storage-access-api/resources/script-with-cookie-header.py?script=embedded_responder.js`;
       const frame = await CreateFrame(responder_html);
 
-      assert_false(await CanFrameWriteCookies(frame), "Cross-site iframe should not be allowed to write cookies via document.cookie.");
+      assert_false(await HasUnpartitionedCookie(frame), "Cross-site iframe should not be allowed to read unpartitioned cookies via document.cookie.");
     });
   </script>
 </body>

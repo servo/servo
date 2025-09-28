@@ -11,9 +11,9 @@
     #target {
       column-rule-width: 10px;
       column-rule-style: solid;
-      animation: color-anim 2s linear paused;
+      animation: width-anim 2s linear paused;
     }
-    @keyframes color-anim {
+    @keyframes width-anim {
       from { column-rule-width: 0px; }
     }
   </style>
@@ -37,12 +37,12 @@
         '5px' // The width at 50% of the animation.
       );
 
-      el.style.columnRuleWidth = 'repeat(2, 10px)';
+      el.style.columnRuleWidth = 'repeat(auto, 10px)';
 
       const snapped = getComputedStyle(el).columnRuleWidth;
       assert_equals(
         snapped,
-        'repeat(2, 10px)'
+        'repeat(auto, 10px)'
       );
     });
   </script>

@@ -5,7 +5,8 @@
     'use strict';
 
     window.addEventListener("message", async (event) => {
-      const response = await fetch(event.data, {credentials: "include"});
+      const req = event.data;
+      const response = await fetch(req.url, req.fetchParams);
       event.source.postMessage(response.status, "*");
     });
   </script>

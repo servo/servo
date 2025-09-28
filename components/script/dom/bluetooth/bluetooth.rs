@@ -533,7 +533,7 @@ impl Convert<Error> for BluetoothError {
             BluetoothError::NotFound => Error::NotFound(None),
             BluetoothError::NotSupported => Error::NotSupported,
             BluetoothError::Security => Error::Security,
-            BluetoothError::InvalidState => Error::InvalidState,
+            BluetoothError::InvalidState => Error::InvalidState(None),
         }
     }
 }

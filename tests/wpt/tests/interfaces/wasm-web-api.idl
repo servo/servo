@@ -5,7 +5,7 @@
 
 [Exposed=(Window,Worker)]
 partial namespace WebAssembly {
-  Promise<Module> compileStreaming(Promise<Response> source);
+  Promise<Module> compileStreaming(Promise<Response> source, optional WebAssemblyCompileOptions options = {});
   Promise<WebAssemblyInstantiatedSource> instantiateStreaming(
-      Promise<Response> source, optional object importObject);
+      Promise<Response> source, optional object importObject, optional WebAssemblyCompileOptions options = {});
 };

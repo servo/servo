@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<style>
+.grid {
+    display: grid;
+    grid-template-rows: 90px 80px 100px;
+    grid-template-columns: 50px 100px 90px 50px 80px 100px 15px 10px;
+    height: 290px;
+    gap: 10px;
+    background: lightgoldenrodyellow;
+}
+</style>
+<body>
+  <p>Test that masonry tracks are correctly sized with mix of explicit and auto item placement.</p>
+  <div class="grid">
+    <div style="width: 50px; height: 50px; background: orange;"></div>
+    <div style="width: 60px; height: 60px; background: pink;"></div>
+    <div style="width: 90px; height: 90px; background: teal; transform: translateX(-40px);"></div>
+    <div style="height: 100%; width: 25px; background: green; transform: translateX(-40px);"></div>
+    <div style="height: 100%; width: 60px; background: pink; transform: translateX(-65px);"></div>
+    <div style="height: 100%; width: 90px; background: teal; transform: translateX(-85px);"></div>
+
+    <div style="width: 30px; height: 30px; background: yellow; grid-row: 2;"></div>
+    <div style="width: 80px; height: 80px; background: purple; grid-row: 2; transform: translateX(-20px);"></div>
+    <div style="width: 40px; height: 40px; background: lime; grid-row: 2; transform: translateX(-40px);"></div>
+    <div style="height: 100%; width: 50px; background: orange; grid-row: 2; transform: translateX(-90px);"></div>
+    <div style="height: 100%; width: 80px; background: purple; grid-row: 2; transform: translateX(-90px);"></div>
+    <div style="height: 100%; width: 40px; background: lime; grid-row: 2; transform: translateX(-90px);"></div>
+
+    <div style="width: 25px; height: 25px; background: green; grid-row: 3;"></div>
+    <div style="width: 100px; height: 100px; background: blue; grid-row: 3; transform: translateX(-25px);"></div>
+    <div style="width: 15px; height: 15px; background: coral; grid-row: 3; transform: translateX(-25px);"></div>
+    <div style="width: 10px; height: 10px; background: fuchsia; grid-row: 3; transform: translateX(-100px);"></div>
+    <div style="height: 100%; width: 30px; background: yellow; grid-row: 3; transform: translateX(-140px);"></div>
+    <div style="height: 100%; width: 100px; background: blue; grid-row: 3; transform: translateX(-190px);"></div>
+    <div style="height: 100%; width: 15px; background: coral; grid-row: 3; transform: translateX(-190px);"></div>
+    <div style="height: 100%; width: 10px; background: fuchsia; grid-row: 3; transform: translateX(-190px);"></div>
+  </div>
+</body>
+</html>

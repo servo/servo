@@ -85,17 +85,17 @@
   }, "Initial scroll position");
   promise_test(async t => {
     await sendClick(110);
-    assert_equals(scrollable.scrollLeft, 0);
+    assert_equals(scrollable.scrollLeft, 240);
     assert_equals(scrollable.scrollTop, 50);
   }, "Scroll second column into view");
   promise_test(async t => {
     await sendClick(210);
-    assert_equals(scrollable.scrollLeft, 100);
+    assert_equals(scrollable.scrollLeft, 380);
     assert_equals(scrollable.scrollTop, 50);
   }, "Scroll third column into view");
   promise_test(async t => {
     await sendClick(310);
-    assert_equals(scrollable.scrollLeft, 240);
+    assert_equals(scrollable.scrollLeft, 380);
     assert_equals(scrollable.scrollTop, 50);
   }, "Scroll fourth column into view");
   promise_test(async t => {

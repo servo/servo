@@ -11,10 +11,10 @@
     #target {
       column-rule-width: 10px 10px;
       column-rule-style: solid;
-      animation: color-anim 2s linear paused;
+      animation: width-anim 2s linear paused;
     }
-    @keyframes color-anim {
-      from { column-rule-width: 0px; }
+    @keyframes width-anim {
+      from { column-rule-width: 0px repeat(auto, 0px); }
     }
   </style>
 </head>
@@ -26,7 +26,7 @@
       const el = document.getElementById('target');
       const anim = el.getAnimations()[0];
 
-      assert_equals(getComputedStyle(el).columnRuleWidth, '0px');
+      assert_equals(getComputedStyle(el).columnRuleWidth, '0px repeat(auto, 0px)');
 
       // Jump to 50% of the animation.
       anim.currentTime = anim.effect.getComputedTiming().duration / 2;
@@ -37,11 +37,11 @@
         '10px 10px'
       );
 
-      el.style.columnRuleWidth = '10px';
+      el.style.columnRuleWidth = '10px repeat(auto, 10px)';
       const intermediate = getComputedStyle(el).columnRuleWidth;
       assert_equals(
         intermediate,
-        '5px'
+        '5px repeat(auto, 5px)'
       );
 
     });

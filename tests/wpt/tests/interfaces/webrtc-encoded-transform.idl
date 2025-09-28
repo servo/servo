@@ -156,7 +156,3 @@ interface KeyFrameRequestEvent : Event {
   constructor(DOMString type, optional DOMString rid);
   readonly attribute DOMString? rid;
 };
-
-partial interface RTCRtpSender {
-    Promise<undefined> generateKeyFrame(optional sequence <DOMString> rids);
-};

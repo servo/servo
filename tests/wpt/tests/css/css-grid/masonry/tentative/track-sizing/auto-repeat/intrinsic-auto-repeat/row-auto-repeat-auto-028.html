@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<title>Auto repeat tracks with auto track sizes and % sized children with auto sized container</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<!-- No content is produced because there is nothing to size the rows
+or items against in the block axis. -->
+<link rel="match" href="../../../../../../reference/blank.html">
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<style>
+.masonry {
+    display: masonry;
+    background: gray;
+    item-tolerance: 0;
+    masonry-direction: row;
+    grid-template-rows: repeat(auto-fill, auto);
+    width: auto;
+    height: auto;
+}
+
+.masonry > div {
+    height: 100%;
+    width: 100px;
+}
+</style>
+<div class="masonry">
+  <div style="background: lightskyblue;"></div>
+  <div style="background: lightcoral;"></div>
+  <div style="background: lightgreen;"></div>
+</div>
+</html>

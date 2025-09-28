@@ -51,18 +51,9 @@ dictionary AttributionConversionOptions {
   sequence<USVString> impressionSites = [];
   sequence<USVString> impressionCallers = [];
 
-  AttributionLogic logic = "last-n-touch";
-  AttributionLogicOptions logicOptions;
+  sequence<double> credit;
   unsigned long value = 1;
   unsigned long maxValue = 1;
-};
-
-enum AttributionLogic {
-  "last-n-touch",
-};
-
-dictionary AttributionLogicOptions {
-  sequence<double> credit;
 };
 
 dictionary AttributionConversionResult {

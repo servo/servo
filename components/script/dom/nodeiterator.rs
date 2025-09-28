@@ -201,7 +201,7 @@ impl NodeIterator {
     fn accept_node(&self, node: &Node, can_gc: CanGc) -> Fallible<u16> {
         // Step 1.
         if self.active.get() {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
         // Step 2.
         let n = node.NodeType() - 1;

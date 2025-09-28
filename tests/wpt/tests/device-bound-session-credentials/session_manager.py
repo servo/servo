@@ -51,6 +51,7 @@ class SessionManager:
         self.provider_url = None
         self.provider_key = None
         self.use_empty_response = False
+        self.registration_extra_cookies = []
 
     def next_session_id(self):
         return len(self.session_to_key_map)
@@ -152,6 +153,12 @@ class SessionManager:
         if use_empty_response is not None:
             self.use_empty_response = use_empty_response
 
+        registration_extra_cookies = configuration.get("registrationExtraCookies")
+        if registration_extra_cookies is not None:
+            self.registration_extra_cookies = []
+            for detail in registration_extra_cookies:
+                self.registration_extra_cookies.append(CookieDetail(detail.get("nameAndValue"), detail.get("attributes")))
+
     def get_should_refresh_end_session(self):
         return self.should_refresh_end_session
 
@@ -197,7 +204,7 @@ class SessionManager:
     def get_session_instructions_response_set_cookie_headers(self, session_id, request):
         header_values = list(map(
             lambda cookie_detail: f"{cookie_detail.get_name_and_value()}; {cookie_detail.get_attributes(request)}",
-            self.get_cookie_details(session_id)
+            self.get_cookie_details(session_id) + self.registration_extra_cookies
         ))
         return [("Set-Cookie", header_value) for header_value in header_values]
 

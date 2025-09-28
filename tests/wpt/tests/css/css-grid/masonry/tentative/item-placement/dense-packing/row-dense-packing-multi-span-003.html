@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="row-dense-packing-multi-span-003-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+.masonry {
+    display: masonry;
+    item-tolerance: 0;
+    masonry-direction: row;
+    grid-template-rows: repeat(3, 50px);
+    padding: 10px;
+    grid-auto-flow: dense;
+}
+</style>
+<body>
+  <p>Ensure that dense-packing places items that span more than 1 track correctly into gaps.</p>
+  <div class="masonry">
+    <div style="background: lightskyblue; width: 20px;" >
+      1
+    </div>
+    <div style="background: lightcoral; width: 20px;" >
+      2
+    </div>
+    <div style="background: lightgreen; width: 40px;">
+      3
+    </div>
+    <div style="background: brown; width: 10px; grid-row: span 3;">
+      4
+    </div>
+    <div style="background:orchid; width: 10px; grid-row: span 2;">
+      5
+    </div>
+  </div>
+</body>
+</html>

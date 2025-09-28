@@ -4,22 +4,35 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 test(function() {
-  let svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  let point = svgElement.createSVGPoint();
+  const svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  const point = svgElement.createSVGPoint();
 
   // Check initial point values.
   assert_equals(point.x, 0);
   assert_equals(point.y, 0);
 
-  point.y = 2;
-
-  // Check setting valid arguments.
-  assert_equals(point.x, 0);
-  assert_equals(point.y, 2);
+  // Check assigning points.
+  point.x = 100;
+  assert_equals(point.x, 100);
+  point.y = 200;
+  assert_equals(point.y, 200);
+  point.y = null;
+  assert_equals(point.y, 0);
+  point.y = 200;
 
   // Check setting invalid arguments.
+  assert_throws_js(TypeError, function() { point.x = point; });
+  assert_equals(point.x, 100);
   assert_throws_js(TypeError, function() { point.x = NaN; });
+  assert_equals(point.x, 100);
   assert_throws_js(TypeError, function() { point.x = Infinity; });
-  assert_equals(point.x, 0);
-});
+  assert_equals(point.x, 100);
+
+  assert_throws_js(TypeError, function() { point.y = point; });
+  assert_equals(point.y, 200);
+  assert_throws_js(TypeError, function() { point.y = NaN; });
+  assert_equals(point.y, 200);
+  assert_throws_js(TypeError, function() { point.y = Infinity; });
+  assert_equals(point.y, 200);
+}, `${document.title}, 'x' and 'y' attributes`);
 </script>

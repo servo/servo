@@ -46,7 +46,7 @@ impl ChannelSplitterNode {
             node_options.mode != ChannelCountMode::Explicit ||
             node_options.interpretation != ChannelInterpretation::Discrete
         {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
 
         let node = AudioNode::new_inherited(

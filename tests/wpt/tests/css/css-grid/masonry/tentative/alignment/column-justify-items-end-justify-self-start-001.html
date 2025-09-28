@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Masonry Test: Alignment for items and self in grid axis</title>
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+<link rel="match" href="column-justify-items-end-justify-self-start-001-ref.html">
+<style>
+.masonry {
+    display: masonry;
+    background: gray;
+    position: relative;
+    item-tolerance: 0;
+    grid-template-columns: repeat(3, 100px);
+    width: 300px;
+    justify-items: end;
+}
+
+.fifty-width {
+    width: 50px;
+    background-color: lightblue;
+}
+</style>
+<body>
+  <p>Test that using justify-items moves each masonry item to the end of the grid-axis track it is on</p>
+  <p>and that justify-self overrides justify-items.</p>
+  <div class="masonry">
+    <div class="fifty-width">
+      This is some text
+    </div>
+    <div class="fifty-width" style="justify-self: start">
+      Some larger words in this sentence
+    </div>
+    <div class="fifty-width">
+      The cat cannot be taken from milk
+    </div>
+    <div style="background-color: lightpink; width: fit-content;">
+      This is text
+    </div>
+    <div style="background-color: lightpink; width: fit-content;">
+      This is text
+    </div>
+  </div>
+</body>
+</html>

@@ -164,7 +164,7 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
         let mut guard = self.shared_lock().write();
         let media_queries_borrowed = self.media_queries.borrow();
         let media_queries = media_queries_borrowed.write_with(&mut guard);
-        *media_queries = Self::parse_media_list(&value, global.as_window());
+        *media_queries = Self::parse_media_list(value.str(), global.as_window());
         self.parent_stylesheet.notify_invalidations();
     }
 
@@ -198,7 +198,7 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
     fn AppendMedium(&self, medium: DOMString) {
         // Step 1
         let global = self.global();
-        let m = Self::parse_media_query(&medium, global.as_window());
+        let m = Self::parse_media_query(medium.str(), global.as_window());
         // Step 2
         if m.is_err() {
             return;
@@ -233,7 +233,7 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
     fn DeleteMedium(&self, medium: DOMString) {
         // Step 1
         let global = self.global();
-        let m = Self::parse_media_query(&medium, global.as_window());
+        let m = Self::parse_media_query(medium.str(), global.as_window());
         // Step 2
         if m.is_err() {
             return;
