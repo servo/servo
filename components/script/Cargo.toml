@@ -93,6 +93,7 @@ mime = { workspace = true }
 mime_guess = { workspace = true }
 net_traits = { workspace = true }
 nom = { workspace = true }
+nom-rfc8288 = { workspace = true }
 num-traits = { workspace = true }
 num_cpus = { workspace = true }
 parking_lot = { workspace = true }
