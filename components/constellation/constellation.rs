@@ -151,7 +151,6 @@ use net::image_cache::ImageCacheImpl;
 use net_traits::image_cache::ImageCache;
 use net_traits::pub_domains::reg_host;
 use net_traits::request::Referrer;
-use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use net_traits::{
     self, AsyncRuntime, ReferrerPolicy, ResourceThreads, exit_fetch_thread, start_fetch_thread,
 };
@@ -167,6 +166,8 @@ use servo_config::prefs::{self, PrefValue};
 use servo_config::{opts, pref};
 use servo_rand::{Rng, ServoRng, SliceRandom, random};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
+use storage_traits::StorageThreads;
+use storage_traits::storage_thread::{StorageThreadMsg, StorageType};
 use style::global_style_data::StyleThreadPool;
 #[cfg(feature = "webgpu")]
 use webgpu::canvas_context::WGPUImageMap;
@@ -347,6 +348,17 @@ pub struct Constellation<STF, SWF> {
     /// browsing.
     private_resource_threads: ResourceThreads,
 
+    /// Channels for the constellation to send messages to the public
+    /// storage-related threads. There are two groups of storage threads: one
+    /// for public browsing, and one for private browsing.
+    public_storage_threads: StorageThreads,
+
+    /// Channels for the constellation to send messages to the private
+    /// storage-related threads.  There are two groups of storage
+    /// threads: one for public browsing, and one for private
+    /// browsing.
+    private_storage_threads: StorageThreads,
+
     /// A channel for the constellation to send messages to the font
     /// cache thread.
     system_font_service: Arc<SystemFontServiceProxy>,
@@ -519,6 +531,12 @@ pub struct InitialConstellationState {
 
     /// A channel to the resource thread.
     pub private_resource_threads: ResourceThreads,
+
+    /// A channel to the storage thread.
+    pub public_storage_threads: StorageThreads,
+
+    /// A channel to the storage thread.
+    pub private_storage_threads: StorageThreads,
 
     /// A channel to the time profiler thread.
     pub time_profiler_chan: time::ProfilerChan,
@@ -697,6 +715,8 @@ where
                     bluetooth_ipc_sender: state.bluetooth_thread,
                     public_resource_threads: state.public_resource_threads,
                     private_resource_threads: state.private_resource_threads,
+                    public_storage_threads: state.public_storage_threads,
+                    private_storage_threads: state.private_storage_threads,
                     system_font_service: state.system_font_service,
                     sw_managers: Default::default(),
                     swmanager_receiver,
@@ -979,6 +999,11 @@ where
         } else {
             self.public_resource_threads.clone()
         };
+        let storage_threads = if is_private {
+            self.private_storage_threads.clone()
+        } else {
+            self.public_storage_threads.clone()
+        };
 
         let embedder_chan = self.embedder_proxy.sender.clone();
         let eventloop_waker = self.embedder_proxy.event_loop_waker.clone();
@@ -1009,6 +1034,7 @@ where
             swmanager_thread: self.swmanager_ipc_sender.clone(),
             system_font_service: self.system_font_service.clone(),
             resource_threads,
+            storage_threads,
             time_profiler_chan: self.time_profiler_chan.clone(),
             mem_profiler_chan: self.mem_profiler_chan.clone(),
             viewport_details: initial_viewport_details,
@@ -2676,7 +2702,7 @@ where
 
         debug!("Exiting storage resource threads.");
         if let Err(e) = generic_channel::GenericSend::send(
-            &self.public_resource_threads,
+            &self.public_storage_threads,
             StorageThreadMsg::Exit(storage_ipc_sender),
         ) {
             warn!("Exit storage thread failed ({})", e);

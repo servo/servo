@@ -4,22 +4,22 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use base::threadpool::ThreadPool;
 use ipc_channel::ipc::IpcSender;
 use log::{error, info};
-use net_traits::indexeddb_thread::{
-    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, BackendError, BackendResult,
-    CreateObjectResult, IndexedDBKeyRange, IndexedDBKeyType, IndexedDBRecord, IndexedDBTxnMode,
-    KeyPath, PutItemResult,
-};
 use rusqlite::{Connection, Error, OptionalExtension, params};
 use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
 use sea_query_rusqlite::RusqliteBinder;
 use serde::Serialize;
+use storage_traits::indexeddb_thread::{
+    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, BackendError, BackendResult,
+    CreateObjectResult, IndexedDBKeyRange, IndexedDBKeyType, IndexedDBRecord, IndexedDBTxnMode,
+    KeyPath, PutItemResult,
+};
 use tokio::sync::oneshot;
 
 use crate::indexeddb::engines::{KvsEngine, KvsTransaction};
 use crate::indexeddb::idb_thread::IndexedDBDescription;
-use crate::resource_thread::CoreResourceThreadPool;
 
 mod create;
 mod database_model;
@@ -75,8 +75,8 @@ fn range_to_query(range: IndexedDBKeyRange) -> Condition {
 pub struct SqliteEngine {
     db_path: PathBuf,
     connection: Connection,
-    read_pool: Arc<CoreResourceThreadPool>,
-    write_pool: Arc<CoreResourceThreadPool>,
+    read_pool: Arc<ThreadPool>,
+    write_pool: Arc<ThreadPool>,
 }
 
 impl SqliteEngine {
@@ -84,7 +84,7 @@ impl SqliteEngine {
     pub fn new(
         base_dir: &Path,
         db_info: &IndexedDBDescription,
-        pool: Arc<CoreResourceThreadPool>,
+        pool: Arc<ThreadPool>,
     ) -> Result<Self, Error> {
         let mut db_path = PathBuf::new();
         db_path.push(base_dir);

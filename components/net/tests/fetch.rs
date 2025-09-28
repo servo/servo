@@ -12,6 +12,7 @@ use std::sync::{Arc, Mutex, Weak};
 use std::time::{Duration, SystemTime};
 
 use base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
+use base::threadpool::ThreadPool;
 use content_security_policy as csp;
 use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse};
@@ -33,7 +34,6 @@ use net::filemanager_thread::FileManager;
 use net::hsts::HstsEntry;
 use net::protocols::ProtocolRegistry;
 use net::request_interceptor::RequestInterceptor;
-use net::resource_thread::CoreResourceThreadPool;
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{
@@ -235,7 +235,7 @@ fn test_file() {
         .origin(url.origin())
         .build();
 
-    let pool = CoreResourceThreadPool::new(1, "CoreResourceTestPool".to_string());
+    let pool = ThreadPool::new(1, "CoreResourceTestPool".to_string());
     let pool_handle = Arc::new(pool);
     let mut context = new_fetch_context(None, None, Some(Arc::downgrade(&pool_handle)));
     let fetch_response = fetch_with_context(request, &mut context);

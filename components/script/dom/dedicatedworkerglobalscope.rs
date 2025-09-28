@@ -441,6 +441,7 @@ impl DedicatedWorkerGlobalScope {
                     init.script_to_constellation_chan.clone(),
                     init.script_to_embedder_chan.clone(),
                     init.resource_threads.clone(),
+                    init.storage_threads.clone(),
                     #[cfg(feature = "webgpu")]
                     gpu_id_hub.clone(),
                     CanGc::note(),

@@ -15,12 +15,10 @@ pub mod hsts;
 pub mod http_cache;
 pub mod http_loader;
 pub mod image_cache;
-pub mod indexeddb;
 pub mod local_directory_listing;
 pub mod protocols;
 pub mod request_interceptor;
 pub mod resource_thread;
-mod storage_thread;
 pub mod subresource_integrity;
 mod websocket_loader;
 

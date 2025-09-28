@@ -9,7 +9,6 @@ use std::sync::{LazyLock, OnceLock};
 use std::thread::{self, JoinHandle};
 
 use base::cross_process_instant::CrossProcessInstant;
-use base::generic_channel::{GenericSend, GenericSender, SendResult};
 use base::id::{CookieStoreId, HistoryStateId};
 use base::{IpcSend, IpcSendResult};
 use content_security_policy::{self as csp};
@@ -33,23 +32,19 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::filemanager_thread::FileManagerThreadMsg;
 use crate::http_status::HttpStatus;
-use crate::indexeddb_thread::IndexedDBThreadMsg;
 use crate::request::{Request, RequestBuilder};
 use crate::response::{HttpsState, Response, ResponseInit};
-use crate::storage_thread::StorageThreadMsg;
 
 pub mod blob_url_store;
 pub mod filemanager_thread;
 pub mod http_status;
 pub mod image_cache;
-pub mod indexeddb_thread;
 pub mod mime_classifier;
 pub mod policy_container;
 pub mod pub_domains;
 pub mod quality;
 pub mod request;
 pub mod response;
-pub mod storage_thread;
 
 /// <https://fetch.spec.whatwg.org/#document-accept-header-value>
 pub const DOCUMENT_ACCEPT_HEADER_VALUE: HeaderValue =
@@ -423,21 +418,11 @@ pub type CoreResourceThread = IpcSender<CoreResourceMsg>;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ResourceThreads {
     pub core_thread: CoreResourceThread,
-    storage_thread: GenericSender<StorageThreadMsg>,
-    idb_thread: IpcSender<IndexedDBThreadMsg>,
 }
 
 impl ResourceThreads {
-    pub fn new(
-        c: CoreResourceThread,
-        s: GenericSender<StorageThreadMsg>,
-        i: IpcSender<IndexedDBThreadMsg>,
-    ) -> ResourceThreads {
-        ResourceThreads {
-            core_thread: c,
-            storage_thread: s,
-            idb_thread: i,
-        }
+    pub fn new(core_thread: CoreResourceThread) -> ResourceThreads {
+        ResourceThreads { core_thread }
     }
 
     pub fn clear_cache(&self) {
@@ -452,26 +437,6 @@ impl IpcSend<CoreResourceMsg> for ResourceThreads {
 
     fn sender(&self) -> IpcSender<CoreResourceMsg> {
         self.core_thread.clone()
-    }
-}
-
-impl IpcSend<IndexedDBThreadMsg> for ResourceThreads {
-    fn send(&self, msg: IndexedDBThreadMsg) -> IpcSendResult {
-        self.idb_thread.send(msg).map_err(IpcError::Bincode)
-    }
-
-    fn sender(&self) -> IpcSender<IndexedDBThreadMsg> {
-        self.idb_thread.clone()
-    }
-}
-
-impl GenericSend<StorageThreadMsg> for ResourceThreads {
-    fn send(&self, msg: StorageThreadMsg) -> SendResult {
-        self.storage_thread.send(msg)
-    }
-
-    fn sender(&self) -> GenericSender<StorageThreadMsg> {
-        self.storage_thread.clone()
     }
 }
 

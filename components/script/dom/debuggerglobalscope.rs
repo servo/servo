@@ -22,6 +22,7 @@ use script_bindings::codegen::GenericBindings::DebuggerGlobalScopeBinding::{
 use script_bindings::realms::InRealm;
 use script_bindings::reflector::DomObject;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
+use storage_traits::StorageThreads;
 
 use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding;
 use crate::dom::bindings::error::report_pending_exception;
@@ -68,6 +69,7 @@ impl DebuggerGlobalScope {
         script_to_constellation_chan: ScriptToConstellationChan,
         script_to_embedder_chan: ScriptToEmbedderChan,
         resource_threads: ResourceThreads,
+        storage_threads: StorageThreads,
         #[cfg(feature = "webgpu")] gpu_id_hub: std::sync::Arc<IdentityHub>,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
@@ -80,6 +82,7 @@ impl DebuggerGlobalScope {
                 script_to_constellation_chan,
                 script_to_embedder_chan,
                 resource_threads,
+                storage_threads,
                 MutableOrigin::new(ImmutableOrigin::new_opaque()),
                 ServoUrl::parse_with_base(None, "about:internal/debugger")
                     .expect("Guaranteed by argument"),

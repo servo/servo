@@ -10,13 +10,13 @@ use std::thread;
 use base::generic_channel::{self, GenericReceiver, GenericSender};
 use base::id::WebViewId;
 use malloc_size_of::MallocSizeOf;
-use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use profile_traits::mem::{
     ProcessReports, ProfilerChan as MemProfilerChan, Report, ReportKind, perform_memory_report,
 };
 use profile_traits::path;
 use rustc_hash::FxHashMap;
 use servo_url::ServoUrl;
+use storage_traits::storage_thread::{StorageThreadMsg, StorageType};
 
 const QUOTA_SIZE_LIMIT: usize = 5 * 1024 * 1024;
 

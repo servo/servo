@@ -8,9 +8,9 @@ use std::collections::HashMap;
 use base::IpcSend;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use net_traits::indexeddb_thread::{IndexedDBThreadMsg, KeyPath, SyncOperation};
 use profile_traits::ipc;
 use script_bindings::codegen::GenericUnionTypes::StringOrStringSequence;
+use storage_traits::indexeddb_thread::{IndexedDBThreadMsg, KeyPath, SyncOperation};
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -106,7 +106,7 @@ impl IDBTransaction {
         let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
 
         global
-            .resource_threads()
+            .storage_threads()
             .send(IndexedDBThreadMsg::Sync(SyncOperation::RegisterNewTxn(
                 sender,
                 global.origin().immutable().clone(),
@@ -203,7 +203,7 @@ impl IDBTransaction {
     }
 
     fn get_idb_thread(&self) -> IpcSender<IndexedDBThreadMsg> {
-        self.global().resource_threads().sender()
+        self.global().storage_threads().sender()
     }
 
     fn object_store_parameters(
@@ -211,7 +211,7 @@ impl IDBTransaction {
         object_store_name: &DOMString,
     ) -> Option<IDBObjectStoreParameters> {
         let global = self.global();
-        let idb_sender = global.resource_threads().sender();
+        let idb_sender = global.storage_threads().sender();
         let (sender, receiver) =
             ipc::channel(global.time_profiler_chan().clone()).expect("failed to create channel");
 

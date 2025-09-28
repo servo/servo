@@ -19,6 +19,7 @@ use profile_traits::{mem, time};
 use script_bindings::realms::InRealm;
 use script_traits::Painter;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
+use storage_traits::StorageThreads;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::inheritance::Castable;
@@ -102,6 +103,7 @@ impl WorkletGlobalScope {
                 script_to_constellation_chan,
                 init.to_embedder_sender.clone(),
                 init.resource_threads.clone(),
+                init.storage_threads.clone(),
                 MutableOrigin::new(ImmutableOrigin::new_opaque()),
                 base_url.clone(),
                 None,
@@ -191,6 +193,8 @@ pub(crate) struct WorkletGlobalScopeInit {
     pub(crate) to_script_thread_sender: Sender<MainThreadScriptMsg>,
     /// Channel to a resource thread
     pub(crate) resource_threads: ResourceThreads,
+    /// Channels to the [`StorageThreads`].
+    pub(crate) storage_threads: StorageThreads,
     /// Channel to the memory profiler
     pub(crate) mem_profiler_chan: mem::ProfilerChan,
     /// Channel to the time profiler

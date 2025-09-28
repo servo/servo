@@ -7,9 +7,9 @@ use dom_struct::dom_struct;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
-use net_traits::indexeddb_thread::{BackendResult, IndexedDBThreadMsg, SyncOperation};
 use profile_traits::ipc;
 use script_bindings::conversions::SafeToJSValConvertible;
+use storage_traits::indexeddb_thread::{BackendResult, IndexedDBThreadMsg, SyncOperation};
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::IDBOpenDBRequestBinding::IDBOpenDBRequestMethods;
@@ -287,7 +287,7 @@ impl IDBOpenDBRequest {
         );
 
         if global
-            .resource_threads()
+            .storage_threads()
             .send(IndexedDBThreadMsg::Sync(open_operation))
             .is_err()
         {
@@ -322,7 +322,7 @@ impl IDBOpenDBRequest {
         );
 
         if global
-            .resource_threads()
+            .storage_threads()
             .send(IndexedDBThreadMsg::Sync(delete_operation))
             .is_err()
         {

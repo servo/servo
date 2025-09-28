@@ -8,10 +8,10 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use base::id::TEST_WEBVIEW_ID;
+use base::threadpool::ThreadPool;
 use embedder_traits::FilterPattern;
 use ipc_channel::ipc;
 use net::filemanager_thread::FileManager;
-use net::resource_thread::CoreResourceThreadPool;
 use net_traits::blob_url_store::BlobURLStoreError;
 use net_traits::filemanager_thread::{
     FileManagerThreadError, FileManagerThreadMsg, ReadFileProgress,
@@ -26,7 +26,7 @@ fn test_filemanager() {
     preferences.dom_testing_html_input_element_select_files_enabled = true;
     servo_config::prefs::set(preferences);
 
-    let pool = CoreResourceThreadPool::new(1, "CoreResourceTestPool".to_string());
+    let pool = ThreadPool::new(1, "CoreResourceTestPool".to_string());
     let pool_handle = Arc::new(pool);
     let filemanager = FileManager::new(create_embedder_proxy(), Arc::downgrade(&pool_handle));
 
