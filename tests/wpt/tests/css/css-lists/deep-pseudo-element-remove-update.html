@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>CSS Lists Test: counters updated when parent element of element with counter operation on its pseudo element is removed</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists/#inheriting-counters">
+<link rel="match" href="deep-pseudo-element-remove-update-ref.html">
+<style>
+  .container {
+    counter-reset: plm-table 0;
+  }
+
+  .numbered span::after {
+    content: counter(plm-table);
+    counter-increment: plm-table;
+  }
+</style>
+<div class="container">
+  <div class="numbered a"><span></span>A</div>
+  <div class="numbered b"><span></span>B</div>
+  <div id="target" class="numbered d"><span></span>D</div>
+  <div class="numbered c"><span></span>C</div>
+  <div class="numbered e"><span></span>E</div>
+</div>
+<script>
+  document.documentElement.offsetTop;
+  target.remove();
+</script>

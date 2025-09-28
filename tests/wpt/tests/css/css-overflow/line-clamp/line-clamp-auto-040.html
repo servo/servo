@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>CSS Overflow: `line-clamp: auto` zero-height div</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-auto-040-ref.html">
+<meta name="assert" content="Checks that the clamp point is after, rather than before, an non-empty div with zero-height, and that this results in the content of that div being retained and ellipsis being inserted on its the last line">
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 4lh;
+  background-color: yellow;
+}
+.zero {
+  height: 0;
+}
+</style>
+<div class="clamp">
+Line 1<br>
+Line 2<br>
+Line 3<br>
+Line 4<br>
+<div class=zero>
+Line 5<br>
+Line 6
+</div>
+Line 7
+</div>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Touch-generated events should propagate to the parent when a video element is the target</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<div id="log"></div>
+
+<div id="parent">
+  <video controls="" preload="auto" width="480" height="320"></video>
+</div>
+
+<script>
+const parent = document.getElementById('parent');
+const video = document.querySelector('video');
+
+const xPosition = Math.ceil(video.offsetLeft + 2);
+const yPosition = Math.ceil(video.offsetTop + 2);
+
+promise_test(async t => {
+  await new Promise(r => {
+    const expectedEventLog = ['touchstart-VIDEO', 'touchmove-VIDEO', 'touchend-VIDEO'];
+    const eventLogRecorder = [];
+    const eventNames = ['touchstart', 'touchmove', 'touchend'];
+
+    for (eventName of eventNames) {
+      parent.addEventListener(eventName, event => {
+        eventLogRecorder.push(`${event.type}-${event.target.nodeName}`);
+        if (event.type === 'touchend') {
+          assert_array_equals(eventLogRecorder, expectedEventLog);
+          r();
+        }
+      });
+    }
+    let actions = new test_driver.Actions();
+    actions
+      .addPointer("touchPointer", "touch")
+      .setPointer("touchPointer")
+      .pointerMove(xPosition, yPosition)
+      .pointerDown()
+      .pointerMove(3, 3, video)
+      .pointerUp()
+      .send();
+  });
+});
+</script>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: test reference</title>
+<style>
+.clamp {
+  font: 16px / 32px serif;
+  background-color: yellow;
+}
+.rel {
+  position: relative;
+}
+.abspos {
+  position: absolute;
+  right: 0;
+  width: 100px;
+  height: 100px;
+  background-color: green;
+}
+</style>
+<div class="clamp">
+Line 1<br>
+Line 2<br>
+Line 3<br>
+Line 4<br>
+<div class="rel"><div class="abspos">This abspos should be visible</div></div>
+</div>

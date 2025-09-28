@@ -364,3 +364,14 @@ export async function fedcm_get_flexible_tokens_credential(t, type) {
   await select_manifest(t, options);
   return await fedcm_get_and_select_first_account(t, options);
 }
+
+export function set_well_known_format(format_type) {
+  const url_query = `?format=${encodeURIComponent(format_type)}`;
+
+  return new Promise(resolve => {
+    const img = document.createElement('img');
+    img.addEventListener('error', resolve);
+    img.src = `/fedcm/support/set-well-known-format.py${url_query}`;
+    document.body.appendChild(img);
+  });
+}

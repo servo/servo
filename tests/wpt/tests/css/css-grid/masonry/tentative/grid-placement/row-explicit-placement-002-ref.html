@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<style>
+.grid {
+    display: grid;
+    background: gray;
+    height: 200px;
+    gap: 20px;
+    padding: 20px;
+}
+
+.grid > div {
+    width: fit-content;
+}
+
+.first-track {
+    background: lightskyblue;
+    grid-row-start: 1;
+    margin: 20px;
+}
+
+.second-track {
+    background: lightcoral;
+    grid-row-start: 2;
+    height: 80px;
+    margin-top: 40px;
+    margin-bottom: 80px;
+}
+
+.third-track {
+    background: lightgreen;
+    grid-row-start: 3;
+    margin-left: 40px;
+}
+</style>
+<body>
+  <p>Test that masonry items with explicit placement are correctly positioned within the grid axis.</p>
+  <div class="grid">
+    <div class="first-track">This is some text</div>
+    <div class="second-track">Some larger words in this sentence</div>
+    <div class="third-track">The cat cannot be separated from milk</div>
+  </div>
+</body>
+</html>

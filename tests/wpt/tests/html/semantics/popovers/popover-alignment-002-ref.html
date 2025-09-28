@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>Tests that popover alignment responds to anchor positioning</title>
+<link rel="author" href="mailto:tabatkins@google.com">
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+<style>
+button {
+  border: solid blue 15px;
+  margin: 25px;
+  anchor-name: --foo;
+}
+div {
+  position: absolute;
+  border: solid orange 10px;
+  inset: 0;
+  margin: 0;
+  padding: .25em;
+  place-self: normal;
+  position-anchor: --foo;
+}
+</style>
+
+Orange box should be centered vertically against the left edge of the blue box.
+<button></button>
+<div style="position-area: left span-all"></div>

@@ -43,7 +43,8 @@ async_test(t => {
         break;
     }
   }));
-
+  // This doesn't work as intended in most cases.
+  // See https://github.com/privacycg/storage-access/issues/162.
   MaybeSetStorageAccess("*", "*", "blocked").then(() => {
     // Step 2
     window.open("https://{{hosts[alt][]}}:{{ports[https][0]}}/partitioned-popins/resources/partitioned-popins.cookies-window.html?id="+id, '_blank', 'popup');

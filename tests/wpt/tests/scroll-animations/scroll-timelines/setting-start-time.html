@@ -41,10 +41,12 @@ promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
   const scroller = animation.timeline.source;
   const maxScroll = scroller.scrollHeight - scroller.clientHeight;
-  scroller.scrollTop = 0.2 * maxScroll;
+
   // Wait for new animation frame which allows the timeline to compute new
   // current time.
-  await waitForNextFrame();
+  await runAndWaitForFrameUpdate(() => {
+    scroller.scrollTop = 0.2 * maxScroll;
+  });
 
   // So long as a hold time is set, querying the current time will return
   // the hold time.

@@ -11,7 +11,7 @@ async_test(t => {
     let start_index = entry0.index;
 
     let navState = { statevar: "state" };
-    await navigation.navigate("#1", { state: navState });
+    await navigation.navigate("#1", { state: navState }).finished;
     let entry1 = navigation.currentEntry;
 
     location.href = "#2";

@@ -8,7 +8,6 @@
 <script src="/resources/testdriver-actions.js"></script>
 <script src="../../popovers/resources/toggle-event-source-test.js"></script>
 
-<button id=commandsource commandfor=details command=toggle>command source</button>
 <details id=details>
   <summary>summary</summary>
   details
@@ -22,7 +21,6 @@
 const details = document.getElementById('details');
 const detailsWithoutSummary = document.getElementById('detailsWithoutSummary');
 const summary = details.querySelector('summary');
-const commandsource = document.getElementById('commandsource');
 
 async function click(element) {
   // Click halfway up the element to click the activatable summary instead of
@@ -62,16 +60,6 @@ createToggleEventSourceTest({
   closeFunc: async () => await click(detailsWithoutSummary),
   openSource: null,
   closeSource: null,
-  skipBeforetoggle: true
-});
-
-createToggleEventSourceTest({
-  description: 'ToggleEvent.source on <details> elements: command invokers.',
-  target: details,
-  openFunc: async () => commandsource.click(),
-  closeFunc: async () => commandsource.click(),
-  openSource: commandsource,
-  closeSource: commandsource,
   skipBeforetoggle: true
 });
 </script>

@@ -1,5 +1,4 @@
 import pytest
-import webdriver.bidi.error as error
 
 from .. import PAGE_EMPTY_TEXT
 

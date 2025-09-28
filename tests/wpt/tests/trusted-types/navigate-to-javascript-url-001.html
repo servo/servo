@@ -17,12 +17,19 @@
     assert_equals(violation.violatedDirective, "require-trusted-types-for");
     assert_equals(violation.disposition, "enforce");
     assert_equals(violation.sample, `Location href|${clipSampleIfNeeded(kJavaScriptURLCode)}`);
-    assert_equals(violation.lineNumber, 4);
-    // https://w3c.github.io/webappsec-csp/#create-violation-for-global does not
-    // say how to determine the location and browsers provide inconsistent
-    // values for column number, so just check it's at least the offset of the
-    // '=' character of window.
-    assert_greater_than_equal(violation.columnNumber, 9);
+
+    // https://w3c.github.io/webappsec-csp/#create-violation-for-global says,
+    // If the user agent [...] and can extract [... line and column number ...]
+    // We'll allow line and column number be absent. If either is present, we
+    // expect specific values.
+    if (violation.lineNumber || violation.columnNumber) {
+      assert_equals(violation.lineNumber, 4);
+      // https://w3c.github.io/webappsec-csp/#create-violation-for-global does
+      // not say how to determine the location and browsers provide inconsistent
+      // values for column number, so just check it's at least the offset of the
+      // '=' character of window.
+      assert_greater_than_equal(violation.columnNumber, 9);
+    }
     assert_equals(result.exception, null);
   }, "Setting window.location to a javascript: URL without a default policy should report a CSP violation instead of executing the JavaScript code.");
 </script>

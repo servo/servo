@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>@container: scroll-state(direction) keyboard scroll on root element</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#direction">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/css/css-conditional/container-queries/support/cq-testcommon.js"></script>
+<style>
+  html {
+      container-type: scroll-state;
+  }
+
+  body {
+      min-height: 200vh;
+  }
+
+  div {
+    --y: no;
+  }
+
+  @container scroll-state(direction: y) {
+    div {
+      --y: yes;
+    }
+  }
+</style>
+<body>
+<div id="target"></div>
+</body>
+<script>
+  setup(() => assert_implements_scroll_state_container_queries());
+
+  promise_test(async t => {
+    await new test_driver.Actions()
+      .keyDown('\uE00D')
+      .keyUp('\uE00D')
+      .send();
+    await new test_driver.Actions()
+      .keyDown('\uE00D')
+      .keyUp('\uE00D')
+      .send();
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(target).getPropertyValue("--y"), "yes");
+  }, "Spacebar scroll on root");
+
+</script>

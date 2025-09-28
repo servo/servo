@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<style>
+.masonry {
+    display: masonry;
+    masonry-direction: row;
+    grid-template-rows: repeat(9, auto);
+    width: 200px;
+    height: 500px;
+    gap: 10px;
+}
+
+.masonry > div {
+    height: 50px;
+    width: 100px;
+    background-color: orange;
+}
+</style>
+<div class="masonry">
+  <div style="grid-row: span 4; height: 200px;">1</div>
+  <div style="grid-row: 4 / span 2; height: 100px;">2</div>
+  <div style="grid-row: 8 / span 2; height: 100px;">3</div>
+  <div style="grid-row: 7;">4</div>
+  <div style="grid-row: span 2; height: 100px;">5</div>
+  <div>6</div>
+</div>
+</html>

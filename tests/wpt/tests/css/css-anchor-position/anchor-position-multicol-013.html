@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>Anchor and OOF, column balancing - vertical-rl</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-anchor">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="writing-mode:vertical-rl; columns:5; gap:0; width:100px; height:100px; background:red;">
+  <div style="block-size:110px; background:green;"></div>
+  <div style="position:relative;">
+    <div style="block-size:110px; background:green;"></div>
+    <div style="anchor-name:--a; inline-size:10px; block-size:110px; background:green;"></div>
+    <div style="block-size:170px; background:green;"></div>
+    <div style="position:absolute; position-anchor:--a; position-area:inline-end center; inline-size:10px; block-size:100%; background:green;"></div>
+  </div>
+</div>

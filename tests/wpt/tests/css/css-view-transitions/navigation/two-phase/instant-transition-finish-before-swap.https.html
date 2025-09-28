@@ -1,0 +1,43 @@
+<!doctype html>
+<title>
+  View transitions: a short transition started after navigation-triggering input can run until its
+  end
+</title>
+<link
+  rel="help"
+  href="https://github.com/w3c/csswg-drafts/blob/main/css-view-transitions-2/two-phase-transition-explainer.md"
+/>
+<meta name="timeout" content="long" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script>
+  promise_test(async (t) => {
+    // We use a service worker to control the timing of the transition, so that committing the navigation
+    // is synchronized with the transition timing.
+    // Specifically, the navigation commit is delayed until the same-document view-transition is ready (starts animating),
+    // but should take place before it is finished. That simulates a view transition that is "interrupted" by a commit by default,
+    // allowing the two-phase view transition feature to carry it through instead.
+    const registration = await service_worker_unregister_and_register(t, "sw.js", "resources");
+    t.add_cleanup(() => registration.unregister());
+    const worker = registration.installing;
+    await wait_for_state(t, worker, "activated");
+    const did_activate_transition = new Promise((resolve) => {
+      window.did_activate_transition = resolve;
+    });
+    const did_finish_transition = new Promise((resolve) => {
+      window.did_finish_transition = resolve;
+    });
+    const did_swap = new Promise((resolve) => {
+      window.did_swap = resolve;
+    });
+    const popup = window.open("resources/instant-transition.https.html");
+    t.add_cleanup(() => popup.close());
+    const condition = await did_activate_transition;
+    worker.postMessage({ resume: "" + condition });
+    const result = await Promise.race([did_finish_transition, did_swap.then(() => "swap")]);
+    assert_equals(result, "success");
+    const with_transition = await did_swap;
+    assert_equals(with_transition, "with-transition");
+  }, "view transition should run until its end if started after navigation-triggering input");
+</script>

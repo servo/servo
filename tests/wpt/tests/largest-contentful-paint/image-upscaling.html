@@ -72,7 +72,7 @@
     promise_test(async t => {
       const { naturalSize, lcpSize } = await load_image_and_get_lcp_size(t,
         { transform: 'scale(0.5)' });
-      assert_equals(Math.floor(lcpSize), Math.floor(naturalSize / 4));
+      assert_approx_equals(Math.floor(lcpSize), Math.floor(naturalSize / 4), 2);
     }, 'A downscaled image (using scale) should report the displayed size');
 
     promise_test(async t => {

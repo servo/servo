@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>SVGRect interface</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  setup(() => {
+    window.svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  });
+
+  test(t => {
+    const rect = svgElement.createSVGRect();
+    assert_equals(rect.x, 0, 'initial x');
+    assert_equals(rect.y, 0, 'initial y');
+    assert_equals(rect.width, 0, 'initial width');
+    assert_equals(rect.height, 0, 'initial height');
+  }, `${document.title}, initial values`);
+
+  test(t => {
+    const rect = svgElement.createSVGRect();
+    rect.x = 100;
+    rect.y = 200;
+    rect.width = 300;
+    rect.height = 400;
+    assert_equals(rect.x, 100);
+    assert_equals(rect.y, 200);
+    assert_equals(rect.width, 300);
+    assert_equals(rect.height, 400);
+
+    rect.y = null;
+    assert_equals(rect.y, 0);
+  }, `${document.title}, assignment, numeric values`);
+
+  test(t => {
+    const rect = svgElement.createSVGRect();
+    assert_throws_js(TypeError, () => { rect.x = rect; });
+    assert_throws_js(TypeError, () => { rect.y = 'aString'; });
+    assert_throws_js(TypeError, () => { rect.width = svgElement; });
+    assert_throws_js(TypeError, () => { rect.height = NaN; });
+  }, `${document.title}, assignment, invalid values`);
+</script>

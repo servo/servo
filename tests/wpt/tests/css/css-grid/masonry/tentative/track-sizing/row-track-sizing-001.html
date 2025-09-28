@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="match" href="row-track-sizing-001-ref.html">
+<style>
+.masonry {
+    display: masonry;
+    masonry-direction: row;
+    item-tolerance: 0;
+    grid-template-rows: 5% repeat(3, 10px 15%) repeat(1, 15px 5px 20px);
+    height: 500px;
+    gap: 10px;
+}
+</style>
+<body>
+  <p>Test that masonry tracks are correctly sized.</p>
+  <div class="masonry">
+    <div style="height: 100%; width: 50px; background: orange;"></div>
+    <div style="height: 100%; width: 30px; background: yellow;"></div>
+    <div style="height: 100%; width: 25px; background: green;"></div>
+    <div style="height: 100%; width: 100px; background: blue;"></div>
+    <div style="height: 100%; width: 80px; background: purple;"></div>
+    <div style="height: 100%; width: 60px; background: pink;"></div>
+    <div style="height: 100%; width: 40px; background: lime;"></div>
+    <div style="height: 100%; width: 90px; background: teal;"></div>
+    <div style="height: 100%; width: 15px; background: coral;"></div>
+    <div style="height: 100%; width: 10px; background: fuchsia;"></div>
+
+    <div style="height: 100%; width: 50px; background: orange;"></div>
+    <div style="height: 100%; width: 30px; background: yellow;"></div>
+    <div style="height: 100%; width: 25px; background: green;"></div>
+    <div style="height: 100%; width: 100px; background: blue;"></div>
+    <div style="height: 100%; width: 80px; background: purple;"></div>
+    <div style="height: 100%; width: 60px; background: pink;"></div>
+    <div style="height: 100%; width: 40px; background: lime;"></div>
+    <div style="height: 100%; width: 90px; background: teal;"></div>
+    <div style="height: 100%; width: 15px; background: coral;"></div>
+    <div style="height: 100%; width: 10px; background: fuchsia;"></div>
+
+    <div style="height: 100%; width: 50px; background: orange;"></div>
+    <div style="height: 100%; width: 30px; background: yellow;"></div>
+    <div style="height: 100%; width: 25px; background: green;"></div>
+    <div style="height: 100%; width: 100px; background: blue;"></div>
+    <div style="height: 100%; width: 80px; background: purple;"></div>
+    <div style="height: 100%; width: 60px; background: pink;"></div>
+    <div style="height: 100%; width: 40px; background: lime;"></div>
+    <div style="height: 100%; width: 90px; background: teal;"></div>
+    <div style="height: 100%; width: 15px; background: coral;"></div>
+    <div style="height: 100%; width: 10px; background: fuchsia;"></div>
+  </div>
+</body>
+</html>

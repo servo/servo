@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<style>
+.grid {
+    display: grid;
+    position: relative;
+    item-tolerance: 0;
+    grid-template-columns: repeat(3, 50px);
+    grid-template-rows: masonry;
+    grid-auto-flow: dense;
+}
+</style>
+<body>
+  <p>Ensure that we always pick the highest eligible opening; auto-placement cursor should only be a tie-breaker with openings at the same location.</p>
+  <div class="grid">
+    <div style="background: lightskyblue; height: 20px;" >
+      1
+    </div>
+    <div style="background: lightblue; height: 20px;" >
+      2
+    </div>
+    <div style="background: yellow; height: 20px;" >
+      6
+    </div>
+    <div style="background: darkblue; height: 20px; grid-column: span 3;">
+      3
+    </div>
+    <div style="background: lightsteelblue; height: 20px; grid-column: 2 / span 2;" >
+      4
+    </div>
+    <div style="background: darkblue; height: 20px; grid-column: span 3;">
+      5
+    </div>
+  </div>
+</body>
+</html>

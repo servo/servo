@@ -15,11 +15,9 @@ html,body {
 }
 
 grid {
-  display: inline-grid;
   display: inline-masonry;
   masonry-direction: row;
   grid-template-rows: 50px 80px 40px;
-  grid-template-columns: masonry;
   gap: 4px 2px;
   padding: 1px 3px 5px 7px;
   border: solid;
@@ -28,7 +26,6 @@ grid {
 }
 .rows {
   grid-template-columns: 50px 80px 40px;
-  grid-template-rows: masonry;
 }
 item {
   background: grey;
@@ -56,8 +53,7 @@ subgrid {
 </head>
 <body>
 
-<!-- just to sanity check that `masonry` behaves as `none` in the column axis in this case: -->
-<grid style="grid:masonry/masonry">
+<grid>
   <item>1</item>
   <item>2</item>
   <item>3</item>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<title>Auto repeat tracks with fixed size and replaced items</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.masonry {
+    display: masonry;
+    item-tolerance: 0;
+    grid-template-columns: repeat(auto-fill, auto);
+    width: 400px;
+    gap: 10px;
+}
+
+img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+</style>
+<div class="masonry">
+  <img id="test" src="../../../resources/pink-image.png" width="113" height="120"></img>
+  <img src="../../../resources/pink-image.png" width="113" height="120"></img>
+  <img src="../../../resources/pink-image.png" width="113" height="120"></img>
+  <img src="../../../resources/pink-image.png" width="113" height="120"></img>
+  <img src="../../../resources/pink-image.png" width="113" height="120"></img>
+  <img src="../../../resources/pink-image.png" width="113" height="120"></img>
+</div>
+<script>
+  test(function() {
+    let image = document.getElementById("test");
+    assert_less_than(image.getBoundingClientRect().width, 2);
+    assert_greater_than(image.getBoundingClientRect().width, 1);
+    assert_approx_equals(image.getBoundingClientRect().width / image.getBoundingClientRect().height, 113 / 120, .006);
+  });
+</script>
+</html>

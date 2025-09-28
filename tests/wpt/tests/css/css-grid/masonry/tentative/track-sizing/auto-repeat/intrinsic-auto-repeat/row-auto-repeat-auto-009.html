@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<title>Auto repeat tracks and min sizes</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<meta name="assert" content="This test checks that auto repeat tracks use min size when available to compute the number of tracks.">
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<style>
+.masonry {
+    position: relative;
+    display: masonry;
+    masonry-direction: row;
+    grid-template-rows: repeat(auto-fill, auto);
+    min-width: 300px;
+    min-height: 200px;
+    float: left;
+    background: pink;
+}
+.border {
+  border: 10px solid;
+}
+.item {
+  background: lime;
+  /* Place item on the last row. */
+  grid-row: -2;
+  width: 300px;
+  height: 50px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.masonry');">
+
+<div id="log"></div>
+
+<div class="masonry" data-expected-width="300" data-expected-height="200">
+  <div class="item" data-offset-x="0" data-offset-y="112.5" data-expected-width="300" data-expected-height="50"></div>
+</div>
+
+<div class="masonry" style="width: 200px; height: 100px;" data-expected-width="300" data-expected-height="200">
+  <div class="item" data-offset-x="0" data-offset-y="112.5" data-expected-width="300" data-expected-height="50"></div>
+</div>
+
+<div class="masonry" style="width: min-content; height: min-content;" data-expected-width="300" data-expected-height="200">
+  <div class="item" data-offset-x="0" data-offset-y="112.5" data-expected-width="300" data-expected-height="50"></div>
+</div>
+
+<div class="masonry" style="width: max-content; height: max-content;" data-expected-width="300" data-expected-height="200">
+  <div class="item" data-offset-x="0" data-offset-y="112.5" data-expected-width="300" data-expected-height="50"></div>
+</div>
+
+<div class="masonry border" data-expected-width="320" data-expected-height="220">
+  <div class="item" data-offset-x="0" data-offset-y="112.5" data-expected-width="300" data-expected-height="50"></div>
+</div>
+
+<div class="masonry border" style="width: 200px; height: 100px;" data-expected-width="320" data-expected-height="220">
+  <div class="item" data-offset-x="0" data-offset-y="112.5" data-expected-width="300" data-expected-height="50"></div>
+</div>
+
+<div class="masonry border" style="width: min-content; height: min-content;" data-expected-width="320" data-expected-height="220">
+  <div class="item" data-offset-x="0" data-offset-y="112.5" data-expected-width="300" data-expected-height="50"></div>
+</div>
+
+<div class="masonry border" style="width: max-content; height: max-content;" data-expected-width="320" data-expected-height="220">
+  <div class="item" data-offset-x="0" data-offset-y="112.5" data-expected-width="300" data-expected-height="50"></div>
+</div>
+
+</body>

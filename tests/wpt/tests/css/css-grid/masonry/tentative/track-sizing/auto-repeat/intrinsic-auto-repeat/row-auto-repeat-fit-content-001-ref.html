@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.grid {
+    display: grid;
+    background: gray;
+    grid-template-rows: repeat(7, fit-content(100px));
+    width: 300px;
+    height: 300px;
+    font: 15px/1 Ahem;
+}
+
+.grid > div {
+    width: 100px;
+}
+</style>
+<body>
+  <div class="grid">
+    <div style="background: lightskyblue;">
+      Number 1
+    </div>
+    <div style="background: lightcoral;">
+      Number 2
+    </div>
+    <div style="background: lightgreen;">
+      Number 3
+    </div>
+    <div style="background: lightpink;">
+      Number 4
+    </div>
+    <div style="background: orange;">
+      Number 5
+    </div>
+    <div style="background: brown;">
+      Number 6
+    </div>
+    <!-- In Grid, the last column is 0 because no item is placed in it, so spanning
+     item 6 won't match masonry - which places all items in every track. Add another
+     item since spanning row by 2 above doesn't work in grid -->
+    <div style="background: brown; color: transparent;">
+      Number 7
+    </div>
+  </div>
+</body>
+</html>

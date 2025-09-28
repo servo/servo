@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<title>Auto repeat tracks with auto size</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="row-auto-repeat-auto-012-ref.html">
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<style>
+.masonry {
+    display: masonry;
+    background: gray;
+    item-tolerance: 0;
+    masonry-direction: row;
+    grid-template-rows: repeat(auto-fit, auto);
+    height: 300px;
+    width: 300px;
+}
+
+.masonry > div {
+    width: 100px;
+    height: 100px;
+}
+</style>
+<body>
+  <div class="masonry">
+    <!-- The second track should still be collapsed, even though this
+    item is placed in every possible track. -->
+    <div style="background: lightskyblue;">
+      Number 1
+    </div>
+    <div style="background: lightcoral; grid-row: 3;">
+      Number 2
+    </div>
+    <div style="background: lightgreen; grid-row: 1;">
+      Number 3
+    </div>
+    <div style="background: lightpink; grid-row: 3;">
+      Number 4
+    </div>
+    <div style="background: orange; grid-row:1;">
+      Number 5
+    </div>
+  </div>
+</body>
+</html>

@@ -654,6 +654,20 @@ class Session:
 
     #[...]
 
+
+    def set_global_privacy_control(self, gpc):
+        body = {
+            "gpc": gpc,
+        }
+        return self.send_session_command("POST", "privacy", body)
+
+
+    def get_global_privacy_control(self):
+        return self.send_session_command("GET", "privacy")
+
+    #[...]
+
+
     def execute_script(self, script, args=None):
         if args is None:
             args = []

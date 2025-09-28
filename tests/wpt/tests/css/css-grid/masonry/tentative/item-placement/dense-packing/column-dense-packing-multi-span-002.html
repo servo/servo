@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="column-dense-packing-multi-span-002-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+.masonry {
+    display: masonry;
+    item-tolerance: 0;
+    grid-template-columns: 10px 10px 20px 15px 5px;
+    grid-auto-flow: dense;
+}
+</style>
+<body>
+  <p>Ensure that dense-packing with multi-span items are placed into tracks with the same used size and the same number of tracks, and priority is given to tracks closest (but after) the auto-placement cursor.</p>
+  <div class="masonry">
+    <div style="background: lightskyblue; height: 20px; grid-column: 3" >
+      1
+    </div>
+    <div style="background: lightblue; height: 20px; grid-column: span 5" >
+      2
+    </div>
+    <div style="background: darkblue; height: 20px; grid-column: span 3;">
+      3
+    </div>
+    <div style="background: yellow; height: 20px; grid-column: span 2;" >
+      4
+    </div>
+  </div>
+</body>
+</html>

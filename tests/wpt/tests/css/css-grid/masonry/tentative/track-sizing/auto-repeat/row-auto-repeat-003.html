@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Checks that the min-height is reflected through the aspect-ratio for determining auto repeat tracks.</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="../../../../../reference/ref-filled-green-100px-square-only.html">
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<style>
+.masonry {
+    display: inline-masonry;
+    background: green;
+    aspect-ratio: 1/1;
+    masonry-direction: row;
+    grid-template-rows: repeat(auto-fill, 50px);
+    min-height: 60px;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class="masonry"></div>

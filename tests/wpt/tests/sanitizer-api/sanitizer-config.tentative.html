@@ -48,9 +48,11 @@ test(t => {
 
 test(t => {
   assert_false(new Sanitizer().get().dataAttributes);
-  assert_true(new Sanitizer({}).get().dataAttributes);
-  assert_true(new Sanitizer({dataAttributes: true}).get().dataAttributes);
-  assert_false(new Sanitizer({dataAttributes: false}).get().dataAttributes);
+  assert_true(new Sanitizer({ attributes: [] }).get().dataAttributes);
+  assert_false('dataAttributes' in new Sanitizer({}).get());
+  assert_false('dataAttributes' in new Sanitizer({ removeAttributes: [] }).get());
+  assert_true(new Sanitizer({ attributes: [], dataAttributes: true}).get().dataAttributes);
+  assert_false(new Sanitizer({ attributes: [], dataAttributes: false}).get().dataAttributes);
 
   let s = new Sanitizer();
   s.setDataAttributes(true);

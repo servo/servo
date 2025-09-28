@@ -1,10 +1,11 @@
 <!doctype html>
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <body>
-<div id="buffer" style="height: 1000px; width: 1000px;"></div>
+<div id="buffer" style="height: 1000px; width: 200vw;"></div>
 <div id="frag"></div>
-<div style="height: 1000px; width: 1000px;"></div>
+<div style="height: 200vh; width: 200vw;"></div>
 <script>
 promise_test(async t => {
   // Wait for after the load event so that the navigation doesn't get converted

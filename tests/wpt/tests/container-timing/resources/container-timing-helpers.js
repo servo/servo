@@ -21,11 +21,16 @@ function checkContainerSize(entry, size) {
   assert_equals(entry.size, size);
 }
 
-function finishOnElementTiming(t) {
-  const finish_observer = new PerformanceObserver(() => {
-    requestAnimationFrame(() => { t.done(); });
+function onElementTimingEvent(func) {
+  const finish_observer = new PerformanceObserver((entryList) => {
+    finish_observer.disconnect();
+    requestAnimationFrame(() => { func(); });
   });
   finish_observer.observe({ entryTypes: ['element'] });
+}
+
+function finishOnElementTiming(t) {
+  onElementTimingEvent(() => { t.done(); });
 }
 
 function addPaintingElementTimingAfterDoubleRAF(parent) {

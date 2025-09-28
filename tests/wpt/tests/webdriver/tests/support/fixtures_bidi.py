@@ -23,6 +23,10 @@ from webdriver.bidi.error import (
     UnderspecifiedStoragePartitionException
 )
 from webdriver.bidi.modules.input import Actions
+from webdriver.bidi.modules.network import (
+    Header,
+    NetworkStringValue,
+)
 from webdriver.bidi.modules.script import ContextTarget
 from webdriver.error import TimeoutException
 
@@ -896,9 +900,12 @@ async def setup_blocked_request(
         blocked_url=None,
         navigate=False,
         navigate_url=None,
+        has_preflight=None,
         **kwargs,
     ):
-        await setup_network_test(events=[f"network.{phase}"])
+        await setup_network_test(
+            events=[f"network.{phase}"], contexts=[context["context"]]
+        )
 
         if blocked_url is None:
             if phase == "authRequired":
@@ -924,7 +931,6 @@ async def setup_blocked_request(
         )
 
         events = []
-
         async def on_event(method, data):
             events.append(data)
 
@@ -948,14 +954,48 @@ async def setup_blocked_request(
         # be received before the blocked request.
         def check_has_blocked_request(_):
             assert len(events) >= 1, "No BiDi events were received"
-            assert any(
-                e["isBlocked"] is True for e in events), "Not all requests are blocked"
+            blocked_events = [e for e in events if e["isBlocked"] is True]
+            assert len(blocked_events) >= 1, "No blocked request found"
+            return blocked_events[0]
 
         wait = AsyncPoll(bidi_session, timeout=2)
-        await wait.until(check_has_blocked_request)
+        blocked_event = await wait.until(check_has_blocked_request)
 
-        [blocked_event] = [e for e in events if e["isBlocked"] is True]
         request = blocked_event["request"]["request"]
+        method = blocked_event["request"]["method"]
+
+        # If the test expects a preflight and the method is OPTIONS, handle the
+        # preflight first in order to be able to block the actual request.
+        if has_preflight and method == "OPTIONS":
+            # Clear the events array, the preflight request will be unblocked
+            # and wait for the next blocked request.
+            events = []
+
+            # Provide a basic preflight response to allow any CORS request.
+            await bidi_session.network.provide_response(
+                request=request,
+                status_code=204,
+                reason_phrase="No Content",
+                headers=[
+                    Header(
+                        name="Access-Control-Allow-Headers",
+                        value=NetworkStringValue("*"),
+                    ),
+                    Header(
+                        name="Access-Control-Allow-Origin",
+                        value=NetworkStringValue("*"),
+                    ),
+                    Header(
+                        name="Access-Control-Allow-Methods",
+                        value=NetworkStringValue("*"),
+                    ),
+                ],
+            )
+
+            wait = AsyncPoll(bidi_session, timeout=2)
+            blocked_event = await wait.until(check_has_blocked_request)
+
+            request = blocked_event["request"]["request"]
 
         if phase == "authRequired":
             blocked_auth_requests.append(request)

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="row-min-max-content-container-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+html,body {
+  color:black; background-color:white; font:15px/1 monospace; padding:0; margin:0;
+}
+
+.masonry {
+    display: masonry;
+    background: gray;
+    position: relative;
+    item-tolerance: 0;
+    masonry-direction: row;
+    grid-template-rows: auto auto auto;
+    padding: 10px;
+}
+
+.fourth-item {
+  grid-row: span 2;
+}
+
+.invisible {
+  visibility: hidden;
+}
+</style>
+<body>
+  <p>Ensure that containers with min and max-content constraints are sized correctly when all items inside are sized as min/max-content.</p>
+  <div class="masonry" style="margin-bottom: 10px; width: min-content;">
+    <div class="first-item invisible" style="width: min-content;">
+      Number 1
+    </div>
+    <div class="second-item invisible" style="width: min-content;">
+      Number 2
+    </div>
+    <div class="third-item invisible" style="width: min-content;">
+      Number 3
+    </div>
+    <div class="fourth-item invisible" style="width: min-content;">
+      Number 4
+    </div>
+  </div>
+  <div class="masonry" style="width: max-content;">
+    <div class="first-item invisible" style="width: max-content;">
+      Number 1
+    </div>
+    <div class="second-item invisible" style="width: max-content;">
+      Number 2
+    </div>
+    <div class="third-item invisible" style="width: max-content;">
+      Number 3
+    </div>
+    <div class="fourth-item invisible" style="width: max-content;">
+      Number 4
+    </div>
+  </div>
+</body>
+</html>

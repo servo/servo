@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<style>
+.grid {
+    display: grid;
+    grid-template-columns: repeat(5, 50px);
+    grid-auto-flow: dense;
+}
+</style>
+<body>
+  <p>Ensure that dense-packing in masonry properly handles "split" track openings.</p>
+  <div class="grid">
+    <div style="background: brown; height: 80px;"></div>
+    <div style="background: brown; height: 20px; grid-column: span 2"></div>
+    <div style="background: brown; height: 40px;"></div>
+    <div style="background: brown; height: 100px;"></div>
+    <div style="background: brown; height: 10px; grid-column: span 5;"></div>
+    <div style="background: pink; height: 10px; grid-column: span 4; transform: translateY(-30px);"></div>
+    <div style="background: lightgreen; height: 10px; grid-column: 2 / span 2; transform: translateY(-100px);"></div>
+  </div>
+</body>
+</html>

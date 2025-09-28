@@ -34,7 +34,7 @@
     expireCookie(expectedCookieAndAttributes);
     assert_false(documentHasCookie(expectedCookieAndValue));
     const authResponseAfterExpiry = await fetch('verify_authenticated.py');
-    assert_equals(authResponseAfterExpiry.status, 401);
+    assert_equals(authResponseAfterExpiry.status, 403);
     assert_false(documentHasCookie(expectedCookieAndValue));
   }, "An empty response fails on registration");
 

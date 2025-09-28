@@ -2,13 +2,10 @@
 <link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
 <link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-pos">
 <style>
-  #query_elm {
+  .query_elm {
     position: absolute;
     left: anchor(--a1 left);
     top: anchor(--a1 top);
-    width: 80px;
-    height: 100px;
-    background: green;
   }
 </style>
 <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
@@ -19,7 +16,16 @@
     <div style="position:relative; inline-size:100px; block-size:100px;">
       <div style="block-size:20px;"></div>
       <div style="anchor-name:--a1; inline-size:50px; block-size:70px;"></div>
-      <div id="query_elm"></div>
+      <!-- The containing block of this anchored element is inside the
+           fragmentation context. -->
+      <div class="query_elm" style="width:100%; height:100%;">
+        <div style="block-size:50px; background:green;"></div>
+      </div>
+    </div>
+    <!-- The containing block of this anchored element is *not* inside the
+         fragmentation context. Fill what's left. -->
+    <div class="query_elm" style="width:80px; height:100px;">
+      <div style="block-size:30px; inline-size:100px; background:green;"></div>
     </div>
   </div>
 </div>

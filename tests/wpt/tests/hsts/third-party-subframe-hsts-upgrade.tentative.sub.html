@@ -2,6 +2,7 @@
 <meta charset=utf-8>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
 <body>
 <script>
   // Check HSTS tracking prevention functionality that is common to all major
@@ -25,9 +26,12 @@
   //    since it is top level and also not third party it should pass for all
   //    the browsers.
 
-  const CURRENT_HOST_HTTP_PORT = "{{hosts[][]}}:{{ports[http][0]}}";
-  const CURRENT_HOST_HTTPS_PORT = "{{hosts[][]}}:{{ports[https][0]}}";
-  const ALTERNATE_HOST_HTTPS_PORT = "{{hosts[alt][]}}:{{ports[https][0]}}";
+  const CURRENT_HOST_HTTP_PORT = get_host_info().ORIGINAL_HOST +
+  get_host_info().HTTP_PORT_ELIDED;
+  const CURRENT_HOST_HTTPS_PORT = get_host_info().ORIGINAL_HOST +
+  get_host_info().HTTPS_PORT_ELIDED;
+  const ALTERNATE_HOST_HTTPS_PORT = get_host_info().NOTSAMESITE_HOST +
+  get_host_info().HTTPS_PORT_ELIDED;
 
   promise_test(async() => {
 

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<title>@container: scroll-state(direction) user touch scroll</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#direction">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/css/css-conditional/container-queries/support/cq-testcommon.js"></script>
+<style>
+  #scroller {
+    width: 200px;
+    height: 200px;
+    container-type: scroll-state;
+    overflow-y: scroll;
+  }
+  #filler {
+    height: 600px;
+  }
+  #target {
+    --none: no;
+    --y: no;
+    @container scroll-state(direction: none) {
+      --none: yes;
+    }
+    @container scroll-state(direction: y) {
+      --y: yes;
+    }
+  }
+</style>
+<div id="scroller">
+  <div id="filler">
+    <div id="target"></div>
+  </div>
+</div>
+<script>
+  setup(() => assert_implements_scroll_state_container_queries());
+
+  function touch_scroll(start_pos, end_pos, duration) {
+    return new test_driver.Actions()
+        .addPointer("TestPointer", "touch")
+        .pointerMove(Math.round(start_pos.x), Math.round(start_pos.y))
+        .pointerDown()
+        .addTick()
+        .pause(200)
+        .pointerMove(Math.round(end_pos.x), Math.round(end_pos.y), {duration: duration})
+        .addTick()
+        .pointerUp()
+        .send();
+  }
+
+  promise_test(async t => {
+    // Scrollbar element position
+    const start_pos = {
+      x: 100,
+      y: 100,
+    };
+    const end_pos = { x: 100, y: 0 };
+
+    await touch_scroll(start_pos, end_pos, 1000);
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(target).getPropertyValue("--y"), "no");
+
+  }, "Panning gesture scroll is an absolute scroll");
+
+  promise_test(async t => {
+    // Scrollbar element position
+    const start_pos = {
+      x: 100,
+      y: 100,
+    };
+    const end_pos = { x: 100, y: 0 };
+
+    await touch_scroll(start_pos, end_pos, 10);
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(target).getPropertyValue("--y"), "yes");
+
+  }, "Fling gesture scroll is a relative scroll");
+
+</script>

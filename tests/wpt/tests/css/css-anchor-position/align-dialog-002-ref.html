@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>Tests the dialog keyword is parsed and computed as specified</title>
+<link rel="author" href="mailto:tabatkins@google.com">
+
+<style>
+.container {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border: 1px solid;
+  margin: 1em;
+  anchor-scope: all;
+}
+.anchor {
+  border: solid blue 15px;
+  width: 0;
+  margin: 25px;
+  anchor-name: --foo;
+}
+.abspos {
+  position: absolute;
+  position-anchor: --foo;
+  border: solid orange 10px;
+  inset: 0;
+}
+</style>
+
+/* Should be centered, no position-area */
+<div class="container">
+  <div class="anchor"></div>
+  <div class="abspos" style="place-self: center"></div>
+</div>
+
+/* Centered in an offset box */
+<div class="container">
+  <div class="anchor"></div>
+  <div class="abspos" style="place-self: center; left: anchor(left); top: anchor(top)"></div>
+</div>
+
+/* Anchor-centered on the left side. */
+<div class="container">
+  <div class="anchor"></div>
+  <div class="abspos" style="place-self: normal; position-area: left span-all"></div>
+</div>

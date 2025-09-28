@@ -10,7 +10,8 @@ partial interface MediaStreamTrack {
 enum RTCDegradationPreference {
   "maintain-framerate",
   "maintain-resolution",
-  "balanced"
+  "balanced",
+  "maintain-framerate-and-resolution"
 };
 
 partial dictionary RTCRtpSendParameters {
