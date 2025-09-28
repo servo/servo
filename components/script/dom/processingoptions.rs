@@ -320,7 +320,7 @@ pub(crate) fn extract_links_from_headers(headers: &Option<Serde<HeaderMap>>) -> 
 
 /// <https://html.spec.whatwg.org/multipage/#process-link-headers>
 pub(crate) fn process_link_headers(
-    link_headers: &Vec<LinkHeader>,
+    link_headers: &[LinkHeader],
     document: &Document,
     phase: LinkProcessingPhase,
 ) {

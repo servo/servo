@@ -956,7 +956,7 @@ impl ParserContext {
                 .upcast::<GlobalScope>()
                 .task_manager()
                 .networking_task_source()
-                .queue(task!(unhandled_rejection_event: move || {
+                .queue(task!(process_link_headers_task: move || {
                     process_link_headers(&link_headers, &document.root(), LinkProcessingPhase::Media);
                 }));
         }
