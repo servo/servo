@@ -12876,6 +12876,26 @@
      ]
     ]
    },
+   "input-events": {
+    "input-events-textarea-cut-paste.html": [
+     "7e1151d222b5a5210921345a3e60434194cd1794",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
+    "input-events-textarea-typing.html": [
+     "19d8f6be9537f4a286471ddd483a75c01a34e912",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ]
+   },
    "mozilla": {
     "Channel_postMessage_with_second_transfer_in_timeout.window.js": [
      "4ee3f64beb095963f06fc53c1d53dad2244109f9",

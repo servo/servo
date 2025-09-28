@@ -29,7 +29,7 @@ use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::document_embedder_controls::ControlElement;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
+use crate::dom::event::Event;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
@@ -46,7 +46,7 @@ use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 use crate::textinput::{
-    ClipboardEventReaction, Direction, KeyReaction, Lines, SelectionDirection, TextInput,
+    ClipboardEventFlags, Direction, IsComposing, KeyReaction, Lines, SelectionDirection, TextInput,
     UTF8Bytes, UTF16CodeUnits,
 };
 
@@ -485,6 +485,31 @@ impl HTMLTextAreaElement {
     fn selection(&self) -> TextControlSelection<'_, Self> {
         TextControlSelection::new(self, &self.textinput)
     }
+
+    fn handle_key_reaction(&self, action: KeyReaction, event: &Event) {
+        match action {
+            KeyReaction::TriggerDefaultAction => (),
+            KeyReaction::DispatchInput(text, is_composing, input_type) => {
+                if event.IsTrusted() {
+                    self.textinput.borrow().queue_input_event(
+                        self.upcast(),
+                        text,
+                        is_composing,
+                        input_type,
+                    );
+                }
+                self.value_dirty.set(true);
+                self.update_placeholder_shown_state();
+                self.upcast::<Node>().dirty(NodeDamage::Other);
+                event.mark_as_handled();
+            },
+            KeyReaction::RedrawSelection => {
+                self.upcast::<Node>().dirty(NodeDamage::Other);
+                event.mark_as_handled();
+            },
+            KeyReaction::Nothing => (),
+        }
+    }
 }
 
 impl VirtualMethods for HTMLTextAreaElement {
@@ -664,31 +689,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                 // This can't be inlined, as holding on to textinput.borrow_mut()
                 // during self.implicit_submission will cause a panic.
                 let action = self.textinput.borrow_mut().handle_keydown(kevent);
-                match action {
-                    KeyReaction::TriggerDefaultAction => (),
-                    KeyReaction::DispatchInput => {
-                        if event.IsTrusted() {
-                            self.owner_global()
-                                .task_manager()
-                                .user_interaction_task_source()
-                                .queue_event(
-                                    self.upcast(),
-                                    atom!("input"),
-                                    EventBubbles::Bubbles,
-                                    EventCancelable::NotCancelable,
-                                );
-                        }
-                        self.value_dirty.set(true);
-                        self.update_placeholder_shown_state();
-                        self.upcast::<Node>().dirty(NodeDamage::Other);
-                        event.mark_as_handled();
-                    },
-                    KeyReaction::RedrawSelection => {
-                        self.upcast::<Node>().dirty(NodeDamage::Other);
-                        event.mark_as_handled();
-                    },
-                    KeyReaction::Nothing => (),
-                }
+                self.handle_key_reaction(action, event);
             }
         } else if event.type_() == atom!("keypress") && !event.DefaultPrevented() {
             // keypress should be deprecated and replaced by beforeinput.
@@ -700,16 +701,18 @@ impl VirtualMethods for HTMLTextAreaElement {
         {
             if let Some(compositionevent) = event.downcast::<CompositionEvent>() {
                 if event.type_() == atom!("compositionend") {
-                    let _ = self
+                    let action = self
                         .textinput
                         .borrow_mut()
                         .handle_compositionend(compositionevent);
+                    self.handle_key_reaction(action, event);
                     self.upcast::<Node>().dirty(NodeDamage::Other);
                 } else if event.type_() == atom!("compositionupdate") {
-                    let _ = self
+                    let action = self
                         .textinput
                         .borrow_mut()
                         .handle_compositionupdate(compositionevent);
+                    self.handle_key_reaction(action, event);
                     self.upcast::<Node>().dirty(NodeDamage::Other);
                 }
                 event.mark_as_handled();
@@ -719,23 +722,21 @@ impl VirtualMethods for HTMLTextAreaElement {
                 .textinput
                 .borrow_mut()
                 .handle_clipboard_event(clipboard_event);
-            if reaction.contains(ClipboardEventReaction::FireClipboardChangedEvent) {
+            let flags = reaction.flags;
+            if flags.contains(ClipboardEventFlags::FireClipboardChangedEvent) {
                 self.owner_document()
                     .event_handler()
                     .fire_clipboardchange_event(can_gc);
             }
-            if reaction.contains(ClipboardEventReaction::QueueInputEvent) {
-                self.owner_global()
-                    .task_manager()
-                    .user_interaction_task_source()
-                    .queue_event(
-                        self.upcast(),
-                        atom!("input"),
-                        EventBubbles::Bubbles,
-                        EventCancelable::NotCancelable,
-                    );
+            if flags.contains(ClipboardEventFlags::QueueInputEvent) {
+                self.textinput.borrow().queue_input_event(
+                    self.upcast(),
+                    reaction.text,
+                    IsComposing::NotComposing,
+                    reaction.input_type,
+                );
             }
-            if !reaction.is_empty() {
+            if !flags.is_empty() {
                 self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
             }
         } else if let Some(event) = event.downcast::<FocusEvent>() {

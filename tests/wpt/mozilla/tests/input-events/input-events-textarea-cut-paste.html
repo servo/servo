@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Cut and Paste should trigger corresponding InputEvent</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script type="text/javascript" src="pointerevent_support.js"></script>
+<textarea id="test1_plain">plain</textarea>
+<script>
+
+function resolveWhen(condition) {
+  return new Promise((resolve, reject) => {
+    function tick() {
+      if (condition())
+        resolve();
+      else
+        requestAnimationFrame(tick.bind(this));
+    }
+    tick();
+  });
+}
+
+let modifier_key = "\uE009";
+if(navigator.platform.includes('Mac'))
+    modifier_key = "\uE03D";
+const commands = {
+    COPY: 'copy',
+    CUT: 'cut',
+    PASTE: 'paste',
+}
+function selectTextCommand(target, command) {
+  let command_key = "";
+  if(command == "copy")
+    command_key = "c";
+  else if (command == "cut")
+    command_key = "x";
+  else if (command == "paste")
+    command_key = "v";
+  target.focus();
+  return new test_driver.Actions()
+      .keyDown(modifier_key)
+      .keyDown("a")
+      .keyUp("a")
+      .keyDown(command_key)
+      .keyUp(command_key)
+      .keyUp(modifier_key)
+      .send();
+}
+
+function selectTextCutAndPaste(target1, target2) {
+  return selectTextCommand(target1, commands.CUT).then(() => {
+    return selectTextCommand(target2, commands.PASTE);
+  })
+}
+
+promise_test(async test => {
+  const expectedEventLog = ['input-deleteByCut', 'input-insertFromPaste'];
+  const actualEventLog = [];
+  const text1 = document.getElementById("test1_plain");
+
+  text1.addEventListener('input', test.step_func(function() {
+      actualEventLog.push(`${event.type}-${event.inputType || '[null]'}`);
+  }));
+  await selectTextCutAndPaste(text1, text1);
+  await resolveWhen(() => { return actualEventLog.length == expectedEventLog.length });
+  assert_array_equals(actualEventLog, expectedEventLog,
+                      `Expected: ${expectedEventLog}; Actual: ${actualEventLog}.`);
+}, 'Event order and data on textarea.');
+</script>
