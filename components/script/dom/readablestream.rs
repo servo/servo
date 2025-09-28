@@ -2360,6 +2360,21 @@ pub(crate) fn get_read_promise_bytes(
     }
 }
 
+/// Convert a raw stream `chunk` JS value to `Vec<u8>`.
+/// This mirrors the conversion used inside `get_read_promise_bytes`,
+/// but operates on the raw chunk (no `{ value, done }` wrapper).
+pub(crate) fn bytes_from_chunk_jsval(
+    cx: SafeJSContext,
+    chunk: &RootedTraceableBox<Heap<JSVal>>,
+    can_gc: CanGc,
+) -> Result<Vec<u8>, Error> {
+    match Vec::<u8>::safe_from_jsval(cx, chunk.handle(), ConversionBehavior::EnforceRange, can_gc) {
+        Ok(ConversionResult::Success(vec)) => Ok(vec),
+        Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.to_string())),
+        _ => Err(Error::Type("Unknown format for bytes read.".to_string())),
+    }
+}
+
 /// <https://streams.spec.whatwg.org/#rs-transfer>
 impl Transferable for ReadableStream {
     type Index = MessagePortIndex;

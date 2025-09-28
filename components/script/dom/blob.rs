@@ -251,7 +251,6 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
     /// <https://w3c.github.io/FileAPI/#arraybuffer-method-algo>
     fn ArrayBuffer(&self, in_realm: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let cx = GlobalScope::get_cx();
-        let global = GlobalScope::from_safe_context(cx, in_realm);
         let promise = Promise::new_in_current_realm(in_realm, can_gc);
 
         // 1. Let stream be the result of calling get stream on this.
@@ -272,7 +271,6 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
         let failure_promise = promise.clone();
         reader.read_all_bytes(
             cx,
-            &global,
             Rc::new(move |bytes| {
                 rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
                 // 4. Return the result of transforming promise by a fulfillment handler that returns a new
@@ -289,7 +287,6 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
             Rc::new(move |cx, value| {
                 failure_promise.reject(cx, value, can_gc);
             }),
-            in_realm,
             can_gc,
         );
 
@@ -299,7 +296,6 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
     /// <https://w3c.github.io/FileAPI/#dom-blob-bytes>
     fn Bytes(&self, in_realm: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let cx = GlobalScope::get_cx();
-        let global = GlobalScope::from_safe_context(cx, in_realm);
         let p = Promise::new_in_current_realm(in_realm, can_gc);
 
         // 1. Let stream be the result of calling get stream on this.
@@ -320,7 +316,6 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
         let p_failure = p.clone();
         reader.read_all_bytes(
             cx,
-            &global,
             Rc::new(move |bytes| {
                 rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
                 let arr = create_buffer_source::<Uint8>(cx, bytes, js_object.handle_mut(), can_gc)
@@ -330,7 +325,6 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
             Rc::new(move |cx, v| {
                 p_failure.reject(cx, v, can_gc);
             }),
-            in_realm,
             can_gc,
         );
         p
