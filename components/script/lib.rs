@@ -69,6 +69,7 @@ pub mod textinput;
 mod timers;
 mod webdriver_handlers;
 mod window_named_properties;
+mod xpath;
 
 mod unminify;
 
