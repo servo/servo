@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::LazyCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
@@ -105,31 +106,38 @@ impl MutationObserver {
         if !target.global().as_window().get_exists_mut_observer() {
             return;
         }
-        // Step 1
-        let mut interested_observers: Vec<(DomRoot<MutationObserver>, Option<DOMString>)> = vec![];
+        // Step 1 Let interestedObservers be an empty map.
+        let mut interested_observers: HashMap<DomRoot<MutationObserver>, Option<DOMString>> =
+            HashMap::new();
 
-        // Step 2 & 3
+        // Step 2 Let nodes be the inclusive ancestors of target.
+        // Step 3 For each node in nodes ...
         for node in target.inclusive_ancestors(ShadowIncluding::No) {
             let registered = node.registered_mutation_observers();
             if registered.is_none() {
                 continue;
             }
 
+            // Step 3 ... and then for each registered of node’s registered observer list:
             for registered in &*registered.unwrap() {
+                // 3.2 "1": node is not target and options["subtree"] is false
                 if &*node != target && !registered.options.subtree {
                     continue;
                 }
 
                 match *attr_type {
+                    // 3.2 "2", "3"
                     Mutation::Attribute {
                         ref name,
                         ref namespace,
                         ref old_value,
                     } => {
-                        // Step 3.1
+                        // 3.1.2 "2": type is "attributes" and options["attributes"] either does not exist or is false
                         if !registered.options.attributes {
                             continue;
                         }
+                        // 3.1.2 "3": type is "attributes", options["attributeFilter"] exists,
+                        // and options["attributeFilter"] does not contain name or namespace is non-null
                         if !registered.options.attribute_filter.is_empty() {
                             if *namespace != ns!() {
                                 continue;
@@ -143,57 +151,51 @@ impl MutationObserver {
                                 continue;
                             }
                         }
-                        // Step 3.1.2
-                        let paired_string = if registered.options.attribute_old_value {
-                            old_value.clone()
+                        // 3.2.1 Let mo be registered’s observer.
+                        let mo = registered.observer.clone();
+                        // 3.2.2 If interestedObservers[mo] does not exist, then set interestedObservers[mo] to null.
+                        if registered.options.attribute_old_value {
+                            // 3.2.3 ... type is "attributes" and options["attributeOldValue"] is true ...
+                            interested_observers.insert(mo, old_value.clone());
                         } else {
-                            None
-                        };
-                        // Step 3.1.1
-                        let idx = interested_observers
-                            .iter()
-                            .position(|(o, _)| std::ptr::eq(&**o, &*registered.observer));
-                        if let Some(idx) = idx {
-                            interested_observers[idx].1 = paired_string;
-                        } else {
-                            interested_observers
-                                .push((DomRoot::from_ref(&*registered.observer), paired_string));
+                            // 3.2.2 If interestedObservers[mo] does not exist, then set interestedObservers[mo] to null.
+                            interested_observers.entry(mo).or_insert(None);
                         }
                     },
+                    // 3.2 "4"
                     Mutation::CharacterData { ref old_value } => {
+                        // 3.2 "4": type is "characterData" and options["characterData"] either does not exist or is false
                         if !registered.options.character_data {
                             continue;
                         }
-                        // Step 3.1.2
-                        let paired_string = if registered.options.character_data_old_value {
-                            Some(old_value.clone())
+                        // 3.2.1 Let mo be registered’s observer.
+                        let mo = registered.observer.clone();
+                        if registered.options.character_data_old_value {
+                            // 3.2.3 ... type is "characterData" and options["characterDataOldValue"] is true
+                            interested_observers.insert(mo, Some(old_value.clone()));
                         } else {
-                            None
-                        };
-                        // Step 3.1.1
-                        let idx = interested_observers
-                            .iter()
-                            .position(|(o, _)| std::ptr::eq(&**o, &*registered.observer));
-                        if let Some(idx) = idx {
-                            interested_observers[idx].1 = paired_string;
-                        } else {
-                            interested_observers
-                                .push((DomRoot::from_ref(&*registered.observer), paired_string));
+                            // 3.2.2 If interestedObservers[mo] does not exist, then set interestedObservers[mo] to null.
+                            interested_observers.entry(mo).or_insert(None);
                         }
                     },
+                    // 3.2 "5"
                     Mutation::ChildList { .. } => {
+                        // 3.2 "5": type is "childList" and options["childList"] is false
                         if !registered.options.child_list {
                             continue;
                         }
-                        interested_observers.push((DomRoot::from_ref(&*registered.observer), None));
+                        // 3.2.1 Let mo be registered’s observer.
+                        let mo = registered.observer.clone();
+                        // 3.2.2 If interestedObservers[mo] does not exist, then set interestedObservers[mo] to null.
+                        interested_observers.entry(mo).or_insert(None);
                     },
                 }
             }
         }
 
-        // Step 4
-        for (observer, paired_string) in interested_observers {
-            // Steps 4.1-4.7
+        // Step 4 For each observer → mappedOldValue of interestedObservers:
+        for (observer, mapped_old_value) in interested_observers {
+            // Step 4.1 Let record be a new MutationRecord object ...
             let record = match *attr_type {
                 Mutation::Attribute {
                     ref name,
@@ -209,12 +211,12 @@ impl MutationObserver {
                         target,
                         name,
                         namespace,
-                        paired_string,
+                        mapped_old_value,
                         CanGc::note(),
                     )
                 },
                 Mutation::CharacterData { .. } => {
-                    MutationRecord::character_data_mutated(target, paired_string, CanGc::note())
+                    MutationRecord::character_data_mutated(target, mapped_old_value, CanGc::note())
                 },
                 Mutation::ChildList {
                     ref added,
@@ -230,12 +232,13 @@ impl MutationObserver {
                     CanGc::note(),
                 ),
             };
-            // Step 4.8
+            // Step 4.2 Enqueue record to observer’s record queue.
             observer.record_queue.borrow_mut().push(record);
+            // Step 4.3 Append observer to the surrounding agent’s pending mutation observers.
             ScriptThread::mutation_observers().add_mutation_observer(&observer);
         }
 
-        // Step 5
+        // Step 5 Queue a mutation observer microtask.
         let mutation_observers = ScriptThread::mutation_observers();
         mutation_observers.queue_mutation_observer_microtask(ScriptThread::microtask_queue());
     }
