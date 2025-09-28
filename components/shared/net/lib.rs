@@ -421,8 +421,8 @@ pub struct ResourceThreads {
 }
 
 impl ResourceThreads {
-    pub fn new(c: CoreResourceThread) -> ResourceThreads {
-        ResourceThreads { core_thread: c }
+    pub fn new(core_thread: CoreResourceThread) -> ResourceThreads {
+        ResourceThreads { core_thread }
     }
 
     pub fn clear_cache(&self) {

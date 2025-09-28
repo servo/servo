@@ -22,12 +22,12 @@ pub struct StorageThreads {
 
 impl StorageThreads {
     pub fn new(
-        s: GenericSender<StorageThreadMsg>,
-        i: IpcSender<IndexedDBThreadMsg>,
+        storage_thread: GenericSender<StorageThreadMsg>,
+        idb_thread: IpcSender<IndexedDBThreadMsg>,
     ) -> StorageThreads {
         StorageThreads {
-            storage_thread: s,
-            idb_thread: i,
+            storage_thread,
+            idb_thread,
         }
     }
 }
