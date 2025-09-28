@@ -193,7 +193,7 @@ pub(crate) struct WorkletGlobalScopeInit {
     pub(crate) to_script_thread_sender: Sender<MainThreadScriptMsg>,
     /// Channel to a resource thread
     pub(crate) resource_threads: ResourceThreads,
-    /// Channel to a storage thread
+    /// Channels to the [`StorageThreads`].
     pub(crate) storage_threads: StorageThreads,
     /// Channel to the memory profiler
     pub(crate) mem_profiler_chan: mem::ProfilerChan,
