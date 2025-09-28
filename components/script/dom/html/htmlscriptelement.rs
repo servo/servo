@@ -943,8 +943,8 @@ impl HTMLScriptElement {
                         base_url.clone(),
                         self.id,
                         options,
-                        can_gc,
                         self.line_number,
+                        can_gc,
                     );
                 },
                 ScriptType::ImportMap => {

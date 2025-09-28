@@ -458,7 +458,6 @@ impl ModuleTree {
     /// Step 7-11.
     /// Although the CanGc argument appears unused, it represents the GC operations that
     /// can occur as part of compiling a script.
-    
     fn compile_module_script(
         &self,
         global: &GlobalScope,
@@ -468,15 +467,14 @@ impl ModuleTree {
         options: ScriptFetchOptions,
         mut module_script: RustMutableHandleObject,
         inline: bool,
-        can_gc: CanGc,
+        line_number: u64,
         introduction_type: Option<&'static CStr>,
-        line_no: u64,
+        can_gc: CanGc,
     ) -> Result<(), RethrowError> {
         let cx = GlobalScope::get_cx();
         let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
-        let line_no_u32: u32 = line_no as u32;
 
-        let mut compile_options = unsafe { CompileOptionsWrapper::new(*cx, url.as_str(), line_no_u32) };
+        let mut compile_options = unsafe { CompileOptionsWrapper::new(*cx, url.as_str(), line_number as u32) };
         if let Some(introduction_type) = introduction_type {
             compile_options.set_introduction_type(introduction_type);
         }
@@ -1344,9 +1342,9 @@ impl FetchResponseListener for ModuleContext {
                     self.options.clone(),
                     compiled_module.handle_mut(),
                     false,
-                    CanGc::note(),
+                    1, // for non-inline scripts, the relative location is the absolute location since the script is located on separate file. Therefore, we can hardwire the value 1 here.
                     self.introduction_type,
-                    1
+                    CanGc::note(),
                 );
 
                 match compiled_module_result {
@@ -1894,8 +1892,8 @@ pub(crate) fn fetch_inline_module_script(
     url: ServoUrl,
     script_id: ScriptId,
     options: ScriptFetchOptions,
+    line_number: u64,
     can_gc: CanGc,
-    line_no: u64,
 ) {
     let global = owner.global();
     let is_external = false;
@@ -1911,9 +1909,9 @@ pub(crate) fn fetch_inline_module_script(
         options.clone(),
         compiled_module.handle_mut(),
         true,
-        can_gc,
+        line_number,
         Some(IntroductionType::INLINE_SCRIPT),
-        line_no,
+        can_gc,
     );
 
     match compiled_module_result {
