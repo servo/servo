@@ -944,6 +944,7 @@ impl HTMLScriptElement {
                         self.id,
                         options,
                         can_gc,
+                        self.line_number,
                     );
                 },
                 ScriptType::ImportMap => {
