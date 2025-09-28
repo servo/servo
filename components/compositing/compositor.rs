@@ -1263,7 +1263,9 @@ impl IOCompositor {
             let x = rect.origin.x as i32;
             // We need to convert to the bottom-left origin coordinate
             // system used by OpenGL
-            let y = (size.height as f32 - rect.origin.y - rect.size.height) as i32;
+            // If dpi > 1, y can be computed to be -1 due to rounding issue, resulting in panic.
+            // https://github.com/servo/servo/issues/39306#issuecomment-3342204869
+            let y = 0.max((size.height as f32 - rect.origin.y - rect.size.height) as i32);
             let w = rect.size.width as i32;
             let h = rect.size.height as i32;
 
