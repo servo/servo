@@ -66,7 +66,7 @@ pub trait PlatformFontMethods: Sized {
         pt_size: Option<Au>,
         variations: &[FontVariation],
         data: &Option<FontData>,
-        synthetic_bold: Option<bool>,
+        synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let template = template.borrow();
         let font_identifier = template.identifier.clone();
@@ -93,7 +93,7 @@ pub trait PlatformFontMethods: Sized {
         font_identifier: LocalFontIdentifier,
         pt_size: Option<Au>,
         variations: &[FontVariation],
-        synthetic_bold: Option<bool>,
+        synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str>;
 
     fn new_from_data(
@@ -101,7 +101,7 @@ pub trait PlatformFontMethods: Sized {
         data: &FontData,
         pt_size: Option<Au>,
         variations: &[FontVariation],
-        synthetic_bold: Option<bool>,
+        synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str>;
 
     /// Get a [`FontTemplateDescriptor`] from a [`PlatformFont`]. This is used to get
@@ -285,7 +285,7 @@ impl Font {
             Some(descriptor.pt_size),
             &descriptor.variation_settings,
             &data,
-            Some(synthetic_bold),
+            synthetic_bold,
         )?;
         let metrics = handle.metrics();
 

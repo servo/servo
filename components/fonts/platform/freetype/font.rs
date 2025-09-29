@@ -68,7 +68,7 @@ impl PlatformFontMethods for PlatformFont {
         font_data: &FontData,
         requested_size: Option<Au>,
         variations: &[FontVariation],
-        synthetic_bold: Option<bool>,
+        mut synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
         let data: &[u8] = font_data.as_ref();
@@ -81,9 +81,14 @@ impl PlatformFontMethods for PlatformFont {
             None => (Au::zero(), Au::zero()),
         };
 
-        let is_variable_font = FT_HAS_MULTIPLE_MASTERS(face.as_ptr());
-        let synthetic_bold =
-            synthetic_bold.is_some_and(|val| if is_variable_font { false } else { val });
+        // Variable fonts, where the font designer has provided one or more axes of
+        // variation do not count as font synthesis and their use is not affected by
+        // the font-synthesis property.
+        //
+        // <https://www.w3.org/TR/css-fonts-4/#font-synthesis-intro>
+        if FT_HAS_MULTIPLE_MASTERS(face.as_ptr()) {
+            synthetic_bold = false;
+        }
 
         Ok(PlatformFont {
             face: ReentrantMutex::new(face),
@@ -99,7 +104,7 @@ impl PlatformFontMethods for PlatformFont {
         font_identifier: LocalFontIdentifier,
         requested_size: Option<Au>,
         variations: &[FontVariation],
-        synthetic_bold: Option<bool>,
+        mut synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
         let filename = CString::new(&*font_identifier.path).expect("filename contains NUL byte!");
@@ -123,9 +128,14 @@ impl PlatformFontMethods for PlatformFont {
             return Err("Could not memory map");
         };
 
-        let is_variable_font = FT_HAS_MULTIPLE_MASTERS(face.as_ptr());
-        let synthetic_bold =
-            synthetic_bold.is_some_and(|val| if is_variable_font { false } else { val });
+        // Variable fonts, where the font designer has provided one or more axes of
+        // variation do not count as font synthesis and their use is not affected by
+        // the font-synthesis property.
+        //
+        // <https://www.w3.org/TR/css-fonts-4/#font-synthesis-intro>
+        if FT_HAS_MULTIPLE_MASTERS(face.as_ptr()) {
+            synthetic_bold = false;
+        }
 
         Ok(PlatformFont {
             face: ReentrantMutex::new(face),

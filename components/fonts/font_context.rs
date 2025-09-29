@@ -867,7 +867,7 @@ impl RemoteWebFontDownloader {
 
         let url: ServoUrl = self.url.clone().into();
         let identifier = FontIdentifier::Web(url.clone());
-        let Ok(handle) = PlatformFont::new_from_data(identifier, &font_data, None, &[], None)
+        let Ok(handle) = PlatformFont::new_from_data(identifier, &font_data, None, &[], false)
         else {
             return false;
         };
