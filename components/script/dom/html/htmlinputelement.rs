@@ -67,7 +67,7 @@ use crate::dom::element::{
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
-use crate::dom::filelist::{FileList, LayoutFileListHelpers};
+use crate::dom::filelist::FileList;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmldatalistelement::HTMLDataListElement;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -101,7 +101,7 @@ use crate::textinput::{
 const DEFAULT_SUBMIT_VALUE: &str = "Submit";
 const DEFAULT_RESET_VALUE: &str = "Reset";
 const PASSWORD_REPLACEMENT_CHAR: char = '●';
-const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
+const DEFAULT_FILE_INPUT_VALUE: &str = "No file selected.";
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -165,10 +165,22 @@ struct InputTypeColorShadowTree {
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+/// Contains references to the elements in the shadow tree for `<input type=file>`.
+///
+/// The shadow tree consists of a div styled as a button and a div for holding the status
+/// about selected files (none selected / filename of selected file / number selected respectively).
+struct InputTypeFileShadowTree {
+    choose_button: Dom<Element>,
+    status_container: Dom<Element>,
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[non_exhaustive]
 enum ShadowTree {
     Text(InputTypeTextShadowTree),
     Color(InputTypeColorShadowTree),
+    File(InputTypeFileShadowTree),
     // TODO: Add shadow trees for other input types (range etc) here
 }
 
@@ -1294,6 +1306,82 @@ impl HTMLInputElement {
         .expect("UA shadow tree was not created")
     }
 
+    fn create_file_shadow_tree(&self, can_gc: CanGc) {
+        let document = self.owner_document();
+        let shadow_root = self.shadow_root(can_gc);
+        Node::replace_all(None, shadow_root.upcast::<Node>(), can_gc);
+
+        let choose_button_value = Element::create(
+            QualName::new(None, ns!(html), local_name!("div")),
+            None,
+            &document,
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
+            None,
+            can_gc,
+        );
+
+        let button_text_node =
+            document.CreateTextNode(DOMString::from_string("Browse...".to_string()), can_gc);
+        choose_button_value
+            .upcast::<Node>()
+            .AppendChild(button_text_node.upcast::<Node>(), can_gc)
+            .unwrap();
+
+        shadow_root
+            .upcast::<Node>()
+            .AppendChild(choose_button_value.upcast::<Node>(), can_gc)
+            .unwrap();
+
+        let status_text_container = create_ua_widget_div_with_text_node(
+            &document,
+            shadow_root.upcast::<Node>(),
+            PseudoElement::ServoTextControlInnerEditor,
+            true,
+            can_gc,
+        );
+
+        choose_button_value
+            .upcast::<Node>()
+            .set_implemented_pseudo_element(PseudoElement::FileSelectorButton);
+
+        let _ = self
+            .shadow_tree
+            .borrow_mut()
+            .insert(ShadowTree::File(InputTypeFileShadowTree {
+                choose_button: choose_button_value.as_traced(),
+                status_container: status_text_container.as_traced(),
+            }));
+    }
+
+    /// Get a handle to the shadow tree for this input, assuming it's [InputType] is `File`.
+    ///
+    /// If the input is not currently a shadow host, a new shadow tree will be created.
+    ///
+    /// If the input is a shadow host for a different kind of shadow tree then the old
+    /// tree will be removed and a new one will be created.
+    fn file_shadow_tree(&self, can_gc: CanGc) -> Ref<'_, InputTypeFileShadowTree> {
+        let has_file_shadow_tree = self
+            .shadow_tree
+            .borrow()
+            .as_ref()
+            .is_some_and(|shadow_tree| matches!(shadow_tree, ShadowTree::File(_)));
+        if !has_file_shadow_tree {
+            self.create_file_shadow_tree(can_gc);
+        }
+
+        let shadow_tree = self.shadow_tree.borrow();
+        Ref::filter_map(shadow_tree, |shadow_tree| {
+            let shadow_tree = shadow_tree.as_ref()?;
+            match shadow_tree {
+                ShadowTree::File(choose_file_tree) => Some(choose_file_tree),
+                _ => None,
+            }
+        })
+        .ok()
+        .expect("UA shadow tree was not created")
+    }
+
     /// Should this input type render as a basic text UA widget.
     // TODO(#38251): Ideally, the most basic shadow dom should cover only `text`, `password`, `url`, `tel`,
     //               and `email`. But we are leaving the others textual inputs here while tackling them one
@@ -1376,10 +1464,44 @@ impl HTMLInputElement {
         );
     }
 
+    fn update_file_shadow_tree(&self, can_gc: CanGc) {
+        // Should only do this for `type=file` input.
+        debug_assert_eq!(self.input_type(), InputType::File);
+
+        let file_shadow_tree = self.file_shadow_tree(can_gc);
+
+        let status_text: String = match self.filelist.get() {
+            Some(filelist) => {
+                let length = filelist.Length();
+                if length == 0 {
+                    DEFAULT_FILE_INPUT_VALUE.into()
+                } else if length == 1 {
+                    match filelist.Item(0) {
+                        Some(file) => file.name().to_string(),
+                        None => DEFAULT_FILE_INPUT_VALUE.into(),
+                    }
+                } else {
+                    format!("{} files selected.", length)
+                }
+            },
+            None => DEFAULT_FILE_INPUT_VALUE.into(),
+        };
+
+        file_shadow_tree
+            .status_container
+            .upcast::<Node>()
+            .GetFirstChild()
+            .expect("UA widget text container without child")
+            .downcast::<CharacterData>()
+            .expect("First child is not a CharacterData node")
+            .SetData(DOMString::from(status_text));
+    }
+
     fn update_shadow_tree(&self, can_gc: CanGc) {
         match self.input_type() {
             _ if self.is_textual_widget() => self.update_textual_shadow_tree(can_gc),
             InputType::Color => self.update_color_shadow_tree(can_gc),
+            InputType::File => self.update_file_shadow_tree(can_gc),
             _ => {},
         }
     }
@@ -1401,9 +1523,6 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
                 .borrow_for_layout()
                 .get_content()
         }
-    }
-    fn get_filelist(self) -> Option<LayoutDom<'dom, FileList>> {
-        unsafe { self.unsafe_get().filelist.get_inner_as_layout() }
     }
 
     fn input_type(self) -> InputType {
@@ -1439,25 +1558,6 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
         match self.input_type() {
             InputType::Checkbox | InputType::Radio | InputType::Image | InputType::Hidden => {
                 "".into()
-            },
-            InputType::File => {
-                let filelist = self.get_filelist();
-                match filelist {
-                    Some(filelist) => {
-                        let length = filelist.len();
-                        if length == 0 {
-                            DEFAULT_FILE_INPUT_VALUE.into()
-                        } else if length == 1 {
-                            match filelist.file_for_layout(0) {
-                                Some(file) => file.name().to_string().into(),
-                                None => DEFAULT_FILE_INPUT_VALUE.into(),
-                            }
-                        } else {
-                            format!("{} files", length).into()
-                        }
-                    },
-                    None => DEFAULT_FILE_INPUT_VALUE.into(),
-                }
             },
             InputType::Button => get_raw_attr_value(self, ""),
             InputType::Submit => get_raw_attr_value(self, DEFAULT_SUBMIT_VALUE),

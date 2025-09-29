@@ -60,6 +60,15 @@ input::color-swatch {
   width: 100%;
 }
 
+input::file-selector-button {
+  box-sizing: border-box;
+  display: inline-block;
+  border: 1px solid gray;
+  border-radius: 2px;
+  background: lightgrey;
+  color: black;
+}
+
 input::selection,
 textarea::selection {
   background: rgba(176, 214, 255, 1.0);
@@ -112,15 +121,6 @@ input[type="radio"]::before {
 }
 
 input[type="radio"]:checked::before { content: "●"; line-height: 1em; }
-
-input[type="file"]::before {
-  content: "Choose File";
-  background: lightgrey;
-  border-top: solid 1px #EEEEEE;
-  border-left: solid 1px #CCCCCC;
-  border-right: solid 1px #999999;
-  border-bottom: solid 1px #999999;
-}
 
 input[type="file"] {
   text-align: center;
@@ -343,6 +343,7 @@ button {
 input[type="reset" i],
 input[type="button" i],
 input[type="submit" i],
+input[type="file"]::file-selector-button,
 button {
   text-align: center;
 }
