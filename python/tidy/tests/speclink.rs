@@ -14,10 +14,6 @@ impl SpecLinkMethods<crate::DomTypeHolder> for SpecLink {
         0
     }
 
-    // A spec link.
-    // https://example.com/
-    fn Foo() {}
-
     /// A spec link.
     /// <https://example.com/>
     fn Foo() {}
