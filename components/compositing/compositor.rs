@@ -14,7 +14,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::generic_channel::{GenericSender, RoutedReceiver};
-use base::id::{PipelineId, WebViewId};
+use base::id::{PipelineId, RenderingGroupId, WebViewId};
 use bitflags::bitflags;
 use compositing_traits::display_list::{CompositorDisplayListInfo, ScrollTree, ScrollType};
 use compositing_traits::rendering_context::RenderingContext;
@@ -792,11 +792,13 @@ impl IOCompositor {
                 number_of_font_keys,
                 number_of_font_instance_keys,
                 result_sender,
+                rendering_group_id,
             ) => {
                 self.handle_generate_font_keys(
                     number_of_font_keys,
                     number_of_font_instance_keys,
                     result_sender,
+                    rendering_group_id,
                 );
             },
             CompositorMsg::Viewport(webview_id, viewport_description) => {
@@ -834,11 +836,13 @@ impl IOCompositor {
                 number_of_font_keys,
                 number_of_font_instance_keys,
                 result_sender,
+                rendering_group_id,
             ) => {
                 self.handle_generate_font_keys(
                     number_of_font_keys,
                     number_of_font_instance_keys,
                     result_sender,
+                    rendering_group_id,
                 );
             },
             CompositorMsg::NewWebRenderFrameReady(..) => {
@@ -852,11 +856,13 @@ impl IOCompositor {
     }
 
     /// Generate the font keys and send them to the `result_sender`.
+    /// Currently `RenderingGroupId` is not used.
     fn handle_generate_font_keys(
         &self,
         number_of_font_keys: usize,
         number_of_font_instance_keys: usize,
         result_sender: GenericSender<(Vec<FontKey>, Vec<FontInstanceKey>)>,
+        _rendering_group_id: RenderingGroupId,
     ) {
         let font_keys = (0..number_of_font_keys)
             .map(|_| self.global.borrow().webrender_api.generate_font_key())

@@ -130,11 +130,11 @@ mod font_context {
                                 .collect(),
                         );
                     },
-                    SystemFontServiceMessage::GetFontInstanceKey(result_sender) |
-                    SystemFontServiceMessage::GetFontInstance(_, _, _, _, result_sender) => {
+                    SystemFontServiceMessage::GetFontInstanceKey(_, result_sender) |
+                    SystemFontServiceMessage::GetFontInstance(_, _, _, _, _, result_sender) => {
                         let _ = result_sender.send(FontInstanceKey(IdNamespace(0), 0));
                     },
-                    SystemFontServiceMessage::GetFontKey(result_sender) => {
+                    SystemFontServiceMessage::GetFontKey(_, result_sender) => {
                         let _ = result_sender.send(FontKey(IdNamespace(0), 0));
                     },
                     SystemFontServiceMessage::Exit(result_sender) => {

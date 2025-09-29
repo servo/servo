@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use std::thread;
 
 use app_units::Au;
+use base::id::RenderingGroupId;
 use compositing_traits::CrossProcessCompositorApi;
 use fonts_traits::{
     FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef, LowercaseFontFamilyName,
@@ -20,6 +21,7 @@ use profile_traits::mem::{
     ProcessReports, ProfilerChan, Report, ReportKind, ReportsChan, perform_memory_report,
 };
 use profile_traits::path;
+use rustc_hash::FxHashMap;
 use servo_config::pref;
 use style::values::computed::font::{GenericFontFamily, SingleFontFamily};
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey, FontVariation};
@@ -48,21 +50,23 @@ pub struct SystemFontService {
     port: IpcReceiver<SystemFontServiceMessage>,
     local_families: FontStore,
     compositor_api: CrossProcessCompositorApi,
-    webrender_fonts: HashMap<FontIdentifier, FontKey>,
-    font_instances: HashMap<(FontKey, Au, Vec<FontVariation>), FontInstanceKey>,
+    // keys already have the IdNamespace for webrender
+    webrender_fonts: HashMap<(FontIdentifier, RenderingGroupId), FontKey>,
+    font_instances: HashMap<(FontKey, Au, Vec<FontVariation>, RenderingGroupId), FontInstanceKey>,
     generic_fonts: ResolvedGenericFontFamilies,
 
     /// This is an optimization that allows the [`SystemFontService`] to send font data to
     /// the compositor asynchronously for creating WebRender fonts, while immediately
     /// returning a font key for that data. Once the free keys are exhausted, the
     /// [`SystemFontService`] will fetch a new batch.
-    free_font_keys: Vec<FontKey>,
+    /// TODO: We currently do not delete the free keys if a `WebView` is removed.
+    free_font_keys: FxHashMap<RenderingGroupId, Vec<FontKey>>,
 
     /// This is an optimization that allows the [`SystemFontService`] to create WebRender font
     /// instances in the compositor asynchronously, while immediately returning a font
     /// instance key for the instance. Once the free keys are exhausted, the
     /// [`SystemFontService`] will fetch a new batch.
-    free_font_instance_keys: Vec<FontInstanceKey>,
+    free_font_instance_keys: FxHashMap<RenderingGroupId, Vec<FontInstanceKey>>,
 }
 
 impl SystemFontService {
@@ -88,7 +92,7 @@ impl SystemFontService {
                     free_font_instance_keys: Default::default(),
                 };
 
-                cache.fetch_new_keys();
+                cache.fetch_new_keys(RenderingGroupId::default());
                 cache.refresh_local_families();
 
                 memory_profiler_sender.run_with_memory_reporting(
@@ -120,22 +124,41 @@ impl SystemFontService {
                         result_sender.send(self.get_font_templates(font_descriptor, font_family));
                 },
                 SystemFontServiceMessage::GetFontInstance(
+                    rendering_group_id,
                     identifier,
                     pt_size,
                     flags,
                     variations,
                     result,
                 ) => {
-                    let _ =
-                        result.send(self.get_font_instance(identifier, pt_size, flags, variations));
+                    let _ = result.send(self.get_font_instance(
+                        rendering_group_id,
+                        identifier,
+                        pt_size,
+                        flags,
+                        variations,
+                    ));
                 },
-                SystemFontServiceMessage::GetFontKey(result_sender) => {
-                    self.fetch_new_keys();
-                    let _ = result_sender.send(self.free_font_keys.pop().unwrap());
+                SystemFontServiceMessage::GetFontKey(rendering_group_id, result_sender) => {
+                    self.fetch_new_keys(rendering_group_id);
+
+                    let _ = result_sender.send(
+                        self.free_font_keys
+                            .get_mut(&rendering_group_id)
+                            .expect("We just filled the keys")
+                            .pop()
+                            .unwrap(),
+                    );
                 },
-                SystemFontServiceMessage::GetFontInstanceKey(result_sender) => {
-                    self.fetch_new_keys();
-                    let _ = result_sender.send(self.free_font_instance_keys.pop().unwrap());
+                SystemFontServiceMessage::GetFontInstanceKey(rendering_group_id, result_sender) => {
+                    self.fetch_new_keys(rendering_group_id);
+                    let _ = result_sender.send(
+                        self.free_font_instance_keys
+                            .get_mut(&rendering_group_id)
+                            .expect("We just filled the keys")
+                            .pop()
+                            .unwrap(),
+                    );
                 },
                 SystemFontServiceMessage::CollectMemoryReport(report_sender) => {
                     self.collect_memory_report(report_sender);
@@ -161,8 +184,16 @@ impl SystemFontService {
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn fetch_new_keys(&mut self) {
-        if !self.free_font_keys.is_empty() && !self.free_font_instance_keys.is_empty() {
+    fn fetch_new_keys(&mut self, rendering_group_id: RenderingGroupId) {
+        if !self
+            .free_font_keys
+            .get(&rendering_group_id)
+            .is_none_or(|v| v.is_empty()) &&
+            !self
+                .free_font_instance_keys
+                .get(&rendering_group_id)
+                .is_none_or(|v| v.is_empty())
+        {
             return;
         }
 
@@ -171,9 +202,15 @@ impl SystemFontService {
         let (mut new_font_keys, mut new_font_instance_keys) = self.compositor_api.fetch_font_keys(
             FREE_FONT_KEYS_BATCH_SIZE - self.free_font_keys.len(),
             FREE_FONT_INSTANCE_KEYS_BATCH_SIZE - self.free_font_instance_keys.len(),
+            rendering_group_id,
         );
-        self.free_font_keys.append(&mut new_font_keys);
+        self.free_font_keys
+            .entry(rendering_group_id)
+            .or_default()
+            .append(&mut new_font_keys);
         self.free_font_instance_keys
+            .entry(rendering_group_id)
+            .or_default()
             .append(&mut new_font_instance_keys);
     }
 
@@ -228,20 +265,26 @@ impl SystemFontService {
     #[servo_tracing::instrument(skip_all)]
     fn get_font_instance(
         &mut self,
+        rendering_group_id: RenderingGroupId,
         identifier: FontIdentifier,
         pt_size: Au,
         flags: FontInstanceFlags,
         variations: Vec<FontVariation>,
     ) -> FontInstanceKey {
-        self.fetch_new_keys();
+        self.fetch_new_keys(rendering_group_id);
 
         let compositor_api = &self.compositor_api;
         let webrender_fonts = &mut self.webrender_fonts;
 
         let font_key = *webrender_fonts
-            .entry(identifier.clone())
+            .entry((identifier.clone(), rendering_group_id))
             .or_insert_with(|| {
-                let font_key = self.free_font_keys.pop().unwrap();
+                let font_key = self
+                    .free_font_keys
+                    .get_mut(&rendering_group_id)
+                    .expect("We just filled the keys")
+                    .pop()
+                    .unwrap();
                 let FontIdentifier::Local(local_font_identifier) = identifier else {
                     unreachable!("Should never have a web font in the system font service");
                 };
@@ -252,9 +295,14 @@ impl SystemFontService {
 
         *self
             .font_instances
-            .entry((font_key, pt_size, variations.clone()))
+            .entry((font_key, pt_size, variations.clone(), rendering_group_id))
             .or_insert_with(|| {
-                let font_instance_key = self.free_font_instance_keys.pop().unwrap();
+                let font_instance_key = self
+                    .free_font_instance_keys
+                    .get_mut(&rendering_group_id)
+                    .expect("We just filled the keys")
+                    .pop()
+                    .unwrap();
                 compositor_api.add_font_instance(
                     font_instance_key,
                     font_key,
