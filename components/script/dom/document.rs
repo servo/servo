@@ -567,8 +567,7 @@ pub(crate) struct Document {
     /// uploaded to the renderer after a rendering update. Until those images are uploaded
     /// this `Document` will not perform any more rendering updates.
     #[no_trace]
-    current_canvas_epoch: RefCell<Epoch>,
-
+    current_canvas_epoch: Cell<Epoch>,
     /// The global custom element reaction stack for this script thread.
     #[conditional_malloc_size_of]
     custom_element_reaction_stack: Rc<CustomElementReactionStack>,
@@ -2735,8 +2734,9 @@ impl Document {
         }
 
         // All dirty canvases are flushed before updating the rendering.
-        self.current_canvas_epoch.borrow_mut().next();
-        let canvas_epoch = *self.current_canvas_epoch.borrow();
+        self.current_canvas_epoch
+            .set(self.current_canvas_epoch.get().next());
+        let canvas_epoch = self.current_canvas_epoch.get();
         let mut image_keys = Vec::new();
 
         #[cfg(feature = "webgpu")]
@@ -3492,7 +3492,7 @@ impl Document {
             pending_scroll_event_targets: Default::default(),
             resize_observer_started_observing_target: Cell::new(false),
             waiting_on_canvas_image_updates: Cell::new(false),
-            current_canvas_epoch: RefCell::new(Epoch(0)),
+            current_canvas_epoch: Cell::new(Epoch(0)),
             custom_element_reaction_stack,
             active_sandboxing_flag_set: Cell::new(SandboxingFlagSet::empty()),
         }

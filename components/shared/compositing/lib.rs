@@ -103,7 +103,7 @@ pub enum CompositorMsg {
     /// The load of a page has completed
     LoadComplete(WebViewId),
     /// Inform WebRender of the existence of this pipeline.
-    SendInitialTransaction(WebRenderPipelineId),
+    SendInitialTransaction(WebViewId, WebRenderPipelineId),
     /// Perform a scroll operation.
     SendScrollNode(
         WebViewId,
@@ -204,8 +204,11 @@ impl CrossProcessCompositorApi {
     }
 
     /// Inform WebRender of the existence of this pipeline.
-    pub fn send_initial_transaction(&self, pipeline: WebRenderPipelineId) {
-        if let Err(e) = self.0.send(CompositorMsg::SendInitialTransaction(pipeline)) {
+    pub fn send_initial_transaction(&self, webview_id: WebViewId, pipeline: WebRenderPipelineId) {
+        if let Err(e) = self
+            .0
+            .send(CompositorMsg::SendInitialTransaction(webview_id, pipeline))
+        {
             warn!("Error sending initial transaction: {}", e);
         }
     }

@@ -221,6 +221,10 @@ pub(crate) struct PipelineDetails {
     /// Which parts of Servo have reported that this `Pipeline` has exited. Only when all
     /// have done so will it be discarded.
     pub exited: PipelineExitSource,
+
+    /// The [`Epoch`] of the latest display list received for this `Pipeline` or `None` if no
+    /// display list has been received.
+    pub display_list_epoch: Option<Epoch>,
 }
 
 impl PipelineDetails {
@@ -246,6 +250,7 @@ impl PipelineDetails {
             first_paint_metric: PaintMetricState::Waiting,
             first_contentful_paint_metric: PaintMetricState::Waiting,
             exited: PipelineExitSource::empty(),
+            display_list_epoch: None,
         }
     }
 
@@ -537,9 +542,17 @@ impl IOCompositor {
                 }
             },
 
-            CompositorMsg::SendInitialTransaction(pipeline) => {
+            CompositorMsg::SendInitialTransaction(webview_id, pipeline_id) => {
+                let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
+                    return warn!("Could not find WebView for incoming display list");
+                };
+
+                let starting_epoch = Epoch(0);
+                let details = webview_renderer.ensure_pipeline_details(pipeline_id.into());
+                details.display_list_epoch = Some(starting_epoch);
+
                 let mut txn = Transaction::new();
-                txn.set_display_list(WebRenderEpoch(0), (pipeline, Default::default()));
+                txn.set_display_list(starting_epoch.into(), (pipeline_id, Default::default()));
                 self.generate_frame(&mut txn, RenderReasons::SCENE);
                 self.global.borrow_mut().send_transaction(txn);
             },
@@ -653,6 +666,8 @@ impl IOCompositor {
                     Some(display_list_info.viewport_details.hidpi_scale_factor);
 
                 let epoch = display_list_info.epoch;
+                details.display_list_epoch = Some(Epoch(epoch.0));
+
                 let first_reflow = display_list_info.first_reflow;
                 if details.first_paint_metric == PaintMetricState::Waiting {
                     details.first_paint_metric = PaintMetricState::Seen(epoch, first_reflow);
