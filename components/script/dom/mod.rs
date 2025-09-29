@@ -214,8 +214,6 @@ pub(crate) mod abortcontroller;
 pub(crate) mod abortsignal;
 #[allow(dead_code)]
 pub(crate) mod abstractrange;
-pub(crate) mod abstractworker;
-pub(crate) mod abstractworkerglobalscope;
 pub(crate) mod activation;
 pub(crate) mod animationevent;
 pub(crate) mod attr;
@@ -279,7 +277,6 @@ pub(crate) mod datatransferitemlist;
 pub(crate) mod debuggeradddebuggeeevent;
 pub(crate) mod debuggergetpossiblebreakpointsevent;
 pub(crate) mod debuggerglobalscope;
-pub(crate) mod dedicatedworkerglobalscope;
 pub(crate) mod defaultteereadrequest;
 pub(crate) mod defaultteeunderlyingsource;
 pub(crate) mod dissimilaroriginlocation;
@@ -434,12 +431,6 @@ pub(crate) mod screen;
 mod scrolling_box;
 pub(crate) mod securitypolicyviolationevent;
 pub(crate) mod selection;
-#[allow(dead_code)]
-pub(crate) mod serviceworker;
-pub(crate) mod serviceworkercontainer;
-pub(crate) mod serviceworkerglobalscope;
-#[allow(dead_code)]
-pub(crate) mod serviceworkerregistration;
 pub(crate) mod servointernals;
 #[allow(dead_code)]
 pub(crate) mod servoparser;
@@ -524,11 +515,8 @@ pub(crate) mod wheelevent;
 pub(crate) mod window;
 #[allow(dead_code)]
 pub(crate) mod windowproxy;
-pub(crate) mod worker;
-#[allow(dead_code)]
-pub(crate) mod workerglobalscope;
-pub(crate) mod workerlocation;
-pub(crate) mod workernavigator;
+pub(crate) mod workers;
+pub(crate) use self::workers::*;
 pub(crate) mod worklet;
 pub(crate) mod workletglobalscope;
 pub(crate) mod writablestream;
