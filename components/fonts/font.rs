@@ -277,10 +277,7 @@ impl Font {
             let allows_synthetic_bold = matches!(descriptor.synthesis_weight, FontSynthesis::Auto);
 
             // TODO: Is the check for variation font necessary here?
-            is_bold &&
-                !template_is_bold &&
-                !template.descriptor().is_variation_font() &&
-                allows_synthetic_bold
+            is_bold && !template_is_bold && allows_synthetic_bold
         };
 
         let handle = PlatformFont::new_from_template(

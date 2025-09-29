@@ -9,9 +9,9 @@ use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D};
 use fonts_traits::{FontIdentifier, FontTemplateDescriptor, LocalFontIdentifier};
 use freetype_sys::{
-    FT_F26Dot6, FT_Get_Char_Index, FT_Get_Kerning, FT_GlyphSlot, FT_KERNING_DEFAULT,
-    FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_Load_Glyph, FT_Size_Metrics, FT_SizeRec, FT_UInt,
-    FT_ULong, FT_Vector,
+    FT_F26Dot6, FT_Get_Char_Index, FT_Get_Kerning, FT_GlyphSlot, FT_HAS_MULTIPLE_MASTERS,
+    FT_KERNING_DEFAULT, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_Load_Glyph, FT_Size_Metrics,
+    FT_SizeRec, FT_UInt, FT_ULong, FT_Vector,
 };
 use log::debug;
 use memmap2::Mmap;
@@ -81,13 +81,17 @@ impl PlatformFontMethods for PlatformFont {
             None => (Au::zero(), Au::zero()),
         };
 
+        let is_variable_font = FT_HAS_MULTIPLE_MASTERS(face.as_ptr());
+        let synthetic_bold =
+            synthetic_bold.is_some_and(|val| if is_variable_font { false } else { val });
+
         Ok(PlatformFont {
             face: ReentrantMutex::new(face),
             requested_face_size,
             actual_face_size,
             table_provider_data: FreeTypeFaceTableProviderData::Web(font_data.clone()),
             variations: normalized_variations,
-            synthetic_bold: synthetic_bold.unwrap_or_default(),
+            synthetic_bold,
         })
     }
 
@@ -119,6 +123,10 @@ impl PlatformFontMethods for PlatformFont {
             return Err("Could not memory map");
         };
 
+        let is_variable_font = FT_HAS_MULTIPLE_MASTERS(face.as_ptr());
+        let synthetic_bold =
+            synthetic_bold.is_some_and(|val| if is_variable_font { false } else { val });
+
         Ok(PlatformFont {
             face: ReentrantMutex::new(face),
             requested_face_size,
@@ -128,7 +136,7 @@ impl PlatformFontMethods for PlatformFont {
                 font_identifier.index(),
             ),
             variations: normalized_variations,
-            synthetic_bold: synthetic_bold.unwrap_or_default(),
+            synthetic_bold,
         })
     }
 
