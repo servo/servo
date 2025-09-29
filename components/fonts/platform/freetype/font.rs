@@ -420,8 +420,8 @@ impl std::fmt::Debug for FreeTypeFaceTableProviderData {
     }
 }
 
-// TODO: remove this once git dep of wr_glyph_rasterizer is solved
-// Method copied from webrender/wr_glyph_rasterizer/src/unix/font.rs
+// This is copied from the webrender glyph rasterizer
+// https://github.com/servo/webrender/blob/c4bd5b47d8f5cd684334b445e67a1f945d106848/wr_glyph_rasterizer/src/platform/unix/font.rs#L115
 //
 // Custom version of FT_GlyphSlot_Embolden to be less aggressive with outline
 // fonts than the default implementation in FreeType.
