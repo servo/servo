@@ -23,6 +23,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlimageelement::ImageElementMicrotask;
 use crate::dom::html::htmlmediaelement::MediaElementMicrotask;
 use crate::dom::promise::WaitForAllSuccessStepsMicrotask;
+use crate::dom::readablestreamdefaultreader::ReleaseReaderMicrotask;
 use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext, notify_about_rejected_promises};
 use crate::script_thread::ScriptThread;
@@ -46,6 +47,7 @@ pub(crate) enum Microtask {
     WaitForAllSuccessSteps(WaitForAllSuccessStepsMicrotask),
     CustomElementReaction,
     NotifyMutationObservers,
+    ReadableStreamReleaseReader(ReleaseReaderMicrotask),
 }
 
 pub(crate) trait MicrotaskRunnable {
@@ -153,6 +155,10 @@ impl MicrotaskQueue {
                     },
                     Microtask::NotifyMutationObservers => {
                         ScriptThread::mutation_observers().notify_mutation_observers(can_gc);
+                    },
+                    Microtask::ReadableStreamReleaseReader(ref task) => {
+                        let _realm = task.enter_realm();
+                        task.handler(can_gc);
                     },
                 }
             }

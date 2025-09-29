@@ -8,7 +8,7 @@ use std::mem;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::jsapi::Heap;
+use js::jsapi::{Heap, JSAutoRealm};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 
@@ -30,6 +30,8 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::{ReadableStream, bytes_from_chunk_jsval};
 use crate::dom::readablestreamgenericreader::ReadableStreamGenericReader;
+use crate::microtask::Microtask::ReadableStreamReleaseReader;
+use crate::microtask::MicrotaskRunnable;
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -52,7 +54,8 @@ struct ContinueReadMicrotask {
 
 impl Callback for ContinueReadMicrotask {
     fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
-        // Spec: Perform ! ReadableStreamDefaultReaderRead(reader, readRequest).
+        // https://streams.spec.whatwg.org/#ref-for-read-loop%E2%91%A0
+        // Note: continuing the read-loop from inside a micro-task to break recursion.
         self.reader.read(cx, &self.request, can_gc);
     }
 }
@@ -77,6 +80,20 @@ fn read_loop(
     };
     // Step 2 .Perform ! ReadableStreamDefaultReaderRead(reader, readRequest).
     reader.read(cx, &req, can_gc);
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+pub(crate) struct ReleaseReaderMicrotask {
+    reader: Dom<ReadableStreamDefaultReader>,
+}
+
+impl MicrotaskRunnable for ReleaseReaderMicrotask {
+    fn handler(&self, can_gc: CanGc) {
+        let _ = self.reader.release(can_gc);
+    }
+    fn enter_realm(&self) -> JSAutoRealm {
+        enter_realm(&*self.reader.global())
+    }
 }
 
 /// <https://streams.spec.whatwg.org/#read-request>
@@ -131,7 +148,6 @@ impl ReadRequest {
                 let cx = GlobalScope::get_cx();
                 let global = reader.global();
 
-                // Step 1. If chunk is not a Uint8Array object, call failureSteps with a TypeError and abort.
                 match bytes_from_chunk_jsval(cx, &chunk, can_gc) {
                     Ok(vec) => {
                         // Step 2. Append the bytes represented by chunk to bytes.
@@ -139,6 +155,7 @@ impl ReadRequest {
 
                         // Step 3. Read-loop given reader, bytes, successSteps, and failureSteps.
                         // Spec note: Avoid direct recursion; queue into a microtask.
+                        // Resolving the promise will queue a microtask to call into the native handler.
                         let tick = Promise::new(&global, can_gc);
                         tick.resolve_native(&(), can_gc);
 
@@ -157,6 +174,7 @@ impl ReadRequest {
                         tick.append_native_handler(&handler, comp, can_gc);
                     },
                     Err(err) => {
+                        // Step 1. If chunk is not a Uint8Array object, call failureSteps with a TypeError and abort.
                         rooted!(in(*cx) let mut v = UndefinedValue());
                         err.to_jsval(cx, &global, v.handle_mut(), can_gc);
                         (failure_steps)(cx, v.handle());
@@ -187,10 +205,17 @@ impl ReadRequest {
             },
             ReadRequest::ReadLoop {
                 success_steps,
-                reader: _,
+                reader,
                 bytes,
                 ..
             } => {
+                // Release the temporary reader asynchronously.
+                // avoid re-entrancy/borrow during close; queue a microtask.
+                let global = reader.global();
+                global.enqueue_microtask(ReadableStreamReleaseReader(ReleaseReaderMicrotask {
+                    reader: Dom::from_ref(reader),
+                }));
+
                 // Step 1. Call successSteps with bytes.
                 (success_steps)(&bytes.borrow());
             },
