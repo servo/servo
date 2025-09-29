@@ -611,7 +611,7 @@ impl From<SerializableImageData> for ImageData {
 /// layer.
 pub trait WebViewTrait {
     fn id(&self) -> WebViewId;
-    fn rendering_group_id(&self) -> RenderingGroupId;
+    fn rendering_group_id(&self) -> Option<RenderingGroupId>;
     fn screen_geometry(&self) -> Option<ScreenGeometry>;
     fn set_animating(&self, new_value: bool);
 }

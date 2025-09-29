@@ -613,12 +613,8 @@ impl WebViewTrait for ServoRendererWebView {
         }
     }
 
-    fn rendering_group_id(&self) -> RenderingGroupId {
-        if let Some(webview) = WebView::from_weak_handle(&self.weak_handle) {
-            webview.rendering_group_id()
-        } else {
-            RenderingGroupId::default()
-        }
+    fn rendering_group_id(&self) -> Option<RenderingGroupId> {
+        WebView::from_weak_handle(&self.weak_handle).map(|webview| webview.rendering_group_id())
     }
 }
 

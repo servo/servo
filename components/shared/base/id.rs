@@ -415,7 +415,7 @@ pub const TEST_BROWSING_CONTEXT_ID: BrowsingContextId = BrowsingContextId {
 };
 
 pub const TEST_WEBVIEW_ID: WebViewId = WebViewId(
-    RenderingGroupId::moch_rendering_id(),
+    RenderingGroupId::mock_rendering_id(),
     TEST_BROWSING_CONTEXT_ID,
 );
 
@@ -448,12 +448,12 @@ impl Default for RenderingGroupId {
 }
 
 impl RenderingGroupId {
-    const fn moch_rendering_id() -> RenderingGroupId {
+    const fn mock_rendering_id() -> RenderingGroupId {
         RenderingGroupId(0)
     }
 
     /// the new rendering group id. The first returned id will be 1.
-    pub fn new_rendergroup_id() -> RenderingGroupId {
+    pub fn new() -> RenderingGroupId {
         let mut cur = RENDER_GROUP_COUNTER.write().unwrap();
         let n = RenderingGroupId(cur.0 + 1);
         *cur = n;
