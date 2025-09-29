@@ -43,8 +43,8 @@ impl ScriptMutationObservers {
         self.mutation_observer_microtask_queued.set(false);
 
         // Step 2. Let notifySet be a clone of the surrounding agent’s pending mutation observers.
-        // TODO Step 3. Empty the surrounding agent’s pending mutation observers.
-        let notify_list = self.mutation_observers.borrow();
+        // Step 3. Empty the surrounding agent’s pending mutation observers.
+        let notify_list = self.take_mutation_observers();
 
         // Step 4. Let signalSet be a clone of the surrounding agent’s signal slots.
         // Step 5. Empty the surrounding agent’s signal slots.
@@ -108,6 +108,14 @@ impl ScriptMutationObservers {
                 slot.remove_from_signal_slots();
             })
             .map(|slot| slot.as_rooted())
+            .collect()
+    }
+
+    pub(crate) fn take_mutation_observers(&self) -> Vec<DomRoot<MutationObserver>> {
+        self.mutation_observers
+            .take()
+            .iter()
+            .map(|mo| mo.as_rooted())
             .collect()
     }
 }
