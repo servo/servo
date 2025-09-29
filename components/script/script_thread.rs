@@ -89,7 +89,7 @@ use script_traits::{
 use servo_config::{opts, prefs};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
-use storage_traits::storage_thread::StorageType;
+use storage_traits::webstorage_thread::StorageType;
 use style::thread_state::{self, ThreadState};
 use stylo_atoms::Atom;
 use timers::{TimerEventRequest, TimerId, TimerScheduler};

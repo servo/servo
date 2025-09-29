@@ -39,7 +39,7 @@ use net_traits::request::Referrer;
 use script_traits::NewLayoutInfo;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
-use storage_traits::storage_thread::StorageThreadMsg;
+use storage_traits::webstorage_thread::WebStorageThreadMsg;
 use style::attr::parse_integer;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -360,7 +360,7 @@ impl WindowProxy {
 
             let (sender, receiver) = generic_channel::channel().unwrap();
 
-            let msg = StorageThreadMsg::Clone {
+            let msg = WebStorageThreadMsg::Clone {
                 sender,
                 src: window.window_proxy().webview_id(),
                 dest: response.new_webview_id,

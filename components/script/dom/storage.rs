@@ -7,7 +7,7 @@ use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
 use profile_traits::generic_channel;
 use servo_url::ServoUrl;
-use storage_traits::storage_thread::{StorageThreadMsg, StorageType};
+use storage_traits::webstorage_thread::{StorageType, WebStorageThreadMsg};
 
 use crate::dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
@@ -56,7 +56,7 @@ impl Storage {
         self.global().get_url()
     }
 
-    fn send_storage_msg(&self, msg: StorageThreadMsg) -> SendResult {
+    fn send_storage_msg(&self, msg: WebStorageThreadMsg) -> SendResult {
         GenericSend::send(self.global().storage_threads(), msg)
     }
 }
@@ -67,7 +67,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
         let (sender, receiver) =
             generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
 
-        self.send_storage_msg(StorageThreadMsg::Length(
+        self.send_storage_msg(WebStorageThreadMsg::Length(
             sender,
             self.storage_type,
             self.webview_id(),
@@ -82,7 +82,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
         let (sender, receiver) =
             generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
 
-        self.send_storage_msg(StorageThreadMsg::Key(
+        self.send_storage_msg(WebStorageThreadMsg::Key(
             sender,
             self.storage_type,
             self.webview_id(),
@@ -99,7 +99,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
             generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let name = String::from(name);
 
-        let msg = StorageThreadMsg::GetItem(
+        let msg = WebStorageThreadMsg::GetItem(
             sender,
             self.storage_type,
             self.webview_id(),
@@ -117,7 +117,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
         let name = String::from(name);
         let value = String::from(value);
 
-        let msg = StorageThreadMsg::SetItem(
+        let msg = WebStorageThreadMsg::SetItem(
             sender,
             self.storage_type,
             self.webview_id(),
@@ -146,7 +146,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
             generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let name = String::from(name);
 
-        let msg = StorageThreadMsg::RemoveItem(
+        let msg = WebStorageThreadMsg::RemoveItem(
             sender,
             self.storage_type,
             self.webview_id(),
@@ -164,7 +164,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
         let (sender, receiver) =
             generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
 
-        self.send_storage_msg(StorageThreadMsg::Clear(
+        self.send_storage_msg(WebStorageThreadMsg::Clear(
             sender,
             self.storage_type,
             self.webview_id(),
@@ -181,7 +181,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
         let time_profiler = self.global().time_profiler_chan().clone();
         let (sender, receiver) = generic_channel::channel(time_profiler).unwrap();
 
-        self.send_storage_msg(StorageThreadMsg::Keys(
+        self.send_storage_msg(WebStorageThreadMsg::Keys(
             sender,
             self.storage_type,
             self.webview_id(),

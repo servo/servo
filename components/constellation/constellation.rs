@@ -167,7 +167,7 @@ use servo_config::{opts, pref};
 use servo_rand::{Rng, ServoRng, SliceRandom, random};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
-use storage_traits::storage_thread::{StorageThreadMsg, StorageType};
+use storage_traits::webstorage_thread::{StorageType, WebStorageThreadMsg};
 use style::global_style_data::StyleThreadPool;
 #[cfg(feature = "webgpu")]
 use webgpu::canvas_context::WGPUImageMap;
@@ -2703,7 +2703,7 @@ where
         debug!("Exiting storage resource threads.");
         if let Err(e) = generic_channel::GenericSend::send(
             &self.public_storage_threads,
-            StorageThreadMsg::Exit(storage_ipc_sender),
+            WebStorageThreadMsg::Exit(storage_ipc_sender),
         ) {
             warn!("Exit storage thread failed ({})", e);
         }
