@@ -4,6 +4,7 @@
 
 use std::cell::Cell;
 use std::convert::TryInto;
+use std::ops::Deref;
 use std::sync::{Arc, LazyLock, Mutex};
 
 use dom_struct::dom_struct;
@@ -393,7 +394,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
                 cors_mode = RequestMode::CorsMode;
                 // If contentType value is a CORS-safelisted request-header value for the Content-Type header,
                 // set corsMode to "no-cors".
-                if is_cors_safelisted_request_content_type(content_type.as_bytes()) {
+                if is_cors_safelisted_request_content_type(content_type.as_bytes().deref()) {
                     cors_mode = RequestMode::NoCors;
                 }
                 // Append a Content-Type header with value contentType to headerList.
@@ -402,7 +403,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
                 // since it lowercases `charset=UTF-8`: https://github.com/hyperium/mime/issues/116
                 headers.insert(
                     header::CONTENT_TYPE,
-                    HeaderValue::from_str(content_type.str()).unwrap(),
+                    HeaderValue::from_str(&content_type.str()).unwrap(),
                 );
             }
             request_body = Some(extracted_body.into_net_request_body().0);

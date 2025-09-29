@@ -52,7 +52,7 @@ pub(crate) struct HTMLTextAreaElement {
     htmlelement: HTMLElement,
     #[no_trace]
     textinput: DomRefCell<TextInput<EmbedderClipboardProvider>>,
-    placeholder: DomRefCell<DOMString>,
+    placeholder: DomRefCell<String>,
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty
     value_dirty: Cell<bool>,
     form_owner: MutNullableDom<HTMLFormElement>,
@@ -88,7 +88,7 @@ impl<'dom> LayoutDom<'dom, HTMLTextAreaElement> {
     }
 
     fn placeholder(self) -> &'dom str {
-        unsafe { self.unsafe_get().placeholder.borrow_for_layout().str() }
+        unsafe { self.unsafe_get().placeholder.borrow_for_layout() }
     }
 }
 
@@ -153,7 +153,7 @@ impl HTMLTextAreaElement {
                 prefix,
                 document,
             ),
-            placeholder: DomRefCell::new(DOMString::new()),
+            placeholder: DomRefCell::new(String::new()),
             textinput: DomRefCell::new(TextInput::new(
                 Lines::Multiple,
                 DOMString::new(),

@@ -392,19 +392,19 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             // TODO Step 7.1 If this's is scoped is true, then throw a "NotSupportedError" DOMException.
 
             // Step 7.2 If extends is a valid custom element name, then throw a "NotSupportedError" DOMException.
-            if is_valid_custom_element_name(extended_name.str()) {
+            if is_valid_custom_element_name(&extended_name.str()) {
                 return Err(Error::NotSupported);
             }
 
             // Step 7.3 If the element interface for extends and the HTML namespace is HTMLUnknownElement
             // (e.g., if extends does not indicate an element definition in this specification)
             // then throw a "NotSupportedError" DOMException.
-            if !is_extendable_element_interface(extended_name.str()) {
+            if !is_extendable_element_interface(&extended_name.str()) {
                 return Err(Error::NotSupported);
             }
 
             // Step 7.4 Set localName to extends.
-            LocalName::from(extended_name.str())
+            LocalName::from(extended_name)
         } else {
             // Step 5. Let localName be name.
             name.clone()

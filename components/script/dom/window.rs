@@ -847,14 +847,18 @@ pub(crate) fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
     // "The btoa() method must throw an InvalidCharacterError exception if
     //  the method's first argument contains any character whose code point
     //  is greater than U+00FF."
-    if input.chars().any(|c: char| c > '\u{FF}') {
+    if input.str().chars().any(|c: char| c > '\u{FF}') {
         Err(Error::InvalidCharacter)
     } else {
         // "Otherwise, the user agent must convert that argument to a
         //  sequence of octets whose nth octet is the eight-bit
         //  representation of the code point of the nth character of
         //  the argument,"
-        let octets = input.chars().map(|c: char| c as u8).collect::<Vec<u8>>();
+        let octets = input
+            .str()
+            .chars()
+            .map(|c: char| c as u8)
+            .collect::<Vec<u8>>();
 
         // "and then must apply the base64 algorithm to that sequence of
         //  octets, and return the result. [RFC4648]"
@@ -872,6 +876,7 @@ pub(crate) fn base64_atob(input: DOMString) -> Fallible<DOMString> {
         HTML_SPACE_CHARACTERS.contains(&c)
     }
     let without_spaces = input
+        .str()
         .chars()
         .filter(|&c| !is_html_space(c))
         .collect::<String>();
@@ -1645,7 +1650,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             return None;
         }
 
-        if self.webview_id().to_string() == webview_id.str() {
+        if self.webview_id().to_string() == webview_id {
             Some(DomRoot::from_ref(&window_proxy))
         } else {
             None
@@ -1917,7 +1922,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://drafts.csswg.org/cssom-view/#dom-window-matchmedia
     fn MatchMedia(&self, query: DOMString) -> DomRoot<MediaQueryList> {
-        let media_query_list = MediaList::parse_media_list(query.str(), self);
+        let media_query_list = MediaList::parse_media_list(&query.str(), self);
         let document = self.Document();
         let mql = MediaQueryList::new(&document, media_query_list, CanGc::note());
         self.media_query_lists.track(&*mql);

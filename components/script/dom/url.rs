@@ -199,7 +199,7 @@ impl URLMethods<crate::DomTypeHolder> for URL {
         // this method call does nothing. User agents may display a message on the error console.
         let origin = get_blob_origin(&global.get_url());
 
-        if let Ok(url) = ServoUrl::parse(url.str()) {
+        if let Ok(url) = ServoUrl::parse(&url.str()) {
             if url.fragment().is_none() && origin == get_blob_origin(&url) {
                 if let Ok((id, _)) = parse_blob_url(&url) {
                     let resource_threads = global.resource_threads();

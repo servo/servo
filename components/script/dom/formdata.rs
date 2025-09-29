@@ -39,7 +39,7 @@ impl FormData {
         let data = match form_datums {
             Some(data) => data
                 .iter()
-                .map(|datum| (NoTrace(LocalName::from(datum.name.str())), datum.clone()))
+                .map(|datum| (NoTrace(LocalName::from(&datum.name)), datum.clone()))
                 .collect::<Vec<(NoTrace<LocalName>, FormDatum)>>(),
             None => Vec::new(),
         };

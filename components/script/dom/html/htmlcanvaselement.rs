@@ -469,7 +469,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             return Err(Error::InvalidState(None));
         }
 
-        Ok(match id.str() {
+        Ok(match &*id.str() {
             "2d" => self
                 .get_or_init_2d_context(can_gc)
                 .map(RootedRenderingContext::CanvasRenderingContext2D),

@@ -79,7 +79,7 @@ impl TextDecoderMethods<crate::DomTypeHolder> for TextDecoder {
         label: DOMString,
         options: &TextDecoderBinding::TextDecoderOptions,
     ) -> Fallible<DomRoot<TextDecoder>> {
-        let encoding = match Encoding::for_label_no_replacement(label.as_bytes()) {
+        let encoding = match Encoding::for_label_no_replacement(&label.as_bytes()) {
             None => return TextDecoder::make_range_error(),
             Some(enc) => enc,
         };

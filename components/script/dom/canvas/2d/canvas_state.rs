@@ -1307,7 +1307,7 @@ impl CanvasState {
             repetition.push_str("repeat");
         }
 
-        if let Ok(rep) = RepetitionStyle::from_str(repetition.str()) {
+        if let Ok(rep) = RepetitionStyle::from_str(&repetition.str()) {
             let size = snapshot.size();
             Ok(Some(CanvasPattern::new(
                 global,
@@ -1366,7 +1366,7 @@ impl CanvasState {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
     pub(super) fn set_global_composite_operation(&self, op_str: DOMString) {
-        if let Ok(op) = CompositionOrBlending::from_str(op_str.str()) {
+        if let Ok(op) = CompositionOrBlending::from_str(&op_str.str()) {
             self.state.borrow_mut().global_composition = op;
         }
     }
@@ -1408,7 +1408,7 @@ impl CanvasState {
 
         let Some((bounds, text_run)) = self.text_with_size(
             global_scope,
-            text.str(),
+            &text.str(),
             Point2D::new(x, y),
             size,
             max_width,
@@ -1452,7 +1452,7 @@ impl CanvasState {
 
         let Some((bounds, text_run)) = self.text_with_size(
             global_scope,
-            text.str(),
+            &text.str(),
             Point2D::new(x, y),
             size,
             max_width,
@@ -1484,7 +1484,7 @@ impl CanvasState {
         // Max width is not provided for `measureText()`.
 
         // > Step 2: Replace all ASCII whitespace in text with U+0020 SPACE characters.
-        let text = replace_ascii_whitespace(text.str());
+        let text = replace_ascii_whitespace(&text.str());
 
         // > Step 3: Let font be the current font of target, as given by that object's font
         // > attribute.
@@ -2517,7 +2517,8 @@ pub(super) fn parse_color(
     canvas: Option<&HTMLCanvasElement>,
     string: &DOMString,
 ) -> Result<AbsoluteColor, ()> {
-    let mut input = ParserInput::new(string.str());
+    let string = string.str();
+    let mut input = ParserInput::new(&string);
     let mut parser = Parser::new(&mut input);
     let url = Url::parse("about:blank").unwrap().into();
     let context = ParserContext::new(

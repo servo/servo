@@ -121,7 +121,7 @@ impl HTMLStyleElement {
                 global,
                 self.upcast(),
                 InlineCheckType::Style,
-                node.child_text_content().str(),
+                &node.child_text_content().str(),
             )
         {
             return;
@@ -132,14 +132,14 @@ impl HTMLStyleElement {
             .GetTextContent()
             .expect("Element.textContent must be a string");
         let shared_lock = node.owner_doc().style_shared_lock().clone();
-        let mq = Arc::new(shared_lock.wrap(self.create_media_list(self.Media().str())));
+        let mq = Arc::new(shared_lock.wrap(self.create_media_list(&self.Media().str())));
         let loader = ElementStylesheetLoader::new(self.upcast());
 
         let stylesheetcontents_create_callback = || {
             #[cfg(feature = "tracing")]
             let _span = tracing::trace_span!("ParseStylesheet", servo_profiling = true).entered();
             StylesheetContents::from_str(
-                data.str(),
+                &data.str(),
                 UrlExtraData(window.get_url().get_arc()),
                 Origin::Author,
                 &shared_lock,
@@ -156,7 +156,7 @@ impl HTMLStyleElement {
         // stylo's `CascadeDataCache` can now be significantly improved. When shared `StylesheetContents`
         // is modified, copy-on-write will occur, see `CSSStyleSheet::will_modify`.
         let (cache_key, contents) = StylesheetContentsCache::get_or_insert_with(
-            data.str(),
+            &data.str(),
             &shared_lock,
             UrlExtraData(window.get_url().get_arc()),
             doc.quirks_mode(),

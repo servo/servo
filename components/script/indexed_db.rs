@@ -106,10 +106,11 @@ pub(crate) fn is_valid_key_path(key_path: &StrOrStringSequence) -> Result<bool, 
 
         // An identifier, which is a string matching the IdentifierName production from the
         // ECMAScript Language Specification [ECMA-262].
-        let is_identifier = is_identifier_name(path.str())?;
+        let is_identifier = is_identifier_name(&path.str())?;
 
         // A string consisting of two or more identifiers separated by periods (U+002E FULL STOP).
         let is_identifier_list = path
+            .str()
             .split('.')
             .map(is_identifier_name)
             .try_collect::<bool, Vec<bool>, Error>()?
@@ -367,7 +368,7 @@ pub(crate) fn evaluate_key_path_on_value(
             // Step 3. Let identifiers be the result of strictly splitting keyPath on U+002E
             // FULL STOP characters (.).
             // Step 4. For each identifier of identifiers, jump to the appropriate step below:
-            for identifier in key_path.split('.') {
+            for identifier in key_path.str().split('.') {
                 // If Type(value) is String, and identifier is "length"
                 if identifier == "length" && current_value.is_string() {
                     // Let value be a Number equal to the number of elements in value.

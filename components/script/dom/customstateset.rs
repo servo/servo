@@ -46,7 +46,7 @@ impl CustomStateSet {
     {
         // FIXME: This creates new atoms whenever it is called, which is not optimal.
         for state in self.internal.borrow().iter() {
-            callback(&AtomIdent::from(state.str()));
+            callback(&AtomIdent::from(&*state.str()));
         }
     }
 

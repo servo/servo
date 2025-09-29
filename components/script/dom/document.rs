@@ -1567,7 +1567,7 @@ impl Document {
         title.map(|title| {
             // Steps 3-4.
             let value = title.child_text_content();
-            DOMString::from(str_join(value.split_html_space_characters(), " "))
+            DOMString::from(str_join(value.str().split_html_space_characters(), " "))
         })
     }
 
@@ -3307,7 +3307,7 @@ fn get_registrable_domain_suffix_of_or_is_equal_to(
     }
 
     // Step 2-3.
-    let host = match Host::parse(host_suffix_string.str()) {
+    let host = match Host::parse(&host_suffix_string.str()) {
         Ok(host) => host,
         Err(_) => return None,
     };
@@ -3777,7 +3777,7 @@ impl Document {
         if element.namespace() != &ns!(html) {
             return false;
         }
-        element.get_name().is_some_and(|n| *n == *name)
+        element.get_name().is_some_and(|n| &*n == name)
     }
 
     fn count_node_list<F: Fn(&Node) -> bool>(&self, callback: F) -> u32 {
@@ -4796,7 +4796,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         qualified_name: DOMString,
         can_gc: CanGc,
     ) -> DomRoot<HTMLCollection> {
-        let qualified_name = LocalName::from(qualified_name.str());
+        let qualified_name = LocalName::from(qualified_name);
         if let Some(entry) = self.tag_map.borrow_mut().get(&qualified_name) {
             return DomRoot::from_ref(entry);
         }
@@ -4835,7 +4835,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
     fn GetElementsByClassName(&self, classes: DOMString, can_gc: CanGc) -> DomRoot<HTMLCollection> {
-        let class_atoms: Vec<Atom> = split_html_space_chars(classes.str())
+        let class_atoms: Vec<Atom> = split_html_space_chars(&classes.str())
             .map(Atom::from)
             .collect();
         if let Some(collection) = self.classes_map.borrow().get(&class_atoms) {
@@ -4867,7 +4867,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     ) -> Fallible<DomRoot<Element>> {
         // Step 1. If localName is not a valid element local name,
         //      then throw an "InvalidCharacterError" DOMException.
-        if !is_valid_element_local_name(local_name.str()) {
+        if !is_valid_element_local_name(&local_name.str()) {
             debug!("Not a valid element name");
             return Err(Error::InvalidCharacter);
         }
@@ -4886,7 +4886,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         let is = match options {
             StringOrElementCreationOptions::String(_) => None,
             StringOrElementCreationOptions::ElementCreationOptions(options) => {
-                options.is.as_ref().map(|is| LocalName::from(is.str()))
+                options.is.as_ref().map(LocalName::from)
             },
         };
         Ok(Element::create(
@@ -4920,7 +4920,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         let is = match options {
             StringOrElementCreationOptions::String(_) => None,
             StringOrElementCreationOptions::ElementCreationOptions(options) => {
-                options.is.as_ref().map(|is| LocalName::from(is.str()))
+                options.is.as_ref().map(LocalName::from)
             },
         };
 
@@ -4940,7 +4940,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn CreateAttribute(&self, mut local_name: DOMString, can_gc: CanGc) -> Fallible<DomRoot<Attr>> {
         // Step 1. If localName is not a valid attribute local name,
         //      then throw an "InvalidCharacterError" DOMException
-        if !is_valid_attribute_local_name(local_name.str()) {
+        if !is_valid_attribute_local_name(&local_name.str()) {
             debug!("Not a valid attribute name");
             return Err(Error::InvalidCharacter);
         }
@@ -5031,7 +5031,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         can_gc: CanGc,
     ) -> Fallible<DomRoot<ProcessingInstruction>> {
         // Step 1. If target does not match the Name production, then throw an "InvalidCharacterError" DOMException.
-        if !matches_name_production(target.str()) {
+        if !matches_name_production(&target.str()) {
             return Err(Error::InvalidCharacter);
         }
 
@@ -5083,7 +5083,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     // https://dom.spec.whatwg.org/#dom-document-createevent
     fn CreateEvent(&self, mut interface: DOMString, can_gc: CanGc) -> Fallible<DomRoot<Event>> {
         interface.make_ascii_lowercase();
-        match interface.str() {
+        match &*interface.str() {
             "beforeunloadevent" => Ok(DomRoot::upcast(BeforeUnloadEvent::new_uninitialized(
                 &self.window,
                 can_gc,
@@ -5969,7 +5969,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     // Servo only API to get an instance of the controls of a specific
     // media element matching the given id.
     fn ServoGetMediaControls(&self, id: DOMString) -> Fallible<DomRoot<ShadowRoot>> {
-        match self.media_controls.borrow().get(id.str()) {
+        match self.media_controls.borrow().get(&*id.str()) {
             Some(m) => Ok(DomRoot::from_ref(m)),
             None => Err(Error::InvalidAccess),
         }
