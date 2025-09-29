@@ -178,6 +178,7 @@ use crate::microtask::MicrotaskQueue;
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext, Runtime};
 use crate::script_thread::ScriptThread;
+use crate::script_window_proxies::ScriptWindowProxies;
 use crate::timers::{IsInterval, TimerCallback};
 use crate::unminify::unminified_path;
 use crate::webdriver_handlers::{find_node_by_unique_id_in_document, jsval_to_webdriver};
@@ -442,6 +443,10 @@ pub(crate) struct Window {
     /// <https://w3c.github.io/reporting/#windoworworkerglobalscope-endpoints>
     #[no_trace]
     endpoints_list: DomRefCell<Vec<ReportingEndpoint>>,
+
+    /// The window proxies the script thread knows.
+    #[ignore_malloc_size_of = "Rc"]
+    script_window_proxies: Rc<ScriptWindowProxies>,
 }
 
 impl Window {
@@ -607,7 +612,8 @@ impl Window {
     /// <https://html.spec.whatwg.org/multipage/#top-level-browsing-context>
     pub(crate) fn webview_window_proxy(&self) -> Option<DomRoot<WindowProxy>> {
         self.undiscarded_window_proxy().and_then(|window_proxy| {
-            ScriptThread::find_window_proxy(window_proxy.webview_id().into())
+            self.script_window_proxies
+                .find_window_proxy(window_proxy.webview_id().into())
         })
     }
 
@@ -3332,6 +3338,7 @@ impl Window {
             reporting_observer_list: Default::default(),
             report_list: Default::default(),
             endpoints_list: Default::default(),
+            script_window_proxies: ScriptThread::window_proxies(),
         });
 
         WindowBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), win)
