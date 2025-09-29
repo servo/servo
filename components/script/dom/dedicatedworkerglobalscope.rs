@@ -506,6 +506,18 @@ impl DedicatedWorkerGlobalScope {
 
                 global_scope.set_https_state(current_global_https_state);
 
+                let send_error = || {
+                    parent_event_loop_sender
+                        .send(CommonScriptMsg::Task(
+                            WorkerEvent,
+                            Box::new(SimpleWorkerErrorHandler::new(worker.clone())),
+                            Some(pipeline_id),
+                            TaskSourceName::DOMManipulation,
+                        ))
+                        .unwrap();
+                    scope.clear_js_runtime();
+                };
+
                 let (metadata, bytes) = match load_whole_resource(
                     request,
                     &global_scope.resource_threads().sender(),
@@ -518,18 +530,16 @@ impl DedicatedWorkerGlobalScope {
                 ) {
                     Err(e) => {
                         error!("error loading script {} ({:?})", serialized_worker_url, e);
-                        parent_event_loop_sender
-                            .send(CommonScriptMsg::Task(
-                                WorkerEvent,
-                                Box::new(SimpleWorkerErrorHandler::new(worker)),
-                                Some(pipeline_id),
-                                TaskSourceName::DOMManipulation,
-                            ))
-                            .unwrap();
-                        scope.clear_js_runtime();
+                        send_error();
                         return;
                     },
-                    Ok((metadata, bytes)) => (metadata, bytes),
+                    Ok((metadata, bytes)) => {
+                        if !metadata.status.is_success() {
+                            send_error();
+                            return;
+                        }
+                        (metadata, bytes)
+                    },
                 };
                 scope.set_url(metadata.final_url.clone());
                 Self::initialize_policy_container_for_worker_global_scope(
