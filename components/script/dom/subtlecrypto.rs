@@ -2603,7 +2603,7 @@ impl SubtleCrypto {
 
                 // Step 2.4. Let data be the byte sequence obtained by decoding the k field of jwk.
                 data = base64::engine::general_purpose::STANDARD_NO_PAD
-                    .decode(jwk.k.as_ref().ok_or(Error::Data)?.as_bytes())
+                    .decode(&*jwk.k.as_ref().ok_or(Error::Data)?.as_bytes())
                     .map_err(|_| Error::Data)?;
 
                 // NOTE: This function is shared by AES-CBC, AES-CTR, AES-GCM and AES-KW.
@@ -2946,7 +2946,7 @@ impl SubtleCrypto {
 
                 // Step 2.4. Let data be the byte sequence obtained by decoding the k field of jwk.
                 data = base64::engine::general_purpose::STANDARD_NO_PAD
-                    .decode(jwk.k.as_ref().ok_or(Error::Data)?.as_bytes())
+                    .decode(&*jwk.k.as_ref().ok_or(Error::Data)?.as_bytes())
                     .map_err(|_| Error::Data)?;
 
                 // Step 2.5. Set the hash to equal the hash member of normalizedAlgorithm.
@@ -3642,7 +3642,7 @@ fn sign_hmac(
     rooted!(in(*cx) let mut algorithm_slot = ObjectValue(key.Algorithm(cx).as_ptr()));
     let params = value_from_js_object::<HmacKeyAlgorithm>(cx, algorithm_slot.handle(), can_gc)?;
 
-    let hash_algorithm = match params.hash.name.str() {
+    let hash_algorithm = match &*params.hash.name.str() {
         ALG_SHA1 => hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY,
         ALG_SHA256 => hmac::HMAC_SHA256,
         ALG_SHA384 => hmac::HMAC_SHA384,
@@ -3791,7 +3791,7 @@ impl JsonWebKeyExt for JsonWebKey {
     fn get_usages_from_key_ops(&self) -> Result<Vec<KeyUsage>, Error> {
         let mut usages = vec![];
         for op in self.key_ops.as_ref().ok_or(Error::Data)? {
-            usages.push(KeyUsage::from_str(op.str()).map_err(|_| Error::Data)?);
+            usages.push(KeyUsage::from_str(&op.str()).map_err(|_| Error::Data)?);
         }
         Ok(usages)
     }
@@ -3892,7 +3892,7 @@ fn normalize_algorithm(
             //     Otherwise:
             //         Return a new NotSupportedError and terminate this algorithm.
             let Some(&alg_name) = SUPPORTED_ALGORITHMS.iter().find(|supported_algorithm| {
-                supported_algorithm.eq_ignore_ascii_case(initial_alg.name.str())
+                supported_algorithm.eq_ignore_ascii_case(&initial_alg.name.str())
             }) else {
                 return Err(Error::NotSupported);
             };

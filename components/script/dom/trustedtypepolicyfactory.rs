@@ -320,7 +320,7 @@ impl TrustedTypePolicyFactory {
                         global,
                         sink,
                         sink_group,
-                        input.str(),
+                        &input.str(),
                     );
                 // Step 6.2: If disposition is “Allowed”, return stringified input and abort further steps.
                 if !is_blocked {

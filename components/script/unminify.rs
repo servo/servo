@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::rc::Rc;
 
+use script_bindings::domstring::BytesView;
 use servo_url::ServoUrl;
 use tempfile::NamedTempFile;
 use uuid::Uuid;
@@ -17,7 +18,7 @@ use crate::dom::bindings::str::DOMString;
 
 pub(crate) trait ScriptSource {
     fn unminified_dir(&self) -> Option<String>;
-    fn extract_bytes(&self) -> &[u8];
+    fn extract_bytes(&self) -> BytesView<'_>;
     fn rewrite_source(&mut self, source: Rc<DOMString>);
     fn url(&self) -> ServoUrl;
     fn is_external(&self) -> bool;
@@ -108,7 +109,7 @@ pub(crate) fn unminify_js(script: &mut dyn ScriptSource) {
     };
 
     if let Some((mut input, mut output)) = create_temp_files() {
-        input.write_all(script.extract_bytes()).unwrap();
+        input.write_all(&script.extract_bytes()).unwrap();
 
         if execute_js_beautify(
             input.path(),
@@ -123,7 +124,7 @@ pub(crate) fn unminify_js(script: &mut dyn ScriptSource) {
     }
 
     match create_output_file(unminified_dir, &script.url(), Some(script.is_external())) {
-        Ok(mut file) => file.write_all(script.extract_bytes()).unwrap(),
+        Ok(mut file) => file.write_all(&script.extract_bytes()).unwrap(),
         Err(why) => warn!("Could not store script {:?}", why),
     }
 }

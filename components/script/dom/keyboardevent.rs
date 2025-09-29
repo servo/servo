@@ -265,7 +265,7 @@ impl KeyboardEventMethods<crate::DomTypeHolder> for KeyboardEvent {
 
     /// <https://w3c.github.io/uievents/#dom-keyboardevent-getmodifierstate>
     fn GetModifierState(&self, key_arg: DOMString) -> bool {
-        self.modifiers.get().contains(match key_arg.str() {
+        self.modifiers.get().contains(match &*key_arg.str() {
             "Alt" => Modifiers::ALT,
             "AltGraph" => Modifiers::ALT_GRAPH,
             "CapsLock" => Modifiers::CAPS_LOCK,

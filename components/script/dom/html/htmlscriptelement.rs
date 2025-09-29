@@ -23,6 +23,7 @@ use net_traits::{
     FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming,
     ResourceTimingType,
 };
+use script_bindings::domstring::BytesView;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::attr::AttrValue;
 use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
@@ -77,7 +78,7 @@ impl ScriptSource for ScriptOrigin {
         self.unminified_dir.clone()
     }
 
-    fn extract_bytes(&self) -> &[u8] {
+    fn extract_bytes(&self) -> BytesView<'_> {
         match &self.code {
             SourceCode::Text(text) => text.as_bytes(),
             SourceCode::Compiled(compiled_source_code) => {
@@ -707,7 +708,7 @@ impl HTMLScriptElement {
                     global,
                     element,
                     InlineCheckType::Script,
-                    text.str(),
+                    &text.str(),
                 )
         {
             warn!("Blocking inline script due to CSP");
@@ -751,13 +752,14 @@ impl HTMLScriptElement {
         let module_credentials_mode = match script_type {
             ScriptType::Classic => CredentialsMode::CredentialsSameOrigin,
             ScriptType::Module | ScriptType::ImportMap => reflect_cross_origin_attribute(element)
-                .map_or(CredentialsMode::CredentialsSameOrigin, |attr| {
-                    match attr.str() {
+                .map_or(
+                    CredentialsMode::CredentialsSameOrigin,
+                    |attr| match &*attr.str() {
                         "use-credentials" => CredentialsMode::Include,
                         "anonymous" => CredentialsMode::CredentialsSameOrigin,
                         _ => CredentialsMode::CredentialsSameOrigin,
-                    }
-                }),
+                    },
+                ),
         };
 
         // Step 24. Let cryptographic nonce be el's [[CryptographicNonce]] internal slot's value.
@@ -1532,7 +1534,7 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     fn Supports(_window: &Window, type_: DOMString) -> bool {
         // The type argument has to exactly match these values,
         // we do not perform an ASCII case-insensitive match.
-        matches!(type_.str(), "classic" | "module" | "importmap")
+        matches!(&*type_.str(), "classic" | "module" | "importmap")
     }
 }
 

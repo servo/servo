@@ -638,7 +638,7 @@ fn resolve_uuid_name(
         StringOrUnsignedLong::String(dstring) => {
             // Step 2.
             let regex = Regex::new(VALID_UUID_REGEX).unwrap();
-            if regex.is_match(dstring.str()) {
+            if regex.is_match(&dstring.str()) {
                 Ok(dstring)
             } else {
                 // Step 3.

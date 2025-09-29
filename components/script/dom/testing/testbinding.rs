@@ -882,14 +882,14 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn PassVariadicObject(&self, _: SafeJSContext, _: Vec<*mut JSObject>) {}
     fn BooleanMozPreference(&self, pref_name: DOMString) -> bool {
         prefs::get()
-            .get_value(pref_name.str())
+            .get_value(&pref_name.str())
             .try_into()
             .unwrap_or(false)
     }
     fn StringMozPreference(&self, pref_name: DOMString) -> DOMString {
         DOMString::from_string(
             prefs::get()
-                .get_value(pref_name.str())
+                .get_value(&pref_name.str())
                 .try_into()
                 .unwrap_or_default(),
         )

@@ -64,7 +64,7 @@ impl DOMTokenList {
 
     fn check_token_exceptions(&self, token: &DOMString) -> Fallible<Atom> {
         let token = token.str();
-        match token {
+        match &*token {
             "" => Err(Error::Syntax(None)),
             slice if slice.find(HTML_SPACE_CHARACTERS).is_some() => Err(Error::InvalidCharacter),
             slice => Ok(Atom::from(slice)),
@@ -235,7 +235,7 @@ impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-supports>
     fn Supports(&self, token: DOMString) -> Fallible<bool> {
-        self.validation_steps(token.str())
+        self.validation_steps(&token.str())
     }
 
     // check-tidy: no specs after this line

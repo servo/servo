@@ -182,7 +182,8 @@ fn parse_size(input: &DOMString) -> AttrValue {
     // Steps 1 & 2 are not relevant
 
     // Step 3
-    let input = input.str().trim_matches(HTML_SPACE_CHARACTERS);
+    let input = input.str();
+    let input = input.trim_matches(HTML_SPACE_CHARACTERS);
 
     enum ParseMode {
         RelativePlus,

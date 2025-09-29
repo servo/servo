@@ -356,7 +356,7 @@ impl CSSStyleDeclaration {
                 id
             },
             PotentiallyParsedPropertyId::NotParsed(unparsed) => {
-                match PropertyId::parse_enabled_for_all_content(unparsed.str()) {
+                match PropertyId::parse_enabled_for_all_content(&unparsed.str()) {
                     Ok(id) => id,
                     Err(..) => return Ok(()),
                 }
@@ -374,7 +374,7 @@ impl CSSStyleDeclaration {
 
                 // Step 4. If priority is not the empty string and is not an ASCII case-insensitive
                 // match for the string "important", then return.
-                let importance = match priority.str() {
+                let importance = match &*priority.str() {
                     "" => Importance::Normal,
                     p if p.eq_ignore_ascii_case("important") => Importance::Important,
                     _ => {
@@ -390,7 +390,7 @@ impl CSSStyleDeclaration {
                 let result = parse_one_declaration_into(
                     &mut declarations,
                     id,
-                    value.str(),
+                    &value.str(),
                     Origin::Author,
                     &UrlExtraData(self.owner.base_url().get_arc()),
                     window.css_error_reporter(),
@@ -481,7 +481,7 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
     fn GetPropertyValue(&self, property: DOMString) -> DOMString {
-        let id = match PropertyId::parse_enabled_for_all_content(property.str()) {
+        let id = match PropertyId::parse_enabled_for_all_content(&property.str()) {
             Ok(id) => id,
             Err(..) => return DOMString::new(),
         };
@@ -494,7 +494,7 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
             // Readonly style declarations are used for getComputedStyle.
             return DOMString::new();
         }
-        let id = match PropertyId::parse_enabled_for_all_content(property.str()) {
+        let id = match PropertyId::parse_enabled_for_all_content(&property.str()) {
             Ok(id) => id,
             Err(..) => return DOMString::new(),
         };
@@ -532,7 +532,7 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
             return Err(Error::NoModificationAllowed);
         }
 
-        let id = match PropertyId::parse_enabled_for_all_content(property.str()) {
+        let id = match PropertyId::parse_enabled_for_all_content(&property.str()) {
             Ok(id) => id,
             Err(..) => return Ok(DOMString::new()),
         };
@@ -609,7 +609,7 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
             |pdb, _changed| {
                 // Step 3
                 *pdb = parse_style_attribute(
-                    value.str(),
+                    &value.str(),
                     &UrlExtraData(self.owner.base_url().get_arc()),
                     window.css_error_reporter(),
                     quirks_mode,

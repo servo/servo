@@ -150,14 +150,14 @@ impl TrustedScript {
         };
         global
             .get_csp_list()
-            .is_js_evaluation_allowed(global, source_string.str())
+            .is_js_evaluation_allowed(global, &source_string.str())
     }
 }
 
 impl fmt::Display for TrustedScript {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(self.data.str())
+        f.write_str(&self.data.str())
     }
 }
 

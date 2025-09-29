@@ -160,8 +160,9 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
 
             // Step 6.3 If key starts with `"web "` prefix, then
             // Step 6.3.1 Remove `"web "` prefix and assign the remaining string to key.
-            let (key, is_custom) = match key.str().strip_prefix(CUSTOM_FORMAT_PREFIX) {
-                None => (key.str(), false),
+            let key = key.str();
+            let (key, is_custom) = match key.strip_prefix(CUSTOM_FORMAT_PREFIX) {
+                None => (&*key, false),
                 // Step 6.3.2 Set isCustom true
                 Some(stripped) => (stripped, true),
             };
@@ -252,8 +253,9 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
 
         // Step 3 If type starts with `"web "` prefix, then:
         // Step 3.1 Remove `"web "` prefix and assign the remaining string to type.
+        let type_ = type_.str();
         let (type_, is_custom) = match type_.strip_prefix(CUSTOM_FORMAT_PREFIX) {
-            None => (type_.str(), false),
+            None => (&*type_, false),
             // Step 3.2 Set isCustom to true.
             Some(stripped) => (stripped, true),
         };

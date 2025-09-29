@@ -415,7 +415,7 @@ pub(crate) fn follow_hyperlink(
         if let Some(suffix) = hyperlink_suffix {
             href.push_str(&suffix);
         }
-        let Ok(url) = document.base_url().join(href.str()) else {
+        let Ok(url) = document.base_url().join(&href.str()) else {
             return;
         };
 

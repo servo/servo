@@ -217,7 +217,7 @@ impl Path2DMethods<crate::DomTypeHolder> for Path2D {
         path_string: DOMString,
     ) -> DomRoot<Path2D> {
         reflect_dom_object_with_proto(
-            Box::new(Self::new_with_str(path_string.str())),
+            Box::new(Self::new_with_str(&path_string.str())),
             global,
             proto,
             can_gc,
