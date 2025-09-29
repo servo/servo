@@ -1342,7 +1342,7 @@ impl FetchResponseListener for ModuleContext {
                     self.options.clone(),
                     compiled_module.handle_mut(),
                     false,
-                    1, // for non-inline scripts, the relative location is the absolute location since the script is located on separate file. Therefore, we can hardwire the value 1 here.
+                    1, // external scripts start at he first line of the file
                     self.introduction_type,
                     CanGc::note(),
                 );
