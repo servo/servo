@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::future::Future;
 use std::ops::Bound;
@@ -14,6 +13,7 @@ use log::error;
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::request::Request;
 use net_traits::response::Response;
+use rustc_hash::FxHashMap;
 use servo_url::ServoUrl;
 
 use crate::fetch::methods::{DoneChannel, FetchContext, RangeRequestBounds};
@@ -68,7 +68,7 @@ pub trait ProtocolHandler: Send + Sync {
 
 #[derive(Default)]
 pub struct ProtocolRegistry {
-    pub(crate) handlers: HashMap<String, Box<dyn ProtocolHandler>>, // Maps scheme -> handler
+    pub(crate) handlers: FxHashMap<String, Box<dyn ProtocolHandler>>, // Maps scheme -> handler
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -94,6 +94,7 @@ impl ProtocolRegistry {
         registry
     }
 
+    /// Do not allow users to enter an arbitrary protocol as this can lead to slowdowns.
     pub fn register(
         &mut self,
         scheme: &str,
