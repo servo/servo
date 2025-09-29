@@ -129,7 +129,7 @@ rustls-pemfile = "2.0"
 rustls-pki-types = "1.12"
 script_traits = { path = "components/shared/script" }
 selectors = { git = "https://github.com/servo/stylo", branch = "2025-09-02" }
-serde = "1.0.227"
+serde = "1.0.228"
 serde_bytes = "0.11"
 serde_core = "1.0.226"
 serde_json = "1.0"
