@@ -1342,7 +1342,7 @@ impl FetchResponseListener for ModuleContext {
                     self.options.clone(),
                     compiled_module.handle_mut(),
                     false,
-                    1, // external scripts start at he first line of the file
+                    1, // external scripts start at the first line of the file
                     self.introduction_type,
                     CanGc::note(),
                 );
