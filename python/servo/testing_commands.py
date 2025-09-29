@@ -221,7 +221,6 @@ class MachCommands(CommandBase):
             "selectors",
             "servo_config",
             "servoshell",
-            "stylo_config",
         ]
         if not packages:
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set([".DS_Store"])
@@ -234,8 +233,6 @@ class MachCommands(CommandBase):
                 in_crate_packages += [crate]
             except KeyError:
                 pass
-
-        packages.discard("stylo")
 
         # Return if there is nothing to do.
         if len(packages) == 0 and len(in_crate_packages) == 0:
