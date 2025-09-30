@@ -12,7 +12,6 @@ use std::time::Instant;
 use std::{env, fs};
 
 use ::servo::ServoBuilder;
-use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::unbounded;
 use euclid::{Point2D, Vector2D};
 use ipc_channel::ipc;
@@ -24,9 +23,9 @@ use servo::servo_url::ServoUrl;
 use servo::user_content_manager::{UserContentManager, UserScript};
 use servo::webrender_api::ScrollLocation;
 use servo::{
-    EventLoopWaker, ImeEvent, InputEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
-    WebDriverCommandMsg, WebDriverScriptCommand, WebDriverUserPromptAction, WheelDelta, WheelEvent,
-    WheelMode,
+    EmbedderToConstellationMessage, EventLoopWaker, ImeEvent, InputEvent, KeyboardEvent,
+    MouseButtonEvent, MouseMoveEvent, WebDriverCommandMsg, WebDriverScriptCommand,
+    WebDriverUserPromptAction, WheelDelta, WheelEvent, WheelMode,
 };
 use url::Url;
 use winit::application::ApplicationHandler;

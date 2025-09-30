@@ -8,7 +8,6 @@ use std::path::PathBuf;
 use std::ptr::NonNull;
 use std::rc::Rc;
 
-use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::unbounded;
 use dpi::PhysicalSize;
 use log::{debug, info, warn};
@@ -19,7 +18,10 @@ use raw_window_handle::{
     WindowHandle,
 };
 use servo::ipc_channel::ipc;
-use servo::{self, EventLoopWaker, ServoBuilder, WindowRenderingContext, resources};
+use servo::{
+    self, EmbedderToConstellationMessage, EventLoopWaker, ServoBuilder, WindowRenderingContext,
+    resources,
+};
 use xcomponent_sys::OH_NativeXComponent;
 
 use crate::egl::app_state::{Coordinates, RunningAppState, ServoWindowCallbacks};

@@ -57,10 +57,8 @@ webxr = ["libservo/webxr"]
 [dependencies]
 bpaf = { version = "0.9.20", features = ["derive"] }
 cfg-if = { workspace = true }
-constellation_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 dpi = { workspace = true }
-embedder_traits = { path = "../../components/shared/embedder" }
 euclid = { workspace = true }
 hitrace = { workspace = true, optional = true }
 image = { workspace = true }

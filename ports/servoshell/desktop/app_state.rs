@@ -10,7 +10,6 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use crossbeam_channel::Receiver;
-use embedder_traits::webdriver::WebDriverSenders;
 use image::{DynamicImage, ImageFormat};
 use keyboard_types::ShortcutMatcher;
 use log::{error, info};
@@ -23,7 +22,7 @@ use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
     JSValue, KeyboardEvent, LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError,
     SimpleDialog, TraversalId, WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus,
-    WebDriverUserPrompt, WebView, WebViewBuilder, WebViewDelegate,
+    WebDriverSenders, WebDriverUserPrompt, WebView, WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
 

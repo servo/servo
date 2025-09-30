@@ -7,12 +7,6 @@ use std::rc::Rc;
 
 use crossbeam_channel::Receiver;
 use dpi::PhysicalSize;
-use embedder_traits::webdriver::WebDriverSenders;
-use embedder_traits::{
-    ContextMenuResult, InputMethodType, KeyboardEvent, MediaSessionActionType, MediaSessionEvent,
-    MouseButton, MouseButtonAction, ScreenGeometry, TouchEvent, TouchEventType, TouchId,
-    WebDriverJSResult,
-};
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use image::{DynamicImage, ImageFormat};
 use keyboard_types::{CompositionEvent, CompositionState, Key, KeyState, NamedKey};
@@ -25,10 +19,12 @@ use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{
-    AllowOrDenyRequest, ImeEvent, InputEvent, LoadStatus, MouseButtonEvent, MouseMoveEvent,
-    NavigationRequest, PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog,
-    TraversalId, WebDriverCommandMsg, WebDriverLoadStatus, WebDriverScriptCommand, WebView,
-    WebViewBuilder, WebViewDelegate, WindowRenderingContext,
+    AllowOrDenyRequest, ContextMenuResult, ImeEvent, InputEvent, InputMethodType, KeyboardEvent,
+    LoadStatus, MediaSessionActionType, MediaSessionEvent, MouseButton, MouseButtonAction,
+    MouseButtonEvent, MouseMoveEvent, NavigationRequest, PermissionRequest, ScreenGeometry, Servo,
+    ServoDelegate, ServoError, SimpleDialog, TouchEvent, TouchEventType, TouchId, TraversalId,
+    WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus, WebDriverScriptCommand,
+    WebDriverSenders, WebView, WebViewBuilder, WebViewDelegate, WindowRenderingContext,
 };
 use url::Url;
 
