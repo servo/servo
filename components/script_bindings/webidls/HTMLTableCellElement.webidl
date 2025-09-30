@@ -29,10 +29,8 @@ partial interface HTMLTableCellElement {
   //          attribute DOMString align;
   // [CEReactions]
   //          attribute DOMString axis;
-  // [CEReactions]
-  //          attribute DOMString height;
-  [CEReactions]
-  attribute DOMString width;
+  [CEReactions] attribute DOMString height;
+  [CEReactions] attribute DOMString width;
 
   //          attribute DOMString ch;
   // [CEReactions]

@@ -64,6 +64,12 @@ impl HTMLTableColElementMethods<crate::DomTypeHolder> for HTMLTableColElement {
     // > The span IDL attribute must reflect the content attribute of the same name. It is clamped
     // > to the range [1, 1000], and its default value is 1.
     make_clamped_uint_setter!(SetSpan, "span", 1, 1000, 1);
+
+    // <https://html.spec.whatwg.org/multipage/#dom-col-width>
+    make_getter!(Width, "width");
+
+    // <https://html.spec.whatwg.org/multipage/#dom-col-width>
+    make_dimension_setter!(SetWidth, "width");
 }
 
 pub(crate) trait HTMLTableColElementLayoutHelpers<'dom> {
@@ -99,6 +105,16 @@ impl VirtualMethods for HTMLTableColElement {
 
         if matches!(*attr.local_name(), local_name!("span")) {
             self.upcast::<Node>().dirty(NodeDamage::Other);
+        }
+    }
+
+    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+        match attr.local_name() {
+            &local_name!("width") => true,
+            _ => self
+                .super_type()
+                .unwrap()
+                .attribute_affects_presentational_hints(attr),
         }
     }
 

@@ -708,14 +708,14 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
     // https://html.spec.whatwg.org/multipage/#attr-iframe-allowfullscreen
     make_bool_setter!(SetAllowFullscreen, "allowfullscreen");
 
-    // https://html.spec.whatwg.org/multipage/#dom-dim-width
+    // <https://html.spec.whatwg.org/multipage/#dom-dim-width>
     make_getter!(Width, "width");
-    // https://html.spec.whatwg.org/multipage/#dom-dim-width
+    // <https://html.spec.whatwg.org/multipage/#dom-dim-width>
     make_dimension_setter!(SetWidth, "width");
 
-    // https://html.spec.whatwg.org/multipage/#dom-dim-height
+    // <https://html.spec.whatwg.org/multipage/#dom-dim-height>
     make_getter!(Height, "height");
-    // https://html.spec.whatwg.org/multipage/#dom-dim-height
+    // <https://html.spec.whatwg.org/multipage/#dom-dim-height>
     make_dimension_setter!(SetHeight, "height");
 
     // https://html.spec.whatwg.org/multipage/#other-elements,-attributes-and-apis:attr-iframe-frameborder
@@ -788,6 +788,16 @@ impl VirtualMethods for HTMLIFrameElement {
                 }
             },
             _ => {},
+        }
+    }
+
+    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+        match attr.local_name() {
+            &local_name!("width") | &local_name!("height") => true,
+            _ => self
+                .super_type()
+                .unwrap()
+                .attribute_affects_presentational_hints(attr),
         }
     }
 
