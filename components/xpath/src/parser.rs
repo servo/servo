@@ -66,7 +66,12 @@ pub enum UnaryOp {
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub struct PathExpr {
+    /// Whether this is an absolute (as opposed to a relative) path expression.
+    ///
+    /// Absolute paths always start at the starting node, not the context node.
     pub(crate) is_absolute: bool,
+    /// Whether this expression starts with `//`. If it does, then an implicit
+    /// `descendant-or-self::node()` step will be added.
     pub(crate) is_descendant: bool,
     pub(crate) steps: Vec<StepExpr>,
 }
@@ -263,10 +268,12 @@ fn expr(input: &str) -> IResult<&str, Expr> {
     expr_single(input)
 }
 
+/// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-Expr>
 fn expr_single(input: &str) -> IResult<&str, Expr> {
     or_expr(input)
 }
 
+/// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-OrExpr>
 fn or_expr(input: &str) -> IResult<&str, Expr> {
     let (input, first) = and_expr(input)?;
     let (input, rest) = many0(preceded(ws(tag("or")), and_expr)).parse(input)?;
@@ -278,6 +285,7 @@ fn or_expr(input: &str) -> IResult<&str, Expr> {
     ))
 }
 
+/// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-AndExpr>
 fn and_expr(input: &str) -> IResult<&str, Expr> {
     let (input, first) = equality_expr(input)?;
     let (input, rest) = many0(preceded(ws(tag("and")), equality_expr)).parse(input)?;
@@ -289,6 +297,7 @@ fn and_expr(input: &str) -> IResult<&str, Expr> {
     ))
 }
 
+/// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-EqualityExpr>
 fn equality_expr(input: &str) -> IResult<&str, Expr> {
     let (input, first) = relational_expr(input)?;
     let (input, rest) = many0((
@@ -308,6 +317,7 @@ fn equality_expr(input: &str) -> IResult<&str, Expr> {
     ))
 }
 
+/// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-RelationalExpr>
 fn relational_expr(input: &str) -> IResult<&str, Expr> {
     let (input, first) = additive_expr(input)?;
     let (input, rest) = many0((
@@ -329,6 +339,7 @@ fn relational_expr(input: &str) -> IResult<&str, Expr> {
     ))
 }
 
+/// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-AdditiveExpr>
 fn additive_expr(input: &str) -> IResult<&str, Expr> {
     let (input, first) = multiplicative_expr(input)?;
     let (input, rest) = many0((
@@ -348,6 +359,7 @@ fn additive_expr(input: &str) -> IResult<&str, Expr> {
     ))
 }
 
+/// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-MultiplicativeExpr>
 fn multiplicative_expr(input: &str) -> IResult<&str, Expr> {
     let (input, first) = unary_expr(input)?;
     let (input, rest) = many0((
@@ -368,6 +380,7 @@ fn multiplicative_expr(input: &str) -> IResult<&str, Expr> {
     ))
 }
 
+/// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-UnaryExpr>
 fn unary_expr(input: &str) -> IResult<&str, Expr> {
     let (input, minus_count) = many0(ws(char('-'))).parse(input)?;
     let (input, expr) = union_expr(input)?;
@@ -378,6 +391,7 @@ fn unary_expr(input: &str) -> IResult<&str, Expr> {
     ))
 }
 
+/// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-UnionExpr>
 fn union_expr(input: &str) -> IResult<&str, Expr> {
     let (input, first) = path_expr(input)?;
     let (input, rest) = many0(preceded(ws(char('|')), path_expr)).parse(input)?;
@@ -390,6 +404,7 @@ fn union_expr(input: &str) -> IResult<&str, Expr> {
     ))
 }
 
+/// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-PathExpr>
 fn path_expr(input: &str) -> IResult<&str, Expr> {
     ws(alt((
         // "//" RelativePathExpr
@@ -424,13 +439,13 @@ fn relative_path_expr(is_descendant: bool, input: &str) -> IResult<&str, PathExp
     let (input, first) = step_expr(is_descendant, input)?;
     let (input, steps) = many0(pair(
         ws(alt((value(true, tag("//")), value(false, char('/'))))),
-        move |i| step_expr(is_descendant, i),
+        ws(move |i| step_expr(false, i)),
     ))
     .parse(input)?;
 
     let mut all_steps = vec![first];
-    for (is_descendant, step) in steps {
-        if is_descendant {
+    for (implicit_descendant_or_self, step) in steps {
+        if implicit_descendant_or_self {
             // Insert an implicit descendant-or-self::node() step
             all_steps.push(StepExpr::Axis(AxisStep {
                 axis: Axis::DescendantOrSelf,
@@ -500,23 +515,19 @@ fn forward_axis(input: &str) -> IResult<&str, Axis> {
     Ok((input, axis))
 }
 
+// <https://www.w3.org/TR/1999/REC-xpath-19991116/#path-abbrev>
 fn abbrev_forward_step(is_descendant: bool, input: &str) -> IResult<&str, (Axis, NodeTest)> {
     let (input, attr) = opt(char('@')).parse(input)?;
     let (input, test) = node_test(input)?;
 
-    Ok((
-        input,
-        (
-            if attr.is_some() {
-                Axis::Attribute
-            } else if is_descendant {
-                Axis::DescendantOrSelf
-            } else {
-                Axis::Child
-            },
-            test,
-        ),
-    ))
+    let axis = if attr.is_some() {
+        Axis::Attribute
+    } else if is_descendant {
+        Axis::DescendantOrSelf
+    } else {
+        Axis::Child
+    };
+    Ok((input, (axis, test)))
 }
 
 fn reverse_step(input: &str) -> IResult<&str, (Axis, NodeTest)> {
@@ -547,6 +558,7 @@ fn abbrev_reverse_step(input: &str) -> IResult<&str, (Axis, NodeTest)> {
     .parse(input)
 }
 
+/// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-NodeTest>
 fn node_test(input: &str) -> IResult<&str, NodeTest> {
     alt((
         map(kind_test, NodeTest::Kind),
@@ -564,6 +576,7 @@ enum NameTest {
     Wildcard,
 }
 
+/// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-NameTest>
 fn name_test(input: &str) -> IResult<&str, NameTest> {
     alt((
         // NCName ":" "*"
@@ -581,6 +594,7 @@ fn name_test(input: &str) -> IResult<&str, NameTest> {
     .parse(input)
 }
 
+/// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-FilterExpr>
 fn filter_expr(input: &str) -> IResult<&str, FilterExpr> {
     let (input, primary) = primary_expr(input)?;
     let (input, predicates) = predicate_list(input)?;
@@ -600,11 +614,13 @@ fn predicate_list(input: &str) -> IResult<&str, PredicateListExpr> {
     Ok((input, PredicateListExpr { predicates }))
 }
 
+/// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-Predicate>
 fn predicate(input: &str) -> IResult<&str, PredicateExpr> {
     let (input, expr) = delimited(ws(char('[')), expr, ws(char(']'))).parse(input)?;
     Ok((input, PredicateExpr { expr }))
 }
 
+/// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-PrimaryExpr>
 fn primary_expr(input: &str) -> IResult<&str, PrimaryExpr> {
     alt((
         literal,
@@ -618,6 +634,7 @@ fn primary_expr(input: &str) -> IResult<&str, PrimaryExpr> {
     .parse(input)
 }
 
+/// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-Literal>
 fn literal(input: &str) -> IResult<&str, PrimaryExpr> {
     map(alt((numeric_literal, string_literal)), |lit| {
         PrimaryExpr::Literal(lit)
@@ -625,10 +642,12 @@ fn literal(input: &str) -> IResult<&str, PrimaryExpr> {
     .parse(input)
 }
 
+/// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-Number>
 fn numeric_literal(input: &str) -> IResult<&str, Literal> {
     alt((decimal_literal, integer_literal)).parse(input)
 }
 
+/// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-VariableReference>
 fn var_ref(input: &str) -> IResult<&str, PrimaryExpr> {
     let (input, _) = char('$').parse(input)?;
     let (input, name) = qname(input)?;
@@ -914,7 +933,7 @@ mod tests {
             match node_test(input) {
                 Ok((remaining, result)) => {
                     assert!(remaining.is_empty(), "Parser didn't consume all input");
-                    assert_eq!(result, expected);
+                    assert_eq!(result, expected, "{:?} was parsed incorrectly", input);
                 },
                 Err(e) => panic!("Failed to parse '{}': {:?}", input, e),
             }
@@ -994,7 +1013,7 @@ mod tests {
         for (input, expected) in cases {
             match parse(input) {
                 Ok(result) => {
-                    assert_eq!(result, expected);
+                    assert_eq!(result, expected, "{:?} was parsed incorrectly", input);
                 },
                 Err(e) => panic!("Failed to parse '{}': {:?}", input, e),
             }
@@ -1010,7 +1029,7 @@ mod tests {
                     is_absolute: true,
                     is_descendant: true,
                     steps: vec![StepExpr::Axis(AxisStep {
-                        axis: Axis::Child,
+                        axis: Axis::DescendantOrSelf,
                         node_test: NodeTest::Wildcard,
                         predicates: PredicateListExpr {
                             predicates: vec![PredicateExpr {
@@ -1061,7 +1080,7 @@ mod tests {
                     is_descendant: true,
                     steps: vec![
                         StepExpr::Axis(AxisStep {
-                            axis: Axis::Child,
+                            axis: Axis::DescendantOrSelf,
                             node_test: NodeTest::Name(QName {
                                 prefix: None,
                                 local_part: "div".to_string(),
@@ -1124,7 +1143,7 @@ mod tests {
                     is_descendant: true,
                     steps: vec![
                         StepExpr::Axis(AxisStep {
-                            axis: Axis::Child,
+                            axis: Axis::DescendantOrSelf,
                             node_test: NodeTest::Name(QName {
                                 prefix: None,
                                 local_part: "mu".to_string(),
@@ -1234,7 +1253,7 @@ mod tests {
         for (input, expected) in cases {
             match parse(input) {
                 Ok(result) => {
-                    assert_eq!(result, expected);
+                    assert_eq!(result, expected, "{:?} was parsed incorrectly", input);
                 },
                 Err(e) => panic!("Failed to parse '{}': {:?}", input, e),
             }
