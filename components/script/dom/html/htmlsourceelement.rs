@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
 use js::rust::HandleObject;
+use style::attr::AttrValue;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLSourceElementBinding::HTMLSourceElementMethods;
@@ -18,7 +19,7 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::html::htmlmediaelement::HTMLMediaElement;
 use crate::dom::html::htmlpictureelement::HTMLPictureElement;
-use crate::dom::node::{BindContext, Node, UnbindContext};
+use crate::dom::node::{BindContext, Node, NodeDamage, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
@@ -58,11 +59,11 @@ impl HTMLSourceElement {
 
     fn iterate_next_html_image_element_siblings(
         next_siblings_iterator: impl Iterator<Item = Root<Dom<Node>>>,
-        can_gc: CanGc,
+        callback: impl Fn(&HTMLImageElement),
     ) {
         for next_sibling in next_siblings_iterator {
             if let Some(html_image_element_sibling) = next_sibling.downcast::<HTMLImageElement>() {
-                html_image_element_sibling.update_the_image_data(can_gc);
+                callback(html_image_element_sibling);
             }
         }
     }
@@ -77,22 +78,53 @@ impl VirtualMethods for HTMLSourceElement {
         self.super_type()
             .unwrap()
             .attribute_mutated(attr, mutation, can_gc);
+
         match attr.local_name() {
             &local_name!("srcset") |
             &local_name!("sizes") |
             &local_name!("media") |
             &local_name!("type") => {
+                // <https://html.spec.whatwg.org/multipage/#reacting-to-dom-mutations>
+                // The element's parent is a picture element and a source element that is a previous
+                // sibling has its srcset, sizes, media, type attributes set, changed, or removed.
                 if let Some(parent) = self.upcast::<Node>().GetParentElement() {
                     if parent.is::<HTMLPictureElement>() {
                         let next_sibling_iterator = self.upcast::<Node>().following_siblings();
                         HTMLSourceElement::iterate_next_html_image_element_siblings(
                             next_sibling_iterator,
-                            can_gc,
+                            |image| image.update_the_image_data(can_gc),
+                        );
+                    }
+                }
+            },
+            &local_name!("width") | &local_name!("height") => {
+                // Note: Despite being explicitly stated in the specification that any width or
+                // height attributes changes (set, changed, removed) of the source element should be
+                // counted as relevant mutation for the sibling image element, these attributes
+                // affect only the style presentational hints of the image element.
+                if let Some(parent) = self.upcast::<Node>().GetParentElement() {
+                    if parent.is::<HTMLPictureElement>() {
+                        let next_sibling_iterator = self.upcast::<Node>().following_siblings();
+                        HTMLSourceElement::iterate_next_html_image_element_siblings(
+                            next_sibling_iterator,
+                            |image| image.upcast::<Node>().dirty(NodeDamage::Other),
                         );
                     }
                 }
             },
             _ => {},
+        }
+    }
+
+    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
+        match name {
+            &local_name!("width") | &local_name!("height") => {
+                AttrValue::from_dimension(value.into())
+            },
+            _ => self
+                .super_type()
+                .unwrap()
+                .parse_plain_attribute(name, value),
         }
     }
 
@@ -115,7 +147,7 @@ impl VirtualMethods for HTMLSourceElement {
             let next_sibling_iterator = self.upcast::<Node>().following_siblings();
             HTMLSourceElement::iterate_next_html_image_element_siblings(
                 next_sibling_iterator,
-                can_gc,
+                |image| image.update_the_image_data(can_gc),
             );
         }
     }
@@ -131,7 +163,7 @@ impl VirtualMethods for HTMLSourceElement {
                 let next_sibling_iterator = next_sibling.inclusively_following_siblings();
                 HTMLSourceElement::iterate_next_html_image_element_siblings(
                     next_sibling_iterator,
-                    can_gc,
+                    |image| image.update_the_image_data(can_gc),
                 );
             }
         }
@@ -168,4 +200,16 @@ impl HTMLSourceElementMethods<crate::DomTypeHolder> for HTMLSourceElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-source-media
     make_setter!(SetMedia, "media");
+
+    // <https://html.spec.whatwg.org/multipage/#dom-source-width>
+    make_dimension_uint_getter!(Width, "width");
+
+    // <https://html.spec.whatwg.org/multipage/#dom-source-width>
+    make_dimension_uint_setter!(SetWidth, "width");
+
+    // <https://html.spec.whatwg.org/multipage/#dom-source-height>
+    make_dimension_uint_getter!(Height, "height");
+
+    // <https://html.spec.whatwg.org/multipage/#dom-source-height>
+    make_dimension_uint_setter!(SetHeight, "height");
 }

@@ -392,6 +392,56 @@ macro_rules! make_nonzero_dimension_setter(
     );
 );
 
+#[macro_export]
+macro_rules! make_dimension_uint_getter(
+    ($attr:ident, $htmlname:tt, $default:expr) => (
+        fn $attr(&self) -> u32 {
+            use style::attr::parse_unsigned_integer;
+            use $crate::dom::bindings::inheritance::Castable;
+            use $crate::dom::element::Element;
+            use $crate::dom::values::UNSIGNED_LONG_MAX;
+            let element = self.upcast::<Element>();
+            element
+                .get_attribute(&html5ever::ns!(), &html5ever::local_name!($htmlname))
+                .map_or($default, |attribute| parse_unsigned_integer(attribute.value().chars())
+                    .map_or($default, |value| {
+                        if value > UNSIGNED_LONG_MAX {
+                            $default
+                        } else {
+                            value
+                        }
+                    })
+                )
+        }
+    );
+    ($attr:ident, $htmlname:tt) => {
+        make_dimension_uint_getter!($attr, $htmlname, 0);
+    };
+);
+
+#[macro_export]
+macro_rules! make_dimension_uint_setter(
+    ($attr:ident, $htmlname:tt, $default:expr) => (
+        fn $attr(&self, value: u32) {
+            use $crate::dom::bindings::inheritance::Castable;
+            use $crate::dom::element::Element;
+            use $crate::dom::values::UNSIGNED_LONG_MAX;
+            use $crate::script_runtime::CanGc;
+            let element = self.upcast::<Element>();
+            let value = if value > UNSIGNED_LONG_MAX {
+                $default
+            } else {
+                value
+            };
+            let value = AttrValue::from_dimension(value.to_string());
+            element.set_attribute(&html5ever::local_name!($htmlname), value, CanGc::note())
+        }
+    );
+    ($attr:ident, $htmlname:tt) => {
+        make_dimension_uint_setter!($attr, $htmlname, 0);
+    };
+);
+
 /// For use on non-jsmanaged types
 /// Use #[derive(JSTraceable)] on JS managed types
 macro_rules! unsafe_no_jsmanaged_fields(

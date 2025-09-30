@@ -23,6 +23,5 @@ partial interface HTMLTableColElement {
   //          attribute DOMString chOff;
   // [CEReactions]
   //          attribute DOMString vAlign;
-  // [CEReactions]
-  //          attribute DOMString width;
+  [CEReactions] attribute DOMString width;
 };

@@ -7,14 +7,11 @@
 interface HTMLSourceElement : HTMLElement {
   [HTMLConstructor] constructor();
 
-  [CEReactions]
-           attribute USVString src;
-  [CEReactions]
-           attribute DOMString type;
-  [CEReactions]
-            attribute USVString srcset;
-  [CEReactions]
-            attribute DOMString sizes;
-  [CEReactions]
-            attribute DOMString media;
+  [CEReactions] attribute USVString src;
+  [CEReactions] attribute DOMString type;
+  [CEReactions] attribute USVString srcset;
+  [CEReactions] attribute DOMString sizes;
+  [CEReactions] attribute DOMString media;
+  [CEReactions] attribute unsigned long width;
+  [CEReactions] attribute unsigned long height;
 };

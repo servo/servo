@@ -14,6 +14,7 @@ use style::values::specified::border::BorderSideWidth;
 use style::values::specified::length::Size;
 use style::values::specified::{LengthPercentage, NoCalcLength};
 
+use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLHRElementBinding::HTMLHRElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
@@ -83,10 +84,10 @@ impl HTMLHRElementMethods<crate::DomTypeHolder> for HTMLHRElement {
     // https://html.spec.whatwg.org/multipage/#dom-hr-size
     make_dimension_setter!(SetSize, "size");
 
-    // https://html.spec.whatwg.org/multipage/#dom-hr-width
+    // <https://html.spec.whatwg.org/multipage/#dom-hr-width>
     make_getter!(Width, "width");
 
-    // https://html.spec.whatwg.org/multipage/#dom-hr-width
+    // <https://html.spec.whatwg.org/multipage/#dom-hr-width>
     make_dimension_setter!(SetWidth, "width");
 }
 
@@ -155,6 +156,16 @@ impl HTMLHRLayoutHelpers for LayoutDom<'_, HTMLHRElement> {
 impl VirtualMethods for HTMLHRElement {
     fn super_type(&self) -> Option<&dyn VirtualMethods> {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    }
+
+    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+        match attr.local_name() {
+            &local_name!("width") => true,
+            _ => self
+                .super_type()
+                .unwrap()
+                .attribute_affects_presentational_hints(attr),
+        }
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {

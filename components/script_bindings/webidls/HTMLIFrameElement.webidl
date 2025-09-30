@@ -21,12 +21,10 @@ interface HTMLIFrameElement : HTMLElement {
   //         attribute boolean seamless;
   [CEReactions]
            attribute boolean allowFullscreen;
-  [CEReactions]
-           attribute DOMString width;
+  [CEReactions] attribute DOMString width;
   [CEReactions]
            attribute DOMString referrerPolicy;
-  [CEReactions]
-           attribute DOMString height;
+  [CEReactions] attribute DOMString height;
   readonly attribute Document? contentDocument;
   readonly attribute WindowProxy? contentWindow;
 
