@@ -69,12 +69,12 @@ pub mod textinput;
 mod timers;
 mod webdriver_handlers;
 mod window_named_properties;
+mod xpath;
 
 mod unminify;
 
 mod drag_data_store;
 mod links;
-mod xpath;
 
 pub use init::init;
 pub(crate) use script_bindings::DomTypes;

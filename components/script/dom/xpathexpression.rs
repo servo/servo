@@ -6,6 +6,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use xpath::{Error as XPathError, Expr, evaluate_parsed_xpath};
 
 use crate::dom::bindings::codegen::Bindings::XPathExpressionBinding::XPathExpressionMethods;
 use crate::dom::bindings::codegen::Bindings::XPathNSResolverBinding::XPathNSResolver;
@@ -16,7 +17,7 @@ use crate::dom::node::Node;
 use crate::dom::window::Window;
 use crate::dom::xpathresult::{XPathResult, XPathResultType};
 use crate::script_runtime::CanGc;
-use crate::xpath::{Expr, evaluate_parsed_xpath};
+use crate::xpath::{XPathImplementation, XPathWrapper};
 
 #[dom_struct]
 pub(crate) struct XPathExpression {
@@ -63,8 +64,16 @@ impl XPathExpression {
         let global = self.global();
         let window = global.as_window();
 
-        let result_value =
-            evaluate_parsed_xpath(&self.parsed_expression, context_node, resolver)?.into();
+        let result_value = evaluate_parsed_xpath::<XPathImplementation>(
+            &self.parsed_expression,
+            DomRoot::from_ref(context_node).into(),
+            resolver.map(XPathWrapper),
+        )
+        .map_err(|error| match error {
+            XPathError::JsException(exception) => exception,
+            _ => Error::Operation,
+        })?
+        .into();
 
         if let Some(result) = result {
             // According to https://www.w3.org/TR/DOM-Level-3-XPath/xpath.html#XPathEvaluator-evaluate, reusing

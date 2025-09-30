@@ -2,55 +2,33 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use style::Atom;
-
-use super::Value;
-use super::context::EvaluationCtx;
-use super::eval::{Error, Evaluatable, try_extract_nodeset};
-use super::parser::CoreFunction;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::inheritance::{Castable, NodeTypeId};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::element::Element;
-use crate::dom::node::Node;
+use crate::context::EvaluationCtx;
+use crate::eval::{Evaluatable, try_extract_nodeset};
+use crate::eval_value::str_to_num;
+use crate::parser::CoreFunction;
+use crate::{Document, Dom, Element, Error, Node, Value};
 
 /// Returns e.g. "rect" for `<svg:rect>`
-fn local_name(node: &Node) -> Option<String> {
-    if matches!(Node::type_id(node), NodeTypeId::Element(_)) {
-        let element = node.downcast::<Element>().unwrap();
-        Some(element.local_name().to_string())
-    } else {
-        None
-    }
+fn local_name<N: Node>(node: &N) -> Option<String> {
+    node.as_element()
+        .map(|element| element.local_name().to_string())
 }
 
 /// Returns e.g. "svg:rect" for `<svg:rect>`
-fn name(node: &Node) -> Option<String> {
-    if matches!(Node::type_id(node), NodeTypeId::Element(_)) {
-        let element = node.downcast::<Element>().unwrap();
+fn name<N: Node>(node: &N) -> Option<String> {
+    node.as_element().map(|element| {
         if let Some(prefix) = element.prefix().as_ref() {
-            Some(format!("{}:{}", prefix, element.local_name()))
+            format!("{}:{}", prefix, element.local_name())
         } else {
-            Some(element.local_name().to_string())
+            element.local_name().to_string()
         }
-    } else {
-        None
-    }
+    })
 }
 
 /// Returns e.g. the SVG namespace URI for `<svg:rect>`
-fn namespace_uri(node: &Node) -> Option<String> {
-    if matches!(Node::type_id(node), NodeTypeId::Element(_)) {
-        let element = node.downcast::<Element>().unwrap();
-        Some(element.namespace().to_string())
-    } else {
-        None
-    }
-}
-
-/// Returns the text contents of the Node, or empty string if none.
-fn string_value(node: &Node) -> String {
-    node.GetTextContent().unwrap_or_default().to_string()
+fn namespace_uri<N: Node>(node: &N) -> Option<String> {
+    node.as_element()
+        .map(|element| element.namespace().to_string())
 }
 
 /// If s2 is found inside s1, return everything *before* s2. Return all of s1 otherwise.
@@ -129,8 +107,8 @@ fn lang_matches(context_lang: Option<&str>, target_lang: &str) -> bool {
     false
 }
 
-impl Evaluatable for CoreFunction {
-    fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error> {
+impl<D: Dom> Evaluatable<D> for CoreFunction {
+    fn evaluate(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error<D::JsError>> {
         match self {
             CoreFunction::Last => {
                 let predicate_ctx = context.predicate_ctx.ok_or_else(|| Error::Internal {
@@ -150,7 +128,7 @@ impl Evaluatable for CoreFunction {
             },
             CoreFunction::String(expr_opt) => match expr_opt {
                 Some(expr) => Ok(Value::String(expr.evaluate(context)?.string())),
-                None => Ok(Value::String(string_value(&context.context_node))),
+                None => Ok(Value::String(context.context_node.text_content())),
             },
             CoreFunction::Concat(exprs) => {
                 let strings: Result<Vec<_>, _> = exprs
@@ -164,11 +142,11 @@ impl Evaluatable for CoreFunction {
                 let args_normalized = normalize_space(&args_str);
                 let args = args_normalized.split(' ');
 
-                let document = context.context_node.owner_doc();
+                let document = context.context_node.owner_document();
                 let mut result = Vec::new();
                 for arg in args {
-                    for element in document.get_elements_with_id(&Atom::from(arg)).iter() {
-                        result.push(DomRoot::from_ref(element.upcast::<Node>()));
+                    for element in document.get_elements_with_id(arg) {
+                        result.push(element.as_node());
                     }
                 }
                 Ok(Value::Nodeset(result))
@@ -241,14 +219,14 @@ impl Evaluatable for CoreFunction {
             CoreFunction::StringLength(expr_opt) => {
                 let s = match expr_opt {
                     Some(expr) => expr.evaluate(context)?.string(),
-                    None => string_value(&context.context_node),
+                    None => context.context_node.text_content(),
                 };
                 Ok(Value::Number(s.chars().count() as f64))
             },
             CoreFunction::NormalizeSpace(expr_opt) => {
                 let s = match expr_opt {
                     Some(expr) => expr.evaluate(context)?.string(),
-                    None => string_value(&context.context_node),
+                    None => context.context_node.text_content(),
                 };
 
                 Ok(Value::String(normalize_space(&s)))
@@ -269,16 +247,13 @@ impl Evaluatable for CoreFunction {
             CoreFunction::Number(expr_opt) => {
                 let val = match expr_opt {
                     Some(expr) => expr.evaluate(context)?,
-                    None => Value::String(string_value(&context.context_node)),
+                    None => Value::String(context.context_node.text_content()),
                 };
                 Ok(Value::Number(val.number()))
             },
             CoreFunction::Sum(expr) => {
                 let nodes = expr.evaluate(context).and_then(try_extract_nodeset)?;
-                let sum = nodes
-                    .iter()
-                    .map(|n| Value::String(string_value(n)).number())
-                    .sum();
+                let sum = nodes.iter().map(|n| str_to_num(&n.text_content())).sum();
                 Ok(Value::Number(sum))
             },
             CoreFunction::Floor(expr) => {
@@ -298,7 +273,7 @@ impl Evaluatable for CoreFunction {
             CoreFunction::True => Ok(Value::Boolean(true)),
             CoreFunction::False => Ok(Value::Boolean(false)),
             CoreFunction::Lang(expr) => {
-                let context_lang = context.context_node.get_lang();
+                let context_lang = context.context_node.language();
                 let lang = expr.evaluate(context)?.string();
                 Ok(Value::Boolean(lang_matches(context_lang.as_deref(), &lang)))
             },

@@ -7,6 +7,7 @@ use std::cell::{Cell, RefCell};
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
+use xpath::NodesetHelpers;
 
 use crate::dom::bindings::codegen::Bindings::XPathResultBinding::{
     XPathResultConstants, XPathResultMethods,
@@ -19,7 +20,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
-use crate::xpath::{NodesetHelpers, Value};
+use crate::xpath::{Value, XPathWrapper};
 
 #[repr(u16)]
 #[derive(Clone, Copy, Debug, Eq, JSTraceable, MallocSizeOf, Ord, PartialEq, PartialOrd)]
@@ -76,7 +77,12 @@ impl From<Value> for XPathResultValue {
                 // Put the evaluation result into (unique) document order. This also re-roots them
                 // so that we are sure we can hold them for the lifetime of this XPathResult.
                 let rooted_nodes = nodes.document_order_unique();
-                XPathResultValue::Nodeset(rooted_nodes)
+                XPathResultValue::Nodeset(
+                    rooted_nodes
+                        .into_iter()
+                        .map(XPathWrapper::into_inner)
+                        .collect(),
+                )
             },
         }
     }

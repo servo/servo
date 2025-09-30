@@ -6,21 +6,19 @@ use std::borrow::ToOwned;
 use std::collections::HashSet;
 use std::{fmt, string};
 
-use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::node::Node;
+use crate::Node;
 
 /// The primary types of values that an XPath expression returns as a result.
-pub(crate) enum Value {
+pub enum Value<N: Node> {
     Boolean(bool),
     /// A IEEE-754 double-precision floating point number
     Number(f64),
     String(String),
     /// A collection of not-necessarily-unique nodes
-    Nodeset(Vec<DomRoot<Node>>),
+    Nodeset(Vec<N>),
 }
 
-impl fmt::Debug for Value {
+impl<N: Node> fmt::Debug for Value<N> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Value::Boolean(val) => write!(f, "{}", val),
@@ -36,23 +34,20 @@ pub(crate) fn str_to_num(s: &str) -> f64 {
 }
 
 /// Helper for `PartialEq<Value>` implementations
-fn str_vals(nodes: &[DomRoot<Node>]) -> HashSet<String> {
-    nodes
-        .iter()
-        .map(|n| n.GetTextContent().unwrap_or_default().to_string())
-        .collect()
+fn str_vals<N: Node>(nodes: &[N]) -> HashSet<String> {
+    nodes.iter().map(|n| n.text_content()).collect()
 }
 
 /// Helper for `PartialEq<Value>` implementations
-fn num_vals(nodes: &[DomRoot<Node>]) -> Vec<f64> {
+fn num_vals<N: Node>(nodes: &[N]) -> Vec<f64> {
     nodes
         .iter()
-        .map(|n| Value::String(n.GetTextContent().unwrap_or_default().into()).number())
+        .map(|node| str_to_num(&node.text_content()))
         .collect()
 }
 
-impl PartialEq<Value> for Value {
-    fn eq(&self, other: &Value) -> bool {
+impl<N: Node> PartialEq<Value<N>> for Value<N> {
+    fn eq(&self, other: &Value<N>) -> bool {
         match (self, other) {
             (Value::Nodeset(left_nodes), Value::Nodeset(right_nodes)) => {
                 let left_strings = str_vals(left_nodes);
@@ -76,7 +71,7 @@ impl PartialEq<Value> for Value {
     }
 }
 
-impl Value {
+impl<N: Node> Value<N> {
     pub(crate) fn boolean(&self) -> bool {
         match *self {
             Value::Boolean(val) => val,
@@ -120,7 +115,7 @@ impl Value {
             },
             Value::String(ref val) => val.clone(),
             Value::Nodeset(ref nodes) => match nodes.document_order_first() {
-                Some(n) => n.GetTextContent().unwrap_or_default().to_string(),
+                Some(n) => n.text_content(),
                 None => "".to_owned(),
             },
         }
@@ -129,8 +124,8 @@ impl Value {
 
 macro_rules! from_impl {
     ($raw:ty, $variant:expr) => {
-        impl From<$raw> for Value {
-            fn from(other: $raw) -> Value {
+        impl<N: Node> From<$raw> for Value<N> {
+            fn from(other: $raw) -> Self {
                 $variant(other)
             }
         }
@@ -140,16 +135,16 @@ macro_rules! from_impl {
 from_impl!(bool, Value::Boolean);
 from_impl!(f64, Value::Number);
 from_impl!(String, Value::String);
-impl<'a> From<&'a str> for Value {
-    fn from(other: &'a str) -> Value {
+impl<'a, N: Node> From<&'a str> for Value<N> {
+    fn from(other: &'a str) -> Self {
         Value::String(other.into())
     }
 }
-from_impl!(Vec<DomRoot<Node>>, Value::Nodeset);
+from_impl!(Vec<N>, Value::Nodeset);
 
 macro_rules! partial_eq_impl {
     ($raw:ty, $variant:pat => $b:expr) => {
-        impl PartialEq<$raw> for Value {
+        impl<N: Node> PartialEq<$raw> for Value<N> {
             fn eq(&self, other: &$raw) -> bool {
                 match *self {
                     $variant => $b == other,
@@ -158,8 +153,8 @@ macro_rules! partial_eq_impl {
             }
         }
 
-        impl PartialEq<Value> for $raw {
-            fn eq(&self, other: &Value) -> bool {
+        impl<N: Node> PartialEq<Value<N>> for $raw {
+            fn eq(&self, other: &Value<N>) -> bool {
                 match *other {
                     $variant => $b == self,
                     _ => false,
@@ -173,52 +168,36 @@ partial_eq_impl!(bool, Value::Boolean(ref v) => v);
 partial_eq_impl!(f64, Value::Number(ref v) => v);
 partial_eq_impl!(String, Value::String(ref v) => v);
 partial_eq_impl!(&str, Value::String(ref v) => v);
-partial_eq_impl!(Vec<DomRoot<Node>>, Value::Nodeset(ref v) => v);
+partial_eq_impl!(Vec<N>, Value::Nodeset(ref v) => v);
 
-pub(crate) trait NodesetHelpers {
+pub trait NodesetHelpers<N: Node> {
     /// Returns the node that occurs first in [document order]
     ///
     /// [document order]: https://www.w3.org/TR/xpath/#dt-document-order
-    fn document_order_first(&self) -> Option<DomRoot<Node>>;
-    fn document_order(&self) -> Vec<DomRoot<Node>>;
-    fn document_order_unique(&self) -> Vec<DomRoot<Node>>;
+    fn document_order_first(&self) -> Option<N>;
+    fn document_order(&self) -> Vec<N>;
+    fn document_order_unique(&self) -> Vec<N>;
 }
 
-impl NodesetHelpers for Vec<DomRoot<Node>> {
-    fn document_order_first(&self) -> Option<DomRoot<Node>> {
-        self.iter()
-            .min_by(|a, b| {
-                if a == b {
-                    std::cmp::Ordering::Equal
-                } else if a.is_before(b) {
-                    std::cmp::Ordering::Less
-                } else {
-                    std::cmp::Ordering::Greater
-                }
-            })
-            .cloned()
+impl<N: Node> NodesetHelpers<N> for Vec<N> {
+    fn document_order_first(&self) -> Option<N> {
+        self.iter().min_by(|a, b| a.compare_tree_order(b)).cloned()
     }
-    fn document_order(&self) -> Vec<DomRoot<Node>> {
-        let mut nodes: Vec<DomRoot<Node>> = self.clone();
+
+    fn document_order(&self) -> Vec<N> {
+        let mut nodes: Vec<N> = self.clone();
         if nodes.len() <= 1 {
             return nodes;
         }
 
-        nodes.sort_by(|a, b| {
-            if a == b {
-                std::cmp::Ordering::Equal
-            } else if a.is_before(b) {
-                std::cmp::Ordering::Less
-            } else {
-                std::cmp::Ordering::Greater
-            }
-        });
+        nodes.sort_by(|a, b| a.compare_tree_order(b));
 
         nodes
     }
-    fn document_order_unique(&self) -> Vec<DomRoot<Node>> {
+
+    fn document_order_unique(&self) -> Vec<N> {
         let mut seen = HashSet::new();
-        let unique_nodes: Vec<DomRoot<Node>> = self
+        let unique_nodes: Vec<N> = self
             .iter()
             .filter(|node| seen.insert(node.to_opaque()))
             .cloned()
