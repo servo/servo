@@ -455,9 +455,9 @@ pub(crate) mod svggraphicselement;
 pub(crate) mod svgimageelement;
 pub(crate) mod svgsvgelement;
 #[cfg(feature = "testbinding")]
-mod test;
+mod testing;
 #[cfg(feature = "testbinding")]
-pub(crate) use self::test::*;
+pub(crate) use self::testing::*;
 pub(crate) mod text;
 pub(crate) mod textcontrol;
 pub(crate) mod textdecoder;
