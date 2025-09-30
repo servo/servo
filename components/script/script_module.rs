@@ -467,13 +467,15 @@ impl ModuleTree {
         options: ScriptFetchOptions,
         mut module_script: RustMutableHandleObject,
         inline: bool,
-        can_gc: CanGc,
+        line_number: u64,
         introduction_type: Option<&'static CStr>,
+        can_gc: CanGc,
     ) -> Result<(), RethrowError> {
         let cx = GlobalScope::get_cx();
         let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
 
-        let mut compile_options = unsafe { CompileOptionsWrapper::new(*cx, url.as_str(), 1) };
+        let mut compile_options =
+            unsafe { CompileOptionsWrapper::new(*cx, url.as_str(), line_number as u32) };
         if let Some(introduction_type) = introduction_type {
             compile_options.set_introduction_type(introduction_type);
         }
@@ -1341,8 +1343,9 @@ impl FetchResponseListener for ModuleContext {
                     self.options.clone(),
                     compiled_module.handle_mut(),
                     false,
-                    CanGc::note(),
+                    1, // external scripts start at the first line of the file
                     self.introduction_type,
+                    CanGc::note(),
                 );
 
                 match compiled_module_result {
@@ -1890,6 +1893,7 @@ pub(crate) fn fetch_inline_module_script(
     url: ServoUrl,
     script_id: ScriptId,
     options: ScriptFetchOptions,
+    line_number: u64,
     can_gc: CanGc,
 ) {
     let global = owner.global();
@@ -1906,8 +1910,9 @@ pub(crate) fn fetch_inline_module_script(
         options.clone(),
         compiled_module.handle_mut(),
         true,
-        can_gc,
+        line_number,
         Some(IntroductionType::INLINE_SCRIPT),
+        can_gc,
     );
 
     match compiled_module_result {

@@ -943,6 +943,7 @@ impl HTMLScriptElement {
                         base_url.clone(),
                         self.id,
                         options,
+                        self.line_number,
                         can_gc,
                     );
                 },
