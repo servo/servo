@@ -77,8 +77,8 @@ where
 pub struct Epoch(pub u32);
 
 impl Epoch {
-    pub fn next(&mut self) {
-        self.0 += 1;
+    pub fn next(&self) -> Self {
+        Self(self.0 + 1)
     }
 }
 
