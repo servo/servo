@@ -8,10 +8,9 @@ use dom_struct::dom_struct;
 use indexmap::IndexMap;
 use js::rust::HandleObject;
 
-use super::bindings::error::Error;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::TestBindingMaplikeWithPrimitiveBinding::TestBindingMaplikeWithPrimitiveMethods;
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::like::Maplike;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
