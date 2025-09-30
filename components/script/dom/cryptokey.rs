@@ -61,6 +61,11 @@ pub(crate) struct CryptoKey {
 
     /// <https://w3c.github.io/webcrypto/#dom-cryptokey-usages>
     usages: DomRefCell<Vec<KeyUsage>>,
+
+    /// Cached object of <https://w3c.github.io/webcrypto/#dom-cryptokey-usages>
+    #[ignore_malloc_size_of = "Defined in mozjs"]
+    usages_object: Heap<*mut JSObject>,
+
     #[no_trace]
     handle: Handle,
 }
@@ -80,6 +85,7 @@ impl CryptoKey {
             algorithm,
             algorithm_object: Heap::default(),
             usages: DomRefCell::new(usages),
+            usages_object: Heap::default(),
             handle,
         }
     }
@@ -99,7 +105,7 @@ impl CryptoKey {
             Box::new(CryptoKey::new_inherited(
                 key_type,
                 extractable,
-                usages,
+                usages.clone(),
                 algorithm,
                 handle,
             )),
@@ -108,6 +114,12 @@ impl CryptoKey {
         );
 
         object.algorithm_object.set(algorithm_object.get());
+
+        // Create and store a cached object of usages
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut usages_object_value: Value);
+        usages.safe_to_jsval(cx, usages_object_value.handle_mut());
+        object.usages_object.set(usages_object_value.to_object());
 
         object
     }
@@ -130,6 +142,12 @@ impl CryptoKey {
 
     pub(crate) fn set_usages(&self, usages: &[KeyUsage]) {
         *self.usages.borrow_mut() = usages.to_owned();
+
+        // Create and store a cached object of usages
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut usages_object_value: Value);
+        usages.safe_to_jsval(cx, usages_object_value.handle_mut());
+        self.usages_object.set(usages_object_value.to_object());
     }
 }
 
@@ -150,10 +168,8 @@ impl CryptoKeyMethods<crate::DomTypeHolder> for CryptoKey {
     }
 
     /// <https://w3c.github.io/webcrypto/#dom-cryptokey-usages>
-    fn Usages(&self, cx: JSContext) -> NonNull<JSObject> {
-        rooted!(in(*cx) let mut usages: Value);
-        self.usages.borrow().safe_to_jsval(cx, usages.handle_mut());
-        NonNull::new(usages.to_object()).unwrap()
+    fn Usages(&self, _cx: JSContext) -> NonNull<JSObject> {
+        NonNull::new(self.usages_object.get()).unwrap()
     }
 }
 
