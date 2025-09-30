@@ -659,11 +659,14 @@ pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
     }
 }
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct Runtime {
+    #[ignore_malloc_size_of = "Type from mozjs"]
     rt: RustRuntime,
     /// Our actual microtask queue, which is preserved and untouched by the debugger when running debugger scripts.
+    #[conditional_malloc_size_of]
     pub(crate) microtask_queue: Rc<MicrotaskQueue>,
+    #[ignore_malloc_size_of = "Type from mozjs"]
     job_queue: *mut JobQueue,
     networking_task_src: Option<Box<SendableTaskSource>>,
 }
