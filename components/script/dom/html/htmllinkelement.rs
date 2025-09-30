@@ -7,7 +7,6 @@ use std::cell::Cell;
 use std::default::Default;
 
 use dom_struct::dom_struct;
-use embedder_traits::EmbedderMsg;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use ipc_channel::ipc::IpcSender;
 use js::rust::HandleObject;
@@ -726,6 +725,7 @@ impl HTMLLinkElement {
     fn process_favicon_response(&self, image: Image) {
         // TODO: Include the size attribute here
         let window = self.owner_window();
+        let document = self.owner_document();
 
         let send_rasterized_favicon_to_embedder = |raster_image: &pixels::RasterImage| {
             // Let's not worry about animated favicons...
@@ -746,7 +746,7 @@ impl HTMLLinkElement {
                 raster_image.frames[0].byte_range.clone(),
                 format,
             );
-            window.send_to_embedder(EmbedderMsg::NewFavicon(window.webview_id(), embedder_image));
+            document.set_favicon(embedder_image);
         };
 
         match image {

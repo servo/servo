@@ -26,7 +26,9 @@ use cssparser::match_ignore_ascii_case;
 use data_url::mime::Mime;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
-use embedder_traits::{AllowOrDeny, AnimationState, EmbedderMsg, FocusSequenceNumber, LoadStatus};
+use embedder_traits::{
+    AllowOrDeny, AnimationState, EmbedderMsg, FocusSequenceNumber, Image, LoadStatus,
+};
 use encoding_rs::{Encoding, UTF_8};
 use euclid::Point2D;
 use euclid::default::{Rect, Size2D};
@@ -576,6 +578,10 @@ pub(crate) struct Document {
     #[ignore_malloc_size_of = "type from external crate"]
     /// <https://html.spec.whatwg.org/multipage/#active-sandboxing-flag-set>,
     active_sandboxing_flag_set: Cell<SandboxingFlagSet>,
+    /// The cached favicon for that document.
+    #[no_trace]
+    #[ignore_malloc_size_of = "TODO: unimplemented on Image"]
+    favicon: RefCell<Option<Image>>,
 }
 
 #[allow(non_snake_case)]
@@ -762,6 +768,7 @@ impl Document {
         }
 
         self.title_changed();
+        self.notify_embedder_favicon();
         self.dirty_all_nodes();
         self.window().resume(can_gc);
         media.resume(&client_context_id);
@@ -3495,6 +3502,7 @@ impl Document {
             current_canvas_epoch: RefCell::new(Epoch(0)),
             custom_element_reaction_stack,
             active_sandboxing_flag_set: Cell::new(SandboxingFlagSet::empty()),
+            favicon: RefCell::new(None),
         }
     }
 
@@ -4477,6 +4485,17 @@ impl Document {
         self.window()
             .scrolling_box_query(None, flags)
             .expect("We should always have a ScrollingBox for the Viewport")
+    }
+
+    pub(crate) fn notify_embedder_favicon(&self) {
+        if let Some(ref image) = *self.favicon.borrow() {
+            self.send_to_embedder(EmbedderMsg::NewFavicon(self.webview_id(), image.clone()));
+        }
+    }
+
+    pub(crate) fn set_favicon(&self, favicon: Image) {
+        *self.favicon.borrow_mut() = Some(favicon);
+        self.notify_embedder_favicon();
     }
 }
 
