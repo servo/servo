@@ -35,7 +35,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::document::{Document, determine_policy_for_token};
+use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::{
     AttributeMutation, Element, LayoutElementHelpers, reflect_referrer_policy_attribute,
@@ -336,7 +336,7 @@ impl HTMLIFrameElement {
         // Note: despite not being explicitly stated in the spec steps, this falls back to
         // document's referrer policy here because it satisfies the expectations that when unset,
         // the iframe should inherit the referrer policy of its parent
-        let referrer_policy = match determine_policy_for_token(referrer_policy_token.str()) {
+        let referrer_policy = match ReferrerPolicy::from(referrer_policy_token.str()) {
             ReferrerPolicy::EmptyString => document.get_referrer_policy(),
             policy => policy,
         };

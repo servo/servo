@@ -133,6 +133,19 @@ pub enum ReferrerPolicy {
 }
 
 impl ReferrerPolicy {
+    /// <https://html.spec.whatwg.org/multipage/#meta-referrer>
+    pub fn from_with_legacy(value: &str) -> Self {
+        // Step 5. If value is one of the values given in the first column of the following table,
+        // then set value to the value given in the second column:
+        match value.to_ascii_lowercase().as_str() {
+            "never" => ReferrerPolicy::NoReferrer,
+            "default" => ReferrerPolicy::StrictOriginWhenCrossOrigin,
+            "always" => ReferrerPolicy::UnsafeUrl,
+            "origin-when-crossorigin" => ReferrerPolicy::OriginWhenCrossOrigin,
+            _ => ReferrerPolicy::from(value),
+        }
+    }
+
     /// <https://w3c.github.io/webappsec-referrer-policy/#parse-referrer-policy-from-header>
     pub fn parse_header_for_response(headers: &Option<Serde<HeaderMap>>) -> Self {
         // Step 4. Return policy.
@@ -142,6 +155,23 @@ impl ReferrerPolicy {
             .and_then(|headers| headers.typed_get::<ReferrerPolicyHeader>())
             // Step 2-3.
             .into()
+    }
+}
+
+impl From<&str> for ReferrerPolicy {
+    /// <https://html.spec.whatwg.org/multipage/#referrer-policy-attribute>
+    fn from(value: &str) -> Self {
+        match value.to_ascii_lowercase().as_str() {
+            "no-referrer" => ReferrerPolicy::NoReferrer,
+            "no-referrer-when-downgrade" => ReferrerPolicy::NoReferrerWhenDowngrade,
+            "origin" => ReferrerPolicy::Origin,
+            "same-origin" => ReferrerPolicy::SameOrigin,
+            "strict-origin" => ReferrerPolicy::StrictOrigin,
+            "strict-origin-when-cross-origin" => ReferrerPolicy::StrictOriginWhenCrossOrigin,
+            "origin-when-cross-origin" => ReferrerPolicy::OriginWhenCrossOrigin,
+            "unsafe-url" => ReferrerPolicy::UnsafeUrl,
+            _ => ReferrerPolicy::EmptyString,
+        }
     }
 }
 
