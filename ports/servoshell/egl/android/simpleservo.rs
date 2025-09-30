@@ -6,14 +6,16 @@ use std::cell::RefCell;
 use std::mem;
 use std::rc::Rc;
 
-use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::unbounded;
 use dpi::PhysicalSize;
 use raw_window_handle::{DisplayHandle, RawDisplayHandle, RawWindowHandle, WindowHandle};
 use servo::ipc_channel::ipc;
 pub use servo::webrender_api::units::DeviceIntRect;
 use servo::{self, EventLoopWaker, ServoBuilder, resources};
-pub use servo::{InputMethodType, MediaSessionPlaybackState, WindowRenderingContext};
+pub use servo::{
+    EmbedderToConstellationMessage, InputMethodType, MediaSessionPlaybackState,
+    WindowRenderingContext,
+};
 
 use crate::egl::android::resources::ResourceReaderInstance;
 #[cfg(feature = "webxr")]

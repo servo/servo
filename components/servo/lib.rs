@@ -63,11 +63,12 @@ use constellation::{
     Constellation, FromEmbedderLogger, FromScriptLogger, InitialConstellationState,
     UnprivilegedContent,
 };
-use constellation_traits::{EmbedderToConstellationMessage, ScriptToConstellationChan};
+pub use constellation_traits::EmbedderToConstellationMessage;
+use constellation_traits::ScriptToConstellationChan;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use embedder_traits::FormControl as EmbedderFormControl;
 use embedder_traits::user_content_manager::UserContentManager;
-pub use embedder_traits::*;
+pub use embedder_traits::{WebDriverSenders, *};
 use env_logger::Builder as EnvLoggerBuilder;
 use fonts::SystemFontService;
 #[cfg(all(
