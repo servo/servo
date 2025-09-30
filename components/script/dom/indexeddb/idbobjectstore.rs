@@ -389,16 +389,18 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 5. If transaction is a read-only transaction, throw a "ReadOnlyError" DOMException.
         self.check_readwrite_transaction_active()?;
 
-        // Step 6
-        // TODO: Convert to key range instead
-        let serialized_query = convert_value_to_key(cx, query, None)?.into_result();
+        // Step 6. Let range be the result of running the steps to convert a value to a key range with query and null disallowed flag set. Rethrow any exceptions.
+        let serialized_query = convert_value_to_key_range(cx, query, Some(true));
         // Step 7. Let operation be an algorithm to run delete records from an object store with store and range.
         // Step 8. Return the result (an IDBRequest) of running asynchronously execute a request with this and operation.
         let (sender, receiver) = indexed_db::create_channel(self.global());
         serialized_query.and_then(|q| {
             IDBRequest::execute_async(
                 self,
-                AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem { sender, key: q }),
+                AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem {
+                    sender,
+                    key_range: q,
+                }),
                 receiver,
                 None,
                 None,

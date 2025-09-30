@@ -254,12 +254,14 @@ impl SqliteEngine {
     fn delete_item(
         connection: &Connection,
         store: object_store_model::Model,
-        serialized_key: Vec<u8>,
+        key_range: IndexedDBKeyRange,
     ) -> Result<(), Error> {
-        connection.execute(
-            "DELETE FROM object_data WHERE key = ? AND object_store_id = ?",
-            params![serialized_key, store.id],
-        )?;
+        let query = range_to_query(key_range);
+        let (sql, values) = sea_query::Query::delete()
+            .from_table(object_data_model::Column::Table)
+            .and_where(query.and(Expr::col(object_data_model::Column::ObjectStoreId).is(store.id)))
+            .build_rusqlite(SqliteQueryBuilder);
+        connection.prepare(&sql)?.execute(&*values.as_params())?;
         Ok(())
     }
 
@@ -483,14 +485,13 @@ impl KvsEngine for SqliteEngine {
                     },
                     AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem {
                         sender,
-                        key,
+                        key_range,
                     }) => {
                         let Ok(object_store) = process_object_store(object_store, &sender) else {
                             continue;
                         };
-                        let serialized_key: Vec<u8> = bincode::serialize(&key).unwrap();
                         let _ = sender.send(
-                            Self::delete_item(&connection, object_store, serialized_key)
+                            Self::delete_item(&connection, object_store, key_range)
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
                         );
                     },
@@ -962,7 +963,7 @@ mod tests {
                     store_name: store_name.to_owned(),
                     operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem {
                         sender: remove.0,
-                        key: IndexedDBKeyType::Number(1.0),
+                        key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
                     }),
                 },
                 KvsOperation {
