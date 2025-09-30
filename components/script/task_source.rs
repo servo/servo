@@ -46,6 +46,8 @@ pub(crate) enum TaskSourceName {
     Timer,
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepad-task-source>
     Gamepad,
+    /// <https://www.w3.org/TR/geolocation/#dfn-geolocation-task-source>
+    Geolocation,
     /// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-task-source>
     IntersectionObserver,
     /// <https://www.w3.org/TR/webgpu/#-webgpu-task-source>
@@ -63,6 +65,7 @@ impl From<TaskSourceName> for ScriptThreadEventCategory {
             TaskSourceName::DOMManipulation => ScriptThreadEventCategory::ScriptEvent,
             TaskSourceName::FileReading => ScriptThreadEventCategory::FileRead,
             TaskSourceName::FontLoading => ScriptThreadEventCategory::FontLoading,
+            TaskSourceName::Geolocation => ScriptThreadEventCategory::GeolocationEvent,
             TaskSourceName::HistoryTraversal => ScriptThreadEventCategory::HistoryEvent,
             TaskSourceName::Networking => ScriptThreadEventCategory::NetworkEvent,
             TaskSourceName::PerformanceTimeline => {

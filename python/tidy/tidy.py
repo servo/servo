@@ -115,6 +115,7 @@ WEBIDL_STANDARDS = [
     b"//dvcs.w3.org/hg",
     b"//www.w3.org/TR/trusted-types/",
     b"//www.w3.org/TR/credential-management",
+    b"//www.w3.org/TR/geolocation",
     b"//dom.spec.whatwg.org",
     b"//drafts.csswg.org",
     b"//drafts.css-houdini.org",

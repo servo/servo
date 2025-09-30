@@ -23,6 +23,7 @@ pub enum ScriptHangAnnotation {
     FileRead,
     FontLoading,
     FormPlannedNavigation,
+    GeolocationEvent,
     ImageCacheMsg,
     InputEvent,
     HistoryEvent,
