@@ -199,6 +199,9 @@ pub struct LayoutThread {
     ///
     /// If this changed, then we need to create a new display list.
     previously_highlighted_dom_node: Cell<Option<OpaqueNode>>,
+
+    /// Whether is recording LCP.
+    is_recording_lcp: bool,
 }
 
 pub struct LayoutFactoryImpl();
@@ -693,6 +696,7 @@ impl LayoutThread {
             resolved_images_cache: Default::default(),
             debug: opts::get().debug.clone(),
             previously_highlighted_dom_node: Cell::new(None),
+            is_recording_lcp: pref!(largest_contentful_paint_enabled),
         }
     }
 
@@ -1236,19 +1240,27 @@ impl LayoutThread {
         self.current_epoch.set(self.current_epoch().next());
         stacking_context_tree.compositor_info.epoch = self.current_epoch.get().into();
 
-        let built_display_list = DisplayListBuilder::build(
+        let (built_display_list, lcp_candidate) = DisplayListBuilder::build(
             stacking_context_tree,
             fragment_tree,
             image_resolver.clone(),
             self.device().device_pixel_ratio(),
             reflow_request.highlighted_dom_node,
             &self.debug,
+            self.is_recording_lcp,
         );
         self.compositor_api.send_display_list(
             self.webview_id,
             &stacking_context_tree.compositor_info,
             built_display_list,
         );
+
+        if let Some(lcp_candidate) = lcp_candidate {
+            self.compositor_api.send_lcp_candidate(
+                lcp_candidate,
+                stacking_context_tree.compositor_info.pipeline_id,
+            );
+        }
 
         let (keys, instance_keys) = self
             .font_context

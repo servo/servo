@@ -54,6 +54,7 @@ mod from_constellation {
                 Self::Viewport(..) => target!("Viewport"),
                 Self::GenerateImageKeysForPipeline(..) => target!("GenerateImageKeysForPipeline"),
                 Self::DelayNewFrameForCanvas(..) => target!("DelayFramesForCanvas"),
+                Self::LCPCandidate(..) => target!("LCPCandidate"),
             }
         }
     }

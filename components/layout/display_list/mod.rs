@@ -9,6 +9,7 @@ use app_units::{AU_PER_PX, Au};
 use base::id::ScrollTreeNodeId;
 use clip::{Clip, ClipId};
 use compositing_traits::display_list::{CompositorDisplayListInfo, SpatialTreeNodeInfo};
+use compositing_traits::largest_contentful_paint_candidate::{LCPCandidate, LCPCandidateID};
 use euclid::{Point2D, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
 use fonts::GlyphStore;
 use gradient::WebRenderGradient;
@@ -46,6 +47,7 @@ use wr::units::LayoutVector2D;
 use crate::cell::ArcRefCell;
 use crate::context::{ImageResolver, ResolvedImage};
 pub(crate) use crate::display_list::conversions::ToWebRender;
+use crate::display_list::largest_contenful_paint_candidate_collector::LargestContentfulPaintCandidateCollector;
 use crate::display_list::stacking_context::StackingContextSection;
 use crate::fragment_tree::{
     BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo, Tag,
@@ -62,6 +64,7 @@ mod clip;
 mod conversions;
 mod gradient;
 mod hit_test;
+pub(crate) mod largest_contenful_paint_candidate_collector;
 mod stacking_context;
 
 use background::BackgroundPainter;
@@ -114,6 +117,9 @@ pub(crate) struct DisplayListBuilder<'a> {
 
     /// The device pixel ratio used for this `Document`'s display list.
     device_pixel_ratio: Scale<f32, StyloCSSPixel, StyloDevicePixel>,
+
+    /// The collector for calculating Largest Contentful Paint
+    lcp_candidate_collector: Option<LargestContentfulPaintCandidateCollector<'a>>,
 }
 
 struct InspectorHighlight {
@@ -162,7 +168,8 @@ impl DisplayListBuilder<'_> {
         device_pixel_ratio: Scale<f32, StyloCSSPixel, StyloDevicePixel>,
         highlighted_dom_node: Option<OpaqueNode>,
         debug: &DebugOptions,
-    ) -> BuiltDisplayList {
+        is_recording_lcp: bool,
+    ) -> (BuiltDisplayList, Option<LCPCandidate>) {
         // Build the rest of the display list which inclues all of the WebRender primitives.
         let compositor_info = &mut stacking_context_tree.compositor_info;
         let pipeline_id = compositor_info.pipeline_id;
@@ -176,6 +183,16 @@ impl DisplayListBuilder<'_> {
         // during `finalize()`.
         if debug.dump_display_list {
             webrender_display_list_builder.dump_serialized_display_list();
+        }
+
+        let mut lcp_candidate_collector = None;
+        if is_recording_lcp {
+            lcp_candidate_collector = Some(LargestContentfulPaintCandidateCollector::new(
+                &stacking_context_tree.clip_store,
+                compositor_info.root_reference_frame_id,
+                compositor_info.viewport_details.layout_size(),
+                compositor_info.epoch,
+            ));
         }
 
         #[cfg(feature = "tracing")]
@@ -192,6 +209,7 @@ impl DisplayListBuilder<'_> {
             clip_map: Default::default(),
             image_resolver,
             device_pixel_ratio,
+            lcp_candidate_collector,
         };
 
         builder.add_all_spatial_nodes();
@@ -222,7 +240,8 @@ impl DisplayListBuilder<'_> {
             .build_display_list(&mut builder);
         builder.paint_dom_inspector_highlight();
 
-        webrender_display_list_builder.end().1
+        let candidate = builder.largest_contentful_paint_candidate();
+        (webrender_display_list_builder.end().1, candidate)
     }
 
     fn wr(&mut self) -> &mut wr::DisplayListBuilder {
@@ -509,6 +528,11 @@ impl DisplayListBuilder<'_> {
                 box_fragment.margin.to_webrender(),
             );
         }
+    }
+
+    /// Get LargestContentfulPaint candidate during display list construction.
+    fn largest_contentful_paint_candidate(&self) -> Option<LCPCandidate> {
+        self.lcp_candidate_collector.as_ref()?.lcp_candidate
     }
 }
 
@@ -1248,6 +1272,21 @@ impl<'a> BuilderForBoxFragment<'a> {
                                 image_key,
                                 wr::ColorF::WHITE,
                             )
+                        }
+
+                        if let Some(lcp_candidate_collector) = &mut builder.lcp_candidate_collector
+                        {
+                            let lcp_candidate_id = self
+                                .fragment
+                                .base
+                                .tag
+                                .map(|tag| LCPCandidateID(tag.node.id()))
+                                .unwrap_or_default();
+                            lcp_candidate_collector.update_image_candidate(
+                                lcp_candidate_id,
+                                layer.bounds,
+                                &builder.compositor_info.scroll_tree,
+                            );
                         }
                     }
                 },

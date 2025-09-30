@@ -29,6 +29,9 @@ impl PerformancePaintTiming {
             ProgressiveWebMetricType::FirstContentfulPaint => {
                 DOMString::from("first-contentful-paint")
             },
+            ProgressiveWebMetricType::LargestContentfulPaint { .. } => {
+                DOMString::from("largest-contentful-paint")
+            },
             _ => DOMString::from(""),
         };
         PerformancePaintTiming {
