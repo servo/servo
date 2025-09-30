@@ -193,7 +193,7 @@ mod font_context {
                 local_font_identifier.clone(),
                 None,
                 &[],
-                None,
+                false,
             )
             .expect("Could not load test font");
 

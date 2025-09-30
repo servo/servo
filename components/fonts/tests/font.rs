@@ -28,7 +28,7 @@ fn make_font(path: PathBuf) -> Font {
 
     let identifier = FontIdentifier::Web(ServoUrl::from_file_path(path).unwrap());
     let platform_font =
-        PlatformFont::new_from_data(identifier.clone(), &data, None, &[], None).unwrap();
+        PlatformFont::new_from_data(identifier.clone(), &data, None, &[], false).unwrap();
 
     let template = FontTemplate {
         identifier,
