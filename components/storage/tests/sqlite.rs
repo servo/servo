@@ -294,7 +294,7 @@ fn test_async_operations() {
                 store_name: store_name.to_owned(),
                 operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem {
                     sender: remove.0,
-                    key: IndexedDBKeyType::Number(1.0),
+                    key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
                 }),
             },
             KvsOperation {
