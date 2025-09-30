@@ -24,8 +24,8 @@ use servo::user_content_manager::{UserContentManager, UserScript};
 use servo::webrender_api::ScrollLocation;
 use servo::{
     EmbedderToConstellationMessage, EventLoopWaker, ImeEvent, InputEvent, KeyboardEvent,
-    MouseButtonEvent, MouseMoveEvent, WebDriverCommandMsg, WebDriverScriptCommand,
-    WebDriverUserPromptAction, WheelDelta, WheelEvent, WheelMode,
+    MouseButtonEvent, MouseMoveEvent, ScreenshotCaptureError, WebDriverCommandMsg,
+    WebDriverScriptCommand, WebDriverUserPromptAction, WheelDelta, WheelEvent, WheelMode,
 };
 use url::Url;
 use winit::application::ApplicationHandler;
@@ -613,8 +613,22 @@ impl App {
                 WebDriverCommandMsg::SendAlertText(webview_id, text) => {
                     running_state.set_alert_text_of_newest_dialog(webview_id, text);
                 },
-                WebDriverCommandMsg::TakeScreenshot(..) => {
-                    running_state.servo().execute_webdriver_command(msg);
+                WebDriverCommandMsg::TakeScreenshot(webview_id, rect, result_sender) => {
+                    let Some(webview) = running_state.webview_by_id(webview_id) else {
+                        if let Err(error) =
+                            result_sender.send(Err(ScreenshotCaptureError::WebViewDoesNotExist))
+                        {
+                            warn!("Failed to send response to TakeScreenshot: {error}");
+                        }
+                        continue;
+                    };
+                    let rect =
+                        rect.map(|rect| rect.to_box2d() * webview.device_pixels_per_css_pixel());
+                    webview.take_screenshot(rect, move |result| {
+                        if let Err(error) = result_sender.send(result) {
+                            warn!("Failed to send response to TakeScreenshot: {error}");
+                        }
+                    });
                 },
             };
         }

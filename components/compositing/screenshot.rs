@@ -8,16 +8,19 @@ use std::rc::Rc;
 use base::Epoch;
 use base::id::{PipelineId, WebViewId};
 use embedder_traits::ScreenshotCaptureError;
+use euclid::{Point2D, Size2D};
 use image::RgbaImage;
 use rustc_hash::FxHashMap;
+use webrender_api::units::{DeviceIntRect, DeviceRect};
 
 use crate::IOCompositor;
 use crate::compositor::RepaintReason;
 
 pub(crate) struct ScreenshotRequest {
     webview_id: WebViewId,
-    phase: ScreenshotRequestPhase,
+    rect: Option<DeviceRect>,
     callback: Box<dyn FnOnce(Result<RgbaImage, ScreenshotCaptureError>) + 'static>,
+    phase: ScreenshotRequestPhase,
 }
 
 /// Screenshots requests happen in three phases:
@@ -63,12 +66,14 @@ impl ScreenshotTaker {
     pub(crate) fn request_screenshot(
         &self,
         webview_id: WebViewId,
+        rect: Option<DeviceRect>,
         callback: Box<dyn FnOnce(Result<RgbaImage, ScreenshotCaptureError>) + 'static>,
     ) {
         self.requests.borrow_mut().push(ScreenshotRequest {
             webview_id,
-            phase: ScreenshotRequestPhase::ConstellationRequest,
+            rect,
             callback,
+            phase: ScreenshotRequestPhase::ConstellationRequest,
         });
     }
 
@@ -175,9 +180,25 @@ impl ScreenshotTaker {
                     return None;
                 };
 
+                let viewport_rect = webview_renderer.rect.to_i32();
+                let viewport_size = viewport_rect.size();
+                let rect = screenshot_request.rect.map_or(viewport_rect, |rect| {
+                    // We need to convert to the bottom-left origin coordinate
+                    // system used by OpenGL
+                    // If dpi > 1, y can be computed to be -1 due to rounding issue, resulting in panic.
+                    // https://github.com/servo/servo/issues/39306#issuecomment-3342204869
+                    let x = rect.min.x as i32;
+                    let y = 0.max(
+                        (viewport_size.height as f32 - rect.min.y - rect.size().height) as i32,
+                    );
+                    let w = rect.size().width as i32;
+                    let h = rect.size().height as i32;
+
+                    DeviceIntRect::from_origin_and_size(Point2D::new(x, y), Size2D::new(w, h))
+                });
                 let result = renderer
                     .rendering_context()
-                    .read_to_image(webview_renderer.rect.to_i32())
+                    .read_to_image(rect)
                     .ok_or(ScreenshotCaptureError::CouldNotReadImage);
                 callback(result);
                 None
