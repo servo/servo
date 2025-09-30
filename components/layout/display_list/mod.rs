@@ -1601,20 +1601,20 @@ fn glyphs_advance_by_index(
 /// Radii for the padding edge or content edge
 fn inner_radii(mut radii: wr::BorderRadius, insets: units::LayoutSideOffsets) -> wr::BorderRadius {
     assert!(insets.left >= 0.0, "left inset must not be negative");
-    radii.top_left.width -= insets.left;
-    radii.bottom_left.width -= insets.left;
+    radii.top_left.width = (radii.top_left.width - insets.left).max(0.0);
+    radii.bottom_left.width = (radii.bottom_left.width - insets.left).max(0.0);
 
     assert!(insets.right >= 0.0, "left inset must not be negative");
-    radii.top_right.width -= insets.right;
-    radii.bottom_right.width -= insets.right;
+    radii.top_right.width = (radii.top_right.width - insets.right).max(0.0);
+    radii.bottom_right.width = (radii.bottom_right.width - insets.right).max(0.0);
 
     assert!(insets.top >= 0.0, "top inset must not be negative");
-    radii.top_left.height -= insets.top;
-    radii.top_right.height -= insets.top;
+    radii.top_left.height = (radii.top_left.height - insets.top).max(0.0);
+    radii.top_right.height = (radii.top_right.height - insets.top).max(0.0);
 
     assert!(insets.bottom >= 0.0, "bottom inset must not be negative");
-    radii.bottom_left.height -= insets.bottom;
-    radii.bottom_right.height -= insets.bottom;
+    radii.bottom_left.height = (radii.bottom_left.height - insets.bottom).max(0.0);
+    radii.bottom_right.height = (radii.bottom_right.height - insets.bottom).max(0.0);
     radii
 }
 
