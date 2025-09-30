@@ -312,7 +312,7 @@ pub(crate) struct Window {
     dom_static: GlobalStaticData,
 
     /// The JavaScript runtime.
-    #[ignore_malloc_size_of = "Rc<T> is hard"]
+    #[conditional_malloc_size_of]
     js_runtime: DomRefCell<Option<Rc<Runtime>>>,
 
     /// The [`ViewportDetails`] of this [`Window`]'s frame.
@@ -429,7 +429,7 @@ pub(crate) struct Window {
     /// A shared marker for the validity of any cached layout values. A value of true
     /// indicates that any such values remain valid; any new layout that invalidates
     /// those values will cause the marker to be set to false.
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of]
     layout_marker: DomRefCell<Rc<Cell<bool>>>,
 
     /// <https://dom.spec.whatwg.org/#window-current-event>
@@ -446,7 +446,7 @@ pub(crate) struct Window {
     endpoints_list: DomRefCell<Vec<ReportingEndpoint>>,
 
     /// The window proxies the script thread knows.
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     script_window_proxies: Rc<ScriptWindowProxies>,
 
     /// Whether or not this [`Window`] has a pending screenshot readiness request.
