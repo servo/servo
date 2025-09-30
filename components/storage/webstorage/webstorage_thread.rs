@@ -18,6 +18,8 @@ use rustc_hash::FxHashMap;
 use servo_url::ServoUrl;
 use storage_traits::webstorage_thread::{StorageType, WebStorageThreadMsg};
 
+use crate::webstorage::engines::{BincodeEngine, MemoryEngine, WebStorageEngine};
+
 const QUOTA_SIZE_LIMIT: usize = 5 * 1024 * 1024;
 
 pub trait WebStorageThreadFactory {
@@ -36,7 +38,14 @@ impl WebStorageThreadFactory for GenericSender<WebStorageThreadMsg> {
             .name("WebStorageManager".to_owned())
             .spawn(move || {
                 mem_profiler_chan.run_with_memory_reporting(
-                    || WebStorageManager::new(port, config_dir).start(),
+                    || {
+                        if let Some(ref dir) = config_dir {
+                            let _ = std::fs::create_dir_all(dir);
+                            WebStorageManager::new(port, BincodeEngine::new(dir)).start()
+                        } else {
+                            WebStorageManager::new(port, MemoryEngine).start()
+                        }
+                    },
                     String::from("storage-reporter"),
                     chan2,
                     WebStorageThreadMsg::CollectMemoryReport,
@@ -47,34 +56,28 @@ impl WebStorageThreadFactory for GenericSender<WebStorageThreadMsg> {
     }
 }
 
-type OriginEntry = (usize, BTreeMap<String, String>);
+pub type OriginEntry = (usize, BTreeMap<String, String>);
 
-struct WebStorageManager {
+struct WebStorageManager<E: WebStorageEngine> {
     port: GenericReceiver<WebStorageThreadMsg>,
     session_data: FxHashMap<WebViewId, HashMap<String, OriginEntry>>,
     local_data: HashMap<String, OriginEntry>,
-    config_dir: Option<PathBuf>,
+    engine: E,
 }
 
-impl WebStorageManager {
-    fn new(
-        port: GenericReceiver<WebStorageThreadMsg>,
-        config_dir: Option<PathBuf>,
-    ) -> WebStorageManager {
-        let mut local_data = HashMap::new();
-        if let Some(ref config_dir) = config_dir {
-            base::read_json_from_file(&mut local_data, config_dir, "local_data.json");
-        }
-        WebStorageManager {
+impl<E: WebStorageEngine> WebStorageManager<E> {
+    fn new(port: GenericReceiver<WebStorageThreadMsg>, engine: E) -> WebStorageManager<E> {
+        let local_data = engine.load();
+        Self {
             port,
             session_data: FxHashMap::default(),
             local_data,
-            config_dir,
+            engine,
         }
     }
 }
 
-impl WebStorageManager {
+impl<E: WebStorageEngine> WebStorageManager<E> {
     fn start(&mut self) {
         loop {
             match self.port.recv().unwrap() {
@@ -149,9 +152,7 @@ impl WebStorageManager {
     }
 
     fn save_state(&self) {
-        if let Some(ref config_dir) = self.config_dir {
-            base::write_json_to_file(&self.local_data, config_dir, "local_data.json");
-        }
+        self.engine.save(self.local_data.clone());
     }
 
     fn select_data(

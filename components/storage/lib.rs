@@ -4,6 +4,6 @@
 
 pub mod indexeddb;
 mod storage_thread;
-mod webstorage_thread;
+pub mod webstorage;
 
 pub use storage_thread::new_storage_threads;
