@@ -1383,6 +1383,14 @@ impl IOCompositor {
                     // the first "real" display list.
                     PaintMetricState::Seen(epoch, first_reflow) if epoch <= current_epoch => {
                         assert!(epoch <= current_epoch);
+                        #[cfg(feature = "tracing")]
+                        tracing::info!(
+                            name: "FirstPaint",
+                            servo_profiling = true,
+                            epoch = ?epoch,
+                            paint_time = ?paint_time,
+                            pipeline_id = ?pipeline_id,
+                        );
                         if let Err(error) = self.global.borrow().constellation_sender.send(
                             EmbedderToConstellationMessage::PaintMetric(
                                 *pipeline_id,
@@ -1400,6 +1408,14 @@ impl IOCompositor {
 
                 match pipeline.first_contentful_paint_metric {
                     PaintMetricState::Seen(epoch, first_reflow) if epoch <= current_epoch => {
+                        #[cfg(feature = "tracing")]
+                        tracing::info!(
+                            name: "FirstContentfulPaint",
+                            servo_profiling = true,
+                            epoch = ?epoch,
+                            paint_time = ?paint_time,
+                            pipeline_id = ?pipeline_id,
+                        );
                         if let Err(error) = self.global.borrow().constellation_sender.send(
                             EmbedderToConstellationMessage::PaintMetric(
                                 *pipeline_id,
