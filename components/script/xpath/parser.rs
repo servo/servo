@@ -394,40 +394,32 @@ fn path_expr(input: &str) -> IResult<&str, Expr> {
         // "//" RelativePathExpr
         map(
             pair(tag("//"), move |i| relative_path_expr(true, i)),
-            |(_, rel_path)| {
+            |(_, relative_path)| {
                 Expr::Path(PathExpr {
                     is_absolute: true,
                     is_descendant: true,
-                    steps: match rel_path {
-                        Expr::Path(p) => p.steps,
-                        _ => unreachable!(),
-                    },
+                    steps: relative_path.steps,
                 })
             },
         ),
         // "/" RelativePathExpr?
         map(
             pair(char('/'), opt(move |i| relative_path_expr(false, i))),
-            |(_, rel_path)| {
+            |(_, relative_path)| {
                 Expr::Path(PathExpr {
                     is_absolute: true,
                     is_descendant: false,
-                    steps: rel_path
-                        .map(|p| match p {
-                            Expr::Path(p) => p.steps,
-                            _ => unreachable!(),
-                        })
-                        .unwrap_or_default(),
+                    steps: relative_path.map(|path| path.steps).unwrap_or_default(),
                 })
             },
         ),
         // RelativePathExpr
-        move |i| relative_path_expr(false, i),
+        map(move |i| relative_path_expr(false, i), Expr::Path),
     )))
     .parse(input)
 }
 
-fn relative_path_expr(is_descendant: bool, input: &str) -> IResult<&str, Expr> {
+fn relative_path_expr(is_descendant: bool, input: &str) -> IResult<&str, PathExpr> {
     let (input, first) = step_expr(is_descendant, input)?;
     let (input, steps) = many0(pair(
         ws(alt((value(true, tag("//")), value(false, char('/'))))),
@@ -450,11 +442,11 @@ fn relative_path_expr(is_descendant: bool, input: &str) -> IResult<&str, Expr> {
 
     Ok((
         input,
-        Expr::Path(PathExpr {
+        PathExpr {
             is_absolute: false,
             is_descendant: false,
             steps: all_steps,
-        }),
+        },
     ))
 }
 
