@@ -15,7 +15,6 @@ use std::collections::VecDeque;
 use std::fmt;
 use std::time::Duration;
 
-use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{MessagePortId, PipelineId, WebViewId};
 use embedder_traits::{
@@ -41,8 +40,6 @@ use webrender_api::{ExternalScrollId, ImageKey};
 pub enum EmbedderToConstellationMessage {
     /// Exit the constellation.
     Exit,
-    /// Query the constellation to see if the current compositor output is stable
-    IsReadyToSaveImage(FxHashMap<PipelineId, Epoch>),
     /// Whether to allow script to navigate.
     AllowNavigationResponse(PipelineId, bool),
     /// Request to load a page.
@@ -109,6 +106,9 @@ pub enum EmbedderToConstellationMessage {
     SetWebDriverResponseSender(IpcSender<WebDriverCommandResponse>),
     /// A set of preferences were updated with the given new values.
     PreferencesUpdated(Vec<(&'static str, PrefValue)>),
+    /// Request preparation for a screenshot of the given WebView. The Constellation will
+    /// send a message to the Embedder when the screenshot is ready to be taken.
+    RequestScreenshotReadiness(WebViewId),
 }
 
 /// A description of a paint metric that is sent from the Servo renderer to the

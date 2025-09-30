@@ -1063,6 +1063,15 @@ pub enum JavaScriptEvaluationError {
     SerializationError,
 }
 
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub enum ScreenshotCaptureError {
+    /// The screenshot request failed to read the screenshot image from the `WebView`'s
+    /// `RenderingContext`.
+    CouldNotReadImage,
+    /// The WebView that this screenshot request was made for no longer exists.
+    WebViewDoesNotExist,
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct RgbColor {
     pub red: u8,

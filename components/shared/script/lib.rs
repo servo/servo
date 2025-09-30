@@ -268,6 +268,10 @@ pub enum ScriptThreadMessage {
     NoLongerWaitingOnAsychronousImageUpdates(PipelineId),
     /// Forward a keyboard scroll operation from an `<iframe>` to a parent pipeline.
     ForwardKeyboardScroll(PipelineId, KeyboardScroll),
+    /// Request readiness for a screenshot from the given pipeline. The pipeline will
+    /// respond when it is ready to take the screenshot or will not be able to take it
+    /// in the future.
+    RequestScreenshotReadiness(PipelineId),
 }
 
 impl fmt::Debug for ScriptThreadMessage {

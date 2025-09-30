@@ -25,8 +25,11 @@ use compositing_traits::{
 use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
-use embedder_traits::{CompositorHitTestResult, InputEvent, ShutdownState, ViewportDetails};
+use embedder_traits::{
+    CompositorHitTestResult, InputEvent, ScreenshotCaptureError, ShutdownState, ViewportDetails,
+};
 use euclid::{Point2D, Rect, Scale, Size2D, Transform3D};
+use image::RgbaImage;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use log::{debug, info, trace, warn};
 use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage};
@@ -36,7 +39,7 @@ use profile_traits::mem::{
 use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::{path, time_profile};
 use rustc_hash::{FxHashMap, FxHashSet};
-use servo_config::{opts, pref};
+use servo_config::pref;
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::CSSPixel;
 use webrender::{CaptureBits, RenderApi, Transaction};
@@ -54,28 +57,9 @@ use webrender_api::{
 
 use crate::InitialCompositorState;
 use crate::refresh_driver::RefreshDriver;
+use crate::screenshot::ScreenshotTaker;
 use crate::webview_manager::WebViewManager;
 use crate::webview_renderer::{PinchZoomResult, UnknownWebView, WebViewRenderer};
-
-#[derive(Debug, PartialEq)]
-pub enum UnableToComposite {
-    NotReadyToPaintImage(NotReadyToPaint),
-}
-
-#[derive(Debug, PartialEq)]
-pub enum NotReadyToPaint {
-    JustNotifiedConstellation,
-    WaitingOnConstellation,
-}
-
-/// Holds the state when running reftests that determines when it is
-/// safe to save the output image.
-#[derive(Clone, Copy, Debug, PartialEq)]
-enum ReadyState {
-    Unknown,
-    WaitingForConstellationReply,
-    ReadyToSaveImage,
-}
 
 /// An option to control what kind of WebRender debugging is enabled while Servo is running.
 #[derive(Clone)]
@@ -137,10 +121,6 @@ pub struct IOCompositor {
     /// Tracks whether or not the view needs to be repainted.
     needs_repaint: Cell<RepaintReason>,
 
-    /// Used by the logic that determines when it is safe to output an
-    /// image for the reftest framework.
-    ready_to_save_state: ReadyState,
-
     /// The webrender renderer.
     webrender: Option<webrender::Renderer>,
 
@@ -149,6 +129,9 @@ pub struct IOCompositor {
 
     /// The number of frames pending to receive from WebRender.
     pending_frames: Cell<usize>,
+
+    /// A [`ScreenshotTaker`] responsible for handling all screenshot requests.
+    screenshot_taker: ScreenshotTaker,
 
     /// A handle to the memory profiler which will automatically unregister
     /// when it's dropped.
@@ -333,10 +316,10 @@ impl IOCompositor {
             })),
             webview_renderers: WebViewManager::default(),
             needs_repaint: Cell::default(),
-            ready_to_save_state: ReadyState::Unknown,
             webrender: Some(state.webrender),
             rendering_context: state.rendering_context,
-            pending_frames: Cell::new(0),
+            pending_frames: Default::default(),
+            screenshot_taker: Default::default(),
             _mem_profiler_registration: registration,
         };
 
@@ -358,6 +341,10 @@ impl IOCompositor {
         }
     }
 
+    pub(crate) fn rendering_context(&self) -> &dyn RenderingContext {
+        &*self.rendering_context
+    }
+
     pub fn rendering_context_size(&self) -> Size2D<u32, DevicePixel> {
         self.rendering_context.size2d()
     }
@@ -373,7 +360,11 @@ impl IOCompositor {
         }
     }
 
-    fn set_needs_repaint(&self, reason: RepaintReason) {
+    pub(crate) fn webview_renderer(&self, webview_id: WebViewId) -> Option<&WebViewRenderer> {
+        self.webview_renderers.get(webview_id)
+    }
+
+    pub(crate) fn set_needs_repaint(&self, reason: RepaintReason) {
         let mut needs_repaint = self.needs_repaint.get();
         needs_repaint.insert(reason);
         self.needs_repaint.set(needs_repaint);
@@ -496,18 +487,6 @@ impl IOCompositor {
                 };
                 webview_renderer.on_touch_event_processed(result);
             },
-            CompositorMsg::IsReadyToSaveImageReply(is_ready) => {
-                assert_eq!(
-                    self.ready_to_save_state,
-                    ReadyState::WaitingForConstellationReply
-                );
-                if is_ready && self.pending_frames.get() == 0 {
-                    self.ready_to_save_state = ReadyState::ReadyToSaveImage;
-                } else {
-                    self.ready_to_save_state = ReadyState::Unknown;
-                }
-                self.set_needs_repaint(RepaintReason::ReadyForScreenshot);
-            },
 
             CompositorMsg::SetThrottled(webview_id, pipeline_id, throttled) => {
                 let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
@@ -532,14 +511,8 @@ impl IOCompositor {
                 }
             },
 
-            CompositorMsg::NewWebRenderFrameReady(_document_id, recomposite_needed) => {
-                self.handle_new_webrender_frame_ready(recomposite_needed);
-            },
-
-            CompositorMsg::LoadComplete(_) => {
-                if opts::get().wait_for_stable_image {
-                    self.set_needs_repaint(RepaintReason::ReadyForScreenshot);
-                }
+            CompositorMsg::NewWebRenderFrameReady(..) => {
+                unreachable!("New WebRender frames should be handled in the caller.");
             },
 
             CompositorMsg::SendInitialTransaction(webview_id, pipeline_id) => {
@@ -697,19 +670,23 @@ impl IOCompositor {
                 let mut global = self.global.borrow_mut();
                 global.frame_delayer.set_pending_frame(true);
 
-                if global.frame_delayer.needs_new_frame() {
-                    let mut transaction = Transaction::new();
-                    self.generate_frame(&mut transaction, RenderReasons::SCENE);
-                    global.send_transaction(transaction);
-
-                    let waiting_pipelines = global.frame_delayer.take_waiting_pipelines();
-                    let _ = global.constellation_sender.send(
-                        EmbedderToConstellationMessage::NoLongerWaitingOnAsynchronousImageUpdates(
-                            waiting_pipelines,
-                        ),
-                    );
-                    global.frame_delayer.set_pending_frame(false);
+                if !global.frame_delayer.needs_new_frame() {
+                    return;
                 }
+
+                let mut transaction = Transaction::new();
+                self.generate_frame(&mut transaction, RenderReasons::SCENE);
+                global.send_transaction(transaction);
+
+                let waiting_pipelines = global.frame_delayer.take_waiting_pipelines();
+                let _ = global.constellation_sender.send(
+                    EmbedderToConstellationMessage::NoLongerWaitingOnAsynchronousImageUpdates(
+                        waiting_pipelines,
+                    ),
+                );
+                global.frame_delayer.set_pending_frame(false);
+                self.screenshot_taker
+                    .prepare_screenshot_requests_for_render(self)
             },
 
             CompositorMsg::GenerateImageKey(sender) => {
@@ -759,6 +736,8 @@ impl IOCompositor {
                             waiting_pipelines,
                         ),
                     );
+                    self.screenshot_taker
+                        .prepare_screenshot_requests_for_render(self);
                 }
 
                 global.send_transaction(txn);
@@ -821,6 +800,13 @@ impl IOCompositor {
                     webview.set_viewport_description(viewport_description);
                 }
             },
+            CompositorMsg::ScreenshotReadinessReponse(webview_id, pipelines_and_epochs) => {
+                self.screenshot_taker.handle_screenshot_readiness_reply(
+                    webview_id,
+                    pipelines_and_epochs,
+                    self,
+                );
+            },
         }
     }
 
@@ -860,10 +846,6 @@ impl IOCompositor {
                     rendering_group_id,
                 );
             },
-            CompositorMsg::NewWebRenderFrameReady(..) => {
-                // Subtract from the number of pending frames, but do not do any compositing.
-                self.pending_frames.set(self.pending_frames.get() - 1);
-            },
             _ => {
                 debug!("Ignoring message ({:?} while shutting down", msg);
             },
@@ -895,8 +877,8 @@ impl IOCompositor {
 
     /// Queue a new frame in the transaction and increase the pending frames count.
     pub(crate) fn generate_frame(&self, transaction: &mut Transaction, reason: RenderReasons) {
-        self.pending_frames.set(self.pending_frames.get() + 1);
         transaction.generate_frame(0, true /* present */, reason);
+        self.pending_frames.set(self.pending_frames.get() + 1);
     }
 
     /// Set the root pipeline for our WebRender scene to a display list that consists of an iframe
@@ -1188,78 +1170,18 @@ impl IOCompositor {
             .any(WebViewRenderer::animation_callbacks_running)
     }
 
-    /// Query the constellation to see if the current compositor
-    /// output matches the current frame tree output, and if the
-    /// associated script threads are idle.
-    fn is_ready_to_paint_image_output(&mut self) -> Result<(), NotReadyToPaint> {
-        match self.ready_to_save_state {
-            ReadyState::Unknown => {
-                // Unsure if the output image is stable.
-
-                // Collect the currently painted epoch of each pipeline that is
-                // complete (i.e. has *all* layers painted to the requested epoch).
-                // This gets sent to the constellation for comparison with the current
-                // frame tree.
-                let mut pipeline_epochs = FxHashMap::default();
-                for id in self
-                    .webview_renderers
-                    .iter()
-                    .flat_map(WebViewRenderer::pipeline_ids)
-                {
-                    if let Some(WebRenderEpoch(epoch)) = self
-                        .webrender
-                        .as_ref()
-                        .and_then(|wr| wr.current_epoch(self.webrender_document(), id.into()))
-                    {
-                        let epoch = Epoch(epoch);
-                        pipeline_epochs.insert(*id, epoch);
-                    }
-                }
-
-                // Pass the pipeline/epoch states to the constellation and check
-                // if it's safe to output the image.
-                let msg = EmbedderToConstellationMessage::IsReadyToSaveImage(pipeline_epochs);
-                if let Err(e) = self.global.borrow().constellation_sender.send(msg) {
-                    warn!("Sending ready to save to constellation failed ({:?}).", e);
-                }
-                self.ready_to_save_state = ReadyState::WaitingForConstellationReply;
-                Err(NotReadyToPaint::JustNotifiedConstellation)
-            },
-            ReadyState::WaitingForConstellationReply => {
-                // If waiting on a reply from the constellation to the last
-                // query if the image is stable, then assume not ready yet.
-                Err(NotReadyToPaint::WaitingOnConstellation)
-            },
-            ReadyState::ReadyToSaveImage => {
-                // Constellation has replied at some point in the past
-                // that the current output image is stable and ready
-                // for saving.
-                // Reset the flag so that we check again in the future
-                // TODO: only reset this if we load a new document?
-                self.ready_to_save_state = ReadyState::Unknown;
-                Ok(())
-            },
-        }
-    }
-
-    /// Render the WebRender scene to the active `RenderingContext`. If successful, trigger
-    /// the next round of animations. Return false if unable to render.
-    pub fn render(&mut self) -> bool {
+    /// Render the WebRender scene to the active `RenderingContext`.
+    pub fn render(&mut self) {
         self.global
             .borrow()
             .refresh_driver
             .notify_will_paint(self.webview_renderers.iter());
 
-        if let Err(error) = self.render_inner() {
-            warn!("Unable to render: {error:?}");
-            return false;
-        }
+        self.render_inner();
 
         // We've painted the default target, which means that from the embedder's perspective,
         // the scene no longer needs to be repainted.
         self.needs_repaint.set(RepaintReason::empty());
-
-        true
     }
 
     /// Render the WebRender scene to the shared memory, without updating other state of this
@@ -1268,8 +1190,8 @@ impl IOCompositor {
         &mut self,
         webview_id: WebViewId,
         page_rect: Option<Rect<f32, CSSPixel>>,
-    ) -> Result<Option<RasterImage>, UnableToComposite> {
-        self.render_inner()?;
+    ) -> Option<RasterImage> {
+        self.render_inner();
 
         let size = self.rendering_context.size2d().to_i32();
         let rect = if let Some(rect) = page_rect {
@@ -1294,8 +1216,7 @@ impl IOCompositor {
             DeviceIntRect::from_origin_and_size(Point2D::origin(), size)
         };
 
-        Ok(self
-            .rendering_context
+        self.rendering_context
             .read_to_image(rect)
             .map(|image| RasterImage {
                 metadata: ImageMetadata {
@@ -1312,11 +1233,11 @@ impl IOCompositor {
                 bytes: ipc::IpcSharedMemory::from_bytes(&image),
                 id: None,
                 cors_status: CorsStatus::Safe,
-            }))
+            })
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn render_inner(&mut self) -> Result<(), UnableToComposite> {
+    fn render_inner(&mut self) {
         if let Err(err) = self.rendering_context.make_current() {
             warn!("Failed to make the rendering context current: {:?}", err);
         }
@@ -1324,12 +1245,6 @@ impl IOCompositor {
 
         if let Some(webrender) = self.webrender.as_mut() {
             webrender.update();
-        }
-
-        if opts::get().wait_for_stable_image {
-            if let Err(result) = self.is_ready_to_paint_image_output() {
-                return Err(UnableToComposite::NotReadyToPaintImage(result));
-            }
         }
 
         self.rendering_context.prepare_for_rendering();
@@ -1353,7 +1268,7 @@ impl IOCompositor {
         );
 
         self.send_pending_paint_metrics_messages_after_composite();
-        Ok(())
+        self.screenshot_taker.maybe_take_screenshots(self);
     }
 
     /// Send all pending paint metrics messages after a composite operation, which may advance
@@ -1480,22 +1395,18 @@ impl IOCompositor {
 
     #[servo_tracing::instrument(skip_all)]
     pub fn handle_messages(&mut self, mut messages: Vec<CompositorMsg>) {
-        // Check for new messages coming from the other threads in the system.
-        let mut found_recomposite_msg = false;
-        messages.retain(|message| {
-            match message {
-                CompositorMsg::NewWebRenderFrameReady(..) if found_recomposite_msg => {
-                    // Only take one of duplicate NewWebRendeFrameReady messages, but do subtract
-                    // one frame from the pending frames.
-                    self.pending_frames.set(self.pending_frames.get() - 1);
-                    false
-                },
-                CompositorMsg::NewWebRenderFrameReady(..) => {
-                    found_recomposite_msg = true;
-                    true
-                },
-                _ => true,
-            }
+        // Pull out the `NewWebRenderFrameReady` messages from the list of messages and handle them
+        // at the end of this function. This prevents overdraw when more than a single message of
+        // this type of received. In addition, if any of these frames need a repaint, that reflected
+        // when calling `handle_new_webrender_frame_ready`.
+        let mut repaint_needed = false;
+        messages.retain(|message| match message {
+            CompositorMsg::NewWebRenderFrameReady(_, need_repaint) => {
+                self.pending_frames.set(self.pending_frames.get() - 1);
+                repaint_needed |= need_repaint;
+                false
+            },
+            _ => true,
         });
 
         for message in messages {
@@ -1504,6 +1415,8 @@ impl IOCompositor {
                 return;
             }
         }
+
+        self.handle_new_webrender_frame_ready(repaint_needed);
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -1704,14 +1617,40 @@ impl IOCompositor {
         }
     }
 
-    fn handle_new_webrender_frame_ready(&mut self, recomposite_needed: bool) {
-        self.pending_frames.set(self.pending_frames.get() - 1);
-        if recomposite_needed {
+    fn handle_new_webrender_frame_ready(&mut self, repaint_needed: bool) {
+        if repaint_needed {
             self.refresh_cursor();
         }
-        if recomposite_needed || self.animation_callbacks_running() {
+        if repaint_needed || self.animation_callbacks_running() {
             self.set_needs_repaint(RepaintReason::NewWebRenderFrame);
         }
+
+        // If we received a new frame and a repaint isn't necessary, it may be that this
+        // is the last frame that was pending. In that case, trigger a manual repaint so
+        // that the screenshot can be taken at the end of the repaint procedure.
+        if !repaint_needed {
+            self.screenshot_taker
+                .maybe_trigger_paint_for_screenshot(self);
+        }
+    }
+
+    /// Whether or not the renderer is waiting on a frame, either because it has been sent
+    /// to WebRender and is not ready yet or because the [`FrameDelayer`] is delaying a frame
+    /// waiting for asynchronous (canvas) image updates to complete.
+    pub(crate) fn has_pending_frames(&self) -> bool {
+        self.pending_frames.get() != 0 || self.global.borrow().frame_delayer.pending_frame
+    }
+
+    pub fn request_screenshot(
+        &self,
+        webview_id: WebViewId,
+        callback: Box<dyn FnOnce(Result<RgbaImage, ScreenshotCaptureError>) + 'static>,
+    ) {
+        self.screenshot_taker
+            .request_screenshot(webview_id, callback);
+        let _ = self.global.borrow().constellation_sender.send(
+            EmbedderToConstellationMessage::RequestScreenshotReadiness(webview_id),
+        );
     }
 }
 

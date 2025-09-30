@@ -24,6 +24,7 @@ mod tracing;
 
 mod compositor;
 mod refresh_driver;
+mod screenshot;
 mod touch;
 mod webview_manager;
 mod webview_renderer;

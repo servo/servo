@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Ref, RefCell, RefMut};
+use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::mem;
@@ -11,6 +11,7 @@ use std::rc::Rc;
 
 use crossbeam_channel::Receiver;
 use embedder_traits::webdriver::WebDriverSenders;
+use image::{DynamicImage, ImageFormat};
 use keyboard_types::ShortcutMatcher;
 use log::{error, info};
 use servo::base::generic_channel::GenericSender;
@@ -31,7 +32,6 @@ use super::dialog::Dialog;
 use super::gamepad::GamepadSupport;
 use super::keyutils::CMD_OR_CONTROL;
 use super::window_trait::WindowPortsMethods;
-use crate::output_image::save_output_image_if_necessary;
 use crate::prefs::ServoShellPreferences;
 
 pub(crate) enum AppState {
@@ -91,6 +91,10 @@ pub struct RunningAppStateInner {
     /// List of webviews that have favicon textures which are not yet uploaded
     /// to the GPU by egui.
     pending_favicon_loads: Vec<WebViewId>,
+
+    /// Whether or not the application has achieved stable image output. This is used
+    /// for the `exit_after_stable_image` option.
+    achieved_stable_image: Rc<Cell<bool>>,
 }
 
 impl Drop for RunningAppState {
@@ -123,6 +127,7 @@ impl RunningAppState {
                 need_repaint: false,
                 dialog_amount_changed: false,
                 pending_favicon_loads: Default::default(),
+                achieved_stable_image: Default::default(),
             }),
         }
     }
@@ -178,24 +183,12 @@ impl RunningAppState {
         let Some(webview) = self.focused_webview() else {
             return;
         };
-        if !webview.paint() {
-            return;
-        }
 
-        // This needs to be done before presenting(), because `ReneringContext::read_to_image` reads
-        // from the back buffer.
-        save_output_image_if_necessary(
-            &self.servoshell_preferences,
-            &self.inner().window.rendering_context(),
-        );
+        webview.paint();
 
         let mut inner_mut = self.inner_mut();
         inner_mut.window.rendering_context().present();
         inner_mut.need_repaint = false;
-
-        if self.servoshell_preferences.exit_after_stable_image {
-            self.servo().start_shutting_down();
-        }
     }
 
     /// Spins the internal application event loop.
@@ -219,6 +212,12 @@ impl RunningAppState {
         let need_update = std::mem::replace(&mut self.inner_mut().need_update, false);
 
         self.inner_mut().dialog_amount_changed = false;
+
+        if self.servoshell_preferences.exit_after_stable_image &&
+            self.inner().achieved_stable_image.get()
+        {
+            self.servo.start_shutting_down();
+        }
 
         PumpResult::Continue {
             need_update,
@@ -492,6 +491,44 @@ impl RunningAppState {
     pub(crate) fn take_pending_favicon_loads(&self) -> Vec<WebViewId> {
         mem::take(&mut self.inner_mut().pending_favicon_loads)
     }
+
+    /// If we are exiting after achieving a stable image or we want to save the display of the
+    /// [`WebView`] to an image file, request a screenshot of the [`WebView`].
+    fn maybe_request_screenshot(&self, webview: WebView) {
+        let output_path = self.servoshell_preferences.output_image_path.clone();
+        if !self.servoshell_preferences.exit_after_stable_image && output_path.is_none() {
+            return;
+        }
+
+        // Never request more than a single screenshot for now.
+        let achieved_stable_image = self.inner().achieved_stable_image.clone();
+        if achieved_stable_image.get() {
+            return;
+        }
+
+        webview.take_screenshot(move |image| {
+            achieved_stable_image.set(true);
+
+            let Some(output_path) = output_path else {
+                return;
+            };
+
+            let image = match image {
+                Ok(image) => image,
+                Err(error) => {
+                    error!("Could not take screenshot: {error:?}");
+                    return;
+                },
+            };
+
+            let image_format = ImageFormat::from_path(&output_path).unwrap_or(ImageFormat::Png);
+            if let Err(error) =
+                DynamicImage::ImageRgba8(image).save_with_format(output_path, image_format)
+            {
+                error!("Failed to save screenshot: {error}.");
+            }
+        });
+    }
 }
 
 struct ServoShellServoDelegate;
@@ -653,6 +690,7 @@ impl WebViewDelegate for RunningAppState {
             {
                 let _ = sender.send(WebDriverLoadStatus::Complete);
             }
+            self.maybe_request_screenshot(webview);
         }
     }
 
