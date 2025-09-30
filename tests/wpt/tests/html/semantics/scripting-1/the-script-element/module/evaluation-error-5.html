@@ -8,7 +8,7 @@
     const test_load = async_test("Test for the inline module script error that reports wrong line\n");
     window.addEventListener("error", test_load.step_func_done(ev => {
 
-        const expectedLine = 16; 
+        const expectedLine = 16;
         assert_equals(ev.lineno, expectedLine);
 
     }));
