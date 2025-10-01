@@ -320,6 +320,31 @@ impl ServiceWorkerManager {
                     // TODO: https://w3c.github.io/ServiceWorker/#unregister-algorithm
                 },
             },
+            ServiceWorkerMsg::MatchRegistration {
+                storage_key,
+                url,
+                sender,
+            } => {
+                let reg = self.match_service_worker_registration(storage_key, url);
+                let _ = sender.send(reg.map(|reg| reg.id));
+            },
+            ServiceWorkerMsg::GetRegistrations {
+                storage_key,
+                sender,
+            } => {
+                let regs: Vec<ServiceWorkerRegistrationId> = self
+                    .registrations
+                    .iter()
+                    .filter_map(|(scope, reg)| {
+                        if scope.origin() == storage_key.0 {
+                            Some(reg.id)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                let _ = sender.send(regs);
+            },
             ServiceWorkerMsg::Exit => return false,
         }
         true
@@ -447,6 +472,53 @@ impl ServiceWorkerManager {
             let _ = job
                 .client
                 .send(JobResult::RejectPromise(JobError::TypeError));
+        }
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#match-service-worker-registration>
+    fn match_service_worker_registration(
+        &self,
+        storage_key: (ImmutableOrigin,),
+        client_url: ServoUrl,
+    ) -> Option<&ServiceWorkerRegistration> {
+        // Step 1. Run the following steps atomically.
+        // Step 2. Let clientURLString be serialized clientURL.
+        let client_url_string = client_url.as_str();
+        // Step 3. Let matchingScopeString be the empty string.
+        let mut matching_scope_string = String::new();
+        // Step 4. Let scopeStringSet be an empty list.
+        let mut scope_string_set = Vec::new();
+        // Step 5. For each (entry storage key, entry scope) of registration map’s keys:
+        for (entry_storage_key, entry_scope) in self.registrations.keys().map(|k| (k.origin(), k)) {
+            // Step 5.1. If storage key equals entry storage key, then append entry scope to the end of scopeStringSet.
+            if storage_key == (entry_storage_key,) {
+                scope_string_set.push(entry_scope.as_str());
+            }
+        }
+        // Step 6. Set matchingScopeString to the longest value in scopeStringSet which the value of clientURLString starts with, if it exists.
+        for scope in scope_string_set {
+            if client_url_string.starts_with(scope) && scope.len() > matching_scope_string.len() {
+                matching_scope_string = scope.to_owned();
+            }
+        }
+        // Step 7. Let matchingScope be null.
+        let mut matching_scope = None;
+        // Step 8. If matchingScopeString is not the empty string, then:
+        if !matching_scope_string.is_empty() {
+            // Step 8.1. Set matchingScope to the result of parsing matchingScopeString.
+            matching_scope = Some(ServoUrl::parse(&matching_scope_string).ok()?);
+            // Step 8.2. Assert: matchingScope’s origin and clientURL’s origin are same origin.
+            assert_eq!(
+                matching_scope.as_ref().unwrap().origin(),
+                client_url.origin()
+            );
+        }
+        // Step 9. Return the result of running Get Registration given storage key and matchingScope.
+        // TODO: implement https://w3c.github.io/ServiceWorker/#get-registration
+        if let Some(matching_scope) = matching_scope {
+            self.registrations.get(&matching_scope)
+        } else {
+            None
         }
     }
 }
