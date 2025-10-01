@@ -573,9 +573,16 @@ pub(crate) struct Document {
     #[conditional_malloc_size_of]
     custom_element_reaction_stack: Rc<CustomElementReactionStack>,
     #[no_trace]
-    #[ignore_malloc_size_of = "type from external crate"]
     /// <https://html.spec.whatwg.org/multipage/#active-sandboxing-flag-set>,
     active_sandboxing_flag_set: Cell<SandboxingFlagSet>,
+    #[no_trace]
+    /// The [`SandboxingFlagSet`] use to create the browsing context for this [`Document`].
+    /// These are cached here as they cannot always be retrieved readily if the owner of
+    /// browsing context (either `<iframe>` or popup) might be in a different `ScriptThread`.
+    ///
+    /// See
+    /// <https://html.spec.whatwg.org/multipage/#determining-the-creation-sandboxing-flags>.
+    creation_sandboxing_flag_set: Cell<SandboxingFlagSet>,
     /// The cached favicon for that document.
     #[no_trace]
     #[ignore_malloc_size_of = "TODO: unimplemented on Image"]
@@ -3326,6 +3333,7 @@ impl Document {
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         has_trustworthy_ancestor_origin: bool,
         custom_element_reaction_stack: Rc<CustomElementReactionStack>,
+        creation_sandboxing_flag_set: SandboxingFlagSet,
     ) -> Document {
         let url = url.unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
 
@@ -3501,6 +3509,7 @@ impl Document {
             current_canvas_epoch: Cell::new(Epoch(0)),
             custom_element_reaction_stack,
             active_sandboxing_flag_set: Cell::new(SandboxingFlagSet::empty()),
+            creation_sandboxing_flag_set: Cell::new(creation_sandboxing_flag_set),
             favicon: RefCell::new(None),
         }
     }
@@ -3597,6 +3606,7 @@ impl Document {
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         has_trustworthy_ancestor_origin: bool,
         custom_element_reaction_stack: Rc<CustomElementReactionStack>,
+        creation_sandboxing_flag_set: SandboxingFlagSet,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
         Self::new_with_proto(
@@ -3619,6 +3629,7 @@ impl Document {
             inherited_insecure_requests_policy,
             has_trustworthy_ancestor_origin,
             custom_element_reaction_stack,
+            creation_sandboxing_flag_set,
             can_gc,
         )
     }
@@ -3644,6 +3655,7 @@ impl Document {
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         has_trustworthy_ancestor_origin: bool,
         custom_element_reaction_stack: Rc<CustomElementReactionStack>,
+        creation_sandboxing_flag_set: SandboxingFlagSet,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
         let document = reflect_dom_object_with_proto(
@@ -3666,6 +3678,7 @@ impl Document {
                 inherited_insecure_requests_policy,
                 has_trustworthy_ancestor_origin,
                 custom_element_reaction_stack,
+                creation_sandboxing_flag_set,
             )),
             window,
             proto,
@@ -3801,6 +3814,7 @@ impl Document {
                     Some(self.insecure_requests_policy()),
                     self.has_trustworthy_ancestor_or_current_origin(),
                     self.custom_element_reaction_stack.clone(),
+                    self.creation_sandboxing_flag_set(),
                     can_gc,
                 );
                 new_doc
@@ -4480,6 +4494,21 @@ impl Document {
         self.active_sandboxing_flag_set.set(flags)
     }
 
+    pub(crate) fn creation_sandboxing_flag_set(&self) -> SandboxingFlagSet {
+        self.creation_sandboxing_flag_set.get()
+    }
+
+    pub(crate) fn creation_sandboxing_flag_set_considering_parent_iframe(
+        &self,
+    ) -> SandboxingFlagSet {
+        self.window()
+            .window_proxy()
+            .frame_element()
+            .and_then(|element| element.downcast::<HTMLIFrameElement>())
+            .map(HTMLIFrameElement::sandboxing_flag_set)
+            .unwrap_or_else(|| self.creation_sandboxing_flag_set())
+    }
+
     pub(crate) fn viewport_scrolling_box(&self, flags: ScrollContainerQueryFlags) -> ScrollingBox {
         self.window()
             .scrolling_box_query(None, flags)
@@ -4528,6 +4557,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             Some(doc.insecure_requests_policy()),
             doc.has_trustworthy_ancestor_or_current_origin(),
             doc.custom_element_reaction_stack(),
+            doc.active_sandboxing_flag_set.get(),
             can_gc,
         ))
     }

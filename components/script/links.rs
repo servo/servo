@@ -444,6 +444,7 @@ pub(crate) fn follow_hyperlink(
             Some(secure),
             Some(document.insecure_requests_policy()),
             document.has_trustworthy_ancestor_origin(),
+            document.creation_sandboxing_flag_set_considering_parent_iframe(),
         );
         let target = Trusted::new(target_window);
         let task = task!(navigate_follow_hyperlink: move || {
