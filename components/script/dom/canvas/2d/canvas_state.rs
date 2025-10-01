@@ -2356,7 +2356,7 @@ impl CanvasState {
             // TODO: This should ultimately handle emoji variation selectors, but raqote does not yet
             // have support for color glyphs.
             let script = Script::from(character);
-            let font = font_group.find_by_codepoint(font_context, character, None, None);
+            let font = font_group.find_by_codepoint(font_context, character, None, None, None);
 
             if !current_text_run.script_and_font_compatible(script, &font) {
                 let previous_text_run = std::mem::replace(

@@ -273,7 +273,7 @@ mod font_context {
 
         let font = group
             .write()
-            .find_by_codepoint(&mut context.context, 'a', None, None)
+            .find_by_codepoint(&mut context.context, 'a', None, None, None)
             .unwrap();
         assert_eq!(&font_face_name(&font.identifier()), "csstest-ascii");
         assert_eq!(
@@ -287,7 +287,7 @@ mod font_context {
 
         let font = group
             .write()
-            .find_by_codepoint(&mut context.context, 'a', None, None)
+            .find_by_codepoint(&mut context.context, 'a', None, None, None)
             .unwrap();
         assert_eq!(&font_face_name(&font.identifier()), "csstest-ascii");
         assert_eq!(
@@ -301,7 +301,7 @@ mod font_context {
 
         let font = group
             .write()
-            .find_by_codepoint(&mut context.context, 'á', None, None)
+            .find_by_codepoint(&mut context.context, 'á', None, None, None)
             .unwrap();
         assert_eq!(&font_face_name(&font.identifier()), "csstest-basic-regular");
         assert_eq!(
@@ -325,7 +325,7 @@ mod font_context {
 
         let font = group
             .write()
-            .find_by_codepoint(&mut context.context, 'a', None, None)
+            .find_by_codepoint(&mut context.context, 'a', None, None, None)
             .unwrap();
         assert_eq!(
             &font_face_name(&font.identifier()),
@@ -335,7 +335,7 @@ mod font_context {
 
         let font = group
             .write()
-            .find_by_codepoint(&mut context.context, 'á', None, None)
+            .find_by_codepoint(&mut context.context, 'á', None, None, None)
             .unwrap();
         assert_eq!(
             &font_face_name(&font.identifier()),

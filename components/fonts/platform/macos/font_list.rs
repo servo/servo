@@ -155,7 +155,7 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
         }
     }
 
-    add_noto_fallback_families(options, &mut families);
+    add_noto_fallback_families(options.clone(), &mut families);
 
     // https://en.wikipedia.org/wiki/Plane_(Unicode)#Supplementary_Multilingual_Plane
     let unicode_plane = unicode_plane(options.character);
