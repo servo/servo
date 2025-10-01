@@ -1869,7 +1869,9 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         {
             let input = self.unsafe_get().downcast::<HTMLInputElement>().unwrap();
 
-            !input.is_textual_widget() && input.input_type() != InputType::Color
+            !input.is_textual_widget() &&
+                input.input_type() != InputType::Color &&
+                input.input_type() != InputType::File
         } else {
             type_id ==
                 NodeTypeId::Element(ElementTypeId::HTMLElement(
