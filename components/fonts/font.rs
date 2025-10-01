@@ -276,7 +276,6 @@ impl Font {
             let template_is_bold = template.descriptor().weight.0 >= FontWeight::BOLD_THRESHOLD;
             let allows_synthetic_bold = matches!(descriptor.synthesis_weight, FontSynthesis::Auto);
 
-            // TODO: Is the check for variation font necessary here?
             is_bold && !template_is_bold && allows_synthetic_bold
         };
 

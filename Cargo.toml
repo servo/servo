@@ -232,7 +232,7 @@ codegen-units = 1
 #
 # Or for Stylo:
 #
-[patch."https://github.com/servo/stylo"]
+# [patch."https://github.com/servo/stylo"]
 # selectors = { path = "../stylo/selectors" }
 # servo_arc = { path = "../stylo/servo_arc" }
 # stylo = { path = "../stylo/style" }
