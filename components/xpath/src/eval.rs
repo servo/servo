@@ -4,19 +4,16 @@
 
 use std::fmt;
 
-use html5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_prefix, ns};
+use markup5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_prefix, ns};
 
 use super::parser::{
     AdditiveOp, Axis, EqualityOp, Expr, FilterExpr, KindTest, Literal, MultiplicativeOp, NodeTest,
-    NumericLiteral, PathExpr, PredicateExpr, PredicateListExpr, PrimaryExpr,
-    QName as ParserQualName, RelationalOp, StepExpr, UnaryOp,
+    NumericLiteral, PathExpr, PredicateExpr, PredicateListExpr, PrimaryExpr, RelationalOp,
+    StepExpr, UnaryOp,
 };
 use super::{EvaluationCtx, Value};
 use crate::context::PredicateCtx;
-use crate::{
-    Attribute, Document, Dom, Element, Error, Node, ProcessingInstruction, is_valid_continuation,
-    is_valid_start,
-};
+use crate::{Attribute, Document, Dom, Element, Error, Node, ProcessingInstruction};
 
 pub(crate) fn try_extract_nodeset<E, N: Node>(v: Value<N>) -> Result<Vec<N>, Error<E>> {
     match v {
@@ -183,129 +180,6 @@ impl<D: Dom> Evaluatable<D> for PathExpr {
     }
 }
 
-/// Error types for validate and extract a qualified name following
-/// the XML naming rules.
-#[derive(Debug)]
-enum ValidationError {
-    InvalidCharacter,
-    Namespace,
-}
-
-/// Validate a qualified name following the XML naming rules.
-///
-/// On success, this returns a tuple `(prefix, local name)`.
-fn validate_and_extract_qualified_name(
-    qualified_name: &str,
-) -> Result<(Option<&str>, &str), ValidationError> {
-    if qualified_name.is_empty() {
-        // Qualified names must not be empty
-        return Err(ValidationError::InvalidCharacter);
-    }
-    let mut colon_offset = None;
-    let mut at_start_of_name = true;
-
-    for (byte_position, c) in qualified_name.char_indices() {
-        if c == ':' {
-            if colon_offset.is_some() {
-                // Qualified names must not contain more than one colon
-                return Err(ValidationError::InvalidCharacter);
-            }
-            colon_offset = Some(byte_position);
-            at_start_of_name = true;
-            continue;
-        }
-
-        if at_start_of_name {
-            if !is_valid_start(c) {
-                // Name segments must begin with a valid start character
-                return Err(ValidationError::InvalidCharacter);
-            }
-            at_start_of_name = false;
-        } else if !is_valid_continuation(c) {
-            // Name segments must consist of valid characters
-            return Err(ValidationError::InvalidCharacter);
-        }
-    }
-
-    let Some(colon_offset) = colon_offset else {
-        // Simple case: there is no prefix
-        return Ok((None, qualified_name));
-    };
-
-    let (prefix, local_name) = qualified_name.split_at(colon_offset);
-    let local_name = &local_name[1..]; // Remove the colon
-
-    if prefix.is_empty() || local_name.is_empty() {
-        // Neither prefix nor local name can be empty
-        return Err(ValidationError::InvalidCharacter);
-    }
-
-    Ok((Some(prefix), local_name))
-}
-
-/// Validate a namespace and qualified name following the XML naming rules
-/// and extract their parts.
-fn validate_and_extract(
-    namespace: Option<&str>,
-    qualified_name: &str,
-) -> Result<(Namespace, Option<Prefix>, LocalName), ValidationError> {
-    // Step 1. If namespace is the empty string, then set it to null.
-    let namespace = namespace.map(Namespace::from).unwrap_or(ns!());
-
-    // Step 2. Validate qualifiedName.
-    // Step 3. Let prefix be null.
-    // Step 4. Let localName be qualifiedName.
-    // Step 5. If qualifiedName contains a U+003A (:):
-    // NOTE: validate_and_extract_qualified_name does all of these things for us, because
-    // it's easier to do them together
-    let (prefix, local_name) = validate_and_extract_qualified_name(qualified_name)?;
-    debug_assert!(!local_name.contains(':'));
-
-    match (namespace, prefix) {
-        (ns!(), Some(_)) => {
-            // Step 6. If prefix is non-null and namespace is null, then throw a "NamespaceError" DOMException.
-            Err(ValidationError::Namespace)
-        },
-        (ref ns, Some("xml")) if ns != &ns!(xml) => {
-            // Step 7. If prefix is "xml" and namespace is not the XML namespace,
-            // then throw a "NamespaceError" DOMException.
-            Err(ValidationError::Namespace)
-        },
-        (ref ns, p) if ns != &ns!(xmlns) && (qualified_name == "xmlns" || p == Some("xmlns")) => {
-            // Step 8. If either qualifiedName or prefix is "xmlns" and namespace is not the XMLNS namespace,
-            // then throw a "NamespaceError" DOMException.
-            Err(ValidationError::Namespace)
-        },
-        (ns!(xmlns), p) if qualified_name != "xmlns" && p != Some("xmlns") => {
-            // Step 9. If namespace is the XMLNS namespace and neither qualifiedName nor prefix is "xmlns",
-            // then throw a "NamespaceError" DOMException.
-            Err(ValidationError::Namespace)
-        },
-        (ns, p) => {
-            // Step 10. Return namespace, prefix, and localName.
-            Ok((ns, p.map(Prefix::from), LocalName::from(local_name)))
-        },
-    }
-}
-
-pub(crate) fn convert_parsed_qname_to_qualified_name<D: Dom>(
-    qname: &ParserQualName,
-    context: &EvaluationCtx<D>,
-) -> Result<QualName, Error<D::JsError>> {
-    let qname_as_str = qname.to_string();
-    let namespace = context
-        .resolve_namespace(qname.prefix.as_deref())
-        .map_err(Error::JsException)?;
-
-    if let Ok((ns, prefix, local)) = validate_and_extract(namespace.as_deref(), &qname_as_str) {
-        Ok(QualName { prefix, ns, local })
-    } else {
-        Err(Error::InvalidQName {
-            qname: qname.clone(),
-        })
-    }
-}
-
 #[derive(Debug)]
 pub(crate) enum NameTestComparisonMode {
     /// Namespaces must match exactly
@@ -363,8 +237,18 @@ fn apply_node_test<D: Dom>(
 ) -> Result<bool, Error<D::JsError>> {
     let result = match test {
         NodeTest::Name(qname) => {
-            // Convert the unvalidated "parser QualName" into the proper QualName structure
-            let wanted_name = convert_parsed_qname_to_qualified_name(qname, context)?;
+            let namespace = context
+                .resolve_namespace(qname.prefix.as_deref())
+                .map_err(Error::JsException)?
+                .map(Namespace::from)
+                .unwrap_or_default();
+
+            let wanted_name = QualName {
+                prefix: qname.prefix.as_deref().map(Prefix::from),
+                ns: namespace,
+                local: LocalName::from(qname.local_part.as_str()),
+            };
+
             if let Some(element) = node.as_element() {
                 let comparison_mode = if node.owner_document().is_html_document() {
                     NameTestComparisonMode::Html
