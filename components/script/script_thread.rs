@@ -1525,7 +1525,12 @@ impl ScriptThread {
             for document in docs.iter() {
                 println!("Maybe queuing doc completion for {:?}", document.url());
                 if document.url().as_str() == "about:blank" {
-                //continue;
+                    // Note: this will, among others, result in the "iframe-load-event-steps" being run.
+                    // https://html.spec.whatwg.org/multipage/#iframe-load-event-steps
+                    document.notify_constellation_load();
+
+                    // We do not fire load events on the document.
+                    continue;
         }
                 let _realm = enter_realm(&**document);
                 document.maybe_queue_document_completion();

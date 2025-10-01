@@ -2229,9 +2229,6 @@ impl Document {
                             Duration::from_secs(*time),
                         );
                     }
-                    // Note: this will, among others, result in the "iframe-load-event-steps" being run.
-                    // https://html.spec.whatwg.org/multipage/#iframe-load-event-steps
-                    document.notify_constellation_load();
                 }));
         }
     }
