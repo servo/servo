@@ -3147,7 +3147,7 @@ dependencies = [
  "vec_map",
  "wasm-bindgen",
  "web-sys",
- "windows 0.58.0",
+ "windows 0.61.3",
 ]
 
 [[package]]
@@ -4051,7 +4051,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.58.0",
+ "windows-core 0.61.2",
 ]
 
 [[package]]
@@ -4786,9 +4786,9 @@ dependencies = [
 
 [[package]]
 name = "keyboard-types"
-version = "0.8.1"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53cea01d04c8251f945a9f16c5364da6cdb8bce69a61382663302c62f4186d13"
+checksum = "ec565a935632f47329ed84336b468fb957e8f10a8ddc614937f0dc1e61765e99"
 dependencies = [
  "bitflags 2.9.4",
  "serde",
