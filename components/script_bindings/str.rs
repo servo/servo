@@ -233,7 +233,17 @@ impl DOMString {
 
     /// Removes newline characters according to <https://infra.spec.whatwg.org/#strip-newlines>.
     pub fn strip_newlines(&mut self) {
+        // > To strip newlines from a string, remove any U+000A LF and U+000D CR code
+        // > points from the string.
         self.0.retain(|c| c != '\r' && c != '\n');
+    }
+
+    /// Normalize newlines according to <https://infra.spec.whatwg.org/#normalize-newlines>.
+    pub fn normalize_newlines(&mut self) {
+        // > To normalize newlines in a string, replace every U+000D CR U+000A LF code point
+        // > pair with a single U+000A LF code point, and then replace every remaining
+        // > U+000D CR code point with a U+000A LF code point.
+        self.0 = self.0.replace("\r\n", "\n").replace("\r", "\n")
     }
 
     /// Removes leading and trailing ASCII whitespaces according to
