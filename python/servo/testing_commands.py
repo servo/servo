@@ -700,7 +700,15 @@ class MachCommands(CommandBase):
             except OSError:
                 return ""
 
-        subprocess.call([hdc_path, "shell", "aa", "force-stop", "org.servo.servo"])
+        subprocess.call(
+            [
+                hdc_path,
+                "shell",
+                "aa",
+                "force-stop",
+                "org.servo.servo",
+            ]
+        )
 
         subprocess.call([hdc_path, "shell", "rm", log_path])
         subprocess.call(
@@ -737,6 +745,9 @@ class MachCommands(CommandBase):
                 sleep(2)
                 whole_file = read_log_file(hdc_path)
                 break
+            if not subprocess.check_output([hdc_path, "shell", "pidof", "org.servo.servo"]):
+                print("Servo crashed, aborting speedometer test")
+                exit(1)
         else:
             print("Error failed to find console logs in log file")
             print(f"log-file contents: `{whole_file}`")
