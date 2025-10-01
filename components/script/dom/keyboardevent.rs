@@ -186,8 +186,8 @@ impl KeyboardEventMethods<crate::DomTypeHolder> for KeyboardEvent {
             init.repeat,
             init.isComposing,
             modifiers,
-            0,
-            0,
+            init.charCode,
+            init.keyCode,
             can_gc,
         );
         *event.key.borrow_mut() = init.key.clone();

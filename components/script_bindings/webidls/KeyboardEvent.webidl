@@ -53,8 +53,8 @@ dictionary KeyboardEventInit : EventModifierInit {
 };
 
 // https://w3c.github.io/uievents/#legacy-dictionary-KeyboardEventInit
-/*partial dictionary KeyboardEventInit {
+partial dictionary KeyboardEventInit {
     unsigned long charCode = 0;
     unsigned long keyCode = 0;
     unsigned long which = 0;
-};*/
+};
