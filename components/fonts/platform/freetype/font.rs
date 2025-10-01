@@ -9,9 +9,9 @@ use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D};
 use fonts_traits::{FontIdentifier, FontTemplateDescriptor, LocalFontIdentifier};
 use freetype_sys::{
-    FT_F26Dot6, FT_Get_Char_Index, FT_Get_Kerning, FT_GlyphSlot, FT_KERNING_DEFAULT,
-    FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_Load_Glyph, FT_Size_Metrics, FT_SizeRec, FT_UInt,
-    FT_ULong, FT_Vector,
+    FT_F26Dot6, FT_Get_Char_Index, FT_Get_Kerning, FT_GlyphSlot, FT_HAS_MULTIPLE_MASTERS,
+    FT_KERNING_DEFAULT, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_Load_Glyph, FT_Size_Metrics,
+    FT_SizeRec, FT_UInt, FT_ULong, FT_Vector,
 };
 use log::debug;
 use memmap2::Mmap;
@@ -56,6 +56,7 @@ pub struct PlatformFont {
     requested_face_size: Au,
     actual_face_size: Au,
     variations: Vec<FontVariation>,
+    synthetic_bold: bool,
 
     /// A member that allows using `skrifa` to read values from this font.
     table_provider_data: FreeTypeFaceTableProviderData,
@@ -67,6 +68,7 @@ impl PlatformFontMethods for PlatformFont {
         font_data: &FontData,
         requested_size: Option<Au>,
         variations: &[FontVariation],
+        mut synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
         let data: &[u8] = font_data.as_ref();
@@ -79,12 +81,22 @@ impl PlatformFontMethods for PlatformFont {
             None => (Au::zero(), Au::zero()),
         };
 
+        // Variable fonts, where the font designer has provided one or more axes of
+        // variation do not count as font synthesis and their use is not affected by
+        // the font-synthesis property.
+        //
+        // <https://www.w3.org/TR/css-fonts-4/#font-synthesis-intro>
+        if FT_HAS_MULTIPLE_MASTERS(face.as_ptr()) {
+            synthetic_bold = false;
+        }
+
         Ok(PlatformFont {
             face: ReentrantMutex::new(face),
             requested_face_size,
             actual_face_size,
             table_provider_data: FreeTypeFaceTableProviderData::Web(font_data.clone()),
             variations: normalized_variations,
+            synthetic_bold,
         })
     }
 
@@ -92,6 +104,7 @@ impl PlatformFontMethods for PlatformFont {
         font_identifier: LocalFontIdentifier,
         requested_size: Option<Au>,
         variations: &[FontVariation],
+        mut synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
         let filename = CString::new(&*font_identifier.path).expect("filename contains NUL byte!");
@@ -115,6 +128,15 @@ impl PlatformFontMethods for PlatformFont {
             return Err("Could not memory map");
         };
 
+        // Variable fonts, where the font designer has provided one or more axes of
+        // variation do not count as font synthesis and their use is not affected by
+        // the font-synthesis property.
+        //
+        // <https://www.w3.org/TR/css-fonts-4/#font-synthesis-intro>
+        if FT_HAS_MULTIPLE_MASTERS(face.as_ptr()) {
+            synthetic_bold = false;
+        }
+
         Ok(PlatformFont {
             face: ReentrantMutex::new(face),
             requested_face_size,
@@ -124,6 +146,7 @@ impl PlatformFontMethods for PlatformFont {
                 font_identifier.index(),
             ),
             variations: normalized_variations,
+            synthetic_bold,
         })
     }
 
@@ -183,6 +206,10 @@ impl PlatformFontMethods for PlatformFont {
         let void_glyph = face.as_ref().glyph;
         let slot: FT_GlyphSlot = void_glyph;
         assert!(!slot.is_null());
+
+        if self.synthetic_bold {
+            mozilla_glyphslot_embolden_less(slot);
+        }
 
         let advance = unsafe { (*slot).metrics.horiAdvance };
         Some(fixed_26_dot_6_to_float(advance) * self.unscalable_font_metrics_scale())
@@ -358,7 +385,13 @@ impl PlatformFontMethods for PlatformFont {
         // On other platforms, we only pass this when we know that we are loading a font with
         // color characters, but not passing this flag simply *prevents* WebRender from
         // loading bitmaps. There's no harm to always passing it.
-        FontInstanceFlags::EMBEDDED_BITMAPS
+        let mut flags = FontInstanceFlags::EMBEDDED_BITMAPS;
+
+        if self.synthetic_bold {
+            flags |= FontInstanceFlags::SYNTHETIC_BOLD;
+        }
+
+        flags
     }
 
     fn variations(&self) -> &[FontVariation] {
@@ -394,4 +427,48 @@ impl std::fmt::Debug for FreeTypeFaceTableProviderData {
     fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Ok(())
     }
+}
+
+// This is copied from the webrender glyph rasterizer
+// https://github.com/servo/webrender/blob/c4bd5b47d8f5cd684334b445e67a1f945d106848/wr_glyph_rasterizer/src/platform/unix/font.rs#L115
+//
+// Custom version of FT_GlyphSlot_Embolden to be less aggressive with outline
+// fonts than the default implementation in FreeType.
+fn mozilla_glyphslot_embolden_less(slot: FT_GlyphSlot) {
+    use freetype_sys::{
+        FT_GLYPH_FORMAT_OUTLINE, FT_GlyphSlot_Embolden, FT_Long, FT_MulFix, FT_Outline_Embolden,
+    };
+
+    if slot.is_null() {
+        return;
+    }
+
+    let slot_ = unsafe { &mut *slot };
+    let format = slot_.format;
+    if format != FT_GLYPH_FORMAT_OUTLINE {
+        // For non-outline glyphs, just fall back to FreeType's function.
+        unsafe { FT_GlyphSlot_Embolden(slot) };
+        return;
+    }
+
+    let face_ = unsafe { &*slot_.face };
+
+    // FT_GlyphSlot_Embolden uses a divisor of 24 here; we'll be only half as
+    // bold.
+    let size_ = unsafe { &*face_.size };
+    let strength = unsafe { FT_MulFix(face_.units_per_EM as FT_Long, size_.metrics.y_scale) / 48 };
+    unsafe { FT_Outline_Embolden(&raw mut slot_.outline, strength) };
+
+    // Adjust metrics to suit the fattened glyph.
+    if slot_.advance.x != 0 {
+        slot_.advance.x += strength;
+    }
+    if slot_.advance.y != 0 {
+        slot_.advance.y += strength;
+    }
+    slot_.metrics.width += strength;
+    slot_.metrics.height += strength;
+    slot_.metrics.horiAdvance += strength;
+    slot_.metrics.vertAdvance += strength;
+    slot_.metrics.horiBearingY += strength;
 }

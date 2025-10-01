@@ -30,7 +30,7 @@ use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::{
     FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
 };
-use style::values::computed::{FontStretch, FontStyle, FontWeight};
+use style::values::computed::{FontStretch, FontStyle, FontSynthesis, FontWeight};
 use unicode_script::Script;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontVariation};
 
@@ -68,20 +68,25 @@ pub trait PlatformFontMethods: Sized {
         pt_size: Option<Au>,
         variations: &[FontVariation],
         data: &Option<FontData>,
+        synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let template = template.borrow();
         let font_identifier = template.identifier.clone();
 
         match font_identifier {
-            FontIdentifier::Local(font_identifier) => {
-                Self::new_from_local_font_identifier(font_identifier, pt_size, variations)
-            },
+            FontIdentifier::Local(font_identifier) => Self::new_from_local_font_identifier(
+                font_identifier,
+                pt_size,
+                variations,
+                synthetic_bold,
+            ),
             FontIdentifier::Web(_) => Self::new_from_data(
                 font_identifier,
                 data.as_ref()
                     .expect("Should never create a web font without data."),
                 pt_size,
                 variations,
+                synthetic_bold,
             ),
         }
     }
@@ -90,6 +95,7 @@ pub trait PlatformFontMethods: Sized {
         font_identifier: LocalFontIdentifier,
         pt_size: Option<Au>,
         variations: &[FontVariation],
+        synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str>;
 
     fn new_from_data(
@@ -97,6 +103,7 @@ pub trait PlatformFontMethods: Sized {
         data: &FontData,
         pt_size: Option<Au>,
         variations: &[FontVariation],
+        synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str>;
 
     /// Get a [`FontTemplateDescriptor`] from a [`PlatformFont`]. This is used to get
@@ -269,11 +276,20 @@ impl Font {
         data: Option<FontData>,
         synthesized_small_caps: Option<FontRef>,
     ) -> Result<Font, &'static str> {
+        let synthetic_bold = {
+            let is_bold = descriptor.weight >= FontWeight::BOLD_THRESHOLD;
+            let template_is_bold = template.descriptor().weight.0 >= FontWeight::BOLD_THRESHOLD;
+            let allows_synthetic_bold = matches!(descriptor.synthesis_weight, FontSynthesis::Auto);
+
+            is_bold && !template_is_bold && allows_synthetic_bold
+        };
+
         let handle = PlatformFont::new_from_template(
             template.clone(),
             Some(descriptor.pt_size),
             &descriptor.variation_settings,
             &data,
+            synthetic_bold,
         )?;
         let metrics = handle.metrics();
 
