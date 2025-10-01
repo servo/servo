@@ -508,6 +508,7 @@ impl ScriptThread {
     }
 
     pub(crate) fn mark_document_with_no_blocked_loads(doc: &Document) {
+        println!("Marking doc as not blocking load: {:?}", doc.url());
         with_script_thread(|script_thread| {
             script_thread
                 .docs_with_no_blocking_loads
@@ -1522,6 +1523,10 @@ impl ScriptThread {
             // https://html.spec.whatwg.org/multipage/#the-end step 6
             let mut docs = self.docs_with_no_blocking_loads.borrow_mut();
             for document in docs.iter() {
+                println!("Maybe queuing doc completion for {:?}", document.url());
+                if document.url().as_str() == "about:blank" {
+                //continue;
+        }
                 let _realm = enter_realm(&**document);
                 document.maybe_queue_document_completion();
             }
@@ -2509,6 +2514,7 @@ impl ScriptThread {
     }
 
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo, origin: MutableOrigin) {
+        println!("Handle new layout");
         let NewLayoutInfo {
             parent_info,
             new_pipeline_id,
@@ -2534,10 +2540,12 @@ impl ScriptThread {
             load_data,
         );
         if url.as_str() == "about:blank" {
+            println!("Page load about blank");
             self.start_page_load_about_blank(new_load);
         } else if url.as_str() == "about:srcdoc" {
             self.page_load_about_srcdoc(new_load);
         } else {
+            println!("Pre page load");
             self.pre_page_load(new_load);
         }
     }
