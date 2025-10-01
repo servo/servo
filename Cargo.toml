@@ -241,17 +241,6 @@ codegen-units = 1
 # stylo_dom = { path = "../stylo/stylo_dom" }
 # stylo_malloc_size_of = { path = "../stylo/malloc_size_of" }
 # stylo_traits = { path = "../stylo/style_traits" }
-
-# TODO: remove the git deps below once https://github.com/servo/stylo/pull/244 lands
-selectors = { git = "https://github.com/minghuaw/stylo", branch = "feat/synthetic-bold" }
-servo_arc = { git = "https://github.com/minghuaw/stylo", branch = "feat/synthetic-bold" }
-stylo = { git = "https://github.com/minghuaw/stylo", branch = "feat/synthetic-bold" }
-stylo_atoms = { git = "https://github.com/minghuaw/stylo", branch = "feat/synthetic-bold" }
-stylo_config = { git = "https://github.com/minghuaw/stylo", branch = "feat/synthetic-bold" }
-stylo_dom = { git = "https://github.com/minghuaw/stylo", branch = "feat/synthetic-bold" }
-stylo_malloc_size_of = { git = "https://github.com/minghuaw/stylo", branch = "feat/synthetic-bold" }
-stylo_traits = { git = "https://github.com/minghuaw/stylo", branch = "feat/synthetic-bold" }
-
 #
 # Or for WebRender:
 #
