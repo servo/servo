@@ -973,7 +973,7 @@ impl RunningAppState {
             return;
         }
 
-        webview.take_screenshot(move |image| {
+        webview.take_screenshot(None, move |image| {
             achieved_stable_image.set(true);
 
             let Some(output_path) = output_path else {

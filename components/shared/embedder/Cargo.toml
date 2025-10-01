@@ -23,6 +23,7 @@ crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
 http = { workspace = true }
 hyper_serde = { workspace = true }
+image = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 log = { workspace = true }

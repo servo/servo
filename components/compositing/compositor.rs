@@ -28,11 +28,10 @@ use dpi::PhysicalSize;
 use embedder_traits::{
     CompositorHitTestResult, InputEvent, ScreenshotCaptureError, ShutdownState, ViewportDetails,
 };
-use euclid::{Point2D, Rect, Scale, Size2D, Transform3D};
+use euclid::{Point2D, Scale, Size2D, Transform3D};
 use image::RgbaImage;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use log::{debug, info, trace, warn};
-use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage};
 use profile_traits::mem::{
     ProcessReports, ProfilerRegistration, Report, ReportKind, perform_memory_report,
 };
@@ -1184,58 +1183,6 @@ impl IOCompositor {
         self.needs_repaint.set(RepaintReason::empty());
     }
 
-    /// Render the WebRender scene to the shared memory, without updating other state of this
-    /// [`IOCompositor`]. If succesful return the output image in shared memory.
-    pub fn render_to_shared_memory(
-        &mut self,
-        webview_id: WebViewId,
-        page_rect: Option<Rect<f32, CSSPixel>>,
-    ) -> Option<RasterImage> {
-        self.render_inner();
-
-        let size = self.rendering_context.size2d().to_i32();
-        let rect = if let Some(rect) = page_rect {
-            let scale = self
-                .webview_renderers
-                .get(webview_id)
-                .map(WebViewRenderer::device_pixels_per_page_pixel)
-                .unwrap_or_else(|| Scale::new(1.0));
-            let rect = scale.transform_rect(&rect);
-
-            let x = rect.origin.x as i32;
-            // We need to convert to the bottom-left origin coordinate
-            // system used by OpenGL
-            // If dpi > 1, y can be computed to be -1 due to rounding issue, resulting in panic.
-            // https://github.com/servo/servo/issues/39306#issuecomment-3342204869
-            let y = 0.max((size.height as f32 - rect.origin.y - rect.size.height) as i32);
-            let w = rect.size.width as i32;
-            let h = rect.size.height as i32;
-
-            DeviceIntRect::from_origin_and_size(Point2D::new(x, y), Size2D::new(w, h))
-        } else {
-            DeviceIntRect::from_origin_and_size(Point2D::origin(), size)
-        };
-
-        self.rendering_context
-            .read_to_image(rect)
-            .map(|image| RasterImage {
-                metadata: ImageMetadata {
-                    width: image.width(),
-                    height: image.height(),
-                },
-                format: PixelFormat::RGBA8,
-                frames: vec![ImageFrame {
-                    delay: None,
-                    byte_range: 0..image.len(),
-                    width: image.width(),
-                    height: image.height(),
-                }],
-                bytes: ipc::IpcSharedMemory::from_bytes(&image),
-                id: None,
-                cors_status: CorsStatus::Safe,
-            })
-    }
-
     #[servo_tracing::instrument(skip_all)]
     fn render_inner(&mut self) {
         if let Err(err) = self.rendering_context.make_current() {
@@ -1584,6 +1531,16 @@ impl IOCompositor {
         }
     }
 
+    pub fn device_pixels_per_page_pixel(
+        &self,
+        webview_id: WebViewId,
+    ) -> Scale<f32, CSSPixel, DevicePixel> {
+        self.webview_renderers
+            .get(webview_id)
+            .map(WebViewRenderer::device_pixels_per_page_pixel)
+            .unwrap_or_default()
+    }
+
     fn webrender_document(&self) -> DocumentId {
         self.global.borrow().webrender_document
     }
@@ -1644,10 +1601,11 @@ impl IOCompositor {
     pub fn request_screenshot(
         &self,
         webview_id: WebViewId,
+        rect: Option<DeviceRect>,
         callback: Box<dyn FnOnce(Result<RgbaImage, ScreenshotCaptureError>) + 'static>,
     ) {
         self.screenshot_taker
-            .request_screenshot(webview_id, callback);
+            .request_screenshot(webview_id, rect, callback);
         let _ = self.global.borrow().constellation_sender.send(
             EmbedderToConstellationMessage::RequestScreenshotReadiness(webview_id),
         );

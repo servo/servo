@@ -9,12 +9,13 @@ use std::collections::HashMap;
 use base::generic_channel::GenericSender;
 use base::id::{BrowsingContextId, WebViewId};
 use cookie::Cookie;
+use crossbeam_channel::Sender;
 use euclid::default::Rect as UntypedRect;
 use euclid::{Rect, Size2D};
 use hyper_serde::Serde;
+use image::RgbaImage;
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::{CompositionEvent, KeyboardEvent};
-use pixels::RasterImage;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_geometry::DeviceIndependentIntRect;
@@ -23,7 +24,7 @@ use style_traits::CSSPixel;
 use webdriver::error::ErrorStatus;
 use webrender_api::units::DevicePixel;
 
-use crate::{JSValue, MouseButton, MouseButtonAction, TraversalId};
+use crate::{JSValue, MouseButton, MouseButtonAction, ScreenshotCaptureError, TraversalId};
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WebDriverMessageId(pub usize);
@@ -73,7 +74,7 @@ impl WebDriverUserPromptAction {
 }
 
 /// Messages to the constellation originating from the WebDriver server.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug)]
 pub enum WebDriverCommandMsg {
     /// Used in the initialization of the WebDriver server to set the sender for sending responses
     /// back to the WebDriver client. It is set to constellation for now
@@ -144,7 +145,7 @@ pub enum WebDriverCommandMsg {
     TakeScreenshot(
         WebViewId,
         Option<Rect<f32, CSSPixel>>,
-        IpcSender<Result<Option<RasterImage>, ()>>,
+        Sender<Result<RgbaImage, ScreenshotCaptureError>>,
     ),
     /// Create a new webview that loads about:blank. The embedder will use
     /// the provided channels to return the top level browsing context id

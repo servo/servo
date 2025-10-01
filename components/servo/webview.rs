@@ -20,6 +20,7 @@ use embedder_traits::{
 use euclid::{Point2D, Scale, Size2D};
 use image::RgbaImage;
 use servo_geometry::DeviceIndependentPixel;
+use style_traits::CSSPixel;
 use url::Url;
 use webrender_api::ScrollLocation;
 use webrender_api::units::{DeviceIntPoint, DevicePixel, DeviceRect};
@@ -526,6 +527,13 @@ impl WebView {
             .set_pinch_zoom(self.id(), new_pinch_zoom);
     }
 
+    pub fn device_pixels_per_css_pixel(&self) -> Scale<f32, CSSPixel, DevicePixel> {
+        self.inner()
+            .compositor
+            .borrow()
+            .device_pixels_per_page_pixel(self.id())
+    }
+
     pub fn exit_fullscreen(&self) {
         self.inner()
             .constellation_proxy
@@ -589,9 +597,11 @@ impl WebView {
         );
     }
 
-    /// Asynchronously take a screenshot of the [`WebView`] contents. This method will
-    /// wait until the [`WebView`] is ready before the screenshot is taken. This includes
-    /// waiting for:
+    /// Asynchronously take a screenshot of the [`WebView`] contents, given a `rect` or the whole
+    /// viewport, if no `rect` is given.
+    ///
+    /// This method will wait until the [`WebView`] is ready before the screenshot is taken.
+    /// This includes waiting for:
     ///
     ///  - all frames to fire their `load` event.
     ///  - all render blocking elements, such as stylesheets included via the `<link>`
@@ -606,12 +616,13 @@ impl WebView {
     /// operation.
     pub fn take_screenshot(
         &self,
+        rect: Option<DeviceRect>,
         callback: impl FnOnce(Result<RgbaImage, ScreenshotCaptureError>) + 'static,
     ) {
         self.inner()
             .compositor
             .borrow()
-            .request_screenshot(self.id(), Box::new(callback));
+            .request_screenshot(self.id(), rect, Box::new(callback));
     }
 }
 

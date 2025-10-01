@@ -34,12 +34,11 @@ use embedder_traits::{
 };
 use euclid::{Point2D, Rect, Size2D};
 use http::method::Method;
-use image::{DynamicImage, ImageFormat, RgbaImage};
+use image::{DynamicImage, ImageFormat};
 use ipc_channel::ipc::{self, IpcReceiver};
 use keyboard_types::webdriver::{Event as DispatchStringEvent, KeyInputState, send_keys};
 use keyboard_types::{Code, Key, KeyState, KeyboardEvent, Location, NamedKey};
 use log::{debug, error, info};
-use pixels::PixelFormat;
 use serde::de::{Deserializer, MapAccess, Visitor};
 use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};
@@ -2317,61 +2316,33 @@ impl Handler {
             script: "requestAnimationFrame(() => arguments[0]());".to_string(),
             args: None,
         });
-        let webview_id = self.webview_id()?;
-        let mut img = None;
-
-        let interval = 1000;
-        let iterations = 30000 / interval;
-
-        for _ in 0..iterations {
-            let (sender, receiver) = ipc::channel().unwrap();
-            self.send_message_to_embedder(WebDriverCommandMsg::TakeScreenshot(
-                webview_id, rect, sender,
-            ))?;
-
-            match wait_for_ipc_response(receiver)? {
-                Ok(output_img) => {
-                    if let Some(x) = output_img {
-                        img = Some(x);
-                        break;
-                    }
-                },
-                Err(()) => {
-                    return Err(WebDriverError::new(
-                        ErrorStatus::UnknownError,
-                        "The bounding box of element has either 0 width or 0 height",
-                    ));
-                },
-            };
-
-            thread::sleep(Duration::from_millis(interval));
+        if rect.as_ref().is_some_and(Rect::is_empty) {
+            return Err(WebDriverError::new(
+                ErrorStatus::UnknownError,
+                "The requested `rect` has zero width and/or height",
+            ));
         }
+        let webview_id = self.webview_id()?;
+        let (sender, receiver) = crossbeam_channel::unbounded();
+        self.send_message_to_embedder(WebDriverCommandMsg::TakeScreenshot(
+            webview_id, rect, sender,
+        ))?;
 
-        let img = match img {
-            Some(img) => img,
-            None => {
-                return Err(WebDriverError::new(
-                    ErrorStatus::Timeout,
-                    "Taking screenshot timed out",
-                ));
-            },
+        let Ok(result) = receiver.recv() else {
+            return Err(WebDriverError::new(
+                ErrorStatus::UnknownError,
+                "Failed to receive TakeScreenshot response",
+            ));
         };
+        let image = result.map_err(|error| {
+            WebDriverError::new(
+                ErrorStatus::UnknownError,
+                format!("Failed to take screenshot: {error:?}"),
+            )
+        })?;
 
-        // The compositor always sends RGBA pixels.
-        assert_eq!(
-            img.format,
-            PixelFormat::RGBA8,
-            "Unexpected screenshot pixel format"
-        );
-
-        let rgb = RgbaImage::from_raw(
-            img.metadata.width,
-            img.metadata.height,
-            img.first_frame().bytes.to_vec(),
-        )
-        .unwrap();
         let mut png_data = Cursor::new(Vec::new());
-        DynamicImage::ImageRgba8(rgb)
+        DynamicImage::ImageRgba8(image)
             .write_to(&mut png_data, ImageFormat::Png)
             .unwrap();
 

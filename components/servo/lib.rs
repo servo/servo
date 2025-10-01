@@ -82,13 +82,14 @@ use fonts::SystemFontService;
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 pub use gleam::gl;
 use gleam::gl::RENDERER;
+pub use image::RgbaImage;
 use ipc_channel::ipc::{self, IpcSender};
 use javascript_evaluator::JavaScriptEvaluator;
 pub use keyboard_types::{
     Code, CompositionEvent, CompositionState, Key, KeyState, Location, Modifiers, NamedKey,
 };
 use layout::LayoutFactoryImpl;
-use log::{Log, Metadata, Record, debug, error, warn};
+use log::{Log, Metadata, Record, debug, warn};
 use media::{GlApi, NativeDisplay, WindowGLContext};
 use net::protocols::ProtocolRegistry;
 use net::resource_thread::new_resource_threads;
@@ -1059,29 +1060,8 @@ impl Servo {
     }
 
     pub fn execute_webdriver_command(&self, command: WebDriverCommandMsg) {
-        if let WebDriverCommandMsg::TakeScreenshot(webview_id, page_rect, response_sender) = command
-        {
-            if let Some(ref rect) = page_rect {
-                if rect.height() == 0.0 || rect.width() == 0.0 {
-                    error!("Taking screenshot of bounding box with zero area");
-                    if let Err(e) = response_sender.send(Err(())) {
-                        error!("Sending reply to create png failed {e:?}");
-                    }
-                    return;
-                }
-            }
-
-            let img = self
-                .compositor
-                .borrow_mut()
-                .render_to_shared_memory(webview_id, page_rect);
-            if let Err(e) = response_sender.send(Ok(img)) {
-                error!("Sending reply to create png failed ({:?}).", e);
-            }
-        } else {
-            self.constellation_proxy
-                .send(EmbedderToConstellationMessage::WebDriverCommand(command));
-        }
+        self.constellation_proxy
+            .send(EmbedderToConstellationMessage::WebDriverCommand(command));
     }
 
     pub fn set_preference(&self, name: &str, value: PrefValue) {
