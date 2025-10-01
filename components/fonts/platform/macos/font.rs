@@ -214,7 +214,7 @@ impl PlatformFontMethods for PlatformFont {
         data: &FontData,
         requested_size: Option<Au>,
         variations: &[FontVariation],
-        _synthetic_bold: Option<bool>,
+        _synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         Self::new(font_identifier, Some(data), requested_size, variations)
     }
@@ -223,7 +223,7 @@ impl PlatformFontMethods for PlatformFont {
         font_identifier: LocalFontIdentifier,
         requested_size: Option<Au>,
         variations: &[FontVariation],
-        _synthetic_bold: Option<bool>,
+        _synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         Self::new(
             FontIdentifier::Local(font_identifier),
