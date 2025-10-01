@@ -243,7 +243,9 @@ fn create_html_element(
             if is_valid_custom_element_name(&name.local) {
                 result.set_custom_element_state(CustomElementState::Undefined);
             } else {
-                result.set_custom_element_state(CustomElementState::Uncustomized);
+                // Note: This is a performance optimization. See the doc comment of the method for
+                // more information.
+                result.init_state_for_uncustomized_builtin_element();
             }
         },
     };
