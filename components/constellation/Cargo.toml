@@ -33,6 +33,7 @@ canvas = { path = "../canvas" }
 canvas_traits = { workspace = true }
 compositing_traits = { workspace = true }
 constellation_traits = { workspace = true }
+content-security-policy = { workspace = true }
 crossbeam-channel = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }

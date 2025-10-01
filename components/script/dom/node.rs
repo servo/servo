@@ -2934,6 +2934,7 @@ impl Node {
                     Some(document.insecure_requests_policy()),
                     document.has_trustworthy_ancestor_or_current_origin(),
                     document.custom_element_reaction_stack(),
+                    document.creation_sandboxing_flag_set(),
                     can_gc,
                 );
                 DomRoot::upcast::<Node>(document)

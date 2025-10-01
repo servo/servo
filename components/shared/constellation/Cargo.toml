@@ -19,6 +19,7 @@ webgpu = ["wgpu-core"]
 base = { workspace = true }
 canvas_traits = { workspace = true }
 compositing_traits = { workspace = true }
+content-security-policy = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }

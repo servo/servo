@@ -14,6 +14,7 @@ use base::id::{
 };
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use compositing_traits::CrossProcessCompositorApi;
+use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::{
     AnimationState, FocusSequenceNumber, JSValue, JavaScriptEvaluationError,
@@ -118,6 +119,9 @@ pub struct LoadData {
     pub crash: Option<String>,
     /// Destination, used for CSP checks
     pub destination: Destination,
+    /// The "creation sandboxing flag set" that this Pipeline should use when it is created.
+    /// See <https://html.spec.whatwg.org/multipage/#determining-the-creation-sandboxing-flags>.
+    pub creation_sandboxing_flag_set: SandboxingFlagSet,
 }
 
 /// The result of evaluating a javascript scheme url.
@@ -142,6 +146,7 @@ impl LoadData {
         inherited_secure_context: Option<bool>,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         has_trustworthy_ancestor_origin: bool,
+        creation_sandboxing_flag_set: SandboxingFlagSet,
     ) -> LoadData {
         LoadData {
             load_origin,
@@ -160,6 +165,7 @@ impl LoadData {
             inherited_insecure_requests_policy,
             has_trustworthy_ancestor_origin,
             destination: Destination::Document,
+            creation_sandboxing_flag_set,
         }
     }
 }
@@ -362,15 +368,6 @@ pub trait ServiceWorkerManagerFactory {
     fn create(sw_senders: SWManagerSenders, origin: ImmutableOrigin);
 }
 
-/// Whether the sandbox attribute is present for an iframe element
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum IFrameSandboxState {
-    /// Sandbox attribute is present
-    IFrameSandboxed,
-    /// Sandbox attribute is not present
-    IFrameUnsandboxed,
-}
-
 /// Specifies the information required to load an auxiliary browsing context.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AuxiliaryWebViewCreationRequest {
@@ -422,8 +419,6 @@ pub struct IFrameLoadInfoWithData {
     pub load_data: LoadData,
     /// The old pipeline ID for this iframe, if a page was previously loaded.
     pub old_pipeline_id: Option<PipelineId>,
-    /// Sandbox type of this iframe
-    pub sandbox: IFrameSandboxState,
     /// The initial viewport size for this iframe.
     pub viewport_details: ViewportDetails,
     /// The [`Theme`] to use within this iframe.
