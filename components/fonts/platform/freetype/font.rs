@@ -207,7 +207,6 @@ impl PlatformFontMethods for PlatformFont {
         let slot: FT_GlyphSlot = void_glyph;
         assert!(!slot.is_null());
 
-        // TODO: mozilla_glyphslot_embolden_less
         if self.synthetic_bold {
             mozilla_glyphslot_embolden_less(slot);
         }
