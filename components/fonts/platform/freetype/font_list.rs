@@ -148,7 +148,7 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
         families.push("Noto Color Emoji");
     }
 
-    add_noto_fallback_families(options, &mut families);
+    add_noto_fallback_families(options.clone(), &mut families);
 
     if matches!(
         Script::from(options.character),
