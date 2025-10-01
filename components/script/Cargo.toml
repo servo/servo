@@ -67,7 +67,6 @@ encoding_rs = { workspace = true }
 euclid = { workspace = true }
 fonts = { path = "../fonts" }
 fonts_traits = { workspace = true }
-fxhash = { workspace = true }
 glow = { workspace = true }
 headers = { workspace = true }
 html5ever = { workspace = true }

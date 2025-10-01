@@ -63,7 +63,6 @@ env_logger = "0.11"
 euclid = "0.22"
 fonts_traits = { path = "components/shared/fonts" }
 freetype-sys = "0.20"
-fxhash = "0.2"
 gleam = "0.15"
 glow = "0.16.0"
 gstreamer = { version = "0.23", features = ["v1_18"] }

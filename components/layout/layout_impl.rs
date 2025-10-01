@@ -1433,7 +1433,7 @@ struct RegisteredPainterImpl {
     painter: Box<dyn Painter>,
     name: Atom,
     // FIXME: Should be a PrecomputedHashMap.
-    properties: fxhash::FxHashMap<Atom, PropertyId>,
+    properties: FxHashMap<Atom, PropertyId>,
 }
 
 impl SpeculativePainter for RegisteredPainterImpl {
@@ -1448,7 +1448,7 @@ impl SpeculativePainter for RegisteredPainterImpl {
 }
 
 impl RegisteredSpeculativePainter for RegisteredPainterImpl {
-    fn properties(&self) -> &fxhash::FxHashMap<Atom, PropertyId> {
+    fn properties(&self) -> &FxHashMap<Atom, PropertyId> {
         &self.properties
     }
     fn name(&self) -> Atom {
