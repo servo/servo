@@ -10883,9 +10883,9 @@ checksum = "ec7a2a501ed189703dba8b08142f057e887dfc4b2cc4db2d343ac6376ba3e0b9"
 name = "xpath"
 version = "0.0.1"
 dependencies = [
- "html5ever",
  "log",
  "malloc_size_of_derive",
+ "markup5ever",
  "nom 8.0.0",
  "servo_malloc_size_of",
 ]
