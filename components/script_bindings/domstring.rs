@@ -40,6 +40,10 @@ enum DOMStringType {
     Rust(String),
     /// A JS String stored in mozjs.
     JSString(RootedTraceableBox<Heap<*mut JSString>>),
+    #[cfg(test)]
+    /// This is used for testing of the bindings to give
+    /// a raw u8 Latin1 encoded string without having a js engine.
+    Latin1Vec(Vec<u8>),
 }
 
 impl DOMStringType {
@@ -51,6 +55,8 @@ impl DOMStringType {
             DOMStringType::JSString(_rooted_traceable_box) => {
                 panic!("Cannot do a string")
             },
+            #[cfg(test)]
+            &DOMStringType::Latin1Vec(_) => panic!("Cannot do a string"),
         }
     }
 }
@@ -81,7 +87,7 @@ impl<'a> StringView<'a> {
 
     #[allow(unused)]
     /// Get the bytes of the string in either latin1 or utf8 without costly conversion.
-    fn bytes(&self) -> EncodedBytes<'_> {
+    fn encoded_bytes(&self) -> EncodedBytes<'_> {
         match *self.0 {
             DOMStringType::Rust(ref s) => EncodedBytes::Utf8Bytes(s.as_str()),
             DOMStringType::JSString(ref rooted_traceable_box) => {
@@ -97,6 +103,8 @@ impl<'a> StringView<'a> {
                     EncodedBytes::Latin1Bytes(slice::from_raw_parts(chars, length))
                 }
             },
+            #[cfg(test)]
+            DOMStringType::Latin1Vec(ref s) => EncodedBytes::Latin1Bytes(s.as_slice()),
         }
     }
 }
@@ -157,6 +165,8 @@ unsafe impl Trace for DOMStringType {
             match self {
                 DOMStringType::Rust(_s) => {},
                 DOMStringType::JSString(rooted_traceable_box) => rooted_traceable_box.trace(tracer),
+                #[cfg(test)]
+                DOMStringType::Latin1Vec(_s) => {},
             }
         }
     }
@@ -170,6 +180,8 @@ impl malloc_size_of::MallocSizeOf for DOMStringType {
                 // Managed by JS Engine
                 0
             },
+            #[cfg(test)]
+            DOMStringType::Latin1Vec(s) => s.size_of(ops),
         }
     }
 }
@@ -179,6 +191,11 @@ impl std::fmt::Debug for DOMStringType {
         match self {
             DOMStringType::Rust(s) => f.debug_struct("DOMString").field("rust_string", s).finish(),
             DOMStringType::JSString(_rooted_traceable_box) => f.debug_struct("DOMString").finish(),
+            #[cfg(test)]
+            DOMStringType::Latin1Vec(s) => f
+                .debug_struct("DOMString")
+                .field("latin1_string", s)
+                .finish(),
         }
     }
 }
@@ -268,18 +285,27 @@ impl DOMString {
     fn make_rust(&self) {
         let string = {
             let inner = self.0.borrow();
-            if matches!(*inner, DOMStringType::Rust(_)) {
-                return;
-            }
-            if let DOMStringType::JSString(ref s) = *inner {
-                unsafe {
+            match *inner {
+                DOMStringType::Rust(_) => return,
+                DOMStringType::JSString(ref rooted_traceable_box) => unsafe {
                     jsstr_to_string(
                         Runtime::get().expect("JS runtime has shut down").as_ptr(),
-                        NonNull::new(s.get()).unwrap(),
+                        NonNull::new(rooted_traceable_box.get()).unwrap(),
                     )
-                }
-            } else {
-                unreachable!()
+                },
+                #[cfg(test)]
+                DOMStringType::Latin1Vec(ref items) => {
+                    let mut v = vec![0; items.len() * 2];
+                    let real_size = tendril::encoding_rs::mem::convert_latin1_to_utf8(
+                        items.as_slice(),
+                        v.as_mut_slice(),
+                    );
+                    v.truncate(real_size);
+
+                    // Safety: convert_latin1_to_utf8 converts the raw bytes to utf8 and the
+                    // buffer is the size specified in the documentation, so this should be safe.
+                    unsafe { String::from_utf8_unchecked(v) }
+                },
             }
         };
         *self.0.borrow_mut() = DOMStringType::Rust(string);
@@ -299,6 +325,8 @@ impl DOMString {
                 };
                 info!("JSString ({})", s);
             },
+            #[cfg(test)]
+            DOMStringType::Latin1Vec(ref items) => info!("Latin1 string"),
         }
     }
 
@@ -317,6 +345,7 @@ impl DOMString {
         self.str().is_empty()
     }
 
+    /// This length (as rust spec) is in bytes not chars.
     pub fn len(&self) -> usize {
         self.make_rust();
         self.str().len()
@@ -513,10 +542,6 @@ impl ToJSValConvertible for DOMString {
     }
 }
 
-// We need to be extra careful here as two strings that have different
-// representation need to have the same hash.
-// Additionally, the interior mutability is only used for the conversion
-// which is forced by Hash. Hence, it is safe to have this interior mutability.
 impl std::hash::Hash for DOMString {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.make_rust();
@@ -636,5 +661,110 @@ impl From<DOMString> for Vec<u8> {
 impl From<Cow<'_, str>> for DOMString {
     fn from(value: Cow<'_, str>) -> Self {
         DOMString(RefCell::new(DOMStringType::Rust(value.into_owned())))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn from_latin1(l1vec: Vec<u8>) -> DOMString {
+        DOMString(RefCell::new(DOMStringType::Latin1Vec(l1vec)))
+    }
+
+    #[test]
+    fn string_functions() {
+        let s = DOMString::from("AbBcC❤&%$#");
+        let s_copy = s.clone();
+        assert_eq!(s.to_ascii_lowercase(), "abbcc❤&%$#");
+        assert_eq!(s, s_copy);
+        assert_eq!(s.len(), 12);
+        assert_eq!(s_copy.len(), 12);
+        assert!(s.starts_with('A'));
+        assert_eq!(s.find('#'), Some(11));
+    }
+
+    #[test]
+    fn string_functions_latin1() {
+        {
+            let s = from_latin1(vec![
+                b'A', b'b', b'B', b'c', b'C', b'&', b'%', b'$', b'#', 0xB2,
+            ]);
+            assert_eq!(s.to_ascii_lowercase(), "abbcc&%$#²");
+        }
+        {
+            let s = from_latin1(vec![
+                b'A', b'b', b'B', b'c', b'C', b'&', b'%', b'$', b'#', 0xB2,
+            ]);
+            assert_eq!(s.len(), 11);
+            assert!(s.starts_with('A'));
+            assert_eq!(s.find('#'), Some(8));
+            assert_eq!(s.find(char::from_u32(0x00B2).unwrap()), Some(9));
+            assert_eq!(s.find('d'), None);
+        }
+    }
+
+    #[test]
+    fn test_convert() {
+        let s = from_latin1(vec![b'a', b'b', b'c', b'%', b'$']);
+        s.make_rust();
+        assert_eq!(&*s.str(), "abc%$");
+    }
+
+    #[test]
+    fn partial_eq() {
+        let s = from_latin1(vec![b'a', b'b', b'c', b'%', b'$']);
+        let string = String::from("abc%$");
+        let s2 = DOMString::from_string(string.clone());
+        assert_eq!(s, s2);
+        assert_eq!(s, string);
+    }
+
+    #[test]
+    fn encoded_bytes() {
+        let s = from_latin1(vec![b'a', b'b', b'c', b'%', b'$', 0xB2]);
+        // At the moment we always convert
+        if let EncodedBytes::Utf8Bytes(s) = s.str().encoded_bytes() {
+            assert_eq!(s, "abc%$²")
+        } else {
+            assert!(false)
+        }
+    }
+
+    #[test]
+    fn testing_stringview() {
+        let s = from_latin1(vec![b'a', b'b', b'c', b'%', b'$', 0xB2]);
+
+        assert_eq!(
+            s.str().chars().collect::<Vec<char>>(),
+            vec!['a', 'b', 'c', '%', '$', '²']
+        );
+        assert_eq!(s.str().as_bytes(), String::from("abc%$²").as_bytes());
+    }
+
+    // We need to be extra careful here as two strings that have different
+    // representation need to have the same hash.
+    // Additionally, the interior mutability is only used for the conversion
+    // which is forced by Hash. Hence, it is safe to have this interior mutability.
+    #[test]
+    fn test_hash() {
+        use std::hash::{DefaultHasher, Hash, Hasher};
+        fn hash_value(d: &DOMString) -> u64 {
+            let mut hasher = DefaultHasher::new();
+            d.hash(&mut hasher);
+            hasher.finish()
+        }
+
+        let s = from_latin1(vec![b'a', b'b', b'c', b'%', b'$', 0xB2]);
+        let s_converted = from_latin1(vec![b'a', b'b', b'c', b'%', b'$', 0xB2]);
+        s_converted.make_rust();
+        let s2 = DOMString::from_string(String::from("abc%$²"));
+
+        let hash_s = hash_value(&s);
+        let hash_s_converted = hash_value(&s_converted);
+        let hash_s2 = hash_value(&s2);
+
+        assert_eq!(hash_s, hash_s2);
+        assert_eq!(hash_s, hash_s_converted);
     }
 }
