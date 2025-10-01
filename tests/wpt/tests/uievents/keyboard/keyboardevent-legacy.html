@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>KeyboardEvent legacy fields initialization Test: KeyCode and charCode</title>
+<link rel="author" title="Rakhi Sharma" href="mailto:atbrakhi@igalia.com">
+<link rel="help" href="https://w3c.github.io/uievents/#legacy-dictionary-KeyboardEventInit">
+<link rel="help" href="https://w3c.github.io/uievents/#idl-keyboardeventinit">
+<meta name="assert" content="KeyboardEvent constructor should initialize legacy keyCode and charCode events.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script>
+var t = async_test("KeyboardEvent constructor should initialize legacy keyCode and charCode");
+
+t.step(function() {
+  const evPress = new KeyboardEvent("keypress", { keyCode: 65, charCode: 65 });
+  assert_equals(evPress.keyCode, 65, "keypress: initialized keyCode");
+  assert_equals(evPress.charCode, 65, "keypress: initialized charCode");
+});
+
+t.step(function() {
+  const evDown = new KeyboardEvent("keydown", { keyCode: 13, charCode: 0 });
+  assert_equals(evDown.keyCode, 13, "keydown: initialized keyCode");
+  assert_equals(evDown.charCode, 0, "keydown: initialized charCode should be 0");
+});
+
+t.done();
+</script>
