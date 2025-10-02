@@ -114,21 +114,22 @@ impl PlatformFont {
         font_face: FontFace,
         pt_size: Option<Au>,
         variations: &[FontVariation],
-        mut synthetic_bold: bool,
+        synthetic_bold: bool,
     ) -> Result<Self, &'static str> {
         // `FontFace::has_variations()` Determines whether this font face's resource supports
         // any variable axes. (IDWriteFontFace5::HasVariations).
         //
         // See <https://learn.microsoft.com/en-us/windows/win32/api/dwrite_3/nf-dwrite_3-idwritefontface5-hasvariations>
-        //
-        // Variable fonts, where the font designer has provided one or more axes of
-        // variation do not count as font synthesis and their use is not affected by
-        // the font-synthesis property.
-        //
-        // See <https://www.w3.org/TR/css-fonts-4/#font-synthesis-intro>
-        if font_face.has_variations() {
-            synthetic_bold = false;
-        }
+        let synthetic_bold = if font_face.has_variations() {
+            // Variable fonts, where the font designer has provided one or more axes of
+            // variation do not count as font synthesis and their use is not affected by
+            // the font-synthesis property.
+            //
+            // See <https://www.w3.org/TR/css-fonts-4/#font-synthesis-intro>
+            false
+        } else {
+            synthetic_bold
+        };
 
         if variations.is_empty() {
             return Self::new(font_face, pt_size, vec![]);
@@ -310,6 +311,8 @@ impl PlatformFontMethods for PlatformFont {
     fn webrender_font_instance_flags(&self) -> FontInstanceFlags {
         let mut flags = FontInstanceFlags::SUBPIXEL_POSITION;
 
+        // TODO: Add support for synthetic italics.
+        // <https://github.com/servo/servo/issues/39637>
         if matches!(
             self.face.simulations(),
             FontSimulations::Bold | FontSimulations::BoldOblique
