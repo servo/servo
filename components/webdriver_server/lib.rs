@@ -35,7 +35,7 @@ use embedder_traits::{
 use euclid::{Point2D, Rect, Size2D};
 use http::method::Method;
 use image::{DynamicImage, ImageFormat};
-use ipc_channel::ipc::{self, IpcReceiver};
+use ipc_channel::ipc::{self, IpcReceiver, TryRecvError};
 use keyboard_types::webdriver::{Event as DispatchStringEvent, KeyInputState, send_keys};
 use keyboard_types::{Code, Key, KeyState, KeyboardEvent, Location, NamedKey};
 use log::{debug, error, info};
@@ -586,7 +586,7 @@ impl Handler {
                 self.session_mut()?.set_webview_id(webview_id);
                 self.session_mut()?
                     .set_browsing_context_id(BrowsingContextId::from(webview_id));
-                let _ = self.wait_document_ready(3000);
+                let _ = self.wait_document_ready(Some(3000));
             },
         };
 
@@ -691,7 +691,12 @@ impl Handler {
         Ok(WebDriverResponse::Void)
     }
 
-    fn wait_document_ready(&self, timeout: u64) -> WebDriverResult<WebDriverResponse> {
+    fn wait_document_ready(&self, timeout: Option<u64>) -> WebDriverResult<WebDriverResponse> {
+        let timeout_channel = match timeout {
+            Some(timeout) => after(Duration::from_millis(timeout)),
+            None => crossbeam_channel::never(),
+        };
+
         select! {
             recv(self.load_status_receiver) -> res => {
                 match res {
@@ -715,7 +720,7 @@ impl Handler {
                     )),
                 }
             },
-            recv(after(Duration::from_millis(timeout))) -> _ => Err(
+            recv(timeout_channel) -> _ => Err(
                 WebDriverError::new(ErrorStatus::Timeout, "Load timed out")
             ),
         }
@@ -1886,10 +1891,13 @@ impl Handler {
     fn handle_get_timeouts(&mut self) -> WebDriverResult<WebDriverResponse> {
         let timeouts = self.session()?.session_timeouts();
 
+        // FIXME: The specification says that all of these values can be `null`, but the `webdriver` crate
+        // only supports setting `script` as null. When set to null, report these values as being the
+        // default ones for now.
         let timeouts = TimeoutsResponse {
             script: timeouts.script,
-            page_load: timeouts.page_load,
-            implicit: timeouts.implicit_wait,
+            page_load: timeouts.page_load.unwrap_or(300_000),
+            implicit: timeouts.implicit_wait.unwrap_or(0),
         };
 
         Ok(WebDriverResponse::Timeouts(timeouts))
@@ -1905,10 +1913,10 @@ impl Handler {
             session.session_timeouts_mut().script = timeout;
         }
         if let Some(timeout) = parameters.page_load {
-            session.session_timeouts_mut().page_load = timeout;
+            session.session_timeouts_mut().page_load = Some(timeout);
         }
         if let Some(timeout) = parameters.implicit {
-            session.session_timeouts_mut().implicit_wait = timeout
+            session.session_timeouts_mut().implicit_wait = Some(timeout);
         }
 
         Ok(WebDriverResponse::Void)
@@ -2023,7 +2031,14 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::ExecuteScript(script, sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-        let result = wait_for_ipc_response(receiver)?;
+
+        let timeout_duration = self
+            .session()?
+            .session_timeouts()
+            .script
+            .map(Duration::from_millis);
+        let result = wait_for_ipc_response_with_timeout(receiver, timeout_duration)?;
+
         self.postprocess_js_result(result)
     }
 
@@ -2033,30 +2048,27 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         // Step 1. Let body and arguments be the result of trying to extract the script arguments
         // from a request with argument parameters.
-        let (func_body, mut args_string) = self.extract_script_arguments(parameters)?;
+        let (function_body, mut args_string) = self.extract_script_arguments(parameters)?;
         args_string.push("resolve".to_string());
 
-        let timeout_script = if let Some(script_timeout) = self.session()?.session_timeouts().script
-        {
-            format!("setTimeout(webdriverTimeout, {});", script_timeout)
-        } else {
-            "".into()
-        };
+        let timeout = self.session()?.session_timeouts().script;
+        let timeout_script = timeout
+            .map(|script_timeout| format!("setTimeout(webdriverTimeout, {script_timeout});"))
+            .unwrap_or_default();
+
+        let joined_args = args_string.join(", ");
         let script = format!(
             r#"(function() {{
               let webdriverPromise = new Promise(function(resolve, reject) {{
-                  {}
+                  {timeout_script}
                   (async function() {{
-                    {}
-                  }})({})
+                    {function_body}
+                  }})({joined_args})
                     .then((v) => {{}}, (err) => reject(err))
               }})
               .then((v) => window.webdriverCallback(v), (r) => window.webdriverException(r))
               .catch((r) => window.webdriverException(r));
             }})();"#,
-            timeout_script,
-            func_body,
-            args_string.join(", "),
         );
         debug!("{}", script);
 
@@ -2068,9 +2080,14 @@ impl Handler {
         self.handle_any_user_prompts(self.webview_id()?)?;
 
         let (sender, receiver) = ipc::channel().unwrap();
-        let cmd = WebDriverScriptCommand::ExecuteAsyncScript(script, sender);
-        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-        let result = wait_for_ipc_response(receiver)?;
+        self.browsing_context_script_command(
+            WebDriverScriptCommand::ExecuteAsyncScript(script, sender),
+            VerifyBrowsingContextIsOpen::No,
+        )?;
+
+        let timeout_duration = timeout.map(Duration::from_millis);
+        let result = wait_for_ipc_response_with_timeout(receiver, timeout_duration)?;
+
         self.postprocess_js_result(result)
     }
 
@@ -2639,6 +2656,24 @@ where
     receiver
         .recv()
         .map_err(|_| WebDriverError::new(ErrorStatus::NoSuchWindow, ""))
+}
+
+fn wait_for_ipc_response_with_timeout<T>(
+    receiver: IpcReceiver<T>,
+    timeout: Option<Duration>,
+) -> Result<T, WebDriverError>
+where
+    T: for<'de> Deserialize<'de> + Serialize,
+{
+    let Some(timeout) = timeout else {
+        return wait_for_ipc_response(receiver);
+    };
+    receiver
+        .try_recv_timeout(timeout)
+        .map_err(|error| match error {
+            TryRecvError::IpcError(_) => WebDriverError::new(ErrorStatus::NoSuchWindow, ""),
+            TryRecvError::Empty => WebDriverError::new(ErrorStatus::Timeout, ""),
+        })
 }
 
 fn unwrap_first_element_response(res: WebDriverResponse) -> WebDriverResult<WebDriverResponse> {
