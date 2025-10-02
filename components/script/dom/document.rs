@@ -2158,7 +2158,7 @@ impl Document {
 
         // Step 8.
         let document = Trusted::new(self);
-        if document.root().browsing_context().is_some() {
+        if document.root().browsing_context().is_some() && self.url().as_str() != "about:blank" {
             self.owner_global()
                 .task_manager()
                 .dom_manipulation_task_source()
