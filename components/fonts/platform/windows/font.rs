@@ -14,8 +14,8 @@ use std::sync::Arc;
 
 use app_units::Au;
 use dwrote::{
-    DWRITE_FONT_AXIS_VALUE, DWRITE_FONT_SIMULATIONS, DWRITE_FONT_SIMULATIONS_BOLD,
-    DWRITE_FONT_SIMULATIONS_NONE, FontCollection, FontFace, FontFile,
+    DWRITE_FONT_AXIS_VALUE, DWRITE_FONT_SIMULATIONS_BOLD, DWRITE_FONT_SIMULATIONS_NONE,
+    FontCollection, FontFace, FontFile, FontSimulations,
 };
 use euclid::default::{Point2D, Rect, Size2D};
 use fonts_traits::LocalFontIdentifier;
@@ -62,7 +62,6 @@ pub struct PlatformFont {
     du_to_px: f32,
     scaled_du_to_px: f32,
     variations: Vec<FontVariation>,
-    synthetic_bold: bool,
 }
 
 // Based on information from the Skia codebase, it seems that DirectWrite APIs from
@@ -92,7 +91,6 @@ impl PlatformFont {
         font_face: FontFace,
         pt_size: Option<Au>,
         variations: Vec<FontVariation>,
-        synthetic_bold: bool,
     ) -> Result<Self, &'static str> {
         let pt_size = pt_size.unwrap_or(au_from_pt(12.));
         let du_per_em = font_face.metrics().metrics0().designUnitsPerEm as f32;
@@ -109,7 +107,6 @@ impl PlatformFont {
             du_to_px: design_units_to_pixels,
             scaled_du_to_px: scaled_design_units_to_pixels,
             variations,
-            synthetic_bold,
         })
     }
 
@@ -134,7 +131,7 @@ impl PlatformFont {
         }
 
         if variations.is_empty() {
-            return Self::new(font_face, pt_size, vec![], synthetic_bold);
+            return Self::new(font_face, pt_size, vec![]);
         }
 
         let simulations = match synthetic_bold {
@@ -171,7 +168,7 @@ impl PlatformFont {
             })
             .collect();
 
-        Self::new(font_face, pt_size, variations, synthetic_bold)
+        Self::new(font_face, pt_size, variations)
     }
 }
 
@@ -313,7 +310,10 @@ impl PlatformFontMethods for PlatformFont {
     fn webrender_font_instance_flags(&self) -> FontInstanceFlags {
         let mut flags = FontInstanceFlags::SUBPIXEL_POSITION;
 
-        if self.synthetic_bold {
+        if matches!(
+            self.face.simulations(),
+            FontSimulations::Bold | FontSimulations::BoldOblique
+        ) {
             flags |= FontInstanceFlags::SYNTHETIC_BOLD;
         }
 

@@ -2269,8 +2269,7 @@ checksum = "92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813"
 [[package]]
 name = "dwrote"
 version = "0.11.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20c93d234bac0cdd0e2ac08bc8a5133f8df2169e95b262dfcea5e5cb7855672f"
+source = "git+https://github.com/minghuaw/dwrote-rs#e2102f76fabdaa139b0b5bcdc2ef30be55aeb532"
 dependencies = [
  "lazy_static",
  "libc",
