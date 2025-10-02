@@ -38,6 +38,7 @@ use crate::dom::credentialmanagement::credentialscontainer::CredentialsContainer
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::gamepad::Gamepad;
 use crate::dom::gamepad::gamepadevent::GamepadEventType;
+use crate::dom::geolocation::Geolocation;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::mediadevices::MediaDevices;
 use crate::dom::mediasession::MediaSession;
@@ -236,6 +237,11 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     fn Credentials(&self) -> DomRoot<CredentialsContainer> {
         self.credentials
             .or_init(|| CredentialsContainer::new(&self.global(), CanGc::note()))
+    }
+
+    // https://www.w3.org/TR/geolocation/#navigator_interface
+    fn Geolocation(&self) -> DomRoot<Geolocation> {
+        Geolocation::new(&self.global(), CanGc::note())
     }
 
     // https://html.spec.whatwg.org/multipage/#navigatorlanguage

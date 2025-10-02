@@ -1616,6 +1616,14 @@ impl ScriptThread {
                     profiler_chan,
                     f
                 ),
+                ScriptThreadEventCategory::GeolocationEvent => {
+                    time_profile!(
+                        ProfilerCategory::ScriptGeolocationEvent,
+                        None,
+                        profiler_chan,
+                        f
+                    )
+                },
                 ScriptThreadEventCategory::HistoryEvent => {
                     time_profile!(ProfilerCategory::ScriptHistoryEvent, None, profiler_chan, f)
                 },

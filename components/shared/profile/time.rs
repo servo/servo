@@ -105,12 +105,13 @@ pub enum ProfilerCategory {
     ScriptEnterFullscreen = 0x79,
     ScriptExitFullscreen = 0x7a,
     ScriptWorkletEvent = 0x7b,
-    ScriptPerformanceEvent = 0x7c,
-    ScriptHistoryEvent = 0x7d,
-    ScriptPortMessage = 0x7e,
-    ScriptWebGPUMsg = 0x7f,
+    ScriptGeolocationEvent = 0x7c,
+    ScriptPerformanceEvent = 0x7d,
+    ScriptHistoryEvent = 0x7e,
+    ScriptPortMessage = 0x7f,
+    ScriptWebGPUMsg = 0x80,
 
-    ScriptDatabaseAccessEvent = 0x80,
+    ScriptDatabaseAccessEvent = 0x81,
 
     /// Web performance metrics.
     TimeToFirstPaint = 0x90,
@@ -136,6 +137,7 @@ impl ProfilerCategory {
             ProfilerCategory::ScriptEvent => "ScriptEvent",
             ProfilerCategory::ScriptFileRead => "ScriptFileRead",
             ProfilerCategory::ScriptFontLoading => "ScriptFontLoading",
+            ProfilerCategory::ScriptGeolocationEvent => "ScriptGeolocationEvent",
             ProfilerCategory::ScriptImageCacheMsg => "ScriptImageCacheMsg",
             ProfilerCategory::ScriptInputEvent => "ScriptInputEvent",
             ProfilerCategory::ScriptNetworkEvent => "ScriptNetworkEvent",
