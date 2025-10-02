@@ -808,6 +808,7 @@ impl VirtualMethods for HTMLIFrameElement {
         // to the newly-created browsing context, and then process the
         // iframe attributes for the "first time"."
         if self.upcast::<Node>().is_connected_with_browsing_context() {
+            println!("Post connection steps");
             debug!("iframe bound to browsing context.");
             self.create_nested_browsing_context(CanGc::note());
             self.process_the_iframe_attributes(ProcessingMode::FirstTime, CanGc::note());
