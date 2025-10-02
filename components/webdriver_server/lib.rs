@@ -1118,18 +1118,6 @@ impl Handler {
         wait_for_ipc_response(receiver).unwrap_or_default()
     }
 
-    /// <https://w3c.github.io/webdriver/#find-element>
-    fn handle_find_element(
-        &self,
-        parameters: &LocatorParameters,
-    ) -> WebDriverResult<WebDriverResponse> {
-        // Step 1 - 9.
-        let res = self.handle_find_elements(parameters)?;
-        // Step 10. If result is empty, return error with error code no such element.
-        // Otherwise, return the first element of result.
-        unwrap_first_element_response(res)
-    }
-
     /// <https://w3c.github.io/webdriver/#close-window>
     fn handle_close_window(&mut self) -> WebDriverResult<WebDriverResponse> {
         let webview_id = self.webview_id()?;
@@ -1329,6 +1317,18 @@ impl Handler {
             },
             Err(error) => Err(WebDriverError::new(error, "")),
         }
+    }
+
+    /// <https://w3c.github.io/webdriver/#find-element>
+    fn handle_find_element(
+        &self,
+        parameters: &LocatorParameters,
+    ) -> WebDriverResult<WebDriverResponse> {
+        // Step 1 - 9.
+        let res = self.handle_find_elements(parameters)?;
+        // Step 10. If result is empty, return error with error code no such element.
+        // Otherwise, return the first element of result.
+        unwrap_first_element_response(res)
     }
 
     /// <https://w3c.github.io/webdriver/#find-elements>
@@ -1883,6 +1883,7 @@ impl Handler {
         }
     }
 
+    /// <https://w3c.github.io/webdriver/#get-timeouts>
     fn handle_get_timeouts(&mut self) -> WebDriverResult<WebDriverResponse> {
         let timeouts = self.session()?.session_timeouts();
 
@@ -1895,6 +1896,7 @@ impl Handler {
         Ok(WebDriverResponse::Timeouts(timeouts))
     }
 
+    /// <https://w3c.github.io/webdriver/#set-timeouts>
     fn handle_set_timeouts(
         &mut self,
         parameters: &TimeoutsParameters,
