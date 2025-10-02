@@ -14,7 +14,8 @@ use std::sync::Arc;
 
 use app_units::Au;
 use dwrote::{
-    DWRITE_FONT_AXIS_VALUE, DWRITE_FONT_SIMULATIONS_NONE, FontCollection, FontFace, FontFile,
+    DWRITE_FONT_AXIS_VALUE, DWRITE_FONT_SIMULATIONS, DWRITE_FONT_SIMULATIONS_BOLD,
+    DWRITE_FONT_SIMULATIONS_NONE, FontCollection, FontFace, FontFile,
 };
 use euclid::default::{Point2D, Rect, Size2D};
 use fonts_traits::LocalFontIdentifier;
@@ -44,6 +45,13 @@ fn au_from_pt(pt: f64) -> Au {
     Au::from_f64_px(pt_to_px(pt))
 }
 
+fn synthetic_bold_to_simulations(synthetic_bold: bool) -> DWRITE_FONT_SIMULATIONS {
+    match synthetic_bold {
+        true => DWRITE_FONT_SIMULATIONS_BOLD,
+        false => DWRITE_FONT_SIMULATIONS_NONE,
+    }
+}
+
 pub struct FontTable {
     data: Vec<u8>,
 }
@@ -61,6 +69,7 @@ pub struct PlatformFont {
     du_to_px: f32,
     scaled_du_to_px: f32,
     variations: Vec<FontVariation>,
+    synthetic_bold: bool,
 }
 
 // Based on information from the Skia codebase, it seems that DirectWrite APIs from
@@ -90,6 +99,7 @@ impl PlatformFont {
         font_face: FontFace,
         pt_size: Option<Au>,
         variations: Vec<FontVariation>,
+        synthetic_bold: bool,
     ) -> Result<Self, &'static str> {
         let pt_size = pt_size.unwrap_or(au_from_pt(12.));
         let du_per_em = font_face.metrics().metrics0().designUnitsPerEm as f32;
@@ -106,6 +116,7 @@ impl PlatformFont {
             du_to_px: design_units_to_pixels,
             scaled_du_to_px: scaled_design_units_to_pixels,
             variations,
+            synthetic_bold,
         })
     }
 
@@ -113,10 +124,13 @@ impl PlatformFont {
         font_face: FontFace,
         pt_size: Option<Au>,
         variations: &[FontVariation],
+        synthetic_bold: bool,
     ) -> Result<Self, &'static str> {
         if variations.is_empty() {
-            return Self::new(font_face, pt_size, vec![]);
+            return Self::new(font_face, pt_size, vec![], synthetic_bold);
         }
+
+        let simulations = synthetic_bold_to_simulations(synthetic_bold);
 
         // On FreeType and CoreText platforms, the platform layer is able to read the minimum, maxmimum,
         // and default values of each axis. This doesn't seem possible here and it seems that Gecko
@@ -133,8 +147,7 @@ impl PlatformFont {
             })
             .collect();
 
-        let Some(font_face) =
-            font_face.create_font_face_with_variations(DWRITE_FONT_SIMULATIONS_NONE, &variations)
+        let Some(font_face) = font_face.create_font_face_with_variations(simulations, &variations)
         else {
             return Err("Could not adapt FontFace to given variations");
         };
@@ -148,7 +161,7 @@ impl PlatformFont {
             })
             .collect();
 
-        Self::new(font_face, pt_size, variations)
+        Self::new(font_face, pt_size, variations, synthetic_bold)
     }
 }
 
@@ -158,20 +171,21 @@ impl PlatformFontMethods for PlatformFont {
         data: &FontData,
         pt_size: Option<Au>,
         variations: &[FontVariation],
-        _synthetic_bold: bool,
+        synthetic_bold: bool,
     ) -> Result<Self, &'static str> {
+        let simulations = synthetic_bold_to_simulations(synthetic_bold);
         let font_face = FontFile::new_from_buffer(Arc::new(data.clone()))
             .ok_or("Could not create FontFile")?
-            .create_face(0 /* face_index */, DWRITE_FONT_SIMULATIONS_NONE)
+            .create_face(0 /* face_index */, simulations)
             .map_err(|_| "Could not create FontFace")?;
-        Self::new_with_variations(font_face, pt_size, variations)
+        Self::new_with_variations(font_face, pt_size, variations, synthetic_bold)
     }
 
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         pt_size: Option<Au>,
         variations: &[FontVariation],
-        _synthetic_bold: bool,
+        synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let font_face = FontCollection::system()
             .font_from_descriptor(&font_identifier.font_descriptor)
@@ -179,7 +193,7 @@ impl PlatformFontMethods for PlatformFont {
             .flatten()
             .ok_or("Could not create Font from descriptor")?
             .create_font_face();
-        Self::new_with_variations(font_face, pt_size, variations)
+        Self::new_with_variations(font_face, pt_size, variations, synthetic_bold)
     }
 
     fn descriptor(&self) -> FontTemplateDescriptor {
@@ -288,7 +302,13 @@ impl PlatformFontMethods for PlatformFont {
     }
 
     fn webrender_font_instance_flags(&self) -> FontInstanceFlags {
-        FontInstanceFlags::SUBPIXEL_POSITION
+        let mut flags = FontInstanceFlags::SUBPIXEL_POSITION;
+
+        if self.synthetic_bold {
+            flags |= FontInstanceFlags::SYNTHETIC_BOLD;
+        }
+
+        flags
     }
 
     fn typographic_bounds(&self, glyph_id: GlyphId) -> Rect<f32> {
