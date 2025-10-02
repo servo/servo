@@ -5,7 +5,10 @@
   buildAndroid ? false
 }:
 with import (builtins.fetchTarball {
-  url = "https://github.com/NixOS/nixpkgs/archive/1e5b653dff12029333a6546c11e108ede13052eb.tar.gz";
+  # NixOS users: if servoshell crashes with an assertion failure in surfman’s x11/connection.rs,
+  # eglInitialize() may be failing, or you may be building with an incompatible version of glibc.
+  # Use your system nixpkgs here, change `llvmPackages` below if necessary, then do a clean build.
+  url = "https://github.com/NixOS/nixpkgs/archive/d88bee41dbec574b3c2bf97de37371d90f96475d.tar.gz";
 }) {
   overlays = [
     (import (builtins.fetchTarball {
@@ -28,11 +31,7 @@ let
       url = "https://github.com/NixOS/nixpkgs/archive/6adf48f53d819a7b6e15672817fa1e78e5f4e84f.tar.gz";
     }) {};
 
-    # We need clangStdenv with:
-    # - clang < 16 (#30587)
-    # - clang < 15 (#31059)
-    # - glibc 2.38 (#31054)
-    llvmPackages = llvmPackages_14;
+    llvmPackages = llvmPackages_20;
     stdenv = llvmPackages.stdenv;
 
     buildToolsVersion = "34.0.0";
@@ -63,6 +62,9 @@ in
 stdenv.mkDerivation (androidEnvironment // {
   name = "servo-env";
 
+  # NOTE: tshark(1) for etc/devtools-parser.py can’t be installed here, because it requires
+  # CAP_NET_RAW and CAP_NET_ADMIN. Install Wireshark with your system package manager,
+  # or for NixOS, enable the option: `programs.wireshark.enable = true;`
   buildInputs = [
     # Native dependencies
     fontconfig freetype libunwind
@@ -81,7 +83,6 @@ stdenv.mkDerivation (androidEnvironment // {
     llvmPackages.bintools # provides lld
 
     udev # Needed by libudev-sys for GamePad API.
-    wireshark-cli  # for `tshark` in etc/devtools_parser.py
 
     # Build utilities
     cmake dbus gcc git pkg-config which llvm perl yasm m4
