@@ -45,13 +45,6 @@ fn au_from_pt(pt: f64) -> Au {
     Au::from_f64_px(pt_to_px(pt))
 }
 
-fn synthetic_bold_to_simulations(synthetic_bold: bool) -> DWRITE_FONT_SIMULATIONS {
-    match synthetic_bold {
-        true => DWRITE_FONT_SIMULATIONS_BOLD,
-        false => DWRITE_FONT_SIMULATIONS_NONE,
-    }
-}
-
 pub struct FontTable {
     data: Vec<u8>,
 }
@@ -144,7 +137,10 @@ impl PlatformFont {
             return Self::new(font_face, pt_size, vec![], synthetic_bold);
         }
 
-        let simulations = synthetic_bold_to_simulations(synthetic_bold);
+        let simulations = match synthetic_bold {
+            true => DWRITE_FONT_SIMULATIONS_BOLD,
+            false => DWRITE_FONT_SIMULATIONS_NONE,
+        };
 
         // On FreeType and CoreText platforms, the platform layer is able to read the minimum, maxmimum,
         // and default values of each axis. This doesn't seem possible here and it seems that Gecko
