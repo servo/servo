@@ -2229,6 +2229,7 @@ impl Document {
                             Duration::from_secs(*time),
                         );
                     }
+                    document.notify_constellation_load();
                 }));
         }
     }
