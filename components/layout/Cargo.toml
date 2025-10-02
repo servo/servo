@@ -28,7 +28,6 @@ embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fonts = { path = "../fonts" }
 fonts_traits = { workspace = true }
-fxhash = { workspace = true }
 html5ever = { workspace = true }
 icu_locid = { workspace = true }
 icu_segmenter = { workspace = true }
