@@ -51,16 +51,14 @@ pub(crate) type ActionsByTick = Vec<TickActions>;
 /// <https://w3c.github.io/webdriver/#dfn-input-source-state>
 pub(crate) enum InputSourceState {
     Null,
-    #[allow(dead_code)]
     Key(KeyInputState),
     Pointer(PointerInputState),
-    #[allow(dead_code)]
     Wheel,
 }
 
-// https://w3c.github.io/webdriver/#dfn-pointer-input-source
-// TODO: subtype is used for https://w3c.github.io/webdriver/#dfn-get-a-pointer-id
-// Need to add pointer-id to the following struct
+/// <https://w3c.github.io/webdriver/#dfn-pointer-input-source>
+/// TODO: subtype is used for <https://w3c.github.io/webdriver/#dfn-get-a-pointer-id>
+/// Need to add pointer-id to the following struct
 #[allow(dead_code)]
 pub(crate) struct PointerInputState {
     subtype: PointerType,
@@ -224,11 +222,8 @@ impl Handler {
             // Step 6. Let subtype be action object's subtype.
             // Steps 7, 8. Try to run specific algorithm based on the action type.
             match action {
-                ActionItem::Null(NullActionItem::General(_)) => {
-                    self.dispatch_general_action(input_id);
-                },
-                ActionItem::Key(KeyActionItem::General(_)) => {
-                    self.dispatch_general_action(input_id);
+                ActionItem::Null(_) | ActionItem::Key(KeyActionItem::General(_)) => {
+                    self.dispatch_pause_action(input_id);
                 },
                 ActionItem::Key(KeyActionItem::Key(KeyAction::Down(keydown_action))) => {
                     self.dispatch_keydown_action(input_id, keydown_action);
@@ -246,7 +241,7 @@ impl Handler {
                     self.dispatch_keyup_action(input_id, keyup_action);
                 },
                 ActionItem::Pointer(PointerActionItem::General(_)) => {
-                    self.dispatch_general_action(input_id);
+                    self.dispatch_pause_action(input_id);
                 },
                 ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Down(
                     pointer_down_action,
@@ -276,7 +271,7 @@ impl Handler {
                     self.dispatch_pointerup_action(input_id, pointer_up_action);
                 },
                 ActionItem::Wheel(WheelActionItem::General(_)) => {
-                    self.dispatch_general_action(input_id);
+                    self.dispatch_pause_action(input_id);
                 },
                 ActionItem::Wheel(WheelActionItem::Wheel(WheelAction::Scroll(scroll_action))) => {
                     self.dispatch_scroll_action(input_id, scroll_action, tick_duration)?;
@@ -289,7 +284,7 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pause-action>
-    fn dispatch_general_action(&self, source_id: &str) {
+    fn dispatch_pause_action(&self, source_id: &str) {
         self.session()
             .unwrap()
             .input_state_table_mut()
