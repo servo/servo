@@ -189,3 +189,12 @@ partial interface Window {
 dictionary WindowPostMessageOptions : StructuredSerializeOptions {
    USVString targetOrigin = "/";
 };
+
+// https://fetch.spec.whatwg.org/#fetch-method
+dictionary DeferredRequestInit : RequestInit {
+  DOMHighResTimeStamp activateAfter;
+};
+
+partial interface Window {
+  [NewObject, SecureContext, Throws] FetchLaterResult fetchLater(RequestInfo input, optional DeferredRequestInit init = {});
+};

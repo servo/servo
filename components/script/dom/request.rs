@@ -92,7 +92,7 @@ impl Request {
     }
 
     // https://fetch.spec.whatwg.org/#dom-request
-    fn constructor(
+    pub(crate) fn constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
