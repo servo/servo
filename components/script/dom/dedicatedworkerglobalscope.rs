@@ -510,6 +510,7 @@ impl DedicatedWorkerGlobalScope {
 
                 global_scope.set_https_state(current_global_https_state);
 
+                // The steps to run when onComplete input is null or script's error to rethrow is non-null
                 let on_complete_fail_steps = || {
                     // Step 1 Queue a global task on the DOM manipulation task source given
                     // worker's relevant global object to fire an event named error at worker.
