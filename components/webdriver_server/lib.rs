@@ -18,7 +18,8 @@ use std::cell::{Cell, LazyCell};
 use std::collections::{BTreeMap, HashMap};
 use std::io::Cursor;
 use std::net::{SocketAddr, SocketAddrV4};
-use std::time::Duration;
+use std::thread::sleep;
+use std::time::{Duration, Instant};
 use std::{env, fmt, process, thread};
 
 use base::generic_channel::{self, GenericSender, RoutedReceiver};
@@ -1347,45 +1348,60 @@ impl Handler {
         // Step 6. Handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
 
-        let (sender, receiver) = ipc::channel().unwrap();
-        match parameters.using {
-            LocatorStrategy::CSSSelector => {
-                let cmd = WebDriverScriptCommand::FindElementsCSSSelector(
-                    parameters.value.clone(),
-                    sender,
-                );
-                self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-            },
-            LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
-                let cmd = WebDriverScriptCommand::FindElementsLinkText(
-                    parameters.value.clone(),
-                    parameters.using == LocatorStrategy::PartialLinkText,
-                    sender,
-                );
-                self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-            },
-            LocatorStrategy::TagName => {
-                let cmd =
-                    WebDriverScriptCommand::FindElementsTagName(parameters.value.clone(), sender);
-                self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-            },
-            LocatorStrategy::XPath => {
-                let cmd = WebDriverScriptCommand::FindElementsXpathSelector(
-                    parameters.value.clone(),
-                    sender,
-                );
-                self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-            },
-        }
+        let now = Instant::now();
+        let (implicit_wait, sleep_interval) = {
+            let timeouts = self.session()?.session_timeouts();
+            (timeouts.implicit_wait, timeouts.sleep_interval)
+        };
 
-        match wait_for_ipc_response(receiver)? {
-            Ok(value) => {
-                let resp_value: Vec<WebElement> = value.into_iter().map(WebElement).collect();
-                Ok(WebDriverResponse::Generic(ValueResponse(
-                    serde_json::to_value(resp_value)?,
-                )))
-            },
-            Err(error) => Err(WebDriverError::new(error, "")),
+        loop {
+            let (sender, receiver) = ipc::channel().unwrap();
+            match parameters.using {
+                LocatorStrategy::CSSSelector => {
+                    let cmd = WebDriverScriptCommand::FindElementsCSSSelector(
+                        parameters.value.clone(),
+                        sender,
+                    );
+                    self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+                },
+                LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
+                    let cmd = WebDriverScriptCommand::FindElementsLinkText(
+                        parameters.value.clone(),
+                        parameters.using == LocatorStrategy::PartialLinkText,
+                        sender,
+                    );
+                    self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+                },
+                LocatorStrategy::TagName => {
+                    let cmd = WebDriverScriptCommand::FindElementsTagName(
+                        parameters.value.clone(),
+                        sender,
+                    );
+                    self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+                },
+                LocatorStrategy::XPath => {
+                    let cmd = WebDriverScriptCommand::FindElementsXpathSelector(
+                        parameters.value.clone(),
+                        sender,
+                    );
+                    self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+                },
+            }
+
+            match wait_for_ipc_response(receiver)? {
+                Ok(value) => {
+                    if value.is_empty() && now.elapsed().as_millis() < implicit_wait.into() {
+                        dbg!(now.elapsed().as_millis());
+                        sleep(Duration::from_millis(sleep_interval));
+                        continue;
+                    }
+                    let resp_value: Vec<WebElement> = value.into_iter().map(WebElement).collect();
+                    return Ok(WebDriverResponse::Generic(ValueResponse(
+                        serde_json::to_value(resp_value)?,
+                    )));
+                },
+                Err(error) => return Err(WebDriverError::new(error, "")),
+            }
         }
     }
 
@@ -1418,56 +1434,66 @@ impl Handler {
 
         // Step 6. Handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
+        let now = Instant::now();
+        let (implicit_wait, sleep_interval) = {
+            let timeouts = self.session()?.session_timeouts();
+            (timeouts.implicit_wait, timeouts.sleep_interval)
+        };
+        loop {
+            let (sender, receiver) = ipc::channel().unwrap();
 
-        let (sender, receiver) = ipc::channel().unwrap();
+            match parameters.using {
+                LocatorStrategy::CSSSelector => {
+                    let cmd = WebDriverScriptCommand::FindElementElementsCSSSelector(
+                        parameters.value.clone(),
+                        element.to_string(),
+                        sender,
+                    );
+                    self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+                },
+                LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
+                    let cmd = WebDriverScriptCommand::FindElementElementsLinkText(
+                        parameters.value.clone(),
+                        element.to_string(),
+                        parameters.using == LocatorStrategy::PartialLinkText,
+                        sender,
+                    );
+                    self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+                },
+                LocatorStrategy::TagName => {
+                    let cmd = WebDriverScriptCommand::FindElementElementsTagName(
+                        parameters.value.clone(),
+                        element.to_string(),
+                        sender,
+                    );
+                    self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+                },
+                LocatorStrategy::XPath => {
+                    let cmd = WebDriverScriptCommand::FindElementElementsXPathSelector(
+                        parameters.value.clone(),
+                        element.to_string(),
+                        sender,
+                    );
+                    self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+                },
+            }
 
-        match parameters.using {
-            LocatorStrategy::CSSSelector => {
-                let cmd = WebDriverScriptCommand::FindElementElementsCSSSelector(
-                    parameters.value.clone(),
-                    element.to_string(),
-                    sender,
-                );
-                self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-            },
-            LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
-                let cmd = WebDriverScriptCommand::FindElementElementsLinkText(
-                    parameters.value.clone(),
-                    element.to_string(),
-                    parameters.using == LocatorStrategy::PartialLinkText,
-                    sender,
-                );
-                self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-            },
-            LocatorStrategy::TagName => {
-                let cmd = WebDriverScriptCommand::FindElementElementsTagName(
-                    parameters.value.clone(),
-                    element.to_string(),
-                    sender,
-                );
-                self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-            },
-            LocatorStrategy::XPath => {
-                let cmd = WebDriverScriptCommand::FindElementElementsXPathSelector(
-                    parameters.value.clone(),
-                    element.to_string(),
-                    sender,
-                );
-                self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-            },
-        }
-
-        match wait_for_ipc_response(receiver)? {
-            Ok(value) => {
-                let resp_value: Vec<Value> = value
-                    .into_iter()
-                    .map(|x| serde_json::to_value(WebElement(x)).unwrap())
-                    .collect();
-                Ok(WebDriverResponse::Generic(ValueResponse(
-                    serde_json::to_value(resp_value)?,
-                )))
-            },
-            Err(error) => Err(WebDriverError::new(error, "")),
+            match wait_for_ipc_response(receiver)? {
+                Ok(value) => {
+                    if value.is_empty() && now.elapsed().as_millis() < implicit_wait.into() {
+                        sleep(Duration::from_millis(sleep_interval));
+                        continue;
+                    }
+                    let resp_value: Vec<Value> = value
+                        .into_iter()
+                        .map(|x| serde_json::to_value(WebElement(x)).unwrap())
+                        .collect();
+                    return Ok(WebDriverResponse::Generic(ValueResponse(
+                        serde_json::to_value(resp_value)?,
+                    )));
+                },
+                Err(error) => return Err(WebDriverError::new(error, "")),
+            }
         }
     }
 
@@ -1489,55 +1515,66 @@ impl Handler {
         // Step 6. Handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
 
-        let (sender, receiver) = ipc::channel().unwrap();
+        let now = Instant::now();
+        let (implicit_wait, sleep_interval) = {
+            let timeouts = self.session()?.session_timeouts();
+            (timeouts.implicit_wait, timeouts.sleep_interval)
+        };
+        loop {
+            let (sender, receiver) = ipc::channel().unwrap();
 
-        match parameters.using {
-            LocatorStrategy::CSSSelector => {
-                let cmd = WebDriverScriptCommand::FindShadowElementsCSSSelector(
-                    parameters.value.clone(),
-                    shadow_root.to_string(),
-                    sender,
-                );
-                self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-            },
-            LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
-                let cmd = WebDriverScriptCommand::FindShadowElementsLinkText(
-                    parameters.value.clone(),
-                    shadow_root.to_string(),
-                    parameters.using == LocatorStrategy::PartialLinkText,
-                    sender,
-                );
-                self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-            },
-            LocatorStrategy::TagName => {
-                let cmd = WebDriverScriptCommand::FindShadowElementsTagName(
-                    parameters.value.clone(),
-                    shadow_root.to_string(),
-                    sender,
-                );
-                self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-            },
-            LocatorStrategy::XPath => {
-                let cmd = WebDriverScriptCommand::FindShadowElementsXPathSelector(
-                    parameters.value.clone(),
-                    shadow_root.to_string(),
-                    sender,
-                );
-                self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-            },
-        }
+            match parameters.using {
+                LocatorStrategy::CSSSelector => {
+                    let cmd = WebDriverScriptCommand::FindShadowElementsCSSSelector(
+                        parameters.value.clone(),
+                        shadow_root.to_string(),
+                        sender,
+                    );
+                    self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+                },
+                LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
+                    let cmd = WebDriverScriptCommand::FindShadowElementsLinkText(
+                        parameters.value.clone(),
+                        shadow_root.to_string(),
+                        parameters.using == LocatorStrategy::PartialLinkText,
+                        sender,
+                    );
+                    self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+                },
+                LocatorStrategy::TagName => {
+                    let cmd = WebDriverScriptCommand::FindShadowElementsTagName(
+                        parameters.value.clone(),
+                        shadow_root.to_string(),
+                        sender,
+                    );
+                    self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+                },
+                LocatorStrategy::XPath => {
+                    let cmd = WebDriverScriptCommand::FindShadowElementsXPathSelector(
+                        parameters.value.clone(),
+                        shadow_root.to_string(),
+                        sender,
+                    );
+                    self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+                },
+            }
 
-        match wait_for_ipc_response(receiver)? {
-            Ok(value) => {
-                let resp_value: Vec<Value> = value
-                    .into_iter()
-                    .map(|x| serde_json::to_value(WebElement(x)).unwrap())
-                    .collect();
-                Ok(WebDriverResponse::Generic(ValueResponse(
-                    serde_json::to_value(resp_value)?,
-                )))
-            },
-            Err(error) => Err(WebDriverError::new(error, "")),
+            match wait_for_ipc_response(receiver)? {
+                Ok(value) => {
+                    if value.is_empty() && now.elapsed().as_millis() < implicit_wait.into() {
+                        sleep(Duration::from_millis(sleep_interval));
+                        continue;
+                    }
+                    let resp_value: Vec<Value> = value
+                        .into_iter()
+                        .map(|x| serde_json::to_value(WebElement(x)).unwrap())
+                        .collect();
+                    return Ok(WebDriverResponse::Generic(ValueResponse(
+                        serde_json::to_value(resp_value)?,
+                    )));
+                },
+                Err(error) => return Err(WebDriverError::new(error, "")),
+            }
         }
     }
 
