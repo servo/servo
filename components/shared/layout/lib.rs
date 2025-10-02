@@ -241,9 +241,6 @@ pub trait Layout {
     /// resolve font metrics.
     fn device(&self) -> &Device;
 
-    /// The currently laid out Epoch that this Layout has finished.
-    fn current_epoch(&self) -> Epoch;
-
     /// Load all fonts from the given stylesheet, returning the number of fonts that
     /// need to be loaded.
     fn load_web_fonts_from_stylesheet(&self, stylesheet: ServoArc<Stylesheet>);
@@ -550,6 +547,8 @@ pub struct ReflowRequestRestyle {
 pub struct ReflowRequest {
     /// The document node.
     pub document: TrustedNodeAddress,
+    /// The current layout [`Epoch`] managed by the script thread.
+    pub epoch: Epoch,
     /// If a restyle is necessary, all of the informatio needed to do that restyle.
     pub restyle: Option<ReflowRequestRestyle>,
     /// The current [`ViewportDetails`] to use for this reflow.

@@ -564,11 +564,15 @@ pub(crate) struct Document {
     /// waiting it will not do any new layout until the canvas images are up-to-date in
     /// the renderer.
     waiting_on_canvas_image_updates: Cell<bool>,
-    /// The current canvas epoch, which is used to track when canvas images have been
-    /// uploaded to the renderer after a rendering update. Until those images are uploaded
-    /// this `Document` will not perform any more rendering updates.
+    /// The current rendering epoch, which is used to track updates in the renderer.
+    ///
+    ///   - Every display list update also advances the Epoch, so that the renderer knows
+    ///     when a particular display list is ready in order to take a screenshot.
+    ///   - Canvas image updates happen asynchronously and are tagged with this Epoch. Until
+    ///     those asynchronous updates are complete, the `Document` will not perform any
+    ///     more rendering updates.
     #[no_trace]
-    current_canvas_epoch: Cell<Epoch>,
+    current_rendering_epoch: Cell<Epoch>,
     /// The global custom element reaction stack for this script thread.
     #[conditional_malloc_size_of]
     custom_element_reaction_stack: Rc<CustomElementReactionStack>,
@@ -743,6 +747,11 @@ impl Document {
 
     pub(crate) fn is_active(&self) -> bool {
         self.activity.get() != DocumentActivity::Inactive
+    }
+
+    #[inline]
+    pub(crate) fn current_rendering_epoch(&self) -> Epoch {
+        self.current_rendering_epoch.get()
     }
 
     pub(crate) fn set_activity(&self, activity: DocumentActivity, can_gc: CanGc) {
@@ -2739,18 +2748,18 @@ impl Document {
             self.has_pending_animated_image_update.set(false);
         }
 
-        // All dirty canvases are flushed before updating the rendering.
-        self.current_canvas_epoch
-            .set(self.current_canvas_epoch.get().next());
-        let canvas_epoch = self.current_canvas_epoch.get();
-        let mut image_keys = Vec::new();
+        self.current_rendering_epoch
+            .set(self.current_rendering_epoch.get().next());
+        let current_rendering_epoch = self.current_rendering_epoch.get();
 
+        // All dirty canvases are flushed before updating the rendering.
+        let mut image_keys = Vec::new();
         #[cfg(feature = "webgpu")]
         image_keys.extend(
             self.dirty_webgpu_contexts
                 .borrow_mut()
                 .drain()
-                .filter(|(_, context)| context.update_rendering(canvas_epoch))
+                .filter(|(_, context)| context.update_rendering(current_rendering_epoch))
                 .map(|(_, context)| context.image_key()),
         );
 
@@ -2758,7 +2767,7 @@ impl Document {
             self.dirty_2d_contexts
                 .borrow_mut()
                 .drain()
-                .filter(|(_, context)| context.update_rendering(canvas_epoch))
+                .filter(|(_, context)| context.update_rendering(current_rendering_epoch))
                 .map(|(_, context)| context.image_key()),
         );
 
@@ -2779,7 +2788,7 @@ impl Document {
                 .expect("Where's the WebGL channel?")
                 .send(WebGLMsg::SwapBuffers(
                     dirty_webgl_context_ids,
-                    Some(canvas_epoch),
+                    Some(current_rendering_epoch),
                     0,
                 ))
                 .unwrap();
@@ -2787,16 +2796,23 @@ impl Document {
 
         // The renderer should wait to display the frame until all canvas images are
         // uploaded. This allows canvas image uploading to happen asynchronously.
+        let pipeline_id = self.window().pipeline_id();
         if !image_keys.is_empty() {
             self.waiting_on_canvas_image_updates.set(true);
             self.window().compositor_api().delay_new_frame_for_canvas(
                 self.window().pipeline_id(),
-                canvas_epoch,
+                current_rendering_epoch,
                 image_keys.into_iter().flatten().collect(),
             );
         }
 
-        self.window().reflow(ReflowGoal::UpdateTheRendering)
+        let reflow_result = self.window().reflow(ReflowGoal::UpdateTheRendering);
+        self.window().compositor_api().update_epoch(
+            self.webview_id(),
+            pipeline_id,
+            current_rendering_epoch,
+        );
+        reflow_result
     }
 
     pub(crate) fn handle_no_longer_waiting_on_asynchronous_image_updates(&self) {
@@ -3498,7 +3514,7 @@ impl Document {
             pending_scroll_event_targets: Default::default(),
             resize_observer_started_observing_target: Cell::new(false),
             waiting_on_canvas_image_updates: Cell::new(false),
-            current_canvas_epoch: Cell::new(Epoch(0)),
+            current_rendering_epoch: Cell::new(Epoch(0)),
             custom_element_reaction_stack,
             active_sandboxing_flag_set: Cell::new(SandboxingFlagSet::empty()),
             favicon: RefCell::new(None),

@@ -2317,6 +2317,7 @@ impl Window {
 
         let reflow = ReflowRequest {
             document: document.upcast::<Node>().to_trusted_node_address(),
+            epoch: document.current_rendering_epoch(),
             restyle,
             viewport_details: self.viewport_details.get(),
             origin: self.origin().immutable().clone(),
@@ -2395,13 +2396,14 @@ impl Window {
             return;
         }
 
-        if self.Document().needs_rendering_update() {
+        let document = self.Document();
+        if document.needs_rendering_update() {
             return;
         }
 
         // When all these conditions are met, notify the Constellation that we are ready to
         // have our screenshot taken, when the given layout Epoch has been rendered.
-        let epoch = self.layout.borrow().current_epoch();
+        let epoch = document.current_rendering_epoch();
         let pipeline_id = self.pipeline_id();
         debug!("Ready to take screenshot of {pipeline_id:?} at epoch={epoch:?}");
 
