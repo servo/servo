@@ -14,7 +14,6 @@ mod font_context {
     use std::thread;
 
     use app_units::Au;
-    use base::generic_channel;
     use compositing_traits::CrossProcessCompositorApi;
     use fonts::platform::font::PlatformFont;
     use fonts::{
