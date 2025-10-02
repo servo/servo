@@ -124,8 +124,22 @@ impl PlatformFont {
         font_face: FontFace,
         pt_size: Option<Au>,
         variations: &[FontVariation],
-        synthetic_bold: bool,
+        mut synthetic_bold: bool,
     ) -> Result<Self, &'static str> {
+        // `FontFace::has_variations()` Determines whether this font face's resource supports
+        // any variable axes. (IDWriteFontFace5::HasVariations).
+        //
+        // See <https://learn.microsoft.com/en-us/windows/win32/api/dwrite_3/nf-dwrite_3-idwritefontface5-hasvariations>
+        //
+        // Variable fonts, where the font designer has provided one or more axes of
+        // variation do not count as font synthesis and their use is not affected by
+        // the font-synthesis property.
+        //
+        // See <https://www.w3.org/TR/css-fonts-4/#font-synthesis-intro>
+        if font_face.has_variations() {
+            synthetic_bold = false;
+        }
+
         if variations.is_empty() {
             return Self::new(font_face, pt_size, vec![], synthetic_bold);
         }
@@ -173,10 +187,9 @@ impl PlatformFontMethods for PlatformFont {
         variations: &[FontVariation],
         synthetic_bold: bool,
     ) -> Result<Self, &'static str> {
-        let simulations = synthetic_bold_to_simulations(synthetic_bold);
         let font_face = FontFile::new_from_buffer(Arc::new(data.clone()))
             .ok_or("Could not create FontFile")?
-            .create_face(0 /* face_index */, simulations)
+            .create_face(0 /* face_index */, DWRITE_FONT_SIMULATIONS_NONE)
             .map_err(|_| "Could not create FontFace")?;
         Self::new_with_variations(font_face, pt_size, variations, synthetic_bold)
     }
