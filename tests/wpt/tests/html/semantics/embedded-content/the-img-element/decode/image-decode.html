@@ -84,6 +84,12 @@ promise_test(function(t) {
   var img = new Image();
   var promise = img.decode();
   return promise_rejects_dom(t, "EncodingError", promise);
+}, document.title + " Image (legacy) without src/srcset fails decode.");
+
+promise_test(function(t) {
+  var img = document.createElement("img");
+  var promise = img.decode();
+  return promise_rejects_dom(t, "EncodingError", promise);
 }, document.title + " Image without src/srcset fails decode.");
 
 promise_test(function() {
