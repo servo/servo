@@ -47,7 +47,9 @@ use crate::dom::bindings::codegen::UnionTypes::{
     RequestOrUSVString, TrustedScriptOrString, TrustedScriptOrStringOrFunction,
     TrustedScriptURLOrUSVString,
 };
-use crate::dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception};
+use crate::dom::bindings::error::{
+    Error, ErrorResult, Fallible, ReportExceptionFlags, report_pending_exception,
+};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
@@ -679,7 +681,7 @@ impl WorkerGlobalScope {
                         let ar = enter_realm(self);
                         report_pending_exception(
                             JSContext::from_ptr(cx),
-                            true,
+                            ReportExceptionFlags::DispatchEvent,
                             InRealm::Entered(&ar),
                             can_gc,
                         );

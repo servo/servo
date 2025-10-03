@@ -36,8 +36,8 @@ use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarker
 use dom_struct::dom_struct;
 use embedder_traits::user_content_manager::{UserContentManager, UserScript};
 use embedder_traits::{
-    AlertResponse, ConfirmResponse, EmbedderMsg, PromptResponse, ScriptToEmbedderChan,
-    SimpleDialog, Theme, UntrustedNodeAddress, ViewportDetails, WebDriverJSError,
+    AlertResponse, ConfirmResponse, EmbedderMsg, JavaScriptEvaluationError, PromptResponse,
+    ScriptToEmbedderChan, SimpleDialog, Theme, UntrustedNodeAddress, ViewportDetails,
     WebDriverJSResult, WebDriverLoadStatus,
 };
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
@@ -120,7 +120,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::{
 use crate::dom::bindings::codegen::UnionTypes::{
     RequestOrUSVString, TrustedScriptOrString, TrustedScriptOrStringOrFunction,
 };
-use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
+use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
@@ -1480,30 +1480,24 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         }
     }
 
-    fn WebdriverCallback(&self, cx: JSContext, val: HandleValue, realm: InRealm, can_gc: CanGc) {
-        let rv = jsval_to_webdriver(cx, &self.globalscope, val, realm, can_gc);
-        let opt_chan = self.webdriver_script_chan.borrow_mut().take();
-        if let Some(chan) = opt_chan {
-            let _ = chan.send(rv);
+    fn WebdriverCallback(&self, cx: JSContext, value: HandleValue, realm: InRealm, can_gc: CanGc) {
+        if let Some(chan) = self.webdriver_script_chan.borrow_mut().take() {
+            let result = jsval_to_webdriver(cx, &self.globalscope, value, realm, can_gc);
+            let _ = chan.send(result);
         }
     }
 
-    fn WebdriverException(&self, cx: JSContext, val: HandleValue, realm: InRealm, can_gc: CanGc) {
-        let rv = jsval_to_webdriver(cx, &self.globalscope, val, realm, can_gc);
-        let opt_chan = self.webdriver_script_chan.borrow_mut().take();
-        if let Some(chan) = opt_chan {
-            if let Ok(rv) = rv {
-                let _ = chan.send(Err(WebDriverJSError::JSException(rv)));
-            } else {
-                let _ = chan.send(rv);
-            }
+    fn WebdriverException(&self, cx: JSContext, value: HandleValue) {
+        if let Some(chan) = self.webdriver_script_chan.borrow_mut().take() {
+            let _ = chan.send(Err(JavaScriptEvaluationError::EvaluationFailure(Some(
+                ErrorInfo::from_value(value, cx, true /* include_stack */).into(),
+            ))));
         }
     }
 
     fn WebdriverTimeout(&self) {
-        let opt_chan = self.webdriver_script_chan.borrow_mut().take();
-        if let Some(chan) = opt_chan {
-            let _ = chan.send(Err(WebDriverJSError::Timeout));
+        if let Some(chan) = self.webdriver_script_chan.borrow_mut().take() {
+            let _ = chan.send(Err(JavaScriptEvaluationError::Timeout));
         }
     }
 

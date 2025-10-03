@@ -25,7 +25,7 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 
 use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding;
-use crate::dom::bindings::error::report_pending_exception;
+use crate::dom::bindings::error::{ReportExceptionFlags, report_pending_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
@@ -141,7 +141,12 @@ impl DebuggerGlobalScope {
             .is_err()
         {
             let ar = enter_realm(self);
-            report_pending_exception(Self::get_cx(), true, InRealm::Entered(&ar), can_gc);
+            report_pending_exception(
+                Self::get_cx(),
+                ReportExceptionFlags::DispatchEvent,
+                InRealm::Entered(&ar),
+                can_gc,
+            );
         }
     }
 

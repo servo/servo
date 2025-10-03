@@ -34,7 +34,7 @@ use pixels::RasterImage;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize};
 use servo_url::ServoUrl;
-use strum_macros::IntoStaticStr;
+use strum_macros::{EnumMessage, IntoStaticStr};
 use style::queries::values::PrefersColorScheme;
 use style_traits::CSSPixel;
 use url::Url;
@@ -1047,11 +1047,30 @@ pub enum JSValue {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct JavaScriptErrorInfo {
+    pub message: String,
+    pub filename: String,
+    pub stack: Option<String>,
+    pub line_number: u64,
+    pub column: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, EnumMessage, PartialEq, Serialize)]
+pub enum JavaScriptSerializationError {
+    Generic,
+    DetachedShadowRoot,
+    StaleElementReference,
+    UnknownType,
+}
+
+#[derive(Clone, Debug, Deserialize, EnumMessage, PartialEq, Serialize)]
 pub enum JavaScriptEvaluationError {
-    /// The script could not be compiled
+    /// The `Document` of frame that the script was going to execute in no longer exists.
+    DocumentNotFound,
+    /// The script could not be compiled.
     CompilationFailure,
-    /// The script could not be evaluated
-    EvaluationFailure,
+    /// The script could not be evaluated.
+    EvaluationFailure(Option<JavaScriptErrorInfo>),
     /// An internal Servo error prevented the JavaSript evaluation from completing properly.
     /// This indicates a bug in Servo.
     InternalError,
@@ -1060,7 +1079,9 @@ pub enum JavaScriptEvaluationError {
     WebViewNotReady,
     /// The script executed successfully, but Servo could not serialize the JavaScript return
     /// value into a [`JSValue`].
-    SerializationError,
+    SerializationError(JavaScriptSerializationError),
+    /// The script timed out.
+    Timeout,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]

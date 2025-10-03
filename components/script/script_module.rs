@@ -52,7 +52,7 @@ use crate::document_loader::LoadType;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::error::{
-    Error, ErrorToJsval, report_pending_exception, throw_dom_exception,
+    Error, ErrorToJsval, ReportExceptionFlags, report_pending_exception, throw_dom_exception,
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -612,7 +612,12 @@ impl ModuleTree {
                     ExceptionStackBehavior::Capture,
                 );
             }
-            report_pending_exception(GlobalScope::get_cx(), true, InRealm::Entered(&ar), can_gc);
+            report_pending_exception(
+                GlobalScope::get_cx(),
+                ReportExceptionFlags::DispatchEvent,
+                InRealm::Entered(&ar),
+                can_gc,
+            );
         }
     }
 

@@ -5,7 +5,9 @@
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::rust::HandleObject;
 
-use crate::dom::bindings::error::{report_pending_exception, throw_dom_exception};
+use crate::dom::bindings::error::{
+    ReportExceptionFlags, report_pending_exception, throw_dom_exception,
+};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::customelementregistry::{
@@ -187,7 +189,12 @@ fn create_html_element(
 
                             let ar = enter_realm(&*global);
                             throw_dom_exception(cx, &global, error, can_gc);
-                            report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
+                            report_pending_exception(
+                                cx,
+                                ReportExceptionFlags::DispatchEvent,
+                                InRealm::Entered(&ar),
+                                can_gc,
+                            );
 
                             // Substep 2. Set result to a new element that implements the HTMLUnknownElement interface,
                             // with no attributes, namespace set to the HTML namespace, namespace prefix set to prefix,

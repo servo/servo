@@ -2931,7 +2931,7 @@ impl Document {
         };
         self.window
             .as_global_scope()
-            .report_an_error(error_info, HandleValue::null(), can_gc);
+            .report_an_error(&error_info, HandleValue::null(), can_gc);
     }
 
     pub(crate) fn status_code(&self) -> Option<u16> {

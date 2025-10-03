@@ -29,7 +29,8 @@ use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::conversions::{ConversionResult, StringificationBehavior};
 use crate::dom::bindings::error::{
-    Error, ErrorResult, Fallible, report_pending_exception, throw_dom_exception,
+    Error, ErrorResult, Fallible, ReportExceptionFlags, report_pending_exception,
+    throw_dom_exception,
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject, Reflector, reflect_dom_object};
@@ -863,7 +864,12 @@ pub(crate) fn upgrade_element(
         let cx = GlobalScope::get_cx();
         let ar = enter_realm(&*global);
         throw_dom_exception(cx, &global, error, can_gc);
-        report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
+        report_pending_exception(
+            cx,
+            ReportExceptionFlags::DispatchEvent,
+            InRealm::Entered(&ar),
+            can_gc,
+        );
 
         return;
     }
