@@ -24,7 +24,10 @@ use style_traits::CSSPixel;
 use webdriver::error::ErrorStatus;
 use webrender_api::units::DevicePixel;
 
-use crate::{JSValue, MouseButton, MouseButtonAction, ScreenshotCaptureError, TraversalId};
+use crate::{
+    JSValue, JavaScriptEvaluationError, MouseButton, MouseButtonAction, ScreenshotCaptureError,
+    TraversalId,
+};
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WebDriverInputEventId(pub usize);
@@ -253,19 +256,7 @@ pub enum WebDriverScriptCommand {
     RemoveLoadStatusSender(WebViewId),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub enum WebDriverJSError {
-    /// Occurs when handler received an event message for a layout channel that is not
-    /// associated with the current script thread
-    BrowsingContextNotFound,
-    DetachedShadowRoot,
-    JSException(JSValue),
-    JSError,
-    StaleElementReference,
-    UnknownType,
-}
-
-pub type WebDriverJSResult = Result<JSValue, WebDriverJSError>;
+pub type WebDriverJSResult = Result<JSValue, JavaScriptEvaluationError>;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverFrameId {

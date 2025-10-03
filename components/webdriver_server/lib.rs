@@ -29,8 +29,9 @@ use capabilities::ServoCapabilities;
 use cookie::{CookieBuilder, Expiration, SameSite};
 use crossbeam_channel::{Sender, after, select};
 use embedder_traits::{
-    EventLoopWaker, JSValue, MouseButton, WebDriverCommandMsg, WebDriverCommandResponse,
-    WebDriverFrameId, WebDriverInputEventId, WebDriverJSError, WebDriverJSResult,
+    EventLoopWaker, JSValue, JavaScriptEvaluationError,
+    JavaScriptEvaluationResultSerializationError, MouseButton, WebDriverCommandMsg,
+    WebDriverCommandResponse, WebDriverFrameId, WebDriverInputEventId, WebDriverJSResult,
     WebDriverLoadStatus, WebDriverScriptCommand,
 };
 use euclid::{Point2D, Rect, Size2D};
@@ -2068,7 +2069,7 @@ impl Handler {
             .map(Duration::from_millis);
         let result = wait_for_script_ipc_response_with_timeout(receiver, timeout_duration)?;
 
-        self.postprocess_js_result(result)
+        self.javascript_evaluation_result_to_webdriver_response(result)
     }
 
     fn handle_execute_async_script(
@@ -2115,10 +2116,10 @@ impl Handler {
             .map(Duration::from_millis);
         let result = wait_for_script_ipc_response_with_timeout(receiver, timeout_duration)?;
 
-        self.postprocess_js_result(result)
+        self.javascript_evaluation_result_to_webdriver_response(result)
     }
 
-    fn postprocess_js_result(
+    fn javascript_evaluation_result_to_webdriver_response(
         &self,
         result: WebDriverJSResult,
     ) -> WebDriverResult<WebDriverResponse> {
@@ -2126,30 +2127,43 @@ impl Handler {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(SendableJSValue(value))?,
             ))),
-            Err(WebDriverJSError::BrowsingContextNotFound) => Err(WebDriverError::new(
-                ErrorStatus::NoSuchWindow,
-                "Pipeline id not found in browsing context",
-            )),
-            Err(WebDriverJSError::JSException(_e)) => Err(WebDriverError::new(
-                ErrorStatus::JavascriptError,
-                "JS evaluation raised an exception",
-            )),
-            Err(WebDriverJSError::JSError) => Err(WebDriverError::new(
-                ErrorStatus::JavascriptError,
-                "JS evaluation raised an unknown exception",
-            )),
-            Err(WebDriverJSError::StaleElementReference) => Err(WebDriverError::new(
-                ErrorStatus::StaleElementReference,
-                "Stale element",
-            )),
-            Err(WebDriverJSError::DetachedShadowRoot) => Err(WebDriverError::new(
-                ErrorStatus::DetachedShadowRoot,
-                "Detached shadow root",
-            )),
-            Err(WebDriverJSError::UnknownType) => Err(WebDriverError::new(
-                ErrorStatus::UnsupportedOperation,
-                "Unsupported return type",
-            )),
+            Err(error) => {
+                let message = format!("{error:?}");
+                let status = match error {
+                    JavaScriptEvaluationError::DocumentNotFound => ErrorStatus::NoSuchWindow,
+                    JavaScriptEvaluationError::CompilationFailure => ErrorStatus::JavascriptError,
+                    JavaScriptEvaluationError::EvaluationFailure(Some(error_info)) => {
+                        return Err(WebDriverError::new_with_data(
+                            ErrorStatus::JavascriptError,
+                            error_info.message,
+                            None,
+                            error_info.stack,
+                        ));
+                    },
+                    JavaScriptEvaluationError::EvaluationFailure(None) => {
+                        ErrorStatus::JavascriptError
+                    },
+                    JavaScriptEvaluationError::InternalError => ErrorStatus::JavascriptError,
+                    JavaScriptEvaluationError::SerializationError(serialization_error) => {
+                        match serialization_error {
+                            JavaScriptEvaluationResultSerializationError::DetachedShadowRoot => {
+                                ErrorStatus::DetachedShadowRoot
+                            },
+                            JavaScriptEvaluationResultSerializationError::Generic => {
+                                ErrorStatus::JavascriptError
+                            },
+                            JavaScriptEvaluationResultSerializationError::StaleElementReference => {
+                                ErrorStatus::StaleElementReference
+                            },
+                            JavaScriptEvaluationResultSerializationError::UnknownType => {
+                                ErrorStatus::UnsupportedOperation
+                            },
+                        }
+                    },
+                    JavaScriptEvaluationError::WebViewNotReady => ErrorStatus::NoSuchWindow,
+                };
+                Err(WebDriverError::new(status, message))
+            },
         }
     }
 

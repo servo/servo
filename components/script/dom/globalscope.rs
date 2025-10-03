@@ -86,7 +86,9 @@ use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use crate::dom::bindings::conversions::{root_from_object, root_from_object_static};
-use crate::dom::bindings::error::{Error, ErrorInfo, report_pending_exception};
+use crate::dom::bindings::error::{
+    Error, ErrorInfo, report_pending_exception, take_and_report_pending_exception_for_api,
+};
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -2919,8 +2921,9 @@ impl GlobalScope {
 
             if !result {
                 debug!("error evaluating Dom string");
-                report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
-                return Err(JavaScriptEvaluationError::EvaluationFailure);
+                let error_info =
+                    take_and_report_pending_exception_for_api(cx, InRealm::Entered(&ar), can_gc);
+                return Err(JavaScriptEvaluationError::EvaluationFailure(error_info));
             }
 
             maybe_resume_unwind();

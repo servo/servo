@@ -104,7 +104,10 @@ fn test_evaluate_javascript_basic(servo_test: &ServoTest) -> Result<(), anyhow::
     ensure!(result == Err(JavaScriptEvaluationError::CompilationFailure));
 
     let result = evaluate_javascript(servo_test, webview.clone(), "throw new Error()");
-    ensure!(result == Err(JavaScriptEvaluationError::EvaluationFailure));
+    ensure!(matches!(
+        result,
+        Err(JavaScriptEvaluationError::EvaluationFailure(_))
+    ));
 
     Ok(())
 }

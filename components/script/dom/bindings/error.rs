@@ -4,14 +4,20 @@
 
 //! Utilities to throw exceptions from Rust bindings.
 
+use std::ffi::CString;
+use std::ptr::NonNull;
 use std::slice::from_raw_parts;
 
 #[cfg(feature = "js_backtrace")]
 use backtrace::Backtrace;
+use embedder_traits::JavaScriptErrorInfo;
+use js::conversions::jsstr_to_string;
 use js::error::{throw_range_error, throw_type_error};
 #[cfg(feature = "js_backtrace")]
 use js::jsapi::StackFormat as JSStackFormat;
-use js::jsapi::{ExceptionStackBehavior, JS_ClearPendingException, JS_IsExceptionPending};
+use js::jsapi::{
+    ExceptionStackBehavior, JS_ClearPendingException, JS_GetProperty, JS_IsExceptionPending,
+};
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_ErrorFromException, JS_GetPendingException, JS_SetPendingException};
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
@@ -236,7 +242,7 @@ impl ErrorInfo {
         None
     }
 
-    fn from_value(value: HandleValue, cx: SafeJSContext) -> ErrorInfo {
+    pub(crate) fn from_value(value: HandleValue, cx: SafeJSContext) -> ErrorInfo {
         if value.is_object() {
             rooted!(in(*cx) let object = value.to_object());
             if let Some(info) = ErrorInfo::from_object(object.handle(), cx) {
@@ -268,24 +274,47 @@ pub(crate) fn report_pending_exception(
     realm: InRealm,
     can_gc: CanGc,
 ) {
+    rooted!(in(*cx) let mut value = UndefinedValue());
+    if take_pending_exception(cx, value.handle_mut()) {
+        let error_info = ErrorInfo::from_value(value.handle(), cx);
+        report_error(
+            error_info,
+            value.handle(),
+            cx,
+            dispatch_event,
+            realm,
+            can_gc,
+        );
+    }
+}
+
+fn take_pending_exception(cx: SafeJSContext, value: MutableHandleValue) -> bool {
     unsafe {
         if !JS_IsExceptionPending(*cx) {
-            return;
+            return false;
         }
     }
-    rooted!(in(*cx) let mut value = UndefinedValue());
 
     unsafe {
-        if !JS_GetPendingException(*cx, value.handle_mut()) {
+        if !JS_GetPendingException(*cx, value) {
             JS_ClearPendingException(*cx);
             error!("Uncaught exception: JS_GetPendingException failed");
-            return;
+            return false;
         }
 
         JS_ClearPendingException(*cx);
     }
-    let error_info = ErrorInfo::from_value(value.handle(), cx);
+    true
+}
 
+fn report_error(
+    error_info: ErrorInfo,
+    value: HandleValue,
+    cx: SafeJSContext,
+    dispatch_event: bool,
+    realm: InRealm,
+    can_gc: CanGc,
+) {
     error!(
         "Error at {}:{}:{} {}",
         error_info.filename, error_info.lineno, error_info.column, error_info.message
@@ -304,12 +333,72 @@ pub(crate) fn report_pending_exception(
     }
 
     if dispatch_event {
-        GlobalScope::from_safe_context(cx, realm).report_an_error(
-            error_info,
-            value.handle(),
-            can_gc,
-        );
+        GlobalScope::from_safe_context(cx, realm).report_an_error(error_info, value, can_gc);
     }
+}
+
+pub(crate) fn javascript_error_info_from_error_info(
+    cx: SafeJSContext,
+    error_info: &ErrorInfo,
+    value: HandleValue,
+    _: CanGc,
+) -> JavaScriptErrorInfo {
+    let stack = || {
+        if !value.is_object() {
+            return None;
+        }
+
+        rooted!(in(*cx) let object = value.to_object());
+        let stack_name = CString::new("stack").unwrap();
+        rooted!(in(*cx) let mut stack_value = UndefinedValue());
+        if unsafe {
+            !JS_GetProperty(
+                *cx,
+                object.handle().into(),
+                stack_name.as_ptr(),
+                stack_value.handle_mut().into(),
+            )
+        } {
+            return None;
+        }
+        if !stack_value.is_string() {
+            return None;
+        }
+        let stack_string = NonNull::new(stack_value.to_string())?;
+        Some(unsafe { jsstr_to_string(*cx, stack_string) })
+    };
+
+    JavaScriptErrorInfo {
+        message: error_info.message.clone(),
+        filename: error_info.filename.clone(),
+        line_number: error_info.lineno as u64,
+        column: error_info.column as u64,
+        stack: stack(),
+    }
+}
+
+pub(crate) fn take_and_report_pending_exception_for_api(
+    cx: SafeJSContext,
+    realm: InRealm,
+    can_gc: CanGc,
+) -> Option<JavaScriptErrorInfo> {
+    rooted!(in(*cx) let mut value = UndefinedValue());
+    if !take_pending_exception(cx, value.handle_mut()) {
+        return None;
+    }
+
+    let error_info = ErrorInfo::from_value(value.handle(), cx);
+    let return_value =
+        javascript_error_info_from_error_info(cx, &error_info, value.handle(), can_gc);
+    report_error(
+        error_info,
+        value.handle(),
+        cx,
+        true, /* dispatch_event */
+        realm,
+        can_gc,
+    );
+    Some(return_value)
 }
 
 pub(crate) trait ErrorToJsval {
