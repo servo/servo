@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -351,7 +352,11 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerdown-action>
-    pub(crate) fn dispatch_pointerdown_action(&mut self, source_id: &str, action: &PointerDownAction) {
+    pub(crate) fn dispatch_pointerdown_action(
+        &mut self,
+        source_id: &str,
+        action: &PointerDownAction,
+    ) {
         let x: f32;
         let y: f32;
         {
@@ -603,10 +608,7 @@ impl Handler {
         }
     }
 
-    fn get_pointer_input_state(
-        &mut self,
-        source_id: &str,
-    ) -> &mut PointerInputState {
+    fn get_pointer_input_state(&mut self, source_id: &str) -> &mut PointerInputState {
         let input_state_table = self.session_mut().unwrap().input_state_table_mut();
         match input_state_table.get_mut(source_id).unwrap() {
             InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
@@ -871,7 +873,10 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-extract-an-action-sequence>
-    pub(crate) fn extract_an_action_sequence(&mut self, params: ActionsParameters) -> ActionsByTick {
+    pub(crate) fn extract_an_action_sequence(
+        &mut self,
+        params: ActionsParameters,
+    ) -> ActionsByTick {
         // Step 1. Let actions be the result of getting a property named "actions" from parameters.
         // Step 2. (ignored because params is already validated earlier). If actions is not a list,
         // return an error with status InvalidArgument.

@@ -1977,7 +1977,8 @@ impl Handler {
 
         // Step 6. Let undo actions be input cancel list in reverse order.
 
-        let undo_actions = self.session_mut()?
+        let undo_actions = self
+            .session_mut()?
             .input_cancel_list_mut()
             .drain(..)
             .rev()
