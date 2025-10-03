@@ -95,6 +95,7 @@ pub(crate) fn is_valid_doctype_name(name: &DOMString) -> bool {
     // A string is a valid doctype name if it does not contain
     // ASCII whitespace, U+0000 NULL, or U+003E (>).
     !name
+        .str()
         .chars()
         .any(|c| c.is_ascii_whitespace() || matches!(c, '\u{0000}' | '\u{003E}'))
 }
@@ -124,18 +125,20 @@ pub(crate) fn validate_and_extract(
     qualified_name: &DOMString,
     context: Context,
 ) -> Fallible<(Namespace, Option<Prefix>, LocalName)> {
+    let qualified_name = String::from(&*qualified_name.str());
+
     // Step 1. If namespace is the empty string, then set it to null.
     let namespace = namespace_from_domstring(namespace);
 
     // Step 2. Let prefix be null.
     let mut prefix = None;
     // Step 3. Let localName be qualifiedName.
-    let mut local_name = qualified_name.str();
+    let mut local_name = qualified_name.as_str();
     // Step 4. If qualifiedName contains a U+003A (:):
     if let Some(idx) = qualified_name.find(':') {
         //     Step 4.1. Let splitResult be the result of running
         //          strictly split given qualifiedName and U+003A (:).
-        let p = &qualified_name.str()[..idx];
+        let p = &qualified_name[..idx];
 
         // Step 5. If prefix is not a valid namespace prefix,
         // then throw an "InvalidCharacterError" DOMException.
@@ -148,7 +151,7 @@ pub(crate) fn validate_and_extract(
         prefix = Some(p);
 
         //     Step 4.3. Set localName to splitResult[1].
-        let remaining = &qualified_name.str()[(idx + 1).min(qualified_name.len())..];
+        let remaining = &qualified_name.as_str()[(idx + 1).min(qualified_name.len())..];
         match remaining.find(':') {
             Some(end) => local_name = &remaining[..end],
             None => local_name = remaining,

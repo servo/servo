@@ -377,6 +377,8 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             return None;
         }
 
+        #[allow(clippy::mutable_key_type)]
+        // See `impl Hash for DOMString`.
         let mut item_attr_values = HashSet::new();
         for attr_value in &atoms {
             item_attr_values.insert(DOMString::from(String::from(attr_value.trim())));
@@ -395,6 +397,8 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             return None;
         }
 
+        #[allow(clippy::mutable_key_type)]
+        // See `impl Hash for DOMString`.
         let mut item_attr_values = HashSet::new();
         for attr_value in &atoms {
             item_attr_values.insert(DOMString::from(String::from(attr_value.trim())));
@@ -716,7 +720,7 @@ static DATA_HYPHEN_SEPARATOR: char = '\x2d';
 fn to_snake_case(name: DOMString) -> DOMString {
     let mut attr_name = String::with_capacity(name.len() + DATA_PREFIX.len());
     attr_name.push_str(DATA_PREFIX);
-    for ch in name.chars() {
+    for ch in name.str().chars() {
         if ch.is_ascii_uppercase() {
             attr_name.push(DATA_HYPHEN_SEPARATOR);
             attr_name.push(ch.to_ascii_lowercase());
@@ -771,6 +775,7 @@ impl HTMLElement {
         can_gc: CanGc,
     ) -> ErrorResult {
         if name
+            .str()
             .chars()
             .skip_while(|&ch| ch != '\u{2d}')
             .nth(1)
@@ -1040,6 +1045,7 @@ impl HTMLElement {
 
         // Step 2: Let position be a position variable for input, initially pointing at the start
         // of input.
+        let input = input.str();
         let mut position = input.chars().peekable();
 
         // Step 3: Let text be the empty string.

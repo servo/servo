@@ -473,7 +473,7 @@ impl Request {
                     // In Servo r.Headers's header list isn't a pointer to
                     // the same actual list as r.request's, and so we need to
                     // append to both lists to keep them in sync.
-                    if let Ok(v) = HeaderValue::from_bytes(ct_header_val) {
+                    if let Ok(v) = HeaderValue::from_bytes(&ct_header_val) {
                         r.request
                             .borrow_mut()
                             .headers

@@ -129,6 +129,8 @@ impl SendReportsToEndpoints for GlobalScope {
         endpoints: Vec<ReportingEndpoint>,
     ) {
         // Step 1. Let endpoint map be an empty map of endpoint objects to lists of report objects.
+        #[allow(clippy::mutable_key_type)]
+        // See `impl Hash for DOMString`.
         let mut endpoint_map: HashMap<&ReportingEndpoint, Vec<Report>> = HashMap::new();
         // Step 2. For each report in reports:
         reports.retain(|report| {
@@ -152,7 +154,7 @@ impl SendReportsToEndpoints for GlobalScope {
             let mut origin_map: HashMap<ImmutableOrigin, Vec<&Report>> = HashMap::new();
             // Step 3.2. For each report in report list:
             for report in report_list {
-                let Ok(url) = ServoUrl::parse(report.url.str()) else {
+                let Ok(url) = ServoUrl::parse(&report.url.str()) else {
                     continue;
                 };
                 // Step 3.2.1. Let origin be the origin of report’s url.

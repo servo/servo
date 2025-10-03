@@ -1077,7 +1077,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
 
             // Step 3.
             s.push_str(
-                char_data
+                &char_data
                     .SubstringData(
                         self.start_offset(),
                         char_data.Length() - self.start_offset(),
@@ -1095,14 +1095,14 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
 
         for child in iter {
             if self.contains(child.upcast()) {
-                s.push_str(child.upcast::<CharacterData>().Data().str());
+                s.push_str(&child.upcast::<CharacterData>().Data().str());
             }
         }
 
         // Step 5.
         if let Some(text_node) = end_node.downcast::<Text>() {
             let char_data = text_node.upcast::<CharacterData>();
-            s.push_str(char_data.SubstringData(0, self.end_offset()).unwrap().str());
+            s.push_str(&char_data.SubstringData(0, self.end_offset()).unwrap().str());
         }
 
         // Step 6.

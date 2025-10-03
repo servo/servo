@@ -170,7 +170,7 @@ impl HTMLMetaElement {
         if !content.is_empty() {
             // 3
             self.owner_document()
-                .shared_declarative_refresh_steps(content.as_bytes());
+                .shared_declarative_refresh_steps(&content.as_bytes());
         }
     }
 }

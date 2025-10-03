@@ -139,7 +139,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
         let mut required_limits = wgpu_types::Limits::default();
         if let Some(limits) = &descriptor.requiredLimits {
             for (limit, value) in (*limits).iter() {
-                if !set_limit(&mut required_limits, limit.str(), *value) {
+                if !set_limit(&mut required_limits, &limit.str(), *value) {
                     warn!("Unknown GPUDevice limit: {limit}");
                     promise.reject_error(Error::Operation, can_gc);
                     return promise;

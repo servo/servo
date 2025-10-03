@@ -439,7 +439,7 @@ impl WebGLProgram {
             let uniforms = self.active_uniforms.borrow();
             match uniforms
                 .iter()
-                .find(|attrib| &*attrib.base_name == base_name)
+                .find(|attrib| *attrib.base_name == base_name)
             {
                 Some(uniform) if array_index.is_none() || array_index < uniform.size => (
                     uniform
@@ -683,7 +683,7 @@ fn validate_glsl_name(name: &DOMString) -> WebGLResult<bool> {
     if name.len() > MAX_UNIFORM_AND_ATTRIBUTE_LEN {
         return Err(WebGLError::InvalidValue);
     }
-    for c in name.chars() {
+    for c in name.str().chars() {
         validate_glsl_char(c)?;
     }
     if name.starts_with_str("webgl_") || name.starts_with_str("_webgl_") {
@@ -732,16 +732,16 @@ fn validate_glsl_char(c: char) -> WebGLResult<()> {
     }
 }
 
-fn parse_uniform_name(name: &DOMString) -> Option<(&str, Option<i32>)> {
+fn parse_uniform_name(name: &DOMString) -> Option<(String, Option<i32>)> {
     let name = name.str();
     if !name.ends_with(']') {
-        return Some((name, None));
+        return Some((String::from(name), None));
     }
     let bracket_pos = name[..name.len() - 1].rfind('[')?;
     let index = name[(bracket_pos + 1)..(name.len() - 1)]
         .parse::<i32>()
         .ok()?;
-    Some((&name[..bracket_pos], Some(index)))
+    Some((String::from(&name[..bracket_pos]), Some(index)))
 }
 
 pub(crate) const MAX_UNIFORM_AND_ATTRIBUTE_LEN: usize = 256;

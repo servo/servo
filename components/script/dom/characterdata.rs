@@ -32,14 +32,14 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct CharacterData {
     node: Node,
-    data: DomRefCell<DOMString>,
+    data: DomRefCell<String>,
 }
 
 impl CharacterData {
     pub(crate) fn new_inherited(data: DOMString, document: &Document) -> CharacterData {
         CharacterData {
             node: Node::new_inherited(document),
-            data: DomRefCell::new(data),
+            data: DomRefCell::new(String::from(data.str())),
         }
     }
 
@@ -73,7 +73,7 @@ impl CharacterData {
     }
 
     #[inline]
-    pub(crate) fn data(&self) -> Ref<'_, DOMString> {
+    pub(crate) fn data(&self) -> Ref<'_, String> {
         self.data.borrow()
     }
 
@@ -111,15 +111,15 @@ impl CharacterData {
 impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     // https://dom.spec.whatwg.org/#dom-characterdata-data
     fn Data(&self) -> DOMString {
-        self.data.borrow().clone()
+        DOMString::from(self.data.borrow().clone())
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-data
     fn SetData(&self, data: DOMString) {
         self.queue_mutation_record();
         let old_length = self.Length();
-        let new_length = data.encode_utf16().count() as u32;
-        *self.data.borrow_mut() = data;
+        let new_length = data.str().encode_utf16().count() as u32;
+        *self.data.borrow_mut() = String::from(data.str());
         self.content_changed();
         let node = self.upcast::<Node>();
         node.ranges()
@@ -136,7 +136,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
         let data = self.data.borrow();
         // Step 1.
         let mut substring = String::new();
-        let remaining = match split_at_utf16_code_unit_offset(data.str(), offset) {
+        let remaining = match split_at_utf16_code_unit_offset(&data, offset) {
             Ok((_, astral, s)) => {
                 // As if we had split the UTF-16 surrogate pair in half
                 // and then transcoded that to UTF-8 lossily,
@@ -169,7 +169,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     // https://dom.spec.whatwg.org/#dom-characterdata-appenddatadata
     fn AppendData(&self, data: DOMString) {
         // FIXME(ajeffrey): Efficient append on DOMStrings?
-        self.append_data(data.str());
+        self.append_data(&data.str());
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-insertdataoffset-data
@@ -190,7 +190,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
             let prefix;
             let replacement_before;
             let remaining;
-            match split_at_utf16_code_unit_offset(data.str(), offset) {
+            match split_at_utf16_code_unit_offset(&data, offset) {
                 Ok((p, astral, r)) => {
                     prefix = p;
                     // As if we had split the UTF-16 surrogate pair in half
@@ -231,16 +231,20 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
             );
             new_data.push_str(prefix);
             new_data.push_str(replacement_before);
-            new_data.push_str(arg.str());
+            new_data.push_str(&arg.str());
             new_data.push_str(replacement_after);
             new_data.push_str(suffix);
         }
-        *self.data.borrow_mut() = DOMString::from(new_data);
+        *self.data.borrow_mut() = new_data;
         self.content_changed();
         // Steps 8-11.
         let node = self.upcast::<Node>();
-        node.ranges()
-            .replace_code_units(node, offset, count, arg.encode_utf16().count() as u32);
+        node.ranges().replace_code_units(
+            node,
+            offset,
+            count,
+            arg.str().encode_utf16().count() as u32,
+        );
         Ok(())
     }
 
@@ -290,7 +294,7 @@ impl<'dom> LayoutCharacterDataHelpers<'dom> for LayoutDom<'dom, CharacterData> {
     #[allow(unsafe_code)]
     #[inline]
     fn data_for_layout(self) -> &'dom str {
-        unsafe { self.unsafe_get().data.borrow_for_layout().str() }
+        unsafe { self.unsafe_get().data.borrow_for_layout() }
     }
 }
 

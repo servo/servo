@@ -138,7 +138,7 @@ pub(crate) fn blob_parts_to_bytes(
     for blobpart in &mut blobparts {
         match blobpart {
             ArrayBufferOrArrayBufferViewOrBlobOrString::String(s) => {
-                ret.extend(s.as_bytes());
+                ret.extend_from_slice(&s.as_bytes());
             },
             ArrayBufferOrArrayBufferViewOrBlobOrString::Blob(b) => {
                 let bytes = b.get_bytes().unwrap_or(vec![]);
@@ -176,7 +176,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
             },
         };
 
-        let type_string = normalize_type_string(blobPropertyBag.type_.str());
+        let type_string = normalize_type_string(&blobPropertyBag.type_.str());
         let blob_impl = BlobImpl::new_from_bytes(bytes, type_string);
 
         Ok(Blob::new_with_proto(global, proto, blob_impl, can_gc))
@@ -206,7 +206,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
         can_gc: CanGc,
     ) -> DomRoot<Blob> {
         let global = self.global();
-        let type_string = normalize_type_string(content_type.unwrap_or_default().str());
+        let type_string = normalize_type_string(&content_type.unwrap_or_default().str());
 
         // If our parent is already a sliced blob then we reference the data from the grandparent instead,
         // to keep the blob ancestry chain short.

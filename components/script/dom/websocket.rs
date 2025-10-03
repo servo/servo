@@ -190,7 +190,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         // Step 1. Let baseURL be this's relevant settings object's API base URL.
         // Step 2. Let urlRecord be the result of applying the URL parser to url with baseURL.
         // Step 3. If urlRecord is failure, then throw a "SyntaxError" DOMException.
-        let mut url_record = ServoUrl::parse(url.str()).or(Err(Error::Syntax(None)))?;
+        let mut url_record = ServoUrl::parse(&url.str()).or(Err(Error::Syntax(None)))?;
 
         // Step 4. If urlRecord’s scheme is "http", then set urlRecord’s scheme to "ws".
         // Step 5. Otherwise, if urlRecord’s scheme is "https", set urlRecord’s scheme to "wss".

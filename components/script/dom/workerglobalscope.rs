@@ -394,7 +394,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                 "importScripts",
                 can_gc,
             )?;
-            let url = self.worker_url.borrow().join(url.str());
+            let url = self.worker_url.borrow().join(&url.str());
             match url {
                 Ok(url) => urls.push(url),
                 Err(_) => return Err(Error::Syntax(None)),
@@ -663,7 +663,7 @@ impl WorkerGlobalScope {
         options.set_introduction_type(IntroductionType::WORKER);
         match self.runtime.borrow().as_ref().unwrap().evaluate_script(
             self.reflector().get_jsobject(),
-            source.str(),
+            &source.str(),
             rval.handle_mut(),
             options,
         ) {

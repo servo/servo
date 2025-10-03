@@ -127,7 +127,7 @@ impl AddAssign for UTF16CodeUnits {
 
 impl From<DOMString> for SelectionDirection {
     fn from(direction: DOMString) -> SelectionDirection {
-        match direction.str() {
+        match &*direction.str() {
             "forward" => SelectionDirection::Forward,
             "backward" => SelectionDirection::Backward,
             _ => SelectionDirection::None,
@@ -253,7 +253,7 @@ pub(crate) const CMD_OR_CONTROL: Modifiers = Modifiers::CONTROL;
 /// If the string has fewer than n characters, returns the length of the whole string.
 /// If n is 0, returns 0
 fn len_of_first_n_chars(text: &DOMString, n: usize) -> UTF8Bytes {
-    match text.char_indices().take(n).last() {
+    match text.str().char_indices().take(n).last() {
         Some((index, ch)) => UTF8Bytes(index + ch.len_utf8()),
         None => UTF8Bytes::zero(),
     }
@@ -265,7 +265,7 @@ fn len_of_first_n_chars(text: &DOMString, n: usize) -> UTF8Bytes {
 fn len_of_first_n_code_units(text: &DOMString, n: UTF16CodeUnits) -> UTF8Bytes {
     let mut utf8_len = UTF8Bytes::zero();
     let mut utf16_len = UTF16CodeUnits::zero();
-    for c in text.chars() {
+    for c in text.str().chars() {
         utf16_len += UTF16CodeUnits(c.len_utf16());
         if utf16_len > n {
             break;
@@ -474,7 +474,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                 f(&mut acc, &self.lines[start.line].str()[start_offset..]);
                 for line in &self.lines[start.line + 1..end.line] {
                     f(&mut acc, "\n");
-                    f(&mut acc, line.str());
+                    f(&mut acc, &line.str());
                 }
                 f(&mut acc, "\n");
                 f(&mut acc, &self.lines[end.line].str()[..end_offset])
@@ -520,7 +520,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             // FIXME(ajeffrey): efficient append for DOMStrings
             let mut new_line = prefix.to_owned();
 
-            new_line.push_str(insert_lines[0].str());
+            new_line.push_str(&insert_lines[0].str());
             insert_lines[0] = DOMString::from(new_line);
 
             let last_insert_lines_index = insert_lines.len() - 1;
@@ -777,18 +777,24 @@ impl<T: ClipboardProvider> TextInput<T> {
         }
         let shift_increment: UTF8Bytes = {
             let current_index = self.edit_point.index;
-            let current_line = self.edit_point.line;
+            let current_line_index = self.edit_point.line;
+            let current_line = self.lines[current_line_index].str();
             let mut newline_adjustment = UTF8Bytes::zero();
             let mut shift_temp = UTF8Bytes::zero();
             match direction {
                 Direction::Backward => {
+                    let previous_line = current_line_index
+                        .checked_sub(1)
+                        .and_then(|index| self.lines.get(index))
+                        .map(|s| s.str());
+
                     let input: &str;
-                    if current_index == UTF8Bytes::zero() && current_line > 0 {
-                        input = self.lines[current_line - 1].str();
+                    if current_index == UTF8Bytes::zero() && current_line_index > 0 {
+                        input = previous_line.as_ref().unwrap();
                         newline_adjustment = UTF8Bytes::one();
                     } else {
                         let UTF8Bytes(remaining) = current_index;
-                        input = &self.lines[current_line].str()[..remaining];
+                        input = &current_line[..remaining];
                     }
 
                     let mut iter = input.split_word_bounds().rev();
@@ -806,14 +812,15 @@ impl<T: ClipboardProvider> TextInput<T> {
                 },
                 Direction::Forward => {
                     let input: &str;
+                    let next_line = self.lines.get(current_line_index + 1).map(|s| s.str());
                     let remaining = self.current_line_length().saturating_sub(current_index);
                     if remaining == UTF8Bytes::zero() && self.lines.len() > self.edit_point.line + 1
                     {
-                        input = self.lines[current_line + 1].str();
+                        input = next_line.as_ref().unwrap();
                         newline_adjustment = UTF8Bytes::one();
                     } else {
                         let UTF8Bytes(current_offset) = current_index;
-                        input = &self.lines[current_line].str()[current_offset..];
+                        input = &current_line[current_offset..];
                     }
 
                     let mut iter = input.split_word_bounds();
@@ -1086,7 +1093,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.lines
             .iter()
             .fold(UTF16CodeUnits::zero(), |m, l| {
-                m + UTF16CodeUnits(l.chars().map(char::len_utf16).sum::<usize>() + 1)
+                m + UTF16CodeUnits(l.str().chars().map(char::len_utf16).sum::<usize>() + 1)
                 // + 1 for the '\n'
             })
             .saturating_sub(UTF16CodeUnits::one())
@@ -1095,7 +1102,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// The length of the content in Unicode code points.
     pub(crate) fn char_count(&self) -> usize {
         self.lines.iter().fold(0, |m, l| {
-            m + l.chars().count() + 1 // + 1 for the '\n'
+            m + l.str().chars().count() + 1 // + 1 for the '\n'
         }) - 1
     }
 
@@ -1103,7 +1110,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     pub fn get_content(&self) -> DOMString {
         let mut content = "".to_owned();
         for (i, line) in self.lines.iter().enumerate() {
-            content.push_str(line.str());
+            content.push_str(&line.str());
             if i < self.lines.len() - 1 {
                 content.push('\n');
             }
@@ -1242,7 +1249,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             return ClipboardEventReaction::empty();
         }
 
-        match event.Type().str() {
+        match &*event.Type().str() {
             "copy" => {
                 // These steps are from <https://www.w3.org/TR/clipboard-apis/#copy-action>:
                 let selection = self.get_selection_text();

@@ -42,7 +42,6 @@ use js::jsval::{ObjectValue, UndefinedValue};
 use profile_traits::ipc as ProfiledIpc;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
 const KEY_CONVERSION_ERROR: &str =
@@ -432,7 +431,7 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
             let mut map = HashMap::new();
             for (key, bdfi) in manufacturer_data_map.iter() {
                 // Step 7.1 - 7.2.
-                let manufacturer_id = match u16::from_str(key.str()) {
+                let manufacturer_id = match key.str().parse::<u16>() {
                     Ok(id) => id,
                     Err(err) => {
                         return Err(Type(format!("{} {} {}", KEY_CONVERSION_ERROR, key, err)));
@@ -461,7 +460,7 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
             }
             let mut map = HashMap::new();
             for (key, bdfi) in service_data_map.iter() {
-                let service_name = match u32::from_str(key.str()) {
+                let service_name = match key.str().parse::<u32>() {
                     // Step 9.1.
                     Ok(number) => StringOrUnsignedLong::UnsignedLong(number),
                     // Step 9.2.

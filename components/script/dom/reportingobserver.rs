@@ -67,7 +67,7 @@ impl ReportingObserver {
     }
 
     fn report_is_visible_to_reporting_observers(report: &Report) -> bool {
-        match report.type_.str() {
+        match &*report.type_.str() {
             // https://w3c.github.io/webappsec-csp/#reporting
             "csp-violation" => true,
             _ => false,

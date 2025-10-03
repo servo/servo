@@ -567,7 +567,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         // Step 3 Let urlRecord be the result of encoding-parsing a URL given url,
         // relative to settings.
         let base_url = global.api_base_url();
-        let url_record = match base_url.join(url.str()) {
+        let url_record = match base_url.join(&url.str()) {
             Ok(u) => u,
             // Step 4 If urlRecord is failure, then throw a "SyntaxError" DOMException.
             Err(_) => return Err(Error::Syntax(None)),
