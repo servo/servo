@@ -84,21 +84,16 @@ impl PointerInputState {
     pub(crate) fn get_pointer_id(subtype: PointerType, pointer_ids: FxHashSet<u32>) -> u32 {
         // Step 2 - 4: Let pointer ids be all the values in input state map which is
         // pointer input source. This is already done and passed by the caller.
-        let mut pointer_id = None;
         if subtype == PointerType::Mouse {
             for id in 0..=1 {
                 if !pointer_ids.contains(&id) {
-                    pointer_id = Some(id);
-                    break;
+                    return id;
                 }
             }
         }
 
         // We are dealing with subtype other than mouse, which has minimum id 2.
-        if pointer_id.is_none() {
-            pointer_id = Some(1 + pointer_ids.into_iter().max().unwrap_or(1));
-        }
-        pointer_id.unwrap()
+        1 + pointer_ids.into_iter().max().unwrap_or(1)
     }
 }
 
