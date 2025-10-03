@@ -516,14 +516,17 @@ bitflags! {
         const BuiltStackingContextTree = 1 << 2;
         const BuiltDisplayList = 1 << 3;
         const UpdatedScrollNodeOffset = 1 << 4;
-        const UpdatedCanvasContents = 1 << 5;
+        /// Image data for a WebRender image key has been updated, without necessarily
+        /// updating style or layout. This is used when updating canvas contents and
+        /// progressing to a new animated image frame.
+        const UpdatedImageData = 1 << 5;
     }
 }
 
 impl ReflowPhasesRun {
     pub fn needs_frame(&self) -> bool {
         self.intersects(
-            Self::BuiltDisplayList | Self::UpdatedScrollNodeOffset | Self::UpdatedCanvasContents,
+            Self::BuiltDisplayList | Self::UpdatedScrollNodeOffset | Self::UpdatedImageData,
         )
     }
 }
