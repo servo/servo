@@ -58,6 +58,7 @@ pub struct PlatformFont {
     pub(crate) ctfont: CTFont,
     variations: Vec<FontVariation>,
     h_kern_subtable: Option<CachedKernTable>,
+    synthetic_bold: bool,
 }
 
 // From https://developer.apple.com/documentation/coretext:
@@ -72,18 +73,29 @@ unsafe impl Sync for PlatformFont {}
 unsafe impl Send for PlatformFont {}
 
 impl PlatformFont {
-    pub(crate) fn new_with_ctfont(ctfont: CTFont) -> Self {
-        Self::new_with_ctfont_and_variations(ctfont, vec![])
+    pub(crate) fn new_with_ctfont(ctfont: CTFont, synthetic_bold: bool) -> Self {
+        Self::new_with_ctfont_and_variations(ctfont, vec![], synthetic_bold)
     }
 
     pub(crate) fn new_with_ctfont_and_variations(
         ctfont: CTFont,
         variations: Vec<FontVariation>,
+        synthetic_bold: bool,
     ) -> PlatformFont {
+        let synthetic_bold = if ctfont
+            .get_variation_axes()
+            .is_some_and(|arr| !arr.is_empty())
+        {
+            false
+        } else {
+            synthetic_bold
+        };
+
         Self {
             ctfont,
             variations,
             h_kern_subtable: None,
+            synthetic_bold,
         }
     }
 
@@ -92,14 +104,19 @@ impl PlatformFont {
         data: Option<&FontData>,
         requested_size: Option<Au>,
         variations: &[FontVariation],
+        synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let size = match requested_size {
             Some(s) => s.to_f64_px(),
             None => 0.0,
         };
-        let Some(mut platform_font) =
-            CoreTextFontCache::core_text_font(font_identifier, data, size, variations)
-        else {
+        let Some(mut platform_font) = CoreTextFontCache::core_text_font(
+            font_identifier,
+            data,
+            size,
+            variations,
+            synthetic_bold,
+        ) else {
             return Err("Could not generate CTFont for FontTemplateData");
         };
 
@@ -171,6 +188,20 @@ impl PlatformFont {
             self.h_kern_subtable = Some(result);
         }
     }
+
+    // This is adapted from WebRender glyph rasterizer for macos.
+    // <https://github.com/servo/webrender/blob/main/wr_glyph_rasterizer/src/rasterizer.rs#L1006>
+    fn get_extra_strikes(&self, strike_scale: f64) -> usize {
+        if self.synthetic_bold {
+            let mut bold_offset = self.ctfont.pt_size() / 48.0;
+            if bold_offset < 1.0 {
+                bold_offset = 0.25 + 0.75 * bold_offset;
+            }
+            (bold_offset * strike_scale).max(1.0).round() as usize
+        } else {
+            0
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -214,22 +245,29 @@ impl PlatformFontMethods for PlatformFont {
         data: &FontData,
         requested_size: Option<Au>,
         variations: &[FontVariation],
-        _synthetic_bold: bool,
+        synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
-        Self::new(font_identifier, Some(data), requested_size, variations)
+        Self::new(
+            font_identifier,
+            Some(data),
+            requested_size,
+            variations,
+            synthetic_bold,
+        )
     }
 
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         requested_size: Option<Au>,
         variations: &[FontVariation],
-        _synthetic_bold: bool,
+        synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         Self::new(
             FontIdentifier::Local(font_identifier),
             None,
             requested_size,
             variations,
+            synthetic_bold,
         )
     }
 
@@ -276,7 +314,7 @@ impl PlatformFontMethods for PlatformFont {
 
     fn glyph_h_advance(&self, glyph: GlyphId) -> Option<FractionalPixel> {
         let glyphs = [glyph as CGGlyph];
-        let advance = unsafe {
+        let mut advance = unsafe {
             self.ctfont.get_advances_for_glyphs(
                 kCTFontDefaultOrientation,
                 &glyphs[0],
@@ -284,6 +322,29 @@ impl PlatformFontMethods for PlatformFont {
                 1,
             )
         };
+
+        // Adjust advance if synthetic bold is applied. Adapted from webrender rasterizer
+        // See <https://github.com/servo/webrender/blob/main/wr_glyph_rasterizer/src/platform/macos/font.rs#L595>
+        //
+        // TODO: x_scale and y_scale should be adjusted accordingly once affine transform
+        //      is added to achieve synthetic italic. For now, x_scale and y_scale would be
+        //      set to just 1.0 with no affine transformations.
+        let x_scale = 1.0;
+        let y_scale = 1.0;
+        let is_bitmap_font = self.table_for_tag(COLR).is_some() ||
+            self.table_for_tag(CBDT).is_some() ||
+            self.table_for_tag(SBIX).is_some();
+
+        let (strike_scale, pixel_step) = if is_bitmap_font {
+            (y_scale, 1.0)
+        } else {
+            (x_scale, y_scale / x_scale)
+        };
+        let extra_strikes = self.get_extra_strikes(strike_scale);
+        if advance > 0.0 {
+            advance += extra_strikes as f64 * pixel_step;
+        }
+
         Some(advance as FractionalPixel)
     }
 
@@ -356,14 +417,23 @@ impl PlatformFontMethods for PlatformFont {
 
     /// Get the necessary [`FontInstanceFlags`]` for this font.
     fn webrender_font_instance_flags(&self) -> FontInstanceFlags {
-        // TODO: Should this also validate these tables?
-        if self.table_for_tag(COLR).is_some() ||
-            self.table_for_tag(CBDT).is_some() ||
-            self.table_for_tag(SBIX).is_some()
-        {
-            return FontInstanceFlags::EMBEDDED_BITMAPS;
+        let mut flags = {
+            // TODO: Should this also validate these tables?
+            if self.table_for_tag(COLR).is_some() ||
+                self.table_for_tag(CBDT).is_some() ||
+                self.table_for_tag(SBIX).is_some()
+            {
+                FontInstanceFlags::EMBEDDED_BITMAPS
+            } else {
+                FontInstanceFlags::empty()
+            }
+        };
+
+        if self.synthetic_bold {
+            flags |= FontInstanceFlags::SYNTHETIC_BOLD;
         }
-        FontInstanceFlags::empty()
+
+        flags
     }
 
     fn typographic_bounds(&self, glyph_id: GlyphId) -> Rect<f32> {
