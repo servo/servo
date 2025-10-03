@@ -566,6 +566,19 @@ impl IOCompositor {
                 self.global.borrow_mut().send_transaction(txn);
             },
 
+            CompositorMsg::UpdateEpoch {
+                webview_id,
+                pipeline_id,
+                epoch,
+            } => {
+                let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
+                    return warn!("Could not find WebView for Epoch update.");
+                };
+                webview_renderer
+                    .ensure_pipeline_details(pipeline_id)
+                    .display_list_epoch = Some(Epoch(epoch.0));
+            },
+
             CompositorMsg::SendDisplayList {
                 webview_id,
                 display_list_descriptor,
@@ -637,9 +650,7 @@ impl IOCompositor {
                 details.viewport_scale =
                     Some(display_list_info.viewport_details.hidpi_scale_factor);
 
-                let epoch = display_list_info.epoch;
-                details.display_list_epoch = Some(Epoch(epoch.0));
-
+                let epoch = display_list_info.epoch.into();
                 let first_reflow = display_list_info.first_reflow;
                 if details.first_paint_metric == PaintMetricState::Waiting {
                     details.first_paint_metric = PaintMetricState::Seen(epoch, first_reflow);
@@ -659,8 +670,7 @@ impl IOCompositor {
                     self.send_root_pipeline_display_list_in_transaction(&mut transaction);
                 }
 
-                transaction
-                    .set_display_list(display_list_info.epoch, (pipeline_id, built_display_list));
+                transaction.set_display_list(epoch, (pipeline_id, built_display_list));
                 self.update_transaction_with_all_scroll_offsets(&mut transaction);
                 self.global.borrow_mut().send_transaction(transaction);
             },
