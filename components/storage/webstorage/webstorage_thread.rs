@@ -3,20 +3,28 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::ToOwned;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::thread;
 
 use base::generic_channel::{self, GenericReceiver, GenericSender};
 use base::id::WebViewId;
+use base::threadpool::ThreadPool;
 use malloc_size_of::MallocSizeOf;
+use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::mem::{
     ProcessReports, ProfilerChan as MemProfilerChan, Report, ReportKind, perform_memory_report,
 };
 use profile_traits::path;
 use rustc_hash::FxHashMap;
-use servo_url::ServoUrl;
+use servo_config::pref;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use storage_traits::webstorage_thread::{StorageType, WebStorageThreadMsg};
+use uuid::Uuid;
+
+use crate::webstorage::engines::WebStorageEngine;
+use crate::webstorage::engines::sqlite::SqliteEngine;
 
 const QUOTA_SIZE_LIMIT: usize = 5 * 1024 * 1024;
 
@@ -47,13 +55,90 @@ impl WebStorageThreadFactory for GenericSender<WebStorageThreadMsg> {
     }
 }
 
-type OriginEntry = (usize, BTreeMap<String, String>);
+#[derive(Clone, Default, MallocSizeOf)]
+pub struct OriginEntry {
+    tree: BTreeMap<String, String>,
+    size: usize,
+}
+
+impl OriginEntry {
+    pub fn inner(&self) -> &BTreeMap<String, String> {
+        &self.tree
+    }
+
+    pub fn insert(&mut self, key: String, value: String) -> Option<String> {
+        let old_value = self.tree.insert(key.clone(), value.clone());
+        let size_change = match &old_value {
+            Some(old) => value.len() as isize - old.len() as isize,
+            None => (key.len() + value.len()) as isize,
+        };
+        self.size = (self.size as isize + size_change) as usize;
+        old_value
+    }
+
+    pub fn remove(&mut self, key: &str) -> Option<String> {
+        let old_value = self.tree.remove(key);
+        if let Some(old) = &old_value {
+            self.size -= key.len() + old.len();
+        }
+        old_value
+    }
+
+    pub fn clear(&mut self) {
+        self.tree.clear();
+        self.size = 0;
+    }
+
+    pub fn size(&self) -> usize {
+        self.size
+    }
+}
+
+struct WebStorageEnvironment<E: WebStorageEngine> {
+    engine: E,
+    data: OriginEntry,
+}
+
+impl<E: WebStorageEngine> MallocSizeOf for WebStorageEnvironment<E> {
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        self.data.size_of(ops)
+    }
+}
+
+impl<E: WebStorageEngine> WebStorageEnvironment<E> {
+    fn new(engine: E) -> Self {
+        WebStorageEnvironment {
+            data: engine.load().unwrap_or_default(),
+            engine,
+        }
+    }
+
+    fn clear(&mut self) {
+        self.data.clear();
+        let _ = self.engine.clear();
+    }
+
+    fn delete(&mut self, key: &str) {
+        let _ = self.engine.delete(key);
+    }
+
+    fn set(&mut self, key: &str, value: &str) {
+        let _ = self.engine.set(key, value);
+    }
+}
+
+impl<E: WebStorageEngine> Drop for WebStorageEnvironment<E> {
+    fn drop(&mut self) {
+        self.engine.save(&self.data);
+    }
+}
 
 struct WebStorageManager {
     port: GenericReceiver<WebStorageThreadMsg>,
-    session_data: FxHashMap<WebViewId, HashMap<String, OriginEntry>>,
-    local_data: HashMap<String, OriginEntry>,
+    session_data: FxHashMap<WebViewId, FxHashMap<ImmutableOrigin, OriginEntry>>,
     config_dir: Option<PathBuf>,
+    thread_pool: Arc<ThreadPool>,
+    environments: FxHashMap<ImmutableOrigin, WebStorageEnvironment<SqliteEngine>>,
 }
 
 impl WebStorageManager {
@@ -61,15 +146,19 @@ impl WebStorageManager {
         port: GenericReceiver<WebStorageThreadMsg>,
         config_dir: Option<PathBuf>,
     ) -> WebStorageManager {
-        let mut local_data = HashMap::new();
-        if let Some(ref config_dir) = config_dir {
-            base::read_json_from_file(&mut local_data, config_dir, "local_data.json");
-        }
+        // Uses an estimate of the system cpus to process Webstorage transactions
+        // See https://doc.rust-lang.org/stable/std/thread/fn.available_parallelism.html
+        // If no information can be obtained about the system, uses 4 threads as a default
+        let thread_count = thread::available_parallelism()
+            .map(|i| i.get())
+            .unwrap_or(pref!(threadpools_fallback_worker_num) as usize)
+            .min(pref!(threadpools_webstorage_workers_max).max(1) as usize);
         WebStorageManager {
             port,
             session_data: FxHashMap::default(),
-            local_data,
             config_dir,
+            thread_pool: Arc::new(ThreadPool::new(thread_count, "WebStorage".to_string())),
+            environments: FxHashMap::default(),
         }
     }
 }
@@ -96,18 +185,15 @@ impl WebStorageManager {
                     value,
                 ) => {
                     self.set_item(sender, storage_type, webview_id, url, name, value);
-                    self.save_state()
                 },
                 WebStorageThreadMsg::GetItem(sender, storage_type, webview_id, url, name) => {
                     self.request_item(sender, storage_type, webview_id, url, name)
                 },
                 WebStorageThreadMsg::RemoveItem(sender, storage_type, webview_id, url, name) => {
                     self.remove_item(sender, storage_type, webview_id, url, name);
-                    self.save_state()
                 },
                 WebStorageThreadMsg::Clear(sender, storage_type, webview_id, url) => {
                     self.clear(sender, storage_type, webview_id, url);
-                    self.save_state()
                 },
                 WebStorageThreadMsg::Clone {
                     sender,
@@ -136,7 +222,7 @@ impl WebStorageManager {
             reports.push(Report {
                 path: path!["storage", "local"],
                 kind: ReportKind::ExplicitJemallocHeapSize,
-                size: self.local_data.size_of(ops),
+                size: self.environments.size_of(ops),
             });
 
             reports.push(Report {
@@ -148,24 +234,67 @@ impl WebStorageManager {
         reports
     }
 
-    fn save_state(&self) {
-        if let Some(ref config_dir) = self.config_dir {
-            base::write_json_to_file(&self.local_data, config_dir, "local_data.json");
+    fn get_origin_location(&self, origin: &ImmutableOrigin) -> Option<PathBuf> {
+        match &self.config_dir {
+            Some(config_dir) => {
+                const NAMESPACE_SERVO_WEBSTORAGE: &uuid::Uuid = &Uuid::from_bytes([
+                    0x37, 0x9e, 0x56, 0xb0, 0x1a, 0x76, 0x44, 0xc5, 0xa4, 0xdb, 0xe2, 0x18, 0xc5,
+                    0xc8, 0xa3, 0x5d,
+                ]);
+                let origin_uuid = Uuid::new_v5(
+                    NAMESPACE_SERVO_WEBSTORAGE,
+                    origin.ascii_serialization().as_bytes(),
+                );
+                Some(config_dir.join("webstorage").join(origin_uuid.to_string()))
+            },
+            None => None,
         }
     }
 
+    fn get_environment(
+        &mut self,
+        origin: &ImmutableOrigin,
+    ) -> &WebStorageEnvironment<SqliteEngine> {
+        if self.environments.contains_key(origin) {
+            return self.environments.get(origin).unwrap();
+        }
+
+        let origin_location = self.get_origin_location(origin);
+
+        let engine = SqliteEngine::new(&origin_location, self.thread_pool.clone()).unwrap();
+        let environment = WebStorageEnvironment::new(engine);
+        self.environments.insert(origin.clone(), environment);
+        self.environments.get(origin).unwrap()
+    }
+
+    fn get_environment_mut(
+        &mut self,
+        origin: &ImmutableOrigin,
+    ) -> &mut WebStorageEnvironment<SqliteEngine> {
+        if self.environments.contains_key(origin) {
+            return self.environments.get_mut(origin).unwrap();
+        }
+
+        let origin_location = self.get_origin_location(origin);
+
+        let engine = SqliteEngine::new(&origin_location, self.thread_pool.clone()).unwrap();
+        let environment = WebStorageEnvironment::new(engine);
+        self.environments.insert(origin.clone(), environment);
+        self.environments.get_mut(origin).unwrap()
+    }
+
     fn select_data(
-        &self,
+        &mut self,
         storage_type: StorageType,
         webview_id: WebViewId,
-        origin: &str,
+        origin: ImmutableOrigin,
     ) -> Option<&OriginEntry> {
         match storage_type {
             StorageType::Session => self
                 .session_data
                 .get(&webview_id)
-                .and_then(|origin_map| origin_map.get(origin)),
-            StorageType::Local => self.local_data.get(origin),
+                .and_then(|origin_map| origin_map.get(&origin)),
+            StorageType::Local => Some(&self.get_environment(&origin).data),
         }
     }
 
@@ -173,14 +302,14 @@ impl WebStorageManager {
         &mut self,
         storage_type: StorageType,
         webview_id: WebViewId,
-        origin: &str,
+        origin: ImmutableOrigin,
     ) -> Option<&mut OriginEntry> {
         match storage_type {
             StorageType::Session => self
                 .session_data
                 .get_mut(&webview_id)
-                .and_then(|origin_map| origin_map.get_mut(origin)),
-            StorageType::Local => self.local_data.get_mut(origin),
+                .and_then(|origin_map| origin_map.get_mut(&origin)),
+            StorageType::Local => Some(&mut self.get_environment_mut(&origin).data),
         }
     }
 
@@ -188,59 +317,56 @@ impl WebStorageManager {
         &mut self,
         storage_type: StorageType,
         webview_id: WebViewId,
-        origin: &str,
+        origin: ImmutableOrigin,
     ) -> &mut OriginEntry {
         match storage_type {
             StorageType::Session => self
                 .session_data
                 .entry(webview_id)
                 .or_default()
-                .entry(origin.to_string())
+                .entry(origin)
                 .or_default(),
-            StorageType::Local => self.local_data.entry(origin.to_string()).or_default(),
+            StorageType::Local => &mut self.get_environment_mut(&origin).data,
         }
     }
 
     fn length(
-        &self,
+        &mut self,
         sender: GenericSender<usize>,
         storage_type: StorageType,
         webview_id: WebViewId,
         url: ServoUrl,
     ) {
-        let origin = self.origin_as_string(url);
-        let data = self.select_data(storage_type, webview_id, &origin);
+        let data = self.select_data(storage_type, webview_id, url.origin());
         sender
-            .send(data.map_or(0, |(_, entry)| entry.len()))
+            .send(data.map_or(0, |entry| entry.inner().len()))
             .unwrap();
     }
 
     fn key(
-        &self,
+        &mut self,
         sender: GenericSender<Option<String>>,
         storage_type: StorageType,
         webview_id: WebViewId,
         url: ServoUrl,
         index: u32,
     ) {
-        let origin = self.origin_as_string(url);
-        let data = self.select_data(storage_type, webview_id, &origin);
+        let data = self.select_data(storage_type, webview_id, url.origin());
         let key = data
-            .and_then(|(_, entry)| entry.keys().nth(index as usize))
+            .and_then(|entry| entry.inner().keys().nth(index as usize))
             .cloned();
         sender.send(key).unwrap();
     }
 
     fn keys(
-        &self,
+        &mut self,
         sender: GenericSender<Vec<String>>,
         storage_type: StorageType,
         webview_id: WebViewId,
         url: ServoUrl,
     ) {
-        let origin = self.origin_as_string(url);
-        let data = self.select_data(storage_type, webview_id, &origin);
-        let keys = data.map_or(vec![], |(_, entry)| entry.keys().cloned().collect());
+        let data = self.select_data(storage_type, webview_id, url.origin());
+        let keys = data.map_or(vec![], |entry| entry.inner().keys().cloned().collect());
 
         sender.send(keys).unwrap();
     }
@@ -258,24 +384,21 @@ impl WebStorageManager {
         name: String,
         value: String,
     ) {
-        let origin = self.origin_as_string(url);
-
         let (this_storage_size, other_storage_size) = {
-            let local_data = self.select_data(StorageType::Local, webview_id, &origin);
-            let session_data = self.select_data(StorageType::Session, webview_id, &origin);
-            let local_data_size = local_data.map_or(0, |&(total, _)| total);
-            let session_data_size = session_data.map_or(0, |&(total, _)| total);
+            let local_data = self.select_data(StorageType::Local, webview_id, url.origin());
+            let local_data_size = local_data.map_or(0, OriginEntry::size);
+            let session_data = self.select_data(StorageType::Session, webview_id, url.origin());
+            let session_data_size = session_data.map_or(0, OriginEntry::size);
             match storage_type {
                 StorageType::Local => (local_data_size, session_data_size),
                 StorageType::Session => (session_data_size, local_data_size),
             }
         };
 
-        let &mut (ref mut total, ref mut entry) =
-            self.ensure_data_mut(storage_type, webview_id, &origin);
+        let entry = self.ensure_data_mut(storage_type, webview_id, url.origin());
 
         let mut new_total_size = this_storage_size + value.len();
-        if let Some(old_value) = entry.get(&name) {
+        if let Some(old_value) = entry.inner().get(&name) {
             new_total_size -= old_value.len();
         } else {
             new_total_size += name.len();
@@ -284,32 +407,34 @@ impl WebStorageManager {
         let message = if (new_total_size + other_storage_size) > QUOTA_SIZE_LIMIT {
             Err(())
         } else {
-            *total = new_total_size;
-            entry
-                .insert(name.clone(), value.clone())
-                .map_or(Ok((true, None)), |old| {
-                    if old == value {
-                        Ok((false, None))
-                    } else {
-                        Ok((true, Some(old)))
-                    }
-                })
+            let result =
+                entry
+                    .insert(name.clone(), value.clone())
+                    .map_or(Ok((true, None)), |old| {
+                        if old == value {
+                            Ok((false, None))
+                        } else {
+                            Ok((true, Some(old)))
+                        }
+                    });
+            let env = self.get_environment_mut(&url.origin());
+            env.set(&name, &value);
+            result
         };
         sender.send(message).unwrap();
     }
 
     fn request_item(
-        &self,
+        &mut self,
         sender: GenericSender<Option<String>>,
         storage_type: StorageType,
         webview_id: WebViewId,
         url: ServoUrl,
         name: String,
     ) {
-        let origin = self.origin_as_string(url);
-        let data = self.select_data(storage_type, webview_id, &origin);
+        let data = self.select_data(storage_type, webview_id, url.origin());
         sender
-            .send(data.and_then(|(_, entry)| entry.get(&name)).cloned())
+            .send(data.and_then(|entry| entry.inner().get(&name)).cloned())
             .unwrap();
     }
 
@@ -322,14 +447,11 @@ impl WebStorageManager {
         url: ServoUrl,
         name: String,
     ) {
-        let origin = self.origin_as_string(url);
-        let data = self.select_data_mut(storage_type, webview_id, &origin);
-        let old_value = data.and_then(|&mut (ref mut total, ref mut entry)| {
-            entry.remove(&name).inspect(|old| {
-                *total -= name.len() + old.len();
-            })
-        });
+        let data = self.select_data_mut(storage_type, webview_id, url.origin());
+        let old_value = data.and_then(|entry| entry.remove(&name));
         sender.send(old_value).unwrap();
+        let env = self.get_environment_mut(&url.origin());
+        env.delete(&name);
     }
 
     fn clear(
@@ -339,19 +461,19 @@ impl WebStorageManager {
         webview_id: WebViewId,
         url: ServoUrl,
     ) {
-        let origin = self.origin_as_string(url);
-        let data = self.select_data_mut(storage_type, webview_id, &origin);
+        let data = self.select_data_mut(storage_type, webview_id, url.origin());
         sender
-            .send(data.is_some_and(|&mut (ref mut total, ref mut entry)| {
-                if !entry.is_empty() {
+            .send(data.is_some_and(|entry| {
+                if !entry.inner().is_empty() {
                     entry.clear();
-                    *total = 0;
                     true
                 } else {
                     false
                 }
             }))
             .unwrap();
+        let env = self.get_environment_mut(&url.origin());
+        env.clear();
     }
 
     fn clone(&mut self, src_webview_id: WebViewId, dest_webview_id: WebViewId) {
@@ -362,9 +484,5 @@ impl WebStorageManager {
         let dest_origin_entries = src_origin_entries.clone();
         self.session_data
             .insert(dest_webview_id, dest_origin_entries);
-    }
-
-    fn origin_as_string(&self, url: ServoUrl) -> String {
-        url.origin().ascii_serialization()
     }
 }

@@ -255,6 +255,8 @@ pub struct Preferences {
     pub threadpools_image_cache_workers_max: i64,
     /// Maximum number of workers for the IndexedDB thread pool
     pub threadpools_indexeddb_workers_max: i64,
+    /// Maximum number of workers for the Web Storage thread pool
+    pub threadpools_webstorage_workers_max: i64,
     /// Maximum number of workers for the Networking async runtime thread pool
     pub threadpools_async_runtime_workers_max: i64,
     /// Maximum number of workers for the Core Resource Manager
@@ -428,6 +430,7 @@ impl Preferences {
             threadpools_fallback_worker_num: 3,
             threadpools_image_cache_workers_max: 4,
             threadpools_indexeddb_workers_max: 4,
+            threadpools_webstorage_workers_max: 4,
             threadpools_resource_workers_max: 4,
             threadpools_webrender_workers_max: 4,
             webgl_testing_context_creation_error: false,
