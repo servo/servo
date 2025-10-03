@@ -619,6 +619,7 @@ impl FontGroup {
         codepoint: char,
         next_codepoint: Option<char>,
         first_fallback: Option<FontRef>,
+        lang: Option<String>,
     ) -> Option<FontRef> {
         // Tab characters are converted into spaces when rendering.
         // TODO: We should not render a tab character. Instead they should be converted into tab stops
@@ -628,7 +629,7 @@ impl FontGroup {
             _ => codepoint,
         };
 
-        let options = FallbackFontSelectionOptions::new(codepoint, next_codepoint);
+        let options = FallbackFontSelectionOptions::new(codepoint, next_codepoint, lang);
 
         let should_look_for_small_caps = self.descriptor.variant == font_variant_caps::T::SmallCaps &&
             options.character.is_ascii_lowercase();
@@ -674,7 +675,7 @@ impl FontGroup {
 
         if let Some(font) = self.find_fallback(
             font_context,
-            options,
+            options.clone(),
             char_in_template,
             font_has_glyph_and_presentation,
         ) {
