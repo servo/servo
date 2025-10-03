@@ -326,6 +326,18 @@ impl HTMLVideoElement {
 }
 
 impl HTMLVideoElementMethods<crate::DomTypeHolder> for HTMLVideoElement {
+    // <https://html.spec.whatwg.org/multipage/#dom-video-width>
+    make_dimension_uint_getter!(Width, "width");
+
+    // <https://html.spec.whatwg.org/multipage/#dom-video-width>
+    make_dimension_uint_setter!(SetWidth, "width");
+
+    // <https://html.spec.whatwg.org/multipage/#dom-video-height>
+    make_dimension_uint_getter!(Height, "height");
+
+    // <https://html.spec.whatwg.org/multipage/#dom-video-height>
+    make_dimension_uint_setter!(SetHeight, "height");
+
     // https://html.spec.whatwg.org/multipage/#dom-video-videowidth
     fn VideoWidth(&self) -> u32 {
         if self.htmlmediaelement.get_ready_state() == ReadyState::HaveNothing {
@@ -370,6 +382,16 @@ impl VirtualMethods for HTMLVideoElement {
                 self.update_poster_frame(None, CanGc::note())
             }
         };
+    }
+
+    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+        match attr.local_name() {
+            &local_name!("width") | &local_name!("height") => true,
+            _ => self
+                .super_type()
+                .unwrap()
+                .attribute_affects_presentational_hints(attr),
+        }
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
@@ -525,22 +547,6 @@ pub(crate) trait LayoutHTMLVideoElementHelpers {
     fn get_height(self) -> LengthOrPercentageOrAuto;
 }
 
-impl LayoutDom<'_, HTMLVideoElement> {
-    fn width_attr(self) -> Option<LengthOrPercentageOrAuto> {
-        self.upcast::<Element>()
-            .get_attr_for_layout(&ns!(), &local_name!("width"))
-            .map(AttrValue::as_dimension)
-            .cloned()
-    }
-
-    fn height_attr(self) -> Option<LengthOrPercentageOrAuto> {
-        self.upcast::<Element>()
-            .get_attr_for_layout(&ns!(), &local_name!("height"))
-            .map(AttrValue::as_dimension)
-            .cloned()
-    }
-}
-
 impl LayoutHTMLVideoElementHelpers for LayoutDom<'_, HTMLVideoElement> {
     fn data(self) -> HTMLMediaData {
         let video = self.unsafe_get();
@@ -563,10 +569,18 @@ impl LayoutHTMLVideoElementHelpers for LayoutDom<'_, HTMLVideoElement> {
     }
 
     fn get_width(self) -> LengthOrPercentageOrAuto {
-        self.width_attr().unwrap_or(LengthOrPercentageOrAuto::Auto)
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("width"))
+            .map(AttrValue::as_dimension)
+            .cloned()
+            .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 
     fn get_height(self) -> LengthOrPercentageOrAuto {
-        self.height_attr().unwrap_or(LengthOrPercentageOrAuto::Auto)
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("height"))
+            .map(AttrValue::as_dimension)
+            .cloned()
+            .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 }

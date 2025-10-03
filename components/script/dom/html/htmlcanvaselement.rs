@@ -681,6 +681,16 @@ impl VirtualMethods for HTMLCanvasElement {
         };
     }
 
+    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+        match attr.local_name() {
+            &local_name!("width") | &local_name!("height") => true,
+            _ => self
+                .super_type()
+                .unwrap()
+                .attribute_affects_presentational_hints(attr),
+        }
+    }
+
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match *name {
             local_name!("width") => AttrValue::from_u32(value.into(), DEFAULT_WIDTH),

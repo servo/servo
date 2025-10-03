@@ -485,10 +485,10 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     // https://html.spec.whatwg.org/multipage/#dom-table-bgcolor
     make_legacy_color_setter!(SetBgColor, "bgcolor");
 
-    // https://html.spec.whatwg.org/multipage/#dom-table-width
+    // <https://html.spec.whatwg.org/multipage/#dom-table-width>
     make_getter!(Width, "width");
 
-    // https://html.spec.whatwg.org/multipage/#dom-table-width
+    // <https://html.spec.whatwg.org/multipage/#dom-table-width>
     make_nonzero_dimension_setter!(SetWidth, "width");
 }
 
@@ -571,6 +571,16 @@ impl VirtualMethods for HTMLTableElement {
                 );
             },
             _ => {},
+        }
+    }
+
+    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+        match attr.local_name() {
+            &local_name!("width") | &local_name!("height") => true,
+            _ => self
+                .super_type()
+                .unwrap()
+                .attribute_affects_presentational_hints(attr),
         }
     }
 

@@ -88,10 +88,16 @@ impl HTMLTableCellElementMethods<crate::DomTypeHolder> for HTMLTableCellElement 
     // https://html.spec.whatwg.org/multipage/#dom-tdth-bgcolor
     make_legacy_color_setter!(SetBgColor, "bgcolor");
 
-    // https://html.spec.whatwg.org/multipage/#dom-tdth-width
+    // <https://html.spec.whatwg.org/multipage/#dom-tdth-height>
+    make_getter!(Height, "height");
+
+    // <https://html.spec.whatwg.org/multipage/#dom-tdth-height>
+    make_nonzero_dimension_setter!(SetHeight, "height");
+
+    // <https://html.spec.whatwg.org/multipage/#dom-tdth-width>
     make_getter!(Width, "width");
 
-    // https://html.spec.whatwg.org/multipage/#dom-tdth-width
+    // <https://html.spec.whatwg.org/multipage/#dom-tdth-width>
     make_nonzero_dimension_setter!(SetWidth, "width");
 
     // https://html.spec.whatwg.org/multipage/#dom-tdth-cellindex
@@ -184,6 +190,16 @@ impl VirtualMethods for HTMLTableCellElement {
         }
         if matches!(*attr.local_name(), local_name!("rowspan")) {
             self.upcast::<Node>().dirty(NodeDamage::Other);
+        }
+    }
+
+    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+        match attr.local_name() {
+            &local_name!("width") | &local_name!("height") => true,
+            _ => self
+                .super_type()
+                .unwrap()
+                .attribute_affects_presentational_hints(attr),
         }
     }
 

@@ -4299,10 +4299,7 @@ impl VirtualMethods for Element {
 
     fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
         // FIXME: This should be more fine-grained, not all elements care about these.
-        if attr.local_name() == &local_name!("width") ||
-            attr.local_name() == &local_name!("height") ||
-            attr.local_name() == &local_name!("lang")
-        {
+        if attr.local_name() == &local_name!("lang") {
             return true;
         }
 
