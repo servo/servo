@@ -1959,7 +1959,6 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#dfn-release-actions>
     fn handle_release_actions(&mut self) -> WebDriverResult<WebDriverResponse> {
-        let session = self.session()?;
         let browsing_context_id = self.browsing_context_id()?;
 
         // Step 1. If session's current browsing context is no longer open,
@@ -1978,7 +1977,7 @@ impl Handler {
 
         // Step 6. Let undo actions be input cancel list in reverse order.
 
-        let undo_actions = session
+        let undo_actions = self.session_mut()?
             .input_cancel_list_mut()
             .drain(..)
             .rev()
@@ -1990,7 +1989,7 @@ impl Handler {
         }
 
         // Step 8. Reset the input state of session's current top-level browsing context.
-        session.input_state_table_mut().clear();
+        self.session_mut()?.input_state_table_mut().clear();
 
         Ok(WebDriverResponse::Void)
     }
