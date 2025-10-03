@@ -357,22 +357,18 @@ impl Handler {
         source_id: &str,
         action: &PointerDownAction,
     ) {
-        let x: f32;
-        let y: f32;
-        {
-            let pointer_input_state = self.get_pointer_input_state(source_id);
+        let pointer_input_state = self.get_pointer_input_state(source_id);
 
-            // Step 3. If the source's pressed property contains button return success with data null.
-            if pointer_input_state.pressed.contains(&action.button) {
-                return;
-            }
-
-            // Step 6. Add button to the set corresponding to source's pressed property
-            pointer_input_state.pressed.insert(action.button);
-
-            x = pointer_input_state.x as f32;
-            y = pointer_input_state.y as f32;
+        // Step 3. If the source's pressed property contains button return success with data null.
+        if pointer_input_state.pressed.contains(&action.button) {
+            return;
         }
+
+        // Step 6. Add button to the set corresponding to source's pressed property
+        pointer_input_state.pressed.insert(action.button);
+
+        let x = pointer_input_state.x as f32;
+        let y = pointer_input_state.y as f32;
 
         // Step 7 - 15: Variable namings already done.
         // Step 16. Perform implementation-specific action dispatch steps
@@ -394,21 +390,17 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerup-action>
     pub(crate) fn dispatch_pointerup_action(&mut self, source_id: &str, action: &PointerUpAction) {
-        let x: f32;
-        let y: f32;
-        {
-            let pointer_input_state = self.get_pointer_input_state(source_id);
+        let pointer_input_state = self.get_pointer_input_state(source_id);
 
-            // Step 3. If the source's pressed property does not contain button, return success with data null.
-            if !pointer_input_state.pressed.contains(&action.button) {
-                return;
-            }
-
-            // Step 6. Remove button from the set corresponding to source's pressed property,
-            pointer_input_state.pressed.remove(&action.button);
-            x = pointer_input_state.x as f32;
-            y = pointer_input_state.y as f32;
+        // Step 3. If the source's pressed property does not contain button, return success with data null.
+        if !pointer_input_state.pressed.contains(&action.button) {
+            return;
         }
+
+        // Step 6. Remove button from the set corresponding to source's pressed property,
+        pointer_input_state.pressed.remove(&action.button);
+        let x = pointer_input_state.x as f32;
+        let y = pointer_input_state.y as f32;
 
         // Remove matching pointerUp(must be unique) from `[input_cancel_list]` due to bugs in spec
         // See https://github.com/w3c/webdriver/issues/1905 &&
@@ -521,13 +513,9 @@ impl Handler {
         target_y: f64,
         tick_start: Instant,
     ) {
-        let p_x: f64;
-        let p_y: f64;
-        {
-            let pointer_input_state = self.get_pointer_input_state(source_id);
-            p_x = pointer_input_state.x;
-            p_y = pointer_input_state.y;
-        }
+        let pointer_input_state = self.get_pointer_input_state(source_id);
+        let p_x = pointer_input_state.x;
+        let p_y = pointer_input_state.y;
 
         loop {
             // Step 1. Let time delta be the time since the beginning of the
@@ -609,8 +597,13 @@ impl Handler {
     }
 
     fn get_pointer_input_state(&mut self, source_id: &str) -> &mut PointerInputState {
-        let input_state_table = self.session_mut().unwrap().input_state_table_mut();
-        match input_state_table.get_mut(source_id).unwrap() {
+        match self
+            .session_mut()
+            .unwrap()
+            .input_state_table_mut()
+            .get_mut(source_id)
+            .unwrap()
+        {
             InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
             _ => unreachable!(),
         }
