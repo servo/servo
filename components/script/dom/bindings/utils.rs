@@ -21,7 +21,9 @@ use crate::DomTypes;
 use crate::dom::bindings::codegen::{InterfaceObjectMap, PrototypeList};
 use crate::dom::bindings::constructor::call_html_constructor;
 use crate::dom::bindings::conversions::DerivedFrom;
-use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exception};
+use crate::dom::bindings::error::{
+    Error, ReportExceptionFlags, report_pending_exception, throw_dom_exception,
+};
 use crate::dom::bindings::principals::PRINCIPALS_CALLBACKS;
 use crate::dom::bindings::proxyhandler::is_platform_object_same_origin;
 use crate::dom::bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object};
@@ -204,6 +206,10 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         realm: InRealm,
         can_gc: CanGc,
     ) {
-        report_pending_exception(cx, dispatch_event, realm, can_gc)
+        let flags = match dispatch_event {
+            true => ReportExceptionFlags::DispatchEvent,
+            false => ReportExceptionFlags::empty(),
+        };
+        report_pending_exception(cx, flags, realm, can_gc);
     }
 }

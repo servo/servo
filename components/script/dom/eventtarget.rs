@@ -45,7 +45,9 @@ use crate::dom::bindings::codegen::GenericBindings::DocumentBinding::Document_Bi
 use crate::dom::bindings::codegen::UnionTypes::{
     AddEventListenerOptionsOrBoolean, EventListenerOptionsOrBoolean, EventOrString,
 };
-use crate::dom::bindings::error::{Error, Fallible, report_pending_exception};
+use crate::dom::bindings::error::{
+    Error, Fallible, ReportExceptionFlags, report_pending_exception,
+};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{
@@ -789,7 +791,12 @@ impl EventTarget {
             // Step 3.7
             let ar = enter_realm(self);
             // FIXME(#13152): dispatch error event.
-            report_pending_exception(cx, false, InRealm::Entered(&ar), can_gc);
+            report_pending_exception(
+                cx,
+                ReportExceptionFlags::empty(),
+                InRealm::Entered(&ar),
+                can_gc,
+            );
             return None;
         }
 

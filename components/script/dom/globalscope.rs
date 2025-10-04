@@ -86,7 +86,9 @@ use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use crate::dom::bindings::conversions::{root_from_object, root_from_object_static};
-use crate::dom::bindings::error::{Error, ErrorInfo, report_pending_exception};
+use crate::dom::bindings::error::{
+    Error, ErrorInfo, ReportExceptionFlags, report_pending_exception,
+};
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -2692,7 +2694,12 @@ impl GlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#report-the-error>
-    pub(crate) fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue, can_gc: CanGc) {
+    pub(crate) fn report_an_error(
+        &self,
+        error_info: &ErrorInfo,
+        value: HandleValue,
+        can_gc: CanGc,
+    ) {
         // Step 6. Early return if global is in error reporting mode,
         if self.in_error_reporting_mode.get() {
             return;
@@ -2713,7 +2720,7 @@ impl GlobalScope {
             EventCancelable::Cancelable,
             error_info.message.as_str().into(),
             error_info.filename.as_str().into(),
-            error_info.lineno,
+            error_info.line_number,
             error_info.column,
             value,
             can_gc,
@@ -2730,7 +2737,7 @@ impl GlobalScope {
         if not_handled {
             // https://html.spec.whatwg.org/multipage/#runtime-script-errors-2
             if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
-                dedicated.forward_error_to_worker_object(error_info);
+                dedicated.forward_error_to_worker_object(error_info.clone());
             } else if self.is::<Window>() {
                 if let Some(ref chan) = self.devtools_chan {
                     let _ = chan.send(ScriptToDevtoolsControlMsg::ReportPageError(
@@ -2740,7 +2747,7 @@ impl GlobalScope {
                             error_message: error_info.message.clone(),
                             source_name: error_info.filename.clone(),
                             line_text: "".to_string(), // TODO
-                            line_number: error_info.lineno,
+                            line_number: error_info.line_number,
                             column_number: error_info.column,
                             category: "script".to_string(),
                             time_stamp: SystemTime::now()
@@ -2867,7 +2874,13 @@ impl GlobalScope {
 
                     if compiled_script.is_null() {
                         debug!("error compiling Dom string");
-                        report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
+                        report_pending_exception(
+                            cx,
+                            ReportExceptionFlags::DispatchEvent |
+                                ReportExceptionFlags::IncludeStack,
+                            InRealm::Entered(&ar),
+                            can_gc,
+                        );
                         return Err(JavaScriptEvaluationError::CompilationFailure);
                     }
                 },
@@ -2917,8 +2930,14 @@ impl GlobalScope {
 
             if !result {
                 debug!("error evaluating Dom string");
-                report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
-                return Err(JavaScriptEvaluationError::EvaluationFailure);
+                let error_info = report_pending_exception(
+                    cx,
+                    ReportExceptionFlags::DispatchEvent,
+                    InRealm::Entered(&ar),
+                    can_gc,
+                )
+                .map(Into::into);
+                return Err(JavaScriptEvaluationError::EvaluationFailure(error_info));
             }
 
             maybe_resume_unwind();

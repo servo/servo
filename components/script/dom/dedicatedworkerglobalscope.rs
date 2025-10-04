@@ -740,6 +740,7 @@ impl DedicatedWorkerGlobalScope {
     pub(crate) fn forward_error_to_worker_object(&self, error_info: ErrorInfo) {
         let worker = self.worker.borrow().as_ref().unwrap().clone();
         let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
+
         let task = Box::new(task!(forward_error_to_worker_object: move || {
             let worker = worker.root();
             let global = worker.global();
@@ -752,7 +753,7 @@ impl DedicatedWorkerGlobalScope {
                 EventCancelable::Cancelable,
                 error_info.message.as_str().into(),
                 error_info.filename.as_str().into(),
-                error_info.lineno,
+                error_info.line_number,
                 error_info.column,
                 HandleValue::null(),
                 CanGc::note(),
@@ -760,7 +761,7 @@ impl DedicatedWorkerGlobalScope {
 
             // Step 2.
             if event.upcast::<Event>().fire(worker.upcast::<EventTarget>(), CanGc::note()) {
-                global.report_an_error(error_info, HandleValue::null(), CanGc::note());
+                global.report_an_error(&error_info, HandleValue::null(), CanGc::note());
             }
         }));
         self.parent_event_loop_sender
