@@ -11,8 +11,7 @@ use storage_traits::StorageThreads;
 use storage_traits::indexeddb_thread::IndexedDBThreadMsg;
 use storage_traits::webstorage_thread::WebStorageThreadMsg;
 
-use crate::indexeddb::IndexedDBThreadFactory;
-use crate::webstorage_thread::WebStorageThreadFactory;
+use crate::{IndexedDBThreadFactory, WebStorageThreadFactory};
 
 #[allow(clippy::too_many_arguments)]
 pub fn new_storage_threads(

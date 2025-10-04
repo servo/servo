@@ -20,23 +20,13 @@ use tokio::sync::oneshot;
 
 use crate::indexeddb::engines::{KvsEngine, KvsTransaction};
 use crate::indexeddb::idb_thread::IndexedDBDescription;
+use crate::shared::{DB_INIT_PRAGMAS, DB_PRAGMAS};
 
 mod create;
 mod database_model;
 mod object_data_model;
 mod object_store_index_model;
 mod object_store_model;
-
-// These pragmas need to be set once
-const DB_INIT_PRAGMAS: [&str; 2] = ["PRAGMA journal_mode = WAL;", "PRAGMA encoding = 'UTF-16';"];
-
-// These pragmas need to be run once per connection.
-const DB_PRAGMAS: [&str; 4] = [
-    "PRAGMA synchronous = NORMAL;",
-    "PRAGMA journal_size_limit = 67108864 -- 64 megabytes;",
-    "PRAGMA mmap_size = 67108864 -- 64 megabytes;",
-    "PRAGMA cache_size = 2000;",
-];
 
 fn range_to_query(range: IndexedDBKeyRange) -> Condition {
     // Special case for optimization
