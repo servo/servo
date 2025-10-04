@@ -28,7 +28,7 @@ impl NamespaceObjectClass {
         NamespaceObjectClass(JSClass {
             name: name.as_ptr(),
             flags: 0,
-            cOps: 0 as *mut _,
+            cOps: ptr::null(),
             spec: ptr::null(),
             ext: ptr::null(),
             oOps: ptr::null(),
