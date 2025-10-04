@@ -536,9 +536,11 @@ impl HTMLLinkElement {
         let fetch_context = LinkFetchContext {
             url,
             link: Some(Trusted::new(self)),
+            document: Trusted::new(&document),
             global: Trusted::new(&document.global()),
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             type_: LinkFetchContextType::Prefetch,
+            response_body: vec![],
         };
 
         document.fetch_background(request, fetch_context);
@@ -800,19 +802,12 @@ impl HTMLLinkElement {
             }
         }
         // Step 6. Preload options, with the following steps given a response response:
-        let Some(request) = options.preload(self.owner_window().webview_id()) else {
-            return;
-        };
-        let url = request.url.clone();
         let document = self.upcast::<Node>().owner_doc();
-        let fetch_context = LinkFetchContext {
-            url,
-            link: Some(Trusted::new(self)),
-            global: Trusted::new(&document.global()),
-            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
-            type_: LinkFetchContextType::Preload,
-        };
-        document.fetch_background(request, fetch_context);
+        options.preload(
+            self.owner_window().webview_id(),
+            Some(Trusted::new(self)),
+            &document,
+        );
     }
 
     /// <https://html.spec.whatwg.org/multipage/#link-type-preload:fetch-and-process-the-linked-resource-2>
