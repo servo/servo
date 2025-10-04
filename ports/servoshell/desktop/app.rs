@@ -57,6 +57,9 @@ pub struct App {
     t: Instant,
     state: AppState,
 
+    // cache the last title we actually set on the OS window
+    last_window_title: String,
+
     // This is the last field of the struct to ensure that windows are dropped *after* all other
     // references to the relevant rendering contexts have been destroyed.
     // (https://github.com/servo/servo/issues/36711)
@@ -101,6 +104,7 @@ impl App {
             t_start: t,
             t,
             state: AppState::Initializing,
+            last_window_title: "Servo".to_string(),
         }
     }
 
@@ -242,6 +246,20 @@ impl App {
                     if let Some(window) = window.winit_window() {
                         window.request_redraw();
                     }
+                }
+
+                let new_title = state
+                    .focused_webview()
+                    .and_then(|w| {
+                        w.page_title()
+                            .filter(|t| !t.is_empty())
+                            .or_else(|| w.url().map(|url| url.to_string()))
+                    })
+                    .unwrap_or_else(|| "Servo".to_string());
+
+                if new_title != self.last_window_title {
+                    window.set_title(&new_title);
+                    self.last_window_title = new_title;
                 }
             },
         }
