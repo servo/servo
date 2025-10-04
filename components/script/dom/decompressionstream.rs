@@ -174,11 +174,13 @@ impl DecompressionStreamMethods<crate::DomTypeHolder> for DecompressionStream {
 
     /// <https://streams.spec.whatwg.org/#dom-generictransformstream-readable>
     fn Readable(&self) -> DomRoot<ReadableStream> {
+        // The readable getter steps are to return this’s transform.[[readable]].
         self.transform.get_readable()
     }
 
     /// <https://streams.spec.whatwg.org/#dom-generictransformstream-writable>
     fn Writable(&self) -> DomRoot<WritableStream> {
+        // The writable getter steps are to return this’s transform.[[writable]].
         self.transform.get_writable()
     }
 }
