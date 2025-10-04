@@ -566,8 +566,8 @@ pub struct ReflowRequest {
     pub animation_timeline_value: f64,
     /// The set of animations for this document.
     pub animations: DocumentAnimationSet,
-    /// The set of image animations.
-    pub node_to_animating_image_map: Arc<RwLock<FxHashMap<OpaqueNode, ImageAnimationState>>>,
+    /// An [`AnimatingImages`] struct used to track images that are animating.
+    pub animating_images: Arc<RwLock<AnimatingImages>>,
     /// The theme for the window
     pub theme: Theme,
     /// The node highlighted by the devtools, if any
@@ -744,6 +744,52 @@ bitflags! {
         /// Whether or not to find all of the items for a hit test or stop at the
         /// first hit.
         const FindAll = 0b00000001;
+    }
+}
+
+#[derive(Debug, Default, MallocSizeOf)]
+pub struct AnimatingImages {
+    /// A map from the [`OpaqueNode`] to the state of an animating image. This is used
+    /// to update frames in script and to track newly animating nodes.
+    pub node_to_state_map: FxHashMap<OpaqueNode, ImageAnimationState>,
+    /// Whether or not this map has changed during a layout. This is used by script to
+    /// trigger future animation updates.
+    pub dirty: bool,
+}
+
+impl AnimatingImages {
+    pub fn maybe_insert_or_update(
+        &mut self,
+        node: OpaqueNode,
+        image: Arc<RasterImage>,
+        current_timeline_value: f64,
+    ) {
+        let entry = self.node_to_state_map.entry(node).or_insert_with(|| {
+            self.dirty = true;
+            ImageAnimationState::new(image.clone(), current_timeline_value)
+        });
+
+        // If the entry exists, but it is for a different image id, replace it as the image
+        // has changed during this layout.
+        if entry.image.id != image.id {
+            self.dirty = true;
+            *entry = ImageAnimationState::new(image.clone(), current_timeline_value);
+        }
+    }
+
+    pub fn remove(&mut self, node: OpaqueNode) {
+        if self.node_to_state_map.remove(&node).is_some() {
+            self.dirty = true;
+        }
+    }
+
+    /// Clear the dirty bit on this [`AnimatingImages`] and return the previous value.
+    pub fn clear_dirty(&mut self) -> bool {
+        std::mem::take(&mut self.dirty)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.node_to_state_map.is_empty()
     }
 }
 
