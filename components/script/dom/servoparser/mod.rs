@@ -255,6 +255,7 @@ impl ServoParser {
             Some(context_document.insecure_requests_policy()),
             context_document.has_trustworthy_ancestor_or_current_origin(),
             context_document.custom_element_reaction_stack(),
+            context_document.creation_sandboxing_flag_set(),
             can_gc,
         );
 
@@ -890,7 +891,11 @@ pub(crate) struct ParserContext {
 }
 
 impl ParserContext {
-    pub(crate) fn new(id: PipelineId, url: ServoUrl) -> ParserContext {
+    pub(crate) fn new(
+        id: PipelineId,
+        url: ServoUrl,
+        creation_sandboxing_flag_set: SandboxingFlagSet,
+    ) -> ParserContext {
         ParserContext {
             parser: None,
             is_synthesized_document: false,
@@ -903,7 +908,7 @@ impl ParserContext {
                 policy_container: Default::default(),
                 content_type: None,
                 link_headers: vec![],
-                final_sandboxing_flag_set: SandboxingFlagSet::empty(),
+                final_sandboxing_flag_set: creation_sandboxing_flag_set,
                 resource_header: vec![],
             },
         }
@@ -1199,12 +1204,15 @@ impl FetchResponseListener for ParserContext {
         // From Step 23.8.3 of https://html.spec.whatwg.org/multipage/#navigate
         // Let finalSandboxFlags be the union of targetSnapshotParams's sandboxing flags and
         // policyContainer's CSP list's CSP-derived sandboxing flags.
-        // TODO: implement targetSnapshotParam's sandboxing flags
+        //
+        // TODO: This deviates a bit from the specification, because there isn't a `targetSnapshotParam`
+        // concept yet.
         let final_sandboxing_flag_set = policy_container
             .csp_list
             .as_ref()
             .and_then(|csp| csp.get_sandboxing_flag_set_for_document())
-            .unwrap_or(SandboxingFlagSet::empty());
+            .unwrap_or(SandboxingFlagSet::empty())
+            .union(parser.document.creation_sandboxing_flag_set());
 
         if let Some(endpoints) = endpoints_list {
             window.set_endpoints_list(endpoints);

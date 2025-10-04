@@ -127,6 +127,7 @@ impl Location {
             None, // Top navigation doesn't inherit secure context
             Some(source_document.insecure_requests_policy()),
             source_document.has_trustworthy_ancestor_origin(),
+            source_document.creation_sandboxing_flag_set(),
         );
         self.window
             .load_url(history_handling, reload_triggered, load_data, can_gc);
