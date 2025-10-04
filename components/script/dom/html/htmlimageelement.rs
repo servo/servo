@@ -1236,11 +1236,12 @@ impl HTMLImageElement {
         }
     }
 
-    // Step 2 for <https://html.spec.whatwg.org/multipage/#dom-img-decode>
+    /// <https://html.spec.whatwg.org/multipage/#dom-img-decode>
     fn react_to_decode_image_sync_steps(&self, promise: Rc<Promise>, can_gc: CanGc) {
-        let document = self.owner_document();
-        // Step 2.1 of <https://html.spec.whatwg.org/multipage/#dom-img-decode>
-        if !document.is_fully_active() ||
+        // Step 2.2. If any of the following are true: this's node document is not fully active; or
+        // this's current request's state is broken, then reject promise with an "EncodingError"
+        // DOMException.
+        if !self.owner_document().is_fully_active() ||
             matches!(self.current_request.borrow().state, State::Broken)
         {
             promise.reject_error(Error::Encoding, can_gc);
@@ -1250,10 +1251,15 @@ impl HTMLImageElement {
         ) {
             // this doesn't follow the spec, but it's been discussed in <https://github.com/whatwg/html/issues/4217>
             promise.resolve_native(&(), can_gc);
+        } else if matches!(self.current_request.borrow().state, State::Unavailable) &&
+            self.current_request.borrow().source_url.is_none()
+        {
+            // Note: Despite being not explicitly stated in the specification but if current
+            // request's state is unavailable and current URL is empty string (<img> without "src"
+            // and "srcset" attributes) then reject promise with an "EncodingError" DOMException.
+            promise.reject_error(Error::Encoding, can_gc);
         } else {
-            self.image_decode_promises
-                .borrow_mut()
-                .push(promise.clone());
+            self.image_decode_promises.borrow_mut().push(promise);
         }
     }
 
@@ -1606,7 +1612,7 @@ fn parse_a_sizes_attribute(value: &str) -> SourceSizeList {
 
 #[allow(non_snake_case)]
 impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
-    // https://html.spec.whatwg.org/multipage/#dom-image
+    /// <https://html.spec.whatwg.org/multipage/#dom-image>
     fn Image(
         window: &Window,
         proto: Option<HandleObject>,
@@ -1614,10 +1620,15 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
         width: Option<u32>,
         height: Option<u32>,
     ) -> Fallible<DomRoot<HTMLImageElement>> {
+        // Step 1. Let document be the current global object's associated Document.
+        let document = window.Document();
+
+        // Step 2. Let img be the result of creating an element given document, "img", and the HTML
+        // namespace.
         let element = Element::create(
             QualName::new(None, ns!(html), local_name!("img")),
             None,
-            &window.Document(),
+            &document,
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
             proto,
@@ -1625,17 +1636,19 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
         );
 
         let image = DomRoot::downcast::<HTMLImageElement>(element).unwrap();
+
+        // Step 3. If width is given, then set an attribute value for img using "width" and width.
         if let Some(w) = width {
             image.SetWidth(w, can_gc);
         }
+
+        // Step 4. If height is given, then set an attribute value for img using "height" and
+        // height.
         if let Some(h) = height {
             image.SetHeight(h, can_gc);
         }
 
-        // run update_the_image_data when the element is created.
-        // https://html.spec.whatwg.org/multipage/#when-to-obtain-images
-        image.update_the_image_data(can_gc);
-
+        // Step 5. Return img.
         Ok(image)
     }
 
@@ -1774,17 +1787,17 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-img-decode>
     fn Decode(&self, can_gc: CanGc) -> Rc<Promise> {
-        // Step 1
+        // Step 1. Let promise be a new promise.
         let promise = Promise::new(&self.global(), can_gc);
 
-        // Step 2
+        // Step 2. Queue a microtask to perform the following steps:
         let task = ImageElementMicrotask::Decode {
             elem: DomRoot::from_ref(self),
             promise: promise.clone(),
         };
         ScriptThread::await_stable_state(Microtask::ImageElement(task));
 
-        // Step 3
+        // Step 3. Return promise.
         promise
     }
 
