@@ -121,38 +121,19 @@ impl CompressionStream {
         }
     }
 
-    /// <https://compression.spec.whatwg.org/#dom-compressionstream-compressionstream>
     fn new_with_proto(
-        cx: SafeJSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
+        transform: &TransformStream,
         format: CompressionFormat,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<CompressionStream>> {
-        // Step 1. If format is unsupported in CompressionStream, then throw a TypeError.
-        // NOTE: All of "deflate", "deflate_raw" and "gzip" are supported.
-
-        // Step 2. Set this’s format to format.
-        // Step 5. Set this’s transform to a new TransformStream.
-        let transform_stream = TransformStream::new_with_proto(global, None, can_gc);
-        let this = reflect_dom_object_with_proto(
-            Box::new(CompressionStream::new_inherited(&transform_stream, format)),
+        Ok(reflect_dom_object_with_proto(
+            Box::new(CompressionStream::new_inherited(transform, format)),
             global,
             proto,
             can_gc,
-        );
-
-        // Step 3. Let transformAlgorithm be an algorithm which takes a chunk argument and runs the
-        // compress and enqueue a chunk algorithm with this and chunk.
-        // Step 4. Let flushAlgorithm be an algorithm which takes no argument and runs the compress
-        // flush and enqueue algorithm with this.
-        let transformer_type = TransformerType::Compressor(this.clone());
-
-        // Step 6. Set up this’s transform with transformAlgorithm set to transformAlgorithm and
-        // flushAlgorithm set to flushAlgorithm.
-        transform_stream.set_up(cx, global, transformer_type, can_gc)?;
-
-        Ok(this)
+        ))
     }
 }
 
@@ -164,8 +145,26 @@ impl CompressionStreamMethods<crate::DomTypeHolder> for CompressionStream {
         can_gc: CanGc,
         format: CompressionFormat,
     ) -> Fallible<DomRoot<CompressionStream>> {
+        // Step 1. If format is unsupported in CompressionStream, then throw a TypeError.
+        // NOTE: All of "deflate", "deflate_raw" and "gzip" are supported.
+
+        // Step 2. Set this’s format to format.
+        // Step 5. Set this’s transform to a new TransformStream.
+        let transform = TransformStream::new_with_proto(global, None, can_gc);
+        let this = CompressionStream::new_with_proto(global, proto, &transform, format, can_gc)?;
+
+        // Step 3. Let transformAlgorithm be an algorithm which takes a chunk argument and runs the
+        // compress and enqueue a chunk algorithm with this and chunk.
+        // Step 4. Let flushAlgorithm be an algorithm which takes no argument and runs the compress
+        // flush and enqueue algorithm with this.
+        let transformer_type = TransformerType::Compressor(this.clone());
+
+        // Step 6. Set up this’s transform with transformAlgorithm set to transformAlgorithm and
+        // flushAlgorithm set to flushAlgorithm.
         let cx = GlobalScope::get_cx();
-        CompressionStream::new_with_proto(cx, global, proto, format, can_gc)
+        transform.set_up(cx, global, transformer_type, can_gc)?;
+
+        Ok(this)
     }
 
     /// <https://streams.spec.whatwg.org/#dom-generictransformstream-readable>
