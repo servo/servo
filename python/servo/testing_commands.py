@@ -221,6 +221,7 @@ class MachCommands(CommandBase):
             "selectors",
             "servo_config",
             "servoshell",
+            "servo_url",
         ]
         if not packages:
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set([".DS_Store"])

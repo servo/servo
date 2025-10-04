@@ -246,6 +246,26 @@ impl ServoUrl {
         // Step 3
         self.origin().is_potentially_trustworthy()
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#matches-about:blank>
+    pub fn matches_about_blank(&self) -> bool {
+        // A URL matches about:blank if
+
+        // its scheme is "about",
+        let scheme_is_about = self.scheme() == "about";
+
+        // its path contains a single string "blank",
+        let path_contains_blank = self.0.path().contains("blank");
+
+        // its username and password are the empty string,
+        let empty_username_and_password =
+            self.0.username().is_empty() && self.0.password().is_none();
+
+        // and its host is null.
+        let null_host = self.0.host().is_none();
+
+        scheme_is_about && path_contains_blank && empty_username_and_password && null_host
+    }
 }
 
 impl fmt::Display for ServoUrl {

@@ -10,6 +10,8 @@ rust-version.workspace = true
 [lib]
 name = "servo_url"
 path = "lib.rs"
+test = false
+doctest = false
 
 [dependencies]
 encoding_rs = { workspace = true }
