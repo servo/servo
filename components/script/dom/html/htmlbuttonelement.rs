@@ -364,7 +364,11 @@ impl Activatable for HTMLButtonElement {
         match ty {
             // https://html.spec.whatwg.org/multipage/#attr-button-type-submit-state
             ButtonType::Submit => {
-                // TODO: is document owner fully active?
+                // Step 2. If element's node document is not fully active, then return.
+                let document = self.owner_document();
+                if !document.is_fully_active() {
+                    return;
+                }
                 if let Some(owner) = self.form_owner() {
                     owner.submit(
                         SubmittedFrom::NotFromForm,
@@ -374,7 +378,11 @@ impl Activatable for HTMLButtonElement {
                 }
             },
             ButtonType::Reset => {
-                // TODO: is document owner fully active?
+                // Step 2. If element's node document is not fully active, then return.
+                let document = self.owner_document();
+                if !document.is_fully_active() {
+                    return;
+                }
                 if let Some(owner) = self.form_owner() {
                     owner.reset(ResetFrom::NotFromForm, can_gc);
                 }
