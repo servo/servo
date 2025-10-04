@@ -2248,14 +2248,16 @@ impl Handler {
         }
     }
 
+    /// <https://w3c.github.io/webdriver/#element-click>
+    /// Step 8 for elements other than <option>
     fn perform_element_click(&mut self, element: String) -> WebDriverResult<WebDriverResponse> {
-        // Step 8 for elements other than <option>
+        // Step 8.1 - 8.4: Create UUID, create input source "pointer".
         let id = Uuid::new_v4().to_string();
 
-        // Step 8.1
+        let pointer_ids = self.session()?.pointer_ids();
         self.session_mut()?.input_state_table_mut().insert(
             id.clone(),
-            InputSourceState::Pointer(PointerInputState::new(PointerType::Mouse)),
+            InputSourceState::Pointer(PointerInputState::new(PointerType::Mouse, pointer_ids)),
         );
 
         // Step 8.7. Construct a pointer move action.

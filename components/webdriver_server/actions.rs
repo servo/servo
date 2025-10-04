@@ -41,11 +41,11 @@ pub(crate) enum ActionItem {
     Wheel(WheelActionItem),
 }
 
-// A set of actions with multiple sources executed within a single tick.
-// The `id` is used to identify the source of the actions.
+/// A set of actions with multiple sources executed within a single tick.
+/// The `id` is used to identify the source of the actions.
 pub(crate) type TickActions = Vec<(String, ActionItem)>;
 
-// Consumed by the `dispatch_actions` method.
+/// Consumed by the `dispatch_actions` method.
 pub(crate) type ActionsByTick = Vec<TickActions>;
 
 /// <https://w3c.github.io/webdriver/#dfn-input-source-state>
@@ -63,18 +63,37 @@ pub(crate) enum InputSourceState {
 pub(crate) struct PointerInputState {
     subtype: PointerType,
     pressed: FxHashSet<u64>,
+    pub(crate) pointer_id: u32,
     x: f64,
     y: f64,
 }
 
 impl PointerInputState {
-    pub fn new(subtype: PointerType) -> PointerInputState {
+    /// <https://w3c.github.io/webdriver/#dfn-create-a-pointer-input-source>
+    pub(crate) fn new(subtype: PointerType, pointer_ids: FxHashSet<u32>) -> PointerInputState {
         PointerInputState {
             subtype,
             pressed: FxHashSet::default(),
+            pointer_id: Self::get_pointer_id(subtype, pointer_ids),
             x: 0.0,
             y: 0.0,
         }
+    }
+
+    /// <https://w3c.github.io/webdriver/#dfn-get-a-pointer-id>
+    pub(crate) fn get_pointer_id(subtype: PointerType, pointer_ids: FxHashSet<u32>) -> u32 {
+        // Step 2 - 4: Let pointer ids be all the values in input state map which is
+        // pointer input source. This is already done and passed by the caller.
+        if subtype == PointerType::Mouse {
+            for id in 0..=1 {
+                if !pointer_ids.contains(&id) {
+                    return id;
+                }
+            }
+        }
+
+        // We are dealing with subtype other than mouse, which has minimum id 2.
+        1 + pointer_ids.into_iter().max().unwrap_or(1)
     }
 }
 
@@ -902,13 +921,13 @@ impl Handler {
         // Step 2. Let id be the value of the id property of action sequence.
         let id = action_sequence.id.clone();
 
-        let mut input_state_table = self.session().unwrap().input_state_table_mut();
-
         match action_sequence.actions {
             ActionsType::Null {
                 actions: null_actions,
             } => {
-                input_state_table
+                self.session()
+                    .unwrap()
+                    .input_state_table_mut()
                     .entry(id)
                     .or_insert(InputSourceState::Null);
                 null_actions.into_iter().map(ActionItem::Null).collect()
@@ -916,7 +935,9 @@ impl Handler {
             ActionsType::Key {
                 actions: key_actions,
             } => {
-                input_state_table
+                self.session()
+                    .unwrap()
+                    .input_state_table_mut()
                     .entry(id)
                     .or_insert(InputSourceState::Key(KeyInputState::new()));
                 key_actions.into_iter().map(ActionItem::Key).collect()
@@ -925,10 +946,14 @@ impl Handler {
                 parameters: _,
                 actions: pointer_actions,
             } => {
-                input_state_table
+                let pointer_ids = self.session().unwrap().pointer_ids();
+                self.session()
+                    .unwrap()
+                    .input_state_table_mut()
                     .entry(id)
                     .or_insert(InputSourceState::Pointer(PointerInputState::new(
                         PointerType::Mouse,
+                        pointer_ids,
                     )));
                 pointer_actions
                     .into_iter()
@@ -938,7 +963,9 @@ impl Handler {
             ActionsType::Wheel {
                 actions: wheel_actions,
             } => {
-                input_state_table
+                self.session()
+                    .unwrap()
+                    .input_state_table_mut()
                     .entry(id)
                     .or_insert(InputSourceState::Wheel);
                 wheel_actions.into_iter().map(ActionItem::Wheel).collect()
