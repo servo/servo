@@ -1095,7 +1095,10 @@ pub fn http_percent_encode(bytes: &[u8]) -> String {
     percent_encoding::percent_encode(bytes, HTTP_VALUE).to_string()
 }
 
+/// Step 12 of <https://fetch.spec.whatwg.org/#concept-fetch>
 pub fn set_default_accept_language(headers: &mut HeaderMap) {
+    // If request’s header list does not contain `Accept-Language`,
+    // then user agents should append (`Accept-Language, an appropriate header value) to request’s header list.
     if headers.contains_key(header::ACCEPT_LANGUAGE) {
         return;
     }

@@ -24,7 +24,7 @@ use parking_lot::{Mutex, RwLock};
 use rustc_hash::FxHashSet;
 use servo_arc::Arc as ServoArc;
 use servo_config::pref;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use style::Atom;
 use style::computed_values::font_variant_caps::T as FontVariantCaps;
 use style::font_face::{
@@ -820,6 +820,8 @@ impl RemoteWebFontDownloader {
             RequestBuilder::new(state.webview_id, url.clone().into(), Referrer::NoReferrer)
                 // TODO: Set policy_container from globalscope that contains the fontcontext
                 .policy_container(Default::default())
+                // TODO: Set origin from document that contains the fontcontext
+                .origin(ImmutableOrigin::new(url.origin()))
                 .destination(Destination::Font);
 
         let core_resource_thread_clone = state.core_resource_thread.clone();

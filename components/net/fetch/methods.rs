@@ -25,7 +25,7 @@ use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, CredentialsMode, Destination, Initiator,
     InsecureRequestsPolicy, Origin, ParserMetadata, RedirectMode, Referrer, Request, RequestMode,
-    ResponseTainting, Window, is_cors_safelisted_method, is_cors_safelisted_request_header,
+    ResponseTainting, is_cors_safelisted_method, is_cors_safelisted_request_header,
 };
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::{
@@ -39,9 +39,9 @@ use servo_arc::Arc as ServoArc;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use tokio::sync::mpsc::{UnboundedReceiver as TokioReceiver, UnboundedSender as TokioSender};
 
-use super::fetch_params::FetchParams;
 use crate::connector::CACertificates;
 use crate::fetch::cors_cache::CorsCache;
+use crate::fetch::fetch_params::{FetchParams, PreloadResponseCandidate};
 use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::FileManager;
 use crate::http_loader::{
@@ -130,48 +130,63 @@ pub async fn fetch_with_cors_cache(
     target: Target<'_>,
     context: &FetchContext,
 ) {
-    // Step 8: Let fetchParams be a new fetch params whose request is request
+    // Step 8. Let fetchParams be a new fetch params whose request is request
     let mut fetch_params = FetchParams::new(request);
     let request = &mut fetch_params.request;
 
-    // Step 9: If request’s window is "client", then set request’s window to request’s client, if
-    // request’s client’s global object is a Window object; otherwise "no-window".
-    if request.window == Window::Client {
-        // TODO: Set window to request's client object if client is a Window object
-    } else {
-        request.window = Window::NoWindow;
-    }
+    // Step 4. Populate request from client given request.
+    request.populate_request_from_client();
 
-    // Step 10: If request’s origin is "client", then set request’s origin to request’s client’s
-    // origin.
-    if request.origin == Origin::Client {
-        // TODO: set request's origin to request's client's origin
-        unimplemented!()
-    }
+    // Step 5. If request’s client is non-null, then:
+    // TODO
+    // Step 5.1. Set taskDestination to request’s client’s global object.
+    // TODO
+    // Step 5.2. Set crossOriginIsolatedCapability to request’s client’s cross-origin isolated capability.
+    // TODO
 
-    // Step 11: If all of the following conditions are true:
+    // Step 10. If all of the following conditions are true:
+    if
     // - request’s URL’s scheme is an HTTP(S) scheme
-    // - request’s mode is "same-origin", "cors", or "no-cors"
-    // - request’s window is an environment settings object
-    // - request’s method is `GET`
-    // - request’s unsafe-request flag is not set or request’s header list is empty
-    // TODO: evaluate these conditions when we have an an environment settings object
-
-    // Step 12: If request’s policy container is "client", then:
-    if let RequestPolicyContainer::Client = request.policy_container {
-        // Step 12.1: If request’s client is non-null, then set request’s policy container to a clone
-        // of request’s client’s policy container.
-        // TODO: Requires request's client to support PolicyContainer
-
-        // Step 12.2: Otherwise, set request’s policy container to a new policy container.
-        request.policy_container =
-            RequestPolicyContainer::PolicyContainer(PolicyContainer::default());
+    matches!(request.current_url().scheme(), "http" | "https")
+        // - request’s mode is "same-origin", "cors", or "no-cors"
+        && matches!(request.mode, RequestMode::SameOrigin | RequestMode::CorsMode | RequestMode::NoCors)
+        // - request’s method is `GET`
+        && matches!(request.method, Method::GET)
+        // - request’s unsafe-request flag is not set or request’s header list is empty
+        && (!request.unsafe_request || request.headers.is_empty())
+    {
+        // - request’s client is not null, and request’s client’s global object is a Window object
+        if let Some(client) = request.client.as_ref() {
+            // Step 10.1. Assert: request’s origin is same origin with request’s client’s origin.
+            assert!(request.origin == client.origin);
+            // Step 10.2. Let onPreloadedResponseAvailable be an algorithm that runs the
+            // following step given a response response: set fetchParams’s preloaded response candidate to response.
+            let on_preloaded_response_available = |response| {
+                fetch_params.preload_response_candidate =
+                    PreloadResponseCandidate::Response(Box::new(response))
+            };
+            // Step 10.3. Let foundPreloadedResource be the result of invoking consume a preloaded resource
+            // for request’s client, given request’s URL, request’s destination, request’s mode,
+            // request’s credentials mode, request’s integrity metadata, and onPreloadedResponseAvailable.
+            let found_preloaded_resource =
+                client.consume_preloaded_resource(request, on_preloaded_response_available);
+            // Step 10.4. If foundPreloadedResource is true and fetchParams’s preloaded response candidate is null,
+            // then set fetchParams’s preloaded response candidate to "pending".
+            if found_preloaded_resource &&
+                matches!(
+                    fetch_params.preload_response_candidate,
+                    PreloadResponseCandidate::None
+                )
+            {
+                fetch_params.preload_response_candidate = PreloadResponseCandidate::Pending;
+            }
+        }
     }
 
-    // Step 13: If request’s header list does not contain `Accept`:
+    // Step 11. If request’s header list does not contain `Accept`, then:
     set_default_accept(request);
 
-    // Step 14: If request’s header list does not contain `Accept-Language`, then user agents should
+    // Step 12. If request’s header list does not contain `Accept-Language`, then user agents should
     // append (`Accept-Language, an appropriate header value) to request’s header list.
     set_default_accept_language(&mut request.headers);
 
@@ -327,9 +342,8 @@ pub async fn main_fetch(
     }
 
     // The request should have a valid policy_container associated with it.
-    // TODO: This should not be `Client` here
     let policy_container = match &request.policy_container {
-        RequestPolicyContainer::Client => PolicyContainer::default(),
+        RequestPolicyContainer::Client => unreachable!(),
         RequestPolicyContainer::PolicyContainer(container) => container.to_owned(),
     };
     let csp_request = convert_request_to_csp_request(request);
@@ -435,8 +449,6 @@ pub async fn main_fetch(
     // Step 11.
     // Not applicable: see fetch_async.
 
-    // Step 12.
-
     let current_url = request.current_url();
     let current_scheme = current_url.scheme();
 
@@ -450,15 +462,28 @@ pub async fn main_fetch(
     let mut response = match response {
         Some(res) => res,
         None => {
+            // Step 12. If response is null, then set response to the result
+            // of running the steps corresponding to the first matching statement:
             let same_origin = if let Origin::Origin(ref origin) = request.origin {
                 *origin == current_url.origin()
             } else {
                 false
             };
 
+            // fetchParams’s preloaded response candidate is non-null
+            if let PreloadResponseCandidate::Response(response) =
+                &fetch_params.preload_response_candidate
+            {
+                // Step 1. Wait until fetchParams’s preloaded response candidate is not "pending".
+                // TODO
+                // Step 2. Assert: fetchParams’s preloaded response candidate is a response.
+                // TODO
+                // Step 3. Return fetchParams’s preloaded response candidate.
+                *response.clone()
+            }
             // request's current URL's origin is same origin with request's origin, and request's
             // response tainting is "basic"
-            if (same_origin && request.response_tainting == ResponseTainting::Basic) ||
+            else if (same_origin && request.response_tainting == ResponseTainting::Basic) ||
                 // request's current URL's scheme is "data"
                 current_scheme == "data" ||
                 // Note: Although it is not part of the specification, we make an exception here

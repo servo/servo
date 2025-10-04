@@ -13,9 +13,10 @@ use net_traits::fetch::headers::get_decode_and_split_header_name;
 use net_traits::mime_classifier::{MediaType, MimeClassifier};
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
-    CorsSettings, Destination, Initiator, InsecureRequestsPolicy, Referrer, RequestBuilder,
-    RequestId,
+    CorsSettings, Destination, Initiator, InsecureRequestsPolicy, PreloadEntry, PreloadKey,
+    Referrer, RequestBuilder, RequestId,
 };
+use net_traits::response::{Response, ResponseBody};
 use net_traits::{
     FetchMetadata, FetchResponseListener, NetworkError, ReferrerPolicy, ResourceFetchTiming,
     ResourceTimingType,
@@ -159,18 +160,7 @@ impl LinkProcessingOptions {
             if !self.type_matches_destination() {
                 return;
             }
-            let Some(request) = self.preload(document.window().webview_id()) else {
-                return;
-            };
-            let url = request.url.clone();
-            let fetch_context = LinkFetchContext {
-                url,
-                link: None,
-                global: Trusted::new(&document.global()),
-                resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
-                type_: LinkFetchContextType::Preload,
-            };
-            document.fetch_background(request, fetch_context);
+            self.preload(document.window().webview_id(), None, document);
         }
     }
 
@@ -285,7 +275,12 @@ impl LinkProcessingOptions {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#preload>
-    pub(crate) fn preload(self, webview_id: WebViewId) -> Option<RequestBuilder> {
+    pub(crate) fn preload(
+        self,
+        webview_id: WebViewId,
+        link: Option<Trusted<HTMLLinkElement>>,
+        document: &Document,
+    ) {
         // Step 1. If options's type doesn't match options's destination, then return.
         //
         // Handled by callers, since we need to check the previous destination type
@@ -293,17 +288,18 @@ impl LinkProcessingOptions {
         // Step 2. If options's destination is "image" and options's source set is not null,
         // then set options's href to the result of selecting an image source from options's source set.
         // TODO
+        let integrity = self.integrity.clone();
         // Step 3. Let request be the result of creating a link request given options.
         let Some(request) = self.create_link_request(webview_id) else {
             // Step 4. If request is null, then return.
-            return None;
+            return;
         };
         // Step 5. Let unsafeEndTime be 0.
         // TODO
         // Step 6. Let entry be a new preload entry whose integrity metadata is options's integrity.
-        // TODO
+        let entry = PreloadEntry::new(integrity);
         // Step 7. Let key be the result of creating a preload key given request.
-        // TODO
+        let key = PreloadKey::new(&request);
         // Step 8. If options's document is "pending", then set request's initiator type to "early hint".
         // TODO
         // Step 9. Let controller be null.
@@ -311,7 +307,17 @@ impl LinkProcessingOptions {
         // given document's relevant global object.
         // Step 11. Set controller to the result of fetching request, with processResponseConsumeBody
         // set to the following steps given a response response and null, failure, or a byte sequence bodyBytes:
-        Some(request.clone())
+        let url = request.url.clone();
+        let fetch_context = LinkFetchContext {
+            url,
+            link,
+            document: Trusted::new(document),
+            global: Trusted::new(&document.global()),
+            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
+            type_: LinkFetchContextType::Preload(key, Box::new(entry)),
+            response_body: vec![],
+        };
+        document.fetch_background(request, fetch_context);
     }
 }
 
@@ -425,7 +431,7 @@ pub(crate) fn process_link_headers(
 #[strum(serialize_all = "lowercase")]
 pub(crate) enum LinkFetchContextType {
     Prefetch,
-    Preload,
+    Preload(PreloadKey, Box<PreloadEntry>),
 }
 
 impl From<LinkFetchContextType> for InitiatorType {
@@ -440,6 +446,7 @@ pub(crate) struct LinkFetchContext {
     pub(crate) link: Option<Trusted<HTMLLinkElement>>,
 
     pub(crate) global: Trusted<GlobalScope>,
+    pub(crate) document: Trusted<Document>,
 
     pub(crate) resource_timing: ResourceFetchTiming,
 
@@ -448,6 +455,8 @@ pub(crate) struct LinkFetchContext {
 
     /// The type of fetching we perform, used when report timings.
     pub(crate) type_: LinkFetchContextType,
+
+    pub(crate) response_body: Vec<u8>,
 }
 
 impl FetchResponseListener for LinkFetchContext {
@@ -463,8 +472,10 @@ impl FetchResponseListener for LinkFetchContext {
         _ = fetch_metadata;
     }
 
-    fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
-        _ = chunk;
+    fn process_response_chunk(&mut self, _: RequestId, mut chunk: Vec<u8>) {
+        if matches!(self.type_, LinkFetchContextType::Preload(..)) {
+            self.response_body.append(&mut chunk);
+        }
     }
 
     /// Step 7 of <https://html.spec.whatwg.org/multipage/#link-type-prefetch:fetch-and-process-the-linked-resource-2>
@@ -472,10 +483,45 @@ impl FetchResponseListener for LinkFetchContext {
     fn process_response_eof(
         &mut self,
         _: RequestId,
-        response: Result<ResourceFetchTiming, NetworkError>,
+        response_result: Result<ResourceFetchTiming, NetworkError>,
     ) {
+        // Steps for https://html.spec.whatwg.org/multipage/#preload
+        if let LinkFetchContextType::Preload(key, entry) = &self.type_ {
+            let response = if let Ok(resource_timing) = &response_result {
+                // Step 11.1. If bodyBytes is a byte sequence, then set response's body to bodyBytes as a body.
+                let response = Response::new(self.url.clone(), resource_timing.clone());
+                *response.body.lock().unwrap() =
+                    ResponseBody::Done(std::mem::take(&mut self.response_body));
+                response
+            } else {
+                // Step 11.2. Otherwise, set response to a network error.
+                Response::network_error(NetworkError::Internal("Failed to preload".into()))
+            };
+            // Step 11.5. If entry's on response available is null, then set entry's response to response;
+            // otherwise call entry's on response available given response.
+            let entry = entry.with_response(response);
+
+            // Step 12. Let commit be the following steps given a Document document:
+            // Step 12.1. If entry's response is not null, then call reportTiming given document.
+            // Step 12.2. Set document's map of preloaded resources[key] to entry.
+            // Step 13. If options's document is null, then set options's on document ready to commit. Otherwise, call commit with options's document.
+            let document_preloaded_resources = self.document.root().preloaded_resources();
+            let mut preloaded_resources_lock = document_preloaded_resources.lock();
+            preloaded_resources_lock
+                .as_mut()
+                .unwrap()
+                .insert(key.clone(), entry);
+        }
+
+        // Step 11.6. If processResponse is given, then call processResponse with response.
+        //
+        // Part of Preload
+        //
+        // Step 6. Let processPrefetchResponse be the following steps given a response response and null, failure, or a byte sequence bytesOrNull:
+        //
+        // Part of Prefetch
         if let Some(link) = self.link.as_ref() {
-            link.root().fire_event_after_response(response);
+            link.root().fire_event_after_response(response_result);
         }
     }
 
