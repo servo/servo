@@ -372,6 +372,21 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
     }
 }
 
+impl FetchTaskTarget for IpcSender<WebSocketNetworkEvent> {
+    fn process_request_body(&mut self, _: &Request) {}
+    fn process_request_eof(&mut self, _: &Request) {}
+    fn process_response(&mut self, _: &Request, response: &Response) {
+        if response.is_network_error() {
+            let _ = self.send(WebSocketNetworkEvent::Fail);
+        }
+    }
+    fn process_response_chunk(&mut self, _: &Request, _: Vec<u8>) {}
+    fn process_response_eof(&mut self, _: &Request, _: &Response) {}
+    fn process_csp_violations(&mut self, _: &Request, violations: Vec<csp::Violation>) {
+        let _ = self.send(WebSocketNetworkEvent::ReportCSPViolations(violations));
+    }
+}
+
 /// A fetch task that discards all data it's sent,
 /// useful when speculatively prefetching data that we don't need right
 /// now, but might need in the future.

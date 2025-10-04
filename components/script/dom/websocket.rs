@@ -259,16 +259,23 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         let ws = WebSocket::new(global, proto, url_record.clone(), dom_action_sender, can_gc);
         let address = Trusted::new(&*ws);
 
-        let request = RequestBuilder::new(global.webview_id(), url_record, Referrer::NoReferrer)
-            .origin(global.origin().immutable().clone())
-            .insecure_requests_policy(global.insecure_requests_policy())
-            .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_or_current_origin())
-            .mode(RequestMode::WebSocket { protocols })
-            .service_workers_mode(ServiceWorkersMode::None)
-            .credentials_mode(CredentialsMode::Include)
-            .cache_mode(CacheMode::NoCache)
-            .policy_container(global.policy_container())
-            .redirect_mode(RedirectMode::Error);
+        let request = RequestBuilder::new(
+            global.webview_id(),
+            url_record.clone(),
+            Referrer::NoReferrer,
+        )
+        .origin(global.origin().immutable().clone())
+        .insecure_requests_policy(global.insecure_requests_policy())
+        .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_or_current_origin())
+        .mode(RequestMode::WebSocket {
+            protocols,
+            original_url: url_record,
+        })
+        .service_workers_mode(ServiceWorkersMode::None)
+        .credentials_mode(CredentialsMode::Include)
+        .cache_mode(CacheMode::NoCache)
+        .policy_container(global.policy_container())
+        .redirect_mode(RedirectMode::Error);
 
         let channels = FetchChannels::WebSocket {
             event_sender: resource_event_sender,

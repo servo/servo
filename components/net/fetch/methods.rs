@@ -15,7 +15,7 @@ use embedder_traits::resources::{self, Resource};
 use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt};
 use http::header::{self, HeaderMap, HeaderName, RANGE};
 use http::{HeaderValue, Method, StatusCode};
-use ipc_channel::ipc;
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use log::{debug, trace, warn};
 use mime::{self, Mime};
 use net_traits::fetch::headers::extract_mime_type_as_mime;
@@ -30,7 +30,8 @@ use net_traits::request::{
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::{
     FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
-    ResourceTimeValue, ResourceTimingType, set_default_accept_language,
+    ResourceTimeValue, ResourceTimingType, WebSocketDomAction, WebSocketNetworkEvent,
+    set_default_accept_language,
 };
 use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
@@ -39,6 +40,7 @@ use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use tokio::sync::mpsc::{UnboundedReceiver as TokioReceiver, UnboundedSender as TokioSender};
 
 use super::fetch_params::FetchParams;
+use crate::connector::CACertificates;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::FileManager;
@@ -62,6 +64,11 @@ pub enum Data {
     Cancelled,
 }
 
+type WebsocketChannel = (
+    IpcSender<WebSocketNetworkEvent>,
+    Option<IpcReceiver<WebSocketDomAction>>,
+);
+
 pub struct FetchContext {
     pub state: Arc<HttpState>,
     pub user_agent: String,
@@ -72,6 +79,9 @@ pub struct FetchContext {
     pub cancellation_listener: Arc<CancellationListener>,
     pub timing: ServoArc<Mutex<ResourceFetchTiming>>,
     pub protocols: Arc<ProtocolRegistry>,
+    pub websocket_chan: Option<Arc<Mutex<WebsocketChannel>>>,
+    pub ca_certificates: CACertificates,
+    pub ignore_certificate_errors: bool,
 }
 
 #[derive(Default)]
@@ -178,8 +188,9 @@ pub(crate) fn convert_request_to_csp_request(request: &Request) -> Option<csp::R
         Origin::Client => return None,
         Origin::Origin(origin) => origin,
     };
+
     let csp_request = csp::Request {
-        url: request.url().into_url(),
+        url: request.original_url().into_url(),
         origin: origin.clone().into_url_origin(),
         redirect_count: request.redirect_count,
         destination: request.destination,
@@ -238,6 +249,18 @@ fn should_response_be_blocked_by_csp(
             .actual_response()
             .url()
             .cloned()
+            // TODO(pylbrecht): can we make this simpler or remove it entirely?
+            .map(|mut url| {
+                match csp_request.url.scheme() {
+                    "ws" | "wss" => {
+                        url.as_mut_url()
+                            .set_scheme(csp_request.url.scheme())
+                            .expect("failed to set URL scheme");
+                    },
+                    _ => {},
+                };
+                url
+            })
             .expect("response must have a url")
             .into_url(),
         redirect_count: csp_request.redirect_count,
@@ -319,6 +342,17 @@ pub async fn main_fetch(
         } {
             request
                 .current_url_mut()
+                .as_mut_url()
+                .set_scheme(new_scheme)
+                .unwrap();
+        }
+        if let Some(new_scheme) = match request.original_url().scheme() {
+            "http" => Some("https"),
+            "ws" => Some("wss"),
+            _ => None,
+        } {
+            request
+                .original_url_mut()
                 .as_mut_url()
                 .set_scheme(new_scheme)
                 .unwrap();
