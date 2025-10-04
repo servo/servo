@@ -643,7 +643,7 @@ impl CoreResourceManager {
             _ => ResourceTimingType::Resource,
         };
 
-        let request = request_builder.build();
+        let mut request = request_builder.build();
         let url = request.current_url();
 
         // In the case of a valid blob URL, acquiring a token granting access to a file,
@@ -687,6 +687,12 @@ impl CoreResourceManager {
             match res_init_ {
                 Some(res_init) => {
                     let response = Response::from_init(res_init, timing_type);
+                    // TODO: Remove this once fetching is aligned with the specification.
+                    // We should only run this once in the main `fetch`. However, since
+                    // we currently call redirects separately, the request hasn't been
+                    // prepared properly. Instead, `fetch` should call `http_redirect_fetch`
+                    // and pass the request accordingly.
+                    request.populate_request_from_client();
 
                     let mut fetch_params = FetchParams::new(request);
                     http_redirect_fetch(

@@ -417,6 +417,8 @@ fn test_cors_preflight_cache_fetch() {
         .build();
     request.use_cors_preflight = true;
     request.mode = RequestMode::CorsMode;
+    // To ensure that `wrapped_request3` also has a fully complete request object
+    request.populate_request_from_client();
     let wrapped_request0 = request.clone();
     let wrapped_request1 = request.clone();
     let wrapped_request2 = request.clone();

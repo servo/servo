@@ -377,7 +377,8 @@ fn connect(
         .read()
         .unwrap()
         .apply_hsts_rules(&mut req_builder.url);
-    let request = req_builder.build();
+    let mut request = req_builder.build();
+    request.populate_request_from_client();
 
     let req_url = request.url();
     let req_origin = match request.origin {
