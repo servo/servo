@@ -43,17 +43,17 @@ impl js::gc::Rootable for ReadLoopFulFillmentHandler {}
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct ReadLoopFulFillmentHandler {
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[ignore_malloc_size_of = "callbacks are hard"]
     #[no_trace]
     success_steps: Rc<ReadAllBytesSuccessSteps>,
 
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[ignore_malloc_size_of = "callbacks are hard"]
     #[no_trace]
     failure_steps: Rc<ReadAllBytesFailureSteps>,
 
     reader: Dom<ReadableStreamDefaultReader>,
 
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of]
     bytes: Rc<DomRefCell<Vec<u8>>>,
 }
 
@@ -118,7 +118,7 @@ impl Callback for ReadLoopFulFillmentHandler {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 /// <https://streams.spec.whatwg.org/#readablestreamdefaultreader-read-all-bytes>
 struct ReadLoopRejectionHandler {
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[ignore_malloc_size_of = "callbacks are hard"]
     #[no_trace]
     failure_steps: Rc<ReadAllBytesFailureSteps>,
 }
@@ -164,7 +164,7 @@ fn read_loop(
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub(crate) enum ReadRequest {
     /// <https://streams.spec.whatwg.org/#default-reader-read>
-    Read(#[ignore_malloc_size_of = "Rc is hard"] Rc<Promise>),
+    Read(#[conditional_malloc_size_of] Rc<Promise>),
     /// <https://streams.spec.whatwg.org/#ref-for-read-request%E2%91%A2>
     DefaultTee {
         tee_read_request: Dom<DefaultTeeReadRequest>,
@@ -236,11 +236,11 @@ impl ReadRequest {
 struct ClosedPromiseRejectionHandler {
     branch_1_controller: Dom<ReadableStreamDefaultController>,
     branch_2_controller: Dom<ReadableStreamDefaultController>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     canceled_1: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     canceled_2: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     cancel_promise: Rc<Promise>,
 }
 
@@ -274,7 +274,7 @@ pub(crate) struct ReadableStreamDefaultReader {
     read_requests: DomRefCell<VecDeque<ReadRequest>>,
 
     /// <https://streams.spec.whatwg.org/#readablestreamgenericreader-closedpromise>
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of]
     closed_promise: DomRefCell<Rc<Promise>>,
 }
 

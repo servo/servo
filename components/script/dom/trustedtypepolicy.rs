@@ -31,11 +31,11 @@ pub struct TrustedTypePolicy {
 
     name: String,
 
-    #[ignore_malloc_size_of = "Rc has unclear ownership"]
+    #[conditional_malloc_size_of]
     create_html: Option<Rc<CreateHTMLCallback>>,
-    #[ignore_malloc_size_of = "Rc has unclear ownership"]
+    #[conditional_malloc_size_of]
     create_script: Option<Rc<CreateScriptCallback>>,
-    #[ignore_malloc_size_of = "Rc has unclear ownership"]
+    #[conditional_malloc_size_of]
     create_script_url: Option<Rc<CreateScriptURLCallback>>,
 }
 

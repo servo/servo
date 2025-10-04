@@ -35,23 +35,23 @@ pub(crate) struct DefaultTeeUnderlyingSource {
     stream: Dom<ReadableStream>,
     branch_1: MutNullableDom<ReadableStream>,
     branch_2: MutNullableDom<ReadableStream>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     reading: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     read_again: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     canceled_1: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     canceled_2: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     clone_for_branch_2: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[ignore_malloc_size_of = "mozjs"]
     #[allow(clippy::redundant_allocation)]
     reason_1: Rc<Box<Heap<Value>>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[ignore_malloc_size_of = "mozjs"]
     #[allow(clippy::redundant_allocation)]
     reason_2: Rc<Box<Heap<Value>>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     cancel_promise: Rc<Promise>,
     tee_cancel_algorithm: TeeCancelAlgorithm,
 }

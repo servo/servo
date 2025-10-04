@@ -268,7 +268,7 @@ pub(crate) struct Window {
     #[ignore_malloc_size_of = "TODO: Add MallocSizeOf support to layout"]
     layout: RefCell<Box<dyn Layout>>,
     navigator: MutNullableDom<Navigator>,
-    #[ignore_malloc_size_of = "Arc"]
+    #[ignore_malloc_size_of = "ImageCache"]
     #[no_trace]
     image_cache: Arc<dyn ImageCache>,
     #[no_trace]
@@ -3483,7 +3483,7 @@ impl Window {
 /// performed.
 #[derive(MallocSizeOf)]
 pub(crate) struct LayoutValue<T: MallocSizeOf> {
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of]
     is_valid: Rc<Cell<bool>>,
     value: T,
 }

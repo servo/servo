@@ -1027,7 +1027,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
 
         #[derive(JSTraceable, MallocSizeOf)]
         struct SimpleHandler {
-            #[ignore_malloc_size_of = "Rc has unclear ownership semantics"]
+            #[conditional_malloc_size_of]
             handler: Rc<SimpleCallback>,
         }
         impl SimpleHandler {

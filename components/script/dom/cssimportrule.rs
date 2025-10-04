@@ -23,7 +23,7 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct CSSImportRule {
     cssrule: CSSRule,
-    #[ignore_malloc_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
     import_rule: RefCell<Arc<Locked<ImportRule>>>,
 }

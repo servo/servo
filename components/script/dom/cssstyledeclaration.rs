@@ -52,7 +52,7 @@ pub(crate) enum CSSStyleOwner {
     Element(Dom<Element>),
     CSSRule(
         Dom<CSSRule>,
-        #[ignore_malloc_size_of = "Arc"]
+        #[ignore_malloc_size_of = "Stylo"]
         #[no_trace]
         RefCell<Arc<Locked<PropertyDeclarationBlock>>>,
     ),

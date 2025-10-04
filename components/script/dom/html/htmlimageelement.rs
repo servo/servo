@@ -185,7 +185,7 @@ pub(crate) struct HTMLImageElement {
     /// Always non-null after construction.
     dimension_attribute_source: MutNullableDom<Element>,
     last_selected_source: DomRefCell<Option<USVString>>,
-    #[ignore_malloc_size_of = "promises are hard"]
+    #[conditional_malloc_size_of]
     image_decode_promises: DomRefCell<Vec<Rc<Promise>>>,
     /// Line number this element was created on
     line_number: u64,
@@ -1488,7 +1488,7 @@ pub(crate) enum ImageElementMicrotask {
     },
     Decode {
         elem: DomRoot<HTMLImageElement>,
-        #[ignore_malloc_size_of = "promises are hard"]
+        #[conditional_malloc_size_of]
         promise: Rc<Promise>,
     },
 }

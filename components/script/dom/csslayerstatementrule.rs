@@ -24,7 +24,7 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 #[dom_struct]
 pub(crate) struct CSSLayerStatementRule {
     cssrule: CSSRule,
-    #[ignore_malloc_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
     layerstatementrule: RefCell<Arc<LayerStatementRule>>,
 }
