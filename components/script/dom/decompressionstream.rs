@@ -286,11 +286,15 @@ pub(crate) fn decompress_flush_and_enqueue(
     }
 
     // Step 3. If the end of the compressed input has not been reached, then throw a TypeError.
-    // NOTE: To test whether the compressed input has reached the end, we try to write one more
-    // byte to the inner decoder of decompressor. If the decoder accepts the extra byte, it
-    // indicates that the end has not been reached. Otherwise, the end has been reached. This test
-    // has to been done before calling `try_finish`, so we execute it in Step 1, and store the
-    // result in `is_ended`.
+    //
+    // NOTE: If the end of the compressed input has not been reached, flate2::write::DeflateDecoder
+    // and flate2::write::GzDecoder can detect it and throw an error on `try_finish` in Step 1.
+    // However, flate2::write::ZlibDecoder does not. We need to test it by ourselves.
+    //
+    // To test it, we write one more byte to the decoder. If it accepts the extra byte, this
+    // indicates the end has not been reached. Otherwise, the end has been reached. This test has
+    // to been done before calling `try_finish`, so we execute it in Step 1, and store the result
+    // in `is_ended`.
     if !is_ended {
         return Err(Error::Type(
             "The end of the compressed input has not been reached".to_string(),
