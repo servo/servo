@@ -5,15 +5,15 @@
 # This allows using types that are defined later in the file.
 from __future__ import annotations
 
-import collections
 import os
 import sys
 import mozlog
 import mozlog.formatters.base
 import mozlog.reader
 
+from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import DefaultDict, Optional, NotRequired, Union, TypedDict, Literal
+from typing import Optional, NotRequired, Union, TypedDict, Literal
 from six import itervalues
 
 DEFAULT_MOVE_UP_CODE = "\x1b[A"
@@ -61,7 +61,7 @@ class UnexpectedResult:
             # Organize the failures by stack trace so we don't print the same stack trace
             # more than once. They are really tall and we don't want to flood the screen
             # with duplicate information.
-            results_by_stack: DefaultDict[str | None, list[UnexpectedSubtestResult]] = collections.defaultdict(list)
+            results_by_stack: defaultdict[str | None, list[UnexpectedSubtestResult]] = defaultdict(list)
             for subtest_result in self.unexpected_subtest_results:
                 results_by_stack[subtest_result.stack].append(subtest_result)
 
@@ -176,13 +176,14 @@ class ServoHandler(mozlog.reader.LogHandler):
     completed_tests: int
     need_to_erase_last_line: int
     running_tests: dict[str, str]
-    test_output: DefaultDict[str, str]
-    subtest_failures: DefaultDict[str, list]
+    test_output: defaultdict[str, str]
+    subtest_failures: defaultdict[str, list]
     tests_with_failing_subtests: list
     unexpected_results: list
     expected: dict[str, int]
     unexpected_tests: dict[str, list]
     suite_start_time: int
+    output_per_process: defaultdict[int, list[str]]
 
     def __init__(self, detect_flakes: bool = False) -> None:
         """
@@ -201,10 +202,11 @@ class ServoHandler(mozlog.reader.LogHandler):
         if self.currently_detecting_flakes:
             return
         self.currently_detecting_flakes = False
-        self.test_output = collections.defaultdict(str)
-        self.subtest_failures = collections.defaultdict(list)
+        self.test_output = defaultdict(str)
+        self.subtest_failures = defaultdict(list)
         self.tests_with_failing_subtests = []
         self.unexpected_results = []
+        self.output_per_process = defaultdict(list)
 
         self.expected = {
             "OK": 0,
@@ -263,6 +265,20 @@ class ServoHandler(mozlog.reader.LogHandler):
         had_expected_test_result = self.data_was_for_expected_result(data)
         subtest_failures = self.subtest_failures.pop(test_path, [])
         test_output = self.test_output.pop(test_path, "")
+
+        extra = data.get("extra", {})
+        assert isinstance(extra, dict)
+
+        # When running with WebDriver, the test runner is another process and maybe even reuses the
+        # browser process, which means that browser output isn't associated directly with tests.
+        # This code tries to map output that we've seen before from the browser process to this
+        # test.
+        browser_pid = extra.get("browser_pid", "")
+        if browser_pid:
+            assert isinstance(browser_pid, int)
+            captured_output = "\n".join(self.output_per_process.pop(browser_pid, []))
+            if captured_output:
+                test_output += captured_output
 
         if had_expected_test_result and not subtest_failures:
             if not self.currently_detecting_flakes:
@@ -336,8 +352,19 @@ class ServoHandler(mozlog.reader.LogHandler):
         )
 
     def process_output(self, data: ProcessOutputData) -> None:
+        # In non-WebDriver mode the output might be directly associated with a test.
         if "test" in data:
             self.test_output[data["test"]] += data["data"] + "\n"
+
+        # In WebDriver mode we have to map from the browser process output to the test
+        # that was currently running at that time.
+        #
+        # There is often also a "pid" key, but that refers to the process that this
+        # Python code is running in. We want the process that actually had the output
+        # here!
+        if "process" in data:
+            pid = int(data["process"])
+            self.output_per_process[pid].append(data["data"])
 
     def log(self, data: LogData) -> str | None:
         pass
