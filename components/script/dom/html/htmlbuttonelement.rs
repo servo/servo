@@ -358,13 +358,19 @@ impl Activatable for HTMLButtonElement {
         !self.upcast::<Element>().disabled_state()
     }
 
-    // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
-    fn activation_behavior(&self, _event: &Event, _target: &EventTarget, can_gc: CanGc) {
+    /// <https://html.spec.whatwg.org/multipage/#the-button-element:activation-behaviour>
+    fn activation_behavior(&self, _event: &Event, target: &EventTarget, can_gc: CanGc) {
         let ty = self.button_type.get();
         match ty {
-            // https://html.spec.whatwg.org/multipage/#attr-button-type-submit-state
+            // https://html.spec.whatwg.org/multipage/#the-button-element:attr-button-type-submit-state
             ButtonType::Submit => {
-                // TODO: is document owner fully active?
+                // Step 2. If element's node document is not fully active, then return.
+                if !target
+                    .downcast::<Node>()
+                    .is_none_or(|node| node.owner_document().is_fully_active())
+                {
+                    return;
+                }
                 if let Some(owner) = self.form_owner() {
                     owner.submit(
                         SubmittedFrom::NotFromForm,
@@ -374,7 +380,13 @@ impl Activatable for HTMLButtonElement {
                 }
             },
             ButtonType::Reset => {
-                // TODO: is document owner fully active?
+                // Step 2. If element's node document is not fully active, then return.
+                if !target
+                    .downcast::<Node>()
+                    .is_none_or(|node| node.owner_document().is_fully_active())
+                {
+                    return;
+                }
                 if let Some(owner) = self.form_owner() {
                     owner.reset(ResetFrom::NotFromForm, can_gc);
                 }
