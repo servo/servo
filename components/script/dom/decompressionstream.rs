@@ -55,6 +55,14 @@ impl Decompressor {
         }
     }
 
+    fn get_mut(&mut self) -> &mut Vec<u8> {
+        match self {
+            Decompressor::Deflate(zlib_decoder) => zlib_decoder.get_mut(),
+            Decompressor::DeflateRaw(deflate_decoder) => deflate_decoder.get_mut(),
+            Decompressor::Gzip(gz_decoder) => gz_decoder.get_mut(),
+        }
+    }
+
     fn write(&mut self, buf: &[u8]) -> Result<usize, io::Error> {
         match self {
             Decompressor::Deflate(zlib_decoder) => zlib_decoder.write(buf),
@@ -233,6 +241,10 @@ pub(crate) fn decompress_and_enqueue_a_chunk(
     // Step 6. If the end of the compressed input has been reached, and ds’s context has not fully
     // consumed chunk, then throw a TypeError.
     // NOTE: Done by `write_all` in Step 2.
+
+    // NOTE: We don't need to keep result that has been copied to Uint8Array. Clear the inner
+    // buffer of decompressor to save memory.
+    decompressor.get_mut().clear();
 
     Ok(())
 }
