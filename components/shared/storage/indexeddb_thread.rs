@@ -17,10 +17,12 @@ pub type DbError = String;
 /// These errors could be anything, depending on the backend
 pub type DbResult<T> = Result<T, DbError>;
 
-/// Any error from the backend
+/// Any error from the backend, a super-set of [`DbError`]
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum BackendError {
+    /// The requested database does not exist
     DbNotFound,
+    /// The requested object store does not exist
     StoreNotFound,
     DbErr(DbError),
 }
@@ -332,6 +334,7 @@ pub enum CreateObjectResult {
 pub enum SyncOperation {
     /// Upgrades the version of the database
     UpgradeVersion(
+        /// Sender to send new version as the result of the operation
         IpcSender<BackendResult<u64>>,
         ImmutableOrigin,
         String, // Database
@@ -347,7 +350,7 @@ pub enum SyncOperation {
     ),
     /// Gets an object store's key path
     KeyPath(
-        /// Object stores do not have to have key paths
+        /// Object stores can optionally be created with key paths
         IpcSender<BackendResult<Option<KeyPath>>>,
         ImmutableOrigin,
         String, // Database
@@ -422,6 +425,7 @@ pub enum SyncOperation {
     /// Returns an unique identifier that is used to be able to
     /// commit/abort transactions.
     RegisterNewTxn(
+        /// The unique identifier of the transaction
         IpcSender<u64>,
         ImmutableOrigin,
         String, // Database
