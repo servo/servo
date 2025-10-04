@@ -1645,7 +1645,7 @@ dependencies = [
 [[package]]
 name = "content-security-policy"
 version = "0.5.4"
-source = "git+https://github.com/servo/rust-content-security-policy?branch=servo-csp#7b7bbb54905f44fb6b001fcd4d7ad45503c2e664"
+source = "git+https://github.com/timvdlippe/rust-content-security-policy?branch=make-destination-hashable#3847f52b1768657a809e24ad220faf609ea440f6"
 dependencies = [
  "base64 0.22.1",
  "bitflags 2.9.4",
@@ -5581,6 +5581,7 @@ dependencies = [
  "http 1.3.1",
  "hyper-util",
  "hyper_serde",
+ "indexmap",
  "ipc-channel",
  "log",
  "malloc_size_of_derive",
