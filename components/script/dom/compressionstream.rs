@@ -97,7 +97,7 @@ pub(crate) struct CompressionStream {
     /// <https://compression.spec.whatwg.org/#compressionstream-format>
     format: CompressionFormat,
 
-    // <https://compression.spec.whatwg.org/#decompressionstream-context>
+    // <https://compression.spec.whatwg.org/#compressionstream-context>
     #[ignore_malloc_size_of = "defined in flate2"]
     #[no_trace]
     context: RefCell<Compressor>,
