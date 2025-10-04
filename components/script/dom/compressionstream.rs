@@ -61,6 +61,14 @@ impl Compressor {
         }
     }
 
+    fn get_mut(&mut self) -> &mut Vec<u8> {
+        match self {
+            Compressor::Deflate(zlib_encoder) => zlib_encoder.get_mut(),
+            Compressor::DeflateRaw(deflate_encoder) => deflate_encoder.get_mut(),
+            Compressor::Gzip(gz_encoder) => gz_encoder.get_mut(),
+        }
+    }
+
     fn write_all(&mut self, buf: &[u8]) -> Result<(), io::Error> {
         match self {
             Compressor::Deflate(zlib_encoder) => zlib_encoder.write_all(buf),
@@ -221,6 +229,10 @@ pub(crate) fn compress_and_enqueue_a_chunk(
     rooted!(in(*cx) let mut rval = UndefinedValue());
     buffer_source.safe_to_jsval(cx, rval.handle_mut());
     controller.enqueue(cx, global, rval.handle(), can_gc)?;
+
+    // NOTE: We don't need to keep result that has been copied to Uint8Array. Clear the inner
+    // buffer of compressor to save memory.
+    compressor.get_mut().clear();
 
     Ok(())
 }
