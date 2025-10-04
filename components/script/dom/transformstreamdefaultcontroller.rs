@@ -107,7 +107,7 @@ pub struct TransformStreamDefaultController {
     stream: MutNullableDom<TransformStream>,
 
     /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-finishpromise>
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of]
     finish_promise: DomRefCell<Option<Rc<Promise>>>,
 }
 

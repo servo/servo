@@ -57,7 +57,7 @@ pub(crate) struct PaintWorkletGlobalScope {
     /// The worklet global for this object
     worklet_global: WorkletGlobalScope,
     /// The image cache
-    #[ignore_malloc_size_of = "Arc"]
+    #[ignore_malloc_size_of = "ImageCache"]
     #[no_trace]
     image_cache: Arc<dyn ImageCache>,
     /// <https://drafts.css-houdini.org/css-paint-api/#paint-definitions>

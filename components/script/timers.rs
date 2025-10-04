@@ -408,7 +408,7 @@ enum InternalTimerCallback {
     StringTimerCallback(DOMString),
     FunctionTimerCallback(
         #[conditional_malloc_size_of] Rc<Function>,
-        #[ignore_malloc_size_of = "Rc"] Rc<Box<[Heap<JSVal>]>>,
+        #[ignore_malloc_size_of = "mozjs"] Rc<Box<[Heap<JSVal>]>>,
     ),
 }
 

@@ -250,6 +250,53 @@ impl<T: MallocConditionalSizeOf> MallocConditionalSizeOf for Vec<T> {
     }
 }
 
+impl<T: MallocConditionalSizeOf> MallocConditionalSizeOf for std::collections::VecDeque<T> {
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let mut n = self.shallow_size_of(ops);
+        for elem in self.iter() {
+            n += elem.conditional_size_of(ops);
+        }
+        n
+    }
+}
+
+impl<T: MallocConditionalSizeOf> MallocConditionalSizeOf for std::cell::RefCell<T> {
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.borrow().conditional_size_of(ops)
+    }
+}
+
+impl<T1, T2> MallocConditionalSizeOf for (T1, T2)
+where
+    T1: MallocConditionalSizeOf,
+    T2: MallocConditionalSizeOf,
+{
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.0.conditional_size_of(ops) + self.1.conditional_size_of(ops)
+    }
+}
+
+impl<T: MallocConditionalSizeOf + ?Sized> MallocConditionalSizeOf for Box<T> {
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.shallow_size_of(ops) + (**self).conditional_size_of(ops)
+    }
+}
+
+impl<T: MallocConditionalSizeOf, E: MallocSizeOf> MallocConditionalSizeOf for Result<T, E> {
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        match *self {
+            Ok(ref x) => x.conditional_size_of(ops),
+            Err(ref e) => e.size_of(ops),
+        }
+    }
+}
+
+impl MallocConditionalSizeOf for () {
+    fn conditional_size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        0
+    }
+}
+
 impl<T: MallocSizeOf> MallocSizeOf for Option<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         if let Some(val) = self.as_ref() {
@@ -454,6 +501,22 @@ macro_rules! malloc_size_of_hash_map {
                 for (k, v) in self.iter() {
                     n += k.size_of(ops);
                     n += v.size_of(ops);
+                }
+                n
+            }
+        }
+
+        impl<K, V, S> MallocConditionalSizeOf for $ty
+        where
+            K: Eq + Hash + MallocSizeOf,
+            V: MallocConditionalSizeOf,
+            S: BuildHasher,
+        {
+            fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+                let mut n = self.shallow_size_of(ops);
+                for (k, v) in self.iter() {
+                    n += k.size_of(ops);
+                    n += v.conditional_size_of(ops);
                 }
                 n
             }

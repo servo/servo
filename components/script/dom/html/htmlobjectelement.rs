@@ -29,7 +29,7 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct HTMLObjectElement {
     htmlelement: HTMLElement,
-    #[ignore_malloc_size_of = "Arc"]
+    #[ignore_malloc_size_of = "RasterImage"]
     #[no_trace]
     image: DomRefCell<Option<Arc<RasterImage>>>,
     form_owner: MutNullableDom<HTMLFormElement>,

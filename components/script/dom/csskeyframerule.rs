@@ -24,7 +24,7 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct CSSKeyframeRule {
     cssrule: CSSRule,
-    #[ignore_malloc_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
     keyframerule: RefCell<Arc<Locked<Keyframe>>>,
     style_decl: MutNullableDom<CSSStyleDeclaration>,

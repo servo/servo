@@ -20,7 +20,7 @@ use crate::dom::csssupportsrule::CSSSupportsRule;
 #[dom_struct]
 pub(crate) struct CSSConditionRule {
     cssgroupingrule: CSSGroupingRule,
-    #[ignore_malloc_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
     rules: RefCell<Arc<Locked<StyleCssRules>>>,
 }

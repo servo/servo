@@ -52,7 +52,7 @@ impl js::gc::Rootable for TransformBackPressureChangePromiseFulfillment {}
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct TransformBackPressureChangePromiseFulfillment {
     /// The result of reacting to backpressureChangePromise.
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of]
     result_promise: Rc<Promise>,
 
     #[ignore_malloc_size_of = "mozjs"]
@@ -117,7 +117,7 @@ impl Callback for TransformBackPressureChangePromiseFulfillment {
 /// Reacting to fulfillment of performTransform as part of
 /// <https://streams.spec.whatwg.org/#transform-stream-default-sink-write-algorithm>
 struct PerformTransformFulfillment {
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of]
     result_promise: Rc<Promise>,
 }
 
@@ -133,7 +133,7 @@ impl Callback for PerformTransformFulfillment {
 /// Reacting to rejection of performTransform as part of
 /// <https://streams.spec.whatwg.org/#transform-stream-default-sink-write-algorithm>
 struct PerformTransformRejection {
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of]
     result_promise: Rc<Promise>,
 }
 
@@ -149,7 +149,7 @@ impl Callback for PerformTransformRejection {
 /// Reacting to rejection of backpressureChangePromise as part of
 /// <https://streams.spec.whatwg.org/#transform-stream-default-sink-write-algorithm>
 struct BackpressureChangeRejection {
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of]
     result_promise: Rc<Promise>,
 }
 
@@ -393,7 +393,7 @@ pub struct TransformStream {
     backpressure: Cell<bool>,
 
     /// <https://streams.spec.whatwg.org/#transformstream-backpressurechangepromise>
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of]
     backpressure_change_promise: DomRefCell<Option<Rc<Promise>>>,
 
     /// <https://streams.spec.whatwg.org/#transformstream-controller>

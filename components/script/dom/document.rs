@@ -6067,7 +6067,7 @@ pub(crate) enum AnimationFrameCallback {
         actor_name: String,
     },
     FrameRequestCallback {
-        #[ignore_malloc_size_of = "Rc is hard"]
+        #[conditional_malloc_size_of]
         callback: Rc<FrameRequestCallback>,
     },
 }

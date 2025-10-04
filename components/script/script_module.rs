@@ -1724,7 +1724,7 @@ impl DynamicModuleList {
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
 struct DynamicModule {
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of]
     promise: Rc<Promise>,
     #[ignore_malloc_size_of = "GC types are hard"]
     specifier: Heap<*mut JSObject>,

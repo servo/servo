@@ -76,7 +76,7 @@ pub(crate) struct HTMLCanvasElement {
 
     // This id and hashmap are used to keep track of ongoing toBlob() calls.
     callback_id: Cell<u32>,
-    #[ignore_malloc_size_of = "not implemented for webidl callbacks"]
+    #[conditional_malloc_size_of]
     blob_callbacks: RefCell<FxHashMap<u32, Rc<BlobCallback>>>,
 }
 

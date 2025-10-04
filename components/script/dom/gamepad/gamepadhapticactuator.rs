@@ -61,7 +61,7 @@ pub(crate) struct GamepadHapticActuator {
     /// <https://www.w3.org/TR/gamepad/#dfn-effects>
     effects: Vec<GamepadHapticEffectType>,
     /// <https://www.w3.org/TR/gamepad/#dfn-playingeffectpromise>
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of]
     playing_effect_promise: DomRefCell<Option<Rc<Promise>>>,
     /// The current sequence ID for playing effects,
     /// incremented on every call to playEffect() or reset().

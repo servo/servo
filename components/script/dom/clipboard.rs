@@ -34,7 +34,7 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 /// <https://w3c.github.io/clipboard-apis/#dom-clipboard-readtext>.
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 struct RepresentationDataPromiseFulfillmentHandler {
-    #[ignore_malloc_size_of = "Rc are hard"]
+    #[conditional_malloc_size_of]
     promise: Rc<Promise>,
 }
 
@@ -59,7 +59,7 @@ impl Callback for RepresentationDataPromiseFulfillmentHandler {
 /// <https://w3c.github.io/clipboard-apis/#dom-clipboard-readtext>.
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 struct RepresentationDataPromiseRejectionHandler {
-    #[ignore_malloc_size_of = "Rc are hard"]
+    #[conditional_malloc_size_of]
     promise: Rc<Promise>,
 }
 

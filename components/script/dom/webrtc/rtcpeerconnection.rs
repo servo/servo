@@ -63,9 +63,9 @@ pub(crate) struct RTCPeerConnection {
     // Helps track state changes between the time createOffer/createAnswer
     // is called and resolved
     offer_answer_generation: Cell<u32>,
-    #[ignore_malloc_size_of = "promises are hard"]
+    #[conditional_malloc_size_of]
     offer_promises: DomRefCell<Vec<Rc<Promise>>>,
-    #[ignore_malloc_size_of = "promises are hard"]
+    #[conditional_malloc_size_of]
     answer_promises: DomRefCell<Vec<Rc<Promise>>>,
     local_description: MutNullableDom<RTCSessionDescription>,
     remote_description: MutNullableDom<RTCSessionDescription>,

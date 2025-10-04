@@ -96,7 +96,7 @@ pub(crate) struct XRSession {
     current_raf_callback_list: DomRefCell<Vec<(i32, Option<Rc<XRFrameRequestCallback>>)>>,
     input_sources: Dom<XRInputSourceArray>,
     // Any promises from calling end()
-    #[ignore_malloc_size_of = "promises are hard"]
+    #[conditional_malloc_size_of]
     end_promises: DomRefCell<Vec<Rc<Promise>>>,
     /// <https://immersive-web.github.io/webxr/#ended>
     ended: Cell<bool>,
@@ -113,7 +113,7 @@ pub(crate) struct XRSession {
     #[no_trace]
     input_frames: DomRefCell<HashMap<InputId, InputFrame>>,
     framerate: Cell<f32>,
-    #[ignore_malloc_size_of = "promises are hard"]
+    #[conditional_malloc_size_of]
     update_framerate_promise: DomRefCell<Option<Rc<Promise>>>,
     reference_spaces: DomRefCell<Vec<Dom<XRReferenceSpace>>>,
 }

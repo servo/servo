@@ -24,7 +24,7 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct DataTransferItem {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     #[no_trace]
     data_store: Rc<RefCell<Option<DragDataStore>>>,
     id: u16,
@@ -35,7 +35,7 @@ pub(crate) struct DataTransferItem {
 #[derive(JSTraceable, MallocSizeOf)]
 struct PendingStringCallback {
     id: usize,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     callback: Rc<FunctionStringCallback>,
 }
 

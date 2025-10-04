@@ -34,7 +34,7 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub enum ReadIntoRequest {
     /// <https://streams.spec.whatwg.org/#byob-reader-read>
-    Read(#[ignore_malloc_size_of = "Rc is hard"] Rc<Promise>),
+    Read(#[conditional_malloc_size_of] Rc<Promise>),
 }
 
 impl ReadIntoRequest {
@@ -104,7 +104,7 @@ pub(crate) struct ReadableStreamBYOBReader {
     read_into_requests: DomRefCell<VecDeque<ReadIntoRequest>>,
 
     /// <https://streams.spec.whatwg.org/#readablestreamgenericreader-closedpromise>
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of]
     closed_promise: DomRefCell<Rc<Promise>>,
 }
 

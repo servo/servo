@@ -146,17 +146,20 @@ use crate::timers::{
 };
 use crate::unminify::unminified_path;
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct AutoCloseWorker {
     /// <https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-closing>
+    #[conditional_malloc_size_of]
     closing: Arc<AtomicBool>,
     /// A handle to join on the worker thread.
+    #[ignore_malloc_size_of = "JoinHandle"]
     join_handle: Option<JoinHandle<()>>,
     /// A sender of control messages,
     /// currently only used to signal shutdown.
     #[no_trace]
     control_sender: Sender<DedicatedWorkerControlMsg>,
     /// The context to request an interrupt on the worker thread.
+    #[ignore_malloc_size_of = "mozjs"]
     #[no_trace]
     context: ThreadSafeJSContext,
 }
@@ -304,11 +307,10 @@ pub(crate) struct GlobalScope {
     /// same microtask queue.
     ///
     /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
-    #[ignore_malloc_size_of = "Rc<T> is hard"]
+    #[conditional_malloc_size_of]
     microtask_queue: Rc<MicrotaskQueue>,
 
     /// Vector storing closing references of all workers
-    #[ignore_malloc_size_of = "Arc"]
     list_auto_close_worker: DomRefCell<Vec<AutoCloseWorker>>,
 
     /// Vector storing references of all eventsources.
@@ -379,17 +381,17 @@ pub(crate) struct GlobalScope {
     /// `size` getter of `ByteLengthQueuingStrategy` is called.
     ///
     /// <https://streams.spec.whatwg.org/#byte-length-queuing-strategy-size-function>
-    #[ignore_malloc_size_of = "Rc<T> is hard"]
+    #[ignore_malloc_size_of = "callbacks are hard"]
     byte_length_queuing_strategy_size_function: OnceCell<Rc<Function>>,
 
     /// The count queuing strategy size function that will be initialized once
     /// `size` getter of `CountQueuingStrategy` is called.
     ///
     /// <https://streams.spec.whatwg.org/#count-queuing-strategy-size-function>
-    #[ignore_malloc_size_of = "Rc<T> is hard"]
+    #[ignore_malloc_size_of = "callbacks are hard"]
     count_queuing_strategy_size_function: OnceCell<Rc<Function>>,
 
-    #[ignore_malloc_size_of = "Rc<T> is hard"]
+    #[ignore_malloc_size_of = "callbacks are hard"]
     notification_permission_request_callback_map:
         DomRefCell<HashMap<String, Rc<NotificationPermissionCallback>>>,
 

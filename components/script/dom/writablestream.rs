@@ -54,7 +54,7 @@ impl js::gc::Rootable for AbortAlgorithmFulfillmentHandler {}
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct AbortAlgorithmFulfillmentHandler {
     stream: Dom<WritableStream>,
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of]
     abort_request_promise: Rc<Promise>,
 }
 
@@ -78,7 +78,7 @@ impl js::gc::Rootable for AbortAlgorithmRejectionHandler {}
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct AbortAlgorithmRejectionHandler {
     stream: Dom<WritableStream>,
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of]
     abort_request_promise: Rc<Promise>,
 }
 
@@ -101,7 +101,7 @@ impl js::gc::Rootable for PendingAbortRequest {}
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct PendingAbortRequest {
     /// <https://streams.spec.whatwg.org/#pending-abort-request-promise>
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of]
     promise: Rc<Promise>,
 
     /// <https://streams.spec.whatwg.org/#pending-abort-request-reason>
@@ -131,7 +131,7 @@ pub struct WritableStream {
     backpressure: Cell<bool>,
 
     /// <https://streams.spec.whatwg.org/#writablestream-closerequest>
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of]
     close_request: DomRefCell<Option<Rc<Promise>>>,
 
     /// <https://streams.spec.whatwg.org/#writablestream-controller>
@@ -141,11 +141,11 @@ pub struct WritableStream {
     detached: Cell<bool>,
 
     /// <https://streams.spec.whatwg.org/#writablestream-inflightwriterequest>
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of]
     in_flight_write_request: DomRefCell<Option<Rc<Promise>>>,
 
     /// <https://streams.spec.whatwg.org/#writablestream-inflightcloserequest>
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of]
     in_flight_close_request: DomRefCell<Option<Rc<Promise>>>,
 
     /// <https://streams.spec.whatwg.org/#writablestream-pendingabortrequest>
@@ -162,7 +162,7 @@ pub struct WritableStream {
     writer: MutNullableDom<WritableStreamDefaultWriter>,
 
     /// <https://streams.spec.whatwg.org/#writablestream-writerequests>
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of]
     write_requests: DomRefCell<VecDeque<Rc<Promise>>>,
 }
 
@@ -1149,7 +1149,7 @@ pub(crate) struct CrossRealmTransformWritable {
     controller: Dom<WritableStreamDefaultController>,
 
     /// The `backpressurePromise` used in the algorithm.
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[ignore_malloc_size_of = "nested Rc"]
     backpressure_promise: Rc<RefCell<Option<Rc<Promise>>>>,
 }
 

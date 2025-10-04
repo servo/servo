@@ -39,7 +39,7 @@ pub(crate) struct OfflineAudioContext {
     channel_count: u32,
     length: u32,
     rendering_started: Cell<bool>,
-    #[ignore_malloc_size_of = "promises are hard"]
+    #[conditional_malloc_size_of]
     pending_rendering_promise: DomRefCell<Option<Rc<Promise>>>,
 }
 

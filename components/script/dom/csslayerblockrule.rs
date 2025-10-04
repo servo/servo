@@ -23,7 +23,7 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct CSSLayerBlockRule {
     cssgroupingrule: CSSGroupingRule,
-    #[ignore_malloc_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
     layerblockrule: RefCell<Arc<LayerBlockRule>>,
 }

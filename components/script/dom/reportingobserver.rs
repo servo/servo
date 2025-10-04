@@ -29,7 +29,7 @@ use crate::script_runtime::CanGc;
 pub(crate) struct ReportingObserver {
     reflector_: Reflector,
 
-    #[ignore_malloc_size_of = "Rc has unclear ownership"]
+    #[conditional_malloc_size_of]
     callback: Rc<ReportingObserverCallback>,
     buffered: RefCell<bool>,
     types: DomRefCell<Vec<DOMString>>,

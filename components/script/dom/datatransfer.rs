@@ -42,7 +42,7 @@ pub(crate) struct DataTransfer {
     drop_effect: DomRefCell<DOMString>,
     effect_allowed: DomRefCell<DOMString>,
     items: Dom<DataTransferItemList>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     #[no_trace]
     data_store: Rc<RefCell<Option<DragDataStore>>>,
 }

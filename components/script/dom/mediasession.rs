@@ -44,7 +44,7 @@ pub(crate) struct MediaSession {
     /// <https://w3c.github.io/mediasession/#dom-mediasession-playbackstate>
     playback_state: DomRefCell<MediaSessionPlaybackState>,
     /// <https://w3c.github.io/mediasession/#supported-media-session-actions>
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     action_handlers: DomRefCell<
         HashMapTracedValues<MediaSessionActionType, Rc<MediaSessionActionHandler>, FxBuildHasher>,
     >,

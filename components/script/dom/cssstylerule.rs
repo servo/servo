@@ -28,7 +28,7 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct CSSStyleRule {
     cssgroupingrule: CSSGroupingRule,
-    #[ignore_malloc_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
     stylerule: RefCell<Arc<Locked<StyleRule>>>,
     style_decl: MutNullableDom<CSSStyleDeclaration>,

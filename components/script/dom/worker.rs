@@ -51,10 +51,10 @@ pub(crate) struct Worker {
     /// Sender to the Receiver associated with the DedicatedWorkerGlobalScope
     /// this Worker created.
     sender: Sender<DedicatedWorkerScriptMsg>,
-    #[ignore_malloc_size_of = "Arc"]
+    #[conditional_malloc_size_of]
     closing: Arc<AtomicBool>,
     terminated: Cell<bool>,
-    #[ignore_malloc_size_of = "Arc"]
+    #[ignore_malloc_size_of = "mozjs"]
     #[no_trace]
     context_for_interrupt: DomRefCell<Option<ThreadSafeJSContext>>,
 }

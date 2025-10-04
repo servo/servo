@@ -209,7 +209,7 @@ pub(crate) struct DedicatedWorkerGlobalScope {
     #[ignore_malloc_size_of = "Can't measure trait objects"]
     /// Sender to the parent thread.
     parent_event_loop_sender: ScriptEventLoopSender,
-    #[ignore_malloc_size_of = "Arc"]
+    #[ignore_malloc_size_of = "ImageCache"]
     #[no_trace]
     image_cache: Arc<dyn ImageCache>,
     #[no_trace]

@@ -39,7 +39,7 @@ pub(crate) use js::gc::Traceable as JSTraceable;
 use js::glue::{CallScriptTracer, CallStringTracer, CallValueTracer};
 use js::jsapi::{GCTraceKindToAscii, Heap, JSScript, JSString, JSTracer, TraceKind};
 use js::jsval::JSVal;
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
 use rustc_hash::FxBuildHasher;
 pub(crate) use script_bindings::trace::*;
 
@@ -197,6 +197,17 @@ where
 {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.0.size_of(ops)
+    }
+}
+
+impl<K, V, S> MallocConditionalSizeOf for HashMapTracedValues<K, V, S>
+where
+    K: Eq + Hash + MallocSizeOf,
+    V: MallocConditionalSizeOf,
+    S: BuildHasher,
+{
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.0.conditional_size_of(ops)
     }
 }
 

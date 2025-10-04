@@ -43,7 +43,7 @@ use crate::task_source::SendableTaskSource;
 #[dom_struct]
 pub(crate) struct CookieStore {
     eventtarget: EventTarget,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     in_flight: DomRefCell<VecDeque<Rc<Promise>>>,
     // Store an id so that we can send it with requests and the resource thread knows who to respond to
     #[no_trace]

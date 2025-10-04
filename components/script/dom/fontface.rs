@@ -62,7 +62,7 @@ pub struct FontFace {
     urls: DomRefCell<Option<SourceList>>,
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontface-fontstatuspromise-slot>
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     font_status_promise: Rc<Promise>,
 }
 

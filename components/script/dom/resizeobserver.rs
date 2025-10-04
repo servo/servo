@@ -43,7 +43,7 @@ pub(crate) struct ResizeObserver {
     reflector_: Reflector,
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-callback-slot>
-    #[ignore_malloc_size_of = "Rc are hard"]
+    #[conditional_malloc_size_of]
     callback: Rc<ResizeObserverCallback>,
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-observationtargets-slot>

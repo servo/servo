@@ -55,7 +55,7 @@ pub(crate) struct CSSStyleSheet {
     rulelist: MutNullableDom<CSSRuleList>,
 
     /// The inner Stylo's [Stylesheet].
-    #[ignore_malloc_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
     style_stylesheet: DomRefCell<Arc<StyleStyleSheet>>,
 

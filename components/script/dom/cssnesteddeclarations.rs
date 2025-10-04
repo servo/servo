@@ -23,7 +23,7 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct CSSNestedDeclarations {
     cssrule: CSSRule,
-    #[ignore_malloc_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
     nesteddeclarationsrule: RefCell<Arc<Locked<NestedDeclarationsRule>>>,
     style_decl: MutNullableDom<CSSStyleDeclaration>,

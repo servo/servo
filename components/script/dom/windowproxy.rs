@@ -133,7 +133,7 @@ pub(crate) struct WindowProxy {
     creator_origin: Option<ImmutableOrigin>,
 
     /// The window proxies the script thread knows.
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     script_window_proxies: Rc<ScriptWindowProxies>,
 }
 

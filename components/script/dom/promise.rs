@@ -419,12 +419,12 @@ type WaitForAllFailureSteps = Rc<dyn Fn(HandleValue)>;
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct WaitForAllFulfillmentHandler {
     /// The steps to call when all promises are resolved.
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[ignore_malloc_size_of = "callbacks are hard"]
     #[no_trace]
     success_steps: WaitForAllSuccessSteps,
 
     /// The results of the promises.
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[ignore_malloc_size_of = "mozjs"]
     #[allow(clippy::vec_box)]
     result: Rc<RefCell<Vec<Box<Heap<JSVal>>>>>,
 
@@ -432,7 +432,7 @@ struct WaitForAllFulfillmentHandler {
     promise_index: usize,
 
     /// A count of fulfilled promises.
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of]
     fulfilled_count: Rc<RefCell<usize>>,
 }
 
@@ -468,7 +468,7 @@ impl Callback for WaitForAllFulfillmentHandler {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 struct WaitForAllRejectionHandler {
     /// The steps to call if any promise rejects.
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[ignore_malloc_size_of = "callbacks are hard"]
     #[no_trace]
     failure_steps: WaitForAllFailureSteps,
 

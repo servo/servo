@@ -20,7 +20,7 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct CSSFontFaceRule {
     cssrule: CSSRule,
-    #[ignore_malloc_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
     fontfacerule: RefCell<Arc<Locked<FontFaceRule>>>,
 }

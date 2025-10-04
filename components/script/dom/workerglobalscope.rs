@@ -113,7 +113,7 @@ pub(crate) struct WorkerGlobalScope {
     worker_id: WorkerId,
     #[no_trace]
     worker_url: DomRefCell<ServoUrl>,
-    #[ignore_malloc_size_of = "Arc"]
+    #[conditional_malloc_size_of]
     closing: Arc<AtomicBool>,
     #[ignore_malloc_size_of = "Defined in js"]
     runtime: DomRefCell<Option<Runtime>>,
