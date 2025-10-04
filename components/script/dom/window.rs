@@ -30,6 +30,7 @@ use constellation_traits::{
     ScriptToConstellationChan, ScriptToConstellationMessage, StructuredSerializedData,
     WindowSizeType,
 };
+use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::{Sender, unbounded};
 use cssparser::SourceLocation;
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
@@ -807,6 +808,38 @@ impl Window {
         // 3. Abort a document and its descendants given document.
         doc.abort(can_gc);
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#cannot-show-simple-dialogs>
+    fn cannot_show_simple_dialogs(&self) -> bool {
+        // Step 1: If the active sandboxing flag set of window's associated Document has
+        // the sandboxed modals flag set, then return true.
+        if self
+            .Document()
+            .has_active_sandboxing_flag(SandboxingFlagSet::SANDBOXED_MODALS_FLAG)
+        {
+            return true;
+        }
+
+        // Step 2: If window's relevant settings object's origin and window's relevant settings
+        // object's top-level origin are not same origin-domain, then return true.
+        //
+        // TODO: This check doesn't work currently because it seems that comparing two
+        // opaque domains doesn't work between GlobalScope::top_level_creation_url and
+        // Document::origin().
+
+        // Step 3: If window's relevant agent's event loop's termination nesting level is nonzero,
+        // then optionally return true.
+        // TODO: This is unsupported currently.
+
+        // Step 4: Optionally, return true. (For example, the user agent might give the
+        // user the option to ignore all modal dialogs, and would thus abort at this step
+        // whenever the method was invoked.)
+        // TODO: The embedder currently cannot block an alert before it is sent to the embedder. This
+        // requires changes to the API.
+
+        // Step 5: Return false.
+        false
+    }
 }
 
 // https://html.spec.whatwg.org/multipage/#atob
@@ -885,50 +918,103 @@ pub(crate) fn base64_atob(input: DOMString) -> Fallible<DOMString> {
 }
 
 impl WindowMethods<crate::DomTypeHolder> for Window {
-    // https://html.spec.whatwg.org/multipage/#dom-alert
+    /// <https://html.spec.whatwg.org/multipage/#dom-alert>
     fn Alert_(&self) {
+        // Step 2: If the method was invoked with no arguments, then let message be the
+        // empty string; otherwise, let message be the method's first argument.
         self.Alert(DOMString::new());
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-alert
-    fn Alert(&self, s: DOMString) {
-        // Print to the console.
-        // Ensure that stderr doesn't trample through the alert() we use to
-        // communicate test results (see executorservo.py in wptrunner).
+    /// <https://html.spec.whatwg.org/multipage/#dom-alert>
+    fn Alert(&self, mut message: DOMString) {
+        // Step 1: If we cannot show simple dialogs for this, then return.
+        if self.cannot_show_simple_dialogs() {
+            return;
+        }
+
+        // Step 2 is handled in the other variant of this method.
+        //
+        // Step 3: Set message to the result of normalizing newlines given message.
+        message.normalize_newlines();
+
+        // Step 4. Set message to the result of optionally truncating message.
+        // This is up to the embedder.
+
+        // Step 5: Let userPromptHandler be WebDriver BiDi user prompt opened with this,
+        // "alert", and message.
+        // TODO: Add support for WebDriver BiDi.
+
+        // Step 6: If userPromptHandler is "none", then:
+        //  1. Show message to the user, treating U+000A LF as a line break.
+        //  2. Optionally, pause while waiting for the user to acknowledge the message.
         {
+            // Print to the console.
+            // Ensure that stderr doesn't trample through the alert() we use to
+            // communicate test results (see executorservo.py in wptrunner).
             let stderr = stderr();
             let mut stderr = stderr.lock();
             let stdout = stdout();
             let mut stdout = stdout.lock();
-            writeln!(&mut stdout, "\nALERT: {}", s).unwrap();
+            writeln!(&mut stdout, "\nALERT: {message}").unwrap();
             stdout.flush().unwrap();
             stderr.flush().unwrap();
         }
+
         let (sender, receiver) =
             ProfiledGenericChannel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let dialog = SimpleDialog::Alert {
-            message: s.to_string(),
+            message: message.to_string(),
             response_sender: sender,
         };
-        let msg = EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog);
-        self.send_to_embedder(msg);
+        self.send_to_embedder(EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog));
         receiver.recv().unwrap_or_else(|_| {
             // If the receiver is closed, we assume the dialog was cancelled.
             debug!("Alert dialog was cancelled or failed to show.");
             AlertResponse::Ok
         });
+
+        // Step 7: Invoke WebDriver BiDi user prompt closed with this, "alert", and true.
+        // TODO: Implement support for WebDriver BiDi.
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-confirm
-    fn Confirm(&self, s: DOMString) -> bool {
+    /// <https://html.spec.whatwg.org/multipage/#dom-confirm>
+    fn Confirm(&self, mut message: DOMString) -> bool {
+        // Step 1: If we cannot show simple dialogs for this, then return false.
+        if self.cannot_show_simple_dialogs() {
+            return false;
+        }
+
+        // Step 2: Set message to the result of normalizing newlines given message.
+        message.normalize_newlines();
+
+        // Step 3: Set message to the result of optionally truncating message.
+        // We let the embedder handle this.
+
+        // Step 4: Show message to the user, treating U+000A LF as a line break, and ask
+        // the user to respond with a positive or negative response.
         let (sender, receiver) =
             ProfiledGenericChannel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let dialog = SimpleDialog::Confirm {
-            message: s.to_string(),
+            message: message.to_string(),
             response_sender: sender,
         };
-        let msg = EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog);
-        self.send_to_embedder(msg);
+        self.send_to_embedder(EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog));
+
+        // Step 5: Let userPromptHandler be WebDriver BiDi user prompt opened with this,
+        // "confirm", and message.
+        //
+        // Step 6: Let accepted be false.
+        //
+        // Step 7: If userPromptHandler is "none", then:
+        //  1. Pause until the user responds either positively or negatively.
+        //  2. If the user responded positively, then set accepted to true.
+        //
+        // Step 8: If userPromptHandler is "accept", then set accepted to true.
+        //
+        // Step 9: Invoke WebDriver BiDi user prompt closed with this, "confirm", and accepted.
+        // TODO: Implement WebDriver BiDi and handle these steps.
+        //
+        // Step 10: Return accepted.
         match receiver.recv() {
             Ok(ConfirmResponse::Ok) => true,
             Ok(ConfirmResponse::Cancel) => false,
@@ -939,8 +1025,23 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-prompt
-    fn Prompt(&self, message: DOMString, default: DOMString) -> Option<DOMString> {
+    /// <https://html.spec.whatwg.org/multipage/#dom-prompt>
+    fn Prompt(&self, mut message: DOMString, default: DOMString) -> Option<DOMString> {
+        // Step 1: If we cannot show simple dialogs for this, then return null.
+        if self.cannot_show_simple_dialogs() {
+            return None;
+        }
+
+        // Step 2: Set message to the result of normalizing newlines given message.
+        message.normalize_newlines();
+
+        // Step 3. Set message to the result of optionally truncating message.
+        // Step 4: Set default to the result of optionally truncating default.
+        // We let the embedder handle these steps.
+
+        // Step 5: Show message to the user, treating U+000A LF as a line break, and ask
+        // the user to either respond with a string value or abort. The response must be
+        // defaulted to the value given by default.
         let (sender, receiver) =
             ProfiledGenericChannel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let dialog = SimpleDialog::Prompt {
@@ -948,8 +1049,26 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             default: default.to_string(),
             response_sender: sender,
         };
-        let msg = EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog);
-        self.send_to_embedder(msg);
+        self.send_to_embedder(EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog));
+
+        // Step 6: Let userPromptHandler be WebDriver BiDi user prompt opened with this,
+        // "prompt", and message.
+        // TODO: Add support for WebDriver BiDi.
+        //
+        // Step 7: Let result be null.
+        //
+        // Step 8: If userPromptHandler is "none", then:
+        //  1. Pause while waiting for the user's response.
+        //  2. If the user did not abort, then set result to the string that the user responded with.
+        //
+        // Step 9: Otherwise, if userPromptHandler is "accept", then set result to the empty string.
+        // TODO: Implement this.
+        //
+        // Step 10: Invoke WebDriver BiDi user prompt closed with this, "prompt", false if
+        // result is null or true otherwise, and result.
+        // TODO: Add support for WebDriver BiDi.
+        //
+        // Step 11: Return result.
         match receiver.recv() {
             Ok(PromptResponse::Ok(input)) => Some(input.into()),
             Ok(PromptResponse::Cancel) => None,
