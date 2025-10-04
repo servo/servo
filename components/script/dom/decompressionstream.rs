@@ -132,13 +132,13 @@ impl DecompressionStream {
         transform: &TransformStream,
         format: CompressionFormat,
         can_gc: CanGc,
-    ) -> Fallible<DomRoot<DecompressionStream>> {
-        Ok(reflect_dom_object_with_proto(
+    ) -> DomRoot<DecompressionStream> {
+        reflect_dom_object_with_proto(
             Box::new(DecompressionStream::new_inherited(transform, format)),
             global,
             proto,
             can_gc,
-        ))
+        )
     }
 }
 
@@ -156,7 +156,7 @@ impl DecompressionStreamMethods<crate::DomTypeHolder> for DecompressionStream {
         // Step 2. Set this’s format to format.
         // Step 5. Set this’s transform to a new TransformStream.
         let transform = TransformStream::new_with_proto(global, None, can_gc);
-        let this = DecompressionStream::new_with_proto(global, proto, &transform, format, can_gc)?;
+        let this = DecompressionStream::new_with_proto(global, proto, &transform, format, can_gc);
 
         // Step 3. Let transformAlgorithm be an algorithm which takes a chunk argument and runs the
         // decompress and enqueue a chunk algorithm with this and chunk.
