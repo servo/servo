@@ -72,7 +72,7 @@ enum PipelineType {
     Navigation,
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 enum ProcessingMode {
     FirstTime,
     NotFirstTime,
@@ -269,6 +269,7 @@ impl HTMLIFrameElement {
 
     /// <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
     fn process_the_iframe_attributes(&self, mode: ProcessingMode, can_gc: CanGc) {
+        println!("Processing iframe attributes: {:?}", mode);
         // > 1. If `element`'s `srcdoc` attribute is specified, then:
         if self
             .upcast::<Element>()
@@ -401,6 +402,7 @@ impl HTMLIFrameElement {
     }
 
     fn create_nested_browsing_context(&self, can_gc: CanGc) {
+        println!("Creating nested BC");
         // Synchronously create a new browsing context, which will present
         // `about:blank`. (This is not a navigation.)
         //
@@ -539,6 +541,7 @@ impl HTMLIFrameElement {
 
     /// <https://html.spec.whatwg.org/multipage/#iframe-load-event-steps> steps 1-4
     pub(crate) fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId, can_gc: CanGc) {
+        println!("Load event steps");
         // TODO(#9592): assert that the load blocker is present at all times when we
         //              can guarantee that it's created for the case of iframe.reload().
         if Some(loaded_pipeline) != self.pending_pipeline_id.get() {
@@ -805,6 +808,7 @@ impl VirtualMethods for HTMLIFrameElement {
         // to the newly-created browsing context, and then process the
         // iframe attributes for the "first time"."
         if self.upcast::<Node>().is_connected_with_browsing_context() {
+            println!("Post connection steps");
             debug!("iframe bound to browsing context.");
             self.create_nested_browsing_context(CanGc::note());
             self.process_the_iframe_attributes(ProcessingMode::FirstTime, CanGc::note());
