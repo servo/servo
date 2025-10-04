@@ -14,7 +14,8 @@ use std::sync::Arc;
 
 use app_units::Au;
 use dwrote::{
-    DWRITE_FONT_AXIS_VALUE, DWRITE_FONT_SIMULATIONS_NONE, FontCollection, FontFace, FontFile,
+    DWRITE_FONT_AXIS_VALUE, DWRITE_FONT_SIMULATIONS_BOLD, DWRITE_FONT_SIMULATIONS_NONE,
+    FontCollection, FontFace, FontFile, FontSimulations,
 };
 use euclid::default::{Point2D, Rect, Size2D};
 use fonts_traits::LocalFontIdentifier;
@@ -113,10 +114,31 @@ impl PlatformFont {
         font_face: FontFace,
         pt_size: Option<Au>,
         variations: &[FontVariation],
+        synthetic_bold: bool,
     ) -> Result<Self, &'static str> {
+        // `FontFace::has_variations()` Determines whether this font face's resource supports
+        // any variable axes. (IDWriteFontFace5::HasVariations).
+        //
+        // See <https://learn.microsoft.com/en-us/windows/win32/api/dwrite_3/nf-dwrite_3-idwritefontface5-hasvariations>
+        let synthetic_bold = if font_face.has_variations() {
+            // Variable fonts, where the font designer has provided one or more axes of
+            // variation do not count as font synthesis and their use is not affected by
+            // the font-synthesis property.
+            //
+            // See <https://www.w3.org/TR/css-fonts-4/#font-synthesis-intro>
+            false
+        } else {
+            synthetic_bold
+        };
+
         if variations.is_empty() {
             return Self::new(font_face, pt_size, vec![]);
         }
+
+        let simulations = match synthetic_bold {
+            true => DWRITE_FONT_SIMULATIONS_BOLD,
+            false => DWRITE_FONT_SIMULATIONS_NONE,
+        };
 
         // On FreeType and CoreText platforms, the platform layer is able to read the minimum, maxmimum,
         // and default values of each axis. This doesn't seem possible here and it seems that Gecko
@@ -133,8 +155,7 @@ impl PlatformFont {
             })
             .collect();
 
-        let Some(font_face) =
-            font_face.create_font_face_with_variations(DWRITE_FONT_SIMULATIONS_NONE, &variations)
+        let Some(font_face) = font_face.create_font_face_with_variations(simulations, &variations)
         else {
             return Err("Could not adapt FontFace to given variations");
         };
@@ -158,20 +179,20 @@ impl PlatformFontMethods for PlatformFont {
         data: &FontData,
         pt_size: Option<Au>,
         variations: &[FontVariation],
-        _synthetic_bold: bool,
+        synthetic_bold: bool,
     ) -> Result<Self, &'static str> {
         let font_face = FontFile::new_from_buffer(Arc::new(data.clone()))
             .ok_or("Could not create FontFile")?
             .create_face(0 /* face_index */, DWRITE_FONT_SIMULATIONS_NONE)
             .map_err(|_| "Could not create FontFace")?;
-        Self::new_with_variations(font_face, pt_size, variations)
+        Self::new_with_variations(font_face, pt_size, variations, synthetic_bold)
     }
 
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         pt_size: Option<Au>,
         variations: &[FontVariation],
-        _synthetic_bold: bool,
+        synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let font_face = FontCollection::system()
             .font_from_descriptor(&font_identifier.font_descriptor)
@@ -179,7 +200,7 @@ impl PlatformFontMethods for PlatformFont {
             .flatten()
             .ok_or("Could not create Font from descriptor")?
             .create_font_face();
-        Self::new_with_variations(font_face, pt_size, variations)
+        Self::new_with_variations(font_face, pt_size, variations, synthetic_bold)
     }
 
     fn descriptor(&self) -> FontTemplateDescriptor {
@@ -288,7 +309,18 @@ impl PlatformFontMethods for PlatformFont {
     }
 
     fn webrender_font_instance_flags(&self) -> FontInstanceFlags {
-        FontInstanceFlags::SUBPIXEL_POSITION
+        let mut flags = FontInstanceFlags::SUBPIXEL_POSITION;
+
+        // TODO: Add support for synthetic italics.
+        // <https://github.com/servo/servo/issues/39637>
+        if matches!(
+            self.face.simulations(),
+            FontSimulations::Bold | FontSimulations::BoldOblique
+        ) {
+            flags |= FontInstanceFlags::SYNTHETIC_BOLD;
+        }
+
+        flags
     }
 
     fn typographic_bounds(&self, glyph_id: GlyphId) -> Rect<f32> {
