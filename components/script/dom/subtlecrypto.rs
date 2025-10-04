@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 mod aes_operation;
+mod hmac_operation;
 mod sha_operation;
 
 use std::num::NonZero;
@@ -16,7 +17,7 @@ use aes::cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit, StreamCipher};
 use aes::{Aes128, Aes192, Aes256};
 use aes_gcm::{AeadInPlace, AesGcm, KeyInit};
 use aes_kw::{KekAes128, KekAes192, KekAes256};
-use aws_lc_rs::{hkdf, hmac, pbkdf2};
+use aws_lc_rs::{hkdf, pbkdf2};
 use base64::prelude::*;
 use cipher::consts::{U12, U16, U32};
 use dom_struct::dom_struct;
@@ -187,6 +188,18 @@ impl SubtleCrypto {
             }));
     }
 
+    /// Queue a global task on the crypto task source, given realm's global object, to resolve
+    /// promise with a bool value.
+    fn resolve_promise_with_bool(&self, promise: Rc<Promise>, result: bool) {
+        let trusted_promise = TrustedPromise::new(promise);
+        self.global().task_manager().crypto_task_source().queue(
+            task!(generate_key_result: move || {
+                let promise = trusted_promise.root();
+                promise.resolve_native(&result, CanGc::note());
+            }),
+        );
+    }
+
     /// Queue a global task on the crypto task source, given realm's global object, to reject
     /// promise with an error.
     fn reject_promise_with_error(&self, promise: Rc<Promise>, error: Error) {
@@ -334,77 +347,82 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         comp: InRealm,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        // Step 1. Let algorithm and key be the algorithm and key parameters passed to the sign() method, respectively.
+        // Step 1. Let algorithm and key be the algorithm and key parameters passed to the sign()
+        // method, respectively.
+        // NOTE: We did that in method parameter.
 
-        // Step 2. Let data be the result of getting a copy of the bytes held by the data parameter passed to
-        // the sign() method.
+        // Step 2. Let data be the result of getting a copy of the bytes held by the data parameter
+        // passed to the sign() method.
         let data = match &data {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
 
-        // Step 3. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set to algorithm and
-        // op set to "sign".
+        // Step 3. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set
+        // to algorithm and op set to "sign".
+        // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
         let promise = Promise::new_in_current_realm(comp, can_gc);
         let normalized_algorithm =
-            match normalize_algorithm_for_sign_or_verify(cx, &algorithm, can_gc) {
-                Ok(algorithm) => algorithm,
-                Err(e) => {
-                    // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-                    promise.reject_error(e, can_gc);
+            match normalize_algorithm(cx, &Operation::Sign, &algorithm, can_gc) {
+                Ok(normalized_algorithm) => normalized_algorithm,
+                Err(error) => {
+                    promise.reject_error(error, can_gc);
                     return promise;
                 },
             };
 
-        // Step 5. Let promise be a new Promise.
+        // Step 5. Let realm be the relevant realm of this.
+        // Step 6. Let promise be a new Promise.
         // NOTE: We did that in preparation of Step 4.
 
-        // Step 6. Return promise and perform the remaining steps in parallel.
+        // Step 7. Return promise and perform the remaining steps in parallel.
+        let this = Trusted::new(self);
         let trusted_promise = TrustedPromise::new(promise.clone());
         let trusted_key = Trusted::new(key);
-
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
             .queue(task!(sign: move || {
-                // Step 7. If the following steps or referenced procedures say to throw an error, reject promise
-                // with the returned error and then terminate the algorithm.
+                let subtle = this.root();
                 let promise = trusted_promise.root();
                 let key = trusted_key.root();
 
-                // Step 8. If the name member of normalizedAlgorithm is not equal to the name attribute of the
-                // [[algorithm]] internal slot of key then throw an InvalidAccessError.
+                // Step 8. If the following steps or referenced procedures say to throw an error,
+                // queue a global task on the crypto task source, given realm's global object, to
+                // reject promise with the returned error; and then terminate the algorithm.
+
+                // Step 9. If the name member of normalizedAlgorithm is not equal to the name
+                // attribute of the [[algorithm]] internal slot of key then throw an
+                // InvalidAccessError.
                 if normalized_algorithm.name() != key.algorithm() {
-                    promise.reject_error(Error::InvalidAccess, CanGc::note());
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
                     return;
                 }
 
-                // Step 9. If the [[usages]] internal slot of key does not contain an entry that is "sign",
-                // then throw an InvalidAccessError.
+                // Step 10. If the [[usages]] internal slot of key does not contain an entry that
+                // is "sign", then throw an InvalidAccessError.
                 if !key.usages().contains(&KeyUsage::Sign) {
-                    promise.reject_error(Error::InvalidAccess, CanGc::note());
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
                     return;
                 }
 
-                // Step 10.  Let result be the result of performing the sign operation specified by normalizedAlgorithm
-                // using key and algorithm and with data as message.
-                let cx = GlobalScope::get_cx();
-                let result = match normalized_algorithm.sign(cx, &key, &data, CanGc::note()) {
+                // Step 11. Let signature be the result of performing the sign operation specified
+                // by normalizedAlgorithm using key and algorithm and with data as message.
+                let signature = match normalized_algorithm.sign(&key, &data, CanGc::note()) {
                     Ok(signature) => signature,
-                    Err(e) => {
-                        promise.reject_error(e, CanGc::note());
+                    Err(error) => {
+                        subtle.reject_promise_with_error(promise, error);
                         return;
-                    }
+                    },
                 };
 
-                rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-                create_buffer_source::<ArrayBufferU8>(cx, &result, array_buffer_ptr.handle_mut(), CanGc::note())
-                    .expect("failed to create buffer source for exported key.");
-
-                // Step 9. Resolve promise with result.
-                promise.resolve_native(&*array_buffer_ptr, CanGc::note());
+                // Step 12. Queue a global task on the crypto task source, given realm's global
+                // object, to perform the remaining steps.
+                // Step 13. Let result be the result of creating an ArrayBuffer in realm,
+                // containing signature.
+                // Step 14. Resolve promise with result.
+                subtle.resolve_promise_with_data(promise, signature);
             }));
-
         promise
     }
 
@@ -419,18 +437,19 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         comp: InRealm,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        // Step 1. Let algorithm and key be the algorithm and key parameters passed to the verify() method,
-        // respectively.
+        // Step 1. Let algorithm and key be the algorithm and key parameters passed to the verify()
+        // method, respectively.
+        // NOTE: We did that in method parameter.
 
-        // Step 2. Let signature be the result of getting a copy of the bytes held by the signature parameter passed
-        // to the verify() method.
+        // Step 2. Let signature be the result of getting a copy of the bytes held by the signature
+        // parameter passed to the verify() method.
         let signature = match &signature {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
 
-        // Step 3. Let data be the result of getting a copy of the bytes held by the data parameter passed to the
-        // verify() method.
+        // Step 3. Let data be the result of getting a copy of the bytes held by the data parameter
+        // passed to the verify() method.
         let data = match &data {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
@@ -438,62 +457,68 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 4. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set to
         // algorithm and op set to "verify".
+        // Step 5. If an error occurred, return a Promise rejected with normalizedAlgorithm.
         let promise = Promise::new_in_current_realm(comp, can_gc);
         let normalized_algorithm =
-            match normalize_algorithm_for_sign_or_verify(cx, &algorithm, can_gc) {
+            match normalize_algorithm(cx, &Operation::Verify, &algorithm, can_gc) {
                 Ok(algorithm) => algorithm,
-                Err(e) => {
-                    // Step 5. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-                    promise.reject_error(e, can_gc);
+                Err(error) => {
+                    promise.reject_error(error, can_gc);
                     return promise;
                 },
             };
 
-        // Step 6. Let promise be a new Promise.
-        // NOTE: We did that in preparation of Step 6.
+        // Step 6. Let realm be the relevant realm of this.
+        // Step 7. Let promise be a new Promise.
+        // NOTE: We did that in preparation of Step 5.
 
-        // Step 7. Return promise and perform the remaining steps in parallel.
+        // Step 8. Return promise and perform the remaining steps in parallel.
+        let this = Trusted::new(self);
         let trusted_promise = TrustedPromise::new(promise.clone());
         let trusted_key = Trusted::new(key);
-
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
             .queue(task!(sign: move || {
-                // Step 8. If the following steps or referenced procedures say to throw an error, reject promise
-                // with the returned error and then terminate the algorithm.
+                let subtle = this.root();
                 let promise = trusted_promise.root();
                 let key = trusted_key.root();
 
-                // Step 9. If the name member of normalizedAlgorithm is not equal to the name attribute of the
-                // [[algorithm]] internal slot of key then throw an InvalidAccessError.
+                // Step 9. If the following steps or referenced procedures say to throw an error,
+                // queue a global task on the crypto task source, given realm's global object, to
+                // reject promise with the returned error; and then terminate the algorithm.
+
+                // Step 10. If the name member of normalizedAlgorithm is not equal to the name
+                // attribute of the [[algorithm]] internal slot of key then throw an
+                // InvalidAccessError.
                 if normalized_algorithm.name() != key.algorithm() {
-                    promise.reject_error(Error::InvalidAccess, CanGc::note());
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
                     return;
                 }
 
-                // Step 10. If the [[usages]] internal slot of key does not contain an entry that is "verify",
-                // then throw an InvalidAccessError.
+                // Step 11. If the [[usages]] internal slot of key does not contain an entry that
+                // is "verify", then throw an InvalidAccessError.
                 if !key.usages().contains(&KeyUsage::Verify) {
-                    promise.reject_error(Error::InvalidAccess, CanGc::note());
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
                     return;
                 }
 
-                // Step 1. Let result be the result of performing the verify operation specified by normalizedAlgorithm
-                // using key, algorithm and signature and with data as message.
-                let cx = GlobalScope::get_cx();
-                let result = match normalized_algorithm.verify(cx, &key, &data, &signature, CanGc::note()) {
+                // Step 12. Let result be the result of performing the verify operation specified
+                // by normalizedAlgorithm using key, algorithm and signature and with data as
+                // message.
+                let result = match normalized_algorithm.verify(&key, &data, &signature, CanGc::note()) {
                     Ok(result) => result,
-                    Err(e) => {
-                        promise.reject_error(e, CanGc::note());
+                    Err(error) => {
+                        subtle.reject_promise_with_error(promise, error);
                         return;
-                    }
+                    },
                 };
 
-                // Step 9. Resolve promise with result.
-                promise.resolve_native(&result, CanGc::note());
+                // Step 13. Queue a global task on the crypto task source, given realm's global
+                // object, to perform the remaining steps.
+                // Step 14. Resolve promise with result.
+                subtle.resolve_promise_with_bool(promise, result);
             }));
-
         promise
     }
 
@@ -1592,13 +1617,6 @@ enum EncryptionAlgorithm {
     AesGcm(SubtleAesGcmParams),
 }
 
-/// A normalized algorithm returned by [`normalize_algorithm`] with operation `"sign"` or `"verify"`
-///
-/// [`normalize_algorithm`]: https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm
-enum SignatureAlgorithm {
-    Hmac,
-}
-
 /// A normalized algorithm returned by [`normalize_algorithm`] with operation `"generateKey"`
 ///
 /// [`normalize_algorithm`]: https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm
@@ -1926,31 +1944,6 @@ fn normalize_algorithm_for_encrypt_or_decrypt(
         EncryptionAlgorithm::AesGcm(params.into())
     } else {
         return Err(Error::NotSupported);
-    };
-
-    Ok(normalized_algorithm)
-}
-
-/// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm> with operation `"sign"`
-/// or `"verify"`
-fn normalize_algorithm_for_sign_or_verify(
-    cx: JSContext,
-    algorithm: &AlgorithmIdentifier,
-    can_gc: CanGc,
-) -> Result<SignatureAlgorithm, Error> {
-    let name = match algorithm {
-        AlgorithmIdentifier::Object(obj) => {
-            rooted!(in(*cx) let value = ObjectValue(obj.get()));
-            let algorithm = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
-
-            algorithm.name.str().to_uppercase()
-        },
-        AlgorithmIdentifier::String(name) => name.str().to_uppercase(),
-    };
-
-    let normalized_algorithm = match name.as_str() {
-        ALG_HMAC => SignatureAlgorithm::Hmac,
-        _ => return Err(Error::NotSupported),
     };
 
     Ok(normalized_algorithm)
@@ -3584,39 +3577,6 @@ impl EncryptionAlgorithm {
     }
 }
 
-impl SignatureAlgorithm {
-    fn name(&self) -> &str {
-        match self {
-            Self::Hmac => ALG_HMAC,
-        }
-    }
-
-    fn sign(
-        &self,
-        cx: JSContext,
-        key: &CryptoKey,
-        data: &[u8],
-        can_gc: CanGc,
-    ) -> Result<Vec<u8>, Error> {
-        match self {
-            Self::Hmac => sign_hmac(cx, key, data, can_gc).map(|s| s.as_ref().to_vec()),
-        }
-    }
-
-    fn verify(
-        &self,
-        cx: JSContext,
-        key: &CryptoKey,
-        data: &[u8],
-        signature: &[u8],
-        can_gc: CanGc,
-    ) -> Result<bool, Error> {
-        match self {
-            Self::Hmac => verify_hmac(cx, key, data, signature, can_gc),
-        }
-    }
-}
-
 impl KeyGenerationAlgorithm {
     // FIXME: This doesn't really need the "SubtleCrypto" argument
     fn generate_key(
@@ -3641,53 +3601,6 @@ impl KeyGenerationAlgorithm {
 
         Ok(key_or_key_pair)
     }
-}
-
-/// <https://w3c.github.io/webcrypto/#hmac-operations>
-fn sign_hmac(
-    cx: JSContext,
-    key: &CryptoKey,
-    data: &[u8],
-    can_gc: CanGc,
-) -> Result<impl AsRef<[u8]>, Error> {
-    // Step 1. Let mac be the result of performing the MAC Generation operation described in Section 4 of [FIPS-198-1]
-    // using the key represented by [[handle]] internal slot of key, the hash function identified by the hash attribute
-    // of the [[algorithm]] internal slot of key and message as the input data text.
-    rooted!(in(*cx) let mut algorithm_slot = ObjectValue(key.Algorithm(cx).as_ptr()));
-    let params = value_from_js_object::<HmacKeyAlgorithm>(cx, algorithm_slot.handle(), can_gc)?;
-
-    let hash_algorithm = match params.hash.name.str() {
-        ALG_SHA1 => hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY,
-        ALG_SHA256 => hmac::HMAC_SHA256,
-        ALG_SHA384 => hmac::HMAC_SHA384,
-        ALG_SHA512 => hmac::HMAC_SHA512,
-        _ => return Err(Error::NotSupported),
-    };
-
-    let sign_key = hmac::Key::new(hash_algorithm, key.handle().as_bytes());
-    let mac = hmac::sign(&sign_key, data);
-
-    // Step 2. Return the result of creating an ArrayBuffer containing mac.
-    // NOTE: This is done by the caller
-    Ok(mac)
-}
-
-/// <https://w3c.github.io/webcrypto/#hmac-operations>
-fn verify_hmac(
-    cx: JSContext,
-    key: &CryptoKey,
-    data: &[u8],
-    signature: &[u8],
-    can_gc: CanGc,
-) -> Result<bool, Error> {
-    // Step 1. Let mac be the result of performing the MAC Generation operation described in Section 4 of [FIPS-198-1]
-    // using the key represented by [[handle]] internal slot of key, the hash function identified by the hash attribute
-    // of the [[algorithm]] internal slot of key and message as the input data text.
-    let mac = sign_hmac(cx, key, data, can_gc)?;
-
-    // Step 2. Return true if mac is equal to signature and false otherwise.
-    let is_valid = mac.as_ref() == signature;
-    Ok(is_valid)
 }
 
 impl KeyWrapAlgorithm {
@@ -3949,6 +3862,16 @@ fn normalize_algorithm(
                     NormalizedAlgorithm::AesCtrParams(params.into())
                 },
 
+                // <https://w3c.github.io/webcrypto/#hmac-registration>
+                (ALG_HMAC, Operation::Sign) => {
+                    let params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+                (ALG_HMAC, Operation::Verify) => {
+                    let params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+
                 // <https://w3c.github.io/webcrypto/#sha-registration>
                 (ALG_SHA1, Operation::Digest) => {
                     let mut params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
@@ -3980,6 +3903,13 @@ fn normalize_algorithm(
 }
 
 impl NormalizedAlgorithm {
+    fn name(&self) -> &str {
+        match self {
+            NormalizedAlgorithm::Algorithm(algo) => &algo.name,
+            NormalizedAlgorithm::AesCtrParams(algo) => &algo.name,
+        }
+    }
+
     #[allow(unused)]
     fn encrypt(&self, key: &CryptoKey, plaintext: &[u8]) -> Result<Vec<u8>, Error> {
         match self {
@@ -3992,8 +3922,32 @@ impl NormalizedAlgorithm {
 
     // TODO:
     // decrypt
-    // sign
-    // verify
+
+    fn sign(&self, key: &CryptoKey, message: &[u8], can_gc: CanGc) -> Result<Vec<u8>, Error> {
+        match self {
+            NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
+                ALG_HMAC => hmac_operation::sign(key, message, can_gc),
+                _ => Err(Error::NotSupported),
+            },
+            _ => Err(Error::NotSupported),
+        }
+    }
+
+    fn verify(
+        &self,
+        key: &CryptoKey,
+        message: &[u8],
+        signature: &[u8],
+        can_gc: CanGc,
+    ) -> Result<bool, Error> {
+        match self {
+            NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
+                ALG_HMAC => hmac_operation::verify(key, message, signature, can_gc),
+                _ => Err(Error::NotSupported),
+            },
+            _ => Err(Error::NotSupported),
+        }
+    }
 
     fn digest(&self, message: &[u8]) -> Result<Vec<u8>, Error> {
         match self {
