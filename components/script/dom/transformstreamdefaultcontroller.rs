@@ -23,12 +23,19 @@ use crate::dom::bindings::codegen::Bindings::TransformerBinding::Transformer;
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::compressionstream::{
+    CompressionStream, compress_and_enqueue_a_chunk, compress_flush_and_enqueue,
+};
+use crate::dom::decompressionstream::{
+    decompress_and_enqueue_a_chunk, decompress_flush_and_enqueue,
+};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::textdecodercommon::TextDecoderCommon;
 use crate::dom::textdecoderstream::{decode_and_enqueue_a_chunk, flush_and_enqueue};
 use crate::dom::textencoderstream::{Encoder, encode_and_enqueue_a_chunk, encode_and_flush};
+use crate::dom::types::DecompressionStream;
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -80,6 +87,14 @@ pub(crate) enum TransformerType {
     ///
     /// <https://encoding.spec.whatwg.org/#textencoderstream-encoder>
     Encoder(Encoder),
+    /// Algorithms supporting `CompressionStream` are implemented in Rust
+    ///
+    /// <https://compression.spec.whatwg.org/#compressionstream>
+    Compressor(DomRoot<CompressionStream>),
+    /// Algorithms supporting `DecompressionStream` are implemented in Rust
+    ///
+    /// <https://compression.spec.whatwg.org/#decompressionstream>
+    Decompressor(DomRoot<DecompressionStream>),
 }
 
 impl TransformerType {
@@ -283,6 +298,52 @@ impl TransformStreamDefaultController {
                         p
                     })
             },
+            TransformerType::Compressor(cs) => {
+                // <https://compression.spec.whatwg.org/#dom-compressionstream-compressionstream>
+                // Step 3. Let transformAlgorithm be an algorithm which takes a chunk argument and
+                // runs the compress and enqueue a chunk algorithm with this and chunk.
+                compress_and_enqueue_a_chunk(cx, global, cs, chunk, self, can_gc)
+                    // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                    // Step 5. Let transformAlgorithmWrapper be an algorithm that runs these steps given a value chunk:
+                    // Step 5.1 Let result be the result of running transformAlgorithm given chunk.
+                    // Step 5.2 If result is a Promise, then return result.
+                    // Note: not applicable, the spec does NOT require
+                    // compress_and_enqueue_a_chunk() to return a Promise.
+                    // Step 5.3 Return a promise resolved with undefined.
+                    .map(|_| Promise::new_resolved(global, cx, (), can_gc))
+                    .unwrap_or_else(|e| {
+                        // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                        // Step 5.1 If this throws an exception e,
+                        let realm = enter_realm(self);
+                        let p = Promise::new_in_current_realm((&realm).into(), can_gc);
+                        // return a promise rejected with e.
+                        p.reject_error(e, can_gc);
+                        p
+                    })
+            },
+            TransformerType::Decompressor(ds) => {
+                // <https://compression.spec.whatwg.org/#dom-decompressionstream-decompressionstream>
+                // Step 3. Let transformAlgorithm be an algorithm which takes a chunk argument and
+                // runs the decompress and enqueue a chunk algorithm with this and chunk.
+                decompress_and_enqueue_a_chunk(cx, global, ds, chunk, self, can_gc)
+                    // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                    // Step 5. Let transformAlgorithmWrapper be an algorithm that runs these steps given a value chunk:
+                    // Step 5.1 Let result be the result of running transformAlgorithm given chunk.
+                    // Step 5.2 If result is a Promise, then return result.
+                    // Note: not applicable, the spec does NOT require
+                    // decompress_and_enqueue_a_chunk() to return a Promise
+                    // Step 5.3 Return a promise resolved with undefined.
+                    .map(|_| Promise::new_resolved(global, cx, (), can_gc))
+                    .unwrap_or_else(|e| {
+                        // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                        // Step 5.1 If this throws an exception e,
+                        let realm = enter_realm(self);
+                        let p = Promise::new_in_current_realm((&realm).into(), can_gc);
+                        // return a promise rejected with e.
+                        p.reject_error(e, can_gc);
+                        p
+                    })
+            },
         };
 
         Ok(result)
@@ -344,6 +405,28 @@ impl TransformStreamDefaultController {
                 // Step 7.1 Let result be the result of running cancelAlgorithm given reason,
                 //      if cancelAlgorithm was given, or null otherwise
                 // Note: `TextDecoderStream` does NOT specify a cancel algorithm.
+                // Step 7.2 If result is a Promise, then return result.
+                // Note: Not applicable.
+                // Step 7.3 Return a promise resolved with undefined.
+                Promise::new_resolved(global, cx, (), can_gc)
+            },
+            TransformerType::Compressor(_) => {
+                // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                // Step 7. Let cancelAlgorithmWrapper be an algorithm that runs these steps given a value reason:
+                // Step 7.1 Let result be the result of running cancelAlgorithm given reason,
+                //      if cancelAlgorithm was given, or null otherwise
+                // Note: `CompressionStream` does NOT specify a cancel algorithm.
+                // Step 7.2 If result is a Promise, then return result.
+                // Note: Not applicable.
+                // Step 7.3 Return a promise resolved with undefined.
+                Promise::new_resolved(global, cx, (), can_gc)
+            },
+            TransformerType::Decompressor(_) => {
+                // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                // Step 7. Let cancelAlgorithmWrapper be an algorithm that runs these steps given a value reason:
+                // Step 7.1 Let result be the result of running cancelAlgorithm given reason,
+                //      if cancelAlgorithm was given, or null otherwise
+                // Note: `DecompressionStream` does NOT specify a cancel algorithm.
                 // Step 7.2 If result is a Promise, then return result.
                 // Note: Not applicable.
                 // Step 7.3 Return a promise resolved with undefined.
@@ -424,6 +507,54 @@ impl TransformStreamDefaultController {
                     //      if flushAlgorithm was given, or null otherwise.
                     // Step 6.2 If result is a Promise, then return result.
                     // Note: Not applicable. The spec does NOT require encode_and_flush algo to return a Promise
+                    // Step 6.3 Return a promise resolved with undefined.
+                    .map(|_| Promise::new_resolved(global, cx, (), can_gc))
+                    .unwrap_or_else(|e| {
+                        // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                        // Step 6.1 If this throws an exception e,
+                        let realm = enter_realm(self);
+                        let p = Promise::new_in_current_realm((&realm).into(), can_gc);
+                        // return a promise rejected with e.
+                        p.reject_error(e, can_gc);
+                        p
+                    })
+            },
+            TransformerType::Compressor(cs) => {
+                // <https://compression.spec.whatwg.org/#dom-compressionstream-compressionstream>
+                // Step 4. Let flushAlgorithm be an algorithm which takes no argument and runs the
+                // compress flush and enqueue algorithm with this.
+                compress_flush_and_enqueue(cx, global, cs, self, can_gc)
+                    // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                    // Step 6. Let flushAlgorithmWrapper be an algorithm that runs these steps:
+                    // Step 6.1 Let result be the result of running flushAlgorithm,
+                    //      if flushAlgorithm was given, or null otherwise.
+                    // Step 6.2 If result is a Promise, then return result.
+                    // Note: Not applicable. The spec does NOT require compress_flush_and_enqueue
+                    // algo to return a Promise.
+                    // Step 6.3 Return a promise resolved with undefined.
+                    .map(|_| Promise::new_resolved(global, cx, (), can_gc))
+                    .unwrap_or_else(|e| {
+                        // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                        // Step 6.1 If this throws an exception e,
+                        let realm = enter_realm(self);
+                        let p = Promise::new_in_current_realm((&realm).into(), can_gc);
+                        // return a promise rejected with e.
+                        p.reject_error(e, can_gc);
+                        p
+                    })
+            },
+            TransformerType::Decompressor(ds) => {
+                // <https://compression.spec.whatwg.org/#dom-decompressionstream-decompressionstream>
+                // Step 4. Let flushAlgorithm be an algorithm which takes no argument and runs the
+                // decompress flush and enqueue algorithm with this.
+                decompress_flush_and_enqueue(cx, global, ds, self, can_gc)
+                    // <https://streams.spec.whatwg.org/#transformstream-set-up>
+                    // Step 6. Let flushAlgorithmWrapper be an algorithm that runs these steps:
+                    // Step 6.1 Let result be the result of running flushAlgorithm,
+                    //      if flushAlgorithm was given, or null otherwise.
+                    // Step 6.2 If result is a Promise, then return result.
+                    // Note: Not applicable. The spec does NOT require decompress_flush_and_enqueue
+                    // algo to return a Promise.
                     // Step 6.3 Return a promise resolved with undefined.
                     .map(|_| Promise::new_resolved(global, cx, (), can_gc))
                     .unwrap_or_else(|e| {
