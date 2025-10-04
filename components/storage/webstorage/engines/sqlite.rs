@@ -20,9 +20,12 @@ pub struct SqliteEngine {
 }
 
 impl SqliteEngine {
-    pub fn new(db_path: &Option<PathBuf>, pool: Arc<ThreadPool>) -> rusqlite::Result<Self> {
-        let connection = match db_path {
-            Some(path) => Self::init_db(path)?,
+    pub fn new(db_dir: &Option<PathBuf>, pool: Arc<ThreadPool>) -> rusqlite::Result<Self> {
+        let connection = match db_dir {
+            Some(path) => {
+                let path = path.join("webstorage.sqlite");
+                Self::init_db(&path)?
+            },
             None => Connection::open_in_memory()?,
         };
         // Initialize the database with necessary pragmas
