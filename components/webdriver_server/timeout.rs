@@ -9,6 +9,7 @@ pub(crate) struct TimeoutsConfiguration {
     pub script: Option<u64>,
     pub page_load: u64,
     pub implicit_wait: u64,
+    pub sleep_interval: u64,
 }
 
 impl Default for TimeoutsConfiguration {
@@ -17,6 +18,7 @@ impl Default for TimeoutsConfiguration {
             script: Some(30_000),
             page_load: 300_000,
             implicit_wait: 0,
+            sleep_interval: 10,
         }
     }
 }
