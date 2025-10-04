@@ -1332,6 +1332,34 @@ impl Handler {
         unwrap_first_element_response(res)
     }
 
+    fn implicit_wait<T>(
+        &self,
+        callback: impl Fn() -> Result<Vec<T>, WebDriverError>,
+    ) -> Result<Vec<T>, WebDriverError>
+    where
+        T: for<'de> Deserialize<'de> + Serialize,
+    {
+        let now = Instant::now();
+        let (implicit_wait, sleep_interval) = {
+            let timeouts = self.session()?.session_timeouts();
+            (
+                Duration::from_millis(timeouts.implicit_wait),
+                Duration::from_millis(timeouts.sleep_interval),
+            )
+        };
+
+        loop {
+            match callback() {
+                Ok(value) if !value.is_empty() || now.elapsed() > implicit_wait => {
+                    return Ok(value);
+                },
+                Ok(_) => {},
+                Err(error) => return Err(error),
+            }
+            sleep(sleep_interval);
+        }
+    }
+
     /// <https://w3c.github.io/webdriver/#find-elements>
     fn handle_find_elements(
         &self,
@@ -1348,13 +1376,7 @@ impl Handler {
         // Step 6. Handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
 
-        let now = Instant::now();
-        let (implicit_wait, sleep_interval) = {
-            let timeouts = self.session()?.session_timeouts();
-            (timeouts.implicit_wait, timeouts.sleep_interval)
-        };
-
-        loop {
+        self.implicit_wait(|| {
             let (sender, receiver) = ipc::channel().unwrap();
             match parameters.using {
                 LocatorStrategy::CSSSelector => {
@@ -1387,22 +1409,14 @@ impl Handler {
                     self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
                 },
             }
-
-            match wait_for_ipc_response(receiver)? {
-                Ok(value) => {
-                    if value.is_empty() && now.elapsed().as_millis() < implicit_wait.into() {
-                        dbg!(now.elapsed().as_millis());
-                        sleep(Duration::from_millis(sleep_interval));
-                        continue;
-                    }
-                    let resp_value: Vec<WebElement> = value.into_iter().map(WebElement).collect();
-                    return Ok(WebDriverResponse::Generic(ValueResponse(
-                        serde_json::to_value(resp_value)?,
-                    )));
-                },
-                Err(error) => return Err(WebDriverError::new(error, "")),
-            }
-        }
+            wait_for_ipc_response_flatten(receiver)
+        })
+        .and_then(|response| {
+            let resp_value: Vec<WebElement> = response.into_iter().map(WebElement).collect();
+            Ok(WebDriverResponse::Generic(ValueResponse(
+                serde_json::to_value(resp_value)?,
+            )))
+        })
     }
 
     /// <https://w3c.github.io/webdriver/#find-element-from-element>
@@ -1434,12 +1448,8 @@ impl Handler {
 
         // Step 6. Handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
-        let now = Instant::now();
-        let (implicit_wait, sleep_interval) = {
-            let timeouts = self.session()?.session_timeouts();
-            (timeouts.implicit_wait, timeouts.sleep_interval)
-        };
-        loop {
+
+        self.implicit_wait(|| {
             let (sender, receiver) = ipc::channel().unwrap();
 
             match parameters.using {
@@ -1478,23 +1488,17 @@ impl Handler {
                 },
             }
 
-            match wait_for_ipc_response(receiver)? {
-                Ok(value) => {
-                    if value.is_empty() && now.elapsed().as_millis() < implicit_wait.into() {
-                        sleep(Duration::from_millis(sleep_interval));
-                        continue;
-                    }
-                    let resp_value: Vec<Value> = value
-                        .into_iter()
-                        .map(|x| serde_json::to_value(WebElement(x)).unwrap())
-                        .collect();
-                    return Ok(WebDriverResponse::Generic(ValueResponse(
-                        serde_json::to_value(resp_value)?,
-                    )));
-                },
-                Err(error) => return Err(WebDriverError::new(error, "")),
-            }
-        }
+            wait_for_ipc_response_flatten(receiver)
+        })
+        .and_then(|response| {
+            let resp_value: Vec<Value> = response
+                .into_iter()
+                .map(|x| serde_json::to_value(WebElement(x)).unwrap())
+                .collect();
+            Ok(WebDriverResponse::Generic(ValueResponse(
+                serde_json::to_value(resp_value)?,
+            )))
+        })
     }
 
     /// <https://w3c.github.io/webdriver/#find-elements-from-shadow-root>
@@ -1515,12 +1519,7 @@ impl Handler {
         // Step 6. Handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
 
-        let now = Instant::now();
-        let (implicit_wait, sleep_interval) = {
-            let timeouts = self.session()?.session_timeouts();
-            (timeouts.implicit_wait, timeouts.sleep_interval)
-        };
-        loop {
+        self.implicit_wait(|| {
             let (sender, receiver) = ipc::channel().unwrap();
 
             match parameters.using {
@@ -1559,23 +1558,17 @@ impl Handler {
                 },
             }
 
-            match wait_for_ipc_response(receiver)? {
-                Ok(value) => {
-                    if value.is_empty() && now.elapsed().as_millis() < implicit_wait.into() {
-                        sleep(Duration::from_millis(sleep_interval));
-                        continue;
-                    }
-                    let resp_value: Vec<Value> = value
-                        .into_iter()
-                        .map(|x| serde_json::to_value(WebElement(x)).unwrap())
-                        .collect();
-                    return Ok(WebDriverResponse::Generic(ValueResponse(
-                        serde_json::to_value(resp_value)?,
-                    )));
-                },
-                Err(error) => return Err(WebDriverError::new(error, "")),
-            }
-        }
+            wait_for_ipc_response_flatten(receiver)
+        })
+        .and_then(|response| {
+            let resp_value: Vec<Value> = response
+                .into_iter()
+                .map(|x| serde_json::to_value(WebElement(x)).unwrap())
+                .collect();
+            Ok(WebDriverResponse::Generic(ValueResponse(
+                serde_json::to_value(resp_value)?,
+            )))
+        })
     }
 
     /// <https://w3c.github.io/webdriver/#find-element-from-shadow-root>
@@ -2678,6 +2671,21 @@ where
     receiver
         .recv()
         .map_err(|_| WebDriverError::new(ErrorStatus::NoSuchWindow, ""))
+}
+
+/// This function is like `wait_for_ipc_response`, but works on a channel that
+/// returns a `Result<T, ErrorStatus>`, mapping all errors into `WebDriverError`.
+fn wait_for_ipc_response_flatten<T>(
+    receiver: IpcReceiver<Result<T, ErrorStatus>>,
+) -> Result<T, WebDriverError>
+where
+    T: for<'de> Deserialize<'de> + Serialize,
+{
+    match receiver.recv() {
+        Ok(Ok(value)) => Ok(value),
+        Ok(Err(error_status)) => Err(WebDriverError::new(error_status, "")),
+        Err(_) => Err(WebDriverError::new(ErrorStatus::NoSuchWindow, "")),
+    }
 }
 
 fn unwrap_first_element_response(res: WebDriverResponse) -> WebDriverResult<WebDriverResponse> {
