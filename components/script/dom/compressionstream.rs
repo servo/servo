@@ -127,13 +127,13 @@ impl CompressionStream {
         transform: &TransformStream,
         format: CompressionFormat,
         can_gc: CanGc,
-    ) -> Fallible<DomRoot<CompressionStream>> {
-        Ok(reflect_dom_object_with_proto(
+    ) -> DomRoot<CompressionStream> {
+        reflect_dom_object_with_proto(
             Box::new(CompressionStream::new_inherited(transform, format)),
             global,
             proto,
             can_gc,
-        ))
+        )
     }
 }
 
@@ -151,7 +151,7 @@ impl CompressionStreamMethods<crate::DomTypeHolder> for CompressionStream {
         // Step 2. Set this’s format to format.
         // Step 5. Set this’s transform to a new TransformStream.
         let transform = TransformStream::new_with_proto(global, None, can_gc);
-        let this = CompressionStream::new_with_proto(global, proto, &transform, format, can_gc)?;
+        let this = CompressionStream::new_with_proto(global, proto, &transform, format, can_gc);
 
         // Step 3. Let transformAlgorithm be an algorithm which takes a chunk argument and runs the
         // compress and enqueue a chunk algorithm with this and chunk.
