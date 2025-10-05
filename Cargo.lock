@@ -3065,6 +3065,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "geolocation"
+version = "0.0.1"
+dependencies = [
+ "deny_public_fields",
+ "dom_struct",
+ "domobject_derive",
+ "jstraceable_derive",
+ "malloc_size_of_derive",
+ "mozjs",
+ "script_bindings",
+ "script_bindings_geolocation",
+ "servo_malloc_size_of",
+]
+
+[[package]]
 name = "gethostname"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7311,6 +7326,7 @@ dependencies = [
  "euclid",
  "fonts",
  "fonts_traits",
+ "geolocation",
  "glow",
  "headers 0.4.1",
  "html5ever",
@@ -7415,7 +7431,43 @@ dependencies = [
  "phf_codegen",
  "phf_shared",
  "regex",
+ "script_bindings_geolocation",
  "serde_json",
+ "servo_arc",
+ "servo_config",
+ "servo_malloc_size_of",
+ "servo_url",
+ "smallvec",
+ "stylo",
+ "stylo_atoms",
+ "tendril",
+ "tracing",
+ "webxr-api",
+ "xml5ever",
+]
+
+[[package]]
+name = "script_bindings_geolocation"
+version = "0.0.1"
+dependencies = [
+ "bitflags 2.9.4",
+ "crossbeam-channel",
+ "cssparser",
+ "deny_public_fields",
+ "dom_struct",
+ "domobject_derive",
+ "html5ever",
+ "indexmap",
+ "jstraceable_derive",
+ "keyboard-types",
+ "libc",
+ "log",
+ "malloc_size_of_derive",
+ "mozjs",
+ "num-traits",
+ "parking_lot",
+ "phf",
+ "regex",
  "servo_arc",
  "servo_config",
  "servo_malloc_size_of",

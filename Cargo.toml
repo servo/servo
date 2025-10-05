@@ -54,7 +54,10 @@ crossbeam-channel = "0.5"
 cssparser = { version = "0.35", features = ["serde"] }
 ctr = "0.9.2"
 data-url = "0.3"
+deny_public_fields = { path = "components/deny_public_fields" }
 devtools_traits = { path = "components/shared/devtools" }
+domobject_derive = { path = "components/domobject_derive" }
+dom_struct = { path = "components/dom_struct" }
 dpi = "0.1"
 dwrote = "0.11.4"
 embedder_traits = { path = "components/shared/embedder" }
@@ -89,6 +92,7 @@ indexmap = { version = "2.11.4", features = ["std"] }
 ipc-channel = "0.20.2"
 itertools = "0.14"
 js = { package = "mozjs", git = "https://github.com/servo/mozjs" }
+jstraceable_derive = { path = "components/jstraceable_derive" }
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
 kurbo = { version = "0.11.3", features = ["euclid"] }
 layout_api = { path = "components/shared/layout" }
@@ -127,6 +131,7 @@ rustc-hash = "2.1.1"
 rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12"] }
 rustls-pemfile = "2.0"
 rustls-pki-types = "1.12"
+script_bindings = { path = "components/script_bindings" }
 script_traits = { path = "components/shared/script" }
 selectors = { git = "https://github.com/servo/stylo", branch = "2025-10-01" }
 serde = "1.0.228"

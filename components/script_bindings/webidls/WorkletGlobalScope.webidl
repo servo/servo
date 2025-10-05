@@ -5,6 +5,3 @@
 // https://drafts.css-houdini.org/worklets/#workletglobalscope
 // TODO: The spec IDL doesn't make this a subclass of EventTarget
 //       https://github.com/whatwg/html/issues/2611
-[Pref="dom_worklet_enabled", Exposed=Worklet]
-interface WorkletGlobalScope: GlobalScope {
-};

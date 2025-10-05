@@ -10,11 +10,15 @@ import os
 import sys
 import json
 import re
+import traceback
 from typing import TYPE_CHECKING
 from collections.abc import Iterator
 
 SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
 SERVO_ROOT = os.path.abspath(os.path.join(SCRIPT_PATH, "..", "..", ".."))
+SCRIPT_BINDINGS_WEBIDLS = os.path.abspath(os.path.join(SCRIPT_PATH, "..", "webidls"))
+PACKAGE_DIRECTORY = os.path.abspath(os.path.join(os.getcwd(), "webidls"))
+IS_SCRIPT_BINDINGS_DIRECTORY = SCRIPT_BINDINGS_WEBIDLS == PACKAGE_DIRECTORY
 
 FILTER_PATTERN = re.compile("// skip-unless ([A-Z_]+)\n")
 
@@ -32,17 +36,25 @@ def main() -> None:
     # Do not ascend above the target dir, because it may not be called target
     # or even have a parent (see CARGO_TARGET_DIR).
     doc_servo = os.path.join(out_dir, "..", "..", "..", "..", "doc")
-    webidls_dir = os.path.join(SCRIPT_PATH, "..", "webidls")
+    if IS_SCRIPT_BINDINGS_DIRECTORY:
+        webidls_dirs = [
+            SCRIPT_BINDINGS_WEBIDLS,
+            os.path.join(SCRIPT_PATH, "..", "..", "script_dom", "geolocation", "script_bindings", "webidls"),
+        ]
+    else:
+        webidls_dirs = [PACKAGE_DIRECTORY]
     config_file = "Bindings.conf"
+
+    print(webidls_dirs)
 
     import WebIDL
     from configuration import Configuration
     from codegen import CGBindingRoot, CGConcreteBindingRoot
 
     parser = WebIDL.Parser(make_dir(os.path.join(out_dir, "cache")))
-    webidls = [name for name in os.listdir(webidls_dir) if name.endswith(".webidl")]
-    for webidl in webidls:
-        filename = os.path.join(webidls_dir, webidl)
+    webidls = [(name, os.path.join(webidls_dir, name)) for webidls_dir in webidls_dirs for name in os.listdir(webidls_dir) if name.endswith(".webidl")]
+    webidls += [("global_scopes.webidl", os.path.join(SCRIPT_PATH, "global_scopes.webidl"))]
+    for (webidl, filename) in webidls:
         with open(filename, "r", encoding="utf-8") as f:
             contents = f.read()
             filter_match = FILTER_PATTERN.search(contents)
@@ -53,8 +65,13 @@ def main() -> None:
 
             parser.parse(contents, filename)
 
-    add_css_properties_attributes(css_properties_json, parser)
-    parser_results = parser.finish()
+    try:
+        if IS_SCRIPT_BINDINGS_DIRECTORY:
+            add_css_properties_attributes(css_properties_json, parser)
+        parser_results = parser.finish()
+    except Exception as e:
+        print(f"WebIDL parser failed with: {e}")
+        sys.exit(1)
     config = Configuration(config_file, parser_results)
     make_dir(os.path.join(out_dir, "Bindings"))
     make_dir(os.path.join(out_dir, "ConcreteBindings"))
@@ -79,8 +96,7 @@ def main() -> None:
     make_dir(doc_servo)
     generate(config, "SupportedDomApis", os.path.join(doc_servo, "apis.html"))
 
-    for webidl in webidls:
-        filename = os.path.join(webidls_dir, webidl)
+    for (webidl, filename) in webidls:
         prefix = "Bindings/%sBinding" % webidl[:-len(".webidl")]
         module = CGBindingRoot(config, prefix, filename).define()
         if module:
@@ -175,4 +191,8 @@ def camel_case(chars: str, webkit_prefixed: bool = False) -> Iterator[str]:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except:
+        print(f"Failed to generate bindings with error: {traceback.format_exc()}")
+        sys.exit(1)

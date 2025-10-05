@@ -7374,11 +7374,14 @@ class CGDescriptor(CGThing):
 
 class CGNonNamespacedEnum(CGThing):
     def __init__(self, enumName: str, names: list[str], first: int, comment: str = "", deriving: str = "", repr: str = "") -> None:
-        # Account for first value
-        entries = [f"{names[0]} = {first}"] + names[1:]
+        if len(names) > 0:
+            # Account for first value
+            entries = [f"{names[0]} = {first}"] + names[1:]
 
-        # Append a Last.
-        entries.append(f'#[allow(dead_code)] Last = {first + len(entries)}')
+            # Append a Last.
+            entries.append(f'#[allow(dead_code)] Last = {first + len(entries)}')
+        else:
+            entries = []
 
         # Indent.
         entries = [f'    {e}' for e in entries]

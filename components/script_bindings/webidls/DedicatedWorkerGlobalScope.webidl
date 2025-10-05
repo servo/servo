@@ -3,8 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#dedicatedworkerglobalscope
-[Global=(Worker,DedicatedWorker), Exposed=DedicatedWorker]
-/*sealed*/ interface DedicatedWorkerGlobalScope : WorkerGlobalScope {
+partial interface DedicatedWorkerGlobalScope {
   [Throws] undefined postMessage(any message, sequence<object> transfer);
   [Throws] undefined postMessage(any message, optional StructuredSerializeOptions options = {});
   attribute EventHandler onmessage;

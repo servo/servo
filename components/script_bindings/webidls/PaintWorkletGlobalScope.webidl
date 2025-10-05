@@ -3,8 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://drafts.css-houdini.org/css-paint-api/#paintworkletglobalscope
-[Global=(Worklet,PaintWorklet), Pref="dom_worklet_enabled", Exposed=PaintWorklet]
-interface PaintWorkletGlobalScope : WorkletGlobalScope {
+partial interface PaintWorkletGlobalScope {
     [Throws] undefined registerPaint(DOMString name, VoidFunction paintCtor);
     // This function is to be used only for testing, and should not be
     // accessible outside of that use.

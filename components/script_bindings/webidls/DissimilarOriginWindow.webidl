@@ -13,8 +13,7 @@
 // way to enforce security policy.
 
 // https://html.spec.whatwg.org/multipage/#window
-[Global=DissimilarOriginWindow, Exposed=(Window,DissimilarOriginWindow), LegacyNoInterfaceObject]
-interface DissimilarOriginWindow : GlobalScope {
+partial interface DissimilarOriginWindow {
   [LegacyUnforgeable] readonly attribute WindowProxy window;
   [BinaryName="Self_", Replaceable] readonly attribute WindowProxy self;
   [LegacyUnforgeable] readonly attribute WindowProxy? parent;

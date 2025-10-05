@@ -3,8 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#workerglobalscope
-[Abstract, Exposed=Worker]
-interface WorkerGlobalScope : GlobalScope {
+partial interface WorkerGlobalScope {
   [BinaryName="Self_"] readonly attribute WorkerGlobalScope self;
   readonly attribute WorkerLocation location;
 

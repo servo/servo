@@ -5,9 +5,7 @@
  * https://dom.spec.whatwg.org/#interface-eventtarget
  */
 
-[Exposed=(Window,Worker,Worklet,DissimilarOriginWindow,DebuggerGlobalScope)]
-interface EventTarget {
-  [Throws] constructor();
+partial interface EventTarget {
   undefined addEventListener(
     DOMString type,
     EventListener? callback,
