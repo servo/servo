@@ -215,10 +215,10 @@ pub(crate) fn decompress_and_enqueue_a_chunk(
     let offset = decompressor.get_ref().len();
     decompressor
         .write_all(&chunk)
-        .map_err(|_| Error::Type("Fail to write all to decompressor".to_string()))?;
+        .map_err(|_| Error::Type("DecompressionStream: write_all() failed".to_string()))?;
     decompressor
         .flush()
-        .map_err(|_| Error::Type("Fail to flush decompressor".to_string()))?;
+        .map_err(|_| Error::Type("DecompressionStream: flush() failed".to_string()))?;
     let buffer = &decompressor.get_ref()[offset..];
 
     // Step 3. If buffer is empty, return.
@@ -263,11 +263,11 @@ pub(crate) fn decompress_flush_and_enqueue(
     let offset = decompressor.get_ref().len();
     let is_ended = decompressor
         .write(&[0])
-        .map_err(|_| Error::Type("Fail to finish decompressor".to_string()))? ==
+        .map_err(|_| Error::Type("DecompressionStream: write() failed".to_string()))? ==
         0;
     decompressor
         .try_finish()
-        .map_err(|_| Error::Type("Fail to finish decompressor".to_string()))?;
+        .map_err(|_| Error::Type("DecompressionStream: try_finish() failed".to_string()))?;
     let buffer = &decompressor.get_ref()[offset..];
 
     // Step 2. If buffer is empty, return.
