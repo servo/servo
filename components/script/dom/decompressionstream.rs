@@ -156,20 +156,21 @@ impl DecompressionStreamMethods<crate::DomTypeHolder> for DecompressionStream {
         // Step 2. Set this’s format to format.
         // Step 5. Set this’s transform to a new TransformStream.
         let transform = TransformStream::new_with_proto(global, None, can_gc);
-        let this = DecompressionStream::new_with_proto(global, proto, &transform, format, can_gc);
+        let decompression_stream =
+            DecompressionStream::new_with_proto(global, proto, &transform, format, can_gc);
 
         // Step 3. Let transformAlgorithm be an algorithm which takes a chunk argument and runs the
         // decompress and enqueue a chunk algorithm with this and chunk.
         // Step 4. Let flushAlgorithm be an algorithm which takes no argument and runs the
         // decompress flush and enqueue algorithm with this.
-        let transformer_type = TransformerType::Decompressor(this.clone());
+        let transformer_type = TransformerType::Decompressor(decompression_stream.clone());
 
         // Step 6. Set up this’s transform with transformAlgorithm set to transformAlgorithm and
         // flushAlgorithm set to flushAlgorithm.
         let cx = GlobalScope::get_cx();
         transform.set_up(cx, global, transformer_type, can_gc)?;
 
-        Ok(this)
+        Ok(decompression_stream)
     }
 
     /// <https://streams.spec.whatwg.org/#dom-generictransformstream-readable>
