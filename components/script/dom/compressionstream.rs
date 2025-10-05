@@ -151,20 +151,21 @@ impl CompressionStreamMethods<crate::DomTypeHolder> for CompressionStream {
         // Step 2. Set this’s format to format.
         // Step 5. Set this’s transform to a new TransformStream.
         let transform = TransformStream::new_with_proto(global, None, can_gc);
-        let this = CompressionStream::new_with_proto(global, proto, &transform, format, can_gc);
+        let compression_stream =
+            CompressionStream::new_with_proto(global, proto, &transform, format, can_gc);
 
         // Step 3. Let transformAlgorithm be an algorithm which takes a chunk argument and runs the
         // compress and enqueue a chunk algorithm with this and chunk.
         // Step 4. Let flushAlgorithm be an algorithm which takes no argument and runs the compress
         // flush and enqueue algorithm with this.
-        let transformer_type = TransformerType::Compressor(this.clone());
+        let transformer_type = TransformerType::Compressor(compression_stream.clone());
 
         // Step 6. Set up this’s transform with transformAlgorithm set to transformAlgorithm and
         // flushAlgorithm set to flushAlgorithm.
         let cx = GlobalScope::get_cx();
         transform.set_up(cx, global, transformer_type, can_gc)?;
 
-        Ok(this)
+        Ok(compression_stream)
     }
 
     /// <https://streams.spec.whatwg.org/#dom-generictransformstream-readable>
