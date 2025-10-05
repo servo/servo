@@ -24,7 +24,7 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct CSSMediaRule {
     cssconditionrule: CSSConditionRule,
-    #[ignore_malloc_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
     mediarule: RefCell<Arc<MediaRule>>,
     medialist: MutNullableDom<MediaList>,

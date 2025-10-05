@@ -22,7 +22,7 @@ pub(crate) struct DynamicModuleId(#[no_trace] pub(crate) Uuid);
 pub(crate) struct DynamicModuleOwner {
     reflector_: Reflector,
 
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     promise: Rc<Promise>,
 
     /// Unique id for each dynamic module

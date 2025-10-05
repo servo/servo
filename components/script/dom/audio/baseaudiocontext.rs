@@ -74,10 +74,13 @@ pub(crate) enum BaseAudioContextOptions {
     OfflineAudioContext(OfflineAudioContextOptions),
 }
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct DecodeResolver {
+    #[conditional_malloc_size_of]
     pub(crate) promise: Rc<Promise>,
+    #[conditional_malloc_size_of]
     pub(crate) success_callback: Option<Rc<DecodeSuccessCallback>>,
+    #[conditional_malloc_size_of]
     pub(crate) error_callback: Option<Rc<DecodeErrorCallback>>,
 }
 
@@ -93,12 +96,11 @@ pub(crate) struct BaseAudioContext {
     destination: MutNullableDom<AudioDestinationNode>,
     listener: MutNullableDom<AudioListener>,
     /// Resume promises which are soon to be fulfilled by a queued task.
-    #[ignore_malloc_size_of = "promises are hard"]
+    #[conditional_malloc_size_of]
     in_flight_resume_promises_queue: DomRefCell<VecDeque<(BoxedSliceOfPromises, ErrorResult)>>,
     /// <https://webaudio.github.io/web-audio-api/#pendingresumepromises>
-    #[ignore_malloc_size_of = "promises are hard"]
+    #[conditional_malloc_size_of]
     pending_resume_promises: DomRefCell<Vec<Rc<Promise>>>,
-    #[ignore_malloc_size_of = "promises are hard"]
     decode_resolvers: DomRefCell<HashMap<String, DecodeResolver>>,
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-samplerate>
     sample_rate: f32,
