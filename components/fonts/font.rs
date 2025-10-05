@@ -278,10 +278,10 @@ impl Font {
     ) -> Result<Font, &'static str> {
         let synthetic_bold = {
             let is_bold = descriptor.weight >= FontWeight::BOLD_THRESHOLD;
-            let template_is_bold = template.descriptor().weight.0 >= FontWeight::BOLD_THRESHOLD;
             let allows_synthetic_bold = matches!(descriptor.synthesis_weight, FontSynthesis::Auto);
 
-            is_bold && !template_is_bold && allows_synthetic_bold
+            // TODO: how to handle a font that is already bold?
+            is_bold && allows_synthetic_bold
         };
 
         let handle = PlatformFont::new_from_template(

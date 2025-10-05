@@ -45,7 +45,13 @@ use crate::{FontData, LowercaseFontFamilyName, PlatformFontMethods, SystemFontSe
 
 static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
 
-pub(crate) type FontParameters = (FontKey, Au, Vec<FontVariation>);
+#[derive(Eq, Hash, MallocSizeOf, PartialEq)]
+pub(crate) struct FontParameters {
+    pub(crate) font_key: FontKey,
+    pub(crate) pt_size: Au,
+    pub(crate) variations: Vec<FontVariation>,
+    pub(crate) flags: FontInstanceFlags,
+}
 
 #[derive(MallocSizeOf)]
 struct FontGroupRef(#[conditional_malloc_size_of] Arc<RwLock<FontGroup>>);
@@ -328,10 +334,16 @@ impl FontContext {
                 font_key
             });
 
+        let entry_key = FontParameters {
+            font_key,
+            pt_size,
+            variations: variations.clone(),
+            flags,
+        };
         *self
             .webrender_font_instance_keys
             .write()
-            .entry((font_key, pt_size, variations.clone()))
+            .entry(entry_key)
             .or_insert_with(|| {
                 let font_instance_key = self
                     .system_font_service_proxy
@@ -633,8 +645,8 @@ impl FontContextWebFontMethods for Arc<FontContext> {
         });
 
         let mut removed_instance_keys: HashSet<FontInstanceKey> = HashSet::new();
-        webrender_font_instance_keys.retain(|(font_key, _, _), instance_key| {
-            if removed_keys.contains(font_key) {
+        webrender_font_instance_keys.retain(|font_param, instance_key| {
+            if removed_keys.contains(&font_param.font_key) {
                 removed_instance_keys.insert(*instance_key);
                 false
             } else {
