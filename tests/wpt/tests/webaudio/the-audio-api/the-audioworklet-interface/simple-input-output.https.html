@@ -20,21 +20,16 @@
       // Location of the worklet's code
       const filePath = 'processors/add-offset.js';
 
-      // Context to be used for the tests.
-      let context;
-
       promise_test(async () => {
         // Two channels for testing.  Channel 0 is the output of the
         // AudioWorklet.  Channel 1 is the oscillator so we can compare
         // the outputs.
-        context = new OfflineAudioContext(
+        const context = new OfflineAudioContext(
             {numberOfChannels: 2, length: sampleRate, sampleRate: sampleRate});
 
         // Load up the code for the worklet.
         await context.audioWorklet.addModule(filePath);
-      }, 'Initialize worklet: Creation of AudioWorklet');
 
-      promise_test(async () => {
         const merger = new ChannelMergerNode(
             context, {numberOfChannels: context.destination.channelCount});
         merger.connect(context.destination);
@@ -73,7 +68,7 @@
             ch0.slice(stopFrame),
             new Float32Array(ch0.slice(stopFrame).length).fill(offset),
             `AudioWorklet output[${stopFrame}:]`);
-      }, 'test: Simple AudioWorklet I/O');
+      }, 'Simple AudioWorklet I/O');
     </script>
   </body>
 </html>

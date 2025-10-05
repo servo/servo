@@ -72,7 +72,7 @@ promise_test(async t => {
   await waitForNextFrame();
   const maxScroll = scroller.scrollHeight - scroller.clientHeight;
   scroller.scrollTop = maxScroll;
-  await waitForNextFrame();
+  await waitForCSSScrollTimelineStyle();
   assert_equals(getComputedStyle(div).width, '200px');
 
   div.style.animationPlayState = 'paused';
@@ -86,7 +86,7 @@ promise_test(async t => {
                 'Current time preserved when paused.');
   assert_percents_equal(anim.timeline.currentTime, 100);
   document.scrollingElement.scrollTop = 0;
-  await waitForNextFrame();
+  await waitForCSSScrollTimelineStyle();
   assert_percents_equal(anim.timeline.currentTime, 0);
   assert_equals(getComputedStyle(div).width, '200px');
 }, 'Test that the scroll animation is paused by updating animation-play-state');

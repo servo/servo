@@ -1,0 +1,43 @@
+<!DOCTYPE HTML>
+<title>SVGMatrix interface</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+function assert_matrix_approx_equals(actual, expected, epsilon) {
+  assert_approx_equals(actual.a, expected.a, epsilon);
+  assert_approx_equals(actual.b, expected.b, epsilon);
+  assert_approx_equals(actual.c, expected.c, epsilon);
+  assert_approx_equals(actual.d, expected.d, epsilon);
+  assert_approx_equals(actual.e, expected.e, epsilon);
+  assert_approx_equals(actual.f, expected.f, epsilon);
+}
+
+function create_svg_matrix() {
+  let svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  // In SVG 1.1 this would return an SVGMatrix.
+  // In SVG 2 SVGMatrix is replaced by DOMMatrix.
+  return svgElement.createSVGMatrix();
+}
+
+test(function() {
+  let matrix = create_svg_matrix();
+
+  // Check initial matrix values.
+  assert_matrix_approx_equals(matrix, {a:1, b:0, c:0, d:1, e:0, f:0}, 0);
+
+  matrix.d = 2;
+
+  // Check setting valid arguments.
+  assert_matrix_approx_equals(matrix, {a:1, b:0, c:0, d:2, e:0, f:0}, 0);
+}, "setting value");
+
+test(function() {
+  let matrix = create_svg_matrix();
+
+  // DOMMatrix allows multiplication by DOMMatrixInit
+  matrix = matrix.multiply({a: 3, d: 2});
+
+  assert_matrix_approx_equals(matrix, {a:3, b:0, c:0, d:2, e:0, f:0}, 0);
+}, "multiply");
+</script>

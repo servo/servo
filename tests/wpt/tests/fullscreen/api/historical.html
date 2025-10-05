@@ -35,4 +35,8 @@
     // it is convenient to just test all names on both <video> and document.
   });
 });
+
+test(function() {
+  assert_false("fullScreen" in window);
+}, 'Window member must not be supported: fullScreen');
 </script>

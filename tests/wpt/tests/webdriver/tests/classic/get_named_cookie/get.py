@@ -4,7 +4,12 @@ from datetime import datetime, timedelta, timezone
 
 
 from tests.support.asserts import assert_error, assert_success
-from tests.support.helpers import clear_all_cookies
+
+
+@pytest.fixture(autouse=True)
+def clean_up_cookies(session):
+    # Ensure that any test in the file does not navigate away once done with checking the cookies.
+    session.transport.send("DELETE", "session/%s/cookie" % session.session_id)
 
 
 def get_named_cookie(session, name):
@@ -26,7 +31,6 @@ def test_no_browsing_context(session, closed_frame):
 
 def test_get_named_session_cookie(session, url):
     session.url = url("/common/blank.html")
-    clear_all_cookies(session)
     session.execute_script("document.cookie = 'foo=bar'")
 
     result = get_named_cookie(session, "foo")
@@ -58,7 +62,6 @@ def test_get_named_session_cookie(session, url):
 
 def test_get_named_cookie(session, url):
     session.url = url("/common/blank.html")
-    clear_all_cookies(session)
 
     # same formatting as Date.toUTCString() in javascript
     utc_string_format = "%a, %d %b %Y %H:%M:%S"
@@ -96,7 +99,6 @@ def test_duplicated_cookie(session, url, server_config, inline):
     }
 
     session.url = url("/common/blank.html")
-    clear_all_cookies(session)
 
     session.set_cookie(**new_cookie)
     session.url = inline("""
@@ -124,7 +126,6 @@ def test_duplicated_cookie(session, url, server_config, inline):
 @pytest.mark.parametrize("same_site", ["None", "Lax", "Strict"])
 def test_get_cookie_with_same_site_flag(session, url, same_site):
     session.url = url("/common/blank.html", protocol="https")
-    clear_all_cookies(session)
 
     session.execute_script("document.cookie = 'foo=bar;Secure;SameSite=%s'" % same_site)
 

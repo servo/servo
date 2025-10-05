@@ -131,6 +131,7 @@ enum XREye {
 
 [SecureContext, Exposed=Window] interface XRView {
   readonly attribute XREye eye;
+  readonly attribute unsigned long index;
   readonly attribute double? recommendedViewportScale;
 
   undefined requestViewportScale(double? scale);
@@ -287,6 +288,24 @@ interface XRReferenceSpaceEvent : Event {
 dictionary XRReferenceSpaceEventInit : EventInit {
   required XRReferenceSpace referenceSpace;
   XRRigidTransform? transform = null;
+};
+
+[SecureContext, Exposed=Window]
+interface XRVisibilityMaskChangeEvent : Event {
+  constructor(DOMString type, XRVisibilityMaskChangeEventInit eventInitDict);
+  [SameObject] readonly attribute XRSession session;
+  readonly attribute XREye eye;
+  readonly attribute unsigned long index;
+  [SameObject] readonly attribute Float32Array vertices;
+  [SameObject] readonly attribute Uint32Array indices;
+};
+
+dictionary XRVisibilityMaskChangeEventInit : EventInit {
+  required XRSession session;
+  required XREye eye;
+  required unsigned long index;
+  required Float32Array vertices;
+  required Uint32Array indices;
 };
 
 dictionary XRSessionSupportedPermissionDescriptor: PermissionDescriptor {

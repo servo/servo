@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - All behavior tokens parsing and basic navigation</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/focusgroup-utils.js"></script>
+
+<!-- Test all behavior tokens for basic navigation -->
+<div id=toolbar focusgroup="toolbar">
+  <span id=toolbar1 tabindex=0>toolbar1</span>
+  <span id=toolbar2 tabindex=-1>toolbar2</span>
+</div>
+
+<div id=tablist focusgroup="tablist">
+  <span id=tablist1 tabindex=0>tablist1</span>
+  <span id=tablist2 tabindex=-1>tablist2</span>
+</div>
+
+<div id=radiogroup focusgroup="radiogroup">
+  <span id=radiogroup1 tabindex=0>radiogroup1</span>
+  <span id=radiogroup2 tabindex=-1>radiogroup2</span>
+</div>
+
+<div id=listbox focusgroup="listbox">
+  <span id=listbox1 tabindex=0>listbox1</span>
+  <span id=listbox2 tabindex=-1>listbox2</span>
+</div>
+
+<div id=menu focusgroup="menu">
+  <span id=menu1 tabindex=0>menu1</span>
+  <span id=menu2 tabindex=-1>menu2</span>
+</div>
+
+<div id=menubar focusgroup="menubar">
+  <span id=menubar1 tabindex=0>menubar1</span>
+  <span id=menubar2 tabindex=-1>menubar2</span>
+</div>
+
+<table id=grid focusgroup="grid">
+  <tr>
+    <td id=grid1 tabindex=0>grid1</td>
+    <td id=grid2 tabindex=-1>grid2</td>
+  </tr>
+</table>
+
+<div id=none_test focusgroup="none">
+  <span id=none1 tabindex=0>none1</span>
+  <span id=none2 tabindex=-1>none2</span>
+</div>
+
+<script>
+  const behaviorTokens = [
+    'toolbar', 'tablist', 'radiogroup', 'listbox', 'menu', 'menubar', 'grid', 'none'
+  ];
+
+  for (const behavior of behaviorTokens) {
+    if (behavior === 'none') {
+      // 'none' behavior should disable navigation
+      promise_test(async t => {
+        var item1 = document.getElementById(`${behavior}1`);
+        var item2 = document.getElementById(`${behavior}2`);
+
+        await focusAndKeyPress(item1, kArrowRight);
+        assert_equals(document.activeElement, item1, `'${behavior}' behavior should disable navigation`);
+      }, `Behavior token '${behavior}' disables focusgroup navigation`);
+    } else {
+      // All other behaviors should enable navigation (linear or grid)
+      promise_test(async t => {
+        var item1 = document.getElementById(`${behavior}1`);
+        var item2 = document.getElementById(`${behavior}2`);
+
+        await focusAndKeyPress(item1, kArrowRight);
+        assert_equals(document.activeElement, item2, `'${behavior}' behavior should enable navigation`);
+      }, `Behavior token '${behavior}' enables focusgroup navigation`);
+    }
+  }
+
+  // Test behavior tokens with modifiers
+  promise_test(async t => {
+    // Create elements dynamically to test combinations
+    const testDiv = document.createElement('div');
+    testDiv.setAttribute('focusgroup', 'toolbar inline wrap');
+    testDiv.innerHTML = '<span id=combo1 tabindex=0>combo1</span><span id=combo2 tabindex=-1>combo2</span>';
+    document.body.appendChild(testDiv);
+
+    var combo1 = document.getElementById('combo1');
+    var combo2 = document.getElementById('combo2');
+
+    await focusAndKeyPress(combo1, kArrowRight);
+    assert_equals(document.activeElement, combo2, "Behavior token with modifiers should work");
+
+    // Clean up
+    document.body.removeChild(testDiv);
+  }, "Behavior token 'toolbar' with modifiers 'inline wrap' works correctly");
+
+  promise_test(async t => {
+    // Test grid with modifiers
+    const testTable = document.createElement('table');
+    testTable.setAttribute('focusgroup', 'grid row-wrap col-flow');
+    testTable.innerHTML = '<tr><td id=gridcombo1 tabindex=0>gridcombo1</td><td id=gridcombo2 tabindex=-1>gridcombo2</td></tr>';
+    document.body.appendChild(testTable);
+
+    var gridcombo1 = document.getElementById('gridcombo1');
+    var gridcombo2 = document.getElementById('gridcombo2');
+
+    await focusAndKeyPress(gridcombo1, kArrowRight);
+    assert_equals(document.activeElement, gridcombo2, "Grid behavior token with modifiers should work");
+
+    // Clean up
+    document.body.removeChild(testTable);
+  }, "Behavior token 'grid' with modifiers 'row-wrap col-flow' works correctly");
+</script>

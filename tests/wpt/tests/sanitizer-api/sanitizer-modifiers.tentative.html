@@ -141,10 +141,12 @@ function assert_config(config, expected) {
 
     for (let i = 0; i < expected[key].length; i++) {
       let element = expected[key][i];
+      // To make writing tests a bit easier we also support the shorthand string syntax.
       if (typeof element === "string") {
+        let extra = key === "elements" ? { removeAttributes: [] } : { };
         assert_object_equals(
           config[key][i],
-          { name: element, namespace: XHTML_NS },
+          { name: element, namespace: XHTML_NS, ...extra },
           `${key}[${i}] should match`,
         );
       } else {
@@ -515,7 +517,7 @@ test(() => {
     replaceWithChildrenElements: []
   });
 
-  // If element["attributes"] or element["removeAttributes"] exists:
+  // If element["attributes"] exists or element["removeAttributes"] with default « » is not empty:
   //  The user agent may report a warning to the console that this operation is not supported.
   //  Return false.
   assert_false(s.allowElement({name: "a", attributes: ["dir"]}));
@@ -533,8 +535,7 @@ test(() => {
     removeElements: ["a"],
     replaceWithChildrenElements: []
   });
-
-  assert_true(s.allowElement("a"));
+  assert_true(s.allowElement({name: "a", removeAttributes: [] }));
   assert_config(s.get(), {
     removeElements: [],
     replaceWithChildrenElements: []
@@ -582,12 +583,12 @@ test(() => {
 
   assert_true(s.allowElement({name: "p"}));
   assert_config(s.get(), {
-    elements: [{name: "p", attributes: undefined, removeAttributes: undefined}]
+    elements: [{name: "p", attributes: undefined, removeAttributes: []}]
   });
 
   assert_false(s.allowElement("p"));
   assert_config(s.get(), {
-    elements: [{name: "p", attributes: undefined, removeAttributes: undefined}]
+    elements: [{name: "p", attributes: undefined, removeAttributes: []}]
   });
 
   // Set element["attributes"] to remove duplicates from element["attributes"].
@@ -647,12 +648,12 @@ test(() => {
 
   assert_true(s.allowElement({name: "p"}));
   assert_config(s.get(), {
-    elements: [{name: "p", attributes: undefined, removeAttributes: undefined}]
+    elements: [{name: "p", attributes: undefined, removeAttributes: []}]
   });
 
   assert_false(s.allowElement("p"));
   assert_config(s.get(), {
-    elements: [{name: "p", attributes: undefined, removeAttributes: undefined}]
+    elements: [{name: "p", attributes: undefined, removeAttributes: []}]
   });
 }, "sanitizer.allowElement() with global elements and removeAttributes");
 </script>

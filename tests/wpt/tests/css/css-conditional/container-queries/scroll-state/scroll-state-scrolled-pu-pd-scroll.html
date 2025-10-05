@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<title>@container: scroll-state(scrolled) PageUp/PageDown keys press scroll</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#scrolled">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/css/css-conditional/container-queries/support/cq-testcommon.js"></script>
+<style>
+  #scroller {
+    width: 200px;
+    height: 200px;
+    container-type: scroll-state;
+    overflow-y: scroll;
+  }
+  #filler {
+    height: 600px;
+  }
+  #target {
+    --none: no;
+    --top: no;
+    @container scroll-state(scrolled: none) {
+      --none: yes;
+    }
+    @container scroll-state(scrolled: top) {
+      --top: yes;
+    }
+  }
+</style>
+<div id="scroller">
+  <div id="filler">
+    <div id="target"></div>
+  </div>
+</div>
+<script>
+  setup(() => assert_implements_scroll_state_container_queries());
+
+  promise_test(async t => {
+    const PageUp = '\uE00E';
+    const PageDown = '\uE00F';
+    scroller.focus();
+    await new test_driver.Actions()
+      .keyDown(PageUp)
+      .keyUp(PageUp)
+      .send();
+    await new test_driver.Actions()
+      .keyDown(PageUp)
+      .keyUp(PageUp)
+      .send();
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(target).getPropertyValue("--none"), "yes");
+    assert_equals(getComputedStyle(target).getPropertyValue("--top"), "no");
+
+  }, "PageUp key shouldn't scroll when scroller is already on top");
+
+  promise_test(async t => {
+    const PageUp = '\uE00E';
+    const PageDown = '\uE00F';
+    scroller.scrollTop = 100;
+    scroller.focus();
+    await new test_driver.Actions()
+      .keyDown(PageUp)
+      .keyUp(PageUp)
+      .send();
+    await new test_driver.Actions()
+      .keyDown(PageUp)
+      .keyUp(PageUp)
+      .send();
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(target).getPropertyValue("--top"), "yes");
+
+  }, "PageUp key scroll");
+
+</script>

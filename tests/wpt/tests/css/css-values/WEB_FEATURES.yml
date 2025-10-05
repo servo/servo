@@ -47,6 +47,10 @@ features:
   files:
   - acos-asin-atan-atan2-*
   - sin-cos-tan-*
+- name: calc
+  files:
+  - calc-*
+  - "!calc-infinity-*"
 - name: calc-constants
   files:
   - calc-infinity-*
@@ -59,3 +63,17 @@ features:
   - viewport-units-parsing.html
   - viewport-units-writing-mode-font-size.html
   - viewport-units-writing-mode.html
+- name: min-max-clamp
+  files:
+  - min-*
+  - minmax-*
+  - max-*
+  - attr-in-max.html
+  - calc-in-max.html
+  - clamp-*
+- name: viewport-units
+  files:
+  - vh-*
+  - viewport-units-*
+  # Tests for: vi, svi, lvi, dvi, vb, svb, lvb, dvb
+  - "!viewport-units-writing-mode-*"

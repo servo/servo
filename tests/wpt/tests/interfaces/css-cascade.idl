@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: CSS Cascading and Inheritance Level 5 (https://drafts.csswg.org/css-cascade-5/)
+// Source: CSS Cascading and Inheritance Module Level 5 (https://drafts.csswg.org/css-cascade-5/)
 
 [Exposed=Window]
 interface CSSLayerBlockRule : CSSGroupingRule {

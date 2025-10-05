@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: block-ellipsis and soft-hyphens</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="reference/block-ellipsis-029-ref.html">
+<meta name="assert" content="block ellipsis is inserted *after* white space processing phase 2">
+<style>
+div {
+  line-clamp: 1;
+  width: 5ch;
+  font-family: monospace;
+  border: solid 1px;
+  margin: 1em;
+}
+</style>
+<p>Test passes if the two boxes below are identical.
+
+<div class=clamp>123 5 789</div>
+
+<div class=ref>123…</div>
