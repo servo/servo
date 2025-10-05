@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html>
+<link rel="stylesheet" href="/fonts/ahem.css">
 <style>
 .grid {
     display: grid;
-    grid-template-rows: auto auto auto auto;
-    grid-template-columns: 100px 100px;
+    grid-template-rows: repeat(5, 30px);
+    grid-template-columns: 100px;
     background: gray;
     width: 200px;
-    height: 400px;
+    height: 360px;
+    font: 15px/1 Ahem;
 }
 
 .grid > div {
@@ -19,17 +21,17 @@
     <div style="background: lightskyblue;">
       Number 1
     </div>
-    <div style="background: orange;">
-      Number 5
-    </div>
     <div style="background: lightcoral;">
       Number 2
     </div>
-    <div style="background: lightgreen; grid-row: 3;">
+    <div style="background: lightgreen;">
       Number 3
     </div>
-    <div style="background: lightpink; grid-row: 4;">
+    <div style="background: lightpink;">
       Number 4
+    </div>
+    <div style="background: orange;">
+      Number 5
     </div>
   </div>
 </body>

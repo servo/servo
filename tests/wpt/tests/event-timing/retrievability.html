@@ -13,7 +13,7 @@
 
 <script>
   function validateEntries() {
-    const entriesByName = performance.getEntriesByName('mousedown', 'event');
+    const entriesByName = performance.getEntriesByName('pointerdown', 'event');
     const entriesByType = performance.getEntriesByType('event');
     const allEntries = performance.getEntries();
     assert_equals(entriesByName.length, 0, 'Event Timing entry should not be retrievable by getEntriesByName');
@@ -32,7 +32,7 @@
   async_test(function(t) {
     assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
     new PerformanceObserver(t.step_func(entryList => {
-      if (entryList.getEntriesByName('mousedown').length > 0) {
+      if (entryList.getEntriesByName('pointerdown').length > 0) {
         validateEntries();
         t.done();
       }

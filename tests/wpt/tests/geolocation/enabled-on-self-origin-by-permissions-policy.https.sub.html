@@ -1,8 +1,9 @@
 <!DOCTYPE html>
+<meta charset="utf-8">
 <body>
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
-  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver.js?feature=bidi"></script>
   <script src="/resources/testdriver-vendor.js"></script>
   <script src="/permissions-policy/resources/permissions-policy.js"></script>
 
@@ -16,7 +17,22 @@
 
 
     promise_setup(async () => {
-      await test_driver.set_permission({ name: "geolocation" }, "granted");
+      // Grant site-level permission for the top-level document's origin.
+      await test_driver.bidi.permissions.set_permission({
+        descriptor: {
+          name: "geolocation"
+        },
+        state: "granted"
+      });
+
+      // Set a default position.
+      await test_driver.bidi.emulation.set_geolocation_override({
+        coordinates: {
+          latitude: 0,
+          longitude: 0,
+          accuracy: 0
+        }
+      });
     });
 
     promise_test(async (t) => {
@@ -40,6 +56,16 @@
     }, "Permissions-Policy header geolocation=(self) allows same-origin iframes.");
 
     promise_test(async (test) => {
+      // This is to ensure that the rejection is due to permission policy
+      // instead of site-level permission.
+      await test_driver.bidi.permissions.set_permission({
+        descriptor: {
+          name: "geolocation"
+        },
+        state: "granted",
+        origin: cross_origin_src
+      });
+
       await test_feature_availability({
         feature_description: "Geolocation API",
         test,

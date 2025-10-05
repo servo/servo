@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>CSS Overflow: `line-clamp` and text-wrap: balance, height based</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-balance-003-ref.html">
+<meta name="assert" content="Checks that balancing does not happens before claming, when working with height based clamping.">
+<style>
+.clamp {
+  line-clamp: auto;
+  font-family: monospace;
+  width: 9.1ch; /* the extra .1 is just a bit of extra wiggle room, in case things aren't sized perfectly. */
+  line-height: 1;
+  max-height: 3lh;
+  text-wrap: balance;
+}
+span { font-size: 2em; }
+</style>
+<p>Test passes if you see numbers up to 8 (and no further) below.
+
+<div class="clamp">
+1 2 <span>3</span> <span>4</span> 5 6 7 8 <span>9</span>
+</div>
+
+<!--
+    If balancing happens after clamping, the large "3" and "4" are both on the first line,
+    and the second line only has small numbers,
+    so we can fit both lines (up to number 8) within 3 lh.
+
+    If the 3 lines are balanced before clamping, (which would be wrong)
+    3 ends up on the first line and 4 on the second, (and 9 on the 3rd).
+    As 4 is large, it makes the second line taller,
+    and then we can only fit 1 line before the clamp point,
+    up to number 3.
+-->

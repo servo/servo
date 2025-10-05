@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: flex gaps are painted when there are no column gaps on the first and last rows.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="flex-gap-decorations-029-ref.html">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+    .flex-container {
+        height: 110px;
+        width: 110px;
+        display: flex;
+        flex-wrap: wrap;
+
+        gap: 10px;
+        column-rule: pink solid 10px;
+        row-rule: green solid 10px;
+    }
+    .flex-item {
+        background: skyblue;
+        width: 50px;
+        height: 50px;
+    }
+</style>
+<div class="flex-container">
+    <div class="flex-item" style="width: 80px;"></div>
+    <div class="flex-item"></div>
+    <div class="flex-item"></div>
+    <div class="flex-item"></div>
+</div>

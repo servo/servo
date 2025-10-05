@@ -5,3 +5,7 @@ features:
 - name: page-break-aliases
   files:
   - page-break-legacy-shorthands.html
+- name: widows-orphans
+  files:
+  - orphans-*
+  - widows-*

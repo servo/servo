@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: CSS Cascading and Inheritance Level 6 (https://drafts.csswg.org/css-cascade-6/)
+// Source: CSS Cascading and Inheritance Module Level 6 (https://drafts.csswg.org/css-cascade-6/)
 
 [Exposed=Window]
 interface CSSScopeRule : CSSGroupingRule {

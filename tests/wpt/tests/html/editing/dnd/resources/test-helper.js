@@ -55,7 +55,7 @@ const movePointerToScrollbar = (element, iframe, scrollbarPosition, actions) => 
   };
 
   const hasHorizontalScrollbar = (element, iframe) => {
-  if (iframe == undefined) {
+    if (iframe == undefined) {
       return element.scrollWidth > element.clientWidth;
     }
     // If the element is in an iframe, it will become scrollable if
@@ -102,6 +102,8 @@ function dragDropTest(dragElement, dropElement, onDropCallBack, testDescription,
   // Only verifies drop on scrollbar tests if non-overlay scrollbar is present.
   // Skips the test on platforms with overlay scrollbars.
   if (dropPosition !== DropPosition.CENTER && calculateScrollbarThickness() <= 0) {
+    promise_test(async () => {
+    }, testDescription + ' (skipped - no scrollbars)');
     return;
   }
   promise_test((t) => new Promise(async (resolve, reject) => {
@@ -135,6 +137,8 @@ function dragDropTestNoDropEvent(dragElement, dropElement, testDescription,
   // Only verifies drop on scrollbar tests if non-overlay scrollbar is present.
   // Skips the test on platforms with overlay scrollbars.
   if (dropPosition !== DropPosition.CENTER && calculateScrollbarThickness() <= 0) {
+    promise_test(async () => {
+    }, testDescription + ' (skipped - no scrollbars)');
     return;
   }
   promise_test((t) => new Promise(async (resolve, reject) => {
@@ -163,25 +167,25 @@ function dragDropTestNoDropEvent(dragElement, dropElement, testDescription,
 }
 
 const calculateScrollbarThickness = () => {
-    var container = document.createElement("div");
-    container.style.width = "100px";
-    container.style.height = "100px";
-    container.style.position = "absolute";
-    container.style.visibility = "hidden";
-    container.style.overflow = "auto";
+  var container = document.createElement("div");
+  container.style.width = "100px";
+  container.style.height = "100px";
+  container.style.position = "absolute";
+  container.style.visibility = "hidden";
+  container.style.overflow = "auto";
 
-    document.body.appendChild(container);
+  document.body.appendChild(container);
 
-    var widthBefore = container.clientWidth;
-    var longContent = document.createElement("div");
-    longContent.style.height = "1000px";
-    container.appendChild(longContent);
+  var widthBefore = container.clientWidth;
+  var longContent = document.createElement("div");
+  longContent.style.height = "1000px";
+  container.appendChild(longContent);
 
-    var widthAfter = container.clientWidth;
+  var widthAfter = container.clientWidth;
 
-    container.remove();
+  container.remove();
 
-    return widthBefore - widthAfter;
+  return widthBefore - widthAfter;
 }
 
 // Drop callback used for `dropEffect` tests in `dnd/drop/`. This function

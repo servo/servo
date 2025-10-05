@@ -56,13 +56,13 @@ promise_test(async () => {
 });
 
 promise_test(async () => {
-  scroller.scrollTop = -100;
+  scroller.scrollTop = -116;
   await waitUntilNextAnimationFrame();
   assert_fallback_position(abspos, anchor, 'top');
 });
 
 promise_test(async () => {
-  scroller.scrollTop = -50;
+  scroller.scrollTop = -40;
   await waitUntilNextAnimationFrame();
   assert_fallback_position(abspos, anchor, 'bottom');
 });

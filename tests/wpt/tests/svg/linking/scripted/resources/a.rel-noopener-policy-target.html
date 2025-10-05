@@ -1,10 +1,6 @@
 <!DOCTYPE html>
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<link rel="author" title="Divyansh Mangal" href="mailto:dmangal@microsoft.com">
-<link rel="help" href="https://svgwg.org/svg2-draft/linking.html#InterfaceSVGAElement">
 <script>
-  test(function () {
-    assert_equals(true,window.opener == null);
-  }, "No Opener policy attribute on svg anchor element is applied");
+  let bc = new BroadcastChannel(window.location.search.substring(1));
+  bc.postMessage({ hasOpener: opener !== null });
+  window.close();
 </script>

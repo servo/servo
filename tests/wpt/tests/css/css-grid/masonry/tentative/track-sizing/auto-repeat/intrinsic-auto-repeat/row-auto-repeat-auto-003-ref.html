@@ -1,17 +1,20 @@
 <!DOCTYPE html>
 <html>
+<link rel="stylesheet" href="/fonts/ahem.css">
 <style>
 .grid {
     display: grid;
-    grid-template-rows: 100px 100px 100px 100px;
-    grid-template-columns: 50px 50px 50px 50px;
+    grid-template-rows: repeat(11, 15px);
+    grid-template-columns: min-content;
     background: gray;
     width: 200px;
-    height: 400px;
+    height: 360px;
+    font: 15px/1 Ahem;
 }
 
 .grid > div {
     height: 75%;
+    width: min-content;
 }
 </style>
 <body>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: anchor() and anchor-size() not valid in registered custom properties</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-pos">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @property --length {
+    syntax: "<length>";
+    inherits: false;
+    initial-value: 0px;
+  }
+  @property --length-percentage {
+    syntax: "<length-percentage>";
+    inherits: false;
+    initial-value: 0px;
+  }
+  @property --number {
+    syntax: "<number>";
+    inherits: false;
+    initial-value: 0;
+  }
+  #anchor {
+    --length: anchor(--foo bottom, 5px);
+    --length-percentage: anchor(--foo bottom, 10%);
+    --number: sign(anchor(--foo bottom, 100px));
+  }
+  #anchor-size {
+    --length: anchor-size(--foo block, 7px);
+    --length-percentage: anchor-size(--foo block, 20%);
+    --number: sign(anchor-size(--foo block, 100px));
+  }
+</style>
+<div id="anchor"></div>
+<div id="anchor_size"></div>
+<script>
+  test(() => {
+    const style = getComputedStyle(anchor);
+    assert_equals(style.getPropertyValue("--length"), "0px");
+    assert_equals(style.getPropertyValue("--length-percentage"), "0px");
+    assert_equals(style.getPropertyValue("--number"), "0");
+  }, "anchor() functions are not allowed in registered custom properties accepting <length> or <length-percentage>");
+
+  test(() => {
+    const style = getComputedStyle(anchor_size);
+    assert_equals(style.getPropertyValue("--length"), "0px");
+    assert_equals(style.getPropertyValue("--length-percentage"), "0px");
+    assert_equals(style.getPropertyValue("--number"), "0");
+  }, "anchor-size() using fallback value for registered custom properties accepting <length> or <length-percentage>");
+</script>

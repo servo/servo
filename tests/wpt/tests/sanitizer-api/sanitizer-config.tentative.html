@@ -77,24 +77,27 @@ function test_normalization(key, value, expected) {
 }
 
 for (key of ["elements", "removeElements", "replaceWithChildrenElements"]) {
+  // The canonical form of elements always includes an empty removeAttributes list.
+  let extra = key == "elements" ? {removeAttributes: []} : {};
+
   test_normalization(key,
     "div",
-    {name: "div", namespace: "http://www.w3.org/1999/xhtml"});
+    {name: "div", namespace: "http://www.w3.org/1999/xhtml", ...extra});
   test_normalization(key,
     {name: "b"},
-    {name: "b", namespace: "http://www.w3.org/1999/xhtml"});
+    {name: "b", namespace: "http://www.w3.org/1999/xhtml", ...extra});
   test_normalization(key,
     {name: "b", namespace: null},
-    {name: "b", namespace: null});
+    {name: "b", namespace: null, ...extra});
   test_normalization(key,
     {name: "b", namespace: ""},
-    {name: "b", namespace: null});
+    {name: "b", namespace: null, ...extra});
   test_normalization(key,
     {name: "p", namespace: "http://www.w3.org/1999/xhtml"},
-    {name: "p", namespace: "http://www.w3.org/1999/xhtml"});
+    {name: "p", namespace: "http://www.w3.org/1999/xhtml", ...extra});
   test_normalization(key,
     {name: "bla", namespace: "http://fantasy.org/namespace"},
-    {name: "bla", namespace: "http://fantasy.org/namespace"});
+    {name: "bla", namespace: "http://fantasy.org/namespace", ...extra});
 }
 for (key of ["attributes", "removeAttributes"]) {
   test_normalization(key,
@@ -122,7 +125,7 @@ test(t => {
   s.replaceElementWithChildren({name: "p", namespace: "http://www.w3.org/1999/xhtml"});
   assert_equals(s.get().elements.length, 1);
   assert_object_equals(s.get().elements[0],
-                       {name: "bla", namespace: "http://www.w3.org/1999/xhtml"});
+                       {name: "bla", namespace: "http://www.w3.org/1999/xhtml", removeAttributes: []});
 }, "Test elements addition.");
 
 test(t => {

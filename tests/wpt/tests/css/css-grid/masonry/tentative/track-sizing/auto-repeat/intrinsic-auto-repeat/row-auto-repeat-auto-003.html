@@ -4,6 +4,7 @@
 <link rel="help" href="https://drafts.csswg.org/css-grid-3">
 <link rel="match" href="row-auto-repeat-auto-003-ref.html">
 <link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="stylesheet" href="/fonts/ahem.css">
 <style>
 .masonry {
     display: masonry;
@@ -12,11 +13,12 @@
     masonry-direction: row;
     grid-template-rows: repeat(auto-fill, auto);
     width: 200px;
-    height: 400px;
+    height: 360px;
+    font: 15px/1 Ahem;
 }
 
 .masonry > div {
-    width: 50px;
+    width: min-content;
     height: 75%;
 }
 </style>

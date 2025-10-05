@@ -5,8 +5,11 @@ from datetime import datetime, timedelta, timezone
 from webdriver.transport import Response
 
 from tests.support.asserts import assert_error, assert_success
-from tests.support.helpers import clear_all_cookies
 
+@pytest.fixture(autouse=True)
+def clean_up_cookies(session):
+    # Ensure that any test in the file does not navigate away once done with checking the cookies.
+    session.transport.send("DELETE", "session/%s/cookie" % session.session_id)
 
 def add_cookie(session, cookie):
     return session.transport.send(
@@ -27,7 +30,6 @@ def test_null_response_value(session, url):
     }
 
     session.url = url("/common/blank.html")
-    clear_all_cookies(session)
 
     response = add_cookie(session, new_cookie)
     value = assert_success(response)
@@ -102,7 +104,6 @@ def test_add_domain_cookie(session, url, server_config):
     }
 
     session.url = url("/common/blank.html")
-    clear_all_cookies(session)
 
     result = add_cookie(session, new_cookie)
     assert_success(result)
@@ -134,7 +135,6 @@ def test_add_cookie_for_ip(session, server_config):
     port = server_config["ports"]["http"][0]
     session.url = f"http://127.0.0.1:{port}/common/blank.html"
 
-    clear_all_cookies(session)
 
     result = add_cookie(session, new_cookie)
     assert_success(result)
@@ -163,7 +163,6 @@ def test_add_non_session_cookie(session, url):
     }
 
     session.url = url("/common/blank.html")
-    clear_all_cookies(session)
 
     result = add_cookie(session, new_cookie)
     assert_success(result)
@@ -188,7 +187,6 @@ def test_add_session_cookie(session, url):
     }
 
     session.url = url("/common/blank.html")
-    clear_all_cookies(session)
 
     result = add_cookie(session, new_cookie)
     assert_success(result)
@@ -213,7 +211,6 @@ def test_add_session_cookie_with_leading_dot_character_in_domain(session, url, s
     }
 
     session.url = url("/common/blank.html")
-    clear_all_cookies(session)
 
     result = add_cookie(session, new_cookie)
     assert_success(result)
@@ -243,7 +240,6 @@ def test_add_cookie_with_expiry_in_the_future(session, url):
     }
 
     session.url = url("/common/blank.html")
-    clear_all_cookies(session)
 
     result = add_cookie(session, new_cookie)
     assert_success(result)
@@ -267,7 +263,6 @@ def test_add_cookie_with_valid_samesite_flag(session, url, same_site):
     }
 
     session.url = url("/common/blank.html")
-    clear_all_cookies(session)
 
     result = add_cookie(session, new_cookie)
     assert_success(result)
@@ -293,7 +288,6 @@ def test_add_cookie_with_invalid_samesite_flag(session, url):
     }
 
     session.url = url("/common/blank.html")
-    clear_all_cookies(session)
 
     response = add_cookie(session, new_cookie)
     assert_error(response, "invalid argument")
@@ -308,7 +302,6 @@ def test_add_cookie_with_invalid_samesite_type(session, url, same_site):
     }
 
     session.url = url("/common/blank.html")
-    clear_all_cookies(session)
 
     response = add_cookie(session, new_cookie)
     assert_error(response, "invalid argument")

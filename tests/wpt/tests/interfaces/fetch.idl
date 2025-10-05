@@ -127,5 +127,5 @@ interface FetchLaterResult {
 };
 
 partial interface Window {
-  [NewObject] FetchLaterResult fetchLater(RequestInfo input, optional DeferredRequestInit init = {});
+  [NewObject, SecureContext] FetchLaterResult fetchLater(RequestInfo input, optional DeferredRequestInit init = {});
 };
