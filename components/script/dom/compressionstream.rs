@@ -209,10 +209,10 @@ pub(crate) fn compress_and_enqueue_a_chunk(
     let offset = compressor.get_ref().len();
     compressor
         .write_all(&chunk)
-        .map_err(|_| Error::Type("Fail to write all to compressor".to_string()))?;
+        .map_err(|_| Error::Type("CompressionStream: write_all() failed".to_string()))?;
     compressor
         .flush()
-        .map_err(|_| Error::Type("Fail to flush compressor".to_string()))?;
+        .map_err(|_| Error::Type("CompressionStream: flush() failed".to_string()))?;
     let buffer = &compressor.get_ref()[offset..];
 
     // Step 3. If buffer is empty, return.
@@ -254,7 +254,7 @@ pub(crate) fn compress_flush_and_enqueue(
     let offset = compressor.get_ref().len();
     compressor
         .try_finish()
-        .map_err(|_| Error::Type("Fail to finish compressor".to_string()))?;
+        .map_err(|_| Error::Type("CompressionStream: try_finish() failed".to_string()))?;
     let buffer = &compressor.get_ref()[offset..];
 
     // Step 2. If buffer is empty, return.
