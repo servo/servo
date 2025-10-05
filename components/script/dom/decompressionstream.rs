@@ -237,13 +237,13 @@ pub(crate) fn decompress_and_enqueue_a_chunk(
     array.safe_to_jsval(cx, rval.handle_mut());
     controller.enqueue(cx, global, rval.handle(), can_gc)?;
 
-    // Step 6. If the end of the compressed input has been reached, and ds’s context has not fully
-    // consumed chunk, then throw a TypeError.
-    // NOTE: Done by `write_all` in Step 2.
-
     // NOTE: We don't need to keep result that has been copied to Uint8Array. Clear the inner
     // buffer of decompressor to save memory.
     decompressor.get_mut().clear();
+
+    // Step 6. If the end of the compressed input has been reached, and ds’s context has not fully
+    // consumed chunk, then throw a TypeError.
+    // NOTE: Done by `write_all` in Step 2.
 
     Ok(())
 }
@@ -283,6 +283,10 @@ pub(crate) fn decompress_flush_and_enqueue(
         array.safe_to_jsval(cx, rval.handle_mut());
         controller.enqueue(cx, global, rval.handle(), can_gc)?;
     }
+
+    // NOTE: We don't need to keep result that has been copied to Uint8Array. Clear the inner
+    // buffer of decompressor to save memory.
+    decompressor.get_mut().clear();
 
     // Step 3. If the end of the compressed input has not been reached, then throw a TypeError.
     //
