@@ -274,5 +274,9 @@ pub(crate) fn compress_flush_and_enqueue(
     buffer_source.safe_to_jsval(cx, rval.handle_mut());
     controller.enqueue(cx, global, rval.handle(), can_gc)?;
 
+    // NOTE: We don't need to keep result that has been copied to Uint8Array. Clear the inner
+    // buffer of compressor to save memory.
+    compressor.get_mut().clear();
+
     Ok(())
 }
