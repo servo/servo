@@ -2,12 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::str::FromStr;
-use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
+use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 
-use base::IpcSend;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use constellation_traits::{WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use crossbeam_channel::{Receiver, Sender, unbounded};
@@ -15,13 +13,11 @@ use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use fonts::FontContext;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
-use hyper_serde::Serde;
 use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
-use js::jsapi::{Heap, JS_AddInterruptCallback, JSContext, JSObject};
+use js::jsapi::{Heap, JSContext, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
-use mime::Mime;
 use net_traits::Metadata;
 use net_traits::image_cache::ImageCache;
 use net_traits::policy_container::PolicyContainer;
@@ -43,26 +39,24 @@ use crate::dom::bindings::codegen::Bindings::MessagePortBinding::StructuredSeria
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
 use crate::dom::bindings::error::{ErrorInfo, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::{CustomTraceable, RootedTraceableBox};
-use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::csp::{Violation, parse_csp_list_from_metadata};
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlscriptelement::SCRIPT_JS_MIMES;
 use crate::dom::messageevent::MessageEvent;
-use crate::dom::reportingendpoint::ReportingEndpoint;
 use crate::dom::types::DebuggerGlobalScope;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worker::{TrustedWorkerAddress, Worker};
-use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::fetch::{CspViolationsProcessor, load_whole_resource};
+use crate::dom::workerglobalscope::{ScriptFetchContext, WorkerGlobalScope};
+use crate::fetch::CspViolationsProcessor;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
@@ -80,7 +74,7 @@ pub(crate) struct AutoWorkerReset<'a> {
 }
 
 impl<'a> AutoWorkerReset<'a> {
-    fn new(
+    pub(crate) fn new(
         workerscope: &'a DedicatedWorkerGlobalScope,
         worker: TrustedWorkerAddress,
     ) -> AutoWorkerReset<'a> {
@@ -486,7 +480,7 @@ impl DedicatedWorkerGlobalScope {
                     devtools_mpsc_port,
                     runtime,
                     parent_event_loop_sender.clone(),
-                    own_sender,
+                    own_sender.clone(),
                     receiver,
                     closing,
                     image_cache,
@@ -510,96 +504,24 @@ impl DedicatedWorkerGlobalScope {
 
                 global_scope.set_https_state(current_global_https_state);
 
-                // run a worker defines an onComplete algorithm, which should be called after fetching the script
-                // these are the steps to run when onComplete input is null or script's error to rethrow is non-null
-                let on_complete_fail_steps = || {
-                    // Step 1 Queue a global task on the DOM manipulation task source given
-                    // worker's relevant global object to fire an event named error at worker.
-                    parent_event_loop_sender
-                        .send(CommonScriptMsg::Task(
-                            WorkerEvent,
-                            Box::new(SimpleWorkerErrorHandler::new(worker.clone())),
-                            Some(pipeline_id),
-                            TaskSourceName::DOMManipulation,
-                        ))
-                        .unwrap();
-                    // Step 2 TODO Run the environment discarding steps for inside settings.
-
-                    scope.clear_js_runtime();
+                let task_source = SendableTaskSource {
+                    sender: ScriptEventLoopSender::DedicatedWorker {
+                        sender: own_sender,
+                        main_thread_worker: worker.clone(),
+                    },
+                    pipeline_id,
+                    name: TaskSourceName::Networking,
+                    canceller: Default::default(),
                 };
-
-                let (metadata, bytes) = match load_whole_resource(
-                    request,
-                    &global_scope.resource_threads().sender(),
-                    global_scope,
-                    &DedicatedWorkerCspProcessor {
-                        parent_event_loop_sender: parent_event_loop_sender.clone(),
-                        pipeline_id,
-                    },
-                    CanGc::note(),
-                ) {
-                    // Extracted from
-                    // [fetch a classic worker script](https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-script)
-                    // if bodyBytes is null or failure
-                    Err(e) => {
-                        error!("error loading script {} ({:?})", serialized_worker_url, e);
-                        on_complete_fail_steps();
-                        return;
-                    },
-                    Ok((metadata, bytes)) => {
-                        // if response's status is not an ok status
-                        let not_an_ok_status = !metadata.status.is_success();
-                        // if response's URL's scheme is an HTTP(S) scheme and the
-                        let is_http_scheme =
-                            matches!(metadata.final_url.scheme(), "http" | "https");
-                        // result of extracting a MIME type from response's header list is not a JavaScript MIME type
-                        let not_a_javascript_mime_type = !metadata
-                            .content_type
-                            .clone()
-                            .map(Serde::into_inner)
-                            .and_then(|content_type| Mime::from_str(&content_type.to_string()).ok())
-                            .is_some_and(|mime| SCRIPT_JS_MIMES.contains(&mime.essence_str()));
-
-                        if not_an_ok_status || (is_http_scheme && not_a_javascript_mime_type) {
-                            on_complete_fail_steps();
-                            return;
-                        }
-                        (metadata, bytes)
-                    },
-                };
-                scope.set_url(metadata.final_url.clone());
-                Self::initialize_policy_container_for_worker_global_scope(
-                    scope,
-                    &metadata,
-                    &policy_container,
-                );
-                scope.set_endpoints_list(ReportingEndpoint::parse_reporting_endpoints_header(
-                    &metadata.final_url.clone(),
-                    &metadata.headers,
-                ));
-                global_scope.set_https_state(metadata.https_state);
-                let source = String::from_utf8_lossy(&bytes);
-
-                unsafe {
-                    // Handle interrupt requests
-                    JS_AddInterruptCallback(*scope.get_cx(), Some(interrupt_callback));
-                }
-
-                if scope.is_closing() {
-                    scope.clear_js_runtime();
-                    return;
-                }
-
-                {
-                    let _ar = AutoWorkerReset::new(&global, worker.clone());
-                    let realm = enter_realm(scope);
-                    define_all_exposed_interfaces(
-                        global.upcast(),
-                        InRealm::entered(&realm),
-                        CanGc::note(),
-                    );
-                    scope.execute_script(DOMString::from(source), CanGc::note());
-                }
+                let context = Arc::new(Mutex::new(ScriptFetchContext::new(
+                    Trusted::new(scope),
+                    pipeline_id,
+                    request.url.clone(),
+                    worker.clone(),
+                    policy_container,
+                    serialized_worker_url,
+                )));
+                global_scope.fetch(request, context, task_source);
 
                 let reporter_name = format!("dedicated-worker-reporter-{}", random::<u64>());
                 scope
@@ -620,15 +542,13 @@ impl DedicatedWorkerGlobalScope {
                         parent_event_loop_sender,
                         CommonScriptMsg::CollectReports,
                     );
-
-                scope.clear_js_runtime();
             })
             .expect("Thread spawning failed")
     }
 
     /// <https://html.spec.whatwg.org/multipage/#initialize-worker-policy-container> and
     /// <https://html.spec.whatwg.org/multipage/#creating-a-policy-container-from-a-fetch-response>
-    fn initialize_policy_container_for_worker_global_scope(
+    pub(crate) fn initialize_policy_container_for_worker_global_scope(
         scope: &WorkerGlobalScope,
         metadata: &Metadata,
         parent_policy_container: &PolicyContainer,
@@ -827,10 +747,38 @@ impl DedicatedWorkerGlobalScope {
     pub(crate) fn browsing_context(&self) -> Option<BrowsingContextId> {
         self.browsing_context
     }
+
+    pub(crate) fn report_csp_violations(
+        &self,
+        pipeline_id: PipelineId,
+        violations: Vec<Violation>,
+    ) {
+        self.parent_event_loop_sender
+            .send(CommonScriptMsg::ReportCspViolations(
+                pipeline_id,
+                violations,
+            ))
+            .expect("Sending to parent failed");
+    }
+
+    pub(crate) fn forward_simple_error_at_worker(
+        &self,
+        pipeline_id: PipelineId,
+        worker: TrustedWorkerAddress,
+    ) {
+        self.parent_event_loop_sender
+            .send(CommonScriptMsg::Task(
+                WorkerEvent,
+                Box::new(SimpleWorkerErrorHandler::new(worker)),
+                Some(pipeline_id),
+                TaskSourceName::DOMManipulation,
+            ))
+            .expect("Sending to parent failed");
+    }
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> bool {
+pub(crate) unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> bool {
     let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
     let global = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
     let worker =
