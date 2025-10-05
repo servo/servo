@@ -677,7 +677,6 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
     // TODO: #36049
     reader.read_all_bytes(
         cx,
-        &global,
         Rc::new(move |bytes: &[u8]| {
             resolve_result_promise(
                 body_type,
@@ -691,7 +690,6 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
         Rc::new(move |cx, v| {
             error_promise.reject(cx, v, can_gc);
         }),
-        comp,
         can_gc,
     );
 
