@@ -261,6 +261,10 @@ pub(crate) fn decompress_flush_and_enqueue(
     // NOTE: In our implementation, the enum type of context already indicates the format.
     let mut decompressor = ds.context.borrow_mut();
     let offset = decompressor.get_ref().len();
+    decompressor
+        .flush()
+        .map_err(|_| Error::Type("DecompressionStream: flush() failed".to_string()))?;
+    let buffer = decompressor.get_ref()[offset..].to_vec();
     let is_ended = decompressor
         .write(&[0])
         .map_err(|_| Error::Type("DecompressionStream: write() failed".to_string()))? ==
@@ -268,7 +272,6 @@ pub(crate) fn decompress_flush_and_enqueue(
     decompressor
         .try_finish()
         .map_err(|_| Error::Type("DecompressionStream: try_finish() failed".to_string()))?;
-    let buffer = &decompressor.get_ref()[offset..];
 
     // Step 2. If buffer is empty, return.
     if !buffer.is_empty() {
@@ -277,8 +280,10 @@ pub(crate) fn decompress_flush_and_enqueue(
         // Step 2.2. For each Uint8Array array of arrays, enqueue array in ds’s transform.
         // NOTE: We process the result in a single Uint8Array.
         rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
-        let array: Uint8Array = create_buffer_source(cx, buffer, js_object.handle_mut(), can_gc)
-            .map_err(|_| Error::Type("Cannot convert byte sequence to Uint8Array".to_owned()))?;
+        let array: Uint8Array = create_buffer_source(cx, &buffer, js_object.handle_mut(), can_gc)
+            .map_err(|_| {
+            Error::Type("Cannot convert byte sequence to Uint8Array".to_owned())
+        })?;
         rooted!(in(*cx) let mut rval = UndefinedValue());
         array.safe_to_jsval(cx, rval.handle_mut());
         controller.enqueue(cx, global, rval.handle(), can_gc)?;
