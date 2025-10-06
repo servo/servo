@@ -1357,10 +1357,14 @@ impl IOCompositor {
         // this type of received. In addition, if any of these frames need a repaint, that reflected
         // when calling `handle_new_webrender_frame_ready`.
         let mut repaint_needed = false;
+        let mut saw_webrender_frame_ready = false;
+
         messages.retain(|message| match message {
             CompositorMsg::NewWebRenderFrameReady(_, need_repaint) => {
                 self.pending_frames.set(self.pending_frames.get() - 1);
                 repaint_needed |= need_repaint;
+                saw_webrender_frame_ready = true;
+
                 false
             },
             _ => true,
@@ -1373,7 +1377,9 @@ impl IOCompositor {
             }
         }
 
-        self.handle_new_webrender_frame_ready(repaint_needed);
+        if saw_webrender_frame_ready {
+            self.handle_new_webrender_frame_ready(repaint_needed);
+        }
     }
 
     #[servo_tracing::instrument(skip_all)]
