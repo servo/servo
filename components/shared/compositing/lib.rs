@@ -518,7 +518,12 @@ impl ExternalImageHandler for WebrenderExternalImageHandlers {
     /// image content.
     /// The WR client should not change the image content until the
     /// unlock() call.
-    fn lock(&mut self, key: ExternalImageId, _channel_index: u8) -> ExternalImage<'_> {
+    fn lock(
+        &mut self,
+        key: ExternalImageId,
+        _channel_index: u8,
+        _is_composited: bool,
+    ) -> ExternalImage<'_> {
         let external_images = self.external_images.lock().unwrap();
         let handler_type = external_images
             .get(&key)

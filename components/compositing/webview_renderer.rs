@@ -25,7 +25,7 @@ use rustc_hash::FxHashMap;
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::{CSSPixel, PinchZoomFactor};
 use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint, DeviceRect, LayoutVector2D};
-use webrender_api::{ExternalScrollId, HitTestFlags, ScrollLocation};
+use webrender_api::{ExternalScrollId, ScrollLocation};
 
 use crate::compositor::{PipelineDetails, ServoRenderer};
 use crate::touch::{TouchHandler, TouchMoveAction, TouchMoveAllowed, TouchSequenceState};
@@ -748,10 +748,7 @@ impl WebViewRenderer {
             ScrollLocation::Start | ScrollLocation::End => scroll_location,
         };
 
-        let hit_test_results = self
-            .global
-            .borrow()
-            .hit_test_at_point_with_flags(cursor, HitTestFlags::FIND_ALL);
+        let hit_test_results = self.global.borrow().hit_test_at_point(cursor);
 
         // Iterate through all hit test results, processing only the first node of each pipeline.
         // This is needed to propagate the scroll events from a pipeline representing an iframe to
