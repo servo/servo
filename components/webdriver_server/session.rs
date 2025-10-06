@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 
 use base::id::{BrowsingContextId, WebViewId};
@@ -65,10 +64,10 @@ pub struct WebDriverSession {
     user_prompt_handler: UserPromptHandler,
 
     /// <https://w3c.github.io/webdriver/#dfn-input-state-map>
-    input_state_table: RefCell<HashMap<String, InputSourceState>>,
+    pub(crate) input_state_table: HashMap<String, InputSourceState>,
 
     /// <https://w3c.github.io/webdriver/#dfn-input-cancel-list>
-    input_cancel_list: RefCell<Vec<(String, ActionItem)>>,
+    pub(crate) input_cancel_list: Vec<(String, ActionItem)>,
 }
 
 impl WebDriverSession {
@@ -81,8 +80,8 @@ impl WebDriverSession {
             page_loading_strategy: PageLoadStrategy::Normal,
             strict_file_interactability: false,
             user_prompt_handler: UserPromptHandler::new(),
-            input_state_table: RefCell::new(HashMap::new()),
-            input_cancel_list: RefCell::new(Vec::new()),
+            input_state_table: Default::default(),
+            input_cancel_list: Default::default(),
         }
     }
 
@@ -122,26 +121,14 @@ impl WebDriverSession {
         &self.user_prompt_handler
     }
 
-    pub fn input_state_table(&self) -> Ref<'_, HashMap<String, InputSourceState>> {
-        self.input_state_table.borrow()
-    }
-
-    pub fn input_state_table_mut(&self) -> RefMut<'_, HashMap<String, InputSourceState>> {
-        self.input_state_table.borrow_mut()
-    }
-
     pub fn pointer_ids(&self) -> FxHashSet<u32> {
-        self.input_state_table()
+        self.input_state_table
             .values()
             .filter_map(|source| match source {
                 InputSourceState::Pointer(pointer_state) => Some(pointer_state.pointer_id),
                 _ => None,
             })
             .collect()
-    }
-
-    pub fn input_cancel_list_mut(&self) -> RefMut<'_, Vec<(String, ActionItem)>> {
-        self.input_cancel_list.borrow_mut()
     }
 }
 

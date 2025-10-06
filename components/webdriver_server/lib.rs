@@ -2000,17 +2000,13 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#dfn-release-actions>
     fn handle_release_actions(&mut self) -> WebDriverResult<WebDriverResponse> {
-        let session = self.session()?;
         let browsing_context_id = self.browsing_context_id()?;
-
         // Step 1. If session's current browsing context is no longer open,
         // return error with error code no such window.
         self.verify_browsing_context_is_open(browsing_context_id)?;
 
-        // Step 2. User prompts. No user prompt implemented yet.
+        // Step 2. User prompts.
         self.handle_any_user_prompts(self.webview_id()?)?;
-
-        // Skip: Step 3. We don't support "browsing context input state map" yet.
 
         // TODO: Step 4. Actions options are not used yet.
 
@@ -2018,9 +2014,9 @@ impl Handler {
         // only one command can run at a time, so this will never block."
 
         // Step 6. Let undo actions be input cancel list in reverse order.
-
-        let undo_actions = session
-            .input_cancel_list_mut()
+        let undo_actions = self
+            .session_mut()?
+            .input_cancel_list
             .drain(..)
             .rev()
             .map(|(id, action_item)| Vec::from([(id, action_item)]))
@@ -2031,7 +2027,7 @@ impl Handler {
         }
 
         // Step 8. Reset the input state of session's current top-level browsing context.
-        session.input_state_table_mut().clear();
+        self.session_mut()?.input_state_table.clear();
 
         Ok(WebDriverResponse::Void)
     }
@@ -2194,7 +2190,7 @@ impl Handler {
 
         // Step 12. Add an input source
         self.session_mut()?
-            .input_state_table_mut()
+            .input_state_table
             .insert(id.clone(), InputSourceState::Key(KeyInputState::new()));
 
         // Step 13. dispatch actions for a string
@@ -2232,7 +2228,7 @@ impl Handler {
         }
 
         // Step 14. Remove an input source with input state and input id.
-        self.session_mut()?.input_state_table_mut().remove(&id);
+        self.session_mut()?.input_state_table.remove(&id);
 
         Ok(WebDriverResponse::Void)
     }
@@ -2305,7 +2301,7 @@ impl Handler {
         let id = Uuid::new_v4().to_string();
 
         let pointer_ids = self.session()?.pointer_ids();
-        self.session_mut()?.input_state_table_mut().insert(
+        self.session_mut()?.input_state_table.insert(
             id.clone(),
             InputSourceState::Pointer(PointerInputState::new(PointerType::Mouse, pointer_ids)),
         );
@@ -2357,7 +2353,7 @@ impl Handler {
         }
 
         // Step 8.17 Remove an input source with input state and input id.
-        self.session_mut()?.input_state_table_mut().remove(&id);
+        self.session_mut()?.input_state_table.remove(&id);
 
         Ok(WebDriverResponse::Void)
     }

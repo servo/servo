@@ -133,7 +133,7 @@ fn compute_tick_duration(tick_actions: &TickActions) -> u64 {
 impl Handler {
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-actions>
     pub(crate) fn dispatch_actions(
-        &self,
+        &mut self,
         actions_by_tick: ActionsByTick,
         browsing_context: BrowsingContextId,
     ) -> Result<(), ErrorStatus> {
@@ -143,8 +143,8 @@ impl Handler {
         self.current_action_id.set(Some(new_token));
 
         // Step 2. Let actions result be the result of dispatch actions inner.
-        let res = self.dispatch_actions_inner(actions_by_tick, browsing_context);
 
+        let res = self.dispatch_actions_inner(actions_by_tick, browsing_context);
         // Step 3. Dequeue input state's actions queue.
         self.current_action_id.set(None);
 
@@ -154,7 +154,7 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-actions-inner>
     fn dispatch_actions_inner(
-        &self,
+        &mut self,
         actions_by_tick: ActionsByTick,
         browsing_context: BrowsingContextId,
     ) -> Result<(), ErrorStatus> {
@@ -229,12 +229,10 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-tick-actions>
     fn dispatch_tick_actions(
-        &self,
+        &mut self,
         tick_actions: &TickActions,
         tick_duration: u64,
     ) -> Result<(), ErrorStatus> {
-        let session = self.session().unwrap();
-
         // Step 1. For each action object in tick actions:
         // Step 1.1. Let input_id be the value of the id property of action object.
         for (input_id, action) in tick_actions.iter() {
@@ -249,7 +247,7 @@ impl Handler {
                     // Step 9. If subtype is "keyDown", append a copy of action
                     // object with the subtype property changed to "keyUp" to
                     // input state's input cancel list.
-                    session.input_cancel_list_mut().push((
+                    self.session_mut().unwrap().input_cancel_list.push((
                         input_id.clone(),
                         ActionItem::Key(KeyActionItem::Key(KeyAction::Up(KeyUpAction {
                             value: keydown_action.value.clone(),
@@ -269,7 +267,7 @@ impl Handler {
                     // Step 10. If subtype is "pointerDown", append a copy of action
                     // object with the subtype property changed to "pointerUp" to
                     // input state's input cancel list.
-                    session.input_cancel_list_mut().push((
+                    self.session_mut().unwrap().input_cancel_list.push((
                         input_id.clone(),
                         ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Up(
                             PointerUpAction {
@@ -303,21 +301,24 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pause-action>
-    fn dispatch_pause_action(&self, source_id: &str) {
-        self.session()
+    fn dispatch_pause_action(&mut self, source_id: &str) {
+        self.session_mut()
             .unwrap()
-            .input_state_table_mut()
+            .input_state_table
             .entry(source_id.to_string())
             .or_insert(InputSourceState::Null);
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-keydown-action>
-    fn dispatch_keydown_action(&self, source_id: &str, action: &KeyDownAction) {
-        let session = self.session().unwrap();
-        let mut input_state_table = session.input_state_table_mut();
-
+    fn dispatch_keydown_action(&mut self, source_id: &str, action: &KeyDownAction) {
         let raw_key = action.value.chars().next().unwrap();
-        let key_input_state = match input_state_table.get_mut(source_id).unwrap() {
+        let key_input_state = match self
+            .session_mut()
+            .unwrap()
+            .input_state_table
+            .get_mut(source_id)
+            .unwrap()
+        {
             InputSourceState::Key(key_input_state) => key_input_state,
             _ => unreachable!(),
         };
@@ -333,28 +334,25 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-keyup-action>
-    fn dispatch_keyup_action(&self, source_id: &str, action: &KeyUpAction) {
-        let session = self.session().unwrap();
+    fn dispatch_keyup_action(&mut self, source_id: &str, action: &KeyUpAction) {
+        let session = self.session_mut().unwrap();
 
         // Remove the last matching keyUp from `[input_cancel_list]` due to bugs in spec
         // See https://github.com/w3c/webdriver/issues/1905 &&
         // https://github.com/servo/servo/issues/37579#issuecomment-2990762713
-        {
-            let mut input_cancel_list = session.input_cancel_list_mut();
-            if let Some(pos) = input_cancel_list.iter().rposition(|(id, item)| {
-                id == source_id &&
-                    matches!(item,
+        let input_cancel_list = &mut session.input_cancel_list;
+        if let Some(pos) = input_cancel_list.iter().rposition(|(id, item)| {
+            id == source_id &&
+                matches!(item,
                         ActionItem::Key(KeyActionItem::Key(KeyAction::Up(KeyUpAction { value })))
                     if *value == action.value )
-            }) {
-                info!("dispatch_keyup_action: removing last matching keyup from input_cancel_list");
-                input_cancel_list.remove(pos);
-            }
+        }) {
+            info!("dispatch_keyup_action: removing last matching keyup from input_cancel_list");
+            input_cancel_list.remove(pos);
         }
 
         let raw_key = action.value.chars().next().unwrap();
-        let mut input_state_table = session.input_state_table_mut();
-        let key_input_state = match input_state_table.get_mut(source_id).unwrap() {
+        let key_input_state = match session.input_state_table.get_mut(source_id).unwrap() {
             InputSourceState::Key(key_input_state) => key_input_state,
             _ => unreachable!(),
         };
@@ -373,20 +371,18 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerdown-action>
-    pub(crate) fn dispatch_pointerdown_action(&self, source_id: &str, action: &PointerDownAction) {
-        let session = self.session().unwrap();
-
-        let mut input_state_table = session.input_state_table_mut();
-        let pointer_input_state = match input_state_table.get_mut(source_id).unwrap() {
-            InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
-            _ => unreachable!(),
-        };
-
+    pub(crate) fn dispatch_pointerdown_action(
+        &mut self,
+        source_id: &str,
+        action: &PointerDownAction,
+    ) {
+        let pointer_input_state = self.get_pointer_input_state_mut(source_id);
         // Step 3. If the source's pressed property contains button return success with data null.
         if pointer_input_state.pressed.contains(&action.button) {
             return;
         }
 
+        let PointerInputState { x, y, .. } = *pointer_input_state;
         // Step 6. Add button to the set corresponding to source's pressed property
         pointer_input_state.pressed.insert(action.button);
         // Step 7 - 15: Variable namings already done.
@@ -398,8 +394,8 @@ impl Handler {
             self.verified_webview_id(),
             MouseButtonAction::Down,
             action.button.into(),
-            pointer_input_state.x as f32,
-            pointer_input_state.y as f32,
+            x as f32,
+            y as f32,
             msg_id,
         );
         let _ = self.send_message_to_embedder(cmd_msg);
@@ -408,15 +404,8 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerup-action>
-    pub(crate) fn dispatch_pointerup_action(&self, source_id: &str, action: &PointerUpAction) {
-        let session = self.session().unwrap();
-
-        let mut input_state_table = session.input_state_table_mut();
-        let pointer_input_state = match input_state_table.get_mut(source_id).unwrap() {
-            InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
-            _ => unreachable!(),
-        };
-
+    pub(crate) fn dispatch_pointerup_action(&mut self, source_id: &str, action: &PointerUpAction) {
+        let pointer_input_state = self.get_pointer_input_state_mut(source_id);
         // Step 3. If the source's pressed property does not contain button, return success with data null.
         if !pointer_input_state.pressed.contains(&action.button) {
             return;
@@ -424,23 +413,20 @@ impl Handler {
 
         // Step 6. Remove button from the set corresponding to source's pressed property,
         pointer_input_state.pressed.remove(&action.button);
+        let PointerInputState { x, y, .. } = *pointer_input_state;
 
         // Remove matching pointerUp(must be unique) from `[input_cancel_list]` due to bugs in spec
         // See https://github.com/w3c/webdriver/issues/1905 &&
         // https://github.com/servo/servo/issues/37579#issuecomment-2990762713
-        {
-            let mut input_cancel_list = session.input_cancel_list_mut();
-            if let Some(pos) = input_cancel_list.iter().position(|(id, item)| {
-                id == source_id &&
-                    matches!(item, ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Up(
+        let input_cancel_list = &mut self.session_mut().unwrap().input_cancel_list;
+        if let Some(pos) = input_cancel_list.iter().position(|(id, item)| {
+            id == source_id &&
+                matches!(item, ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Up(
                     PointerUpAction { button, .. },
                 ))) if *button == action.button )
-            }) {
-                info!(
-                    "dispatch_pointerup_action: removing matching pointerup from input_cancel_list"
-                );
-                input_cancel_list.remove(pos);
-            }
+        }) {
+            info!("dispatch_pointerup_action: removing matching pointerup from input_cancel_list");
+            input_cancel_list.remove(pos);
         }
 
         // Step 7. Perform implementation-specific action dispatch steps
@@ -450,8 +436,8 @@ impl Handler {
             self.verified_webview_id(),
             MouseButtonAction::Up,
             action.button.into(),
-            pointer_input_state.x as f32,
-            pointer_input_state.y as f32,
+            x as f32,
+            y as f32,
             msg_id,
         );
         let _ = self.send_message_to_embedder(cmd_msg);
@@ -461,7 +447,7 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointermove-action>
     pub(crate) fn dispatch_pointermove_action(
-        &self,
+        &mut self,
         source_id: &str,
         action: &PointerMoveAction,
         tick_duration: u64,
@@ -501,17 +487,9 @@ impl Handler {
             thread::sleep(Duration::from_millis(POINTERMOVE_INTERVAL));
         }
 
-        let (start_x, start_y) = match self
-            .session()
-            .unwrap()
-            .input_state_table()
-            .get(source_id)
-            .unwrap()
-        {
-            InputSourceState::Pointer(pointer_input_state) => {
-                (pointer_input_state.x, pointer_input_state.y)
-            },
-            _ => unreachable!(),
+        let (start_x, start_y) = {
+            let pointer_input_state = self.get_pointer_input_state_mut(source_id);
+            (pointer_input_state.x, pointer_input_state.y)
         };
 
         // Step 9 - 18
@@ -527,7 +505,7 @@ impl Handler {
     /// <https://w3c.github.io/webdriver/#dfn-perform-a-pointer-move>
     #[allow(clippy::too_many_arguments)]
     fn perform_pointer_move(
-        &self,
+        &mut self,
         source_id: &str,
         duration: u64,
         start_x: f64,
@@ -536,13 +514,6 @@ impl Handler {
         target_y: f64,
         tick_start: Instant,
     ) {
-        let session = self.session().unwrap();
-        let mut input_state_table = session.input_state_table_mut();
-        let pointer_input_state = match input_state_table.get_mut(source_id).unwrap() {
-            InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
-            _ => unreachable!(),
-        };
-
         loop {
             // Step 1. Let time delta be the time since the beginning of the
             // current tick, measured in milliseconds on a monotonic clock.
@@ -574,11 +545,11 @@ impl Handler {
                 )
             };
 
-            // Step 5. Let current x equal the x property of input state.
-            let current_x = pointer_input_state.x;
-
-            // Step 6. Let current y equal the y property of input state.
-            let current_y = pointer_input_state.y;
+            // Step 5 - 6: Let current x/y equal the x/y property of input state.
+            let (current_x, current_y) = {
+                let pointer_input_state = self.get_pointer_input_state_mut(source_id);
+                (pointer_input_state.x, pointer_input_state.y)
+            };
 
             // Step 7. If x != current x or y != current y, run the following steps:
             // FIXME: Actually "last" should not be checked here based on spec.
@@ -600,6 +571,7 @@ impl Handler {
                 );
                 let _ = self.send_message_to_embedder(cmd_msg);
                 // Step 7.3. Let input state's x property equal x and y property equal y.
+                let pointer_input_state = self.get_pointer_input_state_mut(source_id);
                 pointer_input_state.x = x;
                 pointer_input_state.y = y;
             }
@@ -824,17 +796,9 @@ impl Handler {
             PointerOrigin::Pointer => {
                 // Step 1. Let start x be equal to the x property of source.
                 // Step 2. Let start y be equal to the y property of source.
-                let (start_x, start_y) = match self
-                    .session()
-                    .unwrap()
-                    .input_state_table()
-                    .get(source_id)
-                    .unwrap()
-                {
-                    InputSourceState::Pointer(pointer_input_state) => {
-                        (pointer_input_state.x, pointer_input_state.y)
-                    },
-                    _ => unreachable!(),
+                let (start_x, start_y) = {
+                    let pointer_input_state = self.get_pointer_input_state(source_id);
+                    (pointer_input_state.x, pointer_input_state.y)
                 };
                 // Step 3. Let x equal start x + x offset and y equal start y + y offset.
                 Ok((start_x + x_offset, start_y + y_offset))
@@ -876,7 +840,10 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-extract-an-action-sequence>
-    pub(crate) fn extract_an_action_sequence(&self, params: ActionsParameters) -> ActionsByTick {
+    pub(crate) fn extract_an_action_sequence(
+        &mut self,
+        params: ActionsParameters,
+    ) -> ActionsByTick {
         // Step 1. Let actions be the result of getting a property named "actions" from parameters.
         // Step 2. (ignored because params is already validated earlier). If actions is not a list,
         // return an error with status InvalidArgument.
@@ -886,7 +853,7 @@ impl Handler {
     }
 
     pub(crate) fn actions_by_tick_from_sequence(
-        &self,
+        &mut self,
         actions: Vec<ActionSequence>,
     ) -> ActionsByTick {
         // Step 3. Let actions by tick be an empty list.
@@ -915,19 +882,18 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#dfn-process-an-input-source-action-sequence>
     pub(crate) fn process_an_input_source_action_sequence(
-        &self,
+        &mut self,
         action_sequence: ActionSequence,
     ) -> Vec<ActionItem> {
         // Step 2. Let id be the value of the id property of action sequence.
         let id = action_sequence.id.clone();
-
         match action_sequence.actions {
             ActionsType::Null {
                 actions: null_actions,
             } => {
-                self.session()
+                self.session_mut()
                     .unwrap()
-                    .input_state_table_mut()
+                    .input_state_table
                     .entry(id)
                     .or_insert(InputSourceState::Null);
                 null_actions.into_iter().map(ActionItem::Null).collect()
@@ -935,9 +901,9 @@ impl Handler {
             ActionsType::Key {
                 actions: key_actions,
             } => {
-                self.session()
+                self.session_mut()
                     .unwrap()
-                    .input_state_table_mut()
+                    .input_state_table
                     .entry(id)
                     .or_insert(InputSourceState::Key(KeyInputState::new()));
                 key_actions.into_iter().map(ActionItem::Key).collect()
@@ -947,9 +913,9 @@ impl Handler {
                 actions: pointer_actions,
             } => {
                 let pointer_ids = self.session().unwrap().pointer_ids();
-                self.session()
+                self.session_mut()
                     .unwrap()
-                    .input_state_table_mut()
+                    .input_state_table
                     .entry(id)
                     .or_insert(InputSourceState::Pointer(PointerInputState::new(
                         PointerType::Mouse,
@@ -963,13 +929,39 @@ impl Handler {
             ActionsType::Wheel {
                 actions: wheel_actions,
             } => {
-                self.session()
+                self.session_mut()
                     .unwrap()
-                    .input_state_table_mut()
+                    .input_state_table
                     .entry(id)
                     .or_insert(InputSourceState::Wheel);
                 wheel_actions.into_iter().map(ActionItem::Wheel).collect()
             },
         }
+    }
+
+    fn get_pointer_input_state_mut(&mut self, source_id: &str) -> &mut PointerInputState {
+        let InputSourceState::Pointer(pointer_input_state) = self
+            .session_mut()
+            .unwrap()
+            .input_state_table
+            .get_mut(source_id)
+            .unwrap()
+        else {
+            unreachable!();
+        };
+        pointer_input_state
+    }
+
+    fn get_pointer_input_state(&self, source_id: &str) -> &PointerInputState {
+        let InputSourceState::Pointer(pointer_input_state) = self
+            .session()
+            .unwrap()
+            .input_state_table
+            .get(source_id)
+            .unwrap()
+        else {
+            unreachable!();
+        };
+        pointer_input_state
     }
 }
