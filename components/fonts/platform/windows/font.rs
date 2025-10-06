@@ -117,28 +117,22 @@ impl PlatformFont {
         variations: &[FontVariation],
         synthetic_bold: bool,
     ) -> Result<Self, &'static str> {
-        // `FontFace::has_variations()` Determines whether this font face's resource supports
-        // any variable axes. (IDWriteFontFace5::HasVariations).
-        //
-        // See <https://learn.microsoft.com/en-us/windows/win32/api/dwrite_3/nf-dwrite_3-idwritefontface5-hasvariations>
-        let mut synthetic_bold = if font_face.has_variations() {
-            // Variable fonts, where the font designer has provided one or more axes of
-            // variation do not count as font synthesis and their use is not affected by
-            // the font-synthesis property.
-            //
-            // See <https://www.w3.org/TR/css-fonts-4/#font-synthesis-intro>
-            false
-        } else {
-            synthetic_bold
-        };
-
         // If the font face is already bold, applying synthetic bold would "double embolden" the font
         let font_face_is_bold = DirectWriteTableProvider::from(&font_face)
             .os2()
             .is_ok_and(|os2| os2.us_weight_class() >= FW_SEMIBOLD as u16);
-        if font_face_is_bold {
-            synthetic_bold = false;
-        }
+
+        // Variable fonts do not count as font synthesis and their use is not affected by
+        // the font-synthesis property.
+        //
+        // See <https://www.w3.org/TR/css-fonts-4/#font-synthesis-intro>
+        let is_variable_font = font_face.has_variations();
+
+        let synthetic_bold = if font_face_is_bold || is_variable_font {
+            false
+        } else {
+            synthetic_bold
+        };
 
         let simulations = match synthetic_bold {
             true => DWRITE_FONT_SIMULATIONS_BOLD,
