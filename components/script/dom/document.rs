@@ -2165,9 +2165,21 @@ impl Document {
                 }
             }));
 
+        
+        let should_fire_page_show = {
+            if let Some(bc) = self.browsing_context() {
+                println!("Parent: {:?}", bc.parent().is_some());
+                !(bc.parent().is_some() && self.url().as_str() == "about:blank")
+            } else {
+                false
+            }
+        };
+
+        println!("should fire page show for {:?} {:?}", self.url().as_str(), should_fire_page_show);
+
         // Step 8.
         let document = Trusted::new(self);
-        if document.root().browsing_context().is_some() {
+        if document.root().browsing_context().is_some() && should_fire_page_show {
             self.owner_global()
                 .task_manager()
                 .dom_manipulation_task_source()
@@ -2238,8 +2250,6 @@ impl Document {
                             Duration::from_secs(*time),
                         );
                     }
-                    // Note: this will, among others, result in the "iframe-load-event-steps" being run.
-                    // https://html.spec.whatwg.org/multipage/#iframe-load-event-steps
                     document.notify_constellation_load();
                 }));
         }

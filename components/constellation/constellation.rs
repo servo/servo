@@ -3335,6 +3335,7 @@ where
 
     #[servo_tracing::instrument(skip_all)]
     fn handle_script_new_iframe(&mut self, load_info: IFrameLoadInfoWithData) {
+        println!("Handle script new iframe");
         let IFrameLoadInfo {
             parent_pipeline_id,
             new_pipeline_id,
