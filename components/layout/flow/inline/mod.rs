@@ -1914,19 +1914,13 @@ impl InlineContainerState {
         font_metrics: Option<&FontMetrics>,
     ) -> Self {
         let font_metrics = font_metrics.cloned().unwrap_or_else(FontMetrics::empty);
-        let line_height = line_height(
-            &style,
-            &font_metrics,
-            flags.contains(InlineContainerStateFlags::IS_SINGLE_LINE_TEXT_INPUT),
-        );
-
         let mut baseline_offset = Au::zero();
         let mut strut_block_sizes = Self::get_block_sizes_with_style(
             effective_vertical_align(&style, parent_container),
             &style,
             &font_metrics,
             &font_metrics,
-            line_height,
+            &flags,
         );
         if let Some(parent_container) = parent_container {
             // The baseline offset from `vertical-align` might adjust where our block size contribution is
@@ -1961,8 +1955,10 @@ impl InlineContainerState {
         style: &ComputedValues,
         font_metrics: &FontMetrics,
         font_metrics_of_first_font: &FontMetrics,
-        line_height: Au,
+        flags: &InlineContainerStateFlags,
     ) -> LineBlockSizes {
+        let line_height = line_height(style, font_metrics, flags);
+
         if !is_baseline_relative(vertical_align) {
             return LineBlockSizes {
                 line_height,
@@ -2038,12 +2034,7 @@ impl InlineContainerState {
             &self.style,
             font_metrics,
             font_metrics_of_first_font,
-            line_height(
-                &self.style,
-                font_metrics,
-                self.flags
-                    .contains(InlineContainerStateFlags::IS_SINGLE_LINE_TEXT_INPUT),
-            ),
+            &self.flags,
         )
     }
 
@@ -2279,7 +2270,7 @@ fn place_pending_floats(ifc: &mut InlineFormattingContextLayout, line_items: &mu
 fn line_height(
     parent_style: &ComputedValues,
     font_metrics: &FontMetrics,
-    is_single_line_text_input: bool,
+    flags: &InlineContainerStateFlags,
 ) -> Au {
     let font = parent_style.get_font();
     let font_size = font.font_size.computed_size();
@@ -2292,7 +2283,7 @@ fn line_height(
     // The line height of a single-line text input's inner text container is clamped to
     // the size of `normal`.
     // <https://html.spec.whatwg.org/multipage/#the-input-element-as-a-text-entry-widget>
-    if is_single_line_text_input {
+    if flags.contains(InlineContainerStateFlags::IS_SINGLE_LINE_TEXT_INPUT) {
         line_height.max_assign(font_metrics.line_gap);
     }
 
