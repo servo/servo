@@ -255,7 +255,7 @@ impl ServoUrl {
         let scheme_is_about = self.scheme() == "about";
 
         // its path contains a single string "blank",
-        let path_contains_blank = self.0.path().contains("blank");
+        let path_is_blank = self.0.path() == "blank";
 
         // its username and password are the empty string,
         let empty_username_and_password =
@@ -264,7 +264,7 @@ impl ServoUrl {
         // and its host is null.
         let null_host = self.0.host().is_none();
 
-        scheme_is_about && path_contains_blank && empty_username_and_password && null_host
+        scheme_is_about && path_is_blank && empty_username_and_password && null_host
     }
 }
 

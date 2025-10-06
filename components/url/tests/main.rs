@@ -10,8 +10,6 @@ use url::Url;
 #[test]
 fn test_matches_about_blank_matches_simple_about_blank() {
     let mut url = ServoUrl::from_str("about:blank").unwrap();
-    assert!(url.path().contains("blank"));
-    assert!(url.scheme() == "about");
     assert!(url.matches_about_blank());
 
     // Cannot set password.
@@ -24,6 +22,12 @@ fn test_matches_about_blank_matches_simple_about_blank() {
 
     // Note: cannot set host, `set_host` not available on `ServoUrl`.
     assert!(url.host().is_none());
+}
+
+#[test]
+fn test_matches_about_blank_doest_matches_fake_about_blank() {
+    let url = ServoUrl::from_str("about:blank2").unwrap();
+    assert!(!url.matches_about_blank());
 }
 
 #[test]
