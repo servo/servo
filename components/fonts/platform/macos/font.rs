@@ -82,10 +82,12 @@ impl PlatformFont {
         variations: Vec<FontVariation>,
         synthetic_bold: bool,
     ) -> PlatformFont {
-        let synthetic_bold = if ctfont
+        let ctfont_is_bold = ctfont.all_traits().weight() >= FontWeight::BOLD_THRESHOLD;
+        let is_variable_font = ctfont
             .get_variation_axes()
-            .is_some_and(|arr| !arr.is_empty())
-        {
+            .is_some_and(|arr| !arr.is_empty());
+
+        let synthetic_bold = if ctfont_is_bold || is_variable_font {
             false
         } else {
             synthetic_bold
