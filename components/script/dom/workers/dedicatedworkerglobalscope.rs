@@ -515,7 +515,6 @@ impl DedicatedWorkerGlobalScope {
                 };
                 let context = Arc::new(Mutex::new(ScriptFetchContext::new(
                     Trusted::new(scope),
-                    pipeline_id,
                     request.url.clone(),
                     worker.clone(),
                     policy_container,
@@ -748,11 +747,8 @@ impl DedicatedWorkerGlobalScope {
         self.browsing_context
     }
 
-    pub(crate) fn report_csp_violations(
-        &self,
-        pipeline_id: PipelineId,
-        violations: Vec<Violation>,
-    ) {
+    pub(crate) fn report_csp_violations(&self, violations: Vec<Violation>) {
+        let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
         self.parent_event_loop_sender
             .send(CommonScriptMsg::ReportCspViolations(
                 pipeline_id,
@@ -761,11 +757,8 @@ impl DedicatedWorkerGlobalScope {
             .expect("Sending to parent failed");
     }
 
-    pub(crate) fn forward_simple_error_at_worker(
-        &self,
-        pipeline_id: PipelineId,
-        worker: TrustedWorkerAddress,
-    ) {
+    pub(crate) fn forward_simple_error_at_worker(&self, worker: TrustedWorkerAddress) {
+        let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
         self.parent_event_loop_sender
             .send(CommonScriptMsg::Task(
                 WorkerEvent,
