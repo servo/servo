@@ -21,10 +21,11 @@ use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{
     AllowOrDenyRequest, ContextMenuResult, ImeEvent, InputEvent, InputMethodType, KeyboardEvent,
     LoadStatus, MediaSessionActionType, MediaSessionEvent, MouseButton, MouseButtonAction,
-    MouseButtonEvent, MouseMoveEvent, NavigationRequest, PermissionRequest, ScreenGeometry, Servo,
-    ServoDelegate, ServoError, SimpleDialog, TouchEvent, TouchEventType, TouchId, TraversalId,
-    WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus, WebDriverScriptCommand,
-    WebDriverSenders, WebView, WebViewBuilder, WebViewDelegate, WindowRenderingContext,
+    MouseButtonEvent, MouseMoveEvent, NavigationRequest, PermissionRequest, RenderingContext,
+    ScreenGeometry, Servo, ServoDelegate, ServoError, SimpleDialog, TouchEvent, TouchEventType,
+    TouchId, TraversalId, WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus,
+    WebDriverScriptCommand, WebDriverSenders, WebView, WebViewBuilder, WebViewDelegate,
+    WindowRenderingContext,
 };
 use url::Url;
 
@@ -951,6 +952,7 @@ impl RunningAppState {
 
         self.inner_mut().need_present = false;
         self.active_webview().paint();
+        self.rendering_context.present();
 
         if self.servoshell_preferences.exit_after_stable_image &&
             self.inner().achieved_stable_image.get()
