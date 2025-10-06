@@ -143,8 +143,8 @@ impl Handler {
         self.current_action_id.set(Some(new_token));
 
         // Step 2. Let actions result be the result of dispatch actions inner.
-
         let res = self.dispatch_actions_inner(actions_by_tick, browsing_context);
+
         // Step 3. Dequeue input state's actions queue.
         self.current_action_id.set(None);
 
@@ -488,7 +488,7 @@ impl Handler {
         }
 
         let (start_x, start_y) = {
-            let pointer_input_state = self.get_pointer_input_state_mut(source_id);
+            let pointer_input_state = self.get_pointer_input_state(source_id);
             (pointer_input_state.x, pointer_input_state.y)
         };
 
@@ -547,7 +547,7 @@ impl Handler {
 
             // Step 5 - 6: Let current x/y equal the x/y property of input state.
             let (current_x, current_y) = {
-                let pointer_input_state = self.get_pointer_input_state_mut(source_id);
+                let pointer_input_state = self.get_pointer_input_state(source_id);
                 (pointer_input_state.x, pointer_input_state.y)
             };
 
@@ -847,9 +847,7 @@ impl Handler {
         // Step 1. Let actions be the result of getting a property named "actions" from parameters.
         // Step 2. (ignored because params is already validated earlier). If actions is not a list,
         // return an error with status InvalidArgument.
-        let actions = params.actions;
-
-        self.actions_by_tick_from_sequence(actions)
+        self.actions_by_tick_from_sequence(params.actions)
     }
 
     pub(crate) fn actions_by_tick_from_sequence(
