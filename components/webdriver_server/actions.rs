@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -302,9 +303,7 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pause-action>
     fn dispatch_pause_action(&mut self, source_id: &str) {
-        self.session_mut()
-            .unwrap()
-            .input_state_table
+        self.input_state_table_mut()
             .entry(source_id.to_string())
             .or_insert(InputSourceState::Null);
     }
@@ -312,13 +311,7 @@ impl Handler {
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-keydown-action>
     fn dispatch_keydown_action(&mut self, source_id: &str, action: &KeyDownAction) {
         let raw_key = action.value.chars().next().unwrap();
-        let key_input_state = match self
-            .session_mut()
-            .unwrap()
-            .input_state_table
-            .get_mut(source_id)
-            .unwrap()
-        {
+        let key_input_state = match self.input_state_table_mut().get_mut(source_id).unwrap() {
             InputSourceState::Key(key_input_state) => key_input_state,
             _ => unreachable!(),
         };
@@ -889,9 +882,7 @@ impl Handler {
             ActionsType::Null {
                 actions: null_actions,
             } => {
-                self.session_mut()
-                    .unwrap()
-                    .input_state_table
+                self.input_state_table_mut()
                     .entry(id)
                     .or_insert(InputSourceState::Null);
                 null_actions.into_iter().map(ActionItem::Null).collect()
@@ -899,9 +890,7 @@ impl Handler {
             ActionsType::Key {
                 actions: key_actions,
             } => {
-                self.session_mut()
-                    .unwrap()
-                    .input_state_table
+                self.input_state_table_mut()
                     .entry(id)
                     .or_insert(InputSourceState::Key(KeyInputState::new()));
                 key_actions.into_iter().map(ActionItem::Key).collect()
@@ -911,9 +900,7 @@ impl Handler {
                 actions: pointer_actions,
             } => {
                 let pointer_ids = self.session().unwrap().pointer_ids();
-                self.session_mut()
-                    .unwrap()
-                    .input_state_table
+                self.input_state_table_mut()
                     .entry(id)
                     .or_insert(InputSourceState::Pointer(PointerInputState::new(
                         PointerType::Mouse,
@@ -927,9 +914,7 @@ impl Handler {
             ActionsType::Wheel {
                 actions: wheel_actions,
             } => {
-                self.session_mut()
-                    .unwrap()
-                    .input_state_table
+                self.input_state_table_mut()
                     .entry(id)
                     .or_insert(InputSourceState::Wheel);
                 wheel_actions.into_iter().map(ActionItem::Wheel).collect()
@@ -937,13 +922,13 @@ impl Handler {
         }
     }
 
+    fn input_state_table_mut(&mut self) -> &mut HashMap<String, InputSourceState> {
+        &mut self.session_mut().unwrap().input_state_table
+    }
+
     fn get_pointer_input_state_mut(&mut self, source_id: &str) -> &mut PointerInputState {
-        let InputSourceState::Pointer(pointer_input_state) = self
-            .session_mut()
-            .unwrap()
-            .input_state_table
-            .get_mut(source_id)
-            .unwrap()
+        let InputSourceState::Pointer(pointer_input_state) =
+            self.input_state_table_mut().get_mut(source_id).unwrap()
         else {
             unreachable!();
         };
