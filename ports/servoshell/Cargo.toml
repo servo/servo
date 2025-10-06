@@ -131,7 +131,7 @@ libservo = { path = "../../components/servo", features = ["no-wgl"] }
 windows-sys = { workspace = true, features = ["Win32_Graphics_Gdi"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-objc2-app-kit = { version = "0.3.1", default-features = false, features = [
+objc2-app-kit = { version = "0.3.2", default-features = false, features = [
     "std",
     "NSColorSpace",
     "NSResponder",
