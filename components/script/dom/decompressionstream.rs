@@ -16,11 +16,11 @@ use js::typedarray::Uint8Array;
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::CompressionStreamBinding::CompressionFormat;
 use crate::dom::bindings::codegen::Bindings::DecompressionStreamBinding::DecompressionStreamMethods;
-use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
-use crate::dom::bindings::conversions::{SafeFromJSValConvertible, SafeToJSValConvertible};
+use crate::dom::bindings::conversions::SafeToJSValConvertible;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::compressionstream::convert_chunk_to_vec;
 use crate::dom::transformstreamdefaultcontroller::TransformerType;
 use crate::dom::types::{
     GlobalScope, ReadableStream, TransformStream, TransformStreamDefaultController, WritableStream,
@@ -196,17 +196,7 @@ pub(crate) fn decompress_and_enqueue_a_chunk(
     can_gc: CanGc,
 ) -> Fallible<()> {
     // Step 1. If chunk is not a BufferSource type, then throw a TypeError.
-    let conversion_result =
-        ArrayBufferViewOrArrayBuffer::safe_from_jsval(cx, chunk, ()).map_err(|_| {
-            Error::Type("Unable to convert chunk into ArrayBuffer or ArrayBufferView".to_string())
-        })?;
-    let buffer_source = conversion_result.get_success_value().ok_or_else(|| {
-        Error::Type("Unable to convert chunk into ArrayBuffer or ArrayBufferView".to_string())
-    })?;
-    let chunk = match buffer_source {
-        ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-        ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-    };
+    let chunk = convert_chunk_to_vec(cx, chunk)?;
 
     // Step 2. Let buffer be the result of decompressing chunk with ds’s format and context. If
     // this results in an error, then throw a TypeError.
