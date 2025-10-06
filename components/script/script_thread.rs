@@ -3303,6 +3303,7 @@ impl ScriptThread {
             incomplete.load_data.inherited_insecure_requests_policy,
             incomplete.load_data.has_trustworthy_ancestor_origin,
             self.custom_element_reaction_stack.clone(),
+            incomplete.load_data.creation_sandboxing_flag_set,
             can_gc,
         );
 
@@ -3551,7 +3552,11 @@ impl ScriptThread {
     /// Instructs the constellation to fetch the document that will be loaded. Stores the InProgressLoad
     /// argument until a notification is received that the fetch is complete.
     fn pre_page_load(&self, mut incomplete: InProgressLoad) {
-        let context = ParserContext::new(incomplete.pipeline_id, incomplete.load_data.url.clone());
+        let context = ParserContext::new(
+            incomplete.pipeline_id,
+            incomplete.load_data.url.clone(),
+            incomplete.load_data.creation_sandboxing_flag_set,
+        );
         self.incomplete_parser_contexts
             .0
             .borrow_mut()
@@ -3708,7 +3713,11 @@ impl ScriptThread {
         let id = incomplete.pipeline_id;
 
         let url = ServoUrl::parse("about:blank").unwrap();
-        let mut context = ParserContext::new(id, url.clone());
+        let mut context = ParserContext::new(
+            id,
+            url.clone(),
+            incomplete.load_data.creation_sandboxing_flag_set,
+        );
 
         let mut meta = Metadata::default(url);
         meta.set_content_type(Some(&mime::TEXT_HTML));
@@ -3751,9 +3760,11 @@ impl ScriptThread {
         let chunk = srcdoc.into_bytes();
 
         let policy_container = incomplete.load_data.policy_container.clone();
+        let creation_sandboxing_flag_set = incomplete.load_data.creation_sandboxing_flag_set;
+
         self.incomplete_loads.borrow_mut().push(incomplete);
 
-        let mut context = ParserContext::new(id, url);
+        let mut context = ParserContext::new(id, url, creation_sandboxing_flag_set);
         let dummy_request_id = RequestId::default();
 
         context.process_response(dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
