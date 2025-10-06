@@ -837,9 +837,9 @@ impl Document {
                     return base_url;
                 }
             }
-            // Step 2: If document's URL is about:blank, and document's browsing
+            // Step 2: If document's URL matches about:blank, and document's browsing
             // context's creator base URL is non-null, then return that creator base URL.
-            if document_url.as_str() == "about:blank" && browsing_context.has_creator_base_url() {
+            if document_url.matches_about_blank() && browsing_context.has_creator_base_url() {
                 return browsing_context.creator_base_url().unwrap();
             }
         }
