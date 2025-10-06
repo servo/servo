@@ -544,8 +544,6 @@ impl WorkerGlobalScope {
             dedicated_worker_scope.forward_simple_error_at_worker(worker.clone());
 
             // Step 2 TODO Run the environment discarding steps for inside settings.
-
-            self.clear_js_runtime();
             return;
         };
 
@@ -555,7 +553,6 @@ impl WorkerGlobalScope {
         }
 
         if self.is_closing() {
-            self.clear_js_runtime();
             return;
         }
 
@@ -569,8 +566,6 @@ impl WorkerGlobalScope {
             );
             self.execute_script(DOMString::from(script), can_gc);
         }
-
-        self.clear_js_runtime();
     }
 }
 

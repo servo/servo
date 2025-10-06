@@ -541,6 +541,7 @@ impl DedicatedWorkerGlobalScope {
                         parent_event_loop_sender,
                         CommonScriptMsg::CollectReports,
                     );
+                scope.clear_js_runtime();
             })
             .expect("Thread spawning failed")
     }
