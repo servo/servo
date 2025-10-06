@@ -16,9 +16,8 @@ use freetype_sys::{
 use log::debug;
 use memmap2::Mmap;
 use parking_lot::ReentrantMutex;
-use read_fonts::tables::os2::Os2;
 use read_fonts::types::Tag;
-use read_fonts::{FontRead, FontRef, ReadError, TableProvider};
+use read_fonts::{FontRef, ReadError, TableProvider};
 use servo_arc::Arc;
 use skrifa::attribute::Weight;
 use style::Zero;
@@ -139,10 +138,8 @@ impl PlatformFontMethods for PlatformFont {
         );
         let face_is_bold = table_provider_data
             .font_ref()
-            .ok()
-            .and_then(|font_ref| font_ref.table_data(Tag::new(b"OS/2")))
-            .and_then(|data| Os2::read(data).ok())
-            .is_some_and(|table| table.us_weight_class() >= SEMI_BOLD_U16);
+            .and_then(|font_ref| font_ref.os2())
+            .is_ok_and(|table| table.us_weight_class() >= SEMI_BOLD_U16);
 
         // Variable fonts do not count as font synthesis and their use is not affected by
         // the font-synthesis property.
