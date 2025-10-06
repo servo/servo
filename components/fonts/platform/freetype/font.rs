@@ -9,16 +9,18 @@ use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D};
 use fonts_traits::{FontIdentifier, FontTemplateDescriptor, LocalFontIdentifier};
 use freetype_sys::{
-    FT_F26Dot6, FT_Get_Char_Index, FT_Get_Kerning, FT_Get_Sfnt_Table, FT_GlyphSlot,
-    FT_HAS_MULTIPLE_MASTERS, FT_KERNING_DEFAULT, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING,
-    FT_Load_Glyph, FT_Size_Metrics, FT_SizeRec, FT_UInt, FT_ULong, FT_Vector, TT_OS2, ft_sfnt_os2,
+    FT_F26Dot6, FT_Get_Char_Index, FT_Get_Kerning, FT_GlyphSlot, FT_HAS_MULTIPLE_MASTERS,
+    FT_KERNING_DEFAULT, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_Load_Glyph, FT_Size_Metrics,
+    FT_SizeRec, FT_UInt, FT_ULong, FT_Vector,
 };
 use log::debug;
 use memmap2::Mmap;
 use parking_lot::ReentrantMutex;
+use read_fonts::tables::os2::Os2;
 use read_fonts::types::Tag;
-use read_fonts::{FontRef, ReadError, TableProvider};
+use read_fonts::{FontRead, FontRef, ReadError, TableProvider};
 use servo_arc::Arc;
+use skrifa::attribute::Weight;
 use style::Zero;
 use webrender_api::{FontInstanceFlags, FontVariation};
 
@@ -28,7 +30,7 @@ use crate::font::{FontMetrics, FontTableMethods, FractionalPixel, PlatformFontMe
 use crate::glyph::GlyphId;
 use crate::platform::freetype::freetype_face::FreeTypeFace;
 
-const BOLD_THRESHOLD: u16 = 600;
+const SEMI_BOLD_U16: u16 = Weight::SEMI_BOLD.value() as u16;
 
 /// Convert FreeType-style 26.6 fixed point to an [`f64`].
 fn fixed_26_dot_6_to_float(fixed: FT_F26Dot6) -> f64 {
@@ -131,15 +133,16 @@ impl PlatformFontMethods for PlatformFont {
         };
 
         // If the font face is already bold, applying synthetic bold would "double embolden" the font
-        let face_is_bold = unsafe {
-            let ptr = FT_Get_Sfnt_Table(face.as_ptr(), ft_sfnt_os2);
-            let os2_table: *mut TT_OS2 = std::mem::transmute(ptr);
-            if os2_table.is_null() {
-                false
-            } else {
-                (*os2_table).usWeightClass >= BOLD_THRESHOLD
-            }
-        };
+        let table_provider_data = FreeTypeFaceTableProviderData::Local(
+            Arc::new(memory_mapped_font_data),
+            font_identifier.index(),
+        );
+        let face_is_bold = table_provider_data
+            .font_ref()
+            .ok()
+            .and_then(|font_ref| font_ref.table_data(Tag::new(b"OS/2")))
+            .and_then(|data| Os2::read(data).ok())
+            .is_some_and(|table| table.us_weight_class() >= SEMI_BOLD_U16);
 
         // Variable fonts do not count as font synthesis and their use is not affected by
         // the font-synthesis property.
@@ -157,10 +160,7 @@ impl PlatformFontMethods for PlatformFont {
             face: ReentrantMutex::new(face),
             requested_face_size,
             actual_face_size,
-            table_provider_data: FreeTypeFaceTableProviderData::Local(
-                Arc::new(memory_mapped_font_data),
-                font_identifier.index(),
-            ),
+            table_provider_data,
             variations: normalized_variations,
             synthetic_bold,
         })
