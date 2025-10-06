@@ -30,8 +30,8 @@ use cookie::{CookieBuilder, Expiration, SameSite};
 use crossbeam_channel::{Sender, after, select};
 use embedder_traits::{
     EventLoopWaker, JSValue, MouseButton, WebDriverCommandMsg, WebDriverCommandResponse,
-    WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverLoadStatus, WebDriverMessageId,
-    WebDriverScriptCommand,
+    WebDriverFrameId, WebDriverInputEventId, WebDriverJSError, WebDriverJSResult,
+    WebDriverLoadStatus, WebDriverScriptCommand,
 };
 use euclid::{Point2D, Rect, Size2D};
 use http::method::Method;
@@ -90,10 +90,10 @@ impl WebDriverMessageIdGenerator {
     }
 
     /// Returns a unique ID.
-    pub fn next(&self) -> WebDriverMessageId {
+    pub fn next(&self) -> WebDriverInputEventId {
         let id = self.counter.get();
         self.counter.set(id + 1);
-        WebDriverMessageId(id)
+        WebDriverInputEventId(id)
     }
 }
 
@@ -188,7 +188,7 @@ struct Handler {
 
     id_generator: WebDriverMessageIdGenerator,
 
-    current_action_id: Cell<Option<WebDriverMessageId>>,
+    current_action_id: Cell<Option<WebDriverInputEventId>>,
 
     /// Number of pending actions of which WebDriver is waiting for responses.
     num_pending_actions: Cell<u32>,

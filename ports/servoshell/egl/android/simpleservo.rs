@@ -12,10 +12,7 @@ use raw_window_handle::{DisplayHandle, RawDisplayHandle, RawWindowHandle, Window
 use servo::ipc_channel::ipc;
 pub use servo::webrender_api::units::DeviceIntRect;
 use servo::{self, EventLoopWaker, ServoBuilder, resources};
-pub use servo::{
-    EmbedderToConstellationMessage, InputMethodType, MediaSessionPlaybackState,
-    WindowRenderingContext,
-};
+pub use servo::{InputMethodType, MediaSessionPlaybackState, WindowRenderingContext};
 
 use crate::egl::android::resources::ResourceReaderInstance;
 #[cfg(feature = "webxr")]
@@ -105,23 +102,27 @@ pub fn init(
     let servo = servo_builder.build();
 
     // Initialize WebDriver server if port is specified
-    let webdriver_receiver = servoshell_preferences.webdriver_port.map(|port| {
-        let (embedder_sender, embedder_receiver) = unbounded();
-        let (webdriver_response_sender, webdriver_response_receiver) = ipc::channel().unwrap();
+    let (webdriver_receiver, webdriver_event_handled_sender) = servoshell_preferences
+        .webdriver_port
+        .map(|port| {
+            let (embedder_sender, embedder_receiver) = unbounded();
+            let (webdriver_event_handled_sender, webdriver_event_handled_receiver) =
+                ipc::channel().unwrap();
 
-        // Set the WebDriver response sender to constellation
-        servo
-            .constellation_sender()
-            .send(EmbedderToConstellationMessage::SetWebDriverResponseSender(
-                webdriver_response_sender,
-            ))
-            .expect("Failed to set WebDriver response sender in constellation");
+            webdriver_server::start_server(
+                port,
+                embedder_sender,
+                waker,
+                webdriver_event_handled_receiver,
+            );
 
-        webdriver_server::start_server(port, embedder_sender, waker, webdriver_response_receiver);
-
-        log::info!("WebDriver server started on port {}", port);
-        embedder_receiver
-    });
+            log::info!("WebDriver server started on port {}", port);
+            (
+                Some(embedder_receiver),
+                Some(webdriver_event_handled_sender),
+            )
+        })
+        .unwrap_or((None, None));
 
     APP.with(|app| {
         let app_state = RunningAppState::new(
@@ -132,6 +133,7 @@ pub fn init(
             window_callbacks,
             servoshell_preferences,
             webdriver_receiver,
+            webdriver_event_handled_sender,
         );
         *app.borrow_mut() = Some(app_state);
     });

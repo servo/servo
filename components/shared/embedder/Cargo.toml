@@ -18,6 +18,7 @@ baked-default-resources = []
 
 [dependencies]
 base = { workspace = true }
+bitflags = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
 euclid = { workspace = true }

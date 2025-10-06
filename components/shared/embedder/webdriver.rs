@@ -27,7 +27,7 @@ use webrender_api::units::DevicePixel;
 use crate::{JSValue, MouseButton, MouseButtonAction, ScreenshotCaptureError, TraversalId};
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
-pub struct WebDriverMessageId(pub usize);
+pub struct WebDriverInputEventId(pub usize);
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum WebDriverUserPrompt {
@@ -101,7 +101,7 @@ pub enum WebDriverCommandMsg {
         WebViewId,
         KeyboardEvent,
         // Should never be None.
-        Option<WebDriverMessageId>,
+        Option<WebDriverInputEventId>,
     ),
     /// Act as if the mouse was clicked in the browsing context with the given ID.
     MouseButtonAction(
@@ -111,7 +111,7 @@ pub enum WebDriverCommandMsg {
         f32,
         f32,
         // Should never be None.
-        Option<WebDriverMessageId>,
+        Option<WebDriverInputEventId>,
     ),
     /// Act as if the mouse was moved in the browsing context with the given ID.
     MouseMoveAction(
@@ -120,7 +120,7 @@ pub enum WebDriverCommandMsg {
         f32,
         // None if it's not the last `perform_pointer_move` since we only
         // expect one response from constellation for each tick actions.
-        Option<WebDriverMessageId>,
+        Option<WebDriverInputEventId>,
     ),
     /// Act as if the mouse wheel is scrolled in the browsing context given the given ID.
     WheelScrollAction(
@@ -131,7 +131,7 @@ pub enum WebDriverCommandMsg {
         f64,
         // None if it's not the last `perform_wheel_scroll` since we only
         // expect one response from constellation for each tick actions.
-        Option<WebDriverMessageId>,
+        Option<WebDriverInputEventId>,
     ),
     /// Set the outer window rectangle.
     SetWindowRect(
@@ -275,7 +275,7 @@ pub enum WebDriverFrameId {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct WebDriverCommandResponse {
-    pub id: WebDriverMessageId,
+    pub id: WebDriverInputEventId,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

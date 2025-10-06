@@ -71,7 +71,7 @@ impl ConstellationWebView {
 
         // If there's no hit test, send the event to either the hovered or focused browsing context,
         // depending on the event type.
-        let browsing_context_id = if matches!(event.event, InputEvent::MouseLeftViewport(_)) {
+        let browsing_context_id = if matches!(event.event.event, InputEvent::MouseLeftViewport(_)) {
             self.hovered_browsing_context_id
                 .unwrap_or(self.focused_browsing_context_id)
         } else {
@@ -117,7 +117,7 @@ impl ConstellationWebView {
                 };
 
                 let mut synthetic_mouse_leave_event = event.clone();
-                synthetic_mouse_leave_event.event =
+                synthetic_mouse_leave_event.event.event =
                     InputEvent::MouseLeftViewport(MouseLeftViewportEvent {
                         focus_moving_to_another_iframe,
                     });
@@ -130,12 +130,12 @@ impl ConstellationWebView {
                     ));
             };
 
-        if let InputEvent::MouseLeftViewport(_) = &event.event {
+        if let InputEvent::MouseLeftViewport(_) = &event.event.event {
             update_hovered_browsing_context(None, false);
             return;
         }
 
-        if let InputEvent::MouseMove(_) = &event.event {
+        if let InputEvent::MouseMove(_) = &event.event.event {
             update_hovered_browsing_context(Some(pipeline.browsing_context_id), true);
             self.last_mouse_move_point = event
                 .hit_test_result

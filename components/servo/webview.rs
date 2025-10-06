@@ -13,8 +13,8 @@ use compositing_traits::WebViewTrait;
 use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
-    Cursor, Image, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus,
-    MediaSessionActionType, ScreenGeometry, ScreenshotCaptureError, Theme, TraversalId,
+    Cursor, Image, InputEvent, InputEventAndId, InputEventId, JSValue, JavaScriptEvaluationError,
+    LoadStatus, MediaSessionActionType, ScreenGeometry, ScreenshotCaptureError, Theme, TraversalId,
     ViewportDetails,
 };
 use euclid::{Point2D, Scale, Size2D};
@@ -477,23 +477,27 @@ impl WebView {
             .notify_scroll_event(self.id(), location, point);
     }
 
-    pub fn notify_input_event(&self, event: InputEvent) {
+    pub fn notify_input_event(&self, event: InputEvent) -> InputEventId {
+        let event: InputEventAndId = event.into();
+        let event_id = event.id;
+
         // Events with a `point` first go to the compositor for hit testing.
-        if event.point().is_some() {
+        if event.event.point().is_some() {
             self.inner()
                 .compositor
                 .borrow_mut()
                 .notify_input_event(self.id(), event);
-            return;
+        } else {
+            self.inner().constellation_proxy.send(
+                EmbedderToConstellationMessage::ForwardInputEvent(
+                    self.id(),
+                    event,
+                    None, /* hit_test */
+                ),
+            );
         }
 
-        self.inner()
-            .constellation_proxy
-            .send(EmbedderToConstellationMessage::ForwardInputEvent(
-                self.id(),
-                event,
-                None, /* hit_test */
-            ))
+        event_id
     }
 
     pub fn notify_media_session_action_event(&self, event: MediaSessionActionType) {

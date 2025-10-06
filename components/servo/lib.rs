@@ -764,11 +764,11 @@ impl Servo {
                     .borrow_mut()
                     .finish_evaluation(evaluation_id, result);
             },
-            EmbedderMsg::Keyboard(webview_id, keyboard_event) => {
+            EmbedderMsg::InputEventHandled(webview_id, input_event_id, result) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview
                         .delegate()
-                        .notify_keyboard_event(webview, keyboard_event);
+                        .notify_input_event_handled(webview, input_event_id, result);
                 }
             },
             EmbedderMsg::ClearClipboard(webview_id) => {

@@ -2370,6 +2370,7 @@ name = "embedder_traits"
 version = "0.0.1"
 dependencies = [
  "base",
+ "bitflags 2.9.4",
  "cookie 0.18.1",
  "crossbeam-channel",
  "euclid",

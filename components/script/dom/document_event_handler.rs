@@ -13,10 +13,10 @@ use base::generic_channel;
 use constellation_traits::{KeyboardScroll, ScriptToConstellationMessage};
 use embedder_traits::{
     Cursor, EditingActionEvent, EmbedderMsg, GamepadEvent as EmbedderGamepadEvent,
-    GamepadSupportedHapticEffects, GamepadUpdateType, ImeEvent, InputEvent,
-    KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction, MouseButtonEvent,
-    MouseLeftViewportEvent, ScrollEvent, TouchEvent as EmbedderTouchEvent, TouchEventType, TouchId,
-    UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
+    GamepadSupportedHapticEffects, GamepadUpdateType, ImeEvent, InputEvent, InputEventAndId,
+    InputEventResult, KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction,
+    MouseButtonEvent, MouseLeftViewportEvent, ScrollEvent, TouchEvent as EmbedderTouchEvent,
+    TouchEventType, TouchId, UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
 };
 use euclid::{Point2D, Vector2D};
 use ipc_channel::ipc;
@@ -46,7 +46,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::clipboardevent::ClipboardEventType;
 use crate::dom::document::{FireMouseEventType, FocusInitiator, TouchEventResult};
-use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventDefault};
+use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventResult};
 use crate::dom::gamepad::gamepad::{Gamepad, contains_user_gesture};
 use crate::dom::gamepad::gamepadevent::GamepadEventType;
 use crate::dom::inputevent::HitTestResult;
@@ -119,7 +119,7 @@ impl DocumentEventHandler {
     /// Note a pending compositor event, to be processed at the next `update_the_rendering` task.
     pub(crate) fn note_pending_input_event(&self, event: ConstellationInputEvent) {
         let mut pending_compositor_events = self.pending_input_events.borrow_mut();
-        if matches!(event.event, InputEvent::MouseMove(..)) {
+        if matches!(event.event.event, InputEvent::MouseMove(..)) {
             // First try to replace any existing mouse move event.
             if let Some(mouse_move_event) = self
                 .mouse_move_event_index
@@ -168,49 +168,60 @@ impl DocumentEventHandler {
             self.active_keyboard_modifiers
                 .set(event.active_keyboard_modifiers);
 
-            match event.event.clone() {
+            // TODO: For some of these we still aren't properly calculating whether or not
+            // the event was handled or if `preventDefault()` was called on it. Each of
+            // these cases needs to be examined and some of them either fire more than one
+            // event or fire events later. We have to make a good decision about what to
+            // return to the embedder when that happens.
+            let result = match event.event.event.clone() {
                 InputEvent::MouseButton(mouse_button_event) => {
                     self.handle_native_mouse_button_event(mouse_button_event, &event, can_gc);
+                    InputEventResult::default()
                 },
                 InputEvent::MouseMove(_) => {
                     self.handle_native_mouse_move_event(&event, can_gc);
+                    InputEventResult::default()
                 },
                 InputEvent::MouseLeftViewport(mouse_leave_event) => {
                     self.handle_mouse_left_viewport_event(&event, &mouse_leave_event, can_gc);
+                    InputEventResult::default()
                 },
                 InputEvent::Touch(touch_event) => {
                     self.handle_touch_event(touch_event, &event, can_gc);
+                    InputEventResult::default()
                 },
                 InputEvent::Wheel(wheel_event) => {
-                    self.handle_wheel_event(wheel_event, &event, can_gc);
+                    self.handle_wheel_event(wheel_event, &event, can_gc)
                 },
                 InputEvent::Keyboard(keyboard_event) => {
-                    self.handle_keyboard_event(keyboard_event, can_gc);
+                    self.handle_keyboard_event(keyboard_event, can_gc)
                 },
-                InputEvent::Ime(ime_event) => {
-                    self.handle_ime_event(ime_event, can_gc);
-                },
+                InputEvent::Ime(ime_event) => self.handle_ime_event(ime_event, can_gc),
                 InputEvent::Gamepad(gamepad_event) => {
                     self.handle_gamepad_event(gamepad_event);
+                    InputEventResult::default()
                 },
                 InputEvent::EditingAction(editing_action_event) => {
-                    self.handle_editing_action(editing_action_event, can_gc);
+                    self.handle_editing_action(editing_action_event, can_gc)
                 },
                 InputEvent::Scroll(scroll_event) => {
                     self.handle_embedder_scroll_event(scroll_event);
+                    InputEventResult::default()
                 },
-            }
+            };
 
-            self.notify_webdriver_input_event_completed(event.event);
+            self.notify_embedder_that_event_was_handled(event.event, result);
         }
     }
 
-    fn notify_webdriver_input_event_completed(&self, event: InputEvent) {
-        let Some(id) = event.webdriver_message_id() else {
-            return;
-        };
-
-        // Webdriver should be notified once all current dom events have been processed.
+    fn notify_embedder_that_event_was_handled(
+        &self,
+        event: InputEventAndId,
+        result: InputEventResult,
+    ) {
+        // Wait to to notify the embedder that the vent was handled until all pending DOM
+        // event processing is finished.
+        let id = event.id;
         let trusted_window = Trusted::new(&*self.window);
         self.window
             .as_global_scope()
@@ -218,7 +229,8 @@ impl DocumentEventHandler {
             .dom_manipulation_task_source()
             .queue(task!(notify_webdriver_input_event_completed: move || {
                 let window = trusted_window.root();
-                window.send_to_constellation(ScriptToConstellationMessage::WebDriverInputComplete(id));
+                window.send_to_embedder(
+                    EmbedderMsg::InputEventHandled(window.webview_id(), id, result));
             }));
     }
 
@@ -977,7 +989,11 @@ impl DocumentEventHandler {
     }
 
     /// The entry point for all key processing for web content
-    fn handle_keyboard_event(&self, keyboard_event: EmbedderKeyboardEvent, can_gc: CanGc) {
+    fn handle_keyboard_event(
+        &self,
+        keyboard_event: EmbedderKeyboardEvent,
+        can_gc: CanGc,
+    ) -> InputEventResult {
         let document = self.window.Document();
         let focused = document.get_focused_element();
         let body = document.GetBody();
@@ -1005,9 +1021,14 @@ impl DocumentEventHandler {
             keyboard_event.event.key.legacy_keycode(),
             can_gc,
         );
+
         let event = keyevent.upcast::<Event>();
         event.fire(target, can_gc);
-        let mut cancel_state = event.get_cancel_state();
+
+        let mut result = event.result();
+        if result.contains(EventResult::Canceled) {
+            return result.into();
+        }
 
         // https://w3c.github.io/uievents/#keys-cancelable-keys
         // it MUST prevent the respective beforeinput and input
@@ -1020,11 +1041,10 @@ impl DocumentEventHandler {
         );
         if keyboard_event.event.state == KeyState::Down &&
             is_character_value_key &&
-            !keyboard_event.event.is_composing &&
-            cancel_state != EventDefault::Prevented
+            !keyboard_event.event.is_composing
         {
             // https://w3c.github.io/uievents/#keypress-event-order
-            let event = KeyboardEvent::new(
+            let keypress_event = KeyboardEvent::new(
                 &self.window,
                 DOMString::from("keypress"),
                 true,
@@ -1041,35 +1061,34 @@ impl DocumentEventHandler {
                 0,
                 can_gc,
             );
-            let ev = event.upcast::<Event>();
-            ev.fire(target, can_gc);
-            cancel_state = ev.get_cancel_state();
+            let event = keypress_event.upcast::<Event>();
+            event.fire(target, can_gc);
+            result = event.result();
         }
 
-        if cancel_state == EventDefault::Allowed {
-            self.window.send_to_embedder(EmbedderMsg::Keyboard(
-                self.window.webview_id(),
-                keyboard_event.clone(),
-            ));
+        if result.contains(EventResult::Canceled) {
+            return result.into();
+        }
 
-            // This behavior is unspecced
-            // We are supposed to dispatch synthetic click activation for Space and/or Return,
-            // however *when* we do it is up to us.
-            // Here, we're dispatching it after the key event so the script has a chance to cancel it
-            // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
-            if (keyboard_event.event.key == Key::Named(NamedKey::Enter) ||
-                keyboard_event.event.code == Code::Space) &&
-                keyboard_event.event.state == KeyState::Up
-            {
-                if let Some(elem) = target.downcast::<Element>() {
-                    elem.upcast::<Node>()
-                        .fire_synthetic_pointer_event_not_trusted(DOMString::from("click"), can_gc);
-                }
+        // This behavior is unspecced
+        // We are supposed to dispatch synthetic click activation for Space and/or Return,
+        // however *when* we do it is up to us.
+        // Here, we're dispatching it after the key event so the script has a chance to cancel it
+        // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
+        if (keyboard_event.event.key == Key::Named(NamedKey::Enter) ||
+            keyboard_event.event.code == Code::Space) &&
+            keyboard_event.event.state == KeyState::Up
+        {
+            if let Some(elem) = target.downcast::<Element>() {
+                elem.upcast::<Node>()
+                    .fire_synthetic_pointer_event_not_trusted(DOMString::from("click"), can_gc);
             }
         }
+
+        result.into()
     }
 
-    fn handle_ime_event(&self, event: ImeEvent, can_gc: CanGc) {
+    fn handle_ime_event(&self, event: ImeEvent, can_gc: CanGc) -> InputEventResult {
         let document = self.window.Document();
         let composition_event = match event {
             ImeEvent::Dismissed => {
@@ -1078,7 +1097,7 @@ impl DocumentEventHandler {
                     FocusInitiator::Local,
                     can_gc,
                 );
-                return;
+                return Default::default();
             },
             ImeEvent::Composition(composition_event) => composition_event,
         };
@@ -1092,11 +1111,11 @@ impl DocumentEventHandler {
             elem.upcast()
         } else {
             // Event is only dispatched if there is a focused element.
-            return;
+            return Default::default();
         };
 
         let cancelable = composition_event.state == keyboard_types::CompositionState::Start;
-        CompositionEvent::new(
+        let event = CompositionEvent::new(
             &self.window,
             DOMString::from(composition_event.state.event_type()),
             true,
@@ -1105,9 +1124,11 @@ impl DocumentEventHandler {
             0,
             DOMString::from(composition_event.data),
             can_gc,
-        )
-        .upcast::<Event>()
-        .fire(target, can_gc);
+        );
+
+        let event = event.upcast::<Event>();
+        event.fire(target, can_gc);
+        event.result().into()
     }
 
     fn handle_wheel_event(
@@ -1115,10 +1136,10 @@ impl DocumentEventHandler {
         event: EmbedderWheelEvent,
         input_event: &ConstellationInputEvent,
         can_gc: CanGc,
-    ) {
+    ) -> InputEventResult {
         // Ignore all incoming events without a hit test.
         let Some(hit_test_result) = self.window.hit_test_from_input_event(input_event) else {
-            return;
+            return Default::default();
         };
 
         let Some(el) = hit_test_result
@@ -1127,7 +1148,7 @@ impl DocumentEventHandler {
             .filter_map(DomRoot::downcast::<Element>)
             .next()
         else {
-            return;
+            return Default::default();
         };
 
         let node = el.upcast::<Node>();
@@ -1170,9 +1191,9 @@ impl DocumentEventHandler {
 
         let dom_event = dom_event.upcast::<Event>();
         dom_event.set_trusted(true);
+        dom_event.fire(node.upcast(), can_gc);
 
-        let target = node.upcast();
-        dom_event.fire(target, can_gc);
+        dom_event.result().into()
     }
 
     fn handle_gamepad_event(&self, gamepad_event: EmbedderGamepadEvent) {
@@ -1298,7 +1319,7 @@ impl DocumentEventHandler {
     }
 
     /// <https://www.w3.org/TR/clipboard-apis/#clipboard-actions>
-    fn handle_editing_action(&self, action: EditingActionEvent, can_gc: CanGc) -> bool {
+    fn handle_editing_action(&self, action: EditingActionEvent, can_gc: CanGc) -> InputEventResult {
         let clipboard_event_type = match action {
             EditingActionEvent::Copy => ClipboardEventType::Copy,
             EditingActionEvent::Cut => ClipboardEventType::Cut,
@@ -1315,11 +1336,11 @@ impl DocumentEventHandler {
 
         // Step 1 If the script-triggered flag is set and the script-may-access-clipboard flag is unset
         if script_triggered && !script_may_access_clipboard {
-            return false;
+            return InputEventResult::empty();
         }
 
         // Step 2 Fire a clipboard event
-        let event = ClipboardEvent::new(
+        let clipboard_event = ClipboardEvent::new(
             &self.window,
             None,
             DOMString::from(clipboard_event_type.as_str()),
@@ -1328,24 +1349,22 @@ impl DocumentEventHandler {
             None,
             can_gc,
         );
-        self.fire_clipboard_event(&event, clipboard_event_type, can_gc);
+        self.fire_clipboard_event(&clipboard_event, clipboard_event_type, can_gc);
 
         // Step 3 If a script doesn't call preventDefault()
         // the event will be handled inside target's VirtualMethods::handle_event
-
-        let e = event.upcast::<Event>();
-
-        if !e.IsTrusted() {
-            return false;
+        let event = clipboard_event.upcast::<Event>();
+        if !event.IsTrusted() {
+            return event.result().into();
         }
 
         // Step 4 If the event was canceled, then
-        if e.DefaultPrevented() {
-            match &*e.Type().str() {
+        if event.DefaultPrevented() {
+            match &*event.Type().str() {
                 "copy" => {
                     // Step 4.1 Call the write content to the clipboard algorithm,
                     // passing on the DataTransferItemList items, a clear-was-called flag and a types-to-clear list.
-                    if let Some(clipboard_data) = event.get_clipboard_data() {
+                    if let Some(clipboard_data) = clipboard_event.get_clipboard_data() {
                         let drag_data_store =
                             clipboard_data.data_store().expect("This shouldn't fail");
                         self.write_content_to_the_clipboard(&drag_data_store);
@@ -1354,7 +1373,7 @@ impl DocumentEventHandler {
                 "cut" => {
                     // Step 4.1 Call the write content to the clipboard algorithm,
                     // passing on the DataTransferItemList items, a clear-was-called flag and a types-to-clear list.
-                    if let Some(clipboard_data) = event.get_clipboard_data() {
+                    if let Some(clipboard_data) = clipboard_event.get_clipboard_data() {
                         let drag_data_store =
                             clipboard_data.data_store().expect("This shouldn't fail");
                         self.write_content_to_the_clipboard(&drag_data_store);
@@ -1363,12 +1382,17 @@ impl DocumentEventHandler {
                     // Step 4.2 Fire a clipboard event named clipboardchange
                     self.fire_clipboardchange_event(can_gc);
                 },
-                "paste" => return false,
+                // Step 4.1 Return false.
+                // Note: This function deviates from the specification a bit by returning
+                // the `InputEventResult` below.
+                "paste" => (),
                 _ => (),
             }
         }
-        // Step 5
-        true
+
+        // Step 5: Return true from the action.
+        // In this case we are returning the `InputEventResult` instead of true or false.
+        event.result().into()
     }
 
     /// <https://www.w3.org/TR/clipboard-apis/#fire-a-clipboard-event>
