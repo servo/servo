@@ -9,7 +9,9 @@ use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D};
 use fonts_traits::{FontIdentifier, FontTemplateDescriptor, LocalFontIdentifier};
 use freetype_sys::{
-    ft_sfnt_os2, FT_F26Dot6, FT_Get_Char_Index, FT_Get_Kerning, FT_Get_Sfnt_Table, FT_GlyphSlot, FT_Load_Glyph, FT_SizeRec, FT_Size_Metrics, FT_UInt, FT_ULong, FT_Vector, FT_HAS_MULTIPLE_MASTERS, FT_KERNING_DEFAULT, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, TT_OS2
+    FT_F26Dot6, FT_Get_Char_Index, FT_Get_Kerning, FT_Get_Sfnt_Table, FT_GlyphSlot,
+    FT_HAS_MULTIPLE_MASTERS, FT_KERNING_DEFAULT, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING,
+    FT_Load_Glyph, FT_Size_Metrics, FT_SizeRec, FT_UInt, FT_ULong, FT_Vector, TT_OS2, ft_sfnt_os2,
 };
 use log::debug;
 use memmap2::Mmap;
@@ -135,7 +137,7 @@ impl PlatformFontMethods for PlatformFont {
             if os2_table.is_null() {
                 false
             } else {
-                (*os2_table).usWeightClass >= BOLD_THRESHOLD 
+                (*os2_table).usWeightClass >= BOLD_THRESHOLD
             }
         };
 
@@ -145,7 +147,7 @@ impl PlatformFontMethods for PlatformFont {
         // <https://www.w3.org/TR/css-fonts-4/#font-synthesis-intro>
         let is_variable_font = FT_HAS_MULTIPLE_MASTERS(face.as_ptr());
 
-        let synthetic_bold = if face_is_bold || is_variable_font  {
+        let synthetic_bold = if face_is_bold || is_variable_font {
             false
         } else {
             synthetic_bold
