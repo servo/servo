@@ -5,19 +5,31 @@
 use serde_json::Value;
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 
+/// Initial script timeout from
+/// <https://w3c.github.io/webdriver/#dfn-timeouts-configuration>.
+pub(crate) const DEFAULT_SCRIPT_TIMEOUT: u64 = 30_000;
+
+/// Initial page load timeout from
+/// <https://w3c.github.io/webdriver/#dfn-timeouts-configuration>.
+pub(crate) const DEFAULT_PAGE_LOAD_TIMEOUT: u64 = 300_000;
+
+/// Initial initial wait timeout from
+/// <https://w3c.github.io/webdriver/#dfn-timeouts-configuration>.
+pub(crate) const DEFAULT_IMPLICIT_WAIT: u64 = 0;
+
 pub(crate) struct TimeoutsConfiguration {
     pub script: Option<u64>,
-    pub page_load: u64,
-    pub implicit_wait: u64,
+    pub page_load: Option<u64>,
+    pub implicit_wait: Option<u64>,
     pub sleep_interval: u64,
 }
 
 impl Default for TimeoutsConfiguration {
     fn default() -> Self {
         TimeoutsConfiguration {
-            script: Some(30_000),
-            page_load: 300_000,
-            implicit_wait: 0,
+            script: Some(DEFAULT_SCRIPT_TIMEOUT),
+            page_load: Some(DEFAULT_PAGE_LOAD_TIMEOUT),
+            implicit_wait: Some(DEFAULT_IMPLICIT_WAIT),
             sleep_interval: 10,
         }
     }
@@ -29,43 +41,32 @@ pub(crate) fn deserialize_as_timeouts_configuration(
 ) -> WebDriverResult<TimeoutsConfiguration> {
     if let Value::Object(map) = timeouts {
         let mut config = TimeoutsConfiguration::default();
+
+        // Step 3: For each key → value in timeouts:
         for (key, value) in map {
-            match key.as_str() {
-                "implicit" => {
-                    config.implicit_wait = value.as_f64().ok_or_else(|| {
-                        WebDriverError::new(
-                            ErrorStatus::InvalidArgument,
-                            "Invalid implicit timeout",
-                        )
-                    })? as u64;
-                },
-                "pageLoad" => {
-                    config.page_load = value.as_f64().ok_or_else(|| {
-                        WebDriverError::new(
-                            ErrorStatus::InvalidArgument,
-                            "Invalid page load timeout",
-                        )
-                    })? as u64;
-                },
-                "script" => {
-                    config.script = match value {
-                        Value::Null => None,
-                        _ => Some(value.as_f64().ok_or_else(|| {
-                            WebDriverError::new(
-                                ErrorStatus::InvalidArgument,
-                                "Invalid script timeout",
-                            )
-                        })? as u64),
-                    };
-                },
-                _ => {
-                    return Err(WebDriverError::new(
-                        ErrorStatus::UnknownCommand,
-                        "Unknown timeout key",
-                    ));
-                },
-            }
+            // Step 3.1: If «"script", "pageLoad", "implicit"» does not contain key, then continue.
+            let target = match key.as_str() {
+                "implicit" => &mut config.implicit_wait,
+                "pageLoad" => &mut config.page_load,
+                "script" => &mut config.script,
+                _ => continue,
+            };
+
+            // Step 3.2: If value is neither null nor a number greater than or equal to 0
+            // and less than or equal to the maximum safe integer return error with error
+            // code invalid argument.
+            // Step 3.3: Run the substeps matching key:
+            //  - "script": Set configuration's script timeout to value.
+            //  - "pageLoad": Set configuration's page load timeout to value.
+            //  - "implicit": Set configuration's implicit wait timeout to value.
+            *target = match value {
+                Value::Null => None,
+                _ => Some(value.as_f64().ok_or_else(|| {
+                    WebDriverError::new(ErrorStatus::InvalidArgument, "Invalid value for {key}")
+                })? as u64),
+            };
         }
+
         Ok(config)
     } else {
         Err(WebDriverError::new(
