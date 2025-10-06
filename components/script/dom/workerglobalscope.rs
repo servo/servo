@@ -116,7 +116,6 @@ pub(crate) fn prepare_workerscope_init(
 
 pub(crate) struct ScriptFetchContext {
     scope: Trusted<WorkerGlobalScope>,
-    pipeline_id: PipelineId,
     resource_timing: ResourceFetchTiming,
     response: Option<Metadata>,
     body_bytes: Vec<u8>,
@@ -129,7 +128,6 @@ pub(crate) struct ScriptFetchContext {
 impl ScriptFetchContext {
     pub(crate) fn new(
         scope: Trusted<WorkerGlobalScope>,
-        pipeline_id: PipelineId,
         url: ServoUrl,
         worker: TrustedWorkerAddress,
         policy_container: PolicyContainer,
@@ -137,7 +135,6 @@ impl ScriptFetchContext {
     ) -> ScriptFetchContext {
         ScriptFetchContext {
             scope,
-            pipeline_id,
             response: None,
             body_bytes: Vec::new(),
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
@@ -215,7 +212,7 @@ impl FetchResponseListener for ScriptFetchContext {
         // Step 2 If any of the following are true: bodyBytes is null or failure; or response's status is not an ok status,
         if !metadata.status.is_success() {
             // then run onComplete given null, and abort these steps.
-            scope.on_complete(None, self.worker.clone(), self.pipeline_id, CanGc::note());
+            scope.on_complete(None, self.worker.clone(), CanGc::note());
             return;
         }
 
@@ -230,7 +227,7 @@ impl FetchResponseListener for ScriptFetchContext {
 
         if is_http_scheme && not_a_javascript_mime_type {
             // then run onComplete given null, and abort these steps.
-            scope.on_complete(None, self.worker.clone(), self.pipeline_id, CanGc::note());
+            scope.on_complete(None, self.worker.clone(), CanGc::note());
             return;
         }
 
@@ -241,12 +238,7 @@ impl FetchResponseListener for ScriptFetchContext {
         // sourceText, settingsObject, response's URL, and the default script fetch options.
 
         // Step 6 Run onComplete given script.
-        scope.on_complete(
-            Some(source),
-            self.worker.clone(),
-            self.pipeline_id,
-            CanGc::note(),
-        );
+        scope.on_complete(Some(source), self.worker.clone(), CanGc::note());
     }
 
     fn resource_timing(&self) -> &ResourceFetchTiming {
@@ -269,7 +261,7 @@ impl FetchResponseListener for ScriptFetchContext {
         let scope = self.scope.root();
 
         if let Some(worker_scope) = scope.downcast::<DedicatedWorkerGlobalScope>() {
-            worker_scope.report_csp_violations(self.pipeline_id, violations);
+            worker_scope.report_csp_violations(violations);
         }
     }
 }
@@ -540,7 +532,6 @@ impl WorkerGlobalScope {
         &self,
         script: Option<Cow<'_, str>>,
         worker: TrustedWorkerAddress,
-        pipeline_id: PipelineId,
         can_gc: CanGc,
     ) {
         let dedicated_worker_scope = self
@@ -550,7 +541,7 @@ impl WorkerGlobalScope {
         let Some(script) = script else {
             // Step 1 Queue a global task on the DOM manipulation task source given
             // worker's relevant global object to fire an event named error at worker.
-            dedicated_worker_scope.forward_simple_error_at_worker(pipeline_id, worker.clone());
+            dedicated_worker_scope.forward_simple_error_at_worker(worker.clone());
 
             // Step 2 TODO Run the environment discarding steps for inside settings.
 
