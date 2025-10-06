@@ -280,7 +280,6 @@ impl Font {
             let is_bold = descriptor.weight >= FontWeight::BOLD_THRESHOLD;
             let allows_synthetic_bold = matches!(descriptor.synthesis_weight, FontSynthesis::Auto);
 
-            // TODO: how to handle a font that is already bold?
             is_bold && allows_synthetic_bold
         };
 
