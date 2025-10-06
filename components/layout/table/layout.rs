@@ -1100,7 +1100,7 @@ impl<'a> TableLayout<'a> {
             let border_spacing_spanned =
                 self.table.border_spacing().inline * (cell.colspan - 1) as i32;
 
-            let mut total_cell_width: Au = (coordinate.x..coordinate.x + cell.colspan)
+            let mut total_cell_width = (coordinate.x..coordinate.x + cell.colspan)
                 .map(|column_index| self.distributed_column_widths[column_index])
                 .sum::<Au>() -
                 inline_border_padding_sum +
@@ -1308,7 +1308,7 @@ impl<'a> TableLayout<'a> {
 
         for rowspan_to_distribute in cells_to_distribute {
             let rows_spanned = rowspan_to_distribute.range();
-            let current_rows_size: Au = rows_spanned.clone().map(|index| row_sizes[index]).sum();
+            let current_rows_size = rows_spanned.clone().map(|index| row_sizes[index]).sum();
             let border_spacing_spanned =
                 self.table.border_spacing().block * (rows_spanned.len() - 1) as i32;
             let excess_size = (rowspan_to_distribute.measure.content_sizes.min_content -

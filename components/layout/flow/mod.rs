@@ -1066,7 +1066,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         CollapsibleWithParentStartMargin(start_margin_can_collapse_with_children),
         ignore_block_margins_for_stretch,
     );
-    let mut content_block_size: Au = flow_layout.content_block_size;
+    let mut content_block_size = flow_layout.content_block_size;
 
     // Update margins.
     let mut block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
