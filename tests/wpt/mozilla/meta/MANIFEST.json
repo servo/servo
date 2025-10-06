@@ -2473,6 +2473,19 @@
       {}
      ]
     ],
+    "font_synthesis_weight_static_bold.html": [
+     "ebb4f9b0df89055b7fff3c3f368d8f5bbc512542",
+     [
+      "css/font_synthesis_weight_static_bold.html",
+      [
+       [
+        "/_mozilla/css/font_synthesis_weight_static_bold_ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
     "height_compute_reset.html": [
      "8424600bef3d1c5c39adc9529f0d81864b333556",
      [
@@ -8950,6 +8963,10 @@
     ],
     "font_style_ref.html": [
      "023dc14f501b07233f50928b03f982cdb1755c09",
+     []
+    ],
+    "font_synthesis_weight_static_bold_ref.html": [
+     "996fbbaf19a56fb69e231ffdb1e2635e5d4ae116",
      []
     ],
     "fonts": {
