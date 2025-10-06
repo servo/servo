@@ -548,7 +548,7 @@ impl HTMLIFrameElement {
 
     /// Parse the `sandbox` attribute value given the [`Attr`]. This sets the `sandboxing_flag_set`
     /// property or clears it is the value isn't specified. Notably, an unspecified sandboxing
-    /// attribute (no sandboxing) is differetn from an empty one (full sandboxing).
+    /// attribute (no sandboxing) is different from an empty one (full sandboxing).
     fn parse_sandbox_attribute(&self) {
         let attribute = self
             .upcast::<Element>()
