@@ -1349,7 +1349,7 @@ impl Handler {
         let (implicit_wait, sleep_interval) = {
             let timeouts = self.session()?.session_timeouts();
             (
-                Duration::from_millis(timeouts.implicit_wait),
+                Duration::from_millis(timeouts.implicit_wait.unwrap_or(0)),
                 Duration::from_millis(timeouts.sleep_interval),
             )
         };
@@ -2696,15 +2696,18 @@ where
 /// This function is like `wait_for_ipc_response`, but works on a channel that
 /// returns a `Result<T, ErrorStatus>`, mapping all errors into `WebDriverError`.
 fn wait_for_ipc_response_flatten<T>(
-    receiver: IpcReceiver<Result<T, ErrorStatus>>,) -> Result<T, WebDriverError>
+    receiver: IpcReceiver<Result<T, ErrorStatus>>,
+) -> Result<T, WebDriverError>
 where
-    T: for<'de> Deserialize<'de> + Serialize,{
-        match receiver.recv() {
+    T: for<'de> Deserialize<'de> + Serialize,
+{
+    match receiver.recv() {
         Ok(Ok(value)) => Ok(value),
         Ok(Err(error_status)) => Err(WebDriverError::new(error_status, "")),
         Err(_) => Err(WebDriverError::new(ErrorStatus::NoSuchWindow, "")),
     }
-    }
+}
+
 fn wait_for_script_ipc_response_with_timeout<T>(
     receiver: IpcReceiver<T>,
     timeout: Option<Duration>,
@@ -2712,7 +2715,6 @@ fn wait_for_script_ipc_response_with_timeout<T>(
 where
     T: for<'de> Deserialize<'de> + Serialize,
 {
-    
     let Some(timeout) = timeout else {
         return wait_for_ipc_response(receiver);
     };
