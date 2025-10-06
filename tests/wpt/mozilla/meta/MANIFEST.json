@@ -2474,9 +2474,9 @@
      ]
     ],
     "font_synthesis_weight_static_bold.html": [
-     "ebb4f9b0df89055b7fff3c3f368d8f5bbc512542",
+     "69840d9d9504a3a846d94c32e2c3204434b6244b",
      [
-      "css/font_synthesis_weight_static_bold.html",
+      null,
       [
        [
         "/_mozilla/css/font_synthesis_weight_static_bold_ref.html",
@@ -8966,7 +8966,7 @@
      []
     ],
     "font_synthesis_weight_static_bold_ref.html": [
-     "996fbbaf19a56fb69e231ffdb1e2635e5d4ae116",
+     "80bcd3a49c607024a14e0ec18e6bdcc0c2b7a119",
      []
     ],
     "fonts": {
