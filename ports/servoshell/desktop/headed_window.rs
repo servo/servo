@@ -55,6 +55,8 @@ use crate::desktop::keyutils::CMD_OR_CONTROL;
 use crate::desktop::window_trait::MIN_WINDOW_INNER_SIZE;
 use crate::prefs::ServoShellPreferences;
 
+pub(crate) const INITIAL_WINDOW_TITLE: &str = "Servo";
+
 pub struct Window {
     screen_size: Size2D<u32, DeviceIndependentPixel>,
     toolbar_height: Cell<Length<f32, DeviceIndependentPixel>>,
@@ -83,6 +85,10 @@ pub struct Window {
     // dropped first.
     // (https://github.com/servo/servo/issues/36711)
     winit_window: winit::window::Window,
+
+    /// The last title set on this window. We need to store this value here, as `winit::Window::title`
+    /// is not supported very many platforms.
+    last_title: RefCell<String>,
 }
 
 impl Window {
@@ -93,7 +99,7 @@ impl Window {
         let no_native_titlebar = servoshell_preferences.no_native_titlebar;
         let inner_size = servoshell_preferences.initial_window_size;
         let window_attr = winit::window::Window::default_attributes()
-            .with_title("Servo".to_string())
+            .with_title(INITIAL_WINDOW_TITLE.to_string())
             .with_decorations(!no_native_titlebar)
             .with_transparent(no_native_titlebar)
             .with_inner_size(LogicalSize::new(inner_size.width, inner_size.height))
@@ -180,6 +186,7 @@ impl Window {
             toolbar_height: Cell::new(Default::default()),
             window_rendering_context,
             rendering_context,
+            last_title: RefCell::new(String::from(INITIAL_WINDOW_TITLE)),
         }
     }
 
@@ -487,6 +494,17 @@ impl WindowPortsMethods for Window {
 
     fn set_title(&self, title: &str) {
         self.winit_window.set_title(title);
+    }
+
+    fn set_title_if_changed(&self, title: &str) -> bool {
+        let mut last = self.last_title.borrow_mut();
+        if *last == title {
+            return false;
+        }
+
+        self.winit_window.set_title(title);
+        *last = title.to_owned();
+        true
     }
 
     fn request_resize(&self, _: &WebView, new_outer_size: DeviceIntSize) -> Option<DeviceIntSize> {
