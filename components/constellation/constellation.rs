@@ -2962,7 +2962,7 @@ where
         };
 
         match event.action {
-            MouseButtonAction::Click | MouseButtonAction::Down => {
+            MouseButtonAction::Down => {
                 self.pressed_mouse_buttons |= button_as_bitmask;
             },
             MouseButtonAction::Up => {
@@ -3026,13 +3026,6 @@ where
         // modifiers and updates the event here to reflect the current state.
         let pressed_mouse_buttons = self.pressed_mouse_buttons;
         let active_keyboard_modifiers = self.active_keyboard_modifiers;
-
-        // TODO: Click should be handled internally in the `Document`.
-        if let InputEvent::MouseButton(event) = &event {
-            if event.action == MouseButtonAction::Click {
-                self.pressed_mouse_buttons = 0;
-            }
-        }
 
         let Some(webview) = self.webviews.get_mut(webview_id) else {
             warn!("Got input event for unknown WebViewId: {webview_id:?}");

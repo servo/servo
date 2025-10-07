@@ -50,11 +50,9 @@ use devtools_traits::{
 };
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    FocusSequenceNumber, InputEvent, JavaScriptEvaluationError, JavaScriptEvaluationId,
-    MediaSessionActionType, MouseButton, MouseButtonAction, MouseButtonEvent, Theme,
-    ViewportDetails, WebDriverScriptCommand,
+    FocusSequenceNumber, JavaScriptEvaluationError, JavaScriptEvaluationId, MediaSessionActionType,
+    Theme, ViewportDetails, WebDriverScriptCommand,
 };
-use euclid::Point2D;
 use euclid::default::Rect;
 use fonts::{FontContext, SystemFontServiceProxy};
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
@@ -98,7 +96,7 @@ use url::Position;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPUDevice, WebGPUMsg};
 use webrender_api::ExternalScrollId;
-use webrender_api::units::{DevicePixel, LayoutVector2D};
+use webrender_api::units::LayoutVector2D;
 
 use crate::document_collection::DocumentCollection;
 use crate::document_loader::DocumentLoader;
@@ -348,10 +346,6 @@ pub struct ScriptThread {
     /// A factory for making new layouts. This allows layout to depend on script.
     #[no_trace]
     layout_factory: Arc<dyn LayoutFactory>,
-
-    /// The screen coordinates where the primary mouse button was pressed.
-    #[no_trace]
-    relative_mouse_down_point: Cell<Point2D<f32, DevicePixel>>,
 
     /// The [`TimerId`] of a ScriptThread-scheduled "update the rendering" call, if any.
     /// The ScriptThread schedules calls to "update the rendering," but the renderer can
@@ -991,7 +985,6 @@ impl ScriptThread {
             gpu_id_hub,
             inherited_secure_context: state.inherited_secure_context,
             layout_factory,
-            relative_mouse_down_point: Cell::new(Point2D::zero()),
             scheduled_update_the_rendering: Default::default(),
             needs_rendering_update: Arc::new(AtomicBool::new(false)),
             debugger_global: debugger_global.as_traced(),
@@ -3423,61 +3416,6 @@ impl ScriptThread {
             warn!("Compositor event sent to closed pipeline {pipeline_id}.");
             return;
         };
-
-        // Also send a 'click' event with same hit-test result if this is release
-
-        // MAYBE? TODO: https://developer.mozilla.org/en-US/docs/Web/API/Element/click_event
-        // If the button is pressed on one element and the pointer is moved outside the element
-        // before the button is released, the event is fired on the most specific ancestor element
-        // that contained both elements.
-
-        // But spec doesn't specify this https://w3c.github.io/uievents/#event-type-click
-        // "The click event type MUST be dispatched on the topmost event target indicated by
-        // the pointer, when the user presses down and releases the primary pointer button"
-
-        // Servo-specific: Trigger if within 10px of the down point
-        if let InputEvent::MouseButton(mouse_button_event) = &event.event {
-            if let MouseButton::Left = mouse_button_event.button {
-                match mouse_button_event.action {
-                    MouseButtonAction::Up => {
-                        let pixel_dist =
-                            self.relative_mouse_down_point.get() - mouse_button_event.point;
-                        let pixel_dist =
-                            (pixel_dist.x * pixel_dist.x + pixel_dist.y * pixel_dist.y).sqrt();
-                        if pixel_dist < 10.0 * document.window().device_pixel_ratio().get() {
-                            // Pass webdriver_id to the newly generated click event
-                            document.event_handler().note_pending_input_event(
-                                ConstellationInputEvent {
-                                    hit_test_result: event.hit_test_result.clone(),
-                                    pressed_mouse_buttons: event.pressed_mouse_buttons,
-                                    active_keyboard_modifiers: event.active_keyboard_modifiers,
-                                    event: event.event.clone().with_webdriver_message_id(None),
-                                },
-                            );
-                            document.event_handler().note_pending_input_event(
-                                ConstellationInputEvent {
-                                    hit_test_result: event.hit_test_result,
-                                    pressed_mouse_buttons: event.pressed_mouse_buttons,
-                                    active_keyboard_modifiers: event.active_keyboard_modifiers,
-                                    event: InputEvent::MouseButton(MouseButtonEvent::new(
-                                        MouseButtonAction::Click,
-                                        mouse_button_event.button,
-                                        mouse_button_event.point,
-                                    ))
-                                    .with_webdriver_message_id(event.event.webdriver_message_id()),
-                                },
-                            );
-                            return;
-                        }
-                    },
-                    MouseButtonAction::Down => {
-                        self.relative_mouse_down_point.set(mouse_button_event.point)
-                    },
-                    MouseButtonAction::Click => {},
-                }
-            }
-        }
-
         document.event_handler().note_pending_input_event(event);
     }
 
