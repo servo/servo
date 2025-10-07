@@ -1619,13 +1619,6 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         }
     }
 
-    fn WebdriverTimeout(&self) {
-        let opt_chan = self.webdriver_script_chan.borrow_mut().take();
-        if let Some(chan) = opt_chan {
-            let _ = chan.send(Err(WebDriverJSError::Timeout));
-        }
-    }
-
     fn WebdriverElement(&self, id: DOMString) -> Option<DomRoot<Element>> {
         find_node_by_unique_id_in_document(&self.Document(), id.into()).and_then(Root::downcast)
     }
