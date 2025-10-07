@@ -32,7 +32,6 @@ static CACHE: CoreTextFontCache = CoreTextFontCache(OnceLock::new());
 /// for each cached font size.
 type CachedCTFont = HashMap<CoreTextFontCacheKey, PlatformFont>;
 
-// TODO: add synthetic_bold as part of the key?
 #[derive(Eq, Hash, PartialEq)]
 struct CoreTextFontCacheKey {
     size: Au,
