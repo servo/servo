@@ -128,11 +128,7 @@ impl PlatformFont {
         // See <https://www.w3.org/TR/css-fonts-4/#font-synthesis-intro>
         let is_variable_font = font_face.has_variations();
 
-        let synthetic_bold = if font_face_is_bold || is_variable_font {
-            false
-        } else {
-            synthetic_bold
-        };
+        let synthetic_bold = !font_face_is_bold && !is_variable_font && synthetic_bold;
 
         let simulations = match synthetic_bold {
             true => DWRITE_FONT_SIMULATIONS_BOLD,
