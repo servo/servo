@@ -234,7 +234,9 @@ impl App {
                 need_window_redraw,
             } => {
                 let updated = match (update, &mut self.minibrowser) {
-                    (true, Some(minibrowser)) => minibrowser.update_webview_data(state),
+                    (true, Some(minibrowser)) => {
+                        minibrowser.update_webview_data(state, window.clone())
+                    },
                     _ => false,
                 };
 

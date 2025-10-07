@@ -83,6 +83,8 @@ pub struct Window {
     // dropped first.
     // (https://github.com/servo/servo/issues/36711)
     winit_window: winit::window::Window,
+
+    last_title: RefCell<String>,
 }
 
 impl Window {
@@ -180,6 +182,7 @@ impl Window {
             toolbar_height: Cell::new(Default::default()),
             window_rendering_context,
             rendering_context,
+            last_title: RefCell::new(String::from("Servo")),
         }
     }
 
@@ -487,6 +490,17 @@ impl WindowPortsMethods for Window {
 
     fn set_title(&self, title: &str) {
         self.winit_window.set_title(title);
+    }
+
+    fn set_title_if_changed(&self, title: &str) -> bool {
+        let mut last = self.last_title.borrow_mut();
+        if last.as_str() == title {
+            return false;
+        }
+        self.winit_window.set_title(title);
+        last.clear();
+        last.push_str(title);
+        true
     }
 
     fn request_resize(&self, _: &WebView, new_outer_size: DeviceIntSize) -> Option<DeviceIntSize> {

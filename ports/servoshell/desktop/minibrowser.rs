@@ -547,14 +547,34 @@ impl Minibrowser {
 
     /// Updates all fields taken from the given [WebViewManager], such as the location field.
     /// Returns true iff the egui needs an update.
-    pub fn update_webview_data(&mut self, state: &RunningAppState) -> bool {
+    pub fn update_webview_data(
+        &mut self,
+        state: &RunningAppState,
+        window: Rc<dyn WindowPortsMethods>,
+    ) -> bool {
         // Note: We must use the "bitwise OR" (|) operator here instead of "logical OR" (||)
         //       because logical OR would short-circuit if any of the functions return true.
         //       We want to ensure that all functions are called. The "bitwise OR" operator
         //       does not short-circuit.
-        self.update_location_in_toolbar(state) |
+        let mut egui_needs_update = self.update_location_in_toolbar(state) |
             self.update_load_status(state) |
-            self.update_status_text(state)
+            self.update_status_text(state);
+
+        let changed = if let Some(webview) = state.focused_webview() {
+            let title = webview
+                .page_title()
+                .filter(|t| !t.is_empty())
+                .map(|t| t.to_string())
+                .or_else(|| webview.url().map(|u| u.to_string()))
+                .unwrap_or_else(|| "Servo".to_string());
+
+            window.set_title_if_changed(&title)
+        } else {
+            false
+        };
+
+        egui_needs_update |= changed;
+        egui_needs_update
     }
 
     /// Returns true if a redraw is required after handling the provided event.
