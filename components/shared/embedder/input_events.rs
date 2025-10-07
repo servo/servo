@@ -155,7 +155,7 @@ impl MouseButtonEvent {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum MouseButton {
     Left,
     Middle,
@@ -195,8 +195,6 @@ impl From<MouseButton> for i16 {
 /// The types of mouse events
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum MouseButtonAction {
-    /// Mouse button clicked
-    Click,
     /// Mouse button down
     Down,
     /// Mouse button up

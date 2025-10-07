@@ -844,17 +844,6 @@ impl RunningAppState {
         self.perform_updates();
     }
 
-    /// Perform a click.
-    pub fn click(&self, x: f32, y: f32) {
-        self.active_webview()
-            .notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
-                MouseButtonAction::Click,
-                MouseButton::Left,
-                Point2D::new(x, y),
-            )));
-        self.perform_updates();
-    }
-
     pub fn key_down(&self, key: Key) {
         let key_event = KeyboardEvent::from_state_and_key(KeyState::Down, key);
         self.active_webview()
