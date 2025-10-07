@@ -138,7 +138,7 @@ impl PlatformFontMethods for PlatformFont {
         );
         let face_is_bold = table_provider_data
             .font_ref()
-            .and_then(|font_ref| font_ref.os2())
+            .and_then(FontRef::os2)
             .is_ok_and(|table| table.us_weight_class() >= SEMI_BOLD_U16);
 
         // Variable fonts do not count as font synthesis and their use is not affected by
