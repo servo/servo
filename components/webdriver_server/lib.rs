@@ -2084,16 +2084,10 @@ impl Handler {
         let (function_body, mut args_string) = self.extract_script_arguments(parameters)?;
         args_string.push("resolve".to_string());
 
-        let timeout = self.session()?.session_timeouts().script;
-        let timeout_script = timeout
-            .map(|script_timeout| format!("setTimeout(webdriverTimeout, {script_timeout});"))
-            .unwrap_or_default();
-
         let joined_args = args_string.join(", ");
         let script = format!(
             r#"(function() {{
               let webdriverPromise = new Promise(function(resolve, reject) {{
-                  {timeout_script}
                   (async function() {{
                     {function_body}
                   }})({joined_args})
@@ -2118,7 +2112,11 @@ impl Handler {
             VerifyBrowsingContextIsOpen::No,
         )?;
 
-        let timeout_duration = timeout.map(Duration::from_millis);
+        let timeout_duration = self
+            .session()?
+            .session_timeouts()
+            .script
+            .map(Duration::from_millis);
         let result = wait_for_script_ipc_response_with_timeout(receiver, timeout_duration)?;
 
         self.postprocess_js_result(result)
@@ -2152,9 +2150,6 @@ impl Handler {
                 ErrorStatus::DetachedShadowRoot,
                 "Detached shadow root",
             )),
-            Err(WebDriverJSError::Timeout) => {
-                Err(WebDriverError::new(ErrorStatus::ScriptTimeout, ""))
-            },
             Err(WebDriverJSError::UnknownType) => Err(WebDriverError::new(
                 ErrorStatus::UnsupportedOperation,
                 "Unsupported return type",

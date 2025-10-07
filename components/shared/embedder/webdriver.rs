@@ -262,7 +262,6 @@ pub enum WebDriverJSError {
     JSException(JSValue),
     JSError,
     StaleElementReference,
-    Timeout,
     UnknownType,
 }
 
