@@ -87,11 +87,7 @@ impl PlatformFont {
             .get_variation_axes()
             .is_some_and(|arr| !arr.is_empty());
 
-        let synthetic_bold = if ctfont_is_bold || is_variable_font {
-            false
-        } else {
-            synthetic_bold
-        };
+        let synthetic_bold = !ctfont_is_bold && !is_variable_font && synthetic_bold;
 
         Self {
             ctfont,
