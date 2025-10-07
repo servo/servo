@@ -19,6 +19,7 @@ use parking_lot::ReentrantMutex;
 use read_fonts::types::Tag;
 use read_fonts::{FontRef, ReadError, TableProvider};
 use servo_arc::Arc;
+use skrifa::attribute::Weight;
 use style::Zero;
 use webrender_api::{FontInstanceFlags, FontVariation};
 
@@ -27,6 +28,8 @@ use crate::FontData;
 use crate::font::{FontMetrics, FontTableMethods, FractionalPixel, PlatformFontMethods};
 use crate::glyph::GlyphId;
 use crate::platform::freetype::freetype_face::FreeTypeFace;
+
+const SEMI_BOLD_U16: u16 = Weight::SEMI_BOLD.value() as u16;
 
 /// Convert FreeType-style 26.6 fixed point to an [`f64`].
 fn fixed_26_dot_6_to_float(fixed: FT_F26Dot6) -> f64 {
@@ -104,7 +107,7 @@ impl PlatformFontMethods for PlatformFont {
         font_identifier: LocalFontIdentifier,
         requested_size: Option<Au>,
         variations: &[FontVariation],
-        mut synthetic_bold: bool,
+        synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
         let filename = CString::new(&*font_identifier.path).expect("filename contains NUL byte!");
@@ -128,23 +131,29 @@ impl PlatformFontMethods for PlatformFont {
             return Err("Could not memory map");
         };
 
-        // Variable fonts, where the font designer has provided one or more axes of
-        // variation do not count as font synthesis and their use is not affected by
+        // If the font face is already bold, applying synthetic bold would "double embolden" the font
+        let table_provider_data = FreeTypeFaceTableProviderData::Local(
+            Arc::new(memory_mapped_font_data),
+            font_identifier.index(),
+        );
+        let face_is_bold = table_provider_data
+            .font_ref()
+            .and_then(|font_ref| font_ref.os2())
+            .is_ok_and(|table| table.us_weight_class() >= SEMI_BOLD_U16);
+
+        // Variable fonts do not count as font synthesis and their use is not affected by
         // the font-synthesis property.
         //
         // <https://www.w3.org/TR/css-fonts-4/#font-synthesis-intro>
-        if FT_HAS_MULTIPLE_MASTERS(face.as_ptr()) {
-            synthetic_bold = false;
-        }
+        let is_variable_font = FT_HAS_MULTIPLE_MASTERS(face.as_ptr());
+
+        let synthetic_bold = !face_is_bold && !is_variable_font && synthetic_bold;
 
         Ok(PlatformFont {
             face: ReentrantMutex::new(face),
             requested_face_size,
             actual_face_size,
-            table_provider_data: FreeTypeFaceTableProviderData::Local(
-                Arc::new(memory_mapped_font_data),
-                font_identifier.index(),
-            ),
+            table_provider_data,
             variations: normalized_variations,
             synthetic_bold,
         })
