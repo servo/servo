@@ -2150,9 +2150,6 @@ impl Handler {
                 ErrorStatus::DetachedShadowRoot,
                 "Detached shadow root",
             )),
-            Err(WebDriverJSError::Timeout) => {
-                Err(WebDriverError::new(ErrorStatus::ScriptTimeout, ""))
-            },
             Err(WebDriverJSError::UnknownType) => Err(WebDriverError::new(
                 ErrorStatus::UnsupportedOperation,
                 "Unsupported return type",
