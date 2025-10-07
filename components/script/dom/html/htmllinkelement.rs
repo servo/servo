@@ -8,7 +8,7 @@ use std::default::Default;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use js::rust::HandleObject;
 use net_traits::image_cache::{
     Image, ImageCache, ImageCacheResponseMessage, ImageCacheResult, ImageLoadListener,
@@ -741,7 +741,7 @@ impl HTMLLinkElement {
             let embedder_image = embedder_traits::Image::new(
                 frame.width,
                 frame.height,
-                raster_image.bytes.clone(),
+                IpcSharedMemory::from_bytes(&raster_image.bytes),
                 raster_image.frames[0].byte_range.clone(),
                 format,
             );

@@ -278,7 +278,47 @@ pub enum CorsStatus {
 }
 
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+#[serde(from = "RasterImageSerialization", into = "RasterImageSerialization")]
 pub struct RasterImage {
+    pub metadata: ImageMetadata,
+    pub format: PixelFormat,
+    pub id: Option<ImageKey>,
+    pub cors_status: CorsStatus,
+    pub bytes: Vec<u8>,
+    pub frames: Vec<ImageFrame>,
+}
+
+impl From<RasterImageSerialization> for RasterImage {
+    fn from(value: RasterImageSerialization) -> Self {
+        RasterImage {
+            metadata: value.metadata,
+            format: value.format,
+            id: value.id,
+            cors_status: value.cors_status,
+            bytes: value.bytes.to_vec(),
+            frames: value.frames,
+        }
+    }
+}
+
+impl From<RasterImage> for RasterImageSerialization {
+    fn from(value: RasterImage) -> Self {
+        RasterImageSerialization {
+            metadata: value.metadata,
+            format: value.format,
+            id: value.id,
+            cors_status: value.cors_status,
+            bytes: IpcSharedMemory::from_bytes(&value.bytes),
+            frames: value.frames,
+        }
+    }
+}
+
+/// This type is only used for serialization.
+/// Ideally we would want a `RasterImageBase<T>` but derive
+/// currently does not work on `type` declaration.
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+struct RasterImageSerialization {
     pub metadata: ImageMetadata,
     pub format: PixelFormat,
     pub id: Option<ImageKey>,
@@ -621,7 +661,7 @@ fn decode_static_image(
         },
         format: PixelFormat::BGRA8,
         frames: vec![frame],
-        bytes: IpcSharedMemory::from_bytes(&rgba),
+        bytes: rgba.to_vec(),
         id: None,
         cors_status,
     })
@@ -692,7 +732,7 @@ where
         frames,
         id: None,
         format: PixelFormat::BGRA8,
-        bytes: IpcSharedMemory::from_bytes(&bytes),
+        bytes,
     })
 }
 
