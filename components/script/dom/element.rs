@@ -412,7 +412,7 @@ impl Element {
     /// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
     pub(crate) fn set_custom_element_state(&self, state: CustomElementState) {
         // no need to inflate rare data for uncustomized
-        if state != CustomElementState::Uncustomized || self.rare_data().is_some() {
+        if state != CustomElementState::Uncustomized {
             self.ensure_rare_data().custom_element_state = state;
         }
 
