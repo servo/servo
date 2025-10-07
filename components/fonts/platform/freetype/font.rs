@@ -147,11 +147,7 @@ impl PlatformFontMethods for PlatformFont {
         // <https://www.w3.org/TR/css-fonts-4/#font-synthesis-intro>
         let is_variable_font = FT_HAS_MULTIPLE_MASTERS(face.as_ptr());
 
-        let synthetic_bold = if face_is_bold || is_variable_font {
-            false
-        } else {
-            synthetic_bold
-        };
+        let synthetic_bold = !face_is_bold && !is_variable_font && synthetic_bold;
 
         Ok(PlatformFont {
             face: ReentrantMutex::new(face),
