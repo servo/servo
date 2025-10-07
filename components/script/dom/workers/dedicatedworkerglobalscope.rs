@@ -503,6 +503,7 @@ impl DedicatedWorkerGlobalScope {
                 let global_scope = global.upcast::<GlobalScope>();
 
                 global_scope.set_https_state(current_global_https_state);
+                let request = request.https_state(global_scope.get_https_state());
 
                 let task_source = SendableTaskSource {
                     sender: ScriptEventLoopSender::DedicatedWorker {
