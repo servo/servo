@@ -66,7 +66,7 @@ use constellation::{
 pub use constellation_traits::EmbedderToConstellationMessage;
 use constellation_traits::ScriptToConstellationChan;
 use crossbeam_channel::{Receiver, Sender, unbounded};
-use embedder_traits::FormControl as EmbedderFormControl;
+use embedder_traits::FormControlRequest as EmbedderFormControl;
 use embedder_traits::user_content_manager::UserContentManager;
 pub use embedder_traits::{WebDriverSenders, *};
 use env_logger::Builder as EnvLoggerBuilder;
@@ -984,26 +984,28 @@ impl Servo {
                     None => self.delegate().show_notification(notification),
                 }
             },
-            EmbedderMsg::ShowFormControl(webview_id, position, form_control) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
+            EmbedderMsg::ShowEmbedderControl(control_id, position, form_control) => {
+                if let Some(webview) = self.get_webview_handle(control_id.webview_id) {
+                    let constellation_proxy = self.constellation_proxy.clone();
                     let form_control = match form_control {
-                        EmbedderFormControl::SelectElement(
-                            options,
-                            selected_option,
-                            ipc_sender,
-                        ) => FormControl::SelectElement(SelectElement::new(
-                            options,
-                            selected_option,
-                            position,
-                            ipc_sender,
-                        )),
-                        EmbedderFormControl::ColorPicker(current_color, ipc_sender) => {
-                            FormControl::ColorPicker(ColorPicker::new(
-                                current_color,
+                        EmbedderFormControl::SelectElement(options, selected_option) => {
+                            FormControl::SelectElement(SelectElement {
+                                id: control_id,
+                                options,
+                                selected_option,
                                 position,
-                                ipc_sender,
-                                self.servo_errors.sender(),
-                            ))
+                                constellation_proxy,
+                                response_sent: false,
+                            })
+                        },
+                        EmbedderFormControl::ColorPicker(current_color) => {
+                            FormControl::ColorPicker(ColorPicker {
+                                id: control_id,
+                                current_color: Some(current_color),
+                                position,
+                                constellation_proxy,
+                                response_sent: false,
+                            })
                         },
                     };
 

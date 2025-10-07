@@ -129,11 +129,10 @@ impl Dialog {
         prompt: ColorPicker,
         toolbar_offset: Length<f32, DeviceIndependentPixel>,
     ) -> Self {
-        let current_color = egui::Color32::from_rgb(
-            prompt.current_color().red,
-            prompt.current_color().green,
-            prompt.current_color().blue,
-        );
+        let current_color = prompt
+            .current_color()
+            .map(|color| egui::Color32::from_rgb(color.red, color.green, color.blue))
+            .unwrap_or_default();
         Dialog::ColorPicker {
             current_color,
             maybe_prompt: Some(prompt),

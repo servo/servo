@@ -72,7 +72,18 @@ where
 
 /// A struct for denoting the age of messages; prevents race conditions.
 #[derive(
-    Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, MallocSizeOf,
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    Deserialize,
+    Eq,
+    Hash,
+    Ord,
+    PartialEq,
+    PartialOrd,
+    Serialize,
+    MallocSizeOf,
 )]
 pub struct Epoch(pub u32);
 

@@ -128,6 +128,7 @@ use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::customelementregistry::{CustomElementDefinition, CustomElementReactionStack};
 use crate::dom::customevent::CustomEvent;
+use crate::dom::document_embedder_controls::DocumentEmbedderControls;
 use crate::dom::document_event_handler::DocumentEventHandler;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documentorshadowroot::{
@@ -307,6 +308,8 @@ pub(crate) struct Document {
     quirks_mode: Cell<QuirksMode>,
     /// A helper used to process and store data related to input event handling.
     event_handler: DocumentEventHandler,
+    /// A helper to handle showing and hiding user interface controls in the embedding layer.
+    embedder_controls: DocumentEmbedderControls,
     /// Caches for the getElement methods. It is safe to use FxHash for these maps
     /// as Atoms are `string_cache` items that will have the hash computed from a u32.
     id_map: DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>, FxBuildHasher>>,
@@ -3426,6 +3429,7 @@ impl Document {
             // https://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Cell::new(QuirksMode::NoQuirks),
             event_handler: DocumentEventHandler::new(window),
+            embedder_controls: DocumentEmbedderControls::new(window),
             id_map: DomRefCell::new(HashMapTracedValues::new_fx()),
             name_map: DomRefCell::new(HashMapTracedValues::new_fx()),
             // https://dom.spec.whatwg.org/#concept-document-encoding
@@ -3547,7 +3551,7 @@ impl Document {
             pending_scroll_event_targets: Default::default(),
             resize_observer_started_observing_target: Cell::new(false),
             waiting_on_canvas_image_updates: Cell::new(false),
-            current_rendering_epoch: Cell::new(Epoch(0)),
+            current_rendering_epoch: Default::default(),
             custom_element_reaction_stack,
             active_sandboxing_flag_set: Cell::new(SandboxingFlagSet::empty()),
             creation_sandboxing_flag_set: Cell::new(creation_sandboxing_flag_set),
@@ -3575,6 +3579,11 @@ impl Document {
     /// Get the [`Document`]'s [`DocumentEventHandler`].
     pub(crate) fn event_handler(&self) -> &DocumentEventHandler {
         &self.event_handler
+    }
+
+    /// Get the [`Document`]'s [`DocumentEmbedderControls`].
+    pub(crate) fn embedder_controls(&self) -> &DocumentEmbedderControls {
+        &self.embedder_controls
     }
 
     /// Whether or not this [`Document`] has any pending scroll events to be processed during
