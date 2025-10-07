@@ -179,10 +179,12 @@ impl FetchResponseListener for ScriptFetchContext {
         _request_id: RequestId,
         _response: Result<ResourceFetchTiming, NetworkError>,
     ) {
+        let scope = self.scope.root();
+
         let Some(ref metadata) = self.response else {
+            scope.on_complete(None, self.worker.clone(), CanGc::note());
             return;
         };
-        let scope = self.scope.root();
 
         // The processResponseConsumeBody steps defined inside
         // [run a worker](https://html.spec.whatwg.org/multipage/workers.html#run-a-worker)
