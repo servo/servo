@@ -1529,6 +1529,19 @@ impl ScriptThread {
             // https://html.spec.whatwg.org/multipage/#the-end step 6
             let mut docs = self.docs_with_no_blocking_loads.borrow_mut();
             for document in docs.iter() {
+                let window = document.window();
+                let window_proxy = window.undiscarded_window_proxy().unwrap();
+                if let Some(frame) = window_proxy
+                    .frame_element()
+                    .and_then(|e| e.downcast::<HTMLIFrameElement>())
+                {
+                    if frame.is_initial_about_blank() {
+                        println!("Not queueing doc completion for initial about blank");
+                        document.notify_constellation_load();
+                        continue;
+                    }
+                }
+
                 let _realm = enter_realm(&**document);
                 document.maybe_queue_document_completion();
             }

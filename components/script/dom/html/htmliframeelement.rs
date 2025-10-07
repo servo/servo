@@ -242,6 +242,10 @@ impl HTMLIFrameElement {
         }
     }
 
+    pub(crate) fn is_initial_about_blank(&self) -> bool {
+        self.about_blank_pipeline_id.get().is_some()
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
     fn process_the_iframe_attributes(&self, mode: ProcessingMode, can_gc: CanGc) {
         // > 1. If `element`'s `srcdoc` attribute is specified, then:
