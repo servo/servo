@@ -2529,7 +2529,6 @@ impl ScriptThread {
         } = new_layout_info;
 
         // Kick off the fetch for the new resource.
-        let url = load_data.url.clone();
         let new_load = InProgressLoad::new(
             new_pipeline_id,
             browsing_context_id,
@@ -2541,13 +2540,7 @@ impl ScriptThread {
             origin,
             load_data,
         );
-        if url.as_str() == "about:blank" {
-            self.start_page_load_about_blank(new_load);
-        } else if url.as_str() == "about:srcdoc" {
-            self.page_load_about_srcdoc(new_load);
-        } else {
-            self.pre_page_load(new_load);
-        }
+        self.pre_page_load(new_load);
     }
 
     fn collect_reports(&self, reports_chan: ReportsChan) {
@@ -3552,6 +3545,16 @@ impl ScriptThread {
     /// Instructs the constellation to fetch the document that will be loaded. Stores the InProgressLoad
     /// argument until a notification is received that the fetch is complete.
     fn pre_page_load(&self, mut incomplete: InProgressLoad) {
+        let url_str = incomplete.load_data.url.as_str();
+        if url_str == "about:blank" {
+            self.start_page_load_about_blank(incomplete);
+            return;
+        }
+        if url_str == "about:srcdoc" {
+            self.page_load_about_srcdoc(incomplete);
+            return;
+        }
+
         let context = ParserContext::new(
             incomplete.pipeline_id,
             incomplete.load_data.url.clone(),
