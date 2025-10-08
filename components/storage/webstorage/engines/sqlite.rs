@@ -15,12 +15,10 @@ use crate::webstorage::webstorage_thread::OriginEntry;
 
 pub struct SqliteEngine {
     connection: Connection,
-    #[expect(dead_code)]
-    pool: Arc<ThreadPool>,
 }
 
 impl SqliteEngine {
-    pub fn new(db_dir: &Option<PathBuf>, pool: Arc<ThreadPool>) -> rusqlite::Result<Self> {
+    pub fn new(db_dir: &Option<PathBuf>, _pool: Arc<ThreadPool>) -> rusqlite::Result<Self> {
         let connection = match db_dir {
             Some(path) => {
                 let path = path.join("webstorage.sqlite");
@@ -32,7 +30,7 @@ impl SqliteEngine {
         for pragma in DB_PRAGMAS.iter() {
             let _ = connection.execute(pragma, []);
         }
-        Ok(SqliteEngine { connection, pool })
+        Ok(SqliteEngine { connection })
     }
 
     pub fn init_db(path: &PathBuf) -> rusqlite::Result<Connection> {
