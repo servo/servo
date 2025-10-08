@@ -50,8 +50,8 @@ use devtools_traits::{
 };
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    FocusSequenceNumber, JavaScriptEvaluationError, JavaScriptEvaluationId, MediaSessionActionType,
-    Theme, ViewportDetails, WebDriverScriptCommand,
+    EmbedderControlId, FocusSequenceNumber, FormControlResponse, JavaScriptEvaluationError,
+    JavaScriptEvaluationId, MediaSessionActionType, Theme, ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::default::Rect;
 use fonts::{FontContext, SystemFontServiceProxy};
@@ -1912,6 +1912,9 @@ impl ScriptThread {
             },
             ScriptThreadMessage::RequestScreenshotReadiness(pipeline_id) => {
                 self.handle_request_screenshot_readiness(pipeline_id);
+            },
+            ScriptThreadMessage::EmbedderControlResponse(id, response) => {
+                self.handle_embedder_control_response(id, response, can_gc);
             },
         }
     }
@@ -3885,6 +3888,20 @@ impl ScriptThread {
             return;
         };
         window.request_screenshot_readiness();
+    }
+
+    fn handle_embedder_control_response(
+        &self,
+        id: EmbedderControlId,
+        response: FormControlResponse,
+        can_gc: CanGc,
+    ) {
+        let Some(document) = self.documents.borrow().find_document(id.pipeline_id) else {
+            return;
+        };
+        document
+            .embedder_controls()
+            .handle_embedder_control_response(id, response, can_gc);
     }
 }
 

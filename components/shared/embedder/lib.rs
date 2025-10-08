@@ -21,6 +21,7 @@ use std::ops::Range;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use base::Epoch;
 use base::generic_channel::{GenericCallback, GenericSender, SendResult};
 use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
@@ -516,7 +517,7 @@ pub enum EmbedderMsg {
     /// Request to display a notification.
     ShowNotification(Option<WebViewId>, Notification),
     /// Request to display a form control to the embedder.
-    ShowFormControl(WebViewId, DeviceIntRect, FormControl),
+    ShowEmbedderControl(EmbedderControlId, DeviceIntRect, FormControlRequest),
     /// Inform the embedding layer that a JavaScript evaluation has
     /// finished with the given result.
     FinishJavaScriptEvaluation(
@@ -532,16 +533,25 @@ impl Debug for EmbedderMsg {
     }
 }
 
-#[derive(Deserialize, Serialize)]
-pub enum FormControl {
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub struct EmbedderControlId {
+    pub webview_id: WebViewId,
+    pub pipeline_id: PipelineId,
+    pub index: Epoch,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum FormControlRequest {
     /// Indicates that the user has activated a `<select>` element.
-    SelectElement(
-        Vec<SelectElementOptionOrOptgroup>,
-        Option<usize>,
-        GenericSender<Option<usize>>,
-    ),
+    SelectElement(Vec<SelectElementOptionOrOptgroup>, Option<usize>),
     /// Indicates that the user has activated a `<input type=color>` element.
-    ColorPicker(RgbColor, GenericSender<Option<RgbColor>>),
+    ColorPicker(RgbColor),
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum FormControlResponse {
+    SelectElement(Option<usize>),
+    ColorPicker(Option<RgbColor>),
 }
 
 /// Filter for file selection;

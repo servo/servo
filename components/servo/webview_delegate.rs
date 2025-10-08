@@ -8,10 +8,11 @@ use base::generic_channel::{GenericSender, SendResult};
 use base::id::PipelineId;
 use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{
-    AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, FilterPattern,
-    GamepadHapticEffectType, InputMethodType, KeyboardEvent, LoadStatus, MediaSessionEvent,
-    Notification, PermissionFeature, RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup,
-    SimpleDialog, TraversalId, WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
+    AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, EmbedderControlId,
+    FilterPattern, FormControlResponse, GamepadHapticEffectType, InputMethodType, KeyboardEvent,
+    LoadStatus, MediaSessionEvent, Notification, PermissionFeature, RgbColor, ScreenGeometry,
+    SelectElementOptionOrOptgroup, SimpleDialog, TraversalId, WebResourceRequest,
+    WebResourceResponse, WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
 use serde::Serialize;
@@ -304,29 +305,26 @@ pub enum FormControl {
     ColorPicker(ColorPicker),
 }
 
+impl FormControl {
+    pub fn id(&self) -> EmbedderControlId {
+        match self {
+            FormControl::SelectElement(select_element) => select_element.id,
+            FormControl::ColorPicker(color_picker) => color_picker.id,
+        }
+    }
+}
+
 /// Represents a dialog triggered by clicking a `<select>` element.
 pub struct SelectElement {
+    pub(crate) id: EmbedderControlId,
     pub(crate) options: Vec<SelectElementOptionOrOptgroup>,
     pub(crate) selected_option: Option<usize>,
     pub(crate) position: DeviceIntRect,
-    pub(crate) responder: IpcResponder<Option<usize>>,
+    pub(crate) constellation_proxy: ConstellationProxy,
+    pub(crate) response_sent: bool,
 }
 
 impl SelectElement {
-    pub(crate) fn new(
-        options: Vec<SelectElementOptionOrOptgroup>,
-        selected_option: Option<usize>,
-        position: DeviceIntRect,
-        ipc_sender: GenericSender<Option<usize>>,
-    ) -> Self {
-        Self {
-            options,
-            selected_option,
-            position,
-            responder: IpcResponder::new(ipc_sender, None),
-        }
-    }
-
     /// Return the area occupied by the `<select>` element that triggered the prompt.
     ///
     /// The embedder should use this value to position the prompt that is shown to the user.
@@ -354,33 +352,37 @@ impl SelectElement {
 
     /// Resolve the prompt with the options that have been selected by calling [select] previously.
     pub fn submit(mut self) {
-        let _ = self.responder.send(self.selected_option);
+        self.response_sent = true;
+        self.constellation_proxy
+            .send(EmbedderToConstellationMessage::EmbedderControlResponse(
+                self.id,
+                FormControlResponse::SelectElement(self.selected_option()),
+            ));
+    }
+}
+
+impl Drop for SelectElement {
+    fn drop(&mut self) {
+        if !self.response_sent {
+            self.constellation_proxy
+                .send(EmbedderToConstellationMessage::EmbedderControlResponse(
+                    self.id,
+                    FormControlResponse::SelectElement(self.selected_option()),
+                ));
+        }
     }
 }
 
 /// Represents a dialog triggered by clicking a `<input type=color>` element.
 pub struct ColorPicker {
-    pub(crate) current_color: RgbColor,
+    pub(crate) id: EmbedderControlId,
+    pub(crate) current_color: Option<RgbColor>,
     pub(crate) position: DeviceIntRect,
-    pub(crate) responder: IpcResponder<Option<RgbColor>>,
-    pub(crate) error_sender: ServoErrorSender,
+    pub(crate) constellation_proxy: ConstellationProxy,
+    pub(crate) response_sent: bool,
 }
 
 impl ColorPicker {
-    pub(crate) fn new(
-        current_color: RgbColor,
-        position: DeviceIntRect,
-        ipc_sender: GenericSender<Option<RgbColor>>,
-        error_sender: ServoErrorSender,
-    ) -> Self {
-        Self {
-            current_color,
-            position,
-            responder: IpcResponder::new(ipc_sender, None),
-            error_sender,
-        }
-    }
-
     /// Get the area occupied by the `<input>` element that triggered the prompt.
     ///
     /// The embedder should use this value to position the prompt that is shown to the user.
@@ -388,14 +390,35 @@ impl ColorPicker {
         self.position
     }
 
-    /// Get the color that was selected before the prompt was opened.
-    pub fn current_color(&self) -> RgbColor {
+    /// Get the currently selected color for this [`ColorPicker`]. This is initially the selected color
+    /// before the picker is opened.
+    pub fn current_color(&self) -> Option<RgbColor> {
         self.current_color
     }
 
     pub fn select(&mut self, color: Option<RgbColor>) {
-        if let Err(error) = self.responder.send(color) {
-            self.error_sender.raise_response_send_error(error);
+        self.current_color = color;
+    }
+
+    /// Resolve the prompt with the options that have been selected by calling [select] previously.
+    pub fn submit(mut self) {
+        self.response_sent = true;
+        self.constellation_proxy
+            .send(EmbedderToConstellationMessage::EmbedderControlResponse(
+                self.id,
+                FormControlResponse::ColorPicker(self.current_color),
+            ));
+    }
+}
+
+impl Drop for ColorPicker {
+    fn drop(&mut self) {
+        if !self.response_sent {
+            self.constellation_proxy
+                .send(EmbedderToConstellationMessage::EmbedderControlResponse(
+                    self.id,
+                    FormControlResponse::ColorPicker(self.current_color),
+                ));
         }
     }
 }

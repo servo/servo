@@ -132,11 +132,12 @@ use devtools_traits::{
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    AnimationState, CompositorHitTestResult, EmbedderMsg, EmbedderProxy, FocusSequenceNumber,
-    InputEvent, JSValue, JavaScriptEvaluationError, JavaScriptEvaluationId, KeyboardEvent,
-    MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState, MouseButton,
-    MouseButtonAction, MouseButtonEvent, ScriptToEmbedderChan, Theme, ViewportDetails,
-    WebDriverCommandMsg, WebDriverCommandResponse, WebDriverLoadStatus, WebDriverScriptCommand,
+    AnimationState, CompositorHitTestResult, EmbedderControlId, EmbedderMsg, EmbedderProxy,
+    FocusSequenceNumber, FormControlResponse, InputEvent, JSValue, JavaScriptEvaluationError,
+    JavaScriptEvaluationId, KeyboardEvent, MediaSessionActionType, MediaSessionEvent,
+    MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent,
+    ScriptToEmbedderChan, Theme, ViewportDetails, WebDriverCommandMsg, WebDriverCommandResponse,
+    WebDriverLoadStatus, WebDriverScriptCommand,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -1594,6 +1595,9 @@ where
             },
             EmbedderToConstellationMessage::RequestScreenshotReadiness(webview_id) => {
                 self.handle_request_screenshot_readiness(webview_id)
+            },
+            EmbedderToConstellationMessage::EmbedderControlResponse(id, response) => {
+                self.handle_embedder_control_response(id, response);
             },
         }
     }
@@ -5698,6 +5702,27 @@ where
         &self,
     ) -> (Sender<ConstellationCanvasMsg>, GenericSender<CanvasMsg>) {
         CanvasPaintThread::start(self.compositor_proxy.cross_process_compositor_api.clone())
+    }
+
+    fn handle_embedder_control_response(
+        &self,
+        id: EmbedderControlId,
+        response: FormControlResponse,
+    ) {
+        let pipeline_id = id.pipeline_id;
+        let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
+            warn!("Not sending embedder control response for unknown pipeline {pipeline_id:?}");
+            return;
+        };
+
+        if let Err(error) = pipeline
+            .event_loop
+            .send(ScriptThreadMessage::EmbedderControlResponse(id, response))
+        {
+            warn!(
+                "Could not send embedder control response to pipeline {pipeline_id:?}: {error:?}"
+            );
+        }
     }
 }
 

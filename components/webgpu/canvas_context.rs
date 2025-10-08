@@ -487,7 +487,7 @@ impl ContextData {
             self.presentation
                 .as_ref()
                 .map(|p| p.epoch)
-                .unwrap_or(Epoch(0))
+                .unwrap_or_default()
         {
             self.presentation.replace(presentation)
         } else {

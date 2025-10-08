@@ -11,10 +11,10 @@ use std::ptr::NonNull;
 use std::str::FromStr;
 use std::{f64, ptr};
 
-use base::{IpcSend, generic_channel};
+use base::IpcSend;
 use dom_struct::dom_struct;
 use embedder_traits::{
-    EmbedderMsg, FilterPattern, FormControl as EmbedderFormControl, InputMethodType, RgbColor,
+    FilterPattern, FormControlRequest as EmbedderFormControl, InputMethodType, RgbColor,
 };
 use encoding_rs::Encoding;
 use euclid::{Point2D, Rect, Size2D};
@@ -61,6 +61,7 @@ use crate::dom::bindings::str::{DOMString, FromInputValueString, ToInputValueStr
 use crate::dom::clipboardevent::ClipboardEvent;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
+use crate::dom::document_embedder_controls::ControlElement;
 use crate::dom::element::{
     AttributeMutation, CustomElementCreationMode, Element, ElementCreator, LayoutElementHelpers,
 };
@@ -2801,7 +2802,7 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#show-the-picker,-if-applicable>
-    fn show_the_picker_if_applicable(&self, can_gc: CanGc) {
+    fn show_the_picker_if_applicable(&self) {
         // FIXME: Implement most of this algorithm
 
         // Step 2. If element is not mutable, then return.
@@ -2812,8 +2813,6 @@ impl HTMLInputElement {
         // Step 6. Otherwise, the user agent should show the relevant user interface for selecting a value for element,
         // in the way it normally would when the user interacts with the control.
         if self.input_type() == InputType::Color {
-            let (ipc_sender, ipc_receiver) = generic_channel::channel::<Option<RgbColor>>()
-                .expect("Failed to create IPC channel!");
             let document = self.owner_document();
             let rect = self.upcast::<Node>().border_box().unwrap_or_default();
             let rect = Rect::new(
@@ -2826,25 +2825,23 @@ impl HTMLInputElement {
                 green: u8::from_str_radix(&current_value.str()[3..5], 16).unwrap(),
                 blue: u8::from_str_radix(&current_value.str()[5..7], 16).unwrap(),
             };
-            document.send_to_embedder(EmbedderMsg::ShowFormControl(
-                document.webview_id(),
+            document.embedder_controls().show_form_control(
+                ControlElement::ColorInput(DomRoot::from_ref(self)),
                 DeviceIntRect::from_untyped(&rect.to_box2d()),
-                EmbedderFormControl::ColorPicker(current_color, ipc_sender),
-            ));
-
-            let Ok(response) = ipc_receiver.recv() else {
-                log::error!("Failed to receive response");
-                return;
-            };
-
-            if let Some(selected_color) = response {
-                let formatted_color = format!(
-                    "#{:0>2x}{:0>2x}{:0>2x}",
-                    selected_color.red, selected_color.green, selected_color.blue
-                );
-                let _ = self.SetValue(formatted_color.into(), can_gc);
-            }
+                EmbedderFormControl::ColorPicker(current_color),
+            );
         }
+    }
+
+    pub(crate) fn handle_color_picker_response(&self, response: Option<RgbColor>, can_gc: CanGc) {
+        let Some(selected_color) = response else {
+            return;
+        };
+        let formatted_color = format!(
+            "#{:0>2x}{:0>2x}{:0>2x}",
+            selected_color.red, selected_color.green, selected_color.blue
+        );
+        let _ = self.SetValue(formatted_color.into(), can_gc);
     }
 }
 
@@ -3563,7 +3560,7 @@ impl Activatable for HTMLInputElement {
             },
             // https://html.spec.whatwg.org/multipage/#color-state-(type=color):input-activation-behavior
             InputType::Color => {
-                self.show_the_picker_if_applicable(can_gc);
+                self.show_the_picker_if_applicable();
             },
             _ => (),
         }

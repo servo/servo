@@ -6,7 +6,7 @@ use std::default::Default;
 use std::iter;
 
 use dom_struct::dom_struct;
-use embedder_traits::{EmbedderMsg, FormControl as EmbedderFormControl};
+use embedder_traits::{FormControlRequest as EmbedderFormControl};
 use embedder_traits::{SelectElementOption, SelectElementOptionOrOptgroup};
 use euclid::{Point2D, Rect, Size2D};
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
@@ -14,8 +14,8 @@ use js::rust::HandleObject;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
 use webrender_api::units::DeviceIntRect;
-use base::generic_channel;
 use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::document_embedder_controls::ControlElement;
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed};
 use crate::dom::bindings::codegen::GenericBindings::HTMLOptGroupElementBinding::HTMLOptGroupElement_Binding::HTMLOptGroupElementMethods;
 use crate::dom::activation::Activatable;
@@ -356,10 +356,7 @@ impl HTMLSelectElement {
             .or_else(|| self.list_of_options().next())
     }
 
-    pub(crate) fn show_menu(&self) -> Option<usize> {
-        let (ipc_sender, ipc_receiver) =
-            generic_channel::channel().expect("Failed to create IPC channel!");
-
+    pub(crate) fn show_menu(&self) {
         // Collect list of optgroups and options
         let mut index = 0;
         let mut embedder_option_from_option = |option: &HTMLOptionElement| {
@@ -403,19 +400,20 @@ impl HTMLSelectElement {
 
         let selected_index = self.list_of_options().position(|option| option.Selected());
 
-        let document = self.owner_document();
-        document.send_to_embedder(EmbedderMsg::ShowFormControl(
-            document.webview_id(),
+        self.owner_document().embedder_controls().show_form_control(
+            ControlElement::Select(DomRoot::from_ref(self)),
             DeviceIntRect::from_untyped(&rect.to_box2d()),
-            EmbedderFormControl::SelectElement(options, selected_index, ipc_sender),
-        ));
+            EmbedderFormControl::SelectElement(options, selected_index),
+        );
+    }
 
-        let Ok(response) = ipc_receiver.recv() else {
-            log::error!("Failed to receive response");
-            return None;
+    pub(crate) fn handle_menu_response(&self, response: Option<usize>, can_gc: CanGc) {
+        let Some(selected_value) = response else {
+            return;
         };
 
-        response
+        self.SetSelectedIndex(selected_value as i32, can_gc);
+        self.send_update_notifications();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#send-select-update-notifications>
@@ -799,14 +797,8 @@ impl Activatable for HTMLSelectElement {
         true
     }
 
-    fn activation_behavior(&self, _event: &Event, _target: &EventTarget, can_gc: CanGc) {
-        let Some(selected_value) = self.show_menu() else {
-            // The user did not select a value
-            return;
-        };
-
-        self.SetSelectedIndex(selected_value as i32, can_gc);
-        self.send_update_notifications();
+    fn activation_behavior(&self, _event: &Event, _target: &EventTarget, _can_gc: CanGc) {
+        self.show_menu();
     }
 }
 

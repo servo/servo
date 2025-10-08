@@ -28,8 +28,9 @@ use crossbeam_channel::{RecvTimeoutError, Sender};
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    CompositorHitTestResult, FocusSequenceNumber, InputEvent, JavaScriptEvaluationId,
-    MediaSessionActionType, ScriptToEmbedderChan, Theme, ViewportDetails, WebDriverScriptCommand,
+    CompositorHitTestResult, EmbedderControlId, FocusSequenceNumber, FormControlResponse,
+    InputEvent, JavaScriptEvaluationId, MediaSessionActionType, ScriptToEmbedderChan, Theme,
+    ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::{Rect, Scale, Size2D, UnknownUnit};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
@@ -272,6 +273,8 @@ pub enum ScriptThreadMessage {
     /// respond when it is ready to take the screenshot or will not be able to take it
     /// in the future.
     RequestScreenshotReadiness(PipelineId),
+    /// A response to a request to show an embedder user interface control.
+    EmbedderControlResponse(EmbedderControlId, FormControlResponse),
 }
 
 impl fmt::Debug for ScriptThreadMessage {

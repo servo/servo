@@ -18,8 +18,9 @@ use std::time::Duration;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{MessagePortId, PipelineId, WebViewId};
 use embedder_traits::{
-    CompositorHitTestResult, InputEvent, JavaScriptEvaluationId, MediaSessionActionType, Theme,
-    TraversalId, ViewportDetails, WebDriverCommandMsg, WebDriverCommandResponse,
+    CompositorHitTestResult, EmbedderControlId, FormControlResponse, InputEvent,
+    JavaScriptEvaluationId, MediaSessionActionType, Theme, TraversalId, ViewportDetails,
+    WebDriverCommandMsg, WebDriverCommandResponse,
 };
 pub use from_script_message::*;
 use ipc_channel::ipc::IpcSender;
@@ -109,6 +110,8 @@ pub enum EmbedderToConstellationMessage {
     /// Request preparation for a screenshot of the given WebView. The Constellation will
     /// send a message to the Embedder when the screenshot is ready to be taken.
     RequestScreenshotReadiness(WebViewId),
+    /// A response to a request to show an embedder user interface control.
+    EmbedderControlResponse(EmbedderControlId, FormControlResponse),
 }
 
 /// A description of a paint metric that is sent from the Servo renderer to the

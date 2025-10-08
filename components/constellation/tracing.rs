@@ -82,6 +82,7 @@ mod from_compositor {
                     target!("NoLongerWaitingOnCanvas")
                 },
                 Self::RequestScreenshotReadiness(..) => target!("RequestScreenshotReadiness"),
+                Self::EmbedderControlResponse(..) => target!("EmbedderControlResponse"),
             }
         }
     }
