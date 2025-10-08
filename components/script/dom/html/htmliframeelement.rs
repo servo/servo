@@ -144,6 +144,8 @@ impl HTMLIFrameElement {
             LoadBlocker::terminate(load_blocker, can_gc);
         }
 
+        println!("Loading IFrame to: {:?}", load_data.url);
+
         if load_data.url.scheme() == "javascript" {
             let window_proxy = self.GetContentWindow();
             if let Some(window_proxy) = window_proxy {
@@ -243,7 +245,7 @@ impl HTMLIFrameElement {
     }
 
     pub(crate) fn is_initial_about_blank(&self) -> bool {
-        self.about_blank_pipeline_id.get().is_some()
+        self.about_blank_pipeline_id.get() == self.pipeline_id.get()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
