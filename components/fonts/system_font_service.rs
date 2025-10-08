@@ -302,7 +302,7 @@ impl SystemFontService {
                 font_key
             });
 
-        let font_instances_map_key = FontInstancesMapKey {
+        let entry_key = FontInstancesMapKey {
             font_key,
             pt_size,
             variations: variations.clone(),
@@ -311,7 +311,7 @@ impl SystemFontService {
         };
         *self
             .font_instances
-            .entry(font_instances_map_key)
+            .entry(entry_key)
             .or_insert_with(|| {
                 let font_instance_key = self
                     .free_font_instance_keys
