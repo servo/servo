@@ -65,13 +65,28 @@ pub struct PlatformFont {
     table_provider_data: FreeTypeFaceTableProviderData,
 }
 
+fn should_apply_synthetic_bold(
+    face: &FreeTypeFace,
+    table_provider_data: &FreeTypeFaceTableProviderData,
+    synthetic_bold: bool,
+) -> bool {
+    let face_is_bold = table_provider_data
+        .font_ref()
+        .and_then(|font_ref| font_ref.os2())
+        .is_ok_and(|table| table.us_weight_class() >= SEMI_BOLD_U16);
+
+    let is_variable_font = FT_HAS_MULTIPLE_MASTERS(face.as_ptr());
+
+    !face_is_bold && !is_variable_font && synthetic_bold
+}
+
 impl PlatformFontMethods for PlatformFont {
     fn new_from_data(
         _font_identifier: FontIdentifier,
         font_data: &FontData,
         requested_size: Option<Au>,
         variations: &[FontVariation],
-        mut synthetic_bold: bool,
+        synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
         let data: &[u8] = font_data.as_ref();
@@ -84,20 +99,17 @@ impl PlatformFontMethods for PlatformFont {
             None => (Au::zero(), Au::zero()),
         };
 
-        // Variable fonts, where the font designer has provided one or more axes of
-        // variation do not count as font synthesis and their use is not affected by
-        // the font-synthesis property.
-        //
-        // <https://www.w3.org/TR/css-fonts-4/#font-synthesis-intro>
-        if FT_HAS_MULTIPLE_MASTERS(face.as_ptr()) {
-            synthetic_bold = false;
-        }
+        // If the font face is already bold, applying synthetic bold would "double embolden" the font
+        let table_provider_data = FreeTypeFaceTableProviderData::Web(font_data.clone());
+
+        let synthetic_bold =
+            should_apply_synthetic_bold(&face, &table_provider_data, synthetic_bold);
 
         Ok(PlatformFont {
             face: ReentrantMutex::new(face),
             requested_face_size,
             actual_face_size,
-            table_provider_data: FreeTypeFaceTableProviderData::Web(font_data.clone()),
+            table_provider_data,
             variations: normalized_variations,
             synthetic_bold,
         })
@@ -136,18 +148,9 @@ impl PlatformFontMethods for PlatformFont {
             Arc::new(memory_mapped_font_data),
             font_identifier.index(),
         );
-        let face_is_bold = table_provider_data
-            .font_ref()
-            .and_then(|font_ref| font_ref.os2())
-            .is_ok_and(|table| table.us_weight_class() >= SEMI_BOLD_U16);
 
-        // Variable fonts do not count as font synthesis and their use is not affected by
-        // the font-synthesis property.
-        //
-        // <https://www.w3.org/TR/css-fonts-4/#font-synthesis-intro>
-        let is_variable_font = FT_HAS_MULTIPLE_MASTERS(face.as_ptr());
-
-        let synthetic_bold = !face_is_bold && !is_variable_font && synthetic_bold;
+        let synthetic_bold =
+            should_apply_synthetic_bold(&face, &table_provider_data, synthetic_bold);
 
         Ok(PlatformFont {
             face: ReentrantMutex::new(face),
