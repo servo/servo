@@ -309,25 +309,22 @@ impl SystemFontService {
             rendering_group_id,
             flags,
         };
-        *self
-            .font_instances
-            .entry(entry_key)
-            .or_insert_with(|| {
-                let font_instance_key = self
-                    .free_font_instance_keys
-                    .get_mut(&rendering_group_id)
-                    .expect("We just filled the keys")
-                    .pop()
-                    .unwrap();
-                compositor_api.add_font_instance(
-                    font_instance_key,
-                    font_key,
-                    pt_size.to_f32_px(),
-                    flags,
-                    variations,
-                );
-                font_instance_key
-            })
+        *self.font_instances.entry(entry_key).or_insert_with(|| {
+            let font_instance_key = self
+                .free_font_instance_keys
+                .get_mut(&rendering_group_id)
+                .expect("We just filled the keys")
+                .pop()
+                .unwrap();
+            compositor_api.add_font_instance(
+                font_instance_key,
+                font_key,
+                pt_size.to_f32_px(),
+                flags,
+                variations,
+            );
+            font_instance_key
+        })
     }
 
     pub(crate) fn family_name_for_single_font_family(
