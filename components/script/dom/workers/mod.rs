@@ -16,3 +16,5 @@ pub(crate) mod worker;
 pub(crate) mod workerglobalscope;
 pub(crate) mod workerlocation;
 pub(crate) mod workernavigator;
+pub(crate) mod worklet;
+pub(crate) mod workletglobalscope;

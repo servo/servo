@@ -517,8 +517,6 @@ pub(crate) mod window;
 pub(crate) mod windowproxy;
 pub(crate) mod workers;
 pub(crate) use self::workers::*;
-pub(crate) mod worklet;
-pub(crate) mod workletglobalscope;
 pub(crate) mod writablestream;
 pub(crate) mod writablestreamdefaultcontroller;
 pub(crate) mod writablestreamdefaultwriter;
