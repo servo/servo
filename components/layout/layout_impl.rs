@@ -218,7 +218,7 @@ impl Layout for LayoutThread {
         self.stylist.device()
     }
 
-    fn load_web_fonts_from_stylesheet(&self, stylesheet: ServoArc<Stylesheet>) {
+    fn load_web_fonts_from_stylesheet(&self, stylesheet: &ServoArc<Stylesheet>) {
         let guard = stylesheet.shared_lock.read();
         self.load_all_web_fonts_from_stylesheet_with_guard(
             &DocumentStyleSheet(stylesheet.clone()),

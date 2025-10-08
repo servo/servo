@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::io::{Read, Seek, Write};
-use std::sync::atomic::AtomicBool;
 
 use cssparser::SourceLocation;
 use encoding_rs::UTF_8;
@@ -17,12 +16,10 @@ use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style::context::QuirksMode;
 use style::media_queries::MediaList;
-use style::parser::ParserContext;
 use style::shared_lock::{Locked, SharedRwLock};
 use style::stylesheets::import_rule::{ImportLayer, ImportSheet, ImportSupportsCondition};
 use style::stylesheets::{
-    CssRules, ImportRule, Origin, Stylesheet, StylesheetContents,
-    StylesheetLoader as StyleStylesheetLoader, UrlExtraData,
+    ImportRule, Origin, Stylesheet, StylesheetLoader as StyleStylesheetLoader, UrlExtraData,
 };
 use style::values::CssUrl;
 
@@ -69,8 +66,13 @@ pub(crate) trait StylesheetOwner {
 
 pub(crate) enum StylesheetContextSource {
     // NB: `media` is just an option so we avoid cloning it.
-    LinkElement { media: Option<MediaList> },
-    Import(Arc<Stylesheet>),
+    LinkElement {
+        media: Option<MediaList>,
+    },
+    Import {
+        import_rule: Arc<Locked<ImportRule>>,
+        media: Option<MediaList>,
+    },
 }
 
 /// The context required for asynchronously loading an external stylesheet.
@@ -204,6 +206,24 @@ impl FetchResponseListener for StylesheetContext {
             let win = element.owner_window();
 
             let loader = ElementStylesheetLoader::new(&element);
+            let shared_lock = document.style_shared_lock();
+            let stylesheet = |media| {
+                #[cfg(feature = "tracing")]
+                let _span =
+                    tracing::trace_span!("ParseStylesheet", servo_profiling = true).entered();
+                Arc::new(Stylesheet::from_bytes(
+                    &data,
+                    UrlExtraData(final_url.get_arc()),
+                    protocol_encoding_label,
+                    Some(environment_encoding),
+                    Origin::Author,
+                    media,
+                    shared_lock.clone(),
+                    Some(&loader),
+                    win.css_error_reporter(),
+                    document.quirks_mode(),
+                ))
+            };
             match self.source {
                 StylesheetContextSource::LinkElement { ref mut media } => {
                     let link = element.downcast::<HTMLLinkElement>().unwrap();
@@ -213,47 +233,25 @@ impl FetchResponseListener for StylesheetContext {
                         .request_generation_id
                         .is_none_or(|generation| generation == link.get_request_generation_id());
                     if is_stylesheet_load_applicable {
-                        let shared_lock = document.style_shared_lock().clone();
-                        #[cfg(feature = "tracing")]
-                        let _span = tracing::trace_span!("ParseStylesheet", servo_profiling = true)
-                            .entered();
-                        let sheet = Arc::new(Stylesheet::from_bytes(
-                            &data,
-                            UrlExtraData(final_url.get_arc()),
-                            protocol_encoding_label,
-                            Some(environment_encoding),
-                            Origin::Author,
-                            media.take().unwrap(),
-                            shared_lock,
-                            Some(&loader),
-                            win.css_error_reporter(),
-                            document.quirks_mode(),
-                        ));
-
+                        let stylesheet = stylesheet(media.take().unwrap());
                         if link.is_effectively_disabled() {
-                            sheet.set_disabled(true);
+                            stylesheet.set_disabled(true);
                         }
-
-                        link.set_stylesheet(sheet);
+                        link.set_stylesheet(stylesheet);
                     }
                 },
-                StylesheetContextSource::Import(ref stylesheet) => {
-                    #[cfg(feature = "tracing")]
-                    let _span =
-                        tracing::trace_span!("ParseStylesheet", servo_profiling = true).entered();
-                    Stylesheet::update_from_bytes(
-                        stylesheet,
-                        &data,
-                        protocol_encoding_label,
-                        Some(environment_encoding),
-                        UrlExtraData(final_url.get_arc()),
-                        Some(&loader),
-                        win.css_error_reporter(),
-                    );
+                StylesheetContextSource::Import {
+                    ref mut import_rule,
+                    ref mut media,
+                } => {
+                    let stylesheet = stylesheet(media.take().unwrap());
 
                     // Layout knows about this stylesheet, because Stylo added it to the Stylist,
                     // but Layout doesn't know about any new web fonts that it contains.
-                    document.load_web_fonts_from_stylesheet(stylesheet.clone());
+                    document.load_web_fonts_from_stylesheet(&stylesheet);
+
+                    let mut guard = shared_lock.write();
+                    import_rule.write_with(&mut guard).stylesheet = ImportSheet::Sheet(stylesheet);
                 },
             }
 
@@ -424,14 +422,13 @@ impl StyleStylesheetLoader for ElementStylesheetLoader<'_> {
         &self,
         url: CssUrl,
         source_location: SourceLocation,
-        context: &ParserContext,
         lock: &SharedRwLock,
         media: Arc<Locked<MediaList>>,
         supports: Option<ImportSupportsCondition>,
         layer: ImportLayer,
     ) -> Arc<Locked<ImportRule>> {
         // Ensure the supports conditions for this @import are true, if not, refuse to load
-        if !supports.as_ref().is_none_or(|s| s.enabled) {
+        if supports.as_ref().is_some_and(|s| !s.enabled) {
             return Arc::new(lock.wrap(ImportRule {
                 url,
                 stylesheet: ImportSheet::new_refused(),
@@ -441,37 +438,35 @@ impl StyleStylesheetLoader for ElementStylesheetLoader<'_> {
             }));
         }
 
-        let sheet = Arc::new(Stylesheet {
-            contents: StylesheetContents::from_data(
-                CssRules::new(Vec::new(), lock),
-                context.stylesheet_origin,
-                context.url_data.clone(),
-                context.quirks_mode,
-            ),
-            media,
-            shared_lock: lock.clone(),
-            disabled: AtomicBool::new(false),
-        });
+        let resolved_url = match url.url().cloned() {
+            Some(url) => url,
+            None => {
+                return Arc::new(lock.wrap(ImportRule {
+                    url,
+                    stylesheet: ImportSheet::new_refused(),
+                    supports,
+                    layer,
+                    source_location,
+                }));
+            },
+        };
 
-        let stylesheet = ImportSheet::new(sheet.clone());
-        let import = ImportRule {
+        let import_rule = Arc::new(lock.wrap(ImportRule {
             url,
-            stylesheet,
+            stylesheet: ImportSheet::new_pending(),
             supports,
             layer,
             source_location,
-        };
-
-        let url = match import.url.url().cloned() {
-            Some(url) => url,
-            None => return Arc::new(lock.wrap(import)),
-        };
+        }));
 
         // TODO (mrnayak) : Whether we should use the original loader's CORS
         // setting? Fix this when spec has more details.
-        let source = StylesheetContextSource::Import(sheet.clone());
-        self.load(source, url.into(), None, "".to_owned());
+        let source = StylesheetContextSource::Import {
+            import_rule: import_rule.clone(),
+            media: Some(media.read_with(&lock.read()).clone()),
+        };
+        self.load(source, resolved_url.into(), None, "".to_owned());
 
-        Arc::new(lock.wrap(import))
+        import_rule
     }
 }
