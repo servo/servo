@@ -39,3 +39,6 @@ features:
   - ascent-descent-override.html
   - line-gap-override.html
   - metrics-override-normal-keyword.html
+- name: font-language-override
+  files:
+  - font-language-override-*

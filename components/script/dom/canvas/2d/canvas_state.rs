@@ -204,7 +204,7 @@ pub(super) struct CanvasState {
     size: Cell<Size2D<u64>>,
     state: DomRefCell<CanvasContextState>,
     origin_clean: Cell<bool>,
-    #[ignore_malloc_size_of = "Arc"]
+    #[ignore_malloc_size_of = "ImageCache"]
     #[no_trace]
     image_cache: Arc<dyn ImageCache>,
     /// The base URL for resolving CSS image URL values.

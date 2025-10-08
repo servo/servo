@@ -62,32 +62,20 @@
       assert_equals(elm.offsetHeight, height, (elm.id + " height"));
     }
 
-    function assert_at_initial() {
+    function assert_sizes() {
       assert_rects_equal(e1, 100, 100, 100, 100);
       assert_rects_equal(e2, 225, 100, 50, 100);
       assert_rects_equal(e3, 300, 100, 100, 100);
       assert_rects_equal(e4, 100, 225, 100, 50);
       assert_rects_equal(e5, 225, 225, 50, 50);
       assert_rects_equal(e6, 300, 225, 100, 50);
-      assert_rects_equal(e7, 100, 300, 100, 100);
-      assert_rects_equal(e8, 225, 300, 50, 100);
-      assert_rects_equal(e9, 300, 300, 100, 100);
-    }
-
-    function assert_at_40_60() {
-      assert_rects_equal(e1, 120, 130, 80, 70);
-      assert_rects_equal(e2, 225, 130, 50, 70);
-      assert_rects_equal(e3, 300, 130, 120, 70);
-      assert_rects_equal(e4, 120, 225, 80, 50);
-      assert_rects_equal(e5, 225, 225, 50, 50);
-      assert_rects_equal(e6, 300, 225, 120, 50);
-      assert_rects_equal(e7, 120, 300, 80, 130);
-      assert_rects_equal(e8, 225, 300, 50, 130);
-      assert_rects_equal(e9, 300, 300, 120, 130);
+      assert_rects_equal(e7, 100, 300, 100, 350);
+      assert_rects_equal(e8, 225, 300, 50, 350);
+      assert_rects_equal(e9, 300, 300, 100, 350);
     }
 
     promise_test(async() => {
-      assert_at_initial();
+      assert_sizes();
     }, "Initial scroll position");
 
     promise_test(async() => {
@@ -96,46 +84,17 @@
       iframe.contentWindow.scrollTo(40, 60);
       await waitUntilNextAnimationFrame();
       await waitUntilNextAnimationFrame();
-      assert_at_initial();
+      assert_sizes();
     }, "Scroll to 40,60");
 
     promise_test(async() => {
-      // As long as we're within the same animation frame (and therefore haven't
-      // run ResizeObserver events), there will be no anchor recalculation point.
-      container.style.display = "flow-root";
-      assert_at_initial();
-      container.style.display = "none";
-      document.body.offsetTop;
-      container.style.display = "block";
-      assert_at_initial();
-    }, "Reattach at 40,60");
-
-    promise_test(async() => {
       container.style.display = "none";
       await waitUntilNextAnimationFrame();
       await waitUntilNextAnimationFrame();
       container.style.display = "block";
       await waitUntilNextAnimationFrame();
       await waitUntilNextAnimationFrame();
-      assert_at_40_60();
+      assert_sizes();
     }, "Redisplay at 40,60");
-
-    promise_test(async() => {
-      iframe.contentWindow.scrollTo(0, 0);
-      container.className = "thicker";
-      container.style.display = "block";
-      await waitUntilNextAnimationFrame();
-      await waitUntilNextAnimationFrame();
-      assert_at_40_60();
-    }, "Scroll to 0,0 and relayout");
-
-    promise_test(async() => {
-      container.style.display = "none";
-      await waitUntilNextAnimationFrame();
-      container.style.display = "block";
-      await waitUntilNextAnimationFrame();
-      await waitUntilNextAnimationFrame();
-      assert_at_initial();
-    }, "Redisplay at 0,0");
   }
 </script>

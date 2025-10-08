@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html dir=rtl>
+<title>position-area overflow alignment against ICB - non-scrollable RTL</title>
+<link rel="help" href="https://www.w3.org/TR/css-anchor-position/#position-area">
+<link rel="help" href="https://www.w3.org/TR/css-align-3/#auto-safety-position">
+<meta name=assert content="Test passes if the positioned box is aligned as specified to the extent possible within the scrollable area.">
+
+<link rel="match" href="position-area-overflow-icb-001-ref.html">
+<style>
+.anchor {
+  anchor-name: --foo;
+  border: solid orange 20px;
+  position: absolute;
+  margin: auto;
+  top: 50%;
+  left: 50%;
+}
+.above, .below, .left, .right {
+  border: solid blue 3px;
+  padding: 2px;
+  position: absolute;
+  position-anchor: --foo;
+}
+.above { position-area: top center;    height: 60vh;  margin-left:   20px; }
+.below { position-area: bottom center; height: 60vh;  margin-right:  20px; }
+.left  { position-area: left center;   width:  60vw;  margin-top:    20px; }
+.right { position-area: right center;  width:  60vw;  margin-bottom: 20px; }
+</style>
+
+<div class=anchor></div>
+<div class=above></div>
+<div class=below></div>
+<div class=left></div>
+<div class=right></div>

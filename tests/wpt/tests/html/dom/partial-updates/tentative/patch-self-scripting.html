@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates - executing scripts during streaming</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="placeholder">
+</div>
+<script>
+promise_test(async t => {
+    const placeholder = document.querySelector("#placeholder");
+    const writable = placeholder.patchSelf();
+    assert_true(writable instanceof WritableStream, "node.patchSelf() returns a writable stream");
+    const response = new Response("Content", {headers: {"Content-Type": "text/html"}});
+    window.script_executed = false;
+    const did_write_promise = writable.getWriter().write(`
+        <br id=before>
+        <script>
+            assert_not_equals(document.querySelector("#before"), null);
+            assert_equals(document.querySelector("#after"), null);
+            window.script_executed = true;
+        <` + `/script>
+        <br id=after>`);
+    assert_false(window.script_executed, "script should not execute before write() resolves");
+    await did_write_promise;
+    assert_not_equals(document.querySelector("#before"), null);
+    assert_not_equals(document.querySelector("#after"), null);
+    assert_true(window.script_executed, "script should execute immediately upon being written");
+}, "Patches should execute scripts as soon as they are written");
+
+</script>

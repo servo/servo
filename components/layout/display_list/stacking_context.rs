@@ -8,6 +8,7 @@ use std::mem;
 use std::sync::Arc;
 
 use app_units::Au;
+use base::Epoch;
 use base::id::ScrollTreeNodeId;
 use base::print_tree::PrintTree;
 use compositing_traits::display_list::{
@@ -140,7 +141,7 @@ impl StackingContextTree {
             scrollable_overflow,
             pipeline_id,
             // This epoch is set when the WebRender display list is built. For now use a dummy value.
-            wr::Epoch(0),
+            Epoch(0),
             fragment_tree.viewport_scroll_sensitivity,
             first_reflow,
         );

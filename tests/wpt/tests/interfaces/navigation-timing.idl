@@ -23,8 +23,7 @@ interface PerformanceNavigationTiming : PerformanceResourceTiming {
 enum NavigationTimingType {
     "navigate",
     "reload",
-    "back_forward",
-    "prerender"
+    "back_forward"
 };
 
 [Exposed=Window]

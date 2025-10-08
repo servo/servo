@@ -57,6 +57,14 @@
       #e6 {
         @apply --m6;
       }
+
+      @mixin --m7(@contents) {
+        @contents;
+        color: green;
+      }
+      #e7 {
+        @apply --m7 {};
+      }
     </style>
   </head>
   <body>
@@ -66,6 +74,7 @@
     <div class="c d" id="e4">This text should be green.</div>
     <div id="e5">This text should be green.</div>
     <div id="e6">This text should be green.</div>
+    <div id="e7">This text should be green.</div>
   <script>
     test(() => {
       let target = document.getElementById('e1');
@@ -96,6 +105,11 @@
       let target = document.getElementById('e6');
       assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
     }, 'Empty @contents block is allowed, but does nothing');
+
+    test(() => {
+      let target = document.getElementById('e7');
+      assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+    }, 'Empty @contents parameter does not crash');
   </script>
   </body>
 </html>

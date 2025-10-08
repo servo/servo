@@ -149,7 +149,6 @@ partial interface Window {
   // Shouldn't be public, but just to make things work for now
   undefined webdriverCallback(optional any result);
   undefined webdriverException(optional any result);
-  undefined webdriverTimeout();
   Element? webdriverElement(DOMString id);
   WindowProxy? webdriverFrame(DOMString id);
   WindowProxy? webdriverWindow(DOMString id);
@@ -188,4 +187,13 @@ partial interface Window {
 
 dictionary WindowPostMessageOptions : StructuredSerializeOptions {
    USVString targetOrigin = "/";
+};
+
+// https://fetch.spec.whatwg.org/#fetch-method
+dictionary DeferredRequestInit : RequestInit {
+  DOMHighResTimeStamp activateAfter;
+};
+
+partial interface Window {
+  [NewObject, SecureContext, Throws] FetchLaterResult fetchLater(RequestInfo input, optional DeferredRequestInit init = {});
 };

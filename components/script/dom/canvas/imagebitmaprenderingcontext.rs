@@ -160,6 +160,8 @@ impl CanvasContext for ImageBitmapRenderingContext {
     fn image_key(&self) -> Option<ImageKey> {
         None
     }
+
+    fn mark_as_dirty(&self) {}
 }
 
 impl ImageBitmapRenderingContextMethods<crate::DomTypeHolder> for ImageBitmapRenderingContext {

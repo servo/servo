@@ -564,18 +564,29 @@ pub(crate) struct Document {
     /// waiting it will not do any new layout until the canvas images are up-to-date in
     /// the renderer.
     waiting_on_canvas_image_updates: Cell<bool>,
-    /// The current canvas epoch, which is used to track when canvas images have been
-    /// uploaded to the renderer after a rendering update. Until those images are uploaded
-    /// this `Document` will not perform any more rendering updates.
+    /// The current rendering epoch, which is used to track updates in the renderer.
+    ///
+    ///   - Every display list update also advances the Epoch, so that the renderer knows
+    ///     when a particular display list is ready in order to take a screenshot.
+    ///   - Canvas image updates happen asynchronously and are tagged with this Epoch. Until
+    ///     those asynchronous updates are complete, the `Document` will not perform any
+    ///     more rendering updates.
     #[no_trace]
-    current_canvas_epoch: Cell<Epoch>,
+    current_rendering_epoch: Cell<Epoch>,
     /// The global custom element reaction stack for this script thread.
     #[conditional_malloc_size_of]
     custom_element_reaction_stack: Rc<CustomElementReactionStack>,
     #[no_trace]
-    #[ignore_malloc_size_of = "type from external crate"]
     /// <https://html.spec.whatwg.org/multipage/#active-sandboxing-flag-set>,
     active_sandboxing_flag_set: Cell<SandboxingFlagSet>,
+    #[no_trace]
+    /// The [`SandboxingFlagSet`] use to create the browsing context for this [`Document`].
+    /// These are cached here as they cannot always be retrieved readily if the owner of
+    /// browsing context (either `<iframe>` or popup) might be in a different `ScriptThread`.
+    ///
+    /// See
+    /// <https://html.spec.whatwg.org/multipage/#determining-the-creation-sandboxing-flags>.
+    creation_sandboxing_flag_set: Cell<SandboxingFlagSet>,
     /// The cached favicon for that document.
     #[no_trace]
     #[ignore_malloc_size_of = "TODO: unimplemented on Image"]
@@ -745,6 +756,11 @@ impl Document {
         self.activity.get() != DocumentActivity::Inactive
     }
 
+    #[inline]
+    pub(crate) fn current_rendering_epoch(&self) -> Epoch {
+        self.current_rendering_epoch.get()
+    }
+
     pub(crate) fn set_activity(&self, activity: DocumentActivity, can_gc: CanGc) {
         // This function should only be called on documents with a browsing context
         assert!(self.has_browsing_context);
@@ -824,25 +840,31 @@ impl Document {
 
     /// <https://html.spec.whatwg.org/multipage/#fallback-base-url>
     pub(crate) fn fallback_base_url(&self) -> ServoUrl {
+        // Step 1: If document is an iframe srcdoc document:
         let document_url = self.url();
-        if let Some(browsing_context) = self.browsing_context() {
-            // Step 1: If document is an iframe srcdoc document, then return the
-            // document base URL of document's browsing context's container document.
-            let container_base_url = browsing_context
-                .parent()
-                .and_then(|parent| parent.document())
-                .map(|document| document.base_url());
-            if document_url.as_str() == "about:srcdoc" {
-                if let Some(base_url) = container_base_url {
-                    return base_url;
-                }
+        if document_url.as_str() == "about:srcdoc" {
+            let base_url = self
+                .browsing_context()
+                .and_then(|browsing_context| browsing_context.creator_base_url());
+
+            // Step 1.1: Assert: document's about base URL is non-null.
+            if base_url.is_none() {
+                error!("about:srcdoc page should always have a creator base URL");
             }
-            // Step 2: If document's URL is about:blank, and document's browsing
-            // context's creator base URL is non-null, then return that creator base URL.
-            if document_url.as_str() == "about:blank" && browsing_context.has_creator_base_url() {
-                return browsing_context.creator_base_url().unwrap();
-            }
+
+            // Step 1.2: Return document's about base URL.
+            return base_url.unwrap_or(document_url);
         }
+
+        // Step 2: If document's URL matches about:blank and document's about base URL is
+        // non-null, then return document's about base URL.
+        if document_url.matches_about_blank() {
+            return self
+                .browsing_context()
+                .and_then(|browsing_context| browsing_context.creator_base_url())
+                .unwrap_or(document_url);
+        }
+
         // Step 3: Return document's URL.
         document_url
     }
@@ -2713,7 +2735,15 @@ impl Document {
         if self.window().has_unhandled_resize_event() {
             return true;
         }
-        if self.has_pending_animated_image_update.get() {
+        if self.has_pending_animated_image_update.get() ||
+            !self.dirty_2d_contexts.borrow().is_empty() ||
+            !self.dirty_webgl_contexts.borrow().is_empty()
+        {
+            return true;
+        }
+
+        #[cfg(feature = "webgpu")]
+        if !self.dirty_webgpu_contexts.borrow().is_empty() {
             return true;
         }
 
@@ -2732,34 +2762,42 @@ impl Document {
             return Default::default();
         }
 
+        let mut results = ReflowPhasesRun::empty();
         if self.has_pending_animated_image_update.get() {
             self.image_animation_manager
                 .borrow()
                 .update_active_frames(&self.window, self.current_animation_timeline_value());
             self.has_pending_animated_image_update.set(false);
+            results.insert(ReflowPhasesRun::UpdatedImageData);
         }
 
-        // All dirty canvases are flushed before updating the rendering.
-        self.current_canvas_epoch
-            .set(self.current_canvas_epoch.get().next());
-        let canvas_epoch = self.current_canvas_epoch.get();
-        let mut image_keys = Vec::new();
+        self.current_rendering_epoch
+            .set(self.current_rendering_epoch.get().next());
+        let current_rendering_epoch = self.current_rendering_epoch.get();
 
+        // All dirty canvases are flushed before updating the rendering.
+        let mut image_keys = Vec::new();
         #[cfg(feature = "webgpu")]
         image_keys.extend(
             self.dirty_webgpu_contexts
                 .borrow_mut()
                 .drain()
-                .filter(|(_, context)| context.update_rendering(canvas_epoch))
-                .map(|(_, context)| context.image_key()),
+                .filter(|(_, context)| context.update_rendering(current_rendering_epoch))
+                .map(|(_, context)| {
+                    results.insert(ReflowPhasesRun::UpdatedImageData);
+                    context.image_key()
+                }),
         );
 
         image_keys.extend(
             self.dirty_2d_contexts
                 .borrow_mut()
                 .drain()
-                .filter(|(_, context)| context.update_rendering(canvas_epoch))
-                .map(|(_, context)| context.image_key()),
+                .filter(|(_, context)| context.update_rendering(current_rendering_epoch))
+                .map(|(_, context)| {
+                    results.insert(ReflowPhasesRun::UpdatedImageData);
+                    context.image_key()
+                }),
         );
 
         let dirty_webgl_context_ids: Vec<_> = self
@@ -2774,12 +2812,13 @@ impl Document {
             .collect();
 
         if !dirty_webgl_context_ids.is_empty() {
+            results.insert(ReflowPhasesRun::UpdatedImageData);
             self.window
                 .webgl_chan()
                 .expect("Where's the WebGL channel?")
                 .send(WebGLMsg::SwapBuffers(
                     dirty_webgl_context_ids,
-                    Some(canvas_epoch),
+                    Some(current_rendering_epoch),
                     0,
                 ))
                 .unwrap();
@@ -2787,16 +2826,25 @@ impl Document {
 
         // The renderer should wait to display the frame until all canvas images are
         // uploaded. This allows canvas image uploading to happen asynchronously.
+        let pipeline_id = self.window().pipeline_id();
         if !image_keys.is_empty() {
             self.waiting_on_canvas_image_updates.set(true);
             self.window().compositor_api().delay_new_frame_for_canvas(
                 self.window().pipeline_id(),
-                canvas_epoch,
+                current_rendering_epoch,
                 image_keys.into_iter().flatten().collect(),
             );
         }
 
-        self.window().reflow(ReflowGoal::UpdateTheRendering)
+        let results = results.union(self.window().reflow(ReflowGoal::UpdateTheRendering));
+
+        self.window().compositor_api().update_epoch(
+            self.webview_id(),
+            pipeline_id,
+            current_rendering_epoch,
+        );
+
+        results
     }
 
     pub(crate) fn handle_no_longer_waiting_on_asynchronous_image_updates(&self) {
@@ -3326,6 +3374,7 @@ impl Document {
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         has_trustworthy_ancestor_origin: bool,
         custom_element_reaction_stack: Rc<CustomElementReactionStack>,
+        creation_sandboxing_flag_set: SandboxingFlagSet,
     ) -> Document {
         let url = url.unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
 
@@ -3498,9 +3547,10 @@ impl Document {
             pending_scroll_event_targets: Default::default(),
             resize_observer_started_observing_target: Cell::new(false),
             waiting_on_canvas_image_updates: Cell::new(false),
-            current_canvas_epoch: Cell::new(Epoch(0)),
+            current_rendering_epoch: Cell::new(Epoch(0)),
             custom_element_reaction_stack,
             active_sandboxing_flag_set: Cell::new(SandboxingFlagSet::empty()),
+            creation_sandboxing_flag_set: Cell::new(creation_sandboxing_flag_set),
             favicon: RefCell::new(None),
         }
     }
@@ -3597,6 +3647,7 @@ impl Document {
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         has_trustworthy_ancestor_origin: bool,
         custom_element_reaction_stack: Rc<CustomElementReactionStack>,
+        creation_sandboxing_flag_set: SandboxingFlagSet,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
         Self::new_with_proto(
@@ -3619,6 +3670,7 @@ impl Document {
             inherited_insecure_requests_policy,
             has_trustworthy_ancestor_origin,
             custom_element_reaction_stack,
+            creation_sandboxing_flag_set,
             can_gc,
         )
     }
@@ -3644,6 +3696,7 @@ impl Document {
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         has_trustworthy_ancestor_origin: bool,
         custom_element_reaction_stack: Rc<CustomElementReactionStack>,
+        creation_sandboxing_flag_set: SandboxingFlagSet,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
         let document = reflect_dom_object_with_proto(
@@ -3666,6 +3719,7 @@ impl Document {
                 inherited_insecure_requests_policy,
                 has_trustworthy_ancestor_origin,
                 custom_element_reaction_stack,
+                creation_sandboxing_flag_set,
             )),
             window,
             proto,
@@ -3801,6 +3855,7 @@ impl Document {
                     Some(self.insecure_requests_policy()),
                     self.has_trustworthy_ancestor_or_current_origin(),
                     self.custom_element_reaction_stack.clone(),
+                    self.creation_sandboxing_flag_set(),
                     can_gc,
                 );
                 new_doc
@@ -4480,6 +4535,21 @@ impl Document {
         self.active_sandboxing_flag_set.set(flags)
     }
 
+    pub(crate) fn creation_sandboxing_flag_set(&self) -> SandboxingFlagSet {
+        self.creation_sandboxing_flag_set.get()
+    }
+
+    pub(crate) fn creation_sandboxing_flag_set_considering_parent_iframe(
+        &self,
+    ) -> SandboxingFlagSet {
+        self.window()
+            .window_proxy()
+            .frame_element()
+            .and_then(|element| element.downcast::<HTMLIFrameElement>())
+            .map(HTMLIFrameElement::sandboxing_flag_set)
+            .unwrap_or_else(|| self.creation_sandboxing_flag_set())
+    }
+
     pub(crate) fn viewport_scrolling_box(&self, flags: ScrollContainerQueryFlags) -> ScrollingBox {
         self.window()
             .scrolling_box_query(None, flags)
@@ -4528,6 +4598,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             Some(doc.insecure_requests_policy()),
             doc.has_trustworthy_ancestor_or_current_origin(),
             doc.custom_element_reaction_stack(),
+            doc.active_sandboxing_flag_set.get(),
             can_gc,
         ))
     }
@@ -6032,7 +6103,7 @@ pub(crate) enum AnimationFrameCallback {
         actor_name: String,
     },
     FrameRequestCallback {
-        #[ignore_malloc_size_of = "Rc is hard"]
+        #[conditional_malloc_size_of]
         callback: Rc<FrameRequestCallback>,
     },
 }

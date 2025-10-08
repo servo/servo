@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/form-elements.html#dom-option-form">
+<link rel=help href="https://github.com/whatwg/html/issues/11708">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<form id=form>
+  <select id=select1></select>
+</form>
+
+<select id=select2 form=form></select>
+
+<script>
+const form = document.getElementById('form');
+const select1 = document.getElementById('select1');
+const select2 = document.getElementById('select2');
+
+test(() => {
+  const div1 = document.createElement('div');
+  select1.appendChild(div1);
+  const option1 = document.createElement('option');
+  div1.appendChild(option1);
+
+  const div2 = document.createElement('div');
+  select2.appendChild(div2);
+  const option2 = document.createElement('option');
+  div2.appendChild(option2);
+
+  assert_equals(option1.form, form, 'option1');
+  assert_equals(option2.form, form, 'option2');
+}, 'option.form should look up the ancestor chain for a select element to get its form from.');
+</script>

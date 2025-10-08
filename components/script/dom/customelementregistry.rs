@@ -68,14 +68,14 @@ pub(crate) struct CustomElementRegistry {
 
     window: Dom<Window>,
 
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     /// It is safe to use FxBuildHasher here as `LocalName` is an `Atom` in the string_cache.
     /// These get a u32 hashed instead of a string.
     when_defined: DomRefCell<HashMapTracedValues<LocalName, Rc<Promise>, FxBuildHasher>>,
 
     element_definition_is_running: Cell<bool>,
 
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     definitions:
         DomRefCell<HashMapTracedValues<LocalName, Rc<CustomElementDefinition>, FxBuildHasher>>,
 }

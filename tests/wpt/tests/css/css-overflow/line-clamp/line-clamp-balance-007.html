@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>CSS Overflow: `line-clamp` and text-wrap: balance, height based, reclamp</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-balance-007-ref.html">
+<meta name="assert" content="Checks that balancing after claming can cause re-clamping when working with height based clamping.">
+<style>
+.clamp {
+  line-clamp: auto;
+  font-family: monospace;
+  width: 9.1ch; /* the extra .1 is just a bit of extra wiggle room, in case things aren't sized perfectly. */
+  line-height: 1;
+  max-height: 4lh;
+}
+.balance {
+  text-wrap: balance;
+}
+span { font-size: 2em; }
+</style>
+<p>Test passes if you see numbers up to 3 (and no further) below.
+
+<div class="clamp">
+0
+<div class=balance>
+1 2 <span>3</span> <span>4</span> 5 6 <span>999</span>
+</div>
+</div>
+
+<!--
+    Initially, we clamp 3lh worth of content,
+    which means 1 line of parent block, then two lines of the nested one:
+    the first one with some big numbers, and the second one with only small ones.
+    Then, when balancing, we move "4" to the second line,
+    which makes it no longer fit,
+    so that line gets clamped away too.
+-->

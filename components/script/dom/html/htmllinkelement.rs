@@ -407,12 +407,13 @@ impl VirtualMethods for HTMLLinkElement {
 }
 
 impl HTMLLinkElement {
-    fn compute_destination_for_attribute(&self) -> Destination {
+    fn compute_destination_for_attribute(&self) -> Option<Destination> {
+        // Let destination be the result of translating the keyword
+        // representing the state of el's as attribute.
         let element = self.upcast::<Element>();
         element
             .get_attribute(&ns!(), &local_name!("as"))
-            .map(|attr| translate_a_preload_destination(&attr.value()))
-            .unwrap_or(Destination::None)
+            .and_then(|attr| LinkProcessingOptions::translate_a_preload_destination(&attr.value()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#create-link-options-from-element>
@@ -423,11 +424,9 @@ impl HTMLLinkElement {
         let document = self.upcast::<Node>().owner_doc();
 
         // Step 2. Let options be a new link processing options
-        let destination = self.compute_destination_for_attribute();
-
         let mut options = LinkProcessingOptions {
             href: String::new(),
-            destination: Some(destination),
+            destination: Destination::None,
             integrity: String::new(),
             link_type: String::new(),
             cryptographic_nonce_metadata: self.upcast::<Element>().nonce_value(),
@@ -518,7 +517,7 @@ impl HTMLLinkElement {
         let mut options = self.processing_options();
 
         // Step 3. Set options's destination to the empty string.
-        options.destination = Some(Destination::None);
+        options.destination = Destination::None;
 
         // Step 4. Let request be the result of creating a link request given options.
         let Some(request) = options.create_link_request(self.owner_window().webview_id()) else {
@@ -781,7 +780,15 @@ impl HTMLLinkElement {
         // Step 1. Update the source set for el.
         // TODO
         // Step 2. Let options be the result of creating link options from el.
-        let options = self.processing_options();
+        let mut options = self.processing_options();
+        // Step 3. Let destination be the result of translating the keyword
+        // representing the state of el's as attribute.
+        let Some(destination) = self.compute_destination_for_attribute() else {
+            // Step 4. If destination is null, then return.
+            return;
+        };
+        // Step 5. Set options's destination to destination.
+        options.destination = destination;
         // Steps for https://html.spec.whatwg.org/multipage/#preload
         {
             // Step 1. If options's type doesn't match options's destination, then return.
@@ -791,7 +798,7 @@ impl HTMLLinkElement {
                 return;
             }
         }
-        // Step 3. Preload options, with the following steps given a response response:
+        // Step 6. Preload options, with the following steps given a response response:
         let Some(request) = options.preload(self.owner_window().webview_id()) else {
             return;
         };
@@ -992,18 +999,6 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
     // https://drafts.csswg.org/cssom/#dom-linkstyle-sheet
     fn GetSheet(&self, can_gc: CanGc) -> Option<DomRoot<DOMStyleSheet>> {
         self.get_cssom_stylesheet(can_gc).map(DomRoot::upcast)
-    }
-}
-
-/// <https://html.spec.whatwg.org/multipage/#translate-a-preload-destination>
-fn translate_a_preload_destination(potential_destination: &str) -> Destination {
-    match potential_destination {
-        "fetch" => Destination::None,
-        "font" => Destination::Font,
-        "image" => Destination::Image,
-        "script" => Destination::Script,
-        "track" => Destination::Track,
-        _ => Destination::None,
     }
 }
 

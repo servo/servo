@@ -105,6 +105,8 @@
       assert_equals(events2[0][0].contentBoxSize[0].blockSize, 1);
 
       assert_equals(getComputedStyle(element1).width, '100px');
+
+      await waitForNextFrame();
       assert_equals(getComputedStyle(element2).height, '100px');
     }, 'Multiple style/layout passes occur when necessary');
 </script>

@@ -110,9 +110,6 @@ def _windows(session, exclude=None):
     return set(wins)
 
 
-def clear_all_cookies(session):
-    """Removes all cookies associated with the current active document"""
-    session.transport.send("DELETE", "session/%s/cookie" % session.session_id)
 
 
 def deep_update(source, overrides):

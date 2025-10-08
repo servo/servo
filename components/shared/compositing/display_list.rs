@@ -7,6 +7,7 @@
 use std::cell::Cell;
 use std::collections::HashMap;
 
+use base::Epoch;
 use base::id::ScrollTreeNodeId;
 use base::print_tree::PrintTree;
 use bitflags::bitflags;
@@ -19,7 +20,7 @@ use servo_geometry::FastLayoutTransform;
 use style::values::specified::Overflow;
 use webrender_api::units::{LayoutPixel, LayoutPoint, LayoutRect, LayoutSize, LayoutVector2D};
 use webrender_api::{
-    Epoch, ExternalScrollId, PipelineId, ReferenceFrameKind, ScrollLocation, SpatialId,
+    ExternalScrollId, PipelineId, ReferenceFrameKind, ScrollLocation, SpatialId,
     StickyOffsetBounds, TransformStyle,
 };
 

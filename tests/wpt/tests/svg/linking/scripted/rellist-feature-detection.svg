@@ -11,7 +11,7 @@
     let link_support_table = {};
     // https://html.spec.whatwg.org/multipage/links.html#linkTypes
     link_support_table['a'] =  {
-    supported : ['noreferrer', 'noopener'],
+    supported : ['noreferrer', 'noopener', 'opener'],
     unsupported : ['author', 'bookmark', 'external', 'help', 'license',
                     'nofollow', 'pingback', 'prev', 'search', 'tag',
                     'modulepreload', 'preload', 'preconnect', 'dns-prefetch',

@@ -27,7 +27,7 @@ use crate::script_runtime::CanGc;
 pub(crate) struct MediaList {
     reflector_: Reflector,
     parent_stylesheet: Dom<CSSStyleSheet>,
-    #[ignore_malloc_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
     media_queries: RefCell<Arc<Locked<StyleMediaList>>>,
 }

@@ -103,7 +103,7 @@ pub(crate) struct TextDecoderStream {
     reflector_: Reflector,
 
     /// <https://encoding.spec.whatwg.org/#textdecodercommon>
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of]
     decoder: Rc<TextDecoderCommon>,
 
     /// <https://streams.spec.whatwg.org/#generictransformstream>

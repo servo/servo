@@ -69,6 +69,15 @@
 
     test(function() {
       let strokeAtOrigin = document.getElementById("circle-with-stroke-intersecting-origin");
+      assert_true(strokeAtOrigin.isPointInStroke(null));
+      assert_true(strokeAtOrigin.isPointInStroke(undefined));
+      let ellipse = document.getElementById("ellipse");
+      assert_false(ellipse.isPointInStroke(null));
+      assert_false(ellipse.isPointInStroke(undefined));
+    }, document.title + ", null/undefined.");
+
+    test(function() {
+      let strokeAtOrigin = document.getElementById("circle-with-stroke-intersecting-origin");
       assert_false(strokeAtOrigin.isPointInStroke({ x: NaN, y: 0 })), "x is NaN";
       assert_false(strokeAtOrigin.isPointInStroke({ x: Infinity, y: 0 }), "x is Infinity");
       assert_false(strokeAtOrigin.isPointInStroke({ x: -Infinity, y: 0 }), "x is -Infinity");

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Overflow: Scrollable Overflow Transform Zero Area Overflow</title>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable" />
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1990786" />
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+.transformed {
+  height: 0;
+  width: 0;
+  transform: rotate(89deg);
+  text-indent: 250px;
+}
+
+.transformed::after {
+  text-indent: 0;
+  content: "";
+}
+
+.outer {
+  width: 100px;
+  height: 100px;
+  overflow: hidden;
+  background: red;
+}
+
+.good {
+  width: 200px;
+  height: 200px;
+  background: green;
+}
+
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id=dut class=outer>
+  <div class=good></div>
+  <div class=transformed></div>
+</div>
+<script>
+dut.scrollTo(0, dut.scrollHeight)
+document.documentElement.classList.remove('reftest-wait');
+</script>
+</html>

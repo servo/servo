@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="helper.js" type="module"></script>
+
+<script type="module">
+  import { expireCookie, waitForCookie, addCookieAndSessionCleanup, configureServer, setupShardedServerState, documentHasCookie } from "./helper.js";
+
+  promise_test(async t => {
+    await setupShardedServerState();
+    const expectedCookieAndValue = "auth_cookie=abcdef0123";
+    const expectedCookieAndAttributes = `${expectedCookieAndValue};Domain=${location.hostname};Path=/device-bound-session-credentials`;
+    addCookieAndSessionCleanup(t);
+
+    // Configure server to send back a challenge before the session instructions.
+    await configureServer({
+      registrationSendsChallengeBeforeInstructions: true,
+      // Since registration fails, we use a cookie to tell us that the
+      // response was received.
+      registrationExtraCookies: [
+        {
+          nameAndValue: "dbsc_registration=done",
+        }
+      ]
+    });
+
+    // Prompt starting a session, and wait until registration completes.
+    const loginResponse = await fetch('login.py');
+    assert_equals(loginResponse.status, 200);
+    await waitForCookie("dbsc_registration=done", /*expectCookie=*/true);
+
+    // Confirm that expiring the cookie does not refresh because registration failed.
+    expireCookie(expectedCookieAndAttributes);
+    assert_false(documentHasCookie(expectedCookieAndValue));
+    const authResponseAfterExpiry = await fetch('verify_authenticated.py');
+    assert_equals(authResponseAfterExpiry.status, 403);
+    assert_false(documentHasCookie(expectedCookieAndValue));
+  }, "Registration can't send back 403 with challenge");
+
+  promise_test(async t => {
+    await setupShardedServerState();
+    const expectedCookieAndValue = "auth_cookie=abcdef0123";
+    const expectedCookieAndAttributes = `${expectedCookieAndValue};Domain=${location.hostname};Path=/device-bound-session-credentials`;
+    addCookieAndSessionCleanup(t);
+
+    // Configure server to send back a challenge alongside the session instructions.
+    await configureServer({
+      registrationSendsChallengeWithInstructions: true,
+      // Since registration fails, we use a cookie to tell us that the
+      // response was received.
+      registrationExtraCookies: [
+        {
+          nameAndValue: "dbsc_registration=done",
+        }
+      ]
+    });
+
+    // Prompt starting a session, and wait until registration completes.
+    const loginResponse = await fetch('login.py');
+    assert_equals(loginResponse.status, 200);
+    await waitForCookie("dbsc_registration=done", /*expectCookie=*/true);
+
+    // Confirm that expiring the cookie does a refresh because registration succeeded.
+    expireCookie(expectedCookieAndAttributes);
+    assert_false(documentHasCookie(expectedCookieAndValue));
+    const authResponseAfterExpiry = await fetch('verify_authenticated.py');
+    // The server verifies during refresh that the challenge value is the custom
+    // one set at registration time.
+    assert_equals(authResponseAfterExpiry.status, 200);
+    assert_true(documentHasCookie(expectedCookieAndValue));
+  }, "Registration can send back challenge with session instructions");
+</script>

@@ -54,21 +54,17 @@ interface MLContext {
 dictionary MLOpSupportLimits {
   MLInputOperandLayout preferredInputLayout;
   [EnforceRange] unsigned long long maxTensorByteLength;
-  MLDataTypeLimits input;
-  MLDataTypeLimits constant;
-  MLDataTypeLimits output;
-};
-
-typedef sequence<MLOperandDataType> MLDataTypeList;
-
-dictionary MLDataTypeLimits {
-  MLDataTypeList dataTypes;
+  MLTensorLimits input;
+  MLTensorLimits constant;
+  MLTensorLimits output;
 };
 
 dictionary MLRankRange {
   unsigned long min;
   unsigned long max;
 };
+
+typedef sequence<MLOperandDataType> MLDataTypeList;
 
 dictionary MLTensorLimits {
   MLDataTypeList dataTypes;
@@ -78,12 +74,12 @@ dictionary MLTensorLimits {
 dictionary MLBinarySupportLimits {
   MLTensorLimits a;
   MLTensorLimits b;
-  MLDataTypeLimits output;
+  MLTensorLimits output;
 };
 
 dictionary MLSingleInputSupportLimits {
   MLTensorLimits input;
-  MLDataTypeLimits output;
+  MLTensorLimits output;
 };
 
 [SecureContext, Exposed=(Window, Worker)]
@@ -199,7 +195,7 @@ dictionary MLBatchNormalizationSupportLimits {
   MLTensorLimits variance;
   MLTensorLimits scale;
   MLTensorLimits bias;
-  MLDataTypeLimits output;
+  MLTensorLimits output;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -237,7 +233,7 @@ partial interface MLGraphBuilder {
 
 dictionary MLConcatSupportLimits {
   MLTensorLimits inputs;
-  MLDataTypeLimits output;
+  MLTensorLimits output;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -271,7 +267,7 @@ dictionary MLConv2dSupportLimits {
   MLTensorLimits input;
   MLTensorLimits filter;
   MLTensorLimits bias;
-  MLDataTypeLimits output;
+  MLTensorLimits output;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -375,7 +371,7 @@ partial interface MLGraphBuilder {
 
 dictionary MLLogicalNotSupportLimits {
   MLTensorLimits a;
-  MLDataTypeLimits output;
+  MLTensorLimits output;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -440,7 +436,7 @@ dictionary MLQuantizeDequantizeLinearSupportLimits {
   MLTensorLimits input;
   MLTensorLimits scale;
   MLTensorLimits zeroPoint;
-  MLDataTypeLimits output;
+  MLTensorLimits output;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -493,7 +489,7 @@ partial interface MLGraphBuilder {
 dictionary MLGatherSupportLimits {
   MLTensorLimits input;
   MLTensorLimits indices;
-  MLDataTypeLimits output;
+  MLTensorLimits output;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -544,7 +540,7 @@ dictionary MLGemmSupportLimits {
   MLTensorLimits a;
   MLTensorLimits b;
   MLTensorLimits c;
-  MLDataTypeLimits output;
+  MLTensorLimits output;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -595,7 +591,8 @@ dictionary MLGruSupportLimits {
   MLTensorLimits bias;
   MLTensorLimits recurrentBias;
   MLTensorLimits initialHiddenState;
-  MLDataTypeLimits outputs;
+  MLTensorLimits output0;
+  MLTensorLimits output1;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -626,7 +623,7 @@ dictionary MLGruCellSupportLimits {
   MLTensorLimits hiddenState;
   MLTensorLimits bias;
   MLTensorLimits recurrentBias;
-  MLDataTypeLimits output;
+  MLTensorLimits output;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -662,15 +659,16 @@ dictionary MLInstanceNormalizationOptions : MLOperatorOptions {
 };
 
 partial interface MLGraphBuilder {
-  MLOperand instanceNormalization(MLOperand input,
-                                  optional MLInstanceNormalizationOptions options = {});
+  MLOperand instanceNormalization(
+    MLOperand input,
+    optional MLInstanceNormalizationOptions options = {});
 };
 
 dictionary MLNormalizationSupportLimits {
   MLTensorLimits input;
   MLTensorLimits scale;
   MLTensorLimits bias;
-  MLDataTypeLimits output;
+  MLTensorLimits output;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -753,7 +751,9 @@ dictionary MLLstmSupportLimits {
   MLTensorLimits peepholeWeight;
   MLTensorLimits initialHiddenState;
   MLTensorLimits initialCellState;
-  MLDataTypeLimits outputs;
+  MLTensorLimits output0;
+  MLTensorLimits output1;
+  MLTensorLimits output2;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -787,7 +787,8 @@ dictionary MLLstmCellSupportLimits {
   MLTensorLimits bias;
   MLTensorLimits recurrentBias;
   MLTensorLimits peepholeWeight;
-  MLDataTypeLimits outputs;
+  MLTensorLimits output0;
+  MLTensorLimits output1;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -835,7 +836,7 @@ dictionary MLPool2dOptions : MLOperatorOptions {
   sequence<[EnforceRange] unsigned long> strides;
   sequence<[EnforceRange] unsigned long> dilations;
   MLInputOperandLayout layout = "nchw";
-  MLRoundingType roundingType = "floor";
+  MLRoundingType outputShapeRounding = "floor";
   sequence<[EnforceRange] unsigned long> outputSizes;
 };
 
@@ -860,7 +861,7 @@ partial interface MLGraphBuilder {
 dictionary MLPreluSupportLimits {
   MLTensorLimits input;
   MLTensorLimits slope;
-  MLDataTypeLimits output;
+  MLTensorLimits output;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -963,7 +964,7 @@ dictionary MLScatterSupportLimits {
   MLTensorLimits input;
   MLTensorLimits indices;
   MLTensorLimits updates;
-  MLDataTypeLimits output;
+  MLTensorLimits output;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -1043,7 +1044,7 @@ partial interface MLGraphBuilder {
 
 dictionary MLSplitSupportLimits {
   MLTensorLimits input;
-  MLDataTypeLimits outputs;
+  MLTensorLimits outputs;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -1104,7 +1105,7 @@ dictionary MLWhereSupportLimits {
   MLTensorLimits condition;
   MLTensorLimits trueValue;
   MLTensorLimits falseValue;
-  MLDataTypeLimits output;
+  MLTensorLimits output;
 };
 
 partial dictionary MLOpSupportLimits {

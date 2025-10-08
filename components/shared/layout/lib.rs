@@ -241,9 +241,6 @@ pub trait Layout {
     /// resolve font metrics.
     fn device(&self) -> &Device;
 
-    /// The currently laid out Epoch that this Layout has finished.
-    fn current_epoch(&self) -> Epoch;
-
     /// Load all fonts from the given stylesheet, returning the number of fonts that
     /// need to be loaded.
     fn load_web_fonts_from_stylesheet(&self, stylesheet: ServoArc<Stylesheet>);
@@ -519,14 +516,17 @@ bitflags! {
         const BuiltStackingContextTree = 1 << 2;
         const BuiltDisplayList = 1 << 3;
         const UpdatedScrollNodeOffset = 1 << 4;
-        const UpdatedCanvasContents = 1 << 5;
+        /// Image data for a WebRender image key has been updated, without necessarily
+        /// updating style or layout. This is used when updating canvas contents and
+        /// progressing to a new animated image frame.
+        const UpdatedImageData = 1 << 5;
     }
 }
 
 impl ReflowPhasesRun {
     pub fn needs_frame(&self) -> bool {
         self.intersects(
-            Self::BuiltDisplayList | Self::UpdatedScrollNodeOffset | Self::UpdatedCanvasContents,
+            Self::BuiltDisplayList | Self::UpdatedScrollNodeOffset | Self::UpdatedImageData,
         )
     }
 }
@@ -550,6 +550,8 @@ pub struct ReflowRequestRestyle {
 pub struct ReflowRequest {
     /// The document node.
     pub document: TrustedNodeAddress,
+    /// The current layout [`Epoch`] managed by the script thread.
+    pub epoch: Epoch,
     /// If a restyle is necessary, all of the informatio needed to do that restyle.
     pub restyle: Option<ReflowRequestRestyle>,
     /// The current [`ViewportDetails`] to use for this reflow.
@@ -653,7 +655,7 @@ pub fn node_id_from_scroll_id(id: usize) -> Option<usize> {
 
 #[derive(Clone, Debug, MallocSizeOf)]
 pub struct ImageAnimationState {
-    #[ignore_malloc_size_of = "Arc is hard"]
+    #[ignore_malloc_size_of = "RasterImage"]
     pub image: Arc<RasterImage>,
     pub active_frame: usize,
     frame_start_time: f64,

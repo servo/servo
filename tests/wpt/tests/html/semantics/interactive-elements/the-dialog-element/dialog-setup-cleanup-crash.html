@@ -1,0 +1,19 @@
+<!doctype html>
+<link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+<link rel="help" href="https://html.spec.whatwg.org/#the-dialog-element" />
+
+<!-- This test passes if it does not crash. -->
+
+<iframe src="./resources/showmodal-frame.html"></iframe>
+
+<script>
+  new Promise((resolve) => (window.loaded = resolve)).then(() => {
+    const iframe = document.body.querySelector("iframe");
+    const iframeDoc = iframe.contentDocument;
+    iframe.remove();
+    iframeDoc.querySelector("dialog").close();
+    iframeDoc.querySelector("dialog").setAttribute("open", "");
+    document.body.append(iframe);
+    iframeDoc.querySelector("dialog").show();
+  });
+</script>

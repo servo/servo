@@ -62,6 +62,10 @@ impl Location {
     }
 
     /// Navigate the relevant `Document`'s browsing context.
+    ///
+    /// This is ostensibly an implementation of
+    /// <https://html.spec.whatwg.org/multipage/#navigate>, but the specification has
+    /// greatly deviated from our code.
     pub(crate) fn navigate(
         &self,
         url: ServoUrl,
@@ -127,6 +131,7 @@ impl Location {
             None, // Top navigation doesn't inherit secure context
             Some(source_document.insecure_requests_policy()),
             source_document.has_trustworthy_ancestor_origin(),
+            source_document.creation_sandboxing_flag_set_considering_parent_iframe(),
         );
         self.window
             .load_url(history_handling, reload_triggered, load_data, can_gc);

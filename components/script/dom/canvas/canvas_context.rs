@@ -12,7 +12,7 @@ use webrender_api::ImageKey;
 
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::node::{Node, NodeDamage};
+use crate::dom::node::Node;
 #[cfg(feature = "webgpu")]
 use crate::dom::types::GPUCanvasContext;
 use crate::dom::types::{
@@ -95,13 +95,7 @@ pub(crate) trait CanvasContext {
             .unwrap_or_default()
     }
 
-    fn mark_as_dirty(&self) {
-        if let Some(RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas)) =
-            self.canvas()
-        {
-            canvas.upcast::<Node>().dirty(NodeDamage::Other);
-        }
-    }
+    fn mark_as_dirty(&self);
 
     /// The WebRender [`ImageKey`] of this [`CanvasContext`] if any.
     fn image_key(&self) -> Option<ImageKey>;

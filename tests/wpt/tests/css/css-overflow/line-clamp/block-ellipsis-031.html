@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: block-ellipsis and line-end preserved spaces</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="reference/block-ellipsis-031-ref.html">
+<meta name="assert" content="Preserved spaces at the end of a line will not be collapsed before the block-ellipsis">
+<style>
+.clamp {
+  line-clamp: 2;
+  width: 63.1ch;
+  border: 1px solid black;
+  font-family: monospace;
+}
+span {
+  white-space: pre;
+}
+</style>
+<div class="clamp">This time, Mark, who had always been the center of attention in
+any social gathering, <span>walked into the room  </span> uncharacteristically
+quietly, barely speaking as he settled into a chair.
+When asked, he said that he was fine, when he wasn't really fine.</div>

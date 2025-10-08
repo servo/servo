@@ -27,10 +27,17 @@
 test(() => {
   for (let element of document.querySelectorAll("input, textarea")) {
     let description = `${element.nodeName} ${element.className}: `;
-    assert_equals(element.clientWidth, 304, description + "clientWidth should be the padding box");
-    assert_equals(element.clientHeight, 204, description + "clientHeight should be the padding box");
+    assert_equals(element.clientHeight, 204, description + "clientHeight should be the padding box height");
     assert_equals(element.clientTop, 10, description + "clientTop should include the border offset");
-    assert_equals(element.clientLeft, 20, description + "clientLeft should include the border offset");
+    // <input> clips to the content box edge in the inline axis, so it should also include the padding offset.
+    let expectedLeft = 20;
+    let expectedWidth = 304;
+    if (element.nodeName == "INPUT") {
+      expectedLeft += 2;
+      expectedWidth -= 4;
+    }
+    assert_equals(element.clientWidth, expectedWidth, description + "clientWidth should be the padding box for textarea, content box for input");
+    assert_equals(element.clientLeft, expectedLeft, description + "clientLeft should include the border offset for textarea and border + padding for input");
   }
 }, "client* on input / textarea");
 </script>

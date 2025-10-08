@@ -117,13 +117,13 @@ use compositing_traits::{
 };
 use constellation_traits::{
     AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, DocumentState,
-    EmbedderToConstellationMessage, IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState,
-    IFrameSizeMsg, Job, LoadData, LoadOrigin, LogEntry, MessagePortMsg, NavigationHistoryBehavior,
-    PaintMetricEvent, PortMessageTask, PortTransferInfo, SWManagerMsg, SWManagerSenders,
-    ScreenshotReadinessResponse, ScriptToConstellationChan, ScriptToConstellationMessage,
-    ServiceWorkerManagerFactory, ServiceWorkerMsg, StructuredSerializedData, TraversalDirection,
-    WindowSizeType,
+    EmbedderToConstellationMessage, IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSizeMsg, Job,
+    LoadData, LoadOrigin, LogEntry, MessagePortMsg, NavigationHistoryBehavior, PaintMetricEvent,
+    PortMessageTask, PortTransferInfo, SWManagerMsg, SWManagerSenders, ScreenshotReadinessResponse,
+    ScriptToConstellationChan, ScriptToConstellationMessage, ServiceWorkerManagerFactory,
+    ServiceWorkerMsg, StructuredSerializedData, TraversalDirection, WindowSizeType,
 };
+use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::{Receiver, Select, Sender, unbounded};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, NavigationState,
@@ -927,7 +927,6 @@ where
         // and ipc channels take onership of their data.
         // https://github.com/servo/ipc-channel/issues/138
         load_data: LoadData,
-        sandbox: IFrameSandboxState,
         is_private: bool,
         throttled: bool,
     ) {
@@ -949,44 +948,44 @@ where
             pipeline_id, browsing_context_id
         );
 
-        let (event_loop, host) = match sandbox {
-            IFrameSandboxState::IFrameSandboxed => (None, None),
-            IFrameSandboxState::IFrameUnsandboxed => {
-                // If this is an about:blank or about:srcdoc load, it must share the creator's
-                // event loop. This must match the logic in the script thread when determining
-                // the proper origin.
-                if load_data.url.as_str() != "about:blank" &&
-                    load_data.url.as_str() != "about:srcdoc"
-                {
-                    match reg_host(&load_data.url) {
-                        None => (None, None),
-                        Some(host) => match self.get_event_loop(&host, &webview_id, &opener) {
-                            Err(err) => {
-                                warn!("{}", err);
-                                (None, Some(host))
-                            },
-                            Ok(event_loop) => {
-                                if let Some(event_loop) = event_loop.upgrade() {
-                                    (Some(event_loop), None)
-                                } else {
-                                    (None, Some(host))
-                                }
-                            },
+        let (event_loop, host) = if !load_data
+            .creation_sandboxing_flag_set
+            .contains(SandboxingFlagSet::SANDBOXED_ORIGIN_BROWSING_CONTEXT_FLAG)
+        {
+            // If this is an about:blank or about:srcdoc load, it must share the creator's
+            // event loop. This must match the logic in the script thread when determining
+            // the proper origin.
+            if load_data.url.as_str() != "about:blank" && load_data.url.as_str() != "about:srcdoc" {
+                match reg_host(&load_data.url) {
+                    None => (None, None),
+                    Some(host) => match self.get_event_loop(&host, &webview_id, &opener) {
+                        Err(err) => {
+                            warn!("{}", err);
+                            (None, Some(host))
                         },
-                    }
-                } else if let Some(parent) =
-                    parent_pipeline_id.and_then(|pipeline_id| self.pipelines.get(&pipeline_id))
-                {
-                    (Some(parent.event_loop.clone()), None)
-                } else if let Some(creator) = load_data
-                    .creator_pipeline_id
-                    .and_then(|pipeline_id| self.pipelines.get(&pipeline_id))
-                {
-                    (Some(creator.event_loop.clone()), None)
-                } else {
-                    (None, None)
+                        Ok(event_loop) => {
+                            if let Some(event_loop) = event_loop.upgrade() {
+                                (Some(event_loop), None)
+                            } else {
+                                (None, Some(host))
+                            }
+                        },
+                    },
                 }
-            },
+            } else if let Some(parent) =
+                parent_pipeline_id.and_then(|pipeline_id| self.pipelines.get(&pipeline_id))
+            {
+                (Some(parent.event_loop.clone()), None)
+            } else if let Some(creator) = load_data
+                .creator_pipeline_id
+                .and_then(|pipeline_id| self.pipelines.get(&pipeline_id))
+            {
+                (Some(creator.event_loop.clone()), None)
+            } else {
+                (None, None)
+            }
+        } else {
+            (None, None)
         };
 
         let resource_threads = if is_private {
@@ -1432,6 +1431,7 @@ where
                     None,
                     None,
                     false,
+                    SandboxingFlagSet::empty(),
                 );
                 let ctx_id = BrowsingContextId::from(webview_id);
                 let pipeline_id = match self.browsing_contexts.get(&ctx_id) {
@@ -2888,10 +2888,10 @@ where
                     .map(|b| format!("{}\n{}", reason, b))
                     .unwrap_or(reason),
             ),
+            creation_sandboxing_flag_set: SandboxingFlagSet::all(),
             ..old_load_data.clone()
         };
 
-        let sandbox = IFrameSandboxState::IFrameSandboxed;
         let is_private = false;
         self.new_pipeline(
             new_pipeline_id,
@@ -2901,7 +2901,6 @@ where
             opener,
             viewport_details,
             new_load_data,
-            sandbox,
             is_private,
             throttled,
         );
@@ -2963,7 +2962,7 @@ where
         };
 
         match event.action {
-            MouseButtonAction::Click | MouseButtonAction::Down => {
+            MouseButtonAction::Down => {
                 self.pressed_mouse_buttons |= button_as_bitmask;
             },
             MouseButtonAction::Up => {
@@ -3028,13 +3027,6 @@ where
         let pressed_mouse_buttons = self.pressed_mouse_buttons;
         let active_keyboard_modifiers = self.active_keyboard_modifiers;
 
-        // TODO: Click should be handled internally in the `Document`.
-        if let InputEvent::MouseButton(event) = &event {
-            if event.action == MouseButtonAction::Click {
-                self.pressed_mouse_buttons = 0;
-            }
-        }
-
         let Some(webview) = self.webviews.get_mut(webview_id) else {
             warn!("Got input event for unknown WebViewId: {webview_id:?}");
             return;
@@ -3067,8 +3059,8 @@ where
             None,
             None,
             false,
+            SandboxingFlagSet::empty(),
         );
-        let sandbox = IFrameSandboxState::IFrameUnsandboxed;
         let is_private = false;
         let throttled = false;
 
@@ -3094,7 +3086,6 @@ where
             None,
             viewport_details,
             load_data,
-            sandbox,
             is_private,
             throttled,
         );
@@ -3318,7 +3309,6 @@ where
             None,
             browsing_context_size,
             load_info.load_data,
-            load_info.sandbox,
             is_private,
             browsing_context_throttled,
         );
@@ -3715,7 +3705,6 @@ where
                 };
 
                 let new_pipeline_id = PipelineId::new();
-                let sandbox = IFrameSandboxState::IFrameUnsandboxed;
                 self.new_pipeline(
                     new_pipeline_id,
                     browsing_context_id,
@@ -3724,7 +3713,6 @@ where
                     opener,
                     viewport_details,
                     load_data,
-                    sandbox,
                     is_private,
                     is_throttled,
                 );
@@ -3973,8 +3961,6 @@ where
                     browsing_context_id, pipeline_id,
                 );
 
-                // TODO: Save the sandbox state so it can be restored here.
-                let sandbox = IFrameSandboxState::IFrameUnsandboxed;
                 let (
                     top_level_id,
                     old_pipeline_id,
@@ -4006,7 +3992,6 @@ where
                     opener,
                     viewport_details,
                     load_data.clone(),
-                    sandbox,
                     is_private,
                     throttled,
                 );

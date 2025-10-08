@@ -104,17 +104,17 @@
   test_position_area("y-end center", {left:100, top:225, width:150, height:175});
   test_position_area("y-end x-end", {left:250, top:225, width:150, height:175});
 
-  test_position_area("y-self-start x-self-start", {left:0, top:0, width:100, height:150});
-  test_position_area("y-self-start center", {left:100, top:0, width:150, height:150});
-  test_position_area("y-self-start x-self-end", {left:250, top:0, width:150, height:150});
-  test_position_area("center x-self-start", {left:0, top:150, width:100, height:75});
-  test_position_area("center x-self-end", {left:250, top:150, width:150, height:75});
-  test_position_area("y-self-end x-self-start", {left:0, top:225, width:100, height:175});
-  test_position_area("y-self-end center", {left:100, top:225, width:150, height:175});
-  test_position_area("y-self-end x-self-end", {left:250, top:225, width:150, height:175});
+  test_position_area("self-y-start self-x-start", {left:0, top:0, width:100, height:150});
+  test_position_area("self-y-start center", {left:100, top:0, width:150, height:150});
+  test_position_area("self-y-start self-x-end", {left:250, top:0, width:150, height:150});
+  test_position_area("center self-x-start", {left:0, top:150, width:100, height:75});
+  test_position_area("center self-x-end", {left:250, top:150, width:150, height:75});
+  test_position_area("self-y-end self-x-start", {left:0, top:225, width:100, height:175});
+  test_position_area("self-y-end center", {left:100, top:225, width:150, height:175});
+  test_position_area("self-y-end self-x-end", {left:250, top:225, width:150, height:175});
 
   // Multi-region spans
-  test_position_area("span-y-self-start span-x-self-end", {left:100, top:0, width:300, height:225});
+  test_position_area("span-self-y-start span-self-x-end", {left:100, top:0, width:300, height:225});
   test_position_area("span-bottom span-all", {left:0, top:150, width:400, height:250});
 
   // No implicit anchor means the position-area should not apply.

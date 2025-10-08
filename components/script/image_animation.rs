@@ -70,12 +70,11 @@ impl ImageAnimationManager {
             return;
         }
 
-        let rooted_nodes = self.rooted_nodes.borrow();
         let updates = self
             .node_to_image_map
             .write()
-            .iter_mut()
-            .filter_map(|(node, state)| {
+            .values_mut()
+            .filter_map(|state| {
                 if !state.update_frame_for_animation_timeline_value(now) {
                     return None;
                 }
@@ -85,9 +84,6 @@ impl ImageAnimationManager {
                     .frame(state.active_frame)
                     .expect("active_frame should within range of frames");
 
-                if let Some(node) = rooted_nodes.get(&NoTrace(*node)) {
-                    node.dirty(crate::dom::node::NodeDamage::Other);
-                }
                 Some(ImageUpdate::UpdateImage(
                     image.id.unwrap(),
                     ImageDescriptor {

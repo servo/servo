@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Behavior-first requirement validation</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/focusgroup-utils.js"></script>
+
+<!-- Valid behavior-first examples -->
+<div id=valid1 focusgroup="toolbar">
+  <span id=item1 tabindex=0>item1</span>
+  <span id=item2 tabindex=-1>item2</span>
+</div>
+
+<div id=valid2 focusgroup="tablist inline">
+  <span id=item3 tabindex=0>item3</span>
+  <span id=item4 tabindex=-1>item4</span>
+</div>
+
+<div id=valid3 focusgroup="radiogroup wrap">
+  <span id=item5 tabindex=0>item5</span>
+  <span id=item6 tabindex=-1>item6</span>
+</div>
+
+<!-- Invalid behavior-first examples (should be ignored) -->
+<div id=invalid1 focusgroup="">
+  <span id=item7 tabindex=0>item7</span>
+  <span id=item8 tabindex=-1>item8</span>
+</div>
+
+<div id=invalid2 focusgroup="inline">
+  <span id=item9 tabindex=0>item9</span>
+  <span id=item10 tabindex=-1>item10</span>
+</div>
+
+<div id=invalid3 focusgroup="wrap">
+  <span id=item11 tabindex=0>item11</span>
+  <span id=item12 tabindex=-1>item12</span>
+</div>
+
+<script>
+  promise_test(async t => {
+    // Valid behavior-first syntax should enable focusgroup navigation
+    var item1 = document.getElementById("item1");
+    var item2 = document.getElementById("item2");
+
+    await focusAndKeyPress(item1, kArrowRight);
+    assert_equals(document.activeElement, item2, "Valid 'toolbar' behavior should enable navigation");
+  }, "Valid behavior-first token 'toolbar' enables focusgroup navigation");
+
+  promise_test(async t => {
+    var item3 = document.getElementById("item3");
+    var item4 = document.getElementById("item4");
+
+    await focusAndKeyPress(item3, kArrowRight);
+    assert_equals(document.activeElement, item4, "Valid 'tablist inline' behavior should enable navigation");
+  }, "Valid behavior-first token 'tablist' with modifier enables focusgroup navigation");
+
+  promise_test(async t => {
+    var item5 = document.getElementById("item5");
+    var item6 = document.getElementById("item6");
+
+    await focusAndKeyPress(item5, kArrowRight);
+    assert_equals(document.activeElement, item6, "Valid 'radiogroup wrap' behavior should enable navigation");
+  }, "Valid behavior-first token 'radiogroup' with modifier enables focusgroup navigation");
+
+  promise_test(async t => {
+    // Invalid behavior-first syntax should NOT enable focusgroup navigation
+    var item7 = document.getElementById("item7");
+    var item8 = document.getElementById("item8");
+
+    await focusAndKeyPress(item7, kArrowRight);
+    assert_equals(document.activeElement, item7, "Empty focusgroup attribute should not enable navigation");
+  }, "Empty focusgroup attribute is rejected and does not enable navigation");
+
+  promise_test(async t => {
+    var item9 = document.getElementById("item9");
+    var item10 = document.getElementById("item10");
+
+    await focusAndKeyPress(item9, kArrowRight);
+    assert_equals(document.activeElement, item9, "Invalid first token 'inline' should not enable navigation");
+  }, "Invalid first token 'inline' is rejected and does not enable navigation");
+
+  promise_test(async t => {
+    var item11 = document.getElementById("item11");
+    var item12 = document.getElementById("item12");
+
+    await focusAndKeyPress(item11, kArrowRight);
+    assert_equals(document.activeElement, item11, "Invalid first token 'wrap' should not enable navigation");
+  }, "Invalid first token 'wrap' is rejected and does not enable navigation");
+</script>

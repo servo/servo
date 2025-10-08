@@ -6,6 +6,7 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 
 use base::id::{BrowsingContextId, WebViewId};
+use rustc_hash::FxHashSet;
 use serde_json::{Map, Value, json};
 use uuid::Uuid;
 use webdriver::error::WebDriverResult;
@@ -127,6 +128,16 @@ impl WebDriverSession {
 
     pub fn input_state_table_mut(&self) -> RefMut<'_, HashMap<String, InputSourceState>> {
         self.input_state_table.borrow_mut()
+    }
+
+    pub fn pointer_ids(&self) -> FxHashSet<u32> {
+        self.input_state_table()
+            .values()
+            .filter_map(|source| match source {
+                InputSourceState::Pointer(pointer_state) => Some(pointer_state.pointer_id),
+                _ => None,
+            })
+            .collect()
     }
 
     pub fn input_cancel_list_mut(&self) -> RefMut<'_, Vec<(String, ActionItem)>> {

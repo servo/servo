@@ -24,11 +24,11 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 pub struct WritableStreamDefaultWriter {
     reflector_: Reflector,
 
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of]
     ready_promise: RefCell<Rc<Promise>>,
 
     /// <https://streams.spec.whatwg.org/#writablestreamdefaultwriter-closedpromise>
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of]
     closed_promise: RefCell<Rc<Promise>>,
 
     /// <https://streams.spec.whatwg.org/#writablestreamdefaultwriter-stream>

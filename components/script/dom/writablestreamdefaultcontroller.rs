@@ -146,11 +146,11 @@ impl js::gc::Rootable for TransferBackPressurePromiseReaction {}
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct TransferBackPressurePromiseReaction {
     /// The result of reacting to backpressurePromise.
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of]
     result_promise: Rc<Promise>,
 
     /// The backpressurePromise.
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[ignore_malloc_size_of = "nested Rc"]
     backpressure_promise: Rc<RefCell<Option<Rc<Promise>>>>,
 
     /// The chunk received by the `writeAlgorithm`.
@@ -335,7 +335,7 @@ pub struct WritableStreamDefaultController {
     strategy_hwm: f64,
 
     /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-strategysizealgorithm>
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[ignore_malloc_size_of = "QueuingStrategySize"]
     strategy_size: RefCell<Option<Rc<QueuingStrategySize>>>,
 
     /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-stream>

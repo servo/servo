@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<title>Computed style honors the grid track direction when it changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.masonry {
+    display: masonry;
+    grid-template-columns: 100px 100px;
+    grid-template-rows: 100px 100px 100px;
+}
+</style>
+<div class="masonry"></div>
+<script>
+  test(function() {
+    const container = document.querySelector('.masonry');
+    const computedStyle = window.getComputedStyle(container);
+    assert_equals(computedStyle.getPropertyValue('grid-template-columns'),
+      "100px 100px");
+
+    container.style.masonryDirection = 'row';
+    const computedStyleAfter = window.getComputedStyle(container);
+    assert_equals(computedStyleAfter.getPropertyValue('grid-template-rows'),
+      "100px 100px 100px");
+  });
+</script>
+</html>

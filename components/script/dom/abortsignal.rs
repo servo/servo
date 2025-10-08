@@ -26,7 +26,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::readablestream::PipeTo;
-use crate::fetch::FetchContext;
+use crate::fetch::{DeferredFetchRecord, FetchContext};
 use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -48,6 +48,12 @@ pub(crate) enum AbortAlgorithm {
         #[no_trace]
         #[conditional_malloc_size_of]
         Arc<Mutex<FetchContext>>,
+    ),
+    /// <https://fetch.spec.whatwg.org/#dom-window-fetchlater>
+    FetchLater(
+        #[no_trace]
+        #[conditional_malloc_size_of]
+        Arc<Mutex<DeferredFetchRecord>>,
     ),
 }
 
@@ -189,6 +195,9 @@ impl AbortSignal {
                     .lock()
                     .unwrap()
                     .abort_fetch(reason.handle(), cx, can_gc);
+            },
+            AbortAlgorithm::FetchLater(deferred_fetch_record) => {
+                deferred_fetch_record.lock().unwrap().abort();
             },
             AbortAlgorithm::DomEventListener(removable_listener) => {
                 removable_listener

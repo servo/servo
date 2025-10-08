@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: Transition in a hidden page</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<script src="../page-visibility/resources/window_state_context.js"></script>
+<script>
+let watcherDone = new Event("watcherdone");
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+let testName = "Ensures that the XRSession's visibilityState is correctly "
+  + "reported and that the associated visibilitychange event fires for "
+  + "non-immersive sessions.";
+
+promise_test(
+  async (setup) => {
+    xr_session_promise_test(
+      testName,
+      (session, fakeDeviceController, t) => {
+        let wsc = null;
+        let eventWatcher = new EventWatcher(
+          t, session, ["visibilitychange", "watcherdone"]);
+        let eventPromise = eventWatcher.wait_for(
+          ["visibilitychange", "visibilitychange", "watcherdone"]);
+
+        async function showDocument() {
+          await wsc.restore();
+        }
+
+        async function hideDocument() {
+          wsc = window_state_context(t);
+          await wsc.minimize();
+        }
+
+        function onSessionVisibilityChangeVisible(event) {
+          t.step( () => {
+            assert_equals(session.visibilityState, "visible");
+          });
+          t.step_timeout(()=>{
+            session.dispatchEvent(watcherDone);
+          }, 300);
+        }
+
+        function onSessionVisibilityChangeHidden(event) {
+          t.step( () => {
+            assert_equals(session.visibilityState, "hidden");
+          });
+          session.removeEventListener("visibilitychange", onSessionVisibilityChangeHidden, false);
+          session.addEventListener("visibilitychange", onSessionVisibilityChangeVisible, false);
+          showDocument();
+        }
+
+        assert_equals(session.visibilityState, "visible");
+
+        session.addEventListener("visibilitychange", onSessionVisibilityChangeHidden, false);
+        hideDocument();
+
+        return eventPromise;
+      },
+      fakeDeviceInitParams, 'inline'
+    );
+  },
+  "setup"
+);
+</script>
+</body>
+</html>

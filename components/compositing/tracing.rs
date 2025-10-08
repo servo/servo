@@ -39,6 +39,7 @@ mod from_constellation {
                 Self::PipelineExited(..) => target!("PipelineExited"),
                 Self::SendInitialTransaction(..) => target!("SendInitialTransaction"),
                 Self::SendScrollNode(..) => target!("SendScrollNode"),
+                Self::UpdateEpoch { .. } => target!("UpdateEpoch"),
                 Self::SendDisplayList { .. } => target!("SendDisplayList"),
                 Self::GenerateFrame { .. } => target!("GenerateFrame"),
                 Self::GenerateImageKey(..) => target!("GenerateImageKey"),

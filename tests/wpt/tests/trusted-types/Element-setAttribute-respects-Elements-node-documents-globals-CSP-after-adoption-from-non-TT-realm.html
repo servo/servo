@@ -25,6 +25,7 @@
     <script>
       const passThroughPolicy = trustedTypes.createPolicy("passThrough", {
         createHTML: (s) => s,
+        createScript: (s) => s,
       });
 
       function runTest(aTestElement) {
@@ -111,10 +112,17 @@
                 // invokes <https://www.w3.org/TR/trusted-types/#validate-attribute-mutation>.
                 // The latter should throw when executing step 5.
 
-                assert_throws_js(TypeError, () => {
+                // There are cross-browser differences about which realm a node returned
+                // by Document.adoptNode belongs to. Here, we expect that Trusted Types will
+                // throw a exception from sourceElement's realm, but without
+                // taking a stance about whether this should be the window's or the iframe's
+                // realm.
+                // Discussion at: https://github.com/web-platform-tests/wpt/issues/45405
+                const expectedTypeError = new sourceElement.constructor.constructor(passThroughPolicy.createScript("return TypeError"))();
+                assert_throws_js(expectedTypeError, () => {
                   sourceElement.setAttributeNode(sourceAttr);
                 });
-                assert_throws_js(TypeError, () => {
+                assert_throws_js(expectedTypeError, () => {
                   sourceElement.setAttributeNS(
                     sourceAttr.namespaceURI,
                     sourceAttr.name,

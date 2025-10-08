@@ -342,17 +342,6 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoomEnd<'local>(
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_click(
-    mut env: JNIEnv,
-    _: JClass,
-    x: jfloat,
-    y: jfloat,
-) {
-    debug!("click");
-    call(&mut env, |s| s.click(x, y));
-}
-
-#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_pauseCompositor(
     mut env: JNIEnv,
     _: JClass<'_>,
