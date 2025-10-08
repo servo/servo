@@ -6,7 +6,7 @@ use embedder_traits::WebDriverScriptCommand;
 use ipc_channel::ipc;
 use serde_json::Value;
 use webdriver::command::JavascriptCommandParameters;
-use webdriver::error::{WebDriverError, WebDriverResult};
+use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 
 use crate::{Handler, VerifyBrowsingContextIsOpen, wait_for_ipc_response};
 
@@ -133,7 +133,12 @@ impl Handler {
                     .collect::<WebDriverResult<Vec<String>>>()?;
                 format!("{{{}}}", elems.join(", "))
             },
-            _ => serde_json::to_string(v).unwrap(),
+            _ => serde_json::to_string(v).map_err(|_| {
+                WebDriverError::new(
+                    ErrorStatus::InvalidArgument,
+                    "Failed to serialize script argument",
+                )
+            })?,
         };
 
         Ok(res)
