@@ -49,7 +49,7 @@ use webrender_api::units::{
 use webrender_api::{
     self, BuiltDisplayList, DirtyRect, DisplayListPayload, DocumentId, Epoch as WebRenderEpoch,
     ExternalScrollId, FontInstanceFlags, FontInstanceKey, FontInstanceOptions, FontKey,
-    FontVariation, HitTestFlags, ImageKey, PipelineId as WebRenderPipelineId, PropertyBinding,
+    FontVariation, ImageKey, PipelineId as WebRenderPipelineId, PropertyBinding,
     ReferenceFrameKind, RenderReasons, SampledScrollOffset, ScrollLocation, SpaceAndClipInfo,
     SpatialId, SpatialTreeItemKey, TransformStyle,
 };
@@ -249,23 +249,11 @@ impl ServoRenderer {
     }
 
     pub(crate) fn hit_test_at_point(&self, point: DevicePoint) -> Vec<CompositorHitTestResult> {
-        self.hit_test_at_point_with_flags(point, HitTestFlags::empty())
-    }
-
-    // TODO: split this into first half (global) and second half (one for whole compositor, one for webview)
-    pub(crate) fn hit_test_at_point_with_flags(
-        &self,
-        point: DevicePoint,
-        flags: HitTestFlags,
-    ) -> Vec<CompositorHitTestResult> {
         // DevicePoint and WorldPoint are the same for us.
         let world_point = WorldPoint::from_untyped(point.to_untyped());
-        let results = self.webrender_api.hit_test(
-            self.webrender_document,
-            None, /* pipeline_id */
-            world_point,
-            flags,
-        );
+        let results = self
+            .webrender_api
+            .hit_test(self.webrender_document, world_point);
 
         results
             .items
@@ -886,7 +874,7 @@ impl IOCompositor {
 
     /// Queue a new frame in the transaction and increase the pending frames count.
     pub(crate) fn generate_frame(&self, transaction: &mut Transaction, reason: RenderReasons) {
-        transaction.generate_frame(0, true /* present */, reason);
+        transaction.generate_frame(0, true /* present */, false /* tracked */, reason);
         self.pending_frames.set(self.pending_frames.get() + 1);
     }
 

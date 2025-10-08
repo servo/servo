@@ -14,8 +14,6 @@ feature-depth = 1
 ignore = [
     # The crate `paste` is no longer maintained.
     "RUSTSEC-2024-0436",
-    # The crate `fxhash` is no longer maintained.
-    "RUSTSEC-2025-0057",
 ]
 
 # This section is considered when running `cargo deny check licenses`
@@ -158,9 +156,6 @@ skip = [
     "rand_core",
     "wasi",
     "webpki-roots",
-
-    # Stylo uses 2.0, WebRender uses 0.99
-    "derive_more",
 
     # duplicated by blurz/blurmock
     "hex",
