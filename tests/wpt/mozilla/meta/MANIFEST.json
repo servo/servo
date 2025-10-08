@@ -2473,6 +2473,19 @@
       {}
      ]
     ],
+    "font_synthesis_weight_webfont_bold.html": [
+     "f4dccb6b76d131df4cae1c29f95ac0f69d458bff",
+     [
+      null,
+      [
+       [
+        "/_mozilla/css/font_synthesis_weight_webfont_bold_ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
     "height_compute_reset.html": [
      "8424600bef3d1c5c39adc9529f0d81864b333556",
      [
@@ -8952,6 +8965,10 @@
      "023dc14f501b07233f50928b03f982cdb1755c09",
      []
     ],
+    "font_synthesis_weight_webfont_bold_ref.html": [
+     "092971d7b6d0edd224e5c700db3f0ecdc18d2e8e",
+     []
+    ],
     "fonts": {
      "octicons": {
       "LICENSE.txt": [
@@ -10745,6 +10762,10 @@
      []
     ],
     "resources": {
+     "Lato-Bold.ttf": [
+      "016068b486e1bd1d73743185c2752b7b1b843701",
+      []
+     ],
      "background-green.css": [
       "9d9d772fb468756d1a90f72325f89cd372f812ef",
       []
