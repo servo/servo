@@ -92,10 +92,6 @@ impl Handler {
     /// <https://w3c.github.io/webdriver/#dfn-json-deserialize>
     fn json_deserialize(&self, v: &Value) -> WebDriverResult<String> {
         let res = match v {
-            Value::Null => "null".to_string(),
-            Value::String(s) => format!("\"{}\"", s),
-            Value::Bool(b) => b.to_string(),
-            Value::Number(n) => n.to_string(),
             Value::Array(list) => {
                 let elems = list
                     .iter()
@@ -137,6 +133,7 @@ impl Handler {
                     .collect::<WebDriverResult<Vec<String>>>()?;
                 format!("{{{}}}", elems.join(", "))
             },
+            _ => serde_json::to_string(v).unwrap(),
         };
 
         Ok(res)
