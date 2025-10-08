@@ -2309,6 +2309,7 @@ impl Document {
                         url,
                         time
                     }) = &*document.declarative_refresh.borrow() {
+                        println!("Refreshing: {:?}", document.url());
                         // https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps
                         document.window.as_global_scope().schedule_callback(
                             OneshotTimerCallback::RefreshRedirectDue(RefreshRedirectDue {
@@ -2323,6 +2324,22 @@ impl Document {
                     document.notify_constellation_load();
                 }));
         }
+    }
+
+    /// <html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
+    /// Corresponds loosely to step 2.3:
+    /// If url matches about:blank and initialInsertion is true
+    ///
+    /// Note: not spec compliant, but rather a way to try to make progress
+    /// while not breaking too much.
+    pub(crate) fn run_initial_about_blank_iframe_completion(&self) {
+        // Note: this seems required to allow the embedder window to load.
+        self.set_ready_state(DocumentReadyState::Complete, CanGc::note());
+
+        // 2.3.1 Run the iframe load event steps given element.
+        // Note: done asynchronously via the constellation,
+        // TODO: run synchronously.
+        self.notify_constellation_load();
     }
 
     pub(crate) fn completely_loaded(&self) -> bool {

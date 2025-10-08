@@ -1536,13 +1536,14 @@ impl ScriptThread {
                         .and_then(|e| e.downcast::<HTMLIFrameElement>())
                     {
                         if frame.is_initial_about_blank() {
-                            println!("Not queueing doc completion for initial about blank: {:?}", document.url());
-                            document.notify_constellation_load();
+                            // 2.3 of <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
+                            document.run_initial_about_blank_iframe_completion();
+
+                            // 2.3.2 Return.
                             continue;
                         }
                     }
                 }
-                println!("Queueing doc completion for : {:?}", document.url());
                 let _realm = enter_realm(&**document);
                 document.maybe_queue_document_completion();
             }
