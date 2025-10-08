@@ -65,6 +65,8 @@ pub struct PlatformFont {
     table_provider_data: FreeTypeFaceTableProviderData,
 }
 
+/// Ensures that a font face is not emboldened if it's a variable font or
+/// if it's already bold.
 fn should_apply_synthetic_bold(
     face: &FreeTypeFace,
     table_provider_data: &FreeTypeFaceTableProviderData,
@@ -99,7 +101,6 @@ impl PlatformFontMethods for PlatformFont {
             None => (Au::zero(), Au::zero()),
         };
 
-        // If the font face is already bold, applying synthetic bold would "double embolden" the font
         let table_provider_data = FreeTypeFaceTableProviderData::Web(font_data.clone());
 
         let synthetic_bold =
@@ -143,7 +144,6 @@ impl PlatformFontMethods for PlatformFont {
             return Err("Could not memory map");
         };
 
-        // If the font face is already bold, applying synthetic bold would "double embolden" the font
         let table_provider_data = FreeTypeFaceTableProviderData::Local(
             Arc::new(memory_mapped_font_data),
             font_identifier.index(),
