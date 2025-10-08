@@ -52,11 +52,8 @@ test(() => {
 }, `fetchLater() with https://example.com URL does not throw.`);
 
 test(() => {
-  const httpUrl = 'http://example.com';
-  assert_throws_dom(
-      'SecurityError', () => fetchLater(httpUrl),
-      `should throw SecurityError for insecure http url ${httpUrl}`);
-}, `fetchLater() throws SecurityError on non-trustworthy http URL.`);
+  assert_throws_js(TypeError, () => fetchLater('http://example.com'));
+}, `fetchLater() throws TypeError on non-trustworthy http URL.`);
 
 test(() => {
   assert_throws_js(TypeError, () => fetchLater('file://tmp'));

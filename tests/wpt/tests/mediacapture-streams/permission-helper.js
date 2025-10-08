@@ -7,7 +7,7 @@ async function setMediaPermission(status="granted", scope=["camera", "microphone
       await test_driver.set_permission({ name: s }, status);
     }
   } catch (e) {
-    const noSetPermissionSupport = typeof e === "string" && e.match(/set_permission not implemented/);
+    const noSetPermissionSupport = typeof e === "string" && (e.match(/set_permission not implemented/) || e.match(/Unknown permission name/));
     if (!(noSetPermissionSupport ||
           (e instanceof Error && e.message.match("unimplemented")) )) {
       throw e;

@@ -71,7 +71,7 @@ impl StylesheetSource {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ServoStylesheetInDocument {
-    #[ignore_malloc_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
     pub(crate) sheet: Arc<Stylesheet>,
     /// The object that owns this stylesheet. For constructed stylesheet, it would be the

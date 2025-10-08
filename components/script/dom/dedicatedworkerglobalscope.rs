@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::thread::{self, JoinHandle};
@@ -14,11 +15,13 @@ use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use fonts::FontContext;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
+use hyper_serde::Serde;
 use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
 use js::jsapi::{Heap, JS_AddInterruptCallback, JSContext, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use mime::Mime;
 use net_traits::Metadata;
 use net_traits::image_cache::ImageCache;
 use net_traits::policy_container::PolicyContainer;
@@ -51,6 +54,7 @@ use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::htmlscriptelement::SCRIPT_JS_MIMES;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::reportingendpoint::ReportingEndpoint;
 use crate::dom::types::DebuggerGlobalScope;
@@ -209,7 +213,7 @@ pub(crate) struct DedicatedWorkerGlobalScope {
     #[ignore_malloc_size_of = "Can't measure trait objects"]
     /// Sender to the parent thread.
     parent_event_loop_sender: ScriptEventLoopSender,
-    #[ignore_malloc_size_of = "Arc"]
+    #[ignore_malloc_size_of = "ImageCache"]
     #[no_trace]
     image_cache: Arc<dyn ImageCache>,
     #[no_trace]
@@ -506,7 +510,11 @@ impl DedicatedWorkerGlobalScope {
 
                 global_scope.set_https_state(current_global_https_state);
 
-                let send_error = || {
+                // run a worker defines an onComplete algorithm, which should be called after fetching the script
+                // these are the steps to run when onComplete input is null or script's error to rethrow is non-null
+                let on_complete_fail_steps = || {
+                    // Step 1 Queue a global task on the DOM manipulation task source given
+                    // worker's relevant global object to fire an event named error at worker.
                     parent_event_loop_sender
                         .send(CommonScriptMsg::Task(
                             WorkerEvent,
@@ -515,6 +523,8 @@ impl DedicatedWorkerGlobalScope {
                             TaskSourceName::DOMManipulation,
                         ))
                         .unwrap();
+                    // Step 2 TODO Run the environment discarding steps for inside settings.
+
                     scope.clear_js_runtime();
                 };
 
@@ -528,14 +538,30 @@ impl DedicatedWorkerGlobalScope {
                     },
                     CanGc::note(),
                 ) {
+                    // Extracted from
+                    // [fetch a classic worker script](https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-script)
+                    // if bodyBytes is null or failure
                     Err(e) => {
                         error!("error loading script {} ({:?})", serialized_worker_url, e);
-                        send_error();
+                        on_complete_fail_steps();
                         return;
                     },
                     Ok((metadata, bytes)) => {
-                        if !metadata.status.is_success() {
-                            send_error();
+                        // if response's status is not an ok status
+                        let not_an_ok_status = !metadata.status.is_success();
+                        // if response's URL's scheme is an HTTP(S) scheme and the
+                        let is_http_scheme =
+                            matches!(metadata.final_url.scheme(), "http" | "https");
+                        // result of extracting a MIME type from response's header list is not a JavaScript MIME type
+                        let not_a_javascript_mime_type = !metadata
+                            .content_type
+                            .clone()
+                            .map(Serde::into_inner)
+                            .and_then(|content_type| Mime::from_str(&content_type.to_string()).ok())
+                            .is_some_and(|mime| SCRIPT_JS_MIMES.contains(&mime.essence_str()));
+
+                        if not_an_ok_status || (is_http_scheme && not_a_javascript_mime_type) {
+                            on_complete_fail_steps();
                             return;
                         }
                         (metadata, bytes)

@@ -23,6 +23,13 @@ dictionary StartViewTransitionOptions {
   sequence<DOMString>? types = null;
 };
 
+partial interface Element {
+  ViewTransition startViewTransition(
+    optional (ViewTransitionUpdateCallback or StartViewTransitionOptions) callbackOptions = {}
+  );
+  readonly attribute ViewTransition? activeViewTransition;
+};
+
 [Exposed=Window]
 interface ViewTransition {
   readonly attribute Promise<undefined> updateCallbackDone;
@@ -30,6 +37,7 @@ interface ViewTransition {
   readonly attribute Promise<undefined> finished;
   undefined skipTransition();
   attribute ViewTransitionTypeSet types;
+  readonly attribute Element transitionRoot;
 };
 
 [Exposed=Window]

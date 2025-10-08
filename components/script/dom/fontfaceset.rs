@@ -28,7 +28,7 @@ pub(crate) struct FontFaceSet {
     target: EventTarget,
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-readypromise-slot>
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     promise: Rc<Promise>,
 }
 

@@ -385,11 +385,11 @@ pub(crate) struct HTMLMediaElement {
     /// <https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag>
     delaying_the_load_event_flag: DomRefCell<Option<LoadBlocker>>,
     /// <https://html.spec.whatwg.org/multipage/#list-of-pending-play-promises>
-    #[ignore_malloc_size_of = "promises are hard"]
+    #[conditional_malloc_size_of]
     pending_play_promises: DomRefCell<Vec<Rc<Promise>>>,
     /// Play promises which are soon to be fulfilled by a queued task.
     #[allow(clippy::type_complexity)]
-    #[ignore_malloc_size_of = "promises are hard"]
+    #[conditional_malloc_size_of]
     in_flight_play_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
     #[ignore_malloc_size_of = "servo_media"]
     #[no_trace]
@@ -397,7 +397,7 @@ pub(crate) struct HTMLMediaElement {
     #[conditional_malloc_size_of]
     #[no_trace]
     video_renderer: Arc<Mutex<MediaFrameRenderer>>,
-    #[ignore_malloc_size_of = "Arc"]
+    #[ignore_malloc_size_of = "servo_media"]
     #[no_trace]
     audio_renderer: DomRefCell<Option<Arc<Mutex<dyn AudioRenderer>>>>,
     /// <https://html.spec.whatwg.org/multipage/#show-poster-flag>

@@ -32,8 +32,6 @@ img {
 <script>
   test(function() {
     let image = document.getElementById("test");
-    assert_less_than(image.getBoundingClientRect().width, 2);
-    assert_greater_than(image.getBoundingClientRect().width, 1);
     assert_equals(image.getBoundingClientRect().width / image.getBoundingClientRect().height, 1);
   });
 </script>

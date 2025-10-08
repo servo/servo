@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>User activation propagation across a same-origin navigation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+  <p>Placeholder</p>
+</body>
+
+<script>
+  'use strict';
+
+  let w;
+  document.body.onclick = () => {
+    w = window.open("resources/opened-window.html");
+  };
+
+  promise_test(async test => {
+    let window_opened_msg_promise = receiveMessage("window-opened");
+
+    await test_driver.click(document.body);
+    assert_true(!!w, "A window is opened");
+
+    {
+      let window_opened_data = await window_opened_msg_promise;
+      assert_false(window_opened_data.isActive,
+          "Transient activation after window opened");
+      assert_false(window_opened_data.hasBeenActive,
+          "Sticky activation after window opened");
+    }
+
+    let link_clicked_msg_promise = receiveMessage("link-clicked");
+    let window_navigated_msg_promise = receiveMessage("window-navigated");
+
+    const link = w.document.getElementById("link");
+    await test_driver.click(link);
+
+    {
+      let link_clicked_data = await link_clicked_msg_promise;
+      assert_true(link_clicked_data.isActive,
+          "Transient activation after link clicked");
+      assert_true(link_clicked_data.hasBeenActive,
+          "Sticky activation after link clicked");
+    }
+
+    {
+      let window_navigated_data = await window_navigated_msg_promise;
+      assert_false(window_navigated_data.isActive,
+          "Transient activation after window navigated");
+      assert_true(window_navigated_data.hasBeenActive,
+          "Sticky activation after window navigated");
+    }
+  }, "User activation propagation across a same-origin navigation");
+</script>

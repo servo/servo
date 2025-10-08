@@ -83,7 +83,7 @@ pub(crate) struct GPUDevice {
     device: WebGPUDevice,
     default_queue: Dom<GPUQueue>,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-lost>
-    #[ignore_malloc_size_of = "promises are hard"]
+    #[conditional_malloc_size_of]
     lost_promise: DomRefCell<Rc<Promise>>,
     valid: Cell<bool>,
 }

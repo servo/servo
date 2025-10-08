@@ -21,10 +21,11 @@ use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{
     AllowOrDenyRequest, ContextMenuResult, ImeEvent, InputEvent, InputMethodType, KeyboardEvent,
     LoadStatus, MediaSessionActionType, MediaSessionEvent, MouseButton, MouseButtonAction,
-    MouseButtonEvent, MouseMoveEvent, NavigationRequest, PermissionRequest, ScreenGeometry, Servo,
-    ServoDelegate, ServoError, SimpleDialog, TouchEvent, TouchEventType, TouchId, TraversalId,
-    WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus, WebDriverScriptCommand,
-    WebDriverSenders, WebView, WebViewBuilder, WebViewDelegate, WindowRenderingContext,
+    MouseButtonEvent, MouseMoveEvent, NavigationRequest, PermissionRequest, RenderingContext,
+    ScreenGeometry, Servo, ServoDelegate, ServoError, SimpleDialog, TouchEvent, TouchEventType,
+    TouchId, TraversalId, WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus,
+    WebDriverScriptCommand, WebDriverSenders, WebView, WebViewBuilder, WebViewDelegate,
+    WindowRenderingContext,
 };
 use url::Url;
 
@@ -843,17 +844,6 @@ impl RunningAppState {
         self.perform_updates();
     }
 
-    /// Perform a click.
-    pub fn click(&self, x: f32, y: f32) {
-        self.active_webview()
-            .notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
-                MouseButtonAction::Click,
-                MouseButton::Left,
-                Point2D::new(x, y),
-            )));
-        self.perform_updates();
-    }
-
     pub fn key_down(&self, key: Key) {
         let key_event = KeyboardEvent::from_state_and_key(KeyState::Down, key);
         self.active_webview()
@@ -951,6 +941,7 @@ impl RunningAppState {
 
         self.inner_mut().need_present = false;
         self.active_webview().paint();
+        self.rendering_context.present();
 
         if self.servoshell_preferences.exit_after_stable_image &&
             self.inner().achieved_stable_image.get()

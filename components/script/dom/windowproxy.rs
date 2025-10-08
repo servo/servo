@@ -13,6 +13,7 @@ use constellation_traits::{
     AuxiliaryWebViewCreationRequest, LoadData, LoadOrigin, NavigationHistoryBehavior,
     ScriptToConstellationMessage,
 };
+use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use dom_struct::dom_struct;
 use html5ever::local_name;
 use indexmap::map::IndexMap;
@@ -133,7 +134,7 @@ pub(crate) struct WindowProxy {
     creator_origin: Option<ImmutableOrigin>,
 
     /// The window proxies the script thread knows.
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     script_window_proxies: Rc<ScriptWindowProxies>,
 }
 
@@ -321,6 +322,8 @@ impl WindowProxy {
             None, // Doesn't inherit secure context
             None,
             false,
+            // There are no sandboxing restrictions when creating auxiliary browsing contexts.
+            SandboxingFlagSet::empty(),
         );
         let load_info = AuxiliaryWebViewCreationRequest {
             load_data: load_data.clone(),
@@ -567,6 +570,7 @@ impl WindowProxy {
                 Some(secure),
                 Some(target_document.insecure_requests_policy()),
                 has_trustworthy_ancestor_origin,
+                target_document.creation_sandboxing_flag_set_considering_parent_iframe(),
             );
             let history_handling = if new {
                 NavigationHistoryBehavior::Replace

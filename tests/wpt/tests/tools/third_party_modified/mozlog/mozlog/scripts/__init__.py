@@ -5,9 +5,9 @@
 
 import argparse
 
-import format as formatlog
-import logmerge
-import unstable
+from . import format as formatlog
+from . import logmerge
+from . import unstable
 
 
 def get_parser():

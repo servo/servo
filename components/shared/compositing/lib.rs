@@ -107,6 +107,15 @@ pub enum CompositorMsg {
         LayoutVector2D,
         ExternalScrollId,
     ),
+    /// Update the rendering epoch of the given `Pipeline`.
+    UpdateEpoch {
+        /// The [`WebViewId`] that this display list belongs to.
+        webview_id: WebViewId,
+        /// The [`PipelineId`] of the `Pipeline` to update.
+        pipeline_id: PipelineId,
+        /// The new [`Epoch`] value.
+        epoch: Epoch,
+    },
     /// Inform WebRender of a new display list for the given pipeline.
     SendDisplayList {
         /// The [`WebViewId`] that this display list belongs to.
@@ -242,6 +251,18 @@ impl CrossProcessCompositorApi {
             image_keys,
         )) {
             warn!("Error delaying frames for canvas image updates {error:?}");
+        }
+    }
+
+    /// Inform the renderer that the rendering epoch has advanced. This typically happens after
+    /// a new display list is sent and/or canvas and animated images are updated.
+    pub fn update_epoch(&self, webview_id: WebViewId, pipeline_id: PipelineId, epoch: Epoch) {
+        if let Err(error) = self.0.send(CompositorMsg::UpdateEpoch {
+            webview_id,
+            pipeline_id,
+            epoch,
+        }) {
+            warn!("Error updating epoch for pipeline: {error:?}");
         }
     }
 

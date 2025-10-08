@@ -256,6 +256,7 @@ impl MouseEvent {
     /// Create a [MouseEvent] triggered by the embedder
     /// <https://w3c.github.io/uievents/#create-a-cancelable-mouseevent-id>
     pub(crate) fn for_platform_mouse_event(
+        event_type_string: &'static str,
         event: embedder_traits::MouseButtonEvent,
         pressed_mouse_buttons: u16,
         window: &Window,
@@ -263,12 +264,6 @@ impl MouseEvent {
         modifiers: Modifiers,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
-        let mouse_event_type_string = match event.action {
-            embedder_traits::MouseButtonAction::Click => "click",
-            embedder_traits::MouseButtonAction::Up => "mouseup",
-            embedder_traits::MouseButtonAction::Down => "mousedown",
-        };
-
         let client_point = hit_test_result.point_in_frame.to_i32();
         let page_point = hit_test_result
             .point_relative_to_initial_containing_block
@@ -277,7 +272,7 @@ impl MouseEvent {
         let click_count = 1;
         let mouse_event = MouseEvent::new(
             window,
-            mouse_event_type_string.into(),
+            event_type_string.into(),
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
             Some(window),

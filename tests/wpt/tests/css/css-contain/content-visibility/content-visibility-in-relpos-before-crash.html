@@ -1,0 +1,20 @@
+<!DOCTYPE HTML>
+
+<meta charset="utf8">
+<title>CSS Content Visibility: crash on relatively positioned ::before content-visibility</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="content-visibility hit testing in ::before should not crash">
+
+<style>
+  #problem::before {
+    position: relative;
+    content-visibility: auto;
+    content: "content";
+  }
+</style>
+<div style="height:30000px;"></div>
+<div id="problem"></div>
+<script>
+  document.elementFromPoint(300, 300);
+</script>

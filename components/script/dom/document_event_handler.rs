@@ -79,6 +79,8 @@ pub(crate) struct DocumentEventHandler {
     #[ignore_malloc_size_of = "Defined in std"]
     #[no_trace]
     last_click_info: DomRefCell<Option<(Instant, Point2D<f32, CSSPixel>)>>,
+    #[no_trace]
+    last_mouse_button_down_point: Cell<Option<Point2D<f32, CSSPixel>>>,
     /// The element that is currently hovered by the cursor.
     current_hover_target: MutNullableDom<Element>,
     /// The element that was most recently clicked.
@@ -104,6 +106,7 @@ impl DocumentEventHandler {
             pending_input_events: Default::default(),
             mouse_move_event_index: Default::default(),
             last_click_info: Default::default(),
+            last_mouse_button_down_point: Default::default(),
             current_hover_target: Default::default(),
             most_recently_clicked_element: Default::default(),
             most_recent_mousemove_point: Default::default(),
@@ -555,7 +558,7 @@ impl DocumentEventHandler {
             event.action, hit_test_result.point_in_frame
         );
 
-        let Some(el) = hit_test_result
+        let Some(element) = hit_test_result
             .node
             .inclusive_ancestors(ShadowIncluding::Yes)
             .filter_map(DomRoot::downcast::<Element>)
@@ -564,17 +567,22 @@ impl DocumentEventHandler {
             return;
         };
 
-        let node = el.upcast::<Node>();
+        let node = element.upcast::<Node>();
         debug!("{:?} on {:?}", event.action, node.debug_str());
 
         // https://w3c.github.io/uievents/#hit-test
         // Prevent mouse event if element is disabled.
         // TODO: also inert.
-        if el.is_actually_disabled() {
+        if element.is_actually_disabled() {
             return;
         }
 
+        let mouse_event_type_string = match event.action {
+            embedder_traits::MouseButtonAction::Up => "mouseup",
+            embedder_traits::MouseButtonAction::Down => "mousedown",
+        };
         let dom_event = DomRoot::upcast::<Event>(MouseEvent::for_platform_mouse_event(
+            mouse_event_type_string,
             event,
             input_event.pressed_mouse_buttons,
             &self.window,
@@ -583,20 +591,12 @@ impl DocumentEventHandler {
             can_gc,
         ));
 
-        let activatable = el.as_maybe_activatable();
+        let activatable = element.as_maybe_activatable();
         match event.action {
-            // https://w3c.github.io/uievents/#handle-native-mouse-click
-            MouseButtonAction::Click => {
-                self.most_recently_clicked_element.set(Some(&el));
-
-                el.set_click_in_progress(true);
-                dom_event.dispatch(node.upcast(), false, can_gc);
-                el.set_click_in_progress(false);
-
-                self.maybe_fire_dblclick(node, &hit_test_result, input_event, can_gc);
-            },
-            // https://w3c.github.io/uievents/#handle-native-mouse-down
             MouseButtonAction::Down => {
+                self.last_mouse_button_down_point
+                    .set(Some(hit_test_result.point_in_frame));
+
                 if let Some(a) = activatable {
                     a.enter_formal_activation_state();
                 }
@@ -607,7 +607,7 @@ impl DocumentEventHandler {
                 // delegate the focus target into its shadow host.
                 // TODO: This focus delegation should be done
                 // with shadow DOM delegateFocus attribute.
-                let target_el = el.find_focusable_shadow_host_if_necessary();
+                let target_el = element.find_focusable_shadow_host_if_necessary();
 
                 let document = self.window.Document();
                 document.begin_focus_transaction();
@@ -646,8 +646,61 @@ impl DocumentEventHandler {
 
                 // Step 7. dispatch event at target.
                 dom_event.dispatch(node.upcast(), false, can_gc);
+
+                self.maybe_trigger_click_for_mouse_button_down_event(
+                    event,
+                    input_event,
+                    &hit_test_result,
+                    &element,
+                    can_gc,
+                );
             },
         }
+    }
+
+    /// <https://w3c.github.io/uievents/#handle-native-mouse-click>
+    fn maybe_trigger_click_for_mouse_button_down_event(
+        &self,
+        event: MouseButtonEvent,
+        input_event: &ConstellationInputEvent,
+        hit_test_result: &HitTestResult,
+        element: &Element,
+        can_gc: CanGc,
+    ) {
+        if event.button != MouseButton::Left {
+            return;
+        }
+        let Some(last_mouse_button_down_point) = self.last_mouse_button_down_point.take() else {
+            return;
+        };
+
+        let distance = last_mouse_button_down_point.distance_to(hit_test_result.point_in_frame);
+        let maximum_click_distance = 10.0 * self.window.device_pixel_ratio().get();
+        if distance > maximum_click_distance {
+            return;
+        }
+
+        // From <https://w3c.github.io/uievents/#event-type-click>
+        // > The click event type MUST be dispatched on the topmost event target indicated by the
+        // > pointer, when the user presses down and releases the primary pointer button.
+
+        self.most_recently_clicked_element.set(Some(element));
+
+        element.set_click_in_progress(true);
+        let dom_event = DomRoot::upcast::<Event>(MouseEvent::for_platform_mouse_event(
+            "click",
+            event,
+            input_event.pressed_mouse_buttons,
+            &self.window,
+            hit_test_result,
+            input_event.active_keyboard_modifiers,
+            can_gc,
+        ));
+        let node = element.upcast::<Node>();
+        dom_event.dispatch(node.upcast(), false, can_gc);
+        element.set_click_in_progress(false);
+
+        self.maybe_fire_dblclick(node, hit_test_result, input_event, can_gc);
     }
 
     /// <https://www.w3.org/TR/uievents/#maybe-show-context-menu>

@@ -22,17 +22,28 @@ test(t => {
   const doc = new DOMParser().parseFromString(
     policy.createHTML("bla"), "text/html");
   assert_equals(doc.body.textContent, "");
-}, "createHTML with a policy that returns undefined");
+}, "createHTML with a policy that returns undefined DOMParser");
+
+test(t => {
+  const policy = trustedTypes.createPolicy("emptyCreateHTML", {
+    "createHTML": _ => {},
+  });
+
+  const iframe = document.createElement("iframe");
+  iframe.srcdoc = policy.createHTML("bla");
+  assert_equals(iframe.srcdoc, "");
+  assert_true(iframe.hasAttribute('srcdoc'), "srcdoc attribute exists");
+}, "createHTML with a policy that returns undefined iframe.srcdoc");
 
 test(t => {
   const policy = trustedTypes.createPolicy("emptyCreateScript", {
     "createScript": _ => {},
   });
 
-  const script = document.createElement("script");
-  script.textContent = policy.createScript("bla");
-  assert_equals(script.textContent, "");
-}, "createScript with a policy that returns undefined");
+  const div = document.createElement("div");
+  div.setAttribute('onload', policy.createScript("bla"));
+  assert_true(div.hasAttribute("onload"), "onload attribute exists");
+}, "createScript with a policy that returns undefined <div onload>");
 
 test(t => {
   const policy = trustedTypes.createPolicy("emptyCreateScriptURL", {
@@ -42,6 +53,7 @@ test(t => {
   const script = document.createElement("script");
   script.src = policy.createScriptURL("bla");
   assert_equals(script.src, document.location.href);
-}, "createScriptURL with a policy that returns undefined");
+  assert_true(script.hasAttribute("src"), "src attribute exists");
+}, "createScriptURL with a policy that returns undefined script.src");
 </script>
 </body>

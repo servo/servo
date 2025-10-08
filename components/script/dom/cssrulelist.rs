@@ -48,7 +48,7 @@ impl Convert<Error> for RulesMutateError {
 pub(crate) struct CSSRuleList {
     reflector_: Reflector,
     parent_stylesheet: Dom<CSSStyleSheet>,
-    #[ignore_malloc_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Stylo"]
     rules: RefCell<RulesSource>,
     dom_rules: DomRefCell<Vec<MutNullableDom<CSSRule>>>,
 }

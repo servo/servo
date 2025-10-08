@@ -250,6 +250,53 @@ impl<T: MallocConditionalSizeOf> MallocConditionalSizeOf for Vec<T> {
     }
 }
 
+impl<T: MallocConditionalSizeOf> MallocConditionalSizeOf for std::collections::VecDeque<T> {
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let mut n = self.shallow_size_of(ops);
+        for elem in self.iter() {
+            n += elem.conditional_size_of(ops);
+        }
+        n
+    }
+}
+
+impl<T: MallocConditionalSizeOf> MallocConditionalSizeOf for std::cell::RefCell<T> {
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.borrow().conditional_size_of(ops)
+    }
+}
+
+impl<T1, T2> MallocConditionalSizeOf for (T1, T2)
+where
+    T1: MallocConditionalSizeOf,
+    T2: MallocConditionalSizeOf,
+{
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.0.conditional_size_of(ops) + self.1.conditional_size_of(ops)
+    }
+}
+
+impl<T: MallocConditionalSizeOf + ?Sized> MallocConditionalSizeOf for Box<T> {
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.shallow_size_of(ops) + (**self).conditional_size_of(ops)
+    }
+}
+
+impl<T: MallocConditionalSizeOf, E: MallocSizeOf> MallocConditionalSizeOf for Result<T, E> {
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        match *self {
+            Ok(ref x) => x.conditional_size_of(ops),
+            Err(ref e) => e.size_of(ops),
+        }
+    }
+}
+
+impl MallocConditionalSizeOf for () {
+    fn conditional_size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        0
+    }
+}
+
 impl<T: MallocSizeOf> MallocSizeOf for Option<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         if let Some(val) = self.as_ref() {
@@ -454,6 +501,22 @@ macro_rules! malloc_size_of_hash_map {
                 for (k, v) in self.iter() {
                     n += k.size_of(ops);
                     n += v.size_of(ops);
+                }
+                n
+            }
+        }
+
+        impl<K, V, S> MallocConditionalSizeOf for $ty
+        where
+            K: Eq + Hash + MallocSizeOf,
+            V: MallocConditionalSizeOf,
+            S: BuildHasher,
+        {
+            fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+                let mut n = self.shallow_size_of(ops);
+                for (k, v) in self.iter() {
+                    n += k.size_of(ops);
+                    n += v.conditional_size_of(ops);
                 }
                 n
             }
@@ -786,13 +849,14 @@ malloc_size_of_is_0!(u8, u16, u32, u64, u128, usize);
 malloc_size_of_is_0!(Range<f32>, Range<f64>);
 malloc_size_of_is_0!(Range<i8>, Range<i16>, Range<i32>, Range<i64>, Range<isize>);
 malloc_size_of_is_0!(Range<u8>, Range<u16>, Range<u32>, Range<u64>, Range<usize>);
-
 malloc_size_of_is_0!(Uuid);
-malloc_size_of_is_0!(content_security_policy::Destination);
-malloc_size_of_is_0!(http::StatusCode);
 malloc_size_of_is_0!(app_units::Au);
+malloc_size_of_is_0!(content_security_policy::Destination);
+malloc_size_of_is_0!(content_security_policy::sandboxing_directive::SandboxingFlagSet);
+malloc_size_of_is_0!(http::StatusCode);
 malloc_size_of_is_0!(keyboard_types::Modifiers);
 malloc_size_of_is_0!(mime::Mime);
+malloc_size_of_is_0!(resvg::usvg::Tree);
 malloc_size_of_is_0!(std::num::NonZeroU16);
 malloc_size_of_is_0!(std::num::NonZeroU64);
 malloc_size_of_is_0!(std::num::NonZeroUsize);
@@ -802,7 +866,6 @@ malloc_size_of_is_0!(std::sync::atomic::AtomicUsize);
 malloc_size_of_is_0!(std::time::Duration);
 malloc_size_of_is_0!(std::time::Instant);
 malloc_size_of_is_0!(std::time::SystemTime);
-malloc_size_of_is_0!(resvg::usvg::Tree);
 malloc_size_of_is_0!(style::data::ElementData);
 malloc_size_of_is_0!(style::font_face::SourceList);
 malloc_size_of_is_0!(style::properties::ComputedValues);

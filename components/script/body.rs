@@ -346,11 +346,15 @@ impl Callback for TransmitBodyPromiseRejectionHandler {
     }
 }
 
-/// The result of <https://fetch.spec.whatwg.org/#concept-bodyinit-extract>
+/// <https://fetch.spec.whatwg.org/#body-with-type>
 pub(crate) struct ExtractedBody {
+    /// <https://fetch.spec.whatwg.org/#concept-body-stream>
     pub(crate) stream: DomRoot<ReadableStream>,
+    /// <https://fetch.spec.whatwg.org/#concept-body-source>
     pub(crate) source: BodySource,
+    /// <https://fetch.spec.whatwg.org/#concept-body-total-bytes>
     pub(crate) total_bytes: Option<usize>,
+    /// <https://fetch.spec.whatwg.org/#body-with-type-type>
     pub(crate) content_type: Option<DOMString>,
 }
 

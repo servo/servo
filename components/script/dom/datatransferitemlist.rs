@@ -23,7 +23,7 @@ use crate::script_runtime::{CanGc, JSContext};
 #[dom_struct]
 pub(crate) struct DataTransferItemList {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     #[no_trace]
     data_store: Rc<RefCell<Option<DragDataStore>>>,
     #[ignore_malloc_size_of = "mozjs"]

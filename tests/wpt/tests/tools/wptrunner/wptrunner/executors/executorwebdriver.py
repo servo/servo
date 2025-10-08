@@ -1034,7 +1034,7 @@ class WebDriverProtocol(Protocol):
             # still alive, and allows to complete the check within the testrunner
             # 5 seconds of extra_timeout we have as maximum to end the test before
             # the external timeout from testrunner triggers.
-            self.webdriver.send_session_command("GET", "window", timeout=2)
+            self.webdriver.send_session_command("GET", "window/handles", timeout=2)
         except (OSError, webdriver_error.WebDriverException, socket.timeout,
                 webdriver_error.UnknownErrorException,
                 webdriver_error.InvalidSessionIdException):

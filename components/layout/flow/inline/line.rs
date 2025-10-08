@@ -10,16 +10,14 @@ use range::Range;
 use style::Zero;
 use style::computed_values::position::T as Position;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
-use style::properties::ComputedValues;
 use style::values::generics::box_::{GenericVerticalAlign, VerticalAlignKeyword};
-use style::values::generics::font::LineHeight;
 use style::values::specified::align::AlignFlags;
 use style::values::specified::box_::DisplayOutside;
 use unicode_bidi::{BidiInfo, Level};
 use webrender_api::FontInstanceKey;
 
 use super::inline_box::{InlineBoxContainerState, InlineBoxIdentifier, InlineBoxTreePathToken};
-use super::{InlineFormattingContextLayout, LineBlockSizes, SharedInlineStyles};
+use super::{InlineFormattingContextLayout, LineBlockSizes, SharedInlineStyles, line_height};
 use crate::cell::ArcRefCell;
 use crate::fragment_tree::{BaseFragmentInfo, BoxFragment, Fragment, TextFragment};
 use crate::geom::{LogicalRect, LogicalVec2, PhysicalRect, ToLogical};
@@ -509,11 +507,11 @@ impl LineItemLayout<'_, '_> {
         // baseline, so we need to make it relative to the line block start.
         match inline_box_state.base.style.clone_vertical_align() {
             GenericVerticalAlign::Keyword(VerticalAlignKeyword::Top) => {
-                let line_height: Au = line_height(style, font_metrics);
+                let line_height = line_height(style, font_metrics, &inline_box_state.base.flags);
                 (line_height - line_gap).scale_by(0.5)
             },
             GenericVerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => {
-                let line_height: Au = line_height(style, font_metrics);
+                let line_height = line_height(style, font_metrics, &inline_box_state.base.flags);
                 let half_leading = (line_height - line_gap).scale_by(0.5);
                 self.line_metrics.block_size - line_height + half_leading
             },
@@ -878,16 +876,6 @@ pub(super) struct FloatLineItem {
     /// do not fit on a line need to be placed after the hypothetical block start
     /// of the next line.
     pub needs_placement: bool,
-}
-
-fn line_height(parent_style: &ComputedValues, font_metrics: &FontMetrics) -> Au {
-    let font = parent_style.get_font();
-    let font_size = font.font_size.computed_size();
-    match font.line_height {
-        LineHeight::Normal => font_metrics.line_gap,
-        LineHeight::Number(number) => (font_size * number.0).into(),
-        LineHeight::Length(length) => length.0.into(),
-    }
 }
 
 /// Sort a mutable slice by the the given indices array in place, reording the slice so that final

@@ -21,7 +21,7 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct CSSNamespaceRule {
     cssrule: CSSRule,
-    #[ignore_malloc_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
     namespacerule: RefCell<Arc<NamespaceRule>>,
 }

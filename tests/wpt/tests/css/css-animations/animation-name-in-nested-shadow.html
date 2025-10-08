@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Matching animation-name with nested shadow roots</title>
+<link rel="author" title="Antoine Quint" href="mailto:graouts@webkit.org">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=296048">
+<link rel="help" href="https://drafts.csswg.org/css-scoping-1/#shadow-names">
+<link rel="match" href="animation-name-in-nested-shadow-ref.html">
+</head>
+<body>
+
+<style>
+  body {
+    margin: 0;
+  }
+
+  @keyframes doc {
+    from, to { background-color: lightgreen }
+  }
+
+  .anim {
+    width: 100px;
+    height: 100px;
+    background-color: red;
+    animation-duration: 1s;
+    animation-fill-mode: both;
+  }
+
+  #doc_anim_doc { animation-name: doc; }
+  #doc_anim_outer { animation-name: outer; }
+  #doc_anim_inner { animation-name: inner; }
+
+  #outer_host {
+    position: absolute;
+    left: 100px;
+    top: 0;
+  }
+</style>
+
+<div id="doc_anim_doc" class="anim"></div>
+<div id="doc_anim_outer" class="anim"></div>
+<div id="doc_anim_inner" class="anim"></div>
+<div id="outer_host">
+  <template shadowrootmode="open">
+    <style>
+      @keyframes outer {
+        from, to { background-color: green }
+      }
+
+      .anim {
+        width: 100px;
+        height: 100px;
+        background-color: red;
+        animation-duration: 1s;
+        animation-fill-mode: both;
+      }
+
+      #outer_anim_doc { animation-name: doc; }
+      #outer_anim_outer { animation-name: outer; }
+      #outer_anim_inner { animation-name: inner; }
+
+      #inner_host {
+        position: absolute;
+        left: 100px;
+        top: 0;
+      }
+
+    </style>
+    <div id="outer_anim_doc" class="anim"></div>
+    <div id="outer_anim_outer" class="anim"></div>
+    <div id="outer_anim_inner" class="anim"></div>
+    <div id="inner_host">
+      <template shadowrootmode="open">
+        <style>
+          @keyframes inner {
+            from, to { background-color: darkgreen }
+          }
+
+          .anim {
+            width: 100px;
+            height: 100px;
+            background-color: red;
+            animation-duration: 1s;
+            animation-fill-mode: both;
+          }
+
+          #inner_anim_doc { animation-name: doc; }
+          #inner_anim_outer { animation-name: outer; }
+          #inner_anim_inner { animation-name: inner; }
+        </style>
+        <div id="inner_anim_doc" class="anim"></div>
+        <div id="inner_anim_outer" class="anim"></div>
+        <div id="inner_anim_inner" class="anim"></div>
+      </template>
+    </div>
+  </template>
+</div>
+
+</body>
+</html>

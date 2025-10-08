@@ -204,6 +204,102 @@ const tests = [
   }
 ];
 
+// Tests for constant(type, value)
+const scalarTests = [
+  {
+    name: '[constant] Test building a scalar constant with float32 data type',
+    dataType: 'float32',
+    value: 3.14,
+    output: {dataType: 'float32'}
+  },
+  {
+    name: '[constant] Test building a scalar constant with float16 data type',
+    dataType: 'float16',
+    value: 2.5,
+    output: {dataType: 'float16'}
+  },
+  {
+    name: '[constant] Test building a scalar constant with int32 data type',
+    dataType: 'int32',
+    value: 42,
+    output: {dataType: 'int32'}
+  },
+  {
+    name: '[constant] Test building a scalar constant with uint32 data type',
+    dataType: 'uint32',
+    value: 123,
+    output: {dataType: 'uint32'}
+  },
+  {
+    name: '[constant] Test building a scalar constant with max safe integer as BigInt',
+    dataType: 'int64',
+    value: 9007199254740991n,
+    output: {dataType: 'int64'}
+  },
+  {
+    name: '[constant] Test building a scalar constant with max uint64 as BigInt',
+    dataType: 'uint64',
+    value: 18446744073709551615n,
+    output: {dataType: 'uint64'}
+  },
+  {
+    name: '[constant] Test building a scalar constant with int8 data type',
+    dataType: 'int8',
+    value: -128,
+    output: {dataType: 'int8'}
+  },
+  {
+    name: '[constant] Test building a scalar constant with uint8 data type',
+    dataType: 'uint8',
+    value: 255,
+    output: {dataType: 'uint8'}
+  },
+  {
+    name: '[constant] Test building a scalar constant with zero value',
+    dataType: 'float32',
+    value: 0.0,
+    output: {dataType: 'float32'}
+  },
+  {
+    name: '[constant] Test building a scalar constant with negative value',
+    dataType: 'int32',
+    value: -42,
+    output: {dataType: 'int32'}
+  },
+  {
+    name: '[constant] Test building a scalar constant with large float32 value',
+    dataType: 'float32',
+    value: 3.4028235e+38,
+    output: {dataType: 'float32'}
+  },
+  {
+    name: '[constant] Test building a scalar constant with small float32 value',
+    dataType: 'float32',
+    value: 1.175494e-38,
+    output: {dataType: 'float32'}
+  },
+  {
+    name: '[constant] Throw if building a scalar constant with int4 data type',
+    dataType: 'int4',
+    value: -2
+  },
+  {
+    name: '[constant] Throw if building a scalar constant with uint4 data type',
+    dataType: 'uint4',
+    value: 2
+  },
+  {
+    name: '[constant] Throw if using operand data type that isn\'t of type MLOperandDataType',
+    dataType: 'int16',
+    value: 123
+  },
+  {
+    name: '[constant] Throw if using BigInt value for float32 data type',
+    dataType: 'float32',
+    value: 123n
+  },
+];
+
 tests.forEach(
     test => promise_test(async t => {
       const builder = new MLGraphBuilder(context);
@@ -259,5 +355,22 @@ tests.forEach(
               TypeError,
               () => builder.constant(test.descriptor, sharedBufferView));
         }
+      }
+    }, test.name));
+
+// Test scalar constant cases
+scalarTests.forEach(
+    test => promise_test(async t => {
+      const builder = new MLGraphBuilder(context);
+
+      if (test.output) {
+        // Test successful case
+        const constantOperand = builder.constant(test.dataType, test.value);
+        assert_equals(constantOperand.dataType, test.output.dataType);
+        assert_array_equals(constantOperand.shape, []);
+      } else {
+        // Test error case
+        assert_throws_js(
+            TypeError, () => builder.constant(test.dataType, test.value));
       }
     }, test.name));

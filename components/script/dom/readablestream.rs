@@ -69,7 +69,7 @@ use super::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::Readabl
 use super::readablestreambyobreader::ReadIntoRequest;
 
 /// State Machine for `PipeTo`.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
 enum PipeToState {
     /// The starting state
     #[default]
@@ -91,7 +91,7 @@ enum PipeToState {
 }
 
 /// <https://streams.spec.whatwg.org/#rs-pipeTo-shutdown-with-action>
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 enum ShutdownAction {
     /// <https://streams.spec.whatwg.org/#writable-stream-abort>
     WritableStreamAbort,
@@ -124,11 +124,11 @@ pub(crate) struct PipeTo {
 
     /// Pending writes are needed when shutting down(with an action),
     /// because we can only finalize when all writes are finished.
-    #[ignore_malloc_size_of = "Rc are hard"]
+    #[ignore_malloc_size_of = "nested Rc"]
     pending_writes: Rc<RefCell<VecDeque<Rc<Promise>>>>,
 
     /// The state machine.
-    #[ignore_malloc_size_of = "Rc are hard"]
+    #[conditional_malloc_size_of]
     #[no_trace]
     state: Rc<RefCell<PipeToState>>,
 
@@ -143,7 +143,7 @@ pub(crate) struct PipeTo {
 
     /// The `shuttingDown` variable of
     /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
-    #[ignore_malloc_size_of = "Rc are hard"]
+    #[conditional_malloc_size_of]
     shutting_down: Rc<Cell<bool>>,
 
     /// The abort reason of the abort signal,
@@ -158,12 +158,12 @@ pub(crate) struct PipeTo {
 
     /// The promise returned by a shutdown action.
     /// We keep it to only continue when it is not pending anymore.
-    #[ignore_malloc_size_of = "Rc are hard"]
+    #[ignore_malloc_size_of = "nested Rc"]
     shutdown_action_promise: Rc<RefCell<Option<Rc<Promise>>>>,
 
     /// The promise resolved or rejected at
     /// <https://streams.spec.whatwg.org/#rs-pipeTo-finalize>
-    #[ignore_malloc_size_of = "Rc are hard"]
+    #[conditional_malloc_size_of]
     result_promise: Rc<Promise>,
 }
 
@@ -808,7 +808,7 @@ impl PipeTo {
 /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 struct SourceCancelPromiseFulfillmentHandler {
-    #[ignore_malloc_size_of = "Rc are hard"]
+    #[conditional_malloc_size_of]
     result: Rc<Promise>,
 }
 
@@ -825,7 +825,7 @@ impl Callback for SourceCancelPromiseFulfillmentHandler {
 /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 struct SourceCancelPromiseRejectionHandler {
-    #[ignore_malloc_size_of = "Rc are hard"]
+    #[conditional_malloc_size_of]
     result: Rc<Promise>,
 }
 

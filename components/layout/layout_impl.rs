@@ -12,7 +12,6 @@ use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
 
 use app_units::Au;
-use base::Epoch;
 use base::generic_channel::GenericSender;
 use base::id::{PipelineId, WebViewId};
 use bitflags::bitflags;
@@ -175,11 +174,6 @@ pub struct LayoutThread {
     /// The [`StackingContextTree`] cached from previous layouts.
     stacking_context_tree: RefCell<Option<StackingContextTree>>,
 
-    /// The epoch of the current display list that's been sent to [`WebRender`]. Every
-    /// layout sends an initial empty display list, so this always starts at `0. The
-    /// next display list will have the value of this epoch plus `1`.
-    current_epoch: Cell<Epoch>,
-
     // A cache that maps image resources specified in CSS (e.g as the `url()` value
     // for `background-image` or `content` properties) to either the final resolved
     // image data, or an error if the image cache failed to load/decode the image.
@@ -222,10 +216,6 @@ impl Drop for LayoutThread {
 impl Layout for LayoutThread {
     fn device(&self) -> &Device {
         self.stylist.device()
-    }
-
-    fn current_epoch(&self) -> Epoch {
-        self.current_epoch.get()
     }
 
     fn load_web_fonts_from_stylesheet(&self, stylesheet: ServoArc<Stylesheet>) {
@@ -687,7 +677,6 @@ impl LayoutThread {
             box_tree: Default::default(),
             fragment_tree: Default::default(),
             stacking_context_tree: Default::default(),
-            current_epoch: Cell::new(Epoch(0)),
             compositor_api: config.compositor_api,
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
             resolved_images_cache: Default::default(),
@@ -1233,8 +1222,9 @@ impl LayoutThread {
             return false;
         }
 
-        self.current_epoch.set(self.current_epoch().next());
-        stacking_context_tree.compositor_info.epoch = self.current_epoch.get().into();
+        // TODO: Eventually this should be set when `compositor_info` is created, but that requires
+        // ensuring that the Epoch is passed to any method that can creates `StackingContextTree`.
+        stacking_context_tree.compositor_info.epoch = reflow_request.epoch;
 
         let built_display_list = DisplayListBuilder::build(
             stacking_context_tree,

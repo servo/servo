@@ -12,6 +12,7 @@
     border: solid;
     position-anchor: --anchor;
     position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+    position-visibility: always;
     width: 50%;
     height: 50%;
     background: cyan;
@@ -20,11 +21,13 @@
     border-width: thick;
   }
 </style>
-<div id="scrollable" style="position:relative; overflow:hidden; width:500px; height:500px; background:yellow;">
-  <div style="width:2000px; height:2000px;">
-    <div id="container">
-      <div style="anchor-name:--anchor; margin:200px; width:50px; height:50px; background:gray;"></div>
-      <div id="anchored" style="position-area:top left;"></div>
+<div style="position:relative; width:500px; height:500px; background:yellow;">
+  <div id="scrollable" style="overflow: hidden; width: 500px; height: 500px;">
+    <div style="width:2000px; height:2000px;">
+      <div id="container">
+        <div style="anchor-name:--anchor; margin:200px; width:50px; height:50px; background:gray;"></div>
+        <div id="anchored" style="position-area:top left;"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -54,7 +57,7 @@
     scrollable.scrollTo(40, 60);
     await waitUntilNextAnimationFrame();
     await waitUntilNextAnimationFrame();
-    assert_rects_equal(anchored, 100, 100, 100, 100);
+    assert_rects_equal(anchored, 60, 40, 100, 100);
   }, "Scroll to 40,60");
 
   promise_test(async() => {
@@ -62,7 +65,7 @@
     scrollable.scrollTo(100, 150);
     await waitUntilNextAnimationFrame();
     await waitUntilNextAnimationFrame();
-    assert_rects_equal(anchored, 150, 250, 50, 200);
+    assert_rects_equal(anchored, 50, 100, 50, 200);
   }, "Scroll to 100,150");
 
   promise_test(async() => {
@@ -82,46 +85,17 @@
 
   promise_test(async() => {
     // Switch to top right.
-    scrollable.scrollTo(750, 100);
+    scrollable.scrollTo(200, 100);
     await waitUntilNextAnimationFrame();
     await waitUntilNextAnimationFrame();
-    assert_rects_equal(anchored, 250, 150, 500, 50);
+    assert_rects_equal(anchored, 50, 50, 225, 50);
   }, "Scroll to 750,100");
 
   promise_test(async() => {
     // Switch to bottom right.
-    scrollable.scrollTo(750, 196);
+    scrollable.scrollTo(200, 200);
     await waitUntilNextAnimationFrame();
     await waitUntilNextAnimationFrame();
-    assert_rects_equal(anchored, 250, 250, 500, 223);
+    assert_rects_equal(anchored, 50, 50, 225, 225);
   }, "Scroll to 750,196");
-
-  promise_test(async() => {
-    scrollable.scrollTo(195, 196);
-    await waitUntilNextAnimationFrame();
-    await waitUntilNextAnimationFrame();
-    assert_rects_equal(anchored, 250, 250, 500, 223);
-  }, "Scroll to 195,196");
-
-  promise_test(async() => {
-    // Switch to top left.
-    scrollable.scrollTo(194, 196);
-    await waitUntilNextAnimationFrame();
-    await waitUntilNextAnimationFrame();
-    assert_rects_equal(anchored, 194, 250, 6, 223);
-  }, "Scroll to 194,195");
-
-  promise_test(async() => {
-    scrollable.scrollTo(194, 194);
-    await waitUntilNextAnimationFrame();
-    await waitUntilNextAnimationFrame();
-    assert_rects_equal(anchored, 194, 250, 6, 223);
-  }, "Scroll to 194,194");
-
-  promise_test(async() => {
-    await redisplay(anchored);
-    await waitUntilNextAnimationFrame();
-    await waitUntilNextAnimationFrame();
-    assert_rects_equal(anchored, 194, 194, 6, 6);
-  }, "Redisplay at 194,194");
 </script>

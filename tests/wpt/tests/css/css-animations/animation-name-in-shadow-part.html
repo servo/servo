@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Matching animation-name from within a shadow root with a single @keyframes rule in the outer scope</title>
+<link rel="author" title="Antoine Quint" href="mailto:graouts@webkit.org">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=296048">
+<link rel="help" href="https://drafts.csswg.org/css-scoping-1/#shadow-names">
+<link rel="match" href="animation-name-in-shadow-part-ref.html">
+</head>
+<body>
+
+<style>
+
+#shadow {
+  width: 100px;
+  height: 100px;
+}
+
+@keyframes animation {
+  from, to { background-color: green }
+}
+
+#shadow::part(target) {
+  height: 100px;
+  width: 100px;
+  animation: animation 1s both;
+  background-color: red;
+}
+
+</style>
+
+<div id="shadow">
+  <template shadowrootmode="open">
+    <div part="target"></div>
+  </template>
+</div>
+
+</body>
+</html>

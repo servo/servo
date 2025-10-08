@@ -54,6 +54,15 @@
 
     test(function() {
       let circleAtOrigin = document.getElementById("circle-at-origin");
+      assert_true(circleAtOrigin.isPointInFill(null));
+      assert_true(circleAtOrigin.isPointInFill(undefined));
+      let ellipse = document.getElementById("ellipse");
+      assert_false(ellipse.isPointInFill(null));
+      assert_false(ellipse.isPointInFill(undefined));
+    }, document.title + ", null/undefined.");
+
+    test(function() {
+      let circleAtOrigin = document.getElementById("circle-at-origin");
       assert_false(circleAtOrigin.isPointInFill({ x: NaN, y: 0 }), "x is NaN");
       assert_false(circleAtOrigin.isPointInFill({ x: Infinity, y: 0 }), "x is Infinity");
       assert_false(circleAtOrigin.isPointInFill({ x: -Infinity, y: 0 }), "x is -Infinity");

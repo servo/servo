@@ -27,7 +27,8 @@ use net_traits::{FetchMetadata, FetchResponseMsg, FilteredMetadata, NetworkError
 use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, load_from_memory};
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
-use resvg::{tiny_skia, usvg};
+use resvg::tiny_skia;
+use resvg::usvg::{self, fontdb};
 use rustc_hash::FxHashMap;
 use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -64,21 +65,23 @@ const MAX_SVG_PIXMAP_DIMENSION: u32 = 5000;
 // Helper functions.
 // ======================================================================
 
-fn parse_svg_document_in_memory(bytes: &[u8]) -> Result<usvg::Tree, &'static str> {
+fn parse_svg_document_in_memory(
+    bytes: &[u8],
+    fontdb: Arc<fontdb::Database>,
+) -> Result<usvg::Tree, &'static str> {
     let image_string_href_resolver = Box::new(move |_: &str, _: &usvg::Options| {
         // Do not try to load `href` in <image> as local file path.
         None
     });
 
-    let mut opt = usvg::Options {
+    let opt = usvg::Options {
         image_href_resolver: usvg::ImageHrefResolver {
             resolve_data: usvg::ImageHrefResolver::default_data_resolver(),
             resolve_string: image_string_href_resolver,
         },
+        fontdb,
         ..usvg::Options::default()
     };
-
-    opt.fontdb_mut().load_system_fonts();
 
     usvg::Tree::from_data(bytes, &opt)
         .inspect_err(|error| {
@@ -92,14 +95,17 @@ fn decode_bytes_sync(
     bytes: &[u8],
     cors: CorsStatus,
     content_type: Option<Mime>,
+    fontdb: Arc<fontdb::Database>,
 ) -> DecoderMsg {
     let image = if content_type == Some(mime::IMAGE_SVG) {
-        parse_svg_document_in_memory(bytes).ok().map(|svg_tree| {
-            DecodedImage::Vector(VectorImageData {
-                svg_tree: Arc::new(svg_tree),
-                cors_status: cors,
+        parse_svg_document_in_memory(bytes, fontdb)
+            .ok()
+            .map(|svg_tree| {
+                DecodedImage::Vector(VectorImageData {
+                    svg_tree: Arc::new(svg_tree),
+                    cors_status: cors,
+                })
             })
-        })
     } else {
         load_from_memory(bytes, cors).map(DecodedImage::Raster)
     };
@@ -703,6 +709,8 @@ pub struct ImageCacheImpl {
 
     /// Thread pool for image decoding
     thread_pool: Arc<ThreadPool>,
+
+    fontdb: Arc<fontdb::Database>,
 }
 
 impl ImageCache for ImageCacheImpl {
@@ -717,6 +725,9 @@ impl ImageCache for ImageCacheImpl {
             .unwrap_or(pref!(threadpools_fallback_worker_num) as usize)
             .min(pref!(threadpools_image_cache_workers_max).max(1) as usize);
 
+        let mut fontdb = fontdb::Database::new();
+        fontdb.load_system_fonts();
+
         ImageCacheImpl {
             store: Arc::new(Mutex::new(ImageCacheStore {
                 pending_loads: AllPendingLoads::new(),
@@ -730,6 +741,7 @@ impl ImageCache for ImageCacheImpl {
                 key_cache: KeyCache::new(),
             })),
             thread_pool: Arc::new(ThreadPool::new(thread_count, "ImageCache".to_string())),
+            fontdb: Arc::new(fontdb),
         }
     }
 
@@ -803,6 +815,7 @@ impl ImageCache for ImageCacheImpl {
                                 pl.bytes.as_slice(),
                                 pl.cors_status,
                                 pl.content_type.clone(),
+                                self.fontdb.clone(),
                             ),
                         )
                     },
@@ -1047,8 +1060,10 @@ impl ImageCache for ImageCacheImpl {
                         };
 
                         let local_store = self.store.clone();
+                        let fontdb = self.fontdb.clone();
                         self.thread_pool.spawn(move || {
-                            let msg = decode_bytes_sync(key, &bytes, cors_status, content_type);
+                            let msg =
+                                decode_bytes_sync(key, &bytes, cors_status, content_type, fontdb);
                             debug!("Image decoded");
                             local_store.lock().unwrap().handle_decoder(msg);
                         });
@@ -1085,6 +1100,7 @@ impl ImageCache for ImageCacheImpl {
                 pipeline_id,
             })),
             thread_pool: self.thread_pool.clone(),
+            fontdb: self.fontdb.clone(),
         })
     }
 
