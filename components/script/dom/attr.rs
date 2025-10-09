@@ -97,13 +97,13 @@ impl Attr {
 }
 
 impl AttrMethods<crate::DomTypeHolder> for Attr {
-    // https://dom.spec.whatwg.org/#dom-attr-localname
+    /// <https://dom.spec.whatwg.org/#dom-attr-localname>
     fn LocalName(&self) -> DOMString {
         // FIXME(ajeffrey): convert directly from LocalName to DOMString
         DOMString::from(&**self.local_name())
     }
 
-    // https://dom.spec.whatwg.org/#dom-attr-value
+    /// <https://dom.spec.whatwg.org/#dom-attr-value>
     fn Value(&self) -> DOMString {
         // FIXME(ajeffrey): convert directly from AttrValue to DOMString
         DOMString::from(&**self.value())
@@ -146,13 +146,13 @@ impl AttrMethods<crate::DomTypeHolder> for Attr {
         Ok(())
     }
 
-    // https://dom.spec.whatwg.org/#dom-attr-name
+    /// <https://dom.spec.whatwg.org/#dom-attr-name>
     fn Name(&self) -> DOMString {
         // FIXME(ajeffrey): convert directly from LocalName to DOMString
         DOMString::from(&**self.name())
     }
 
-    // https://dom.spec.whatwg.org/#dom-attr-namespaceuri
+    /// <https://dom.spec.whatwg.org/#dom-attr-namespaceuri>
     fn GetNamespaceURI(&self) -> Option<DOMString> {
         match *self.namespace() {
             ns!() => None,
@@ -160,18 +160,18 @@ impl AttrMethods<crate::DomTypeHolder> for Attr {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-attr-prefix
+    /// <https://dom.spec.whatwg.org/#dom-attr-prefix>
     fn GetPrefix(&self) -> Option<DOMString> {
         // FIXME(ajeffrey): convert directly from LocalName to DOMString
         self.prefix().map(|p| DOMString::from(&**p))
     }
 
-    // https://dom.spec.whatwg.org/#dom-attr-ownerelement
+    /// <https://dom.spec.whatwg.org/#dom-attr-ownerelement>
     fn GetOwnerElement(&self) -> Option<DomRoot<Element>> {
         self.owner()
     }
 
-    // https://dom.spec.whatwg.org/#dom-attr-specified
+    /// <https://dom.spec.whatwg.org/#dom-attr-specified>
     fn Specified(&self) -> bool {
         true // Always returns true
     }
