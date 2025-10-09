@@ -2325,18 +2325,16 @@ impl Document {
         }
     }
 
-    /// <html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
-    /// Corresponds loosely to step 2.3:
-    /// If url matches about:blank and initialInsertion is true
-    ///
-    /// Note: not spec compliant, but rather a way to try to make progress
-    /// while not breaking too much.
-    pub(crate) fn run_initial_about_blank_iframe_completion(&self) {
-        // Note: this seems required to allow the embedder window to load.
+    /// The end for both the intial about:blank document,
+    /// and the initial navigated document(which can be about:blank as well).
+    pub(crate) fn run_initial_iframe_completion(&self) {
+        // Note: this seems required to allow the window containing the iframe to load.
         self.set_ready_state(DocumentReadyState::Complete, CanGc::note());
 
-        // 2.3.1 Run the iframe load event steps given element.
-        // Note: done asynchronously via the constellation,
+        // Note: if this is the the intial about:blank document,
+        // the iframe load event steps will not run.
+        // If this is the initial navigated document, then they will,
+        // but asynchronously when a response from the constellation is received.
         // TODO: run synchronously.
         self.notify_constellation_load();
     }

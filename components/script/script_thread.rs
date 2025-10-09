@@ -1535,21 +1535,13 @@ impl ScriptThread {
                         .frame_element()
                         .and_then(|e| e.downcast::<HTMLIFrameElement>())
                     {
-                        // Note: the two conditionals are the same,
-                        // but they are likely to evolved where only 
-                        // the second one runs the iframe load event steps, synchronously.
-                        if frame.is_initial_blank_document() {
-                            // The initial synchronous about:blank document should not
-                            // be noticeable to script.
-                            document.run_initial_about_blank_iframe_completion();
-                            continue;
-                        }
-
-                        if frame.is_initial_navigated_document_that_matches_about_blank() {
-                            // 2.3 of <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
-                            document.run_initial_about_blank_iframe_completion();
-
-                            // 2.3.2 Return.
+                        // Both the initial about:blank document,
+                        // and the initial navigated document that matches about:blank,
+                        // should not run the document completion steps.
+                        if frame.is_initial_blank_document() ||
+                            frame.is_initial_navigated_document_that_matches_about_blank()
+                        {
+                            document.run_initial_iframe_completion();
                             continue;
                         }
                     }
