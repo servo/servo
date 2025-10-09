@@ -21,7 +21,9 @@ def test_null(session):
     (True, "boolean"),
     (42, "number"),
     ("foo", "string"),
-], ids=["boolean", "number", "string"])
+    ("foo\"bar", 'string'),
+    ('"); alert(1); //', "string"),
+], ids=["boolean", "number", "string", "string_quote", "string_injection"])
 def test_primitives(session, value, expected_type):
     result = execute_async_script(session, """
         arguments[1]([typeof arguments[0], arguments[0]])
