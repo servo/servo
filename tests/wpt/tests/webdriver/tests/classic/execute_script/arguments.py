@@ -19,7 +19,9 @@ def test_null(session):
     (True, "boolean"),
     (42, "number"),
     ("foo", "string"),
-], ids=["boolean", "number", "string"])
+    ("foo\"bar", 'string'),
+    ('"); alert(1); //', "string"),
+], ids=["boolean", "number", "string", "string_quote", "string_injection"])
 def test_primitives(session, value, expected_type):
     result = execute_script(session, "return [typeof arguments[0], arguments[0]]", args=[value])
     actual = assert_success(result)
