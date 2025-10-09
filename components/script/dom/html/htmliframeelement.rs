@@ -547,9 +547,6 @@ impl HTMLIFrameElement {
             return;
         }
 
-        let blocker = &self.load_blocker;
-        LoadBlocker::terminate(blocker, can_gc);
-
         // TODO A cross-origin child document would not be easily accessible
         //      from this script thread. It's unclear how to implement
         //      steps 2, 3, and 5 efficiently in this case.
@@ -559,6 +556,9 @@ impl HTMLIFrameElement {
         // Step 4
         self.upcast::<EventTarget>()
             .fire_event(atom!("load"), can_gc);
+        
+        let blocker = &self.load_blocker;
+        LoadBlocker::terminate(blocker, can_gc);
 
         // TODO Step 5 - unset child document `mut iframe load` flag
     }
