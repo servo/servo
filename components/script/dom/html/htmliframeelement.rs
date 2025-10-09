@@ -258,7 +258,7 @@ impl HTMLIFrameElement {
     /// If the iframe's url matches about:blank, and we are in the first processing phace,
     /// there should be no events fired on the window, and only the iframe load event steps should run(on the element).
     pub(crate) fn is_initial_navigated_document_that_matches_about_blank(&self) -> bool {
-        self.get_url().matches_about_blank() && self.initial_insertion.get()
+        self.get_url().matches_about_blank() && self.initial_insertion.get() && !self.is_initial_blank_document()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
