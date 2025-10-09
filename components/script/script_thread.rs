@@ -1539,7 +1539,8 @@ impl ScriptThread {
                         // and the initial inserted iframe that matches about:blank,
                         // should not run the document completion steps.
                         if frame.is_initial_blank_document() ||
-                            frame.is_initial_navigated_document_that_matches_about_blank()
+                            (frame.is_initial_navigated_document_that_matches_about_blank() 
+                                && document.url().matches_about_blank())
                         {
                             // Note: this is a subset of `maybe_queue_document_completion`,
                             // which any other iframe should run.
