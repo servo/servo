@@ -35,6 +35,7 @@ type CachedCTFont = HashMap<CoreTextFontCacheKey, PlatformFont>;
 #[derive(Eq, Hash, PartialEq)]
 struct CoreTextFontCacheKey {
     size: Au,
+    synthetic_bold: bool,
     variations: Vec<FontVariation>,
 }
 
@@ -44,6 +45,7 @@ impl CoreTextFontCache {
         data: Option<&FontData>,
         pt_size: f64,
         variations: &[FontVariation],
+        synthetic_bold: bool,
     ) -> Option<PlatformFont> {
         //// If you pass a zero font size to one of the Core Text APIs, it'll replace it with
         //// 12.0. We don't want that! (Issue #10492.)
@@ -52,6 +54,7 @@ impl CoreTextFontCache {
 
         let key = CoreTextFontCacheKey {
             size: au_size,
+            synthetic_bold,
             variations: variations.to_owned(),
         };
 
@@ -67,8 +70,13 @@ impl CoreTextFontCache {
         }
 
         if !key.variations.is_empty() {
-            let core_text_font_no_variations =
-                Self::core_text_font(font_identifier.clone(), data, clamped_pt_size, &[])?;
+            let core_text_font_no_variations = Self::core_text_font(
+                font_identifier.clone(),
+                data,
+                clamped_pt_size,
+                &[],
+                synthetic_bold,
+            )?;
             let mut cache = cache.write();
             let entry = cache.entry(font_identifier.clone()).or_default();
 
@@ -83,6 +91,7 @@ impl CoreTextFontCache {
                 core_text_font_no_variations,
                 &key.variations,
                 clamped_pt_size,
+                synthetic_bold,
             );
             entry.insert(key, platform_font.clone());
             return Some(platform_font);
@@ -98,8 +107,12 @@ impl CoreTextFontCache {
             return Some(platform_font.clone());
         }
 
-        let platform_font =
-            Self::create_font_without_variations(font_identifier, data, clamped_pt_size)?;
+        let platform_font = Self::create_font_without_variations(
+            font_identifier,
+            data,
+            clamped_pt_size,
+            synthetic_bold,
+        )?;
         identifier_cache.insert(key, platform_font.clone());
         Some(platform_font)
     }
@@ -108,6 +121,7 @@ impl CoreTextFontCache {
         font_identifier: FontIdentifier,
         data: Option<&FontData>,
         clamped_pt_size: f64,
+        synthetic_bold: bool,
     ) -> Option<PlatformFont> {
         let descriptor = match font_identifier {
             FontIdentifier::Local(local_font_identifier) => {
@@ -137,15 +151,15 @@ impl CoreTextFontCache {
             },
         };
 
-        Some(PlatformFont::new_with_ctfont(
-            core_text::font::new_from_descriptor(&descriptor.ok()?, clamped_pt_size),
-        ))
+        let ctfont = core_text::font::new_from_descriptor(&descriptor.ok()?, clamped_pt_size);
+        Some(PlatformFont::new_with_ctfont(ctfont, synthetic_bold))
     }
 
     fn add_variations_to_font(
         platform_font: PlatformFont,
         specified_variations: &[FontVariation],
         pt_size: f64,
+        synthetic_bold: bool,
     ) -> PlatformFont {
         if specified_variations.is_empty() {
             return platform_font;
@@ -204,7 +218,7 @@ impl CoreTextFontCache {
             .unwrap();
 
         let ctfont = core_text::font::new_from_descriptor(&ct_var_font_desc, pt_size);
-        PlatformFont::new_with_ctfont_and_variations(ctfont, variations)
+        PlatformFont::new_with_ctfont_and_variations(ctfont, variations, synthetic_bold)
     }
 
     fn get_variation_axis_information(
