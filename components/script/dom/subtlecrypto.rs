@@ -27,7 +27,8 @@ use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::wrappers::JS_ParseJSON;
 use js::rust::{HandleValue, MutableHandleObject};
 use js::typedarray::ArrayBufferU8;
-use servo_rand::{RngCore, ServoRng};
+use servo_arc::Arc;
+use servo_rand::ServoRng;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::cell::DomRefCell;
@@ -660,33 +661,52 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         comp: InRealm,
         can_gc: CanGc,
     ) -> Rc<Promise> {
+        // Step 1. Let algorithm, extractable and usages be the algorithm, extractable and
+        // keyUsages parameters passed to the generateKey() method, respectively.
+
+        // Step 2. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set
+        // to algorithm and op set to "generateKey".
+        // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
         let promise = Promise::new_in_current_realm(comp, can_gc);
         let normalized_algorithm =
-            match normalize_algorithm_for_generate_key(cx, &algorithm, can_gc) {
-                Ok(algorithm) => algorithm,
-                Err(e) => {
-                    promise.reject_error(e, can_gc);
+            match normalize_algorithm(cx, &Operation::GenerateKey, &algorithm, can_gc) {
+                Ok(normalized_algorithm) => normalized_algorithm,
+                Err(error) => {
+                    promise.reject_error(error, can_gc);
                     return promise;
                 },
             };
 
-        let this = Trusted::new(self);
+        // Step 4. Let realm be the relevant realm of this.
+        // Step 5. Let promise be a new Promise.
+        // NOTE: We did that in preparation of Step 3.
+
+        // Step 6. Return promise and perform the remaining steps in parallel.
+        let trusted_subtle = Trusted::new(self);
         let trusted_promise = TrustedPromise::new(promise.clone());
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
             .queue(task!(generate_key: move || {
-                let subtle = this.root();
+                let subtle = trusted_subtle.root();
                 let promise = trusted_promise.root();
+
+                // Step 7. If the following steps or referenced procedures say to throw an error,
+                // queue a global task on the crypto task source, given realm's global object, to
+                // reject promise with the returned error; and then terminate the algorithm.
 
                 // Step 8. Let result be the result of performing the generate key operation
                 // specified by normalizedAlgorithm using algorithm, extractable and usages.
-                let key = match normalized_algorithm
-                    .generate_key(&subtle, key_usages, extractable, CanGc::note())
-                {
-                    Ok(key) => key,
+                let result = match normalized_algorithm.generate_key(
+                    &subtle.global(),
+                    extractable,
+                    key_usages,
+                    &subtle.rng,
+                    CanGc::note(),
+                ) {
+                    Ok(result) => result,
                     Err(error) => {
-                        promise.reject_error(error, CanGc::note());
+                        subtle.reject_promise_with_error(promise, error);
                         return;
                     }
                 };
@@ -699,12 +719,12 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 //     If the [[usages]] internal slot of the privateKey attribute of result is the
                 //     empty sequence, then throw a SyntaxError.
                 // TODO: Implement CryptoKeyPair case
-                match &key {
+                match &result {
                     CryptoKeyOrCryptoKeyPair::CryptoKey(crpyto_key) => {
                         if matches!(crpyto_key.Type(), KeyType::Secret | KeyType::Private)
                             && crpyto_key.usages().is_empty()
                         {
-                            promise.reject_error(Error::Syntax(None), CanGc::note());
+                            subtle.reject_promise_with_error(promise, Error::Syntax(None));
                             return;
                         }
                     },
@@ -715,7 +735,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 11. Let result be the result of converting result to an ECMAScript Object
                 // in realm, as defined by [WebIDL].
                 // Step 12. Resolve promise with result.
-                match key {
+                match result {
                     CryptoKeyOrCryptoKeyPair::CryptoKey(key) => {
                         subtle.resolve_promise_with_key(promise, key);
                     },
@@ -1464,16 +1484,20 @@ impl From<RootedTraceableBox<AesGcmParams>> for SubtleAesGcmParams {
     }
 }
 
+/// <https://w3c.github.io/webcrypto/#dfn-AesKeyGenParams>
 #[derive(Clone, Debug)]
-pub(crate) struct SubtleAesKeyGenParams {
-    pub(crate) name: String,
-    pub(crate) length: u16,
+struct SubtleAesKeyGenParams {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: String,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-AesKeyGenParams-length>
+    length: u16,
 }
 
 impl From<AesKeyGenParams> for SubtleAesKeyGenParams {
     fn from(params: AesKeyGenParams) -> Self {
         SubtleAesKeyGenParams {
-            name: params.parent.name.to_string().to_uppercase(),
+            name: params.parent.name.to_string(),
             length: params.length,
         }
     }
@@ -1535,28 +1559,37 @@ impl SubtleHmacImportParams {
     }
 }
 
+/// <https://w3c.github.io/webcrypto/#dfn-HmacKeyGenParams>
+#[derive(Clone, Debug)]
 struct SubtleHmacKeyGenParams {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: String,
+
     /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyGenParams-hash>
-    hash: DigestAlgorithm,
+    hash: Arc<NormalizedAlgorithm>,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyGenParams-length>
     length: Option<u32>,
 }
 
-impl SubtleHmacKeyGenParams {
-    fn new(
-        cx: JSContext,
-        params: RootedTraceableBox<HmacKeyGenParams>,
-        can_gc: CanGc,
-    ) -> Fallible<Self> {
-        let hash = normalize_algorithm_for_digest(cx, &params.hash, can_gc)?;
-        let params = Self {
-            hash,
+impl TryFrom<RootedTraceableBox<HmacKeyGenParams>> for SubtleHmacKeyGenParams {
+    type Error = Error;
+
+    fn try_from(params: RootedTraceableBox<HmacKeyGenParams>) -> Result<Self, Error> {
+        let cx = GlobalScope::get_cx();
+        Ok(SubtleHmacKeyGenParams {
+            name: params.parent.name.to_string(),
+            hash: Arc::new(normalize_algorithm(
+                cx,
+                &Operation::Digest,
+                &params.hash,
+                CanGc::note(),
+            )?),
             length: params.length,
-        };
-        Ok(params)
+        })
     }
 }
+
 /// <https://w3c.github.io/webcrypto/#hkdf-params>
 #[derive(Clone, Debug)]
 pub(crate) struct SubtleHkdfParams {
@@ -1662,14 +1695,6 @@ enum ImportKeyAlgorithm {
 enum DeriveBitsAlgorithm {
     Pbkdf2(SubtlePbkdf2Params),
     Hkdf(SubtleHkdfParams),
-}
-
-/// A normalized algorithm returned by [`normalize_algorithm`] with operation `"generateKey"`
-///
-/// [`normalize_algorithm`]: https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm
-enum KeyGenerationAlgorithm {
-    Aes(SubtleAesKeyGenParams),
-    Hmac(SubtleHmacKeyGenParams),
 }
 
 /// A normalized algorithm returned by [`normalize_algorithm`] with operation `"wrapKey"` or `"unwrapKey"`
@@ -1958,39 +1983,6 @@ fn normalize_algorithm_for_derive_bits(
         let params = boxed_value_from_js_object::<HkdfParams>(cx, value.handle(), can_gc)?;
         let subtle_params = SubtleHkdfParams::new(cx, params, can_gc)?;
         DeriveBitsAlgorithm::Hkdf(subtle_params)
-    } else {
-        return Err(Error::NotSupported);
-    };
-
-    Ok(normalized_algorithm)
-}
-
-/// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm> with operation `"generateKey"`
-fn normalize_algorithm_for_generate_key(
-    cx: JSContext,
-    algorithm: &AlgorithmIdentifier,
-    can_gc: CanGc,
-) -> Result<KeyGenerationAlgorithm, Error> {
-    let AlgorithmIdentifier::Object(obj) = algorithm else {
-        // All algorithms that support "generateKey" require additional parameters
-        return Err(Error::NotSupported);
-    };
-
-    rooted!(in(*cx) let value = ObjectValue(obj.get()));
-    let algorithm = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
-
-    let name = algorithm.name.str();
-    let normalized_algorithm = if name.eq_ignore_ascii_case(ALG_AES_CBC) ||
-        name.eq_ignore_ascii_case(ALG_AES_CTR) ||
-        name.eq_ignore_ascii_case(ALG_AES_KW) ||
-        name.eq_ignore_ascii_case(ALG_AES_GCM)
-    {
-        let params = value_from_js_object::<AesKeyGenParams>(cx, value.handle(), can_gc)?;
-        KeyGenerationAlgorithm::Aes(params.into())
-    } else if name.eq_ignore_ascii_case(ALG_HMAC) {
-        let params = boxed_value_from_js_object::<HmacKeyGenParams>(cx, value.handle(), can_gc)?;
-        let subtle_params = SubtleHmacKeyGenParams::new(cx, params, can_gc)?;
-        KeyGenerationAlgorithm::Hmac(subtle_params)
     } else {
         return Err(Error::NotSupported);
     };
@@ -2417,166 +2409,6 @@ impl SubtleCrypto {
             .expect("failed to create buffer source for decrypted plaintext");
 
         Ok(plaintext)
-    }
-
-    /// <https://w3c.github.io/webcrypto/#aes-cbc-operations>
-    /// <https://w3c.github.io/webcrypto/#aes-ctr-operations>
-    /// <https://w3c.github.io/webcrypto/#aes-kw-operations>
-    #[allow(unsafe_code)]
-    fn generate_key_aes(
-        &self,
-        usages: Vec<KeyUsage>,
-        key_gen_params: &SubtleAesKeyGenParams,
-        extractable: bool,
-        can_gc: CanGc,
-    ) -> Result<DomRoot<CryptoKey>, Error> {
-        let mut rand = vec![0; key_gen_params.length as usize / 8];
-        self.rng.borrow_mut().fill_bytes(&mut rand);
-        let handle = match key_gen_params.length {
-            128 => Handle::Aes128(rand),
-            192 => Handle::Aes192(rand),
-            256 => Handle::Aes256(rand),
-            _ => return Err(Error::Operation),
-        };
-
-        match key_gen_params.name.as_str() {
-            ALG_AES_CBC | ALG_AES_CTR | ALG_AES_GCM => {
-                if usages.iter().any(|usage| {
-                    !matches!(
-                        usage,
-                        KeyUsage::Encrypt |
-                            KeyUsage::Decrypt |
-                            KeyUsage::WrapKey |
-                            KeyUsage::UnwrapKey
-                    )
-                }) || usages.is_empty()
-                {
-                    return Err(Error::Syntax(None));
-                }
-            },
-            ALG_AES_KW => {
-                if usages
-                    .iter()
-                    .any(|usage| !matches!(usage, KeyUsage::WrapKey | KeyUsage::UnwrapKey)) ||
-                    usages.is_empty()
-                {
-                    return Err(Error::Syntax(None));
-                }
-            },
-            _ => return Err(Error::NotSupported),
-        }
-
-        let name = match key_gen_params.name.as_str() {
-            ALG_AES_CBC => DOMString::from(ALG_AES_CBC),
-            ALG_AES_CTR => DOMString::from(ALG_AES_CTR),
-            ALG_AES_KW => DOMString::from(ALG_AES_KW),
-            ALG_AES_GCM => DOMString::from(ALG_AES_GCM),
-            _ => return Err(Error::NotSupported),
-        };
-
-        let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut algorithm_object = unsafe {JS_NewObject(*cx, ptr::null()) });
-        assert!(!algorithm_object.is_null());
-
-        AesKeyAlgorithm::from_name_and_size(
-            name.clone(),
-            key_gen_params.length,
-            algorithm_object.handle_mut(),
-            cx,
-        );
-
-        let crypto_key = CryptoKey::new(
-            &self.global(),
-            KeyType::Secret,
-            extractable,
-            name,
-            algorithm_object.handle(),
-            usages,
-            handle,
-            can_gc,
-        );
-
-        Ok(crypto_key)
-    }
-
-    /// <https://w3c.github.io/webcrypto/#hmac-operations>
-    #[allow(unsafe_code)]
-    fn generate_key_hmac(
-        &self,
-        usages: Vec<KeyUsage>,
-        params: &SubtleHmacKeyGenParams,
-        extractable: bool,
-        can_gc: CanGc,
-    ) -> Result<DomRoot<CryptoKey>, Error> {
-        // Step 1. If usages contains any entry which is not "sign" or "verify", then throw a SyntaxError.
-        if usages
-            .iter()
-            .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
-        {
-            return Err(Error::Syntax(None));
-        }
-
-        // Step 2.
-        let length = match params.length {
-            // If the length member of normalizedAlgorithm is not present:
-            None => {
-                // Let length be the block size in bits of the hash function identified by the
-                // hash member of normalizedAlgorithm.
-                params.hash.block_size_in_bits() as u32
-            },
-            // Otherwise, if the length member of normalizedAlgorithm is non-zero:
-            Some(length) if length != 0 => {
-                // Let length be equal to the length member of normalizedAlgorithm.
-                length
-            },
-            // Otherwise:
-            _ => {
-                // throw an OperationError.
-                return Err(Error::Operation);
-            },
-        };
-
-        // Step 3. Generate a key of length length bits.
-        let mut key_data = vec![0; length as usize];
-        self.rng.borrow_mut().fill_bytes(&mut key_data);
-
-        // Step 4. If the key generation step fails, then throw an OperationError.
-        // NOTE: Our key generation is infallible.
-
-        // Step 5. Let key be a new CryptoKey object representing the generated key.
-        // Step 6. Let algorithm be a new HmacKeyAlgorithm.
-        // Step 7. Set the name attribute of algorithm to "HMAC".
-        // Step 8. Let hash be a new KeyAlgorithm.
-        // Step 9. Set the name attribute of hash to equal the name member of the hash member of normalizedAlgorithm.
-        // Step 10. Set the hash attribute of algorithm to hash.
-        // Step 11. Set the [[type]] internal slot of key to "secret".
-        // Step 12. Set the [[algorithm]] internal slot of key to algorithm.
-        // Step 13. Set the [[extractable]] internal slot of key to be extractable.
-        // Step 14. Set the [[usages]] internal slot of key to be usages.
-        let name = DOMString::from(ALG_HMAC);
-        let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut algorithm_object = unsafe {JS_NewObject(*cx, ptr::null()) });
-        assert!(!algorithm_object.is_null());
-        HmacKeyAlgorithm::from_length_and_hash(
-            length,
-            params.hash,
-            algorithm_object.handle_mut(),
-            cx,
-        );
-
-        let key = CryptoKey::new(
-            &self.global(),
-            KeyType::Secret,
-            extractable,
-            name,
-            algorithm_object.handle(),
-            usages,
-            Handle::Hmac(key_data),
-            can_gc,
-        );
-
-        // Step 15. Return key.
-        Ok(key)
     }
 
     /// <https://w3c.github.io/webcrypto/#aes-ctr-operations-import-key>
@@ -3083,7 +2915,21 @@ impl SubtleCrypto {
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut algorithm_object = unsafe { JS_NewObject(*cx, ptr::null()) });
         assert!(!algorithm_object.is_null());
-        HmacKeyAlgorithm::from_length_and_hash(length, hash, algorithm_object.handle_mut(), cx);
+        let hash = match hash {
+            DigestAlgorithm::Sha1 => NormalizedAlgorithm::Algorithm(SubtleAlgorithm {
+                name: ALG_SHA1.to_string(),
+            }),
+            DigestAlgorithm::Sha256 => NormalizedAlgorithm::Algorithm(SubtleAlgorithm {
+                name: ALG_SHA256.to_string(),
+            }),
+            DigestAlgorithm::Sha384 => NormalizedAlgorithm::Algorithm(SubtleAlgorithm {
+                name: ALG_SHA384.to_string(),
+            }),
+            DigestAlgorithm::Sha512 => NormalizedAlgorithm::Algorithm(SubtleAlgorithm {
+                name: ALG_SHA512.to_string(),
+            }),
+        };
+        HmacKeyAlgorithm::from_length_and_hash(length, &hash, algorithm_object.handle_mut(), cx);
 
         let key = CryptoKey::new(
             &self.global(),
@@ -3293,7 +3139,7 @@ impl AlgorithmFromName for KeyAlgorithm {
 trait AlgorithmFromLengthAndHash {
     fn from_length_and_hash(
         length: u32,
-        hash: DigestAlgorithm,
+        hash: &NormalizedAlgorithm,
         out: MutableHandleObject,
         cx: JSContext,
     );
@@ -3303,7 +3149,7 @@ impl AlgorithmFromLengthAndHash for HmacKeyAlgorithm {
     #[allow(unsafe_code)]
     fn from_length_and_hash(
         length: u32,
-        hash: DigestAlgorithm,
+        hash: &NormalizedAlgorithm,
         out: MutableHandleObject,
         cx: JSContext,
     ) {
@@ -3312,7 +3158,9 @@ impl AlgorithmFromLengthAndHash for HmacKeyAlgorithm {
                 name: ALG_HMAC.into(),
             },
             length,
-            hash: KeyAlgorithm { name: hash.name() },
+            hash: KeyAlgorithm {
+                name: hash.name().into(),
+            },
         };
 
         unsafe {
@@ -3470,15 +3318,6 @@ impl DigestAlgorithm {
         }
         .into()
     }
-
-    fn block_size_in_bits(&self) -> usize {
-        match self {
-            Self::Sha1 => 160,
-            Self::Sha256 => 256,
-            Self::Sha384 => 384,
-            Self::Sha512 => 512,
-        }
-    }
 }
 
 impl ImportKeyAlgorithm {
@@ -3541,32 +3380,6 @@ impl DeriveBitsAlgorithm {
             Self::Pbkdf2(pbkdf2_params) => pbkdf2_params.derive_bits(key, length),
             Self::Hkdf(hkdf_params) => hkdf_params.derive_bits(key, length),
         }
-    }
-}
-
-impl KeyGenerationAlgorithm {
-    // FIXME: This doesn't really need the "SubtleCrypto" argument
-    fn generate_key(
-        &self,
-        subtle: &SubtleCrypto,
-        usages: Vec<KeyUsage>,
-        extractable: bool,
-        can_gc: CanGc,
-    ) -> Result<CryptoKeyOrCryptoKeyPair, Error> {
-        let key_or_key_pair =
-            match self {
-                Self::Aes(params) => CryptoKeyOrCryptoKeyPair::CryptoKey(subtle.generate_key_aes(
-                    usages,
-                    params,
-                    extractable,
-                    can_gc,
-                )?),
-                Self::Hmac(params) => CryptoKeyOrCryptoKeyPair::CryptoKey(
-                    subtle.generate_key_hmac(usages, params, extractable, can_gc)?,
-                ),
-            };
-
-        Ok(key_or_key_pair)
     }
 }
 
@@ -3736,11 +3549,14 @@ impl JsonWebKeyExt for JsonWebKey {
 /// binding of) IDL dictionary types.
 ///
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm>
+#[derive(Clone, Debug)]
 enum NormalizedAlgorithm {
     Algorithm(SubtleAlgorithm),
     AesCtrParams(SubtleAesCtrParams),
+    AesKeyGenParams(SubtleAesKeyGenParams),
     AesCbcParams(SubtleAesCbcParams),
     AesGcmParams(SubtleAesGcmParams),
+    HmacKeyGenParams(SubtleHmacKeyGenParams),
 }
 
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm>
@@ -3823,6 +3639,9 @@ fn normalize_algorithm(
             // NOTE: Instead of calculating the desiredType in Step 5.2 and filling in the IDL
             // dictionary in Step 7-10, we directly convert the JS object to our "subtle" binding
             // structs to complete Step 6, and put it in the NormalizedAlgorithm enum.
+            //
+            // NOTE: Step 10.1.3 is done by the `From` and `TryFrom` trait implementation of
+            // "subtle" binding structs.
             let normalized_algorithm = match (alg_name, op) {
                 // <https://w3c.github.io/webcrypto/#aes-ctr-registration>
                 (ALG_AES_CTR, Operation::Encrypt) => {
@@ -3834,6 +3653,12 @@ fn normalize_algorithm(
                     let params =
                         boxed_value_from_js_object::<AesCtrParams>(cx, value.handle(), can_gc)?;
                     NormalizedAlgorithm::AesCtrParams(params.into())
+                },
+                (ALG_AES_CTR, Operation::GenerateKey) => {
+                    let mut params =
+                        value_from_js_object::<AesKeyGenParams>(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::AesKeyGenParams(params.into())
                 },
 
                 // <https://w3c.github.io/webcrypto/#aes-cbc-registration>
@@ -3847,6 +3672,12 @@ fn normalize_algorithm(
                         boxed_value_from_js_object::<AesCbcParams>(cx, value.handle(), can_gc)?;
                     NormalizedAlgorithm::AesCbcParams(params.into())
                 },
+                (ALG_AES_CBC, Operation::GenerateKey) => {
+                    let mut params =
+                        value_from_js_object::<AesKeyGenParams>(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::AesKeyGenParams(params.into())
+                },
 
                 // <https://w3c.github.io/webcrypto/#aes-gcm-registration>
                 (ALG_AES_GCM, Operation::Encrypt) => {
@@ -3859,6 +3690,12 @@ fn normalize_algorithm(
                         boxed_value_from_js_object::<AesGcmParams>(cx, value.handle(), can_gc)?;
                     NormalizedAlgorithm::AesGcmParams(params.into())
                 },
+                (ALG_AES_GCM, Operation::GenerateKey) => {
+                    let mut params =
+                        value_from_js_object::<AesKeyGenParams>(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::AesKeyGenParams(params.into())
+                },
 
                 // <https://w3c.github.io/webcrypto/#aes-kw-registration>
                 (ALG_AES_KW, Operation::Encrypt) => {
@@ -3869,6 +3706,12 @@ fn normalize_algorithm(
                     let params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
                     NormalizedAlgorithm::Algorithm(params.into())
                 },
+                (ALG_AES_KW, Operation::GenerateKey) => {
+                    let mut params =
+                        value_from_js_object::<AesKeyGenParams>(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::AesKeyGenParams(params.into())
+                },
 
                 // <https://w3c.github.io/webcrypto/#hmac-registration>
                 (ALG_HMAC, Operation::Sign) => {
@@ -3878,6 +3721,12 @@ fn normalize_algorithm(
                 (ALG_HMAC, Operation::Verify) => {
                     let params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
                     NormalizedAlgorithm::Algorithm(params.into())
+                },
+                (ALG_HMAC, Operation::GenerateKey) => {
+                    let mut params =
+                        boxed_value_from_js_object::<HmacKeyGenParams>(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::HmacKeyGenParams(params.try_into()?)
                 },
 
                 // <https://w3c.github.io/webcrypto/#sha-registration>
@@ -3916,9 +3765,25 @@ impl NormalizedAlgorithm {
         match self {
             NormalizedAlgorithm::Algorithm(algo) => &algo.name,
             NormalizedAlgorithm::AesCtrParams(algo) => &algo.name,
+            NormalizedAlgorithm::AesKeyGenParams(algo) => &algo.name,
             NormalizedAlgorithm::AesCbcParams(algo) => &algo.name,
             NormalizedAlgorithm::AesGcmParams(algo) => &algo.name,
+            NormalizedAlgorithm::HmacKeyGenParams(algo) => &algo.name,
         }
+    }
+
+    fn block_size_in_bits(&self) -> Result<u32, Error> {
+        let size = match self.name() {
+            ALG_SHA1 => 160,
+            ALG_SHA256 => 256,
+            ALG_SHA384 => 384,
+            ALG_SHA512 => 512,
+            _ => {
+                return Err(Error::NotSupported);
+            },
+        };
+
+        Ok(size)
     }
 
     fn encrypt(&self, key: &CryptoKey, plaintext: &[u8]) -> Result<Vec<u8>, Error> {
@@ -3989,11 +3854,66 @@ impl NormalizedAlgorithm {
         }
     }
 
+    fn generate_key(
+        &self,
+        global: &GlobalScope,
+        extractable: bool,
+        usages: Vec<KeyUsage>,
+        rng: &DomRefCell<ServoRng>,
+        can_gc: CanGc,
+    ) -> Result<CryptoKeyOrCryptoKeyPair, Error> {
+        match self {
+            NormalizedAlgorithm::AesKeyGenParams(algo) => match algo.name.as_str() {
+                ALG_AES_CTR => aes_operation::generate_key_aes_ctr(
+                    global,
+                    algo,
+                    extractable,
+                    usages,
+                    rng,
+                    can_gc,
+                )
+                .map(CryptoKeyOrCryptoKeyPair::CryptoKey),
+                ALG_AES_CBC => aes_operation::generate_key_aes_cbc(
+                    global,
+                    algo,
+                    extractable,
+                    usages,
+                    rng,
+                    can_gc,
+                )
+                .map(CryptoKeyOrCryptoKeyPair::CryptoKey),
+                ALG_AES_GCM => aes_operation::generate_key_aes_gcm(
+                    global,
+                    algo,
+                    extractable,
+                    usages,
+                    rng,
+                    can_gc,
+                )
+                .map(CryptoKeyOrCryptoKeyPair::CryptoKey),
+                ALG_AES_KW => aes_operation::generate_key_aes_kw(
+                    global,
+                    algo,
+                    extractable,
+                    usages,
+                    rng,
+                    can_gc,
+                )
+                .map(CryptoKeyOrCryptoKeyPair::CryptoKey),
+                _ => Err(Error::NotSupported),
+            },
+            NormalizedAlgorithm::HmacKeyGenParams(algo) => {
+                hmac_operation::generate_key(global, algo, extractable, usages, rng, can_gc)
+                    .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
+            },
+            _ => Err(Error::NotSupported),
+        }
+    }
+
     // TODO:
     // derive_bits
     // wrap_key
     // unwrap_key
-    // generate_key
     // import_key
     // export_key
     // get_key_length

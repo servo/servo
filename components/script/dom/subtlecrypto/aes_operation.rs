@@ -2,16 +2,30 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::ptr;
+
 use aes::cipher::block_padding::Pkcs7;
 use aes::cipher::generic_array::GenericArray;
 use aes::cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit, StreamCipher};
 use aes::{Aes128, Aes192, Aes256};
 use aes_gcm::{AeadInPlace, AesGcm, KeyInit};
 use cipher::consts::{U12, U16, U32};
+use js::jsapi::JS_NewObject;
+use servo_rand::{RngCore, ServoRng};
 
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsage};
+use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::AesKeyAlgorithm;
 use crate::dom::bindings::error::Error;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
-use crate::dom::subtlecrypto::{SubtleAesCbcParams, SubtleAesCtrParams, SubtleAesGcmParams};
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::subtlecrypto::{
+    ALG_AES_CBC, ALG_AES_CTR, ALG_AES_GCM, ALG_AES_KW, AlgorithmFromNameAndSize,
+    SubtleAesCbcParams, SubtleAesCtrParams, SubtleAesGcmParams, SubtleAesKeyGenParams,
+};
+use crate::script_runtime::CanGc;
 
 type Aes128CbcEnc = cbc::Encryptor<Aes128>;
 type Aes128CbcDec = cbc::Decryptor<Aes128>;
@@ -84,6 +98,33 @@ pub(crate) fn decrypt_aes_ctr(
 ) -> Result<Vec<u8>, Error> {
     // NOTE: Share implementation with `encrypt_aes_ctr`
     encrypt_aes_ctr(normalized_algorithm, key, ciphertext)
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-generate-key>
+#[allow(unsafe_code)]
+pub(crate) fn generate_key_aes_ctr(
+    global: &GlobalScope,
+    normalized_algorithm: &SubtleAesKeyGenParams,
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+    rng: &DomRefCell<ServoRng>,
+    can_gc: CanGc,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    generate_key_aes(
+        global,
+        normalized_algorithm,
+        extractable,
+        usages,
+        rng,
+        ALG_AES_CTR,
+        &[
+            KeyUsage::Encrypt,
+            KeyUsage::Decrypt,
+            KeyUsage::WrapKey,
+            KeyUsage::UnwrapKey,
+        ],
+        can_gc,
+    )
 }
 
 /// <https://w3c.github.io/webcrypto/#aes-cbc-operations-encrypt>
@@ -176,6 +217,33 @@ pub(crate) fn decrypt_aes_cbc(
 
     // Step 7. Return plaintext.
     Ok(plaintext.to_vec())
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-generate-key>
+#[allow(unsafe_code)]
+pub(crate) fn generate_key_aes_cbc(
+    global: &GlobalScope,
+    normalized_algorithm: &SubtleAesKeyGenParams,
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+    rng: &DomRefCell<ServoRng>,
+    can_gc: CanGc,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    generate_key_aes(
+        global,
+        normalized_algorithm,
+        extractable,
+        usages,
+        rng,
+        ALG_AES_CBC,
+        &[
+            KeyUsage::Encrypt,
+            KeyUsage::Decrypt,
+            KeyUsage::WrapKey,
+            KeyUsage::UnwrapKey,
+        ],
+        can_gc,
+    )
 }
 
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-encrypt>
@@ -407,4 +475,124 @@ pub(crate) fn decrypt_aes_gcm(
     }
 
     Ok(plaintext)
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-gcm-operations-generate-key>
+#[allow(unsafe_code)]
+pub(crate) fn generate_key_aes_gcm(
+    global: &GlobalScope,
+    normalized_algorithm: &SubtleAesKeyGenParams,
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+    rng: &DomRefCell<ServoRng>,
+    can_gc: CanGc,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    generate_key_aes(
+        global,
+        normalized_algorithm,
+        extractable,
+        usages,
+        rng,
+        ALG_AES_GCM,
+        &[
+            KeyUsage::Encrypt,
+            KeyUsage::Decrypt,
+            KeyUsage::WrapKey,
+            KeyUsage::UnwrapKey,
+        ],
+        can_gc,
+    )
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-kw-operations-generate-key>
+#[allow(unsafe_code)]
+pub(crate) fn generate_key_aes_kw(
+    global: &GlobalScope,
+    normalized_algorithm: &SubtleAesKeyGenParams,
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+    rng: &DomRefCell<ServoRng>,
+    can_gc: CanGc,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    generate_key_aes(
+        global,
+        normalized_algorithm,
+        extractable,
+        usages,
+        rng,
+        ALG_AES_KW,
+        &[KeyUsage::WrapKey, KeyUsage::UnwrapKey],
+        can_gc,
+    )
+}
+
+/// Helper function for
+/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-generate-key>,
+/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-generate-key>,
+/// <https://w3c.github.io/webcrypto/#aes-gcm-operations-generate-key> and
+/// <https://w3c.github.io/webcrypto/#aes-kw-operations-generate-key>
+#[allow(clippy::too_many_arguments)]
+#[allow(unsafe_code)]
+fn generate_key_aes(
+    global: &GlobalScope,
+    normalized_algorithm: &SubtleAesKeyGenParams,
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+    rng: &DomRefCell<ServoRng>,
+    name: &str,
+    allowed_usages: &[KeyUsage],
+    can_gc: CanGc,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    // Step 1. If usages contains any entry which is not one of allowed_usages, then throw a SyntaxError.
+    if usages.iter().any(|usage| !allowed_usages.contains(usage)) {
+        return Err(Error::Syntax(None));
+    }
+
+    // Step 2. If the length member of normalizedAlgorithm is not equal to one of 128, 192 or 256,
+    // then throw an OperationError.
+    if !matches!(normalized_algorithm.length, 128 | 192 | 256) {
+        return Err(Error::Operation);
+    }
+
+    // Step 3. Generate an AES key of length equal to the length member of normalizedAlgorithm.
+    // Step 4. If the key generation step fails, then throw an OperationError.
+    let mut rand = vec![0; normalized_algorithm.length as usize / 8];
+    rng.borrow_mut().fill_bytes(&mut rand);
+    let handle = match normalized_algorithm.length {
+        128 => Handle::Aes128(rand),
+        192 => Handle::Aes192(rand),
+        256 => Handle::Aes256(rand),
+        _ => return Err(Error::Operation),
+    };
+
+    // Step 6. Let algorithm be a new AesKeyAlgorithm.
+    // Step 7. Set the name attribute of algorithm to name.
+    // Step 8. Set the length attribute of algorithm to equal the length member of normalizedAlgorithm.
+    let cx = GlobalScope::get_cx();
+    rooted!(in(*cx) let mut algorithm_object = unsafe {JS_NewObject(*cx, ptr::null()) });
+    AesKeyAlgorithm::from_name_and_size(
+        DOMString::from(name),
+        normalized_algorithm.length,
+        algorithm_object.handle_mut(),
+        cx,
+    );
+
+    // Step 5. Let key be a new CryptoKey object representing the generated AES key.
+    // Step 9. Set the [[type]] internal slot of key to "secret".
+    // Step 10. Set the [[algorithm]] internal slot of key to algorithm.
+    // Step 11. Set the [[extractable]] internal slot of key to be extractable.
+    // Step 12. Set the [[usages]] internal slot of key to be usages.
+    let crypto_key = CryptoKey::new(
+        global,
+        KeyType::Secret,
+        extractable,
+        DOMString::from(name),
+        algorithm_object.handle(),
+        usages,
+        handle,
+        can_gc,
+    );
+
+    // Step 13. Return key.
+    Ok(crypto_key)
 }
