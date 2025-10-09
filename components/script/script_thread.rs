@@ -1535,6 +1535,9 @@ impl ScriptThread {
                         .frame_element()
                         .and_then(|e| e.downcast::<HTMLIFrameElement>())
                     {
+                        // Note: the two conditionals are the same,
+                        // but they are likely to evolved where only 
+                        // the second one runs the iframe load event steps, synchronously.
                         if frame.is_initial_blank_document() {
                             // The initial synchronous about:blank document should not
                             // be noticeable to script.
