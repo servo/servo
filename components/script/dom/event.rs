@@ -61,17 +61,8 @@ pub(crate) struct Event {
     /// <https://dom.spec.whatwg.org/#dom-event-eventphase>
     phase: Cell<EventPhase>,
 
-    /// This contains the `canceled` flags defined at
-    /// <https://dom.spec.whatwg.org/#canceled-flag> as well as information about whether
-    /// the event has been handled yet. This information is used to prevent double-handling
-    /// of the event by the embedder.
-    result: Cell<EventResult>,
-
-    /// <https://dom.spec.whatwg.org/#stop-propagation-flag>
-    stop_propagation: Cell<bool>,
-
-    /// <https://dom.spec.whatwg.org/#stop-immediate-propagation-flag>
-    stop_immediate_propagation: Cell<bool>,
+    /// The various specification-defined flags set on this event.
+    flags: Cell<EventFlags>,
 
     /// <https://dom.spec.whatwg.org/#dom-event-cancelable>
     cancelable: Cell<bool>,
@@ -85,9 +76,6 @@ pub(crate) struct Event {
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     is_trusted: Cell<bool>,
 
-    /// <https://dom.spec.whatwg.org/#dispatch-flag>
-    dispatch: Cell<bool>,
-
     /// <https://dom.spec.whatwg.org/#initialized-flag>
     initialized: Cell<bool>,
 
@@ -100,9 +88,6 @@ pub(crate) struct Event {
 
     /// <https://dom.spec.whatwg.org/#event-relatedtarget>
     related_target: MutNullableDom<EventTarget>,
-
-    /// <https://dom.spec.whatwg.org/#in-passive-listener-flag>
-    in_passive_listener: Cell<bool>,
 }
 
 /// An element on an [event path](https://dom.spec.whatwg.org/#event-path)
@@ -136,19 +121,15 @@ impl Event {
             target: Default::default(),
             type_: DomRefCell::new(atom!("")),
             phase: Cell::new(EventPhase::None),
-            result: Cell::new(EventResult::empty()),
-            stop_propagation: Cell::new(false),
-            stop_immediate_propagation: Cell::new(false),
+            flags: Cell::new(EventFlags::empty()),
             cancelable: Cell::new(false),
             bubbles: Cell::new(false),
             composed: Cell::new(false),
             is_trusted: Cell::new(false),
-            dispatch: Cell::new(false),
             initialized: Cell::new(false),
             time_stamp: CrossProcessInstant::now(),
             path: DomRefCell::default(),
             related_target: Default::default(),
-            in_passive_listener: Cell::new(false),
         }
     }
 
@@ -193,7 +174,7 @@ impl Event {
     /// and <https://dom.spec.whatwg.org/#concept-event-initialize>
     pub(crate) fn init_event(&self, type_: Atom, bubbles: bool, cancelable: bool) {
         // https://dom.spec.whatwg.org/#dom-event-initevent
-        if self.dispatch.get() {
+        if self.has_flag(EventFlags::Dispatch) {
             return;
         }
 
@@ -202,9 +183,12 @@ impl Event {
         self.initialized.set(true);
 
         // Step 2. Unset event’s stop propagation flag, stop immediate propagation flag, and canceled flag.
-        self.stop_propagation.set(false);
-        self.stop_immediate_propagation.set(false);
-        self.result.set(EventResult::empty());
+        self.unset_flag(EventFlags::StopPropagation);
+        self.unset_flag(EventFlags::StopImmediatePropagation);
+        self.unset_flag(EventFlags::Canceled);
+
+        // This flag isn't in the specification, but we need to unset it anyway.
+        self.unset_flag(EventFlags::Handled);
 
         // Step 3. Set event’s isTrusted attribute to false.
         self.is_trusted.set(false);
@@ -222,12 +206,30 @@ impl Event {
         self.cancelable.set(cancelable);
     }
 
+    fn set_flag(&self, flag: EventFlags) {
+        self.flags.set(self.flags.get().union(flag))
+    }
+
+    fn unset_flag(&self, flag: EventFlags) {
+        let mut flags = self.flags.get();
+        flags.remove(flag);
+        self.flags.set(flags);
+    }
+
+    fn has_flag(&self, flag: EventFlags) -> bool {
+        self.flags.get().contains(flag)
+    }
+
     pub(crate) fn set_target(&self, target_: Option<&EventTarget>) {
         self.target.set(target_);
     }
 
-    pub(crate) fn set_in_passive_listener(&self, value: bool) {
-        self.in_passive_listener.set(value);
+    fn set_in_passive_listener(&self, value: bool) {
+        if value {
+            self.set_flag(EventFlags::InPassiveListener);
+        } else {
+            self.unset_flag(EventFlags::InPassiveListener);
+        }
     }
 
     /// <https://dom.spec.whatwg.org/#concept-event-path-append>
@@ -288,7 +290,7 @@ impl Event {
         let mut target = DomRoot::from_ref(target);
 
         // Step 1. Set event’s dispatch flag.
-        self.dispatch.set(true);
+        self.set_flag(EventFlags::Dispatch);
 
         // Step 2. Let targetOverride be target, if legacy target override flag is not given,
         // and target’s associated Document otherwise.
@@ -601,9 +603,9 @@ impl Event {
         self.path.borrow_mut().clear();
 
         // Step 9. Unset event’s dispatch flag, stop propagation flag, and stop immediate propagation flag.
-        self.dispatch.set(false);
-        self.stop_propagation.set(false);
-        self.stop_immediate_propagation.set(false);
+        self.unset_flag(EventFlags::Dispatch);
+        self.unset_flag(EventFlags::StopPropagation);
+        self.unset_flag(EventFlags::StopImmediatePropagation);
 
         // Step 10. If clearTargets is true:
         if clear_targets {
@@ -639,7 +641,7 @@ impl Event {
 
     #[inline]
     pub(crate) fn dispatching(&self) -> bool {
-        self.dispatch.get()
+        self.has_flag(EventFlags::Dispatch)
     }
 
     #[inline]
@@ -654,13 +656,12 @@ impl Event {
 
     #[inline]
     pub(crate) fn mark_as_handled(&self) {
-        self.result
-            .set(self.result.get().union(EventResult::Handled));
+        self.set_flag(EventFlags::Handled);
     }
 
     #[inline]
-    pub(crate) fn result(&self) -> EventResult {
-        self.result.get()
+    pub(crate) fn flags(&self) -> EventFlags {
+        self.flags.get()
     }
 
     pub(crate) fn set_trusted(&self, trusted: bool) {
@@ -737,9 +738,8 @@ impl Event {
 
     /// <https://dom.spec.whatwg.org/#set-the-canceled-flag>
     fn set_the_cancelled_flag(&self) {
-        if self.cancelable.get() && !self.in_passive_listener.get() {
-            self.result
-                .set(self.result.get().union(EventResult::Canceled));
+        if self.cancelable.get() && !self.has_flag(EventFlags::InPassiveListener) {
+            self.set_flag(EventFlags::Canceled);
         }
     }
 }
@@ -921,7 +921,7 @@ impl EventMethods<crate::DomTypeHolder> for Event {
 
     /// <https://dom.spec.whatwg.org/#dom-event-defaultprevented>
     fn DefaultPrevented(&self) -> bool {
-        self.result.get().contains(EventResult::Canceled)
+        self.has_flag(EventFlags::Canceled)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-composed>
@@ -936,13 +936,12 @@ impl EventMethods<crate::DomTypeHolder> for Event {
 
     /// <https://dom.spec.whatwg.org/#dom-event-stoppropagation>
     fn StopPropagation(&self) {
-        self.stop_propagation.set(true);
+        self.set_flag(EventFlags::StopPropagation);
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-stopimmediatepropagation>
     fn StopImmediatePropagation(&self) {
-        self.stop_immediate_propagation.set(true);
-        self.stop_propagation.set(true);
+        self.set_flag(EventFlags::StopPropagation | EventFlags::StopImmediatePropagation);
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-bubbles>
@@ -957,7 +956,7 @@ impl EventMethods<crate::DomTypeHolder> for Event {
 
     /// <https://dom.spec.whatwg.org/#dom-event-returnvalue>
     fn ReturnValue(&self) -> bool {
-        !self.result.get().contains(EventResult::Canceled)
+        !self.has_flag(EventFlags::Canceled)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-returnvalue>
@@ -969,13 +968,13 @@ impl EventMethods<crate::DomTypeHolder> for Event {
 
     /// <https://dom.spec.whatwg.org/#dom-event-cancelbubble>
     fn CancelBubble(&self) -> bool {
-        self.stop_propagation.get()
+        self.has_flag(EventFlags::StopPropagation)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-cancelbubble>
     fn SetCancelBubble(&self, value: bool) {
         if value {
-            self.stop_propagation.set(true)
+            self.set_flag(EventFlags::StopPropagation);
         }
     }
 
@@ -1082,27 +1081,37 @@ pub(crate) enum EventPhase {
     Bubbling = EventConstants::BUBBLING_PHASE,
 }
 
-/// An enum to indicate the result of firing an event.
+/// [`EventFlags`] tracks the which specification-defined flags in an [`Event`] are enabled.
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
-pub(crate) struct EventResult(u8);
+pub(crate) struct EventFlags(u8);
 
 bitflags! {
-    impl EventResult: u8 {
-        /// The default action of the event has been prevented via `preventDefault()`.
+    impl EventFlags: u8 {
+        /// <https://dom.spec.whatwg.org/#canceled-flag>
         const Canceled = 1 << 0;
         /// The event has been handled somewhere in the DOM, and it should be prevented from being
         /// re-handled elsewhere. This doesn't affect the judgement of `DefaultPrevented`
         const Handled =  1 << 1;
+        /// <https://dom.spec.whatwg.org/#stop-propagation-flag>
+        const StopPropagation = 1 << 2;
+        /// <https://dom.spec.whatwg.org/#stop-immediate-propagation-flag>
+        const StopImmediatePropagation = 1 << 3;
+        /// <https://dom.spec.whatwg.org/#dispatch-flag>
+        const Dispatch =  1 << 4;
+        /// <https://dom.spec.whatwg.org/#initialized-flag>
+        const Initialized =  1 << 5;
+        /// <https://dom.spec.whatwg.org/#in-passive-listener-flag>
+        const InPassiveListener =  1 << 6;
     }
 }
 
-impl From<EventResult> for InputEventResult {
-    fn from(event_result: EventResult) -> Self {
+impl From<EventFlags> for InputEventResult {
+    fn from(event_result: EventFlags) -> Self {
         let mut result = Self::default();
-        if event_result.contains(EventResult::Canceled) {
+        if event_result.contains(EventFlags::Canceled) {
             result |= Self::DefaultPrevented;
         }
-        if event_result.contains(EventResult::Handled) {
+        if event_result.contains(EventFlags::Handled) {
             result |= Self::Consumed;
         }
         result
@@ -1172,7 +1181,7 @@ fn invoke(
     // TODO: Set event’s touch target list to struct’s touch target list.
 
     // Step 4. If event’s stop propagation flag is set, then return.
-    if event.stop_propagation.get() {
+    if event.has_flag(EventFlags::StopPropagation) {
         return;
     }
 
@@ -1323,7 +1332,7 @@ fn inner_invoke(
         }
 
         // Step 2.13: If event’s stop immediate propagation flag is set, then break.
-        if event.stop_immediate_propagation.get() {
+        if event.has_flag(EventFlags::StopImmediatePropagation) {
             break;
         }
     }
