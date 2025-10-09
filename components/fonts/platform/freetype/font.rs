@@ -9,9 +9,9 @@ use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D};
 use fonts_traits::{FontIdentifier, FontTemplateDescriptor, LocalFontIdentifier};
 use freetype_sys::{
-    FT_F26Dot6, FT_Get_Char_Index, FT_Get_Kerning, FT_GlyphSlot, FT_HAS_MULTIPLE_MASTERS,
-    FT_KERNING_DEFAULT, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_Load_Glyph, FT_Size_Metrics,
-    FT_SizeRec, FT_UInt, FT_ULong, FT_Vector,
+    FT_F26Dot6, FT_Get_Char_Index, FT_Get_Kerning, FT_GlyphSlot, FT_KERNING_DEFAULT,
+    FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_Load_Glyph, FT_Size_Metrics, FT_SizeRec, FT_UInt,
+    FT_ULong, FT_Vector,
 };
 use log::debug;
 use memmap2::Mmap;
@@ -71,7 +71,7 @@ impl PlatformFontMethods for PlatformFont {
         font_data: &FontData,
         requested_size: Option<Au>,
         variations: &[FontVariation],
-        mut synthetic_bold: bool,
+        synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
         let data: &[u8] = font_data.as_ref();
@@ -84,20 +84,15 @@ impl PlatformFontMethods for PlatformFont {
             None => (Au::zero(), Au::zero()),
         };
 
-        // Variable fonts, where the font designer has provided one or more axes of
-        // variation do not count as font synthesis and their use is not affected by
-        // the font-synthesis property.
-        //
-        // <https://www.w3.org/TR/css-fonts-4/#font-synthesis-intro>
-        if FT_HAS_MULTIPLE_MASTERS(face.as_ptr()) {
-            synthetic_bold = false;
-        }
+        let table_provider_data = FreeTypeFaceTableProviderData::Web(font_data.clone());
+
+        let synthetic_bold = table_provider_data.should_apply_synthetic_bold(synthetic_bold);
 
         Ok(PlatformFont {
             face: ReentrantMutex::new(face),
             requested_face_size,
             actual_face_size,
-            table_provider_data: FreeTypeFaceTableProviderData::Web(font_data.clone()),
+            table_provider_data,
             variations: normalized_variations,
             synthetic_bold,
         })
@@ -131,23 +126,12 @@ impl PlatformFontMethods for PlatformFont {
             return Err("Could not memory map");
         };
 
-        // If the font face is already bold, applying synthetic bold would "double embolden" the font
         let table_provider_data = FreeTypeFaceTableProviderData::Local(
             Arc::new(memory_mapped_font_data),
             font_identifier.index(),
         );
-        let face_is_bold = table_provider_data
-            .font_ref()
-            .and_then(|font_ref| font_ref.os2())
-            .is_ok_and(|table| table.us_weight_class() >= SEMI_BOLD_U16);
 
-        // Variable fonts do not count as font synthesis and their use is not affected by
-        // the font-synthesis property.
-        //
-        // <https://www.w3.org/TR/css-fonts-4/#font-synthesis-intro>
-        let is_variable_font = FT_HAS_MULTIPLE_MASTERS(face.as_ptr());
-
-        let synthetic_bold = !face_is_bold && !is_variable_font && synthetic_bold;
+        let synthetic_bold = table_provider_data.should_apply_synthetic_bold(synthetic_bold);
 
         Ok(PlatformFont {
             face: ReentrantMutex::new(face),
@@ -429,6 +413,20 @@ impl FreeTypeFaceTableProviderData {
             Self::Web(ipc_shared_memory) => FontRef::new(ipc_shared_memory.as_ref()),
             Self::Local(mmap, index) => FontRef::from_index(mmap, *index),
         }
+    }
+
+    fn should_apply_synthetic_bold(&self, synthetic_bold: bool) -> bool {
+        // Ensures that a font face is not emboldened if it's a variable font or
+        // if it's already bold.
+        let face_is_bold = self
+            .font_ref()
+            .and_then(|font_ref| font_ref.os2())
+            .is_ok_and(|table| table.us_weight_class() >= SEMI_BOLD_U16);
+        let is_variable_font = self
+            .font_ref()
+            .and_then(|font_ref| font_ref.fvar())
+            .is_ok_and(|table| table.axis_count() > 0);
+        !face_is_bold && !is_variable_font && synthetic_bold
     }
 }
 
