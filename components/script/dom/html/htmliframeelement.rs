@@ -550,7 +550,7 @@ impl HTMLIFrameElement {
         let blocker = &self.load_blocker;
         LoadBlocker::terminate(blocker, can_gc);
 
-        // The initial blank document should not be noticeable to script.
+        // Note: the initial blank document should skip the firing of the load event.
         if self.is_initial_blank_document() {
             return;
         }
