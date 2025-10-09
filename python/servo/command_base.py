@@ -258,6 +258,7 @@ class CommandBase(object):
     def __init__(self, context: Any) -> None:
         self.context = context
         self.enable_media = False
+        self.enable_code_coverage = False
         self.features = []
 
         # Default to native build target. This will later be overriden
@@ -336,7 +337,7 @@ class CommandBase(object):
 
     def get_binary_path(self, build_type: BuildType, sanitizer: SanitizerKind = SanitizerKind.NONE) -> str:
         base_path = util.get_target_dir()
-        if sanitizer.is_some() or self.target.is_cross_build():
+        if sanitizer.is_some() or self.target.is_cross_build() or self.enable_code_coverage:
             base_path = path.join(base_path, self.target.triple())
         binary_name = self.target.binary_name()
         binary_path = path.join(base_path, build_type.directory_name(), binary_name)
@@ -502,6 +503,12 @@ class CommandBase(object):
         if self.config["build"]["rustflags"]:
             env["RUSTFLAGS"] += " " + self.config["build"]["rustflags"]
 
+        if self.enable_code_coverage:
+            env["RUSTFLAGS"] += " " + "-Cinstrument-coverage=true"
+            target_file_pattern = f"{util.get_target_dir()}/code_coverage/default_%20m_%p.profraw"
+            env.setdefault("LLVM_PROFILE_FILE", target_file_pattern)
+            print(f"Code coverage enabled. Output pattern: {env['LLVM_PROFILE_FILE']}")
+
         if not (self.config["build"]["ccache"] == ""):
             env["CCACHE"] = self.config["build"]["ccache"]
 
@@ -658,6 +665,15 @@ class CommandBase(object):
                 CommandArgument("--bin", default=None, help="Launch with specific binary"),
                 CommandArgument("--nightly", "-n", default=None, help="Specify a YYYY-MM-DD nightly build to run"),
             ]
+        if build_configuration or binary_selection:
+            decorators += [
+                CommandArgument(
+                    "--with-coverage",
+                    default=False,
+                    action="store_true",
+                    help="Build with code coverage",
+                ),
+            ]
 
         def decorator_function(original_function: Callable) -> Callable:
             def configuration_decorator(self: CommandBase, *args: Any, **kwargs: Any) -> Callable:
@@ -679,6 +695,9 @@ class CommandBase(object):
                     self.configure_build_target(kwargs)
                     self.features = kwargs.get("features", None) or []
                     self.enable_media = self.is_media_enabled(kwargs["media_stack"])
+
+                if build_configuration or binary_selection:
+                    self.enable_code_coverage = kwargs.pop("with_coverage", False)
 
                 if binary_selection:
                     if "servo_binary" not in kwargs:
@@ -848,6 +867,8 @@ class CommandBase(object):
                     args += ["--lib", "--crate-type=cdylib"]
         elif target_override:
             args += ["--target", target_override]
+
+        assert "--target" in args, f"--target not in args. fishy! args: {args}"
 
         features = []
 
