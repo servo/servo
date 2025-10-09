@@ -2327,7 +2327,9 @@ impl Document {
 
     /// The end for both the intial about:blank document,
     /// and the initial navigated document(which can be about:blank as well).
-    pub(crate) fn run_initial_iframe_completion(&self) {
+    /// The operations here are a subset
+    /// of what is run in `maybe_queue_document_completion`.
+    pub(crate) fn run_initial_iframe_about_blank_insertion_completion(&self) {
         // Note: this seems required to allow the window containing the iframe to load.
         self.set_ready_state(DocumentReadyState::Complete, CanGc::note());
 

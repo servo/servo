@@ -1541,7 +1541,9 @@ impl ScriptThread {
                         if frame.is_initial_blank_document() ||
                             frame.is_initial_navigated_document_that_matches_about_blank()
                         {
-                            document.run_initial_iframe_completion();
+                            // Note: this is a subset of `maybe_queue_document_completion`,
+                            // which any other iframe should run.
+                            document.run_initial_iframe_about_blank_insertion_completion();
                             continue;
                         }
                     }
