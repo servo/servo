@@ -7,6 +7,7 @@ mod context;
 mod eval;
 mod eval_function;
 mod parser;
+mod tokenizer;
 mod value;
 
 use std::fmt::Debug;
@@ -16,7 +17,8 @@ pub use ast::Expression;
 use ast::QName;
 use context::EvaluationCtx;
 use markup5ever::{LocalName, Namespace, Prefix};
-use parser::{OwnedParserError, parse as parse_impl};
+pub use parser::Error as ParserError;
+use parser::parse as parse_impl;
 pub use value::{NodesetHelpers, Value};
 
 pub trait Dom {
@@ -95,15 +97,18 @@ pub trait Attribute {
 }
 
 /// Parse an XPath expression from a string
-pub fn parse<E>(xpath: &str) -> Result<Expression, Error<E>> {
-    match parse_impl(xpath) {
+pub fn parse<D: Dom>(
+    xpath: &str,
+    resolver: Option<D::NamespaceResolver>,
+) -> Result<Expression, ParserError<D::JsError>> {
+    match parse_impl(xpath, resolver) {
         Ok(expression) => {
             log::debug!("Parsed XPath: {expression:?}");
             Ok(expression)
         },
         Err(error) => {
-            log::debug!("Unable to parse XPath: {error}");
-            Err(Error::Parsing(error))
+            log::debug!("Unable to parse XPath: {error:?}");
+            Err(error)
         },
     }
 }
@@ -112,9 +117,8 @@ pub fn parse<E>(xpath: &str) -> Result<Expression, Error<E>> {
 pub fn evaluate_parsed_xpath<D: Dom>(
     expr: &Expression,
     context_node: D::Node,
-    resolver: Option<D::NamespaceResolver>,
 ) -> Result<Value<D::Node>, Error<D::JsError>> {
-    let context = EvaluationCtx::<D>::new(context_node, resolver);
+    let context = EvaluationCtx::<D>::new(context_node);
     match expr.evaluate(&context) {
         Ok(value) => {
             log::debug!("Evaluated XPath: {value:?}");
@@ -142,9 +146,7 @@ pub enum Error<JsError> {
     Internal {
         msg: String,
     },
-    /// A JS exception that needs to be propagated to the caller.
-    JsException(JsError),
-    Parsing(OwnedParserError),
+    Parsing(ParserError<JsError>),
 }
 
 /// <https://www.w3.org/TR/xml/#NT-NameStartChar>
