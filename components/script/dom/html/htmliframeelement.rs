@@ -398,22 +398,12 @@ impl HTMLIFrameElement {
         self.navigate_or_reload_child_browsing_context(load_data, history_handling, can_gc);
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#create-a-new-child-navigable>
+    /// Synchronously create a new browsing context(This is not a navigation.).
+    /// The pipeline started here will synchronously load,
+    /// but remain unnoticable to script(no load on the window, not iframe load event steps).
+    /// Some controversy spec-wise remains: https://github.com/whatwg/html/issues/4965
     fn create_nested_browsing_context(&self, can_gc: CanGc) {
-        // Synchronously create a new browsing context, which will present
-        // `about:blank`. (This is not a navigation.)
-        //
-        // The pipeline started here will synchronously "completely finish
-        // loading", which will then asynchronously call
-        // `iframe_load_event_steps`.
-        //
-        // The precise event timing differs between implementations and
-        // remains controversial:
-        //
-        //  - [Unclear "iframe load event steps" for initial load of about:blank
-        //    in an iframe #490](https://github.com/whatwg/html/issues/490)
-        //  - [load event handling for iframes with no src may not be web
-        //    compatible #4965](https://github.com/whatwg/html/issues/4965)
-        //
         let url = ServoUrl::parse("about:blank").unwrap();
         let document = self.owner_document();
         let window = self.owner_window();
