@@ -41,10 +41,10 @@ from servo.command_base import BuildType, CommandBase, call, check_call
 from servo.post_build_commands import PostBuildCommands
 from servo.util import delete
 
-SCRIPT_PATH = os.path.split(__file__)[0]
-PROJECT_TOPLEVEL_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
-WEB_PLATFORM_TESTS_PATH = os.path.join("tests", "wpt", "tests")
-SERVO_TESTS_PATH = os.path.join("tests", "wpt", "mozilla", "tests")
+SCRIPT_PATH = path.split(__file__)[0]
+PROJECT_TOPLEVEL_PATH = path.abspath(path.join(SCRIPT_PATH, "..", ".."))
+WEB_PLATFORM_TESTS_PATH = path.join("tests", "wpt", "tests")
+SERVO_TESTS_PATH = path.join("tests", "wpt", "mozilla", "tests")
 
 # Servo depends on several `rustfmt` options that are unstable. These are still
 # supported by stable `rustfmt` if they are passed as these command-line arguments.
@@ -605,7 +605,7 @@ class MachCommands(CommandBase):
         run_file = path.join(base_dir, "run_jquery.py")
 
         # Clone the jQuery repository if it doesn't exist
-        if not os.path.isdir(jquery_dir):
+        if not path.isdir(jquery_dir):
             check_call(["git", "clone", "-b", "servo", "--depth", "1", "https://github.com/servo/jquery", jquery_dir])
 
         # Run pull in case the jQuery repo was updated since last test run
@@ -626,7 +626,7 @@ class MachCommands(CommandBase):
             bmf_output = ""
 
         # Clone the Dromaeo repository if it doesn't exist
-        if not os.path.isdir(dromaeo_dir):
+        if not path.isdir(dromaeo_dir):
             check_call(
                 ["git", "clone", "-b", "servo", "--depth", "1", "https://github.com/notriddle/dromaeo", dromaeo_dir]
             )
@@ -809,7 +809,7 @@ class MachCommands(CommandBase):
         dest_folder = path.join(base_dir, "conformance-%s" % version)
         patches_dir = path.join(base_dir, "tools")
         # Clean dest folder if exists
-        if os.path.exists(dest_folder):
+        if path.exists(dest_folder):
             shutil.rmtree(dest_folder)
 
         run_globals: dict[str, Any] = {"__file__": run_file}
