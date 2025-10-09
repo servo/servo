@@ -317,7 +317,11 @@ impl HTMLIFrameElement {
             return;
         }
 
-        self.initial_insertion
+        // Note: We need to keep track of this because step 2.3 
+        // "If url matches about:blank and initialInsertion is true",
+        // will be run asynchronously.
+        // TODO: run synchronously.
+         self.initial_insertion
             .set(mode == ProcessingMode::FirstTime);
 
         // > 2. Otherwise, if `element` has a `src` attribute specified, or
