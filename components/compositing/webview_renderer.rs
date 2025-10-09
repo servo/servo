@@ -807,10 +807,6 @@ impl WebViewRenderer {
         old_zoom != self.pinch_zoom
     }
 
-    pub(crate) fn page_zoom(&mut self) -> Scale<f32, CSSPixel, DeviceIndependentPixel> {
-        self.page_zoom
-    }
-
     pub(crate) fn set_page_zoom(
         &mut self,
         new_page_zoom: Scale<f32, CSSPixel, DeviceIndependentPixel>,

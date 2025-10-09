@@ -290,6 +290,32 @@ fn test_resize_webview_zero(servo_test: &ServoTest) -> Result<(), anyhow::Error>
     Ok(())
 }
 
+fn test_page_zoom(servo_test: &ServoTest) -> Result<(), anyhow::Error> {
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo())
+        .delegate(delegate.clone())
+        .build();
+
+    // Default zoom should be 1.0
+    ensure!(webview.page_zoom() == 1.0);
+
+    webview.set_page_zoom(1.5);
+    ensure!(webview.page_zoom() == 1.5);
+
+    webview.set_page_zoom(0.5);
+    ensure!(webview.page_zoom() == 0.5);
+
+    // Should clamp to minimum
+    webview.set_page_zoom(-1.0);
+    ensure!(webview.page_zoom() == 0.1);
+
+    // Should clamp to maximum
+    webview.set_page_zoom(100.0);
+    ensure!(webview.page_zoom() == 10.0);
+
+    Ok(())
+}
+
 fn main() {
     run_api_tests!(
         test_create_webview,
@@ -299,6 +325,7 @@ fn main() {
         test_theme_change,
         test_negative_resize_to_request,
         test_resize_webview_zero,
+        test_page_zoom,
         // This test needs to be last, as it tests creating and dropping
         // a WebView right before shutdown.
         test_create_webview_and_immediately_drop_webview_before_shutdown
