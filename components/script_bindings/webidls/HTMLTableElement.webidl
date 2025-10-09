@@ -47,8 +47,7 @@ partial interface HTMLTableElement {
   //          attribute DOMString rules;
   // [CEReactions]
   //          attribute DOMString summary;
-  [CEReactions]
-  attribute DOMString width;
+  [CEReactions] attribute DOMString width;
 
   [CEReactions]
            attribute [LegacyNullToEmptyString] DOMString bgColor;

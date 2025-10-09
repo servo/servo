@@ -8,7 +8,7 @@ use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
 use std::{char, mem};
 
-use app_units::{AU_PER_PX, Au};
+use app_units::Au;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Size2D};
@@ -79,7 +79,6 @@ use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{BindContext, Node, NodeDamage, NodeTraits, ShadowIncluding, UnbindContext};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
-use crate::dom::values::UNSIGNED_LONG_MAX;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::fetch::create_a_potential_cors_request;
@@ -1578,14 +1577,16 @@ impl LayoutHTMLImageElementHelpers for LayoutDom<'_, HTMLImageElement> {
     fn get_width(self) -> LengthOrPercentageOrAuto {
         self.dimension_attribute_source()
             .get_attr_for_layout(&ns!(), &local_name!("width"))
-            .map(|x| *AttrValue::from_dimension(x.to_string()).as_dimension())
+            .map(AttrValue::as_dimension)
+            .cloned()
             .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 
     fn get_height(self) -> LengthOrPercentageOrAuto {
         self.dimension_attribute_source()
             .get_attr_for_layout(&ns!(), &local_name!("height"))
-            .map(|x| *AttrValue::from_dimension(x.to_string()).as_dimension())
+            .map(AttrValue::as_dimension)
+            .cloned()
             .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 }
@@ -1639,13 +1640,13 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
 
         // Step 3. If width is given, then set an attribute value for img using "width" and width.
         if let Some(w) = width {
-            image.SetWidth(w, can_gc);
+            image.SetWidth(w);
         }
 
         // Step 4. If height is given, then set an attribute value for img using "height" and
         // height.
         if let Some(h) = height {
-            image.SetHeight(h, can_gc);
+            image.SetHeight(h);
         }
 
         // Step 5. Return img.
@@ -1694,7 +1695,7 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-ismap
     make_bool_setter!(SetIsMap, "ismap");
 
-    // https://html.spec.whatwg.org/multipage/#dom-img-width
+    // <https://html.spec.whatwg.org/multipage/#dom-img-width>
     fn Width(&self) -> u32 {
         let node = self.upcast::<Node>();
         node.content_box()
@@ -1702,12 +1703,10 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
             .unwrap_or_else(|| self.NaturalWidth())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-img-width
-    fn SetWidth(&self, value: u32, can_gc: CanGc) {
-        image_dimension_setter(self.upcast(), local_name!("width"), value, can_gc);
-    }
+    // <https://html.spec.whatwg.org/multipage/#dom-img-width>
+    make_dimension_uint_setter!(SetWidth, "width");
 
-    // https://html.spec.whatwg.org/multipage/#dom-img-height
+    // <https://html.spec.whatwg.org/multipage/#dom-img-height>
     fn Height(&self) -> u32 {
         let node = self.upcast::<Node>();
         node.content_box()
@@ -1715,10 +1714,8 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
             .unwrap_or_else(|| self.NaturalHeight())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-img-height
-    fn SetHeight(&self, value: u32, can_gc: CanGc) {
-        image_dimension_setter(self.upcast(), local_name!("height"), value, can_gc);
-    }
+    // <https://html.spec.whatwg.org/multipage/#dom-img-height>
+    make_dimension_uint_setter!(SetHeight, "height");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-naturalwidth
     fn NaturalWidth(&self) -> u32 {
@@ -1900,6 +1897,16 @@ impl VirtualMethods for HTMLImageElement {
         }
     }
 
+    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+        match attr.local_name() {
+            &local_name!("width") | &local_name!("height") => true,
+            _ => self
+                .super_type()
+                .unwrap()
+                .attribute_affects_presentational_hints(attr),
+        }
+    }
+
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
             &local_name!("width") | &local_name!("height") => {
@@ -2000,27 +2007,6 @@ impl FormControl for HTMLImageElement {
     fn is_listed(&self) -> bool {
         false
     }
-}
-
-fn image_dimension_setter(element: &Element, attr: LocalName, value: u32, can_gc: CanGc) {
-    // This setter is a bit weird: the IDL type is unsigned long, but it's parsed as
-    // a dimension for rendering.
-    let value = if value > UNSIGNED_LONG_MAX { 0 } else { value };
-
-    // FIXME: There are probably quite a few more cases of this. This is the
-    // only overflow that was hitting on automation, but we should consider what
-    // to do in the general case case.
-    //
-    // See <https://github.com/servo/app_units/issues/22>
-    let pixel_value = if value > (i32::MAX / AU_PER_PX) as u32 {
-        0
-    } else {
-        value
-    };
-
-    let dim = LengthOrPercentageOrAuto::Length(Au::from_px(pixel_value as i32));
-    let value = AttrValue::Dimension(value.to_string(), dim);
-    element.set_attribute(&attr, value, can_gc);
 }
 
 /// Collect sequence of code points
