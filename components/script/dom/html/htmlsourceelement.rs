@@ -105,8 +105,11 @@ impl VirtualMethods for HTMLSourceElement {
 
         // Step 2. If parent is a media element that has no src attribute and whose networkState has
         // the value NETWORK_EMPTY, then invoke that media element's resource selection algorithm.
-        if let Some(media) = parent.downcast::<HTMLMediaElement>() {
-            media.handle_source_child_insertion(can_gc);
+        if parent.is::<HTMLMediaElement>() && std::ptr::eq(&*parent, context.parent) {
+            parent
+                .downcast::<HTMLMediaElement>()
+                .unwrap()
+                .handle_source_child_insertion(self, can_gc);
         }
 
         // Step 3. If parent is a picture element, then for each child of parent's children, if
