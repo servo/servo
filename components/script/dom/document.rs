@@ -2309,7 +2309,6 @@ impl Document {
                         url,
                         time
                     }) = &*document.declarative_refresh.borrow() {
-                        println!("Refreshing: {:?}", document.url());
                         // https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps
                         document.window.as_global_scope().schedule_callback(
                             OneshotTimerCallback::RefreshRedirectDue(RefreshRedirectDue {
