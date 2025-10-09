@@ -550,11 +550,6 @@ impl HTMLIFrameElement {
         let blocker = &self.load_blocker;
         LoadBlocker::terminate(blocker, can_gc);
 
-        // Note: the initial blank document should skip the firing of the load event.
-        if self.is_initial_blank_document() {
-            return;
-        }
-
         // TODO A cross-origin child document would not be easily accessible
         //      from this script thread. It's unclear how to implement
         //      steps 2, 3, and 5 efficiently in this case.
