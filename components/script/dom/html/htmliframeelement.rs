@@ -73,7 +73,8 @@ pub(crate) struct HTMLIFrameElement {
     browsing_context_id: Cell<Option<BrowsingContextId>>,
     #[no_trace]
     pipeline_id: Cell<Option<PipelineId>>,
-    processed_attributes_first_time: Cell<bool>,
+    /// <https://html.spec.whatwg.org/multipage/#process-iframe-initial-insertion>
+    initial_insertion: Cell<bool>,
     #[no_trace]
     pending_pipeline_id: Cell<Option<PipelineId>>,
     #[no_trace]
@@ -257,7 +258,7 @@ impl HTMLIFrameElement {
     /// If the iframe's url matches about:blank, and we are in the first processing phace,
     /// there should be no events fired on the window, and only the iframe load event steps should run(on the element).
     pub(crate) fn is_initial_navigated_document_that_matches_about_blank(&self) -> bool {
-        self.get_url().matches_about_blank() && self.processed_attributes_first_time.get()
+        self.get_url().matches_about_blank() && self.initial_insertion.get()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
@@ -316,7 +317,7 @@ impl HTMLIFrameElement {
             return;
         }
 
-        self.processed_attributes_first_time
+        self.initial_insertion
             .set(mode == ProcessingMode::FirstTime);
 
         // > 2. Otherwise, if `element` has a `src` attribute specified, or
@@ -484,7 +485,7 @@ impl HTMLIFrameElement {
             load_blocker: DomRefCell::new(None),
             throttled: Cell::new(false),
             script_window_proxies: ScriptThread::window_proxies(),
-            processed_attributes_first_time: Default::default(),
+            initial_insertion: Default::default(),
         }
     }
 
