@@ -106,6 +106,24 @@ impl HTMLIFrameElement {
             .unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap())
     }
 
+    fn src_matches_about_blank(&self) -> bool {
+        let element = self.upcast::<Element>();
+        if let Some(url) = element
+            .get_attribute(&ns!(), &local_name!("src"))
+            .and_then(|src| {
+                let url = src.value();
+                if url.is_empty() {
+                    None
+                } else {
+                    self.owner_document().base_url().join(&url).ok()
+                }
+            }) {
+                url.matches_about_blank()
+            } else {
+                false
+            }
+    }
+
     pub(crate) fn navigate_or_reload_child_browsing_context(
         &self,
         load_data: LoadData,
@@ -258,7 +276,7 @@ impl HTMLIFrameElement {
     /// If the iframe's url matches about:blank, and we are in the first processing phace,
     /// there should be no events fired on the window, and only the iframe load event steps should run(on the element).
     pub(crate) fn is_initial_navigated_document_that_matches_about_blank(&self) -> bool {
-        self.get_url().matches_about_blank() && self.initial_insertion.get() && !self.is_initial_blank_document()
+        self.src_matches_about_blank() && self.initial_insertion.get() && !self.is_initial_blank_document()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
