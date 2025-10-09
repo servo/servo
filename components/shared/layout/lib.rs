@@ -243,7 +243,7 @@ pub trait Layout {
 
     /// Load all fonts from the given stylesheet, returning the number of fonts that
     /// need to be loaded.
-    fn load_web_fonts_from_stylesheet(&self, stylesheet: ServoArc<Stylesheet>);
+    fn load_web_fonts_from_stylesheet(&self, stylesheet: &ServoArc<Stylesheet>);
 
     /// Add a stylesheet to this Layout. This will add it to the Layout's `Stylist` as well as
     /// loading all web fonts defined in the stylesheet. The second stylesheet is the insertion

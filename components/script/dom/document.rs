@@ -4240,7 +4240,7 @@ impl Document {
     }
 
     /// Given a stylesheet, load all web fonts from it in Layout.
-    pub(crate) fn load_web_fonts_from_stylesheet(&self, stylesheet: Arc<Stylesheet>) {
+    pub(crate) fn load_web_fonts_from_stylesheet(&self, stylesheet: &Arc<Stylesheet>) {
         self.window
             .layout()
             .load_web_fonts_from_stylesheet(stylesheet);
