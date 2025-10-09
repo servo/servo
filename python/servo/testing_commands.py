@@ -440,11 +440,13 @@ class MachCommands(CommandBase):
 
         for entry in run_log:
             if glob.has_magic(entry):
-                matches = glob.glob(entry)
-                if matches:
-                    expanded_logs.update(path.abspath(m) for m in matches)
-                else:
-                    print(f"No matches for pattern: {entry}")
+                found = False
+                matches = glob.iglob(entry)
+                for m in matches:
+                    found = True
+                    expanded_logs.add(path.abspath(m))
+                if not found:
+                    print(f"Warning: glob pattern '{entry}' did not match any files")
             else:
                 expanded_logs.add(entry)
 
