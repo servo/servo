@@ -2,14 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::fmt;
-
 use markup5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_prefix, ns};
 
 use super::parser::{
     AdditiveOp, Axis, EqualityOp, Expr, FilterExpr, KindTest, Literal, MultiplicativeOp, NodeTest,
-    NumericLiteral, PathExpr, PredicateExpr, PredicateListExpr, PrimaryExpr, RelationalOp,
-    StepExpr, UnaryOp,
+    NumericLiteral, PathExpr, PredicateListExpr, PrimaryExpr, RelationalOp, StepExpr, UnaryOp,
 };
 use super::{EvaluationCtx, Value};
 use crate::context::PredicateCtx;
@@ -22,33 +19,11 @@ pub(crate) fn try_extract_nodeset<E, N: Node>(v: Value<N>) -> Result<Vec<N>, Err
     }
 }
 
-pub(crate) trait Evaluatable<D: Dom>: fmt::Debug {
-    fn evaluate(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error<D::JsError>>;
-}
-
-impl<T: ?Sized, D: Dom> Evaluatable<D> for Box<T>
-where
-    T: Evaluatable<D>,
-{
-    fn evaluate(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error<D::JsError>> {
-        (**self).evaluate(context)
-    }
-}
-
-impl<T, D: Dom> Evaluatable<D> for Option<T>
-where
-    T: Evaluatable<D>,
-{
-    fn evaluate(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error<D::JsError>> {
-        match self {
-            Some(expr) => expr.evaluate(context),
-            None => Ok(Value::Nodeset(vec![])),
-        }
-    }
-}
-
-impl<D: Dom> Evaluatable<D> for Expr {
-    fn evaluate(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error<D::JsError>> {
+impl Expr {
+    pub(crate) fn evaluate<D: Dom>(
+        &self,
+        context: &EvaluationCtx<D>,
+    ) -> Result<Value<D::Node>, Error<D::JsError>> {
         match self {
             Expr::And(left, right) => {
                 let left_bool = left.evaluate(context)?.boolean();
@@ -125,8 +100,11 @@ impl<D: Dom> Evaluatable<D> for Expr {
     }
 }
 
-impl<D: Dom> Evaluatable<D> for PathExpr {
-    fn evaluate(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error<D::JsError>> {
+impl PathExpr {
+    fn evaluate<D: Dom>(
+        &self,
+        context: &EvaluationCtx<D>,
+    ) -> Result<Value<D::Node>, Error<D::JsError>> {
         // Use starting_node for absolute/descendant paths, context_node otherwise
         let mut current_nodes = if self.is_absolute || self.is_descendant {
             vec![context.starting_node.clone()]
@@ -299,8 +277,11 @@ fn apply_node_test<D: Dom>(
     Ok(result)
 }
 
-impl<D: Dom> Evaluatable<D> for StepExpr {
-    fn evaluate(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error<D::JsError>> {
+impl StepExpr {
+    fn evaluate<D: Dom>(
+        &self,
+        context: &EvaluationCtx<D>,
+    ) -> Result<Value<D::Node>, Error<D::JsError>> {
         match self {
             StepExpr::Filter(filter_expr) => filter_expr.evaluate(context),
             StepExpr::Axis(axis_step) => {
@@ -365,99 +346,64 @@ impl<D: Dom> Evaluatable<D> for StepExpr {
                     Ok(Value::Nodeset(filtered_nodes))
                 } else {
                     // Apply predicates
-                    let predicate_list_subcontext =
-                        context.update_predicate_nodes(filtered_nodes.clone());
-                    axis_step.predicates.evaluate(&predicate_list_subcontext)
+                    axis_step
+                        .predicates
+                        .evaluate(context, filtered_nodes.clone())
                 }
             },
         }
     }
 }
 
-impl<D: Dom> Evaluatable<D> for PredicateListExpr {
-    fn evaluate(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error<D::JsError>> {
-        if let Some(ref predicate_nodes) = context.predicate_nodes {
-            let mut matched_nodes = predicate_nodes.clone();
+impl PredicateListExpr {
+    fn evaluate<D: Dom>(
+        &self,
+        context: &EvaluationCtx<D>,
+        mut matched_nodes: Vec<D::Node>,
+    ) -> Result<Value<D::Node>, Error<D::JsError>> {
+        for predicate_expr in &self.predicates {
+            let size = matched_nodes.len();
+            let mut new_matched = Vec::new();
 
-            for predicate_expr in &self.predicates {
-                let size = matched_nodes.len();
-                let mut new_matched = Vec::new();
+            for (i, node) in matched_nodes.iter().enumerate() {
+                // 1-based position, per XPath spec
+                let predicate_ctx: EvaluationCtx<D> = EvaluationCtx {
+                    starting_node: context.starting_node.clone(),
+                    context_node: node.clone(),
+                    predicate_ctx: Some(PredicateCtx { index: i + 1, size }),
+                    resolver: context.resolver.clone(),
+                };
 
-                for (i, node) in matched_nodes.iter().enumerate() {
-                    // 1-based position, per XPath spec
-                    let predicate_ctx: EvaluationCtx<D> = EvaluationCtx {
-                        starting_node: context.starting_node.clone(),
-                        context_node: node.clone(),
-                        predicate_nodes: context.predicate_nodes.clone(),
-                        predicate_ctx: Some(PredicateCtx { index: i + 1, size }),
-                        resolver: context.resolver.clone(),
-                    };
+                let eval_result = predicate_expr.expr.evaluate(&predicate_ctx);
 
-                    let eval_result = predicate_expr.expr.evaluate(&predicate_ctx);
+                let keep = match eval_result {
+                    Ok(Value::Number(number)) => (i + 1) as f64 == number,
+                    Ok(Value::Boolean(boolean)) => boolean,
+                    Ok(value) => value.boolean(),
+                    Err(_) => false,
+                };
 
-                    let keep = match eval_result {
-                        Ok(Value::Number(n)) => (i + 1) as f64 == n,
-                        Ok(Value::Boolean(b)) => b,
-                        Ok(v) => v.boolean(),
-                        Err(_) => false,
-                    };
-
-                    if keep {
-                        new_matched.push(node.clone());
-                    }
+                if keep {
+                    new_matched.push(node.clone());
                 }
-
-                matched_nodes = new_matched;
-                log::trace!(
-                    "[PredicateListExpr] Predicate {:?} matched nodes {:?}",
-                    predicate_expr,
-                    matched_nodes
-                );
             }
-            Ok(Value::Nodeset(matched_nodes))
-        } else {
-            Err(Error::Internal {
-                msg: "[PredicateListExpr] No nodes on stack for predicate to operate on"
-                    .to_string(),
-            })
+
+            matched_nodes = new_matched;
+            log::trace!(
+                "[PredicateListExpr] Predicate {:?} matched nodes {:?}",
+                predicate_expr,
+                matched_nodes
+            );
         }
+        Ok(Value::Nodeset(matched_nodes))
     }
 }
 
-impl<D: Dom> Evaluatable<D> for PredicateExpr {
-    fn evaluate(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error<D::JsError>> {
-        let narrowed_nodes: Result<Vec<_>, _> = context
-            .subcontext_iter_for_nodes()
-            .filter_map(|ctx| {
-                if let Some(predicate_ctx) = ctx.predicate_ctx {
-                    let eval_result = self.expr.evaluate(&ctx);
-
-                    let v = match eval_result {
-                        Ok(Value::Number(v)) => Ok(predicate_ctx.index == v as usize),
-                        Ok(Value::Boolean(v)) => Ok(v),
-                        Ok(v) => Ok(v.boolean()),
-                        Err(e) => Err(e),
-                    };
-
-                    match v {
-                        Ok(true) => Some(Ok(ctx.context_node)),
-                        Ok(false) => None,
-                        Err(e) => Some(Err(e)),
-                    }
-                } else {
-                    Some(Err(Error::Internal {
-                        msg: "[PredicateExpr] No predicate context set".to_string(),
-                    }))
-                }
-            })
-            .collect();
-
-        Ok(Value::Nodeset(narrowed_nodes?))
-    }
-}
-
-impl<D: Dom> Evaluatable<D> for FilterExpr {
-    fn evaluate(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error<D::JsError>> {
+impl FilterExpr {
+    fn evaluate<D: Dom>(
+        &self,
+        context: &EvaluationCtx<D>,
+    ) -> Result<Value<D::Node>, Error<D::JsError>> {
         let primary_result = self.primary.evaluate(context)?;
         let have_predicates = !self.predicates.predicates.is_empty();
 
@@ -470,9 +416,7 @@ impl<D: Dom> Evaluatable<D> for FilterExpr {
                 Ok(primary_result)
             },
             (true, Value::Nodeset(vec)) => {
-                let predicate_list_subcontext = context.update_predicate_nodes(vec.clone());
-                let result_filtered_by_predicates =
-                    self.predicates.evaluate(&predicate_list_subcontext);
+                let result_filtered_by_predicates = self.predicates.evaluate(context, vec.clone());
                 log::trace!(
                     "[FilterExpr] Result filtered by predicates: {:?}",
                     result_filtered_by_predicates
@@ -485,8 +429,11 @@ impl<D: Dom> Evaluatable<D> for FilterExpr {
     }
 }
 
-impl<D: Dom> Evaluatable<D> for PrimaryExpr {
-    fn evaluate(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error<D::JsError>> {
+impl PrimaryExpr {
+    fn evaluate<D: Dom>(
+        &self,
+        context: &EvaluationCtx<D>,
+    ) -> Result<Value<D::Node>, Error<D::JsError>> {
         match self {
             PrimaryExpr::Literal(literal) => literal.evaluate(context),
             PrimaryExpr::Variable(_qname) => Err(Error::CannotUseVariables),
@@ -497,8 +444,11 @@ impl<D: Dom> Evaluatable<D> for PrimaryExpr {
     }
 }
 
-impl<D: Dom> Evaluatable<D> for Literal {
-    fn evaluate(&self, _context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error<D::JsError>> {
+impl Literal {
+    fn evaluate<D: Dom>(
+        &self,
+        _context: &EvaluationCtx<D>,
+    ) -> Result<Value<D::Node>, Error<D::JsError>> {
         match self {
             Literal::Numeric(numeric_literal) => match numeric_literal {
                 // We currently make no difference between ints and floats

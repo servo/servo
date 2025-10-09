@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::context::EvaluationCtx;
-use crate::eval::{Evaluatable, try_extract_nodeset};
+use crate::eval::try_extract_nodeset;
 use crate::eval_value::str_to_num;
 use crate::parser::CoreFunction;
 use crate::{Document, Dom, Element, Error, Node, Value};
@@ -107,8 +107,11 @@ fn lang_matches(context_lang: Option<&str>, target_lang: &str) -> bool {
     false
 }
 
-impl<D: Dom> Evaluatable<D> for CoreFunction {
-    fn evaluate(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error<D::JsError>> {
+impl CoreFunction {
+    pub(crate) fn evaluate<D: Dom>(
+        &self,
+        context: &EvaluationCtx<D>,
+    ) -> Result<Value<D::Node>, Error<D::JsError>> {
         match self {
             CoreFunction::Last => {
                 let predicate_ctx = context.predicate_ctx.ok_or_else(|| Error::Internal {

@@ -6,7 +6,6 @@ use std::fmt::Debug;
 use std::hash::Hash;
 
 use context::EvaluationCtx;
-use eval::Evaluatable;
 use markup5ever::{LocalName, Namespace, Prefix};
 use parser::{OwnedParserError, QName, parse as parse_impl};
 
