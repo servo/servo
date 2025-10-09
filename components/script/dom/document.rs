@@ -2335,7 +2335,7 @@ impl Document {
 
         // Note: if this is the the intial about:blank document,
         // the iframe load event steps will not run.
-        // If this is the initial navigated document, then they will,
+        // If this is the initial inserted iframe, then they will,
         // but asynchronously when a response from the constellation is received.
         // TODO: run synchronously.
         self.notify_constellation_load();

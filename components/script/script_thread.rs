@@ -1536,7 +1536,7 @@ impl ScriptThread {
                         .and_then(|e| e.downcast::<HTMLIFrameElement>())
                     {
                         // Both the initial about:blank document,
-                        // and the initial navigated document that matches about:blank,
+                        // and the initial inserted iframe that matches about:blank,
                         // should not run the document completion steps.
                         if frame.is_initial_blank_document() ||
                             frame.is_initial_navigated_document_that_matches_about_blank()
