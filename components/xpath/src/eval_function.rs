@@ -4,8 +4,8 @@
 
 use crate::context::EvaluationCtx;
 use crate::eval::try_extract_nodeset;
-use crate::eval_value::str_to_num;
 use crate::parser::CoreFunction;
+use crate::value::parse_number_from_string;
 use crate::{Document, Dom, Element, Error, Node, Value};
 
 /// Returns e.g. "rect" for `<svg:rect>`
@@ -256,7 +256,10 @@ impl CoreFunction {
             },
             CoreFunction::Sum(expr) => {
                 let nodes = expr.evaluate(context).and_then(try_extract_nodeset)?;
-                let sum = nodes.iter().map(|n| str_to_num(&n.text_content())).sum();
+                let sum = nodes
+                    .iter()
+                    .map(|node| parse_number_from_string(&node.text_content()))
+                    .sum();
                 Ok(Value::Number(sum))
             },
             CoreFunction::Floor(expr) => {

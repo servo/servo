@@ -12,11 +12,11 @@ use parser::{OwnedParserError, QName, parse as parse_impl};
 mod context;
 mod eval;
 mod eval_function;
-mod eval_value;
 mod parser;
+mod value;
 
-pub use eval_value::{NodesetHelpers, Value};
 pub use parser::Expr;
+pub use value::{NodesetHelpers, Value};
 
 pub trait Dom {
     type Node: Node;
@@ -176,4 +176,145 @@ fn is_valid_continuation(c: char) -> bool {
             '\u{B7}' |
             '\u{300}'..='\u{36F}' |
             '\u{203F}'..='\u{2040}')
+}
+
+#[cfg(test)]
+/// Provides a dummy DOM to be used for tests.
+mod dummy_implementation {
+    use std::{cmp, iter};
+
+    use markup5ever::{LocalName, ns};
+
+    use super::*;
+
+    // FIXME: Expand this as more features are required
+    #[derive(Clone, Eq, Debug, PartialEq)]
+    pub(crate) struct DummyNode;
+    pub(crate) struct DummyProcessingInstruction;
+    pub(crate) struct DummyDocument;
+    pub(crate) struct DummyAttribute;
+    pub(crate) struct DummyElement;
+
+    impl Node for DummyNode {
+        type ProcessingInstruction = DummyProcessingInstruction;
+        type Document = DummyDocument;
+        type Attribute = DummyAttribute;
+        type Element = DummyElement;
+
+        fn is_comment(&self) -> bool {
+            false
+        }
+        fn is_text(&self) -> bool {
+            false
+        }
+        fn text_content(&self) -> String {
+            String::new()
+        }
+        fn language(&self) -> Option<String> {
+            None
+        }
+        fn parent(&self) -> Option<Self> {
+            None
+        }
+        fn children(&self) -> impl Iterator<Item = Self> {
+            iter::empty()
+        }
+        fn compare_tree_order(&self, _: &Self) -> cmp::Ordering {
+            cmp::Ordering::Greater
+        }
+        fn traverse_preorder(&self) -> impl Iterator<Item = Self> {
+            iter::empty()
+        }
+        fn inclusive_ancestors(&self) -> impl Iterator<Item = Self> {
+            iter::empty()
+        }
+        fn preceding_nodes(&self, _: &Self) -> impl Iterator<Item = Self> {
+            iter::empty()
+        }
+        fn following_nodes(&self, _: &Self) -> impl Iterator<Item = Self> {
+            iter::empty()
+        }
+        fn preceding_siblings(&self) -> impl Iterator<Item = Self> {
+            iter::empty()
+        }
+        fn following_siblings(&self) -> impl Iterator<Item = Self> {
+            iter::empty()
+        }
+        fn owner_document(&self) -> Self::Document {
+            DummyDocument
+        }
+        fn to_opaque(&self) -> impl Eq + Hash {
+            0
+        }
+        fn as_processing_instruction(&self) -> Option<Self::ProcessingInstruction> {
+            None
+        }
+        fn as_attribute(&self) -> Option<Self::Attribute> {
+            None
+        }
+        fn as_element(&self) -> Option<Self::Element> {
+            None
+        }
+        fn lookup_namespace_uri(&self, _: Option<&str>) -> Option<String> {
+            None
+        }
+    }
+
+    impl ProcessingInstruction for DummyProcessingInstruction {
+        fn target(&self) -> String {
+            String::new()
+        }
+    }
+
+    impl Document for DummyDocument {
+        type Node = DummyNode;
+
+        fn is_html_document(&self) -> bool {
+            true
+        }
+        fn get_elements_with_id(
+            &self,
+            _: &str,
+        ) -> impl Iterator<Item = <Self::Node as Node>::Element> {
+            iter::empty()
+        }
+    }
+
+    impl Element for DummyElement {
+        type Node = DummyNode;
+        type Attribute = DummyAttribute;
+
+        fn as_node(&self) -> Self::Node {
+            DummyNode
+        }
+        fn prefix(&self) -> Option<Prefix> {
+            None
+        }
+        fn namespace(&self) -> Namespace {
+            ns!()
+        }
+        fn local_name(&self) -> LocalName {
+            LocalName::from("")
+        }
+        fn attributes(&self) -> impl Iterator<Item = Self::Attribute> {
+            iter::empty()
+        }
+    }
+
+    impl Attribute for DummyAttribute {
+        type Node = DummyNode;
+
+        fn as_node(&self) -> Self::Node {
+            DummyNode
+        }
+        fn prefix(&self) -> Option<Prefix> {
+            None
+        }
+        fn namespace(&self) -> Namespace {
+            ns!()
+        }
+        fn local_name(&self) -> LocalName {
+            LocalName::from("")
+        }
+    }
 }
