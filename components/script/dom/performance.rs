@@ -489,7 +489,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
     fn Mark(&self, mark_name: DOMString, can_gc: CanGc) -> Fallible<()> {
         let global = self.global();
         // Step 1.
-        if global.is::<Window>() && INVALID_ENTRY_NAMES.contains(&mark_name.str()) {
+        if global.is::<Window>() && INVALID_ENTRY_NAMES.contains(&&*mark_name.str()) {
             return Err(Error::Syntax(None));
         }
 

@@ -226,7 +226,7 @@ pub(crate) unsafe fn find_enum_value<'a, T>(
             Ok((
                 pairs
                     .iter()
-                    .find(|&&(key, _)| search == *key)
+                    .find(|&&(key, _)| search == key)
                     .map(|(_, ev)| ev),
                 search,
             ))

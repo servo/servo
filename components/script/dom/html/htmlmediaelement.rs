@@ -1301,7 +1301,7 @@ impl HTMLMediaElement {
                         SrcObject::Blob(blob) => {
                             let blob_url = URL::CreateObjectURL(&self.global(), blob);
                             *self.blob_url.borrow_mut() =
-                                Some(ServoUrl::parse(blob_url.str()).expect("infallible"));
+                                Some(ServoUrl::parse(&blob_url.str()).expect("infallible"));
                             self.fetch_request(None, None);
                         },
                         SrcObject::MediaStream(stream) => {
@@ -2699,7 +2699,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-canplaytype
     fn CanPlayType(&self, type_: DOMString) -> CanPlayTypeResult {
-        match ServoMedia::get().can_play_type(type_.str()) {
+        match ServoMedia::get().can_play_type(&type_.str()) {
             SupportsMediaType::No => CanPlayTypeResult::_empty,
             SupportsMediaType::Maybe => CanPlayTypeResult::Maybe,
             SupportsMediaType::Probably => CanPlayTypeResult::Probably,

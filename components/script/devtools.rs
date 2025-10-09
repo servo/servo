@@ -255,7 +255,7 @@ pub(crate) fn handle_get_stylesheet_style(
             .filter_map(move |i| {
                 let rule = list.Item(i, can_gc)?;
                 let style = rule.downcast::<CSSStyleRule>()?;
-                if *selector != style.SelectorText() {
+                if selector != style.SelectorText() {
                     return None;
                 };
                 Some(style.Style(can_gc))

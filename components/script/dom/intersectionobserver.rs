@@ -816,7 +816,7 @@ fn parse_a_margin(value: Option<&DOMString>) -> Result<IntersectionObserverMargi
     // <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserverinit-scrollmargin>
     // > ... defaulting to "0px".
     let value = match value {
-        Some(str) => str.str(),
+        Some(str) => &str.str(),
         _ => "0px",
     };
 

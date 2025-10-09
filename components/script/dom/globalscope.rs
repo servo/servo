@@ -2864,7 +2864,7 @@ impl GlobalScope {
                     compiled_script.set(Compile1(
                         *cx,
                         options.ptr,
-                        &mut transform_str_to_source_text(text_code.str()),
+                        &mut transform_str_to_source_text(&text_code.str()),
                     ));
 
                     if compiled_script.is_null() {

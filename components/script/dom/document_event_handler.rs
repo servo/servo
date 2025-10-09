@@ -1341,7 +1341,7 @@ impl DocumentEventHandler {
 
         // Step 4 If the event was canceled, then
         if e.DefaultPrevented() {
-            match e.Type().str() {
+            match &*e.Type().str() {
                 "copy" => {
                     // Step 4.1 Call the write content to the clipboard algorithm,
                     // passing on the DataTransferItemList items, a clear-was-called flag and a types-to-clear list.

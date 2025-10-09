@@ -1128,7 +1128,7 @@ impl Node {
         // Step 1.
         let doc = self.owner_doc();
         match SelectorParser::parse_author_origin_no_namespace(
-            selectors.str(),
+            &selectors.str(),
             &UrlExtraData(doc.url().get_arc()),
         ) {
             // Step 2.
@@ -1165,7 +1165,7 @@ impl Node {
         // Step 1.
         let url = self.owner_doc().url();
         match SelectorParser::parse_author_origin_no_namespace(
-            selectors.str(),
+            &selectors.str(),
             &UrlExtraData(url.get_arc()),
         ) {
             // Step 2.
@@ -3077,7 +3077,7 @@ impl Node {
         let mut content = String::new();
         for node in iterator {
             if let Some(text) = node.downcast::<Text>() {
-                content.push_str(text.upcast::<CharacterData>().data().str());
+                content.push_str(&text.upcast::<CharacterData>().data());
             }
         }
         DOMString::from(content)
@@ -3664,7 +3664,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                         .move_to_text_child_at(self, index as u32, &node, length);
                     let sibling_cdata = sibling.downcast::<CharacterData>().unwrap();
                     length += sibling_cdata.Length();
-                    cdata.append_data(sibling_cdata.data().str());
+                    cdata.append_data(&sibling_cdata.data());
                     Node::remove(&sibling, self, SuppressObserver::Unsuppressed, can_gc);
                 }
             } else {

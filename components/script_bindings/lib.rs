@@ -19,6 +19,7 @@ pub mod callback;
 mod constant;
 mod constructor;
 pub mod conversions;
+pub mod domstring;
 pub mod error;
 mod finalize;
 mod guard;

@@ -312,7 +312,7 @@ impl HTMLIFrameElement {
         // Note: despite not being explicitly stated in the spec steps, this falls back to
         // document's referrer policy here because it satisfies the expectations that when unset,
         // the iframe should inherit the referrer policy of its parent
-        let referrer_policy = match ReferrerPolicy::from(referrer_policy_token.str()) {
+        let referrer_policy = match ReferrerPolicy::from(&*referrer_policy_token.str()) {
             ReferrerPolicy::EmptyString => document.get_referrer_policy(),
             policy => policy,
         };

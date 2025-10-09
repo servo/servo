@@ -723,7 +723,7 @@ impl EventTarget {
         }
 
         // Step 3.3
-        let body: Vec<u16> = handler.source.encode_utf16().collect();
+        let body: Vec<u16> = handler.source.str().encode_utf16().collect();
 
         // Step 3.4 is handler.line
 

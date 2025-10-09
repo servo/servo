@@ -685,8 +685,9 @@ impl HTMLFormElement {
                 .get_string_attribute(&local_name!("accept-charset"));
 
             // Substep 2, 3, 4
-            let mut candidate_encodings = split_html_space_chars(input.str())
-                .filter_map(|c| Encoding::for_label(c.as_bytes()));
+            let input = input.str();
+            let mut candidate_encodings =
+                split_html_space_chars(&input).filter_map(|c| Encoding::for_label(c.as_bytes()));
 
             // Substep 5, 6
             return candidate_encodings.next().unwrap_or(UTF_8);
@@ -829,7 +830,7 @@ impl HTMLFormElement {
             action = DOMString::from(base.as_str());
         }
         // Step 12-13
-        let action_components = match base.join(action.str()) {
+        let action_components = match base.join(&action.str()) {
             Ok(url) => url,
             Err(_) => return,
         };
@@ -1002,11 +1003,13 @@ impl HTMLFormElement {
         self.plan_to_navigate(load_data, target);
     }
 
-    fn set_url_query_pairs<'a>(
+    fn set_url_query_pairs<T>(
         &self,
         url: &mut servo_url::ServoUrl,
-        pairs: impl Iterator<Item = (&'a str, String)>,
-    ) {
+        pairs: impl Iterator<Item = (T, String)>,
+    ) where
+        T: AsRef<str>,
+    {
         let encoding = self.pick_encoding();
         url.as_mut_url()
             .query_pairs_mut()
@@ -1492,7 +1495,7 @@ impl FormSubmitterElement<'_> {
                 |f| f.Enctype(),
             ),
         };
-        match attr.str() {
+        match &*attr.str() {
             "multipart/form-data" => FormEncType::MultipartFormData,
             "text/plain" => FormEncType::TextPlain,
             // https://html.spec.whatwg.org/multipage/#attr-fs-enctype
@@ -1515,7 +1518,7 @@ impl FormSubmitterElement<'_> {
                 |f| f.Method(),
             ),
         };
-        match attr.str() {
+        match &*attr.str() {
             "dialog" => FormMethod::Dialog,
             "post" => FormMethod::Post,
             _ => FormMethod::Get,
@@ -1900,7 +1903,7 @@ pub(crate) fn encode_multipart_form_data(
     fn clean_crlf(s: &DOMString) -> DOMString {
         let mut buf = "".to_owned();
         let mut prev = ' ';
-        for ch in s.chars() {
+        for ch in s.str().chars() {
             match ch {
                 '\n' if prev != '\r' => {
                     buf.push('\r');
@@ -1957,15 +1960,12 @@ pub(crate) fn encode_multipart_form_data(
             FormDatumValue::File(ref f) => {
                 let charset = encoding.name();
                 let extra = if charset.to_lowercase() == "utf-8" {
-                    format!(
-                        "filename=\"{}\"",
-                        String::from_utf8(f.name().as_bytes().into()).unwrap()
-                    )
+                    format!("filename=\"{}\"", String::from(f.name().str()))
                 } else {
                     format!(
                         "filename*=\"{}\"''{}",
                         charset,
-                        http_percent_encode(f.name().as_bytes())
+                        http_percent_encode(&f.name().as_bytes())
                     )
                 };
 

@@ -90,13 +90,13 @@ impl StylePropertyMapReadOnlyMethods<crate::DomTypeHolder> for StylePropertyMapR
         // https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-getproperties
         // requires this sort order
         result.sort_by(|key1, key2| {
-            if let Ok(key1) = custom_properties::parse_name(key1.str()) {
-                if let Ok(key2) = custom_properties::parse_name(key2.str()) {
+            if let Ok(key1) = custom_properties::parse_name(&key1.str()) {
+                if let Ok(key2) = custom_properties::parse_name(&key2.str()) {
                     key1.cmp(key2)
                 } else {
                     Ordering::Greater
                 }
-            } else if custom_properties::parse_name(key2.str()).is_ok() {
+            } else if custom_properties::parse_name(&key2.str()).is_ok() {
                 Ordering::Less
             } else {
                 key1.cmp(key2)

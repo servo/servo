@@ -41,7 +41,7 @@ pub(crate) enum Mutation<'a> {
         old_value: Option<DOMString>,
     },
     CharacterData {
-        old_value: DOMString,
+        old_value: String,
     },
     ChildList {
         added: Option<&'a [&'a Node]>,
@@ -172,7 +172,8 @@ impl MutationObserver {
                         let mo = registered.observer.clone();
                         if registered.options.character_data_old_value {
                             // 3.2.3 ... type is "characterData" and options["characterDataOldValue"] is true
-                            interested_observers.insert(mo, Some(old_value.clone()));
+                            interested_observers
+                                .insert(mo, Some(DOMString::from(old_value.clone())));
                         } else {
                             // 3.2.2 If interestedObservers[mo] does not exist, then set interestedObservers[mo] to null.
                             interested_observers.entry(mo).or_insert(None);

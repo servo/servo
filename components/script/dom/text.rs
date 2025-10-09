@@ -117,7 +117,7 @@ impl TextMethods<crate::DomTypeHolder> for Text {
         let mut text = String::new();
         for ref node in nodes {
             let cdata = node.downcast::<CharacterData>().unwrap();
-            text.push_str(cdata.data().str());
+            text.push_str(&cdata.data());
         }
         DOMString::from(text)
     }

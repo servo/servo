@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::ops::Deref;
 use std::sync::LazyLock;
 
 use num_traits::Zero;
@@ -284,7 +285,7 @@ pub(crate) trait FromInputValueString {
     fn is_valid_email_address_string(&self) -> bool;
 }
 
-impl FromInputValueString for &str {
+impl<T: Deref<Target = str>> FromInputValueString for T {
     fn parse_date_string(&self) -> Option<OffsetDateTime> {
         // Step 1, 2, 3
         let (year_int, month_int, day_int) = parse_date_component(self)?;

@@ -2963,7 +2963,7 @@ def DomTypes(descriptors: list[Descriptor],
     elements += [CGGeneric("}\n")]
     imports = [
         CGGeneric("use crate::root::DomRoot;\n"),
-        CGGeneric("use crate::str::DOMString;\n"),
+        CGGeneric("use crate::domstring::DOMString;\n"),
     ]
     return CGList(imports + elements)
 

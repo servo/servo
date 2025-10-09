@@ -376,7 +376,7 @@ pub(crate) unsafe fn cross_origin_has_own(
     *bp = jsid_to_string(*cx, Handle::from_raw(id)).is_some_and(|key| {
         cross_origin_properties.keys().any(|defined_key| {
             let defined_key = CStr::from_ptr(defined_key);
-            defined_key.to_bytes() == key.as_bytes()
+            defined_key.to_bytes() == key.str().as_bytes()
         })
     });
 
@@ -520,6 +520,7 @@ pub(crate) fn report_cross_origin_denial<D: DomTypes>(
         id_to_source(cx, id)
             .as_ref()
             .map(|source| source.str())
+            .as_deref()
             .unwrap_or("< error >"),
     );
     let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);

@@ -23,7 +23,7 @@ pub(crate) fn sign(key: &CryptoKey, message: &[u8], can_gc: CanGc) -> Result<Vec
     let cx = GlobalScope::get_cx();
     rooted!(in(*cx) let mut algorithm_slot = ObjectValue(key.Algorithm(cx).as_ptr()));
     let params = value_from_js_object::<HmacKeyAlgorithm>(cx, algorithm_slot.handle(), can_gc)?;
-    let hash_algorithm = match params.hash.name.str() {
+    let hash_algorithm = match &*params.hash.name.str() {
         ALG_SHA1 => hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY,
         ALG_SHA256 => hmac::HMAC_SHA256,
         ALG_SHA384 => hmac::HMAC_SHA384,
@@ -50,7 +50,7 @@ pub(crate) fn verify(
     let cx = GlobalScope::get_cx();
     rooted!(in(*cx) let mut algorithm_slot = ObjectValue(key.Algorithm(cx).as_ptr()));
     let params = value_from_js_object::<HmacKeyAlgorithm>(cx, algorithm_slot.handle(), can_gc)?;
-    let hash_algorithm = match params.hash.name.str() {
+    let hash_algorithm = match &*params.hash.name.str() {
         ALG_SHA1 => hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY,
         ALG_SHA256 => hmac::HMAC_SHA256,
         ALG_SHA384 => hmac::HMAC_SHA384,

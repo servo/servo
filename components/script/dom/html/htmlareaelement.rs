@@ -304,7 +304,7 @@ impl HTMLAreaElement {
     pub(crate) fn get_shape_from_coords(&self) -> Option<Area> {
         let elem = self.upcast::<Element>();
         let shape = elem.get_string_attribute(&"shape".into());
-        let shp: Shape = match_ignore_ascii_case! { shape.str(),
+        let shp: Shape = match_ignore_ascii_case! { &*shape.str(),
            "circle" => Shape::Circle,
            "circ" => Shape::Circle,
            "rectangle" => Shape::Rectangle,
@@ -315,7 +315,7 @@ impl HTMLAreaElement {
         };
         if elem.has_attribute(&"coords".into()) {
             let attribute = elem.get_string_attribute(&"coords".into());
-            Area::parse(attribute.str(), shp)
+            Area::parse(&attribute.str(), shp)
         } else {
             None
         }

@@ -279,7 +279,7 @@ fn normalize_mime(mut format: DOMString) -> DOMString {
     // Convert format to ASCII lowercase.
     format.make_ascii_lowercase();
 
-    match format.str() {
+    match &*format.str() {
         // If format equals "text", change it to "text/plain".
         "text" => DOMString::from("text/plain"),
         // If format equals "url", change it to "text/uri-list".

@@ -216,7 +216,7 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
             // (currently impossible to do robustly due to <https://bugzilla.mozilla.org/show_bug.cgi?id=1982001>)
             let url_original = args.url.str();
             // FIXME: use page/worker url as base here
-            let url_original = ServoUrl::parse(url_original).ok();
+            let url_original = ServoUrl::parse(&url_original).ok();
 
             // If the source has a `urlOverride` (aka `displayURL` aka `//# sourceURL`), it should be a valid url,
             // possibly relative to the page/worker url, and we should treat the source as coming from that url for
@@ -227,7 +227,7 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
                 .as_ref()
                 .map(|url| url.str())
                 // FIXME: use page/worker url as base here, not `url_original`
-                .and_then(|url| ServoUrl::parse_with_base(url_original.as_ref(), url).ok());
+                .and_then(|url| ServoUrl::parse_with_base(url_original.as_ref(), &url).ok());
 
             // If the `introductionType` is “eval or eval-like”, the `url` won’t be meaningful, so ignore these
             // sources unless we have a `urlOverride` (aka `displayURL` aka `//# sourceURL`).
@@ -241,7 +241,7 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
                 IntroductionType::EVENT_HANDLER_STR,
                 IntroductionType::DOM_TIMER_STR,
             ]
-            .contains(&introduction_type.str()) &&
+            .contains(&&*introduction_type.str()) &&
                 url_override.is_none()
             {
                 debug!(

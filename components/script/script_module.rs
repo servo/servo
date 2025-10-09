@@ -43,6 +43,7 @@ use net_traits::{
     FetchMetadata, FetchResponseListener, Metadata, NetworkError, ReferrerPolicy,
     ResourceFetchTiming, ResourceTimingType,
 };
+use script_bindings::domstring::BytesView;
 use script_bindings::error::Fallible;
 use serde_json::{Map as JsonMap, Value as JsonValue};
 use servo_url::ServoUrl;
@@ -435,7 +436,7 @@ impl crate::unminify::ScriptSource for ModuleSource {
         self.unminified_dir.clone()
     }
 
-    fn extract_bytes(&self) -> &[u8] {
+    fn extract_bytes(&self) -> BytesView<'_> {
         self.source.as_bytes()
     }
 
@@ -491,7 +492,7 @@ impl ModuleTree {
             module_script.set(CompileModule1(
                 *cx,
                 compile_options.ptr,
-                &mut transform_str_to_source_text(module_source.source.str()),
+                &mut transform_str_to_source_text(&module_source.source.str()),
             ));
 
             if module_script.is_null() {
@@ -695,9 +696,10 @@ impl ModuleTree {
         let as_url = Self::resolve_url_like_module_specifier(&specifier, base_url);
         // Step 8. Let normalizedSpecifier be the serialization of asURL, if asURL is non-null;
         // otherwise, specifier.
+        let specifier = specifier.str();
         let normalized_specifier = match &as_url {
             Some(url) => url.as_str(),
-            None => specifier.str(),
+            None => &specifier,
         };
 
         // Step 9. Let result be a URL-or-null, initially null.
@@ -775,10 +777,10 @@ impl ModuleTree {
             specifier.starts_with_str("../")
         {
             // Step 1.1. Let url be the result of URL parsing specifier with baseURL.
-            return ServoUrl::parse_with_base(Some(base_url), specifier.str()).ok();
+            return ServoUrl::parse_with_base(Some(base_url), &specifier.str()).ok();
         }
         // Step 2. Let url be the result of URL parsing specifier (with no base URL).
-        ServoUrl::parse(specifier.str()).ok()
+        ServoUrl::parse(&specifier.str()).ok()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#finding-the-first-parse-error>
@@ -2179,7 +2181,7 @@ pub(crate) fn parse_an_import_map_string(
     can_gc: CanGc,
 ) -> Fallible<ImportMap> {
     // Step 1. Let parsed be the result of parsing a JSON string to an Infra value given input.
-    let parsed: JsonValue = serde_json::from_str(input.str())
+    let parsed: JsonValue = serde_json::from_str(&input.str())
         .map_err(|_| Error::Type("The value needs to be a JSON object.".to_owned()))?;
     // Step 2. If parsed is not an ordered map, then throw a TypeError indicating that the
     // top-level value needs to be a JSON object.
