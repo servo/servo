@@ -9,7 +9,7 @@ use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D};
 use fonts_traits::{FontIdentifier, FontTemplateDescriptor, LocalFontIdentifier};
 use freetype_sys::{
-    FT_F26Dot6, FT_Get_Char_Index, FT_Get_Kerning, FT_GlyphSlot, FT_HAS_MULTIPLE_MASTERS,
+    FT_F26Dot6, FT_Get_Char_Index, FT_Get_Kerning, FT_GlyphSlot,
     FT_KERNING_DEFAULT, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_Load_Glyph, FT_Size_Metrics,
     FT_SizeRec, FT_UInt, FT_ULong, FT_Vector,
 };
@@ -65,23 +65,6 @@ pub struct PlatformFont {
     table_provider_data: FreeTypeFaceTableProviderData,
 }
 
-/// Ensures that a font face is not emboldened if it's a variable font or
-/// if it's already bold.
-fn should_apply_synthetic_bold(
-    face: &FreeTypeFace,
-    table_provider_data: &FreeTypeFaceTableProviderData,
-    synthetic_bold: bool,
-) -> bool {
-    let face_is_bold = table_provider_data
-        .font_ref()
-        .and_then(|font_ref| font_ref.os2())
-        .is_ok_and(|table| table.us_weight_class() >= SEMI_BOLD_U16);
-
-    let is_variable_font = FT_HAS_MULTIPLE_MASTERS(face.as_ptr());
-
-    !face_is_bold && !is_variable_font && synthetic_bold
-}
-
 impl PlatformFontMethods for PlatformFont {
     fn new_from_data(
         _font_identifier: FontIdentifier,
@@ -103,8 +86,7 @@ impl PlatformFontMethods for PlatformFont {
 
         let table_provider_data = FreeTypeFaceTableProviderData::Web(font_data.clone());
 
-        let synthetic_bold =
-            should_apply_synthetic_bold(&face, &table_provider_data, synthetic_bold);
+        let synthetic_bold = table_provider_data.should_apply_synthetic_bold(synthetic_bold);
 
         Ok(PlatformFont {
             face: ReentrantMutex::new(face),
@@ -149,8 +131,7 @@ impl PlatformFontMethods for PlatformFont {
             font_identifier.index(),
         );
 
-        let synthetic_bold =
-            should_apply_synthetic_bold(&face, &table_provider_data, synthetic_bold);
+        let synthetic_bold = table_provider_data.should_apply_synthetic_bold(synthetic_bold);
 
         Ok(PlatformFont {
             face: ReentrantMutex::new(face),
@@ -432,6 +413,20 @@ impl FreeTypeFaceTableProviderData {
             Self::Web(ipc_shared_memory) => FontRef::new(ipc_shared_memory.as_ref()),
             Self::Local(mmap, index) => FontRef::from_index(mmap, *index),
         }
+    }
+
+    fn should_apply_synthetic_bold(&self, synthetic_bold: bool) -> bool {
+        // Ensures that a font face is not emboldened if it's a variable font or
+        // if it's already bold.
+        let face_is_bold = self
+            .font_ref()
+            .and_then(|font_ref| font_ref.os2())
+            .is_ok_and(|table| table.us_weight_class() >= SEMI_BOLD_U16);
+        let is_variable_font = self
+            .font_ref()
+            .and_then(|font_ref| font_ref.fvar())
+            .is_ok_and(|table| table.axis_count() > 0);
+        !face_is_bold && !is_variable_font && synthetic_bold
     }
 }
 
