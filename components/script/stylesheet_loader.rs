@@ -65,13 +65,12 @@ pub(crate) trait StylesheetOwner {
 }
 
 pub(crate) enum StylesheetContextSource {
-    // NB: `media` is just an option so we avoid cloning it.
     LinkElement {
-        media: Option<MediaList>,
+        media: Arc<Locked<MediaList>>,
     },
     Import {
         import_rule: Arc<Locked<ImportRule>>,
-        media: Option<MediaList>,
+        media: Arc<Locked<MediaList>>,
     },
 }
 
@@ -224,8 +223,8 @@ impl FetchResponseListener for StylesheetContext {
                     document.quirks_mode(),
                 ))
             };
-            match self.source {
-                StylesheetContextSource::LinkElement { ref mut media } => {
+            match &self.source {
+                StylesheetContextSource::LinkElement { media } => {
                     let link = element.downcast::<HTMLLinkElement>().unwrap();
                     // We must first check whether the generations of the context and the element match up,
                     // else we risk applying the wrong stylesheet when responses come out-of-order.
@@ -233,18 +232,15 @@ impl FetchResponseListener for StylesheetContext {
                         .request_generation_id
                         .is_none_or(|generation| generation == link.get_request_generation_id());
                     if is_stylesheet_load_applicable {
-                        let stylesheet = stylesheet(media.take().unwrap());
+                        let stylesheet = stylesheet(media.clone());
                         if link.is_effectively_disabled() {
                             stylesheet.set_disabled(true);
                         }
                         link.set_stylesheet(stylesheet);
                     }
                 },
-                StylesheetContextSource::Import {
-                    ref mut import_rule,
-                    ref mut media,
-                } => {
-                    let stylesheet = stylesheet(media.take().unwrap());
+                StylesheetContextSource::Import { import_rule, media } => {
+                    let stylesheet = stylesheet(media.clone());
 
                     // Layout knows about this stylesheet, because Stylo added it to the Stylist,
                     // but Layout doesn't know about any new web fonts that it contains.
@@ -463,7 +459,7 @@ impl StyleStylesheetLoader for ElementStylesheetLoader<'_> {
         // setting? Fix this when spec has more details.
         let source = StylesheetContextSource::Import {
             import_rule: import_rule.clone(),
-            media: Some(media.read_with(&lock.read()).clone()),
+            media,
         };
         self.load(source, resolved_url.into(), None, "".to_owned());
 

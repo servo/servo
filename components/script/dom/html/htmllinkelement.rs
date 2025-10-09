@@ -582,6 +582,7 @@ impl HTMLLinkElement {
         }
 
         let media = MediaList::parse_media_list(mq_str, document.window());
+        let media = Arc::new(document.style_shared_lock().wrap(media));
 
         let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
         let integrity_val = im_attribute.as_ref().map(|a| a.value());
@@ -595,7 +596,7 @@ impl HTMLLinkElement {
 
         let loader = ElementStylesheetLoader::new(self.upcast());
         loader.load(
-            StylesheetContextSource::LinkElement { media: Some(media) },
+            StylesheetContextSource::LinkElement { media },
             link_url,
             cors_setting,
             integrity_metadata.to_owned(),
