@@ -3826,57 +3826,67 @@ fn normalize_algorithm(
             let normalized_algorithm = match (alg_name, op) {
                 // <https://w3c.github.io/webcrypto/#aes-ctr-registration>
                 (ALG_AES_CTR, Operation::Encrypt) => {
-                    let params =
+                    let mut params =
                         boxed_value_from_js_object::<AesCtrParams>(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::AesCtrParams(params.into())
                 },
                 (ALG_AES_CTR, Operation::Decrypt) => {
-                    let params =
+                    let mut params =
                         boxed_value_from_js_object::<AesCtrParams>(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::AesCtrParams(params.into())
                 },
 
                 // <https://w3c.github.io/webcrypto/#aes-cbc-registration>
                 (ALG_AES_CBC, Operation::Encrypt) => {
-                    let params =
+                    let mut params =
                         boxed_value_from_js_object::<AesCbcParams>(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::AesCbcParams(params.into())
                 },
                 (ALG_AES_CBC, Operation::Decrypt) => {
-                    let params =
+                    let mut params =
                         boxed_value_from_js_object::<AesCbcParams>(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::AesCbcParams(params.into())
                 },
 
                 // <https://w3c.github.io/webcrypto/#aes-gcm-registration>
                 (ALG_AES_GCM, Operation::Encrypt) => {
-                    let params =
+                    let mut params =
                         boxed_value_from_js_object::<AesGcmParams>(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::AesGcmParams(params.into())
                 },
                 (ALG_AES_GCM, Operation::Decrypt) => {
-                    let params =
+                    let mut params =
                         boxed_value_from_js_object::<AesGcmParams>(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::AesGcmParams(params.into())
                 },
 
                 // <https://w3c.github.io/webcrypto/#aes-kw-registration>
                 (ALG_AES_KW, Operation::Encrypt) => {
-                    let params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+                    let mut params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::Algorithm(params.into())
                 },
                 (ALG_AES_KW, Operation::Decrypt) => {
-                    let params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+                    let mut params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::Algorithm(params.into())
                 },
 
                 // <https://w3c.github.io/webcrypto/#hmac-registration>
                 (ALG_HMAC, Operation::Sign) => {
-                    let params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+                    let mut params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::Algorithm(params.into())
                 },
                 (ALG_HMAC, Operation::Verify) => {
-                    let params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+                    let mut params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::Algorithm(params.into())
                 },
 
