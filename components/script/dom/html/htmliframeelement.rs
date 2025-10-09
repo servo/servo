@@ -145,8 +145,6 @@ impl HTMLIFrameElement {
             LoadBlocker::terminate(load_blocker, can_gc);
         }
 
-        println!("Loading IFrame to: {:?}", load_data.url);
-
         if load_data.url.scheme() == "javascript" {
             let window_proxy = self.GetContentWindow();
             if let Some(window_proxy) = window_proxy {
@@ -250,26 +248,15 @@ impl HTMLIFrameElement {
     /// and synchronously processed by the script thread.
     /// This initial synchronous load should have no noticeable effect in script.
     pub(crate) fn is_initial_blank_document(&self) -> bool {
-        println!(
-            "Is initial blank doc: {:?}",
-            self.about_blank_pipeline_id.get() == self.pipeline_id.get()
-        );
         self.about_blank_pipeline_id.get() == self.pipeline_id.get()
     }
 
     /// When an iframe is first inserted into the document,
-    /// after an "about:blank" document is created,
+    /// after an "about:blank" document has been created,
     /// the iframe attributes are processed.
     /// If the iframe's url matches about:blank, and we are in the first processing phace,
     /// there should be no events fired on the window, and only the iframe load event steps should run(on the element).
     pub(crate) fn is_initial_navigated_document_that_matches_about_blank(&self) -> bool {
-        println!(
-            "Is initial about:blank: {:?} {:?} {:?} {:?}",
-            self.get_url(),
-            self.about_blank_pipeline_id.get(),
-            self.pipeline_id.get(),
-            self.processed_attributes_first_time.get()
-        );
         self.get_url().matches_about_blank() && self.processed_attributes_first_time.get()
     }
 
@@ -559,12 +546,6 @@ impl HTMLIFrameElement {
 
     /// <https://html.spec.whatwg.org/multipage/#iframe-load-event-steps> steps 1-4
     pub(crate) fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId, can_gc: CanGc) {
-        println!(
-            "iframe_load_event_steps for {:?} {:?}",
-            loaded_pipeline,
-            self.pending_pipeline_id.get()
-        );
-
         // TODO(#9592): assert that the load blocker is present at all times when we
         //              can guarantee that it's created for the case of iframe.reload().
         if Some(loaded_pipeline) != self.pending_pipeline_id.get() {
