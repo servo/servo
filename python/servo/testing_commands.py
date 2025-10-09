@@ -19,6 +19,7 @@ import shutil
 import subprocess
 import sys
 import textwrap
+import glob
 from time import sleep
 from typing import Any
 from pathlib import Path
@@ -432,6 +433,22 @@ class MachCommands(CommandBase):
         if not patch and kwargs["sync"]:
             print("Are you sure you don't want a patch?")
             return 1
+        run_log = kwargs.get("run_log", [])
+
+        # For deduplication
+        expanded_logs: set[str] = set()
+
+        for entry in run_log:
+            if glob.has_magic(entry):
+                matches = glob.glob(entry)
+                if matches:
+                    expanded_logs.update(path.abspath(m) for m in matches)
+                else:
+                    print(f"No matches for pattern: {entry}")
+            else:
+                expanded_logs.add(entry)
+
+        kwargs["run_log"] = list(expanded_logs)
         return wpt.update.update_tests(**kwargs)
 
     @Command("test-ohos-wpt", description="Run a single WPT test on OHOS device using WebDriver", category="testing")
