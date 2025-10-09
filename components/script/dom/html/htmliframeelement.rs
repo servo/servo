@@ -73,6 +73,7 @@ pub(crate) struct HTMLIFrameElement {
     browsing_context_id: Cell<Option<BrowsingContextId>>,
     #[no_trace]
     pipeline_id: Cell<Option<PipelineId>>,
+    processed_attributes_first_time: Cell<bool>,
     #[no_trace]
     pending_pipeline_id: Cell<Option<PipelineId>>,
     #[no_trace]
@@ -244,8 +245,32 @@ impl HTMLIFrameElement {
         }
     }
 
-    pub(crate) fn is_initial_about_blank(&self) -> bool {
+    /// When an iframe is first inserted into the document,
+    /// an "about:blank" document is created,
+    /// and synchronously processed by the script thread.
+    /// This initial synchronous load should have no noticeable effect in script.
+    pub(crate) fn is_initial_blank_document(&self) -> bool {
+        println!(
+            "Is initial blank doc: {:?}",
+            self.about_blank_pipeline_id.get() == self.pipeline_id.get()
+        );
         self.about_blank_pipeline_id.get() == self.pipeline_id.get()
+    }
+
+    /// When an iframe is first inserted into the document,
+    /// after an "about:blank" document is created,
+    /// the iframe attributes are processed.
+    /// If the iframe's url matches about:blank, and we are in the first processing phace,
+    /// there should be no events fired on the window, and only the iframe load event steps should run(on the element).
+    pub(crate) fn is_initial_navigated_document_that_matches_about_blank(&self) -> bool {
+        println!(
+            "Is initial about:blank: {:?} {:?} {:?} {:?}",
+            self.get_url(),
+            self.about_blank_pipeline_id.get(),
+            self.pipeline_id.get(),
+            self.processed_attributes_first_time.get()
+        );
+        self.get_url().matches_about_blank() && self.processed_attributes_first_time.get()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
@@ -303,6 +328,9 @@ impl HTMLIFrameElement {
         {
             return;
         }
+
+        self.processed_attributes_first_time
+            .set(mode == ProcessingMode::FirstTime);
 
         // > 2. Otherwise, if `element` has a `src` attribute specified, or
         // >    `initialInsertion` is false, then run the shared attribute
@@ -479,6 +507,7 @@ impl HTMLIFrameElement {
             load_blocker: DomRefCell::new(None),
             throttled: Cell::new(false),
             script_window_proxies: ScriptThread::window_proxies(),
+            processed_attributes_first_time: Default::default(),
         }
     }
 
@@ -535,9 +564,18 @@ impl HTMLIFrameElement {
             loaded_pipeline,
             self.pending_pipeline_id.get()
         );
+
         // TODO(#9592): assert that the load blocker is present at all times when we
         //              can guarantee that it's created for the case of iframe.reload().
         if Some(loaded_pipeline) != self.pending_pipeline_id.get() {
+            return;
+        }
+
+        let blocker = &self.load_blocker;
+        LoadBlocker::terminate(blocker, can_gc);
+
+        // The initial blank document should not be noticeable to script.
+        if self.is_initial_blank_document() {
             return;
         }
 
@@ -550,9 +588,6 @@ impl HTMLIFrameElement {
         // Step 4
         self.upcast::<EventTarget>()
             .fire_event(atom!("load"), can_gc);
-
-        let blocker = &self.load_blocker;
-        LoadBlocker::terminate(blocker, can_gc);
 
         // TODO Step 5 - unset child document `mut iframe load` flag
     }

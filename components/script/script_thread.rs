@@ -1535,7 +1535,14 @@ impl ScriptThread {
                         .frame_element()
                         .and_then(|e| e.downcast::<HTMLIFrameElement>())
                     {
-                        if frame.is_initial_about_blank() {
+                        if frame.is_initial_blank_document() {
+                            // The initial synchronous about:blank document should not
+                            // be noticeable to script.
+                            document.run_initial_about_blank_iframe_completion();
+                            continue;
+                        }
+
+                        if frame.is_initial_navigated_document_that_matches_about_blank() {
                             // 2.3 of <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
                             document.run_initial_about_blank_iframe_completion();
 
