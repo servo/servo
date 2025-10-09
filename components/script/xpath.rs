@@ -258,12 +258,15 @@ impl xpath::Attribute for XPathWrapper<DomRoot<Attr>> {
     }
 }
 
-pub(crate) fn parse_expression(expression: &str) -> Fallible<xpath::Expression> {
-    xpath::parse::<Error>(expression).map_err(|error| match error {
-        xpath::Error::JsException(Error::JSFailed) => Error::JSFailed,
-        _ => Error::Syntax(Some(format!(
-            "Failed to parse {expression:?} as an XPath expression: {error:?}"
-        ))),
+pub(crate) fn parse_expression(
+    expression: &str,
+    resolver: Option<Rc<XPathNSResolver>>,
+) -> Fallible<xpath::Expression> {
+    xpath::parse::<XPathImplementation>(expression, resolver.map(XPathWrapper)).map_err(|error| {
+        match error {
+            xpath::ParserError::JsError(Error::JSFailed) => Error::JSFailed,
+            _ => Error::Syntax(Some(format!("Failed to parse XPath expression: {error:?}"))),
+        }
     })
 }
 

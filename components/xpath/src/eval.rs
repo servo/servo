@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use markup5ever::{LocalName, Namespace, Prefix, QualName, local_name, ns};
+use markup5ever::{QualName, local_name, ns};
 
 use crate::ast::{
     Axis, BinaryOperator, Expression, FilterExpression, KindTest, Literal, LocationStepExpression,
@@ -125,11 +125,11 @@ impl PathExpression {
 
         let have_multiple_steps = self.steps.len() > 1;
 
-        for step in &self.steps {
+        for step_expression in &self.steps {
             let mut next_nodes = Vec::new();
             for node in current_nodes {
                 let step_context = context.subcontext_for_node(node.clone());
-                let step_result = step.evaluate(&step_context)?;
+                let step_result = step_expression.evaluate(&step_context)?;
                 match (have_multiple_steps, step_result) {
                     (_, Value::Nodeset(mut nodes)) => {
                         // as long as we evaluate to nodesets, keep going
@@ -144,7 +144,7 @@ impl PathExpression {
                             "Expected nodeset from step evaluation, got: {:?} node: {:?}, step: {:?}",
                             value,
                             node,
-                            step
+                            step_expression
                         );
                         return Ok(value);
                     },
@@ -189,25 +189,9 @@ pub(crate) fn element_name_test(
     expected_name.local == element_qualname.local
 }
 
-fn apply_node_test<D: Dom>(
-    context: &EvaluationCtx<D>,
-    test: &NodeTest,
-    node: &D::Node,
-) -> Result<bool, Error<D::JsError>> {
+fn apply_node_test<D: Dom>(test: &NodeTest, node: &D::Node) -> Result<bool, Error<D::JsError>> {
     let result = match test {
         NodeTest::Name(qname) => {
-            let namespace = context
-                .resolve_namespace(qname.prefix.as_deref())
-                .map_err(Error::JsException)?
-                .map(Namespace::from)
-                .unwrap_or_default();
-
-            let wanted_name = QualName {
-                prefix: qname.prefix.as_deref().map(Prefix::from),
-                ns: namespace,
-                local: LocalName::from(qname.local_part.as_str()),
-            };
-
             if let Some(element) = node.as_element() {
                 let comparison_mode = if element.is_html_element_in_html_document() {
                     NameTestComparisonMode::Html
@@ -219,7 +203,7 @@ fn apply_node_test<D: Dom>(
                     element.namespace().clone(),
                     element.local_name().clone(),
                 );
-                element_name_test(wanted_name, element_qualname, comparison_mode)
+                element_name_test(qname.clone(), element_qualname, comparison_mode)
             } else if let Some(attribute) = node.as_attribute() {
                 let attr_qualname = QualName::new(
                     attribute.prefix(),
@@ -228,7 +212,7 @@ fn apply_node_test<D: Dom>(
                 );
                 // attributes are always compared with strict namespace matching
                 let comparison_mode = NameTestComparisonMode::XHtml;
-                element_name_test(wanted_name, attr_qualname, comparison_mode)
+                element_name_test(qname.clone(), attr_qualname, comparison_mode)
             } else {
                 false
             }
@@ -306,8 +290,7 @@ impl LocationStepExpression {
         let filtered_nodes: Vec<D::Node> = nodes
             .into_iter()
             .map(|node| {
-                apply_node_test(context, &self.node_test, &node)
-                    .map(|matches| matches.then_some(node))
+                apply_node_test::<D>(&self.node_test, &node).map(|matches| matches.then_some(node))
             })
             .collect::<Result<Vec<_>, _>>()?
             .into_iter()
@@ -324,8 +307,7 @@ impl LocationStepExpression {
             Ok(Value::Nodeset(filtered_nodes))
         } else {
             // Apply predicates
-            self.predicate_list
-                .evaluate(context, filtered_nodes.clone())
+            self.predicate_list.evaluate::<D>(filtered_nodes)
         }
     }
 }
@@ -333,7 +315,6 @@ impl LocationStepExpression {
 impl PredicateListExpression {
     fn evaluate<D: Dom>(
         &self,
-        context: &EvaluationCtx<D>,
         mut matched_nodes: Vec<D::Node>,
     ) -> Result<Value<D::Node>, Error<D::JsError>> {
         for predicate_expr in &self.predicates {
@@ -345,7 +326,6 @@ impl PredicateListExpression {
                 let predicate_ctx: EvaluationCtx<D> = EvaluationCtx {
                     context_node: node.clone(),
                     predicate_ctx: Some(PredicateCtx { index: i + 1, size }),
-                    resolver: context.resolver.clone(),
                 };
 
                 let eval_result = predicate_expr.evaluate(&predicate_ctx);
@@ -378,28 +358,18 @@ impl FilterExpression {
         &self,
         context: &EvaluationCtx<D>,
     ) -> Result<Value<D::Node>, Error<D::JsError>> {
-        let primary_result = self.expression.evaluate(context)?;
-        let have_predicates = !self.predicates.predicates.is_empty();
+        debug_assert!(!self.predicates.predicates.is_empty());
 
-        match (have_predicates, &primary_result) {
-            (false, _) => {
-                log::trace!(
-                    "[FilterExpr] No predicates, returning primary result: {:?}",
-                    primary_result
-                );
-                Ok(primary_result)
-            },
-            (true, Value::Nodeset(vec)) => {
-                let result_filtered_by_predicates = self.predicates.evaluate(context, vec.clone());
-                log::trace!(
-                    "[FilterExpr] Result filtered by predicates: {:?}",
-                    result_filtered_by_predicates
-                );
-                result_filtered_by_predicates
-            },
+        let Value::Nodeset(node_set) = self.expression.evaluate(context)? else {
             // You can't use filtering expressions `[]` on other than node-sets
-            (true, _) => Err(Error::NotANodeset),
-        }
+            return Err(Error::NotANodeset);
+        };
+        let result_filtered_by_predicates = self.predicates.evaluate::<D>(node_set);
+        log::trace!(
+            "[FilterExpr] Result filtered by predicates: {:?}",
+            result_filtered_by_predicates
+        );
+        result_filtered_by_predicates
     }
 }
 

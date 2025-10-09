@@ -9,7 +9,6 @@ rust-version.workspace = true
 
 [dependencies]
 log = { workspace = true }
-nom = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 markup5ever = { workspace = true }
