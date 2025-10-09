@@ -4319,11 +4319,17 @@ impl Document {
             .do_post_reflow_update(&self.window, self.current_animation_timeline_value());
         self.image_animation_manager
             .borrow()
-            .update_rooted_dom_nodes(&self.window, self.current_animation_timeline_value());
+            .maybe_schedule_update_after_layout(
+                &self.window,
+                self.current_animation_timeline_value(),
+            );
     }
 
     pub(crate) fn cancel_animations_for_node(&self, node: &Node) {
         self.animations.borrow().cancel_animations_for_node(node);
+        self.image_animation_manager
+            .borrow()
+            .cancel_animations_for_node(node);
     }
 
     /// An implementation of <https://drafts.csswg.org/web-animations-1/#update-animations-and-send-events>.
