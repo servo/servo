@@ -17,6 +17,7 @@ use mime::{self, Mime};
 use net_traits::http_percent_encode;
 use net_traits::request::Referrer;
 use rustc_hash::FxBuildHasher;
+use script_bindings::match_domstring_ascii;
 use servo_rand::random;
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
@@ -1495,13 +1496,12 @@ impl FormSubmitterElement<'_> {
                 |f| f.Enctype(),
             ),
         };
-        match &*attr.str() {
+        // https://html.spec.whatwg.org/multipage/#attr-fs-enctype
+        // urlencoded is the default
+        match_domstring_ascii!(attr, FormEncType::UrlEncoded,
             "multipart/form-data" => FormEncType::MultipartFormData,
             "text/plain" => FormEncType::TextPlain,
-            // https://html.spec.whatwg.org/multipage/#attr-fs-enctype
-            // urlencoded is the default
-            _ => FormEncType::UrlEncoded,
-        }
+        )
     }
 
     fn method(&self) -> FormMethod {
@@ -1518,11 +1518,10 @@ impl FormSubmitterElement<'_> {
                 |f| f.Method(),
             ),
         };
-        match &*attr.str() {
+        match_domstring_ascii!(attr, FormMethod::Get,
             "dialog" => FormMethod::Dialog,
             "post" => FormMethod::Post,
-            _ => FormMethod::Get,
-        }
+        )
     }
 
     fn target(&self) -> DOMString {
