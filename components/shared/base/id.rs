@@ -300,18 +300,12 @@ thread_local!(pub static WEBVIEW_ID: Cell<Option<WebViewId>> =
     const { Cell::new(None) });
 
 #[derive(
-    Clone, Copy, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
 )]
 pub struct WebViewId(RenderingGroupId, BrowsingContextId);
 
 size_of_test!(WebViewId, 12);
 size_of_test!(Option<WebViewId>, 12);
-
-impl fmt::Debug for WebViewId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "TopLevel{:?}", self.0)
-    }
-}
 
 impl fmt::Display for WebViewId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
