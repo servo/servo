@@ -9,21 +9,27 @@ use aes::cipher::generic_array::GenericArray;
 use aes::cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit, StreamCipher};
 use aes::{Aes128, Aes192, Aes256};
 use aes_gcm::{AeadInPlace, AesGcm, KeyInit};
+use base64::prelude::*;
 use cipher::consts::{U12, U16, U32};
 use js::jsapi::JS_NewObject;
 use servo_rand::{RngCore, ServoRng};
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsage};
-use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::AesKeyAlgorithm;
+use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
+    CryptoKeyMethods, KeyType, KeyUsage,
+};
+use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
+    AesKeyAlgorithm, JsonWebKey, KeyFormat,
+};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_AES_CBC, ALG_AES_CTR, ALG_AES_GCM, ALG_AES_KW, AlgorithmFromNameAndSize,
-    SubtleAesCbcParams, SubtleAesCtrParams, SubtleAesGcmParams, SubtleAesKeyGenParams,
+    ALG_AES_CBC, ALG_AES_CTR, ALG_AES_GCM, ALG_AES_KW, AlgorithmFromNameAndSize, ExportedKey,
+    JsonWebKeyExt, SubtleAesCbcParams, SubtleAesCtrParams, SubtleAesGcmParams,
+    SubtleAesKeyGenParams,
 };
 use crate::script_runtime::CanGc;
 
@@ -90,7 +96,7 @@ pub(crate) fn encrypt_aes_ctr(
     Ok(ciphertext)
 }
 
-/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-encrypt>
+/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-decrypt>
 pub(crate) fn decrypt_aes_ctr(
     normalized_algorithm: &SubtleAesCtrParams,
     key: &CryptoKey,
@@ -125,6 +131,31 @@ pub(crate) fn generate_key_aes_ctr(
         ],
         can_gc,
     )
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-import-key>
+pub(crate) fn import_key_aes_ctr(
+    global: &GlobalScope,
+    format: KeyFormat,
+    key_data: &[u8],
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+    can_gc: CanGc,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    import_key_aes(
+        global,
+        format,
+        key_data,
+        extractable,
+        usages,
+        ALG_AES_CTR,
+        can_gc,
+    )
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-export-key>
+pub(crate) fn export_key_aes_ctr(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+    export_key_aes(format, key)
 }
 
 /// <https://w3c.github.io/webcrypto/#aes-cbc-operations-encrypt>
@@ -244,6 +275,31 @@ pub(crate) fn generate_key_aes_cbc(
         ],
         can_gc,
     )
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-import-key>
+pub(crate) fn import_key_aes_cbc(
+    global: &GlobalScope,
+    format: KeyFormat,
+    key_data: &[u8],
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+    can_gc: CanGc,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    import_key_aes(
+        global,
+        format,
+        key_data,
+        extractable,
+        usages,
+        ALG_AES_CBC,
+        can_gc,
+    )
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-export-key>
+pub(crate) fn export_key_aes_cbc(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+    export_key_aes(format, key)
 }
 
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-encrypt>
@@ -504,6 +560,31 @@ pub(crate) fn generate_key_aes_gcm(
     )
 }
 
+/// <https://w3c.github.io/webcrypto/#aes-gcm-operations-import-key>
+pub(crate) fn import_key_aes_gcm(
+    global: &GlobalScope,
+    format: KeyFormat,
+    key_data: &[u8],
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+    can_gc: CanGc,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    import_key_aes(
+        global,
+        format,
+        key_data,
+        extractable,
+        usages,
+        ALG_AES_GCM,
+        can_gc,
+    )
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-gcm-operations-export-key>
+pub(crate) fn export_key_aes_gcm(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+    export_key_aes(format, key)
+}
+
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-generate-key>
 #[allow(unsafe_code)]
 pub(crate) fn generate_key_aes_kw(
@@ -526,10 +607,35 @@ pub(crate) fn generate_key_aes_kw(
     )
 }
 
+/// <https://w3c.github.io/webcrypto/#aes-kw-operations-import-key>
+pub(crate) fn import_key_aes_kw(
+    global: &GlobalScope,
+    format: KeyFormat,
+    key_data: &[u8],
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+    can_gc: CanGc,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    import_key_aes(
+        global,
+        format,
+        key_data,
+        extractable,
+        usages,
+        ALG_AES_KW,
+        can_gc,
+    )
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-kw-operations-export-key>
+pub(crate) fn export_key_aes_kw(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+    export_key_aes(format, key)
+}
+
 /// Helper function for
-/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-generate-key>,
-/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-generate-key>,
-/// <https://w3c.github.io/webcrypto/#aes-gcm-operations-generate-key> and
+/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-generate-key>
+/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-generate-key>
+/// <https://w3c.github.io/webcrypto/#aes-gcm-operations-generate-key>
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-generate-key>
 #[allow(clippy::too_many_arguments)]
 #[allow(unsafe_code)]
@@ -539,7 +645,7 @@ fn generate_key_aes(
     extractable: bool,
     usages: Vec<KeyUsage>,
     rng: &DomRefCell<ServoRng>,
-    name: &str,
+    alg_name: &str,
     allowed_usages: &[KeyUsage],
     can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
@@ -566,12 +672,12 @@ fn generate_key_aes(
     };
 
     // Step 6. Let algorithm be a new AesKeyAlgorithm.
-    // Step 7. Set the name attribute of algorithm to name.
+    // Step 7. Set the name attribute of algorithm to alg_name.
     // Step 8. Set the length attribute of algorithm to equal the length member of normalizedAlgorithm.
     let cx = GlobalScope::get_cx();
     rooted!(in(*cx) let mut algorithm_object = unsafe {JS_NewObject(*cx, ptr::null()) });
     AesKeyAlgorithm::from_name_and_size(
-        DOMString::from(name),
+        DOMString::from(alg_name),
         normalized_algorithm.length,
         algorithm_object.handle_mut(),
         cx,
@@ -586,7 +692,7 @@ fn generate_key_aes(
         global,
         KeyType::Secret,
         extractable,
-        DOMString::from(name),
+        DOMString::from(alg_name),
         algorithm_object.handle(),
         usages,
         handle,
@@ -595,4 +701,289 @@ fn generate_key_aes(
 
     // Step 13. Return key.
     Ok(crypto_key)
+}
+
+/// Helper function for
+/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-import-key>
+/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-import-key>
+/// <https://w3c.github.io/webcrypto/#aes-gcm-operations-import-key>
+/// <https://w3c.github.io/webcrypto/#aes-kw-operations-import-key>
+#[allow(unsafe_code)]
+fn import_key_aes(
+    global: &GlobalScope,
+    format: KeyFormat,
+    key_data: &[u8],
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+    alg_name: &str,
+    can_gc: CanGc,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    // Step 1. If usages contains an entry which is not one of "encrypt", "decrypt", "wrapKey" or
+    // "unwrapKey", then throw a SyntaxError.
+    if usages.iter().any(|usage| {
+        !matches!(
+            usage,
+            KeyUsage::Encrypt | KeyUsage::Decrypt | KeyUsage::WrapKey | KeyUsage::UnwrapKey
+        )
+    }) || usages.is_empty()
+    {
+        return Err(Error::Syntax(None));
+    }
+
+    // Step 2.
+    let data;
+    match format {
+        // If format is "raw":
+        KeyFormat::Raw => {
+            // Step 2.1. Let data be keyData.
+            data = key_data.to_vec();
+
+            // Step 2.2. If the length in bits of data is not 128, 192 or 256 then throw a DataError.
+            if !matches!(data.len() * 8, 128 | 192 | 256) {
+                return Err(Error::Data);
+            }
+        },
+        // If format is "jwk":
+        KeyFormat::Jwk => {
+            // Step 2.1. If keyData is a JsonWebKey dictionary: Let jwk equal keyData.
+            // Otherwise: Throw a DataError.
+            // NOTE: Deserialize keyData to JsonWebKey dictionary by calling JsonWebKey::parse
+            let jwk = JsonWebKey::parse(GlobalScope::get_cx(), key_data)?;
+
+            // Step 2.2. If the kty field of jwk is not "oct", then throw a DataError.
+            if jwk.kty.as_ref().is_none_or(|kty| kty != "oct") {
+                return Err(Error::Data);
+            }
+
+            // Step 2.3. If jwk does not meet the requirements of Section 6.4 of JSON Web
+            // Algorithms [JWA], then throw a DataError.
+            // NOTE: Done by Step 2.4 and 2.5.
+
+            // Step 2.4. Let data be the byte sequence obtained by decoding the k field of jwk.
+            data = base64::engine::general_purpose::STANDARD_NO_PAD
+                .decode(&*jwk.k.as_ref().ok_or(Error::Data)?.as_bytes())
+                .map_err(|_| Error::Data)?;
+
+            // NOTE: This function is shared by AES-CBC, AES-CTR, AES-GCM and AES-KW.
+            // Different static texts are used in different AES types, in the following step.
+            let alg_matching = match alg_name {
+                ALG_AES_CBC => ["A128CBC", "A192CBC", "A256CBC"],
+                ALG_AES_CTR => ["A128CTR", "A192CTR", "A256CTR"],
+                ALG_AES_GCM => ["A128GCM", "A192GCM", "A256GCM"],
+                ALG_AES_KW => ["A128KW", "A192KW", "A256KW"],
+                _ => unreachable!(),
+            };
+
+            // Step 2.5.
+            match data.len() * 8 {
+                // If the length in bits of data is 128:
+                128 => {
+                    // If the alg field of jwk is present, and is not "A128CBC", then throw a DataError.
+                    // If the alg field of jwk is present, and is not "A128CTR", then throw a DataError.
+                    // If the alg field of jwk is present, and is not "A128GCM", then throw a DataError.
+                    // If the alg field of jwk is present, and is not "A128KW", then throw a DataError.
+                    // NOTE: Only perform the step of the corresponding AES type.
+                    if jwk.alg.as_ref().is_some_and(|alg| alg != alg_matching[0]) {
+                        return Err(Error::Data);
+                    }
+                },
+                // If the length in bits of data is 192:
+                192 => {
+                    // If the alg field of jwk is present, and is not "A192CBC", then throw a DataError.
+                    // If the alg field of jwk is present, and is not "A192CTR", then throw a DataError.
+                    // If the alg field of jwk is present, and is not "A192GCM", then throw a DataError.
+                    // If the alg field of jwk is present, and is not "A192KW", then throw a DataError.
+                    // NOTE: Only perform the step of the corresponding AES type.
+                    if jwk.alg.as_ref().is_some_and(|alg| alg != alg_matching[1]) {
+                        return Err(Error::Data);
+                    }
+                },
+                // If the length in bits of data is 256:
+                256 => {
+                    // If the alg field of jwk is present, and is not "A256CBC", then throw a DataError.
+                    // If the alg field of jwk is present, and is not "A256CTR", then throw a DataError.
+                    // If the alg field of jwk is present, and is not "A256GCM", then throw a DataError.
+                    // If the alg field of jwk is present, and is not "A256KW", then throw a DataError.
+                    // NOTE: Only perform the step of the corresponding AES type.
+                    if jwk.alg.as_ref().is_some_and(|alg| alg != alg_matching[2]) {
+                        return Err(Error::Data);
+                    }
+                },
+                // Otherwise:
+                _ => {
+                    // throw a DataError.
+                    return Err(Error::Data);
+                },
+            }
+
+            // Step 2.6. If usages is non-empty and the use field of jwk is present and is not
+            // "enc", then throw a DataError.
+            if !usages.is_empty() && jwk.use_.as_ref().is_some_and(|use_| use_ != "enc") {
+                return Err(Error::Data);
+            }
+
+            // Step 2.7. If the key_ops field of jwk is present, and is invalid according to the
+            // requirements of JSON Web Key [JWK] or does not contain all of the specified usages
+            // values, then throw a DataError.
+            jwk.check_key_ops(&usages)?;
+
+            // Step 2.8. If the ext field of jwk is present and has the value false and extractable
+            // is true, then throw a DataError.
+            if jwk.ext.is_some_and(|ext| !ext) && extractable {
+                return Err(Error::Data);
+            }
+        },
+        // Otherwise:
+        _ => {
+            // throw a NotSupportedError
+            return Err(Error::NotSupported);
+        },
+    };
+
+    // Step 5. Let algorithm be a new AesKeyAlgorithm.
+    // Step 6. Set the name attribute of algorithm to alg_name.
+    // Step 7. Set the length attribute of algorithm to the length, in bits, of data.
+    let name = DOMString::from(alg_name.to_string());
+    let cx = GlobalScope::get_cx();
+    rooted!(in(*cx) let mut algorithm_object = unsafe { JS_NewObject(*cx, ptr::null()) });
+    assert!(!algorithm_object.is_null());
+    AesKeyAlgorithm::from_name_and_size(
+        name.clone(),
+        (data.len() * 8) as u16,
+        algorithm_object.handle_mut(),
+        cx,
+    );
+
+    // Step 3. Let key be a new CryptoKey object representing an AES key with value data.
+    // Step 4. Set the [[type]] internal slot of key to "secret".
+    // Step 8. Set the [[algorithm]] internal slot of key to algorithm.
+    let handle = match data.len() * 8 {
+        128 => Handle::Aes128(data.to_vec()),
+        192 => Handle::Aes192(data.to_vec()),
+        256 => Handle::Aes256(data.to_vec()),
+        _ => {
+            return Err(Error::Data);
+        },
+    };
+    let key = CryptoKey::new(
+        global,
+        KeyType::Secret,
+        extractable,
+        name,
+        algorithm_object.handle(),
+        usages,
+        handle,
+        can_gc,
+    );
+
+    // Step 9. Return key.
+    Ok(key)
+}
+
+/// Helper function for
+/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-export-key>
+/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-export-key>
+/// <https://w3c.github.io/webcrypto/#aes-gcm-operations-export-key>
+/// <https://w3c.github.io/webcrypto/#aes-kw-operations-export-key>
+fn export_key_aes(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+    // Step 1. If the underlying cryptographic key material represented by the [[handle]]
+    // internal slot of key cannot be accessed, then throw an OperationError.
+    // NOTE: key.handle() guarantees access.
+
+    // Step 2.
+    let result;
+    match format {
+        // If format is "raw":
+        KeyFormat::Raw => match key.handle() {
+            // Step 2.1. Let data be a byte sequence containing the raw octets of the key
+            // represented by the [[handle]] internal slot of key.
+            // Step 2.2. Let result be data.
+            Handle::Aes128(key_data) => {
+                result = ExportedKey::Raw(key_data.clone());
+            },
+            Handle::Aes192(key_data) => {
+                result = ExportedKey::Raw(key_data.clone());
+            },
+            Handle::Aes256(key_data) => {
+                result = ExportedKey::Raw(key_data.clone());
+            },
+            _ => unreachable!(),
+        },
+        // If format is "jwk":
+        KeyFormat::Jwk => {
+            // Step 2.3. Set the k attribute of jwk to be a string containing the raw octets of
+            // the key represented by the [[handle]] internal slot of key, encoded according to
+            // Section 6.4 of JSON Web Algorithms [JWA].
+            let k = match key.handle() {
+                Handle::Aes128(key) => base64::engine::general_purpose::STANDARD_NO_PAD.encode(key),
+                Handle::Aes192(key) => base64::engine::general_purpose::STANDARD_NO_PAD.encode(key),
+                Handle::Aes256(key) => base64::engine::general_purpose::STANDARD_NO_PAD.encode(key),
+                _ => unreachable!(),
+            };
+
+            // Step 2.4.
+            // If the length attribute of key is 128: Set the alg attribute of jwk to the string "A128CTR".
+            // If the length attribute of key is 192: Set the alg attribute of jwk to the string "A192CTR".
+            // If the length attribute of key is 256: Set the alg attribute of jwk to the string "A256CTR".
+            //
+            // If the length attribute of key is 128: Set the alg attribute of jwk to the string "A128CTR".
+            // If the length attribute of key is 192: Set the alg attribute of jwk to the string "A192CTR".
+            // If the length attribute of key is 256: Set the alg attribute of jwk to the string "A256CTR".
+            //
+            // If the length attribute of key is 128: Set the alg attribute of jwk to the string "A128CTR".
+            // If the length attribute of key is 192: Set the alg attribute of jwk to the string "A192CTR".
+            // If the length attribute of key is 256: Set the alg attribute of jwk to the string "A256CTR".
+            //
+            // If the length attribute of key is 128: Set the alg attribute of jwk to the string "A128CTR".
+            // If the length attribute of key is 192: Set the alg attribute of jwk to the string "A192CTR".
+            // If the length attribute of key is 256: Set the alg attribute of jwk to the string "A256CTR".
+            //
+            // NOTE: Check key length via key.handle()
+            let alg = match (key.handle(), key.algorithm().as_str()) {
+                (Handle::Aes128(_), ALG_AES_CTR) => "A128CTR",
+                (Handle::Aes192(_), ALG_AES_CTR) => "A192CTR",
+                (Handle::Aes256(_), ALG_AES_CTR) => "A256CTR",
+                (Handle::Aes128(_), ALG_AES_CBC) => "A128CBC",
+                (Handle::Aes192(_), ALG_AES_CBC) => "A192CBC",
+                (Handle::Aes256(_), ALG_AES_CBC) => "A256CBC",
+                (Handle::Aes128(_), ALG_AES_GCM) => "A128GCM",
+                (Handle::Aes192(_), ALG_AES_GCM) => "A192GCM",
+                (Handle::Aes256(_), ALG_AES_GCM) => "A256GCM",
+                (Handle::Aes128(_), ALG_AES_KW) => "A128KW",
+                (Handle::Aes192(_), ALG_AES_KW) => "A192KW",
+                (Handle::Aes256(_), ALG_AES_KW) => "A256KW",
+                _ => unreachable!(),
+            };
+
+            // Step 2.5. Set the key_ops attribute of jwk to equal the [[usages]] internal slot of key.
+            let key_ops = key
+                .usages()
+                .iter()
+                .map(|usage| DOMString::from(usage.as_str()))
+                .collect::<Vec<DOMString>>();
+
+            // Step 2.1. Let jwk be a new JsonWebKey dictionary.
+            // Step 2.2. Set the kty attribute of jwk to the string "oct".
+            // Step 2.6. Set the ext attribute of jwk to equal the [[extractable]] internal slot of key.
+            let jwk = JsonWebKey {
+                kty: Some(DOMString::from("oct")),
+                k: Some(DOMString::from(k)),
+                alg: Some(DOMString::from(alg)),
+                key_ops: Some(key_ops),
+                ext: Some(key.Extractable()),
+                ..Default::default()
+            };
+
+            // Step 2.7. Let result be jwk.
+            result = ExportedKey::Jwk(Box::new(jwk));
+        },
+        // Otherwise:
+        _ => {
+            // throw a NotSupportedError.
+            return Err(Error::NotSupported);
+        },
+    };
+
+    // Step 3. Return result.
+    Ok(result)
 }
