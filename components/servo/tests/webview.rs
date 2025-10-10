@@ -19,8 +19,9 @@ use common::{ServoTest, WebViewDelegateImpl, evaluate_javascript, run_api_tests}
 use dpi::PhysicalSize;
 use euclid::{Point2D, Size2D};
 use servo::{
-    Cursor, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus, MouseLeftViewportEvent,
-    MouseMoveEvent, Servo, Theme, WebView, WebViewBuilder, WebViewDelegate,
+    Cursor, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus, MouseButton,
+    MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, Servo, Theme,
+    WebView, WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
 use webrender_api::units::DeviceIntSize;
@@ -290,6 +291,64 @@ fn test_resize_webview_zero(servo_test: &ServoTest) -> Result<(), anyhow::Error>
     let load_webview = webview.clone();
     let _ = servo_test.spin(move || Ok(load_webview.load_status() != LoadStatus::Complete));
 
+    // Reset the WebView size for other tests.
+    webview.resize(PhysicalSize::new(500, 500));
+
+    Ok(())
+}
+
+fn test_control_show_and_hide(servo_test: &ServoTest) -> Result<(), anyhow::Error> {
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                "data:text/html,\
+                    <!DOCTYPE html>\
+                        <select id=select style=\"width: 500px; height: 500px\">\
+                            <option>one</option>\
+                        </select>
+                        <script>\
+                            select.addEventListener('click', () => {\
+                                setTimeout(() => select.parentNode.removeChild(select), 100);\
+                            });\
+                        </script>",
+            )
+            .unwrap(),
+        )
+        .build();
+
+    webview.focus();
+    webview.show(true);
+    webview.move_resize(servo_test.rendering_context.size2d().to_f32().into());
+
+    let load_webview = webview.clone();
+    let _ = servo_test.spin(move || Ok(load_webview.load_status() != LoadStatus::Complete));
+
+    // Wait for at least one frame after the load completes.
+    delegate.reset();
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || Ok(!captured_delegate.new_frame_ready.get()))?;
+
+    let point = Point2D::new(50., 50.);
+    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
+    webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+        MouseButtonAction::Down,
+        MouseButton::Left,
+        point,
+    )));
+    webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+        MouseButtonAction::Up,
+        MouseButton::Left,
+        point,
+    )));
+
+    // The form control should be shown and then immediately hidden.
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || Ok(captured_delegate.number_of_controls_shown.get() != 1))?;
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || Ok(captured_delegate.number_of_controls_hidden.get() != 1))?;
+
     Ok(())
 }
 
@@ -329,6 +388,7 @@ fn main() {
         test_negative_resize_to_request,
         test_resize_webview_zero,
         test_page_zoom,
+        test_control_show_and_hide,
         // This test needs to be last, as it tests creating and dropping
         // a WebView right before shutdown.
         test_create_webview_and_immediately_drop_webview_before_shutdown

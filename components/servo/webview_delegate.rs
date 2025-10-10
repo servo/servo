@@ -325,6 +325,11 @@ pub struct SelectElement {
 }
 
 impl SelectElement {
+    /// Return the [`EmbedderComtrolId`] associated with this element.
+    pub fn id(&self) -> EmbedderControlId {
+        self.id
+    }
+
     /// Return the area occupied by the `<select>` element that triggered the prompt.
     ///
     /// The embedder should use this value to position the prompt that is shown to the user.
@@ -383,6 +388,11 @@ pub struct ColorPicker {
 }
 
 impl ColorPicker {
+    /// Return the [`EmbedderComtrolId`] associated with this element.
+    pub fn id(&self) -> EmbedderControlId {
+        self.id
+    }
+
     /// Get the area occupied by the `<input>` element that triggered the prompt.
     ///
     /// The embedder should use this value to position the prompt that is shown to the user.
@@ -589,6 +599,12 @@ pub trait WebViewDelegate {
     /// Request that the embedder show UI elements for form controls that are not integrated
     /// into page content, such as dropdowns for `<select>` elements.
     fn show_form_control(&self, _webview: WebView, _form_control: FormControl) {}
+
+    /// Request that the embedder hide and ignore a previous [`FormControl`] request, if it hasn’t
+    /// already responded to it.
+    ///
+    /// After this point, any further responses to that request will be ignored.
+    fn hide_form_control(&self, _webview: WebView, _control_id: EmbedderControlId) {}
 
     /// Request to play a haptic effect on a connected gamepad.
     fn play_gamepad_haptic_effect(

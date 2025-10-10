@@ -1012,6 +1012,11 @@ impl Servo {
                     webview.delegate().show_form_control(webview, form_control);
                 }
             },
+            EmbedderMsg::HideEmbedderControl(control_id) => {
+                if let Some(webview) = self.get_webview_handle(control_id.webview_id) {
+                    webview.delegate().hide_form_control(webview, control_id);
+                }
+            },
             EmbedderMsg::GetWindowRect(webview_id, response_sender) => {
                 let window_rect = || {
                     let Some(webview) = self.get_webview_handle(webview_id) else {

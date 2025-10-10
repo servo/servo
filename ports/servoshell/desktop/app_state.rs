@@ -18,11 +18,11 @@ use servo::config::pref;
 use servo::ipc_channel::ipc::IpcSender;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
-    AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
-    InputEvent, InputEventId, InputEventResult, JSValue, LoadStatus, PermissionRequest, Servo,
-    ServoDelegate, ServoError, SimpleDialog, TraversalId, WebDriverCommandMsg, WebDriverJSResult,
-    WebDriverLoadStatus, WebDriverSenders, WebDriverUserPrompt, WebView, WebViewBuilder,
-    WebViewDelegate,
+    AllowOrDenyRequest, AuthenticationRequest, EmbedderControlId, FilterPattern, FormControl,
+    GamepadHapticEffectType, InputEvent, InputEventId, InputEventResult, JSValue, LoadStatus,
+    PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog, TraversalId,
+    WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus, WebDriverSenders,
+    WebDriverUserPrompt, WebView, WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
 
@@ -387,6 +387,16 @@ impl RunningAppState {
             dialogs.drain(..).for_each(|dialog| {
                 dialog.dismiss();
             });
+        }
+    }
+
+    pub(crate) fn dismiss_active_dialogs_with_control_id(
+        &self,
+        webview_id: WebViewId,
+        control_id: EmbedderControlId,
+    ) {
+        if let Some(dialogs) = self.inner_mut().dialogs.get_mut(&webview_id) {
+            dialogs.retain(|dialog| dialog.embedder_control_id() != Some(control_id));
         }
     }
 
@@ -826,6 +836,10 @@ impl WebViewDelegate for RunningAppState {
                 );
             },
         }
+    }
+
+    fn hide_form_control(&self, webview: WebView, control_id: servo::EmbedderControlId) {
+        self.dismiss_active_dialogs_with_control_id(webview.id(), control_id);
     }
 
     fn notify_favicon_changed(&self, webview: WebView) {

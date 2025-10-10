@@ -12,13 +12,23 @@ use script_bindings::script_runtime::CanGc;
 use webrender_api::units::DeviceIntRect;
 
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::inheritance::Castable as _;
 use crate::dom::bindings::trace::NoTrace;
-use crate::dom::types::{HTMLInputElement, HTMLSelectElement, Window};
+use crate::dom::types::{Element, HTMLInputElement, HTMLSelectElement, Window};
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum ControlElement {
     Select(DomRoot<HTMLSelectElement>),
     ColorInput(DomRoot<HTMLInputElement>),
+}
+
+impl ControlElement {
+    fn element(&self) -> &Element {
+        match self {
+            ControlElement::Select(element) => element.upcast::<Element>(),
+            ControlElement::ColorInput(element) => element.upcast::<Element>(),
+        }
+    }
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -65,6 +75,24 @@ impl DocumentEmbedderControls {
             .send_to_embedder(EmbedderMsg::ShowEmbedderControl(id, rect, form_control));
 
         id
+    }
+
+    pub(crate) fn hide_form_control(&self, element: &Element) {
+        self.visible_elements
+            .borrow_mut()
+            .retain(|index, control_element| {
+                if control_element.element() != element {
+                    return true;
+                }
+                let id = EmbedderControlId {
+                    webview_id: self.window.webview_id(),
+                    pipeline_id: self.window.pipeline_id(),
+                    index: index.0,
+                };
+                self.window
+                    .send_to_embedder(EmbedderMsg::HideEmbedderControl(id));
+                false
+            });
     }
 
     pub(crate) fn handle_embedder_control_response(

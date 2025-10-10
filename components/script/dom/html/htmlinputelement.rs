@@ -85,7 +85,7 @@ use crate::dom::node::{
 use crate::dom::nodelist::NodeList;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
-use crate::dom::types::CharacterData;
+use crate::dom::types::{CharacterData, FocusEvent};
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
@@ -1384,6 +1384,11 @@ impl HTMLInputElement {
             InputType::Color => self.update_color_shadow_tree(can_gc),
             _ => {},
         }
+    }
+
+    fn may_have_embedder_control(&self) -> bool {
+        let el = self.upcast::<Element>();
+        self.input_type() == InputType::Color && !el.disabled_state()
     }
 }
 
@@ -2852,6 +2857,8 @@ impl VirtualMethods for HTMLInputElement {
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        let could_have_had_embedder_control = self.may_have_embedder_control();
+
         self.super_type()
             .unwrap()
             .attribute_mutated(attr, mutation, can_gc);
@@ -3058,6 +3065,12 @@ impl VirtualMethods for HTMLInputElement {
         }
 
         self.value_changed(can_gc);
+
+        if could_have_had_embedder_control && !self.may_have_embedder_control() {
+            self.owner_document()
+                .embedder_controls()
+                .hide_form_control(self.upcast());
+        }
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
@@ -3123,6 +3136,12 @@ impl VirtualMethods for HTMLInputElement {
 
         self.validity_state()
             .perform_validation_and_update(ValidationFlags::all(), can_gc);
+
+        if self.input_type() == InputType::Color {
+            self.owner_document()
+                .embedder_controls()
+                .hide_form_control(self.upcast());
+        }
     }
 
     // This represents behavior for which the UIEvents spec and the
@@ -3255,6 +3274,12 @@ impl VirtualMethods for HTMLInputElement {
             }
             if !reaction.is_empty() {
                 self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
+            }
+        } else if let Some(event) = event.downcast::<FocusEvent>() {
+            if *event.upcast::<Event>().type_() != *"blur" {
+                self.owner_document()
+                    .embedder_controls()
+                    .hide_form_control(self.upcast());
             }
         }
 
