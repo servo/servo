@@ -4,33 +4,30 @@
 
 use std::borrow::ToOwned;
 use std::collections::HashSet;
-use std::{fmt, string};
 
 use crate::Node;
 
 /// The primary types of values that an XPath expression returns as a result.
+#[derive(Debug)]
 pub enum Value<N: Node> {
     Boolean(bool),
-    /// A IEEE-754 double-precision floating point number
+    /// A IEEE-754 double-precision floating point number.
     Number(f64),
     String(String),
-    /// A collection of not-necessarily-unique nodes
+    /// A collection of not-necessarily-unique nodes.
     Nodeset(Vec<N>),
 }
 
-impl<N: Node> fmt::Debug for Value<N> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
-            Value::Boolean(val) => write!(f, "{}", val),
-            Value::Number(val) => write!(f, "{}", val),
-            Value::String(ref val) => write!(f, "{}", val),
-            Value::Nodeset(ref val) => write!(f, "Nodeset({:?})", val),
-        }
-    }
-}
+pub(crate) fn parse_number_from_string(string: &str) -> f64 {
+    // https://www.w3.org/TR/1999/REC-xpath-19991116/#function-number:
+    // > a string that consists of optional whitespace followed by an optional minus sign followed
+    // > by a Number followed by whitespace is converted to the IEEE 754 number that is nearest
+    // > (according to the IEEE 754 round-to-nearest rule) to the mathematical value represented
+    // > by the string; any other string is converted to NaN
 
-pub(crate) fn str_to_num(s: &str) -> f64 {
-    s.trim().parse().unwrap_or(f64::NAN)
+    // The specification does not define what "whitespace" means exactly, we choose to trim only ascii whitespace,
+    // as that seems to be what other browsers do.
+    string.trim_ascii().parse().unwrap_or(f64::NAN)
 }
 
 /// Helper for `PartialEq<Value>` implementations
@@ -42,7 +39,7 @@ fn str_vals<N: Node>(nodes: &[N]) -> HashSet<String> {
 fn num_vals<N: Node>(nodes: &[N]) -> Vec<f64> {
     nodes
         .iter()
-        .map(|node| str_to_num(&node.text_content()))
+        .map(|node| parse_number_from_string(&node.text_content()))
         .collect()
 }
 
@@ -72,52 +69,56 @@ impl<N: Node> PartialEq<Value<N>> for Value<N> {
 }
 
 impl<N: Node> Value<N> {
+    /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#function-boolean>
     pub(crate) fn boolean(&self) -> bool {
-        match *self {
-            Value::Boolean(val) => val,
-            Value::Number(n) => n != 0.0 && !n.is_nan(),
-            Value::String(ref s) => !s.is_empty(),
-            Value::Nodeset(ref nodeset) => !nodeset.is_empty(),
+        match self {
+            Value::Boolean(boolean) => *boolean,
+            Value::Number(number) => *number != 0.0 && !number.is_nan(),
+            Value::String(string) => !string.is_empty(),
+            Value::Nodeset(nodeset) => !nodeset.is_empty(),
         }
     }
 
+    /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#function-number>
     pub(crate) fn number(&self) -> f64 {
-        match *self {
-            Value::Boolean(val) => {
-                if val {
+        match self {
+            Value::Boolean(boolean) => {
+                if *boolean {
                     1.0
                 } else {
                     0.0
                 }
             },
-            Value::Number(val) => val,
-            Value::String(ref s) => str_to_num(s),
-            Value::Nodeset(..) => str_to_num(&self.string()),
+            Value::Number(number) => *number,
+            Value::String(string) => parse_number_from_string(string),
+            Value::Nodeset(_) => parse_number_from_string(&self.string()),
         }
     }
 
-    pub(crate) fn string(&self) -> string::String {
-        match *self {
-            Value::Boolean(v) => v.to_string(),
-            Value::Number(n) => {
-                if n.is_infinite() {
-                    if n.signum() < 0.0 {
+    /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#function-string>
+    pub(crate) fn string(&self) -> String {
+        match self {
+            Value::Boolean(value) => value.to_string(),
+            Value::Number(number) => {
+                if number.is_infinite() {
+                    if number.is_sign_negative() {
                         "-Infinity".to_owned()
                     } else {
                         "Infinity".to_owned()
                     }
-                } else if n == 0.0 {
+                } else if *number == 0.0 {
                     // catches -0.0 also
-                    0.0.to_string()
+                    "0".into()
                 } else {
-                    n.to_string()
+                    number.to_string()
                 }
             },
-            Value::String(ref val) => val.clone(),
-            Value::Nodeset(ref nodes) => match nodes.document_order_first() {
-                Some(n) => n.text_content(),
-                None => "".to_owned(),
-            },
+            Value::String(string) => string.to_owned(),
+            Value::Nodeset(nodes) => nodes
+                .document_order_first()
+                .as_ref()
+                .map(Node::text_content)
+                .unwrap_or_default(),
         }
     }
 }
@@ -204,5 +205,43 @@ impl<N: Node> NodesetHelpers<N> for Vec<N> {
             .collect();
 
         unique_nodes.document_order()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::f64;
+
+    use crate::dummy_implementation;
+
+    type Value = super::Value<dummy_implementation::DummyNode>;
+
+    #[test]
+    fn string_value_to_number() {
+        assert_eq!(Value::String("42.123".into()).number(), 42.123);
+        assert_eq!(Value::String(" 42\n".into()).number(), 42.);
+        assert!(Value::String("totally-invalid".into()).number().is_nan());
+
+        // U+2004 is non-ascii whitespace, which should be rejected
+        assert!(Value::String("\u{2004}42".into()).number().is_nan());
+    }
+
+    #[test]
+    fn number_value_to_string() {
+        assert_eq!(Value::Number(f64::NAN).string(), "NaN");
+        assert_eq!(Value::Number(0.).string(), "0");
+        assert_eq!(Value::Number(-0.).string(), "0");
+        assert_eq!(Value::Number(f64::INFINITY).string(), "Infinity");
+        assert_eq!(Value::Number(f64::NEG_INFINITY).string(), "-Infinity");
+        assert_eq!(Value::Number(42.0).string(), "42");
+        assert_eq!(Value::Number(-42.0).string(), "-42");
+        assert_eq!(Value::Number(0.75).string(), "0.75");
+        assert_eq!(Value::Number(-0.75).string(), "-0.75");
+    }
+
+    #[test]
+    fn boolean_value_to_string() {
+        assert_eq!(Value::Boolean(false).string(), "false");
+        assert_eq!(Value::Boolean(true).string(), "true");
     }
 }
