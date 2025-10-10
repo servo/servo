@@ -42,6 +42,15 @@ struct ResolvedGenericFontFamilies {
     system_ui: OnceCell<LowercaseFontFamilyName>,
 }
 
+#[derive(Eq, Hash, MallocSizeOf, PartialEq)]
+struct FontInstancesMapKey {
+    font_key: FontKey,
+    pt_size: Au,
+    variations: Vec<FontVariation>,
+    rendering_group_id: RenderingGroupId,
+    flags: FontInstanceFlags,
+}
+
 /// The system font service. There is one of these for every Servo instance. This is a thread,
 /// responsible for reading the list of system fonts, handling requests to match against
 /// them, and ensuring that only one copy of system font data is loaded at a time.
@@ -52,7 +61,7 @@ pub struct SystemFontService {
     compositor_api: CrossProcessCompositorApi,
     // keys already have the IdNamespace for webrender
     webrender_fonts: HashMap<(FontIdentifier, RenderingGroupId), FontKey>,
-    font_instances: HashMap<(FontKey, Au, Vec<FontVariation>, RenderingGroupId), FontInstanceKey>,
+    font_instances: HashMap<FontInstancesMapKey, FontInstanceKey>,
     generic_fonts: ResolvedGenericFontFamilies,
 
     /// This is an optimization that allows the [`SystemFontService`] to send font data to
@@ -293,25 +302,29 @@ impl SystemFontService {
                 font_key
             });
 
-        *self
-            .font_instances
-            .entry((font_key, pt_size, variations.clone(), rendering_group_id))
-            .or_insert_with(|| {
-                let font_instance_key = self
-                    .free_font_instance_keys
-                    .get_mut(&rendering_group_id)
-                    .expect("We just filled the keys")
-                    .pop()
-                    .unwrap();
-                compositor_api.add_font_instance(
-                    font_instance_key,
-                    font_key,
-                    pt_size.to_f32_px(),
-                    flags,
-                    variations,
-                );
-                font_instance_key
-            })
+        let entry_key = FontInstancesMapKey {
+            font_key,
+            pt_size,
+            variations: variations.clone(),
+            rendering_group_id,
+            flags,
+        };
+        *self.font_instances.entry(entry_key).or_insert_with(|| {
+            let font_instance_key = self
+                .free_font_instance_keys
+                .get_mut(&rendering_group_id)
+                .expect("We just filled the keys")
+                .pop()
+                .unwrap();
+            compositor_api.add_font_instance(
+                font_instance_key,
+                font_key,
+                pt_size.to_f32_px(),
+                flags,
+                variations,
+            );
+            font_instance_key
+        })
     }
 
     pub(crate) fn family_name_for_single_font_family(

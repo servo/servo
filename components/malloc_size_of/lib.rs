@@ -899,6 +899,7 @@ malloc_size_of_is_webrender_malloc_size_of!(webrender_api::Epoch);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::ExtendMode);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::ExternalScrollId);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::FontKey);
+malloc_size_of_is_webrender_malloc_size_of!(webrender_api::FontInstanceFlags);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::FontInstanceKey);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::GlyphInstance);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::GradientStop);

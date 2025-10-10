@@ -380,6 +380,8 @@ impl PlatformFontMethods for PlatformFont {
         // loading bitmaps. There's no harm to always passing it.
         let mut flags = FontInstanceFlags::EMBEDDED_BITMAPS;
 
+        // TODO: Add support for synthetic italics.
+        // <https://github.com/servo/servo/issues/39637>
         if self.synthetic_bold {
             flags |= FontInstanceFlags::SYNTHETIC_BOLD;
         }

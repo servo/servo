@@ -14,7 +14,8 @@ use std::sync::Arc;
 
 use app_units::Au;
 use dwrote::{
-    DWRITE_FONT_AXIS_VALUE, DWRITE_FONT_SIMULATIONS_NONE, FontCollection, FontFace, FontFile,
+    DWRITE_FONT_AXIS_VALUE, DWRITE_FONT_SIMULATIONS_BOLD, DWRITE_FONT_SIMULATIONS_NONE,
+    FontCollection, FontFace, FontFile, FontSimulations,
 };
 use euclid::default::{Point2D, Rect, Size2D};
 use fonts_traits::LocalFontIdentifier;
@@ -24,6 +25,7 @@ use skrifa::Tag;
 use style::Zero;
 use webrender_api::{FontInstanceFlags, FontVariation};
 use winapi::shared::minwindef::{BOOL, FALSE};
+use winapi::um::wingdi::FW_SEMIBOLD;
 
 use crate::{
     FontData, FontIdentifier, FontMetrics, FontTableMethods, FontTemplateDescriptor,
@@ -113,8 +115,32 @@ impl PlatformFont {
         font_face: FontFace,
         pt_size: Option<Au>,
         variations: &[FontVariation],
+        synthetic_bold: bool,
     ) -> Result<Self, &'static str> {
+        // If the font face is already bold, applying synthetic bold would "double embolden" the font
+        let font_face_is_bold = DirectWriteTableProvider::from(&font_face)
+            .os2()
+            .is_ok_and(|os2| os2.us_weight_class() >= FW_SEMIBOLD as u16);
+
+        // Variable fonts do not count as font synthesis and their use is not affected by
+        // the font-synthesis property.
+        //
+        // See <https://www.w3.org/TR/css-fonts-4/#font-synthesis-intro>
+        let is_variable_font = font_face.has_variations();
+
+        let synthetic_bold = !font_face_is_bold && !is_variable_font && synthetic_bold;
+
+        let simulations = match synthetic_bold {
+            true => DWRITE_FONT_SIMULATIONS_BOLD,
+            false => DWRITE_FONT_SIMULATIONS_NONE,
+        };
+
         if variations.is_empty() {
+            // The font_face created in `new_from_local_font_identifier` may already have some simulations applied
+            let font_face = match font_face.simulations() as u32 == simulations {
+                true => font_face,
+                false => font_face.create_font_face_with_simulations(simulations),
+            };
             return Self::new(font_face, pt_size, vec![]);
         }
 
@@ -133,8 +159,7 @@ impl PlatformFont {
             })
             .collect();
 
-        let Some(font_face) =
-            font_face.create_font_face_with_variations(DWRITE_FONT_SIMULATIONS_NONE, &variations)
+        let Some(font_face) = font_face.create_font_face_with_variations(simulations, &variations)
         else {
             return Err("Could not adapt FontFace to given variations");
         };
@@ -158,20 +183,20 @@ impl PlatformFontMethods for PlatformFont {
         data: &FontData,
         pt_size: Option<Au>,
         variations: &[FontVariation],
-        _synthetic_bold: bool,
+        synthetic_bold: bool,
     ) -> Result<Self, &'static str> {
         let font_face = FontFile::new_from_buffer(Arc::new(data.clone()))
             .ok_or("Could not create FontFile")?
             .create_face(0 /* face_index */, DWRITE_FONT_SIMULATIONS_NONE)
             .map_err(|_| "Could not create FontFace")?;
-        Self::new_with_variations(font_face, pt_size, variations)
+        Self::new_with_variations(font_face, pt_size, variations, synthetic_bold)
     }
 
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         pt_size: Option<Au>,
         variations: &[FontVariation],
-        _synthetic_bold: bool,
+        synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let font_face = FontCollection::system()
             .font_from_descriptor(&font_identifier.font_descriptor)
@@ -179,7 +204,7 @@ impl PlatformFontMethods for PlatformFont {
             .flatten()
             .ok_or("Could not create Font from descriptor")?
             .create_font_face();
-        Self::new_with_variations(font_face, pt_size, variations)
+        Self::new_with_variations(font_face, pt_size, variations, synthetic_bold)
     }
 
     fn descriptor(&self) -> FontTemplateDescriptor {
@@ -288,7 +313,18 @@ impl PlatformFontMethods for PlatformFont {
     }
 
     fn webrender_font_instance_flags(&self) -> FontInstanceFlags {
-        FontInstanceFlags::SUBPIXEL_POSITION
+        let mut flags = FontInstanceFlags::SUBPIXEL_POSITION;
+
+        // TODO: Add support for synthetic italics.
+        // <https://github.com/servo/servo/issues/39637>
+        if matches!(
+            self.face.simulations(),
+            FontSimulations::Bold | FontSimulations::BoldOblique
+        ) {
+            flags |= FontInstanceFlags::SYNTHETIC_BOLD;
+        }
+
+        flags
     }
 
     fn typographic_bounds(&self, glyph_id: GlyphId) -> Rect<f32> {
@@ -324,14 +360,23 @@ impl PlatformFontMethods for PlatformFont {
 /// implementing [`TableProvider`] and cleaning up any font table contexts from
 /// DirectWrite when the struct is dropped.
 struct DirectWriteTableProvider<'platform_font> {
-    platform_font: &'platform_font PlatformFont,
+    platform_font: &'platform_font FontFace,
     contexts: RefCell<Vec<*mut c_void>>,
 }
 
 impl<'platform_font> DirectWriteTableProvider<'platform_font> {
     fn new(platform_font: &'platform_font PlatformFont) -> Self {
         Self {
-            platform_font,
+            platform_font: &platform_font.face,
+            contexts: Default::default(),
+        }
+    }
+}
+
+impl<'platform_font> From<&'platform_font FontFace> for DirectWriteTableProvider<'platform_font> {
+    fn from(value: &'platform_font FontFace) -> Self {
+        Self {
+            platform_font: value,
             contexts: Default::default(),
         }
     }
@@ -339,7 +384,7 @@ impl<'platform_font> DirectWriteTableProvider<'platform_font> {
 
 impl Drop for DirectWriteTableProvider<'_> {
     fn drop(&mut self) {
-        let direct_write_face = unsafe { self.platform_font.face.as_ptr() };
+        let direct_write_face = unsafe { self.platform_font.as_ptr() };
         assert!(!direct_write_face.is_null());
 
         let direct_write_face = unsafe { &*direct_write_face };
@@ -351,7 +396,7 @@ impl Drop for DirectWriteTableProvider<'_> {
 
 impl<'platform_font> TableProvider<'platform_font> for DirectWriteTableProvider<'platform_font> {
     fn data_for_tag(&self, tag: Tag) -> Option<read_fonts::FontData<'platform_font>> {
-        let direct_write_face = unsafe { self.platform_font.face.as_ptr() };
+        let direct_write_face = unsafe { self.platform_font.as_ptr() };
         if direct_write_face.is_null() {
             return None;
         }
