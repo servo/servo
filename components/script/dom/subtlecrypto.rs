@@ -3704,16 +3704,6 @@ fn normalize_algorithm(
                 },
 
                 // <https://w3c.github.io/webcrypto/#aes-kw-registration>
-                (ALG_AES_KW, Operation::Encrypt) => {
-                    let mut params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
-                    params.name = DOMString::from(alg_name);
-                    NormalizedAlgorithm::Algorithm(params.into())
-                },
-                (ALG_AES_KW, Operation::Decrypt) => {
-                    let mut params = value_from_js_object::<Algorithm>(cx, value.handle(), can_gc)?;
-                    params.name = DOMString::from(alg_name);
-                    NormalizedAlgorithm::Algorithm(params.into())
-                },
                 (ALG_AES_KW, Operation::GenerateKey) => {
                     let mut params =
                         value_from_js_object::<AesKeyGenParams>(cx, value.handle(), can_gc)?;
