@@ -50,6 +50,7 @@ use crate::dom::html::htmloptionscollection::HTMLOptionsCollection;
 use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeTraits, UnbindContext};
 use crate::dom::nodelist::NodeList;
 use crate::dom::text::Text;
+use crate::dom::types::FocusEvent;
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
@@ -446,6 +447,11 @@ impl HTMLSelectElement {
                     .fire_bubbling_event(atom!("change"), CanGc::note());
             }));
     }
+
+    fn may_have_embedder_control(&self) -> bool {
+        let el = self.upcast::<Element>();
+        !el.disabled_state()
+    }
 }
 
 impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
@@ -662,6 +668,7 @@ impl VirtualMethods for HTMLSelectElement {
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        let could_have_had_embedder_control = self.may_have_embedder_control();
         self.super_type()
             .unwrap()
             .attribute_mutated(attr, mutation, can_gc);
@@ -692,6 +699,11 @@ impl VirtualMethods for HTMLSelectElement {
             },
             _ => {},
         }
+        if could_have_had_embedder_control && !self.may_have_embedder_control() {
+            self.owner_document()
+                .embedder_controls()
+                .hide_form_control(self.upcast());
+        }
     }
 
     fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
@@ -716,6 +728,10 @@ impl VirtualMethods for HTMLSelectElement {
         } else {
             el.check_disabled_attribute();
         }
+
+        self.owner_document()
+            .embedder_controls()
+            .hide_form_control(self.upcast());
     }
 
     fn children_changed(&self, mutation: &ChildrenMutation) {
@@ -733,6 +749,17 @@ impl VirtualMethods for HTMLSelectElement {
                 .super_type()
                 .unwrap()
                 .parse_plain_attribute(local_name, value),
+        }
+    }
+
+    fn handle_event(&self, event: &Event, can_gc: CanGc) {
+        self.super_type().unwrap().handle_event(event, can_gc);
+        if let Some(event) = event.downcast::<FocusEvent>() {
+            if *event.upcast::<Event>().type_() != *"blur" {
+                self.owner_document()
+                    .embedder_controls()
+                    .hide_form_control(self.upcast());
+            }
         }
     }
 }

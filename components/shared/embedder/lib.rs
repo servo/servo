@@ -518,6 +518,8 @@ pub enum EmbedderMsg {
     ShowNotification(Option<WebViewId>, Notification),
     /// Request to display a form control to the embedder.
     ShowEmbedderControl(EmbedderControlId, DeviceIntRect, FormControlRequest),
+    /// Request to display a form control to the embedder.
+    HideEmbedderControl(EmbedderControlId),
     /// Inform the embedding layer that a JavaScript evaluation has
     /// finished with the given result.
     FinishJavaScriptEvaluation(
@@ -533,7 +535,7 @@ impl Debug for EmbedderMsg {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct EmbedderControlId {
     pub webview_id: WebViewId,
     pub pipeline_id: PipelineId,
