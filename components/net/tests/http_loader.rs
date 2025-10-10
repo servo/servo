@@ -236,6 +236,7 @@ fn test_check_default_headers_loaded_in_every_request() {
         .destination(Destination::Document)
         .origin(url.clone().origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
+        .policy_container(Default::default())
         .build();
 
     let response = dbg!(fetch(request, None));
@@ -264,6 +265,7 @@ fn test_check_default_headers_loaded_in_every_request() {
         .destination(Destination::Document)
         .origin(url.clone().origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
+        .policy_container(Default::default())
         .build();
 
     let response = fetch(request, None);
@@ -297,6 +299,7 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
         .destination(Destination::Document)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
+        .policy_container(Default::default())
         .build();
 
     let response = fetch(request, None);
@@ -333,6 +336,7 @@ fn test_request_and_response_data_with_network_messages() {
         .destination(Destination::Document)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
+        .policy_container(Default::default())
         .build();
 
     let (devtools_chan, devtools_port) = unbounded();
@@ -449,6 +453,7 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
         .destination(Destination::Document)
         .origin(mock_origin())
         .pipeline_id(None)
+        .policy_container(Default::default())
         .build();
 
     let (devtools_chan, devtools_port) = unbounded();
@@ -488,6 +493,7 @@ fn test_redirected_request_to_devtools() {
         .method(Method::POST)
         .destination(Destination::Document)
         .pipeline_id(Some(TEST_PIPELINE_ID))
+        .policy_container(Default::default())
         .build();
 
     let (devtools_chan, devtools_port) = unbounded();
@@ -549,6 +555,7 @@ fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
         .destination(Destination::Document)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
+        .policy_container(Default::default())
         .build();
 
     let response = fetch(request, None);
@@ -582,6 +589,7 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
         .destination(Destination::Document)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
+        .policy_container(Default::default())
         .build();
 
     let response = fetch(request, None);
@@ -617,6 +625,7 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
         .destination(Destination::Document)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
+        .policy_container(Default::default())
         .build();
 
     let response = fetch(request, None);
@@ -664,6 +673,7 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
         .destination(Destination::Document)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
+        .policy_container(Default::default())
         .build();
 
     let response = fetch(request, None);
@@ -694,6 +704,7 @@ fn test_load_doesnt_add_host_to_hsts_list_when_url_is_http_even_if_hsts_headers_
         .destination(Destination::Document)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
+        .policy_container(Default::default())
         .build();
 
     let mut context = new_fetch_context(None, None, None);
@@ -744,6 +755,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .credentials_mode(CredentialsMode::Include)
+        .policy_container(Default::default())
         .build();
 
     let response = fetch_with_context(request, &mut context);
@@ -799,6 +811,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .credentials_mode(CredentialsMode::Include)
+        .policy_container(Default::default())
         .build();
 
     let response = fetch_with_context(request, &mut context);
@@ -848,6 +861,7 @@ fn test_load_sends_cookie_if_nonhttp() {
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .credentials_mode(CredentialsMode::Include)
+        .policy_container(Default::default())
         .build();
 
     let response = fetch_with_context(request, &mut context);
@@ -889,6 +903,7 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .credentials_mode(CredentialsMode::Include)
+        .policy_container(Default::default())
         .build();
 
     let response = fetch_with_context(request, &mut context);
@@ -942,6 +957,7 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .credentials_mode(CredentialsMode::Include)
+        .policy_container(Default::default())
         .build();
 
     let response = fetch_with_context(request, &mut context);
@@ -977,6 +993,7 @@ fn test_load_sets_content_length_to_length_of_request_body() {
         .destination(Destination::Document)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
+        .policy_container(Default::default())
         .build();
 
     let response = fetch(request, None);
@@ -1019,6 +1036,7 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
         .destination(Destination::Document)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
+        .policy_container(Default::default())
         .build();
 
     let response = fetch(request, None);
@@ -1058,6 +1076,7 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
         .destination(Destination::Document)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
+        .policy_container(Default::default())
         .build();
 
     let response = fetch(request, None);
@@ -1100,6 +1119,7 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
         .destination(Destination::Document)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
+        .policy_container(Default::default())
         .build();
 
     let response = fetch(request, None);
@@ -1139,6 +1159,7 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
         .destination(Destination::Document)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
+        .policy_container(Default::default())
         .build();
 
     let response = fetch(request, None);
@@ -1197,6 +1218,7 @@ fn test_load_errors_when_there_a_redirect_loop() {
         .destination(Destination::Document)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
+        .policy_container(Default::default())
         .build();
 
     let response = fetch(request, None);
@@ -1257,6 +1279,7 @@ fn test_load_succeeds_with_a_redirect_loop() {
         .destination(Destination::Document)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
+        .policy_container(Default::default())
         .build();
 
     let response = fetch(request, None);
@@ -1300,6 +1323,7 @@ fn test_load_follows_a_redirect() {
         .destination(Destination::Document)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
+        .policy_container(Default::default())
         .build();
 
     let response = fetch(request, None);
@@ -1386,6 +1410,7 @@ fn test_redirect_from_x_to_y_provides_y_cookies_from_y() {
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .credentials_mode(CredentialsMode::Include)
+        .policy_container(Default::default())
         .build();
 
     let response = fetch_with_context(request, &mut context);
@@ -1437,6 +1462,7 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .credentials_mode(CredentialsMode::Include)
+        .policy_container(Default::default())
         .build();
 
     let response = fetch(request, None);
@@ -1472,6 +1498,7 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .credentials_mode(CredentialsMode::Include)
+        .policy_container(Default::default())
         .build();
 
     let mut context = new_fetch_context(None, None, None);
@@ -1520,6 +1547,7 @@ fn test_auth_ui_needs_www_auth() {
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .credentials_mode(CredentialsMode::Include)
+        .policy_container(Default::default())
         .build();
 
     let response = fetch(request, None);
@@ -1586,6 +1614,7 @@ fn test_fetch_compressed_response_update_count() {
         .destination(Destination::Document)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
+        .policy_container(Default::default())
         .build();
 
     struct FetchResponseCollector {
@@ -1675,6 +1704,7 @@ fn test_user_credentials_prompt_when_proxy_authentication_is_required() {
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .credentials_mode(CredentialsMode::Include)
+        .policy_container(Default::default())
         .build();
 
     let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
@@ -1732,6 +1762,7 @@ fn test_prompt_credentials_when_client_receives_unauthorized_response() {
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .credentials_mode(CredentialsMode::Include)
+        .policy_container(Default::default())
         .build();
 
     let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
@@ -1778,6 +1809,7 @@ fn test_dont_prompt_credentials_when_unauthorized_response_contains_no_www_authe
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .credentials_mode(CredentialsMode::Include)
+        .policy_container(Default::default())
         .build();
 
     let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
@@ -1839,6 +1871,7 @@ fn test_prompt_credentials_user_cancels_dialog_input() {
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .credentials_mode(CredentialsMode::Include)
+        .policy_container(Default::default())
         .build();
 
     let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
@@ -1885,6 +1918,7 @@ fn test_prompt_credentials_user_input_incorrect_credentials() {
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .credentials_mode(CredentialsMode::Include)
+        .policy_container(Default::default())
         .build();
 
     let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
@@ -1937,6 +1971,7 @@ fn test_prompt_credentials_user_input_incorrect_mode() {
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .credentials_mode(CredentialsMode::Include)
+        .policy_container(Default::default())
         .build();
 
     let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();

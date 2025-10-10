@@ -24,6 +24,7 @@ use crossbeam_channel::{Receiver, Sender, unbounded};
 use dom_struct::dom_struct;
 use js::jsapi::{GCReason, JS_GC, JS_GetGCParameter, JSGCParamKey, JSTracer};
 use malloc_size_of::malloc_size_of_is_0;
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{Destination, RequestBuilder, RequestMode};
 use rustc_hash::FxHashMap;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -152,6 +153,7 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
 
         // Steps 6-12 in parallel.
         let pending_tasks_struct = PendingTasksStruct::new();
+        let global_scope = self.window.as_global_scope();
 
         self.droppable_field
             .thread_pool
@@ -161,8 +163,9 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
                 self.droppable_field.worklet_id,
                 self.global_type,
                 self.window.origin().immutable().clone(),
-                self.window.as_global_scope().api_base_url(),
+                global_scope.api_base_url(),
                 module_url_record,
+                global_scope.policy_container(),
                 options.credentials,
                 pending_tasks_struct,
                 &promise,
@@ -320,6 +323,7 @@ impl WorkletThreadPool {
         origin: ImmutableOrigin,
         base_url: ServoUrl,
         script_url: ServoUrl,
+        policy_container: PolicyContainer,
         credentials: RequestCredentials,
         pending_tasks_struct: PendingTasksStruct,
         promise: &Rc<Promise>,
@@ -337,6 +341,7 @@ impl WorkletThreadPool {
                 origin: origin.clone(),
                 base_url: base_url.clone(),
                 script_url: script_url.clone(),
+                policy_container: policy_container.clone(),
                 credentials,
                 pending_tasks_struct: pending_tasks_struct.clone(),
                 promise: TrustedPromise::new(promise.clone()),
@@ -392,6 +397,7 @@ enum WorkletControl {
         origin: ImmutableOrigin,
         base_url: ServoUrl,
         script_url: ServoUrl,
+        policy_container: PolicyContainer,
         credentials: RequestCredentials,
         pending_tasks_struct: PendingTasksStruct,
         promise: TrustedPromise,
@@ -640,7 +646,7 @@ impl WorkletThread {
     }
 
     /// Fetch and invoke a worklet script.
-    /// <https://drafts.css-houdini.org/worklets/#fetch-and-invoke-a-worklet-script>
+    /// <https://html.spec.whatwg.org/multipage/#fetch-a-worklet-script-graph>
     #[allow(clippy::too_many_arguments)]
     fn fetch_and_invoke_a_worklet_script(
         &self,
@@ -648,6 +654,7 @@ impl WorkletThread {
         pipeline_id: PipelineId,
         origin: ImmutableOrigin,
         script_url: ServoUrl,
+        policy_container: PolicyContainer,
         credentials: RequestCredentials,
         pending_tasks_struct: PendingTasksStruct,
         promise: TrustedPromise,
@@ -661,21 +668,19 @@ impl WorkletThread {
         // TODO: Fetch a module graph, not just a single script.
         // TODO: Fetch the script asynchronously?
         // TODO: Caching.
+        let global = global_scope.upcast::<GlobalScope>();
         let resource_fetcher = self.global_init.resource_threads.sender();
-        let request = RequestBuilder::new(
-            None,
-            script_url,
-            global_scope.upcast::<GlobalScope>().get_referrer(),
-        )
-        .destination(Destination::Script)
-        .mode(RequestMode::CorsMode)
-        .credentials_mode(credentials.convert())
-        .origin(origin);
+        let request = RequestBuilder::new(None, script_url, global.get_referrer())
+            .destination(Destination::Script)
+            .mode(RequestMode::CorsMode)
+            .credentials_mode(credentials.convert())
+            .policy_container(policy_container)
+            .origin(origin);
 
         let script = load_whole_resource(
             request,
             &resource_fetcher,
-            global_scope.upcast::<GlobalScope>(),
+            global,
             &WorkletCspProcessor {},
             can_gc,
         )
@@ -736,6 +741,7 @@ impl WorkletThread {
                 origin,
                 base_url,
                 script_url,
+                policy_container,
                 credentials,
                 pending_tasks_struct,
                 promise,
@@ -747,6 +753,7 @@ impl WorkletThread {
                     pipeline_id,
                     origin,
                     script_url,
+                    policy_container,
                     credentials,
                     pending_tasks_struct,
                     promise,

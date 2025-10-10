@@ -28,6 +28,7 @@ fn assert_parse(
     let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
         .origin(url.origin())
         .pipeline_id(None)
+        .policy_container(Default::default())
         .build();
 
     let response = fetch(request, None);
