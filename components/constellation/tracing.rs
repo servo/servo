@@ -36,7 +36,7 @@ pub(crate) trait LogTarget {
 }
 
 mod from_compositor {
-    use embedder_traits::InputEvent;
+    use embedder_traits::{InputEvent, InputEventAndId};
 
     use super::LogTarget;
 
@@ -76,7 +76,6 @@ mod from_compositor {
                 Self::EvaluateJavaScript(..) => target!("EvaluateJavaScript"),
                 Self::CreateMemoryReport(..) => target!("CreateMemoryReport"),
                 Self::SendImageKeysForPipeline(..) => target!("SendImageKeysForPipeline"),
-                Self::SetWebDriverResponseSender(..) => target!("SetWebDriverResponseSender"),
                 Self::PreferencesUpdated(..) => target!("PreferencesUpdated"),
                 Self::NoLongerWaitingOnAsynchronousImageUpdates(..) => {
                     target!("NoLongerWaitingOnCanvas")
@@ -87,14 +86,14 @@ mod from_compositor {
         }
     }
 
-    impl LogTarget for InputEvent {
+    impl LogTarget for InputEventAndId {
         fn log_target(&self) -> &'static str {
             macro_rules! target_variant {
                 ($name:literal) => {
                     target!("ForwardInputEvent(" $name ")")
                 };
             }
-            match self {
+            match self.event {
                 InputEvent::EditingAction(..) => target_variant!("EditingAction"),
                 InputEvent::Gamepad(..) => target_variant!("Gamepad"),
                 InputEvent::Ime(..) => target_variant!("Ime"),
@@ -180,7 +179,6 @@ mod from_script {
                 Self::TitleChanged(..) => target!("TitleChanged"),
                 Self::IFrameSizes(..) => target!("IFrameSizes"),
                 Self::ReportMemory(..) => target!("ReportMemory"),
-                Self::WebDriverInputComplete(..) => target!("WebDriverInputComplete"),
                 Self::FinishJavaScriptEvaluation(..) => target!("FinishJavaScriptEvaluation"),
                 Self::ForwardKeyboardScroll(..) => target!("ForwardKeyboardScroll"),
                 Self::RespondToScreenshotReadinessRequest(..) => {

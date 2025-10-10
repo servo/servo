@@ -29,7 +29,7 @@ use devtools_traits::ScriptToDevtoolsControlMsg;
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
     CompositorHitTestResult, EmbedderControlId, FocusSequenceNumber, FormControlResponse,
-    InputEvent, JavaScriptEvaluationId, MediaSessionActionType, ScriptToEmbedderChan, Theme,
+    InputEventAndId, JavaScriptEvaluationId, MediaSessionActionType, ScriptToEmbedderChan, Theme,
     ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::{Rect, Scale, Size2D, UnknownUnit};
@@ -303,8 +303,8 @@ pub struct ConstellationInputEvent {
     pub pressed_mouse_buttons: u16,
     /// The currently active keyboard modifiers.
     pub active_keyboard_modifiers: Modifiers,
-    /// The [`InputEvent`] itself.
-    pub event: InputEvent,
+    /// The [`InputEventAndId`] itself.
+    pub event: InputEventAndId,
 }
 
 /// Data needed to construct a script thread.

@@ -6,8 +6,10 @@ use std::cell::Cell;
 use std::default::Default;
 
 use base::cross_process_instant::CrossProcessInstant;
+use bitflags::bitflags;
 use devtools_traits::{TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
+use embedder_traits::InputEventResult;
 use js::rust::HandleObject;
 use stylo_atoms::Atom;
 
@@ -59,8 +61,11 @@ pub(crate) struct Event {
     /// <https://dom.spec.whatwg.org/#dom-event-eventphase>
     phase: Cell<EventPhase>,
 
-    /// <https://dom.spec.whatwg.org/#canceled-flag>
-    canceled: Cell<EventDefault>,
+    /// This contains the `canceled` flags defined at
+    /// <https://dom.spec.whatwg.org/#canceled-flag> as well as information about whether
+    /// the event has been handled yet. This information is used to prevent double-handling
+    /// of the event by the embedder.
+    result: Cell<EventResult>,
 
     /// <https://dom.spec.whatwg.org/#stop-propagation-flag>
     stop_propagation: Cell<bool>,
@@ -131,7 +136,7 @@ impl Event {
             target: Default::default(),
             type_: DomRefCell::new(atom!("")),
             phase: Cell::new(EventPhase::None),
-            canceled: Cell::new(EventDefault::Allowed),
+            result: Cell::new(EventResult::empty()),
             stop_propagation: Cell::new(false),
             stop_immediate_propagation: Cell::new(false),
             cancelable: Cell::new(false),
@@ -199,7 +204,7 @@ impl Event {
         // Step 2. Unset event’s stop propagation flag, stop immediate propagation flag, and canceled flag.
         self.stop_propagation.set(false);
         self.stop_immediate_propagation.set(false);
-        self.canceled.set(EventDefault::Allowed);
+        self.result.set(EventResult::empty());
 
         // Step 3. Set event’s isTrusted attribute to false.
         self.is_trusted.set(false);
@@ -649,12 +654,13 @@ impl Event {
 
     #[inline]
     pub(crate) fn mark_as_handled(&self) {
-        self.canceled.set(EventDefault::Handled);
+        self.result
+            .set(self.result.get().union(EventResult::Handled));
     }
 
     #[inline]
-    pub(crate) fn get_cancel_state(&self) -> EventDefault {
-        self.canceled.get()
+    pub(crate) fn result(&self) -> EventResult {
+        self.result.get()
     }
 
     pub(crate) fn set_trusted(&self, trusted: bool) {
@@ -732,7 +738,8 @@ impl Event {
     /// <https://dom.spec.whatwg.org/#set-the-canceled-flag>
     fn set_the_cancelled_flag(&self) {
         if self.cancelable.get() && !self.in_passive_listener.get() {
-            self.canceled.set(EventDefault::Prevented)
+            self.result
+                .set(self.result.get().union(EventResult::Canceled));
         }
     }
 }
@@ -914,7 +921,7 @@ impl EventMethods<crate::DomTypeHolder> for Event {
 
     /// <https://dom.spec.whatwg.org/#dom-event-defaultprevented>
     fn DefaultPrevented(&self) -> bool {
-        self.canceled.get() == EventDefault::Prevented
+        self.result.get().contains(EventResult::Canceled)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-composed>
@@ -950,7 +957,7 @@ impl EventMethods<crate::DomTypeHolder> for Event {
 
     /// <https://dom.spec.whatwg.org/#dom-event-returnvalue>
     fn ReturnValue(&self) -> bool {
-        self.canceled.get() == EventDefault::Allowed
+        !self.result.get().contains(EventResult::Canceled)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-returnvalue>
@@ -1075,26 +1082,31 @@ pub(crate) enum EventPhase {
     Bubbling = EventConstants::BUBBLING_PHASE,
 }
 
-/// An enum to indicate whether the default action of an event is allowed.
-///
-/// This should've been a bool. Instead, it's an enum, because, aside from the allowed/canceled
-/// states, we also need something to stop the event from being handled again (without cancelling
-/// the event entirely). For example, an Up/Down `KeyEvent` inside a `textarea` element will
-/// trigger the cursor to go up/down if the text inside the element spans multiple lines. This enum
-/// helps us to prevent such events from being [sent to the constellation][msg] where it will be
-/// handled once again for page scrolling (which is definitely not what we'd want).
-///
-/// [msg]: https://doc.servo.org/compositing/enum.ConstellationMsg.html#variant.KeyEvent
-///
+/// An enum to indicate the result of firing an event.
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
-pub(crate) enum EventDefault {
-    /// The default action of the event is allowed (constructor's default)
-    Allowed,
-    /// The default action has been prevented by calling `PreventDefault`
-    Prevented,
-    /// The event has been handled somewhere in the DOM, and it should be prevented from being
-    /// re-handled elsewhere. This doesn't affect the judgement of `DefaultPrevented`
-    Handled,
+pub(crate) struct EventResult(u8);
+
+bitflags! {
+    impl EventResult: u8 {
+        /// The default action of the event has been prevented via `preventDefault()`.
+        const Canceled = 1 << 0;
+        /// The event has been handled somewhere in the DOM, and it should be prevented from being
+        /// re-handled elsewhere. This doesn't affect the judgement of `DefaultPrevented`
+        const Handled =  1 << 1;
+    }
+}
+
+impl From<EventResult> for InputEventResult {
+    fn from(event_result: EventResult) -> Self {
+        let mut result = Self::default();
+        if event_result.contains(EventResult::Canceled) {
+            result |= Self::DefaultPrevented;
+        }
+        if event_result.contains(EventResult::Handled) {
+            result |= Self::Consumed;
+        }
+        result
+    }
 }
 
 /// <https://dom.spec.whatwg.org/#concept-event-fire>

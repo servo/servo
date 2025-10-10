@@ -133,11 +133,11 @@ use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
     AnimationState, CompositorHitTestResult, EmbedderControlId, EmbedderMsg, EmbedderProxy,
-    FocusSequenceNumber, FormControlResponse, InputEvent, JSValue, JavaScriptEvaluationError,
-    JavaScriptEvaluationId, KeyboardEvent, MediaSessionActionType, MediaSessionEvent,
-    MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent,
-    ScriptToEmbedderChan, Theme, ViewportDetails, WebDriverCommandMsg, WebDriverCommandResponse,
-    WebDriverLoadStatus, WebDriverScriptCommand,
+    FocusSequenceNumber, FormControlResponse, InputEvent, InputEventAndId, JSValue,
+    JavaScriptEvaluationError, JavaScriptEvaluationId, KeyboardEvent, MediaSessionActionType,
+    MediaSessionEvent, MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent,
+    ScriptToEmbedderChan, Theme, ViewportDetails, WebDriverCommandMsg, WebDriverLoadStatus,
+    WebDriverScriptCommand,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -437,9 +437,6 @@ pub struct Constellation<STF, SWF> {
     /// An [`IpcSender`] to notify navigation events to webdriver.
     webdriver_load_status_sender: Option<(GenericSender<WebDriverLoadStatus>, PipelineId)>,
 
-    /// An [`IpcSender`] to forward responses from the `ScriptThread` to the WebDriver server.
-    webdriver_input_command_reponse_sender: Option<IpcSender<WebDriverCommandResponse>>,
-
     /// Document states for loaded pipelines (used only when writing screenshots).
     document_states: FxHashMap<PipelineId, DocumentState>,
 
@@ -731,7 +728,6 @@ where
                     mem_profiler_chan: state.mem_profiler_chan.clone(),
                     phantom: PhantomData,
                     webdriver_load_status_sender: None,
-                    webdriver_input_command_reponse_sender: None,
                     document_states: Default::default(),
                     #[cfg(feature = "webgpu")]
                     webrender_wgpu,
@@ -1576,9 +1572,6 @@ where
                     )
                 }
             },
-            EmbedderToConstellationMessage::SetWebDriverResponseSender(sender) => {
-                self.webdriver_input_command_reponse_sender = Some(sender);
-            },
             EmbedderToConstellationMessage::PreferencesUpdated(updates) => {
                 let event_loops = self
                     .pipelines
@@ -1986,17 +1979,6 @@ where
             },
             ScriptToConstellationMessage::FinishJavaScriptEvaluation(evaluation_id, result) => {
                 self.handle_finish_javascript_evaluation(evaluation_id, result)
-            },
-            ScriptToConstellationMessage::WebDriverInputComplete(msg_id) => {
-                if let Some(ref reply_sender) = self.webdriver_input_command_reponse_sender {
-                    reply_sender
-                        .send(WebDriverCommandResponse { id: msg_id })
-                        .unwrap_or_else(|_| {
-                            warn!("Failed to send WebDriverInputComplete {:?}", msg_id);
-                        });
-                } else {
-                    warn!("No webdriver_input_command_reponse_sender");
-                }
             },
             ScriptToConstellationMessage::ForwardKeyboardScroll(pipeline_id, scroll) => {
                 if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
@@ -3015,14 +2997,14 @@ where
     fn forward_input_event(
         &mut self,
         webview_id: WebViewId,
-        event: InputEvent,
+        event: InputEventAndId,
         hit_test_result: Option<CompositorHitTestResult>,
     ) {
-        if let InputEvent::MouseButton(event) = &event {
+        if let InputEvent::MouseButton(event) = &event.event {
             self.update_pressed_mouse_buttons(event);
         }
 
-        if let InputEvent::Keyboard(event) = &event {
+        if let InputEvent::Keyboard(event) = &event.event {
             self.update_active_keybord_modifiers(event);
         }
 

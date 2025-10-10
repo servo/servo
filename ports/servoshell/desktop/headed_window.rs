@@ -23,11 +23,11 @@ use servo::servo_geometry::{
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{
-    Cursor, ImeEvent, InputEvent, Key, KeyState, KeyboardEvent, Modifiers,
-    MouseButton as ServoMouseButton, MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent,
-    MouseMoveEvent, NamedKey, OffscreenRenderingContext, RenderingContext, ScreenGeometry, Theme,
-    TouchEvent, TouchEventType, TouchId, WebRenderDebugOption, WebView, WheelDelta, WheelEvent,
-    WheelMode, WindowRenderingContext,
+    Cursor, ImeEvent, InputEvent, InputEventId, InputEventResult, Key, KeyState, KeyboardEvent,
+    Modifiers, MouseButton as ServoMouseButton, MouseButtonAction, MouseButtonEvent,
+    MouseLeftViewportEvent, MouseMoveEvent, NamedKey, OffscreenRenderingContext, RenderingContext,
+    ScreenGeometry, Theme, TouchEvent, TouchEventType, TouchId, WebRenderDebugOption, WebView,
+    WheelDelta, WheelEvent, WheelMode, WindowRenderingContext,
 };
 use url::Url;
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
@@ -82,6 +82,11 @@ pub struct Window {
     /// A helper that simulates touch events when the `--simulate-touch-events` flag
     /// is enabled.
     touch_event_simulator: Option<TouchEventSimulator>,
+    /// Keyboard events that have been sent to Servo that have still not been handled yet.
+    /// When these are handled, they will optionally be used to trigger keybindings that
+    /// are overridable by web content.
+    pending_keyboard_events: RefCell<HashMap<InputEventId, KeyboardEvent>>,
+
     // Keep this as the last field of the struct to ensure that the rendering context is
     // dropped first.
     // (https://github.com/servo/servo/issues/36711)
@@ -185,6 +190,7 @@ impl Window {
             touch_event_simulator: servoshell_preferences
                 .simulate_touch_events
                 .then(Default::default),
+            pending_keyboard_events: Default::default(),
             rendering_context,
         }
     }
@@ -228,7 +234,9 @@ impl Window {
         for xr_window_pose in &*xr_poses {
             xr_window_pose.handle_xr_translation(&event);
         }
-        webview.notify_input_event(InputEvent::Keyboard(event));
+
+        let id = webview.notify_input_event(InputEvent::Keyboard(event.clone()));
+        self.pending_keyboard_events.borrow_mut().insert(id, event);
     }
 
     fn handle_keyboard_input(&self, state: Rc<RunningAppState>, winit_event: KeyEvent) {
@@ -273,7 +281,11 @@ impl Window {
             for xr_window_pose in &*xr_poses {
                 xr_window_pose.handle_xr_rotation(&winit_event, self.modifiers_state.get());
             }
-            webview.notify_input_event(InputEvent::Keyboard(keyboard_event));
+
+            let id = webview.notify_input_event(InputEvent::Keyboard(keyboard_event.clone()));
+            self.pending_keyboard_events
+                .borrow_mut()
+                .insert(id, keyboard_event);
         }
 
         // servoshell also has key bindings that are visible to, and overridable by, the page.
@@ -387,15 +399,16 @@ impl Window {
             })
             .shortcut(CMD_OR_CONTROL, 'X', || {
                 focused_webview
-                    .notify_input_event(InputEvent::EditingAction(servo::EditingActionEvent::Cut))
+                    .notify_input_event(InputEvent::EditingAction(servo::EditingActionEvent::Cut));
             })
             .shortcut(CMD_OR_CONTROL, 'C', || {
                 focused_webview
-                    .notify_input_event(InputEvent::EditingAction(servo::EditingActionEvent::Copy))
+                    .notify_input_event(InputEvent::EditingAction(servo::EditingActionEvent::Copy));
             })
             .shortcut(CMD_OR_CONTROL, 'V', || {
-                focused_webview
-                    .notify_input_event(InputEvent::EditingAction(servo::EditingActionEvent::Paste))
+                focused_webview.notify_input_event(InputEvent::EditingAction(
+                    servo::EditingActionEvent::Paste,
+                ));
             })
             .shortcut(Modifiers::CONTROL, Key::Named(NamedKey::F9), || {
                 focused_webview.capture_webrender();
@@ -862,6 +875,35 @@ impl WindowPortsMethods for Window {
 
     fn maximize(&self, _webview: &WebView) {
         self.winit_window.set_maximized(true);
+    }
+
+    /// Handle servoshell key bindings that may have been prevented by the page in the focused webview.
+    fn notify_input_event_handled(
+        &self,
+        webview: &WebView,
+        id: InputEventId,
+        result: InputEventResult,
+    ) {
+        let Some(keyboard_event) = self.pending_keyboard_events.borrow_mut().remove(&id) else {
+            return;
+        };
+        if result.intersects(InputEventResult::DefaultPrevented | InputEventResult::Consumed) {
+            return;
+        }
+
+        ShortcutMatcher::from_event(keyboard_event.event)
+            .shortcut(CMD_OR_CONTROL, '=', || {
+                webview.set_zoom(1.1);
+            })
+            .shortcut(CMD_OR_CONTROL, '+', || {
+                webview.set_zoom(1.1);
+            })
+            .shortcut(CMD_OR_CONTROL, '-', || {
+                webview.set_zoom(1.0 / 1.1);
+            })
+            .shortcut(CMD_OR_CONTROL, '0', || {
+                webview.reset_zoom();
+            });
     }
 }
 

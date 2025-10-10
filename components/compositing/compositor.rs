@@ -26,7 +26,8 @@ use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{
-    CompositorHitTestResult, InputEvent, ScreenshotCaptureError, ShutdownState, ViewportDetails,
+    CompositorHitTestResult, InputEventAndId, ScreenshotCaptureError, ShutdownState,
+    ViewportDetails,
 };
 use euclid::{Point2D, Scale, Size2D, Transform3D};
 use image::RgbaImage;
@@ -1506,7 +1507,7 @@ impl IOCompositor {
         self.global.borrow_mut().send_transaction(transaction);
     }
 
-    pub fn notify_input_event(&mut self, webview_id: WebViewId, event: InputEvent) {
+    pub fn notify_input_event(&mut self, webview_id: WebViewId, event: InputEventAndId) {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
             webview_renderer.notify_input_event(event);
         }

@@ -9,9 +9,9 @@ use base::id::PipelineId;
 use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{
     AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, EmbedderControlId,
-    FilterPattern, FormControlResponse, GamepadHapticEffectType, InputMethodType, KeyboardEvent,
-    LoadStatus, MediaSessionEvent, Notification, PermissionFeature, RgbColor, ScreenGeometry,
-    SelectElementOptionOrOptgroup, SimpleDialog, TraversalId, WebResourceRequest,
+    FilterPattern, FormControlResponse, GamepadHapticEffectType, InputEventId, InputEventResult,
+    InputMethodType, LoadStatus, MediaSessionEvent, Notification, PermissionFeature, RgbColor,
+    ScreenGeometry, SelectElementOptionOrOptgroup, SimpleDialog, TraversalId, WebResourceRequest,
     WebResourceResponse, WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
@@ -469,11 +469,10 @@ pub trait WebViewDelegate {
     /// occurs.
     fn notify_closed(&self, _webview: WebView) {}
 
-    /// A keyboard event has been sent to Servo, but remains unprocessed. This allows the
-    /// embedding application to handle key events while first letting the [`WebView`]
-    /// have an opportunity to handle it first. Apart from builtin keybindings, page
-    /// content may expose custom keybindings as well.
-    fn notify_keyboard_event(&self, _webview: WebView, _: KeyboardEvent) {}
+    /// An input event passed to this [`WebView`] via [`WebView::notify_input_event`] has been handled
+    /// by Servo. This allows post-procesing of input events, such as chaining up unhandled events
+    /// to parent UI elements.
+    fn notify_input_event_handled(&self, _webview: WebView, _: InputEventId, _: InputEventResult) {}
     /// A pipeline in the webview panicked. First string is the reason, second one is the backtrace.
     fn notify_crashed(&self, _webview: WebView, _reason: String, _backtrace: Option<String>) {}
     /// Notifies the embedder about media session events

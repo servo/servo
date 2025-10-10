@@ -442,8 +442,6 @@ pub enum EmbedderMsg {
     WebViewBlurred,
     /// Wether or not to unload a document
     AllowUnload(WebViewId, GenericSender<AllowOrDeny>),
-    /// Sends an unconsumed key event back to the embedder.
-    Keyboard(WebViewId, KeyboardEvent),
     /// Inform embedder to clear the clipboard
     ClearClipboard(WebViewId),
     /// Gets system clipboard contents
@@ -524,6 +522,9 @@ pub enum EmbedderMsg {
         JavaScriptEvaluationId,
         Result<JSValue, JavaScriptEvaluationError>,
     ),
+    /// Inform the embedding layer that a particular `InputEvent` was handled by Servo
+    /// and the embedder can continue processing it, if necessary.
+    InputEventHandled(WebViewId, InputEventId, InputEventResult),
 }
 
 impl Debug for EmbedderMsg {

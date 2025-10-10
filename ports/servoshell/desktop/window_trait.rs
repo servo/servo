@@ -10,7 +10,7 @@ use std::rc::Rc;
 use euclid::{Length, Scale};
 use servo::servo_geometry::{DeviceIndependentIntRect, DeviceIndependentPixel};
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
-use servo::{Cursor, RenderingContext, ScreenGeometry, WebView};
+use servo::{Cursor, InputEventId, InputEventResult, RenderingContext, ScreenGeometry, WebView};
 
 use super::app_state::RunningAppState;
 
@@ -66,4 +66,12 @@ pub trait WindowPortsMethods {
     }
     fn window_rect(&self) -> DeviceIndependentIntRect;
     fn maximize(&self, webview: &WebView);
+
+    fn notify_input_event_handled(
+        &self,
+        _webview: &WebView,
+        _id: InputEventId,
+        _result: InputEventResult,
+    ) {
+    }
 }

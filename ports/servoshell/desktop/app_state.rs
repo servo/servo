@@ -11,7 +11,6 @@ use std::rc::Rc;
 
 use crossbeam_channel::Receiver;
 use image::{DynamicImage, ImageFormat};
-use keyboard_types::ShortcutMatcher;
 use log::{error, info};
 use servo::base::generic_channel::GenericSender;
 use servo::base::id::WebViewId;
@@ -20,8 +19,9 @@ use servo::ipc_channel::ipc::IpcSender;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
-    JSValue, KeyboardEvent, LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError,
-    SimpleDialog, TraversalId, WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus,
+    InputEvent, InputEventId, InputEventResult, JSValue, LoadStatus, PermissionRequest, Servo,
+    ServoDelegate, ServoError, SimpleDialog, TraversalId, WebDriverCommandMsg,
+    WebDriverCommandResponse, WebDriverInputEventId, WebDriverJSResult, WebDriverLoadStatus,
     WebDriverSenders, WebDriverUserPrompt, WebView, WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
@@ -29,7 +29,6 @@ use url::Url;
 use super::app::PumpResult;
 use super::dialog::Dialog;
 use super::gamepad::GamepadSupport;
-use super::keyutils::CMD_OR_CONTROL;
 use super::window_trait::WindowPortsMethods;
 use crate::prefs::ServoShellPreferences;
 
@@ -50,6 +49,8 @@ pub(crate) struct RunningAppState {
     /// A [`Receiver`] for receiving commands from a running WebDriver server, if WebDriver
     /// was enabled.
     webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
+    /// An [`IpcSender`] to inform WebDriver that an input event has been handled by Servo.
+    webdriver_event_handled_sender: Option<IpcSender<WebDriverCommandResponse>>,
     webdriver_senders: RefCell<WebDriverSenders>,
     inner: RefCell<RunningAppStateInner>,
 }
@@ -94,6 +95,11 @@ pub struct RunningAppStateInner {
     /// Whether or not the application has achieved stable image output. This is used
     /// for the `exit_after_stable_image` option.
     achieved_stable_image: Rc<Cell<bool>>,
+
+    /// A [`HashMap`] of pending WebDriver events. It is the WebDriver embedder's responsibility
+    /// to inform the WebDriver server when the event has been fully handled. This map is used
+    /// to report back to WebDriver when that happens.
+    pending_webdriver_events: HashMap<InputEventId, WebDriverInputEventId>,
 }
 
 impl Drop for RunningAppState {
@@ -108,6 +114,7 @@ impl RunningAppState {
         window: Rc<dyn WindowPortsMethods>,
         servoshell_preferences: ServoShellPreferences,
         webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
+        webdriver_event_handled_sender: Option<IpcSender<WebDriverCommandResponse>>,
     ) -> RunningAppState {
         servo.set_delegate(Rc::new(ServoShellServoDelegate));
         RunningAppState {
@@ -115,6 +122,7 @@ impl RunningAppState {
             servoshell_preferences,
             webdriver_receiver,
             webdriver_senders: RefCell::default(),
+            webdriver_event_handled_sender,
             inner: RefCell::new(RunningAppStateInner {
                 webviews: HashMap::default(),
                 creation_order: Default::default(),
@@ -127,6 +135,7 @@ impl RunningAppState {
                 dialog_amount_changed: false,
                 pending_favicon_loads: Default::default(),
                 achieved_stable_image: Default::default(),
+                pending_webdriver_events: Default::default(),
             }),
         }
     }
@@ -408,23 +417,6 @@ impl RunningAppState {
             .position(|webview| webview.0 == focused_id)
     }
 
-    /// Handle servoshell key bindings that may have been prevented by the page in the focused webview.
-    fn handle_overridable_key_bindings(&self, webview: ::servo::WebView, event: KeyboardEvent) {
-        ShortcutMatcher::from_event(event.event)
-            .shortcut(CMD_OR_CONTROL, '=', || {
-                webview.set_zoom(1.1);
-            })
-            .shortcut(CMD_OR_CONTROL, '+', || {
-                webview.set_zoom(1.1);
-            })
-            .shortcut(CMD_OR_CONTROL, '-', || {
-                webview.set_zoom(1.0 / 1.1);
-            })
-            .shortcut(CMD_OR_CONTROL, '0', || {
-                webview.reset_zoom();
-            });
-    }
-
     pub(crate) fn set_pending_traversal(
         &self,
         traversal_id: TraversalId,
@@ -527,6 +519,26 @@ impl RunningAppState {
                 error!("Failed to save screenshot: {error}.");
             }
         });
+    }
+
+    pub(crate) fn handle_webdriver_input_event(
+        &self,
+        webview_id: WebViewId,
+        input_event: InputEvent,
+        webdriver_event_id: Option<WebDriverInputEventId>,
+    ) {
+        let Some(webview) = self.webview_by_id(webview_id) else {
+            error!("Could not find WebView ({webview_id:?}) for WebDriver event: {input_event:?}");
+            return;
+        };
+
+        let event_id = webview.notify_input_event(input_event);
+
+        if let Some(webdriver_event_id) = webdriver_event_id {
+            self.inner_mut()
+                .pending_webdriver_events
+                .insert(event_id, webdriver_event_id);
+        }
     }
 }
 
@@ -669,8 +681,24 @@ impl WebViewDelegate for RunningAppState {
         }
     }
 
-    fn notify_keyboard_event(&self, webview: servo::WebView, keyboard_event: KeyboardEvent) {
-        self.handle_overridable_key_bindings(webview, keyboard_event);
+    fn notify_input_event_handled(
+        &self,
+        webview: WebView,
+        id: InputEventId,
+        result: InputEventResult,
+    ) {
+        self.inner()
+            .window
+            .notify_input_event_handled(&webview, id, result);
+
+        if let Some(event_handled_sender) = self.webdriver_event_handled_sender.as_ref() {
+            if let Some(webdriver_event_id) = self.inner_mut().pending_webdriver_events.remove(&id)
+            {
+                let _ = event_handled_sender.send(WebDriverCommandResponse {
+                    id: webdriver_event_id,
+                });
+            }
+        }
     }
 
     fn notify_cursor_changed(&self, _webview: servo::WebView, cursor: servo::Cursor) {

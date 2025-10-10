@@ -18,10 +18,7 @@ use raw_window_handle::{
     WindowHandle,
 };
 use servo::ipc_channel::ipc;
-use servo::{
-    self, EmbedderToConstellationMessage, EventLoopWaker, ServoBuilder, WindowRenderingContext,
-    resources,
-};
+use servo::{self, EventLoopWaker, ServoBuilder, WindowRenderingContext, resources};
 use xcomponent_sys::OH_NativeXComponent;
 
 use crate::egl::app_state::{Coordinates, RunningAppState, ServoWindowCallbacks};
@@ -206,28 +203,27 @@ pub fn init(
         .build();
 
     // Initialize WebDriver server if port is specified
-    let webdriver_receiver = servoshell_preferences.webdriver_port.map(|port| {
-        let (embedder_sender, embedder_receiver) = unbounded();
-        let (webdriver_response_sender, webdriver_response_receiver) = ipc::channel().unwrap();
+    let (webdriver_receiver, webdriver_event_handled_sender) = servoshell_preferences
+        .webdriver_port
+        .map(|port| {
+            let (embedder_sender, embedder_receiver) = unbounded();
+            let (webdriver_event_handled_sender, webdriver_event_handled_receiver) =
+                ipc::channel().unwrap();
 
-        // Set the WebDriver response sender to constellation
-        servo
-            .constellation_sender()
-            .send(EmbedderToConstellationMessage::SetWebDriverResponseSender(
-                webdriver_response_sender,
-            ))
-            .expect("Failed to set WebDriver response sender in constellation when init Servo");
+            webdriver_server::start_server(
+                port,
+                embedder_sender,
+                waker,
+                webdriver_event_handled_receiver,
+            );
 
-        webdriver_server::start_server(
-            port,
-            embedder_sender,
-            waker.clone(),
-            webdriver_response_receiver,
-        );
-
-        info!("WebDriver server started on port {}", port);
-        embedder_receiver
-    });
+            log::info!("WebDriver server started on port {}", port);
+            (
+                Some(embedder_receiver),
+                Some(webdriver_event_handled_sender),
+            )
+        })
+        .unwrap_or((None, None));
 
     let app_state = RunningAppState::new(
         Some(options.url),
@@ -237,6 +233,7 @@ pub fn init(
         window_callbacks,
         servoshell_preferences,
         webdriver_receiver,
+        webdriver_event_handled_sender,
     );
 
     Ok(app_state)

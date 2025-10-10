@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+use bitflags::bitflags;
 use keyboard_types::{Code, CompositionEvent, Key, KeyState, Location, Modifiers};
 use log::error;
 use malloc_size_of_derive::MallocSizeOf;
@@ -9,7 +12,30 @@ use serde::{Deserialize, Serialize};
 use webrender_api::ExternalScrollId;
 use webrender_api::units::DevicePoint;
 
-use crate::WebDriverMessageId;
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub struct InputEventId(usize);
+
+static INPUT_EVENT_ID: AtomicUsize = AtomicUsize::new(0);
+
+impl InputEventId {
+    fn new() -> Self {
+        Self(INPUT_EVENT_ID.fetch_add(1, Ordering::Relaxed))
+    }
+}
+
+bitflags! {
+    #[derive(Default, Deserialize, PartialEq, Serialize)]
+    pub struct InputEventResult: u8 {
+        /// Whether or not this input event's default behavior was prevented via script.
+        const DefaultPrevented = 1 << 0;
+        /// Whether or not the WebView handled this event. Some events have default handlers in
+        /// Servo, such as keyboard events that insert characters in `<input>` areas. When these
+        /// handlers are triggered, this flag is included. This can be used to prevent triggering
+        /// behavior (such as keybindings) when the WebView has already consumed the event for its
+        /// own purpose.
+        const Consumed = 1 << 1;
+    }
+}
 
 /// An input event that is sent from the embedder to Servo.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -19,11 +45,26 @@ pub enum InputEvent {
     Ime(ImeEvent),
     Keyboard(KeyboardEvent),
     MouseButton(MouseButtonEvent),
-    MouseMove(MouseMoveEvent),
     MouseLeftViewport(MouseLeftViewportEvent),
+    MouseMove(MouseMoveEvent),
+    Scroll(ScrollEvent),
     Touch(TouchEvent),
     Wheel(WheelEvent),
-    Scroll(ScrollEvent),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct InputEventAndId {
+    pub event: InputEvent,
+    pub id: InputEventId,
+}
+
+impl From<InputEvent> for InputEventAndId {
+    fn from(event: InputEvent) -> Self {
+        Self {
+            event,
+            id: InputEventId::new(),
+        }
+    }
 }
 
 /// An editing action that should be performed on a `WebView`.
@@ -49,61 +90,17 @@ impl InputEvent {
             InputEvent::Scroll(..) => None,
         }
     }
-
-    pub fn webdriver_message_id(&self) -> Option<WebDriverMessageId> {
-        match self {
-            InputEvent::EditingAction(..) => None,
-            InputEvent::Gamepad(..) => None,
-            InputEvent::Ime(..) => None,
-            InputEvent::Keyboard(event) => event.webdriver_id,
-            InputEvent::MouseButton(event) => event.webdriver_id,
-            InputEvent::MouseMove(event) => event.webdriver_id,
-            InputEvent::MouseLeftViewport(..) => None,
-            InputEvent::Touch(..) => None,
-            InputEvent::Wheel(event) => event.webdriver_id,
-            InputEvent::Scroll(..) => None,
-        }
-    }
-
-    pub fn with_webdriver_message_id(mut self, webdriver_id: Option<WebDriverMessageId>) -> Self {
-        match self {
-            InputEvent::EditingAction(..) => {},
-            InputEvent::Gamepad(..) => {},
-            InputEvent::Ime(..) => {},
-            InputEvent::Keyboard(ref mut event) => {
-                event.webdriver_id = webdriver_id;
-            },
-            InputEvent::MouseButton(ref mut event) => {
-                event.webdriver_id = webdriver_id;
-            },
-            InputEvent::MouseMove(ref mut event) => {
-                event.webdriver_id = webdriver_id;
-            },
-            InputEvent::MouseLeftViewport(..) => {},
-            InputEvent::Touch(..) => {},
-            InputEvent::Wheel(ref mut event) => {
-                event.webdriver_id = webdriver_id;
-            },
-            InputEvent::Scroll(..) => {},
-        };
-
-        self
-    }
 }
 
-/// Recreate KeyboardEvent from keyboard_types to pair it with webdriver_id,
-/// which is used for webdriver action synchronization.
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct KeyboardEvent {
     pub event: ::keyboard_types::KeyboardEvent,
-    webdriver_id: Option<WebDriverMessageId>,
 }
 
 impl KeyboardEvent {
     pub fn new(keyboard_event: ::keyboard_types::KeyboardEvent) -> Self {
         Self {
             event: keyboard_event,
-            webdriver_id: None,
         }
     }
 
@@ -141,7 +138,6 @@ pub struct MouseButtonEvent {
     pub action: MouseButtonAction,
     pub button: MouseButton,
     pub point: DevicePoint,
-    webdriver_id: Option<WebDriverMessageId>,
 }
 
 impl MouseButtonEvent {
@@ -150,7 +146,6 @@ impl MouseButtonEvent {
             action,
             button,
             point,
-            webdriver_id: None,
         }
     }
 }
@@ -204,15 +199,11 @@ pub enum MouseButtonAction {
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct MouseMoveEvent {
     pub point: DevicePoint,
-    webdriver_id: Option<WebDriverMessageId>,
 }
 
 impl MouseMoveEvent {
     pub fn new(point: DevicePoint) -> Self {
-        Self {
-            point,
-            webdriver_id: None,
-        }
+        Self { point }
     }
 }
 
@@ -337,16 +328,11 @@ pub struct WheelDelta {
 pub struct WheelEvent {
     pub delta: WheelDelta,
     pub point: DevicePoint,
-    webdriver_id: Option<WebDriverMessageId>,
 }
 
 impl WheelEvent {
     pub fn new(delta: WheelDelta, point: DevicePoint) -> Self {
-        WheelEvent {
-            delta,
-            point,
-            webdriver_id: None,
-        }
+        WheelEvent { delta, point }
     }
 }
 

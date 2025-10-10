@@ -23,9 +23,9 @@ use servo::{
     LoadStatus, MediaSessionActionType, MediaSessionEvent, MouseButton, MouseButtonAction,
     MouseButtonEvent, MouseMoveEvent, NavigationRequest, PermissionRequest, RenderingContext,
     ScreenGeometry, Servo, ServoDelegate, ServoError, SimpleDialog, TouchEvent, TouchEventType,
-    TouchId, TraversalId, WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus,
-    WebDriverScriptCommand, WebDriverSenders, WebView, WebViewBuilder, WebViewDelegate,
-    WindowRenderingContext,
+    TouchId, TraversalId, WebDriverCommandMsg, WebDriverCommandResponse, WebDriverJSResult,
+    WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView, WebViewBuilder,
+    WebViewDelegate, WindowRenderingContext,
 };
 use url::Url;
 
@@ -80,6 +80,8 @@ pub struct RunningAppState {
     /// A [`Receiver`] for receiving commands from a running WebDriver server, if WebDriver
     /// was enabled.
     webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
+    /// An [`IpcSender`] to inform WebDriver that an input event has been handled by Servo.
+    webdriver_event_handled_sender: Option<IpcSender<WebDriverCommandResponse>>,
     webdriver_senders: RefCell<WebDriverSenders>,
 }
 
@@ -342,6 +344,7 @@ impl RunningAppState {
         callbacks: Rc<ServoWindowCallbacks>,
         servoshell_preferences: ServoShellPreferences,
         webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
+        webdriver_event_handled_sender: Option<IpcSender<WebDriverCommandResponse>>,
     ) -> Rc<Self> {
         let initial_url = initial_url.and_then(|string| Url::parse(&string).ok());
         let initial_url = initial_url
@@ -360,6 +363,7 @@ impl RunningAppState {
             callbacks,
             servoshell_preferences,
             webdriver_receiver,
+            webdriver_event_handled_sender,
             webdriver_senders: RefCell::default(),
             inner: RefCell::new(RunningAppStateInner {
                 need_present: false,

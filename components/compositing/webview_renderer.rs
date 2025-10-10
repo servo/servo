@@ -14,9 +14,9 @@ use compositing_traits::viewport_description::{
 use compositing_traits::{PipelineExitSource, SendableFrameTree, WebViewTrait};
 use constellation_traits::{EmbedderToConstellationMessage, WindowSizeType};
 use embedder_traits::{
-    AnimationState, CompositorHitTestResult, InputEvent, MouseButton, MouseButtonAction,
-    MouseButtonEvent, MouseMoveEvent, ScrollEvent as EmbedderScrollEvent, ShutdownState,
-    TouchEvent, TouchEventResult, TouchEventType, ViewportDetails,
+    AnimationState, CompositorHitTestResult, InputEvent, InputEventAndId, MouseButton,
+    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, ScrollEvent as EmbedderScrollEvent,
+    ShutdownState, TouchEvent, TouchEventResult, TouchEventType, ViewportDetails,
 };
 use euclid::{Point2D, Scale, Vector2D};
 use log::{debug, warn};
@@ -280,8 +280,8 @@ impl WebViewRenderer {
         }
     }
 
-    pub(crate) fn dispatch_input_event_with_hit_testing(&self, mut event: InputEvent) -> bool {
-        let event_point = event.point();
+    pub(crate) fn dispatch_input_event_with_hit_testing(&self, mut event: InputEventAndId) -> bool {
+        let event_point = event.event.point();
         let hit_test_result = match event_point {
             Some(point) => {
                 let hit_test_result = self
@@ -299,7 +299,7 @@ impl WebViewRenderer {
             None => None,
         };
 
-        match event {
+        match event.event {
             InputEvent::Touch(ref mut touch_event) => {
                 touch_event.init_sequence_id(self.touch_handler.current_sequence_id);
             },
@@ -323,12 +323,12 @@ impl WebViewRenderer {
         }
     }
 
-    pub(crate) fn notify_input_event(&mut self, event: InputEvent) {
+    pub(crate) fn notify_input_event(&mut self, event: InputEventAndId) {
         if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
 
-        if let InputEvent::Touch(event) = event {
+        if let InputEvent::Touch(event) = event.event {
             self.on_touch_event(event);
             return;
         }
@@ -337,7 +337,7 @@ impl WebViewRenderer {
     }
 
     fn send_touch_event(&mut self, event: TouchEvent) -> bool {
-        self.dispatch_input_event_with_hit_testing(InputEvent::Touch(event))
+        self.dispatch_input_event_with_hit_testing(InputEvent::Touch(event).into())
     }
 
     pub(crate) fn on_touch_event(&mut self, event: TouchEvent) {
@@ -601,19 +601,21 @@ impl WebViewRenderer {
     /// <http://w3c.github.io/touch-events/#mouse-events>
     fn simulate_mouse_click(&mut self, point: DevicePoint) {
         let button = MouseButton::Left;
-        self.dispatch_input_event_with_hit_testing(InputEvent::MouseMove(MouseMoveEvent::new(
-            point,
-        )));
-        self.dispatch_input_event_with_hit_testing(InputEvent::MouseButton(MouseButtonEvent::new(
-            MouseButtonAction::Down,
-            button,
-            point,
-        )));
-        self.dispatch_input_event_with_hit_testing(InputEvent::MouseButton(MouseButtonEvent::new(
-            MouseButtonAction::Up,
-            button,
-            point,
-        )));
+        self.dispatch_input_event_with_hit_testing(
+            InputEvent::MouseMove(MouseMoveEvent::new(point)).into(),
+        );
+        self.dispatch_input_event_with_hit_testing(
+            InputEvent::MouseButton(MouseButtonEvent::new(
+                MouseButtonAction::Down,
+                button,
+                point,
+            ))
+            .into(),
+        );
+        self.dispatch_input_event_with_hit_testing(
+            InputEvent::MouseButton(MouseButtonEvent::new(MouseButtonAction::Up, button, point))
+                .into(),
+        );
     }
 
     pub(crate) fn notify_scroll_event(
@@ -781,7 +783,7 @@ impl WebViewRenderer {
         external_id: ExternalScrollId,
         hit_test_result: CompositorHitTestResult,
     ) {
-        let event = InputEvent::Scroll(EmbedderScrollEvent { external_id });
+        let event = InputEvent::Scroll(EmbedderScrollEvent { external_id }).into();
         let msg = EmbedderToConstellationMessage::ForwardInputEvent(
             self.id,
             event,
