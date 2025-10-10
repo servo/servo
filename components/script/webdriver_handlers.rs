@@ -467,7 +467,7 @@ unsafe fn jsval_to_webdriver_inner(
                     CanGc::note(),
                 );
                 Err(JavaScriptEvaluationError::SerializationError(
-                    JavaScriptEvaluationResultSerializationError::Generic,
+                    JavaScriptEvaluationResultSerializationError::OtherJavaScriptError,
                 ))
             }
         } else {
@@ -499,7 +499,7 @@ unsafe fn clone_an_object(
     // Step 1. If value is in `seen`, return error with error code javascript error.
     if seen.contains(&hashable) {
         return Err(JavaScriptEvaluationError::SerializationError(
-            JavaScriptEvaluationResultSerializationError::Generic,
+            JavaScriptEvaluationResultSerializationError::OtherJavaScriptError,
         ));
     }
     // Step 2. Append value to `seen`.
@@ -524,7 +524,7 @@ unsafe fn clone_an_object(
             Err(error) => {
                 throw_dom_exception(cx, global_scope, error, CanGc::note());
                 return Err(JavaScriptEvaluationError::SerializationError(
-                    JavaScriptEvaluationResultSerializationError::Generic,
+                    JavaScriptEvaluationResultSerializationError::OtherJavaScriptError,
                 ));
             },
         };
@@ -545,7 +545,7 @@ unsafe fn clone_an_object(
                 Err(error) => {
                     throw_dom_exception(cx, global_scope, error, CanGc::note());
                     return Err(JavaScriptEvaluationError::SerializationError(
-                        JavaScriptEvaluationResultSerializationError::Generic,
+                        JavaScriptEvaluationResultSerializationError::OtherJavaScriptError,
                     ));
                 },
             }
@@ -565,7 +565,7 @@ unsafe fn clone_an_object(
         };
         if !succeeded {
             return Err(JavaScriptEvaluationError::SerializationError(
-                JavaScriptEvaluationResultSerializationError::Generic,
+                JavaScriptEvaluationResultSerializationError::OtherJavaScriptError,
             ));
         }
         for id in ids.iter() {
@@ -584,7 +584,7 @@ unsafe fn clone_an_object(
             };
             if !succeeded {
                 return Err(JavaScriptEvaluationError::SerializationError(
-                    JavaScriptEvaluationResultSerializationError::Generic,
+                    JavaScriptEvaluationResultSerializationError::OtherJavaScriptError,
                 ));
             }
 
@@ -599,7 +599,7 @@ unsafe fn clone_an_object(
             };
             if !succeeded {
                 return Err(JavaScriptEvaluationError::SerializationError(
-                    JavaScriptEvaluationResultSerializationError::Generic,
+                    JavaScriptEvaluationResultSerializationError::OtherJavaScriptError,
                 ));
             }
 
@@ -607,7 +607,7 @@ unsafe fn clone_an_object(
                 let name = unsafe { jsid_to_string(*cx, id.handle()) };
                 let Some(name) = name else {
                     return Err(JavaScriptEvaluationError::SerializationError(
-                        JavaScriptEvaluationResultSerializationError::Generic,
+                        JavaScriptEvaluationResultSerializationError::OtherJavaScriptError,
                     ));
                 };
 

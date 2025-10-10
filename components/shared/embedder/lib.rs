@@ -1070,10 +1070,19 @@ pub struct JavaScriptErrorInfo {
 /// result of the evaluation.
 #[derive(Clone, Debug, Deserialize, EnumMessage, PartialEq, Serialize)]
 pub enum JavaScriptEvaluationResultSerializationError {
-    Generic,
+    /// Serialization could not complete because a JavaScript value contained a detached
+    /// shadow root according to <https://w3c.github.io/webdriver/#dfn-internal-json-clone>.
     DetachedShadowRoot,
+    /// Serialization could not complete because a JavaScript value contained a "stale"
+    /// element reference according to <https://w3c.github.io/webdriver/#dfn-get-a-known-element>.
     StaleElementReference,
+    /// Serialization could not complete because a JavaScript value of an unknown type
+    /// was encountered.
     UnknownType,
+    /// This is a catch all for other kinds of errors that can happen during JavaScript value
+    /// serialization. For instances where this can happen, see:
+    /// <https://w3c.github.io/webdriver/#dfn-clone-an-object>.
+    OtherJavaScriptError,
 }
 
 /// An error that happens when trying to evaluate JavaScript on a `WebView`.
