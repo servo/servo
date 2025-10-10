@@ -20,7 +20,7 @@ pub enum Error {
     /// HierarchyRequestError DOMException
     HierarchyRequest,
     /// WrongDocumentError DOMException
-    WrongDocument,
+    WrongDocument(Option<String>),
     /// InvalidCharacterError DOMException
     InvalidCharacter,
     /// NotSupportedError DOMException
