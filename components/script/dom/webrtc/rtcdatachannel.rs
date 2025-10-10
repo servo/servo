@@ -12,6 +12,7 @@ use js::jsval::UndefinedValue;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{ArrayBuffer, ArrayBufferView, CreateWith};
 use script_bindings::conversions::SafeToJSValConvertible;
+use script_bindings::match_domstring_ascii;
 use script_bindings::weakref::WeakRef;
 use servo_media::webrtc::{
     DataChannelId, DataChannelInit, DataChannelMessage, DataChannelState, WebRtcError,
@@ -204,31 +205,31 @@ impl RTCDataChannel {
             DataChannelMessage::Text(text) => {
                 text.safe_to_jsval(cx, message.handle_mut());
             },
-            DataChannelMessage::Binary(data) => match &*self.binary_type.borrow().str() {
-                "blob" => {
-                    let blob = Blob::new(
-                        &global,
-                        BlobImpl::new_from_bytes(data, "".to_owned()),
-                        can_gc,
-                    );
-                    blob.safe_to_jsval(cx, message.handle_mut());
-                },
-                "arraybuffer" => {
-                    rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
-                    unsafe {
-                        assert!(
-                            ArrayBuffer::create(
-                                *cx,
-                                CreateWith::Slice(&data),
-                                array_buffer.handle_mut()
+            DataChannelMessage::Binary(data) => {
+                let binary_type = self.binary_type.borrow();
+                match_domstring_ascii!(binary_type, unreachable!(),
+                    "blob" => {
+                        let blob = Blob::new(
+                            &global,
+                            BlobImpl::new_from_bytes(data, "".to_owned()),
+                            can_gc,
+                        );
+                        blob.safe_to_jsval(cx, message.handle_mut());
+                    },
+                    "arraybuffer" => {
+                        rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
+                        unsafe {
+                            assert!(
+                                ArrayBuffer::create(
+                                    *cx,
+                                    CreateWith::Slice(&data),
+                                    array_buffer.handle_mut()
+                                )
+                                .is_ok()
                             )
-                            .is_ok()
-                        )
-                    };
-
-                    (*array_buffer).safe_to_jsval(cx, message.handle_mut());
-                },
-                _ => unreachable!(),
+                        };
+                        (*array_buffer).safe_to_jsval(cx, message.handle_mut());
+                },)
             },
         }
 

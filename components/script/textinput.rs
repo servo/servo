@@ -11,6 +11,7 @@ use std::ops::{Add, AddAssign, Range};
 
 use bitflags::bitflags;
 use keyboard_types::{Key, KeyState, Modifiers, NamedKey, ShortcutMatcher};
+use script_bindings::match_domstring_ascii;
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::clipboard_provider::ClipboardProvider;
@@ -127,11 +128,10 @@ impl AddAssign for UTF16CodeUnits {
 
 impl From<DOMString> for SelectionDirection {
     fn from(direction: DOMString) -> SelectionDirection {
-        match &*direction.str() {
+        match_domstring_ascii!(direction, SelectionDirection::None,
             "forward" => SelectionDirection::Forward,
             "backward" => SelectionDirection::Backward,
-            _ => SelectionDirection::None,
-        }
+        )
     }
 }
 
@@ -1249,7 +1249,8 @@ impl<T: ClipboardProvider> TextInput<T> {
             return ClipboardEventReaction::empty();
         }
 
-        match &*event.Type().str() {
+        let event_type = event.Type();
+        match_domstring_ascii!(event_type, ClipboardEventReaction::empty(),
             "copy" => {
                 // These steps are from <https://www.w3.org/TR/clipboard-apis/#copy-action>:
                 let selection = self.get_selection_text();
@@ -1280,8 +1281,8 @@ impl<T: ClipboardProvider> TextInput<T> {
 
                 // Step 3.1.3 Fire a clipboard event named clipboardchange
                 // Step 3.1.4 Queue tasks to fire any events that should fire due to the modification.
-                ClipboardEventReaction::FireClipboardChangedEvent |
-                    ClipboardEventReaction::QueueInputEvent
+                ClipboardEventReaction::FireClipboardChangedEvent
+                    | ClipboardEventReaction::QueueInputEvent
             },
             "paste" => {
                 // These steps are from <https://www.w3.org/TR/clipboard-apis/#paste-action>:
@@ -1320,8 +1321,6 @@ impl<T: ClipboardProvider> TextInput<T> {
                 // Step 3.1.2: Queue tasks to fire any events that should fire due to the
                 // modification, see § 5.3 Integration with other scripts and events for details.
                 ClipboardEventReaction::QueueInputEvent
-            },
-            _ => ClipboardEventReaction::empty(),
-        }
+            },)
     }
 }

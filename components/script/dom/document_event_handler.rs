@@ -31,6 +31,7 @@ use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMe
 use script_bindings::codegen::GenericBindings::TouchBinding::TouchMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::{ScrollBehavior, WindowMethods};
 use script_bindings::inheritance::Castable;
+use script_bindings::match_domstring_ascii;
 use script_bindings::num::Finite;
 use script_bindings::reflector::DomObject;
 use script_bindings::root::{Dom, DomRoot, DomSlice};
@@ -1342,7 +1343,9 @@ impl DocumentEventHandler {
 
         // Step 4 If the event was canceled, then
         if event.DefaultPrevented() {
-            match &*event.Type().str() {
+            let event_type = event.Type();
+            match_domstring_ascii!(event_type, (),
+
                 "copy" => {
                     // Step 4.1 Call the write content to the clipboard algorithm,
                     // passing on the DataTransferItemList items, a clear-was-called flag and a types-to-clear list.
@@ -1368,8 +1371,7 @@ impl DocumentEventHandler {
                 // Note: This function deviates from the specification a bit by returning
                 // the `InputEventResult` below.
                 "paste" => (),
-                _ => (),
-            }
+            )
         }
 
         // Step 5: Return true from the action.
