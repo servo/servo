@@ -12,6 +12,7 @@ use std::rc::Rc;
 
 use html5ever::{LocalName, Namespace, Prefix};
 use script_bindings::callback::ExceptionHandling;
+use script_bindings::codegen::GenericBindings::AttrBinding::AttrMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::root::Dom;
 use script_bindings::script_runtime::CanGc;
@@ -68,6 +69,15 @@ impl xpath::Node for XPathWrapper<DomRoot<Node>> {
     }
 
     fn parent(&self) -> Option<Self> {
+        // The parent of an attribute node is its owner, see
+        // https://www.w3.org/TR/1999/REC-xpath-19991116/#attribute-nodes
+        if let Some(attribute) = self.0.downcast::<Attr>() {
+            return attribute
+                .GetOwnerElement()
+                .map(DomRoot::upcast)
+                .map(XPathWrapper);
+        }
+
         self.0.GetParentNode().map(XPathWrapper)
     }
 
@@ -203,6 +213,11 @@ impl xpath::Element for XPathWrapper<DomRoot<Element>> {
                 let attribute = self.attributes.get(self.position)?;
                 self.position += 1;
                 Some(attribute.as_rooted().into())
+            }
+
+            fn size_hint(&self) -> (usize, Option<usize>) {
+                let exact_length = self.attributes.len() - self.position;
+                (exact_length, Some(exact_length))
             }
         }
 
