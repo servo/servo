@@ -26,7 +26,7 @@ def run_servo(servo_exe, tests):
 
 # Print usage if command line args are incorrect
 def print_usage():
-    print("USAGE: {0} tests servo_binary dromaeo_base_dir [BMF JSON output]".format(sys.argv[0]))
+    print("USAGE: {0} tests servo_binary dromaeo_base_dir [<BMF JSON output> <Cargo profile>]".format(sys.argv[0]))
 
 
 post_data = None
@@ -48,13 +48,15 @@ class RequestHandler(SimpleHTTPRequestHandler):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) == 4 or len(sys.argv) == 5:
+    if len(sys.argv) == 4 or len(sys.argv) == 6:
         tests = sys.argv[1]
         servo_exe = sys.argv[2]
         base_dir = sys.argv[3]
         bmf_output = ""
-        if len(sys.argv) == 5:
+        cargo_profile_prefix = ""
+        if len(sys.argv) == 6:
             bmf_output = sys.argv[4]
+            cargo_profile_prefix = f"{sys.argv[5]}/"
         os.chdir(base_dir)
 
         # Ensure servo binary can be found
@@ -82,7 +84,7 @@ if __name__ == '__main__':
         if bmf_output:
             output = dict()
             for (k, v) in data.items():
-                output[f"Dromaeo/{k}"] = {'throughput': {'value': float(v)}}
+                output[f"{cargo_profile_prefix}Dromaeo/{k}"] = {'throughput': {'value': float(v)}}
             with open(bmf_output, 'w', encoding='utf-8') as f:
                 json.dump(output, f, indent=4)
         proc.kill()
