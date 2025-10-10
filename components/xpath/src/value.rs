@@ -58,8 +58,8 @@ impl<N: Node> PartialEq<Value<N>> for Value<N> {
                 .iter()
                 .map(|node| node.text_content())
                 .any(|text_content| &text_content == string),
-            (&Value::Boolean(_), _) | (_, &Value::Boolean(_)) => self.boolean() == other.boolean(),
-            (&Value::Number(_), _) | (_, &Value::Number(_)) => self.number() == other.number(),
+            (&Value::Boolean(_), _) | (_, &Value::Boolean(_)) => self.convert_to_boolean() == other.convert_to_boolean(),
+            (&Value::Number(_), _) | (_, &Value::Number(_)) => self.convert_to_number() == other.convert_to_number(),
             _ => self.string() == other.string(),
         }
     }
@@ -67,7 +67,7 @@ impl<N: Node> PartialEq<Value<N>> for Value<N> {
 
 impl<N: Node> Value<N> {
     /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#function-boolean>
-    pub(crate) fn boolean(&self) -> bool {
+    pub(crate) fn convert_to_boolean(&self) -> bool {
         match self {
             Value::Boolean(boolean) => *boolean,
             Value::Number(number) => *number != 0.0 && !number.is_nan(),
@@ -77,7 +77,7 @@ impl<N: Node> Value<N> {
     }
 
     /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#function-number>
-    pub(crate) fn number(&self) -> f64 {
+    pub(crate) fn convert_to_number(&self) -> f64 {
         match self {
             Value::Boolean(boolean) => {
                 if *boolean {
@@ -88,12 +88,12 @@ impl<N: Node> Value<N> {
             },
             Value::Number(number) => *number,
             Value::String(string) => parse_number_from_string(string),
-            Value::Nodeset(_) => parse_number_from_string(&self.string()),
+            Value::Nodeset(_) => parse_number_from_string(&self.convert_to_string()),
         }
     }
 
     /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#function-string>
-    pub(crate) fn string(&self) -> String {
+    pub(crate) fn convert_to_string(&self) -> String {
         match self {
             Value::Boolean(value) => value.to_string(),
             Value::Number(number) => {
