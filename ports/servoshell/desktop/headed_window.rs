@@ -893,16 +893,16 @@ impl WindowPortsMethods for Window {
 
         ShortcutMatcher::from_event(keyboard_event.event)
             .shortcut(CMD_OR_CONTROL, '=', || {
-                webview.set_zoom(1.1);
+                webview.set_page_zoom(webview.page_zoom() + 0.1);
             })
             .shortcut(CMD_OR_CONTROL, '+', || {
-                webview.set_zoom(1.1);
+                webview.set_page_zoom(webview.page_zoom() + 0.1);
             })
             .shortcut(CMD_OR_CONTROL, '-', || {
-                webview.set_zoom(1.0 / 1.1);
+                webview.set_page_zoom(webview.page_zoom() - 0.1);
             })
             .shortcut(CMD_OR_CONTROL, '0', || {
-                webview.reset_zoom();
+                webview.set_page_zoom(1.0);
             });
     }
 }

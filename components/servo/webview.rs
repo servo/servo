@@ -10,6 +10,7 @@ use std::time::Duration;
 use base::id::{RenderingGroupId, WebViewId};
 use compositing::IOCompositor;
 use compositing_traits::WebViewTrait;
+use compositing_traits::viewport_description::{MAX_PAGE_ZOOM, MIN_PAGE_ZOOM};
 use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
@@ -85,6 +86,7 @@ pub(crate) struct WebViewInner {
     /// The rectangle of the [`WebView`] in device pixels, which is the viewport.
     rect: DeviceRect,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
+    page_zoom: f32,
     load_status: LoadStatus,
     url: Option<Url>,
     status_text: Option<String>,
@@ -129,6 +131,7 @@ impl WebView {
             javascript_evaluator: servo.javascript_evaluator.clone(),
             rect: DeviceRect::from_origin_and_size(Point2D::origin(), size),
             hidpi_scale_factor: builder.hidpi_scale_factor,
+            page_zoom: 1.0,
             load_status: LoadStatus::Started,
             url: None,
             status_text: None,
@@ -510,18 +513,27 @@ impl WebView {
         self.inner().compositor.borrow_mut().on_vsync(self.id());
     }
 
-    pub fn set_zoom(&self, new_zoom: f32) {
+    /// Set the page zoom of the [`WebView`].
+    ///
+    /// [`WebView`]s have two types of zoom, pinch zoom and page zoom.
+    /// This adjusts page zoom, which will adjust the `devicePixelRatio` of the page
+    /// and cause it to modify its layout.
+    pub fn set_page_zoom(&self, new_zoom: f32) {
+        let new_zoom = new_zoom.clamp(MIN_PAGE_ZOOM.get(), MAX_PAGE_ZOOM.get());
+        if new_zoom == self.inner().page_zoom {
+            return;
+        }
+
+        self.inner_mut().page_zoom = new_zoom;
         self.inner()
             .compositor
             .borrow_mut()
             .on_zoom_window_event(self.id(), new_zoom);
     }
 
-    pub fn reset_zoom(&self) {
-        self.inner()
-            .compositor
-            .borrow_mut()
-            .on_zoom_reset_window_event(self.id());
+    /// Get the page zoom of the [`WebView`].
+    pub fn page_zoom(&self) -> f32 {
+        self.inner().page_zoom
     }
 
     pub fn set_pinch_zoom(&self, new_pinch_zoom: f32) {
