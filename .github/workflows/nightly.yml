@@ -103,6 +103,20 @@ jobs:
       force-github-hosted-runner: true  # <https://github.com/servo/servo/issues/33296>
     secrets: inherit
 
+  upload-mac-arm64:
+    # This job is only useful when run on upstream servo.
+    if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
+    name: Upload nightly (macOS Arm64)
+    needs:
+      - create-draft-release
+    uses: ./.github/workflows/mac-arm64.yml
+    with:
+      profile: "production"
+      upload: true
+      github-release-id: ${{ needs.create-draft-release.outputs.release-id }}
+      force-github-hosted-runner: true  # <https://github.com/servo/servo/issues/33296>
+    secrets: inherit
+
   upload-linux:
     # This job is only useful when run on upstream servo.
     if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
