@@ -31,11 +31,6 @@ pub(crate) fn parse_number_from_string(string: &str) -> f64 {
 }
 
 /// Helper for `PartialEq<Value>` implementations
-fn str_vals<N: Node>(nodes: &[N]) -> HashSet<String> {
-    nodes.iter().map(|n| n.text_content()).collect()
-}
-
-/// Helper for `PartialEq<Value>` implementations
 fn num_vals<N: Node>(nodes: &[N]) -> Vec<f64> {
     nodes
         .iter()
@@ -47,8 +42,10 @@ impl<N: Node> PartialEq<Value<N>> for Value<N> {
     fn eq(&self, other: &Value<N>) -> bool {
         match (self, other) {
             (Value::Nodeset(left_nodes), Value::Nodeset(right_nodes)) => {
-                let left_strings = str_vals(left_nodes);
-                let right_strings = str_vals(right_nodes);
+                let left_strings: HashSet<String> =
+                    left_nodes.iter().map(|node| node.text_content()).collect();
+                let right_strings: HashSet<String> =
+                    right_nodes.iter().map(|node| node.text_content()).collect();
                 !left_strings.is_disjoint(&right_strings)
             },
             (&Value::Nodeset(ref nodes), &Value::Number(val)) |
@@ -56,11 +53,11 @@ impl<N: Node> PartialEq<Value<N>> for Value<N> {
                 let numbers = num_vals(nodes);
                 numbers.contains(&val)
             },
-            (&Value::Nodeset(ref nodes), &Value::String(ref val)) |
-            (&Value::String(ref val), &Value::Nodeset(ref nodes)) => {
-                let strings = str_vals(nodes);
-                strings.contains(val)
-            },
+            (&Value::Nodeset(ref nodes), &Value::String(ref string)) |
+            (&Value::String(ref string), &Value::Nodeset(ref nodes)) => nodes
+                .iter()
+                .map(|node| node.text_content())
+                .any(|text_content| &text_content == string),
             (&Value::Boolean(_), _) | (_, &Value::Boolean(_)) => self.boolean() == other.boolean(),
             (&Value::Number(_), _) | (_, &Value::Number(_)) => self.number() == other.number(),
             _ => self.string() == other.string(),
