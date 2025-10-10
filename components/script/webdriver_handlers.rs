@@ -11,7 +11,8 @@ use base::generic_channel::GenericSender;
 use base::id::{BrowsingContextId, PipelineId};
 use cookie::Cookie;
 use embedder_traits::{
-    JSValue, WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverLoadStatus,
+    JSValue, JavaScriptEvaluationError, JavaScriptEvaluationResultSerializationError,
+    WebDriverFrameId, WebDriverJSResult, WebDriverLoadStatus,
 };
 use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
@@ -406,7 +407,9 @@ unsafe fn jsval_to_webdriver_inner(
         if let Ok(element) = root_from_object::<Element>(*object, cx) {
             // If the element is stale, return error with error code stale element reference.
             if is_stale(&element) {
-                Err(WebDriverJSError::StaleElementReference)
+                Err(JavaScriptEvaluationError::SerializationError(
+                    JavaScriptEvaluationResultSerializationError::StaleElementReference,
+                ))
             } else {
                 Ok(JSValue::Element(
                     element
@@ -417,7 +420,9 @@ unsafe fn jsval_to_webdriver_inner(
         } else if let Ok(shadow_root) = root_from_object::<ShadowRoot>(*object, cx) {
             // If the shadow root is detached, return error with error code detached shadow root.
             if is_detached(&shadow_root) {
-                Err(WebDriverJSError::DetachedShadowRoot)
+                Err(JavaScriptEvaluationError::SerializationError(
+                    JavaScriptEvaluationResultSerializationError::DetachedShadowRoot,
+                ))
             } else {
                 Ok(JSValue::ShadowRoot(
                     shadow_root
@@ -428,7 +433,9 @@ unsafe fn jsval_to_webdriver_inner(
         } else if let Ok(window) = root_from_object::<Window>(*object, cx) {
             let window_proxy = window.window_proxy();
             if window_proxy.is_browsing_context_discarded() {
-                Err(WebDriverJSError::StaleElementReference)
+                Err(JavaScriptEvaluationError::SerializationError(
+                    JavaScriptEvaluationResultSerializationError::StaleElementReference,
+                ))
             } else if window_proxy.browsing_context_id() == window_proxy.webview_id() {
                 Ok(JSValue::Window(window.webview_id().to_string()))
             } else {
@@ -459,7 +466,9 @@ unsafe fn jsval_to_webdriver_inner(
                     Error::JSFailed,
                     CanGc::note(),
                 );
-                Err(WebDriverJSError::JSError)
+                Err(JavaScriptEvaluationError::SerializationError(
+                    JavaScriptEvaluationResultSerializationError::Generic,
+                ))
             }
         } else {
             clone_an_object(
@@ -471,7 +480,9 @@ unsafe fn jsval_to_webdriver_inner(
             )
         }
     } else {
-        Err(WebDriverJSError::UnknownType)
+        Err(JavaScriptEvaluationError::SerializationError(
+            JavaScriptEvaluationResultSerializationError::UnknownType,
+        ))
     }
 }
 
@@ -487,7 +498,9 @@ unsafe fn clone_an_object(
     let hashable = val.into();
     // Step 1. If value is in `seen`, return error with error code javascript error.
     if seen.contains(&hashable) {
-        return Err(WebDriverJSError::JSError);
+        return Err(JavaScriptEvaluationError::SerializationError(
+            JavaScriptEvaluationResultSerializationError::Generic,
+        ));
     }
     // Step 2. Append value to `seen`.
     seen.insert(hashable.clone());
@@ -502,11 +515,17 @@ unsafe fn clone_an_object(
         let length = match get_property_result {
             Ok(length) => match length {
                 Some(length) => length,
-                _ => return Err(WebDriverJSError::UnknownType),
+                _ => {
+                    return Err(JavaScriptEvaluationError::SerializationError(
+                        JavaScriptEvaluationResultSerializationError::UnknownType,
+                    ));
+                },
             },
             Err(error) => {
                 throw_dom_exception(cx, global_scope, error, CanGc::note());
-                return Err(WebDriverJSError::JSError);
+                return Err(JavaScriptEvaluationError::SerializationError(
+                    JavaScriptEvaluationResultSerializationError::Generic,
+                ));
             },
         };
         // Step 4. For each enumerable property in value, run the following substeps:
@@ -525,7 +544,9 @@ unsafe fn clone_an_object(
                 },
                 Err(error) => {
                     throw_dom_exception(cx, global_scope, error, CanGc::note());
-                    return Err(WebDriverJSError::JSError);
+                    return Err(JavaScriptEvaluationError::SerializationError(
+                        JavaScriptEvaluationResultSerializationError::Generic,
+                    ));
                 },
             }
         }
@@ -543,7 +564,9 @@ unsafe fn clone_an_object(
             )
         };
         if !succeeded {
-            return Err(WebDriverJSError::JSError);
+            return Err(JavaScriptEvaluationError::SerializationError(
+                JavaScriptEvaluationResultSerializationError::Generic,
+            ));
         }
         for id in ids.iter() {
             rooted!(in(*cx) let id = *id);
@@ -560,7 +583,9 @@ unsafe fn clone_an_object(
                 )
             };
             if !succeeded {
-                return Err(WebDriverJSError::JSError);
+                return Err(JavaScriptEvaluationError::SerializationError(
+                    JavaScriptEvaluationResultSerializationError::Generic,
+                ));
             }
 
             rooted!(in(*cx) let mut property = UndefinedValue());
@@ -573,22 +598,23 @@ unsafe fn clone_an_object(
                 )
             };
             if !succeeded {
-                return Err(WebDriverJSError::JSError);
+                return Err(JavaScriptEvaluationError::SerializationError(
+                    JavaScriptEvaluationResultSerializationError::Generic,
+                ));
             }
 
             if !property.is_undefined() {
                 let name = unsafe { jsid_to_string(*cx, id.handle()) };
                 let Some(name) = name else {
-                    return Err(WebDriverJSError::JSError);
+                    return Err(JavaScriptEvaluationError::SerializationError(
+                        JavaScriptEvaluationResultSerializationError::Generic,
+                    ));
                 };
 
-                if let Ok(value) =
-                    unsafe { jsval_to_webdriver_inner(*cx, global_scope, property.handle(), seen) }
-                {
-                    result.insert(name.into(), value);
-                } else {
-                    return Err(WebDriverJSError::JSError);
-                }
+                let value = unsafe {
+                    jsval_to_webdriver_inner(*cx, global_scope, property.handle(), seen)?
+                };
+                result.insert(name.into(), value);
             }
         }
         Ok(JSValue::Object(result))
@@ -622,17 +648,16 @@ pub(crate) fn handle_execute_script(
                 can_gc,
                 None, // No known `introductionType` for JS code from WebDriver
             );
-            let result = match evaluation_result {
-                Ok(_) => jsval_to_webdriver(cx, global, rval.handle(), realm, can_gc),
-                Err(_) => Err(WebDriverJSError::JSError),
-            };
+
+            let result = evaluation_result
+                .and_then(|_| jsval_to_webdriver(cx, global, rval.handle(), realm, can_gc));
 
             reply.send(result).unwrap_or_else(|err| {
                 error!("ExecuteScript Failed to send reply: {err}");
             });
         },
         None => reply
-            .send(Err(WebDriverJSError::BrowsingContextNotFound))
+            .send(Err(JavaScriptEvaluationError::DocumentNotFound))
             .unwrap_or_else(|err| {
                 error!("ExecuteScript Failed to send reply: {err}");
             }),
@@ -653,29 +678,24 @@ pub(crate) fn handle_execute_async_script(
             rooted!(in(*cx) let mut rval = UndefinedValue());
 
             let global_scope = window.as_global_scope();
-            if global_scope
-                .evaluate_js_on_global_with_result(
-                    &eval,
-                    rval.handle_mut(),
-                    ScriptFetchOptions::default_classic_script(global_scope),
-                    global_scope.api_base_url(),
-                    can_gc,
-                    None, // No known `introductionType` for JS code from WebDriver
-                )
-                .is_err()
-            {
-                reply_sender
-                    .send(Err(WebDriverJSError::JSError))
-                    .unwrap_or_else(|err| {
-                        error!("ExecuteAsyncScript Failed to send reply: {err}");
-                    });
+            if let Err(error) = global_scope.evaluate_js_on_global_with_result(
+                &eval,
+                rval.handle_mut(),
+                ScriptFetchOptions::default_classic_script(global_scope),
+                global_scope.api_base_url(),
+                can_gc,
+                None, // No known `introductionType` for JS code from WebDriver
+            ) {
+                reply_sender.send(Err(error)).unwrap_or_else(|error| {
+                    error!("ExecuteAsyncScript Failed to send reply: {error}");
+                });
             }
         },
         None => {
             reply
-                .send(Err(WebDriverJSError::BrowsingContextNotFound))
-                .unwrap_or_else(|err| {
-                    error!("ExecuteAsyncScript Failed to send reply: {err}");
+                .send(Err(JavaScriptEvaluationError::DocumentNotFound))
+                .unwrap_or_else(|error| {
+                    error!("ExecuteAsyncScript Failed to send reply: {error}");
                 });
         },
     }

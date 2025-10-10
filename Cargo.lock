@@ -2388,6 +2388,7 @@ dependencies = [
  "servo_geometry",
  "servo_malloc_size_of",
  "servo_url",
+ "strum",
  "strum_macros",
  "stylo",
  "stylo_traits",

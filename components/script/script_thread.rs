@@ -3857,9 +3857,7 @@ impl ScriptThread {
             return_value.handle(),
             (&realm).into(),
             can_gc,
-        )
-        .map_err(|_| JavaScriptEvaluationError::SerializationError);
-
+        );
         let _ = self.senders.pipeline_to_constellation_sender.send((
             pipeline_id,
             ScriptToConstellationMessage::FinishJavaScriptEvaluation(evaluation_id, result),
