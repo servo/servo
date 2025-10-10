@@ -9,7 +9,6 @@ use std::rc::Rc;
 use crossbeam_channel::unbounded;
 use dpi::PhysicalSize;
 use raw_window_handle::{DisplayHandle, RawDisplayHandle, RawWindowHandle, WindowHandle};
-use servo::ipc_channel::ipc;
 pub use servo::webrender_api::units::DeviceIntRect;
 use servo::{self, EventLoopWaker, ServoBuilder, resources};
 pub use servo::{InputMethodType, MediaSessionPlaybackState, WindowRenderingContext};
@@ -102,27 +101,12 @@ pub fn init(
     let servo = servo_builder.build();
 
     // Initialize WebDriver server if port is specified
-    let (webdriver_receiver, webdriver_event_handled_sender) = servoshell_preferences
-        .webdriver_port
-        .map(|port| {
-            let (embedder_sender, embedder_receiver) = unbounded();
-            let (webdriver_event_handled_sender, webdriver_event_handled_receiver) =
-                ipc::channel().unwrap();
-
-            webdriver_server::start_server(
-                port,
-                embedder_sender,
-                waker,
-                webdriver_event_handled_receiver,
-            );
-
-            log::info!("WebDriver server started on port {}", port);
-            (
-                Some(embedder_receiver),
-                Some(webdriver_event_handled_sender),
-            )
-        })
-        .unwrap_or((None, None));
+    let webdriver_receiver = servoshell_preferences.webdriver_port.map(|port| {
+        let (embedder_sender, embedder_receiver) = unbounded();
+        webdriver_server::start_server(port, embedder_sender, waker);
+        log::info!("WebDriver server started on port {port}");
+        embedder_receiver
+    });
 
     APP.with(|app| {
         let app_state = RunningAppState::new(
@@ -133,7 +117,6 @@ pub fn init(
             window_callbacks,
             servoshell_preferences,
             webdriver_receiver,
-            webdriver_event_handled_sender,
         );
         *app.borrow_mut() = Some(app_state);
     });

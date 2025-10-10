@@ -33,4 +33,5 @@ servo_url = { path = "../url" }
 stylo_traits = { workspace = true }
 time = { workspace = true }
 uuid = { workspace = true }
+webrender_api = { workspace = true }
 webdriver = { workspace = true }
