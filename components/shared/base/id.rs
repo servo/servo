@@ -309,7 +309,7 @@ size_of_test!(Option<WebViewId>, 12);
 
 impl fmt::Debug for WebViewId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "TopLevel{:?}", self.0)
+        write!(f, "RenderingGroup {}, TopLevel{}", self.0, self.1)
     }
 }
 
