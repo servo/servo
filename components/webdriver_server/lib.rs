@@ -2149,7 +2149,7 @@ impl Handler {
                             JavaScriptEvaluationResultSerializationError::DetachedShadowRoot => {
                                 ErrorStatus::DetachedShadowRoot
                             },
-                            JavaScriptEvaluationResultSerializationError::Generic => {
+                            JavaScriptEvaluationResultSerializationError::OtherJavaScriptError => {
                                 ErrorStatus::JavascriptError
                             },
                             JavaScriptEvaluationResultSerializationError::StaleElementReference => {
