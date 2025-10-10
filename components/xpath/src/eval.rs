@@ -374,7 +374,7 @@ impl PredicateListExpr {
                     resolver: context.resolver.clone(),
                 };
 
-                let eval_result = predicate_expr.expr.evaluate(&predicate_ctx);
+                let eval_result = predicate_expr.evaluate(&predicate_ctx);
 
                 let keep = match eval_result {
                     Ok(Value::Number(number)) => (i + 1) as f64 == number,
