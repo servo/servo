@@ -20,8 +20,8 @@ use raw_window_handle::{
     AndroidDisplayHandle, AndroidNdkWindowHandle, RawDisplayHandle, RawWindowHandle,
 };
 use servo::{
-    AlertResponse, EventLoopWaker, LoadStatus, MediaSessionActionType, PermissionRequest,
-    SimpleDialog, WebView,
+    AlertResponse, EventLoopWaker, LoadStatus, MediaSessionActionType, MouseButton,
+    PermissionRequest, SimpleDialog, WebView,
 };
 use simpleservo::{APP, DeviceIntRect, InitOptions, InputMethodType, MediaSessionPlaybackState};
 
@@ -339,6 +339,20 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoomEnd<'local>(
 ) {
     debug!("pinchZoomEnd");
     call(&mut env, |s| s.pinchzoom_end(factor, x as u32, y as u32));
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn Java_org_servo_servoview_JNIServo_click(
+    mut env: JNIEnv,
+    _: JClass,
+    x: jfloat,
+    y: jfloat,
+) {
+    debug!("click");
+    call(&mut env, |s| {
+        s.mouse_down(x, y, MouseButton::Left);
+        s.mouse_up(x, y, MouseButton::Left);
+    });
 }
 
 #[unsafe(no_mangle)]
