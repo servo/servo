@@ -58,9 +58,13 @@ impl<N: Node> PartialEq<Value<N>> for Value<N> {
                 .iter()
                 .map(|node| node.text_content())
                 .any(|text_content| &text_content == string),
-            (&Value::Boolean(_), _) | (_, &Value::Boolean(_)) => self.convert_to_boolean() == other.convert_to_boolean(),
-            (&Value::Number(_), _) | (_, &Value::Number(_)) => self.convert_to_number() == other.convert_to_number(),
-            _ => self.string() == other.string(),
+            (&Value::Boolean(_), _) | (_, &Value::Boolean(_)) => {
+                self.convert_to_boolean() == other.convert_to_boolean()
+            },
+            (&Value::Number(_), _) | (_, &Value::Number(_)) => {
+                self.convert_to_number() == other.convert_to_number()
+            },
+            _ => self.convert_to_string() == other.convert_to_string(),
         }
     }
 }
