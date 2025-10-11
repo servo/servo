@@ -20,3 +20,44 @@ pub(crate) trait TryConvert<T> {
 
     fn try_convert(self) -> Result<T, Self::Error>;
 }
+
+/// A wrapper type over [`js::jsapi::UTF8Chars`]. This is created to help transferring
+/// a rust string to mozjs. The inner [`js::jsapi::UTF8Chars`] can be accessed via the
+/// [`std::ops::Deref`] trait.
+pub(crate) struct Utf8Chars<'a> {
+    lt_marker: std::marker::PhantomData<&'a ()>,
+    inner: js::jsapi::UTF8Chars,
+}
+
+impl<'a> std::ops::Deref for Utf8Chars<'a> {
+    type Target = js::jsapi::UTF8Chars;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<'a> From<&'a str> for Utf8Chars<'a> {
+    #[allow(unsafe_code)]
+    fn from(value: &'a str) -> Self {
+        let byte_len = value.as_bytes().len();
+        let start = js::jsapi::mozilla::RangedPtr {
+            _phantom_0: std::marker::PhantomData,
+            mPtr: value.as_ptr() as *mut _,
+        };
+        let end = js::jsapi::mozilla::RangedPtr {
+            _phantom_0: std::marker::PhantomData,
+            mPtr: unsafe { value.as_ptr().byte_add(byte_len) as *mut _ },
+        };
+        let base = js::jsapi::mozilla::Range {
+            _phantom_0: std::marker::PhantomData,
+            mStart: start,
+            mEnd: end,
+        };
+        let inner = js::jsapi::UTF8Chars { _base: base };
+        Self {
+            lt_marker: std::marker::PhantomData,
+            inner,
+        }
+    }
+}

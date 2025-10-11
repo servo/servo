@@ -33,14 +33,15 @@ use js::jsapi::{
     GetPromiseUserInputEventHandlingState, Handle as RawHandle, HandleObject, HandleString,
     HandleValue as RawHandleValue, Heap, InitConsumeStreamCallback, JS_AddExtraGCRootsTracer,
     JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback, JS_NewObject,
-    JS_NewStringCopyN, JS_SetGCCallback, JS_SetGCParameter, JS_SetGlobalJitCompilerOption,
-    JS_SetOffthreadIonCompilationEnabled, JS_SetReservedSlot, JS_SetSecurityCallbacks,
-    JSCLASS_RESERVED_SLOTS_MASK, JSCLASS_RESERVED_SLOTS_SHIFT, JSClass, JSClassOps,
-    JSContext as RawJSContext, JSGCParamKey, JSGCStatus, JSJitCompilerOption, JSObject,
+    JS_NewStringCopyN, JS_NewStringCopyUTF8N, JS_SetGCCallback, JS_SetGCParameter,
+    JS_SetGlobalJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_SetReservedSlot,
+    JS_SetSecurityCallbacks, JSCLASS_RESERVED_SLOTS_MASK, JSCLASS_RESERVED_SLOTS_SHIFT, JSClass,
+    JSClassOps, JSContext as RawJSContext, JSGCParamKey, JSGCStatus, JSJitCompilerOption, JSObject,
     JSSecurityCallbacks, JSString, JSTracer, JobQueue, MimeType, MutableHandleObject,
     MutableHandleString, PromiseRejectionHandlingState, PromiseUserInputEventHandlingState,
     RuntimeCode, SetDOMCallbacks, SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks,
     SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback, StreamConsumer as JSStreamConsumer,
+    UTF8Chars,
 };
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::panic::wrap_panic;
@@ -59,6 +60,7 @@ use script_bindings::script_runtime::{mark_runtime_dead, runtime_is_alive};
 use servo_config::{opts, pref};
 use style::thread_state::{self, ThreadState};
 
+use crate::conversions::Utf8Chars;
 use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::Response_Binding::ResponseMethods;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
@@ -492,11 +494,9 @@ unsafe extern "C" fn code_for_eval_gets(
     let cx = JSContext::from_ptr(cx);
     if let Ok(trusted_script) = root_from_object::<TrustedScript>(code.get(), *cx) {
         let script_string = trusted_script.data();
-        let new_string = JS_NewStringCopyN(
-            *cx,
-            script_string.str().as_ptr() as *const libc::c_char,
-            script_string.len(),
-        );
+        let script_str = script_string.str();
+        let s = Utf8Chars::from(&*script_str);
+        let new_string = JS_NewStringCopyUTF8N(*cx, &*s as *const _);
         code_for_eval.set(new_string);
     }
     true
