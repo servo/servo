@@ -46,7 +46,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::clipboardevent::ClipboardEventType;
 use crate::dom::document::{FireMouseEventType, FocusInitiator, TouchEventResult};
-use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventResult};
+use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventFlags};
 use crate::dom::gamepad::gamepad::{Gamepad, contains_user_gesture};
 use crate::dom::gamepad::gamepadevent::GamepadEventType;
 use crate::dom::inputevent::HitTestResult;
@@ -1025,9 +1025,9 @@ impl DocumentEventHandler {
         let event = keyevent.upcast::<Event>();
         event.fire(target, can_gc);
 
-        let mut result = event.result();
-        if result.contains(EventResult::Canceled) {
-            return result.into();
+        let mut flags = event.flags();
+        if flags.contains(EventFlags::Canceled) {
+            return flags.into();
         }
 
         // https://w3c.github.io/uievents/#keys-cancelable-keys
@@ -1063,11 +1063,11 @@ impl DocumentEventHandler {
             );
             let event = keypress_event.upcast::<Event>();
             event.fire(target, can_gc);
-            result = event.result();
+            flags = event.flags();
         }
 
-        if result.contains(EventResult::Canceled) {
-            return result.into();
+        if flags.contains(EventFlags::Canceled) {
+            return flags.into();
         }
 
         // This behavior is unspecced
@@ -1085,7 +1085,7 @@ impl DocumentEventHandler {
             }
         }
 
-        result.into()
+        flags.into()
     }
 
     fn handle_ime_event(&self, event: ImeEvent, can_gc: CanGc) -> InputEventResult {
@@ -1128,7 +1128,7 @@ impl DocumentEventHandler {
 
         let event = event.upcast::<Event>();
         event.fire(target, can_gc);
-        event.result().into()
+        event.flags().into()
     }
 
     fn handle_wheel_event(
@@ -1193,7 +1193,7 @@ impl DocumentEventHandler {
         dom_event.set_trusted(true);
         dom_event.fire(node.upcast(), can_gc);
 
-        dom_event.result().into()
+        dom_event.flags().into()
     }
 
     fn handle_gamepad_event(&self, gamepad_event: EmbedderGamepadEvent) {
@@ -1355,7 +1355,7 @@ impl DocumentEventHandler {
         // the event will be handled inside target's VirtualMethods::handle_event
         let event = clipboard_event.upcast::<Event>();
         if !event.IsTrusted() {
-            return event.result().into();
+            return event.flags().into();
         }
 
         // Step 4 If the event was canceled, then
@@ -1392,7 +1392,7 @@ impl DocumentEventHandler {
 
         // Step 5: Return true from the action.
         // In this case we are returning the `InputEventResult` instead of true or false.
-        event.result().into()
+        event.flags().into()
     }
 
     /// <https://www.w3.org/TR/clipboard-apis/#fire-a-clipboard-event>
