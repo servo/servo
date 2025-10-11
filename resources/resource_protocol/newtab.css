@@ -22,6 +22,7 @@ body {
 }
 
 img {
+  margin-bottom: 1em;
   width: 25vw;
 }
 
@@ -30,7 +31,13 @@ form {
 }
 
 input {
+  background-color: #333;
+  border-width: 0;
+  color: white;
+  border-radius: 5px;
+  height: 2.5em;
   width: 50vw;
+  text-indent: 3px;
 }
 
 a {
@@ -45,13 +52,25 @@ a:hover {
 
 /* This should not be needed but paper over missing default styles */
 button {
-  padding-block: 1px;
   padding-inline: 8px;
-  box-sizing: border-box;
+  border-radius: 5px;
+  border: none;
+  background-color: #333;
+  color: #42bf64;
+  /* Servo has trouble with button styling */
+  display: flex;
+  justify-items: center;
+  align-items: center;
+  line-height: 1;
+}
+
+button:hover {
+  background-color: #292929;
+  cursor: pointer;
 }
 
 form {
   display: flex;
   justify-items: center;
-  gap: 0.5em;
+  gap: 1.0em;
 }
