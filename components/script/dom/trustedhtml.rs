@@ -62,8 +62,8 @@ impl TrustedHTML {
         }
     }
 
-    pub(crate) fn data(&self) -> DOMString {
-        self.data.clone()
+    pub(crate) fn data(&self) -> &DOMString {
+        &self.data
     }
 }
 
