@@ -4,13 +4,14 @@
 
 use markup5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_prefix, ns};
 
-use super::parser::{
+use crate::ast::{
     Axis, BinaryOperator, Expr, FilterExpr, KindTest, Literal, NodeTest, PathExpr,
     PredicateListExpr, PrimaryExpr, StepExpr,
 };
-use super::{EvaluationCtx, Value};
 use crate::context::PredicateCtx;
-use crate::{Attribute, Document, Dom, Element, Error, Node, ProcessingInstruction};
+use crate::{
+    Attribute, Document, Dom, Element, Error, EvaluationCtx, Node, ProcessingInstruction, Value,
+};
 
 pub(crate) fn try_extract_nodeset<E, N: Node>(v: Value<N>) -> Result<Vec<N>, Error<E>> {
     match v {

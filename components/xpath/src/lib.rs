@@ -2,20 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::fmt::Debug;
-use std::hash::Hash;
-
-use context::EvaluationCtx;
-use markup5ever::{LocalName, Namespace, Prefix};
-use parser::{OwnedParserError, QName, parse as parse_impl};
-
+mod ast;
 mod context;
 mod eval;
 mod eval_function;
 mod parser;
 mod value;
 
-pub use parser::Expr;
+use std::fmt::Debug;
+use std::hash::Hash;
+
+pub use ast::Expr;
+use ast::QName;
+use context::EvaluationCtx;
+use markup5ever::{LocalName, Namespace, Prefix};
+use parser::{OwnedParserError, parse as parse_impl};
 pub use value::{NodesetHelpers, Value};
 
 pub trait Dom {
