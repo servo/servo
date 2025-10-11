@@ -44,7 +44,7 @@ let
       systemImageTypes = [ "google_apis" ];
       abiVersions = [ "x86" "armeabi-v7a" ];
       includeNDK = true;
-      ndkVersion = "26.2.11394342";
+      ndkVersion = "28.2.13676358";
       useGoogleAPIs = false;
       useGoogleTVAddOns = false;
       includeExtras = [
