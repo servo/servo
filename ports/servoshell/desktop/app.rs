@@ -13,8 +13,7 @@ use std::{env, fs};
 
 use ::servo::ServoBuilder;
 use crossbeam_channel::unbounded;
-use euclid::{Point2D, Vector2D};
-use ipc_channel::ipc;
+use euclid::Vector2D;
 use log::{info, trace, warn};
 use net::protocols::ProtocolRegistry;
 use servo::config::opts::Opts;
@@ -23,9 +22,8 @@ use servo::servo_url::ServoUrl;
 use servo::user_content_manager::{UserContentManager, UserScript};
 use servo::webrender_api::ScrollLocation;
 use servo::{
-    EventLoopWaker, ImeEvent, InputEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
-    ScreenshotCaptureError, WebDriverCommandMsg, WebDriverScriptCommand, WebDriverUserPromptAction,
-    WheelDelta, WheelEvent, WheelMode,
+    EventLoopWaker, InputEvent, ScreenshotCaptureError, WebDriverCommandMsg,
+    WebDriverScriptCommand, WebDriverUserPromptAction, WheelEvent,
 };
 use url::Url;
 use winit::application::ApplicationHandler;
@@ -168,34 +166,17 @@ impl App {
         servo.setup_logging();
 
         // Initialize WebDriver server here before `servo` is moved.
-        let (webdriver_receiver, webdriver_event_handled_sender) = self
-            .servoshell_preferences
-            .webdriver_port
-            .map(|port| {
-                let (embedder_sender, embedder_receiver) = unbounded();
-                let (webdriver_event_handled_sender, webdriver_event_handled_receiver) =
-                    ipc::channel().unwrap();
-
-                webdriver_server::start_server(
-                    port,
-                    embedder_sender,
-                    self.waker.clone(),
-                    webdriver_event_handled_receiver,
-                );
-
-                (
-                    Some(embedder_receiver),
-                    Some(webdriver_event_handled_sender),
-                )
-            })
-            .unwrap_or((None, None));
+        let webdriver_receiver = self.servoshell_preferences.webdriver_port.map(|port| {
+            let (embedder_sender, embedder_receiver) = unbounded();
+            webdriver_server::start_server(port, embedder_sender, self.waker.clone());
+            embedder_receiver
+        });
 
         let running_state = Rc::new(RunningAppState::new(
             servo,
             window.clone(),
             self.servoshell_preferences.clone(),
             webdriver_receiver,
-            webdriver_event_handled_sender,
         ));
         running_state.create_and_focus_toplevel_webview(self.initial_url.clone().into_url());
         if let Some(ref mut minibrowser) = self.minibrowser {
@@ -350,9 +331,6 @@ impl App {
 
         while let Ok(msg) = webdriver_receiver.try_recv() {
             match msg {
-                WebDriverCommandMsg::SetWebDriverResponseSender(..) => {
-                    running_state.servo().execute_webdriver_command(msg);
-                },
                 WebDriverCommandMsg::IsWebViewOpen(webview_id, sender) => {
                     let context = running_state.webview_by_id(webview_id);
 
@@ -492,61 +470,30 @@ impl App {
                         running_state.set_pending_traversal(traversal_id, load_status_sender);
                     }
                 },
-                WebDriverCommandMsg::DispatchComposition(webview_id, composition_event) => {
-                    let input_event = InputEvent::Ime(ImeEvent::Composition(composition_event));
-                    running_state.handle_webdriver_input_event(webview_id, input_event, None);
-                },
-                WebDriverCommandMsg::KeyboardAction(webview_id, key_event, event_id) => {
-                    let input_event = InputEvent::Keyboard(KeyboardEvent::new(key_event));
-                    running_state.handle_webdriver_input_event(webview_id, input_event, event_id);
-                },
-                WebDriverCommandMsg::MouseButtonAction(
-                    webview_id,
-                    mouse_event_type,
-                    mouse_button,
-                    x,
-                    y,
-                    event_id,
-                ) => {
+                WebDriverCommandMsg::InputEvent(webview_id, input_event, response_sender) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        let input_event = InputEvent::MouseButton(MouseButtonEvent::new(
-                            mouse_event_type,
-                            mouse_button,
-                            Point2D::new(x, y) * webview.hidpi_scale_factor(),
-                        ));
-                        running_state.handle_webdriver_input_event(
-                            webview_id,
-                            input_event,
-                            event_id,
-                        );
-                    }
-                },
-                WebDriverCommandMsg::MouseMoveAction(webview_id, x, y, event_id) => {
-                    let input_event =
-                        InputEvent::MouseMove(MouseMoveEvent::new(Point2D::new(x, y)));
-                    running_state.handle_webdriver_input_event(webview_id, input_event, event_id);
-                },
-                WebDriverCommandMsg::WheelScrollAction(webview_id, x, y, dx, dy, event_id) => {
-                    if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        let delta = WheelDelta {
-                            x: -dx,
-                            y: -dy,
-                            z: 0.0,
-                            mode: WheelMode::DeltaPixel,
+                        // TODO: Scroll events triggered by wheel events should happen as
+                        // a default event action in the compositor.
+                        let scroll_event = match &input_event {
+                            InputEvent::Wheel(WheelEvent { delta, point }) => {
+                                let scroll_location = ScrollLocation::Delta(Vector2D::new(
+                                    -delta.x as f32,
+                                    -delta.y as f32,
+                                ));
+                                Some((scroll_location, point.to_i32()))
+                            },
+                            _ => None,
                         };
 
-                        let point = Point2D::new(x, y);
-                        let scroll_location =
-                            ScrollLocation::Delta(Vector2D::new(dx as f32, dy as f32));
-
-                        let input_event = InputEvent::Wheel(WheelEvent::new(delta, point.to_f32()));
                         running_state.handle_webdriver_input_event(
                             webview_id,
                             input_event,
-                            event_id,
+                            response_sender,
                         );
 
-                        webview.notify_scroll_event(scroll_location, point.to_i32());
+                        if let Some((scroll_location, scroll_point)) = scroll_event {
+                            webview.notify_scroll_event(scroll_location, scroll_point);
+                        }
                     }
                 },
                 WebDriverCommandMsg::ScriptCommand(_, ref webdriver_script_command) => {

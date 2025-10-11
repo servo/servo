@@ -15,7 +15,6 @@ use euclid::{Rect, Size2D};
 use hyper_serde::Serde;
 use image::RgbaImage;
 use ipc_channel::ipc::IpcSender;
-use keyboard_types::{CompositionEvent, KeyboardEvent};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_geometry::DeviceIndependentIntRect;
@@ -24,13 +23,7 @@ use style_traits::CSSPixel;
 use webdriver::error::ErrorStatus;
 use webrender_api::units::DevicePixel;
 
-use crate::{
-    JSValue, JavaScriptEvaluationError, MouseButton, MouseButtonAction, ScreenshotCaptureError,
-    TraversalId,
-};
-
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
-pub struct WebDriverInputEventId(pub usize);
+use crate::{InputEvent, JSValue, JavaScriptEvaluationError, ScreenshotCaptureError, TraversalId};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum WebDriverUserPrompt {
@@ -79,9 +72,6 @@ impl WebDriverUserPromptAction {
 /// Messages to the constellation originating from the WebDriver server.
 #[derive(Debug)]
 pub enum WebDriverCommandMsg {
-    /// Used in the initialization of the WebDriver server to set the sender for sending responses
-    /// back to the WebDriver client. It is set to constellation for now
-    SetWebDriverResponseSender(IpcSender<WebDriverCommandResponse>),
     /// Get the window rectangle.
     GetWindowRect(WebViewId, IpcSender<DeviceIndependentIntRect>),
     /// Get the viewport size.
@@ -97,45 +87,10 @@ pub enum WebDriverCommandMsg {
     /// Pass a webdriver command to the script thread of the current pipeline
     /// of a browsing context.
     ScriptCommand(BrowsingContextId, WebDriverScriptCommand),
-    /// Dispatch composition event from element send keys command.
-    DispatchComposition(WebViewId, CompositionEvent),
-    /// Act as if keys were pressed or release in the browsing context with the given ID.
-    KeyboardAction(
-        WebViewId,
-        KeyboardEvent,
-        // Should never be None.
-        Option<WebDriverInputEventId>,
-    ),
-    /// Act as if the mouse was clicked in the browsing context with the given ID.
-    MouseButtonAction(
-        WebViewId,
-        MouseButtonAction,
-        MouseButton,
-        f32,
-        f32,
-        // Should never be None.
-        Option<WebDriverInputEventId>,
-    ),
-    /// Act as if the mouse was moved in the browsing context with the given ID.
-    MouseMoveAction(
-        WebViewId,
-        f32,
-        f32,
-        // None if it's not the last `perform_pointer_move` since we only
-        // expect one response from constellation for each tick actions.
-        Option<WebDriverInputEventId>,
-    ),
-    /// Act as if the mouse wheel is scrolled in the browsing context given the given ID.
-    WheelScrollAction(
-        WebViewId,
-        f64,
-        f64,
-        f64,
-        f64,
-        // None if it's not the last `perform_wheel_scroll` since we only
-        // expect one response from constellation for each tick actions.
-        Option<WebDriverInputEventId>,
-    ),
+    /// Dispatch an input event to the given [`WebView`]. Once the event has been handled in the
+    /// page DOM a single message should be sent through the [`Sender`], if provided, informing the
+    /// WebDriver server that the inpute event has been handled.
+    InputEvent(WebViewId, InputEvent, Option<Sender<()>>),
     /// Set the outer window rectangle.
     SetWindowRect(
         WebViewId,
@@ -262,11 +217,6 @@ pub type WebDriverJSResult = Result<JSValue, JavaScriptEvaluationError>;
 pub enum WebDriverFrameId {
     Short(u16),
     Element(String),
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct WebDriverCommandResponse {
-    pub id: WebDriverInputEventId,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

@@ -14,7 +14,7 @@ mod timeout;
 mod user_prompt;
 
 use std::borrow::ToOwned;
-use std::cell::{Cell, LazyCell};
+use std::cell::{Cell, LazyCell, RefCell};
 use std::collections::{BTreeMap, HashMap};
 use std::io::Cursor;
 use std::net::{SocketAddr, SocketAddrV4};
@@ -27,12 +27,11 @@ use base::id::{BrowsingContextId, WebViewId};
 use base64::Engine;
 use capabilities::ServoCapabilities;
 use cookie::{CookieBuilder, Expiration, SameSite};
-use crossbeam_channel::{Sender, after, select};
+use crossbeam_channel::{Receiver, Sender, after, select, unbounded};
 use embedder_traits::{
-    EventLoopWaker, JSValue, JavaScriptEvaluationError,
+    EventLoopWaker, ImeEvent, InputEvent, JSValue, JavaScriptEvaluationError,
     JavaScriptEvaluationResultSerializationError, MouseButton, WebDriverCommandMsg,
-    WebDriverCommandResponse, WebDriverFrameId, WebDriverInputEventId, WebDriverJSResult,
-    WebDriverLoadStatus, WebDriverScriptCommand,
+    WebDriverFrameId, WebDriverJSResult, WebDriverLoadStatus, WebDriverScriptCommand,
 };
 use euclid::{Point2D, Rect, Size2D};
 use http::method::Method;
@@ -78,26 +77,6 @@ use crate::actions::{InputSourceState, PointerInputState};
 use crate::session::{PageLoadStrategy, WebDriverSession};
 use crate::timeout::DEFAULT_PAGE_LOAD_TIMEOUT;
 
-#[derive(Default)]
-pub struct WebDriverMessageIdGenerator {
-    counter: Cell<usize>,
-}
-
-impl WebDriverMessageIdGenerator {
-    pub fn new() -> Self {
-        Self {
-            counter: Cell::new(0),
-        }
-    }
-
-    /// Returns a unique ID.
-    pub fn next(&self) -> WebDriverInputEventId {
-        let id = self.counter.get();
-        self.counter.set(id + 1);
-        WebDriverInputEventId(id)
-    }
-}
-
 fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
     vec![
         (
@@ -138,13 +117,8 @@ pub fn start_server(
     port: u16,
     embedder_sender: Sender<WebDriverCommandMsg>,
     event_loop_waker: Box<dyn EventLoopWaker>,
-    webdriver_response_receiver: IpcReceiver<WebDriverCommandResponse>,
 ) {
-    let handler = Handler::new(
-        embedder_sender,
-        event_loop_waker,
-        webdriver_response_receiver,
-    );
+    let handler = Handler::new(embedder_sender, event_loop_waker);
 
     thread::Builder::new()
         .name("WebDriverHttpServer".to_owned())
@@ -184,12 +158,11 @@ struct Handler {
     /// An [`EventLoopWaker`] which is used to wake up the embedder event loop.
     event_loop_waker: Box<dyn EventLoopWaker>,
 
-    /// Receiver notification from the constellation when a command is completed
-    webdriver_response_receiver: IpcReceiver<WebDriverCommandResponse>,
-
-    id_generator: WebDriverMessageIdGenerator,
-
-    current_action_id: Cell<Option<WebDriverInputEventId>>,
+    /// A list of [`Receiver`]s that are used to track when input events are handled in the DOM.
+    /// Once these receivers receive a response, we know that the event has been handled.
+    ///
+    /// TODO: Once we upgrade crossbeam-channel this can be replaced with a `WaitGroup`.
+    pending_input_event_receivers: RefCell<Vec<Receiver<()>>>,
 
     /// Number of pending actions of which WebDriver is waiting for responses.
     num_pending_actions: Cell<u32>,
@@ -416,7 +389,6 @@ impl Handler {
     pub fn new(
         embedder_sender: Sender<WebDriverCommandMsg>,
         event_loop_waker: Box<dyn EventLoopWaker>,
-        webdriver_response_receiver: IpcReceiver<WebDriverCommandResponse>,
     ) -> Handler {
         // Create a pair of both an IPC and a threaded channel,
         // keep the IPC sender to clone and pass to the constellation for each load,
@@ -432,9 +404,7 @@ impl Handler {
             session: None,
             embedder_sender,
             event_loop_waker,
-            webdriver_response_receiver,
-            id_generator: WebDriverMessageIdGenerator::new(),
-            current_action_id: Cell::new(None),
+            pending_input_event_receivers: Default::default(),
             num_pending_actions: Cell::new(0),
         }
     }
@@ -453,10 +423,28 @@ impl Handler {
             .ok_or_else(|| WebDriverError::new(ErrorStatus::UnknownError, "No webview available"))
     }
 
-    fn increment_num_pending_actions(&self) {
-        // Increase the num_pending_actions by one every time we dispatch non null actions.
-        self.num_pending_actions
-            .set(self.num_pending_actions.get() + 1);
+    fn send_input_event_to_embedder(&self, input_event: InputEvent) {
+        let _ = self.send_message_to_embedder(WebDriverCommandMsg::InputEvent(
+            self.verified_webview_id(),
+            input_event,
+            None,
+        ));
+    }
+
+    fn send_blocking_input_event_to_embedder(&self, input_event: InputEvent) {
+        let (result_sender, result_receiver) = unbounded();
+        if self
+            .send_message_to_embedder(WebDriverCommandMsg::InputEvent(
+                self.verified_webview_id(),
+                input_event,
+                Some(result_sender),
+            ))
+            .is_ok()
+        {
+            self.pending_input_event_receivers
+                .borrow_mut()
+                .push(result_receiver);
+        }
     }
 
     fn send_message_to_embedder(&self, msg: WebDriverCommandMsg) -> WebDriverResult<()> {
@@ -2229,9 +2217,9 @@ impl Handler {
                     }
                 },
                 DispatchStringEvent::Composition(event) => {
-                    let cmd_msg =
-                        WebDriverCommandMsg::DispatchComposition(self.webview_id()?, event);
-                    self.send_message_to_embedder(cmd_msg)?;
+                    self.send_input_event_to_embedder(InputEvent::Ime(ImeEvent::Composition(
+                        event,
+                    )));
                 },
             }
         }

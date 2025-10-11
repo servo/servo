@@ -4573,11 +4573,7 @@ where
             WebDriverCommandMsg::MaximizeWebView(..) |
             WebDriverCommandMsg::LoadUrl(..) |
             WebDriverCommandMsg::Refresh(..) |
-            WebDriverCommandMsg::DispatchComposition(..) |
-            WebDriverCommandMsg::KeyboardAction(..) |
-            WebDriverCommandMsg::MouseButtonAction(..) |
-            WebDriverCommandMsg::MouseMoveAction(..) |
-            WebDriverCommandMsg::WheelScrollAction(..) |
+            WebDriverCommandMsg::InputEvent(..) |
             WebDriverCommandMsg::TakeScreenshot(..) => {
                 unreachable!("This command should be send directly to the embedder.");
             },

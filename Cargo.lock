@@ -9859,6 +9859,7 @@ dependencies = [
  "time",
  "uuid",
  "webdriver",
+ "webrender_api",
 ]
 
 [[package]]

@@ -7,10 +7,14 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use base::id::BrowsingContextId;
-use embedder_traits::{MouseButtonAction, WebDriverCommandMsg, WebDriverScriptCommand};
+use crossbeam_channel::Select;
+use embedder_traits::{
+    InputEvent, KeyboardEvent, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
+    WebDriverCommandMsg, WebDriverScriptCommand, WheelDelta, WheelEvent, WheelMode,
+};
 use ipc_channel::ipc;
 use keyboard_types::webdriver::KeyInputState;
-use log::{error, info};
+use log::info;
 use rustc_hash::FxHashSet;
 use webdriver::actions::{
     ActionSequence, ActionsType, GeneralAction, KeyAction, KeyActionItem, KeyDownAction,
@@ -20,6 +24,7 @@ use webdriver::actions::{
 };
 use webdriver::command::ActionsParameters;
 use webdriver::error::{ErrorStatus, WebDriverError};
+use webrender_api::units::DevicePoint;
 
 use crate::{Handler, VerifyBrowsingContextIsOpen, WebElement, wait_for_ipc_response};
 
@@ -139,18 +144,10 @@ impl Handler {
         browsing_context: BrowsingContextId,
     ) -> Result<(), ErrorStatus> {
         // Step 1. Wait for an action queue token with input state.
-        let new_token = self.id_generator.next();
-        assert!(self.current_action_id.get().is_none());
-        self.current_action_id.set(Some(new_token));
-
         // Step 2. Let actions result be the result of dispatch actions inner.
-        let res = self.dispatch_actions_inner(actions_by_tick, browsing_context);
-
         // Step 3. Dequeue input state's actions queue.
-        self.current_action_id.set(None);
-
         // Step 4. Return actions result.
-        res
+        self.dispatch_actions_inner(actions_by_tick, browsing_context)
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-actions-inner>
@@ -198,29 +195,20 @@ impl Handler {
     }
 
     fn wait_for_user_agent_handling_complete(&self) -> Result<(), ErrorStatus> {
-        // To ensure we wait for all events to be processed, only the last event
-        // in each tick action step holds the message id.
-        // Whenever a new event is generated, the message id is passed to it.
-        //
-        // Wait for num_pending_actions number of responses
-        for _ in 0..self.num_pending_actions.get() {
-            match self.webdriver_response_receiver.recv() {
-                Ok(response) => {
-                    let current_waiting_id = self
-                        .current_action_id
-                        .get()
-                        .expect("Current id should be set before dispatch_actions_inner is called");
+        let mut pending_event_receivers =
+            std::mem::take(&mut *self.pending_input_event_receivers.borrow_mut());
 
-                    if current_waiting_id != response.id {
-                        error!("Dispatch actions completed with wrong id in response");
-                        return Err(ErrorStatus::UnknownError);
-                    }
-                },
-                Err(error) => {
-                    error!("Dispatch actions completed with IPC error: {error}");
-                    return Err(ErrorStatus::UnknownError);
-                },
-            };
+        while !pending_event_receivers.is_empty() {
+            let mut select = Select::new();
+            for receiver in &pending_event_receivers {
+                select.recv(receiver);
+            }
+
+            let operation = select.select();
+            let index = operation.index();
+            let _ = operation.recv(&pending_event_receivers[index]);
+
+            pending_event_receivers.remove(index);
         }
 
         self.num_pending_actions.set(0);
@@ -318,12 +306,14 @@ impl Handler {
 
         let keyboard_event = key_input_state.dispatch_keydown(raw_key);
 
-        // Step 12
-        self.increment_num_pending_actions();
-        let msg_id = self.current_action_id.get();
-        let cmd_msg =
-            WebDriverCommandMsg::KeyboardAction(self.verified_webview_id(), keyboard_event, msg_id);
-        let _ = self.send_message_to_embedder(cmd_msg);
+        // Step 12: Perform implementation-specific action dispatch steps on browsing
+        // context equivalent to pressing a key on the keyboard in accordance with the
+        // requirements of [UI-EVENTS], and producing the following events, as
+        // appropriate, with the specified properties. This will always produce events
+        // including at least a keyDown event.
+        self.send_blocking_input_event_to_embedder(InputEvent::Keyboard(KeyboardEvent::new(
+            keyboard_event,
+        )));
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-keyup-action>
@@ -350,17 +340,15 @@ impl Handler {
             _ => unreachable!(),
         };
 
-        if let Some(keyboard_event) = key_input_state.dispatch_keyup(raw_key) {
-            // Step 12
-            self.increment_num_pending_actions();
-            let msg_id = self.current_action_id.get();
-            let cmd_msg = WebDriverCommandMsg::KeyboardAction(
-                self.verified_webview_id(),
-                keyboard_event,
-                msg_id,
-            );
-            let _ = self.send_message_to_embedder(cmd_msg);
-        }
+        // Step 12: Perform implementation-specific action dispatch steps on browsing
+        // context equivalent to releasing a key on the keyboard in accordance with the
+        // requirements of [UI-EVENTS], ...
+        let Some(keyboard_event) = key_input_state.dispatch_keyup(raw_key) else {
+            return;
+        };
+        self.send_blocking_input_event_to_embedder(InputEvent::Keyboard(KeyboardEvent::new(
+            keyboard_event,
+        )));
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerdown-action>
@@ -379,19 +367,14 @@ impl Handler {
         // Step 6. Add button to the set corresponding to source's pressed property
         pointer_input_state.pressed.insert(action.button);
         // Step 7 - 15: Variable namings already done.
+
         // Step 16. Perform implementation-specific action dispatch steps
         // TODO: We have not considered pen/touch pointer type
-        self.increment_num_pending_actions();
-        let msg_id = self.current_action_id.get();
-        let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
-            self.verified_webview_id(),
+        self.send_blocking_input_event_to_embedder(InputEvent::MouseButton(MouseButtonEvent::new(
             MouseButtonAction::Down,
             action.button.into(),
-            x as f32,
-            y as f32,
-            msg_id,
-        );
-        let _ = self.send_message_to_embedder(cmd_msg);
+            DevicePoint::new(x as f32, y as f32),
+        )));
 
         // Step 17. Return success with data null.
     }
@@ -423,17 +406,11 @@ impl Handler {
         }
 
         // Step 7. Perform implementation-specific action dispatch steps
-        self.increment_num_pending_actions();
-        let msg_id = self.current_action_id.get();
-        let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
-            self.verified_webview_id(),
+        self.send_blocking_input_event_to_embedder(InputEvent::MouseButton(MouseButtonEvent::new(
             MouseButtonAction::Up,
             action.button.into(),
-            x as f32,
-            y as f32,
-            msg_id,
-        );
-        let _ = self.send_message_to_embedder(cmd_msg);
+            DevicePoint::new(x as f32, y as f32),
+        )));
 
         // Step 8. Return success with data null.
     }
@@ -546,23 +523,18 @@ impl Handler {
 
             // Step 7. If x != current x or y != current y, run the following steps:
             // FIXME: Actually "last" should not be checked here based on spec.
-            // However, we need to send the webdriver id at the final perform.
             if x != current_x || y != current_y || last {
                 // Step 7.1. Let buttons be equal to input state's buttons property.
                 // Step 7.2. Perform implementation-specific action dispatch steps
-                let msg_id = if last {
-                    self.increment_num_pending_actions();
-                    self.current_action_id.get()
+                let input_event = InputEvent::MouseMove(MouseMoveEvent::new(DevicePoint::new(
+                    x as f32, y as f32,
+                )));
+                if last {
+                    self.send_blocking_input_event_to_embedder(input_event);
                 } else {
-                    None
-                };
-                let cmd_msg = WebDriverCommandMsg::MouseMoveAction(
-                    self.verified_webview_id(),
-                    x as f32,
-                    y as f32,
-                    msg_id,
-                );
-                let _ = self.send_message_to_embedder(cmd_msg);
+                    self.send_input_event_to_embedder(input_event);
+                }
+
                 // Step 7.3. Let input state's x property equal x and y property equal y.
                 let pointer_input_state = self.get_pointer_input_state_mut(source_id);
                 pointer_input_state.x = x;
@@ -716,21 +688,19 @@ impl Handler {
             // However, we need to send the webdriver id at the final perform.
             if delta_x != 0.0 || delta_y != 0.0 || last {
                 // Step 5.1. Perform implementation-specific action dispatch steps
-                let msg_id = if last {
-                    self.increment_num_pending_actions();
-                    self.current_action_id.get()
-                } else {
-                    None
+                let delta = WheelDelta {
+                    x: -delta_x,
+                    y: -delta_y,
+                    z: 0.0,
+                    mode: WheelMode::DeltaPixel,
                 };
-                let cmd_msg = WebDriverCommandMsg::WheelScrollAction(
-                    self.verified_webview_id(),
-                    x,
-                    y,
-                    delta_x,
-                    delta_y,
-                    msg_id,
-                );
-                let _ = self.send_message_to_embedder(cmd_msg);
+                let point = DevicePoint::new(x as f32, y as f32);
+                let input_event = InputEvent::Wheel(WheelEvent::new(delta, point));
+                if last {
+                    self.send_blocking_input_event_to_embedder(input_event);
+                } else {
+                    self.send_input_event_to_embedder(input_event);
+                }
 
                 // Step 5.2. Let current delta x property equal delta x + current delta x
                 // and current delta y property equal delta y + current delta y.

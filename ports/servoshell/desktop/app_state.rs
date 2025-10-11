@@ -9,7 +9,7 @@ use std::mem;
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use crossbeam_channel::Receiver;
+use crossbeam_channel::{Receiver, Sender};
 use image::{DynamicImage, ImageFormat};
 use log::{error, info};
 use servo::base::generic_channel::GenericSender;
@@ -20,9 +20,9 @@ use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
     InputEvent, InputEventId, InputEventResult, JSValue, LoadStatus, PermissionRequest, Servo,
-    ServoDelegate, ServoError, SimpleDialog, TraversalId, WebDriverCommandMsg,
-    WebDriverCommandResponse, WebDriverInputEventId, WebDriverJSResult, WebDriverLoadStatus,
-    WebDriverSenders, WebDriverUserPrompt, WebView, WebViewBuilder, WebViewDelegate,
+    ServoDelegate, ServoError, SimpleDialog, TraversalId, WebDriverCommandMsg, WebDriverJSResult,
+    WebDriverLoadStatus, WebDriverSenders, WebDriverUserPrompt, WebView, WebViewBuilder,
+    WebViewDelegate,
 };
 use url::Url;
 
@@ -49,8 +49,6 @@ pub(crate) struct RunningAppState {
     /// A [`Receiver`] for receiving commands from a running WebDriver server, if WebDriver
     /// was enabled.
     webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
-    /// An [`IpcSender`] to inform WebDriver that an input event has been handled by Servo.
-    webdriver_event_handled_sender: Option<IpcSender<WebDriverCommandResponse>>,
     webdriver_senders: RefCell<WebDriverSenders>,
     inner: RefCell<RunningAppStateInner>,
 }
@@ -99,7 +97,7 @@ pub struct RunningAppStateInner {
     /// A [`HashMap`] of pending WebDriver events. It is the WebDriver embedder's responsibility
     /// to inform the WebDriver server when the event has been fully handled. This map is used
     /// to report back to WebDriver when that happens.
-    pending_webdriver_events: HashMap<InputEventId, WebDriverInputEventId>,
+    pending_webdriver_events: HashMap<InputEventId, Sender<()>>,
 }
 
 impl Drop for RunningAppState {
@@ -114,7 +112,6 @@ impl RunningAppState {
         window: Rc<dyn WindowPortsMethods>,
         servoshell_preferences: ServoShellPreferences,
         webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
-        webdriver_event_handled_sender: Option<IpcSender<WebDriverCommandResponse>>,
     ) -> RunningAppState {
         servo.set_delegate(Rc::new(ServoShellServoDelegate));
         RunningAppState {
@@ -122,7 +119,6 @@ impl RunningAppState {
             servoshell_preferences,
             webdriver_receiver,
             webdriver_senders: RefCell::default(),
-            webdriver_event_handled_sender,
             inner: RefCell::new(RunningAppStateInner {
                 webviews: HashMap::default(),
                 creation_order: Default::default(),
@@ -525,7 +521,7 @@ impl RunningAppState {
         &self,
         webview_id: WebViewId,
         input_event: InputEvent,
-        webdriver_event_id: Option<WebDriverInputEventId>,
+        response_sender: Option<Sender<()>>,
     ) {
         let Some(webview) = self.webview_by_id(webview_id) else {
             error!("Could not find WebView ({webview_id:?}) for WebDriver event: {input_event:?}");
@@ -534,10 +530,10 @@ impl RunningAppState {
 
         let event_id = webview.notify_input_event(input_event);
 
-        if let Some(webdriver_event_id) = webdriver_event_id {
+        if let Some(response_sender) = response_sender {
             self.inner_mut()
                 .pending_webdriver_events
-                .insert(event_id, webdriver_event_id);
+                .insert(event_id, response_sender);
         }
     }
 }
@@ -691,13 +687,8 @@ impl WebViewDelegate for RunningAppState {
             .window
             .notify_input_event_handled(&webview, id, result);
 
-        if let Some(event_handled_sender) = self.webdriver_event_handled_sender.as_ref() {
-            if let Some(webdriver_event_id) = self.inner_mut().pending_webdriver_events.remove(&id)
-            {
-                let _ = event_handled_sender.send(WebDriverCommandResponse {
-                    id: webdriver_event_id,
-                });
-            }
+        if let Some(response_sender) = self.inner_mut().pending_webdriver_events.remove(&id) {
+            let _ = response_sender.send(());
         }
     }
 
