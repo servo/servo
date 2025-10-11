@@ -252,7 +252,7 @@ impl Range {
             .unwrap();
         if start_node_root != node_root {
             // Step 1.
-            return Err(Error::WrongDocument);
+            return Err(Error::WrongDocument(None));
         }
         if node.is_doctype() {
             // Step 2.
@@ -505,7 +505,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             .unwrap();
         if this_root != other_root {
             // Step 2.
-            return Err(Error::WrongDocument);
+            return Err(Error::WrongDocument(None));
         }
         // Step 3.
         let (this_point, other_point) = match how {
@@ -543,7 +543,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             Ok(Ordering::Less) => Ok(false),
             Ok(Ordering::Equal) => Ok(true),
             Ok(Ordering::Greater) => Ok(false),
-            Err(Error::WrongDocument) => {
+            Err(Error::WrongDocument(None)) => {
                 // Step 2.
                 Ok(false)
             },
