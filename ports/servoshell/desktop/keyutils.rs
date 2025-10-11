@@ -589,7 +589,7 @@ fn keyboard_modifiers_from_winit_modifiers(mods: ModifiersState) -> Modifiers {
 }
 
 pub fn keyboard_event_from_winit(key_event: &KeyEvent, state: ModifiersState) -> KeyboardEvent {
-    KeyboardEvent::new_without_event(
+    let mut ev = KeyboardEvent::new_without_event(
         KeyState::from_winit_key_event(key_event),
         Key::from_winit_key_event(key_event),
         Code::from_winit_key_event(key_event),
@@ -597,5 +597,500 @@ pub fn keyboard_event_from_winit(key_event: &KeyEvent, state: ModifiersState) ->
         keyboard_modifiers_from_winit_modifiers(state),
         false,
         false,
-    )
+    );
+
+    // On macOS, certain keyboard layouts like "Dvorak – QWERTY (⌘)" and "Colemak – QWERTY (⌘)"
+    // use QWERTY positions specifically for Command shortcuts while maintaining the base layout
+    // for regular typing. Respect that by mapping Command-modified keys to US-QWERTY positions
+    // based on the physical key Code.
+    //
+    // This remapping is DISABLED by default and enabled in three ways:
+    // 1. Explicit: SERVO_ENABLE_MACOS_QWERTY_COMMAND=1
+    // 2. Automatic: TIS API detects a "QWERTY ⌘" layout variant (macOS 10.5+)
+    // 3. Legacy: SERVO_DISABLE_MACOS_QWERTY_COMMAND=0 (deprecated)
+    //
+    // Related: https://github.com/alacritty/alacritty/issues/458
+    #[cfg(target_os = "macos")]
+    {
+        if ev.event.modifiers.contains(Modifiers::META) && should_enable_qwerty_command_remapping()
+        {
+            let shift = ev.event.modifiers.contains(Modifiers::SHIFT);
+            if let Some(ch) = us_qwerty_char_for_code(ev.event.code, shift) {
+                ev.event.key = Key::Character(ch.to_string());
+            }
+        }
+    }
+
+    ev
+}
+
+#[cfg(target_os = "macos")]
+mod macos_keyboard_detection {
+    use std::ffi::{c_char, c_void};
+    use std::sync::OnceLock;
+
+    // CoreFoundation and Text Input Services types
+    type CFTypeRef = *const c_void;
+    type CFStringRef = *const c_void;
+    type TISInputSourceRef = *const c_void;
+    type CFIndex = isize;
+    type CFStringEncoding = u32;
+    type Boolean = u8;
+
+    const K_CF_STRING_ENCODING_UTF8: CFStringEncoding = 0x08000100;
+
+    #[link(name = "CoreFoundation", kind = "framework")]
+    unsafe extern "C" {
+        // TIS (Text Input Services) functions
+        fn TISCopyCurrentKeyboardInputSource() -> TISInputSourceRef;
+        fn TISGetInputSourceProperty(source: TISInputSourceRef, key: CFStringRef) -> CFTypeRef;
+
+        // CoreFoundation functions
+        fn CFRelease(cf: CFTypeRef);
+        fn CFStringGetLength(s: CFStringRef) -> CFIndex;
+        fn CFStringGetMaximumSizeForEncoding(len: CFIndex, encoding: CFStringEncoding) -> CFIndex;
+        fn CFStringGetCString(
+            s: CFStringRef,
+            buffer: *mut c_char,
+            buffer_size: CFIndex,
+            encoding: CFStringEncoding,
+        ) -> Boolean;
+
+        // Constants
+        static kTISPropertyInputSourceID: CFStringRef;
+    }
+
+    /// Convert a CFStringRef to a Rust String
+    ///
+    /// # Safety
+    /// - `cf_string` must be a valid, non-null CFStringRef
+    /// - Caller must ensure the CFStringRef remains valid for the duration of this call
+    /// - This function does NOT take ownership and will not release the CFStringRef
+    unsafe fn cf_string_to_string(cf_string: CFStringRef) -> Option<String> {
+        if cf_string.is_null() {
+            return None;
+        }
+
+        // SAFETY: CFStringGetLength is safe to call on a valid CFStringRef
+        let length = unsafe { CFStringGetLength(cf_string) };
+        if length == 0 {
+            return Some(String::new());
+        }
+
+        // SAFETY: CFStringGetMaximumSizeForEncoding is safe to call
+        let max_size =
+            unsafe { CFStringGetMaximumSizeForEncoding(length, K_CF_STRING_ENCODING_UTF8) };
+        if max_size == 0 {
+            return None;
+        }
+
+        // Allocate buffer for C string
+        let buffer_size = max_size + 1; // +1 for null terminator
+        let mut buffer = vec![0u8; buffer_size as usize];
+
+        // SAFETY: buffer is properly allocated and cf_string is valid
+        let success = unsafe {
+            CFStringGetCString(
+                cf_string,
+                buffer.as_mut_ptr() as *mut c_char,
+                buffer_size,
+                K_CF_STRING_ENCODING_UTF8,
+            )
+        };
+
+        if success == 0 {
+            return None;
+        }
+
+        // Find null terminator and convert to String
+        if let Some(null_pos) = buffer.iter().position(|&b| b == 0) {
+            buffer.truncate(null_pos);
+            String::from_utf8(buffer).ok()
+        } else {
+            None
+        }
+    }
+
+    /// Detect if the current macOS keyboard layout is a "QWERTY ⌘" variant
+    ///
+    /// Returns:
+    /// - `Some(true)` if the layout ID contains "qwerty" (case-insensitive)
+    /// - `Some(false)` if a layout is detected but doesn't contain "qwerty"
+    /// - `None` if detection fails (API unavailable, errors, etc.)
+    ///
+    /// This function caches its result on first call for performance.
+    /// The cache is process-wide and does not update if the keyboard layout changes at runtime.
+    ///
+    /// # Examples
+    ///
+    /// Layout IDs that would return `Some(true)`:
+    /// - `com.apple.keylayout.Dvorak-QWERTY⌘`
+    /// - `com.apple.keylayout.Colemak-QWERTY⌘`
+    ///
+    /// Layout IDs that would return `Some(false)`:
+    /// - `com.apple.keylayout.Dvorak`
+    /// - `com.apple.keylayout.Colemak`
+    /// - `com.apple.keylayout.US`
+    pub(super) fn is_qwerty_command_layout() -> Option<bool> {
+        static CACHED_RESULT: OnceLock<Option<bool>> = OnceLock::new();
+
+        *CACHED_RESULT.get_or_init(|| unsafe {
+            // SAFETY: TISCopyCurrentKeyboardInputSource returns a retained (owned) reference
+            // following the "Create Rule" in CoreFoundation memory management.
+            // We must release it exactly once when done.
+            let input_source = TISCopyCurrentKeyboardInputSource();
+            if input_source.is_null() {
+                return None;
+            }
+
+            // SAFETY: kTISPropertyInputSourceID is a valid constant CFStringRef
+            // TISGetInputSourceProperty returns an unretained (borrowed) reference - do NOT release
+            let property = TISGetInputSourceProperty(input_source, kTISPropertyInputSourceID);
+
+            // We must release the input_source before returning
+            let result = if property.is_null() {
+                None
+            } else {
+                // SAFETY: property is a valid CFStringRef (unretained, so no need to release)
+                let layout_id = cf_string_to_string(property as CFStringRef)?;
+
+                // Check if the layout ID contains "qwerty" (case-insensitive)
+                // Examples: "com.apple.keylayout.Dvorak-QWERTY⌘", "com.apple.keylayout.Colemak-QWERTY⌘"
+                Some(layout_id.to_ascii_lowercase().contains("qwerty"))
+            };
+
+            // SAFETY: input_source is non-null and was returned by a Create-rule function
+            // Must be released exactly once
+            CFRelease(input_source as CFTypeRef);
+
+            result
+        })
+    }
+}
+
+#[cfg(target_os = "macos")]
+use macos_keyboard_detection::is_qwerty_command_layout;
+
+/// Determines whether to enable US-QWERTY remapping for Command shortcuts on macOS.
+///
+/// This function supports three modes of operation:
+///
+/// 1. **Explicit Enable**: Set `SERVO_ENABLE_MACOS_QWERTY_COMMAND=1` to always enable remapping.
+/// 2. **Explicit Disable**: Set `SERVO_ENABLE_MACOS_QWERTY_COMMAND=0` (or the legacy
+///    `SERVO_DISABLE_MACOS_QWERTY_COMMAND=1`) to always disable remapping.
+/// 3. **Automatic Detection** (default): On macOS 10.5+, uses the Text Input Services (TIS) API
+///    to detect if the current keyboard layout is a "QWERTY ⌘" variant (e.g., "Dvorak – QWERTY ⌘").
+///    If the layout ID contains "qwerty" (case-insensitive), remapping is enabled.
+///    If detection fails or the layout doesn't contain "qwerty", remapping is disabled.
+///
+/// The explicit environment variables take precedence over automatic detection.
+/// If neither is set, automatic detection is used, defaulting to disabled on failure.
+///
+/// # Examples
+///
+/// ```bash
+/// # Enable remapping regardless of layout:
+/// SERVO_ENABLE_MACOS_QWERTY_COMMAND=1 ./servo
+///
+/// # Disable remapping regardless of layout:
+/// SERVO_ENABLE_MACOS_QWERTY_COMMAND=0 ./servo
+///
+/// # Use automatic detection (default):
+/// ./servo
+/// ```
+fn should_enable_qwerty_command_remapping() -> bool {
+    // Check explicit enable first
+    if let Ok(val) = std::env::var("SERVO_ENABLE_MACOS_QWERTY_COMMAND") {
+        return val == "1";
+    }
+
+    // Check legacy disable variable for backward compatibility
+    if let Ok(val) = std::env::var("SERVO_DISABLE_MACOS_QWERTY_COMMAND") {
+        return val != "1";
+    }
+
+    // Use automatic detection on macOS
+    #[cfg(target_os = "macos")]
+    {
+        // If detection succeeds and layout contains "qwerty", enable remapping
+        if let Some(is_qwerty) = is_qwerty_command_layout() {
+            return is_qwerty;
+        }
+    }
+
+    // Default to disabled if detection is unavailable or fails
+    false
+}
+
+/// Maps physical key codes to US-QWERTY characters for macOS Command shortcuts.
+///
+/// This handles both unshifted and shifted characters to support shortcuts like:
+/// - Cmd+= (unshifted) and Cmd+Shift+= (gives '+' for zoom in)
+/// - Cmd+[ / Cmd+] (navigation)
+/// - Cmd+{ / Cmd+} (shifted brackets)
+///
+/// Returns None for keys that don't have printable QWERTY equivalents (function keys,
+/// numpad, arrows, etc.), preventing incorrect remapping of non-character shortcuts.
+#[cfg(target_os = "macos")]
+pub fn us_qwerty_char_for_code(code: Code, shift: bool) -> Option<char> {
+    use keyboard_types::Code::*;
+    let ch = match (code, shift) {
+        // Letters (lowercase unshifted, uppercase shifted)
+        (KeyA, false) => 'a',
+        (KeyA, true) => 'A',
+        (KeyB, false) => 'b',
+        (KeyB, true) => 'B',
+        (KeyC, false) => 'c',
+        (KeyC, true) => 'C',
+        (KeyD, false) => 'd',
+        (KeyD, true) => 'D',
+        (KeyE, false) => 'e',
+        (KeyE, true) => 'E',
+        (KeyF, false) => 'f',
+        (KeyF, true) => 'F',
+        (KeyG, false) => 'g',
+        (KeyG, true) => 'G',
+        (KeyH, false) => 'h',
+        (KeyH, true) => 'H',
+        (KeyI, false) => 'i',
+        (KeyI, true) => 'I',
+        (KeyJ, false) => 'j',
+        (KeyJ, true) => 'J',
+        (KeyK, false) => 'k',
+        (KeyK, true) => 'K',
+        (KeyL, false) => 'l',
+        (KeyL, true) => 'L',
+        (KeyM, false) => 'm',
+        (KeyM, true) => 'M',
+        (KeyN, false) => 'n',
+        (KeyN, true) => 'N',
+        (KeyO, false) => 'o',
+        (KeyO, true) => 'O',
+        (KeyP, false) => 'p',
+        (KeyP, true) => 'P',
+        (KeyQ, false) => 'q',
+        (KeyQ, true) => 'Q',
+        (KeyR, false) => 'r',
+        (KeyR, true) => 'R',
+        (KeyS, false) => 's',
+        (KeyS, true) => 'S',
+        (KeyT, false) => 't',
+        (KeyT, true) => 'T',
+        (KeyU, false) => 'u',
+        (KeyU, true) => 'U',
+        (KeyV, false) => 'v',
+        (KeyV, true) => 'V',
+        (KeyW, false) => 'w',
+        (KeyW, true) => 'W',
+        (KeyX, false) => 'x',
+        (KeyX, true) => 'X',
+        (KeyY, false) => 'y',
+        (KeyY, true) => 'Y',
+        (KeyZ, false) => 'z',
+        (KeyZ, true) => 'Z',
+        // Digits and shifted symbols
+        (Digit0, false) => '0',
+        (Digit0, true) => ')',
+        (Digit1, false) => '1',
+        (Digit1, true) => '!',
+        (Digit2, false) => '2',
+        (Digit2, true) => '@',
+        (Digit3, false) => '3',
+        (Digit3, true) => '#',
+        (Digit4, false) => '4',
+        (Digit4, true) => '$',
+        (Digit5, false) => '5',
+        (Digit5, true) => '%',
+        (Digit6, false) => '6',
+        (Digit6, true) => '^',
+        (Digit7, false) => '7',
+        (Digit7, true) => '&',
+        (Digit8, false) => '8',
+        (Digit8, true) => '*',
+        (Digit9, false) => '9',
+        (Digit9, true) => '(',
+        // Punctuation and shifted variants
+        (Minus, false) => '-',
+        (Minus, true) => '_',
+        (Equal, false) => '=',
+        (Equal, true) => '+',
+        (BracketLeft, false) => '[',
+        (BracketLeft, true) => '{',
+        (BracketRight, false) => ']',
+        (BracketRight, true) => '}',
+        (Backslash, false) => '\\',
+        (Backslash, true) => '|',
+        (Semicolon, false) => ';',
+        (Semicolon, true) => ':',
+        (Quote, false) => '\'',
+        (Quote, true) => '"',
+        (Backquote, false) => '`',
+        (Backquote, true) => '~',
+        (Comma, false) => ',',
+        (Comma, true) => '<',
+        (Period, false) => '.',
+        (Period, true) => '>',
+        (Slash, false) => '/',
+        (Slash, true) => '?',
+        // Space is intentionally not mapped to preserve its normal behavior
+        _ => return None,
+    };
+    Some(ch)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn test_us_qwerty_char_for_code_letters() {
+        // Unshifted letters
+        assert_eq!(us_qwerty_char_for_code(Code::KeyT, false), Some('t'));
+        assert_eq!(us_qwerty_char_for_code(Code::KeyK, false), Some('k'));
+        assert_eq!(us_qwerty_char_for_code(Code::KeyQ, false), Some('q'));
+        // Shifted letters
+        assert_eq!(us_qwerty_char_for_code(Code::KeyT, true), Some('T'));
+        assert_eq!(us_qwerty_char_for_code(Code::KeyK, true), Some('K'));
+        assert_eq!(us_qwerty_char_for_code(Code::KeyQ, true), Some('Q'));
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn test_us_qwerty_char_for_code_digits_and_punct() {
+        // Unshifted
+        assert_eq!(us_qwerty_char_for_code(Code::Digit1, false), Some('1'));
+        assert_eq!(us_qwerty_char_for_code(Code::BracketLeft, false), Some('['));
+        assert_eq!(us_qwerty_char_for_code(Code::Minus, false), Some('-'));
+        // Shifted
+        assert_eq!(us_qwerty_char_for_code(Code::Digit1, true), Some('!'));
+        assert_eq!(us_qwerty_char_for_code(Code::BracketLeft, true), Some('{'));
+        assert_eq!(us_qwerty_char_for_code(Code::Minus, true), Some('_'));
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn test_shifted_characters() {
+        // Critical shortcuts that require shifted mapping
+        assert_eq!(us_qwerty_char_for_code(Code::Equal, true), Some('+')); // Cmd+Shift+= (zoom in)
+        assert_eq!(us_qwerty_char_for_code(Code::BracketRight, true), Some('}'));
+        assert_eq!(us_qwerty_char_for_code(Code::Digit8, true), Some('*'));
+        assert_eq!(us_qwerty_char_for_code(Code::Slash, true), Some('?'));
+        assert_eq!(us_qwerty_char_for_code(Code::Backquote, true), Some('~'));
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn test_unmapped_keys_return_none() {
+        // Function keys
+        assert_eq!(us_qwerty_char_for_code(Code::F1, false), None);
+        assert_eq!(us_qwerty_char_for_code(Code::F12, false), None);
+        // Arrow keys
+        assert_eq!(us_qwerty_char_for_code(Code::ArrowUp, false), None);
+        assert_eq!(us_qwerty_char_for_code(Code::ArrowDown, false), None);
+        // Numpad (should use physical numpad keys, not remapped)
+        assert_eq!(us_qwerty_char_for_code(Code::Numpad5, false), None);
+        assert_eq!(us_qwerty_char_for_code(Code::NumpadEnter, false), None);
+        // Modifier keys
+        assert_eq!(us_qwerty_char_for_code(Code::ShiftLeft, false), None);
+        assert_eq!(us_qwerty_char_for_code(Code::ControlLeft, false), None);
+        assert_eq!(us_qwerty_char_for_code(Code::MetaLeft, false), None);
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn test_all_printable_keys_mapped() {
+        // Verify complete coverage of printable QWERTY keys
+        let letter_keys = vec![
+            Code::KeyA,
+            Code::KeyB,
+            Code::KeyC,
+            Code::KeyD,
+            Code::KeyE,
+            Code::KeyF,
+            Code::KeyG,
+            Code::KeyH,
+            Code::KeyI,
+            Code::KeyJ,
+            Code::KeyK,
+            Code::KeyL,
+            Code::KeyM,
+            Code::KeyN,
+            Code::KeyO,
+            Code::KeyP,
+            Code::KeyQ,
+            Code::KeyR,
+            Code::KeyS,
+            Code::KeyT,
+            Code::KeyU,
+            Code::KeyV,
+            Code::KeyW,
+            Code::KeyX,
+            Code::KeyY,
+            Code::KeyZ,
+        ];
+        for key in letter_keys {
+            assert!(
+                us_qwerty_char_for_code(key, false).is_some(),
+                "{:?} should be mapped (unshifted)",
+                key
+            );
+            assert!(
+                us_qwerty_char_for_code(key, true).is_some(),
+                "{:?} should be mapped (shifted)",
+                key
+            );
+        }
+
+        let digit_keys = vec![
+            Code::Digit0,
+            Code::Digit1,
+            Code::Digit2,
+            Code::Digit3,
+            Code::Digit4,
+            Code::Digit5,
+            Code::Digit6,
+            Code::Digit7,
+            Code::Digit8,
+            Code::Digit9,
+        ];
+        for key in digit_keys {
+            assert!(
+                us_qwerty_char_for_code(key, false).is_some(),
+                "{:?} should be mapped (unshifted)",
+                key
+            );
+            assert!(
+                us_qwerty_char_for_code(key, true).is_some(),
+                "{:?} should be mapped (shifted)",
+                key
+            );
+        }
+
+        let punct_keys = vec![
+            Code::Minus,
+            Code::Equal,
+            Code::BracketLeft,
+            Code::BracketRight,
+            Code::Backslash,
+            Code::Semicolon,
+            Code::Quote,
+            Code::Backquote,
+            Code::Comma,
+            Code::Period,
+            Code::Slash,
+        ];
+        for key in punct_keys {
+            assert!(
+                us_qwerty_char_for_code(key, false).is_some(),
+                "{:?} should be mapped (unshifted)",
+                key
+            );
+            assert!(
+                us_qwerty_char_for_code(key, true).is_some(),
+                "{:?} should be mapped (shifted)",
+                key
+            );
+        }
+    }
 }
