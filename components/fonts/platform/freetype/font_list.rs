@@ -150,15 +150,21 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
 
     add_noto_fallback_families(options.clone(), &mut families);
 
-    if matches!(
-        Script::from(options.character),
-        Script::Bopomofo | Script::Han
-    ) {
-        families.push("WenQuanYi Micro Hei");
-    }
-
     if let Some(block) = options.character.block() {
         match block {
+            // In Japanese typography, it is not common to use different fonts
+            // for Kanji(Han), Hiragana, and Katakana within the same document.
+            // We uniformly fallback to Japanese fonts when the document language is Japanese.
+            _ if options.lang == Some(String::from("ja")) => {
+                families.push("TakaoPGothic");
+            },
+            _ if matches!(
+                Script::from(options.character),
+                Script::Bopomofo | Script::Han
+            ) && options.lang != Some(String::from("ja")) =>
+            {
+                families.push("WenQuanYi Micro Hei");
+            },
             UnicodeBlock::HalfwidthandFullwidthForms |
             UnicodeBlock::EnclosedIdeographicSupplement => families.push("WenQuanYi Micro Hei"),
             UnicodeBlock::Hiragana |
