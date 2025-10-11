@@ -190,6 +190,12 @@ xi-unicode = "0.3.0"
 xml5ever = "0.35"
 xpath = { path = "components/xpath" }
 
+# Force tikv-jemalloc-sys to build with at least -O1.
+# This can help with build environments that force _FORTIFY_SOURCE, such as Nix.
+# More details: <https://github.com/tikv/jemallocator/issues/108>
+[profile.dev.package.tikv-jemalloc-sys]
+opt-level = 1
+
 [profile.release]
 opt-level = 3
 debug-assertions = true
