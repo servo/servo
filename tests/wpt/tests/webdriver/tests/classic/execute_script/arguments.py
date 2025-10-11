@@ -199,7 +199,7 @@ def test_element_reference(session, get_test_page, expression, expected_type):
 ], ids=["frame", "node", "shadow-root", "window"])
 def test_object_with_identifier_not_first_key(session, get_test_page, expression, expected_type):
     session.url = get_test_page(as_frame=False)
-    
+
     result = execute_script(session, f"return {expression}")
     reference = assert_success(result)
     value = {
