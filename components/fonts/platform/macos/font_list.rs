@@ -84,11 +84,20 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
             {
                 families.push("Lucida Grande");
             },
+            // In Japanese typography, it is not common to use different fonts
+            // for Kanji(Han), Hiragana, and Katakana within the same document. Since Hiragino supports
+            // a comprehensive set of Japanese kanji, we uniformly fallback to Hiragino for all Japanese text.
+            _ if options.lang == Some(String::from("ja")) => {
+                families.push("Hiragino Sans");
+                families.push("Hiragino Kaku Gothic ProN");
+            },
             // CJK-related script codes are a bit troublesome because of unification;
             // we'll probably just get HAN much of the time, so the choice of which
             // language font to try for fallback is rather arbitrary. Usually, though,
             // we hope that font prefs will have handled this earlier.
-            _ if matches!(script, Script::Bopomofo | Script::Han) => {
+            _ if matches!(script, Script::Bopomofo | Script::Han) &&
+                options.lang != Some(String::from("ja")) =>
+            {
                 // TODO: Need to differentiate between traditional and simplified Han here!
                 families.push("Songti SC");
                 if options.character as u32 > 0x10000 {
@@ -155,7 +164,7 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
         }
     }
 
-    add_noto_fallback_families(options, &mut families);
+    add_noto_fallback_families(options.clone(), &mut families);
 
     // https://en.wikipedia.org/wiki/Plane_(Unicode)#Supplementary_Multilingual_Plane
     let unicode_plane = unicode_plane(options.character);

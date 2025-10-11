@@ -39,10 +39,11 @@ pub(crate) enum EmojiPresentationPreference {
     Emoji,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct FallbackFontSelectionOptions {
     pub(crate) character: char,
     pub(crate) presentation_preference: EmojiPresentationPreference,
+    pub(crate) lang: Option<String>,
 }
 
 impl Default for FallbackFontSelectionOptions {
@@ -50,12 +51,13 @@ impl Default for FallbackFontSelectionOptions {
         Self {
             character: ' ',
             presentation_preference: EmojiPresentationPreference::None,
+            lang: None,
         }
     }
 }
 
 impl FallbackFontSelectionOptions {
-    pub(crate) fn new(character: char, next_character: Option<char>) -> Self {
+    pub(crate) fn new(character: char, next_character: Option<char>, lang: Option<String>) -> Self {
         let presentation_preference = match next_character {
             Some(next_character) if emoji::is_emoji_presentation_selector(next_character) => {
                 EmojiPresentationPreference::Emoji
@@ -83,6 +85,7 @@ impl FallbackFontSelectionOptions {
         Self {
             character,
             presentation_preference,
+            lang,
         }
     }
 }

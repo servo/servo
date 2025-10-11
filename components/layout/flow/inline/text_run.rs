@@ -485,11 +485,14 @@ impl TextRun {
                 }
             });
 
+            let lang = parent_style.get_font()._x_lang.clone();
+
             let Some(font) = font_group.write().find_by_codepoint(
                 font_context,
                 character,
                 next_character,
                 current_font,
+                Some(lang.0.as_ref().to_string()),
             ) else {
                 continue;
             };
