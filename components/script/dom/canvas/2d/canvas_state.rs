@@ -306,6 +306,13 @@ impl CanvasState {
     pub(super) fn set_bitmap_dimensions(&self, size: Size2D<u64>) {
         self.reset_to_initial_state();
 
+        // <https://html.spec.whatwg.org/multipage/#security-with-canvas-elements>
+        // The flag can be reset in certain situations; for example, when changing the value of the
+        // width or the height content attribute of the canvas element to which a
+        // CanvasRenderingContext2D is bound, the bitmap is cleared and its origin-clean flag is
+        // reset.
+        self.set_origin_clean(true);
+
         self.size.replace(adjust_canvas_size(size));
 
         self.ipc_renderer
@@ -364,8 +371,8 @@ impl CanvasState {
         self.origin_clean.get()
     }
 
-    fn set_origin_unclean(&self) {
-        self.origin_clean.set(false)
+    fn set_origin_clean(&self, origin_clean: bool) {
+        self.origin_clean.set(origin_clean);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-image-argument-is-not-origin-clean>
@@ -540,7 +547,7 @@ impl CanvasState {
         };
 
         if result.is_ok() && !self.is_origin_clean(image) {
-            self.set_origin_unclean()
+            self.set_origin_clean(false);
         }
         result
     }
@@ -1143,7 +1150,7 @@ impl CanvasState {
                 self.state.borrow_mut().stroke_style =
                     CanvasFillOrStrokeStyle::Pattern(Dom::from_ref(&*pattern));
                 if !pattern.origin_is_clean() {
-                    self.set_origin_unclean();
+                    self.set_origin_clean(false);
                 }
             },
         }
@@ -1186,7 +1193,7 @@ impl CanvasState {
                 self.state.borrow_mut().fill_style =
                     CanvasFillOrStrokeStyle::Pattern(Dom::from_ref(&*pattern));
                 if !pattern.origin_is_clean() {
-                    self.set_origin_unclean();
+                    self.set_origin_clean(false);
                 }
             },
         }
