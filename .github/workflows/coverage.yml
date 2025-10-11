@@ -121,10 +121,11 @@ jobs:
         id: concurrency
         run: | 
           echo "nproc: $(nproc)"
-          NUM_JOBS=$(($(nproc) / 4))
-          if [[ "${NUM_JOBS}" -eq "0" ]];
+          NUM_JOBS=$(nproc)
+          # Todo: a more sophisticated implementation would take into account available memory.
+          if [[ "${NUM_JOBS}" -ge "2" ]];
           then
-            NUM_JOBS=1
+            NUM_JOBS=2
           fi 
           echo "num_jobs=${NUM_JOBS}" | tee $GITHUB_OUTPUT
       - name: Run unit-tests with coverage
