@@ -28,6 +28,7 @@ class Workflow(str, Enum):
     ANDROID = "android"
     OHOS = "ohos"
     LINT = "lint"
+    COVERAGE = "coverage"
 
 
 @dataclass
@@ -72,6 +73,8 @@ class JobConfig(object):
             self.name = "Android"
         elif self.workflow is Workflow.OHOS:
             self.name = "OpenHarmony"
+        elif self.workflow is Workflow.COVERAGE:
+            self.name = "Coverage"
         modifier = []
         if self.profile != "release":
             modifier.append(self.profile.title())
@@ -100,6 +103,8 @@ def handle_preset(s: str) -> Optional[JobConfig]:
         return JobConfig("Android", Workflow.ANDROID)
     elif any(word in s for word in ["ohos", "openharmony"]):
         return JobConfig("OpenHarmony", Workflow.OHOS)
+    elif any(word in s for word in ["coverage", "test-coverage"]):
+        return JobConfig("Coverage", Workflow.COVERAGE)
     elif any(word in s for word in ["webgpu"]):
         return JobConfig(
             "WebGPU CTS",
@@ -196,6 +201,7 @@ class Config(object):
                 words.extend(["linux-unit-tests", "linux-wpt", "linux-bencher"])
                 words.extend(["macos-unit-tests", "windows-unit-tests", "android", "ohos", "lint"])
                 words.extend(["linux-build-libservo", "macos-build-libservo", "windows-build-libservo"])
+                words.extend(["coverage"])
                 continue  # skip over keyword
             if word == "bencher":
                 words.extend(["linux-bencher", "macos-bencher", "windows-bencher", "android-bencher", "ohos-bencher"])

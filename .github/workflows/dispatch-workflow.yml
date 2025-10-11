@@ -95,3 +95,10 @@ jobs:
     with:
       profile: ${{ inputs.profile }}
       bencher: ${{ inputs.bencher }}
+
+  coverage:
+    if: ${{ inputs.workflow == 'coverage' }}
+    name: Test Coverage
+    uses: ./.github/workflows/coverage.yml
+    secrets: inherit
+
