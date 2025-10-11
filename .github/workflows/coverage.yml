@@ -117,33 +117,34 @@ jobs:
           ./mach bootstrap --skip-lints
       # We need to reduce the concurrency to prevent OOM errors (when building / linking servo).
       # Adding the coverage instrumentation seems to increase the memory usage when building / linking.
-      - name: Determine concurrency
-        id: concurrency
+      - name: Determine options
+        id: options
         run: | 
           echo "nproc: $(nproc)"
           NUM_JOBS=$(nproc)
           # Todo: a more sophisticated implementation would take into account available memory.
-          if [[ "${NUM_JOBS}" -ge "6" ]];
+          if [[ ${{ runner.environment }} == 'self-hosted' ]];
           then
             NUM_JOBS=3
-          elif [[ "${NUM_JOBS}" -ge "4" ]];
-          then
-            NUM_JOBS=2
+            CARGO_PROFILE=dev
           else
             NUM_JOBS=1
+            # github hosted runners don't have enough diskspace for the dev profile.
+            CARGO_PROFILE=coverage
           fi 
           echo "num_jobs=${NUM_JOBS}" | tee $GITHUB_OUTPUT
+          echo "cargo_profile=${CARGO_PROFILE}" | tee $GITHUB_OUTPUT
       - name: Run unit-tests with coverage
         shell: bash
         run: | 
           ./mach test-unit --code-coverage \
+              --profile=${{ steps.options.outputs.cargo_profile }} \
               --llvm-cov-option=--codecov \
               --llvm-cov-option=--output-path=codecov.json \
-              --llvm-cov-option=--jobs=${{ steps.concurrency.outputs.num_jobs}}
+              --llvm-cov-option=--jobs=${{ steps.options.outputs.num_jobs}}
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          # todo: is the token recent, or needs to be updated?
           token: ${{ secrets.CODECOV_TOKEN }}
           files: codecov.json,support/crown/codecov.json
           fail_ci_if_error: true

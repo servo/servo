@@ -200,6 +200,13 @@ opt-level = 1
 opt-level = 3
 debug-assertions = true
 
+# Disk-space is limited in CI, so we disabled features that are not needed for code coverage.
+# Locally using the default `dev` profile is perfectly fine.
+[profile.coverage]
+inherits = "dev"
+incremental = false
+debug = false
+
 # A profile between `dev` and `release` which aims to offer a compromise between
 # fast incremental rebuilds and runtime speed.
 [profile.medium]
