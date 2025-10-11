@@ -3,12 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use net_traits::request::Request;
+use net_traits::response::Response;
 
 /// <https://fetch.spec.whatwg.org/#fetch-params-preloaded-response-candidate>
 #[derive(Clone)]
 pub(crate) enum PreloadResponseCandidate {
     None,
     Pending,
+    Response(Box<Response>),
 }
 
 /// <https://fetch.spec.whatwg.org/#fetch-params>

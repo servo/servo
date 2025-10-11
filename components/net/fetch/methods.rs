@@ -143,11 +143,15 @@ pub async fn fetch_with_cors_cache(
             assert!(request.origin == client.origin);
             // Step 10.2. Let onPreloadedResponseAvailable be an algorithm that runs the
             // following step given a response response: set fetchParams’s preloaded response candidate to response.
-            // TODO
+            let on_preloaded_response_available = |response| {
+                fetch_params.preload_response_candidate =
+                    PreloadResponseCandidate::Response(Box::new(response))
+            };
             // Step 10.3. Let foundPreloadedResource be the result of invoking consume a preloaded resource
             // for request’s client, given request’s URL, request’s destination, request’s mode,
             // request’s credentials mode, request’s integrity metadata, and onPreloadedResponseAvailable.
-            let found_preloaded_resource = client.consume_preloaded_resource();
+            let found_preloaded_resource =
+                client.consume_preloaded_resource(request, on_preloaded_response_available);
             // Step 10.4. If foundPreloadedResource is true and fetchParams’s preloaded response candidate is null,
             // then set fetchParams’s preloaded response candidate to "pending".
             if found_preloaded_resource &&
@@ -404,8 +408,6 @@ pub async fn main_fetch(
     // Step 11.
     // Not applicable: see fetch_async.
 
-    // Step 12.
-
     let current_url = request.current_url();
     let current_scheme = current_url.scheme();
 
@@ -419,15 +421,28 @@ pub async fn main_fetch(
     let mut response = match response {
         Some(res) => res,
         None => {
+            // Step 12. If response is null, then set response to the result
+            // of running the steps corresponding to the first matching statement:
             let same_origin = if let Origin::Origin(ref origin) = request.origin {
                 *origin == current_url.origin()
             } else {
                 false
             };
 
+            // fetchParams’s preloaded response candidate is non-null
+            if let PreloadResponseCandidate::Response(response) =
+                &fetch_params.preload_response_candidate
+            {
+                // Step 1. Wait until fetchParams’s preloaded response candidate is not "pending".
+                // TODO
+                // Step 2. Assert: fetchParams’s preloaded response candidate is a response.
+                // TODO
+                // Step 3. Return fetchParams’s preloaded response candidate.
+                *response.clone()
+            }
             // request's current URL's origin is same origin with request's origin, and request's
             // response tainting is "basic"
-            if (same_origin && request.response_tainting == ResponseTainting::Basic) ||
+            else if (same_origin && request.response_tainting == ResponseTainting::Basic) ||
                 // request's current URL's scheme is "data"
                 current_scheme == "data" ||
                 // Note: Although it is not part of the specification, we make an exception here

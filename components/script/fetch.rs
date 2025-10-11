@@ -15,7 +15,7 @@ use js::rust::HandleValue;
 use js::rust::wrappers::JS_SetPendingException;
 use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
-    CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, Referrer,
+    CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, Origin, Referrer,
     Request as NetTraitsRequest, RequestBuilder, RequestId, RequestMode, ServiceWorkersMode,
 };
 use net_traits::{
@@ -124,7 +124,7 @@ fn request_init_from_request(request: NetTraitsRequest, global: &GlobalScope) ->
         use_cors_preflight: request.use_cors_preflight,
         credentials_mode: request.credentials_mode,
         use_url_credentials: request.use_url_credentials,
-        origin: global.origin().immutable().clone(),
+        origin: Origin::Origin(global.origin().immutable().clone()),
         referrer: request.referrer.clone(),
         referrer_policy: request.referrer_policy,
         pipeline_id: request.pipeline_id,
@@ -135,6 +135,7 @@ fn request_init_from_request(request: NetTraitsRequest, global: &GlobalScope) ->
         url_list: vec![],
         parser_metadata: request.parser_metadata,
         initiator: request.initiator,
+        client: Some(global.request_client()),
         policy_container: RequestPolicyContainer::PolicyContainer(global.policy_container()),
         insecure_requests_policy: request.insecure_requests_policy,
         has_trustworthy_ancestor_origin: request.has_trustworthy_ancestor_origin,
