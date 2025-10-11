@@ -193,6 +193,10 @@ pub struct LayoutThread {
     ///
     /// If this changed, then we need to create a new display list.
     previously_highlighted_dom_node: Cell<Option<OpaqueNode>>,
+
+    /// Whether is recording LCP.
+    /// TODO(shubhamg13): Add a prefs to enable/disable this.
+    is_recording_lcp: bool,
 }
 
 pub struct LayoutFactoryImpl();
@@ -682,6 +686,7 @@ impl LayoutThread {
             resolved_images_cache: Default::default(),
             debug: opts::get().debug.clone(),
             previously_highlighted_dom_node: Cell::new(None),
+            is_recording_lcp: true,
         }
     }
 
@@ -1226,13 +1231,14 @@ impl LayoutThread {
         // ensuring that the Epoch is passed to any method that can creates `StackingContextTree`.
         stacking_context_tree.compositor_info.epoch = reflow_request.epoch;
 
-        let built_display_list = DisplayListBuilder::build(
+        let (built_display_list, _lcp_candidate) = DisplayListBuilder::build(
             stacking_context_tree,
             fragment_tree,
             image_resolver.clone(),
             self.device().device_pixel_ratio(),
             reflow_request.highlighted_dom_node,
             &self.debug,
+            self.is_recording_lcp,
         );
         self.compositor_api.send_display_list(
             self.webview_id,
