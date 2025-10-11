@@ -818,6 +818,8 @@ impl RemoteWebFontDownloader {
         // FIXME: This shouldn't use NoReferrer, but the current documents url
         let request =
             RequestBuilder::new(state.webview_id, url.clone().into(), Referrer::NoReferrer)
+                // TODO: Set policy_container from globalscope that contains the fontcontext
+                .policy_container(Default::default())
                 .destination(Destination::Font);
 
         let core_resource_thread_clone = state.core_resource_thread.clone();
