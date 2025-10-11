@@ -201,6 +201,7 @@ class Config(object):
                 words.extend(["linux-unit-tests", "linux-wpt", "linux-bencher"])
                 words.extend(["macos-unit-tests", "windows-unit-tests", "android", "ohos", "lint"])
                 words.extend(["linux-build-libservo", "macos-build-libservo", "windows-build-libservo"])
+                words.extend(["coverage"])
                 continue  # skip over keyword
             if word == "bencher":
                 words.extend(["linux-bencher", "macos-bencher", "windows-bencher", "android-bencher", "ohos-bencher"])
