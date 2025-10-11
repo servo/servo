@@ -21,47 +21,38 @@ pub(crate) fn parse(input: &str) -> Result<Expr, OwnedParserError> {
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub enum Expr {
-    Or(Box<Expr>, Box<Expr>),
-    And(Box<Expr>, Box<Expr>),
-    Equality(Box<Expr>, EqualityOp, Box<Expr>),
-    Relational(Box<Expr>, RelationalOp, Box<Expr>),
-    Additive(Box<Expr>, AdditiveOp, Box<Expr>),
-    Multiplicative(Box<Expr>, MultiplicativeOp, Box<Expr>),
-    Unary(UnaryOp, Box<Expr>),
-    Union(Box<Expr>, Box<Expr>),
+    Binary(Box<Expr>, BinaryOperator, Box<Expr>),
+    Negate(Box<Expr>),
     Path(PathExpr),
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub enum EqualityOp {
-    Eq,
-    NotEq,
-}
-
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub enum RelationalOp {
-    Lt,
-    Gt,
-    LtEq,
-    GtEq,
-}
-
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub enum AdditiveOp {
+pub enum BinaryOperator {
+    Or,
+    And,
+    Union,
+    /// `=`
+    Equal,
+    /// `!=`
+    NotEqual,
+    /// `<`
+    LessThan,
+    /// `>`
+    GreaterThan,
+    /// `<=`
+    LessThanOrEqual,
+    /// `>=`
+    GreaterThanOrEqual,
+    /// `+`
     Add,
-    Sub,
-}
-
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub enum MultiplicativeOp {
-    Mul,
-    Div,
-    Mod,
-}
-
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub enum UnaryOp {
-    Minus,
+    /// `-`
+    Subtract,
+    /// `*`
+    Multiply,
+    /// `div`
+    Divide,
+    /// `mod`
+    Modulo,
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
@@ -159,14 +150,9 @@ pub(crate) enum PrimaryExpr {
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub(crate) enum Literal {
-    Numeric(NumericLiteral),
-    String(String),
-}
-
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) enum NumericLiteral {
-    Integer(u64),
+    Integer(i64),
     Decimal(f64),
+    String(String),
 }
 
 /// In the DOM we do not support custom functions, so we can enumerate the usable ones
@@ -275,8 +261,9 @@ fn or_expr(input: &str) -> IResult<&str, Expr> {
 
     Ok((
         input,
-        rest.into_iter()
-            .fold(first, |acc, expr| Expr::Or(Box::new(acc), Box::new(expr))),
+        rest.into_iter().fold(first, |acc, expr| {
+            Expr::Binary(Box::new(acc), BinaryOperator::Or, Box::new(expr))
+        }),
     ))
 }
 
@@ -287,8 +274,9 @@ fn and_expr(input: &str) -> IResult<&str, Expr> {
 
     Ok((
         input,
-        rest.into_iter()
-            .fold(first, |acc, expr| Expr::And(Box::new(acc), Box::new(expr))),
+        rest.into_iter().fold(first, |acc, expr| {
+            Expr::Binary(Box::new(acc), BinaryOperator::And, Box::new(expr))
+        }),
     ))
 }
 
@@ -297,8 +285,8 @@ fn equality_expr(input: &str) -> IResult<&str, Expr> {
     let (input, first) = relational_expr(input)?;
     let (input, rest) = many0((
         ws(alt((
-            map(tag("="), |_| EqualityOp::Eq),
-            map(tag("!="), |_| EqualityOp::NotEq),
+            map(tag("="), |_| BinaryOperator::Equal),
+            map(tag("!="), |_| BinaryOperator::NotEqual),
         ))),
         relational_expr,
     ))
@@ -307,7 +295,7 @@ fn equality_expr(input: &str) -> IResult<&str, Expr> {
     Ok((
         input,
         rest.into_iter().fold(first, |acc, (op, expr)| {
-            Expr::Equality(Box::new(acc), op, Box::new(expr))
+            Expr::Binary(Box::new(acc), op, Box::new(expr))
         }),
     ))
 }
@@ -317,10 +305,10 @@ fn relational_expr(input: &str) -> IResult<&str, Expr> {
     let (input, first) = additive_expr(input)?;
     let (input, rest) = many0((
         ws(alt((
-            map(tag("<="), |_| RelationalOp::LtEq),
-            map(tag(">="), |_| RelationalOp::GtEq),
-            map(tag("<"), |_| RelationalOp::Lt),
-            map(tag(">"), |_| RelationalOp::Gt),
+            map(tag("<="), |_| BinaryOperator::LessThanOrEqual),
+            map(tag(">="), |_| BinaryOperator::GreaterThanOrEqual),
+            map(tag("<"), |_| BinaryOperator::LessThan),
+            map(tag(">"), |_| BinaryOperator::GreaterThan),
         ))),
         additive_expr,
     ))
@@ -329,7 +317,7 @@ fn relational_expr(input: &str) -> IResult<&str, Expr> {
     Ok((
         input,
         rest.into_iter().fold(first, |acc, (op, expr)| {
-            Expr::Relational(Box::new(acc), op, Box::new(expr))
+            Expr::Binary(Box::new(acc), op, Box::new(expr))
         }),
     ))
 }
@@ -339,8 +327,8 @@ fn additive_expr(input: &str) -> IResult<&str, Expr> {
     let (input, first) = multiplicative_expr(input)?;
     let (input, rest) = many0((
         ws(alt((
-            map(tag("+"), |_| AdditiveOp::Add),
-            map(tag("-"), |_| AdditiveOp::Sub),
+            map(tag("+"), |_| BinaryOperator::Add),
+            map(tag("-"), |_| BinaryOperator::Subtract),
         ))),
         multiplicative_expr,
     ))
@@ -349,7 +337,7 @@ fn additive_expr(input: &str) -> IResult<&str, Expr> {
     Ok((
         input,
         rest.into_iter().fold(first, |acc, (op, expr)| {
-            Expr::Additive(Box::new(acc), op, Box::new(expr))
+            Expr::Binary(Box::new(acc), op, Box::new(expr))
         }),
     ))
 }
@@ -359,9 +347,9 @@ fn multiplicative_expr(input: &str) -> IResult<&str, Expr> {
     let (input, first) = unary_expr(input)?;
     let (input, rest) = many0((
         ws(alt((
-            map(tag("*"), |_| MultiplicativeOp::Mul),
-            map(tag("div"), |_| MultiplicativeOp::Div),
-            map(tag("mod"), |_| MultiplicativeOp::Mod),
+            map(tag("*"), |_| BinaryOperator::Multiply),
+            map(tag("div"), |_| BinaryOperator::Divide),
+            map(tag("mod"), |_| BinaryOperator::Modulo),
         ))),
         unary_expr,
     ))
@@ -370,7 +358,7 @@ fn multiplicative_expr(input: &str) -> IResult<&str, Expr> {
     Ok((
         input,
         rest.into_iter().fold(first, |acc, (op, expr)| {
-            Expr::Multiplicative(Box::new(acc), op, Box::new(expr))
+            Expr::Binary(Box::new(acc), op, Box::new(expr))
         }),
     ))
 }
@@ -382,7 +370,7 @@ fn unary_expr(input: &str) -> IResult<&str, Expr> {
 
     Ok((
         input,
-        (0..minus_count.len()).fold(expr, |acc, _| Expr::Unary(UnaryOp::Minus, Box::new(acc))),
+        (0..minus_count.len()).fold(expr, |acc, _| Expr::Negate(Box::new(acc))),
     ))
 }
 
@@ -394,7 +382,7 @@ fn union_expr(input: &str) -> IResult<&str, Expr> {
     Ok((
         input,
         rest.into_iter().fold(first, |acc, expr| {
-            Expr::Union(Box::new(acc), Box::new(expr))
+            Expr::Binary(Box::new(acc), BinaryOperator::Union, Box::new(expr))
         }),
     ))
 }
@@ -807,7 +795,7 @@ where
 
 fn integer_literal(input: &str) -> IResult<&str, Literal> {
     map(recognize((opt(char('-')), digit1)), |s: &str| {
-        Literal::Numeric(NumericLiteral::Integer(s.parse().unwrap()))
+        Literal::Integer(s.parse().unwrap())
     })
     .parse(input)
 }
@@ -815,7 +803,7 @@ fn integer_literal(input: &str) -> IResult<&str, Literal> {
 fn decimal_literal(input: &str) -> IResult<&str, Literal> {
     map(
         recognize((opt(char('-')), opt(digit1), char('.'), digit1)),
-        |s: &str| Literal::Numeric(NumericLiteral::Decimal(s.parse().unwrap())),
+        |s: &str| Literal::Decimal(s.parse().unwrap()),
     )
     .parse(input)
 }
@@ -951,9 +939,7 @@ mod tests {
                                 is_absolute: false,
                                 is_descendant: false,
                                 steps: vec![StepExpr::Filter(FilterExpr {
-                                    primary: PrimaryExpr::Literal(Literal::Numeric(
-                                        NumericLiteral::Integer(2),
-                                    )),
+                                    primary: PrimaryExpr::Literal(Literal::Integer(2)),
                                     predicates: PredicateListExpr { predicates: vec![] },
                                 })],
                             })],
@@ -1077,7 +1063,7 @@ mod tests {
                                 local_part: "div".to_string(),
                             }),
                             predicates: PredicateListExpr {
-                                predicates: vec![Expr::Relational(
+                                predicates: vec![Expr::Binary(
                                     Box::new(Expr::Path(PathExpr {
                                         is_absolute: false,
                                         is_descendant: false,
@@ -1086,14 +1072,12 @@ mod tests {
                                             predicates: PredicateListExpr { predicates: vec![] },
                                         })],
                                     })),
-                                    RelationalOp::Gt,
+                                    BinaryOperator::GreaterThan,
                                     Box::new(Expr::Path(PathExpr {
                                         is_absolute: false,
                                         is_descendant: false,
                                         steps: vec![StepExpr::Filter(FilterExpr {
-                                            primary: PrimaryExpr::Literal(Literal::Numeric(
-                                                NumericLiteral::Integer(1),
-                                            )),
+                                            primary: PrimaryExpr::Literal(Literal::Integer(1)),
                                             predicates: PredicateListExpr { predicates: vec![] },
                                         })],
                                     })),
@@ -1130,7 +1114,7 @@ mod tests {
                                 local_part: "mu".to_string(),
                             }),
                             predicates: PredicateListExpr {
-                                predicates: vec![Expr::Equality(
+                                predicates: vec![Expr::Binary(
                                     Box::new(Expr::Path(PathExpr {
                                         is_absolute: false,
                                         is_descendant: false,
@@ -1143,7 +1127,7 @@ mod tests {
                                             predicates: PredicateListExpr { predicates: vec![] },
                                         })],
                                     })),
-                                    EqualityOp::Eq,
+                                    BinaryOperator::Equal,
                                     Box::new(Expr::Path(PathExpr {
                                         is_absolute: false,
                                         is_descendant: false,
@@ -1182,7 +1166,7 @@ mod tests {
                                             predicates: PredicateListExpr { predicates: vec![] },
                                         })],
                                     }),
-                                    Expr::Equality(
+                                    Expr::Binary(
                                         Box::new(Expr::Path(PathExpr {
                                             is_absolute: false,
                                             is_descendant: false,
@@ -1197,7 +1181,7 @@ mod tests {
                                                 },
                                             })],
                                         })),
-                                        EqualityOp::Eq,
+                                        BinaryOperator::Equal,
                                         Box::new(Expr::Path(PathExpr {
                                             is_absolute: false,
                                             is_descendant: false,
