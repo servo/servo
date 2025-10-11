@@ -60,6 +60,7 @@ pub enum Data {
     Payload(Vec<u8>),
     Done,
     Cancelled,
+    Error(String),
 }
 
 pub struct FetchContext {
@@ -751,6 +752,10 @@ async fn wait_for_response(
                 },
                 Some(Data::Cancelled) => {
                     response.aborted.store(true, Ordering::Release);
+                    break;
+                },
+                Some(Data::Error(msg)) => {
+                    response.set_network_error(NetworkError::Internal(msg));
                     break;
                 },
                 _ => {
