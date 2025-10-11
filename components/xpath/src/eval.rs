@@ -26,13 +26,13 @@ impl Expr {
     ) -> Result<Value<D::Node>, Error<D::JsError>> {
         match self {
             Expr::And(left, right) => {
-                let left_bool = left.evaluate(context)?.boolean();
-                let v = left_bool && right.evaluate(context)?.boolean();
+                let left_bool = left.evaluate(context)?.convert_to_boolean();
+                let v = left_bool && right.evaluate(context)?.convert_to_boolean();
                 Ok(Value::Boolean(v))
             },
             Expr::Or(left, right) => {
-                let left_bool = left.evaluate(context)?.boolean();
-                let v = left_bool || right.evaluate(context)?.boolean();
+                let left_bool = left.evaluate(context)?.convert_to_boolean();
+                let v = left_bool || right.evaluate(context)?.convert_to_boolean();
                 Ok(Value::Boolean(v))
             },
             Expr::Equality(left, equality_op, right) => {
@@ -47,8 +47,8 @@ impl Expr {
                 Ok(Value::Boolean(v))
             },
             Expr::Relational(left, relational_op, right) => {
-                let left_val = left.evaluate(context)?.number();
-                let right_val = right.evaluate(context)?.number();
+                let left_val = left.evaluate(context)?.convert_to_number();
+                let right_val = right.evaluate(context)?.convert_to_number();
 
                 let v = match relational_op {
                     RelationalOp::Lt => left_val < right_val,
@@ -59,8 +59,8 @@ impl Expr {
                 Ok(Value::Boolean(v))
             },
             Expr::Additive(left, additive_op, right) => {
-                let left_val = left.evaluate(context)?.number();
-                let right_val = right.evaluate(context)?.number();
+                let left_val = left.evaluate(context)?.convert_to_number();
+                let right_val = right.evaluate(context)?.convert_to_number();
 
                 let v = match additive_op {
                     AdditiveOp::Add => left_val + right_val,
@@ -69,8 +69,8 @@ impl Expr {
                 Ok(Value::Number(v))
             },
             Expr::Multiplicative(left, multiplicative_op, right) => {
-                let left_val = left.evaluate(context)?.number();
-                let right_val = right.evaluate(context)?.number();
+                let left_val = left.evaluate(context)?.convert_to_number();
+                let right_val = right.evaluate(context)?.convert_to_number();
 
                 let v = match multiplicative_op {
                     MultiplicativeOp::Mul => left_val * right_val,
@@ -80,7 +80,7 @@ impl Expr {
                 Ok(Value::Number(v))
             },
             Expr::Unary(unary_op, expr) => {
-                let v = expr.evaluate(context)?.number();
+                let v = expr.evaluate(context)?.convert_to_number();
 
                 match unary_op {
                     UnaryOp::Minus => Ok(Value::Number(-v)),
@@ -379,7 +379,7 @@ impl PredicateListExpr {
                 let keep = match eval_result {
                     Ok(Value::Number(number)) => (i + 1) as f64 == number,
                     Ok(Value::Boolean(boolean)) => boolean,
-                    Ok(value) => value.boolean(),
+                    Ok(value) => value.convert_to_boolean(),
                     Err(_) => false,
                 };
 

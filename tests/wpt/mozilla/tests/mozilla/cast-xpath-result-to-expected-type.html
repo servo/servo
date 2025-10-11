@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Casting query result to desired result type</title>
+  <link rel="author" title="Simon Wülker" href="mailto:simon.wuelker@arcor.de">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="helpers.js"></script>
+</head>
+<body>
+  <div id="context">/div>
+  <script>
+    const context = document.querySelector('#context');
+
+    const BOOLEAN_QUERY_FALSE = "false()"
+    const BOOLEAN_QUERY_TRUE = "true()"
+
+    const NUMBER_QUERY_ZERO = "number(0)"
+    const NUMBER_QUERY_ONE = "number(1)"
+
+    const STRING_QUERY_EMPTY = "string('')"
+    const STRING_QUERY_FORTYTWO = "string('42')"
+
+    // Each test case consists of (query, expected-result) pairs
+    const BOOLEAN_TESTCASES = [
+      [NUMBER_QUERY_ZERO, false],
+      [NUMBER_QUERY_ONE, true],
+      [STRING_QUERY_EMPTY, false],
+      [STRING_QUERY_FORTYTWO, true]
+    ];
+
+    for (const [query, expected] of BOOLEAN_TESTCASES) {
+      test((t) => {
+        let result = evaluateBoolean(query, context);
+        assert_equals(result, expected);
+
+      }, "\"" + query + "\" with XPathResult.BOOLEAN_TYPE");
+    }
+
+    const NUMERIC_TESTCASES = [
+      [BOOLEAN_QUERY_FALSE, 0],
+      [BOOLEAN_QUERY_TRUE, 1],
+      [STRING_QUERY_EMPTY, NaN],
+      [STRING_QUERY_FORTYTWO, 42]
+    ];
+
+    for (const [query, expected] of NUMERIC_TESTCASES) {
+      test((t) => {
+        let result = evaluateNumber(query, context);
+
+        if (isNaN(expected)) {
+          assert_true(isNaN(result));
+        } else {
+          assert_equals(result, expected);
+        }
+
+      }, "\"" + query + "\" with XPathResult.NUMBER_TYPE");
+    }
+
+    const STRING_TESTCASES = [
+      [BOOLEAN_QUERY_FALSE, "false"],
+      [BOOLEAN_QUERY_TRUE, "true"],
+      [NUMBER_QUERY_ZERO, "0"],
+      [NUMBER_QUERY_ONE, "1"],
+    ];
+
+    for (const [query, expected] of STRING_TESTCASES) {
+      test((t) => {
+        let result = evaluateString(query, context);
+        assert_equals(result, expected);
+
+      }, "\"" + query + "\" with XPathResult.STRING_TYPE");
+    }
+
+  </script>
+</body>
+</html>

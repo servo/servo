@@ -17,7 +17,7 @@ use crate::dom::node::Node;
 use crate::dom::window::Window;
 use crate::dom::xpathresult::{XPathResult, XPathResultType};
 use crate::script_runtime::CanGc;
-use crate::xpath::{XPathImplementation, XPathWrapper};
+use crate::xpath::{Value, XPathImplementation, XPathWrapper};
 
 #[dom_struct]
 pub(crate) struct XPathExpression {
@@ -72,13 +72,20 @@ impl XPathExpression {
         .map_err(|error| match error {
             XPathError::JsException(exception) => exception,
             _ => Error::Operation,
-        })?
-        .into();
+        })?;
+
+        // Cast the result to the type we wanted
+        let result_value: Value = match result_type {
+            XPathResultType::Boolean => result_value.convert_to_boolean().into(),
+            XPathResultType::Number => result_value.convert_to_number().into(),
+            XPathResultType::String => result_value.convert_to_string().into(),
+            _ => result_value,
+        };
 
         if let Some(result) = result {
             // According to https://www.w3.org/TR/DOM-Level-3-XPath/xpath.html#XPathEvaluator-evaluate, reusing
             // the provided result object is optional. We choose to do it here because thats what other browsers do.
-            result.reinitialize_with(result_type, result_value);
+            result.reinitialize_with(result_type, result_value.into());
             Ok(DomRoot::from_ref(result))
         } else {
             Ok(XPathResult::new(
@@ -86,7 +93,7 @@ impl XPathExpression {
                 None,
                 can_gc,
                 result_type,
-                result_value,
+                result_value.into(),
             ))
         }
     }
