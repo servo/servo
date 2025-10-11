@@ -45,7 +45,9 @@ impl Expression {
                 let value = match binary_operator {
                     BinaryOperator::Equal => (left_value == right_value).into(),
                     BinaryOperator::NotEqual => (left_value != right_value).into(),
-                    BinaryOperator::LessThan => (left_value.convert_to_number() < right_value.convert_to_number()).into(),
+                    BinaryOperator::LessThan => {
+                        (left_value.convert_to_number() < right_value.convert_to_number()).into()
+                    },
                     BinaryOperator::GreaterThan => {
                         (left_value.convert_to_number() > right_value.convert_to_number()).into()
                     },
@@ -55,11 +57,21 @@ impl Expression {
                     BinaryOperator::GreaterThanOrEqual => {
                         (left_value.convert_to_number() >= right_value.convert_to_number()).into()
                     },
-                    BinaryOperator::Add => (left_value.convert_to_number() + right_value.convert_to_number()).into(),
-                    BinaryOperator::Subtract => (left_value.convert_to_number() - right_value.convert_to_number()).into(),
-                    BinaryOperator::Multiply => (left_value.convert_to_number() * right_value.convert_to_number()).into(),
-                    BinaryOperator::Divide => (left_value.convert_to_number() / right_value.convert_to_number()).into(),
-                    BinaryOperator::Modulo => (left_value.convert_to_number() % right_value.convert_to_number()).into(),
+                    BinaryOperator::Add => {
+                        (left_value.convert_to_number() + right_value.convert_to_number()).into()
+                    },
+                    BinaryOperator::Subtract => {
+                        (left_value.convert_to_number() - right_value.convert_to_number()).into()
+                    },
+                    BinaryOperator::Multiply => {
+                        (left_value.convert_to_number() * right_value.convert_to_number()).into()
+                    },
+                    BinaryOperator::Divide => {
+                        (left_value.convert_to_number() / right_value.convert_to_number()).into()
+                    },
+                    BinaryOperator::Modulo => {
+                        (left_value.convert_to_number() % right_value.convert_to_number()).into()
+                    },
                     BinaryOperator::Union => {
                         let as_nodes =
                             |e: &Expression| e.evaluate(context).and_then(try_extract_nodeset);
