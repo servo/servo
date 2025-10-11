@@ -493,8 +493,7 @@ unsafe extern "C" fn code_for_eval_gets(
 ) -> bool {
     let cx = JSContext::from_ptr(cx);
     if let Ok(trusted_script) = root_from_object::<TrustedScript>(code.get(), *cx) {
-        let script_string = trusted_script.data();
-        let script_str = script_string.str();
+        let script_str = trusted_script.data().str();
         let s = Utf8Chars::from(&*script_str);
         let new_string = JS_NewStringCopyUTF8N(*cx, &*s as *const _);
         code_for_eval.set(new_string);
