@@ -17,7 +17,7 @@ use net_traits::request::{
     CacheMode as NetTraitsRequestCache, CredentialsMode as NetTraitsRequestCredentials,
     Destination as NetTraitsRequestDestination, Origin, RedirectMode as NetTraitsRequestRedirect,
     Referrer as NetTraitsRequestReferrer, Request as NetTraitsRequest, RequestBuilder,
-    RequestMode as NetTraitsRequestMode, Window,
+    RequestMode as NetTraitsRequestMode, TraversableForUserPrompts,
 };
 use servo_url::ServoUrl;
 
@@ -150,7 +150,7 @@ impl Request {
         let origin = base_url.origin();
 
         // Step 8. Let traversableForUserPrompts be "client".
-        let mut window = Window::Client;
+        let mut traversable_for_user_prompts = TraversableForUserPrompts::Client;
 
         // Step 9. If request’s traversable for user prompts is an environment settings object
         // and its origin is same origin with origin, then set traversableForUserPrompts
@@ -164,7 +164,7 @@ impl Request {
 
         // Step 11. If init["window"] exists, then set traversableForUserPrompts to "no-traversable".
         if !init.window.handle().is_undefined() {
-            window = Window::NoWindow;
+            traversable_for_user_prompts = TraversableForUserPrompts::NoTraversable;
         }
 
         // Step 12. Set request to a new request with the following properties:
@@ -173,7 +173,7 @@ impl Request {
         request.method = temporary_request.method;
         request.headers = temporary_request.headers.clone();
         request.unsafe_request = true;
-        request.window = window;
+        request.traversable_for_user_prompts = traversable_for_user_prompts;
         // TODO: `entry settings object` is not implemented in Servo yet.
         request.origin = Origin::Client;
         request.referrer = temporary_request.referrer;
@@ -567,6 +567,7 @@ fn net_request_from_global(global: &GlobalScope, url: ServoUrl) -> NetTraitsRequ
         .https_state(global.get_https_state())
         .insecure_requests_policy(global.insecure_requests_policy())
         .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_or_current_origin())
+        .policy_container(global.policy_container())
         .build()
 }
 

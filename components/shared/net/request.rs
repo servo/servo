@@ -8,6 +8,7 @@ use base::id::{PipelineId, WebViewId};
 use content_security_policy::{self as csp};
 use http::header::{AUTHORIZATION, HeaderName};
 use http::{HeaderMap, Method};
+use indexmap::IndexMap;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use malloc_size_of_derive::MallocSizeOf;
@@ -17,7 +18,7 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
 
 use crate::policy_container::{PolicyContainer, RequestPolicyContainer};
-use crate::response::HttpsState;
+use crate::response::{HttpsState, Response};
 use crate::{ReferrerPolicy, ResourceTimingType};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
@@ -72,7 +73,7 @@ pub enum Referrer {
 }
 
 /// A [request mode](https://fetch.spec.whatwg.org/#concept-request-mode)
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum RequestMode {
     Navigate,
     SameOrigin,
@@ -82,7 +83,7 @@ pub enum RequestMode {
 }
 
 /// Request [credentials mode](https://fetch.spec.whatwg.org/#concept-request-credentials-mode)
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum CredentialsMode {
     Omit,
     CredentialsSameOrigin,
@@ -123,11 +124,75 @@ pub enum ResponseTainting {
     Opaque,
 }
 
-/// [Window](https://fetch.spec.whatwg.org/#concept-request-window)
+/// <https://html.spec.whatwg.org/multipage/#preload-key>
+#[derive(Clone, Eq, Hash, MallocSizeOf, PartialEq)]
+struct PreloadKey {
+    /// <https://html.spec.whatwg.org/multipage/#preload-url>
+    url: ServoUrl,
+    /// <https://html.spec.whatwg.org/multipage/#preload-destination>
+    destination: Destination,
+    /// <https://html.spec.whatwg.org/multipage/#preload-mode>
+    mode: RequestMode,
+    /// <https://html.spec.whatwg.org/multipage/#preload-credentials-mode>
+    credentials_mode: CredentialsMode,
+}
+
+/// <https://html.spec.whatwg.org/multipage/#preload-entry>
+#[derive(Clone, MallocSizeOf)]
+struct PreloadEntry {
+    /// <https://html.spec.whatwg.org/multipage/#preload-integrity-metadata>
+    integrity_metadata: String,
+    /// <https://html.spec.whatwg.org/multipage/#preload-response>
+    response: Option<Response>,
+}
+
+/// <https://fetch.spec.whatwg.org/#concept-request-client>
+#[derive(Clone, MallocSizeOf)]
+pub struct RequestClient {
+    /// <https://html.spec.whatwg.org/multipage/#map-of-preloaded-resources>
+    preloaded_resources: IndexMap<PreloadKey, PreloadEntry>,
+    /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-policy-container>
+    pub policy_container: RequestPolicyContainer,
+    /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-origin>
+    pub origin: Origin,
+}
+
+impl RequestClient {
+    /// <https://html.spec.whatwg.org/multipage/#consume-a-preloaded-resource>
+    pub fn consume_preloaded_resource(&self) -> bool {
+        false
+    }
+}
+
+/// <https://html.spec.whatwg.org/multipage/#system-visibility-state>
+#[derive(Clone, Copy, Default, MallocSizeOf, PartialEq)]
+pub enum SystemVisibilityState {
+    #[default]
+    Hidden,
+    Visible,
+}
+
+/// <https://html.spec.whatwg.org/multipage/#traversable-navigable>
+#[derive(Clone, Copy, Default, MallocSizeOf, PartialEq)]
+pub struct TraversableNavigable {
+    /// <https://html.spec.whatwg.org/multipage/#tn-current-session-history-step>
+    current_session_history_step: u8,
+    // TODO: https://html.spec.whatwg.org/multipage/#tn-session-history-entries
+    // TODO: https://html.spec.whatwg.org/multipage/#tn-session-history-traversal-queue
+    /// <https://html.spec.whatwg.org/multipage/#tn-running-nested-apply-history-step>
+    running_nested_apply_history_step: bool,
+    /// <https://html.spec.whatwg.org/multipage/#system-visibility-state>
+    system_visibility_state: SystemVisibilityState,
+    /// <https://html.spec.whatwg.org/multipage/#is-created-by-web-content>
+    is_created_by_web_content: bool,
+}
+
+/// <https://fetch.spec.whatwg.org/#concept-request-window>
 #[derive(Clone, Copy, MallocSizeOf, PartialEq)]
-pub enum Window {
-    NoWindow,
-    Client, // TODO: Environmental settings object
+pub enum TraversableForUserPrompts {
+    NoTraversable,
+    Client,
+    TraversableNavigable(TraversableNavigable),
 }
 
 /// [CORS settings attribute](https://html.spec.whatwg.org/multipage/#attr-crossorigin-anonymous)
@@ -534,7 +599,7 @@ impl RequestBuilder {
         let mut request = Request::new(
             self.id,
             self.url.clone(),
-            Some(Origin::Origin(self.origin)),
+            None,
             self.referrer,
             self.pipeline_id,
             self.target_webview_id,
@@ -566,7 +631,11 @@ impl RequestBuilder {
         request.parser_metadata = self.parser_metadata;
         request.response_tainting = self.response_tainting;
         request.crash = self.crash;
-        request.policy_container = self.policy_container;
+        request.client = Some(RequestClient {
+            preloaded_resources: Default::default(),
+            policy_container: self.policy_container,
+            origin: Origin::Origin(self.origin),
+        });
         request.insecure_requests_policy = self.insecure_requests_policy;
         request.has_trustworthy_ancestor_origin = self.has_trustworthy_ancestor_origin;
         request
@@ -593,8 +662,10 @@ pub struct Request {
     pub unsafe_request: bool,
     /// <https://fetch.spec.whatwg.org/#concept-request-body>
     pub body: Option<RequestBody>,
-    // TODO: client object
-    pub window: Window,
+    /// <https://fetch.spec.whatwg.org/#concept-request-client>
+    pub client: Option<RequestClient>,
+    /// <https://fetch.spec.whatwg.org/#concept-request-window>
+    pub traversable_for_user_prompts: TraversableForUserPrompts,
     pub target_webview_id: Option<WebViewId>,
     /// <https://fetch.spec.whatwg.org/#request-keepalive-flag>
     pub keep_alive: bool,
@@ -667,7 +738,8 @@ impl Request {
             headers: HeaderMap::new(),
             unsafe_request: false,
             body: None,
-            window: Window::Client,
+            client: None,
+            traversable_for_user_prompts: TraversableForUserPrompts::Client,
             keep_alive: false,
             service_workers_mode: ServiceWorkersMode::All,
             initiator: Initiator::None,
@@ -747,6 +819,45 @@ impl Request {
             ResourceTimingType::Navigation
         } else {
             ResourceTimingType::Resource
+        }
+    }
+
+    /// <https://fetch.spec.whatwg.org/#populate-request-from-client>
+    pub fn populate_request_from_client(&mut self) {
+        // Step 1. If request’s traversable for user prompts is "client":
+        if self.traversable_for_user_prompts == TraversableForUserPrompts::Client {
+            // Step 1.1. Set request’s traversable for user prompts to "no-traversable".
+            self.traversable_for_user_prompts = TraversableForUserPrompts::NoTraversable;
+            // Step 1.2. If request’s client is non-null:
+            if self.client.is_some() {
+                // Step 1.2.1. Let global be request’s client’s global object.
+                // TODO
+                // Step 1.2.2. If global is a Window object and global’s navigable is not null,
+                // then set request’s traversable for user prompts to global’s navigable’s traversable navigable.
+                self.traversable_for_user_prompts =
+                    TraversableForUserPrompts::TraversableNavigable(Default::default());
+            }
+        }
+        // Step 2. If request’s origin is "client":
+        if self.origin == Origin::Client {
+            let Some(client) = self.client.as_ref() else {
+                // Step 2.1. Assert: request’s client is non-null.
+                unreachable!();
+            };
+            // Step 2.2. Set request’s origin to request’s client’s origin.
+            self.origin = client.origin.clone();
+        }
+        // Step 3. If request’s policy container is "client":
+        if matches!(self.policy_container, RequestPolicyContainer::Client) {
+            // Step 3.1. If request’s client is non-null, then set request’s
+            // policy container to a clone of request’s client’s policy container. [HTML]
+            if let Some(client) = self.client.as_ref() {
+                self.policy_container = client.policy_container.clone();
+            } else {
+                // Step 3.2. Otherwise, set request’s policy container to a new policy container.
+                self.policy_container =
+                    RequestPolicyContainer::PolicyContainer(PolicyContainer::default());
+            }
         }
     }
 }

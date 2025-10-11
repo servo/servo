@@ -108,7 +108,7 @@ impl Drop for FetchCanceller {
     }
 }
 
-fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
+fn request_init_from_request(request: NetTraitsRequest, global: &GlobalScope) -> RequestBuilder {
     RequestBuilder {
         id: request.id,
         method: request.method.clone(),
@@ -124,11 +124,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
         use_cors_preflight: request.use_cors_preflight,
         credentials_mode: request.credentials_mode,
         use_url_credentials: request.use_url_credentials,
-        origin: GlobalScope::current()
-            .expect("No current global object")
-            .origin()
-            .immutable()
-            .clone(),
+        origin: global.origin().immutable().clone(),
         referrer: request.referrer.clone(),
         referrer_policy: request.referrer_policy,
         pipeline_id: request.pipeline_id,
@@ -139,7 +135,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
         url_list: vec![],
         parser_metadata: request.parser_metadata,
         initiator: request.initiator,
-        policy_container: request.policy_container,
+        policy_container: RequestPolicyContainer::PolicyContainer(global.policy_container()),
         insecure_requests_policy: request.insecure_requests_policy,
         has_trustworthy_ancestor_origin: request.has_trustworthy_ancestor_origin,
         https_state: request.https_state,
@@ -234,9 +230,7 @@ pub(crate) fn Fetch(
 
     // Step 5. Let globalObject be request’s client’s global object.
     // NOTE:   We already get the global object as an argument
-    let mut request_init = request_init_from_request(request);
-    request_init.policy_container =
-        RequestPolicyContainer::PolicyContainer(global.policy_container());
+    let mut request_init = request_init_from_request(request, global);
 
     // Step 6. If globalObject is a ServiceWorkerGlobalScope object, then set request’s
     //         service-workers mode to "none".
@@ -446,9 +440,7 @@ impl DeferredFetchRecord {
         }));
         let global = self.global.root();
         let _realm = enter_realm(&*global);
-        let mut request_init = request_init_from_request(self.request.clone());
-        request_init.policy_container =
-            RequestPolicyContainer::PolicyContainer(global.policy_container());
+        let request_init = request_init_from_request(self.request.clone(), &global);
         global.fetch(
             request_init,
             fetch_later_listener,
