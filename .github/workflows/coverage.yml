@@ -115,9 +115,25 @@ jobs:
         run: |
           sudo apt update
           ./mach bootstrap --skip-lints
+      # We need to reduce the concurrency to prevent OOM errors (when building / linking servo).
+      # Adding the coverage instrumentation seems to increase the memory usage when building / linking.
+      - name: Determine concurrency
+        id: concurrency
+        run: | 
+          echo "nproc: $(nproc)"
+          NUM_JOBS=$(($(nproc) / 4))
+          if [[ "${NUM_JOBS}" -eq "0" ]];
+          then
+            NUM_JOBS=1
+          fi 
+          echo "num_jobs=${NUM_JOBS}" | tee $GITHUB_OUTPUT
       - name: Run unit-tests with coverage
         shell: bash
-        run: ./mach test-unit --code-coverage --llvm-cov-option=--codecov --llvm-cov-option=--output-path=codecov.json
+        run: | 
+          ./mach test-unit --code-coverage \
+              --llvm-cov-option=--codecov \
+              --llvm-cov-option=--output-path=codecov.json \
+              --llvm-cov-option=--jobs=${{ steps.concurrency.outputs.num_jobs}}
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
