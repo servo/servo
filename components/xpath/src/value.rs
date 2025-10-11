@@ -71,7 +71,7 @@ impl<N: Node> PartialEq<Value<N>> for Value<N> {
 
 impl<N: Node> Value<N> {
     /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#function-boolean>
-    pub(crate) fn convert_to_boolean(&self) -> bool {
+    pub fn convert_to_boolean(&self) -> bool {
         match self {
             Value::Boolean(boolean) => *boolean,
             Value::Number(number) => *number != 0.0 && !number.is_nan(),
@@ -81,7 +81,7 @@ impl<N: Node> Value<N> {
     }
 
     /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#function-number>
-    pub(crate) fn convert_to_number(&self) -> f64 {
+    pub fn convert_to_number(&self) -> f64 {
         match self {
             Value::Boolean(boolean) => {
                 if *boolean {
@@ -97,7 +97,7 @@ impl<N: Node> Value<N> {
     }
 
     /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#function-string>
-    pub(crate) fn convert_to_string(&self) -> String {
+    pub fn convert_to_string(&self) -> String {
         match self {
             Value::Boolean(value) => value.to_string(),
             Value::Number(number) => {
