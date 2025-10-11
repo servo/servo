@@ -423,21 +423,19 @@ impl Handler {
             .ok_or_else(|| WebDriverError::new(ErrorStatus::UnknownError, "No webview available"))
     }
 
-    fn send_input_event_to_embedder(&self, input_event: InputEvent, blocking: bool) {
-        let webview_id = self.verified_webview_id();
-        if !blocking {
-            let _ = self.send_message_to_embedder(WebDriverCommandMsg::InputEvent(
-                webview_id,
-                input_event,
-                None,
-            ));
-            return;
-        }
+    fn send_input_event_to_embedder(&self, input_event: InputEvent) {
+        let _ = self.send_message_to_embedder(WebDriverCommandMsg::InputEvent(
+            self.verified_webview_id(),
+            input_event,
+            None,
+        ));
+    }
 
+    fn send_blocking_input_event_to_embedder(&self, input_event: InputEvent) {
         let (result_sender, result_receiver) = unbounded();
         if self
             .send_message_to_embedder(WebDriverCommandMsg::InputEvent(
-                webview_id,
+                self.verified_webview_id(),
                 input_event,
                 Some(result_sender),
             ))
@@ -2219,10 +2217,9 @@ impl Handler {
                     }
                 },
                 DispatchStringEvent::Composition(event) => {
-                    self.send_input_event_to_embedder(
-                        InputEvent::Ime(ImeEvent::Composition(event)),
-                        false, /* blocking */
-                    );
+                    self.send_input_event_to_embedder(InputEvent::Ime(ImeEvent::Composition(
+                        event,
+                    )));
                 },
             }
         }

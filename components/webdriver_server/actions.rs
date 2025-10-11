@@ -311,10 +311,9 @@ impl Handler {
         // requirements of [UI-EVENTS], and producing the following events, as
         // appropriate, with the specified properties. This will always produce events
         // including at least a keyDown event.
-        self.send_input_event_to_embedder(
-            InputEvent::Keyboard(KeyboardEvent::new(keyboard_event)),
-            true, /* blocking */
-        );
+        self.send_blocking_input_event_to_embedder(InputEvent::Keyboard(KeyboardEvent::new(
+            keyboard_event,
+        )));
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-keyup-action>
@@ -347,10 +346,9 @@ impl Handler {
         let Some(keyboard_event) = key_input_state.dispatch_keyup(raw_key) else {
             return;
         };
-        self.send_input_event_to_embedder(
-            InputEvent::Keyboard(KeyboardEvent::new(keyboard_event)),
-            true, /* blocking */
-        );
+        self.send_blocking_input_event_to_embedder(InputEvent::Keyboard(KeyboardEvent::new(
+            keyboard_event,
+        )));
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerdown-action>
@@ -372,14 +370,11 @@ impl Handler {
 
         // Step 16. Perform implementation-specific action dispatch steps
         // TODO: We have not considered pen/touch pointer type
-        self.send_input_event_to_embedder(
-            InputEvent::MouseButton(MouseButtonEvent::new(
-                MouseButtonAction::Down,
-                action.button.into(),
-                DevicePoint::new(x as f32, y as f32),
-            )),
-            true, /* blocking */
-        );
+        self.send_blocking_input_event_to_embedder(InputEvent::MouseButton(MouseButtonEvent::new(
+            MouseButtonAction::Down,
+            action.button.into(),
+            DevicePoint::new(x as f32, y as f32),
+        )));
 
         // Step 17. Return success with data null.
     }
@@ -411,14 +406,11 @@ impl Handler {
         }
 
         // Step 7. Perform implementation-specific action dispatch steps
-        self.send_input_event_to_embedder(
-            InputEvent::MouseButton(MouseButtonEvent::new(
-                MouseButtonAction::Up,
-                action.button.into(),
-                DevicePoint::new(x as f32, y as f32),
-            )),
-            true, /* blocking */
-        );
+        self.send_blocking_input_event_to_embedder(InputEvent::MouseButton(MouseButtonEvent::new(
+            MouseButtonAction::Up,
+            action.button.into(),
+            DevicePoint::new(x as f32, y as f32),
+        )));
 
         // Step 8. Return success with data null.
     }
@@ -534,12 +526,14 @@ impl Handler {
             if x != current_x || y != current_y || last {
                 // Step 7.1. Let buttons be equal to input state's buttons property.
                 // Step 7.2. Perform implementation-specific action dispatch steps
-                self.send_input_event_to_embedder(
-                    InputEvent::MouseMove(MouseMoveEvent::new(DevicePoint::new(
-                        x as f32, y as f32,
-                    ))),
-                    last,
-                );
+                let input_event = InputEvent::MouseMove(MouseMoveEvent::new(DevicePoint::new(
+                    x as f32, y as f32,
+                )));
+                if last {
+                    self.send_blocking_input_event_to_embedder(input_event);
+                } else {
+                    self.send_input_event_to_embedder(input_event);
+                }
 
                 // Step 7.3. Let input state's x property equal x and y property equal y.
                 let pointer_input_state = self.get_pointer_input_state_mut(source_id);
@@ -701,10 +695,12 @@ impl Handler {
                     mode: WheelMode::DeltaPixel,
                 };
                 let point = DevicePoint::new(x as f32, y as f32);
-                self.send_input_event_to_embedder(
-                    InputEvent::Wheel(WheelEvent::new(delta, point)),
-                    last,
-                );
+                let input_event = InputEvent::Wheel(WheelEvent::new(delta, point));
+                if last {
+                    self.send_blocking_input_event_to_embedder(input_event);
+                } else {
+                    self.send_input_event_to_embedder(input_event);
+                }
 
                 // Step 5.2. Let current delta x property equal delta x + current delta x
                 // and current delta y property equal delta y + current delta y.
