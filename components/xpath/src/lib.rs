@@ -12,7 +12,7 @@ mod value;
 use std::fmt::Debug;
 use std::hash::Hash;
 
-pub use ast::Expr;
+pub use ast::Expression;
 use ast::QName;
 use context::EvaluationCtx;
 use markup5ever::{LocalName, Namespace, Prefix};
@@ -95,7 +95,7 @@ pub trait Attribute {
 }
 
 /// Parse an XPath expression from a string
-pub fn parse<E>(xpath: &str) -> Result<Expr, Error<E>> {
+pub fn parse<E>(xpath: &str) -> Result<Expression, Error<E>> {
     match parse_impl(xpath) {
         Ok(expression) => {
             log::debug!("Parsed XPath: {expression:?}");
@@ -110,7 +110,7 @@ pub fn parse<E>(xpath: &str) -> Result<Expr, Error<E>> {
 
 /// Evaluate an already-parsed XPath expression
 pub fn evaluate_parsed_xpath<D: Dom>(
-    expr: &Expr,
+    expr: &Expression,
     context_node: D::Node,
     resolver: Option<D::NamespaceResolver>,
 ) -> Result<Value<D::Node>, Error<D::JsError>> {

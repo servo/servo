@@ -5,10 +5,18 @@
 use malloc_size_of_derive::MallocSizeOf;
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub enum Expr {
-    Binary(Box<Expr>, BinaryOperator, Box<Expr>),
-    Negate(Box<Expr>),
-    Path(PathExpr),
+pub enum Expression {
+    Binary(Box<Expression>, BinaryOperator, Box<Expression>),
+    Negate(Box<Expression>),
+    Path(PathExpression),
+    /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#section-Location-Steps>
+    LocationStep(LocationStepExpression),
+    Filter(FilterExpression),
+    Literal(Literal),
+    Variable(QName),
+    ContextItem,
+    /// We only support the built-in core functions.
+    Function(CoreFunction),
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
@@ -41,39 +49,34 @@ pub enum BinaryOperator {
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub struct PathExpr {
+pub struct PathExpression {
     /// Whether this is an absolute (as opposed to a relative) path expression.
     ///
     /// Absolute paths always start at the starting node, not the context node.
     pub(crate) is_absolute: bool,
     /// Whether this expression starts with `//`. If it does, then an implicit
     /// `descendant-or-self::node()` step will be added.
-    pub(crate) is_descendant: bool,
-    pub(crate) steps: Vec<StepExpr>,
+    pub(crate) has_implicit_descendant_or_self_step: bool,
+    pub(crate) steps: Vec<Expression>,
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) struct PredicateListExpr {
-    pub(crate) predicates: Vec<Expr>,
+pub struct PredicateListExpression {
+    pub(crate) predicates: Vec<Expression>,
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) struct FilterExpr {
-    pub(crate) primary: PrimaryExpr,
-    pub(crate) predicates: PredicateListExpr,
+pub struct FilterExpression {
+    pub(crate) expression: Box<Expression>,
+    pub(crate) predicates: PredicateListExpression,
 }
 
+/// <https://www.w3.org/TR/1999/REC-xpath-19991116/#section-Location-Steps>
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) enum StepExpr {
-    Filter(FilterExpr),
-    Axis(AxisStep),
-}
-
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) struct AxisStep {
+pub struct LocationStepExpression {
     pub(crate) axis: Axis,
     pub(crate) node_test: NodeTest,
-    pub(crate) predicates: PredicateListExpr,
+    pub(crate) predicate_list: PredicateListExpression,
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
@@ -124,17 +127,7 @@ pub(crate) enum KindTest {
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) enum PrimaryExpr {
-    Literal(Literal),
-    Variable(QName),
-    Parenthesized(Box<Expr>),
-    ContextItem,
-    /// We only support the built-in core functions
-    Function(CoreFunction),
-}
-
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) enum Literal {
+pub enum Literal {
     Integer(i64),
     Decimal(f64),
     String(String),
@@ -142,66 +135,66 @@ pub(crate) enum Literal {
 
 /// In the DOM we do not support custom functions, so we can enumerate the usable ones
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) enum CoreFunction {
+pub enum CoreFunction {
     // Node Set Functions
     /// last()
     Last,
     /// position()
     Position,
     /// count(node-set)
-    Count(Box<Expr>),
+    Count(Box<Expression>),
     /// id(object)
-    Id(Box<Expr>),
+    Id(Box<Expression>),
     /// local-name(node-set?)
-    LocalName(Option<Box<Expr>>),
+    LocalName(Option<Box<Expression>>),
     /// namespace-uri(node-set?)
-    NamespaceUri(Option<Box<Expr>>),
+    NamespaceUri(Option<Box<Expression>>),
     /// name(node-set?)
-    Name(Option<Box<Expr>>),
+    Name(Option<Box<Expression>>),
 
     // String Functions
     /// string(object?)
-    String(Option<Box<Expr>>),
+    String(Option<Box<Expression>>),
     /// concat(string, string, ...)
-    Concat(Vec<Expr>),
+    Concat(Vec<Expression>),
     /// starts-with(string, string)
-    StartsWith(Box<Expr>, Box<Expr>),
+    StartsWith(Box<Expression>, Box<Expression>),
     /// contains(string, string)
-    Contains(Box<Expr>, Box<Expr>),
+    Contains(Box<Expression>, Box<Expression>),
     /// substring-before(string, string)
-    SubstringBefore(Box<Expr>, Box<Expr>),
+    SubstringBefore(Box<Expression>, Box<Expression>),
     /// substring-after(string, string)
-    SubstringAfter(Box<Expr>, Box<Expr>),
+    SubstringAfter(Box<Expression>, Box<Expression>),
     /// substring(string, number, number?)
-    Substring(Box<Expr>, Box<Expr>, Option<Box<Expr>>),
+    Substring(Box<Expression>, Box<Expression>, Option<Box<Expression>>),
     /// string-length(string?)
-    StringLength(Option<Box<Expr>>),
+    StringLength(Option<Box<Expression>>),
     /// normalize-space(string?)
-    NormalizeSpace(Option<Box<Expr>>),
+    NormalizeSpace(Option<Box<Expression>>),
     /// translate(string, string, string)
-    Translate(Box<Expr>, Box<Expr>, Box<Expr>),
+    Translate(Box<Expression>, Box<Expression>, Box<Expression>),
 
     // Number Functions
     /// number(object?)
-    Number(Option<Box<Expr>>),
+    Number(Option<Box<Expression>>),
     /// sum(node-set)
-    Sum(Box<Expr>),
+    Sum(Box<Expression>),
     /// floor(number)
-    Floor(Box<Expr>),
+    Floor(Box<Expression>),
     /// ceiling(number)
-    Ceiling(Box<Expr>),
+    Ceiling(Box<Expression>),
     /// round(number)
-    Round(Box<Expr>),
+    Round(Box<Expression>),
 
     // Boolean Functions
     /// boolean(object)
-    Boolean(Box<Expr>),
+    Boolean(Box<Expression>),
     /// not(boolean)
-    Not(Box<Expr>),
+    Not(Box<Expression>),
     /// true()
     True,
     /// false()
     False,
     /// lang(string)
-    Lang(Box<Expr>),
+    Lang(Box<Expression>),
 }
