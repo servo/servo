@@ -100,29 +100,25 @@ impl Handler {
                 format!("[{}]", elems.join(", "))
             },
             Value::Object(map) => {
-                let key = map.keys().next().map(String::as_str);
-                match (key, map.values().next()) {
-                    (Some(ELEMENT_IDENTIFIER), Some(id)) => {
-                        return self.deserialize_web_element(id);
-                    },
-                    (Some(FRAME_IDENTIFIER), Some(id)) => {
-                        let frame_ref = match id {
-                            Value::String(s) => s.clone(),
-                            _ => id.to_string(),
-                        };
-                        return Ok(format!("window.webdriverFrame(\"{}\")", frame_ref));
-                    },
-                    (Some(WINDOW_IDENTIFIER), Some(id)) => {
-                        let window_ref = match id {
-                            Value::String(s) => s.clone(),
-                            _ => id.to_string(),
-                        };
-                        return Ok(format!("window.webdriverWindow(\"{}\")", window_ref));
-                    },
-                    (Some(SHADOW_ROOT_IDENTIFIER), Some(id)) => {
-                        return self.deserialize_shadow_root(id);
-                    },
-                    _ => {},
+                if let Some(id) = map.get(ELEMENT_IDENTIFIER) {
+                    return self.deserialize_web_element(id);
+                }
+                if let Some(id) = map.get(SHADOW_ROOT_IDENTIFIER) {
+                    return self.deserialize_shadow_root(id);
+                }
+                if let Some(id) = map.get(FRAME_IDENTIFIER) {
+                    let frame_ref = match id {
+                        Value::String(s) => s.clone(),
+                        _ => id.to_string(),
+                    };
+                    return Ok(format!("window.webdriverFrame(\"{}\")", frame_ref));
+                }
+                if let Some(id) = map.get(WINDOW_IDENTIFIER) {
+                    let window_ref = match id {
+                        Value::String(s) => s.clone(),
+                        _ => id.to_string(),
+                    };
+                    return Ok(format!("window.webdriverWindow(\"{}\")", window_ref));
                 }
                 let elems = map
                     .iter()
