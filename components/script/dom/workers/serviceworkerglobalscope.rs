@@ -350,11 +350,12 @@ impl ServiceWorkerGlobalScope {
                     font_context,
                 );
 
-                let scope = global.upcast::<WorkerGlobalScope>();
+                let worker_scope = global.upcast::<WorkerGlobalScope>();
+                let global_scope = global.upcast::<GlobalScope>();
 
                 let referrer = referrer_url
                     .map(Referrer::ReferrerUrl)
-                    .unwrap_or_else(|| global.upcast::<GlobalScope>().get_referrer());
+                    .unwrap_or_else(|| global_scope.get_referrer());
 
                 let request = RequestBuilder::new(None, script_url, referrer)
                     .destination(Destination::ServiceWorker)
@@ -363,7 +364,9 @@ impl ServiceWorkerGlobalScope {
                     .use_url_credentials(true)
                     .pipeline_id(Some(pipeline_id))
                     .referrer_policy(referrer_policy)
-                    .insecure_requests_policy(scope.insecure_requests_policy())
+                    .insecure_requests_policy(worker_scope.insecure_requests_policy())
+                    // TODO: Use policy container from ScopeThings
+                    .policy_container(global_scope.policy_container())
                     .origin(origin);
 
                 let (_url, source) = match load_whole_resource(
@@ -375,7 +378,7 @@ impl ServiceWorkerGlobalScope {
                 ) {
                     Err(_) => {
                         println!("error loading script {}", serialized_worker_url);
-                        scope.clear_js_runtime();
+                        worker_scope.clear_js_runtime();
                         return;
                     },
                     Ok((metadata, bytes)) => {
@@ -385,43 +388,40 @@ impl ServiceWorkerGlobalScope {
 
                 unsafe {
                     // Handle interrupt requests
-                    JS_AddInterruptCallback(*scope.get_cx(), Some(interrupt_callback));
+                    JS_AddInterruptCallback(*worker_scope.get_cx(), Some(interrupt_callback));
                 }
 
                 {
                     // TODO: use AutoWorkerReset as in dedicated worker?
-                    let realm = enter_realm(scope);
+                    let realm = enter_realm(worker_scope);
                     define_all_exposed_interfaces(
-                        scope.upcast(),
+                        global_scope,
                         InRealm::entered(&realm),
                         CanGc::note(),
                     );
-                    scope.execute_script(DOMString::from(source), CanGc::note());
+                    worker_scope.execute_script(DOMString::from(source), CanGc::note());
                     global.dispatch_activate(CanGc::note(), InRealm::entered(&realm));
                 }
 
                 let reporter_name = format!("service-worker-reporter-{}", random::<u64>());
-                scope
-                    .upcast::<GlobalScope>()
-                    .mem_profiler_chan()
-                    .run_with_memory_reporting(
-                        || {
-                            // Step 18, Run the responsible event loop specified
-                            // by inside settings until it is destroyed.
-                            // The worker processing model remains on this step
-                            // until the event loop is destroyed,
-                            // which happens after the closing flag is set to true,
-                            // or until the worker has run beyond its allocated time.
-                            while !scope.is_closing() && !global.has_timed_out() {
-                                run_worker_event_loop(&*global, None, CanGc::note());
-                            }
-                        },
-                        reporter_name,
-                        global.event_loop_sender(),
-                        CommonScriptMsg::CollectReports,
-                    );
+                global_scope.mem_profiler_chan().run_with_memory_reporting(
+                    || {
+                        // Step 18, Run the responsible event loop specified
+                        // by inside settings until it is destroyed.
+                        // The worker processing model remains on this step
+                        // until the event loop is destroyed,
+                        // which happens after the closing flag is set to true,
+                        // or until the worker has run beyond its allocated time.
+                        while !worker_scope.is_closing() && !global.has_timed_out() {
+                            run_worker_event_loop(&*global, None, CanGc::note());
+                        }
+                    },
+                    reporter_name,
+                    global.event_loop_sender(),
+                    CommonScriptMsg::CollectReports,
+                );
 
-                scope.clear_js_runtime();
+                worker_scope.clear_js_runtime();
             })
             .expect("Thread spawning failed")
     }
