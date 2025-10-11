@@ -111,14 +111,14 @@ impl Handler {
                         Value::String(s) => s.clone(),
                         _ => id.to_string(),
                     };
-                    return Ok(format!("window.webdriverFrame(\"{}\")", frame_ref));
+                    return Ok(format!("window.webdriverFrame(\"{frame_ref}\")"));
                 }
                 if let Some(id) = map.get(WINDOW_IDENTIFIER) {
                     let window_ref = match id {
                         Value::String(s) => s.clone(),
                         _ => id.to_string(),
                     };
-                    return Ok(format!("window.webdriverWindow(\"{}\")", window_ref));
+                    return Ok(format!("window.webdriverWindow(\"{window_ref}\")"));
                 }
                 let elems = map
                     .iter()
