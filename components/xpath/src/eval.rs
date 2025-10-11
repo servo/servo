@@ -5,8 +5,8 @@
 use markup5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_prefix, ns};
 
 use super::parser::{
-    AdditiveOp, Axis, EqualityOp, Expr, FilterExpr, KindTest, Literal, MultiplicativeOp, NodeTest,
-    NumericLiteral, PathExpr, PredicateListExpr, PrimaryExpr, RelationalOp, StepExpr, UnaryOp,
+    Axis, BinaryOperator, Expr, FilterExpr, KindTest, Literal, NodeTest, PathExpr,
+    PredicateListExpr, PrimaryExpr, StepExpr,
 };
 use super::{EvaluationCtx, Value};
 use crate::context::PredicateCtx;
@@ -25,75 +25,56 @@ impl Expr {
         context: &EvaluationCtx<D>,
     ) -> Result<Value<D::Node>, Error<D::JsError>> {
         match self {
-            Expr::And(left, right) => {
+            // And/Or expression are seperated because they can sometimes be evaluated
+            // without evaluating both operands.
+            Expr::Binary(left, BinaryOperator::And, right) => {
                 let left_bool = left.evaluate(context)?.boolean();
                 let v = left_bool && right.evaluate(context)?.boolean();
                 Ok(Value::Boolean(v))
             },
-            Expr::Or(left, right) => {
+            Expr::Binary(left, BinaryOperator::Or, right) => {
                 let left_bool = left.evaluate(context)?.boolean();
                 let v = left_bool || right.evaluate(context)?.boolean();
                 Ok(Value::Boolean(v))
             },
-            Expr::Equality(left, equality_op, right) => {
-                let left_val = left.evaluate(context)?;
-                let right_val = right.evaluate(context)?;
+            Expr::Binary(left, binary_operator, right) => {
+                let left_value = left.evaluate(context)?;
+                let right_value = right.evaluate(context)?;
 
-                let v = match equality_op {
-                    EqualityOp::Eq => left_val == right_val,
-                    EqualityOp::NotEq => left_val != right_val,
+                let value = match binary_operator {
+                    BinaryOperator::Equal => (left_value == right_value).into(),
+                    BinaryOperator::NotEqual => (left_value != right_value).into(),
+                    BinaryOperator::LessThan => (left_value.number() < right_value.number()).into(),
+                    BinaryOperator::GreaterThan => {
+                        (left_value.number() > right_value.number()).into()
+                    },
+                    BinaryOperator::LessThanOrEqual => {
+                        (left_value.number() <= right_value.number()).into()
+                    },
+                    BinaryOperator::GreaterThanOrEqual => {
+                        (left_value.number() >= right_value.number()).into()
+                    },
+                    BinaryOperator::Add => (left_value.number() + right_value.number()).into(),
+                    BinaryOperator::Subtract => (left_value.number() - right_value.number()).into(),
+                    BinaryOperator::Multiply => (left_value.number() * right_value.number()).into(),
+                    BinaryOperator::Divide => (left_value.number() / right_value.number()).into(),
+                    BinaryOperator::Modulo => (left_value.number() % right_value.number()).into(),
+                    BinaryOperator::Union => {
+                        let as_nodes = |e: &Expr| e.evaluate(context).and_then(try_extract_nodeset);
+                        let mut left_nodes = as_nodes(left)?;
+                        let right_nodes = as_nodes(right)?;
+
+                        left_nodes.extend(right_nodes);
+                        Value::Nodeset(left_nodes)
+                    },
+                    _ => unreachable!("And/Or were handled above"),
                 };
 
-                Ok(Value::Boolean(v))
+                Ok(value)
             },
-            Expr::Relational(left, relational_op, right) => {
-                let left_val = left.evaluate(context)?.number();
-                let right_val = right.evaluate(context)?.number();
-
-                let v = match relational_op {
-                    RelationalOp::Lt => left_val < right_val,
-                    RelationalOp::Gt => left_val > right_val,
-                    RelationalOp::LtEq => left_val <= right_val,
-                    RelationalOp::GtEq => left_val >= right_val,
-                };
-                Ok(Value::Boolean(v))
-            },
-            Expr::Additive(left, additive_op, right) => {
-                let left_val = left.evaluate(context)?.number();
-                let right_val = right.evaluate(context)?.number();
-
-                let v = match additive_op {
-                    AdditiveOp::Add => left_val + right_val,
-                    AdditiveOp::Sub => left_val - right_val,
-                };
-                Ok(Value::Number(v))
-            },
-            Expr::Multiplicative(left, multiplicative_op, right) => {
-                let left_val = left.evaluate(context)?.number();
-                let right_val = right.evaluate(context)?.number();
-
-                let v = match multiplicative_op {
-                    MultiplicativeOp::Mul => left_val * right_val,
-                    MultiplicativeOp::Div => left_val / right_val,
-                    MultiplicativeOp::Mod => left_val % right_val,
-                };
-                Ok(Value::Number(v))
-            },
-            Expr::Unary(unary_op, expr) => {
-                let v = expr.evaluate(context)?.number();
-
-                match unary_op {
-                    UnaryOp::Minus => Ok(Value::Number(-v)),
-                }
-            },
-            Expr::Union(left, right) => {
-                let as_nodes = |e: &Expr| e.evaluate(context).and_then(try_extract_nodeset);
-
-                let mut left_nodes = as_nodes(left)?;
-                let right_nodes = as_nodes(right)?;
-
-                left_nodes.extend(right_nodes);
-                Ok(Value::Nodeset(left_nodes))
+            Expr::Negate(expr) => {
+                let value = -expr.evaluate(context)?.number();
+                Ok(value.into())
             },
             Expr::Path(path_expr) => path_expr.evaluate(context),
         }
@@ -450,11 +431,8 @@ impl Literal {
         _context: &EvaluationCtx<D>,
     ) -> Result<Value<D::Node>, Error<D::JsError>> {
         match self {
-            Literal::Numeric(numeric_literal) => match numeric_literal {
-                // We currently make no difference between ints and floats
-                NumericLiteral::Integer(v) => Ok(Value::Number(*v as f64)),
-                NumericLiteral::Decimal(v) => Ok(Value::Number(*v)),
-            },
+            Literal::Integer(integer) => Ok(Value::Number(*integer as f64)),
+            Literal::Decimal(decimal) => Ok(Value::Number(*decimal)),
             Literal::String(s) => Ok(Value::String(s.into())),
         }
     }
