@@ -1,0 +1,124 @@
+name: Code Coverage
+on:
+  workflow_call:
+    inputs:
+      force-github-hosted-runner:
+        required: false
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      force-github-hosted-runner:
+        description: "Force using github hosted runners"
+        required: false
+        type: boolean
+        default: false
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+
+jobs:
+  # Runs the underlying job (“workload”) on a self-hosted runner if available,
+  # with the help of a `runner-select` job and a `runner-timeout` job.
+  runner-select:
+    runs-on: ubuntu-22.04
+    outputs:
+      unique-id: ${{ steps.select.outputs.unique-id }}
+      selected-runner-label: ${{ steps.select.outputs.selected-runner-label }}
+      is-self-hosted: ${{ steps.select.outputs.is-self-hosted }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: '.github'
+      - name: Runner select
+        id: select
+        uses: ./.github/actions/runner-select
+        with:
+          monitor-api-token: ${{ secrets.SERVO_CI_MONITOR_API_TOKEN }}
+          # Before updating the GH action runner image for the nightly job, ensure
+          # that the system has a glibc version that is compatible with the one
+          # used by the wpt.fyi runners.
+          github-hosted-runner-label: ubuntu-22.04
+          self-hosted-image-name: servo-ubuntu2204
+          # You can disable self-hosted runners globally by creating a repository variable named
+          # NO_SELF_HOSTED_RUNNERS with any non-empty value.
+          # <https://github.com/servo/servo/settings/variables/actions>
+          NO_SELF_HOSTED_RUNNERS: ${{ vars.NO_SELF_HOSTED_RUNNERS }}
+          # Any other boolean conditions that disable self-hosted runners go here.
+          force-github-hosted-runner: ${{ inputs.force-github-hosted-runner }}
+  runner-timeout:
+    needs:
+      - runner-select
+    if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: '.github'
+      - name: Runner timeout
+        uses: ./.github/actions/runner-timeout
+        with:
+          github_token: '${{ secrets.GITHUB_TOKEN }}'
+          unique-id: '${{ needs.runner-select.outputs.unique-id }}'
+
+  unit-test-coverage:
+    needs: runner-select
+    name: Unit Test Coverage [${{ needs.runner-select.outputs.unique-id }}]
+    runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
+    steps:
+      - uses: actions/checkout@v4
+        if: ${{ runner.environment != 'self-hosted' && github.event_name != 'pull_request_target' }}
+      # This is necessary to checkout the pull request if this run was triggered via a
+      # `pull_request_target` event.
+      - uses: actions/checkout@v4
+        if: ${{ runner.environment != 'self-hosted' && github.event_name == 'pull_request_target' }}
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      # Faster checkout for self-hosted runner that uses prebaked repo.
+      - if: ${{ runner.environment == 'self-hosted' && github.event_name != 'pull_request_target' }}
+        run: git fetch --depth=1 origin $GITHUB_SHA
+      - if: ${{ runner.environment == 'self-hosted' && github.event_name == 'pull_request_target' }}
+        run: git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
+      - if: ${{ runner.environment == 'self-hosted' }}
+        # Same as `git switch --detach FETCH_HEAD`, but fixes up dirty working
+        # trees, in case the runner image was baked with a dirty working tree.
+        run: |
+          git switch --detach
+          git reset --hard FETCH_HEAD
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        if: ${{ runner.environment != 'self-hosted' }}
+        with:
+          tool-cache: false
+          large-packages: false
+          swap-storage: false
+      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
+        shell: bash
+        if: ${{ runner.environment != 'self-hosted' }}
+        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
+      - name: Setup Python
+        if: ${{ runner.environment != 'self-hosted' }}
+        uses: ./.github/actions/setup-python
+      - name: Change Mirror Priorities
+        if: ${{ runner.environment != 'self-hosted' }}
+        uses: ./.github/actions/apt-mirrors
+      - name: Bootstrap dependencies
+        if: ${{ runner.environment != 'self-hosted' }}
+        shell: bash
+        run: |
+          sudo apt update
+          ./mach bootstrap --skip-lints
+      - name: Run unit-tests with coverage
+        shell: bash
+        run: ./mach test-unit --code-coverage --llvm-cov-option=--codecov --llvm-cov-option=--output-path=codecov.json
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          # todo: is the token recent, or needs to be updated?
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: codecov.json,support/crown/codecov.json
+          fail_ci_if_error: true
+          flags: unittests

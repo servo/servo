@@ -48,10 +48,6 @@ on:
         required: false
         default: false
         type: boolean
-      coverage:
-        required: false
-        default: false
-        type: boolean
   workflow_dispatch:
     inputs:
       profile:
@@ -92,11 +88,6 @@ on:
         default: false
       bencher:
         required: false
-        default: false
-        type: boolean
-      coverage:
-        required: false
-        description: 'Calculate Test coverage'
         default: false
         type: boolean
 
@@ -312,64 +303,3 @@ jobs:
         run: |
           cargo +${{ steps.msrv.outputs.rust_version }} build -p libservo --locked --all-targets
 
-
-  unit-test-coverage:
-    if: ${{ inputs.coverage }}
-    name: Unit Test Coverage
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Run Unit tests with coverage
-        uses: ./.github/actions/unit-test-coverage
-      - uses: actions/checkout@v4
-        if: ${{ runner.environment != 'self-hosted' && github.event_name != 'pull_request_target' }}
-      # This is necessary to checkout the pull request if this run was triggered via a
-      # `pull_request_target` event.
-      - uses: actions/checkout@v4
-        if: ${{ runner.environment != 'self-hosted' && github.event_name == 'pull_request_target' }}
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      # Faster checkout for self-hosted runner that uses prebaked repo.
-      - if: ${{ runner.environment == 'self-hosted' && github.event_name != 'pull_request_target' }}
-        run: git fetch --depth=1 origin $GITHUB_SHA
-      - if: ${{ runner.environment == 'self-hosted' && github.event_name == 'pull_request_target' }}
-        run: git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
-      - if: ${{ runner.environment == 'self-hosted' }}
-        # Same as `git switch --detach FETCH_HEAD`, but fixes up dirty working
-        # trees, in case the runner image was baked with a dirty working tree.
-        run: |
-          git switch --detach
-          git reset --hard FETCH_HEAD
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        if: ${{ runner.environment != 'self-hosted' }}
-        with:
-          tool-cache: false
-          large-packages: false
-          swap-storage: false
-      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
-        shell: bash
-        if: ${{ runner.environment != 'self-hosted' }}
-        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
-      - name: Setup Python
-        if: ${{ runner.environment != 'self-hosted' }}
-        uses: ./.github/actions/setup-python
-      - name: Change Mirror Priorities
-        if: ${{ runner.environment != 'self-hosted' }}
-        uses: ./.github/actions/apt-mirrors
-      - name: Bootstrap dependencies
-        if: ${{ runner.environment != 'self-hosted' }}
-        shell: bash
-        run: |
-          sudo apt update
-          ./mach bootstrap --skip-lints
-      - name: Run unit-tests with coverage
-        shell: bash
-        run: ./mach test-unit --code-coverage --llvm-cov-option=--codecov --llvm-cov-option=--output-path=codecov.json
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          # todo: is the token recent, or needs to be updated?
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: codecov.json,support/crown/codecov.json
-          fail_ci_if_error: true
-          flags: unittests

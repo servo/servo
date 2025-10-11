@@ -116,7 +116,6 @@ jobs:
       wpt-args: ${{ matrix.wpt_args }}
       number-of-wpt-chunks: ${{ matrix.number_of_wpt_chunks }}
       bencher: ${{ matrix.bencher }}
-      coverage: ${{ matrix.coverage }}
 
   build-result:
     name: Result
