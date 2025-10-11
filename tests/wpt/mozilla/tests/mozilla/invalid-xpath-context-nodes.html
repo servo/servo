@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Only document/element/attribute/comment/text/PI nodes can be context nodes</title>
+        <link rel="author" title="Simon Wülker" href="mailto:simon.wuelker@arcor.de">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+<body>
+    <div id="host">/div>
+    <script>
+      const host = document.createElement("div");
+      const root = host.attachShadow({mode: "closed"});
+
+      test(() => {
+        assert_throws_dom("NotSupportedError", () => {
+          document.evaluate(".", root, null, XPathResult.ANY_TYPE, null);
+        });
+      }, "Using a ShadowRoot as a context node should throw a NotSupported Error");
+    </script>
+</body>
+</html>
