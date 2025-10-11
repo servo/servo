@@ -315,7 +315,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
 
         let trait_id = cx
             .tcx
-            .trait_of_item(trait_item.hir_id().expect_owner().to_def_id())
+            .trait_of_assoc(trait_item.hir_id().expect_owner().to_def_id())
             .unwrap();
         // we need to make sure that each impl has same crown attrs
         let impls = cx.tcx.trait_impls_of(trait_id);
