@@ -123,9 +123,14 @@ jobs:
           echo "nproc: $(nproc)"
           NUM_JOBS=$(nproc)
           # Todo: a more sophisticated implementation would take into account available memory.
-          if [[ "${NUM_JOBS}" -ge "2" ]];
+          if [[ "${NUM_JOBS}" -ge "6" ]];
+          then
+            NUM_JOBS=3
+          elif [[ "${NUM_JOBS}" -ge "4" ]];
           then
             NUM_JOBS=2
+          else
+            NUM_JOBS=1
           fi 
           echo "num_jobs=${NUM_JOBS}" | tee $GITHUB_OUTPUT
       - name: Run unit-tests with coverage
