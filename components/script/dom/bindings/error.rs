@@ -113,7 +113,7 @@ pub(crate) fn create_dom_exception(
         Error::NotFound(None) => DOMErrorName::NotFoundError,
         Error::HierarchyRequest => DOMErrorName::HierarchyRequestError,
         Error::WrongDocument(Some(doc_err_custom_message)) => {
-            return new_custom_exception(DOMErrorName::WrongDocumentError, custom_message);
+            return new_custom_exception(DOMErrorName::WrongDocumentError, doc_err_custom_message);
         },
         Error::WrongDocument(None) => DOMErrorName::WrongDocumentError,
         Error::InvalidCharacter => DOMErrorName::InvalidCharacterError,
