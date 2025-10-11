@@ -9,6 +9,7 @@ use aes::cipher::generic_array::GenericArray;
 use aes::cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit, StreamCipher};
 use aes::{Aes128, Aes192, Aes256};
 use aes_gcm::{AeadInPlace, AesGcm, KeyInit};
+use aes_kw::{KekAes128, KekAes192, KekAes256};
 use base64::prelude::*;
 use cipher::consts::{U12, U16, U32};
 use js::jsapi::JS_NewObject;
@@ -583,6 +584,88 @@ pub(crate) fn import_key_aes_gcm(
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-export-key>
 pub(crate) fn export_key_aes_gcm(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
     export_key_aes(format, key)
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-kw-operations-wrap-key>
+pub(crate) fn wrap_key_aes_kw(key: &CryptoKey, plaintext: &[u8]) -> Result<Vec<u8>, Error> {
+    // Step 1. If plaintext is not a multiple of 64 bits in length, then throw an OperationError.
+    if plaintext.len() % 8 != 0 {
+        return Err(Error::Operation);
+    }
+
+    // Step 2. Let ciphertext be the result of performing the Key Wrap operation described in
+    // Section 2.2.1 of [RFC3394] with plaintext as the plaintext to be wrapped and using the
+    // default Initial Value defined in Section 2.2.3.1 of the same document.
+    let key_data = key.handle().as_bytes();
+    let ciphertext = match key_data.len() {
+        16 => {
+            let key_array = GenericArray::from_slice(key_data);
+            let kek = KekAes128::new(key_array);
+            match kek.wrap_vec(plaintext) {
+                Ok(key) => key,
+                Err(_) => return Err(Error::Operation),
+            }
+        },
+        24 => {
+            let key_array = GenericArray::from_slice(key_data);
+            let kek = KekAes192::new(key_array);
+            match kek.wrap_vec(plaintext) {
+                Ok(key) => key,
+                Err(_) => return Err(Error::Operation),
+            }
+        },
+        32 => {
+            let key_array = GenericArray::from_slice(key_data);
+            let kek = KekAes256::new(key_array);
+            match kek.wrap_vec(plaintext) {
+                Ok(key) => key,
+                Err(_) => return Err(Error::Operation),
+            }
+        },
+        _ => return Err(Error::Operation),
+    };
+
+    // Step 3. Return ciphertext.
+    Ok(ciphertext)
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-kw-operations-unwrap-key>
+pub(crate) fn unwrap_key_aes_kw(key: &CryptoKey, ciphertext: &[u8]) -> Result<Vec<u8>, Error> {
+    // Step 1. Let plaintext be the result of performing the Key Unwrap operation described in
+    // Section 2.2.2 of [RFC3394] with ciphertext as the input ciphertext and using the default
+    // Initial Value defined in Section 2.2.3.1 of the same document.
+    // Step 2. If the Key Unwrap operation returns an error, then throw an OperationError.
+    let key_data = key.handle().as_bytes();
+    let plaintext = match key_data.len() {
+        16 => {
+            let key_array = GenericArray::from_slice(key_data);
+            let kek = KekAes128::new(key_array);
+            match kek.unwrap_vec(ciphertext) {
+                Ok(key) => key,
+                Err(_) => return Err(Error::Operation),
+            }
+        },
+        24 => {
+            let key_array = GenericArray::from_slice(key_data);
+            let kek = KekAes192::new(key_array);
+            match kek.unwrap_vec(ciphertext) {
+                Ok(key) => key,
+                Err(_) => return Err(Error::Operation),
+            }
+        },
+        32 => {
+            let key_array = GenericArray::from_slice(key_data);
+            let kek = KekAes256::new(key_array);
+            match kek.unwrap_vec(ciphertext) {
+                Ok(key) => key,
+                Err(_) => return Err(Error::Operation),
+            }
+        },
+        _ => return Err(Error::Operation),
+    };
+
+    // Step 3. Return plaintext.
+    Ok(plaintext)
 }
 
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-generate-key>
