@@ -148,7 +148,7 @@ pub enum ScriptThreadMessage {
     /// Notifies the script that the whole thread should be closed.
     ExitScriptThread,
     /// Sends a DOM event.
-    SendInputEvent(PipelineId, ConstellationInputEvent),
+    SendInputEvent(WebViewId, PipelineId, ConstellationInputEvent),
     /// Request that the given pipeline refresh the cursor by doing a hit test at the most
     /// recently hovered cursor position and resetting the cursor. This happens after a
     /// display list update is rendered.

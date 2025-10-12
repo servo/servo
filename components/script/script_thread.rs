@@ -50,8 +50,9 @@ use devtools_traits::{
 };
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    EmbedderControlId, FocusSequenceNumber, FormControlResponse, JavaScriptEvaluationError,
-    JavaScriptEvaluationId, MediaSessionActionType, Theme, ViewportDetails, WebDriverScriptCommand,
+    EmbedderControlId, EmbedderMsg, FocusSequenceNumber, FormControlResponse,
+    JavaScriptEvaluationError, JavaScriptEvaluationId, MediaSessionActionType, Theme,
+    ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::default::Rect;
 use fonts::{FontContext, SystemFontServiceProxy};
@@ -1398,9 +1399,11 @@ impl ScriptThread {
                         document.handle_no_longer_waiting_on_asynchronous_image_updates();
                     }
                 },
-                MixedMessage::FromConstellation(ScriptThreadMessage::SendInputEvent(id, event)) => {
-                    self.handle_input_event(id, event)
-                },
+                MixedMessage::FromConstellation(ScriptThreadMessage::SendInputEvent(
+                    webview_id,
+                    id,
+                    event,
+                )) => self.handle_input_event(webview_id, id, event),
                 MixedMessage::FromScript(MainThreadScriptMsg::Common(CommonScriptMsg::Task(
                     _,
                     _,
@@ -1536,7 +1539,7 @@ impl ScriptThread {
     fn categorize_msg(&self, msg: &MixedMessage) -> ScriptThreadEventCategory {
         match *msg {
             MixedMessage::FromConstellation(ref inner_msg) => match *inner_msg {
-                ScriptThreadMessage::SendInputEvent(_, _) => ScriptThreadEventCategory::InputEvent,
+                ScriptThreadMessage::SendInputEvent(..) => ScriptThreadEventCategory::InputEvent,
                 _ => ScriptThreadEventCategory::ConstellationMsg,
             },
             // TODO https://github.com/servo/servo/issues/18998
@@ -3414,9 +3417,22 @@ impl ScriptThread {
 
     /// Queue compositor events for later dispatching as part of a
     /// `update_the_rendering` task.
-    fn handle_input_event(&self, pipeline_id: PipelineId, event: ConstellationInputEvent) {
+    fn handle_input_event(
+        &self,
+        webview_id: WebViewId,
+        pipeline_id: PipelineId,
+        event: ConstellationInputEvent,
+    ) {
         let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
             warn!("Compositor event sent to closed pipeline {pipeline_id}.");
+            let _ = self
+                .senders
+                .pipeline_to_embedder_sender
+                .send(EmbedderMsg::InputEventHandled(
+                    webview_id,
+                    event.event.id,
+                    Default::default(),
+                ));
             return;
         };
         document.event_handler().note_pending_input_event(event);
