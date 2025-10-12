@@ -261,7 +261,8 @@ class MachCommands(CommandBase):
         args += test_patterns
 
         if nocapture:
-            args += ["--", "--nocapture"]
+            args += ["--nocapture"]
+        args += ["--no-fail-fast"]
 
         env = self.build_env()
 
