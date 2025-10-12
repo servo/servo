@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -48,7 +48,7 @@ pub struct Minibrowser {
     location: String,
 
     /// Whether the location has been edited by the user without clicking Go.
-    location_dirty: Cell<bool>,
+    location_dirty: bool,
 
     load_status: LoadStatus,
 
@@ -122,7 +122,7 @@ impl Minibrowser {
             last_update: Instant::now(),
             last_mouse_position: None,
             location: initial_url.to_string(),
-            location_dirty: false.into(),
+            location_dirty: false,
             load_status: LoadStatus::Complete,
             status_text: None,
             favicon_textures: Default::default(),
@@ -366,7 +366,7 @@ impl Minibrowser {
                                     );
 
                                     if location_field.changed() {
-                                        location_dirty.set(true);
+                                        *location_dirty = true;
                                     }
                                     // Handle adddress bar shortcut.
                                     if ui.input(|i| {
@@ -508,7 +508,7 @@ impl Minibrowser {
     /// editing it without clicking Go, returning true iff it has changed (needing an egui update).
     pub fn update_location_in_toolbar(&mut self, state: &RunningAppState) -> bool {
         // User edited without clicking Go?
-        if self.location_dirty.get() {
+        if self.location_dirty {
             return false;
         }
 
@@ -524,8 +524,8 @@ impl Minibrowser {
         }
     }
 
-    pub fn update_location_dirty(&self, dirty: bool) {
-        self.location_dirty.set(dirty);
+    pub fn update_location_dirty(&mut self, dirty: bool) {
+        self.location_dirty = dirty;
     }
 
     pub fn update_load_status(&mut self, state: &RunningAppState) -> bool {

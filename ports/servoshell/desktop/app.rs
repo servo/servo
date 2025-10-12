@@ -282,7 +282,7 @@ impl App {
 
     /// Takes any events generated during `egui` updates and performs their actions.
     fn handle_servoshell_ui_events(&mut self) {
-        let Some(minibrowser) = self.minibrowser.as_ref() else {
+        let Some(minibrowser) = self.minibrowser.as_mut() else {
             return;
         };
         // We should always be in the running state.
