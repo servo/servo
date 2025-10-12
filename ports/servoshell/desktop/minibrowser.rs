@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -39,16 +38,16 @@ use crate::prefs::{EXPERIMENTAL_PREFS, ServoShellPreferences};
 
 pub struct Minibrowser {
     rendering_context: Rc<OffscreenRenderingContext>,
-    pub context: EguiGlow,
-    pub event_queue: RefCell<Vec<MinibrowserEvent>>,
-    pub toolbar_height: Length<f32, DeviceIndependentPixel>,
+    context: EguiGlow,
+    event_queue: Vec<MinibrowserEvent>,
+    toolbar_height: Length<f32, DeviceIndependentPixel>,
 
     last_update: Instant,
     last_mouse_position: Option<Point2D<f32, DeviceIndependentPixel>>,
-    location: RefCell<String>,
+    location: String,
 
     /// Whether the location has been edited by the user without clicking Go.
-    location_dirty: Cell<bool>,
+    location_dirty: bool,
 
     load_status: LoadStatus,
 
@@ -117,12 +116,12 @@ impl Minibrowser {
         Self {
             rendering_context,
             context,
-            event_queue: RefCell::new(vec![]),
+            event_queue: vec![],
             toolbar_height: Default::default(),
             last_update: Instant::now(),
             last_mouse_position: None,
-            location: RefCell::new(initial_url.to_string()),
-            location_dirty: false.into(),
+            location: initial_url.to_string(),
+            location_dirty: false,
             load_status: LoadStatus::Complete,
             status_text: None,
             favicon_textures: Default::default(),
@@ -130,8 +129,8 @@ impl Minibrowser {
         }
     }
 
-    pub(crate) fn take_events(&self) -> Vec<MinibrowserEvent> {
-        self.event_queue.take()
+    pub(crate) fn take_events(&mut self) -> Vec<MinibrowserEvent> {
+        std::mem::take(&mut self.event_queue)
     }
 
     /// Preprocess the given [winit::event::WindowEvent], returning unconsumed for mouse events in
@@ -165,9 +164,7 @@ impl Minibrowser {
                 button: MouseButton::Forward,
                 ..
             } => {
-                self.event_queue
-                    .borrow_mut()
-                    .push(MinibrowserEvent::Forward);
+                self.event_queue.push(MinibrowserEvent::Forward);
                 true
             },
             WindowEvent::MouseInput {
@@ -175,7 +172,7 @@ impl Minibrowser {
                 button: MouseButton::Back,
                 ..
             } => {
-                self.event_queue.borrow_mut().push(MinibrowserEvent::Back);
+                self.event_queue.push(MinibrowserEvent::Back);
                 true
             },
             WindowEvent::MouseWheel { .. } | WindowEvent::MouseInput { .. } => self
@@ -321,10 +318,10 @@ impl Minibrowser {
                         egui::Layout::left_to_right(egui::Align::Center),
                         |ui| {
                             if ui.add(Minibrowser::toolbar_button("⏴")).clicked() {
-                                event_queue.borrow_mut().push(MinibrowserEvent::Back);
+                                event_queue.push(MinibrowserEvent::Back);
                             }
                             if ui.add(Minibrowser::toolbar_button("⏵")).clicked() {
-                                event_queue.borrow_mut().push(MinibrowserEvent::Forward);
+                                event_queue.push(MinibrowserEvent::Forward);
                             }
 
                             match self.load_status {
@@ -335,7 +332,7 @@ impl Minibrowser {
                                 },
                                 LoadStatus::Complete => {
                                     if ui.add(Minibrowser::toolbar_button("↻")).clicked() {
-                                        event_queue.borrow_mut().push(MinibrowserEvent::Reload);
+                                        event_queue.push(MinibrowserEvent::Reload);
                                     }
                                 },
                             }
@@ -355,18 +352,17 @@ impl Minibrowser {
                                                 .servo()
                                                 .set_preference(pref, PrefValue::Bool(enable));
                                         }
-                                        event_queue.borrow_mut().push(MinibrowserEvent::ReloadAll);
+                                        event_queue.push(MinibrowserEvent::ReloadAll);
                                     }
 
                                     let location_id = egui::Id::new("location_input");
                                     let location_field = ui.add_sized(
                                         ui.available_size(),
-                                        egui::TextEdit::singleline(&mut *location.borrow_mut())
-                                            .id(location_id),
+                                        egui::TextEdit::singleline(location).id(location_id),
                                     );
 
                                     if location_field.changed() {
-                                        location_dirty.set(true);
+                                        *location_dirty = true;
                                     }
                                     // Handle adddress bar shortcut.
                                     if ui.input(|i| {
@@ -388,7 +384,7 @@ impl Minibrowser {
                                             // Select the whole input.
                                             state.cursor.set_char_range(Some(CCursorRange::two(
                                                 CCursor::new(0),
-                                                CCursor::new(location.borrow().len()),
+                                                CCursor::new(location.len()),
                                             )));
                                             state.store(ui.ctx(), location_id);
                                         }
@@ -397,9 +393,7 @@ impl Minibrowser {
                                     if location_field.lost_focus() &&
                                         ui.input(|i| i.clone().key_pressed(Key::Enter))
                                     {
-                                        event_queue
-                                            .borrow_mut()
-                                            .push(MinibrowserEvent::Go(location.borrow().clone()));
+                                        event_queue.push(MinibrowserEvent::Go(location.clone()));
                                     }
                                 },
                             );
@@ -419,10 +413,10 @@ impl Minibrowser {
                                 .get(&id)
                                 .map(|(_, favicon)| favicon)
                                 .copied();
-                            Self::browser_tab(ui, webview, &mut event_queue.borrow_mut(), favicon);
+                            Self::browser_tab(ui, webview, event_queue, favicon);
                         }
                         if ui.add(Minibrowser::toolbar_button("+")).clicked() {
-                            event_queue.borrow_mut().push(MinibrowserEvent::NewWebView);
+                            event_queue.push(MinibrowserEvent::NewWebView);
                         }
                     },
                 );
@@ -508,7 +502,7 @@ impl Minibrowser {
     /// editing it without clicking Go, returning true iff it has changed (needing an egui update).
     pub fn update_location_in_toolbar(&mut self, state: &RunningAppState) -> bool {
         // User edited without clicking Go?
-        if self.location_dirty.get() {
+        if self.location_dirty {
             return false;
         }
 
@@ -516,16 +510,16 @@ impl Minibrowser {
             .focused_webview()
             .and_then(|webview| Some(webview.url()?.to_string()));
         match current_url_string {
-            Some(location) if location != *self.location.get_mut() => {
-                self.location = RefCell::new(location.to_owned());
+            Some(location) if location != self.location => {
+                self.location = location.to_owned();
                 true
             },
             _ => false,
         }
     }
 
-    pub fn update_location_dirty(&self, dirty: bool) {
-        self.location_dirty.set(dirty);
+    pub fn update_location_dirty(&mut self, dirty: bool) {
+        self.location_dirty = dirty;
     }
 
     pub fn update_load_status(&mut self, state: &RunningAppState) -> bool {
@@ -575,6 +569,10 @@ impl Minibrowser {
                 false
             },
         }
+    }
+
+    pub(crate) fn set_zoom_factor(&self, factor: f32) {
+        self.context.egui_ctx.set_zoom_factor(factor);
     }
 }
 

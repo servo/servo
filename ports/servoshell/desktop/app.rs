@@ -263,7 +263,7 @@ impl App {
 
     /// Takes any events generated during `egui` updates and performs their actions.
     fn handle_servoshell_ui_events(&mut self) {
-        let Some(minibrowser) = self.minibrowser.as_ref() else {
+        let Some(minibrowser) = self.minibrowser.as_mut() else {
             return;
         };
         // We should always be in the running state.
@@ -650,10 +650,7 @@ impl ApplicationHandler<AppEvent> for App {
                         scale_factor, effective_egui_zoom_factor
                     );
 
-                    minibrowser
-                        .context
-                        .egui_ctx
-                        .set_zoom_factor(effective_egui_zoom_factor);
+                    minibrowser.set_zoom_factor(effective_egui_zoom_factor);
 
                     state.hidpi_scale_factor_changed();
 
