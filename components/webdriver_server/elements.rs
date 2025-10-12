@@ -6,7 +6,7 @@ use embedder_traits::WebDriverScriptCommand;
 use ipc_channel::ipc;
 use serde_json::Value;
 use webdriver::command::JavascriptCommandParameters;
-use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
+use webdriver::error::{WebDriverError, WebDriverResult};
 
 use crate::{Handler, VerifyBrowsingContextIsOpen, wait_for_ipc_response};
 
@@ -26,11 +26,12 @@ impl Handler {
         parameters: JavascriptCommandParameters,
     ) -> WebDriverResult<(String, Vec<String>)> {
         // Step 1. Let script be the result of getting a property named "script" from parameters
-        // Step 2. (Skip) If script is not a String, return error with error code invalid argument.
+        // Step 2. (Done) If script is not a String, return error with error code invalid argument.
         let script = parameters.script;
 
         // Step 3. Let args be the result of getting a property named "args" from parameters.
-        // Step 4. (Skip) If args is not an Array return error with error code invalid argument.
+        // Step 4. (Done) If args is not an Array return error with error code invalid argument.
+        // Step 5. Let `arguments` be JSON deserialize with session and args.
         let args: Vec<String> = parameters
             .args
             .as_deref()
@@ -45,9 +46,9 @@ impl Handler {
     /// <https://w3c.github.io/webdriver/#dfn-deserialize-a-web-element>
     pub(crate) fn deserialize_web_element(&self, element: &Value) -> WebDriverResult<String> {
         // Step 2. Let reference be the result of getting the web element identifier property from object.
-        let element_ref: String = match element {
+        let element_ref = match element {
             Value::String(s) => s.clone(),
-            _ => element.to_string(),
+            _ => unreachable!(),
         };
 
         // Step 3. Let element be the result of trying to get a known element with session and reference.
@@ -69,7 +70,7 @@ impl Handler {
         // Step 2. Let reference be the result of getting the shadow root identifier property from object.
         let shadow_root_ref = match shadow_root {
             Value::String(s) => s.clone(),
-            _ => shadow_root.to_string(),
+            _ => unreachable!(),
         };
 
         // Step 3. Let element be the result of trying to get a known element with session and reference.
@@ -123,18 +124,14 @@ impl Handler {
                 let elems = map
                     .iter()
                     .map(|(k, v)| {
+                        let key = serde_json::to_string(k)?;
                         let arg = self.json_deserialize(v)?;
-                        Ok(format!("{}: {}", k, arg))
+                        Ok(format!("{key}: {arg}"))
                     })
                     .collect::<WebDriverResult<Vec<String>>>()?;
                 format!("{{{}}}", elems.join(", "))
             },
-            _ => serde_json::to_string(v).map_err(|_| {
-                WebDriverError::new(
-                    ErrorStatus::InvalidArgument,
-                    "Failed to serialize script argument",
-                )
-            })?,
+            _ => serde_json::to_string(v)?,
         };
 
         Ok(res)
