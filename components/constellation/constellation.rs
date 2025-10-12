@@ -4028,9 +4028,8 @@ where
                 },
             };
 
-        if let Some(old_pipeline) = self.pipelines.get(&old_pipeline_id) {
-            old_pipeline.set_throttled(true);
-        }
+        self.unload_document(old_pipeline_id);
+
         if let Some(new_pipeline) = self.pipelines.get(&new_pipeline_id) {
             if let Some(ref chan) = self.devtools_sender {
                 let state = NavigationState::Start(new_pipeline.url.clone());
@@ -4789,12 +4788,8 @@ where
                 self.update_activity(change.new_pipeline_id);
             },
             Some(old_pipeline_id) => {
-                if let Some(pipeline) = self.pipelines.get(&old_pipeline_id) {
-                    pipeline.set_throttled(true);
-                }
-
-                // https://html.spec.whatwg.org/multipage/#unload-a-document
                 self.unload_document(old_pipeline_id);
+
                 // Deactivate the old pipeline, and activate the new one.
                 let (pipelines_to_close, states_to_close) = if let Some(replace_reloader) =
                     change.replace
@@ -5457,10 +5452,11 @@ where
         );
     }
 
-    // Send a message to script requesting the document associated with this pipeline runs the 'unload' algorithm.
+    /// Send a message to script requesting the document associated with this pipeline runs the 'unload' algorithm.
     #[servo_tracing::instrument(skip_all)]
     fn unload_document(&self, pipeline_id: PipelineId) {
         if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+            pipeline.set_throttled(true);
             let msg = ScriptThreadMessage::UnloadDocument(pipeline_id);
             let _ = pipeline.event_loop.send(msg);
         }
