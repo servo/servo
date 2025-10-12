@@ -717,10 +717,7 @@ impl ApplicationHandler<AppEvent> for App {
                         scale_factor, effective_egui_zoom_factor
                     );
 
-                    minibrowser
-                        .context
-                        .egui_ctx
-                        .set_zoom_factor(effective_egui_zoom_factor);
+                    minibrowser.set_zoom_factor(effective_egui_zoom_factor);
 
                     state.hidpi_scale_factor_changed();
 

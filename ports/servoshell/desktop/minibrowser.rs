@@ -38,7 +38,7 @@ use crate::prefs::{EXPERIMENTAL_PREFS, ServoShellPreferences};
 
 pub struct Minibrowser {
     rendering_context: Rc<OffscreenRenderingContext>,
-    pub context: EguiGlow,
+    context: EguiGlow,
     event_queue: Vec<MinibrowserEvent>,
     toolbar_height: Length<f32, DeviceIndependentPixel>,
 
@@ -572,6 +572,11 @@ impl Minibrowser {
                 false
             },
         }
+    }
+
+    pub(crate) fn set_zoom_factor(&self, factor: f32) {
+        self.context.egui_ctx.set_zoom_factor(factor);
+
     }
 }
 
