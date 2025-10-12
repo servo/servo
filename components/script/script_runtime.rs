@@ -33,7 +33,7 @@ use js::jsapi::{
     GetPromiseUserInputEventHandlingState, Handle as RawHandle, HandleObject, HandleString,
     HandleValue as RawHandleValue, Heap, InitConsumeStreamCallback, JS_AddExtraGCRootsTracer,
     JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback, JS_NewObject,
-    JS_NewStringCopyN, JS_NewStringCopyUTF8N, JS_SetGCCallback, JS_SetGCParameter,
+    JS_NewStringCopyUTF8N, JS_SetGCCallback, JS_SetGCParameter,
     JS_SetGlobalJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_SetReservedSlot,
     JS_SetSecurityCallbacks, JSCLASS_RESERVED_SLOTS_MASK, JSCLASS_RESERVED_SLOTS_SHIFT, JSClass,
     JSClassOps, JSContext as RawJSContext, JSGCParamKey, JSGCStatus, JSJitCompilerOption, JSObject,
@@ -41,7 +41,6 @@ use js::jsapi::{
     MutableHandleString, PromiseRejectionHandlingState, PromiseUserInputEventHandlingState,
     RuntimeCode, SetDOMCallbacks, SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks,
     SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback, StreamConsumer as JSStreamConsumer,
-    UTF8Chars,
 };
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::panic::wrap_panic;
