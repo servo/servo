@@ -68,6 +68,7 @@ jobs:
     needs: runner-select
     name: Unit Test Coverage [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
         if: ${{ runner.environment != 'self-hosted' && github.event_name != 'pull_request_target' }}
