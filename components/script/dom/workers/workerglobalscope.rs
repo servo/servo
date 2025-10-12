@@ -122,7 +122,6 @@ pub(crate) struct ScriptFetchContext {
     url: ServoUrl,
     worker: TrustedWorkerAddress,
     policy_container: PolicyContainer,
-    serialized_worker_url: String,
 }
 
 impl ScriptFetchContext {
@@ -131,7 +130,6 @@ impl ScriptFetchContext {
         url: ServoUrl,
         worker: TrustedWorkerAddress,
         policy_container: PolicyContainer,
-        serialized_worker_url: String,
     ) -> ScriptFetchContext {
         ScriptFetchContext {
             scope,
@@ -141,7 +139,6 @@ impl ScriptFetchContext {
             url,
             worker,
             policy_container,
-            serialized_worker_url,
         }
     }
 }
@@ -163,10 +160,7 @@ impl FetchResponseListener for ScriptFetchContext {
                     FetchMetadata::Filtered { unsafe_, .. } => Some(unsafe_),
                 }
             },
-            Err(e) => error!(
-                "error loading script {} ({:?})",
-                self.serialized_worker_url, e
-            ),
+            Err(e) => error!("error loading script {} ({:?})", self.url.to_string(), e),
         }
     }
 

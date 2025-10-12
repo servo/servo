@@ -376,7 +376,6 @@ impl DedicatedWorkerGlobalScope {
         policy_container: PolicyContainer,
         font_context: Option<Arc<FontContext>>,
     ) -> JoinHandle<()> {
-        let serialized_worker_url = worker_url.to_string();
         let webview_id = WebViewId::installed();
         let current_global = GlobalScope::current().expect("No current global object");
         let origin = current_global.origin().immutable().clone();
@@ -519,7 +518,6 @@ impl DedicatedWorkerGlobalScope {
                     request.url.clone(),
                     worker.clone(),
                     policy_container,
-                    serialized_worker_url,
                 )));
                 global_scope.fetch(request, context, task_source);
 
