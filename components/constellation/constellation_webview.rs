@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::id::{BrowsingContextId, PipelineId};
+use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use embedder_traits::{InputEvent, MouseLeftViewportEvent, Theme};
 use euclid::Point2D;
 use log::warn;
@@ -17,6 +17,9 @@ use crate::session_history::JointSessionHistory;
 /// The `Constellation`'s view of a `WebView` in the embedding layer. This tracks all of the
 /// `Constellation` state for this `WebView`.
 pub(crate) struct ConstellationWebView {
+    /// The [`WebViewId`] of this [`ConstellationWebView`].
+    webview_id: WebViewId,
+
     /// The currently focused browsing context in this webview for key events.
     /// The focused pipeline is the current entry of the focused browsing
     /// context.
@@ -39,8 +42,12 @@ pub(crate) struct ConstellationWebView {
 }
 
 impl ConstellationWebView {
-    pub(crate) fn new(focused_browsing_context_id: BrowsingContextId) -> Self {
+    pub(crate) fn new(
+        webview_id: WebViewId,
+        focused_browsing_context_id: BrowsingContextId,
+    ) -> Self {
         Self {
+            webview_id,
             focused_browsing_context_id,
             hovered_browsing_context_id: None,
             last_mouse_move_point: Default::default(),
@@ -81,20 +88,22 @@ impl ConstellationWebView {
         Some(browsing_contexts.get(&browsing_context_id)?.pipeline_id)
     }
 
+    /// Forward the [`InputEvent`] to this [`ConstellationWebView`]. Returns false if
+    /// the event could not be forwarded or true otherwise.
     pub(crate) fn forward_input_event(
         &mut self,
         event: ConstellationInputEvent,
         pipelines: &FxHashMap<PipelineId, Pipeline>,
         browsing_contexts: &FxHashMap<BrowsingContextId, BrowsingContext>,
-    ) {
+    ) -> bool {
         let Some(pipeline_id) = self.target_pipeline_id_for_input_event(&event, browsing_contexts)
         else {
             warn!("Unknown pipeline for input event. Ignoring.");
-            return;
+            return false;
         };
         let Some(pipeline) = pipelines.get(&pipeline_id) else {
             warn!("Unknown pipeline id {pipeline_id:?} for input event. Ignoring.");
-            return;
+            return false;
         };
 
         let mut update_hovered_browsing_context =
@@ -125,6 +134,7 @@ impl ConstellationWebView {
                 let _ = pipeline
                     .event_loop
                     .send(ScriptThreadMessage::SendInputEvent(
+                        self.webview_id,
                         pipeline.id,
                         synthetic_mouse_leave_event,
                     ));
@@ -132,7 +142,7 @@ impl ConstellationWebView {
 
         if let InputEvent::MouseLeftViewport(_) = &event.event.event {
             update_hovered_browsing_context(None, false);
-            return;
+            return true;
         }
 
         if let InputEvent::MouseMove(_) = &event.event.event {
@@ -146,6 +156,11 @@ impl ConstellationWebView {
 
         let _ = pipeline
             .event_loop
-            .send(ScriptThreadMessage::SendInputEvent(pipeline.id, event));
+            .send(ScriptThreadMessage::SendInputEvent(
+                self.webview_id,
+                pipeline.id,
+                event,
+            ));
+        true
     }
 }

@@ -3013,8 +3013,14 @@ where
         let pressed_mouse_buttons = self.pressed_mouse_buttons;
         let active_keyboard_modifiers = self.active_keyboard_modifiers;
 
+        let event_id = event.id;
         let Some(webview) = self.webviews.get_mut(webview_id) else {
             warn!("Got input event for unknown WebViewId: {webview_id:?}");
+            self.embedder_proxy.send(EmbedderMsg::InputEventHandled(
+                webview_id,
+                event_id,
+                Default::default(),
+            ));
             return;
         };
 
@@ -3024,7 +3030,14 @@ where
             active_keyboard_modifiers,
             event,
         };
-        webview.forward_input_event(event, &self.pipelines, &self.browsing_contexts);
+
+        if !webview.forward_input_event(event, &self.pipelines, &self.browsing_contexts) {
+            self.embedder_proxy.send(EmbedderMsg::InputEventHandled(
+                webview_id,
+                event_id,
+                Default::default(),
+            ));
+        }
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -3052,8 +3065,10 @@ where
 
         // Register this new top-level browsing context id as a webview and set
         // its focused browsing context to be itself.
-        self.webviews
-            .add(webview_id, ConstellationWebView::new(browsing_context_id));
+        self.webviews.add(
+            webview_id,
+            ConstellationWebView::new(webview_id, browsing_context_id),
+        );
 
         // https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context-group
         let mut new_bc_group: BrowsingContextGroup = Default::default();
@@ -3437,7 +3452,7 @@ where
         self.pipelines.insert(new_pipeline_id, pipeline);
         self.webviews.add(
             new_webview_id,
-            ConstellationWebView::new(new_browsing_context_id),
+            ConstellationWebView::new(new_webview_id, new_browsing_context_id),
         );
 
         // https://html.spec.whatwg.org/multipage/#bcg-append
