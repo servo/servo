@@ -89,6 +89,10 @@ const getPrecisionTolerance = (graphResources, intermediateOperands) => {
         toleranceValue += getGemmPrecisionTolerance(op, graphResources,
             intermediateOperands).value;
         break;
+      case 'matmul':
+        toleranceValue += getMatmulPrecisionTolerance(op, graphResources,
+            intermediateOperands).value;
+        break;
       case 'softmax':
         toleranceValue += getSoftmaxPrecisionTolerance(
                               op, graphResources, intermediateOperands)
@@ -1101,6 +1105,24 @@ const getGemmPrecisionTolerance =
     tolerance++;
   }
 
+  const toleranceValueDict = {float32: tolerance, float16: tolerance};
+  const expectedDataType =
+      getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
+  return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
+};
+
+const getMatmulPrecisionTolerance =
+    (op, graphResources, intermediateOperands) => {
+  const {inputs} = graphResources;
+  const args = op.arguments;
+  let shapeA;
+  const indexA = args[0][Object.keys(args[0])[0]];
+  if (inputs[indexA]) {
+    shapeA = inputs[indexA].descriptor.shape;
+  } else {
+    shapeA = intermediateOperands[indexA].shape;
+  }
+  const tolerance = shapeA[shapeA.length - 1] * 2;
   const toleranceValueDict = {float32: tolerance, float16: tolerance};
   const expectedDataType =
       getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);

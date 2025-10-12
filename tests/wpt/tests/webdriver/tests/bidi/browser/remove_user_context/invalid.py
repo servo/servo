@@ -1,10 +1,11 @@
 import pytest
 import webdriver.bidi.error as error
+from webdriver.bidi.undefined import UNDEFINED
 
 pytestmark = pytest.mark.asyncio
 
 
-@pytest.mark.parametrize("value", [None, False, 42, {}, []])
+@pytest.mark.parametrize("value", [UNDEFINED, None, False, 42, {}, []])
 async def test_params_user_context_invalid_type(bidi_session, value):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.browser.remove_user_context(user_context=value)

@@ -110,6 +110,7 @@ class ProtocolPart:
 
     def __init__(self, parent):
         self.parent = parent
+        self.test_path = None
 
     @property
     def logger(self):
@@ -342,7 +343,7 @@ class WebExtensionsProtocolPart(ProtocolPart):
     name = "web_extensions"
 
     @abstractmethod
-    def install_web_extension(self, extension):
+    def install_web_extension(self, type, path, value):
         pass
 
     @abstractmethod

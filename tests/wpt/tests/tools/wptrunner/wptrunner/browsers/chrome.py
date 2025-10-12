@@ -303,7 +303,12 @@ class ChromeBrowser(WebDriverBrowser):
     def settings(self, test: Test) -> BrowserSettings:
         """ Required to store `require_webdriver_bidi` in browser settings."""
         settings = super().settings(test)
-        self._require_webdriver_bidi = test.testdriver_features is not None and 'bidi' in test.testdriver_features
+        self._require_webdriver_bidi = (
+            test.testdriver_features is not None and (
+                'bidi' in test.testdriver_features or
+                'extensions' in test.testdriver_features
+            )
+        )
 
         return {
             **settings,

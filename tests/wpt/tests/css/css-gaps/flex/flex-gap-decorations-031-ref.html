@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    .multi-column {
+        columns: 3;
+        height: 47px;
+        column-width: 170px;
+        width: 510px;
+    }
+
+    body {
+        margin: 0px;
+    }
+
+    #flexbox {
+        border: 2px solid rgb(96 139 168);
+        display: flex;
+        column-gap: 10px;
+        row-gap: 10px;
+        width: 170px;
+        flex-wrap: wrap;
+    }
+
+    .items {
+        background-color: rgb(96 139 168 / 0.2);
+        flex-shrink: 1;
+        width: 50px;
+        height: 50px;
+    }
+
+    #four {
+        width: 100px;
+    }
+
+    .column-rule {
+        position: absolute;
+        top: 1px;
+        background: red;
+        width: 10px;
+    }
+
+    .row-rule {
+        position: absolute;
+        background: blue;
+        width: 170px;
+        height: 10px;
+        top: 5px;
+        left: 265px;
+    }
+</style>
+
+<div class="column-rule" style="top: 3px; height: 43px; left: 52px;"></div>
+<div class="column-rule" style="top: 3px; height: 43px; left: 112px;"></div>
+
+<div class="column-rule" style="height: 3px; left: 315px;"></div>
+<div class="column-rule" style="height: 3px; left: 375px;"></div>
+<div class="column-rule" style="top: 16px; height: 30px; left: 365px;"></div>
+<div class=row-rule></div>
+
+<div class="column-rule" style="height: 16px; left: 628px;"></div>
+
+<div class="multi-column">
+    <div id="flexbox">
+        <div class="items">One</div>
+        <div class="items">Two</div>
+        <div class="items">Three</div>
+        <div class="items" id="four">Four</div>
+        <div class="items">Five</div>
+    </div>
+</div>

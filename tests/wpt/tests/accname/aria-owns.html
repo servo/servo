@@ -1,0 +1,191 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Accname tests for assorted combinations of aria-owns, aria-hidden, and host language hiding techniques</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+  <style>
+    [aria-hidden="true"] {
+      outline: 3px dashed darkred;
+    }
+
+    [id] {
+      outline: 1px dashed green;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Accname tests for assorted combinations of <code>aria-owns</code>, <code>aria-hidden</code>, and host language hiding techniques</h1>
+
+  <!--
+    These subtests verify the following normative statements added to the ARIA
+    spec in https://github.com/w3c/aria/pull/1839:
+
+      1. User agents MUST NOT resolve aria-owns when it is set on an element
+         that has been excluded from the accessibility tree.
+
+      2. User agents MUST NOT resolve aria-owns when it references an element
+         that is, or has a DOM ancestor that is, hidden from all users.
+  -->
+
+  <p><span aria-hidden="true">Text enclosed in a dashed red outline</span> is <code>aria-hidden="true"</code>.</p>
+  <p><span id="foo">Bold text with a yellow background</span> is the target of another element’s <code>aria-owns</code>.</p>
+
+  <h2>A button using aria-owns to specify its label</h2>
+  <button
+    class="ex-label"
+    data-testname="A button using aria-owns to specify its label"
+    data-expectedlabel="Play"
+    aria-owns="play"
+  >
+    <div aria-hidden="true">
+      <span id="play">Play</span>
+      <span id="pause">Pause</span>
+    </div>
+  </button>
+
+  <h2>A link using aria-owns to concatenate extra text</h2>
+  <a
+    class="ex-label"
+    data-testname="A link using aria-owns to concatenate extra text"
+    data-expectedlabel="World Wide Web Consortium (opens in a new window)"
+    href="https://www.w3.org/"
+    target="_blank"
+    aria-owns="new-window-warning-1"
+  >
+    World Wide Web Consortium
+  </a>
+  <div aria-hidden="true">
+    <span id="new-window-warning-1"> (opens in a new window)</span>
+    <!-- Label concatenation works here because, due to the aria-owns reassignment, the "new window" span no longer inherits the aria-hidden status. -->
+  </div>
+
+  <h2>Ignore aria-owns when on an element that is hidden from all users</h2>
+  <h3
+    class="ex-label"
+    data-testname="Ignore aria-owns when on an element that is hidden from all users"
+    data-expectedlabel="treasure"
+  >
+    <span hidden aria-owns="treasure">
+      This ninja can’t steal the...
+    </span>
+    <mark id="treasure">treasure</mark>
+  </h3>
+
+  <h2>Computed name of parent heading persists when aria-owns fails to relocate its contents</h2>
+  <h3>
+    <!-- This span is hidden, so aria-owns is ignored, and the would-be relocated contents will act as the computed label in its original DOM location, as part of the following test. -->
+    <span hidden aria-owns="pearl">
+      This oyster contains...
+    </span>
+    <mark>sand</mark>
+  </h3>
+  <h4
+    class="ex-label"
+    data-testname="Computed name of parent heading persists when aria-owns fails to relocate its contents"
+    data-expectedlabel="a pearl"
+  >
+    <!--
+      TODO: This subtest only succeeds in confirming that the h4’s computed
+      name remains "a pearl".
+
+      It does *not* confirm that #pearl remains unmoved in the accessibility
+      tree after aria-owns is processed on the h3.
+
+      This subtle distinction is importance since we’ve discovered at least
+      one case where the h4 is simultaneously correctly named but emptied
+      of its contents:
+
+      https://github.com/web-platform-tests/wpt/pull/44822#issuecomment-3251614062
+
+      A better test would assert that the #pearl text node remains unmoved.
+    -->
+    <mark id="pearl">a pearl</mark>
+  </h4>
+
+  <h2>Computed name of parent heading excludes content relocated by aria-owns</h2>
+  <h3>
+    <span aria-owns="car">
+      The dog that caught the
+    </span>
+  </h3>
+  <h4
+    class="ex-label"
+    data-testname="Computed name of parent heading excludes content relocated by aria-owns"
+    data-expectedlabel="Speeding"
+  >
+    Speeding
+    <mark id="car">car</mark>
+  </h4>
+
+  <h2>Ignore aria-owns when on an element with aria-hidden</h2>
+  <h3
+    class="ex-label"
+    data-testname="Ignore aria-owns when on an element with aria-hidden"
+    data-expectedlabel="reflection"
+  >
+    <span aria-hidden="true" aria-owns="reflection">
+      This vampire can’t see its...
+    </span>
+    <mark id="reflection">reflection</mark>
+  </h3>
+
+  <h2>Ignore aria-owns when it targets an element that is hidden from all users</h2>
+  <a
+    class="ex-label"
+    data-testname="Ignore aria-owns when it targets an element that is hidden from all users"
+    data-expectedlabel="World Wide Web Consortium"
+    href="https://www.w3.org/"
+    aria-owns="new-window-warning-2"
+  >
+    World Wide Web Consortium
+  </a>
+  <div>
+    <span id="new-window-warning-2" hidden> (opens in a new window)</span>
+    <!-- Label concatenation is ignored because aria-owns does not override the display:none rendering due to the hidden attr. -->
+  </div>
+
+  <h2>Ignore aria-owns when it targets an element with an ancestor that is hidden from all users</h2>
+  <a
+    class="ex-label"
+    data-testname="Ignore aria-owns when it targets an element with an ancestor that is hidden from all users"
+    data-expectedlabel="World Wide Web Consortium"
+    href="https://www.w3.org/"
+    aria-owns="new-window-warning-3"
+  >
+    World Wide Web Consortium
+  </a>
+  <div hidden>
+    <span id="new-window-warning-3"> (opens in a new window)</span>
+    <!-- Label concatenation is ignored because ancestor is display:none via the hidden attr. -->
+  </div>
+
+  <h2>aria-hidden remains in effect on an element after it is relocated using aria-owns</h2>
+  <a
+    class="ex-label"
+    data-testname="aria-hidden remains in effect on an element after it is relocated using aria-owns"
+    data-expectedlabel="World Wide Web Consortium"
+    href="https://www.w3.org/"
+    aria-owns="new-window-warning-4"
+  >
+    World Wide Web Consortium
+  </a>
+  <div>
+    <span id="new-window-warning-4" aria-hidden="true"> (opens in a new window)</span>
+    <!-- Label concatenation is ignored because aria-owns does not override the aria-hidden status, like it could be if hidden but referenced directly in a aria-labelledby computation. -->
+  </div>
+
+  <script>
+    AriaUtils.verifyLabelsBySelector(".ex-label");
+  </script>
+</body>
+
+</html>

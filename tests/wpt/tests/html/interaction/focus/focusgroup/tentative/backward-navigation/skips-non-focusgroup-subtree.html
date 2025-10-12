@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>HTML Test: focusgroup - Focus moves to previous item, skipping over a subtree that isn't an extending focusgroup.</title>
+<title>HTML Test: focusgroup - Focus moves to previous item, skipping over a subtree that isn't in the parent focusgroup.</title>
 <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
 <link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/Focusgroup/explainer.md">
 <script src="/resources/testharness.js"></script>
@@ -12,7 +12,7 @@
 
 <div focusgroup="toolbar wrap">
   <span id=item1 tabindex=0>item1</span>
-  <div>
+  <div focusgroup="none">
     <span id=item2 tabindex=-1>item2</span>
     <span id=item3 tabindex=-1>item3</span>
   </div>

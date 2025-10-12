@@ -900,3 +900,35 @@ test_scope_invalidation(document.currentScript, () => {
   assert_green(g);
 }, 'Ancestor element affecting nested scope root (Through latter selector in list)')
 </script>
+
+<template>
+  <style>
+    @scope (.a) to (.b .c) {
+      :scope .d .f{
+        background-color: green;
+      }
+    }
+    </style>
+
+  <div class=a>
+    <div class=b>
+      <div class=d>
+        <div class=c>
+          <div class=f>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+  test_scope_invalidation(document.currentScript, () => {
+  let b = main.querySelector('.b');
+  let f = main.querySelector('.f');
+  assert_not_green(f);
+  b.classList.remove('b');
+  assert_green(f);
+  b.classList.add('b');
+  assert_not_green(f);
+}, 'Parent element of subject affecting scope limit')
+</script>

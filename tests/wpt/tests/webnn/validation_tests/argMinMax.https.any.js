@@ -62,6 +62,12 @@ const tests = [
       label: label,
     },
   },
+  {
+    name: '[argMin/Max] Throw if outputDataType=float32',
+    input: {dataType: 'float32', shape: [1, 2, 3, 4]},
+    axis: 1,
+    options: {outputDataType: 'float32', label: label}
+  }
 ];
 
 function runTests(operatorName, tests) {

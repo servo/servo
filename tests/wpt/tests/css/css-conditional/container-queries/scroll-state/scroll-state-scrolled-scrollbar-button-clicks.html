@@ -48,6 +48,13 @@
   }
 
   promise_test(async t => {
+    // Skip test on platforms that do not have a visible scrollbar (e.g.
+    // overlay scrollbar) since it wouldn't have scrollbar buttons.
+    const scrollbar_width = scroller.offsetWidth - scroller.clientWidth;
+    if (scrollbar_width == 0) {
+      return;
+    }
+
     assert_equals(scroller.scrollTop, 0);
 
     let scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);

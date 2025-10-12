@@ -17,7 +17,7 @@ pytestmark = pytest.mark.asyncio
     ],
 )
 async def test_filter(
-    bidi_session, new_tab, test_page, domain_value, add_cookie, filter
+    bidi_session, new_tab, test_page, domain_value, add_document_cookie, filter
 ):
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=test_page, wait="complete"
@@ -25,13 +25,13 @@ async def test_filter(
     value_1 = "bar"
 
     cookie1_name = "baz"
-    await add_cookie(new_tab["context"], cookie1_name, value_1, secure=True)
+    await add_document_cookie(new_tab["context"], cookie1_name, value_1, secure=True)
 
     cookie2_name = "foo"
-    await add_cookie(new_tab["context"], cookie2_name, value_1, secure=True)
+    await add_document_cookie(new_tab["context"], cookie2_name, value_1, secure=True)
 
     cookie3_name = "foo_3"
-    await add_cookie(new_tab["context"], cookie3_name, "bar_3", secure=True)
+    await add_document_cookie(new_tab["context"], cookie3_name, "bar_3", secure=True)
 
     cookies = await bidi_session.storage.get_cookies(
         filter=filter,
@@ -76,7 +76,7 @@ async def test_filter_domain(
     test_page,
     test_page_cross_origin,
     domain_value,
-    add_cookie,
+    add_document_cookie,
 ):
     await bidi_session.browsing_context.navigate(
         context=top_context["context"], url=test_page, wait="complete"
@@ -87,15 +87,15 @@ async def test_filter_domain(
 
     cookie1_name = "bar"
     cookie1_value = "foo"
-    await add_cookie(top_context["context"], cookie1_name, cookie1_value, secure=True)
+    await add_document_cookie(top_context["context"], cookie1_name, cookie1_value, secure=True)
 
     cookie2_name = "foo"
     cookie2_value = "bar"
-    await add_cookie(top_context["context"], cookie2_name, cookie2_value, secure=True)
+    await add_document_cookie(top_context["context"], cookie2_name, cookie2_value, secure=True)
 
     cookie3_name = "foo_2"
     cookie3_value = "bar_2"
-    await add_cookie(new_tab["context"], cookie3_name, cookie3_value, secure=True)
+    await add_document_cookie(new_tab["context"], cookie3_name, cookie3_value, secure=True)
     domain = domain_value()
 
     cookies = await bidi_session.storage.get_cookies(
@@ -146,7 +146,7 @@ async def test_filter_expiry(
     new_tab,
     test_page,
     domain_value,
-    add_cookie,
+    add_document_cookie,
     expiry_diff_1,
     expiry_diff_2,
 ):
@@ -160,7 +160,7 @@ async def test_filter_expiry(
 
     cookie1_name = "bar"
     cookie1_value = "foo"
-    await add_cookie(
+    await add_document_cookie(
         context=new_tab["context"],
         name=cookie1_name,
         value=cookie1_value,
@@ -170,7 +170,7 @@ async def test_filter_expiry(
 
     cookie2_name = "foo"
     cookie2_value = "bar"
-    await add_cookie(
+    await add_document_cookie(
         context=new_tab["context"],
         name=cookie2_name,
         value=cookie2_value,
@@ -185,7 +185,7 @@ async def test_filter_expiry(
         cookie2_expiry_date = generate_expiry_date(expiry_diff_2)
         cookie2_date_string = format_expiry_string(cookie2_expiry_date)
 
-    await add_cookie(
+    await add_document_cookie(
         new_tab["context"], cookie3_name, "bar_3", expiry=cookie2_date_string, secure=True
     )
 
@@ -227,17 +227,17 @@ async def test_filter_expiry(
     )
 
 
-async def test_filter_name(bidi_session, new_tab, test_page, domain_value, add_cookie):
+async def test_filter_name(bidi_session, new_tab, test_page, domain_value, add_document_cookie):
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=test_page, wait="complete"
     )
 
     cookie1_name = "foo"
     cookie1_value = "bar"
-    await add_cookie(new_tab["context"], cookie1_name, cookie1_value, secure=True)
+    await add_document_cookie(new_tab["context"], cookie1_name, cookie1_value, secure=True)
 
     cookie2_name = "foo_2"
-    await add_cookie(new_tab["context"], cookie2_name, "bar_2", secure=True)
+    await add_document_cookie(new_tab["context"], cookie2_name, "bar_2", secure=True)
 
     cookies = await bidi_session.storage.get_cookies(
         filter={"name": "foo"},
@@ -277,7 +277,7 @@ async def test_filter_name(bidi_session, new_tab, test_page, domain_value, add_c
     ],
 )
 async def test_filter_same_site(
-    bidi_session, new_tab, test_page, domain_value, same_site_1, same_site_2, add_cookie
+    bidi_session, new_tab, test_page, domain_value, same_site_1, same_site_2, add_document_cookie
 ):
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=test_page, wait="complete"
@@ -285,7 +285,7 @@ async def test_filter_same_site(
 
     cookie1_name = "bar"
     cookie1_value = "foo"
-    await add_cookie(
+    await add_document_cookie(
         new_tab["context"],
         cookie1_name,
         cookie1_value,
@@ -295,7 +295,7 @@ async def test_filter_same_site(
 
     cookie2_name = "foo"
     cookie2_value = "bar"
-    await add_cookie(
+    await add_document_cookie(
         new_tab["context"],
         cookie2_name,
         cookie2_value,
@@ -304,7 +304,7 @@ async def test_filter_same_site(
     )
 
     cookie3_name = "foo_3"
-    await add_cookie(new_tab["context"], cookie3_name, "bar_3", same_site=same_site_2, secure=True)
+    await add_document_cookie(new_tab["context"], cookie3_name, "bar_3", same_site=same_site_2, secure=True)
 
     cookies = await bidi_session.storage.get_cookies(
         filter=CookieFilter(same_site=same_site_1),
@@ -347,7 +347,7 @@ async def test_filter_same_site(
     [(True, False), (False, True)],
 )
 async def test_filter_secure(
-    bidi_session, new_tab, test_page, domain_value, add_cookie, secure_1, secure_2
+    bidi_session, new_tab, test_page, domain_value, add_document_cookie, secure_1, secure_2
 ):
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=test_page, wait="complete"
@@ -355,7 +355,7 @@ async def test_filter_secure(
 
     cookie1_name = "bar"
     cookie1_value = "foo"
-    await add_cookie(
+    await add_document_cookie(
         new_tab["context"],
         cookie1_name,
         cookie1_value,
@@ -365,7 +365,7 @@ async def test_filter_secure(
 
     cookie2_name = "foo"
     cookie2_value = "bar"
-    await add_cookie(
+    await add_document_cookie(
         new_tab["context"],
         cookie2_name,
         cookie2_value,
@@ -374,7 +374,7 @@ async def test_filter_secure(
     )
 
     cookie3_name = "foo_3"
-    await add_cookie(new_tab["context"], cookie3_name, "bar_3", same_site="strict", secure=secure_2)
+    await add_document_cookie(new_tab["context"], cookie3_name, "bar_3", same_site="strict", secure=secure_2)
 
     cookies = await bidi_session.storage.get_cookies(
         filter=CookieFilter(secure=secure_1),
@@ -425,7 +425,7 @@ async def test_filter_path(
     new_tab,
     test_page,
     domain_value,
-    add_cookie,
+    add_document_cookie,
     path_1,
     path_2,
 ):
@@ -435,7 +435,7 @@ async def test_filter_path(
 
     cookie1_name = "bar"
     cookie1_value = "foo"
-    await add_cookie(
+    await add_document_cookie(
         new_tab["context"],
         cookie1_name,
         cookie1_value,
@@ -445,7 +445,7 @@ async def test_filter_path(
 
     cookie2_name = "foo"
     cookie2_value = "bar"
-    await add_cookie(
+    await add_document_cookie(
         new_tab["context"],
         cookie2_name,
         cookie2_value,
@@ -454,7 +454,7 @@ async def test_filter_path(
     )
 
     cookie3_name = "foo_3"
-    await add_cookie(new_tab["context"], cookie3_name, "bar_3", path=path_2, secure=True)
+    await add_document_cookie(new_tab["context"], cookie3_name, "bar_3", path=path_2, secure=True)
 
     cookies = await bidi_session.storage.get_cookies(
         filter=CookieFilter(path=path_1),

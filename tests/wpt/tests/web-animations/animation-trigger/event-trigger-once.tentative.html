@@ -27,11 +27,10 @@
             { duration: ANIMATION_DURATION_MS, fill: "both" }
           ));
         const trigger = new EventTrigger({
-          behavior: "once",
           eventType: "click",
           eventTarget: eventTarget
         });
-        trigger.addAnimation(animation, "click", "play-once");
+        trigger.addAnimation(animation, "play-once");
         await waitForAnimationFrames(1);
         assert_equals(animation.playState, "idle", "animation is idle");
         await test_driver.click(eventTarget);

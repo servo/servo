@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Popover focus behaviors inside shadow DOM</title>
+<meta name="timeout" content="long" />
+<link rel="author" title="Peng Zhou" href="mailto:zhoupeng.1996@bytedance.com">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/shadow-dom.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<my-element id="host">
+  <template shadowrootmode="open">
+    <button popovertarget="popover" id="invoker">Open popover</button>
+    <div popover id="popover">
+      <input type="checkbox" id="target1" />
+      <input type="checkbox" id="target2" />
+      <button id="close">Close popover</button>
+    </div>
+    <button id="after">
+      This button is where focus should land after traversing this popover
+    </button>
+  </template>
+</my-element>
+
+<script>
+promise_test(async () => {
+  const shadowRoot = host.shadowRoot;
+  const invoker = shadowRoot.getElementById('invoker');
+  const popover = shadowRoot.getElementById('popover');
+  // Open popover
+  invoker.focus();
+  invoker.click();
+  assert_true(popover.matches(":popover-open"));
+  assert_equals(document.activeElement, host);
+  assert_equals(document.activeElement.shadowRoot.activeElement, invoker);
+
+  await assert_focus_navigation_bidirectional([
+    'host/invoker',
+    'host/target1',
+    'host/target2',
+    'host/close',
+    'host/after',
+  ]);
+}, 'Focus behavior of popover elements inside shadow DOM');
+</script>

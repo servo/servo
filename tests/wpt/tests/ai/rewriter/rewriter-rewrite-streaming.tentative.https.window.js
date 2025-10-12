@@ -1,4 +1,5 @@
 // META: title=Rewriter Rewrite Streaming
+// META: script=/common/gc.js
 // META: script=/resources/testdriver.js
 // META: script=../resources/util.js
 // META: timeout=long
@@ -51,13 +52,13 @@ promise_test(async () => {
 promise_test(async () => {
   const rewriter = await createRewriter();
   const streamingResponse = rewriter.rewriteStreaming(kTestPrompt);
-  gc();
+  garbageCollect();
   assert_equals(Object.prototype.toString.call(streamingResponse),
                 '[object ReadableStream]');
   let result = '';
   for await (const value of streamingResponse) {
     result += value;
-    gc();
+    garbageCollect();
   }
 assert_greater_than(result.length, 0, 'The result should not be empty.');
 }, 'Rewrite Streaming API must continue even after GC has been performed.');

@@ -43,6 +43,26 @@ test_shorthand_value('background', 'url("https://example.com/") 1px 2px / 3px 4p
     'background-clip': 'content-box, content-box',
     'background-color': 'rgb(5, 6, 7)',
 })
+test_shorthand_value('background', 'border-box content-box', {
+    'background-image': 'none',
+    'background-position': '0% 0%',
+    'background-size': 'auto',
+    'background-repeat': 'repeat',
+    'background-attachment': 'scroll',
+    'background-origin': 'border-box',
+    'background-clip': 'content-box',
+    'background-color': 'transparent',
+})
+test_shorthand_value('background', 'border-area', {
+    'background-image': 'none',
+    'background-position': '0% 0%',
+    'background-size': 'auto',
+    'background-repeat': 'repeat',
+    'background-attachment': 'scroll',
+    'background-origin': 'border-box',
+    'background-clip': 'border-area',
+    'background-color': 'transparent',
+})
 
 </script>
 </body>

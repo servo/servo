@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Behavior of :visited with a compound subject selector (ref)</title>
+<style>
+  :visited > #inner { color: red; }
+</style>
+<a href="" id=outer>Visited1</a>
+<script>
+  window.onload = () => {
+    // Use script, since the parser can't produce this.
+    let inner = document.createElement('a');
+    inner.setAttribute('href', '');
+    inner.setAttribute('id', 'inner');
+    inner.textContent = 'Visited2';
+    outer.append(inner);
+  }
+</script>

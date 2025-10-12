@@ -248,6 +248,16 @@ const tests = [
       label: label,
     },
   },
+  {
+    name: '[batchNormalization] Throw if the input is a scalar.',
+    input: {dataType: 'float32', shape: []},
+    mean: {dataType: 'float32', shape: [1]},
+    variance: {dataType: 'float32', shape: [1]},
+    options: {
+      axis: 0,
+      label: label,
+    }
+  }
 ];
 
 tests.forEach(

@@ -49,6 +49,7 @@
   position-try-fallbacks: --pf1, --pf2, --pf3;
   bottom: anchor(top);
   left: anchor(right);
+  position-visibility: always;
 }
 
 @position-try --pf1 {
@@ -85,9 +86,12 @@ promise_test(async () => {
   assert_fallback_position(anchored, anchor, 'left');
 }, 'Should use the last fallback position initially');
 
+const sw = scroller.scrollWidth;
+const sh = scroller.scrollHeight;
+
 promise_test(async () => {
   // Scroll up to have enough space above the anchor, but not enough right.
-  scroller.scrollTop = -250;
+  scroller.scrollTop = -sh;
   scroller.scrollLeft = 150;
   await waitUntilNextAnimationFrame();
   assert_fallback_position(anchored, anchor, 'top');
@@ -97,7 +101,7 @@ promise_test(async () => {
 promise_test(async () => {
   // Scroll right to have enough space right to the anchor, but not enough above.
   scroller.scrollTop = -150;
-  scroller.scrollLeft = 250;
+  scroller.scrollLeft = sw;
   await waitUntilNextAnimationFrame();
   assert_fallback_position(anchored, anchor, 'bottom');
   assert_fallback_position(anchored, anchor, 'right');
@@ -105,8 +109,8 @@ promise_test(async () => {
 
 promise_test(async () => {
   // Scroll up and right to have enough space on both axes.
-  scroller.scrollTop = -350;
-  scroller.scrollLeft = 250;
+  scroller.scrollTop = -sh;
+  scroller.scrollLeft = sw;
   await waitUntilNextAnimationFrame();
   assert_fallback_position(anchored, anchor, 'top');
   assert_fallback_position(anchored, anchor, 'right');

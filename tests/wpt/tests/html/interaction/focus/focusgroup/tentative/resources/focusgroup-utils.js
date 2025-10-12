@@ -13,3 +13,7 @@ function focusAndKeyPress(target, key) {
   target.focus();
   return test_driver.send_keys(target, key);
 }
+
+function sendArrowKey(key) {
+  return new test_driver.Actions().keyDown(key).keyUp(key).send();
+}

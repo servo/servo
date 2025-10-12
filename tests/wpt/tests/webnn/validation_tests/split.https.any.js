@@ -41,7 +41,7 @@ const tests = [
   {
     name: '[split] Throw if splitting a scalar.',
     input: {dataType: 'float32', shape: []},
-    splits: [2],
+    splits: [1],
     options: {label}
   },
   {

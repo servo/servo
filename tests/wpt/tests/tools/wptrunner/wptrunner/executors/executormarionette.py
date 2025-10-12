@@ -789,12 +789,12 @@ class MarionetteWebExtensionsProtocolPart(WebExtensionsProtocolPart):
     def setup(self):
         self.addons = Addons(self.parent.marionette)
 
-    def install_web_extension(self, extension):
-        if extension["type"] == "base64":
-            extension_id = self.addons.install(data=extension["value"], temp=True)
+    def install_web_extension(self, type, path, value):
+        if type == "base64":
+            extension_id = self.addons.install(data=value, temp=True)
         else:
-            path = self.parent.test_dir + extension["path"]
-            extension_id = self.addons.install(path, temp=True)
+            extension_path = self.parent.test_dir + path
+            extension_id = self.addons.install(extension_path, temp=True)
 
         return {'extension': extension_id}
 

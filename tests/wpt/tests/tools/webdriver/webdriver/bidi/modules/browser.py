@@ -1,7 +1,7 @@
-from typing import Any, List, Mapping, MutableMapping, Optional, Union
+from typing import Any, List, Mapping
 
 from ._module import BidiModule, command
-from ..undefined import UNDEFINED, Undefined
+from ..undefined import UNDEFINED, Maybe, Nullable
 
 
 class Browser(BidiModule):
@@ -29,22 +29,15 @@ class Browser(BidiModule):
 
     @command
     def create_user_context(
-        self, accept_insecure_certs: Optional[bool] = None,
-        proxy: Optional[Mapping[str, Any]] = None,
-        unhandled_prompt_behavior: Optional[Mapping[str, str]] = None,
+            self, accept_insecure_certs: Maybe[bool] = UNDEFINED,
+            proxy: Maybe[Mapping[str, Any]] = UNDEFINED,
+            unhandled_prompt_behavior: Maybe[Mapping[str, str]] = UNDEFINED,
     ) -> Mapping[str, Any]:
-        params: MutableMapping[str, Any] = {}
-
-        if accept_insecure_certs is not None:
-            params["acceptInsecureCerts"] = accept_insecure_certs
-
-        if proxy is not None:
-            params["proxy"] = proxy
-
-        if unhandled_prompt_behavior is not None:
-            params["unhandledPromptBehavior"] = unhandled_prompt_behavior
-
-        return params
+        return {
+            "acceptInsecureCerts": accept_insecure_certs,
+            "proxy": proxy,
+            "unhandledPromptBehavior": unhandled_prompt_behavior
+        }
 
     @create_user_context.result
     def _create_user_context(self, result: Mapping[str, Any]) -> Any:
@@ -68,26 +61,19 @@ class Browser(BidiModule):
 
     @command
     def remove_user_context(
-        self, user_context: str
+            self, user_context: str
     ) -> Mapping[str, Any]:
-        params: MutableMapping[str, Any] = {}
-
-        if user_context is not None:
-            params["userContext"] = user_context
-
-        return params
+        return {
+            "userContext": user_context
+        }
 
     @command
     def set_download_behavior(
-            self, download_behavior: Optional[Mapping[str, Any]] = None,
-            user_contexts: Union[Undefined, List[str]] = UNDEFINED
+            self, download_behavior: Nullable[Mapping[str, Any]],
+            user_contexts: Maybe[List[str]] = UNDEFINED
 
     ) -> Mapping[str, Any]:
-        params: MutableMapping[str, Any] = {
+        return {
             "downloadBehavior": download_behavior,
+            "userContexts": user_contexts
         }
-
-        if user_contexts != UNDEFINED:
-            params["userContexts"] = user_contexts
-
-        return params

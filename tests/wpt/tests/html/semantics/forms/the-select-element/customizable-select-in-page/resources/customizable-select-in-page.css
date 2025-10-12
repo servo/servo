@@ -3,6 +3,7 @@
   overflow-inline: auto;
   overflow-block: auto;
   border: 1px solid;
+  block-size: calc(max(24px, 1lh) * attr(size type(<integer>), 4));
 }
 
 .customizable-select-in-page.disabled {

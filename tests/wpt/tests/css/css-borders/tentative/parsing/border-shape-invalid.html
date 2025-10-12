@@ -11,5 +11,11 @@ test_invalid_value("border-shape", "polygon(bla 10px 10px, 100px 10px, 10px 100p
 test_invalid_value("border-shape", "shape()");
 test_invalid_value("border-shape", "nonsense");
 test_invalid_value("border-shape", "1px");
-
+test_invalid_value("border-shape", "circle() padding-box margin-box");
+test_invalid_value("border-shape", "padding-box margin-box");
+test_invalid_value("border-shape", "padding-box");
+test_invalid_value("border-shape", "padding-box circle()");
+test_invalid_value("border-shape", "circle() padding-box margin-box circle()");
+test_invalid_value("border-shape", "circle() padding-box circle() margin-box circle()");
+test_invalid_value("border-shape", "circle() padding-box circle() margin-box padding-box");
 </script>

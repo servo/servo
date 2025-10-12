@@ -341,6 +341,32 @@
   </style>
 </div>
 
+<div>
+  <template shadowrootmode="open">
+    <style>
+      .container {
+        width: 400px;
+        container-type: inline-size;
+      }
+    </style>
+    <div class="container"><slot></slot></div>
+  </template>
+  <style>
+    @container (width = 200px) {
+      #pseudo-1::before { color: green; }
+    }
+    @container (width = 400px) {
+      #pseudo-2::before { color: green; }
+    }
+    #pseudo-1 {
+      container-type: inline-size;
+      width: 200px;
+    }
+  </style>
+  <div id="pseudo-1"></div>
+  <div id="pseudo-2"></div>
+</div>
+
 <script>
   setup(() => {
     assert_implements_size_container_queries();
@@ -446,4 +472,13 @@
     assert_equals(getComputedStyle(target).color, green);
   }, "Container name set on :host from inside a shadow tree should match query for slotted from the outside of the shadow tree");
 
+  test(() => {
+    const target = document.querySelector("#pseudo-1");
+    assert_equals(getComputedStyle(target, "::before").color, green);
+  }, "The originating element should be the first container candidate of ::before");
+
+  test(() => {
+    const target = document.querySelector("#pseudo-2");
+    assert_equals(getComputedStyle(target, "::before").color, green);
+  }, "Search flat tree anchestors of the originating element of ::before");
 </script>

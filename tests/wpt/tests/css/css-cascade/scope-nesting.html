@@ -693,3 +693,76 @@ test((t) => {
   assert_equals(getComputedStyle(child).getPropertyValue('--x'), '1'); // Changed.
 }, 'Mutating selectorText on outer style rule causes correct inner specificity');
 </script>
+
+<template id=test_set_selector_text>
+  <style id=style>
+    :where(.x) {
+      background-color: black;
+    }
+    .a {
+      @scope (&) {
+        :scope .x { background-color: green; }
+      }
+    }
+  </style>
+  <div class=a>
+    <div class=x>
+    </div>
+  </div>
+  <div class=b>
+    <div class=x>
+    </div>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_set_selector_text.content.cloneNode(true));
+  let ax = main.querySelector('.a > .x');
+  let bx = main.querySelector('.b > .x');
+  assert_equals(getComputedStyle(ax).backgroundColor, 'rgb(0, 128, 0)');
+  assert_equals(getComputedStyle(bx).backgroundColor, 'rgb(0, 0, 0)');
+  style.sheet.cssRules[1].selectorText = '.b'; // .a -> .
+  assert_equals(getComputedStyle(ax).backgroundColor, 'rgb(0, 0, 0)');
+  assert_equals(getComputedStyle(bx).backgroundColor, 'rgb(0, 128, 0)');
+}, 'Modifying selectorText invalidates inner scoped rules');
+</script>
+
+<template id=test_set_selector_text_nested_declarations>
+  <style id=style>
+    :where(.x) {
+      background-color: black;
+    }
+    .a {
+      @scope (&) {
+        :scope .x {
+          .unused {}
+          /* CSSNestedDeclarations { */
+          background-color: green;
+          /* } { */
+        }
+      }
+    }
+  </style>
+  <div class=a>
+    <div class=x>
+    </div>
+  </div>
+  <div class=b>
+    <div class=x>
+    </div>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_set_selector_text_nested_declarations.content.cloneNode(true));
+  let ax = main.querySelector('.a > .x');
+  let bx = main.querySelector('.b > .x');
+  assert_equals(getComputedStyle(ax).backgroundColor, 'rgb(0, 128, 0)');
+  assert_equals(getComputedStyle(bx).backgroundColor, 'rgb(0, 0, 0)');
+  style.sheet.cssRules[1].selectorText = '.b'; // .a -> .
+  assert_equals(getComputedStyle(ax).backgroundColor, 'rgb(0, 0, 0)');
+  assert_equals(getComputedStyle(bx).backgroundColor, 'rgb(0, 128, 0)');
+}, 'Modifying selectorText invalidates inner scoped rules (nested declarations)');
+</script>
