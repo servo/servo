@@ -4,6 +4,7 @@
 
 use std::ptr;
 
+use aws_lc_rs::hkdf;
 use js::jsapi::JS_NewObject;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsage};
@@ -13,8 +14,61 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::subtlecrypto::{ALG_HKDF, AlgorithmFromName};
+use crate::dom::subtlecrypto::{
+    ALG_HKDF, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, AlgorithmFromName, SubtleHkdfParams,
+};
 use crate::script_runtime::CanGc;
+
+/// <https://w3c.github.io/webcrypto/#hkdf-operations-derive-bits>
+pub(crate) fn derive_bits(
+    normalized_algorithm: &SubtleHkdfParams,
+    key: &CryptoKey,
+    length: Option<u32>,
+) -> Result<Vec<u8>, Error> {
+    // Step 1. If length is null or zero, or is not a multiple of 8, then throw an OperationError.
+    // FIXME: The spec is updated.
+    let Some(length) = length else {
+        return Err(Error::Operation);
+    };
+    if length == 0 || length % 8 != 0 {
+        return Err(Error::Operation);
+    };
+
+    // Step 2. Let keyDerivationKey be the secret represented by the [[handle]] internal slot of key.
+    let key_derivation_key = key.handle().as_bytes();
+
+    // Step 3. Let result be the result of performing the HKDF extract and then the HKDF expand
+    // step described in Section 2 of [RFC5869] using:
+    // * the hash member of normalizedAlgorithm as Hash,
+    // * keyDerivationKey as the input keying material, IKM,
+    // * the salt member of normalizedAlgorithm as salt,
+    // * the info member of normalizedAlgorithm as info,
+    // * length divided by 8 as the value of L,
+    // Step 4. If the key derivation operation fails, then throw an OperationError.
+    let mut result = vec![0; length as usize / 8];
+    let algorithm = match normalized_algorithm.hash.name() {
+        ALG_SHA1 => hkdf::HKDF_SHA1_FOR_LEGACY_USE_ONLY,
+        ALG_SHA256 => hkdf::HKDF_SHA256,
+        ALG_SHA384 => hkdf::HKDF_SHA384,
+        ALG_SHA512 => hkdf::HKDF_SHA512,
+        _ => {
+            return Err(Error::NotSupported);
+        },
+    };
+    let salt = hkdf::Salt::new(algorithm, &normalized_algorithm.salt);
+    let info = normalized_algorithm.info.as_slice();
+    let pseudo_random_key = salt.extract(key_derivation_key);
+    let Ok(output_key_material) = pseudo_random_key.expand(std::slice::from_ref(&info), algorithm)
+    else {
+        return Err(Error::Operation);
+    };
+    if output_key_material.fill(&mut result).is_err() {
+        return Err(Error::Operation);
+    };
+
+    // Step 5. Return result.
+    Ok(result)
+}
 
 /// <https://w3c.github.io/webcrypto/#hkdf-operations-import-key>
 #[allow(unsafe_code)]
@@ -75,4 +129,10 @@ pub(crate) fn import(
         // throw a NotSupportedError.
         Err(Error::NotSupported)
     }
+}
+
+/// <https://w3c.github.io/webcrypto/#hkdf-operations-get-key-length>
+pub(crate) fn get_key_length() -> Result<Option<u32>, Error> {
+    // Step 1. Return null.
+    Ok(None)
 }
