@@ -40,14 +40,13 @@ impl<'a> std::ops::Deref for Utf8Chars<'a> {
 impl<'a> From<&'a str> for Utf8Chars<'a> {
     #[allow(unsafe_code)]
     fn from(value: &'a str) -> Self {
-        let byte_len = value.as_bytes().len();
         let start = js::jsapi::mozilla::RangedPtr {
             _phantom_0: std::marker::PhantomData,
             mPtr: value.as_ptr() as *mut _,
         };
         let end = js::jsapi::mozilla::RangedPtr {
             _phantom_0: std::marker::PhantomData,
-            mPtr: unsafe { value.as_ptr().byte_add(byte_len) as *mut _ },
+            mPtr: unsafe { value.as_ptr().byte_add(value.len()) as *mut _ },
         };
         let base = js::jsapi::mozilla::Range {
             _phantom_0: std::marker::PhantomData,
