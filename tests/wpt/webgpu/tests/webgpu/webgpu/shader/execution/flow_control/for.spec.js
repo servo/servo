@@ -3,11 +3,11 @@
 **/export const description = `
 Flow control tests for for-loops.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
 import { runFlowControlTest } from './harness.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('for_basic').
 desc('Test that flow control executes a for-loop body the correct number of times').
@@ -70,7 +70,7 @@ fn((t) => {
   );
 });
 
-g.test('for_initalizer').
+g.test('for_initializer').
 desc('Test flow control for a for-loop initializer').
 params((u) => u.combine('preventValueOptimizations', [true, false])).
 fn((t) => {
@@ -91,7 +91,7 @@ fn initializer() -> i32 {
   }));
 });
 
-g.test('for_complex_initalizer').
+g.test('for_complex_initializer').
 desc('Test flow control for a complex for-loop initializer').
 params((u) => u.combine('preventValueOptimizations', [true, false])).
 fn((t) => {

@@ -3,9 +3,9 @@
 **/export const description = `
 Test vertex-only render pipeline.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
-class F extends GPUTest {}
+class F extends AllFeaturesMaxLimitsGPUTest {}
 
 export const g = makeTestGroup(F);
 

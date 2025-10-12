@@ -2,11 +2,10 @@
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/export const description = `
 Test validation of pushDebugGroup, popDebugGroup, and insertDebugMarker.
-`;import { makeTestGroup } from '../../../common/framework/test_group.js';
+`;import { AllFeaturesMaxLimitsGPUTest } from '../.././gpu_test.js';
+import { makeTestGroup } from '../../../common/framework/test_group.js';
 
-import { ValidationTest } from './validation_test.js';
-
-class F extends ValidationTest {
+class F extends AllFeaturesMaxLimitsGPUTest {
   beginRenderPass(commandEncoder) {
     const attachmentTexture = this.createTextureTracked({
       format: 'rgba8unorm',

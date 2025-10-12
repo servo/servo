@@ -2,10 +2,10 @@
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/export const description = `Tests writeTexture validation.`;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { GPUConst } from '../../../constants.js';
-import { kResourceStates } from '../../../gpu_test.js';
-import { ValidationTest } from '../validation_test.js';
+import { kResourceStates, AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
+import * as vtu from '../validation_test_utils.js';
 
-export const g = makeTestGroup(ValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('texture_state').
 desc(
@@ -17,7 +17,7 @@ desc(
 params((u) => u.combine('textureState', kResourceStates)).
 fn((t) => {
   const { textureState } = t.params;
-  const texture = t.createTextureWithState(textureState);
+  const texture = vtu.createTextureWithState(t, textureState);
   const data = new Uint8Array(16);
   const size = [1, 1];
 
@@ -87,9 +87,7 @@ fn((t) => {
 g.test('texture,device_mismatch').
 desc('Tests writeTexture cannot be called with a texture created from another device.').
 paramsSubcasesOnly((u) => u.combine('mismatched', [true, false])).
-beforeAllSubcases((t) => {
-  t.selectMismatchedDeviceOrSkipTestCase(undefined);
-}).
+beforeAllSubcases((t) => t.usesMismatchedDevice()).
 fn((t) => {
   const { mismatched } = t.params;
   const sourceDevice = mismatched ? t.mismatchedDevice : t.device;

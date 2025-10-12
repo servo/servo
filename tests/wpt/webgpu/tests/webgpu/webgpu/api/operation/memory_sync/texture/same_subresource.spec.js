@@ -9,7 +9,7 @@ Memory Synchronization Tests for Texture: read before write, read after write, a
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { assert, memcpy, unreachable } from '../../../../../common/util/util.js';
 
-import { GPUTest } from '../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 import { align } from '../../../../util/math.js';
 import { getTextureCopyLayout } from '../../../../util/texture/layout.js';
 import {
@@ -31,7 +31,7 @@ import {
   kOpInfo } from
 './texture_sync_test.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 const fullscreenQuadWGSL = `
   struct VertexOutput {
@@ -53,6 +53,24 @@ const fullscreenQuadWGSL = `
   }
 `;
 
+function readOpNeedsStorageTexture({ op, in: context }) {
+  return (
+    op === 'sample' && (context === 'render-pass-encoder' || context === 'render-bundle-encoder'));
+
+}
+
+function writeOpNeedsStorageTexture({ op, in: context }) {
+  return (
+    op === 'storage' && (context === 'render-pass-encoder' || context === 'render-bundle-encoder'));
+
+}
+
+function getVisibilityForContext(context) {
+  return context === 'render-bundle-encoder' || context === 'render-pass-encoder' ?
+  GPUShaderStage.FRAGMENT :
+  GPUShaderStage.COMPUTE;
+}
+
 class TextureSyncTestHelper extends OperationContextHelper {
 
 
@@ -71,6 +89,29 @@ class TextureSyncTestHelper extends OperationContextHelper {
       format: this.kTextureFormat,
       ...textureCreationParams
     });
+  }
+
+  static skipIfNeedStorageTexturesAndNoStorageTextures(
+  t,
+  reads,
+  writes)
+  {
+    if (!t.isCompatibility) {
+      return;
+    }
+
+    if (t.device.limits.maxStorageTexturesInFragmentStage >= 1) {
+      return;
+    }
+
+    const needStorageTexture =
+    reads.reduce((need, read) => need || readOpNeedsStorageTexture(read), false) ||
+    writes.reduce((need, write) => need || writeOpNeedsStorageTexture(write), false);
+
+    t.skipIf(
+      needStorageTexture,
+      `maxStorageTexturesInFragmentStage(${t.device.limits.maxStorageTexturesInFragmentStage}) < 1`
+    );
   }
 
   /**
@@ -134,19 +175,19 @@ class TextureSyncTestHelper extends OperationContextHelper {
             format: this.kTextureFormat,
             usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.STORAGE_BINDING
           });
-
+          const visibility = getVisibilityForContext(context);
           const bindGroupLayout = this.device.createBindGroupLayout({
             entries: [
             {
               binding: 0,
-              visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+              visibility,
               texture: {
                 sampleType: 'unfilterable-float'
               }
             },
             {
               binding: 1,
-              visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+              visibility,
               storageTexture: {
                 access: 'write-only',
                 format: this.kTextureFormat
@@ -405,11 +446,12 @@ class TextureSyncTestHelper extends OperationContextHelper {
           break;
         }
       case 'storage':{
+          const visibility = getVisibilityForContext(context);
           const bindGroupLayout = this.device.createBindGroupLayout({
             entries: [
             {
               binding: 0,
-              visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+              visibility,
               storageTexture: {
                 access: 'write-only',
                 format: this.kTextureFormat
@@ -558,6 +600,11 @@ expandWithParams(function* ({ _context }) {
 })
 ).
 fn((t) => {
+  TextureSyncTestHelper.skipIfNeedStorageTexturesAndNoStorageTextures(
+    t,
+    [t.params.read],
+    [t.params.write]
+  );
   const helper = new TextureSyncTestHelper(t, {
     usage:
     GPUTextureUsage.COPY_DST |
@@ -610,6 +657,11 @@ expandWithParams(function* ({ _context }) {
 })
 ).
 fn((t) => {
+  TextureSyncTestHelper.skipIfNeedStorageTexturesAndNoStorageTextures(
+    t,
+    [t.params.read],
+    [t.params.write]
+  );
   const helper = new TextureSyncTestHelper(t, {
     usage: kOpInfo[t.params.read.op].readUsage | kOpInfo[t.params.write.op].writeUsage
   });
@@ -654,6 +706,12 @@ expandWithParams(function* ({ _context }) {
 })
 ).
 fn((t) => {
+  TextureSyncTestHelper.skipIfNeedStorageTexturesAndNoStorageTextures(
+    t,
+    [],
+    [t.params.first, t.params.second]
+  );
+
   const helper = new TextureSyncTestHelper(t, {
     usage:
     GPUTextureUsage.COPY_SRC |

@@ -16,7 +16,7 @@ component of the result vector equals cmp.
 `;import { makeTestGroup } from '../../../../../../../common/framework/test_group.js';
 import { keysOf } from '../../../../../../../common/util/data_tables.js';
 import { assert } from '../../../../../../../common/util/util.js';
-import { GPUTest } from '../../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../../gpu_test.js';
 
 import {
   dispatchSizes,
@@ -26,7 +26,7 @@ import {
   onlyWorkgroupSizes } from
 './harness.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('compare_exchange_weak_storage_basic').
 specURL('https://www.w3.org/TR/WGSL/#atomic-rmw').

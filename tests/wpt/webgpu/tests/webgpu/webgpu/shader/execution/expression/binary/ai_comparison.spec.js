@@ -3,7 +3,7 @@
 **/export const description = `
 Execution Tests for the abstract-int comparison expressions
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 import { bool, abstractInt, Type } from '../../../../util/conversion.js';
 import { vectorI64Range } from '../../../../util/math.js';
 
@@ -11,7 +11,7 @@ import { onlyConstInputSource, run } from '../expression.js';
 
 import { binary } from './binary.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 /**
  * @returns a test case for the provided left hand & right hand values and

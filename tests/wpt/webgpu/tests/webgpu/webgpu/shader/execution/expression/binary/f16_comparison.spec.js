@@ -3,14 +3,14 @@
 **/export const description = `
 Execution Tests for the f16 comparison operations
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 import { Type } from '../../../../util/conversion.js';
 import { allInputSources, run } from '../expression.js';
 
 import { binary } from './binary.js';
 import { d } from './f16_comparison.cache.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('equals').
 specURL('https://www.w3.org/TR/WGSL/#comparison-expr').
@@ -20,13 +20,11 @@ Expression: x == y
 Accuracy: Correct result
 `
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 params((u) =>
 u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4])
 ).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get(
     t.params.inputSource === 'const' ? 'equals_const' : 'equals_non_const'
   );
@@ -41,13 +39,11 @@ Expression: x != y
 Accuracy: Correct result
 `
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 params((u) =>
 u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4])
 ).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get(
     t.params.inputSource === 'const' ? 'not_equals_const' : 'not_equals_non_const'
   );
@@ -62,13 +58,11 @@ Expression: x < y
 Accuracy: Correct result
 `
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 params((u) =>
 u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4])
 ).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get(
     t.params.inputSource === 'const' ? 'less_than_const' : 'less_than_non_const'
   );
@@ -83,13 +77,11 @@ Expression: x <= y
 Accuracy: Correct result
 `
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 params((u) =>
 u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4])
 ).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get(
     t.params.inputSource === 'const' ? 'less_equals_const' : 'less_equals_non_const'
   );
@@ -104,13 +96,11 @@ Expression: x > y
 Accuracy: Correct result
 `
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 params((u) =>
 u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4])
 ).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get(
     t.params.inputSource === 'const' ? 'greater_than_const' : 'greater_than_non_const'
   );
@@ -125,13 +115,11 @@ Expression: x >= y
 Accuracy: Correct result
 `
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 params((u) =>
 u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4])
 ).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get(
     t.params.inputSource === 'const' ? 'greater_equals_const' : 'greater_equals_non_const'
   );

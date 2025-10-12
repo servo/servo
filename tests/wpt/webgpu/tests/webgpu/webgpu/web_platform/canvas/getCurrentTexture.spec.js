@@ -6,12 +6,12 @@ Tests for GPUCanvasContext.getCurrentTexture.
 import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { timeout } from '../../../common/util/timeout.js';
 import { assert, unreachable } from '../../../common/util/util.js';
-import { GPUTest } from '../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../gpu_test.js';
 import { kAllCanvasTypes, createCanvas } from '../../util/create_elements.js';
 
 const kFormat = 'bgra8unorm';
 
-class GPUContextTest extends GPUTest {
+class GPUContextTest extends AllFeaturesMaxLimitsGPUTest {
   initCanvasContext(canvasType = 'onscreen') {
     const canvas = createCanvas(this, canvasType, 2, 2);
     if (canvasType === 'onscreen') {
@@ -172,9 +172,14 @@ combine('clearTexture', [true, false])
 ).
 beforeAllSubcases((t) => {
   const { canvasType } = t.params;
-  if (canvasType === 'offscreen' && !('transferToImageBitmap' in OffscreenCanvas.prototype)) {
-    throw new SkipTestCase('transferToImageBitmap not supported');
-  }
+  t.skipIf(
+    canvasType === 'offscreen' && typeof OffscreenCanvas === 'undefined',
+    'OffscreenCanvas does not exist in this environment'
+  );
+  t.skipIf(
+    canvasType === 'offscreen' && !('transferToImageBitmap' in OffscreenCanvas.prototype),
+    'transferToImageBitmap not supported'
+  );
 }).
 fn((t) => {
   const { canvasType, clearTexture } = t.params;

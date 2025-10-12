@@ -9,6 +9,6 @@ TODO:
 - Copy GPUBuffer to another thread while {pending, mapped mappedAtCreation} on {same,diff} thread
   (valid), then try to map on that thread (invalid)
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { ValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
-export const g = makeTestGroup(ValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);

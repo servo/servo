@@ -6,7 +6,7 @@ Examples of writing CTS tests with various features.
 Start here when looking for examples of basic framework usage.
 `;import { makeTestGroup } from '../common/framework/test_group.js';
 
-import { GPUTest } from './gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from './gpu_test.js';
 
 // To run these tests in the standalone runner, run `npm start` then open:
 // - http://localhost:XXXX/standalone/?runnow=1&q=webgpu:examples:*
@@ -19,7 +19,7 @@ import { GPUTest } from './gpu_test.js';
 // - ?q=webgpu:examples:basic,*
 // - ?q=webgpu:examples:*
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 // Note: spaces aren't allowed in test names; use underscores.
 g.test('test_name').fn((_t) => {});
@@ -225,51 +225,29 @@ g.test('gpu,buffers').fn((t) => {
 
 g.test('gpu,with_texture_compression,bc').
 desc(
-  `Example of a test using a device descriptor.
+  `Example of a test using an optional feature.
 Tests that a BC format passes validation iff the feature is enabled.`
 ).
-params((u) => u.combine('textureCompressionBC', [false, true])).
-beforeAllSubcases((t) => {
-  const { textureCompressionBC } = t.params;
-
-  if (textureCompressionBC) {
-    t.selectDeviceOrSkipTestCase('texture-compression-bc');
-  }
-}).
 fn((t) => {
-  const { textureCompressionBC } = t.params;
-  const shouldError = !textureCompressionBC;
-  t.shouldThrow(shouldError ? 'TypeError' : false, () => {
-    t.createTextureTracked({
-      format: 'bc1-rgba-unorm',
-      size: [4, 4, 1],
-      usage: GPUTextureUsage.TEXTURE_BINDING
-    });
+  t.skipIfDeviceDoesNotHaveFeature('texture-compression-bc');
+
+  t.createTextureTracked({
+    format: 'bc1-rgba-unorm',
+    size: [4, 4, 1],
+    usage: GPUTextureUsage.TEXTURE_BINDING
   });
 });
 
 g.test('gpu,with_texture_compression,etc2').
 desc(
-  `Example of a test using a device descriptor.
+  `Example of a test using an optional feature.
 Tests that an ETC2 format passes validation iff the feature is enabled.`
 ).
-params((u) => u.combine('textureCompressionETC2', [false, true])).
-beforeAllSubcases((t) => {
-  const { textureCompressionETC2 } = t.params;
-
-  if (textureCompressionETC2) {
-    t.selectDeviceOrSkipTestCase('texture-compression-etc2');
-  }
-}).
 fn((t) => {
-  const { textureCompressionETC2 } = t.params;
-
-  const shouldError = !textureCompressionETC2;
-  t.shouldThrow(shouldError ? 'TypeError' : false, () => {
-    t.createTextureTracked({
-      format: 'etc2-rgb8unorm',
-      size: [4, 4, 1],
-      usage: GPUTextureUsage.TEXTURE_BINDING
-    });
+  t.skipIfDeviceDoesNotHaveFeature('texture-compression-etc2');
+  t.createTextureTracked({
+    format: 'etc2-rgb8unorm',
+    size: [4, 4, 1],
+    usage: GPUTextureUsage.TEXTURE_BINDING
   });
 });

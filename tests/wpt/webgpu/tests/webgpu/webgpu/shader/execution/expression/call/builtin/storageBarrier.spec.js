@@ -14,9 +14,9 @@ execution scope.
 
 All synchronization functions must only be used in the compute shader stage.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('stage').
 specURL('https://www.w3.org/TR/WGSL/#sync-builtin-functions').

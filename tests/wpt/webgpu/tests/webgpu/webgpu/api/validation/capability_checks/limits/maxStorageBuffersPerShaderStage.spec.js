@@ -14,7 +14,10 @@ import {
   kBindGroupTests,
   kBindingCombinations,
   getPipelineTypeForBindingCombination,
-  getPerStageWGSLForBindingCombination } from
+  getPerStageWGSLForBindingCombination,
+
+  getStageVisibilityForBindingCombination,
+  addMaximumLimitUpToDependentLimit } from
 
 './limit_utils.js';
 
@@ -33,7 +36,7 @@ type,
 order,
 numBindings)
 {
-  return device.createBindGroupLayout({
+  const bindGroupLayoutDescription = {
     entries: reorder(
       order,
       range(numBindings, (i) => ({
@@ -42,7 +45,33 @@ numBindings)
         buffer: { type }
       }))
     )
-  });
+  };
+  return device.createBindGroupLayout(bindGroupLayoutDescription);
+}
+
+function addExtraRequiredLimits(
+adapter,
+limits,
+limitTest)
+{
+  const newLimits = { ...limits };
+
+  addMaximumLimitUpToDependentLimit(
+    adapter,
+    newLimits,
+    'maxStorageBuffersInFragmentStage',
+    limit,
+    limitTest
+  );
+  addMaximumLimitUpToDependentLimit(
+    adapter,
+    newLimits,
+    'maxStorageBuffersInVertexStage',
+    limit,
+    limitTest
+  );
+
+  return newLimits;
 }
 
 g.test('createBindGroupLayout,at_over').
@@ -76,11 +105,13 @@ fn(async (t) => {
         `maxBindingsPerBindGroup = ${t.adapter.limits.maxBindingsPerBindGroup} which is less than ${testValue}`
       );
 
+      t.skipIfNotEnoughStorageBuffersInStage(visibility, testValue);
+
       await t.expectValidationError(() => {
         createBindGroupLayout(device, visibility, type, order, testValue);
       }, shouldError);
     },
-    kExtraLimits
+    addExtraRequiredLimits(t.adapter, kExtraLimits, limitTest)
   );
 });
 
@@ -110,10 +141,13 @@ fn(async (t) => {
     limitTest,
     testValueName,
     async ({ device, testValue, shouldError, actualLimit }) => {
+      t.skipIfNotEnoughStorageBuffersInStage(visibility, testValue);
+
       const maxBindingsPerBindGroup = Math.min(
         t.device.limits.maxBindingsPerBindGroup,
         actualLimit
       );
+
       const kNumGroups = Math.ceil(testValue / maxBindingsPerBindGroup);
 
       // Not sure what to do in this case but best we get notified if it happens.
@@ -132,7 +166,7 @@ fn(async (t) => {
         shouldError
       );
     },
-    kExtraLimits
+    addExtraRequiredLimits(t.adapter, kExtraLimits, limitTest)
   );
 });
 
@@ -149,6 +183,7 @@ params(
   kMaximumLimitBaseParams.
   combine('async', [false, true]).
   combine('bindingCombination', kBindingCombinations).
+  beginSubcases().
   combine('order', kReorderOrderKeys).
   combine('bindGroupTest', kBindGroupTests)
 ).
@@ -164,6 +199,9 @@ fn(async (t) => {
         bindGroupTest === 'sameGroup' && testValue > device.limits.maxBindingsPerBindGroup,
         `can not test ${testValue} bindings in same group because maxBindingsPerBindGroup = ${device.limits.maxBindingsPerBindGroup}`
       );
+
+      const visibility = getStageVisibilityForBindingCombination(bindingCombination);
+      t.skipIfNotEnoughStorageBuffersInStage(visibility, testValue);
 
       const code = getPerStageWGSLForBindingCombination(
         bindingCombination,
@@ -184,6 +222,6 @@ fn(async (t) => {
         `actualLimit: ${actualLimit}, testValue: ${testValue}\n:${code}`
       );
     },
-    kExtraLimits
+    addExtraRequiredLimits(t.adapter, kExtraLimits, limitTest)
   );
 });

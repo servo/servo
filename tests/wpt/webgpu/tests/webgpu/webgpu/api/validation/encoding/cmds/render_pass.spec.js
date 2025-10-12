@@ -9,6 +9,6 @@ TODO:
 - executeBundles:
     - with {zero, one, multiple} bundles where {zero, one} of them are invalid objects
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
-import { ValidationTest } from '../../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 
-export const g = makeTestGroup(ValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);

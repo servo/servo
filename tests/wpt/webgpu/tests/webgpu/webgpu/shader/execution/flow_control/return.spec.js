@@ -3,11 +3,11 @@
 **/export const description = `
 Flow control tests for return statements.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
 import { runFlowControlTest } from './harness.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('return').
 desc("Test that flow control does not execute after a 'return' statement").

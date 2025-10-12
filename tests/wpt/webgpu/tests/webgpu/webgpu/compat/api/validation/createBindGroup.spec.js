@@ -139,7 +139,7 @@ fn((t) => {
     usage: GPUTextureUsage.TEXTURE_BINDING,
     ...(dimension && { dimension }),
     ...(textureBindingViewDimension && { textureBindingViewDimension })
-  }); // MAINTENANCE_TODO: remove cast once textureBindingViewDimension is added to IDL
+  });
 
   const effectiveTextureBindingViewDimension = getEffectiveTextureBindingViewDimension(
     dimension,

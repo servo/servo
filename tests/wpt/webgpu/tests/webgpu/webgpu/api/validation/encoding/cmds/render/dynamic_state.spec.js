@@ -23,7 +23,8 @@ TODO: ensure existing tests cover these notes. Note many of these may be operati
 >     - {0, max}
 >     - used with a simple pipeline that {does, doesn't} use it
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { ValidationTest } from '../../../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
+import { nextAfterF32 } from '../../../../../util/math.js';
 
 
 
@@ -41,7 +42,7 @@ import { ValidationTest } from '../../../validation_test.js';
 
 
 
-class F extends ValidationTest {
+class F extends AllFeaturesMaxLimitsGPUTest {
   testViewportCall(
   success,
   v,
@@ -130,9 +131,9 @@ class F extends ValidationTest {
 
 export const g = makeTestGroup(F);
 
-g.test('setViewport,x_y_width_height_nonnegative').
+g.test('setViewport,width_height_nonnegative').
 desc(
-  `Test that the parameters of setViewport to define the box must be non-negative.
+  `Test that the width and height parameters of setViewport must be non-negative.
 
 TODO Test -0 (it should be valid) but can't be tested because the harness complains about duplicate parameters.
 TODO Test the first value smaller than -0`
@@ -141,60 +142,92 @@ paramsSubcasesOnly([
 // Control case: everything to 0 is ok, covers the empty viewport case.
 { x: 0, y: 0, w: 0, h: 0 },
 
-// Test -1
-{ x: -1, y: 0, w: 0, h: 0 },
-{ x: 0, y: -1, w: 0, h: 0 },
+// Negative width/height is invalid
 { x: 0, y: 0, w: -1, h: 0 },
-{ x: 0, y: 0, w: 0, h: -1 }]
+{ x: 0, y: 0, w: 0, h: -1 },
+
+// Negative width/height is invalid even if the resulting bounds are positive
+{ x: 1, y: 0, w: -1, h: 0 },
+{ x: 0, y: 1, w: 0, h: -1 }]
 ).
 fn((t) => {
   const { x, y, w, h } = t.params;
-  const success = x >= 0 && y >= 0 && w >= 0 && h >= 0;
+  const success = w >= 0 && h >= 0;
   t.testViewportCall(success, { x, y, w, h, minDepth: 0, maxDepth: 1 });
 });
 
-g.test('setViewport,xy_rect_contained_in_attachment').
+g.test('setViewport,exceeds_attachment_size').
+desc(`Test that the viewport can exceed the attachment size`).
+paramsSubcasesOnly([
+{ attachmentWidth: 3, attachmentHeight: 3 },
+{ attachmentWidth: 1024, attachmentHeight: 1024 }]
+).
+fn((t) => {
+  const { attachmentWidth, attachmentHeight } = t.params;
+  t.testViewportCall(
+    true,
+    { x: 0, y: 0, w: attachmentWidth + 1, h: attachmentHeight + 1, minDepth: 0, maxDepth: 1 },
+    { width: attachmentWidth, height: attachmentHeight, depthOrArrayLayers: 1 }
+  );
+});
+
+g.test('setViewport,xy_rect_contained_in_bounds').
 desc(
-  'Test that the rectangle defined by x, y, width, height must be contained in the attachments'
+  `Test that the rectangle defined by x, y, width, height must be contained in the maximum viewport bounds
+and that the viewport size cannot exceed the maximum.`
 ).
 paramsSubcasesOnly((u) =>
-u.
-combineWithParams([
-{ attachmentWidth: 3, attachmentHeight: 5 },
-{ attachmentWidth: 5, attachmentHeight: 3 },
-{ attachmentWidth: 1024, attachmentHeight: 1 },
-{ attachmentWidth: 1, attachmentHeight: 1024 }]
-).
-combineWithParams([
-// Control case: a full viewport is valid.
-{ dx: 0, dy: 0, dw: 0, dh: 0 },
+u.combine('dimension', [0, 1]).combineWithParams([
+// Control case: max viewport is valid.
+{ om: 0, od: 0, sd: 0, _success: true },
 
-// Other valid cases with a partial viewport.
-{ dx: 1, dy: 0, dw: -1, dh: 0 },
-{ dx: 0, dy: 1, dw: 0, dh: -1 },
-{ dx: 0, dy: 0, dw: -1, dh: 0 },
-{ dx: 0, dy: 0, dw: 0, dh: -1 },
+// Other valid cases
+{ om: -1, od: 0, sd: 0, _success: true },
+{ om: -2, od: 0, sd: 0, _success: true },
+{ om: 1, od: -1, sd: 0, _success: true },
+{ om: 0, od: -1, sd: 0, _success: true },
+{ om: 0, od: 1, sd: 0, _success: true },
+{ om: 1, od: 0, sd: -1, _success: true },
 
-// Test with a small value that causes the viewport to go outside the attachment.
-{ dx: 1, dy: 0, dw: 0, dh: 0 },
-{ dx: 0, dy: 1, dw: 0, dh: 0 },
-{ dx: 0, dy: 0, dw: 1, dh: 0 },
-{ dx: 0, dy: 0, dw: 0, dh: 1 }]
+// Cases that go outside the allowed bounds
+{ om: -2, od: -1, sd: 0, _success: false },
+{ om: 1, od: 0, sd: 0, _success: false },
+{ om: 1, od: 1, sd: -1, _success: false },
+{ om: 1, od: 'negative', sd: 0, _success: false },
+
+// Case that exceeds the max viewport size
+{ om: 0, od: 0, sd: 1, _success: false },
+{ om: 0, od: 0, sd: 'positive', _success: false }]
 )
 ).
 fn((t) => {
-  const { attachmentWidth, attachmentHeight, dx, dy, dw, dh } = t.params;
-  const x = dx;
-  const y = dy;
-  const w = attachmentWidth + dw;
-  const h = attachmentWidth + dh;
+  const { dimension, om, od, sd, _success } = t.params;
 
-  const success = x + w <= attachmentWidth && y + h <= attachmentHeight;
-  t.testViewportCall(
-    success,
-    { x, y, w, h, minDepth: 0, maxDepth: 1 },
-    { width: attachmentWidth, height: attachmentHeight, depthOrArrayLayers: 1 }
-  );
+  const maxViewportSize = t.device.limits.maxTextureDimension2D;
+
+  const xy = [0, 0];
+  const wh = [maxViewportSize, maxViewportSize];
+
+  xy[dimension] = maxViewportSize * om;
+
+  if (od === 'negative' || od === 'positive') {
+    xy[dimension] = nextAfterF32(xy[dimension], od, 'no-flush');
+  } else {
+    xy[dimension] += od;
+  }
+
+  if (sd === 'negative' || sd === 'positive') {
+    wh[dimension] = nextAfterF32(wh[dimension], sd, 'no-flush');
+  } else {
+    wh[dimension] += sd;
+  }
+
+  const x = xy[0];
+  const y = xy[1];
+  const w = wh[0];
+  const h = wh[1];
+
+  t.testViewportCall(_success, { x, y, w, h, minDepth: 0, maxDepth: 1 });
 });
 
 g.test('setViewport,depth_rangeAndOrder').

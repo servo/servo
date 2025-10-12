@@ -81,11 +81,6 @@ requires packed_4x8_integer_dot_product;`,
 g.test('requires').
 desc(`Tests that requires are validated correctly.`).
 params((u) => u.combine('case', keysOf(kCases))).
-beforeAllSubcases((t) => {
-  if (t.params.case === 'enable_before') {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   t.skipIfLanguageFeatureNotSupported('readonly_and_readwrite_storage_textures');
   t.skipIfLanguageFeatureNotSupported('packed_4x8_integer_dot_product');

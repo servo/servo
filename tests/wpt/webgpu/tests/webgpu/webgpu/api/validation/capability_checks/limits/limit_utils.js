@@ -2,7 +2,8 @@
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/import { kUnitCaseParamsBuilder } from '../../../../../common/framework/params_builder.js';import { makeTestGroup } from '../../../../../common/framework/test_group.js';import { getGPU } from '../../../../../common/util/navigator_gpu.js';
 import { assert, range, reorder } from '../../../../../common/util/util.js';
-import { getDefaultLimitsForAdapter } from '../../../../capability_info.js';
+import { getDefaultLimitsForCTS } from '../../../../capability_info.js';
+import { GPUConst } from '../../../../constants.js';
 import { GPUTestBase } from '../../../../gpu_test.js';
 
 
@@ -42,6 +43,20 @@ export function getPipelineTypeForBindingCombination(bindingCombination) {
       return 'createRenderPipelineWithFragmentStage';
     case 'compute':
       return 'createComputePipeline';
+  }
+}
+
+export function getStageVisibilityForBindingCombination(bindingCombination) {
+  switch (bindingCombination) {
+    case 'vertex':
+      return GPUConst.ShaderStage.VERTEX;
+    case 'fragment':
+      return GPUConst.ShaderStage.FRAGMENT;
+    case 'vertexAndFragmentWithPossibleVertexStageOverflow':
+    case 'vertexAndFragmentWithPossibleFragmentStageOverflow':
+      return GPUConst.ShaderStage.FRAGMENT | GPUConst.ShaderStage.VERTEX;
+    case 'compute':
+      return GPUConst.ShaderStage.COMPUTE;
   }
 }
 
@@ -283,7 +298,7 @@ export const kMinimumLimitValueTests = [
 
 
 export function getDefaultLimitForAdapter(adapter, limit) {
-  const limitInfo = getDefaultLimitsForAdapter(adapter);
+  const limitInfo = getDefaultLimitsForCTS();
   return limitInfo[limit].default;
 }
 
@@ -320,10 +335,66 @@ export const kMinimumLimitBaseParams = kUnitCaseParamsBuilder.
 combine('limitTest', kMinimumLimitValueTests).
 combine('testValueName', kMinimumTestValues);
 
+/**
+ * Adds a maximum limit upto a dependent limit.
+ *
+ * Example:
+ *   You want to test `maxStorageBuffersPerShaderStage` in fragment stage
+ *   so you need `maxStorageBuffersInFragmentStage` set as well. But, you
+ *   don't know exactly what value will be used for `maxStorageBuffersPerShaderStage`
+ *   since that is defined by an enum like `underDefault`.
+ *
+ *   So, you want `maxStorageBuffersInFragmentStage` to be set as high as possible.
+ *   You can't just set it to it's maximum value (adapter.limits.maxStorageBuffersInFragmentStage)
+ *   because if it's greater than `maxStorageBuffersPerShaderStage` you'll get an error.
+ *
+ *   So, use this function
+ *
+ *   const limits: LimitsRequest = {};
+ *   addMaximumLimitUpToDependentLimit(
+ *     adapter,
+ *     limits,
+ *     limit: 'maxStorageBuffersInFragmentStage', // the limit we want to add
+ *     dependentLimitName: 'maxStorageBuffersPerShaderStage', // what the previous limit is dependent on
+ *     dependentLimitTest: 'underDefault', // the enum used to decide the dependent limit
+ *   )
+ */
+export function addMaximumLimitUpToDependentLimit(
+adapter,
+limits,
+limit,
+dependentLimitName,
+dependentLimitTest)
+{
+  if (!(limit in adapter.limits)) {
+    return;
+  }
+
+  const limitMaximum = adapter.limits[limit];
+  const dependentLimitMaximum = adapter.limits[dependentLimitName];
+  const testValue = getLimitValue(
+    getDefaultLimitForAdapter(adapter, dependentLimitName),
+    dependentLimitMaximum,
+    dependentLimitTest
+  );
+
+  const value = Math.min(testValue, dependentLimitMaximum, limitMaximum);
+  limits[limit] = value;
+}
+
+
+
+
+
+
+
+
+
 export class LimitTestsImpl extends GPUTestBase {
   _adapter = null;
   _device = undefined;
   limit = '';
+  limitTestParams = {};
   defaultLimit = 0;
   adapterLimit = 0;
 
@@ -332,6 +403,12 @@ export class LimitTestsImpl extends GPUTestBase {
     const gpu = getGPU(this.rec);
     this._adapter = await gpu.requestAdapter();
     const limit = this.limit;
+    // MAINTENANCE_TODO: consider removing this skip if the spec has no optional limits.
+    this.skipIf(
+      this._adapter?.limits[limit] === undefined && !!this.limitTestParams.limitOptional ||
+      getDefaultLimitsForCTS()[limit] === undefined,
+      `${limit} is missing but optional for now`
+    );
     this.defaultLimit = getDefaultLimitForAdapter(this.adapter, limit);
     this.adapterLimit = this.adapter.limits[limit];
     assert(!Number.isNaN(this.defaultLimit));
@@ -346,6 +423,14 @@ export class LimitTestsImpl extends GPUTestBase {
   get device() {
     assert(this._device !== undefined, 'device is only valid in _testThenDestroyDevice callback');
     return this._device;
+  }
+
+  getDefaultLimits() {
+    return getDefaultLimitsForCTS();
+  }
+
+  getDefaultLimit(limit) {
+    return this.getDefaultLimits()[limit].default;
   }
 
   async requestDeviceWithLimits(
@@ -389,12 +474,16 @@ export class LimitTestsImpl extends GPUTestBase {
     requiredLimits[limit] = requestedLimit;
 
     if (extraLimits) {
-      for (const [extraLimitStr, limitMode] of Object.entries(extraLimits)) {
+      for (const [extraLimitStr, limitModeOrNumber] of Object.entries(extraLimits)) {
         const extraLimit = extraLimitStr;
-        requiredLimits[extraLimit] =
-        limitMode === 'defaultLimit' ?
-        getDefaultLimitForAdapter(adapter, extraLimit) :
-        adapter.limits[extraLimit];
+        if (adapter.limits[extraLimit] !== undefined) {
+          requiredLimits[extraLimit] =
+          typeof limitModeOrNumber === 'number' ?
+          limitModeOrNumber :
+          limitModeOrNumber === 'defaultLimit' ?
+          getDefaultLimitForAdapter(adapter, extraLimit) :
+          adapter.limits[extraLimit];
+        }
       }
     }
 
@@ -426,16 +515,21 @@ export class LimitTestsImpl extends GPUTestBase {
           );
         }
       } else {
-        if (requestedLimit <= defaultLimit) {
-          this.expect(
-            actualLimit === defaultLimit,
-            `expected actual actualLimit: ${actualLimit} to equal defaultLimit: ${defaultLimit}`
-          );
-        } else {
-          this.expect(
-            actualLimit === requestedLimit,
-            `expected actual actualLimit: ${actualLimit} to equal requestedLimit: ${requestedLimit}`
-          );
+        const checked = this.limitTestParams.limitCheckFn ?
+        this.limitTestParams.limitCheckFn(this, device, { limit, actualLimit, defaultLimit }) :
+        false;
+        if (!checked) {
+          if (requestedLimit <= defaultLimit) {
+            this.expect(
+              actualLimit === defaultLimit,
+              `expected actual actualLimit: ${actualLimit} to equal defaultLimit: ${defaultLimit}`
+            );
+          } else {
+            this.expect(
+              actualLimit === requestedLimit,
+              `expected actual actualLimit: ${actualLimit} to equal requestedLimit: ${requestedLimit}`
+            );
+          }
         }
       }
     }
@@ -456,6 +550,10 @@ export class LimitTestsImpl extends GPUTestBase {
     const { defaultLimit, adapterLimit: maximumLimit } = this;
 
     const requestedLimit = getLimitValue(defaultLimit, maximumLimit, limitValueTest);
+    this.skipIf(
+      requestedLimit < 0 && limitValueTest === 'underDefault',
+      `requestedLimit(${requestedLimit}) for ${this.limit} is < 0`
+    );
     return this._getDeviceWithSpecificLimit(requestedLimit, extraLimits, features);
   }
 
@@ -1100,14 +1198,58 @@ export class LimitTestsImpl extends GPUTestBase {
     const module = device.createShaderModule({ code });
     return { module, code };
   }
+
+  skipIfNotEnoughStorageBuffersInStage(visibility, numRequired) {
+    const { device } = this;
+
+    this.skipIf(
+      numRequired > device.limits.maxStorageBuffersPerShaderStage,
+      `maxStorageBuffersPerShaderStage = ${device.limits.maxSamplersPerShaderStage} which is less than ${numRequired}`
+    );
+
+    this.skipIf(
+      this.isCompatibility &&
+      // If we're using the fragment stage
+      (visibility & GPUShaderStage.FRAGMENT) !== 0 &&
+      // If perShaderStage and inFragment stage are equal we want to
+      // allow the test to run as otherwise we can't test overMaximum and overLimit
+      device.limits.maxStorageBuffersPerShaderStage >
+      device.limits.maxStorageBuffersInFragmentStage &&
+      // They aren't equal so if there aren't enough supported in the fragment then skip
+      !(device.limits.maxStorageBuffersInFragmentStage >= numRequired),
+      `maxStorageBuffersInFragmentShader = ${device.limits.maxStorageBuffersInFragmentStage} which is less than ${numRequired}`
+    );
+
+    this.skipIf(
+      this.isCompatibility &&
+      // If we're using the vertex stage
+      (visibility & GPUShaderStage.VERTEX) !== 0 &&
+      // If perShaderStage and inVertex stage are equal we want to
+      // allow the test to run as otherwise we can't test overMaximum and overLimit
+      device.limits.maxStorageBuffersPerShaderStage >
+      device.limits.maxStorageBuffersInVertexStage &&
+      // They aren't equal so if there aren't enough supported in the vertex then skip
+      !(device.limits.maxStorageBuffersInVertexStage >= numRequired),
+      `maxStorageBuffersInVertexShader = ${device.limits.maxStorageBuffersInVertexStage} which is less than ${numRequired}`
+    );
+  }
 }
+
+
+
+
+
 
 /**
  * Makes a new LimitTest class so that the tests have access to `limit`
  */
-function makeLimitTestFixture(limit) {
+function makeLimitTestFixture(
+limit,
+params)
+{
   class LimitTests extends LimitTestsImpl {
     limit = limit;
+    limitTestParams = params ?? {};
   }
 
   return LimitTests;
@@ -1118,8 +1260,83 @@ function makeLimitTestFixture(limit) {
  * writing these tests where I'd copy a test, need to rename a limit in 3-4 places,
  * forget one place, and then spend 20-30 minutes wondering why the test was failing.
  */
-export function makeLimitTestGroup(limit) {
+export function makeLimitTestGroup(limit, params) {
   const description = `API Validation Tests for ${limit}.`;
-  const g = makeTestGroup(makeLimitTestFixture(limit));
+  const g = makeTestGroup(makeLimitTestFixture(limit, params));
   return { g, description, limit };
+}
+
+/**
+ * Test that limit must be less than dependentLimitName when requesting a device.
+ */
+export function testMaxStorageXXXInYYYStageDeviceCreationWithDependentLimit(
+g,
+limit,
+
+
+
+
+dependentLimitName)
+{
+  g.test(`auto_upgrades_per_stage,${dependentLimitName}`).
+  desc(
+    `Test that
+       * adapter.limit.${limit} < adapter.limit.${dependentLimitName}
+       * requiredLimits.${limit} auto-upgrades device.limits.${dependentLimitName}
+       `
+  ).
+  fn(async (t) => {
+    const { adapterLimit: maximumLimit, adapter } = t;
+
+    {
+      const dependentLimit = adapter.limits[dependentLimitName];
+      t.expect(
+        maximumLimit <= dependentLimit,
+        `maximumLimit(${maximumLimit}) is <= adapter.limits.${dependentLimitName}(${dependentLimit})`
+      );
+    }
+
+    const shouldReject = false;
+    const device = await t.requestDeviceWithLimits(
+      adapter,
+      {
+        [limit]: maximumLimit
+      },
+      shouldReject
+    );
+
+    {
+      const dependentLimit = device.limits[dependentLimitName];
+      const actualLimit = device.limits[limit];
+      t.expect(
+        dependentLimit >= actualLimit,
+        `device.limits.${dependentLimitName}(${dependentLimit}) is >= adapter.limits.${limit}(${actualLimit})`
+      );
+    }
+
+    device?.destroy();
+  });
+
+  g.test(`auto_upgraded_from_per_stage,${dependentLimitName}`).
+  desc(
+    `Test that adapter.limit.${limit} is automatically upgraded to ${dependentLimitName} except in compat.`
+  ).
+  fn(async (t) => {
+    const { adapter, defaultLimit } = t;
+    const dependentAdapterLimit = adapter.limits[dependentLimitName];
+    const shouldReject = false;
+    const device = await t.requestDeviceWithLimits(
+      adapter,
+      {
+        [dependentLimitName]: dependentAdapterLimit
+      },
+      shouldReject
+    );
+
+    const expectedLimit = t.isCompatibility ? defaultLimit : dependentAdapterLimit;
+    t.expect(
+      device.limits[limit] === expectedLimit,
+      `${limit}(${device.limits[limit]}) === ${expectedLimit}`
+    );
+  });
 }

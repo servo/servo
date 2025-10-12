@@ -6,9 +6,13 @@ TODO check if the tests need to be updated to support aspects of depth-stencil t
 import { assert } from '../../../../common/util/util.js';
 import { kTextureDimensions } from '../../../capability_info.js';
 import {
-  kTextureFormatInfo,
   kSizedTextureFormats,
-  textureDimensionAndFormatCompatible } from
+  textureFormatAndDimensionPossiblyCompatible,
+  getBlockInfoForTextureFormat,
+  isDepthOrStencilTextureFormat,
+  getBlockInfoForSizedTextureFormat,
+  getBlockInfoForColorTextureFormat,
+  getMaxValidTextureSizeForFormatAndDimension } from
 '../../../format_info.js';
 import { align } from '../../../util/math.js';
 import {
@@ -58,7 +62,7 @@ fn((t) => {
   const { rowsPerImage, copyHeightInBlocks, copyDepth, dimension, size, method } = t.params;
 
   const format = 'rgba8unorm';
-  const copyHeight = copyHeightInBlocks * kTextureFormatInfo[format].blockHeight;
+  const copyHeight = copyHeightInBlocks * getBlockInfoForTextureFormat(format).blockHeight;
 
   const texture = t.createTextureTracked({
     size,
@@ -138,7 +142,9 @@ combine('method', kImageCopyTypes).
 combine('format', kSizedTextureFormats).
 filter(formatCopyableWithMethod).
 combine('dimension', kTextureDimensions).
-filter(({ dimension, format }) => textureDimensionAndFormatCompatible(dimension, format)).
+filter(({ dimension, format }) =>
+textureFormatAndDimensionPossiblyCompatible(dimension, format)
+).
 beginSubcases().
 combineWithParams([
 { bytesPerRowPadding: 0, rowsPerImagePaddingInBlocks: 0 }, // no padding
@@ -162,26 +168,19 @@ combineWithParams([
 // If the format is a depth/stencil format, its copy size must equal to subresource's size.
 // So filter out depth/stencil cases where the rounded-up texture size would be different from the copy size.
 .filter(({ format, copyWidthInBlocks, copyHeightInBlocks, copyDepth }) => {
-  const info = kTextureFormatInfo[format];
   return (
-    !info.depth && !info.stencil ||
+    !isDepthOrStencilTextureFormat(format) ||
     copyWidthInBlocks > 0 && copyHeightInBlocks > 0 && copyDepth > 0);
 
 }).
 unless((p) => p.dimension === '1d' && (p.copyHeightInBlocks > 1 || p.copyDepth > 1)).
 expand('offset', (p) => {
-  const info = kTextureFormatInfo[p.format];
-  if (info.depth || info.stencil) {
+  if (isDepthOrStencilTextureFormat(p.format)) {
     return [p._offsetMultiplier * 4];
   }
-  return [p._offsetMultiplier * info.color.bytes];
+  return [p._offsetMultiplier * getBlockInfoForSizedTextureFormat(p.format).bytesPerBlock];
 })
 ).
-beforeAllSubcases((t) => {
-  const info = kTextureFormatInfo[t.params.format];
-  t.skipIfTextureFormatNotSupported(t.params.format);
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const {
     offset,
@@ -194,14 +193,17 @@ fn((t) => {
     dimension,
     method
   } = t.params;
-  const info = kTextureFormatInfo[format];
+  t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
+  const info = getBlockInfoForSizedTextureFormat(format);
+  const maxSize = getMaxValidTextureSizeForFormatAndDimension(t.device, format, dimension);
 
   // In the CopyB2T and CopyT2B cases we need to have bytesPerRow 256-aligned,
   // to make this happen we align the bytesInACompleteRow value and multiply
   // bytesPerRowPadding by 256.
   const bytesPerRowAlignment = method === 'WriteTexture' ? 1 : 256;
-  const copyWidth = copyWidthInBlocks * info.blockWidth;
-  const copyHeight = copyHeightInBlocks * info.blockHeight;
+  const copyWidth = Math.min(copyWidthInBlocks * info.blockWidth, maxSize[0]);
+  const copyHeight = Math.min(copyHeightInBlocks * info.blockHeight, maxSize[1]);
   const rowsPerImage = copyHeight + rowsPerImagePaddingInBlocks * info.blockHeight;
   const bytesPerRow =
   align(bytesInACompleteRow(copyWidth, format), bytesPerRowAlignment) +
@@ -244,25 +246,28 @@ combine('method', kImageCopyTypes).
 combine('format', kSizedTextureFormats).
 filter(formatCopyableWithMethod).
 combine('dimension', kTextureDimensions).
-filter(({ dimension, format }) => textureDimensionAndFormatCompatible(dimension, format)).
+filter(({ dimension, format }) =>
+textureFormatAndDimensionPossiblyCompatible(dimension, format)
+).
 beginSubcases().
 expand('rowsPerImage', texelBlockAlignmentTestExpanderForRowsPerImage)
 // Copy height is info.blockHeight, so rowsPerImage must be equal or greater than it.
-.filter(({ rowsPerImage, format }) => rowsPerImage >= kTextureFormatInfo[format].blockHeight)
+.filter(
+  ({ rowsPerImage, format }) =>
+  rowsPerImage >= getBlockInfoForSizedTextureFormat(format).blockHeight
+)
 ).
-beforeAllSubcases((t) => {
-  const info = kTextureFormatInfo[t.params.format];
-  t.skipIfTextureFormatNotSupported(t.params.format);
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
-  const { rowsPerImage, format, method } = t.params;
-  const info = kTextureFormatInfo[format];
+  const { rowsPerImage, format, dimension, method } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
+  const info = getBlockInfoForSizedTextureFormat(format);
 
   const size = { width: info.blockWidth, height: info.blockHeight, depthOrArrayLayers: 1 };
   const texture = t.createTextureTracked({
     size,
     format,
+    dimension,
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
   });
 
@@ -289,32 +294,32 @@ combine('method', kImageCopyTypes).
 combine('format', kSizedTextureFormats).
 filter(formatCopyableWithMethod).
 combine('dimension', kTextureDimensions).
-filter(({ dimension, format }) => textureDimensionAndFormatCompatible(dimension, format)).
+filter(({ dimension, format }) =>
+textureFormatAndDimensionPossiblyCompatible(dimension, format)
+).
 beginSubcases().
 expand('offset', texelBlockAlignmentTestExpanderForOffset)
 ).
-beforeAllSubcases((t) => {
-  const info = kTextureFormatInfo[t.params.format];
-  t.skipIfTextureFormatNotSupported(t.params.format);
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
-  const { format, offset, method } = t.params;
-  const info = kTextureFormatInfo[format];
+  const { format, dimension, offset, method } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
+  const info = getBlockInfoForSizedTextureFormat(format);
 
   const size = { width: info.blockWidth, height: info.blockHeight, depthOrArrayLayers: 1 };
   const texture = t.createTextureTracked({
     size,
     format,
+    dimension,
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
   });
 
   let success = false;
   if (method === 'WriteTexture') success = true;
-  if (info.depth || info.stencil) {
+  if (isDepthOrStencilTextureFormat(format)) {
     if (offset % 4 === 0) success = true;
   } else {
-    if (offset % info.color.bytes === 0) success = true;
+    if (offset % info.bytesPerBlock === 0) success = true;
   }
 
   t.testRun({ texture }, { offset, bytesPerRow: 256 }, size, {
@@ -342,13 +347,15 @@ combine('method', kImageCopyTypes).
 combine('format', kSizedTextureFormats).
 filter(formatCopyableWithMethod).
 combine('dimension', kTextureDimensions).
-filter(({ dimension, format }) => textureDimensionAndFormatCompatible(dimension, format)).
+filter(({ dimension, format }) =>
+textureFormatAndDimensionPossiblyCompatible(dimension, format)
+).
 beginSubcases().
 combine('copyHeightInBlocks', [1, 2]).
 combine('copyDepth', [1, 2]).
 unless((p) => p.dimension === '1d' && (p.copyHeightInBlocks > 1 || p.copyDepth > 1)).
 expandWithParams((p) => {
-  const info = kTextureFormatInfo[p.format];
+  const info = getBlockInfoForSizedTextureFormat(p.format);
   // We currently have a built-in assumption that for all formats, 128 % bytesPerBlock === 0.
   // This assumption ensures that all division below results in integers.
   assert(128 % info.bytesPerBlock === 0);
@@ -366,7 +373,7 @@ expandWithParams((p) => {
     bytesPerRow: 256,
     widthInBlocks: 256 / info.bytesPerBlock,
     copyWidthInBlocks: 256 / info.bytesPerBlock - 1,
-    _success: !(info.stencil || info.depth)
+    _success: !isDepthOrStencilTextureFormat(p.format)
   },
   // Unaligned bytesPerRow should not work unless the method is 'WriteTexture'.
   {
@@ -398,15 +405,11 @@ expandWithParams((p) => {
 
 })
 ).
-beforeAllSubcases((t) => {
-  const info = kTextureFormatInfo[t.params.format];
-  t.skipIfTextureFormatNotSupported(t.params.format);
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const {
     method,
     format,
+    dimension,
     bytesPerRow,
     widthInBlocks,
     copyWidthInBlocks,
@@ -414,15 +417,22 @@ fn((t) => {
     copyDepth,
     _success
   } = t.params;
-  const info = kTextureFormatInfo[format];
+  t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
+  const info = getBlockInfoForSizedTextureFormat(format);
 
   // We create an aligned texture using the widthInBlocks which may be different from the
   // copyWidthInBlocks. This allows us to test scenarios where the two may be different.
-  const texture = t.createAlignedTexture(format, {
-    width: widthInBlocks * info.blockWidth,
-    height: copyHeightInBlocks * info.blockHeight,
-    depthOrArrayLayers: copyDepth
-  });
+  const texture = t.createAlignedTexture(
+    format,
+    {
+      width: widthInBlocks * info.blockWidth,
+      height: copyHeightInBlocks * info.blockHeight,
+      depthOrArrayLayers: copyDepth
+    },
+    { x: 0, y: 0, z: 0 },
+    dimension
+  );
 
   const layout = { bytesPerRow, rowsPerImage: copyHeightInBlocks };
   const copySize = {
@@ -462,9 +472,9 @@ fn((t) => {
   const { offsetInBlocks, dataSizeInBlocks, method } = t.params;
 
   const format = 'rgba8unorm';
-  const info = kTextureFormatInfo[format];
-  const offset = offsetInBlocks * info.color.bytes;
-  const dataSize = dataSizeInBlocks * info.color.bytes;
+  const info = getBlockInfoForColorTextureFormat(format);
+  const offset = offsetInBlocks * info.bytesPerBlock;
+  const dataSize = dataSizeInBlocks * info.bytesPerBlock;
 
   const texture = t.createTextureTracked({
     size: { width: 4, height: 4, depthOrArrayLayers: 1 },

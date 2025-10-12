@@ -8,14 +8,14 @@ T is vecN<Type.abstractFloat>, vecN<f32>, or vecN<f16>
 For the incident vector e1 and surface orientation e2, returns the reflection
 direction e1-2*dot(e2,e1)*e2.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import { Type } from '../../../../../util/conversion.js';
 import { allInputSources, onlyConstInputSource, run } from '../../expression.js';
 
 import { abstractFloatBuiltin, builtin } from './builtin.js';
 import { d } from './reflect.cache.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('abstract_float_vec2').
 specURL('https://www.w3.org/TR/WGSL/#numeric-builtin-functions').
@@ -102,10 +102,8 @@ g.test('f16_vec2').
 specURL('https://www.w3.org/TR/WGSL/#numeric-builtin-functions').
 desc(`f16 tests using vec2s`).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get(
     t.params.inputSource === 'const' ? 'f16_vec2_const' : 'f16_vec2_non_const'
   );
@@ -116,10 +114,8 @@ g.test('f16_vec3').
 specURL('https://www.w3.org/TR/WGSL/#numeric-builtin-functions').
 desc(`f16 tests using vec3s`).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get(
     t.params.inputSource === 'const' ? 'f16_vec3_const' : 'f16_vec3_non_const'
   );
@@ -130,10 +126,8 @@ g.test('f16_vec4').
 specURL('https://www.w3.org/TR/WGSL/#numeric-builtin-functions').
 desc(`f16 tests using vec4s`).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get(
     t.params.inputSource === 'const' ? 'f16_vec4_const' : 'f16_vec4_non_const'
   );

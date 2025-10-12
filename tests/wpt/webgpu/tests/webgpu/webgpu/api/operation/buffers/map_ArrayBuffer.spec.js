@@ -7,10 +7,10 @@ TODO: Add tests that transfer to another thread instead of just using MessageCha
 TODO: Add tests for any other Web APIs that can detach ArrayBuffers.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { timeout } from '../../../../common/util/timeout.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import { checkElementsEqual } from '../../../util/check_contents.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('postMessage').
 desc(

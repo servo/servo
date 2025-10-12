@@ -37,7 +37,8 @@ export const kBuiltins = [
 { name: 'clip_distances', stage: 'vertex', io: 'out', type: 'array<f32,5>' },
 { name: 'clip_distances', stage: 'vertex', io: 'out', type: 'array<f32,6>' },
 { name: 'clip_distances', stage: 'vertex', io: 'out', type: 'array<f32,7>' },
-{ name: 'clip_distances', stage: 'vertex', io: 'out', type: 'array<f32,8>' }];
+{ name: 'clip_distances', stage: 'vertex', io: 'out', type: 'array<f32,8>' },
+{ name: 'primitive_id', stage: 'fragment', io: 'in', type: 'u32' }];
 
 
 // List of types to test against.
@@ -101,11 +102,6 @@ beforeAllSubcases((t) => {
     t.isCompatibility && ['sample_index', 'sample_mask'].includes(t.params.name),
     'compatibility mode does not support sample_index or sample_mask'
   );
-  if (t.params.name.includes('subgroup')) {
-    t.selectDeviceOrSkipTestCase('subgroups');
-  } else if (t.params.name === 'clip_distances') {
-    t.selectDeviceOrSkipTestCase('clip-distances');
-  }
   t.skipIf(
     t.params.name !== 'position' &&
     t.params.target_stage === 'vertex' &&
@@ -151,11 +147,6 @@ beforeAllSubcases((t) => {
     t.isCompatibility && ['sample_index', 'sample_mask'].includes(t.params.name),
     'compatibility mode does not support sample_index or sample_mask'
   );
-  if (t.params.name.includes('subgroup')) {
-    t.selectDeviceOrSkipTestCase('subgroups');
-  } else if (t.params.name === 'clip_distances') {
-    t.selectDeviceOrSkipTestCase('clip-distances');
-  }
   t.skipIf(
     t.params.name !== 'position' &&
     t.params.stage === 'vertex' &&
@@ -340,11 +331,6 @@ beforeAllSubcases((t) => {
   if (!t.params.enable_extension) {
     return;
   }
-  if (t.params.name.includes('subgroup')) {
-    t.selectDeviceOrSkipTestCase('subgroups');
-  } else if (t.params.name === 'clip_distances') {
-    t.selectDeviceOrSkipTestCase('clip-distances');
-  }
 }).
 fn((t) => {
   let code = '';
@@ -353,6 +339,8 @@ fn((t) => {
       code += 'enable subgroup;\n';
     } else if (t.params.name === 'clip_distances') {
       code += 'enable clip_distances;\n';
+    } else if (t.params.name === 'primitive_id') {
+      code += 'enable chromium_experimental_primitive_id;\n';
     }
   }
   if (t.params.use === 'alias') {

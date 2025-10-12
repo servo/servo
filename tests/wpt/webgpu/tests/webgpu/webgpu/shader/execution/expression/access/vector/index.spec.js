@@ -3,12 +3,12 @@
 **/export const description = `
 Execution Tests for vector indexing expressions
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import { Type, VectorValue, f32 } from '../../../../../util/conversion.js';
 
 import { allInputSources, basicExpressionBuilder, run } from '../../expression.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('concrete_scalar').
 specURL('https://www.w3.org/TR/WGSL/#vector-access-expr').
@@ -20,12 +20,10 @@ combine('elementType', ['i32', 'u32', 'f32', 'f16', 'bool']).
 combine('indexType', ['i32', 'u32']).
 combine('width', [2, 3, 4])
 ).
-beforeAllSubcases((t) => {
-  if (t.params.elementType === 'f16') {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn(async (t) => {
+  if (t.params.elementType === 'f16') {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
   const elementType = Type[t.params.elementType];
   const indexType = Type[t.params.indexType];
   const vectorType = Type.vec(t.params.width, elementType);

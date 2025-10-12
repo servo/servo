@@ -4,9 +4,10 @@
 Tests for validation in beginComputePass and GPUComputePassDescriptor as its optional descriptor.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { kQueryTypes } from '../../../capability_info.js';
-import { ValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
+import * as vtu from '../validation_test_utils.js';
 
-class F extends ValidationTest {
+class F extends AllFeaturesMaxLimitsGPUTest {
   tryComputePass(success, descriptor) {
     const encoder = this.device.createCommandEncoder();
     const computePass = encoder.beginComputePass(descriptor);
@@ -31,11 +32,9 @@ params((u) =>
 u //
 .combine('queryType', kQueryTypes)
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceForQueryTypeOrSkipTestCase(['timestamp', t.params.queryType]);
-}).
 fn((t) => {
   const { queryType } = t.params;
+  t.skipIfDeviceDoesNotSupportQueryType(queryType);
 
   const isValid = queryType === 'timestamp';
 
@@ -55,13 +54,11 @@ fn((t) => {
 g.test('timestampWrites,invalid_query_set').
 desc(`Tests that timestampWrite that has an invalid query set generates a validation error.`).
 params((u) => u.combine('querySetState', ['valid', 'invalid'])).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase(['timestamp-query']);
-}).
 fn((t) => {
+  t.skipIfDeviceDoesNotSupportQueryType('timestamp');
   const { querySetState } = t.params;
 
-  const querySet = t.createQuerySetWithState(querySetState, {
+  const querySet = vtu.createQuerySetWithState(t, querySetState, {
     type: 'timestamp',
     count: 1
   });
@@ -88,10 +85,8 @@ u //
 .combine('beginningOfPassWriteIndex', [undefined, 0, 1, 2, 3]).
 combine('endOfPassWriteIndex', [undefined, 0, 1, 2, 3])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase(['timestamp-query']);
-}).
 fn((t) => {
+  t.skipIfDeviceDoesNotSupportQueryType('timestamp');
   const { beginningOfPassWriteIndex, endOfPassWriteIndex } = t.params;
 
   const querySetCount = 2;
@@ -121,11 +116,9 @@ desc(
   `
 ).
 paramsSubcasesOnly((u) => u.combine('mismatched', [true, false])).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase(['timestamp-query']);
-  t.selectMismatchedDeviceOrSkipTestCase('timestamp-query');
-}).
+beforeAllSubcases((t) => t.usesMismatchedDevice()).
 fn((t) => {
+  t.skipIfDeviceDoesNotSupportQueryType('timestamp');
   const { mismatched } = t.params;
   const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
 

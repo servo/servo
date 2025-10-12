@@ -225,12 +225,10 @@ combine('kind', [
 ).
 combine('via_alias', [false, true])
 ).
-beforeAllSubcases((t) => {
-  if (kTypes[t.params.type].requiresF16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
+  if (kTypes[t.params.type].requiresF16) {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
   const type = kTypes[t.params.type];
   const isAtomic = t.params.type.indexOf('atomic') > -1;
 
@@ -296,12 +294,10 @@ combine('type', keysOf(kTypes)).
 combine('kind', ['comment', 'var']).
 combine('via_alias', [false, true])
 ).
-beforeAllSubcases((t) => {
-  if (kTypes[t.params.type].requiresF16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
+  if (kTypes[t.params.type].requiresF16) {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
   const type = kTypes[t.params.type];
 
   let decl = '<>';

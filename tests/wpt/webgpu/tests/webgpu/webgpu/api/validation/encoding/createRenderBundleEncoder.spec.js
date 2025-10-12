@@ -2,26 +2,34 @@
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/export const description = `
 createRenderBundleEncoder validation tests.
+
+TODO(#3363): Make this into a MaxLimitTest and increase kMaxColorAttachments.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { range } from '../../../../common/util/util.js';
-import { kMaxColorAttachmentsToTest } from '../../../capability_info.js';
+import { getDefaultLimits } from '../../../capability_info.js';
 import {
   computeBytesPerSampleFromFormats,
+  getColorRenderByteCost,
+  isDepthOrStencilTextureFormat,
+  isTextureFormatColorRenderable,
   kAllTextureFormats,
   kDepthStencilFormats,
-  kTextureFormatInfo,
-  kRenderableColorTextureFormats } from
+  kPossibleColorRenderableTextureFormats } from
 '../../../format_info.js';
-import { ValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
-export const g = makeTestGroup(ValidationTest);
+// MAINTENANCE_TODO: This should be changed to kMaxColorAttachmentsToTest
+// when this is made a MaxLimitTest (see above).
+const kMaxColorAttachments = getDefaultLimits('core').maxColorAttachments.default;
+
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('attachment_state,limits,maxColorAttachments').
 desc(`Tests that attachment state must have <= device.limits.maxColorAttachments.`).
 params((u) =>
 u.beginSubcases().combine(
   'colorFormatCount',
-  range(kMaxColorAttachmentsToTest, (i) => i + 1)
+  range(kMaxColorAttachments, (i) => i + 1)
 )
 ).
 fn((t) => {
@@ -48,27 +56,24 @@ desc(
 ).
 params((u) =>
 u.
-combine('format', kRenderableColorTextureFormats).
+combine('format', kPossibleColorRenderableTextureFormats).
 beginSubcases().
 combine(
   'colorFormatCount',
-  range(kMaxColorAttachmentsToTest, (i) => i + 1)
+  range(kMaxColorAttachments, (i) => i + 1)
 )
 ).
-beforeAllSubcases((t) => {
-  t.skipIfTextureFormatNotSupported(t.params.format);
-}).
 fn((t) => {
   const { format, colorFormatCount } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
   const maxColorAttachments = t.device.limits.maxColorAttachments;
   t.skipIf(
     colorFormatCount > maxColorAttachments,
     `${colorFormatCount} > maxColorAttachments: ${maxColorAttachments}`
   );
-  const info = kTextureFormatInfo[format];
   const shouldError =
-  !info.colorRender ||
-  info.colorRender.byteCost * colorFormatCount >
+  !isTextureFormatColorRenderable(t.device, format) ||
+  getColorRenderByteCost(format) * colorFormatCount >
   t.device.limits.maxColorAttachmentBytesPerSample;
 
   t.expectValidationError(() => {
@@ -159,16 +164,12 @@ u //
 beginSubcases().
 combine('attachment', ['color', 'depthStencil'])
 ).
-beforeAllSubcases((t) => {
-  const { format } = t.params;
-  t.selectDeviceForTextureFormatOrSkipTestCase(format);
-}).
 fn((t) => {
   const { format, attachment } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
 
-  const colorRenderable = kTextureFormatInfo[format].colorRender;
-
-  const depthStencil = kTextureFormatInfo[format].depth || kTextureFormatInfo[format].stencil;
+  const colorRenderable = isTextureFormatColorRenderable(t.device, format);
+  const depthStencil = isDepthOrStencilTextureFormat(format);
 
   switch (attachment) {
     case 'color':{
@@ -206,12 +207,9 @@ beginSubcases().
 combine('depthReadOnly', [false, true]).
 combine('stencilReadOnly', [false, true])
 ).
-beforeAllSubcases((t) => {
-  const { depthStencilFormat } = t.params;
-  t.selectDeviceForTextureFormatOrSkipTestCase(depthStencilFormat);
-}).
 fn((t) => {
   const { depthStencilFormat, depthReadOnly, stencilReadOnly } = t.params;
+  t.skipIfTextureFormatNotSupported(depthStencilFormat);
   t.device.createRenderBundleEncoder({
     colorFormats: [],
     depthStencilFormat,

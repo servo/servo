@@ -19,11 +19,6 @@ desc(
   `
 ).
 params((u) => u.combine('type', keysOf(kScalarAndVectorTypes)).beginSubcases()).
-beforeAllSubcases((t) => {
-  if (scalarTypeOf(kScalarAndVectorTypes[t.params.type]) === Type.f16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const type = kScalarAndVectorTypes[t.params.type];
   const elementTy = scalarTypeOf(type);

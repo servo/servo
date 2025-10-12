@@ -3,14 +3,14 @@
 **/export const description = `
 Execution Tests for the abstract int arithmetic binary expression operations
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 import { Type } from '../../../../util/conversion.js';
 import { onlyConstInputSource, run } from '../expression.js';
 
 import { d } from './ai_arithmetic.cache.js';
 import { abstractIntBinary } from './binary.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('addition').
 specURL('https://www.w3.org/TR/WGSL/#arithmetic-expr').

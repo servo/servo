@@ -211,10 +211,9 @@ combine('case', keysOf(kEnableCases)).
 beginSubcases().
 combine('decl', ['override', 'const', 'var<private>'])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn((t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+
   const code = `
     ${kEnableCases[t.params.case]}
     ${t.params.decl} ${t.params.case} : u32 = 0;

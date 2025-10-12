@@ -8,11 +8,11 @@ TODO: add tests to check that textureLoad operations stay in-bounds.
 `;import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { assert } from '../../../common/util/util.js';
 import { Float16Array } from '../../../external/petamoriken/float16/float16.js';
-import { GPUTest } from '../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../gpu_test.js';
 import { align } from '../../util/math.js';
 import { generateTypes, supportedScalarTypes, supportsAtomics } from '../types.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 const kMaxU32 = 0xffff_ffff;
 const kMaxI32 = 0x7fff_ffff;
@@ -177,11 +177,6 @@ expand('baseType', supportedScalarTypes).
 beginSubcases().
 expandWithParams(generateTypes)
 ).
-beforeAllSubcases((t) => {
-  if (t.params.baseType === 'f16') {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn(async (t) => {
   const {
     addressSpace,
@@ -195,6 +190,9 @@ fn(async (t) => {
     shadowingMode,
     _kTypeInfo
   } = t.params;
+  if (baseType === 'f16') {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
 
   assert(_kTypeInfo !== undefined, 'not an indexable type');
   assert('arrayLength' in _kTypeInfo);

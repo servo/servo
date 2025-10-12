@@ -102,11 +102,6 @@ combine('args', keysOf(kArgCases)).
 beginSubcases().
 expand('returnType', (u) => u.args.includes('good') ? keysOf(kAllValueTypes) : [kReturnType])
 ).
-beforeAllSubcases((t) => {
-  if (t.params.args.includes('f16') || t.params.returnType?.toString().includes('f16')) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const expectedResult = t.params.args.includes('good') && t.params.returnType === kReturnType;
   validateConstOrOverrideBuiltinEval(

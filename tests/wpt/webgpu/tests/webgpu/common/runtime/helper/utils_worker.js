@@ -19,6 +19,14 @@ export function setupWorkerEnvironment(ctsOptions) {
   globalTestConfig.enableDebugLogs = ctsOptions.debug;
   globalTestConfig.unrollConstEvalLoops = ctsOptions.unrollConstEvalLoops;
   globalTestConfig.compatibility = compatibility;
+  globalTestConfig.enforceDefaultLimits = ctsOptions.enforceDefaultLimits;
+  globalTestConfig.blockAllFeatures = ctsOptions.blockAllFeatures;
+  if (ctsOptions.subcasesBetweenAttemptingGC) {
+    globalTestConfig.subcasesBetweenAttemptingGC = Number(ctsOptions.subcasesBetweenAttemptingGC);
+  }
+  if (ctsOptions.casesBetweenReplacingDevice) {
+    globalTestConfig.casesBetweenReplacingDevice = Number(ctsOptions.casesBetweenReplacingDevice);
+  }
   globalTestConfig.logToWebSocket = ctsOptions.logToWebSocket;
 
   const log = new Logger();
@@ -26,8 +34,7 @@ export function setupWorkerEnvironment(ctsOptions) {
   if (powerPreference || compatibility) {
     setDefaultRequestAdapterOptions({
       ...(powerPreference && { powerPreference }),
-      // MAINTENANCE_TODO: Change this to whatever the option ends up being
-      ...(compatibility && { compatibilityMode: true })
+      ...(compatibility && { featureLevel: 'compatibility' })
     });
   }
 

@@ -86,8 +86,6 @@ fn foo() {
 // A list of types that contains atomics, with a single control case.
 const kAtomicTypes = [
 'bool', // control case
-'atomic<i32>',
-'atomic<u32>',
 'array<atomic<i32>, 4>',
 'AtomicStruct'];
 
@@ -119,6 +117,24 @@ fn foo() {
   _ = ${t.params.call};
 }`;
   t.expectCompileResult(t.params.type === 'bool' || t.params.call === 'bar()', code);
+});
+
+g.test('param_constructible_only').
+desc(
+  `
+The type of the argument passed to workgroupUniformLoad must be constructible.
+`
+).
+params((u) => u.combine('stage', ['const', 'override'])).
+fn((t) => {
+  const code = `
+${t.params.stage} array_size = 10u;
+var<workgroup> wgvar : array<u32, array_size>;
+
+fn foo() {
+  _ = workgroupUniformLoad(&wgvar)[0];
+}`;
+  t.expectCompileResult(t.params.stage === 'const', code);
 });
 
 g.test('must_use').

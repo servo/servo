@@ -12,10 +12,10 @@ import {
 '../../../../common/util/util.js';
 import { Float16Array } from '../../../../external/petamoriken/float16/float16.js';
 import { GPUConst } from '../../../constants.js';
-import { kResourceStates } from '../../../gpu_test.js';
-import { ValidationTest } from '../validation_test.js';
+import { kResourceStates, AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
+import * as vtu from '../validation_test_utils.js';
 
-export const g = makeTestGroup(ValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('buffer_state').
 desc(
@@ -27,7 +27,7 @@ desc(
 params((u) => u.combine('bufferState', kResourceStates)).
 fn((t) => {
   const { bufferState } = t.params;
-  const buffer = t.createBufferWithState(bufferState, {
+  const buffer = vtu.createBufferWithState(t, bufferState, {
     size: 16,
     usage: GPUBufferUsage.COPY_DST
   });
@@ -57,27 +57,27 @@ desc(
 fn((t) => {
   const queue = t.device.queue;
 
-  function runTest(arrayType, testBuffer) {
-    const elementSize = arrayType.BYTES_PER_ELEMENT;
+  function runTest(ArrayType, testBuffer) {
+    const elementSize = ArrayType.BYTES_PER_ELEMENT;
     const bufferSize = 16 * elementSize;
     const buffer = t.createBufferTracked({
       size: bufferSize,
       usage: GPUBufferUsage.COPY_DST
     });
     const arraySm = testBuffer ?
-    new arrayType(8).buffer :
-    new arrayType(8);
+    new ArrayType(8).buffer :
+    new ArrayType(8);
     const arrayMd = testBuffer ?
-    new arrayType(16).buffer :
-    new arrayType(16);
+    new ArrayType(16).buffer :
+    new ArrayType(16);
     const arrayLg = testBuffer ?
-    new arrayType(32).buffer :
-    new arrayType(32);
+    new ArrayType(32).buffer :
+    new ArrayType(32);
 
     if (elementSize < 4) {
       const array15 = testBuffer ?
-      new arrayType(15).buffer :
-      new arrayType(15);
+      new ArrayType(15).buffer :
+      new ArrayType(15);
 
       // Writing the full buffer that isn't 4-byte aligned.
       t.shouldThrow('OperationError', () => queue.writeBuffer(buffer, 0, array15));
@@ -179,9 +179,7 @@ fn((t) => {
 g.test('buffer,device_mismatch').
 desc('Tests writeBuffer cannot be called with a buffer created from another device.').
 paramsSubcasesOnly((u) => u.combine('mismatched', [true, false])).
-beforeAllSubcases((t) => {
-  t.selectMismatchedDeviceOrSkipTestCase(undefined);
-}).
+beforeAllSubcases((t) => t.usesMismatchedDevice()).
 fn((t) => {
   const { mismatched } = t.params;
   const sourceDevice = mismatched ? t.mismatchedDevice : t.device;

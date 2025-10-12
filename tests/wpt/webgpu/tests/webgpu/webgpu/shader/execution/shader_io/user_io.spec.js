@@ -9,9 +9,9 @@ passthrough:
   * Output from fragment shader as uint
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { range } from '../../../../common/util/util.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 function generateInterstagePassthroughCode(type) {
   return `
@@ -199,12 +199,10 @@ function drawPassthrough(t, code) {
 g.test('passthrough').
 desc('Tests passing user-defined data from vertex input through fragment output').
 params((u) => u.combine('type', ['f32', 'f16', 'i32', 'u32'])).
-beforeAllSubcases((t) => {
-  if (t.params.type === 'f16') {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
+  if (t.params.type === 'f16') {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
   const code = generateInterstagePassthroughCode(t.params.type);
   drawPassthrough(t, code);
 });

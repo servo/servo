@@ -12,11 +12,6 @@ export const g = makeTestGroup(ShaderValidationTest);
 g.test('condition_type').
 desc(`Tests that a 'switch' condition must be of an integer type`).
 params((u) => u.combine('type', keysOf(kTestTypes))).
-beforeAllSubcases((t) => {
-  if (kTestTypes[t.params.type].requires === 'f16') {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const type = kTestTypes[t.params.type];
   const code = `

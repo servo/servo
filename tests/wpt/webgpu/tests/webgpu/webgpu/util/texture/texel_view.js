@@ -1,6 +1,12 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { assert, memcpy } from '../../../common/util/util.js';import { kTextureFormatInfo } from '../../format_info.js';import { generatePrettyTable, numericToStringBuilder } from '../pretty_diff_tables.js';
+**/import { assert, memcpy } from '../../../common/util/util.js';import {
+  getBlockInfoForEncodableTextureFormat,
+  getTextureFormatType,
+  isColorTextureFormat,
+  isDepthTextureFormat } from
+'../../format_info.js';
+import { generatePrettyTable, numericToStringBuilder } from '../pretty_diff_tables.js';
 import { reifyExtent3D, reifyOrigin3D } from '../unions.js';
 
 import { fullSubrectCoordinates } from './base.js';
@@ -69,7 +75,7 @@ export class TexelView {
     const origin = reifyOrigin3D(subrectOrigin);
     const size = reifyExtent3D(subrectSize);
 
-    const info = kTextureFormatInfo[format];
+    const info = getBlockInfoForEncodableTextureFormat(format);
     assert(info.blockWidth === 1 && info.blockHeight === 1, 'unimplemented for block formats');
 
     return TexelView.fromTexelsAsBytes(format, (coords) => {
@@ -99,7 +105,7 @@ export class TexelView {
   format,
   generator)
   {
-    const info = kTextureFormatInfo[format];
+    const info = getBlockInfoForEncodableTextureFormat(format);
     assert(info.blockWidth === 1 && info.blockHeight === 1, 'unimplemented for block formats');
 
     const repr = kTexelRepresentationInfo[format];
@@ -116,7 +122,7 @@ export class TexelView {
   generator,
   { clampToFormatRange = false } = {})
   {
-    const info = kTextureFormatInfo[format];
+    const info = getBlockInfoForEncodableTextureFormat(format);
     assert(info.blockWidth === 1 && info.blockHeight === 1, 'unimplemented for block formats');
 
     if (clampToFormatRange) {
@@ -153,7 +159,7 @@ export class TexelView {
     const subrectOrigin = reifyOrigin3D(subrectOrigin_);
     const subrectSize = reifyExtent3D(subrectSize_);
 
-    const info = kTextureFormatInfo[this.format];
+    const info = getBlockInfoForEncodableTextureFormat(this.format);
     assert(info.blockWidth === 1 && info.blockHeight === 1, 'unimplemented for block formats');
 
     for (let z = subrectOrigin.z; z < subrectOrigin.z + subrectSize.depthOrArrayLayers; ++z) {
@@ -173,15 +179,14 @@ export class TexelView {
   /** Returns a pretty table string of the given coordinates and their values. */
   // MAINTENANCE_TODO: Unify some internal helpers with those in texture_ok.ts.
   toString(subrectOrigin, subrectSize) {
-    const info = kTextureFormatInfo[this.format];
     const repr = kTexelRepresentationInfo[this.format];
 
     // MAINTENANCE_TODO: Print depth-stencil formats as float+int instead of float+float.
-    const printAsInteger = info.color ?
+    const printAsInteger = isColorTextureFormat(this.format) ?
     // For color, pick the type based on the format type
-    ['uint', 'sint'].includes(info.color.type) :
+    ['uint', 'sint'].includes(getTextureFormatType(this.format)) :
     // Print depth as "float", depth-stencil as "float,float", stencil as "int".
-    !info.depth;
+    !isDepthTextureFormat(this.format);
     const numericToString = numericToStringBuilder(printAsInteger);
 
     const componentOrderStr = repr.componentOrder.join(',') + ':';

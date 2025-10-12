@@ -94,12 +94,6 @@ const kValidCases = {
 g.test('valid').
 desc('Valid matrix type tests').
 params((u) => u.combine('case', keysOf(kValidCases))).
-beforeAllSubcases((t) => {
-  const code = kValidCases[t.params.case];
-  if (code.indexOf('f16') >= 0) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const code = kValidCases[t.params.case];
   t.expectCompileResult(true, code);
@@ -148,12 +142,6 @@ const kInvalidCases = {
 g.test('invalid').
 desc('Invalid matrix type tests').
 params((u) => u.combine('case', keysOf(kInvalidCases))).
-beforeAllSubcases((t) => {
-  const code = kInvalidCases[t.params.case];
-  if (code.indexOf('f16') >= 0) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const code = kInvalidCases[t.params.case];
   t.expectCompileResult(false, code);

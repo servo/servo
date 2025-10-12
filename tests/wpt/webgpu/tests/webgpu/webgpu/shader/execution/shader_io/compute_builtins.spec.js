@@ -2,9 +2,9 @@
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/export const description = `Test compute shader builtin variables`;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { iterRange } from '../../../../common/util/util.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 // Test that the values for each input builtin are correct.
 g.test('inputs').
@@ -394,15 +394,13 @@ combine('lid', [
 [2, 1, 0]]
 )
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
 
 
 
 
-  const { minSubgroupSize, maxSubgroupSize } = t.device.limits;
+  const { subgroupMinSize, subgroupMaxSize } = t.device.adapterInfo;
 
   const wgx = t.params.sizes[0];
   const wgy = t.params.sizes[1];
@@ -518,8 +516,8 @@ fn main(@builtin(subgroup_size) size : u32,
     checkSubgroupSizeConsistency(
       sizesData,
       compareData,
-      minSubgroupSize,
-      maxSubgroupSize,
+      subgroupMinSize,
+      subgroupMaxSize,
       wgThreads
     )
   );
@@ -603,10 +601,8 @@ combine('lid', [
 [2, 1, 0]]
 )
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const wgx = t.params.sizes[0];
   const wgy = t.params.sizes[1];
   const wgz = t.params.sizes[2];

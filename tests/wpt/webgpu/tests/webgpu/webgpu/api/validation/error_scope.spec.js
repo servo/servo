@@ -85,12 +85,8 @@ fn(async (t) => {
 
   // Cause the error and then pop all the unrelated filters.
   t.generateError(errorFilter);
-  const promises = [];
-  for (let i = 0; i < stackDepth; i++) {
-    promises.push(t.device.popErrorScope());
-  }
-  const errors = await Promise.all(promises);
-  t.expect(errors.every((e) => e === null));
+
+  await t.chunkedPopManyErrorScopes(stackDepth);
 
   // Finally the actual error should have been caught by the parent scope.
   const error = await t.device.popErrorScope();
@@ -126,12 +122,7 @@ fn(async (t) => {
   t.expect(t.isInstanceOfError(errorFilter, error));
 
   // Remaining scopes shouldn't catch anything.
-  const promises = [];
-  for (let i = 0; i < stackDepth; i++) {
-    promises.push(t.device.popErrorScope());
-  }
-  const errors = await Promise.all(promises);
-  t.expect(errors.every((e) => e === null));
+  await t.chunkedPopManyErrorScopes(stackDepth);
 });
 
 g.test('balanced_siblings').

@@ -87,11 +87,6 @@ combine('op', keysOf(kComparisonOperators))
 .combine('rhs', ['1i', 'ai', 'mat2x3f()', 'mat2x3h()']).
 combine('test', keysOf(kTests))
 ).
-beforeAllSubcases((t) => {
-  if (kTests[t.params.test].is_f16 === true || t.params.rhs.startsWith('mat2x3h(')) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const lhs = kTests[t.params.test].src;
   const rhs = t.params.rhs === 'ai' ? 'mat2x3(0, 0, 0, 0, 0, 0)' : t.params.rhs;

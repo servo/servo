@@ -4,11 +4,11 @@
 Returns the atomically loaded the value pointed to by atomic_ptr. It does not modify the object.
 `;import { makeTestGroup } from '../../../../../../../common/framework/test_group.js';
 import { keysOf } from '../../../../../../../common/util/data_tables.js';
-import { GPUTest } from '../../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../../gpu_test.js';
 
 import { dispatchSizes, workgroupSizes, typedArrayCtor, kMapId } from './harness.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('load_storage').
 specURL('https://www.w3.org/TR/WGSL/#atomic-load').

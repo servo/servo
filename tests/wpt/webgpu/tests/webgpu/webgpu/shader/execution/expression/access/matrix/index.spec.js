@@ -3,7 +3,7 @@
 **/export const description = `
 Execution Tests for matrix indexing expressions
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import {
   MatrixValue,
 
@@ -17,7 +17,7 @@ import { align } from '../../../../../util/math.js';
 
 import { allInputSources, basicExpressionBuilder, run } from '../../expression.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('concrete_float_column').
 specURL('https://www.w3.org/TR/WGSL/#matrix-access-expr').
@@ -30,12 +30,10 @@ combine('indexType', ['i32', 'u32']).
 combine('columns', [2, 3, 4]).
 combine('rows', [2, 3, 4])
 ).
-beforeAllSubcases((t) => {
-  if (t.params.elementType === 'f16') {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn(async (t) => {
+  if (t.params.elementType === 'f16') {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
   const elementType = Type[t.params.elementType];
   const indexType = Type[t.params.indexType];
   const matrixType = Type.mat(t.params.columns, t.params.rows, elementType);
@@ -78,12 +76,10 @@ combine('indexType', ['i32', 'u32']).
 combine('columns', [2, 3, 4]).
 combine('rows', [2, 3, 4])
 ).
-beforeAllSubcases((t) => {
-  if (t.params.elementType === 'f16') {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn(async (t) => {
+  if (t.params.elementType === 'f16') {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
   const elementType = Type[t.params.elementType];
   const indexType = Type[t.params.indexType];
   const matrixType = Type.mat(t.params.columns, t.params.rows, elementType);

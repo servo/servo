@@ -5,37 +5,18 @@ Tests for render pass clear values.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { assert } from '../../../../common/util/util.js';
 import {
-  kTextureFormatInfo,
-  kDepthStencilFormats,
-  depthStencilFormatAspectSize } from
+  depthStencilFormatAspectSize,
+  kStencilTextureFormats,
+  isDepthTextureFormat } from
 '../../../format_info.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
-export const g = makeTestGroup(GPUTest);
-
-g.test('stored').
-desc(`Test render pass clear values are stored at the end of an empty pass.`).
-unimplemented();
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('loaded').
 desc(
   `Test render pass clear values are visible during the pass by doing some trivial blending
 with the attachment (e.g. add [0,0,0,0] to the color and verify the stored result).`
-).
-unimplemented();
-
-g.test('srgb').
-desc(
-  `Test that clear values on '-srgb' type attachments are interpreted as unencoded (linear),
-not decoded from srgb to linear.`
-).
-unimplemented();
-
-g.test('layout').
-desc(
-  `Test that bind group layouts of the default pipeline layout are correct by passing various
-shaders and then checking their computed bind group layouts are compatible with particular bind
-groups.`
 ).
 unimplemented();
 
@@ -48,19 +29,15 @@ desc(
 ).
 params((u) =>
 u.
-combine('stencilFormat', kDepthStencilFormats).
+combine('stencilFormat', kStencilTextureFormats).
 combine('stencilClearValue', [0, 1, 0xff, 0x100 + 2, 0x10000 + 3]).
-combine('applyStencilClearValueAsStencilReferenceValue', [true, false]).
-filter((t) => !!kTextureFormatInfo[t.stencilFormat].stencil)
+combine('applyStencilClearValueAsStencilReferenceValue', [true, false])
 ).
-beforeAllSubcases((t) => {
-  const { stencilFormat } = t.params;
-  const info = kTextureFormatInfo[stencilFormat];
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const { stencilFormat, stencilClearValue, applyStencilClearValueAsStencilReferenceValue } =
   t.params;
+
+  t.skipIfTextureFormatNotSupported(stencilFormat);
 
   const kSize = [1, 1, 1];
   const colorFormat = 'rgba8unorm';
@@ -141,7 +118,7 @@ fn((t) => {
     stencilStoreOp: 'store',
     stencilClearValue
   };
-  if (kTextureFormatInfo[stencilFormat].depth) {
+  if (isDepthTextureFormat(stencilFormat)) {
     depthStencilAttachment.depthClearValue = 0;
     depthStencilAttachment.depthLoadOp = 'clear';
     depthStencilAttachment.depthStoreOp = 'store';

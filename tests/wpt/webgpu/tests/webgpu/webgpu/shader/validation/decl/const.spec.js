@@ -150,13 +150,12 @@ const kTypeCases = {
 g.test('type').
 desc('Test const types').
 params((u) => u.combine('case', keysOf(kTypeCases))).
-beforeAllSubcases((t) => {
-  if (t.params.case === 'f16') {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
+  if (t.params.case === 'f16') {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
   const testcase = kTypeCases[t.params.case];
+
   const code = testcase.code;
   const expect = testcase.valid;
   t.expectCompileResult(expect, code);

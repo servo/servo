@@ -32,6 +32,9 @@ u.combineWithParams([
 { srcColorSpace: 'display-p3', dstColorSpace: 'srgb' }]
 )
 ).
+beforeAllSubcases((t) => {
+  t.skipIf(typeof ImageData === 'undefined', `ImageData does not exist in this environment`);
+}).
 fn((t) => {
   const { srcColorSpace, dstColorSpace } = t.params;
 

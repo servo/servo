@@ -36,14 +36,6 @@ combine(
 ).
 beginSubcases()
 ).
-beforeAllSubcases((t) => {
-  if (
-  scalarTypeOf(kScalarAndVectorTypes[t.params.lhs]) === Type.f16 ||
-  scalarTypeOf(kScalarAndVectorTypes[t.params.rhs]) === Type.f16)
-  {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const lhs = kScalarAndVectorTypes[t.params.lhs];
   const rhs = kScalarAndVectorTypes[t.params.rhs];
@@ -192,6 +184,40 @@ fn main() {
   t.expectCompileResult(t.params.short_circuit, code);
 });
 
+g.test('invalid_rhs_fn_override').
+desc(
+  `
+Validates that a short-circuiting expression in functions with a override-expression LHS guards the evaluation of its RHS expression.
+`
+).
+params((u) =>
+u.
+combine('op', ['&&', '||']).
+combine('rhs', keysOf(kInvalidRhsExpressions)).
+combine('short_circuit', [true, false]).
+beginSubcases()
+).
+fn((t) => {
+  let lhs = kLhsForShortCircuit[t.params.op];
+  if (!t.params.short_circuit) {
+    lhs = !lhs;
+  }
+  const code = `
+override cond : bool;
+override thirty_one = 31u;
+override zero_i32 = 0i;
+override one_f32 = 1.0f;`;
+  const code_entry = `let foo = cond ${t.params.op} ${kInvalidRhsExpressions[t.params.rhs]};`;
+  const constants = {};
+  constants['cond'] = lhs ? 1 : 0;
+  t.expectPipelineResult({
+    expectedResult: t.params.short_circuit,
+    code,
+    constants,
+    statements: [code_entry]
+  });
+});
+
 g.test('invalid_rhs_override').
 desc(
   `
@@ -228,6 +254,44 @@ override foo = cond ${t.params.op} ${kInvalidRhsExpressions[t.params.rhs]};
   });
 });
 
+g.test('nested_invalid_rhs_override').
+desc(
+  `
+  Validates that nested short-circuiting expressions with an override-expression LHS guards the evaluation of its RHS expression.
+  `
+).
+params((u) =>
+u.
+combine('op_a', ['&&', '||']).
+combine('op_b', ['&&', '||']).
+combine('cond_a_val', [false, true]).
+combine('cond_b_val', [false, true]).
+beginSubcases()
+).
+fn((t) => {
+  const code = `
+override cond_a : bool;
+override cond_b : bool;
+override zero_i32 = 0i;
+`;
+  const code_entry = `let foo = (cond_a ${t.params.op_a}  cond_b ) ${t.params.op_b}   (1 / zero_i32) == 0;`;
+  const op_a_or = kLhsForShortCircuit[t.params.op_a];
+  const op_b_or = kLhsForShortCircuit[t.params.op_b];
+  const constants = {};
+  constants['cond_a'] = t.params.cond_a_val ? 1 : 0;
+  constants['cond_b'] = t.params.cond_b_val ? 1 : 0;
+  const lhs = op_a_or ?
+  t.params.cond_a_val || t.params.cond_b_val :
+  t.params.cond_a_val && t.params.cond_b_val;
+  const evals_rhs = op_b_or ? !lhs : lhs;
+  t.expectPipelineResult({
+    expectedResult: !evals_rhs,
+    code,
+    constants,
+    statements: [code_entry]
+  });
+});
+
 // A list of expressions that are invalid unless guarded by a short-circuiting expression.
 // The control case will use `value = 10`, the failure case will use `value = 1`.
 const kInvalidArrayCounts = {
@@ -261,4 +325,38 @@ fn main() {
 `;
 
   t.expectCompileResult(t.params.control, code);
+});
+
+g.test('array_override').
+desc(
+  `
+  Validates that override initializing expressions works in conjunction with arrays
+  `
+).
+params((u) =>
+u.combine('op', ['&&', '||']).combine('a_val', [0, 1]).combine('b_val', [0, 1]).beginSubcases()
+).
+fn((t) => {
+  const code = `
+override a_val:i32;
+override b_val:i32;
+override bad_size = (a_val - 10);
+override good_size = (b_val + 10);
+var<workgroup> zero_array:array<i32, select(bad_size, good_size, a_val == 1 ${t.params.op} b_val == 1 )>;
+`;
+  const code_entry = `let foo = zero_array[0];`;
+  const op_a_or = kLhsForShortCircuit[t.params.op];
+  const constants = {};
+  constants['a_val'] = t.params.a_val;
+  constants['b_val'] = t.params.b_val;
+  const cond_val = op_a_or ?
+  t.params.a_val === 1 || t.params.b_val === 1 :
+  t.params.a_val === 1 && t.params.b_val === 1;
+
+  t.expectPipelineResult({
+    expectedResult: cond_val,
+    code,
+    constants,
+    statements: [code_entry]
+  });
 });

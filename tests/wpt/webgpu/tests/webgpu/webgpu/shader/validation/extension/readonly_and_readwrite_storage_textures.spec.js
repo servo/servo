@@ -3,7 +3,7 @@
 **/export const description = `
 Validation tests for the readonly_and_readwrite_storage_textures language feature
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { TexelFormats } from '../../types.js';
+import { kPossibleStorageTextureFormats } from '../../../format_info.js';
 import { ShaderValidationTest } from '../shader_validation_test.js';
 
 export const g = makeTestGroup(ShaderValidationTest);
@@ -22,14 +22,13 @@ combine('type', [
 'texture_storage_2d_array',
 'texture_storage_3d']
 ).
-combine('format', TexelFormats).
+combine('format', kPossibleStorageTextureFormats).
 combine('access', ['read', 'write', 'read_write'])
 ).
 fn((t) => {
   const { type, format, access } = t.params;
-  t.skipIfTextureFormatNotUsableAsStorageTexture(format.format);
 
-  const source = `@group(0) @binding(0) var t : ${type}<${format.format}, ${access}>;`;
+  const source = `@group(0) @binding(0) var t : ${type}<${format}, ${access}>;`;
   const requiresFeature = access !== 'write';
   t.expectCompileResult(t.hasLanguageFeature(kFeatureName) || !requiresFeature, source);
 });

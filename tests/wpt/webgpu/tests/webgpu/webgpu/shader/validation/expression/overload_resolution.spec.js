@@ -202,11 +202,6 @@ const kImplicitConversionCases = {
 g.test('implicit_conversions').
 desc('Test implicit conversions').
 params((u) => u.combine('case', keysOf(kImplicitConversionCases))).
-beforeAllSubcases((t) => {
-  if (kImplicitConversionCases[t.params.case].f16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const testcase = kImplicitConversionCases[t.params.case];
   const code = `${testcase.f16 ? 'enable f16;' : ''}
@@ -242,13 +237,6 @@ filter((t) => {
   return true;
 })
 ).
-beforeAllSubcases((t) => {
-  const t1 = kTypes[t.params.arg1];
-  const t2 = kTypes[t.params.arg2];
-  if (t1.requiresF16() || t2.requiresF16()) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const t1 = kTypes[t.params.arg1];
   const t2 = kTypes[t.params.arg2];

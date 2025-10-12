@@ -34,6 +34,7 @@ import { kTestTextureTypes } from './shader_builtin_utils.js';
 
 
 const kValidTextureSampleLevelParameterTypes = {
+  'texture_1d<f32>': { coordsArgType: Type.f32, levelIsF32: true },
   'texture_2d<f32>': { coordsArgType: Type.vec2f, levelIsF32: true, offsetArgType: Type.vec2i },
   'texture_2d_array<f32>': {
     coordsArgType: Type.vec2f,
