@@ -328,7 +328,52 @@ pub(crate) fn export(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, 
             Handle::Hmac(key_data) => Ok(ExportedKey::Raw(key_data.as_slice().to_vec())),
             _ => Err(Error::Operation),
         },
-        // FIXME: Implement JWK export for HMAC keys
+        KeyFormat::Jwk => match key.handle() {
+            Handle::Hmac(key_data) => {
+                // Step 3. Set the k attribute of jwk to be a string containing data
+                let k = base64::engine::general_purpose::STANDARD_NO_PAD.encode(key_data);
+                let cx = GlobalScope::get_cx();
+                // Step 4. Let algorithm be the [[algorithm]] internal slot of key.
+                rooted!(in(*cx) let mut algorithm_slot = ObjectValue(key.Algorithm(cx).as_ptr()));
+                // Step 5. Let hash be the hash attribute of algorithm.
+                let params = value_from_js_object::<HmacKeyAlgorithm>(
+                    cx,
+                    algorithm_slot.handle(),
+                    CanGc::note(),
+                )?;
+                // Step 6.
+                let hash_algorithm = match &*params.hash.name.str() {
+                    "SHA-1" => "HS1",
+                    "SHA-256" => "HS256",
+                    "SHA-384" => "HS384",
+                    "SHA-512" => "HS512",
+                    _ => return Err(Error::NotSupported),
+                };
+
+                // Step 7. Set the key_ops attribute of jwk to the usages attribute of key.
+                let key_ops = key
+                    .usages()
+                    .iter()
+                    .map(|usage| DOMString::from(usage.as_str()))
+                    .collect::<Vec<DOMString>>();
+
+                // Step 1. Let jwk be a new JsonWebKey dictionary.
+                let jwk = JsonWebKey {
+                    // Step 2. Set the kty attribute of jwk to the string "oct".
+                    kty: Some(DOMString::from("oct")),
+                    k: Some(DOMString::from(k)),
+                    alg: Some(DOMString::from(hash_algorithm.to_string())),
+                    // Step 7. Set the key_ops attribute of jwk to equal the usages attribute of key.
+                    key_ops: Some(key_ops),
+                    // Step 8. Set the ext attribute of jwk to the [[extractable]] internal slot of key.
+                    ext: Some(key.Extractable()),
+                    ..Default::default()
+                };
+
+                Ok(ExportedKey::Jwk(Box::new(jwk)))
+            },
+            _ => Err(Error::Operation),
+        },
         _ => Err(Error::NotSupported),
     }
 }
