@@ -2,20 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ptr;
-
 use aws_lc_rs::hkdf;
-use js::jsapi::JS_NewObject;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsage};
-use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{KeyAlgorithm, KeyFormat};
+use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_HKDF, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, AlgorithmFromName, SubtleHkdfParams,
+    ALG_HKDF, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, KeyAlgorithmAndDerivatives,
+    SubtleHkdfParams, SubtleKeyAlgorithm,
 };
 use crate::script_runtime::CanGc;
 
@@ -46,7 +43,7 @@ pub(crate) fn derive_bits(
     // * length divided by 8 as the value of L,
     // Step 4. If the key derivation operation fails, then throw an OperationError.
     let mut result = vec![0; length as usize / 8];
-    let algorithm = match normalized_algorithm.hash.name() {
+    let algorithm = match normalized_algorithm.hash.name.as_str() {
         ALG_SHA1 => hkdf::HKDF_SHA1_FOR_LEGACY_USE_ONLY,
         ALG_SHA256 => hkdf::HKDF_SHA256,
         ALG_SHA384 => hkdf::HKDF_SHA384,
@@ -71,7 +68,6 @@ pub(crate) fn derive_bits(
 }
 
 /// <https://w3c.github.io/webcrypto/#hkdf-operations-import-key>
-#[allow(unsafe_code)]
 pub(crate) fn import(
     global: &GlobalScope,
     format: KeyFormat,
@@ -104,18 +100,14 @@ pub(crate) fn import(
         // Step 2.5. Let algorithm be a new KeyAlgorithm object.
         // Step 2.6. Set the name attribute of algorithm to "HKDF".
         // Step 2.7. Set the [[algorithm]] internal slot of key to algorithm.
-        let name = DOMString::from(ALG_HKDF);
-        let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut algorithm_object = unsafe {JS_NewObject(*cx, ptr::null()) });
-        assert!(!algorithm_object.is_null());
-        KeyAlgorithm::from_name(name.clone(), algorithm_object.handle_mut(), cx);
-
+        let algorithm = SubtleKeyAlgorithm {
+            name: ALG_HKDF.to_string(),
+        };
         let key = CryptoKey::new(
             global,
             KeyType::Secret,
             extractable,
-            name,
-            algorithm_object.handle(),
+            KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
             usages,
             Handle::Hkdf(key_data.to_vec()),
             can_gc,

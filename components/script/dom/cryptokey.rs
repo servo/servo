@@ -7,7 +7,6 @@ use std::ptr::NonNull;
 
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject, Value};
-use js::rust::HandleObject;
 use script_bindings::conversions::SafeToJSValConvertible;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -16,8 +15,8 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
 };
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::subtlecrypto::KeyAlgorithmAndDerivatives;
 use crate::script_runtime::{CanGc, JSContext};
 
 pub(crate) enum CryptoKeyOrCryptoKeyPair {
@@ -42,30 +41,33 @@ pub(crate) enum Handle {
 pub(crate) struct CryptoKey {
     reflector_: Reflector,
 
-    /// <https://w3c.github.io/webcrypto/#dom-cryptokey-type>
+    /// <https://w3c.github.io/webcrypto/#dfn-CryptoKey-slot-type>
     key_type: KeyType,
 
-    /// <https://w3c.github.io/webcrypto/#dom-cryptokey-extractable>
+    /// <https://w3c.github.io/webcrypto/#dfn-CryptoKey-slot-extractable>
     extractable: Cell<bool>,
 
-    /// The name of the algorithm used
+    /// <https://w3c.github.io/webcrypto/#dfn-CryptoKey-slot-algorithm>
     ///
-    /// This is always the same as the `name` of the
-    /// [`[[algorithm]]`](https://w3c.github.io/webcrypto/#dom-cryptokey-algorithm)
-    /// internal slot, but we store it here again for convenience
-    algorithm: DOMString,
+    /// The contents of the [[algorithm]] internal slot shall be, or be derived from, a
+    /// KeyAlgorithm.
+    #[no_trace]
+    algorithm: KeyAlgorithmAndDerivatives,
 
-    /// <https://w3c.github.io/webcrypto/#dom-cryptokey-algorithm>
+    /// <https://w3c.github.io/webcrypto/#dfn-CryptoKey-slot-algorithm_cached>
     #[ignore_malloc_size_of = "Defined in mozjs"]
-    algorithm_object: Heap<*mut JSObject>,
+    algorithm_cached: Heap<*mut JSObject>,
 
-    /// <https://w3c.github.io/webcrypto/#dom-cryptokey-usages>
+    /// <https://w3c.github.io/webcrypto/#dfn-CryptoKey-slot-usages>
+    ///
+    /// The contents of the [[usages]] internal slot shall be of type Sequence<KeyUsage>.
     usages: DomRefCell<Vec<KeyUsage>>,
 
-    /// Cached object of <https://w3c.github.io/webcrypto/#dom-cryptokey-usages>
+    /// <https://w3c.github.io/webcrypto/#dfn-CryptoKey-slot-usages_cached>
     #[ignore_malloc_size_of = "Defined in mozjs"]
-    usages_object: Heap<*mut JSObject>,
+    usages_cached: Heap<*mut JSObject>,
 
+    /// <https://w3c.github.io/webcrypto/#dfn-CryptoKey-slot-handle>
     #[no_trace]
     handle: Handle,
 }
@@ -74,8 +76,8 @@ impl CryptoKey {
     fn new_inherited(
         key_type: KeyType,
         extractable: bool,
+        algorithm: KeyAlgorithmAndDerivatives,
         usages: Vec<KeyUsage>,
-        algorithm: DOMString,
         handle: Handle,
     ) -> CryptoKey {
         CryptoKey {
@@ -83,9 +85,9 @@ impl CryptoKey {
             key_type,
             extractable: Cell::new(extractable),
             algorithm,
-            algorithm_object: Heap::default(),
+            algorithm_cached: Heap::default(),
             usages: DomRefCell::new(usages),
-            usages_object: Heap::default(),
+            usages_cached: Heap::default(),
             handle,
         }
     }
@@ -95,37 +97,44 @@ impl CryptoKey {
         global: &GlobalScope,
         key_type: KeyType,
         extractable: bool,
-        algorithm: DOMString,
-        algorithm_object: HandleObject,
+        algorithm: KeyAlgorithmAndDerivatives,
         usages: Vec<KeyUsage>,
         handle: Handle,
         can_gc: CanGc,
     ) -> DomRoot<CryptoKey> {
-        let object = reflect_dom_object(
+        let crypto_key = reflect_dom_object(
             Box::new(CryptoKey::new_inherited(
                 key_type,
                 extractable,
+                algorithm.clone(),
                 usages.clone(),
-                algorithm,
                 handle,
             )),
             global,
             can_gc,
         );
 
-        object.algorithm_object.set(algorithm_object.get());
+        let cx = GlobalScope::get_cx();
+
+        // Create and store a cached object of algorithm
+        rooted!(in(*cx) let mut algorithm_object_value: Value);
+        algorithm.safe_to_jsval(cx, algorithm_object_value.handle_mut());
+        crypto_key
+            .algorithm_cached
+            .set(algorithm_object_value.to_object());
 
         // Create and store a cached object of usages
-        let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut usages_object_value: Value);
         usages.safe_to_jsval(cx, usages_object_value.handle_mut());
-        object.usages_object.set(usages_object_value.to_object());
+        crypto_key
+            .usages_cached
+            .set(usages_object_value.to_object());
 
-        object
+        crypto_key
     }
 
-    pub(crate) fn algorithm(&self) -> String {
-        self.algorithm.to_string()
+    pub(crate) fn algorithm(&self) -> &KeyAlgorithmAndDerivatives {
+        &self.algorithm
     }
 
     pub(crate) fn usages(&self) -> Vec<KeyUsage> {
@@ -147,29 +156,35 @@ impl CryptoKey {
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut usages_object_value: Value);
         usages.safe_to_jsval(cx, usages_object_value.handle_mut());
-        self.usages_object.set(usages_object_value.to_object());
+        self.usages_cached.set(usages_object_value.to_object());
     }
 }
 
 impl CryptoKeyMethods<crate::DomTypeHolder> for CryptoKey {
     /// <https://w3c.github.io/webcrypto/#dom-cryptokey-type>
     fn Type(&self) -> KeyType {
+        // Reflects the [[type]] internal slot, which contains the type of the underlying key.
         self.key_type
     }
 
     /// <https://w3c.github.io/webcrypto/#dom-cryptokey-extractable>
     fn Extractable(&self) -> bool {
+        // Reflects the [[extractable]] internal slot, which indicates whether or not the raw
+        // keying material may be exported by the application.
         self.extractable.get()
     }
 
     /// <https://w3c.github.io/webcrypto/#dom-cryptokey-algorithm>
     fn Algorithm(&self, _cx: JSContext) -> NonNull<JSObject> {
-        NonNull::new(self.algorithm_object.get()).unwrap()
+        // Returns the cached ECMAScript object associated with the [[algorithm]] internal slot.
+        NonNull::new(self.algorithm_cached.get()).unwrap()
     }
 
     /// <https://w3c.github.io/webcrypto/#dom-cryptokey-usages>
     fn Usages(&self, _cx: JSContext) -> NonNull<JSObject> {
-        NonNull::new(self.usages_object.get()).unwrap()
+        // Returns the cached ECMAScript object associated with the [[usages]] internal slot, which
+        // indicates which cryptographic operations are permissible to be used with this key.
+        NonNull::new(self.usages_cached.get()).unwrap()
     }
 }
 

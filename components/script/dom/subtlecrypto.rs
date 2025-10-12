@@ -17,9 +17,8 @@ use js::conversions::ConversionResult;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::wrappers::JS_ParseJSON;
-use js::rust::{HandleValue, MutableHandleObject};
+use js::rust::{HandleValue, MutableHandleValue};
 use js::typedarray::ArrayBufferU8;
-use servo_arc::Arc;
 use servo_rand::ServoRng;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
@@ -287,7 +286,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 9. If the name member of normalizedAlgorithm is not equal to the name
                 // attribute of the [[algorithm]] internal slot of key then throw an
                 // InvalidAccessError.
-                if normalized_algorithm.name() != key.algorithm() {
+                if normalized_algorithm.name() != key.algorithm().name() {
                     subtle.reject_promise_with_error(promise, Error::InvalidAccess);
                     return;
                 }
@@ -377,7 +376,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 9. If the name member of normalizedAlgorithm is not equal to the name
                 // attribute of the [[algorithm]] internal slot of key then throw an
                 // InvalidAccessError.
-                if normalized_algorithm.name() != key.algorithm() {
+                if normalized_algorithm.name() != key.algorithm().name() {
                     subtle.reject_promise_with_error(promise, Error::InvalidAccess);
                     return;
                 }
@@ -467,7 +466,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 9. If the name member of normalizedAlgorithm is not equal to the name
                 // attribute of the [[algorithm]] internal slot of key then throw an
                 // InvalidAccessError.
-                if normalized_algorithm.name() != key.algorithm() {
+                if normalized_algorithm.name() != key.algorithm().name() {
                     subtle.reject_promise_with_error(promise, Error::InvalidAccess);
                     return;
                 }
@@ -564,7 +563,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 10. If the name member of normalizedAlgorithm is not equal to the name
                 // attribute of the [[algorithm]] internal slot of key then throw an
                 // InvalidAccessError.
-                if normalized_algorithm.name() != key.algorithm() {
+                if normalized_algorithm.name() != key.algorithm().name() {
                     subtle.reject_promise_with_error(promise, Error::InvalidAccess);
                     return;
                 }
@@ -836,7 +835,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 12. If the name member of normalizedAlgorithm is not equal to the name
                 // attribute of the [[algorithm]] internal slot of baseKey then throw an
                 // InvalidAccessError.
-                if normalized_algorithm.name() != base_key.algorithm() {
+                if normalized_algorithm.name() != base_key.algorithm().name() {
                     subtle.reject_promise_with_error(promise, Error::InvalidAccess);
                     return;
                 }
@@ -959,7 +958,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 8. If the name member of normalizedAlgorithm is not equal to the name
                 // attribute of the [[algorithm]] internal slot of baseKey then throw an
                 // InvalidAccessError.
-                if normalized_algorithm.name() != base_key.algorithm() {
+                if normalized_algorithm.name() != base_key.algorithm().name() {
                     subtle.reject_promise_with_error(promise, Error::InvalidAccess);
                     return;
                 }
@@ -1156,8 +1155,10 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         let trusted_subtle = Trusted::new(self);
         let trusted_promise = TrustedPromise::new(promise.clone());
         let trusted_key = Trusted::new(key);
-        self.global().task_manager().dom_manipulation_task_source().queue(
-            task!(export_key: move || {
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(export_key: move || {
                 let subtle = trusted_subtle.root();
                 let promise = trusted_promise.root();
                 let key = trusted_key.root();
@@ -1169,9 +1170,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 6. If the name member of the [[algorithm]] internal slot of key does not
                 // identify a registered algorithm that supports the export key operation, then
                 // throw a NotSupportedError.
-                let alg_name = key.algorithm();
                 if matches!(
-                    alg_name.as_str(), ALG_SHA1 | ALG_SHA256 | ALG_SHA384 | ALG_SHA512 | ALG_HKDF | ALG_PBKDF2
+                    key.algorithm().name(),
+                    ALG_SHA1 | ALG_SHA256 | ALG_SHA384 | ALG_SHA512 | ALG_HKDF | ALG_PBKDF2
                 ) {
                     subtle.reject_promise_with_error(promise, Error::NotSupported);
                     return;
@@ -1212,8 +1213,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                         subtle.resolve_promise_with_jwk(promise, jwk);
                     },
                 }
-            }),
-        );
+            }));
         promise
     }
 
@@ -1279,7 +1279,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 9. If the name member of normalizedAlgorithm is not equal to the name
                 // attribute of the [[algorithm]] internal slot of wrappingKey then throw an
                 // InvalidAccessError.
-                if normalized_algorithm.name() != wrapping_key.algorithm() {
+                if normalized_algorithm.name() != wrapping_key.algorithm().name() {
                     subtle.reject_promise_with_error(promise, Error::InvalidAccess);
                     return;
                 }
@@ -1295,7 +1295,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // does not support the export key operation, then throw a NotSupportedError.
 
                 if matches!(
-                    key.algorithm().as_str(),
+                    key.algorithm().name(),
                     ALG_SHA1 | ALG_SHA256 | ALG_SHA384 | ALG_SHA512 | ALG_HKDF | ALG_PBKDF2
                 ) {
                     subtle.reject_promise_with_error(promise, Error::NotSupported);
@@ -1458,7 +1458,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 12. If the name member of normalizedAlgorithm is not equal to the name
                 // attribute of the [[algorithm]] internal slot of unwrappingKey then throw an
                 // InvalidAccessError.
-                if normalized_algorithm.name() != unwrapping_key.algorithm() {
+                if normalized_algorithm.name() != unwrapping_key.algorithm().name() {
                     subtle.reject_promise_with_error(promise, Error::InvalidAccess);
                     return;
                 }
@@ -1557,8 +1557,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 // so they can be sent safely when running steps in parallel.
 
 /// <https://w3c.github.io/webcrypto/#dfn-Algorithm>
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 struct SubtleAlgorithm {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: String,
 }
 
@@ -1570,7 +1571,47 @@ impl From<Algorithm> for SubtleAlgorithm {
     }
 }
 
-#[derive(Clone, Debug)]
+/// <https://w3c.github.io/webcrypto/#dfn-KeyAlgorithm>
+#[derive(Clone, Debug, MallocSizeOf)]
+pub(crate) struct SubtleKeyAlgorithm {
+    /// <https://w3c.github.io/webcrypto/#dom-keyalgorithm-name>
+    name: String,
+}
+
+impl SubtleKeyAlgorithm {
+    fn block_size_in_bits(&self) -> Result<u32, Error> {
+        let size = match self.name.as_str() {
+            ALG_SHA1 => 160,
+            ALG_SHA256 => 256,
+            ALG_SHA384 => 384,
+            ALG_SHA512 => 512,
+            _ => {
+                return Err(Error::NotSupported);
+            },
+        };
+
+        Ok(size)
+    }
+}
+
+impl From<NormalizedAlgorithm> for SubtleKeyAlgorithm {
+    fn from(value: NormalizedAlgorithm) -> Self {
+        SubtleKeyAlgorithm {
+            name: value.name().to_string(),
+        }
+    }
+}
+
+impl SafeToJSValConvertible for SubtleKeyAlgorithm {
+    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue) {
+        let dictionary = KeyAlgorithm {
+            name: self.name.clone().into(),
+        };
+        dictionary.safe_to_jsval(cx, rval);
+    }
+}
+
+#[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) struct SubtleAesCbcParams {
     pub(crate) name: String,
     pub(crate) iv: Vec<u8>,
@@ -1589,7 +1630,7 @@ impl From<RootedTraceableBox<AesCbcParams>> for SubtleAesCbcParams {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) struct SubtleAesCtrParams {
     pub(crate) name: String,
     pub(crate) counter: Vec<u8>,
@@ -1610,7 +1651,7 @@ impl From<RootedTraceableBox<AesCtrParams>> for SubtleAesCtrParams {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) struct SubtleAesGcmParams {
     pub(crate) name: String,
     pub(crate) iv: Vec<u8>,
@@ -1638,8 +1679,31 @@ impl From<RootedTraceableBox<AesGcmParams>> for SubtleAesGcmParams {
     }
 }
 
+/// <https://w3c.github.io/webcrypto/#dfn-AesKeyAlgorithm>
+#[derive(Clone, Debug, MallocSizeOf)]
+pub(crate) struct SubtleAesKeyAlgorithm {
+    /// <https://w3c.github.io/webcrypto/#dom-keyalgorithm-name>
+    name: String,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-AesKeyAlgorithm-length>
+    length: u16,
+}
+
+impl SafeToJSValConvertible for SubtleAesKeyAlgorithm {
+    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue) {
+        let parent = KeyAlgorithm {
+            name: self.name.clone().into(),
+        };
+        let dictionary = AesKeyAlgorithm {
+            parent,
+            length: self.length,
+        };
+        dictionary.safe_to_jsval(cx, rval);
+    }
+}
+
 /// <https://w3c.github.io/webcrypto/#dfn-AesKeyGenParams>
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 struct SubtleAesKeyGenParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: String,
@@ -1658,7 +1722,7 @@ impl From<AesKeyGenParams> for SubtleAesKeyGenParams {
 }
 
 /// <https://w3c.github.io/webcrypto/#dfn-AesDerivedKeyParams>
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 struct SubtleAesDerivedKeyParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: String,
@@ -1677,13 +1741,13 @@ impl From<AesDerivedKeyParams> for SubtleAesDerivedKeyParams {
 }
 
 /// <https://w3c.github.io/webcrypto/#dfn-HmacImportParams>
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 struct SubtleHmacImportParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: String,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HmacImportParams-hash>
-    hash: Arc<NormalizedAlgorithm>,
+    hash: SubtleKeyAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HmacImportParams-length>
     length: Option<u32>,
@@ -1694,27 +1758,53 @@ impl TryFrom<RootedTraceableBox<HmacImportParams>> for SubtleHmacImportParams {
 
     fn try_from(params: RootedTraceableBox<HmacImportParams>) -> Result<Self, Error> {
         let cx = GlobalScope::get_cx();
+        let hash = normalize_algorithm(cx, &Operation::Digest, &params.hash, CanGc::note())?;
         Ok(SubtleHmacImportParams {
             name: params.parent.name.to_string(),
-            hash: Arc::new(normalize_algorithm(
-                cx,
-                &Operation::Digest,
-                &params.hash,
-                CanGc::note(),
-            )?),
+            hash: hash.into(),
             length: params.length,
         })
     }
 }
 
+/// <https://w3c.github.io/webcrypto/#dfn-HmacKeyAlgorithm>
+#[derive(Clone, Debug, MallocSizeOf)]
+pub(crate) struct SubtleHmacKeyAlgorithm {
+    /// <https://w3c.github.io/webcrypto/#dom-keyalgorithm-name>
+    name: String,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyAlgorithm-hash>
+    hash: SubtleKeyAlgorithm,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyGenParams-length>
+    length: u32,
+}
+
+impl SafeToJSValConvertible for SubtleHmacKeyAlgorithm {
+    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue) {
+        let parent = KeyAlgorithm {
+            name: self.name.clone().into(),
+        };
+        let hash = KeyAlgorithm {
+            name: self.hash.name.clone().into(),
+        };
+        let dictionary = HmacKeyAlgorithm {
+            parent,
+            hash,
+            length: self.length,
+        };
+        dictionary.safe_to_jsval(cx, rval);
+    }
+}
+
 /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyGenParams>
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 struct SubtleHmacKeyGenParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: String,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyGenParams-hash>
-    hash: Arc<NormalizedAlgorithm>,
+    hash: SubtleKeyAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyGenParams-length>
     length: Option<u32>,
@@ -1725,27 +1815,23 @@ impl TryFrom<RootedTraceableBox<HmacKeyGenParams>> for SubtleHmacKeyGenParams {
 
     fn try_from(params: RootedTraceableBox<HmacKeyGenParams>) -> Result<Self, Error> {
         let cx = GlobalScope::get_cx();
+        let hash = normalize_algorithm(cx, &Operation::Digest, &params.hash, CanGc::note())?;
         Ok(SubtleHmacKeyGenParams {
             name: params.parent.name.to_string(),
-            hash: Arc::new(normalize_algorithm(
-                cx,
-                &Operation::Digest,
-                &params.hash,
-                CanGc::note(),
-            )?),
+            hash: hash.into(),
             length: params.length,
         })
     }
 }
 
 /// <https://w3c.github.io/webcrypto/#dfn-HkdfParams>
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) struct SubtleHkdfParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: String,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HkdfParams-hash>
-    hash: Arc<NormalizedAlgorithm>,
+    hash: SubtleKeyAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HkdfParams-salt>
     salt: Vec<u8>,
@@ -1759,12 +1845,7 @@ impl TryFrom<RootedTraceableBox<HkdfParams>> for SubtleHkdfParams {
 
     fn try_from(params: RootedTraceableBox<HkdfParams>) -> Result<Self, Error> {
         let cx = GlobalScope::get_cx();
-        let hash = Arc::new(normalize_algorithm(
-            cx,
-            &Operation::Digest,
-            &params.hash,
-            CanGc::note(),
-        )?);
+        let hash = normalize_algorithm(cx, &Operation::Digest, &params.hash, CanGc::note())?;
         let salt = match &params.salt {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
@@ -1775,7 +1856,7 @@ impl TryFrom<RootedTraceableBox<HkdfParams>> for SubtleHkdfParams {
         };
         Ok(SubtleHkdfParams {
             name: params.parent.name.to_string(),
-            hash,
+            hash: hash.into(),
             salt,
             info,
         })
@@ -1783,7 +1864,7 @@ impl TryFrom<RootedTraceableBox<HkdfParams>> for SubtleHkdfParams {
 }
 
 /// <https://w3c.github.io/webcrypto/#dfn-Pbkdf2Params>
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) struct SubtlePbkdf2Params {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: String,
@@ -1795,7 +1876,7 @@ pub(crate) struct SubtlePbkdf2Params {
     iterations: u32,
 
     /// <https://w3c.github.io/webcrypto/#dfn-Pbkdf2Params-hash>
-    hash: Arc<NormalizedAlgorithm>,
+    hash: SubtleKeyAlgorithm,
 }
 
 impl TryFrom<RootedTraceableBox<Pbkdf2Params>> for SubtlePbkdf2Params {
@@ -1807,17 +1888,12 @@ impl TryFrom<RootedTraceableBox<Pbkdf2Params>> for SubtlePbkdf2Params {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
-        let hash = Arc::new(normalize_algorithm(
-            cx,
-            &Operation::Digest,
-            &params.hash,
-            CanGc::note(),
-        )?);
+        let hash = normalize_algorithm(cx, &Operation::Digest, &params.hash, CanGc::note())?;
         Ok(SubtlePbkdf2Params {
             name: params.parent.name.to_string(),
             salt,
             iterations: params.iterations,
-            hash,
+            hash: hash.into(),
         })
     }
 }
@@ -1979,72 +2055,41 @@ pub(crate) enum ExportedKey {
     Jwk(Box<JsonWebKey>),
 }
 
-trait AlgorithmFromName {
-    fn from_name(name: DOMString, out: MutableHandleObject, cx: JSContext);
+/// Union type of KeyAlgorithm and IDL dictionary types derived from it. Note that we actually use
+/// our "subtle" structs of the corresponding IDL dictionary types so that they can be easily
+/// passed to another threads.
+#[derive(Clone, Debug, MallocSizeOf)]
+#[allow(clippy::enum_variant_names)]
+pub(crate) enum KeyAlgorithmAndDerivatives {
+    KeyAlgorithm(SubtleKeyAlgorithm),
+    AesKeyAlgorithm(SubtleAesKeyAlgorithm),
+    HmacKeyAlgorithm(SubtleHmacKeyAlgorithm),
 }
 
-impl AlgorithmFromName for KeyAlgorithm {
-    /// Fill the object referenced by `out` with an [KeyAlgorithm]
-    /// of the specified name and size.
-    #[allow(unsafe_code)]
-    fn from_name(name: DOMString, out: MutableHandleObject, cx: JSContext) {
-        let key_algorithm = Self { name };
-
-        unsafe {
-            key_algorithm.to_jsobject(*cx, out);
+impl KeyAlgorithmAndDerivatives {
+    fn name(&self) -> &str {
+        match self {
+            KeyAlgorithmAndDerivatives::KeyAlgorithm(algo) => &algo.name,
+            KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algo) => &algo.name,
+            KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => &algo.name,
         }
     }
 }
 
-trait AlgorithmFromLengthAndHash {
-    fn from_length_and_hash(
-        length: u32,
-        hash: &NormalizedAlgorithm,
-        out: MutableHandleObject,
-        cx: JSContext,
-    );
-}
-
-impl AlgorithmFromLengthAndHash for HmacKeyAlgorithm {
-    #[allow(unsafe_code)]
-    fn from_length_and_hash(
-        length: u32,
-        hash: &NormalizedAlgorithm,
-        out: MutableHandleObject,
-        cx: JSContext,
-    ) {
-        let hmac_key_algorithm = Self {
-            parent: KeyAlgorithm {
-                name: ALG_HMAC.into(),
-            },
-            length,
-            hash: KeyAlgorithm {
-                name: hash.name().into(),
-            },
-        };
-
-        unsafe {
-            hmac_key_algorithm.to_jsobject(*cx, out);
-        }
+impl From<NormalizedAlgorithm> for KeyAlgorithmAndDerivatives {
+    fn from(value: NormalizedAlgorithm) -> Self {
+        KeyAlgorithmAndDerivatives::KeyAlgorithm(SubtleKeyAlgorithm {
+            name: value.name().to_string(),
+        })
     }
 }
 
-trait AlgorithmFromNameAndSize {
-    fn from_name_and_size(name: DOMString, size: u16, out: MutableHandleObject, cx: JSContext);
-}
-
-impl AlgorithmFromNameAndSize for AesKeyAlgorithm {
-    /// Fill the object referenced by `out` with an [AesKeyAlgorithm]
-    /// of the specified name and size.
-    #[allow(unsafe_code)]
-    fn from_name_and_size(name: DOMString, size: u16, out: MutableHandleObject, cx: JSContext) {
-        let key_algorithm = Self {
-            parent: KeyAlgorithm { name },
-            length: size,
-        };
-
-        unsafe {
-            key_algorithm.to_jsobject(*cx, out);
+impl SafeToJSValConvertible for KeyAlgorithmAndDerivatives {
+    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue) {
+        match self {
+            KeyAlgorithmAndDerivatives::KeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
+            KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
+            KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
         }
     }
 }
@@ -2203,7 +2248,7 @@ impl JsonWebKeyExt for JsonWebKey {
 /// binding of) IDL dictionary types.
 ///
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm>
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 enum NormalizedAlgorithm {
     Algorithm(SubtleAlgorithm),
     AesCtrParams(SubtleAesCtrParams),
@@ -2557,20 +2602,6 @@ impl NormalizedAlgorithm {
         }
     }
 
-    fn block_size_in_bits(&self) -> Result<u32, Error> {
-        let size = match self.name() {
-            ALG_SHA1 => 160,
-            ALG_SHA256 => 256,
-            ALG_SHA384 => 384,
-            ALG_SHA512 => 512,
-            _ => {
-                return Err(Error::NotSupported);
-            },
-        };
-
-        Ok(size)
-    }
-
     fn encrypt(&self, key: &CryptoKey, plaintext: &[u8]) -> Result<Vec<u8>, Error> {
         match self {
             NormalizedAlgorithm::AesCtrParams(algo) => {
@@ -2813,7 +2844,7 @@ impl NormalizedAlgorithm {
 /// normalization, We create this helper function to minic the functions of NormalizedAlgorithm
 /// for export key operation.
 fn perform_export_key_operation(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
-    match key.algorithm().as_str() {
+    match key.algorithm().name() {
         ALG_AES_CTR => aes_operation::export_key_aes_ctr(format, key),
         ALG_AES_CBC => aes_operation::export_key_aes_cbc(format, key),
         ALG_AES_GCM => aes_operation::export_key_aes_gcm(format, key),
