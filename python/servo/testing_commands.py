@@ -277,14 +277,15 @@ class MachCommands(CommandBase):
                 exit(1)
         elif code_coverage:
             cargo_llvm_cov_options: List[str] = llvm_cov_option or []
-            crown_cargo_command.extend(["llvm-cov", "test"])
+            crown_cargo_command.extend(["llvm-cov", "nextest"])
             crown_cargo_command.extend(cargo_llvm_cov_options)
             cargo_command = "llvm-cov"
-            args.insert(0, "test")
+            args.insert(0, "nextest")
             args.extend(cargo_llvm_cov_options)
         else:
-            crown_cargo_command.append("test")
-            cargo_command = "test"
+            crown_cargo_command.extend(["nextest", "run"])
+            cargo_command = "nextest"
+            args.insert(0, "run")
         result = call(crown_cargo_command, cwd="support/crown")
         if result != 0:
             return result
