@@ -45,7 +45,7 @@ pub struct Minibrowser {
 
     last_update: Instant,
     last_mouse_position: Option<Point2D<f32, DeviceIndependentPixel>>,
-    location: RefCell<String>,
+    location: String,
 
     /// Whether the location has been edited by the user without clicking Go.
     location_dirty: Cell<bool>,
@@ -121,7 +121,7 @@ impl Minibrowser {
             toolbar_height: Default::default(),
             last_update: Instant::now(),
             last_mouse_position: None,
-            location: RefCell::new(initial_url.to_string()),
+            location: initial_url.to_string(),
             location_dirty: false.into(),
             load_status: LoadStatus::Complete,
             status_text: None,
@@ -361,7 +361,7 @@ impl Minibrowser {
                                     let location_id = egui::Id::new("location_input");
                                     let location_field = ui.add_sized(
                                         ui.available_size(),
-                                        egui::TextEdit::singleline(&mut *location.borrow_mut())
+                                        egui::TextEdit::singleline(location)
                                             .id(location_id),
                                     );
 
@@ -388,7 +388,7 @@ impl Minibrowser {
                                             // Select the whole input.
                                             state.cursor.set_char_range(Some(CCursorRange::two(
                                                 CCursor::new(0),
-                                                CCursor::new(location.borrow().len()),
+                                                CCursor::new(location.len()),
                                             )));
                                             state.store(ui.ctx(), location_id);
                                         }
@@ -399,7 +399,7 @@ impl Minibrowser {
                                     {
                                         event_queue
                                             .borrow_mut()
-                                            .push(MinibrowserEvent::Go(location.borrow().clone()));
+                                            .push(MinibrowserEvent::Go(location.clone()));
                                     }
                                 },
                             );
@@ -516,8 +516,8 @@ impl Minibrowser {
             .focused_webview()
             .and_then(|webview| Some(webview.url()?.to_string()));
         match current_url_string {
-            Some(location) if location != *self.location.get_mut() => {
-                self.location = RefCell::new(location.to_owned());
+            Some(location) if location != self.location => {
+                self.location = location.to_owned();
                 true
             },
             _ => false,
