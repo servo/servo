@@ -180,7 +180,9 @@ jobs:
       # commit we are building uses a different rustc version.
       - name: Install crown
         run: cargo install --path support/crown --force
-
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: nextest
       - name: Debug logging for incremental builds
         if: ${{ runner.environment == 'self-hosted' }}
         run: |
@@ -209,11 +211,9 @@ jobs:
         run: cargo install cargo-nextest --locked
       - name: Unit tests
         if: ${{ inputs.unit-tests }}
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3 # https://github.com/servo/servo/issues/30683
-          command: .\mach test-unit --${{ inputs.profile }} -- -- --test-threads=1
+        env:
+          NEXTEST_RETRIES: 3 # https://github.com/servo/servo/issues/30683
+        run: ./mach test-unit --${{ inputs.profile }}
       - name: Devtools tests
         if: ${{ inputs.unit-tests }}
         run: .\mach test-devtools --${{ inputs.profile }}
