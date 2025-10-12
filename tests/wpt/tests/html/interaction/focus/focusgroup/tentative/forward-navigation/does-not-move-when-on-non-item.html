@@ -10,13 +10,14 @@
 <script src="/resources/testdriver-actions.js"></script>
 <script src="../resources/focusgroup-utils.js"></script>
 
+<!-- Element outside focusgroup should not participate -->
+<span id=nonitem1 tabindex=0>nonitem1</span>
+
 <div tabindex=-1 focusgroup="toolbar">
-  <div>
-    <span id=nonitem1 tabindex=0>nonitem1</span>
-  </div>
   <span id=item1 tabindex=0>item1</span>
   <span id=item2 tabindex=-1>item2</span>
 </div>
+
 
 <script>
 

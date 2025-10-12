@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Various element types work as focusgroup descendants</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div id=root focusgroup="toolbar">
+  <span id=item1 tabindex=0>Item 1</span>
+  <div>
+    <span id=item2 tabindex=-1>Item 2 (nested)</span>
+  </div>
+  <section>
+    <div>
+      <span id=item3 tabindex=-1>Item 3 (in section)</span>
+    </div>
+  </section>
+  <article>
+    <span id=item4 tabindex=-1>Item 4 (in article)</span>
+  </article>
+  <div>
+    <span id=item5 tabindex=-1>Item 5 (deeply nested)</span>
+  </div>
+  <nav>
+    <div>
+      <span id=item6 tabindex=-1>Item 6 (in nav)</span>
+    </div>
+  </nav>
+  <div>
+    <div tabindex=-1 id=item7>Item 7 (focusable div)</div>
+  </div>
+  <details>
+    <summary id=item8 tabindex=-1>Item 8 (summary)</summary>
+    <p>Details content</p>
+  </details>
+  <div>
+    <span id=item9 tabindex=-1>Item 9 (final)</span>
+  </div>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    var item1 = document.getElementById("item1");
+    var item2 = document.getElementById("item2");
+    var item3 = document.getElementById("item3");
+    var item4 = document.getElementById("item4");
+    var item5 = document.getElementById("item5");
+    var item6 = document.getElementById("item6");
+    var item7 = document.getElementById("item7");
+    var item8 = document.getElementById("item8");
+    var item9 = document.getElementById("item9");
+
+    await focusAndKeyPress(item1, kArrowRight);
+    assert_equals(document.activeElement, item2, "Should navigate to nested item");
+
+    await focusAndKeyPress(item2, kArrowRight);
+    assert_equals(document.activeElement, item3, "Should navigate to item in section");
+
+    await focusAndKeyPress(item3, kArrowRight);
+    assert_equals(document.activeElement, item4, "Should navigate to item in article");
+
+    await focusAndKeyPress(item4, kArrowRight);
+    assert_equals(document.activeElement, item5, "Should navigate to deeply nested item");
+
+    await focusAndKeyPress(item5, kArrowRight);
+    assert_equals(document.activeElement, item6, "Should navigate to item in nav");
+
+    await focusAndKeyPress(item6, kArrowRight);
+    assert_equals(document.activeElement, item7, "Should navigate to focusable div");
+
+    await focusAndKeyPress(item7, kArrowRight);
+    assert_equals(document.activeElement, item8, "Should navigate to summary");
+
+    await focusAndKeyPress(item8, kArrowRight);
+    assert_equals(document.activeElement, item9, "Should navigate to final item");
+  }, "Navigation should work with items in various container types");
+
+  promise_test(async t => {
+    var item1 = document.getElementById("item1");
+    var item8 = document.getElementById("item8");
+    var item9 = document.getElementById("item9");
+
+    item9.focus();
+    await focusAndKeyPress(item9, kArrowLeft);
+    assert_equals(document.activeElement, item8, "Should navigate backward from final item");
+
+    var current = document.activeElement;
+    await focusAndKeyPress(current, kArrowLeft);
+    assert_equals(document.activeElement, item7, "Should navigate backward to focusable div");
+  }, "Backward navigation should work with various container types");
+
+  promise_test(async t => {
+    var item1 = document.getElementById("item1");
+    var item2 = document.getElementById("item2");
+
+    await focusAndKeyPress(item1, kArrowDown);
+    assert_equals(document.activeElement, item2, "Vertical navigation should work with different container types");
+  }, "Vertical navigation should work with various container types");
+
+  promise_test(async t => {
+    var root = document.getElementById("root");
+    var expectedElements = [
+      "item1", "item2", "item3", "item4", "item5",
+      "item6", "item7", "item8", "item9"
+    ];
+
+    for (let elementId of expectedElements) {
+      var element = document.getElementById(elementId);
+      element.focus();
+      assert_equals(document.activeElement, element, `${elementId} should be focusable`);
+    }
+  }, "All items in different container types should be focusable within focusgroup");
+
+</script>

@@ -12,7 +12,7 @@
 let mockBatteryMonitor = undefined;
 
 function assert_implements_battery() {
-  assert_implements(navigator.battery, 'missing navigator.battery');
+  assert_implements(navigator.getBattery, 'missing navigator.getBattery');
 }
 
 function battery_status_test(func, name, properties) {

@@ -2524,6 +2524,58 @@ const subgraphTests = [
     }
   },
   {
+    'name': 'gatherElements + matmul',
+    'graph': {
+      'inputs': {
+        'gatherElementsInput': {
+          'data': [
+            -66.05901336669922, -68.9197006225586, -77.02045440673828,
+            -26.158037185668945, 89.0337142944336, -45.89653396606445,
+            43.84803771972656, 48.81806945800781, 51.79948425292969
+          ],
+          'descriptor': {shape: [3, 3], dataType: 'float32'}
+        },
+        'gatherElementsIndices': {
+          'data': [1, 0, 2, 2, 1, 0],
+          'descriptor': {shape: [2, 3], dataType: 'int32'},
+          'constant': true
+        },
+        'matmulB': {
+          'data': [
+            56.46701431274414,  99.86045837402344,  71.054931640625,
+            32.454383850097656, 17.310747146606445, 2.586275100708008,
+          ],
+          'descriptor': {shape: [3, 2], dataType: 'float32'}
+        },
+      },
+      'operators': [
+        {
+          'name': 'gatherElements',
+          'arguments': [
+            {'input': 'gatherElementsInput'}, {'indices': 'gatherElementsIndices'}
+          ],
+          'outputs': 'gatherElementsOutput'
+        },
+        {
+          'name': 'matmul',
+          'arguments': [
+            {'a': 'gatherElementsOutput'}, {'b': 'matmulB'}
+          ],
+          'outputs': 'matmulOutput'
+        }
+      ],
+      'expectedOutputs': {
+        'matmulOutput': {
+          'data': [
+            -5477.462890625, -4714.93212890625,
+            7468.97021484375, 7069.02294921875
+          ],
+          'descriptor': {shape: [2, 2], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'float16 graph with float32 input and output',
     'graph': {
       'inputs': {

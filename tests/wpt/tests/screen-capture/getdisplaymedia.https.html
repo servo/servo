@@ -164,6 +164,30 @@ promise_test(async t => {
   assert_unreached('getDisplayMedia should have failed');
 }, `getDisplayMedia(${j(constraints)}) must fail with OverconstrainedError`));
 
+[
+ {width: {max: 0}},
+ {height: {max: 0}},
+ {frameRate: {max: 0}},
+ {width: {max: -1}},
+ {height: {max: -1}},
+ {frameRate: {max: -1}},
+ {width: {min: 100, max: 10}},
+ {height: {min: 100, max: 10}},
+ {frameRate: {min: 100, max: 10}},
+].forEach(constraints => promise_test(async t => {
+  const stream = await getDisplayMedia();
+  t.add_cleanup(() => stopTracks(stream));
+  const [track] = stream.getTracks();
+  try {
+    await track.applyConstraints(constraints);
+  } catch (err) {
+    assert_equals(err.name, 'OverconstrainedError', err.message);
+    assert_equals(err.constraint, Object.keys(constraints)[0], "Constraint is set");
+    return;
+  }
+  assert_unreached('applyConstraints hould have failed');
+}, `applyConstraints(${j(constraints)}) for display media must fail with OverconstrainedError`));
+
 // Content shell picks a fake desktop device by default.
 promise_test(async t => {
   const stream = await getDisplayMedia({video: true});

@@ -71,6 +71,9 @@ jobs:
       - name: Set display color profile
         run: |-
           ./wpt macos-color-profile
+      - name: Set system caption style to ""
+        run: |-
+          defaults write com.apple.mediaaccessibility MACaptionActiveProfile -string ""
       - name: Enable safaridriver diagnostics
         if: inputs.safaridriver-diagnose
         run: |-

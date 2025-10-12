@@ -21,6 +21,6 @@ Orange box should be centered vertically against the left edge of the blue box.
 <div id="p3" popover style="position-area: left span-all"></div>
 
 <script>
-document.querySelector("[popover]").showPopover();
+document.querySelector("[popover]").showPopover({ source: document.querySelector("button") });
 document.documentElement.removeAttribute("class");
 </script>

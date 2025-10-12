@@ -241,7 +241,30 @@ def current_time(bidi_session, top_context):
 
 
 @pytest.fixture
-def add_and_remove_iframe(bidi_session):
+def create_iframe(bidi_session):
+    """
+    Create an iframe and wait for it to load. Return the iframe's context id.
+    """
+
+    async def create_iframe(context, url):
+        resp = await bidi_session.script.call_function(
+            function_declaration="""(url) => {
+                const iframe = document.createElement("iframe");
+                iframe.src = url;
+                document.documentElement.lastElementChild.append(iframe);
+                return new Promise(resolve => iframe.onload = () => resolve(iframe.contentWindow));
+            }""",
+            arguments=[{"type": "string", "value": url}],
+            target=ContextTarget(context["context"]),
+            await_promise=True)
+        assert resp["type"] == "window"
+        return resp["value"]
+
+    return create_iframe
+
+
+@pytest.fixture
+def add_and_remove_iframe(bidi_session, create_iframe):
     """Create a frame, wait for load, and remove it.
 
     Return the frame's context id, which allows to test for invalid
@@ -531,13 +554,13 @@ async def create_user_context(bidi_session):
 
 
 @pytest_asyncio.fixture
-async def add_cookie(bidi_session):
+async def add_document_cookie(bidi_session):
     """
     Add a cookie with `document.cookie` and remove them after the test is finished.
     """
     cookies = []
 
-    async def add_cookie(
+    async def add_document_cookie(
         context,
         name,
         value,
@@ -574,7 +597,7 @@ async def add_cookie(bidi_session):
 
         cookies.append(cookie)
 
-    yield add_cookie
+    yield add_document_cookie
 
     for cookie in reversed(cookies):
         cookie_string = f"""{cookie["name"]}="""

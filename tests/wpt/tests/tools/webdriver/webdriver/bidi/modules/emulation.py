@@ -1,82 +1,64 @@
-from typing import Any, Dict, List, Literal, Mapping, MutableMapping, Optional, \
-    Union
+from typing import Any, Dict, List, Literal, Mapping
 
 from ._module import BidiModule, command
-from ..undefined import UNDEFINED, Undefined
+from ..undefined import UNDEFINED, Maybe, Nullable
 
 
 class CoordinatesOptions(Dict[str, Any]):
     def __init__(
-        self,
-        latitude: float,
-        longitude: float,
-        accuracy: Optional[float] = None,
-        altitude: Optional[float] = None,
-        altitude_accuracy: Optional[float] = None,
-        heading: Optional[float] = None,
-        speed: Optional[float] = None,
+            self,
+            latitude: float,
+            longitude: float,
+            accuracy: Maybe[float] = UNDEFINED,
+            altitude: Maybe[Nullable[float]] = UNDEFINED,
+            altitude_accuracy: Maybe[Nullable[float]] = UNDEFINED,
+            heading: Maybe[Nullable[float]] = UNDEFINED,
+            speed: Maybe[Nullable[float]] = UNDEFINED,
     ):
         self["latitude"] = latitude
         self["longitude"] = longitude
-
-        if accuracy is not None:
-            self["accuracy"] = accuracy
-        if altitude is not None:
-            self["altitude"] = altitude
-        if altitude_accuracy is not None:
-            self["altitudeAccuracy"] = altitude_accuracy
-        if heading is not None:
-            self["heading"] = heading
-        if speed is not None:
-            self["speed"] = speed
+        self["accuracy"] = accuracy
+        self["altitude"] = altitude
+        self["altitudeAccuracy"] = altitude_accuracy
+        self["heading"] = heading
+        self["speed"] = speed
 
 
 class Emulation(BidiModule):
     @command
     def set_geolocation_override(
-        self,
-        coordinates: Union[CoordinatesOptions, Undefined] = UNDEFINED,
-        error: Optional[Dict[str, Any]] = None,
-        contexts: Optional[List[str]] = None,
-        user_contexts: Optional[List[str]] = None,
+            self,
+            coordinates: Maybe[Nullable[CoordinatesOptions]] = UNDEFINED,
+            error: Maybe[Dict[str, Any]] = UNDEFINED,
+            contexts: Maybe[List[str]] = UNDEFINED,
+            user_contexts: Maybe[List[str]] = UNDEFINED,
     ) -> Mapping[str, Any]:
-        params: MutableMapping[str, Any] = {}
-
-        if coordinates is not UNDEFINED:
-            params["coordinates"] = coordinates
-        if error is not None:
-            params["error"] = error
-        if contexts is not None:
-            params["contexts"] = contexts
-        if user_contexts is not None:
-            params["userContexts"] = user_contexts
-
-        return params
+        return {
+            "coordinates": coordinates,
+            "error": error,
+            "contexts": contexts,
+            "userContexts": user_contexts
+        }
 
     @command
     def set_locale_override(
-        self,
-        locale: Union[str, None],
-        contexts: Optional[List[str]] = None,
-        user_contexts: Optional[List[str]] = None,
+            self,
+            locale: Nullable[str],
+            contexts: Maybe[List[str]] = UNDEFINED,
+            user_contexts: Maybe[List[str]] = UNDEFINED,
     ) -> Mapping[str, Any]:
-        params: MutableMapping[str, Any] = {
-            "locale": locale
+        return {
+            "locale": locale,
+            "contexts": contexts,
+            "userContexts": user_contexts
         }
-
-        if contexts is not None:
-            params["contexts"] = contexts
-        if user_contexts is not None:
-            params["userContexts"] = user_contexts
-
-        return params
 
     @command
     def set_scripting_enabled(
             self,
-            enabled: Literal[False, None],
-            contexts: Union[List[str], Undefined] = UNDEFINED,
-            user_contexts: Union[List[str], Undefined] = UNDEFINED,
+            enabled: Nullable[Literal[False]],
+            contexts: Maybe[List[str]] = UNDEFINED,
+            user_contexts: Maybe[List[str]] = UNDEFINED,
     ) -> Mapping[str, Any]:
         return {
             "enabled": enabled,
@@ -86,49 +68,52 @@ class Emulation(BidiModule):
 
     @command
     def set_screen_orientation_override(
-        self,
-        screen_orientation:Dict[str, Any],
-        contexts: Optional[List[str]] = None,
-        user_contexts: Optional[List[str]] = None,
+            self,
+            screen_orientation: Nullable[Dict[str, Any]],
+            contexts: Maybe[List[str]] = UNDEFINED,
+            user_contexts: Maybe[List[str]] = UNDEFINED,
     ) -> Mapping[str, Any]:
-        params: MutableMapping[str, Any] = {
-            "screenOrientation": screen_orientation
+        return {
+            "screenOrientation": screen_orientation,
+            "contexts": contexts,
+            "userContexts": user_contexts
         }
-
-        if contexts is not None:
-            params["contexts"] = contexts
-        if user_contexts is not None:
-            params["userContexts"] = user_contexts
-
-        return params
 
     @command
     def set_timezone_override(
             self,
-            timezone: Union[str, None],
-            contexts: Optional[List[str]] = None,
-            user_contexts: Optional[List[str]] = None,
+            timezone: Nullable[str],
+            contexts: Maybe[List[str]] = UNDEFINED,
+            user_contexts: Maybe[List[str]] = UNDEFINED,
     ) -> Mapping[str, Any]:
-        params: MutableMapping[str, Any] = {
-            "timezone": timezone
+        return {
+            "timezone": timezone,
+            "contexts": contexts,
+            "userContexts": user_contexts
         }
-
-        if contexts is not None:
-            params["contexts"] = contexts
-        if user_contexts is not None:
-            params["userContexts"] = user_contexts
-
-        return params
 
     @command
     def set_user_agent_override(
             self,
-            user_agent: Union[str, None],
-            contexts: Union[List[str], Undefined] = UNDEFINED,
-            user_contexts: Union[List[str], Undefined] = UNDEFINED,
+            user_agent: Nullable[str],
+            contexts: Maybe[List[str]] = UNDEFINED,
+            user_contexts: Maybe[List[str]] = UNDEFINED,
     ) -> Mapping[str, Any]:
         return {
             "userAgent": user_agent,
+            "contexts": contexts,
+            "userContexts": user_contexts,
+        }
+
+    @command
+    def set_network_conditions(
+            self,
+            network_conditions: Nullable[Dict[str, Any]],
+            contexts: Maybe[List[str]] = UNDEFINED,
+            user_contexts: Maybe[List[str]] = UNDEFINED,
+    ) -> Mapping[str, Any]:
+        return {
+            "networkConditions": network_conditions,
             "contexts": contexts,
             "userContexts": user_contexts,
         }

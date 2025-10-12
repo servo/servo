@@ -13,9 +13,10 @@ View transitions: Resizing viewport before animating rejects the ready promise.
 <script>
 function pollForResize(win) {
   const initial_width = win.innerWidth;
+  const initial_height = win.innerHeight;
   return new Promise(resolve => {
     const interval_id = win.setInterval(() => {
-      if (win.innerWidth != initial_width) {
+      if (win.innerWidth != initial_width || win.innerHeight != initial_height) {
         win.clearInterval(interval_id);
         resolve();
       }

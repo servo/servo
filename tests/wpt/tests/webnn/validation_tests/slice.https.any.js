@@ -26,7 +26,14 @@ const tests = [
     output: {dataType: 'float32', shape: [1, 2, 3]}
   },
   {
-    name: '[slice] Throw if input is a scalar.',
+    name: '[slice] Test slicing a scalar with empty starts and sizes.',
+    input: {dataType: 'float32', shape: []},
+    starts: [],
+    sizes: [],
+    output: {dataType: 'float32', shape: []}
+  },
+  {
+    name: '[slice] Throw if input is a scalar and starts/sizes are not empty.',
     input: {dataType: 'float32', shape: []},
     starts: [0],
     sizes: [1]

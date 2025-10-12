@@ -38,6 +38,7 @@ html {
   position-try-fallbacks: --pf1, --pf2, --pf3;
   inset-block-start: anchor(end);
   inset-inline-start: anchor(end);
+  position-visibility: always;
 }
 
 @position-try --pf1 {
@@ -62,6 +63,7 @@ html {
 
 <script>
 let vw = window.innerWidth;
+let vh = window.innerHeight;
 
 promise_test(async () => {
   await waitUntilNextAnimationFrame();
@@ -71,7 +73,7 @@ promise_test(async () => {
 
 promise_test(async () => {
   // Scroll left to have enough space left to the anchor, but not enough above.
-  document.documentElement.scrollLeft = -250;
+  document.documentElement.scrollLeft = -vw;
   document.documentElement.scrollTop = -150;
   await waitUntilNextAnimationFrame();
   assert_fallback_position(anchored, anchor, 'left');
@@ -81,7 +83,7 @@ promise_test(async () => {
 promise_test(async () => {
   // Scroll up to have enough space above the anchor, but not enough left.
   document.documentElement.scrollLeft = -150;
-  document.documentElement.scrollTop = -250;
+  document.documentElement.scrollTop = -vh;
   await waitUntilNextAnimationFrame();
   assert_fallback_position(anchored, anchor, 'right');
   assert_fallback_position(anchored, anchor, 'top');
@@ -89,8 +91,8 @@ promise_test(async () => {
 
 promise_test(async () => {
   // Scroll up and left to have enough space on both axes.
-  document.documentElement.scrollLeft = -vw + 99;
-  document.documentElement.scrollTop = -250;
+  document.documentElement.scrollLeft = -vw;
+  document.documentElement.scrollTop = -vh;
   await waitUntilNextAnimationFrame();
   assert_fallback_position(anchored, anchor, 'left');
   assert_fallback_position(anchored, anchor, 'top');

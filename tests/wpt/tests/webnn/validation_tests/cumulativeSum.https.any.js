@@ -15,6 +15,12 @@ const tests = [
     output: {dataType: 'float32', shape: [3, 2, 5]}
   },
   {
+    name: '[cumulativeSum] Test with integer input',
+    input: {dataType: 'int32', shape: [3, 2, 5]},
+    axis: 0,
+    output: {dataType: 'int32', shape: [3, 2, 5]}
+  },
+  {
     name: '[cumulativeSum] Test with axis=1',
     input: {dataType: 'float32', shape: [3, 2, 5]},
     axis: 1,

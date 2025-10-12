@@ -776,6 +776,71 @@ const lstmTests = [
     }
   },
   {
+    'name':
+        "lstm float32 tensors steps=2, batchSize=1 with options.bias, options.recurrentBias, options.activations=['relu', 'relu', 'relu'] and options.direction='backward'",
+    'graph': {
+      'inputs': {
+        'lstmInput': {
+          'data': [1, 2, 2, 1],
+          'descriptor': {shape: [2, 1, 2], dataType: 'float32'}
+        },
+        'lstmWeight': {
+          'data': [1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2],
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'},
+          'constant': true
+        },
+        'lstmRecurrentWeight': {
+          'data': [
+            0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+            0.1, 0.1, 0.1
+          ],
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'},
+          'constant': true
+        },
+        'lstmBias': {
+          'data': [1, 2, 1, 2, 1, 2, 1, 2],
+          'descriptor': {shape: [1, 8], dataType: 'float32'},
+          'constant': true
+        },
+        'lstmRecurrentBias': {
+          'data': [1, 2, 1, 2, 1, 2, 1, 2],
+          'descriptor': {shape: [1, 8], dataType: 'float32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'lstm',
+        'arguments': [
+          {'input': 'lstmInput'}, {'weight': 'lstmWeight'},
+          {'recurrentWeight': 'lstmRecurrentWeight'}, {'steps': 2},
+          {'hiddenSize': 2}, {
+            'options': {
+              'bias': 'lstmBias',
+              'recurrentBias': 'lstmRecurrentBias',
+              'direction': 'backward',
+              'activations': ['relu', 'relu', 'relu']
+            }
+          }
+        ],
+        'outputs': ['lstmOutput1', 'lstmOutput2']
+      }],
+      'expectedOutputs': {
+        'lstmOutput1': {
+          'data': [
+            21955.08984375, 43092.29296875
+          ],
+          'descriptor': {shape: [1, 1, 2], dataType: 'float32'}
+        },
+        'lstmOutput2': {
+          'data': [
+            867.7901000976562, 1638.4901123046875
+          ],
+          'descriptor': {shape: [1, 1, 2], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'lstm float32 tensors steps=2 with all options',
     'graph': {
       'inputs': {

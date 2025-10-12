@@ -620,6 +620,17 @@
   fuzzy_test_computed_color(`oklch(from oklch(from oklch(0.7 0.45 30) l c h / calc(alpha + 0.5)) l c h / calc(alpha - 0.5))`, `oklch(0.7 0.45 30 / 0.5)`);
   fuzzy_test_computed_color(`oklch(from oklch(from oklch(0.7 0.45 30) l c h / calc(alpha - 1.5)) l c h / calc(alpha + 0.5))`, `oklch(0.7 0.45 30 / 0.5)`);
 
+  // Testing unit conversion with relative colors
+  fuzzy_test_computed_color(`oklch(from blue .5 .3 180deg)`, `oklch(0.5 0.3 180)`);
+  fuzzy_test_computed_color(`oklch(from blue .5 .3 .5turn)`, `oklch(0.5 0.3 180)`);
+  fuzzy_test_computed_color(`oklch(from blue .5 .3 3.14159rad)`, `oklch(0.5 0.3 180)`);
+  fuzzy_test_computed_color(`oklch(from blue .5 .3 200grad)`, `oklch(0.5 0.3 180)`);
+  fuzzy_test_computed_color(`oklch(from blue .5 .3 calc(120deg + 60deg))`, `oklch(0.5 0.3 180)`);
+  fuzzy_test_computed_color(`oklch(from blue .5 .3 calc(90deg + 1.5707rad))`, `oklch(0.5 0.3 180)`);
+  fuzzy_test_computed_color(`oklch(from blue .5 .3 calc(0.25turn + 100grad))`, `oklch(0.5 0.3 180)`);
+  fuzzy_test_computed_color(`oklch(from blue .5 .3 calc(180deg))`, `oklch(0.5 0.3 180)`);
+  fuzzy_test_computed_color(`oklch(from blue .5 .3 calc(0.2turn + 0.3turn))`, `oklch(0.5 0.3 180)`);
+
   // Testing with 'none'.
   fuzzy_test_computed_color(`oklch(from oklch(0.7 0.45 30) none none none)`,                                   `oklch(none none none)`);
   fuzzy_test_computed_color(`oklch(from oklch(0.7 0.45 30) none none none / none)`,                            `oklch(none none none / none)`);

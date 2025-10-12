@@ -25,7 +25,7 @@ async def test_default_partition(
     test_page,
     test_page_cross_origin,
     domain_value,
-    add_cookie,
+    add_document_cookie,
     set_cookie,
     with_document_cookie,
 ):
@@ -43,8 +43,8 @@ async def test_default_partition(
     cookie2_value = "bar_2"
 
     if with_document_cookie:
-        await add_cookie(new_tab["context"], cookie1_name, cookie1_value, secure=True)
-        await add_cookie(top_context["context"], cookie2_name, cookie2_value, secure=True)
+        await add_document_cookie(new_tab["context"], cookie1_name, cookie1_value, secure=True)
+        await add_document_cookie(top_context["context"], cookie2_name, cookie2_value, secure=True)
     else:
         await set_cookie(
             cookie=create_cookie(
@@ -77,7 +77,7 @@ async def test_partition_context(
     new_tab,
     test_page,
     domain_value,
-    add_cookie,
+    add_document_cookie,
     set_cookie,
     with_document_cookie,
 ):
@@ -89,7 +89,7 @@ async def test_partition_context(
     cookie_value = "bar"
     partition = BrowsingContextPartitionDescriptor(new_tab["context"])
     if with_document_cookie:
-        await add_cookie(new_tab["context"], cookie_name, cookie_value, secure=True)
+        await add_document_cookie(new_tab["context"], cookie_name, cookie_value, secure=True)
     else:
         await set_cookie(
             cookie=create_cookie(
@@ -224,7 +224,7 @@ async def test_partition_user_context(
     create_user_context,
     test_page_cross_origin,
     domain_value,
-    add_cookie,
+    add_document_cookie,
     set_cookie,
     with_document_cookie,
 ):
@@ -255,10 +255,10 @@ async def test_partition_user_context(
     cookie2_partition = StorageKeyPartitionDescriptor(user_context=user_context_2)
 
     if with_document_cookie:
-        await add_cookie(
+        await add_document_cookie(
             new_context_1["context"], cookie1_name, cookie1_value, path="/", secure=True
         )
-        await add_cookie(
+        await add_document_cookie(
             new_context_2["context"], cookie2_name, cookie2_value, path="/", secure=True
         )
     else:

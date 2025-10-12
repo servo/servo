@@ -20,12 +20,16 @@
   }
   #target {
     --none: no;
-    --y: no;
+    --top: no;
+    --bottom: no;
     @container scroll-state(scrolled: none) {
       --none: yes;
     }
-    @container scroll-state(scrolled: y) {
-      --y: yes;
+    @container scroll-state(scrolled: top) {
+      --top: yes;
+    }
+    @container scroll-state(scrolled: bottom) {
+      --bottom: yes;
     }
   }
 </style>
@@ -60,9 +64,9 @@
 
     await touch_scroll(start_pos, end_pos, 1000);
     await waitForAnimationFrames(2);
-    assert_equals(getComputedStyle(target).getPropertyValue("--y"), "no");
+    assert_equals(getComputedStyle(target).getPropertyValue("--bottom"), "yes");
 
-  }, "Panning gesture scroll is an absolute scroll");
+  }, "Panning gesture scroll is a relative scroll");
 
   promise_test(async t => {
     // Scrollbar element position
@@ -70,11 +74,11 @@
       x: 100,
       y: 100,
     };
-    const end_pos = { x: 100, y: 0 };
+    const end_pos = { x: 100, y: 150 };
 
     await touch_scroll(start_pos, end_pos, 10);
     await waitForAnimationFrames(2);
-    assert_equals(getComputedStyle(target).getPropertyValue("--y"), "yes");
+    assert_equals(getComputedStyle(target).getPropertyValue("--top"), "yes");
 
   }, "Fling gesture scroll is a relative scroll");
 

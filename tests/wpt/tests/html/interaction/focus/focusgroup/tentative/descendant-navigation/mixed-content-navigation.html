@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Navigation with mixed focusable and non-focusable descendants</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div id=root focusgroup="toolbar">
+  <span id=item1 tabindex=0>Item 1</span>
+
+  <div class="section">
+    <h3>Section Title</h3>
+    <p>Some descriptive text that is not focusable</p>
+    <span id=item2 tabindex=-1>Item 2</span>
+
+    <div>
+      <span>More non-focusable content</span>
+      <div>
+        <span>Nested non-focusable</span>
+        <span id=item3 tabindex=-1>Item 3</span>
+        <span>More text</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="another-section">
+    <ul>
+      <li>List item (not focusable)</li>
+      <li><span id=item4 tabindex=-1>Item 4</span></li>
+      <li>Another list item</li>
+    </ul>
+  </div>
+
+  <footer>
+    <p>Footer content</p>
+    <span id=item5 tabindex=-1>Item 5</span>
+  </footer>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    var item1 = document.getElementById("item1");
+    var item2 = document.getElementById("item2");
+    var item3 = document.getElementById("item3");
+    var item4 = document.getElementById("item4");
+    var item5 = document.getElementById("item5");
+
+    await focusAndKeyPress(item1, kArrowRight);
+    assert_equals(document.activeElement, item2, "Should skip non-focusable content and navigate to item2");
+
+    await focusAndKeyPress(item2, kArrowRight);
+    assert_equals(document.activeElement, item3, "Should skip non-focusable nested content and navigate to item3");
+
+    await focusAndKeyPress(item3, kArrowRight);
+    assert_equals(document.activeElement, item4, "Should skip list content and navigate to focusable span");
+
+    await focusAndKeyPress(item4, kArrowRight);
+    assert_equals(document.activeElement, item5, "Should skip footer text and navigate to final span");
+  }, "Navigation should skip non-focusable descendants and only move between focusable items");
+
+  promise_test(async t => {
+    var item1 = document.getElementById("item1");
+    var item2 = document.getElementById("item2");
+    var item3 = document.getElementById("item3");
+    var item4 = document.getElementById("item4");
+    var item5 = document.getElementById("item5");
+
+    item5.focus();
+    await focusAndKeyPress(item5, kArrowLeft);
+    assert_equals(document.activeElement, item4, "Should navigate backward to link");
+
+    await focusAndKeyPress(item4, kArrowLeft);
+    assert_equals(document.activeElement, item3, "Should navigate backward to nested span");
+
+    await focusAndKeyPress(item3, kArrowLeft);
+    assert_equals(document.activeElement, item2, "Should navigate backward to span");
+
+    await focusAndKeyPress(item2, kArrowLeft);
+    assert_equals(document.activeElement, item1, "Should navigate backward to first item");
+  }, "Backward navigation should skip non-focusable descendants");
+
+  promise_test(async t => {
+    var item1 = document.getElementById("item1");
+    var item2 = document.getElementById("item2");
+
+    await focusAndKeyPress(item1, kArrowDown);
+    assert_equals(document.activeElement, item2, "Vertical navigation should work with mixed content");
+  }, "Vertical navigation should work correctly with mixed focusable/non-focusable content");
+
+</script>

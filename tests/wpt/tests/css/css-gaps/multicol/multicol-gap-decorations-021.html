@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<title>Row rule and single-column mulitcol</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#gap-decoration-shorthands">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:1/20px; width:100px; height:100px; gap:10px; row-rule:10px solid green; background:red;">
+  <div style="height:70px; background:green;"></div>
+</div>

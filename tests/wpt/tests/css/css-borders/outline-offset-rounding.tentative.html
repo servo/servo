@@ -1,0 +1,37 @@
+<!doctype html>
+<title>outline-offset gets snapped like outline-width</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12906">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  const values = [
+    { input: "0px", expected: "0px" },
+    { input: "0.1px", expected: "1px" },
+    { input: "0.25px", expected: "1px" },
+    { input: "0.5px", expected: "1px" },
+    { input: "0.9px", expected: "1px" },
+    { input: "1px", expected: "1px" },
+    { input: "1.25px", expected: "1px" },
+    { input: "1.5px", expected: "1px" },
+    { input: "2px", expected: "2px" },
+    { input: "2.75px", expected: "2px" },
+  ];
+
+  for (const {input, expected} of values) {
+    test(function() {
+      const div = document.createElement("div");
+      div.style.outlineOffset = input;
+      document.body.appendChild(div);
+      assert_equals(getComputedStyle(div).outlineOffset, expected);
+    }, input)
+
+    let negExpected = input == "0px" ? "0px" : "-" + expected;
+    test(function() {
+      const div = document.createElement("div");
+      div.style.outlineOffset = "-" + input;
+      document.body.appendChild(div);
+      assert_equals(getComputedStyle(div).outlineOffset, negExpected);
+    }, "-" + input)
+  }
+</script>

@@ -53,11 +53,12 @@ const tests = [
     output: {dataType: 'float32', shape: [4, 7]}
   },
   {
-    name: '[pad] Throw if building pad for scalar input.',
+    name:
+        '[pad] Test pad for scalar input with empty beginningPadding and endingPadding.',
     input: {dataType: 'float32', shape: []},
     beginningPadding: [],
     endingPadding: [],
-    options: {label}
+    output: {dataType: 'float32', shape: []}
   },
   {
     name:

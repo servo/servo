@@ -23,8 +23,8 @@
         width: 100%;
         background-color: blue;
         animation: slide-in 3s none;
-        timeline-trigger: --trigger view() alternate contain 0% contain 100%;
-        animation-trigger: trigger(--trigger, enter play-forwards, exit play-backwards);
+        timeline-trigger: --trigger view() contain 0% contain 100%;
+        animation-trigger: --trigger play-forwards play-backwards;
       }
       .space {
         height: 250px;

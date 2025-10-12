@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Wrapping works correctly with nested descendants</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div id=root focusgroup="toolbar wrap">
+  <div class="first-section">
+    <button id=first tabindex=0>First Item</button>
+  </div>
+  <div class="middle-section">
+    <div>
+      <div>
+        <button id=middle tabindex=-1>Middle Item (nested)</button>
+      </div>
+    </div>
+  </div>
+  <div class="last-section">
+    <span>
+      <button id=last tabindex=-1>Last Item</button>
+    </span>
+  </div>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    var first = document.getElementById("first");
+    var middle = document.getElementById("middle");
+    var last = document.getElementById("last");
+
+    last.focus();
+    await focusAndKeyPress(last, kArrowRight);
+    assert_equals(document.activeElement, first, "Should wrap from last nested item to first item");
+  }, "Forward wrapping should work from nested descendants to first item");
+
+  promise_test(async t => {
+    var first = document.getElementById("first");
+    var middle = document.getElementById("middle");
+    var last = document.getElementById("last");
+
+    first.focus();
+    await focusAndKeyPress(first, kArrowLeft);
+    assert_equals(document.activeElement, last, "Should wrap from first item to last nested item");
+  }, "Backward wrapping should work from first item to nested descendants");
+
+  promise_test(async t => {
+    var first = document.getElementById("first");
+    var middle = document.getElementById("middle");
+    var last = document.getElementById("last");
+
+    first.focus();
+    await focusAndKeyPress(first, kArrowRight);
+    assert_equals(document.activeElement, middle, "Should navigate normally to middle nested item");
+
+    await focusAndKeyPress(middle, kArrowRight);
+    assert_equals(document.activeElement, last, "Should navigate normally to last nested item");
+  }, "Normal navigation should still work correctly with nested items");
+
+  promise_test(async t => {
+    var first = document.getElementById("first");
+    var last = document.getElementById("last");
+
+    last.focus();
+    await focusAndKeyPress(last, kArrowDown);
+    assert_equals(document.activeElement, first, "Vertical wrapping should work with nested descendants");
+  }, "Vertical wrapping should work correctly with nested descendants");
+
+</script>

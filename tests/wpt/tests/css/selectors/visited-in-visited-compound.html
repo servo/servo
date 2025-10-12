@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>Behavior of :visited with a compound subject selector</title>
+<!--
+  Note: this test is intentionally not specific about the exact expected
+  result, since the exact behavior is not specified well at the moment.
+  As long as a#inner and #inner (see -ref.html) behaves the same way
+  for the same DOM, we consider that a pass.
+-->
+<link rel="help" href="https://drafts.csswg.org/selectors/#visited-pseudo">
+<link rel="match" href="visited-in-visited-compound-ref.html">
+<style>
+  :visited > a#inner { color: red; }
+</style>
+<a href="" id=outer>Visited1</a>
+<script>
+  window.onload = () => {
+    // Use script, since the parser can't produce this.
+    let inner = document.createElement('a');
+    inner.setAttribute('href', '');
+    inner.setAttribute('id', 'inner');
+    inner.textContent = 'Visited2';
+    outer.append(inner);
+  }
+</script>

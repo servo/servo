@@ -27,11 +27,10 @@
             { duration: ANIMATION_DURATION_MS, fill: "both" }
           ));
         const trigger = new EventTrigger({
-          behavior: "alternate",
           eventType: "click",
           eventTarget: eventTarget
         });
-        trigger.addAnimation(animation, "click", "play-alternate");
+        trigger.addAnimation(animation, "play-alternate");
         await waitForAnimationFrames(1);
         assert_equals(animation.playState, "idle", "animation is idle");
         assert_equals(animation.playbackRate, 1, "playbackRate is initially 1");

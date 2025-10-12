@@ -126,12 +126,6 @@ for (const id of ['defaultbutton', 'custombutton']) {
 
   promise_test(async t => {
     addCloseCleanup(t);
-
-    await test_driver.send_keys(select, Enter);
-    await new Promise(requestAnimationFrame);
-    assert_false(select.matches(':open'),
-      'Enter should not open the listbox when outside a form.');
-
     form.appendChild(select);
     let formWasSubmitted = false;
     form.addEventListener('submit', event => {
@@ -141,10 +135,15 @@ for (const id of ['defaultbutton', 'custombutton']) {
     await test_driver.send_keys(select, Enter);
     await new Promise(requestAnimationFrame);
     assert_false(formWasSubmitted,
-      'Enter should submit the form when the listbox is closed.');
-    assert_false(select.matches(':open'),
-      'Enter should not open the listbox when it is in a form.');
-  }, `${id}: When the listbox is closed, the enter key should submit the form or do nothing.`);
+      'Enter should not submit the form when the listbox is closed.');
+    if (navigator.platform.startsWith('Mac')) {
+      assert_false(select.matches(':open'),
+        'Enter should not open the listbox on Mac platforms.');
+    } else {
+      assert_true(select.matches(':open'),
+        'Enter should open the listbox on non-Mac platforms.');
+    }
+  }, `${id}: When the listbox is closed, the enter key should not trigger form submission.`);
 
   promise_test(async t => {
     addCloseCleanup(t);

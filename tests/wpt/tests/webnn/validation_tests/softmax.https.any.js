@@ -80,6 +80,11 @@ const tests = [
     name: '[softmax] Throw if the axis is greater than input rank - 1.',
     input: {dataType: 'float16', shape: [3, 1, 5, 2]},
     axis: 4
+  },
+  {
+    name: '[softmax] Throw if the input is a scalar.',
+    input: {dataType: 'float32', shape: []},
+    axis: 0
   }
 ];
 

@@ -65,7 +65,6 @@
       function setupAnimationTrigger(use_default_trigger=false) {
         const trigger = use_default_trigger ? new TimelineTrigger()
             : new TimelineTrigger({
-              behavior: "alternate",
               timeline: view_timeline,
               rangeStart: `${TRIGGER_START_PX}px`,
               rangeEnd: `${TRIGGER_END_PX}px`
@@ -79,8 +78,7 @@
 
         // As the default trigger is always  in the tripped state, the animation
         // should be played right away.
-        trigger.addAnimation(animation, "enter", "play-forwards");
-        trigger.addAnimation(animation, "exit", "play-backwards");
+        trigger.addAnimation(animation, "play-forwards", "play-backwards");
         await animation.finished;
 
         assert_times_equal(animation.currentTime, ANIMATION_DURATION_MS,
@@ -99,8 +97,7 @@
         assert_equals(scroller.scrollTop, 0, "scroller is not scrolled, i.e. " +
           "not within the trigger range");
 
-        trigger.addAnimation(animation, "enter", "play-forwards");
-        trigger.addAnimation(animation, "exit", "play-backwards");
+        trigger.addAnimation(animation, "play-forwards", "play-backwards");
 
         await waitForAnimationFrames(2);
 
@@ -136,8 +133,7 @@
         assert_equals(animation.playState, "idle", "animation is still idle");
         assert_equals(animation.currentTime, null, "currentTime is still null");
 
-        trigger.addAnimation(animation, "enter", "play-forwards");
-        trigger.addAnimation(animation, "exit", "play-backwards");
+        trigger.addAnimation(animation, "play-forwards", "play-backwards");
         await animation.finished;
 
         assert_equals(animation.playState, "finished",

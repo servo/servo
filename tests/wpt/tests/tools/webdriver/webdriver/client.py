@@ -407,6 +407,7 @@ class Session:
         self.find = Find(self)
         self.alert = UserPrompt(self)
         self.actions = Actions(self)
+        self.web_extensions = WebExtensions(self)
 
     def __repr__(self):
         return "<%s %s>" % (self.__class__.__name__, self.session_id or "(disconnected)")
@@ -863,6 +864,21 @@ class WebElement:
 
         return self.send_element_command("GET", "property/%s" % name)
 
+
+class WebExtensions:
+    def __init__(self, session):
+        self.session = session
+
+    def install(self, type, path=None, value=None):
+        body = {"type": type}
+        if path is not None:
+            body["path"] = path
+        elif value is not None:
+            body["value"] = value
+        return self.session.send_session_command("POST", "webextension", body)
+
+    def uninstall(self, extension_id):
+        return self.session.send_session_command("DELETE", "webextension/%s" % extension_id)
 
 class WebFrame:
     identifier = "frame-075b-4da1-b6ba-e579c2d3230a"

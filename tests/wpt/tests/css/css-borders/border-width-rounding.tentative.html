@@ -35,19 +35,17 @@
       { input: "2.999px", expected: "2px" },
     ];
 
-    for (const value of values) {
+    for (const { input, expected } of values) {
       const div = document.createElement("div");
-      div.style = `border: solid ${value.input} blue; margin-bottom: 20px;`;
+      div.style = `border: solid ${input} blue; outline: solid ${input} purple; margin-bottom: 20px;`;
       document.body.appendChild(div);
+      test(function() {
+        assert_equals(getComputedStyle(div).borderWidth, expected);
+      }, `border-width: ${input}`);
+      test(function() {
+        assert_equals(getComputedStyle(div).outlineWidth, expected);
+      }, `outline-width: ${input}`);
     }
-
-    test(function() {
-      var targets = document.querySelectorAll("div");
-
-      for (var i=0; i < targets.length; ++i) {
-        assert_equals(getComputedStyle(targets[i]).borderWidth, values[i].expected);
-      }
-    }, "Test that border widths are rounded up when they are greater than 0px but less than 1px, and rounded down when they are greater than 1px.");
     </script>
 </body>
 </html>

@@ -176,14 +176,14 @@ class BidiEmulationSetGeolocationOverrideAction:
             raise ValueError(
                 "Params `error` and `coordinates` are mutually exclusive")
 
-        # If `error` is present, set it. Otherwise, do not pass it (error: None).
-        # Note, unlike `coordinates`, `error` cannot be `UNDEFINED`. It's either
-        # `None` and it's not passed, or some dict value which is passed.
-        error = payload['error'] if 'error' in payload else None
-        # If `error` is present, do not pass `coordinates` (coordinates: UNDEFINED).
-        # Otherwise, remove emulation (coordinates: None).
-        coordinates = payload['coordinates'] if 'coordinates' in payload else (
-            None if error is None else webdriver.bidi.undefined.UNDEFINED)
+        # If `error` is present, set it. Otherwise, use `UNDEFINED`.
+        error = payload['error'] if 'error' in payload else webdriver.bidi.undefined.UNDEFINED
+        coordinates = webdriver.bidi.undefined.UNDEFINED
+        if 'coordinates' in payload:
+            coordinates = payload['coordinates']
+        elif error is webdriver.bidi.undefined.UNDEFINED:
+            # If `error` is not present, pass `coordinates` of null.
+            coordinates = None
 
         if "contexts" not in payload:
             raise ValueError("Missing required parameter: contexts")
@@ -314,4 +314,6 @@ async_actions = [
     BidiEmulationSetScreenOrientationOverrideAction,
     BidiPermissionsSetPermissionAction,
     BidiSessionSubscribeAction,
-    BidiSessionUnsubscribeAction]
+    BidiSessionUnsubscribeAction,
+    BidiPermissionsSetPermissionAction,
+    BidiSessionSubscribeAction]

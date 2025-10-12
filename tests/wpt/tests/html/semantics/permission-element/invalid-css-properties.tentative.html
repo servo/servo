@@ -18,6 +18,8 @@
     transform: rotate(10);
     border: 0px;
     cursor: none;
+    content-visibility: hidden;
+    contain: size;
   }
 </style>
 
@@ -34,6 +36,8 @@
     assert_equals(getComputedStyle(el_with_negatives).paddingLeft, "0px", "padding-left");
     assert_equals(getComputedStyle(el_with_negatives).transform, "none", "transform");
     assert_equals(getComputedStyle(el_with_negatives).cursor, "pointer", "cursor");
+    assert_equals(getComputedStyle(el_with_negatives).contentVisibility, "visible", "content-visibility");
+    assert_equals(getComputedStyle(el_with_negatives).contain, "none", "contain");
   }, "None of the listed properties should be applied");
 </script>
 </body>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Complex opt-out scenarios with nested structures</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div id=root focusgroup="toolbar">
+  <button id=item1 tabindex=0>Item 1</button>
+
+  <div>
+    <button id=item2 tabindex=-1>Item 2</button>
+
+    <div id=optout1 focusgroup="none">
+      <button id=optout_item1 tabindex=-1>Opted out 1</button>
+
+      <div>
+        <button id=optout_item2 tabindex=-1>Opted out 2 (nested)</button>
+
+        <!-- Nested focusgroup within opt-out should function independently and not participate in ancestor group -->
+        <div id=nested_in_optout focusgroup="menu">
+          <button id=nested_optout_item1 tabindex=-1>Nested in opt-out 1</button>
+          <button id=nested_optout_item2 tabindex=-1>Nested in opt-out 2</button>
+        </div>
+      </div>
+
+      <!-- Another opt-out within opt-out (redundant but valid) -->
+      <div id=optout2 focusgroup="none">
+        <button id=double_optout tabindex=-1>Double opt-out</button>
+      </div>
+    </div>
+
+    <button id=item3 tabindex=-1>Item 3</button>
+  </div>
+
+  <div>
+    <div>
+      <button id=item4 tabindex=-1>Item 4 (deeply nested)</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  promise_test(async t => {
+    const item1 = document.getElementById("item1");
+    const item2 = document.getElementById("item2");
+    const item3 = document.getElementById("item3");
+    const item4 = document.getElementById("item4");
+
+    await focusAndKeyPress(item1, kArrowRight);
+    assert_equals(document.activeElement, item2, "Should navigate to item2");
+
+    await focusAndKeyPress(item2, kArrowRight);
+    assert_equals(document.activeElement, item3, "Should skip entire opted-out section (including nested scope) and navigate to item3");
+
+    await focusAndKeyPress(item3, kArrowRight);
+    assert_equals(document.activeElement, item4, "Should navigate to deeply nested item4");
+  }, "Outer focusgroup navigation skips opted-out subtree");
+
+  promise_test(async t => {
+    const optout_item1 = document.getElementById("optout_item1");
+    const optout_item2 = document.getElementById("optout_item2");
+    const double_optout = document.getElementById("double_optout");
+
+    optout_item1.focus();
+    await focusAndKeyPress(optout_item1, kArrowRight);
+    assert_equals(document.activeElement, optout_item1, "Arrow keys should not move within opted-out generic subtree");
+
+    optout_item2.focus();
+    await focusAndKeyPress(optout_item2, kArrowRight);
+    assert_equals(document.activeElement, optout_item2, "Arrow keys should not move within opted-out generic subtree (nested)");
+
+    double_optout.focus();
+    await focusAndKeyPress(double_optout, kArrowRight);
+    assert_equals(document.activeElement, double_optout, "Double opt-out still blocks navigation");
+  }, "Opt-out subtree blocks navigation for its own items");
+
+  promise_test(async t => {
+    const nested_scope = document.getElementById("nested_in_optout");
+    const nested_item1 = document.getElementById("nested_optout_item1");
+    const nested_item2 = document.getElementById("nested_optout_item2");
+
+    nested_item1.focus();
+    await focusAndKeyPress(nested_item1, kArrowRight);
+    assert_equals(document.activeElement, nested_item2, "Nested focusgroup should allow forward navigation inside opt-out subtree");
+
+    await focusAndKeyPress(nested_item2, kArrowLeft);
+    assert_equals(document.activeElement, nested_item1, "Nested focusgroup should allow backward navigation inside opt-out subtree");
+
+    await focusAndKeyPress(nested_item1, kArrowLeft);
+    assert_equals(document.activeElement, nested_item1, "Backward navigation inside nested scope should not jump to outer items");
+  }, "Nested focusgroup inside opted-out subtree still works internally");
+
+  promise_test(async t => {
+    const item2 = document.getElementById("item2");
+    const item3 = document.getElementById("item3");
+    const item4 = document.getElementById("item4");
+
+    item4.focus();
+    await focusAndKeyPress(item4, kArrowLeft);
+    assert_equals(document.activeElement, item3, "Should navigate backward to item3");
+
+    await focusAndKeyPress(item3, kArrowLeft);
+    assert_equals(document.activeElement, item2, "Should skip opted-out section backward and navigate to item2");
+  }, "Backward outer navigation skips opted-out subtree");
+
+  promise_test(async t => {
+    const root = document.getElementById("root");
+    const allButtons = Array.from(root.querySelectorAll("button"));
+    const outerGroupButtons = allButtons.filter(btn => {
+      for (let n = btn.parentElement; n; n = n.parentElement) {
+        if (n.hasAttribute("focusgroup") && n.getAttribute("focusgroup") === "none")
+          return false;
+        if (n.id === "nested_in_optout")
+          return false;
+        if (n.id === "root")
+          break;
+      }
+      return true;
+    });
+    const ids = outerGroupButtons.map(b => b.id).sort();
+    assert_array_equals(ids, ["item1","item2","item3","item4"], "Outer scope should only include four non-opted-out items");
+  }, "Outer focusgroup membership excludes opted-out and nested scope items");
+</script>

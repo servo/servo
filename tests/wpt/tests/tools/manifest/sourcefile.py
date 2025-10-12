@@ -379,6 +379,12 @@ class SourceFile:
         return "window" in self.meta_flags and self.ext == ".js"
 
     @property
+    def name_is_extension(self) -> bool:
+        """Check if the file name matches the conditions for the file to
+        be a extension js test file"""
+        return "extension" in self.meta_flags and self.ext == ".js"
+
+    @property
     def name_is_webdriver(self) -> bool:
         """Check if the file name matches the conditions for the file to
         be a webdriver spec test file"""
@@ -466,7 +472,7 @@ class SourceFile:
 
     @cached_property
     def script_metadata(self) -> Optional[List[Tuple[Text, Text]]]:
-        if self.name_is_worker or self.name_is_multi_global or self.name_is_window:
+        if self.name_is_worker or self.name_is_multi_global or self.name_is_window or self.name_is_extension:
             regexp = js_meta_re
         elif self.name_is_webdriver:
             regexp = python_meta_re
@@ -911,6 +917,9 @@ class SourceFile:
         if self.name_is_window:
             return {TestharnessTest.item_type}
 
+        if self.name_is_extension:
+            return {TestharnessTest.item_type}
+
         if self.markup_type is None:
             return {SupportFile.item_type}
 
@@ -1069,6 +1078,22 @@ class SourceFile:
                     timeout=self.timeout,
                     pac=self.pac,
                     testdriver_features=self.testdriver_features,
+                    script_metadata=self.script_metadata
+                )
+                for variant in self.test_variants
+            ]
+            rv = TestharnessTest.item_type, tests
+
+        elif self.name_is_extension:
+            test_url = replace_end(self.rel_url, ".extension.js", ".extension.html")
+            tests = [
+                TestharnessTest(
+                    self.tests_root,
+                    self.rel_path,
+                    self.url_base,
+                    test_url + variant,
+                    timeout=self.timeout,
+                    pac=self.pac,
                     script_metadata=self.script_metadata
                 )
                 for variant in self.test_variants

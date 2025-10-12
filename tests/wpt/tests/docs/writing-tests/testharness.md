@@ -199,7 +199,35 @@ dedicated worker tests and shared worker
 tests](testharness-api.html#determining-when-all-tests-are-complete), it is
 automatically invoked for tests defined using the "multi-global" pattern.
 
-## Other features of `.window.js`, `.worker.js` and `.any.js`
+## Extension tests (`.extension.js`)
+
+Create a JavaScript file whose name ends in `.extension.js` to have the necessary HTML boilerplate
+generated for you at `.extension.html`.
+
+Extension tests leverage the `browser.test` API rather than interacting with the `testharness.js`
+framework directly.
+
+For example, one could write a test for `browser.runtime.getURL()` by creating a
+`web-extensions/browser.runtime.extension.js` file as follows:
+
+```js
+runTestsWithWebExtension("/resources/runtime/")
+// ==> this method assumes that the extension resources (manifest, scripts, etc.) exist at the path
+```
+
+And by creating a `web-extensions/resources/runtime/background.js` file as follows:
+
+```js
+browser.test.runTests([
+  function getURLWithNoParameter() {
+    browser.test.assertThrows(() => browser.runtime.getURL())
+  }
+])
+```
+
+This test could then be run from `web-extensions/browser.runtime.extension.html`.
+
+## Other features of `.window.js`, `.worker.js`, `.any.js` and `.extension.js`
 
 ### Specifying a test title
 

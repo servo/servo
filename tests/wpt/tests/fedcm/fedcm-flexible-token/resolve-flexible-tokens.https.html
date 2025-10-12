@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<title>FedCM: IdentityProvider.resolve() with flexible token formats</title>
+<meta name="timeout" content="long">
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import {fedcm_test,
+        request_options_with_mediation_required,
+        select_manifest,
+        fedcm_get_and_select_first_account} from '../support/fedcm-helper.sub.js';
+
+// Test 1: String token
+fedcm_test(async t => {
+  const options = request_options_with_mediation_required('manifest_continue_on_flexible_tokens.json');
+  options.identity.providers[0].params = {
+    accountId: "jane_doe",
+    tokenType: "string",
+    tokenValue: "account=jane_doe"
+  };
+
+  await select_manifest(t, options);
+  const cred = await fedcm_get_and_select_first_account(t, options);
+  assert_equals(cred.token, "account=jane_doe");
+}, "IdentityProvider.resolve() with string token");
+
+// Test 2: Positive number token
+fedcm_test(async t => {
+  const options = request_options_with_mediation_required('manifest_continue_on_flexible_tokens.json');
+  options.identity.providers[0].params = {
+    accountId: "jane_doe",
+    tokenType: "number",
+    tokenValue: 42
+  };
+
+  await select_manifest(t, options);
+  const cred = await fedcm_get_and_select_first_account(t, options);
+  assert_equals(cred.token, 42);
+}, "IdentityProvider.resolve() with positive number token");
+
+// Test 3: Boolean token(true)
+fedcm_test(async t => {
+  const options = request_options_with_mediation_required('manifest_continue_on_flexible_tokens.json');
+  options.identity.providers[0].params = {
+    accountId: "jane_doe",
+    tokenType: "boolean",
+    tokenValue: true
+  };
+
+  await select_manifest(t, options);
+  const cred = await fedcm_get_and_select_first_account(t, options);
+  assert_equals(cred.token, true);
+}, "IdentityProvider.resolve() with boolean(true) token");
+
+// Test 4: Null token
+fedcm_test(async t => {
+  const options = request_options_with_mediation_required('manifest_continue_on_flexible_tokens.json');
+  options.identity.providers[0].params = {
+    accountId: "jane_doe",
+    tokenType: "null",
+    tokenValue: null
+  };
+
+  await select_manifest(t, options);
+  const cred = await fedcm_get_and_select_first_account(t, options);
+  assert_equals(cred.token, null);
+}, "IdentityProvider.resolve() with null token");
+
+// Test 5: Object token
+fedcm_test(async t => {
+  const options = request_options_with_mediation_required('manifest_continue_on_flexible_tokens.json');
+  options.identity.providers[0].params = {
+    accountId: "jane_doe",
+    tokenType: "object",
+    tokenValue: {id: 42, name: "test", active: true}
+  };
+
+  await select_manifest(t, options);
+  const cred = await fedcm_get_and_select_first_account(t, options);
+  assert_equals(cred.token.id, 42);
+  assert_equals(cred.token.name, "test");
+  assert_equals(cred.token.active, true);
+}, "IdentityProvider.resolve() with object token");
+
+// Test 6: Array token
+fedcm_test(async t => {
+  const options = request_options_with_mediation_required('manifest_continue_on_flexible_tokens.json');
+  options.identity.providers[0].params = {
+    accountId: "jane_doe",
+    tokenType: "array",
+    tokenValue: [1, "test", true, null, {key: "value"}]
+  };
+
+  await select_manifest(t, options);
+  const cred = await fedcm_get_and_select_first_account(t, options);
+  assert_equals(cred.token.length, 5);
+  assert_equals(cred.token[0], 1);
+  assert_equals(cred.token[1], "test");
+  assert_equals(cred.token[2], true);
+  assert_equals(cred.token[3], null);
+  assert_equals(cred.token[4].key, "value");
+}, "IdentityProvider.resolve() with array token");
+
+</script>

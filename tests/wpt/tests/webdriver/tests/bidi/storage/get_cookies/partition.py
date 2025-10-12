@@ -19,7 +19,7 @@ async def test_default_partition(
     test_page,
     test_page_cross_origin,
     domain_value,
-    add_cookie,
+    add_document_cookie,
 ):
     await bidi_session.browsing_context.navigate(
         context=top_context["context"], url=test_page_cross_origin, wait="complete"
@@ -30,11 +30,11 @@ async def test_default_partition(
 
     cookie1_name = "foo"
     cookie1_value = "bar"
-    await add_cookie(new_tab["context"], cookie1_name, cookie1_value, secure=True)
+    await add_document_cookie(new_tab["context"], cookie1_name, cookie1_value, secure=True)
 
     cookie2_name = "foo_2"
     cookie2_value = "bar_2"
-    await add_cookie(top_context["context"], cookie2_name, cookie2_value, secure=True)
+    await add_document_cookie(top_context["context"], cookie2_name, cookie2_value, secure=True)
 
     cookies = await bidi_session.storage.get_cookies()
 
@@ -75,7 +75,7 @@ async def test_partition_context(
     new_tab,
     test_page,
     domain_value,
-    add_cookie,
+    add_document_cookie,
     create_user_context,
     test_page_cross_origin,
 ):
@@ -94,7 +94,7 @@ async def test_partition_context(
 
     cookie_name = "foo"
     cookie_value = "bar"
-    await add_cookie(new_tab["context"], cookie_name, cookie_value, secure=True)
+    await add_document_cookie(new_tab["context"], cookie_name, cookie_value, secure=True)
 
     # Check that added cookies are present on the right context.
     cookies = await bidi_session.storage.get_cookies(
@@ -300,7 +300,7 @@ async def test_partition_default_user_context(
     bidi_session,
     test_page,
     domain_value,
-    add_cookie,
+    add_document_cookie,
 ):
     new_context = await bidi_session.browsing_context.create(type_hint="tab")
     await bidi_session.browsing_context.navigate(
@@ -309,7 +309,7 @@ async def test_partition_default_user_context(
 
     cookie_name = "foo"
     cookie_value = "bar"
-    await add_cookie(new_context["context"], cookie_name, cookie_value, secure=True)
+    await add_document_cookie(new_context["context"], cookie_name, cookie_value, secure=True)
 
     # Check that added cookies are present on the right user context.
     result = await bidi_session.storage.get_cookies(
@@ -342,7 +342,7 @@ async def test_partition_user_context(
     domain_value,
     create_user_context,
     test_page_cross_origin,
-    add_cookie,
+    add_document_cookie,
 ):
     user_context_1 = await create_user_context()
     new_context_1 = await bidi_session.browsing_context.create(
@@ -362,7 +362,7 @@ async def test_partition_user_context(
 
     cookie_name = "foo_1"
     cookie_value = "bar_1"
-    await add_cookie(new_context_1["context"], cookie_name, cookie_value, secure=True)
+    await add_document_cookie(new_context_1["context"], cookie_name, cookie_value, secure=True)
 
     # Check that added cookies are present on the right user context.
     result = await bidi_session.storage.get_cookies(

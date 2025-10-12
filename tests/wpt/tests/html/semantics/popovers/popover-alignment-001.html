@@ -21,6 +21,6 @@ Orange box should be centered on the screen.
 <div id="p1" popover></div>
 
 <script>
-document.querySelector("[popover]").showPopover();
+document.querySelector("[popover]").showPopover({ source: document.querySelector("button") });
 document.documentElement.removeAttribute("class");
 </script>

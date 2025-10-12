@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>focusgroup: shadow DOM items navigation</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<!-- In the scoped focusgroup model the behavior token (e.g. toolbar) must be
+  the first token. The focusgroup scope includes the element with the
+  attribute and its shadow-inclusive descendants. To exercise cross shadow
+  boundary behavior, put the focusgroup on the shadow host itself. -->
+<div id=host focusgroup="toolbar inline"></div>
+
+<script>
+  function deepActiveElement(root = document) {
+    let a = root.activeElement;
+    while (a && a.shadowRoot && a.shadowRoot.activeElement) {
+      a = a.shadowRoot.activeElement;
+    }
+    return a;
+  }
+  promise_test(async t => {
+    const host = document.getElementById('host');
+    const sr = host.attachShadow({mode: 'open'});
+    sr.innerHTML = `
+      <button id=item1 tabindex=0>One</button>
+      <button id=item2 tabindex=-1>Two</button>
+      <button id=item3 tabindex=-1>Three</button>`;
+    const item1 = sr.getElementById('item1');
+    const item2 = sr.getElementById('item2');
+    const item3 = sr.getElementById('item3');
+
+    item1.focus();
+    assert_equals(sr.activeElement, item1, 'Initial focus on item1 (shadow)');
+    assert_equals(deepActiveElement(), item1, 'Deep active element is item1');
+    await sendArrowKey(kArrowRight);
+    assert_equals(sr.activeElement, item2, 'Advance to item2');
+    assert_equals(deepActiveElement(), item2, 'Deep active element is item2');
+
+    await sendArrowKey(kArrowRight);
+    assert_equals(sr.activeElement, item3, 'Advance to item3');
+    assert_equals(deepActiveElement(), item3, 'Deep active element is item3');
+
+    await sendArrowKey(kArrowRight);
+    assert_equals(sr.activeElement, item3, 'No wrap; remains on item3');
+    assert_equals(deepActiveElement(), item3, 'Deep active element remains item3');
+  }, 'Shadow host focusgroup scopes shadow root items for navigation');
+</script>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Opt-out creates navigation barriers</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div id=root focusgroup="toolbar">
+  <button id=item1 tabindex=0>Item 1</button>
+  <button id=item2 tabindex=-1>Item 2</button>
+
+  <div id=optout focusgroup="none">
+    <button id=optout_item1 tabindex=-1>Opted out item 1</button>
+    <div>
+      <button id=optout_item2 tabindex=-1>Opted out item 2</button>
+    </div>
+  </div>
+
+  <button id=item3 tabindex=-1>Item 3</button>
+  <button id=item4 tabindex=-1>Item 4</button>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    var item1 = document.getElementById("item1");
+    var item2 = document.getElementById("item2");
+    var item3 = document.getElementById("item3");
+    var optout_item1 = document.getElementById("optout_item1");
+
+    await focusAndKeyPress(item1, kArrowRight);
+    assert_equals(document.activeElement, item2, "Should navigate to item2");
+
+    await focusAndKeyPress(item2, kArrowRight);
+    assert_equals(document.activeElement, item3, "Should skip opted-out section and navigate to item3");
+
+    assert_not_equals(document.activeElement, optout_item1, "Should not navigate to opted-out item");
+  }, "Navigation should skip elements in opted-out focusgroup subtree");
+
+  promise_test(async t => {
+    var item2 = document.getElementById("item2");
+    var item3 = document.getElementById("item3");
+    var item4 = document.getElementById("item4");
+    var optout_item1 = document.getElementById("optout_item1");
+
+    item4.focus();
+    await focusAndKeyPress(item4, kArrowLeft);
+    assert_equals(document.activeElement, item3, "Should navigate to item3");
+
+    await focusAndKeyPress(item3, kArrowLeft);
+    assert_equals(document.activeElement, item2, "Should skip opted-out section and navigate to item2");
+
+    assert_not_equals(document.activeElement, optout_item1, "Should not navigate to opted-out item from reverse");
+  }, "Backward navigation should skip elements in opted-out focusgroup subtree");
+
+  promise_test(async t => {
+    var optout_item1 = document.getElementById("optout_item1");
+    var optout_item2 = document.getElementById("optout_item2");
+
+    optout_item1.focus();
+    assert_equals(document.activeElement, optout_item1, "Should be able to manually focus opted-out item");
+
+    await focusAndKeyPress(optout_item1, kArrowRight);
+    assert_equals(document.activeElement, optout_item1, "Arrow keys should not work within opted-out section");
+
+    await focusAndKeyPress(optout_item1, kArrowDown);
+    assert_equals(document.activeElement, optout_item1, "Vertical arrow keys should not work within opted-out section");
+  }, "Arrow keys should not work within opted-out focusgroup sections");
+
+</script>

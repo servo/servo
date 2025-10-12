@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<title>Layout Instability: attribution rectangles pixel units</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<style>
+
+body { margin: 10px; }
+#shifter { position: relative; width: 100px; height: 100px; background: blue; }
+
+</style>
+<div id="shifter"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+strrect = r => `[${r.x},${r.y},${r.width},${r.height}]`;
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+  const shifter = document.querySelector("#shifter");
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // Modify the position and size of the div.
+  shifter.style = "top: 60px; left: 10px; width: 200px; height: 200px";
+  await watcher.promise;
+
+  const sources = watcher.lastEntry.sources;
+  assert_equals(sources.length, 1);
+
+  const source = sources[0];
+  assert_equals(source.node, shifter);
+
+  // Test that attribution rectangles are in CSS pixels
+  assert_equals(strrect(source.previousRect), "[10,10,100,100]",
+    "previousRect should be in CSS pixels");
+  assert_equals(strrect(source.currentRect), "[20,70,200,200]",
+    "currentRect should be in CSS pixels");
+}, "Attribution rectangles should be in CSS pixels.");
+
+// Test fractional pixel values
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+  const shifter = document.querySelector("#shifter");
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // Test with fractional CSS pixel values
+  shifter.style.cssText = 'position: relative; width: 100.5px; height: 75.25px; background: blue;';
+  await waitForAnimationFrames(2);
+
+  shifter.style.top = '10.5px';
+  shifter.style.left = '15.75px';
+  await watcher.promise;
+
+  const sources = watcher.lastEntry.sources;
+  assert_equals(sources.length, 1);
+
+  const source = sources[0];
+  assert_equals(source.node, shifter);
+
+  // Test that fractional CSS pixel values are preserved
+  assert_equals(source.previousRect.width, 100.5, "previousRect.width should preserve fractional CSS pixels");
+  assert_equals(source.previousRect.height, 75.25, "previousRect.height should preserve fractional CSS pixels");
+}, "Fractional pixel values should be handled correctly.");
+
+</script>

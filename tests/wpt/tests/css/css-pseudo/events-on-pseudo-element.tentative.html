@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: event.pseudoTarget tests with different events </title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#CSSPseudoElement-interface">
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  @keyframes slide-in {
+    from {
+      transform: translateX(100%) scaleX(3);
+    }
+
+    to {
+      transform: translateX(0) scaleX(1);
+    }
+  }
+
+  div {
+    scroll-marker-group: after;
+    overflow: scroll;
+    height: 200px;
+
+    li {
+      height: 200px;
+      background: purple;
+      border: 1px solid black;
+
+      &::scroll-marker {
+        content: "S";
+        padding: 10px;
+        color: white;
+        background: red;
+        transition-property: transform, background;
+        transition-duration: 2s;
+        transition-delay: 1s;
+        animation-duration: 2s;
+        animation-name: slide-in;
+      }
+
+      &::scroll-marker:hover {
+        background: blue;
+        transform: rotate(90deg);
+      }
+    }
+  }
+</style>
+<div>
+  <li id="target">1</li>
+</div>
+<script>
+  const target = document.getElementById("target");
+
+  let animationstartTarget = null;
+  let animationstartPseudoTarget = null;
+  let animationendTarget = null;
+  let animationendPseudoTarget = null;
+  let clickTarget = null;
+  let clickPseudoTarget = null;
+  let dblclickTarget = null;
+  let dblclickPseudoTarget = null;
+  let mouseoverTarget = null;
+  let mouseoverPseudoTarget = null;
+  let focusinTarget = null;
+  let focusinPseudoTarget = null;
+  let focusoutTarget = null;
+  let focusoutPseudoTarget = null;
+  let keydownTarget = null;
+  let keydownPseudoTarget = null;
+  let keyupTarget = null;
+  let keyupPseudoTarget = null;
+  let transitionstartTarget = null;
+  let transitionstartPseudoTarget = null;
+  let transitionendTarget = null;
+  let transitionendPseudoTarget = null;
+
+  function waitForEvent(element, eventName) {
+  return new Promise(resolve => {
+    element.addEventListener(eventName, resolve, { once: true });
+  });
+}
+
+  target.addEventListener("animationstart", (e) => {
+    animationstartTarget = e.target;
+    animationstartPseudoTarget = e.pseudoTarget;
+  });
+
+  target.addEventListener("animationend", (e) => {
+    animationendTarget = e.target;
+    animationendPseudoTarget = e.pseudoTarget;
+  });
+
+  target.addEventListener("click", (e) => {
+    clickTarget = e.target;
+    clickPseudoTarget = e.pseudoTarget;
+  });
+
+  target.addEventListener("dblclick", (e) => {
+    dblclickTarget = e.target;
+    dblclickPseudoTarget = e.pseudoTarget;
+  });
+
+  target.addEventListener("mouseover", (e) => {
+    mouseoverTarget = e.target;
+    mouseoverPseudoTarget = e.pseudoTarget;
+  });
+
+  target.addEventListener("focusin", (e) => {
+    focusinTarget = e.target;
+    focusinPseudoTarget = e.pseudoTarget;
+  });
+
+  target.addEventListener("focusout", (e) => {
+    focusoutTarget = e.target;
+    focusoutPseudoTarget = e.pseudoTarget;
+  });
+
+  target.addEventListener("keydown", (e) => {
+    keydownTarget = e.target;
+    keydownPseudoTarget = e.pseudoTarget;
+  });
+
+  target.addEventListener("keyup", (e) => {
+    keyupTarget = e.target;
+    keyupPseudoTarget = e.pseudoTarget;
+  });
+
+  target.addEventListener("transitionstart", (e) => {
+    transitionstartTarget = e.target;
+    transitionstartPseudoTarget = e.pseudoTarget;
+  });
+
+  target.addEventListener("transitionend", (e) => {
+    transitionendTarget = e.target;
+    transitionendPseudoTarget = e.pseudoTarget;
+  });
+
+  const kTab = "\uE004";
+  const kEnter = "\uE007";
+  const scrollMarkerX = 20;
+  const scrollMarkerY = 220;
+  const pseudoElement = target.pseudo("::scroll-marker");
+
+  const animationStartPromise = waitForEvent(target, "animationstart");
+
+  promise_test(async t => {
+    await animationStartPromise;
+    assert_equals(animationstartTarget, target, "event.target is ultimate originating element for animationstart");
+    assert_equals(animationstartPseudoTarget, pseudoElement, "event.pseudoTarget is ::scroll-marker for animationstart");
+
+    await waitForEvent(target, "animationend");
+    assert_equals(animationendTarget, target, "event.target is ultimate originating element for animationend");
+    assert_equals(animationendPseudoTarget, pseudoElement, "event.pseudoTarget is ::scroll-marker for animationend");
+
+    const transitionStartPromise = waitForEvent(target, "transitionstart");
+    await new test_driver.Actions()
+      .pointerMove(scrollMarkerX, scrollMarkerY)
+      .pointerDown()
+      .pointerUp()
+      .pointerDown()
+      .pointerUp()
+      .send();
+    await transitionStartPromise;
+
+    assert_equals(clickTarget, target, "event.target is ultimate originating element for click");
+    assert_equals(clickPseudoTarget, pseudoElement, "event.pseudoTarget is ::scroll-marker for click");
+
+    assert_equals(dblclickTarget, target, "event.target is ultimate originating element for double click");
+    assert_equals(dblclickPseudoTarget, pseudoElement, "event.pseudoTarget is ::scroll-marker for double click");
+
+    assert_equals(mouseoverTarget, target, "event.target is ultimate originating element for mouseover");
+    assert_equals(mouseoverPseudoTarget, pseudoElement, "event.pseudoTarget is ::scroll-marker for mouseover");
+
+    await new test_driver.Actions()
+      .keyDown(kTab)
+      .keyUp(kTab)
+      .keyDown(kEnter)
+      .keyUp(kEnter)
+      .send();
+
+    assert_equals(focusinTarget, target, "event.target is ultimate originating element for focusin");
+    assert_equals(focusinPseudoTarget, pseudoElement, "event.pseudoTarget is ::scroll-marker for focusin");
+
+    assert_equals(focusoutTarget, target, "event.target is ultimate originating element for focusout");
+    assert_equals(focusoutPseudoTarget, pseudoElement, "event.pseudoTarget is ::scroll-marker for focusout");
+
+    assert_equals(keydownTarget, target, "event.target is ultimate originating element for keydown");
+    assert_equals(keydownPseudoTarget, pseudoElement, "event.pseudoTarget is ::scroll-marker for keydown");
+
+    assert_equals(keyupTarget, target, "event.target is ultimate originating element for keyup");
+    assert_equals(keyupPseudoTarget, pseudoElement, "event.pseudoTarget is ::scroll-marker for keyup");
+
+    assert_equals(transitionstartTarget, target, "event.target is ultimate originating element for transitionstart");
+    assert_equals(transitionstartPseudoTarget, pseudoElement, "event.pseudoTarget is ::scroll-marker for transitionstart");
+
+    await waitForEvent(target, "transitionend");
+    assert_equals(transitionendTarget, target, "event.target is ultimate originating element for transitionend");
+    assert_equals(transitionendPseudoTarget, pseudoElement, "event.pseudoTarget is ::scroll-marker for transitionend");
+  });
+</script>

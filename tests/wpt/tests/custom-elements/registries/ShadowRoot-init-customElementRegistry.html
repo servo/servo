@@ -37,14 +37,14 @@ test(() => {
     const host = document.body.appendChild(document.createElement('div'));
     const shadowRoot = host.attachShadow({mode: 'closed', customElementRegistry: null});
     assert_equals(shadowRoot.customElementRegistry, window.customElements);
-}, 'attachShadow() should use the global registry when customElementRegistry is null');
+}, 'attachShadow() should use the global registry when customElementRegistry is null (host uses global registry)');
 
 test(() => {
     const registry = new CustomElementRegistry;
     const host = document.body.appendChild(document.createElement('div', {customElementRegistry: registry}));
     const shadowRoot = host.attachShadow({mode: 'closed', customElementRegistry: null});
-    assert_equals(shadowRoot.customElementRegistry, registry);
-}, 'attachShadow() should use the shadow host\'s registry when customElementRegistry is null');
+    assert_equals(shadowRoot.customElementRegistry, window.customElements);
+}, 'attachShadow() should use the global registry when customElementRegistry is null (host uses custom registry)');
 
 test(() => {
     const registry = new CustomElementRegistry;
