@@ -341,6 +341,18 @@ class TestParser(unittest.TestCase):
                         "wpt_args": "",
                         "build_args": "",
                     },
+                    {
+                        "name": "Coverage",
+                        "number_of_wpt_chunks": 20,
+                        "workflow": "coverage",
+                        "wpt": False,
+                        "profile": "release",
+                        "unit_tests": False,
+                        "build_libservo": False,
+                        "bencher": False,
+                        "wpt_args": "",
+                        "build_args": "",
+                    },
                 ],
             },
         )
