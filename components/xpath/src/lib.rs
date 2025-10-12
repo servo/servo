@@ -2,20 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::fmt::Debug;
-use std::hash::Hash;
-
-use context::EvaluationCtx;
-use markup5ever::{LocalName, Namespace, Prefix};
-use parser::{OwnedParserError, QName, parse as parse_impl};
-
+mod ast;
 mod context;
 mod eval;
 mod eval_function;
 mod parser;
 mod value;
 
-pub use parser::Expr;
+use std::fmt::Debug;
+use std::hash::Hash;
+
+pub use ast::Expression;
+use ast::QName;
+use context::EvaluationCtx;
+use markup5ever::{LocalName, Namespace, Prefix};
+use parser::{OwnedParserError, parse as parse_impl};
 pub use value::{NodesetHelpers, Value};
 
 pub trait Dom {
@@ -94,7 +95,7 @@ pub trait Attribute {
 }
 
 /// Parse an XPath expression from a string
-pub fn parse<E>(xpath: &str) -> Result<Expr, Error<E>> {
+pub fn parse<E>(xpath: &str) -> Result<Expression, Error<E>> {
     match parse_impl(xpath) {
         Ok(expression) => {
             log::debug!("Parsed XPath: {expression:?}");
@@ -109,7 +110,7 @@ pub fn parse<E>(xpath: &str) -> Result<Expr, Error<E>> {
 
 /// Evaluate an already-parsed XPath expression
 pub fn evaluate_parsed_xpath<D: Dom>(
-    expr: &Expr,
+    expr: &Expression,
     context_node: D::Node,
     resolver: Option<D::NamespaceResolver>,
 ) -> Result<Value<D::Node>, Error<D::JsError>> {

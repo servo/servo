@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use malloc_size_of_derive::MallocSizeOf;
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take_while1};
 use nom::character::complete::{char, digit1, multispace0};
@@ -12,213 +11,15 @@ use nom::multi::{many0, separated_list0};
 use nom::sequence::{delimited, pair, preceded};
 use nom::{AsChar, Finish, IResult, Input, Parser};
 
+use crate::ast::{
+    Axis, BinaryOperator, CoreFunction, Expression, FilterExpression, KindTest, Literal,
+    LocationStepExpression, NodeTest, PathExpression, PredicateListExpression, QName,
+};
 use crate::{is_valid_continuation, is_valid_start};
 
-pub(crate) fn parse(input: &str) -> Result<Expr, OwnedParserError> {
+pub(crate) fn parse(input: &str) -> Result<Expression, OwnedParserError> {
     let (_, ast) = expr(input).finish().map_err(OwnedParserError::from)?;
     Ok(ast)
-}
-
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub enum Expr {
-    Binary(Box<Expr>, BinaryOperator, Box<Expr>),
-    Negate(Box<Expr>),
-    Path(PathExpr),
-}
-
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub enum BinaryOperator {
-    Or,
-    And,
-    Union,
-    /// `=`
-    Equal,
-    /// `!=`
-    NotEqual,
-    /// `<`
-    LessThan,
-    /// `>`
-    GreaterThan,
-    /// `<=`
-    LessThanOrEqual,
-    /// `>=`
-    GreaterThanOrEqual,
-    /// `+`
-    Add,
-    /// `-`
-    Subtract,
-    /// `*`
-    Multiply,
-    /// `div`
-    Divide,
-    /// `mod`
-    Modulo,
-}
-
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub struct PathExpr {
-    /// Whether this is an absolute (as opposed to a relative) path expression.
-    ///
-    /// Absolute paths always start at the starting node, not the context node.
-    pub(crate) is_absolute: bool,
-    /// Whether this expression starts with `//`. If it does, then an implicit
-    /// `descendant-or-self::node()` step will be added.
-    pub(crate) is_descendant: bool,
-    pub(crate) steps: Vec<StepExpr>,
-}
-
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) struct PredicateListExpr {
-    pub(crate) predicates: Vec<Expr>,
-}
-
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) struct FilterExpr {
-    pub(crate) primary: PrimaryExpr,
-    pub(crate) predicates: PredicateListExpr,
-}
-
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) enum StepExpr {
-    Filter(FilterExpr),
-    Axis(AxisStep),
-}
-
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) struct AxisStep {
-    pub(crate) axis: Axis,
-    pub(crate) node_test: NodeTest,
-    pub(crate) predicates: PredicateListExpr,
-}
-
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) enum Axis {
-    Child,
-    Descendant,
-    Attribute,
-    Self_,
-    DescendantOrSelf,
-    FollowingSibling,
-    Following,
-    Namespace,
-    Parent,
-    Ancestor,
-    PrecedingSibling,
-    Preceding,
-    AncestorOrSelf,
-}
-
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) enum NodeTest {
-    Name(QName),
-    Wildcard,
-    Kind(KindTest),
-}
-
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub struct QName {
-    pub(crate) prefix: Option<String>,
-    pub(crate) local_part: String,
-}
-
-impl std::fmt::Display for QName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match &self.prefix {
-            Some(prefix) => write!(f, "{}:{}", prefix, self.local_part),
-            None => write!(f, "{}", self.local_part),
-        }
-    }
-}
-
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) enum KindTest {
-    PI(Option<String>),
-    Comment,
-    Text,
-    Node,
-}
-
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) enum PrimaryExpr {
-    Literal(Literal),
-    Variable(QName),
-    Parenthesized(Box<Expr>),
-    ContextItem,
-    /// We only support the built-in core functions
-    Function(CoreFunction),
-}
-
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) enum Literal {
-    Integer(i64),
-    Decimal(f64),
-    String(String),
-}
-
-/// In the DOM we do not support custom functions, so we can enumerate the usable ones
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub(crate) enum CoreFunction {
-    // Node Set Functions
-    /// last()
-    Last,
-    /// position()
-    Position,
-    /// count(node-set)
-    Count(Box<Expr>),
-    /// id(object)
-    Id(Box<Expr>),
-    /// local-name(node-set?)
-    LocalName(Option<Box<Expr>>),
-    /// namespace-uri(node-set?)
-    NamespaceUri(Option<Box<Expr>>),
-    /// name(node-set?)
-    Name(Option<Box<Expr>>),
-
-    // String Functions
-    /// string(object?)
-    String(Option<Box<Expr>>),
-    /// concat(string, string, ...)
-    Concat(Vec<Expr>),
-    /// starts-with(string, string)
-    StartsWith(Box<Expr>, Box<Expr>),
-    /// contains(string, string)
-    Contains(Box<Expr>, Box<Expr>),
-    /// substring-before(string, string)
-    SubstringBefore(Box<Expr>, Box<Expr>),
-    /// substring-after(string, string)
-    SubstringAfter(Box<Expr>, Box<Expr>),
-    /// substring(string, number, number?)
-    Substring(Box<Expr>, Box<Expr>, Option<Box<Expr>>),
-    /// string-length(string?)
-    StringLength(Option<Box<Expr>>),
-    /// normalize-space(string?)
-    NormalizeSpace(Option<Box<Expr>>),
-    /// translate(string, string, string)
-    Translate(Box<Expr>, Box<Expr>, Box<Expr>),
-
-    // Number Functions
-    /// number(object?)
-    Number(Option<Box<Expr>>),
-    /// sum(node-set)
-    Sum(Box<Expr>),
-    /// floor(number)
-    Floor(Box<Expr>),
-    /// ceiling(number)
-    Ceiling(Box<Expr>),
-    /// round(number)
-    Round(Box<Expr>),
-
-    // Boolean Functions
-    /// boolean(object)
-    Boolean(Box<Expr>),
-    /// not(boolean)
-    Not(Box<Expr>),
-    /// true()
-    True,
-    /// false()
-    False,
-    /// lang(string)
-    Lang(Box<Expr>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -245,43 +46,43 @@ impl std::fmt::Display for OwnedParserError {
 impl std::error::Error for OwnedParserError {}
 
 /// Top-level parser
-fn expr(input: &str) -> IResult<&str, Expr> {
+fn expr(input: &str) -> IResult<&str, Expression> {
     expr_single(input)
 }
 
 /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-Expr>
-fn expr_single(input: &str) -> IResult<&str, Expr> {
+fn expr_single(input: &str) -> IResult<&str, Expression> {
     or_expr(input)
 }
 
 /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-OrExpr>
-fn or_expr(input: &str) -> IResult<&str, Expr> {
+fn or_expr(input: &str) -> IResult<&str, Expression> {
     let (input, first) = and_expr(input)?;
     let (input, rest) = many0(preceded(ws(tag("or")), and_expr)).parse(input)?;
 
     Ok((
         input,
         rest.into_iter().fold(first, |acc, expr| {
-            Expr::Binary(Box::new(acc), BinaryOperator::Or, Box::new(expr))
+            Expression::Binary(Box::new(acc), BinaryOperator::Or, Box::new(expr))
         }),
     ))
 }
 
 /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-AndExpr>
-fn and_expr(input: &str) -> IResult<&str, Expr> {
+fn and_expr(input: &str) -> IResult<&str, Expression> {
     let (input, first) = equality_expr(input)?;
     let (input, rest) = many0(preceded(ws(tag("and")), equality_expr)).parse(input)?;
 
     Ok((
         input,
         rest.into_iter().fold(first, |acc, expr| {
-            Expr::Binary(Box::new(acc), BinaryOperator::And, Box::new(expr))
+            Expression::Binary(Box::new(acc), BinaryOperator::And, Box::new(expr))
         }),
     ))
 }
 
 /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-EqualityExpr>
-fn equality_expr(input: &str) -> IResult<&str, Expr> {
+fn equality_expr(input: &str) -> IResult<&str, Expression> {
     let (input, first) = relational_expr(input)?;
     let (input, rest) = many0((
         ws(alt((
@@ -295,13 +96,13 @@ fn equality_expr(input: &str) -> IResult<&str, Expr> {
     Ok((
         input,
         rest.into_iter().fold(first, |acc, (op, expr)| {
-            Expr::Binary(Box::new(acc), op, Box::new(expr))
+            Expression::Binary(Box::new(acc), op, Box::new(expr))
         }),
     ))
 }
 
 /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-RelationalExpr>
-fn relational_expr(input: &str) -> IResult<&str, Expr> {
+fn relational_expr(input: &str) -> IResult<&str, Expression> {
     let (input, first) = additive_expr(input)?;
     let (input, rest) = many0((
         ws(alt((
@@ -317,13 +118,13 @@ fn relational_expr(input: &str) -> IResult<&str, Expr> {
     Ok((
         input,
         rest.into_iter().fold(first, |acc, (op, expr)| {
-            Expr::Binary(Box::new(acc), op, Box::new(expr))
+            Expression::Binary(Box::new(acc), op, Box::new(expr))
         }),
     ))
 }
 
 /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-AdditiveExpr>
-fn additive_expr(input: &str) -> IResult<&str, Expr> {
+fn additive_expr(input: &str) -> IResult<&str, Expression> {
     let (input, first) = multiplicative_expr(input)?;
     let (input, rest) = many0((
         ws(alt((
@@ -337,13 +138,13 @@ fn additive_expr(input: &str) -> IResult<&str, Expr> {
     Ok((
         input,
         rest.into_iter().fold(first, |acc, (op, expr)| {
-            Expr::Binary(Box::new(acc), op, Box::new(expr))
+            Expression::Binary(Box::new(acc), op, Box::new(expr))
         }),
     ))
 }
 
 /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-MultiplicativeExpr>
-fn multiplicative_expr(input: &str) -> IResult<&str, Expr> {
+fn multiplicative_expr(input: &str) -> IResult<&str, Expression> {
     let (input, first) = unary_expr(input)?;
     let (input, rest) = many0((
         ws(alt((
@@ -358,45 +159,45 @@ fn multiplicative_expr(input: &str) -> IResult<&str, Expr> {
     Ok((
         input,
         rest.into_iter().fold(first, |acc, (op, expr)| {
-            Expr::Binary(Box::new(acc), op, Box::new(expr))
+            Expression::Binary(Box::new(acc), op, Box::new(expr))
         }),
     ))
 }
 
 /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-UnaryExpr>
-fn unary_expr(input: &str) -> IResult<&str, Expr> {
+fn unary_expr(input: &str) -> IResult<&str, Expression> {
     let (input, minus_count) = many0(ws(char('-'))).parse(input)?;
     let (input, expr) = union_expr(input)?;
 
     Ok((
         input,
-        (0..minus_count.len()).fold(expr, |acc, _| Expr::Negate(Box::new(acc))),
+        (0..minus_count.len()).fold(expr, |acc, _| Expression::Negate(Box::new(acc))),
     ))
 }
 
 /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-UnionExpr>
-fn union_expr(input: &str) -> IResult<&str, Expr> {
+fn union_expr(input: &str) -> IResult<&str, Expression> {
     let (input, first) = path_expr(input)?;
     let (input, rest) = many0(preceded(ws(char('|')), path_expr)).parse(input)?;
 
     Ok((
         input,
         rest.into_iter().fold(first, |acc, expr| {
-            Expr::Binary(Box::new(acc), BinaryOperator::Union, Box::new(expr))
+            Expression::Binary(Box::new(acc), BinaryOperator::Union, Box::new(expr))
         }),
     ))
 }
 
 /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-PathExpr>
-fn path_expr(input: &str) -> IResult<&str, Expr> {
+fn path_expr(input: &str) -> IResult<&str, Expression> {
     ws(alt((
         // "//" RelativePathExpr
         map(
             pair(tag("//"), move |i| relative_path_expr(true, i)),
             |(_, relative_path)| {
-                Expr::Path(PathExpr {
+                Expression::Path(PathExpression {
                     is_absolute: true,
-                    is_descendant: true,
+                    has_implicit_descendant_or_self_step: true,
                     steps: relative_path.steps,
                 })
             },
@@ -405,20 +206,29 @@ fn path_expr(input: &str) -> IResult<&str, Expr> {
         map(
             pair(char('/'), opt(move |i| relative_path_expr(false, i))),
             |(_, relative_path)| {
-                Expr::Path(PathExpr {
+                Expression::Path(PathExpression {
                     is_absolute: true,
-                    is_descendant: false,
+                    has_implicit_descendant_or_self_step: false,
                     steps: relative_path.map(|path| path.steps).unwrap_or_default(),
                 })
             },
         ),
         // RelativePathExpr
-        map(move |i| relative_path_expr(false, i), Expr::Path),
+        map(
+            move |i| relative_path_expr(false, i),
+            |mut relative_path_expression| {
+                if relative_path_expression.steps.len() == 1 {
+                    relative_path_expression.steps.pop().unwrap()
+                } else {
+                    Expression::Path(relative_path_expression)
+                }
+            },
+        ),
     )))
     .parse(input)
 }
 
-fn relative_path_expr(is_descendant: bool, input: &str) -> IResult<&str, PathExpr> {
+fn relative_path_expr(is_descendant: bool, input: &str) -> IResult<&str, PathExpression> {
     let (input, first) = step_expr(is_descendant, input)?;
     let (input, steps) = many0(pair(
         ws(alt((value(true, tag("//")), value(false, char('/'))))),
@@ -430,10 +240,10 @@ fn relative_path_expr(is_descendant: bool, input: &str) -> IResult<&str, PathExp
     for (implicit_descendant_or_self, step) in steps {
         if implicit_descendant_or_self {
             // Insert an implicit descendant-or-self::node() step
-            all_steps.push(StepExpr::Axis(AxisStep {
+            all_steps.push(Expression::LocationStep(LocationStepExpression {
                 axis: Axis::DescendantOrSelf,
                 node_test: NodeTest::Kind(KindTest::Node),
-                predicates: PredicateListExpr { predicates: vec![] },
+                predicate_list: PredicateListExpression { predicates: vec![] },
             }));
         }
         all_steps.push(step);
@@ -441,23 +251,19 @@ fn relative_path_expr(is_descendant: bool, input: &str) -> IResult<&str, PathExp
 
     Ok((
         input,
-        PathExpr {
+        PathExpression {
             is_absolute: false,
-            is_descendant: false,
+            has_implicit_descendant_or_self_step: false,
             steps: all_steps,
         },
     ))
 }
 
-fn step_expr(is_descendant: bool, input: &str) -> IResult<&str, StepExpr> {
-    alt((
-        map(filter_expr, StepExpr::Filter),
-        map(|i| axis_step(is_descendant, i), StepExpr::Axis),
-    ))
-    .parse(input)
+fn step_expr(is_descendant: bool, input: &str) -> IResult<&str, Expression> {
+    alt((filter_expr, |i| axis_step(is_descendant, i))).parse(input)
 }
 
-fn axis_step(is_descendant: bool, input: &str) -> IResult<&str, AxisStep> {
+fn axis_step(is_descendant: bool, input: &str) -> IResult<&str, Expression> {
     let (input, (step, predicates)) = pair(
         alt((move |i| forward_step(is_descendant, i), reverse_step)),
         predicate_list,
@@ -467,11 +273,11 @@ fn axis_step(is_descendant: bool, input: &str) -> IResult<&str, AxisStep> {
     let (axis, node_test) = step;
     Ok((
         input,
-        AxisStep {
+        Expression::LocationStep(LocationStepExpression {
             axis,
             node_test,
-            predicates,
-        },
+            predicate_list: predicates,
+        }),
     ))
 }
 
@@ -578,39 +384,41 @@ fn name_test(input: &str) -> IResult<&str, NameTest> {
 }
 
 /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-FilterExpr>
-fn filter_expr(input: &str) -> IResult<&str, FilterExpr> {
+fn filter_expr(input: &str) -> IResult<&str, Expression> {
     let (input, primary) = primary_expr(input)?;
-    let (input, predicates) = predicate_list(input)?;
+    let (input, predicate_list) = predicate_list(input)?;
+
+    if predicate_list.predicates.is_empty() {
+        return Ok((input, primary));
+    }
 
     Ok((
         input,
-        FilterExpr {
-            primary,
-            predicates,
-        },
+        Expression::Filter(FilterExpression {
+            expression: Box::new(primary),
+            predicates: predicate_list,
+        }),
     ))
 }
 
-fn predicate_list(input: &str) -> IResult<&str, PredicateListExpr> {
+fn predicate_list(input: &str) -> IResult<&str, PredicateListExpression> {
     let (input, predicates) = many0(predicate).parse(input)?;
 
-    Ok((input, PredicateListExpr { predicates }))
+    Ok((input, PredicateListExpression { predicates }))
 }
 
 /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-Predicate>
-fn predicate(input: &str) -> IResult<&str, Expr> {
+fn predicate(input: &str) -> IResult<&str, Expression> {
     let (input, expr) = delimited(ws(char('[')), expr, ws(char(']'))).parse(input)?;
     Ok((input, expr))
 }
 
 /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-PrimaryExpr>
-fn primary_expr(input: &str) -> IResult<&str, PrimaryExpr> {
+fn primary_expr(input: &str) -> IResult<&str, Expression> {
     alt((
         literal,
         var_ref,
-        map(parenthesized_expr, |e| {
-            PrimaryExpr::Parenthesized(Box::new(e))
-        }),
+        parenthesized_expr,
         context_item_expr,
         function_call,
     ))
@@ -618,9 +426,9 @@ fn primary_expr(input: &str) -> IResult<&str, PrimaryExpr> {
 }
 
 /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-Literal>
-fn literal(input: &str) -> IResult<&str, PrimaryExpr> {
+fn literal(input: &str) -> IResult<&str, Expression> {
     map(alt((numeric_literal, string_literal)), |lit| {
-        PrimaryExpr::Literal(lit)
+        Expression::Literal(lit)
     })
     .parse(input)
 }
@@ -631,21 +439,21 @@ fn numeric_literal(input: &str) -> IResult<&str, Literal> {
 }
 
 /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-VariableReference>
-fn var_ref(input: &str) -> IResult<&str, PrimaryExpr> {
+fn var_ref(input: &str) -> IResult<&str, Expression> {
     let (input, _) = char('$').parse(input)?;
     let (input, name) = qname(input)?;
-    Ok((input, PrimaryExpr::Variable(name)))
+    Ok((input, Expression::Variable(name)))
 }
 
-fn parenthesized_expr(input: &str) -> IResult<&str, Expr> {
+fn parenthesized_expr(input: &str) -> IResult<&str, Expression> {
     delimited(ws(char('(')), expr, ws(char(')'))).parse(input)
 }
 
-fn context_item_expr(input: &str) -> IResult<&str, PrimaryExpr> {
-    map(char('.'), |_| PrimaryExpr::ContextItem).parse(input)
+fn context_item_expr(input: &str) -> IResult<&str, Expression> {
+    map(char('.'), |_| Expression::ContextItem).parse(input)
 }
 
-fn function_call(input: &str) -> IResult<&str, PrimaryExpr> {
+fn function_call(input: &str) -> IResult<&str, Expression> {
     let (input, name) = qname(input)?;
     let (input, args) = delimited(
         ws(char('(')),
@@ -739,7 +547,7 @@ fn function_call(input: &str) -> IResult<&str, PrimaryExpr> {
         _ => return Err(nom::Err::Error(NomError::new(input, NomErrorKind::Verify))),
     };
 
-    Ok((input, PrimaryExpr::Function(core_fn)))
+    Ok((input, Expression::Function(core_fn)))
 }
 
 fn kind_test(input: &str) -> IResult<&str, KindTest> {
@@ -928,64 +736,21 @@ mod tests {
         let cases = vec![
             (
                 "processing-instruction('test')[2]",
-                Expr::Path(PathExpr {
-                    is_absolute: false,
-                    is_descendant: false,
-                    steps: vec![StepExpr::Axis(AxisStep {
-                        axis: Axis::Child,
-                        node_test: NodeTest::Kind(KindTest::PI(Some("test".to_string()))),
-                        predicates: PredicateListExpr {
-                            predicates: vec![Expr::Path(PathExpr {
-                                is_absolute: false,
-                                is_descendant: false,
-                                steps: vec![StepExpr::Filter(FilterExpr {
-                                    primary: PrimaryExpr::Literal(Literal::Integer(2)),
-                                    predicates: PredicateListExpr { predicates: vec![] },
-                                })],
-                            })],
-                        },
-                    })],
+                Expression::LocationStep(LocationStepExpression {
+                    axis: Axis::Child,
+                    node_test: NodeTest::Kind(KindTest::PI(Some("test".to_string()))),
+                    predicate_list: PredicateListExpression {
+                        predicates: vec![Expression::Literal(Literal::Integer(2))],
+                    },
                 }),
             ),
             (
                 "concat('hello', ' ', 'world')",
-                Expr::Path(PathExpr {
-                    is_absolute: false,
-                    is_descendant: false,
-                    steps: vec![StepExpr::Filter(FilterExpr {
-                        primary: PrimaryExpr::Function(CoreFunction::Concat(vec![
-                            Expr::Path(PathExpr {
-                                is_absolute: false,
-                                is_descendant: false,
-                                steps: vec![StepExpr::Filter(FilterExpr {
-                                    primary: PrimaryExpr::Literal(Literal::String(
-                                        "hello".to_string(),
-                                    )),
-                                    predicates: PredicateListExpr { predicates: vec![] },
-                                })],
-                            }),
-                            Expr::Path(PathExpr {
-                                is_absolute: false,
-                                is_descendant: false,
-                                steps: vec![StepExpr::Filter(FilterExpr {
-                                    primary: PrimaryExpr::Literal(Literal::String(" ".to_string())),
-                                    predicates: PredicateListExpr { predicates: vec![] },
-                                })],
-                            }),
-                            Expr::Path(PathExpr {
-                                is_absolute: false,
-                                is_descendant: false,
-                                steps: vec![StepExpr::Filter(FilterExpr {
-                                    primary: PrimaryExpr::Literal(Literal::String(
-                                        "world".to_string(),
-                                    )),
-                                    predicates: PredicateListExpr { predicates: vec![] },
-                                })],
-                            }),
-                        ])),
-                        predicates: PredicateListExpr { predicates: vec![] },
-                    })],
-                }),
+                Expression::Function(CoreFunction::Concat(vec![
+                    Expression::Literal(Literal::String("hello".to_string())),
+                    Expression::Literal(Literal::String(" ".to_string())),
+                    Expression::Literal(Literal::String("world".to_string())),
+                ])),
             ),
         ];
 
@@ -1004,98 +769,53 @@ mod tests {
         let cases = vec![
             (
                 "//*[contains(@class, 'test')]",
-                Expr::Path(PathExpr {
+                Expression::Path(PathExpression {
                     is_absolute: true,
-                    is_descendant: true,
-                    steps: vec![StepExpr::Axis(AxisStep {
+                    has_implicit_descendant_or_self_step: true,
+                    steps: vec![Expression::LocationStep(LocationStepExpression {
                         axis: Axis::DescendantOrSelf,
                         node_test: NodeTest::Wildcard,
-                        predicates: PredicateListExpr {
-                            predicates: vec![Expr::Path(PathExpr {
-                                is_absolute: false,
-                                is_descendant: false,
-                                steps: vec![StepExpr::Filter(FilterExpr {
-                                    primary: PrimaryExpr::Function(CoreFunction::Contains(
-                                        Box::new(Expr::Path(PathExpr {
-                                            is_absolute: false,
-                                            is_descendant: false,
-                                            steps: vec![StepExpr::Axis(AxisStep {
-                                                axis: Axis::Attribute,
-                                                node_test: NodeTest::Name(QName {
-                                                    prefix: None,
-                                                    local_part: "class".to_string(),
-                                                }),
-                                                predicates: PredicateListExpr {
-                                                    predicates: vec![],
-                                                },
-                                            })],
-                                        })),
-                                        Box::new(Expr::Path(PathExpr {
-                                            is_absolute: false,
-                                            is_descendant: false,
-                                            steps: vec![StepExpr::Filter(FilterExpr {
-                                                primary: PrimaryExpr::Literal(Literal::String(
-                                                    "test".to_string(),
-                                                )),
-                                                predicates: PredicateListExpr {
-                                                    predicates: vec![],
-                                                },
-                                            })],
-                                        })),
-                                    )),
-                                    predicates: PredicateListExpr { predicates: vec![] },
-                                })],
-                            })],
+                        predicate_list: PredicateListExpression {
+                            predicates: vec![Expression::Function(CoreFunction::Contains(
+                                Box::new(Expression::LocationStep(LocationStepExpression {
+                                    axis: Axis::Attribute,
+                                    node_test: NodeTest::Name(QName {
+                                        prefix: None,
+                                        local_part: "class".to_owned(),
+                                    }),
+                                    predicate_list: PredicateListExpression { predicates: vec![] },
+                                })),
+                                Box::new(Expression::Literal(Literal::String("test".to_owned()))),
+                            ))],
                         },
                     })],
                 }),
             ),
             (
                 "//div[position() > 1]/*[last()]",
-                Expr::Path(PathExpr {
+                Expression::Path(PathExpression {
                     is_absolute: true,
-                    is_descendant: true,
+                    has_implicit_descendant_or_self_step: true,
                     steps: vec![
-                        StepExpr::Axis(AxisStep {
+                        Expression::LocationStep(LocationStepExpression {
                             axis: Axis::DescendantOrSelf,
                             node_test: NodeTest::Name(QName {
                                 prefix: None,
-                                local_part: "div".to_string(),
+                                local_part: "div".to_owned(),
                             }),
-                            predicates: PredicateListExpr {
-                                predicates: vec![Expr::Binary(
-                                    Box::new(Expr::Path(PathExpr {
-                                        is_absolute: false,
-                                        is_descendant: false,
-                                        steps: vec![StepExpr::Filter(FilterExpr {
-                                            primary: PrimaryExpr::Function(CoreFunction::Position),
-                                            predicates: PredicateListExpr { predicates: vec![] },
-                                        })],
-                                    })),
+                            predicate_list: PredicateListExpression {
+                                predicates: vec![Expression::Binary(
+                                    Box::new(Expression::Function(CoreFunction::Position)),
                                     BinaryOperator::GreaterThan,
-                                    Box::new(Expr::Path(PathExpr {
-                                        is_absolute: false,
-                                        is_descendant: false,
-                                        steps: vec![StepExpr::Filter(FilterExpr {
-                                            primary: PrimaryExpr::Literal(Literal::Integer(1)),
-                                            predicates: PredicateListExpr { predicates: vec![] },
-                                        })],
-                                    })),
+                                    Box::new(Expression::Literal(Literal::Integer(1))),
                                 )],
                             },
                         }),
-                        StepExpr::Axis(AxisStep {
+                        Expression::LocationStep(LocationStepExpression {
                             axis: Axis::Child,
                             node_test: NodeTest::Wildcard,
-                            predicates: PredicateListExpr {
-                                predicates: vec![Expr::Path(PathExpr {
-                                    is_absolute: false,
-                                    is_descendant: false,
-                                    steps: vec![StepExpr::Filter(FilterExpr {
-                                        primary: PrimaryExpr::Function(CoreFunction::Last),
-                                        predicates: PredicateListExpr { predicates: vec![] },
-                                    })],
-                                })],
+                            predicate_list: PredicateListExpression {
+                                predicates: vec![Expression::Function(CoreFunction::Last)],
                             },
                         }),
                     ],
@@ -1103,97 +823,75 @@ mod tests {
             ),
             (
                 "//mu[@xml:id=\"id1\"]//rho[@title][@xml:lang=\"en-GB\"]",
-                Expr::Path(PathExpr {
+                Expression::Path(PathExpression {
                     is_absolute: true,
-                    is_descendant: true,
+                    has_implicit_descendant_or_self_step: true,
                     steps: vec![
-                        StepExpr::Axis(AxisStep {
+                        Expression::LocationStep(LocationStepExpression {
                             axis: Axis::DescendantOrSelf,
                             node_test: NodeTest::Name(QName {
                                 prefix: None,
-                                local_part: "mu".to_string(),
+                                local_part: "mu".to_owned(),
                             }),
-                            predicates: PredicateListExpr {
-                                predicates: vec![Expr::Binary(
-                                    Box::new(Expr::Path(PathExpr {
-                                        is_absolute: false,
-                                        is_descendant: false,
-                                        steps: vec![StepExpr::Axis(AxisStep {
-                                            axis: Axis::Attribute,
-                                            node_test: NodeTest::Name(QName {
-                                                prefix: Some("xml".to_string()),
-                                                local_part: "id".to_string(),
-                                            }),
-                                            predicates: PredicateListExpr { predicates: vec![] },
-                                        })],
+                            predicate_list: PredicateListExpression {
+                                predicates: vec![Expression::Binary(
+                                    Box::new(Expression::LocationStep(LocationStepExpression {
+                                        axis: Axis::Attribute,
+                                        node_test: NodeTest::Name(QName {
+                                            prefix: Some("xml".to_owned()),
+                                            local_part: "id".to_owned(),
+                                        }),
+                                        predicate_list: PredicateListExpression {
+                                            predicates: vec![],
+                                        },
                                     })),
                                     BinaryOperator::Equal,
-                                    Box::new(Expr::Path(PathExpr {
-                                        is_absolute: false,
-                                        is_descendant: false,
-                                        steps: vec![StepExpr::Filter(FilterExpr {
-                                            primary: PrimaryExpr::Literal(Literal::String(
-                                                "id1".to_string(),
-                                            )),
-                                            predicates: PredicateListExpr { predicates: vec![] },
-                                        })],
-                                    })),
+                                    Box::new(Expression::Literal(Literal::String(
+                                        "id1".to_owned(),
+                                    ))),
                                 )],
                             },
                         }),
-                        StepExpr::Axis(AxisStep {
-                            axis: Axis::DescendantOrSelf, // Represents the second '//'
+                        Expression::LocationStep(LocationStepExpression {
+                            axis: Axis::DescendantOrSelf,
                             node_test: NodeTest::Kind(KindTest::Node),
-                            predicates: PredicateListExpr { predicates: vec![] },
+                            predicate_list: PredicateListExpression { predicates: vec![] },
                         }),
-                        StepExpr::Axis(AxisStep {
+                        Expression::LocationStep(LocationStepExpression {
                             axis: Axis::Child,
                             node_test: NodeTest::Name(QName {
                                 prefix: None,
-                                local_part: "rho".to_string(),
+                                local_part: "rho".to_owned(),
                             }),
-                            predicates: PredicateListExpr {
+                            predicate_list: PredicateListExpression {
                                 predicates: vec![
-                                    Expr::Path(PathExpr {
-                                        is_absolute: false,
-                                        is_descendant: false,
-                                        steps: vec![StepExpr::Axis(AxisStep {
-                                            axis: Axis::Attribute,
-                                            node_test: NodeTest::Name(QName {
-                                                prefix: None,
-                                                local_part: "title".to_string(),
-                                            }),
-                                            predicates: PredicateListExpr { predicates: vec![] },
-                                        })],
+                                    Expression::LocationStep(LocationStepExpression {
+                                        axis: Axis::Attribute,
+                                        node_test: NodeTest::Name(QName {
+                                            prefix: None,
+                                            local_part: "title".to_owned(),
+                                        }),
+                                        predicate_list: PredicateListExpression {
+                                            predicates: vec![],
+                                        },
                                     }),
-                                    Expr::Binary(
-                                        Box::new(Expr::Path(PathExpr {
-                                            is_absolute: false,
-                                            is_descendant: false,
-                                            steps: vec![StepExpr::Axis(AxisStep {
+                                    Expression::Binary(
+                                        Box::new(Expression::LocationStep(
+                                            LocationStepExpression {
                                                 axis: Axis::Attribute,
                                                 node_test: NodeTest::Name(QName {
-                                                    prefix: Some("xml".to_string()),
-                                                    local_part: "lang".to_string(),
+                                                    prefix: Some("xml".to_owned()),
+                                                    local_part: "lang".to_owned(),
                                                 }),
-                                                predicates: PredicateListExpr {
+                                                predicate_list: PredicateListExpression {
                                                     predicates: vec![],
                                                 },
-                                            })],
-                                        })),
+                                            },
+                                        )),
                                         BinaryOperator::Equal,
-                                        Box::new(Expr::Path(PathExpr {
-                                            is_absolute: false,
-                                            is_descendant: false,
-                                            steps: vec![StepExpr::Filter(FilterExpr {
-                                                primary: PrimaryExpr::Literal(Literal::String(
-                                                    "en-GB".to_string(),
-                                                )),
-                                                predicates: PredicateListExpr {
-                                                    predicates: vec![],
-                                                },
-                                            })],
-                                        })),
+                                        Box::new(Expression::Literal(Literal::String(
+                                            "en-GB".to_owned(),
+                                        ))),
                                     ),
                                 ],
                             },

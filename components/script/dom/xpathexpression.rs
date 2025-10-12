@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use xpath::{Error as XPathError, Expr, evaluate_parsed_xpath};
+use xpath::{Error as XPathError, Expression, evaluate_parsed_xpath};
 
 use crate::dom::bindings::codegen::Bindings::XPathExpressionBinding::XPathExpressionMethods;
 use crate::dom::bindings::codegen::Bindings::XPathNSResolverBinding::XPathNSResolver;
@@ -24,11 +24,11 @@ pub(crate) struct XPathExpression {
     reflector_: Reflector,
     window: Dom<Window>,
     #[no_trace]
-    parsed_expression: Expr,
+    parsed_expression: Expression,
 }
 
 impl XPathExpression {
-    fn new_inherited(window: &Window, parsed_expression: Expr) -> XPathExpression {
+    fn new_inherited(window: &Window, parsed_expression: Expression) -> XPathExpression {
         XPathExpression {
             reflector_: Reflector::new(),
             window: Dom::from_ref(window),
@@ -40,7 +40,7 @@ impl XPathExpression {
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
-        parsed_expression: Expr,
+        parsed_expression: Expression,
     ) -> DomRoot<XPathExpression> {
         reflect_dom_object_with_proto(
             Box::new(XPathExpression::new_inherited(window, parsed_expression)),

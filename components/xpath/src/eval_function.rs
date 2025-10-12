@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::ast::CoreFunction;
 use crate::context::EvaluationCtx;
 use crate::eval::try_extract_nodeset;
-use crate::parser::CoreFunction;
 use crate::value::parse_number_from_string;
 use crate::{Document, Dom, Element, Error, Node, Value};
 

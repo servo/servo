@@ -4,13 +4,14 @@
 
 use markup5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_prefix, ns};
 
-use super::parser::{
-    Axis, BinaryOperator, Expr, FilterExpr, KindTest, Literal, NodeTest, PathExpr,
-    PredicateListExpr, PrimaryExpr, StepExpr,
+use crate::ast::{
+    Axis, BinaryOperator, Expression, FilterExpression, KindTest, Literal, LocationStepExpression,
+    NodeTest, PathExpression, PredicateListExpression,
 };
-use super::{EvaluationCtx, Value};
 use crate::context::PredicateCtx;
-use crate::{Attribute, Document, Dom, Element, Error, Node, ProcessingInstruction};
+use crate::{
+    Attribute, Document, Dom, Element, Error, EvaluationCtx, Node, ProcessingInstruction, Value,
+};
 
 pub(crate) fn try_extract_nodeset<E, N: Node>(v: Value<N>) -> Result<Vec<N>, Error<E>> {
     match v {
@@ -19,7 +20,7 @@ pub(crate) fn try_extract_nodeset<E, N: Node>(v: Value<N>) -> Result<Vec<N>, Err
     }
 }
 
-impl Expr {
+impl Expression {
     pub(crate) fn evaluate<D: Dom>(
         &self,
         context: &EvaluationCtx<D>,
@@ -27,17 +28,17 @@ impl Expr {
         match self {
             // And/Or expression are seperated because they can sometimes be evaluated
             // without evaluating both operands.
-            Expr::Binary(left, BinaryOperator::And, right) => {
+            Expression::Binary(left, BinaryOperator::And, right) => {
                 let left_bool = left.evaluate(context)?.boolean();
                 let v = left_bool && right.evaluate(context)?.boolean();
                 Ok(Value::Boolean(v))
             },
-            Expr::Binary(left, BinaryOperator::Or, right) => {
+            Expression::Binary(left, BinaryOperator::Or, right) => {
                 let left_bool = left.evaluate(context)?.boolean();
                 let v = left_bool || right.evaluate(context)?.boolean();
                 Ok(Value::Boolean(v))
             },
-            Expr::Binary(left, binary_operator, right) => {
+            Expression::Binary(left, binary_operator, right) => {
                 let left_value = left.evaluate(context)?;
                 let right_value = right.evaluate(context)?;
 
@@ -60,7 +61,8 @@ impl Expr {
                     BinaryOperator::Divide => (left_value.number() / right_value.number()).into(),
                     BinaryOperator::Modulo => (left_value.number() % right_value.number()).into(),
                     BinaryOperator::Union => {
-                        let as_nodes = |e: &Expr| e.evaluate(context).and_then(try_extract_nodeset);
+                        let as_nodes =
+                            |e: &Expression| e.evaluate(context).and_then(try_extract_nodeset);
                         let mut left_nodes = as_nodes(left)?;
                         let right_nodes = as_nodes(right)?;
 
@@ -72,29 +74,37 @@ impl Expr {
 
                 Ok(value)
             },
-            Expr::Negate(expr) => {
+            Expression::Negate(expr) => {
                 let value = -expr.evaluate(context)?.number();
                 Ok(value.into())
             },
-            Expr::Path(path_expr) => path_expr.evaluate(context),
+            Expression::Path(path_expr) => path_expr.evaluate(context),
+            Expression::LocationStep(location_step_expression) => {
+                location_step_expression.evaluate(context)
+            },
+            Expression::Filter(filter_expression) => filter_expression.evaluate(context),
+            Expression::Literal(literal) => Ok(literal.evaluate::<D>()),
+            Expression::Function(function) => function.evaluate(context),
+            Expression::ContextItem => Ok(Value::Nodeset(vec![context.context_node.clone()])),
+            Expression::Variable(_) => Err(Error::CannotUseVariables),
         }
     }
 }
 
-impl PathExpr {
+impl PathExpression {
     fn evaluate<D: Dom>(
         &self,
         context: &EvaluationCtx<D>,
     ) -> Result<Value<D::Node>, Error<D::JsError>> {
-        // Use starting_node for absolute/descendant paths, context_node otherwise
-        let mut current_nodes = if self.is_absolute || self.is_descendant {
+        // Use starting_node for absolute paths, context_node otherwise
+        let mut current_nodes = if self.is_absolute {
             vec![context.starting_node.clone()]
         } else {
             vec![context.context_node.clone()]
         };
 
         // If path starts with '//', add an implicit descendant-or-self::node() step
-        if self.is_descendant {
+        if self.has_implicit_descendant_or_self_step {
             current_nodes = current_nodes
                 .iter()
                 .flat_map(|node| node.traverse_preorder())
@@ -258,85 +268,79 @@ fn apply_node_test<D: Dom>(
     Ok(result)
 }
 
-impl StepExpr {
+impl LocationStepExpression {
     fn evaluate<D: Dom>(
         &self,
         context: &EvaluationCtx<D>,
     ) -> Result<Value<D::Node>, Error<D::JsError>> {
-        match self {
-            StepExpr::Filter(filter_expr) => filter_expr.evaluate(context),
-            StepExpr::Axis(axis_step) => {
-                let nodes: Vec<D::Node> = match axis_step.axis {
-                    Axis::Child => context.context_node.children().collect(),
-                    Axis::Descendant => context.context_node.traverse_preorder().skip(1).collect(),
-                    Axis::Parent => vec![context.context_node.parent()]
-                        .into_iter()
-                        .flatten()
-                        .collect(),
-                    Axis::Ancestor => context.context_node.inclusive_ancestors().skip(1).collect(),
-                    Axis::Following => context
-                        .context_node
-                        .following_nodes(&context.context_node)
-                        .skip(1)
-                        .collect(),
-                    Axis::Preceding => context
-                        .context_node
-                        .preceding_nodes(&context.context_node)
-                        .skip(1)
-                        .collect(),
-                    Axis::FollowingSibling => context.context_node.following_siblings().collect(),
-                    Axis::PrecedingSibling => context.context_node.preceding_siblings().collect(),
-                    Axis::Attribute => {
-                        if let Some(element) = context.context_node.as_element() {
-                            element
-                                .attributes()
-                                .map(|attribute| attribute.as_node())
-                                .collect()
-                        } else {
-                            vec![]
-                        }
-                    },
-                    Axis::Self_ => vec![context.context_node.clone()],
-                    Axis::DescendantOrSelf => context.context_node.traverse_preorder().collect(),
-                    Axis::AncestorOrSelf => context.context_node.inclusive_ancestors().collect(),
-                    Axis::Namespace => Vec::new(), // Namespace axis is not commonly implemented
-                };
-
-                log::trace!("[StepExpr] Axis {:?} got nodes {:?}", axis_step.axis, nodes);
-
-                // Filter nodes according to the step's node_test. Will error out if any NodeTest
-                // application errors out.
-                let filtered_nodes: Vec<D::Node> = nodes
-                    .into_iter()
-                    .map(|node| {
-                        apply_node_test(context, &axis_step.node_test, &node)
-                            .map(|matches| matches.then_some(node))
-                    })
-                    .collect::<Result<Vec<_>, _>>()?
-                    .into_iter()
-                    .flatten()
-                    .collect();
-
-                log::trace!("[StepExpr] Filtering got nodes {:?}", filtered_nodes);
-
-                if axis_step.predicates.predicates.is_empty() {
-                    log::trace!(
-                        "[StepExpr] No predicates, returning nodes {:?}",
-                        filtered_nodes
-                    );
-                    Ok(Value::Nodeset(filtered_nodes))
+        let nodes: Vec<D::Node> = match self.axis {
+            Axis::Child => context.context_node.children().collect(),
+            Axis::Descendant => context.context_node.traverse_preorder().skip(1).collect(),
+            Axis::Parent => vec![context.context_node.parent()]
+                .into_iter()
+                .flatten()
+                .collect(),
+            Axis::Ancestor => context.context_node.inclusive_ancestors().skip(1).collect(),
+            Axis::Following => context
+                .context_node
+                .following_nodes(&context.context_node)
+                .skip(1)
+                .collect(),
+            Axis::Preceding => context
+                .context_node
+                .preceding_nodes(&context.context_node)
+                .skip(1)
+                .collect(),
+            Axis::FollowingSibling => context.context_node.following_siblings().collect(),
+            Axis::PrecedingSibling => context.context_node.preceding_siblings().collect(),
+            Axis::Attribute => {
+                if let Some(element) = context.context_node.as_element() {
+                    element
+                        .attributes()
+                        .map(|attribute| attribute.as_node())
+                        .collect()
                 } else {
-                    // Apply predicates
-                    axis_step
-                        .predicates
-                        .evaluate(context, filtered_nodes.clone())
+                    vec![]
                 }
             },
+            Axis::Self_ => vec![context.context_node.clone()],
+            Axis::DescendantOrSelf => context.context_node.traverse_preorder().collect(),
+            Axis::AncestorOrSelf => context.context_node.inclusive_ancestors().collect(),
+            Axis::Namespace => Vec::new(), // Namespace axis is not commonly implemented
+        };
+
+        log::trace!("[StepExpr] Axis {:?} got nodes {:?}", self.axis, nodes);
+
+        // Filter nodes according to the step's node_test. Will error out if any NodeTest
+        // application errors out.
+        let filtered_nodes: Vec<D::Node> = nodes
+            .into_iter()
+            .map(|node| {
+                apply_node_test(context, &self.node_test, &node)
+                    .map(|matches| matches.then_some(node))
+            })
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .flatten()
+            .collect();
+
+        log::trace!("[StepExpr] Filtering got nodes {:?}", filtered_nodes);
+
+        if self.predicate_list.predicates.is_empty() {
+            log::trace!(
+                "[StepExpr] No predicates, returning nodes {:?}",
+                filtered_nodes
+            );
+            Ok(Value::Nodeset(filtered_nodes))
+        } else {
+            // Apply predicates
+            self.predicate_list
+                .evaluate(context, filtered_nodes.clone())
         }
     }
 }
 
-impl PredicateListExpr {
+impl PredicateListExpression {
     fn evaluate<D: Dom>(
         &self,
         context: &EvaluationCtx<D>,
@@ -380,12 +384,12 @@ impl PredicateListExpr {
     }
 }
 
-impl FilterExpr {
+impl FilterExpression {
     fn evaluate<D: Dom>(
         &self,
         context: &EvaluationCtx<D>,
     ) -> Result<Value<D::Node>, Error<D::JsError>> {
-        let primary_result = self.primary.evaluate(context)?;
+        let primary_result = self.expression.evaluate(context)?;
         let have_predicates = !self.predicates.predicates.is_empty();
 
         match (have_predicates, &primary_result) {
@@ -410,30 +414,12 @@ impl FilterExpr {
     }
 }
 
-impl PrimaryExpr {
-    fn evaluate<D: Dom>(
-        &self,
-        context: &EvaluationCtx<D>,
-    ) -> Result<Value<D::Node>, Error<D::JsError>> {
-        match self {
-            PrimaryExpr::Literal(literal) => literal.evaluate(context),
-            PrimaryExpr::Variable(_qname) => Err(Error::CannotUseVariables),
-            PrimaryExpr::Parenthesized(expr) => expr.evaluate(context),
-            PrimaryExpr::ContextItem => Ok(Value::Nodeset(vec![context.context_node.clone()])),
-            PrimaryExpr::Function(core_function) => core_function.evaluate(context),
-        }
-    }
-}
-
 impl Literal {
-    fn evaluate<D: Dom>(
-        &self,
-        _context: &EvaluationCtx<D>,
-    ) -> Result<Value<D::Node>, Error<D::JsError>> {
+    fn evaluate<D: Dom>(&self) -> Value<D::Node> {
         match self {
-            Literal::Integer(integer) => Ok(Value::Number(*integer as f64)),
-            Literal::Decimal(decimal) => Ok(Value::Number(*decimal)),
-            Literal::String(s) => Ok(Value::String(s.into())),
+            Literal::Integer(integer) => Value::Number(*integer as f64),
+            Literal::Decimal(decimal) => Value::Number(*decimal),
+            Literal::String(s) => Value::String(s.into()),
         }
     }
 }
