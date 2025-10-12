@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -40,8 +39,8 @@ use crate::prefs::{EXPERIMENTAL_PREFS, ServoShellPreferences};
 pub struct Minibrowser {
     rendering_context: Rc<OffscreenRenderingContext>,
     pub context: EguiGlow,
-    pub event_queue: RefCell<Vec<MinibrowserEvent>>,
-    pub toolbar_height: Length<f32, DeviceIndependentPixel>,
+    event_queue: Vec<MinibrowserEvent>,
+    toolbar_height: Length<f32, DeviceIndependentPixel>,
 
     last_update: Instant,
     last_mouse_position: Option<Point2D<f32, DeviceIndependentPixel>>,
@@ -117,7 +116,7 @@ impl Minibrowser {
         Self {
             rendering_context,
             context,
-            event_queue: RefCell::new(vec![]),
+            event_queue: vec![],
             toolbar_height: Default::default(),
             last_update: Instant::now(),
             last_mouse_position: None,
@@ -130,8 +129,8 @@ impl Minibrowser {
         }
     }
 
-    pub(crate) fn take_events(&self) -> Vec<MinibrowserEvent> {
-        self.event_queue.take()
+    pub(crate) fn take_events(&mut self) -> Vec<MinibrowserEvent> {
+        std::mem::take(&mut self.event_queue)
     }
 
     /// Preprocess the given [winit::event::WindowEvent], returning unconsumed for mouse events in
@@ -166,7 +165,6 @@ impl Minibrowser {
                 ..
             } => {
                 self.event_queue
-                    .borrow_mut()
                     .push(MinibrowserEvent::Forward);
                 true
             },
@@ -175,7 +173,7 @@ impl Minibrowser {
                 button: MouseButton::Back,
                 ..
             } => {
-                self.event_queue.borrow_mut().push(MinibrowserEvent::Back);
+                self.event_queue.push(MinibrowserEvent::Back);
                 true
             },
             WindowEvent::MouseWheel { .. } | WindowEvent::MouseInput { .. } => self
@@ -321,10 +319,10 @@ impl Minibrowser {
                         egui::Layout::left_to_right(egui::Align::Center),
                         |ui| {
                             if ui.add(Minibrowser::toolbar_button("⏴")).clicked() {
-                                event_queue.borrow_mut().push(MinibrowserEvent::Back);
+                                event_queue.push(MinibrowserEvent::Back);
                             }
                             if ui.add(Minibrowser::toolbar_button("⏵")).clicked() {
-                                event_queue.borrow_mut().push(MinibrowserEvent::Forward);
+                                event_queue.push(MinibrowserEvent::Forward);
                             }
 
                             match self.load_status {
@@ -335,7 +333,7 @@ impl Minibrowser {
                                 },
                                 LoadStatus::Complete => {
                                     if ui.add(Minibrowser::toolbar_button("↻")).clicked() {
-                                        event_queue.borrow_mut().push(MinibrowserEvent::Reload);
+                                        event_queue.push(MinibrowserEvent::Reload);
                                     }
                                 },
                             }
@@ -355,7 +353,7 @@ impl Minibrowser {
                                                 .servo()
                                                 .set_preference(pref, PrefValue::Bool(enable));
                                         }
-                                        event_queue.borrow_mut().push(MinibrowserEvent::ReloadAll);
+                                        event_queue.push(MinibrowserEvent::ReloadAll);
                                     }
 
                                     let location_id = egui::Id::new("location_input");
@@ -398,7 +396,6 @@ impl Minibrowser {
                                         ui.input(|i| i.clone().key_pressed(Key::Enter))
                                     {
                                         event_queue
-                                            .borrow_mut()
                                             .push(MinibrowserEvent::Go(location.clone()));
                                     }
                                 },
@@ -419,10 +416,10 @@ impl Minibrowser {
                                 .get(&id)
                                 .map(|(_, favicon)| favicon)
                                 .copied();
-                            Self::browser_tab(ui, webview, &mut event_queue.borrow_mut(), favicon);
+                            Self::browser_tab(ui, webview, event_queue, favicon);
                         }
                         if ui.add(Minibrowser::toolbar_button("+")).clicked() {
-                            event_queue.borrow_mut().push(MinibrowserEvent::NewWebView);
+                            event_queue.push(MinibrowserEvent::NewWebView);
                         }
                     },
                 );
