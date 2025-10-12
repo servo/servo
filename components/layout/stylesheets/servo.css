@@ -145,7 +145,7 @@ center { text-align: -moz-center; }
 
 label { cursor: default; }
 
-img {
+canvas, embed, iframe, img, video {
   overflow: clip !important;
   overflow-clip-margin: 0 !important;
 }
