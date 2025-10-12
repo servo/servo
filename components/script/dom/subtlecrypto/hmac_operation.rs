@@ -345,3 +345,39 @@ pub(crate) fn export(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, 
         _ => Err(Error::NotSupported),
     }
 }
+
+/// <https://w3c.github.io/webcrypto/#hmac-operations-get-key-length>
+pub(crate) fn get_key_length(
+    normalized_derived_key_algorithm: &SubtleHmacImportParams,
+) -> Result<Option<u32>, Error> {
+    // Step 1.
+    let length = match normalized_derived_key_algorithm.length {
+        // If the length member of normalizedDerivedKeyAlgorithm is not present:
+        None => {
+            // Let length be the block size in bits of the hash function identified by the hash
+            // member of normalizedDerivedKeyAlgorithm.
+            match normalized_derived_key_algorithm.hash.name() {
+                ALG_SHA1 => 160,
+                ALG_SHA256 => 256,
+                ALG_SHA384 => 384,
+                ALG_SHA512 => 512,
+                _ => {
+                    return Err(Error::Type("Unidentified hash member".to_string()));
+                },
+            }
+        },
+        // Otherwise, if the length member of normalizedDerivedKeyAlgorithm is non-zero:
+        Some(length) if length != 0 => {
+            // Let length be equal to the length member of normalizedDerivedKeyAlgorithm.
+            length
+        },
+        // Otherwise:
+        _ => {
+            // throw a TypeError.
+            return Err(Error::Type("[[length]] must not be zero".to_string()));
+        },
+    };
+
+    // Step 2. Return length.
+    Ok(Some(length))
+}

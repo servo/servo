@@ -29,8 +29,8 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     ALG_AES_CBC, ALG_AES_CTR, ALG_AES_GCM, ALG_AES_KW, AlgorithmFromNameAndSize, ExportedKey,
-    JsonWebKeyExt, SubtleAesCbcParams, SubtleAesCtrParams, SubtleAesGcmParams,
-    SubtleAesKeyGenParams,
+    JsonWebKeyExt, SubtleAesCbcParams, SubtleAesCtrParams, SubtleAesDerivedKeyParams,
+    SubtleAesGcmParams, SubtleAesKeyGenParams,
 };
 use crate::script_runtime::CanGc;
 
@@ -157,6 +157,13 @@ pub(crate) fn import_key_aes_ctr(
 /// <https://w3c.github.io/webcrypto/#aes-ctr-operations-export-key>
 pub(crate) fn export_key_aes_ctr(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
     export_key_aes(format, key)
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-get-key-length>
+pub(crate) fn get_key_length_aes_ctr(
+    normalized_derived_key_algorithm: &SubtleAesDerivedKeyParams,
+) -> Result<Option<u32>, Error> {
+    get_key_length_aes(normalized_derived_key_algorithm)
 }
 
 /// <https://w3c.github.io/webcrypto/#aes-cbc-operations-encrypt>
@@ -301,6 +308,13 @@ pub(crate) fn import_key_aes_cbc(
 /// <https://w3c.github.io/webcrypto/#aes-cbc-operations-export-key>
 pub(crate) fn export_key_aes_cbc(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
     export_key_aes(format, key)
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-get-key-length>
+pub(crate) fn get_key_length_aes_cbc(
+    normalized_derived_key_algorithm: &SubtleAesDerivedKeyParams,
+) -> Result<Option<u32>, Error> {
+    get_key_length_aes(normalized_derived_key_algorithm)
 }
 
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-encrypt>
@@ -586,6 +600,13 @@ pub(crate) fn export_key_aes_gcm(format: KeyFormat, key: &CryptoKey) -> Result<E
     export_key_aes(format, key)
 }
 
+/// <https://w3c.github.io/webcrypto/#aes-gcm-operations-get-key-length>
+pub(crate) fn get_key_length_aes_gcm(
+    normalized_derived_key_algorithm: &SubtleAesDerivedKeyParams,
+) -> Result<Option<u32>, Error> {
+    get_key_length_aes(normalized_derived_key_algorithm)
+}
+
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-wrap-key>
 pub(crate) fn wrap_key_aes_kw(key: &CryptoKey, plaintext: &[u8]) -> Result<Vec<u8>, Error> {
     // Step 1. If plaintext is not a multiple of 64 bits in length, then throw an OperationError.
@@ -713,6 +734,13 @@ pub(crate) fn import_key_aes_kw(
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-export-key>
 pub(crate) fn export_key_aes_kw(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
     export_key_aes(format, key)
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-kw-operations-get-key-length>
+pub(crate) fn get_key_length_aes_kw(
+    normalized_derived_key_algorithm: &SubtleAesDerivedKeyParams,
+) -> Result<Option<u32>, Error> {
+    get_key_length_aes(normalized_derived_key_algorithm)
 }
 
 /// Helper function for
@@ -1069,4 +1097,22 @@ fn export_key_aes(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Err
 
     // Step 3. Return result.
     Ok(result)
+}
+
+/// Helper function for
+/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-get-key-length>
+/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-get-key-length>
+/// <https://w3c.github.io/webcrypto/#aes-gcm-operations-get-key-length>
+/// <https://w3c.github.io/webcrypto/#aes-kw-operations-get-key-length>
+pub(crate) fn get_key_length_aes(
+    normalized_derived_key_algorithm: &SubtleAesDerivedKeyParams,
+) -> Result<Option<u32>, Error> {
+    // Step 1. If the length member of normalizedDerivedKeyAlgorithm is not 128, 192 or 256, then
+    // throw a OperationError.
+    if !matches!(normalized_derived_key_algorithm.length, 128 | 192 | 256) {
+        return Err(Error::Operation);
+    }
+
+    // Step 2. Return the length member of normalizedDerivedKeyAlgorithm.
+    Ok(Some(normalized_derived_key_algorithm.length as u32))
 }
