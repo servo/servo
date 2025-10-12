@@ -23,7 +23,8 @@ def test_null(session):
     ("foo", "string"),
     ("foo\"bar", 'string'),
     ('"); alert(1); //', "string"),
-], ids=["boolean", "number", "string", "string_quote", "string_injection"])
+    ({"foo-bar":"bar-foo"}, "object")
+], ids=["boolean", "number", "string", "string_quote", "string_injection", "special_key_object"])
 def test_primitives(session, value, expected_type):
     result = execute_async_script(session, """
         arguments[1]([typeof arguments[0], arguments[0]])
