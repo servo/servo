@@ -30,7 +30,7 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
 
 use crate::devtools;
-use crate::dom::abstractworker::{SimpleWorkerErrorHandler, WorkerScriptMsg};
+use crate::dom::abstractworker::{MessageData, SimpleWorkerErrorHandler, WorkerScriptMsg};
 use crate::dom::abstractworkerglobalscope::{WorkerEventLoopMethods, run_worker_event_loop};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
@@ -217,6 +217,8 @@ pub(crate) struct DedicatedWorkerGlobalScope {
     #[ignore_malloc_size_of = "Channels are hard"]
     #[no_trace]
     control_receiver: Receiver<DedicatedWorkerControlMsg>,
+    #[no_trace]
+    queued_worker_tasks: DomRefCell<Vec<MessageData>>,
 }
 
 impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
@@ -306,6 +308,7 @@ impl DedicatedWorkerGlobalScope {
             image_cache,
             browsing_context,
             control_receiver,
+            queued_worker_tasks: Default::default(),
         }
     }
 
@@ -623,27 +626,42 @@ impl DedicatedWorkerGlobalScope {
         )
     }
 
+    pub(crate) fn fire_queued_messages(&self, can_gc: CanGc) {
+        for msg in self.queued_worker_tasks.borrow_mut().drain(..) {
+            if self.upcast::<WorkerGlobalScope>().is_closing() {
+                return;
+            }
+            self.dispatch_message_event(msg, can_gc);
+        }
+    }
+
+    fn dispatch_message_event(&self, msg: MessageData, can_gc: CanGc) {
+        let scope = self.upcast::<WorkerGlobalScope>();
+        let target = self.upcast();
+        let _ac = enter_realm(self);
+        rooted!(in(*scope.get_cx()) let mut message = UndefinedValue());
+        if let Ok(ports) = structuredclone::read(scope.upcast(), *msg.data, message.handle_mut()) {
+            MessageEvent::dispatch_jsval(
+                target,
+                scope.upcast(),
+                message.handle(),
+                Some(&msg.origin.ascii_serialization()),
+                None,
+                ports,
+                can_gc,
+            );
+        } else {
+            MessageEvent::dispatch_error(target, scope.upcast(), can_gc);
+        }
+    }
+
     fn handle_script_event(&self, msg: WorkerScriptMsg, can_gc: CanGc) {
         match msg {
-            WorkerScriptMsg::DOMMessage { origin, data } => {
-                let scope = self.upcast::<WorkerGlobalScope>();
-                let target = self.upcast();
-                let _ac = enter_realm(self);
-                rooted!(in(*scope.get_cx()) let mut message = UndefinedValue());
-                if let Ok(ports) =
-                    structuredclone::read(scope.upcast(), *data, message.handle_mut())
-                {
-                    MessageEvent::dispatch_jsval(
-                        target,
-                        scope.upcast(),
-                        message.handle(),
-                        Some(&origin.ascii_serialization()),
-                        None,
-                        ports,
-                        can_gc,
-                    );
+            WorkerScriptMsg::DOMMessage(message_data) => {
+                if self.upcast::<WorkerGlobalScope>().is_execution_ready() {
+                    self.dispatch_message_event(message_data, can_gc);
                 } else {
-                    MessageEvent::dispatch_error(target, scope.upcast(), can_gc);
+                    self.queued_worker_tasks.borrow_mut().push(message_data);
                 }
             },
             WorkerScriptMsg::Common(msg) => {

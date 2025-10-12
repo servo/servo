@@ -288,6 +288,7 @@ pub(crate) struct WorkerGlobalScope {
     worker_url: DomRefCell<ServoUrl>,
     #[conditional_malloc_size_of]
     closing: Arc<AtomicBool>,
+    execution_ready: AtomicBool,
     #[ignore_malloc_size_of = "Defined in js"]
     runtime: DomRefCell<Option<Runtime>>,
     location: MutNullableDom<WorkerLocation>,
@@ -379,6 +380,7 @@ impl WorkerGlobalScope {
             worker_type,
             worker_url: DomRefCell::new(worker_url),
             closing,
+            execution_ready: AtomicBool::new(false),
             runtime: DomRefCell::new(Some(runtime)),
             location: Default::default(),
             navigator: Default::default(),
@@ -431,6 +433,10 @@ impl WorkerGlobalScope {
 
     pub(crate) fn is_closing(&self) -> bool {
         self.closing.load(Ordering::SeqCst)
+    }
+
+    pub(crate) fn is_execution_ready(&self) -> bool {
+        self.execution_ready.load(Ordering::Relaxed)
     }
 
     pub(crate) fn get_url(&self) -> Ref<'_, ServoUrl> {
@@ -560,7 +566,9 @@ impl WorkerGlobalScope {
                 InRealm::entered(&realm),
                 can_gc,
             );
+            self.execution_ready.store(true, Ordering::Relaxed);
             self.execute_script(DOMString::from(script), can_gc);
+            dedicated_worker_scope.fire_queued_messages(can_gc);
         }
     }
 }
