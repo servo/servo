@@ -164,8 +164,7 @@ impl Minibrowser {
                 button: MouseButton::Forward,
                 ..
             } => {
-                self.event_queue
-                    .push(MinibrowserEvent::Forward);
+                self.event_queue.push(MinibrowserEvent::Forward);
                 true
             },
             WindowEvent::MouseInput {
@@ -359,8 +358,7 @@ impl Minibrowser {
                                     let location_id = egui::Id::new("location_input");
                                     let location_field = ui.add_sized(
                                         ui.available_size(),
-                                        egui::TextEdit::singleline(location)
-                                            .id(location_id),
+                                        egui::TextEdit::singleline(location).id(location_id),
                                     );
 
                                     if location_field.changed() {
@@ -395,8 +393,7 @@ impl Minibrowser {
                                     if location_field.lost_focus() &&
                                         ui.input(|i| i.clone().key_pressed(Key::Enter))
                                     {
-                                        event_queue
-                                            .push(MinibrowserEvent::Go(location.clone()));
+                                        event_queue.push(MinibrowserEvent::Go(location.clone()));
                                     }
                                 },
                             );
@@ -576,7 +573,6 @@ impl Minibrowser {
 
     pub(crate) fn set_zoom_factor(&self, factor: f32) {
         self.context.egui_ctx.set_zoom_factor(factor);
-
     }
 }
 
