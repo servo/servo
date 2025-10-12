@@ -33,7 +33,6 @@ mod from_constellation {
                 Self::ChangeRunningAnimationsState(..) => target!("ChangeRunningAnimationsState"),
                 Self::CreateOrUpdateWebView(..) => target!("CreateOrUpdateWebView"),
                 Self::RemoveWebView(..) => target!("RemoveWebView"),
-                Self::TouchEventProcessed(..) => target!("TouchEventProcessed"),
                 Self::SetThrottled(..) => target!("SetThrottled"),
                 Self::NewWebRenderFrameReady(..) => target!("NewWebRenderFrameReady"),
                 Self::PipelineExited(..) => target!("PipelineExited"),

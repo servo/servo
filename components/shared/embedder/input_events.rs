@@ -6,7 +6,6 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use bitflags::bitflags;
 use keyboard_types::{Code, CompositionEvent, Key, KeyState, Location, Modifiers};
-use log::error;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use webrender_api::ExternalScrollId;
@@ -24,7 +23,7 @@ impl InputEventId {
 }
 
 bitflags! {
-    #[derive(Default, Deserialize, PartialEq, Serialize)]
+    #[derive(Clone, Copy, Default, Deserialize, PartialEq, Serialize)]
     pub struct InputEventResult: u8 {
         /// Whether or not this input event's default behavior was prevented via script.
         const DefaultPrevented = 1 << 0;
@@ -231,27 +230,6 @@ pub enum TouchEventType {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct TouchId(pub i32);
 
-/// An ID for a sequence of touch events between a `Down` and the `Up` or `Cancel` event.
-/// The ID is the same for all events between `Down` and `Up` or `Cancel`
-#[repr(transparent)]
-#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
-pub struct TouchSequenceId(u32);
-
-impl TouchSequenceId {
-    pub const fn new() -> Self {
-        Self(0)
-    }
-
-    /// Increments the ID for the next touch sequence.
-    ///
-    /// The increment is wrapping, since we can assume that the touch handler
-    /// script for touch sequence N will have finished processing by the time
-    /// we have wrapped around.
-    pub fn next(&mut self) {
-        self.0 = self.0.wrapping_add(1);
-    }
-}
-
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct TouchEvent {
     pub event_type: TouchEventType,
@@ -259,8 +237,6 @@ pub struct TouchEvent {
     pub point: DevicePoint,
     /// cancelable default value is true, once the first move has been processed by script disable it.
     cancelable: bool,
-    /// The sequence_id will be set by servo's touch handler.
-    sequence_id: Option<TouchSequenceId>,
 }
 
 impl TouchEvent {
@@ -269,24 +245,8 @@ impl TouchEvent {
             event_type,
             id,
             point,
-            sequence_id: None,
             cancelable: true,
         }
-    }
-    /// Embedders should ignore this.
-    #[doc(hidden)]
-    pub fn init_sequence_id(&mut self, sequence_id: TouchSequenceId) {
-        if self.sequence_id.is_none() {
-            self.sequence_id = Some(sequence_id);
-        } else {
-            // We could allow embedders to set the sequence ID.
-            error!("Sequence ID already set.");
-        }
-    }
-
-    #[doc(hidden)]
-    pub fn expect_sequence_id(&self) -> TouchSequenceId {
-        self.sequence_id.expect("Sequence ID not initialized")
     }
 
     #[doc(hidden)]

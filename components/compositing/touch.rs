@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use embedder_traits::{CompositorHitTestResult, TouchId, TouchSequenceId};
+use std::cell::RefCell;
+
+use embedder_traits::{CompositorHitTestResult, InputEventId, TouchEventType, TouchId};
 use euclid::{Point2D, Scale, Vector2D};
 use log::{debug, error, warn};
 use rustc_hash::FxHashMap;
@@ -10,6 +12,27 @@ use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint, LayoutVector2D};
 
 use self::TouchSequenceState::*;
+
+/// An ID for a sequence of touch events between a `Down` and the `Up` or `Cancel` event.
+/// The ID is the same for all events between `Down` and `Up` or `Cancel`
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+pub(crate) struct TouchSequenceId(u32);
+
+impl TouchSequenceId {
+    const fn new() -> Self {
+        Self(0)
+    }
+
+    /// Increments the ID for the next touch sequence.
+    ///
+    /// The increment is wrapping, since we can assume that the touch handler
+    /// script for touch sequence N will have finished processing by the time
+    /// we have wrapped around.
+    fn next(&mut self) {
+        self.0 = self.0.wrapping_add(1);
+    }
+}
 
 // TODO: All `_SCREEN_PX` units below are currently actually used as `DevicePixel`
 // without multiplying with the `hidpi_factor`. This should be fixed and the
@@ -27,6 +50,9 @@ pub struct TouchHandler {
     pub current_sequence_id: TouchSequenceId,
     // todo: VecDeque + modulo arithmetic would be more efficient.
     touch_sequence_map: FxHashMap<TouchSequenceId, TouchSequenceInfo>,
+    /// A set of [`InputEventId`]s for touch events that have been sent to the Constellation
+    /// and have not been handled yet.
+    pub(crate) pending_touch_input_events: RefCell<FxHashMap<InputEventId, PendingTouchInputEvent>>,
 }
 
 /// Whether the default move action is allowed or not.
@@ -230,6 +256,7 @@ impl TouchHandler {
         TouchHandler {
             current_sequence_id: TouchSequenceId::new(),
             touch_sequence_map,
+            pending_touch_input_events: Default::default(),
         }
     }
 
@@ -611,4 +638,33 @@ impl TouchHandler {
             }
         }
     }
+
+    pub(crate) fn add_pending_touch_input_event(
+        &self,
+        id: InputEventId,
+        event_type: TouchEventType,
+    ) {
+        self.pending_touch_input_events.borrow_mut().insert(
+            id,
+            PendingTouchInputEvent {
+                event_type,
+                sequence_id: self.current_sequence_id,
+            },
+        );
+    }
+
+    pub(crate) fn take_pending_touch_input_event(
+        &self,
+        id: InputEventId,
+    ) -> Option<PendingTouchInputEvent> {
+        self.pending_touch_input_events.borrow_mut().remove(&id)
+    }
+}
+
+/// This data structure is used to store information about touch events that are
+/// sent from the Renderer to the Constellation, so that they can finish processing
+/// once their DOM events are fired.
+pub(crate) struct PendingTouchInputEvent {
+    pub event_type: TouchEventType,
+    pub sequence_id: TouchSequenceId,
 }

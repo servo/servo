@@ -45,7 +45,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::clipboardevent::ClipboardEventType;
-use crate::dom::document::{FireMouseEventType, FocusInitiator, TouchEventResult};
+use crate::dom::document::{FireMouseEventType, FocusInitiator};
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventFlags};
 use crate::dom::gamepad::gamepad::{Gamepad, contains_user_gesture};
 use crate::dom::gamepad::gamepadevent::GamepadEventType;
@@ -187,8 +187,7 @@ impl DocumentEventHandler {
                     InputEventResult::default()
                 },
                 InputEvent::Touch(touch_event) => {
-                    self.handle_touch_event(touch_event, &event, can_gc);
-                    InputEventResult::default()
+                    self.handle_touch_event(touch_event, &event, can_gc)
                 },
                 InputEvent::Wheel(wheel_event) => {
                     self.handle_wheel_event(wheel_event, &event, can_gc)
@@ -838,30 +837,11 @@ impl DocumentEventHandler {
         event: EmbedderTouchEvent,
         input_event: &ConstellationInputEvent,
         can_gc: CanGc,
-    ) {
-        let result = self.handle_touch_event_inner(event, input_event, can_gc);
-        if let (TouchEventResult::Processed(handled), true) = (result, event.is_cancelable()) {
-            let sequence_id = event.expect_sequence_id();
-            let result = if handled {
-                embedder_traits::TouchEventResult::DefaultAllowed(sequence_id, event.event_type)
-            } else {
-                embedder_traits::TouchEventResult::DefaultPrevented(sequence_id, event.event_type)
-            };
-            self.window
-                .send_to_constellation(ScriptToConstellationMessage::TouchEventProcessed(result));
-        }
-    }
-
-    fn handle_touch_event_inner(
-        &self,
-        event: EmbedderTouchEvent,
-        input_event: &ConstellationInputEvent,
-        can_gc: CanGc,
-    ) -> TouchEventResult {
+    ) -> InputEventResult {
         // Ignore all incoming events without a hit test.
         let Some(hit_test_result) = self.window.hit_test_from_input_event(input_event) else {
             self.update_active_touch_points_when_early_return(event);
-            return TouchEventResult::Forwarded;
+            return Default::default();
         };
 
         let TouchId(identifier) = event.id;
@@ -879,7 +859,7 @@ impl DocumentEventHandler {
             .next()
         else {
             self.update_active_touch_points_when_early_return(event);
-            return TouchEventResult::Forwarded;
+            return Default::default();
         };
 
         let target = DomRoot::upcast::<EventTarget>(el);
@@ -938,7 +918,7 @@ impl DocumentEventHandler {
             TouchList::new(window, touches.r(), can_gc)
         };
 
-        let event = TouchEvent::new(
+        let touch_event = TouchEvent::new(
             window,
             DOMString::from(event_name),
             EventBubbles::Bubbles,
@@ -957,7 +937,9 @@ impl DocumentEventHandler {
             can_gc,
         );
 
-        TouchEventResult::Processed(event.upcast::<Event>().fire(&target, can_gc))
+        let event = touch_event.upcast::<Event>();
+        event.fire(&target, can_gc);
+        event.flags().into()
     }
 
     // If hittest fails, we still need to update the active point information.

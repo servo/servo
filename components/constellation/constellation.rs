@@ -1884,16 +1884,6 @@ where
                 };
                 self.handle_log_entry(Some(webview_id), thread_name, entry);
             },
-            ScriptToConstellationMessage::TouchEventProcessed(result) => {
-                let Some(webview_id) = get_webview_id() else {
-                    return warn!(
-                        "{}: TouchEventProcessed from closed pipeline",
-                        source_pipeline_id
-                    );
-                };
-                self.compositor_proxy
-                    .send(CompositorMsg::TouchEventProcessed(webview_id, result))
-            },
             ScriptToConstellationMessage::GetBrowsingContextInfo(pipeline_id, response_sender) => {
                 let result = self
                     .pipelines

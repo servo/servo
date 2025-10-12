@@ -18,8 +18,7 @@ use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::{
     AnimationState, FocusSequenceNumber, JSValue, JavaScriptEvaluationError,
-    JavaScriptEvaluationId, MediaSessionEvent, ScriptToEmbedderChan, Theme, TouchEventResult,
-    ViewportDetails,
+    JavaScriptEvaluationId, MediaSessionEvent, ScriptToEmbedderChan, Theme, ViewportDetails,
 };
 use euclid::default::Size2D as UntypedSize2D;
 use fonts_traits::SystemFontServiceProxySender;
@@ -651,8 +650,6 @@ pub enum ScriptToConstellationMessage {
     SetDocumentState(DocumentState),
     /// Update the pipeline Url, which can change after redirections.
     SetFinalUrl(ServoUrl),
-    /// Script has handled a touch event, and either prevented or allowed default actions.
-    TouchEventProcessed(TouchEventResult),
     /// A log entry, with the top-level browsing context id and thread name
     LogEntry(Option<String>, LogEntry),
     /// Discard the document.
