@@ -2,11 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ptr;
-
 use aws_lc_rs::hmac;
 use base64::prelude::*;
-use js::jsapi::JS_NewObject;
 use js::jsval::ObjectValue;
 use servo_rand::{RngCore, ServoRng};
 
@@ -19,13 +16,12 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_HMAC, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, AlgorithmFromLengthAndHash,
-    ExportedKey, JsonWebKeyExt, SubtleHmacImportParams, SubtleHmacKeyGenParams,
-    value_from_js_object,
+    ALG_HMAC, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, ExportedKey, JsonWebKeyExt,
+    KeyAlgorithmAndDerivatives, SubtleHmacImportParams, SubtleHmacKeyAlgorithm,
+    SubtleHmacKeyGenParams, SubtleKeyAlgorithm, value_from_js_object,
 };
 use crate::script_runtime::CanGc;
 
@@ -131,18 +127,17 @@ pub(crate) fn generate_key(
     // Step 9. Let hash be a new KeyAlgorithm.
     // Step 10. Set the name attribute of hash to equal the name member of the hash member of
     // normalizedAlgorithm.
-    let name = DOMString::from(ALG_HMAC);
-    let cx = GlobalScope::get_cx();
-    rooted!(in(*cx) let mut algorithm_object = unsafe {JS_NewObject(*cx, ptr::null()) });
-    HmacKeyAlgorithm::from_length_and_hash(
+    // Step 11. Set the hash attribute of algorithm to hash.
+    let hash = SubtleKeyAlgorithm {
+        name: normalized_algorithm.hash.name.clone(),
+    };
+    let algorithm = SubtleHmacKeyAlgorithm {
+        name: ALG_HMAC.to_string(),
+        hash,
         length,
-        &normalized_algorithm.hash.borrow_arc(),
-        algorithm_object.handle_mut(),
-        cx,
-    );
+    };
 
     // Step 5. Let key be a new CryptoKey object representing the generated key.
-    // Step 11. Set the hash attribute of algorithm to hash.
     // Step 12. Set the [[type]] internal slot of key to "secret".
     // Step 13. Set the [[algorithm]] internal slot of key to algorithm.
     // Step 14. Set the [[extractable]] internal slot of key to be extractable.
@@ -151,8 +146,7 @@ pub(crate) fn generate_key(
         global,
         KeyType::Secret,
         extractable,
-        name,
-        algorithm_object.handle(),
+        KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm),
         usages,
         Handle::Hmac(key_data),
         can_gc,
@@ -196,7 +190,7 @@ pub(crate) fn import_key(
             data = key_data.to_vec();
 
             // Step 4.2. Set hash to equal the hash member of normalizedAlgorithm.
-            hash = &normalized_algorithm.hash;
+            hash = normalized_algorithm.hash.clone();
         },
         // If format is "jwk":
         KeyFormat::Jwk => {
@@ -220,10 +214,10 @@ pub(crate) fn import_key(
                 .map_err(|_| Error::Data)?;
 
             // Step 2.5. Set the hash to equal the hash member of normalizedAlgorithm.
-            hash = &normalized_algorithm.hash;
+            hash = normalized_algorithm.hash.clone();
 
             // Step 2.6.
-            match hash.name() {
+            match hash.name.as_str() {
                 // If the name attribute of hash is "SHA-1":
                 ALG_SHA1 => {
                     // If the alg field of jwk is present and is not "HS1", then throw a DataError.
@@ -312,19 +306,22 @@ pub(crate) fn import_key(
     // Step 11. Set the name attribute of algorithm to "HMAC".
     // Step 12. Set the length attribute of algorithm to length.
     // Step 13. Set the hash attribute of algorithm to hash.
+    let algorithm = SubtleHmacKeyAlgorithm {
+        name: ALG_HMAC.to_string(),
+        hash,
+        length,
+    };
+
+    // Step 8. Let key be a new CryptoKey object representing an HMAC key with the first length
+    // bits of data.
+    // Step 9. Set the [[type]] internal slot of key to "secret".
     // Step 14. Set the [[algorithm]] internal slot of key to algorithm.
     let truncated_data = data[..length as usize / 8].to_vec();
-    let name = DOMString::from(ALG_HMAC);
-    let cx = GlobalScope::get_cx();
-    rooted!(in(*cx) let mut algorithm_object = unsafe { JS_NewObject(*cx, ptr::null()) });
-    assert!(!algorithm_object.is_null());
-    HmacKeyAlgorithm::from_length_and_hash(length, hash, algorithm_object.handle_mut(), cx);
     let key = CryptoKey::new(
         global,
         KeyType::Secret,
         extractable,
-        name,
-        algorithm_object.handle(),
+        KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm),
         usages,
         Handle::Hmac(truncated_data),
         can_gc,
@@ -356,7 +353,7 @@ pub(crate) fn get_key_length(
         None => {
             // Let length be the block size in bits of the hash function identified by the hash
             // member of normalizedDerivedKeyAlgorithm.
-            match normalized_derived_key_algorithm.hash.name() {
+            match normalized_derived_key_algorithm.hash.name.as_str() {
                 ALG_SHA1 => 160,
                 ALG_SHA256 => 256,
                 ALG_SHA384 => 384,

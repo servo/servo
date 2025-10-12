@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ptr;
-
 use aes::cipher::block_padding::Pkcs7;
 use aes::cipher::generic_array::GenericArray;
 use aes::cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit, StreamCipher};
@@ -12,25 +10,22 @@ use aes_gcm::{AeadInPlace, AesGcm, KeyInit};
 use aes_kw::{KekAes128, KekAes192, KekAes256};
 use base64::prelude::*;
 use cipher::consts::{U12, U16, U32};
-use js::jsapi::JS_NewObject;
 use servo_rand::{RngCore, ServoRng};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, KeyType, KeyUsage,
 };
-use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
-    AesKeyAlgorithm, JsonWebKey, KeyFormat,
-};
+use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_AES_CBC, ALG_AES_CTR, ALG_AES_GCM, ALG_AES_KW, AlgorithmFromNameAndSize, ExportedKey,
-    JsonWebKeyExt, SubtleAesCbcParams, SubtleAesCtrParams, SubtleAesDerivedKeyParams,
-    SubtleAesGcmParams, SubtleAesKeyGenParams,
+    ALG_AES_CBC, ALG_AES_CTR, ALG_AES_GCM, ALG_AES_KW, ExportedKey, JsonWebKeyExt,
+    KeyAlgorithmAndDerivatives, SubtleAesCbcParams, SubtleAesCtrParams, SubtleAesDerivedKeyParams,
+    SubtleAesGcmParams, SubtleAesKeyAlgorithm, SubtleAesKeyGenParams,
 };
 use crate::script_runtime::CanGc;
 
@@ -108,7 +103,6 @@ pub(crate) fn decrypt_aes_ctr(
 }
 
 /// <https://w3c.github.io/webcrypto/#aes-ctr-operations-generate-key>
-#[allow(unsafe_code)]
 pub(crate) fn generate_key_aes_ctr(
     global: &GlobalScope,
     normalized_algorithm: &SubtleAesKeyGenParams,
@@ -259,7 +253,6 @@ pub(crate) fn decrypt_aes_cbc(
 }
 
 /// <https://w3c.github.io/webcrypto/#aes-cbc-operations-generate-key>
-#[allow(unsafe_code)]
 pub(crate) fn generate_key_aes_cbc(
     global: &GlobalScope,
     normalized_algorithm: &SubtleAesKeyGenParams,
@@ -549,7 +542,6 @@ pub(crate) fn decrypt_aes_gcm(
 }
 
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-generate-key>
-#[allow(unsafe_code)]
 pub(crate) fn generate_key_aes_gcm(
     global: &GlobalScope,
     normalized_algorithm: &SubtleAesKeyGenParams,
@@ -690,7 +682,6 @@ pub(crate) fn unwrap_key_aes_kw(key: &CryptoKey, ciphertext: &[u8]) -> Result<Ve
 }
 
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-generate-key>
-#[allow(unsafe_code)]
 pub(crate) fn generate_key_aes_kw(
     global: &GlobalScope,
     normalized_algorithm: &SubtleAesKeyGenParams,
@@ -749,7 +740,6 @@ pub(crate) fn get_key_length_aes_kw(
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-generate-key>
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-generate-key>
 #[allow(clippy::too_many_arguments)]
-#[allow(unsafe_code)]
 fn generate_key_aes(
     global: &GlobalScope,
     normalized_algorithm: &SubtleAesKeyGenParams,
@@ -785,14 +775,10 @@ fn generate_key_aes(
     // Step 6. Let algorithm be a new AesKeyAlgorithm.
     // Step 7. Set the name attribute of algorithm to alg_name.
     // Step 8. Set the length attribute of algorithm to equal the length member of normalizedAlgorithm.
-    let cx = GlobalScope::get_cx();
-    rooted!(in(*cx) let mut algorithm_object = unsafe {JS_NewObject(*cx, ptr::null()) });
-    AesKeyAlgorithm::from_name_and_size(
-        DOMString::from(alg_name),
-        normalized_algorithm.length,
-        algorithm_object.handle_mut(),
-        cx,
-    );
+    let algorithm = SubtleAesKeyAlgorithm {
+        name: alg_name.to_string(),
+        length: normalized_algorithm.length,
+    };
 
     // Step 5. Let key be a new CryptoKey object representing the generated AES key.
     // Step 9. Set the [[type]] internal slot of key to "secret".
@@ -803,8 +789,7 @@ fn generate_key_aes(
         global,
         KeyType::Secret,
         extractable,
-        DOMString::from(alg_name),
-        algorithm_object.handle(),
+        KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm),
         usages,
         handle,
         can_gc,
@@ -819,7 +804,6 @@ fn generate_key_aes(
 /// <https://w3c.github.io/webcrypto/#aes-cbc-operations-import-key>
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-import-key>
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-import-key>
-#[allow(unsafe_code)]
 fn import_key_aes(
     global: &GlobalScope,
     format: KeyFormat,
@@ -954,16 +938,10 @@ fn import_key_aes(
     // Step 5. Let algorithm be a new AesKeyAlgorithm.
     // Step 6. Set the name attribute of algorithm to alg_name.
     // Step 7. Set the length attribute of algorithm to the length, in bits, of data.
-    let name = DOMString::from(alg_name.to_string());
-    let cx = GlobalScope::get_cx();
-    rooted!(in(*cx) let mut algorithm_object = unsafe { JS_NewObject(*cx, ptr::null()) });
-    assert!(!algorithm_object.is_null());
-    AesKeyAlgorithm::from_name_and_size(
-        name.clone(),
-        (data.len() * 8) as u16,
-        algorithm_object.handle_mut(),
-        cx,
-    );
+    let algorithm = SubtleAesKeyAlgorithm {
+        name: alg_name.to_string(),
+        length: (data.len() * 8) as u16,
+    };
 
     // Step 3. Let key be a new CryptoKey object representing an AES key with value data.
     // Step 4. Set the [[type]] internal slot of key to "secret".
@@ -980,8 +958,7 @@ fn import_key_aes(
         global,
         KeyType::Secret,
         extractable,
-        name,
-        algorithm_object.handle(),
+        KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm),
         usages,
         handle,
         can_gc,
@@ -1050,7 +1027,7 @@ fn export_key_aes(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Err
             // If the length attribute of key is 256: Set the alg attribute of jwk to the string "A256CTR".
             //
             // NOTE: Check key length via key.handle()
-            let alg = match (key.handle(), key.algorithm().as_str()) {
+            let alg = match (key.handle(), key.algorithm().name()) {
                 (Handle::Aes128(_), ALG_AES_CTR) => "A128CTR",
                 (Handle::Aes192(_), ALG_AES_CTR) => "A192CTR",
                 (Handle::Aes256(_), ALG_AES_CTR) => "A256CTR",

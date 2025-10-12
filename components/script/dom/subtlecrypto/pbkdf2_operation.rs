@@ -3,20 +3,18 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::num::NonZero;
-use std::ptr;
 
 use aws_lc_rs::pbkdf2;
-use js::jsapi::JS_NewObject;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsage};
-use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{KeyAlgorithm, KeyFormat};
+use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_PBKDF2, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, AlgorithmFromName, SubtlePbkdf2Params,
+    ALG_PBKDF2, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, KeyAlgorithmAndDerivatives,
+    SubtleKeyAlgorithm, SubtlePbkdf2Params,
 };
 use crate::script_runtime::CanGc;
 
@@ -47,7 +45,7 @@ pub(crate) fn derive_bits(
 
     // Step 4. Let prf be the MAC Generation function described in Section 4 of [FIPS-198-1] using
     // the hash function described by the hash member of normalizedAlgorithm.
-    let prf = match normalized_algorithm.hash.name() {
+    let prf = match normalized_algorithm.hash.name.as_str() {
         ALG_SHA1 => pbkdf2::PBKDF2_HMAC_SHA1,
         ALG_SHA256 => pbkdf2::PBKDF2_HMAC_SHA256,
         ALG_SHA384 => pbkdf2::PBKDF2_HMAC_SHA384,
@@ -81,7 +79,6 @@ pub(crate) fn derive_bits(
 }
 
 /// <https://w3c.github.io/webcrypto/#pbkdf2-operations-import-key>
-#[allow(unsafe_code)]
 pub(crate) fn import(
     global: &GlobalScope,
     format: KeyFormat,
@@ -114,18 +111,14 @@ pub(crate) fn import(
     // Step 6. Let algorithm be a new KeyAlgorithm object.
     // Step 7. Set the name attribute of algorithm to "PBKDF2".
     // Step 8. Set the [[algorithm]] internal slot of key to algorithm.
-    let name = DOMString::from(ALG_PBKDF2);
-    let cx = GlobalScope::get_cx();
-    rooted!(in(*cx) let mut algorithm_object = unsafe {JS_NewObject(*cx, ptr::null()) });
-    assert!(!algorithm_object.is_null());
-    KeyAlgorithm::from_name(name.clone(), algorithm_object.handle_mut(), cx);
-
+    let algorithm = SubtleKeyAlgorithm {
+        name: ALG_PBKDF2.to_string(),
+    };
     let key = CryptoKey::new(
         global,
         KeyType::Secret,
         extractable,
-        name,
-        algorithm_object.handle(),
+        KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
         usages,
         Handle::Pbkdf2(key_data.to_vec()),
         can_gc,
