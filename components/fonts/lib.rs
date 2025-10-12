@@ -43,6 +43,7 @@ pub(crate) enum EmojiPresentationPreference {
 pub struct FallbackFontSelectionOptions {
     pub(crate) character: char,
     pub(crate) presentation_preference: EmojiPresentationPreference,
+    #[cfg_attr(target_os = "windows", allow(dead_code))]
     pub(crate) lang: Option<String>,
 }
 
