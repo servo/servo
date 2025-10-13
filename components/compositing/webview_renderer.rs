@@ -29,7 +29,8 @@ use webrender_api::{ExternalScrollId, ScrollLocation};
 
 use crate::compositor::{PipelineDetails, ServoRenderer};
 use crate::touch::{
-    PendingTouchInputEvent, TouchHandler, TouchMoveAction, TouchMoveAllowed, TouchSequenceState,
+    FlingRefreshDriverObserver, PendingTouchInputEvent, TouchHandler, TouchMoveAction,
+    TouchMoveAllowed, TouchSequenceState,
 };
 
 #[derive(Clone, Copy)]
@@ -272,14 +273,16 @@ impl WebViewRenderer {
         self.webview.set_animating(self.animating());
     }
 
-    /// On a Window refresh tick (e.g. vsync)
-    pub(crate) fn on_vsync(&mut self) {
-        if let Some(fling_action) = self.touch_handler.on_vsync() {
-            self.on_scroll_window_event(
-                ScrollLocation::Delta(-fling_action.delta),
-                fling_action.cursor,
-            );
-        }
+    pub(crate) fn update_touch_handling_at_new_frame_start(&mut self) -> bool {
+        let Some(fling_action) = self.touch_handler.notify_new_frame_start() else {
+            return self.touch_handler.currently_in_touch_sequence();
+        };
+
+        self.on_scroll_window_event(
+            ScrollLocation::Delta(-fling_action.delta),
+            fling_action.cursor,
+        );
+        self.touch_handler.currently_in_touch_sequence()
     }
 
     pub(crate) fn dispatch_input_event_with_hit_testing(&mut self, event: InputEventAndId) -> bool {
@@ -367,11 +370,15 @@ impl WebViewRenderer {
             return;
         }
 
+        let had_touch_sequence = self.touch_handler.currently_in_touch_sequence();
         match event.event_type {
             TouchEventType::Down => self.on_touch_down(event, id),
             TouchEventType::Move => self.on_touch_move(event, id),
             TouchEventType::Up => self.on_touch_up(event, id),
             TouchEventType::Cancel => self.on_touch_cancel(event, id),
+        }
+        if !had_touch_sequence && self.touch_handler.currently_in_touch_sequence() {
+            self.add_touch_move_refresh_obsever();
         }
     }
 
@@ -616,6 +623,16 @@ impl WebViewRenderer {
                 },
             }
         }
+    }
+
+    fn add_touch_move_refresh_obsever(&self) {
+        debug_assert!(self.touch_handler.currently_in_touch_sequence());
+        self.global
+            .borrow()
+            .refresh_driver
+            .add_observer(Rc::new(FlingRefreshDriverObserver {
+                webview_id: self.id,
+            }));
     }
 
     /// <http://w3c.github.io/touch-events/#mouse-events>

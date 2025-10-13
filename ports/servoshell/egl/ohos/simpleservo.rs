@@ -20,7 +20,9 @@ use raw_window_handle::{
 use servo::{self, EventLoopWaker, ServoBuilder, WindowRenderingContext, resources};
 use xcomponent_sys::OH_NativeXComponent;
 
-use crate::egl::app_state::{Coordinates, RunningAppState, ServoWindowCallbacks};
+use crate::egl::app_state::{
+    Coordinates, RunningAppState, ServoWindowCallbacks, VsyncRefreshDriver,
+};
 use crate::egl::host_trait::HostTrait;
 use crate::egl::ohos::InitOpts;
 use crate::egl::ohos::resources::ResourceReaderInstance;
@@ -195,13 +197,12 @@ pub fn init(
         RefCell::new(coordinates),
     ));
 
-    let begin_frame_source = Rc::new(BeginFrameSourceImpl::new());
-
+    let refresh_driver = Rc::new(VsyncRefreshDriver::default());
     let servo = ServoBuilder::new(rendering_context.clone())
         .opts(opts)
         .preferences(preferences)
         .event_loop_waker(waker.clone())
-        .begin_frame_source(begin_frame_source.clone())
+        .refresh_driver(refresh_driver.clone())
         .build();
 
     // Initialize WebDriver server if port is specified
@@ -218,7 +219,7 @@ pub fn init(
         rendering_context,
         servo,
         window_callbacks,
-        Some(begin_frame_source),
+        Some(refresh_driver),
         servoshell_preferences,
         webdriver_receiver,
     );

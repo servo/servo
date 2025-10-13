@@ -134,22 +134,15 @@ impl Clone for EmbedderProxy {
     }
 }
 
-pub trait BeginFrameSource {
-    fn add_observer(&self, observer: Box<dyn BeginFrameSourceObserver>);
-    fn remove_observer(&self, id: u64);
-}
-
-pub trait BeginFrameSourceObserver: 'static + Send {
-    fn cloned_box(&self) -> Box<dyn BeginFrameSourceObserver>;
-    fn on_begin_frame(&self);
-    fn set_id(&self, id: u64);
-    fn id(&self) -> u64;
-}
-
-impl Clone for Box<dyn BeginFrameSourceObserver> {
-    fn clone(&self) -> Self {
-        self.cloned_box()
-    }
+/// A [`RefreshDriver`] is a trait that can be implemented by Servo embedders in
+/// order to drive let Servo know when to start preparing the next frame. For example,
+/// on systems that support Vsync notifications, an embedder may want to implement
+/// this trait to drive Servo animations via those notifications.
+pub trait RefreshDriver {
+    /// Servo will call this method when it wants to be informed of the next frame start
+    /// time. Implementors should call the callback when it is time to start preparing
+    /// the new frame.
+    fn observe_next_frame(&self, start_frame_callback: Box<dyn Fn() + Send + 'static>);
 }
 
 #[derive(Deserialize, Serialize)]

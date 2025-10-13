@@ -4,6 +4,7 @@
 
 use std::cell::RefCell;
 
+use base::id::WebViewId;
 use embedder_traits::{CompositorHitTestResult, InputEventId, TouchEventType, TouchId};
 use euclid::{Point2D, Scale, Vector2D};
 use log::{debug, error, warn};
@@ -12,6 +13,9 @@ use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint, LayoutVector2D};
 
 use self::TouchSequenceState::*;
+use crate::IOCompositor;
+use crate::refresh_driver::RefreshDriverObserver;
+use crate::webview_renderer::WebViewRenderer;
 
 /// An ID for a sequence of touch events between a `Down` and the `Up` or `Cancel` event.
 /// The ID is the same for all events between `Down` and `Up` or `Cancel`
@@ -260,6 +264,12 @@ impl TouchHandler {
         }
     }
 
+    pub(crate) fn currently_in_touch_sequence(&self) -> bool {
+        self.touch_sequence_map
+            .get(&self.current_sequence_id)
+            .is_some_and(|sequence| sequence.state != TouchSequenceState::Finished)
+    }
+
     pub(crate) fn set_handling_touch_move(&mut self, sequence_id: TouchSequenceId, flag: bool) {
         if let Some(sequence) = self.touch_sequence_map.get_mut(&sequence_id) {
             sequence.handling_touch_move = flag;
@@ -394,7 +404,7 @@ impl TouchHandler {
         }
     }
 
-    pub fn on_vsync(&mut self) -> Option<FlingAction> {
+    pub fn notify_new_frame_start(&mut self) -> Option<FlingAction> {
         let touch_sequence = self.touch_sequence_map.get_mut(&self.current_sequence_id)?;
 
         let Flinging { velocity, cursor } = &mut touch_sequence.state else {
@@ -667,4 +677,17 @@ impl TouchHandler {
 pub(crate) struct PendingTouchInputEvent {
     pub event_type: TouchEventType,
     pub sequence_id: TouchSequenceId,
+}
+
+pub(crate) struct FlingRefreshDriverObserver {
+    pub webview_id: WebViewId,
+}
+
+impl RefreshDriverObserver for FlingRefreshDriverObserver {
+    fn frame_started(&self, compositor: &mut IOCompositor) -> bool {
+        compositor
+            .webview_renderer_mut(self.webview_id)
+            .map(WebViewRenderer::update_touch_handling_at_new_frame_start)
+            .unwrap_or(false)
+    }
 }

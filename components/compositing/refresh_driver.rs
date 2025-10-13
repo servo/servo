@@ -2,131 +2,150 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
-use std::collections::hash_map::Values;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
-use base::id::WebViewId;
 use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::{Sender, select};
-use embedder_traits::{BeginFrameSource, BeginFrameSourceObserver, EventLoopWaker};
+use embedder_traits::{EventLoopWaker, RefreshDriver};
 use log::warn;
 use timers::{BoxedTimerCallback, TimerEventRequest, TimerScheduler};
 
+use crate::IOCompositor;
 use crate::compositor::RepaintReason;
 use crate::webview_renderer::WebViewRenderer;
 
-/// The [`RefreshDriver`] is responsible for controlling updates to aall `WebView`s
-/// onscreen presentation. Currently, it only manages controlling animation update
-/// requests.
-///
-/// The implementation is very basic at the moment, only requesting new animation
-/// frames at a constant time after a repaint.
-pub(crate) struct RefreshDriver {
+/// The [`BaseRefreshDriver`] is a "base class" for [`RefreshDriver`] trait
+/// implementations. It encapsulates shared behavior so that it does not have to be
+/// implemented by all trait implementations. It is responsible for providing
+/// [`RefreshDriver`] implementations with a callback that is used to wake up the event
+/// loop and trigger frame readiness.
+pub(crate) struct BaseRefreshDriver {
+    /// Whether or not the [`BaseRefreshDriver`] is waiting for a frame. Once the [`RefreshDriver`]
+    /// informs the base that a frame start happened, this becomes false.
+    waiting_for_frame: Arc<AtomicBool>,
+    /// An [`EventLooperWaker`] which alerts the main UI event loop when a frame start occurs.
+    event_loop_waker: Box<dyn EventLoopWaker>,
+    /// A list of internal observers that watch for frame starts.
+    observers: RefCell<Vec<Rc<dyn RefreshDriverObserver>>>,
+    /// The implementation of the [`RefreshDriver`]. By default this is a simple timer, but the
+    /// embedder can install a custom driver, such as one that is run via the hardware vsync signal.
+    refresh_driver: Rc<dyn RefreshDriver>,
+}
+
+impl BaseRefreshDriver {
+    pub(crate) fn new(
+        event_loop_waker: Box<dyn EventLoopWaker>,
+        refresh_driver: Option<Rc<dyn RefreshDriver>>,
+    ) -> Self {
+        let refresh_driver =
+            refresh_driver.unwrap_or_else(|| Rc::new(TimerRefreshDriver::default()));
+        Self {
+            waiting_for_frame: Arc::new(AtomicBool::new(false)),
+            event_loop_waker,
+            observers: Default::default(),
+            refresh_driver,
+        }
+    }
+
+    pub(crate) fn add_observer(&self, observer: Rc<dyn RefreshDriverObserver>) {
+        let mut observers = self.observers.borrow_mut();
+        observers.push(observer);
+
+        // If this is the first observer, make sure to observe the next frame.
+        if observers.len() == 1 {
+            self.observe_next_frame();
+        }
+    }
+
+    pub(crate) fn notify_will_paint(&self, compositor: &mut IOCompositor) {
+        // If we are still waiting for the frame to timeout this paint was caused for some
+        // non-animation related reason and we should wait until the frame timeout to trigger
+        // the next one.
+        if self.waiting_for_frame.load(Ordering::Relaxed) {
+            return;
+        }
+
+        // Limit the borrow of `self.observers` to the minimum here.
+        let still_has_observers = {
+            let mut observers = self.observers.borrow_mut();
+            observers.retain(|observer| observer.frame_started(compositor));
+            !observers.is_empty()
+        };
+
+        if still_has_observers {
+            self.observe_next_frame();
+        }
+    }
+
+    fn observe_next_frame(&self) {
+        self.waiting_for_frame.store(true, Ordering::Relaxed);
+
+        let waiting_for_frame = self.waiting_for_frame.clone();
+        let event_loop_waker = self.event_loop_waker.clone_box();
+        self.refresh_driver.observe_next_frame(Box::new(move || {
+            waiting_for_frame.store(false, Ordering::Relaxed);
+            event_loop_waker.wake();
+        }));
+    }
+
+    /// Whether or not the renderer should trigger a message to the embedder to request a
+    /// repaint. This might be true if we are animating and the repaint reason is just
+    /// for a new frame. In that case, the renderer should wait until the frame timeout to
+    /// ask the embedder to repaint.
+    pub(crate) fn wait_to_paint(&self, repaint_reason: RepaintReason) -> bool {
+        if self.observers.borrow().is_empty() || repaint_reason != RepaintReason::NewWebRenderFrame
+        {
+            return false;
+        }
+
+        self.waiting_for_frame.load(Ordering::Relaxed)
+    }
+}
+
+/// A [`RefreshDriverObserver`] is an internal subscriber to frame start signals from the
+/// [`RefreshDriver`]. Examples of these kind of observers would be one that triggers new
+/// animation frames right after vsync signals or one that handles touch interactions once
+/// per frame.
+pub(crate) trait RefreshDriverObserver {
+    /// Informs the observer that a new frame has started. The observer should return
+    /// `true` to keep observing or `false` if wants to stop observing and should be
+    /// removed by the [`BaseRefreshDriver`].
+    fn frame_started(&self, compositor: &mut IOCompositor) -> bool;
+}
+
+/// The [`AnimationRefreshDriverObserver`] is the default implementation of a
+/// [`RefreshDriver`] on systems without vsync hardware integration. It has a very basic
+/// way of triggering frames using a timer. It prevents new animation frames until the
+/// timer has fired.
+pub(crate) struct AnimationRefreshDriverObserver {
     /// The channel on which messages can be sent to the Constellation.
     pub(crate) constellation_sender: Sender<EmbedderToConstellationMessage>,
 
     /// Whether or not we are currently animating via a timer.
     pub(crate) animating: Cell<bool>,
-
-    /// Whether or not we are waiting for our frame timeout to trigger
-    pub(crate) waiting_for_frame_timeout: Arc<AtomicBool>,
-
-    /// A [`BeginFrameSource`] to be used to register begin frame observers.
-    begin_frame_source: Rc<dyn BeginFrameSource>,
-
-    /// A [`BeginFrameSourceObserverImpl`] to be used to observe begin frame.
-    begin_frame_source_observer: Box<BeginFrameSourceObserverImpl>,
 }
 
-impl RefreshDriver {
-    pub(crate) fn new(
-        constellation_sender: Sender<EmbedderToConstellationMessage>,
-        event_loop_waker: Box<dyn EventLoopWaker>,
-        begin_frame_source: Option<Rc<dyn BeginFrameSource>>,
-    ) -> Self {
-        let begin_frame_source =
-            begin_frame_source.unwrap_or_else(|| Rc::new(DefaultBeginFrameSource::default()));
-
-        let waiting_for_frame_timeout = Arc::new(AtomicBool::new(false));
-        let begin_frame_source_observer = Box::new(BeginFrameSourceObserverImpl {
-            id: Arc::new(AtomicU64::new(0)),
-            waiting_for_frame_timeout: waiting_for_frame_timeout.clone(),
-            event_loop_waker,
-        });
-
+impl AnimationRefreshDriverObserver {
+    pub(crate) fn new(constellation_sender: Sender<EmbedderToConstellationMessage>) -> Self {
         Self {
             constellation_sender,
             animating: Default::default(),
-            waiting_for_frame_timeout,
-            begin_frame_source,
-            begin_frame_source_observer,
         }
     }
 
-    /// Notify the [`RefreshDriver`] that a paint is about to happen. This will trigger
-    /// new animation frames for all active `WebView`s and schedule a new frame deadline.
-    pub(crate) fn notify_will_paint(
+    pub(crate) fn notify_animation_state_changed(
         &self,
-        webview_renderers: Values<'_, WebViewId, WebViewRenderer>,
-    ) {
-        // If we are still waiting for the frame to timeout this paint was caused for some
-        // non-animation related reason and we should wait until the frame timeout to trigger
-        // the next one.
-        if self.waiting_for_frame_timeout.load(Ordering::Relaxed) {
-            return;
-        }
-
-        // If any WebViews are animating ask them to paint again for another animation tick.
-        let animating_webviews: Vec<_> = webview_renderers
-            .filter_map(|webview_renderer| {
-                if webview_renderer.animating() {
-                    Some(webview_renderer.id)
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        // If nothing is animating any longer, update our state and exit early without requesting
-        // any noew frames nor triggering a new animation deadline.
-        if animating_webviews.is_empty() {
-            self.animating.set(false);
-            self.begin_frame_source
-                .remove_observer(self.begin_frame_source_observer.id());
-            return;
-        }
-
-        if let Err(error) =
-            self.constellation_sender
-                .send(EmbedderToConstellationMessage::TickAnimation(
-                    animating_webviews,
-                ))
-        {
-            warn!("Sending tick to constellation failed ({error:?}).");
-        }
-
-        // Queue the next frame deadline.
-        self.animating.set(true);
-        self.waiting_for_frame_timeout
-            .store(true, Ordering::Relaxed);
-        self.begin_frame_source
-            .add_observer(self.begin_frame_source_observer.cloned_box());
-    }
-
-    /// Notify the [`RefreshDriver`] that the animation state of a particular `WebView`
-    /// via its associated [`WebViewRenderer`] has changed. In the case that a `WebView`
-    /// has started animating, the [`RefreshDriver`] will request a new frame from it
-    /// immediately, but only render that frame at the next frame deadline.
-    pub(crate) fn notify_animation_state_changed(&self, webview_renderer: &WebViewRenderer) {
+        webview_renderer: &WebViewRenderer,
+    ) -> bool {
         if !webview_renderer.animating() {
-            // If no other WebView is animating we will officially stop animated once the
+            // If no other WebView is animating we will officially stop animating once the
             // next frame has been painted.
-            return;
+            return false;
         }
 
         if let Err(error) =
@@ -139,26 +158,39 @@ impl RefreshDriver {
         }
 
         if self.animating.get() {
-            return;
-        }
-
-        self.animating.set(true);
-        self.waiting_for_frame_timeout
-            .store(true, Ordering::Relaxed);
-        self.begin_frame_source
-            .add_observer(self.begin_frame_source_observer.cloned_box());
-    }
-
-    /// Whether or not the renderer should trigger a message to the embedder to request a
-    /// repaint. This might be false if: we are animating and the repaint reason is just
-    /// for a new frame. In that case, the renderer should wait until the frame timeout to
-    /// ask the embedder to repaint.
-    pub(crate) fn wait_to_paint(&self, repaint_reason: RepaintReason) -> bool {
-        if !self.animating.get() || repaint_reason != RepaintReason::NewWebRenderFrame {
             return false;
         }
 
-        self.waiting_for_frame_timeout.load(Ordering::Relaxed)
+        self.animating.set(true);
+        true
+    }
+}
+
+impl RefreshDriverObserver for AnimationRefreshDriverObserver {
+    fn frame_started(&self, compositor: &mut IOCompositor) -> bool {
+        // If any WebViews are animating ask them to paint again for another animation tick.
+        let animating_webviews = compositor.animating_webviews();
+
+        // If nothing is animating any longer, update our state and exit early without requesting
+        // any new frames.
+        if animating_webviews.is_empty() {
+            self.animating.set(false);
+            return false;
+        }
+
+        // Request new animation frames from all animating WebViews.
+        if let Err(error) =
+            self.constellation_sender
+                .send(EmbedderToConstellationMessage::TickAnimation(
+                    animating_webviews,
+                ))
+        {
+            warn!("Sending tick to constellation failed ({error:?}).");
+            return false;
+        }
+
+        self.animating.set(true);
+        true
     }
 }
 
@@ -175,21 +207,12 @@ enum TimerThreadMessage {
 /// It would be nice to integrate this somehow into the embedder thread, but it would
 /// require both some communication with the embedder and for all embedders to be well
 /// behave respecting wakeup timeouts -- a bit too much to ask at the moment.
-struct TimerThread {
+struct TimerRefreshDriver {
     sender: Sender<TimerThreadMessage>,
     join_handle: Option<JoinHandle<()>>,
 }
 
-impl Drop for TimerThread {
-    fn drop(&mut self) {
-        let _ = self.sender.send(TimerThreadMessage::Quit);
-        if let Some(join_handle) = self.join_handle.take() {
-            let _ = join_handle.join();
-        }
-    }
-}
-
-impl Default for TimerThread {
+impl Default for TimerRefreshDriver {
     fn default() -> Self {
         let (sender, receiver) = crossbeam_channel::unbounded::<TimerThreadMessage>();
         let join_handle = thread::Builder::new()
@@ -222,7 +245,7 @@ impl Default for TimerThread {
     }
 }
 
-impl TimerThread {
+impl TimerRefreshDriver {
     fn queue_timer(&self, duration: Duration, callback: BoxedTimerCallback) {
         let _ = self
             .sender
@@ -233,53 +256,18 @@ impl TimerThread {
     }
 }
 
-const FRAME_DURATION: Duration = Duration::from_millis(1000 / 120);
-
-#[derive(Default)]
-struct DefaultBeginFrameSource {
-    /// A [`TimerThread`] which is used to schedule frame timeouts in the future.
-    timer_thread: TimerThread,
+impl RefreshDriver for TimerRefreshDriver {
+    fn observe_next_frame(&self, new_start_frame_callback: Box<dyn Fn() + Send + 'static>) {
+        const FRAME_DURATION: Duration = Duration::from_millis(1000 / 120);
+        self.queue_timer(FRAME_DURATION, new_start_frame_callback);
+    }
 }
 
-impl BeginFrameSource for DefaultBeginFrameSource {
-    fn add_observer(&self, observer: Box<dyn BeginFrameSourceObserver>) {
-        self.timer_thread.queue_timer(
-            FRAME_DURATION,
-            Box::new(move || {
-                observer.on_begin_frame();
-            }),
-        );
-    }
-
-    fn remove_observer(&self, _id: u64) {}
-}
-
-struct BeginFrameSourceObserverImpl {
-    id: Arc<AtomicU64>,
-    waiting_for_frame_timeout: Arc<AtomicBool>,
-    event_loop_waker: Box<dyn EventLoopWaker>,
-}
-
-impl BeginFrameSourceObserver for BeginFrameSourceObserverImpl {
-    fn cloned_box(&self) -> Box<dyn BeginFrameSourceObserver> {
-        Box::new(Self {
-            id: self.id.clone(),
-            waiting_for_frame_timeout: self.waiting_for_frame_timeout.clone(),
-            event_loop_waker: self.event_loop_waker.clone_box(),
-        })
-    }
-
-    fn on_begin_frame(&self) {
-        self.waiting_for_frame_timeout
-            .store(false, Ordering::Relaxed);
-        self.event_loop_waker.wake();
-    }
-
-    fn set_id(&self, id: u64) {
-        self.id.store(id, Ordering::Relaxed);
-    }
-
-    fn id(&self) -> u64 {
-        self.id.load(Ordering::Relaxed)
+impl Drop for TimerRefreshDriver {
+    fn drop(&mut self) {
+        let _ = self.sender.send(TimerThreadMessage::Quit);
+        if let Some(join_handle) = self.join_handle.take() {
+            let _ = join_handle.join();
+        }
     }
 }
