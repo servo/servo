@@ -2594,10 +2594,10 @@ where
         // Channels to receive signals when threads are done exiting.
         let (core_ipc_sender, core_ipc_receiver) =
             ipc::channel().expect("Failed to create IPC channel!");
-        let (storage_ipc_sender, storage_ipc_receiver) =
-            generic_channel::channel().expect("Failed to create IPC channel!");
         let (indexeddb_ipc_sender, indexeddb_ipc_receiver) =
             ipc::channel().expect("Failed to create IPC channel!");
+        let (storage_ipc_sender, storage_ipc_receiver) =
+            generic_channel::channel().expect("Failed to create IPC channel!");
 
         debug!("Exiting core resource threads.");
         if let Err(e) = self
@@ -2615,14 +2615,6 @@ where
             }
         }
 
-        debug!("Exiting storage resource threads.");
-        if let Err(e) = generic_channel::GenericSend::send(
-            &self.public_storage_threads,
-            WebStorageThreadMsg::Exit(storage_ipc_sender),
-        ) {
-            warn!("Exit storage thread failed ({})", e);
-        }
-
         debug!("Exiting indexeddb resource threads.");
         if let Err(e) =
             self.public_storage_threads
@@ -2631,6 +2623,13 @@ where
                 )))
         {
             warn!("Exit indexeddb thread failed ({})", e);
+        }
+        debug!("Exiting storage resource threads.");
+        if let Err(e) = generic_channel::GenericSend::send(
+            &self.public_storage_threads,
+            WebStorageThreadMsg::Exit(storage_ipc_sender),
+        ) {
+            warn!("Exit storage thread failed ({})", e);
         }
 
         #[cfg(feature = "bluetooth")]
@@ -2700,11 +2699,11 @@ where
         if let Err(e) = core_ipc_receiver.recv() {
             warn!("Exit resource thread failed ({:?})", e);
         }
-        if let Err(e) = storage_ipc_receiver.recv() {
-            warn!("Exit storage thread failed ({:?})", e);
-        }
         if let Err(e) = indexeddb_ipc_receiver.recv() {
             warn!("Exit indexeddb thread failed ({:?})", e);
+        }
+        if let Err(e) = storage_ipc_receiver.recv() {
+            warn!("Exit storage thread failed ({:?})", e);
         }
 
         debug!("Shutting-down IPC router thread in constellation.");

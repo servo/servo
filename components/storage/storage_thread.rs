@@ -22,7 +22,7 @@ pub fn new_storage_threads(
     let web_storage: GenericSender<WebStorageThreadMsg> =
         WebStorageThreadFactory::new(config_dir, mem_profiler_chan);
     (
-        StorageThreads::new(web_storage.clone(), idb.clone()),
-        StorageThreads::new(web_storage, idb),
+        StorageThreads::new(idb.clone(), web_storage.clone()),
+        StorageThreads::new(idb, web_storage),
     )
 }
