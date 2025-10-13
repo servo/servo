@@ -44,7 +44,7 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-deserialize-a-web-element>
-    pub(crate) fn deserialize_web_element(&self, element: &Value) -> WebDriverResult<String> {
+    fn deserialize_web_element(&self, element: &Value) -> WebDriverResult<String> {
         // Step 2. Let reference be the result of getting the web element identifier property from object.
         let element_ref = match element {
             Value::String(s) => s.clone(),
@@ -66,7 +66,7 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-deserialize-a-shadow-root>
-    pub(crate) fn deserialize_shadow_root(&self, shadow_root: &Value) -> WebDriverResult<String> {
+    fn deserialize_shadow_root(&self, shadow_root: &Value) -> WebDriverResult<String> {
         // Step 2. Let reference be the result of getting the shadow root identifier property from object.
         let shadow_root_ref = match shadow_root {
             Value::String(s) => s.clone(),
