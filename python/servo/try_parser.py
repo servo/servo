@@ -39,7 +39,6 @@ class JobConfig(object):
     unit_tests: bool = False
     build_libservo: bool = False
     bencher: bool = False
-    coverage: bool = False
     build_args: str = ""
     wpt_args: str = ""
     number_of_wpt_chunks: int = 20
@@ -58,7 +57,6 @@ class JobConfig(object):
         self.unit_tests |= other.unit_tests
         self.build_libservo |= other.build_libservo
         self.bencher |= other.bencher
-        self.coverage |= other.coverage
         self.number_of_wpt_chunks = max(self.number_of_wpt_chunks, other.number_of_wpt_chunks)
         self.update_name()
         return True
@@ -85,8 +83,6 @@ class JobConfig(object):
             modifier.append("WPT")
         if self.bencher:
             modifier.append("Bencher")
-        if self.coverage:
-            modifier.append("Coverage")
         if modifier:
             self.name += " (" + ", ".join(modifier) + ")"
 
@@ -159,8 +155,6 @@ def handle_modifier(config: Optional[JobConfig], s: str) -> Optional[JobConfig]:
         config.profile = "production"
     if "bencher" in s:
         config.bencher = True
-    if "coverage" in s:
-        config.coverage = True
     elif "wpt" in s:
         config.wpt = True
     config.update_name()
@@ -210,9 +204,6 @@ class Config(object):
                 words.extend(["linux-production-bencher", "macos-production-bencher", "windows-production-bencher"])
                 words.extend(["ohos-production-bencher"])
                 continue  # skip over keyword
-            if word in ["cov", "coverage", "test-coverage"]:
-                words.extend(["linux-coverage"])
-                continue  # skip over keyword
             job = handle_preset(word)
             job = handle_modifier(job, word)
             if job is None:
@@ -261,7 +252,6 @@ class TestParser(unittest.TestCase):
                         "wpt": False,
                         "wpt_args": "",
                         "build_args": "",
-                        "coverage": False,
                     }
                 ],
             },
@@ -284,7 +274,6 @@ class TestParser(unittest.TestCase):
                         "bencher": True,
                         "wpt_args": "",
                         "build_args": "",
-                        "coverage": False,
                     },
                     {
                         "name": "MacOS (Unit Tests, Build libservo)",
@@ -297,7 +286,6 @@ class TestParser(unittest.TestCase):
                         "bencher": False,
                         "wpt_args": "",
                         "build_args": "",
-                        "coverage": False,
                     },
                     {
                         "name": "Windows (Unit Tests, Build libservo)",
@@ -310,7 +298,6 @@ class TestParser(unittest.TestCase):
                         "bencher": False,
                         "wpt_args": "",
                         "build_args": "",
-                        "coverage": False,
                     },
                     {
                         "name": "Android",
@@ -323,7 +310,6 @@ class TestParser(unittest.TestCase):
                         "bencher": False,
                         "wpt_args": "",
                         "build_args": "",
-                        "coverage": False,
                     },
                     {
                         "name": "OpenHarmony",
@@ -336,7 +322,6 @@ class TestParser(unittest.TestCase):
                         "bencher": False,
                         "wpt_args": "",
                         "build_args": "",
-                        "coverage": False,
                     },
                     {
                         "name": "Lint",
@@ -349,7 +334,6 @@ class TestParser(unittest.TestCase):
                         "bencher": False,
                         "wpt_args": "",
                         "build_args": "",
-                        "coverage": False,
                     },
                 ],
             },
@@ -372,7 +356,6 @@ class TestParser(unittest.TestCase):
                         "wpt": True,
                         "wpt_args": "",
                         "build_args": "",
-                        "coverage": False,
                     }
                 ],
             },
