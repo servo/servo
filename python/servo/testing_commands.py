@@ -499,15 +499,19 @@ class MachCommands(CommandBase):
     @Command("test-dromaeo", description="Run the Dromaeo test suite", category="testing")
     @CommandArgument("tests", default=["recommended"], nargs="...", help="Specific tests to run")
     @CommandArgument("--bmf-output", default=None, help="Specify BMF JSON output file")
-    @CommandBase.common_command_arguments(binary_selection=True)
-    def test_dromaeo(self, tests: list[str], servo_binary: str, bmf_output: str | None = None) -> None:
-        return self.dromaeo_test_runner(tests, servo_binary, bmf_output)
+    @CommandBase.common_command_arguments(build_type=True, binary_selection=True)
+    def test_dromaeo(
+        self, tests: list[str], build_type: BuildType, servo_binary: str, bmf_output: str | None = None, **kwargs: Any
+    ) -> None:
+        return self.dromaeo_test_runner(tests, servo_binary, bmf_output, build_type.profile)
 
     @Command("test-speedometer", description="Run servo's speedometer", category="testing")
     @CommandArgument("--bmf-output", default=None, help="Specify BMF JSON output file")
-    @CommandBase.common_command_arguments(binary_selection=True)
-    def test_speedometer(self, servo_binary: str, bmf_output: str | None = None) -> None:
-        return self.speedometer_runner(servo_binary, bmf_output)
+    @CommandBase.common_command_arguments(build_type=True, binary_selection=True)
+    def test_speedometer(
+        self, build_type: BuildType, servo_binary: str, bmf_output: str | None = None, **kwargs: Any
+    ) -> None:
+        return self.speedometer_runner(servo_binary, bmf_output, build_type.profile)
 
     @Command("test-speedometer-ohos", description="Run servo's speedometer on a ohos device", category="testing")
     @CommandArgument("--bmf-output", default=None, help="Specifcy BMF JSON output file")
@@ -625,7 +629,7 @@ class MachCommands(CommandBase):
 
         return call([run_file, cmd, bin_path, base_dir])
 
-    def dromaeo_test_runner(self, tests: list[str], binary: str, bmf_output: str | None) -> None:
+    def dromaeo_test_runner(self, tests: list[str], binary: str, bmf_output: str | None, profile: str) -> None:
         base_dir = path.abspath(path.join("tests", "dromaeo"))
         dromaeo_dir = path.join(base_dir, "dromaeo")
         run_file = path.join(base_dir, "run_dromaeo.py")
@@ -649,7 +653,12 @@ class MachCommands(CommandBase):
         # Check that a release servo build exists
         bin_path = path.abspath(binary)
 
-        return check_call([run_file, "|".join(tests), bin_path, base_dir, bmf_output])
+        args = [run_file, "|".join(tests), bin_path, base_dir]
+        if bmf_output is not None:
+            args.append(bmf_output)
+            args.append(profile)
+
+        return check_call(args)
 
     def speedometer_to_bmf(self, speedometer: dict[str, Any], bmf_output: str, profile: str | None = None) -> None:
         output = dict()
@@ -683,7 +692,7 @@ class MachCommands(CommandBase):
         with open(bmf_output, "w", encoding="utf-8") as f:
             json.dump(output, f, indent=4)
 
-    def speedometer_runner(self, binary: str, bmf_output: str | None) -> None:
+    def speedometer_runner(self, binary: str, bmf_output: str | None, profile: str) -> None:
         output = subprocess.check_output(
             [
                 binary,
@@ -707,7 +716,7 @@ class MachCommands(CommandBase):
         print(f"Score: {speedometer['Score']['mean']} ± {speedometer['Score']['delta']}")
 
         if bmf_output:
-            self.speedometer_to_bmf(speedometer, bmf_output)
+            self.speedometer_to_bmf(speedometer, bmf_output, profile)
 
     def speedometer_runner_ohos(self, bmf_output: str | None, profile: str | None) -> None:
         hdc_path = shutil.which("hdc")
