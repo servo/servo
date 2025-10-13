@@ -400,8 +400,19 @@ impl LineItemLayout<'_, '_> {
         //
         // Note: This is an optimization, but also has side effects. Any fragments on a line will
         // force the baseline to advance in the parent IFC.
+        //
+        // Note: We don't need to check the inline-start padding, border and margin because they
+        // must have been set to zero in the code above. But checking whether `pbm_sums.inline_end`
+        // is zero doesn't suffice, because it could be nullified by a negative margin.
+        //
+        // TODO: Once we implement `box-decoration-break: clone`, it may happen that `had_start` is
+        // true even if this isn't the first fragment.
         let pbm_sums = padding + border + margin;
-        if inner_state.fragments.is_empty() && !had_start && pbm_sums.inline_sum().is_zero() {
+        if inner_state.fragments.is_empty() &&
+            !had_start &&
+            pbm_sums.inline_end.is_zero() &&
+            margin.inline_end.is_zero()
+        {
             return;
         }
 
