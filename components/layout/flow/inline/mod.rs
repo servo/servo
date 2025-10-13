@@ -2542,7 +2542,9 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
     }
 
     fn add_inline_size(&mut self, l: Au) {
-        self.current_line.min_content += l;
+        if l > self.current_line.min_content {
+            self.current_line.min_content = l;
+        }
         self.current_line.max_content += l;
     }
 
