@@ -509,10 +509,6 @@ impl WebView {
             .send(EmbedderToConstellationMessage::MediaSessionAction(event));
     }
 
-    pub fn notify_vsync(&self) {
-        self.inner().compositor.borrow_mut().on_vsync(self.id());
-    }
-
     /// Set the page zoom of the [`WebView`].
     ///
     /// [`WebView`]s have two types of zoom, pinch zoom and page zoom.
