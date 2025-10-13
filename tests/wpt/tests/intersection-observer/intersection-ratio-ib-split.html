@@ -22,8 +22,8 @@
 // Account for rounding differences when viewport sizes can't cleanly divide.
 const epsilon = 1;
 
-promise_test(async function() {
-  for (let element of document.querySelectorAll("inline, block")) {
+for (let element of document.querySelectorAll("inline, block")) {
+  promise_test(async function() {
     let entries = await new Promise(resolve => {
       new IntersectionObserver(resolve).observe(element);
     });
@@ -40,6 +40,6 @@ promise_test(async function() {
 
     assert_rects_equal(entries[0].boundingClientRect, element.getBoundingClientRect(), element.nodeName + ": boundingClientRect should match");
     assert_rects_equal(entries[0].intersectionRect, entries[0].boundingClientRect, element.nodeName + ": intersectionRect should match entry.boundingClientRect");
-  }
-}, "IntersectionObserver on an IB split gets the right intersection ratio");
+  }, "IntersectionObserver on an IB split gets the right intersection ratio - " + element.tagName);
+}
 </script>
