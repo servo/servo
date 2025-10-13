@@ -202,7 +202,6 @@ class Config(object):
                 words.extend(["linux-unit-tests", "linux-wpt", "linux-bencher"])
                 words.extend(["macos-unit-tests", "windows-unit-tests", "android", "ohos", "lint"])
                 words.extend(["linux-build-libservo", "macos-build-libservo", "windows-build-libservo"])
-                words.extend(["linux-coverage"])
                 continue  # skip over keyword
             if word == "bencher":
                 words.extend(["linux-bencher", "macos-bencher", "windows-bencher", "android-bencher", "ohos-bencher"])
@@ -275,7 +274,7 @@ class TestParser(unittest.TestCase):
                 "fail_fast": False,
                 "matrix": [
                     {
-                        "name": "Linux (Unit Tests, Build libservo, WPT, Bencher, Coverage)",
+                        "name": "Linux (Unit Tests, Build libservo, WPT, Bencher)",
                         "number_of_wpt_chunks": 20,
                         "workflow": "linux",
                         "wpt": True,
@@ -285,7 +284,7 @@ class TestParser(unittest.TestCase):
                         "bencher": True,
                         "wpt_args": "",
                         "build_args": "",
-                        "coverage": True,
+                        "coverage": False,
                     },
                     {
                         "name": "MacOS (Unit Tests, Build libservo)",
