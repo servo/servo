@@ -28,7 +28,6 @@ class Workflow(str, Enum):
     ANDROID = "android"
     OHOS = "ohos"
     LINT = "lint"
-    COVERAGE = "coverage"
 
 
 @dataclass
@@ -40,6 +39,7 @@ class JobConfig(object):
     unit_tests: bool = False
     build_libservo: bool = False
     bencher: bool = False
+    coverage: bool = False
     build_args: str = ""
     wpt_args: str = ""
     number_of_wpt_chunks: int = 20
@@ -58,6 +58,7 @@ class JobConfig(object):
         self.unit_tests |= other.unit_tests
         self.build_libservo |= other.build_libservo
         self.bencher |= other.bencher
+        self.coverage |= other.coverage
         self.number_of_wpt_chunks = max(self.number_of_wpt_chunks, other.number_of_wpt_chunks)
         self.update_name()
         return True
@@ -73,8 +74,6 @@ class JobConfig(object):
             self.name = "Android"
         elif self.workflow is Workflow.OHOS:
             self.name = "OpenHarmony"
-        elif self.workflow is Workflow.COVERAGE:
-            self.name = "Coverage"
         modifier = []
         if self.profile != "release":
             modifier.append(self.profile.title())
@@ -86,6 +85,8 @@ class JobConfig(object):
             modifier.append("WPT")
         if self.bencher:
             modifier.append("Bencher")
+        if self.coverage:
+            modifier.append("Coverage")
         if modifier:
             self.name += " (" + ", ".join(modifier) + ")"
 
@@ -103,8 +104,6 @@ def handle_preset(s: str) -> Optional[JobConfig]:
         return JobConfig("Android", Workflow.ANDROID)
     elif any(word in s for word in ["ohos", "openharmony"]):
         return JobConfig("OpenHarmony", Workflow.OHOS)
-    elif any(word in s for word in ["cov", "coverage", "test-coverage"]):
-        return JobConfig("Coverage", Workflow.COVERAGE)
     elif any(word in s for word in ["webgpu"]):
         return JobConfig(
             "WebGPU CTS",
@@ -160,6 +159,8 @@ def handle_modifier(config: Optional[JobConfig], s: str) -> Optional[JobConfig]:
         config.profile = "production"
     if "bencher" in s:
         config.bencher = True
+    if "coverage" in s:
+        config.coverage = True
     elif "wpt" in s:
         config.wpt = True
     config.update_name()
@@ -201,7 +202,7 @@ class Config(object):
                 words.extend(["linux-unit-tests", "linux-wpt", "linux-bencher"])
                 words.extend(["macos-unit-tests", "windows-unit-tests", "android", "ohos", "lint"])
                 words.extend(["linux-build-libservo", "macos-build-libservo", "windows-build-libservo"])
-                words.extend(["coverage"])
+                words.extend(["linux-coverage"])
                 continue  # skip over keyword
             if word == "bencher":
                 words.extend(["linux-bencher", "macos-bencher", "windows-bencher", "android-bencher", "ohos-bencher"])
@@ -209,6 +210,9 @@ class Config(object):
             if word == "production-bencher":
                 words.extend(["linux-production-bencher", "macos-production-bencher", "windows-production-bencher"])
                 words.extend(["ohos-production-bencher"])
+                continue  # skip over keyword
+            if word in ["cov", "coverage", "test-coverage"]:
+                words.extend(["linux-coverage"])
                 continue  # skip over keyword
             job = handle_preset(word)
             job = handle_modifier(job, word)
@@ -258,6 +262,7 @@ class TestParser(unittest.TestCase):
                         "wpt": False,
                         "wpt_args": "",
                         "build_args": "",
+                        "coverage": False,
                     }
                 ],
             },
@@ -270,7 +275,7 @@ class TestParser(unittest.TestCase):
                 "fail_fast": False,
                 "matrix": [
                     {
-                        "name": "Linux (Unit Tests, Build libservo, WPT, Bencher)",
+                        "name": "Linux (Unit Tests, Build libservo, WPT, Bencher, Coverage)",
                         "number_of_wpt_chunks": 20,
                         "workflow": "linux",
                         "wpt": True,
@@ -280,6 +285,7 @@ class TestParser(unittest.TestCase):
                         "bencher": True,
                         "wpt_args": "",
                         "build_args": "",
+                        "coverage": True,
                     },
                     {
                         "name": "MacOS (Unit Tests, Build libservo)",
@@ -292,6 +298,7 @@ class TestParser(unittest.TestCase):
                         "bencher": False,
                         "wpt_args": "",
                         "build_args": "",
+                        "coverage": False,
                     },
                     {
                         "name": "Windows (Unit Tests, Build libservo)",
@@ -304,6 +311,7 @@ class TestParser(unittest.TestCase):
                         "bencher": False,
                         "wpt_args": "",
                         "build_args": "",
+                        "coverage": False,
                     },
                     {
                         "name": "Android",
@@ -316,6 +324,7 @@ class TestParser(unittest.TestCase):
                         "bencher": False,
                         "wpt_args": "",
                         "build_args": "",
+                        "coverage": False,
                     },
                     {
                         "name": "OpenHarmony",
@@ -328,6 +337,7 @@ class TestParser(unittest.TestCase):
                         "bencher": False,
                         "wpt_args": "",
                         "build_args": "",
+                        "coverage": False,
                     },
                     {
                         "name": "Lint",
@@ -340,18 +350,7 @@ class TestParser(unittest.TestCase):
                         "bencher": False,
                         "wpt_args": "",
                         "build_args": "",
-                    },
-                    {
-                        "name": "Coverage",
-                        "number_of_wpt_chunks": 20,
-                        "workflow": "coverage",
-                        "wpt": False,
-                        "profile": "release",
-                        "unit_tests": False,
-                        "build_libservo": False,
-                        "bencher": False,
-                        "wpt_args": "",
-                        "build_args": "",
+                        "coverage": False,
                     },
                 ],
             },
@@ -374,6 +373,7 @@ class TestParser(unittest.TestCase):
                         "wpt": True,
                         "wpt_args": "",
                         "build_args": "",
+                        "coverage": False,
                     }
                 ],
             },
