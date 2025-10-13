@@ -103,7 +103,7 @@ def handle_preset(s: str) -> Optional[JobConfig]:
         return JobConfig("Android", Workflow.ANDROID)
     elif any(word in s for word in ["ohos", "openharmony"]):
         return JobConfig("OpenHarmony", Workflow.OHOS)
-    elif any(word in s for word in ["coverage", "test-coverage"]):
+    elif any(word in s for word in ["cov", "coverage", "test-coverage"]):
         return JobConfig("Coverage", Workflow.COVERAGE)
     elif any(word in s for word in ["webgpu"]):
         return JobConfig(
