@@ -1643,6 +1643,12 @@ where
         let (source_pipeline_id, content) = message;
         trace_script_msg!(content, "{source_pipeline_id}: {content:?}");
 
+        let get_webview_id = || {
+            self.pipelines
+                .get(&source_pipeline_id)
+                .map(|pipeline| pipeline.webview_id)
+        };
+
         match content {
             ScriptToConstellationMessage::CompleteMessagePortTransfer(router_id, ports) => {
                 self.handle_complete_message_port_transfer(router_id, ports);
@@ -1744,34 +1750,20 @@ where
                 self.handle_pipeline_exited(source_pipeline_id);
             },
             ScriptToConstellationMessage::DiscardDocument => {
-                let webview_id = match self
-                    .pipelines
-                    .get(&source_pipeline_id)
-                    .map(|pipeline| pipeline.webview_id)
-                {
-                    None => {
-                        return warn!(
-                            "{}: DiscardDocument from closed pipeline",
-                            source_pipeline_id
-                        );
-                    },
-                    Some(ctx) => ctx,
+                let Some(webview_id) = get_webview_id() else {
+                    return warn!(
+                        "{}: DiscardDocument from closed pipeline",
+                        source_pipeline_id
+                    );
                 };
                 self.handle_discard_document(webview_id, source_pipeline_id);
             },
             ScriptToConstellationMessage::DiscardTopLevelBrowsingContext => {
-                let webview_id = match self
-                    .pipelines
-                    .get(&source_pipeline_id)
-                    .map(|pipeline| pipeline.webview_id)
-                {
-                    None => {
-                        return warn!(
-                            "{}: DiscardTopLevelBrowsingContext from closed pipeline",
-                            source_pipeline_id
-                        );
-                    },
-                    Some(ctx) => ctx,
+                let Some(webview_id) = get_webview_id() else {
+                    return warn!(
+                        "{}: DiscardTopLevelBrowsingContext from closed pipeline",
+                        source_pipeline_id
+                    );
                 };
                 self.handle_close_top_level_browsing_context(webview_id);
             },
@@ -1789,13 +1781,8 @@ where
             },
             // Ask the embedder for permission to load a new page.
             ScriptToConstellationMessage::LoadUrl(load_data, history_handling) => {
-                let webview_id = match self
-                    .pipelines
-                    .get(&source_pipeline_id)
-                    .map(|pipeline| pipeline.webview_id)
-                {
-                    None => return warn!("{}: LoadUrl from closed pipeline", source_pipeline_id),
-                    Some(ctx) => ctx,
+                let Some(webview_id) = get_webview_id() else {
+                    return warn!("{}: LoadUrl from closed pipeline", source_pipeline_id);
                 };
                 self.schedule_navigation(
                     webview_id,
@@ -1809,15 +1796,8 @@ where
             },
             // A page loaded has completed all parsing, script, and reflow messages have been sent.
             ScriptToConstellationMessage::LoadComplete => {
-                let webview_id = match self
-                    .pipelines
-                    .get(&source_pipeline_id)
-                    .map(|pipeline| pipeline.webview_id)
-                {
-                    None => {
-                        return warn!("{}: LoadComplete from closed pipeline", source_pipeline_id);
-                    },
-                    Some(ctx) => ctx,
+                let Some(webview_id) = get_webview_id() else {
+                    return warn!("{}: LoadComplete from closed pipeline", source_pipeline_id);
                 };
                 self.handle_load_complete_msg(webview_id, source_pipeline_id)
             },
@@ -1827,18 +1807,11 @@ where
             },
             // Handle a forward or back request
             ScriptToConstellationMessage::TraverseHistory(direction) => {
-                let webview_id = match self
-                    .pipelines
-                    .get(&source_pipeline_id)
-                    .map(|pipeline| pipeline.webview_id)
-                {
-                    None => {
-                        return warn!(
-                            "{}: TraverseHistory from closed pipeline",
-                            source_pipeline_id
-                        );
-                    },
-                    Some(ctx) => ctx,
+                let Some(webview_id) = get_webview_id() else {
+                    return warn!(
+                        "{}: TraverseHistory from closed pipeline",
+                        source_pipeline_id
+                    );
                 };
                 self.handle_traverse_history_msg(webview_id, direction);
             },
@@ -1851,18 +1824,11 @@ where
             },
             // Handle a joint session history length request.
             ScriptToConstellationMessage::JointSessionHistoryLength(response_sender) => {
-                let webview_id = match self
-                    .pipelines
-                    .get(&source_pipeline_id)
-                    .map(|pipeline| pipeline.webview_id)
-                {
-                    None => {
-                        return warn!(
-                            "{}: JointSessionHistoryLength from closed pipeline",
-                            source_pipeline_id
-                        );
-                    },
-                    Some(ctx) => ctx,
+                let Some(webview_id) = get_webview_id() else {
+                    return warn!(
+                        "{}: JointSessionHistoryLength from closed pipeline",
+                        source_pipeline_id
+                    );
                 };
                 self.handle_joint_session_history_length(webview_id, response_sender);
             },
@@ -1920,29 +1886,17 @@ where
                 self.document_states.insert(source_pipeline_id, state);
             },
             ScriptToConstellationMessage::LogEntry(thread_name, entry) => {
-                let webview_id = match self
-                    .pipelines
-                    .get(&source_pipeline_id)
-                    .map(|pipeline| pipeline.webview_id)
-                {
-                    None => return warn!("{}: LogEntry from closed pipeline", source_pipeline_id),
-                    Some(ctx) => ctx,
+                let Some(webview_id) = get_webview_id() else {
+                    return warn!("{}: LogEntry from closed pipeline", source_pipeline_id);
                 };
                 self.handle_log_entry(Some(webview_id), thread_name, entry);
             },
             ScriptToConstellationMessage::TouchEventProcessed(result) => {
-                let webview_id = match self
-                    .pipelines
-                    .get(&source_pipeline_id)
-                    .map(|pipeline| pipeline.webview_id)
-                {
-                    None => {
-                        return warn!(
-                            "{}: TouchEventProcessed from closed pipeline",
-                            source_pipeline_id
-                        );
-                    },
-                    Some(ctx) => ctx,
+                let Some(webview_id) = get_webview_id() else {
+                    return warn!(
+                        "{}: TouchEventProcessed from closed pipeline",
+                        source_pipeline_id
+                    );
                 };
                 self.compositor_proxy
                     .send(CompositorMsg::TouchEventProcessed(webview_id, result))
@@ -2020,18 +1974,11 @@ where
                 );
             },
             ScriptToConstellationMessage::MediaSessionEvent(pipeline_id, event) => {
-                let webview_id = match self
-                    .pipelines
-                    .get(&source_pipeline_id)
-                    .map(|pipeline| pipeline.webview_id)
-                {
-                    None => {
-                        return warn!(
-                            "{}: MediaSessionEvent from closed pipeline",
-                            source_pipeline_id
-                        );
-                    },
-                    Some(ctx) => ctx,
+                let Some(webview_id) = get_webview_id() else {
+                    return warn!(
+                        "{}: MediaSessionEvent from closed pipeline",
+                        source_pipeline_id
+                    );
                 };
                 // Unlikely at this point, but we may receive events coming from
                 // different media sessions, so we set the active media session based
@@ -2055,18 +2002,11 @@ where
             },
             #[cfg(feature = "webgpu")]
             ScriptToConstellationMessage::RequestAdapter(response_sender, options, ids) => {
-                let webview_id = match self
-                    .pipelines
-                    .get(&source_pipeline_id)
-                    .map(|pipeline| pipeline.webview_id)
-                {
-                    None => {
-                        return warn!(
-                            "{}: RequestAdapter from closed pipeline",
-                            source_pipeline_id
-                        );
-                    },
-                    Some(ctx) => ctx,
+                let Some(webview_id) = get_webview_id() else {
+                    return warn!(
+                        "{}: RequestAdapter from closed pipeline",
+                        source_pipeline_id
+                    );
                 };
                 self.handle_wgpu_request(
                     source_pipeline_id,
@@ -2076,15 +2016,8 @@ where
             },
             #[cfg(feature = "webgpu")]
             ScriptToConstellationMessage::GetWebGPUChan(response_sender) => {
-                let webview_id = match self
-                    .pipelines
-                    .get(&source_pipeline_id)
-                    .map(|pipeline| pipeline.webview_id)
-                {
-                    None => {
-                        return warn!("{}: GetWebGPUChan from closed pipeline", source_pipeline_id);
-                    },
-                    Some(ctx) => ctx,
+                let Some(webview_id) = get_webview_id() else {
+                    return warn!("{}: GetWebGPUChan from closed pipeline", source_pipeline_id);
                 };
                 self.handle_wgpu_request(
                     source_pipeline_id,
