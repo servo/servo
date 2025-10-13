@@ -5,7 +5,6 @@
   <link rel="author" title="Simon Wülker" href="mailto:simon.wuelker@arcor.de">
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
-  <script src="helpers.js"></script>
 </head>
 <body>
   <div id="context">/div>
@@ -31,7 +30,7 @@
 
     for (const [query, expected] of BOOLEAN_TESTCASES) {
       test((t) => {
-        let result = evaluateBoolean(query, context);
+        let result = document.evaluate(query, context, null, XPathResult.BOOLEAN_TYPE, null).booleanValue;
         assert_equals(result, expected);
 
       }, "\"" + query + "\" with XPathResult.BOOLEAN_TYPE");
@@ -46,7 +45,7 @@
 
     for (const [query, expected] of NUMERIC_TESTCASES) {
       test((t) => {
-        let result = evaluateNumber(query, context);
+        let result = document.evaluate(query, context, null, XPathResult.NUMBER_TYPE, null).numberValue;
 
         if (isNaN(expected)) {
           assert_true(isNaN(result));
@@ -66,7 +65,7 @@
 
     for (const [query, expected] of STRING_TESTCASES) {
       test((t) => {
-        let result = evaluateString(query, context);
+        let result = document.evaluate(query, context, null, XPathResult.STRING_TYPE, null).stringValue;
         assert_equals(result, expected);
 
       }, "\"" + query + "\" with XPathResult.STRING_TYPE");
