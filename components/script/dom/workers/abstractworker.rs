@@ -14,10 +14,13 @@ pub(crate) enum WorkerScriptMsg {
     /// Common variants associated with the script messages
     Common(CommonScriptMsg),
     /// Message sent through Worker.postMessage
-    DOMMessage {
-        origin: ImmutableOrigin,
-        data: Box<StructuredSerializedData>,
-    },
+    DOMMessage(MessageData),
+}
+
+#[derive(MallocSizeOf)]
+pub(crate) struct MessageData {
+    pub origin: ImmutableOrigin,
+    pub data: Box<StructuredSerializedData>,
 }
 
 pub(crate) struct SimpleWorkerErrorHandler<T: DomObject> {

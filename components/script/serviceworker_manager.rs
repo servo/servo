@@ -26,7 +26,7 @@ use net_traits::{CoreResourceMsg, CustomResponseMediator};
 use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
-use crate::dom::abstractworker::WorkerScriptMsg;
+use crate::dom::abstractworker::{MessageData, WorkerScriptMsg};
 use crate::dom::serviceworkerglobalscope::{
     ServiceWorkerControlMsg, ServiceWorkerGlobalScope, ServiceWorkerScriptMsg,
 };
@@ -66,10 +66,10 @@ impl ServiceWorker {
     fn forward_dom_message(&self, msg: DOMMessage) {
         let DOMMessage { origin, data } = msg;
         let _ = self.sender.send(ServiceWorkerScriptMsg::CommonWorker(
-            WorkerScriptMsg::DOMMessage {
+            WorkerScriptMsg::DOMMessage(MessageData {
                 origin,
                 data: Box::new(data),
-            },
+            }),
         ));
     }
 

@@ -457,13 +457,13 @@ impl ServiceWorkerGlobalScope {
         use self::ServiceWorkerScriptMsg::*;
 
         match msg {
-            CommonWorker(WorkerScriptMsg::DOMMessage { data, .. }) => {
+            CommonWorker(WorkerScriptMsg::DOMMessage(msg)) => {
                 let scope = self.upcast::<WorkerGlobalScope>();
                 let target = self.upcast();
                 let _ac = enter_realm(scope);
                 rooted!(in(*scope.get_cx()) let mut message = UndefinedValue());
                 if let Ok(ports) =
-                    structuredclone::read(scope.upcast(), *data, message.handle_mut())
+                    structuredclone::read(scope.upcast(), *msg.data, message.handle_mut())
                 {
                     ExtendableMessageEvent::dispatch_jsval(
                         target,

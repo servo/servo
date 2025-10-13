@@ -17,7 +17,7 @@ use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValu
 use net_traits::request::Referrer;
 use uuid::Uuid;
 
-use crate::dom::abstractworker::{SimpleWorkerErrorHandler, WorkerScriptMsg};
+use crate::dom::abstractworker::{MessageData, SimpleWorkerErrorHandler, WorkerScriptMsg};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::{WorkerMethods, WorkerOptions};
@@ -147,10 +147,10 @@ impl Worker {
         // indicates that a nonexistent communication channel should result in a silent error.
         let _ = self.sender.send(DedicatedWorkerScriptMsg::CommonWorker(
             address,
-            WorkerScriptMsg::DOMMessage {
+            WorkerScriptMsg::DOMMessage(MessageData {
                 origin: self.global().origin().immutable().clone(),
                 data: Box::new(data),
-            },
+            }),
         ));
         Ok(())
     }

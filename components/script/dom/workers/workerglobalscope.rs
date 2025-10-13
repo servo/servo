@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
 use std::cell::{RefCell, RefMut};
 use std::default::Default;
 use std::rc::Rc;
@@ -18,15 +19,21 @@ use crossbeam_channel::Receiver;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use dom_struct::dom_struct;
 use fonts::FontContext;
+use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use ipc_channel::ipc::IpcSender;
+use js::jsapi::JS_AddInterruptCallback;
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
 use js::rust::{HandleValue, MutableHandleValue, ParentRuntime};
-use net_traits::ReferrerPolicy;
+use mime::Mime;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata,
-    RequestBuilder as NetRequestInit,
+    RequestBuilder as NetRequestInit, RequestId,
+};
+use net_traits::{
+    FetchMetadata, FetchResponseListener, Metadata, NetworkError, ReferrerPolicy,
+    ResourceFetchTiming, ResourceTimingType,
 };
 use profile_traits::mem::{ProcessReports, perform_memory_report};
 use servo_url::{MutableOrigin, ServoUrl};
@@ -50,17 +57,22 @@ use crate::dom::bindings::codegen::UnionTypes::{
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::crypto::Crypto;
-use crate::dom::csp::{GlobalCspReporting, Violation};
-use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
+use crate::dom::csp::{GlobalCspReporting, Violation, parse_csp_list_from_metadata};
+use crate::dom::dedicatedworkerglobalscope::{
+    AutoWorkerReset, DedicatedWorkerGlobalScope, interrupt_callback,
+};
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::htmlscriptelement::SCRIPT_JS_MIMES;
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::performance::Performance;
+use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::reportingendpoint::{ReportingEndpoint, SendReportsToEndpoints};
 use crate::dom::reportingobserver::ReportingObserver;
@@ -70,10 +82,12 @@ use crate::dom::types::ImageBitmap;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::{base64_atob, base64_btoa};
+use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerlocation::WorkerLocation;
 use crate::dom::workernavigator::WorkerNavigator;
 use crate::fetch::{CspViolationsProcessor, Fetch, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
+use crate::network_listener::{PreInvoke, ResourceTimingListener, submit_timing};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, IntroductionType, JSContext, JSContextHelper, Runtime};
 use crate::task::TaskCanceller;
@@ -101,6 +115,163 @@ pub(crate) fn prepare_workerscope_init(
     }
 }
 
+pub(crate) struct ScriptFetchContext {
+    scope: Trusted<WorkerGlobalScope>,
+    resource_timing: ResourceFetchTiming,
+    response: Option<Metadata>,
+    body_bytes: Vec<u8>,
+    url: ServoUrl,
+    worker: TrustedWorkerAddress,
+    policy_container: PolicyContainer,
+}
+
+impl ScriptFetchContext {
+    pub(crate) fn new(
+        scope: Trusted<WorkerGlobalScope>,
+        url: ServoUrl,
+        worker: TrustedWorkerAddress,
+        policy_container: PolicyContainer,
+    ) -> ScriptFetchContext {
+        ScriptFetchContext {
+            scope,
+            response: None,
+            body_bytes: Vec::new(),
+            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
+            url,
+            worker,
+            policy_container,
+        }
+    }
+}
+
+impl FetchResponseListener for ScriptFetchContext {
+    fn process_request_body(&mut self, _request_id: RequestId) {}
+
+    fn process_request_eof(&mut self, _request_id: RequestId) {}
+
+    fn process_response(
+        &mut self,
+        _request_id: RequestId,
+        metadata: Result<FetchMetadata, NetworkError>,
+    ) {
+        self.response = metadata.ok().map(|m| match m {
+            FetchMetadata::Unfiltered(m) => m,
+            FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
+        });
+    }
+
+    fn process_response_chunk(&mut self, _request_id: RequestId, mut chunk: Vec<u8>) {
+        self.body_bytes.append(&mut chunk);
+    }
+
+    fn process_response_eof(
+        &mut self,
+        _request_id: RequestId,
+        response: Result<ResourceFetchTiming, NetworkError>,
+    ) {
+        let scope = self.scope.root();
+
+        if response
+            .inspect_err(|e| error!("error loading script {} ({:?})", self.url, e))
+            .is_err() ||
+            self.response.is_none()
+        {
+            scope.on_complete(None, self.worker.clone(), CanGc::note());
+            return;
+        }
+        let metadata = self.response.take().unwrap();
+
+        // The processResponseConsumeBody steps defined inside
+        // [run a worker](https://html.spec.whatwg.org/multipage/#run-a-worker)
+
+        // Step 1 Set worker global scope's url to response's url.
+        scope.set_url(metadata.final_url.clone());
+
+        // Step 2 Initialize worker global scope's policy container given worker global scope, response, and inside settings.
+        scope
+            .initialize_policy_container_for_worker_global_scope(&metadata, &self.policy_container);
+        scope.set_endpoints_list(ReportingEndpoint::parse_reporting_endpoints_header(
+            &metadata.final_url.clone(),
+            &metadata.headers,
+        ));
+        scope
+            .upcast::<GlobalScope>()
+            .set_https_state(metadata.https_state);
+
+        // The processResponseConsumeBody steps defined inside
+        // [fetch a classic worker script](https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-script)
+
+        // Step 1 Set response to response's unsafe response. Done in process_response
+
+        // Step 2 If any of the following are true: bodyBytes is null or failure; or response's status is not an ok status,
+        if !metadata.status.is_success() {
+            // then run onComplete given null, and abort these steps.
+            scope.on_complete(None, self.worker.clone(), CanGc::note());
+            return;
+        }
+
+        // Step 3 If all of the following are true:
+        // response's URL's scheme is an HTTP(S) scheme;
+        let is_http_scheme = matches!(metadata.final_url.scheme(), "http" | "https");
+        // and the result of extracting a MIME type from response's header list is not a JavaScript MIME type,
+        let not_a_javascript_mime_type = !metadata.content_type.clone().is_some_and(|ct| {
+            let mime: Mime = ct.into_inner().into();
+            SCRIPT_JS_MIMES.contains(&mime.essence_str())
+        });
+
+        if is_http_scheme && not_a_javascript_mime_type {
+            // then run onComplete given null, and abort these steps.
+            scope.on_complete(None, self.worker.clone(), CanGc::note());
+            return;
+        }
+
+        // Step 4 Let sourceText be the result of UTF-8 decoding bodyBytes.
+        let source = String::from_utf8_lossy(&self.body_bytes);
+
+        // Step 5 Let script be the result of creating a classic script using
+        // sourceText, settingsObject, response's URL, and the default script fetch options.
+
+        // Step 6 Run onComplete given script.
+        scope.on_complete(Some(source), self.worker.clone(), CanGc::note());
+    }
+
+    fn resource_timing(&self) -> &ResourceFetchTiming {
+        &self.resource_timing
+    }
+
+    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn submit_resource_timing(&mut self) {
+        submit_timing(self, CanGc::note());
+    }
+
+    fn process_csp_violations(
+        &mut self,
+        _request_id: RequestId,
+        violations: Vec<content_security_policy::Violation>,
+    ) {
+        let scope = self.scope.root();
+
+        if let Some(worker_scope) = scope.downcast::<DedicatedWorkerGlobalScope>() {
+            worker_scope.report_csp_violations(violations);
+        }
+    }
+}
+
+impl ResourceTimingListener for ScriptFetchContext {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        (InitiatorType::Other, self.url.clone())
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        self.scope.root().global()
+    }
+}
+
+impl PreInvoke for ScriptFetchContext {}
+
 // https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface
 #[dom_struct]
 pub(crate) struct WorkerGlobalScope {
@@ -115,6 +286,7 @@ pub(crate) struct WorkerGlobalScope {
     worker_url: DomRefCell<ServoUrl>,
     #[conditional_malloc_size_of]
     closing: Arc<AtomicBool>,
+    execution_ready: AtomicBool,
     #[ignore_malloc_size_of = "Defined in js"]
     runtime: DomRefCell<Option<Runtime>>,
     location: MutNullableDom<WorkerLocation>,
@@ -206,6 +378,7 @@ impl WorkerGlobalScope {
             worker_type,
             worker_url: DomRefCell::new(worker_url),
             closing,
+            execution_ready: AtomicBool::new(false),
             runtime: DomRefCell::new(Some(runtime)),
             location: Default::default(),
             navigator: Default::default(),
@@ -258,6 +431,10 @@ impl WorkerGlobalScope {
 
     pub(crate) fn is_closing(&self) -> bool {
         self.closing.load(Ordering::SeqCst)
+    }
+
+    pub(crate) fn is_execution_ready(&self) -> bool {
+        self.execution_ready.load(Ordering::Relaxed)
     }
 
     pub(crate) fn get_url(&self) -> Ref<'_, ServoUrl> {
@@ -347,6 +524,83 @@ impl WorkerGlobalScope {
     pub(crate) fn shared_task_canceller(&self) -> TaskCanceller {
         TaskCanceller {
             cancelled: self.closing.clone(),
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#initialize-worker-policy-container> and
+    /// <https://html.spec.whatwg.org/multipage/#creating-a-policy-container-from-a-fetch-response>
+    fn initialize_policy_container_for_worker_global_scope(
+        &self,
+        metadata: &Metadata,
+        parent_policy_container: &PolicyContainer,
+    ) {
+        // Step 1. If workerGlobalScope's url is local but its scheme is not "blob":
+        //
+        // Note that we also allow for blob here, as the parent_policy_container is in both cases
+        // the container that we need to clone.
+        if metadata.final_url.is_local_scheme() {
+            // Step 1.2. Set workerGlobalScope's policy container to a clone of workerGlobalScope's
+            // owner set[0]'s relevant settings object's policy container.
+            //
+            // Step 1. If response's URL's scheme is "blob", then return a clone of response's URL's
+            // blob URL entry's environment's policy container.
+            self.set_csp_list(parent_policy_container.csp_list.clone());
+            self.set_referrer_policy(parent_policy_container.get_referrer_policy());
+            return;
+        }
+        // Step 3. Set result's CSP list to the result of parsing a response's Content Security Policies given response.
+        self.set_csp_list(parse_csp_list_from_metadata(&metadata.headers));
+        // Step 5. Set result's referrer policy to the result of parsing the `Referrer-Policy`
+        // header given response. [REFERRERPOLICY]
+        let referrer_policy = metadata
+            .headers
+            .as_ref()
+            .and_then(|headers| headers.typed_get::<ReferrerPolicyHeader>())
+            .into();
+        self.set_referrer_policy(referrer_policy);
+    }
+
+    /// onComplete algorithm defined inside <https://html.spec.whatwg.org/multipage/#run-a-worker>
+    #[allow(unsafe_code)]
+    fn on_complete(
+        &self,
+        script: Option<Cow<'_, str>>,
+        worker: TrustedWorkerAddress,
+        can_gc: CanGc,
+    ) {
+        let dedicated_worker_scope = self
+            .downcast::<DedicatedWorkerGlobalScope>()
+            .expect("Only DedicatedWorkerGlobalScope is supported for now");
+
+        let Some(script) = script else {
+            // Step 1 Queue a global task on the DOM manipulation task source given
+            // worker's relevant global object to fire an event named error at worker.
+            dedicated_worker_scope.forward_simple_error_at_worker(worker.clone());
+
+            // Step 2 TODO Run the environment discarding steps for inside settings.
+            return;
+        };
+
+        unsafe {
+            // Handle interrupt requests
+            JS_AddInterruptCallback(*self.get_cx(), Some(interrupt_callback));
+        }
+
+        if self.is_closing() {
+            return;
+        }
+
+        {
+            let _ar = AutoWorkerReset::new(dedicated_worker_scope, worker);
+            let realm = enter_realm(self);
+            define_all_exposed_interfaces(
+                dedicated_worker_scope.upcast(),
+                InRealm::entered(&realm),
+                can_gc,
+            );
+            self.execution_ready.store(true, Ordering::Relaxed);
+            self.execute_script(DOMString::from(script), can_gc);
+            dedicated_worker_scope.fire_queued_messages(can_gc);
         }
     }
 }
