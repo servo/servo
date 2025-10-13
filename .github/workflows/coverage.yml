@@ -130,7 +130,7 @@ jobs:
       # We can remove this after upgrading to Rust 1.90, but for now
       # installing lld is the easiest way to get it in path.
       - name: install lld
-        run: apt-get install -y lld
+        run: sudo apt-get install -y lld
       - name: Run unit-tests with coverage
         shell: bash
         env:
