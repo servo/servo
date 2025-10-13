@@ -132,7 +132,7 @@ pub fn start_server(
                 extension_routes(),
             ) {
                 Ok(listening) => info!("WebDriver server listening on {}", listening.socket),
-                Err(_) => panic!("Unable to start WebDriver HTTPD server"),
+                Err(_) => panic!("Unable to start WebDriver HTTP server"),
             }
         })
         .expect("Thread spawning failed");
