@@ -24,12 +24,11 @@ pub(crate) fn derive_bits(
     key: &CryptoKey,
     length: Option<u32>,
 ) -> Result<Vec<u8>, Error> {
-    // Step 1. If length is null or zero, or is not a multiple of 8, then throw an OperationError.
-    // FIXME: The spec is updated.
+    // Step 1. If length is null or is not a multiple of 8, then throw an OperationError.
     let Some(length) = length else {
         return Err(Error::Operation);
     };
-    if length == 0 || length % 8 != 0 {
+    if length % 8 != 0 {
         return Err(Error::Operation);
     };
 
@@ -38,7 +37,7 @@ pub(crate) fn derive_bits(
         return Err(Error::Operation);
     };
 
-    // TODO: Step 3. If length is zero, return an empty byte sequence.
+    // Step 3. If length is zero, return an empty byte sequence.
     if length == 0 {
         return Ok(Vec::new());
     }

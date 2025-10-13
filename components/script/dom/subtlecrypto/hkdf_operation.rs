@@ -22,17 +22,24 @@ pub(crate) fn derive_bits(
     key: &CryptoKey,
     length: Option<u32>,
 ) -> Result<Vec<u8>, Error> {
-    // Step 1. If length is null or zero, or is not a multiple of 8, then throw an OperationError.
-    // FIXME: The spec is updated.
+    // Step 1. If length is null or is not a multiple of 8, then throw an OperationError.
     let Some(length) = length else {
         return Err(Error::Operation);
     };
-    if length == 0 || length % 8 != 0 {
+    if length % 8 != 0 {
         return Err(Error::Operation);
     };
 
     // Step 2. Let keyDerivationKey be the secret represented by the [[handle]] internal slot of key.
     let key_derivation_key = key.handle().as_bytes();
+
+    // NOTE: Since https://github.com/w3c/webcrypto/pull/380, WebCrypto allows zero length in HKDF
+    // deriveBits operation. However, in Step 4 below, `output_key_material.fill(&mut result)`
+    // gives an error when length is 0. Therefore, when length is zero, we immediately returns an
+    // empty byte sequence beforehand.
+    if length == 0 {
+        return Ok(Vec::new());
+    }
 
     // Step 3. Let result be the result of performing the HKDF extract and then the HKDF expand
     // step described in Section 2 of [RFC5869] using:
