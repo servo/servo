@@ -367,6 +367,7 @@ fn map_debug_options(arg: String) -> Vec<String> {
 
 #[derive(Bpaf, Clone, Debug)]
 #[bpaf(options, version(VERSION), usage("servo [OPTIONS] URL"))]
+// Newlines in comments are intentional to have the right formatting for the help message./tar.
 struct CmdArgs {
     /// Background Hang Monitor enabled.
     #[bpaf(short('B'), long("bhm"))]
