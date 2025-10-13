@@ -343,10 +343,10 @@ pub(crate) fn export(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, 
                 )?;
                 // Step 6.
                 let hash_algorithm = match &*params.hash.name.str() {
-                    "SHA-1" => "HS1",
-                    "SHA-256" => "HS256",
-                    "SHA-384" => "HS384",
-                    "SHA-512" => "HS512",
+                    ALG_SHA1 => "HS1",
+                    ALG_SHA256 => "HS256",
+                    ALG_SHA384 => "HS384",
+                    ALG_SHA512 => "HS512",
                     _ => return Err(Error::NotSupported),
                 };
 
