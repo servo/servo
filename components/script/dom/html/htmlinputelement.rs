@@ -1017,8 +1017,8 @@ impl HTMLInputElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#suffering-from-a-pattern-mismatch
-    fn suffers_from_pattern_mismatch(&self, value: &DOMString) -> bool {
+    /// <https://html.spec.whatwg.org/multipage/#suffering-from-a-pattern-mismatch>
+    fn suffers_from_pattern_mismatch(&self, value: &DOMString, can_gc: CanGc) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-pattern-attribute%3Asuffering-from-a-pattern-mismatch
         // https://html.spec.whatwg.org/multipage/#the-pattern-attribute%3Asuffering-from-a-pattern-mismatch-2
         let pattern_str = self.Pattern();
@@ -1031,12 +1031,12 @@ impl HTMLInputElement {
         let _ac = enter_realm(self);
         rooted!(in(*cx) let mut pattern = ptr::null_mut::<JSObject>());
 
-        if compile_pattern(cx, &pattern_str.str(), pattern.handle_mut()) {
+        if compile_pattern(cx, &pattern_str.str(), pattern.handle_mut(), can_gc) {
             if self.Multiple() && self.does_multiple_apply() {
                 !split_commas(&value.str())
-                    .all(|s| matches_js_regex(cx, pattern.handle(), s).unwrap_or(true))
+                    .all(|s| matches_js_regex(cx, pattern.handle(), s, can_gc).unwrap_or(true))
             } else {
-                !matches_js_regex(cx, pattern.handle(), &value.str()).unwrap_or(true)
+                !matches_js_regex(cx, pattern.handle(), &value.str(), can_gc).unwrap_or(true)
             }
         } else {
             // Element doesn't suffer from pattern mismatch if pattern is invalid.
@@ -3328,7 +3328,7 @@ impl Validatable for HTMLInputElement {
     fn perform_validation(
         &self,
         validate_flags: ValidationFlags,
-        _can_gc: CanGc,
+        can_gc: CanGc,
     ) -> ValidationFlags {
         let mut failed_flags = ValidationFlags::empty();
         let value = self.Value();
@@ -3346,7 +3346,7 @@ impl Validatable for HTMLInputElement {
         }
 
         if validate_flags.contains(ValidationFlags::PATTERN_MISMATCH) &&
-            self.suffers_from_pattern_mismatch(&value)
+            self.suffers_from_pattern_mismatch(&value, can_gc)
         {
             failed_flags.insert(ValidationFlags::PATTERN_MISMATCH);
         }
@@ -3599,15 +3599,20 @@ fn round_halves_positive(n: f64) -> f64 {
 // This is used to compile JS-compatible regex provided in pattern attribute
 // that matches only the entirety of string.
 // https://html.spec.whatwg.org/multipage/#compiled-pattern-regular-expression
-fn compile_pattern(cx: SafeJSContext, pattern_str: &str, out_regex: MutableHandleObject) -> bool {
+fn compile_pattern(
+    cx: SafeJSContext,
+    pattern_str: &str,
+    out_regex: MutableHandleObject,
+    can_gc: CanGc,
+) -> bool {
     // First check if pattern compiles...
-    if check_js_regex_syntax(cx, pattern_str) {
+    if check_js_regex_syntax(cx, pattern_str, can_gc) {
         // ...and if it does make pattern that matches only the entirety of string
         let pattern_str = format!("^(?:{})$", pattern_str);
         let flags = RegExpFlags {
             flags_: RegExpFlag_UnicodeSets,
         };
-        new_js_regex(cx, &pattern_str, flags, out_regex)
+        new_js_regex(cx, &pattern_str, flags, out_regex, can_gc)
     } else {
         false
     }
@@ -3616,7 +3621,7 @@ fn compile_pattern(cx: SafeJSContext, pattern_str: &str, out_regex: MutableHandl
 #[allow(unsafe_code)]
 /// Check if the pattern by itself is valid first, and not that it only becomes
 /// valid once we add ^(?: and )$.
-fn check_js_regex_syntax(cx: SafeJSContext, pattern: &str) -> bool {
+fn check_js_regex_syntax(cx: SafeJSContext, pattern: &str, _can_gc: CanGc) -> bool {
     let pattern: Vec<u16> = pattern.encode_utf16().collect();
     unsafe {
         rooted!(in(*cx) let mut exception = UndefinedValue());
@@ -3642,14 +3647,13 @@ fn check_js_regex_syntax(cx: SafeJSContext, pattern: &str) -> bool {
     }
 }
 
-// TODO: This is also used in the URLPattern implementation. Consider moving it into mozjs or some other
-// shared module
 #[allow(unsafe_code)]
 pub(crate) fn new_js_regex(
     cx: SafeJSContext,
     pattern: &str,
     flags: RegExpFlags,
     mut out_regex: MutableHandleObject,
+    _can_gc: CanGc,
 ) -> bool {
     let pattern: Vec<u16> = pattern.encode_utf16().collect();
     unsafe {
@@ -3668,7 +3672,12 @@ pub(crate) fn new_js_regex(
 }
 
 #[allow(unsafe_code)]
-fn matches_js_regex(cx: SafeJSContext, regex_obj: HandleObject, value: &str) -> Result<bool, ()> {
+fn matches_js_regex(
+    cx: SafeJSContext,
+    regex_obj: HandleObject,
+    value: &str,
+    _can_gc: CanGc,
+) -> Result<bool, ()> {
     let mut value: Vec<u16> = value.encode_utf16().collect();
 
     unsafe {
