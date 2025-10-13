@@ -124,6 +124,7 @@ impl BrowserCapabilities for ServoCapabilities {
     }
 }
 
+/// <https://w3c.github.io/webdriver/#dfn-platform-name>
 fn get_platform_name() -> Option<String> {
     if cfg!(target_os = "windows") {
         Some("windows".to_string())

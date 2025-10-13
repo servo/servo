@@ -80,7 +80,7 @@ use crate::timeout::DEFAULT_PAGE_LOAD_TIMEOUT;
 fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
     vec![
         (
-            Method::POST,
+            Method::GET,
             "/session/{sessionId}/servo/prefs/get",
             ServoExtensionRoute::GetPrefs,
         ),
