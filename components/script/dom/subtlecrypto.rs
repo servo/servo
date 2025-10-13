@@ -2481,7 +2481,12 @@ fn normalize_algorithm(
                     params.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::Algorithm(params.into())
                 },
-                // FIXME: Register "get key length" operation of AES-KW
+                (ALG_AES_KW, Operation::GetKeyLength) => {
+                    let mut params =
+                        value_from_js_object::<AesDerivedKeyParams>(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::AesDerivedKeyParams(params.into())
+                },
 
                 // <https://w3c.github.io/webcrypto/#hmac-registration>
                 (ALG_HMAC, Operation::Sign) => {
