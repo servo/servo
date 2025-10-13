@@ -610,7 +610,8 @@ impl DedicatedWorkerGlobalScope {
     }
 
     pub(crate) fn fire_queued_messages(&self, can_gc: CanGc) {
-        for msg in self.queued_worker_tasks.borrow_mut().drain(..) {
+        let queue: Vec<_> = self.queued_worker_tasks.borrow_mut().drain(..).collect();
+        for msg in queue {
             if self.upcast::<WorkerGlobalScope>().is_closing() {
                 return;
             }

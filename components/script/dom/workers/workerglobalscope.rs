@@ -153,15 +153,10 @@ impl FetchResponseListener for ScriptFetchContext {
         _request_id: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
-        match metadata {
-            Ok(m) => {
-                self.response = match m {
-                    FetchMetadata::Unfiltered(m) => Some(m),
-                    FetchMetadata::Filtered { unsafe_, .. } => Some(unsafe_),
-                }
-            },
-            Err(e) => error!("error loading script {} ({:?})", self.url, e),
-        }
+        self.response = metadata.ok().map(|m| match m {
+            FetchMetadata::Unfiltered(m) => m,
+            FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
+        });
     }
 
     fn process_response_chunk(&mut self, _request_id: RequestId, mut chunk: Vec<u8>) {
@@ -171,14 +166,19 @@ impl FetchResponseListener for ScriptFetchContext {
     fn process_response_eof(
         &mut self,
         _request_id: RequestId,
-        _response: Result<ResourceFetchTiming, NetworkError>,
+        response: Result<ResourceFetchTiming, NetworkError>,
     ) {
         let scope = self.scope.root();
 
-        let Some(ref metadata) = self.response else {
+        if response
+            .inspect_err(|e| error!("error loading script {} ({:?})", self.url, e))
+            .is_err() ||
+            self.response.is_none()
+        {
             scope.on_complete(None, self.worker.clone(), CanGc::note());
             return;
-        };
+        }
+        let metadata = self.response.take().unwrap();
 
         // The processResponseConsumeBody steps defined inside
         // [run a worker](https://html.spec.whatwg.org/multipage/workers.html#run-a-worker)
@@ -189,7 +189,7 @@ impl FetchResponseListener for ScriptFetchContext {
         // Step 2 Initialize worker global scope's policy container given worker global scope, response, and inside settings.
         DedicatedWorkerGlobalScope::initialize_policy_container_for_worker_global_scope(
             &scope,
-            metadata,
+            &metadata,
             &self.policy_container,
         );
         scope.set_endpoints_list(ReportingEndpoint::parse_reporting_endpoints_header(
