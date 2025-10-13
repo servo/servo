@@ -32,6 +32,7 @@ use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadMsg};
 use script_bindings::codegen::GenericBindings::CharacterDataBinding::CharacterDataMethods;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
+use script_bindings::domstring::parse_floating_point_number;
 use servo_config::pref;
 use style::attr::AttrValue;
 use style::selector_parser::PseudoElement;
@@ -677,56 +678,36 @@ impl HTMLInputElement {
         )
     }
 
-    // https://html.spec.whatwg.org/multipage#concept-input-step
+    /// <https://html.spec.whatwg.org/multipage#concept-input-step>
     fn allowed_value_step(&self) -> Option<f64> {
-        if let Some(attr) = self
-            .upcast::<Element>()
+        // FIXME: This implementation is not correct. For example, for step=any,
+        // there should be no allowed value step.
+        self.upcast::<Element>()
             .get_attribute(&ns!(), &local_name!("step"))
-        {
-            if let Some(step) =
-                DOMString::from(attr.summarize().value).parse_floating_point_number()
-            {
-                if step > 0.0 {
-                    return Some(step * self.step_scale_factor());
-                }
-            }
-        }
-        self.default_step()
+            .and_then(|attribute| parse_floating_point_number(&attribute.value()))
+            .filter(|step| *step > 0.0)
+            .or_else(|| self.default_step())
             .map(|step| step * self.step_scale_factor())
     }
 
-    // https://html.spec.whatwg.org/multipage#concept-input-min
+    /// <https://html.spec.whatwg.org/multipage#concept-input-min>
     fn minimum(&self) -> Option<f64> {
-        if let Some(attr) = self
-            .upcast::<Element>()
+        self.upcast::<Element>()
             .get_attribute(&ns!(), &local_name!("min"))
-        {
-            if let Some(min) =
-                self.convert_string_to_number(&DOMString::from(attr.summarize().value))
-            {
-                return Some(min);
-            }
-        }
-        self.default_minimum()
+            .and_then(|attribute| self.convert_string_to_number(&attribute.value()))
+            .or_else(|| self.default_minimum())
     }
 
-    // https://html.spec.whatwg.org/multipage#concept-input-max
+    /// <https://html.spec.whatwg.org/multipage#concept-input-max>
     fn maximum(&self) -> Option<f64> {
-        if let Some(attr) = self
-            .upcast::<Element>()
+        self.upcast::<Element>()
             .get_attribute(&ns!(), &local_name!("max"))
-        {
-            if let Some(max) =
-                self.convert_string_to_number(&DOMString::from(attr.summarize().value))
-            {
-                return Some(max);
-            }
-        }
-        self.default_maximum()
+            .and_then(|attribute| self.convert_string_to_number(&attribute.value()))
+            .or_else(|| self.default_maximum())
     }
 
-    // when allowed_value_step and minimum both exist, this is the smallest
-    // value >= minimum that lies on an integer step
+    /// when allowed_value_step and minimum both exist, this is the smallest
+    /// value >= minimum that lies on an integer step
     fn stepped_minimum(&self) -> Option<f64> {
         match (self.minimum(), self.allowed_value_step()) {
             (Some(min), Some(allowed_step)) => {
@@ -740,8 +721,8 @@ impl HTMLInputElement {
         }
     }
 
-    // when allowed_value_step and maximum both exist, this is the smallest
-    // value <= maximum that lies on an integer step
+    /// when allowed_value_step and maximum both exist, this is the smallest
+    /// value <= maximum that lies on an integer step
     fn stepped_maximum(&self) -> Option<f64> {
         match (self.maximum(), self.allowed_value_step()) {
             (Some(max), Some(allowed_step)) => {
@@ -755,7 +736,7 @@ impl HTMLInputElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage#concept-input-min-default
+    /// <https://html.spec.whatwg.org/multipage#concept-input-min-default>
     fn default_minimum(&self) -> Option<f64> {
         match self.input_type() {
             InputType::Range => Some(0.0),
@@ -763,7 +744,7 @@ impl HTMLInputElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage#concept-input-max-default
+    /// <https://html.spec.whatwg.org/multipage#concept-input-max-default>
     fn default_maximum(&self) -> Option<f64> {
         match self.input_type() {
             InputType::Range => Some(100.0),
@@ -771,7 +752,7 @@ impl HTMLInputElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage#concept-input-value-default-range
+    /// <https://html.spec.whatwg.org/multipage#concept-input-value-default-range>
     fn default_range_value(&self) -> f64 {
         let min = self.minimum().unwrap_or(0.0);
         let max = self.maximum().unwrap_or(100.0);
@@ -782,7 +763,7 @@ impl HTMLInputElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage#concept-input-step-default
+    /// <https://html.spec.whatwg.org/multipage#concept-input-step-default>
     fn default_step(&self) -> Option<f64> {
         match self.input_type() {
             InputType::Date => Some(1.0),
@@ -810,28 +791,37 @@ impl HTMLInputElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage#concept-input-min-zero
+    /// <https://html.spec.whatwg.org/multipage#concept-input-min-zero>
     fn step_base(&self) -> f64 {
-        if let Some(attr) = self
+        // Step 1. If the element has a min content attribute, and the result of applying
+        // the algorithm to convert a string to a number to the value of the min content attribute
+        // is not an error, then return that result.
+        if let Some(minimum) = self
             .upcast::<Element>()
             .get_attribute(&ns!(), &local_name!("min"))
+            .and_then(|attribute| self.convert_string_to_number(&attribute.value()))
         {
-            let minstr = &DOMString::from(attr.summarize().value);
-            if let Some(min) = self.convert_string_to_number(minstr) {
-                return min;
-            }
+            return minimum;
         }
-        if let Some(attr) = self
+
+        // Step 2. If the element has a value content attribute, and the result of applying the
+        // algorithm to convert a string to a number to the value of the value content attribute
+        // is not an error, then return that result.
+        if let Some(value) = self
             .upcast::<Element>()
             .get_attribute(&ns!(), &local_name!("value"))
+            .and_then(|attribute| self.convert_string_to_number(&attribute.value()))
         {
-            if let Some(value) =
-                self.convert_string_to_number(&DOMString::from(attr.summarize().value))
-            {
-                return value;
-            }
+            return value;
         }
-        self.default_step_base().unwrap_or(0.0)
+
+        // Step 3. If a default step base is defined for this element given its type attribute's state, then return it.
+        if let Some(default_step_base) = self.default_step_base() {
+            return default_step_base;
+        }
+
+        // Step 4. Return zero.
+        0.0
     }
 
     // https://html.spec.whatwg.org/multipage#concept-input-step-default-base
@@ -870,7 +860,9 @@ impl HTMLInputElement {
             }
         }
         // Step 5
-        let mut value: f64 = self.convert_string_to_number(&self.Value()).unwrap_or(0.0);
+        let mut value: f64 = self
+            .convert_string_to_number(&self.Value().str())
+            .unwrap_or(0.0);
 
         // Step 6
         let valueBeforeStepping = value;
@@ -1116,7 +1108,7 @@ impl HTMLInputElement {
             return ValidationFlags::empty();
         }
 
-        let Some(value_as_number) = self.convert_string_to_number(value) else {
+        let Some(value_as_number) = self.convert_string_to_number(&value.str()) else {
             return ValidationFlags::empty();
         };
 
@@ -1800,7 +1792,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-valueasnumber
     fn ValueAsNumber(&self) -> f64 {
-        self.convert_string_to_number(&self.Value())
+        self.convert_string_to_number(&self.Value().str())
             .unwrap_or(f64::NAN)
     }
 
@@ -2236,7 +2228,7 @@ impl HTMLInputElement {
     fn radio_group_name(&self) -> Option<Atom> {
         self.upcast::<Element>()
             .get_name()
-            .and_then(|name| if name == atom!("") { None } else { Some(name) })
+            .filter(|name| !name.is_empty())
     }
 
     fn update_checked_state(&self, checked: bool, dirty: bool) {
@@ -2659,7 +2651,7 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-input-value-string-number>
-    fn convert_string_to_number(&self, value: &DOMString) -> Option<f64> {
+    fn convert_string_to_number(&self, value: &str) -> Option<f64> {
         match self.input_type() {
             // > The algorithm to convert a string to a number, given a string input, is as
             // > follows: If parsing a date from input results in an error, then return an
@@ -2667,7 +2659,7 @@ impl HTMLInputElement {
             // > UTC on the morning of 1970-01-01 (the time represented by the value
             // > "1970-01-01T00:00:00.0Z") to midnight UTC on the morning of the parsed
             // > date, ignoring leap seconds.
-            InputType::Date => value.str().parse_date_string().map(|date_time| {
+            InputType::Date => value.parse_date_string().map(|date_time| {
                 (date_time - OffsetDateTime::UNIX_EPOCH).whole_milliseconds() as f64
             }),
             // > The algorithm to convert a string to a number, given a string input, is as
@@ -2678,7 +2670,7 @@ impl HTMLInputElement {
             // This one returns number of months, not milliseconds (specification requires
             // this, presumably because number of milliseconds is not consistent across
             // months) the - 1.0 is because january is 1, not 0
-            InputType::Month => value.str().parse_month_string().map(|date_time| {
+            InputType::Month => value.parse_month_string().map(|date_time| {
                 ((date_time.year() - 1970) * 12) as f64 + (date_time.month() as u8 - 1) as f64
             }),
             // > The algorithm to convert a string to a number, given a string input, is as
@@ -2687,7 +2679,7 @@ impl HTMLInputElement {
             // > midnight UTC on the morning of 1970-01-01 (the time represented by the
             // > value "1970-01-01T00:00:00.0Z") to midnight UTC on the morning of the
             // > Monday of the parsed week, ignoring leap seconds.
-            InputType::Week => value.str().parse_week_string().map(|date_time| {
+            InputType::Week => value.parse_week_string().map(|date_time| {
                 (date_time - OffsetDateTime::UNIX_EPOCH).whole_milliseconds() as f64
             }),
             // > The algorithm to convert a string to a number, given a string input, is as
@@ -2695,7 +2687,6 @@ impl HTMLInputElement {
             // > error; otherwise, return the number of milliseconds elapsed from midnight to
             // > the parsed time on a day with no time changes.
             InputType::Time => value
-                .str()
                 .parse_time_string()
                 .map(|date_time| (date_time.time() - Time::MIDNIGHT).whole_milliseconds() as f64),
             // > The algorithm to convert a string to a number, given a string input, is as
@@ -2704,12 +2695,10 @@ impl HTMLInputElement {
             // > midnight on the morning of 1970-01-01 (the time represented by the value
             // > "1970-01-01T00:00:00.0") to the parsed local date and time, ignoring leap
             // > seconds.
-            InputType::DatetimeLocal => {
-                value.str().parse_local_date_time_string().map(|date_time| {
-                    (date_time - OffsetDateTime::UNIX_EPOCH).whole_milliseconds() as f64
-                })
-            },
-            InputType::Number | InputType::Range => value.parse_floating_point_number(),
+            InputType::DatetimeLocal => value.parse_local_date_time_string().map(|date_time| {
+                (date_time - OffsetDateTime::UNIX_EPOCH).whole_milliseconds() as f64
+            }),
+            InputType::Number | InputType::Range => parse_floating_point_number(value),
             // min/max/valueAsNumber/stepDown/stepUp do not apply to
             // the remaining types
             _ => None,
