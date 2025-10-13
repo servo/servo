@@ -29,6 +29,9 @@ on:
       bencher:
         required: true
         type: boolean
+      coverage:
+        required: true
+        type: boolean
 
 jobs:
   win:
@@ -71,6 +74,7 @@ jobs:
       build-libservo: ${{ inputs.build-libservo }}
       wpt-args: ${{ inputs.wpt-args }}
       bencher: ${{ inputs.bencher }}
+      coverage: ${{ inputs.coverage }}
 
   lint:
     if: ${{ inputs.workflow == 'lint' }}
