@@ -58,16 +58,20 @@ impl<N: Node> PartialEq<Value<N>> for Value<N> {
                 .iter()
                 .map(|node| node.text_content())
                 .any(|text_content| &text_content == string),
-            (&Value::Boolean(_), _) | (_, &Value::Boolean(_)) => self.boolean() == other.boolean(),
-            (&Value::Number(_), _) | (_, &Value::Number(_)) => self.number() == other.number(),
-            _ => self.string() == other.string(),
+            (&Value::Boolean(_), _) | (_, &Value::Boolean(_)) => {
+                self.convert_to_boolean() == other.convert_to_boolean()
+            },
+            (&Value::Number(_), _) | (_, &Value::Number(_)) => {
+                self.convert_to_number() == other.convert_to_number()
+            },
+            _ => self.convert_to_string() == other.convert_to_string(),
         }
     }
 }
 
 impl<N: Node> Value<N> {
     /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#function-boolean>
-    pub(crate) fn boolean(&self) -> bool {
+    pub fn convert_to_boolean(&self) -> bool {
         match self {
             Value::Boolean(boolean) => *boolean,
             Value::Number(number) => *number != 0.0 && !number.is_nan(),
@@ -77,7 +81,7 @@ impl<N: Node> Value<N> {
     }
 
     /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#function-number>
-    pub(crate) fn number(&self) -> f64 {
+    pub fn convert_to_number(&self) -> f64 {
         match self {
             Value::Boolean(boolean) => {
                 if *boolean {
@@ -88,12 +92,12 @@ impl<N: Node> Value<N> {
             },
             Value::Number(number) => *number,
             Value::String(string) => parse_number_from_string(string),
-            Value::Nodeset(_) => parse_number_from_string(&self.string()),
+            Value::Nodeset(_) => parse_number_from_string(&self.convert_to_string()),
         }
     }
 
     /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#function-string>
-    pub(crate) fn string(&self) -> String {
+    pub fn convert_to_string(&self) -> String {
         match self {
             Value::Boolean(value) => value.to_string(),
             Value::Number(number) => {
@@ -215,30 +219,41 @@ mod tests {
 
     #[test]
     fn string_value_to_number() {
-        assert_eq!(Value::String("42.123".into()).number(), 42.123);
-        assert_eq!(Value::String(" 42\n".into()).number(), 42.);
-        assert!(Value::String("totally-invalid".into()).number().is_nan());
+        assert_eq!(Value::String("42.123".into()).convert_to_number(), 42.123);
+        assert_eq!(Value::String(" 42\n".into()).convert_to_number(), 42.);
+        assert!(
+            Value::String("totally-invalid".into())
+                .convert_to_number()
+                .is_nan()
+        );
 
         // U+2004 is non-ascii whitespace, which should be rejected
-        assert!(Value::String("\u{2004}42".into()).number().is_nan());
+        assert!(
+            Value::String("\u{2004}42".into())
+                .convert_to_number()
+                .is_nan()
+        );
     }
 
     #[test]
     fn number_value_to_string() {
-        assert_eq!(Value::Number(f64::NAN).string(), "NaN");
-        assert_eq!(Value::Number(0.).string(), "0");
-        assert_eq!(Value::Number(-0.).string(), "0");
-        assert_eq!(Value::Number(f64::INFINITY).string(), "Infinity");
-        assert_eq!(Value::Number(f64::NEG_INFINITY).string(), "-Infinity");
-        assert_eq!(Value::Number(42.0).string(), "42");
-        assert_eq!(Value::Number(-42.0).string(), "-42");
-        assert_eq!(Value::Number(0.75).string(), "0.75");
-        assert_eq!(Value::Number(-0.75).string(), "-0.75");
+        assert_eq!(Value::Number(f64::NAN).convert_to_string(), "NaN");
+        assert_eq!(Value::Number(0.).convert_to_string(), "0");
+        assert_eq!(Value::Number(-0.).convert_to_string(), "0");
+        assert_eq!(Value::Number(f64::INFINITY).convert_to_string(), "Infinity");
+        assert_eq!(
+            Value::Number(f64::NEG_INFINITY).convert_to_string(),
+            "-Infinity"
+        );
+        assert_eq!(Value::Number(42.0).convert_to_string(), "42");
+        assert_eq!(Value::Number(-42.0).convert_to_string(), "-42");
+        assert_eq!(Value::Number(0.75).convert_to_string(), "0.75");
+        assert_eq!(Value::Number(-0.75).convert_to_string(), "-0.75");
     }
 
     #[test]
     fn boolean_value_to_string() {
-        assert_eq!(Value::Boolean(false).string(), "false");
-        assert_eq!(Value::Boolean(true).string(), "true");
+        assert_eq!(Value::Boolean(false).convert_to_string(), "false");
+        assert_eq!(Value::Boolean(true).convert_to_string(), "true");
     }
 }

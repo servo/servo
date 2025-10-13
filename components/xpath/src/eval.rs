@@ -29,13 +29,13 @@ impl Expression {
             // And/Or expression are seperated because they can sometimes be evaluated
             // without evaluating both operands.
             Expression::Binary(left, BinaryOperator::And, right) => {
-                let left_bool = left.evaluate(context)?.boolean();
-                let v = left_bool && right.evaluate(context)?.boolean();
+                let left_bool = left.evaluate(context)?.convert_to_boolean();
+                let v = left_bool && right.evaluate(context)?.convert_to_boolean();
                 Ok(Value::Boolean(v))
             },
             Expression::Binary(left, BinaryOperator::Or, right) => {
-                let left_bool = left.evaluate(context)?.boolean();
-                let v = left_bool || right.evaluate(context)?.boolean();
+                let left_bool = left.evaluate(context)?.convert_to_boolean();
+                let v = left_bool || right.evaluate(context)?.convert_to_boolean();
                 Ok(Value::Boolean(v))
             },
             Expression::Binary(left, binary_operator, right) => {
@@ -45,21 +45,33 @@ impl Expression {
                 let value = match binary_operator {
                     BinaryOperator::Equal => (left_value == right_value).into(),
                     BinaryOperator::NotEqual => (left_value != right_value).into(),
-                    BinaryOperator::LessThan => (left_value.number() < right_value.number()).into(),
+                    BinaryOperator::LessThan => {
+                        (left_value.convert_to_number() < right_value.convert_to_number()).into()
+                    },
                     BinaryOperator::GreaterThan => {
-                        (left_value.number() > right_value.number()).into()
+                        (left_value.convert_to_number() > right_value.convert_to_number()).into()
                     },
                     BinaryOperator::LessThanOrEqual => {
-                        (left_value.number() <= right_value.number()).into()
+                        (left_value.convert_to_number() <= right_value.convert_to_number()).into()
                     },
                     BinaryOperator::GreaterThanOrEqual => {
-                        (left_value.number() >= right_value.number()).into()
+                        (left_value.convert_to_number() >= right_value.convert_to_number()).into()
                     },
-                    BinaryOperator::Add => (left_value.number() + right_value.number()).into(),
-                    BinaryOperator::Subtract => (left_value.number() - right_value.number()).into(),
-                    BinaryOperator::Multiply => (left_value.number() * right_value.number()).into(),
-                    BinaryOperator::Divide => (left_value.number() / right_value.number()).into(),
-                    BinaryOperator::Modulo => (left_value.number() % right_value.number()).into(),
+                    BinaryOperator::Add => {
+                        (left_value.convert_to_number() + right_value.convert_to_number()).into()
+                    },
+                    BinaryOperator::Subtract => {
+                        (left_value.convert_to_number() - right_value.convert_to_number()).into()
+                    },
+                    BinaryOperator::Multiply => {
+                        (left_value.convert_to_number() * right_value.convert_to_number()).into()
+                    },
+                    BinaryOperator::Divide => {
+                        (left_value.convert_to_number() / right_value.convert_to_number()).into()
+                    },
+                    BinaryOperator::Modulo => {
+                        (left_value.convert_to_number() % right_value.convert_to_number()).into()
+                    },
                     BinaryOperator::Union => {
                         let as_nodes =
                             |e: &Expression| e.evaluate(context).and_then(try_extract_nodeset);
@@ -75,7 +87,7 @@ impl Expression {
                 Ok(value)
             },
             Expression::Negate(expr) => {
-                let value = -expr.evaluate(context)?.number();
+                let value = -expr.evaluate(context)?.convert_to_number();
                 Ok(value.into())
             },
             Expression::Path(path_expr) => path_expr.evaluate(context),
@@ -364,7 +376,7 @@ impl PredicateListExpression {
                 let keep = match eval_result {
                     Ok(Value::Number(number)) => (i + 1) as f64 == number,
                     Ok(Value::Boolean(boolean)) => boolean,
-                    Ok(value) => value.boolean(),
+                    Ok(value) => value.convert_to_boolean(),
                     Err(_) => false,
                 };
 
