@@ -116,33 +116,33 @@ jobs:
         run: |
           sudo apt update
           ./mach bootstrap --skip-lints
-      # We need to reduce the concurrency to prevent OOM errors (when building / linking servo).
-      # Adding the coverage instrumentation seems to increase the memory usage when building / linking.
       - name: Determine options
         id: options
         run: | 
-          echo "nproc: $(nproc)"
-          NUM_JOBS=$(nproc)
-          # Todo: a more sophisticated implementation would take into account available memory.
           if [[ ${{ runner.environment }} == 'self-hosted' ]];
           then
-            NUM_JOBS=3
             CARGO_PROFILE=dev
           else
-            NUM_JOBS=1
             # github hosted runners don't have enough diskspace for the dev profile.
             CARGO_PROFILE=coverage
           fi 
-          echo "num_jobs=${NUM_JOBS}" | tee $GITHUB_OUTPUT
           echo "cargo_profile=${CARGO_PROFILE}" | tee $GITHUB_OUTPUT
+      # We can remove this after upgrading to Rust 1.90, but for now
+      # installing lld is the easiest way to get it in path.
+      - name: install lld
+        run: apt-get install -y lld
       - name: Run unit-tests with coverage
         shell: bash
+        env:
+          RUSTC_BOOTSTRAP: "1"
+          # lld seems to use less memory and prevents OOM errors during linking.
+          # We can remove this after upgrading to Rust 1.90, where lld will be the default.
+          RUSTFLAGS: "-Z linker-features=+lld"
         run: | 
           ./mach test-unit --code-coverage \
               --profile=${{ steps.options.outputs.cargo_profile }} \
               --llvm-cov-option=--codecov \
-              --llvm-cov-option=--output-path=codecov.json \
-              --llvm-cov-option=--jobs=${{ steps.options.outputs.num_jobs}}
+              --llvm-cov-option=--output-path=codecov.json
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
