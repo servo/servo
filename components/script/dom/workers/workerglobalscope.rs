@@ -19,6 +19,7 @@ use crossbeam_channel::Receiver;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use dom_struct::dom_struct;
 use fonts::FontContext;
+use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::JS_AddInterruptCallback;
 use js::jsval::UndefinedValue;
@@ -63,7 +64,7 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::crypto::Crypto;
-use crate::dom::csp::{GlobalCspReporting, Violation};
+use crate::dom::csp::{GlobalCspReporting, Violation, parse_csp_list_from_metadata};
 use crate::dom::dedicatedworkerglobalscope::{
     AutoWorkerReset, DedicatedWorkerGlobalScope, interrupt_callback,
 };
@@ -187,11 +188,8 @@ impl FetchResponseListener for ScriptFetchContext {
         scope.set_url(metadata.final_url.clone());
 
         // Step 2 Initialize worker global scope's policy container given worker global scope, response, and inside settings.
-        DedicatedWorkerGlobalScope::initialize_policy_container_for_worker_global_scope(
-            &scope,
-            &metadata,
-            &self.policy_container,
-        );
+        scope
+            .initialize_policy_container_for_worker_global_scope(&metadata, &self.policy_container);
         scope.set_endpoints_list(ReportingEndpoint::parse_reporting_endpoints_header(
             &metadata.final_url.clone(),
             &metadata.headers,
@@ -529,6 +527,40 @@ impl WorkerGlobalScope {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#initialize-worker-policy-container> and
+    /// <https://html.spec.whatwg.org/multipage/#creating-a-policy-container-from-a-fetch-response>
+    fn initialize_policy_container_for_worker_global_scope(
+        &self,
+        metadata: &Metadata,
+        parent_policy_container: &PolicyContainer,
+    ) {
+        // Step 1. If workerGlobalScope's url is local but its scheme is not "blob":
+        //
+        // Note that we also allow for blob here, as the parent_policy_container is in both cases
+        // the container that we need to clone.
+        if metadata.final_url.is_local_scheme() {
+            // Step 1.2. Set workerGlobalScope's policy container to a clone of workerGlobalScope's
+            // owner set[0]'s relevant settings object's policy container.
+            //
+            // Step 1. If response's URL's scheme is "blob", then return a clone of response's URL's
+            // blob URL entry's environment's policy container.
+            self.set_csp_list(parent_policy_container.csp_list.clone());
+            self.set_referrer_policy(parent_policy_container.get_referrer_policy());
+            return;
+        }
+        // Step 3. Set result's CSP list to the result of parsing a response's Content Security Policies given response.
+        self.set_csp_list(parse_csp_list_from_metadata(&metadata.headers));
+        // Step 5. Set result's referrer policy to the result of parsing the `Referrer-Policy`
+        // header given response. [REFERRERPOLICY]
+        let referrer_policy = metadata
+            .headers
+            .as_ref()
+            .and_then(|headers| headers.typed_get::<ReferrerPolicyHeader>())
+            .into();
+        self.set_referrer_policy(referrer_policy);
+    }
+
+    /// onComplete algorithm defined inside <https://html.spec.whatwg.org/multipage/#run-a-worker>
     #[allow(unsafe_code)]
     fn on_complete(
         &self,
