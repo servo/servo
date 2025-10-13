@@ -221,7 +221,7 @@ impl WebDriverExtensionCommand for ServoExtensionCommand {
 }
 
 #[derive(Clone)]
-struct SendableJSValue(pub JSValue);
+struct SendableJSValue(JSValue);
 
 impl Serialize for SendableJSValue {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -258,7 +258,7 @@ impl Serialize for SendableJSValue {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-struct WebDriverPrefValue(pub PrefValue);
+struct WebDriverPrefValue(PrefValue);
 
 impl Serialize for WebDriverPrefValue {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -386,7 +386,7 @@ enum VerifyBrowsingContextIsOpen {
 }
 
 impl Handler {
-    pub fn new(
+    fn new(
         embedder_sender: Sender<WebDriverCommandMsg>,
         event_loop_waker: Box<dyn EventLoopWaker>,
     ) -> Handler {
@@ -409,7 +409,7 @@ impl Handler {
         }
     }
 
-    pub fn browsing_context_id(&self) -> WebDriverResult<BrowsingContextId> {
+    fn browsing_context_id(&self) -> WebDriverResult<BrowsingContextId> {
         self.session()?
             .current_browsing_context_id()
             .ok_or_else(|| {
@@ -417,7 +417,7 @@ impl Handler {
             })
     }
 
-    pub fn webview_id(&self) -> WebDriverResult<WebViewId> {
+    fn webview_id(&self) -> WebDriverResult<WebViewId> {
         self.session()?
             .current_webview_id()
             .ok_or_else(|| WebDriverError::new(ErrorStatus::UnknownError, "No webview available"))
