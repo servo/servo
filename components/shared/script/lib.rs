@@ -175,10 +175,10 @@ pub enum ScriptThreadMessage {
     PostMessage {
         /// The target of the message.
         target: PipelineId,
-        /// The source of the message.
-        source: PipelineId,
-        /// The top level browsing context associated with the source pipeline.
-        source_browsing_context: WebViewId,
+        /// The webview associated with the source pipeline.
+        source_webview: WebViewId,
+        /// The browsing context associated with the source.
+        source_browsing_context: BrowsingContextId,
         /// The expected origin of the target.
         target_origin: Option<ImmutableOrigin>,
         /// The source origin of the message.
