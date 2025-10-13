@@ -146,6 +146,10 @@ pub(super) struct LineItemLayout<'layout_data, 'layout> {
     /// The amount of space to add to each justification opportunity in order to implement
     /// `text-align: justify`.
     pub justification_adjustment: Au,
+
+    /// Whether this is a phantom line box.
+    /// <https://drafts.csswg.org/css-inline-3/#invisible-line-boxes>
+    is_phantom_line: bool,
 }
 
 impl LineItemLayout<'_, '_> {
@@ -155,6 +159,7 @@ impl LineItemLayout<'_, '_> {
         start_position: LogicalVec2<Au>,
         effective_block_advance: &LineBlockSizes,
         justification_adjustment: Au,
+        is_phantom_line: bool,
     ) -> Vec<Fragment> {
         let baseline_offset = effective_block_advance.find_baseline_offset();
         LineItemLayout {
@@ -170,6 +175,7 @@ impl LineItemLayout<'_, '_> {
                 baseline_block_offset: baseline_offset,
             },
             justification_adjustment,
+            is_phantom_line,
         }
         .layout(line_items)
     }
@@ -407,7 +413,11 @@ impl LineItemLayout<'_, '_> {
             },
             size: LogicalVec2 {
                 inline: inner_state.inline_advance,
-                block: inline_box_state.base.font_metrics.line_gap,
+                block: if self.is_phantom_line {
+                    Au::zero()
+                } else {
+                    inline_box_state.base.font_metrics.line_gap
+                },
             },
         };
 
@@ -499,6 +509,9 @@ impl LineItemLayout<'_, '_> {
         inline_box_state: &InlineBoxContainerState,
         space_above_baseline: Au,
     ) -> Au {
+        if self.is_phantom_line {
+            return Au::zero();
+        };
         let font_metrics = &inline_box_state.base.font_metrics;
         let style = &inline_box_state.base.style;
         let line_gap = font_metrics.line_gap;

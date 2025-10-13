@@ -596,6 +596,7 @@ impl UnbreakableSegmentUnderConstruction {
         self.max_block_size = LineBlockSizes::zero();
         self.inline_box_hierarchy_depth = None;
         self.has_content = false;
+        self.has_inline_pbm = false;
         self.trailing_whitespace_size = Au::zero();
     }
 
@@ -947,16 +948,20 @@ impl InlineFormattingContextLayout<'_> {
         let block_start_position = self
             .current_line
             .line_block_start_considering_placement_among_floats();
-        let had_inline_advance =
-            self.current_line.inline_position != self.current_line.start_position.inline;
 
-        let effective_block_advance = if self.current_line.has_content ||
-            had_inline_advance ||
-            self.linebreak_before_new_content
-        {
-            self.current_line_max_block_size_including_nested_containers()
-        } else {
+        // https://drafts.csswg.org/css-inline-3/#invisible-line-boxes
+        // > Line boxes that contain no text, no preserved white space, no inline boxes with non-zero
+        // > inline-axis margins, padding, or borders, and no other in-flow content (such as atomic
+        // > inlines or ruby annotations), and do not end with a forced line break are phantom line boxes.
+        // > Such boxes must be treated as zero-height line boxes for the purposes of determining the
+        // > positions of any descendant content (such as absolutely positioned boxes), and both the
+        // > line box and its in-flow content must be treated as not existing for any other layout or
+        // > rendering purpose.
+        let is_phantom_line = !self.current_line.has_content && !self.current_line.has_inline_pbm;
+        let effective_block_advance = if is_phantom_line {
             LineBlockSizes::zero()
+        } else {
+            self.current_line_max_block_size_including_nested_containers()
         };
 
         let resolved_block_advance = effective_block_advance.resolve();
@@ -1005,14 +1010,10 @@ impl InlineFormattingContextLayout<'_> {
             start_position,
             &effective_block_advance,
             justification_adjustment,
+            is_phantom_line,
         );
 
-        // https://drafts.csswg.org/css-inline-3/#invisible-line-boxes
-        // > Line boxes that contain no text, no preserved white space, no inline boxes with non-zero
-        // > inline-axis margins, padding, or borders, and no other in-flow content (such as atomic
-        // > inlines or ruby annotations), and do not end with a forced line break are phantom line boxes.
-        // > Such boxes [...] must be treated as not existing for any other layout or rendering purpose.
-        if line_to_layout.has_content || line_to_layout.has_inline_pbm {
+        if !is_phantom_line {
             let baseline = baseline_offset + block_start_position;
             self.baselines.first.get_or_insert(baseline);
             self.baselines.last = Some(baseline);
