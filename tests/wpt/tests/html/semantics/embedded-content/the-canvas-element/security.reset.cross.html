@@ -22,7 +22,7 @@ _addTest(function(canvas, ctx) {
 canvas.width = 50;
 ctx.drawImage(document.getElementById('yellow.png'), 0, 0);
 assert_throws_dom("SECURITY_ERR", function() { canvas.toDataURL(); });
-canvas.width = 100;
+ctx.reset();
 canvas.toDataURL();
 ctx.getImageData(0, 0, 1, 1);
 _assert(true, "true"); // okay if there was no exception

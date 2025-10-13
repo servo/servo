@@ -79,16 +79,6 @@ impl CanvasRenderingContext2D {
         .map(|context| reflect_dom_object(Box::new(context), global, can_gc))
     }
 
-    // https://html.spec.whatwg.org/multipage/#reset-the-rendering-context-to-its-default-state
-    fn reset_to_initial_state(&self) {
-        self.canvas_state.reset_to_initial_state();
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions>
-    pub(crate) fn set_canvas_bitmap_dimensions(&self, size: Size2D<u64>) {
-        self.canvas_state.set_bitmap_dimensions(size);
-    }
-
     pub(crate) fn take_missing_image_urls(&self) -> Vec<ServoUrl> {
         std::mem::take(&mut self.canvas_state.get_missing_image_urls().borrow_mut())
     }
@@ -133,7 +123,7 @@ impl CanvasContext for CanvasRenderingContext2D {
     }
 
     fn resize(&self) {
-        self.set_canvas_bitmap_dimensions(self.size().cast())
+        self.canvas_state.set_bitmap_dimensions(self.size().cast());
     }
 
     fn reset_bitmap(&self) {
