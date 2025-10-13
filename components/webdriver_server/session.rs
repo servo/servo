@@ -21,7 +21,7 @@ use crate::user_prompt::{
 };
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize)]
-pub enum PageLoadStrategy {
+pub(crate) enum PageLoadStrategy {
     None,
     Eager,
     Normal,
@@ -42,7 +42,7 @@ impl ToString for PageLoadStrategy {
 /// Represents the current WebDriver session and holds relevant session state.
 /// Currently, only 1 webview is supported per session.
 /// So only there is only 1 InputState.
-pub struct WebDriverSession {
+pub(crate) struct WebDriverSession {
     /// <https://www.w3.org/TR/webdriver2/#dfn-session-id>
     id: Uuid,
 
@@ -71,7 +71,7 @@ pub struct WebDriverSession {
 }
 
 impl WebDriverSession {
-    pub fn new() -> WebDriverSession {
+    pub(crate) fn new() -> WebDriverSession {
         WebDriverSession {
             id: Uuid::new_v4(),
             webview_id: None,
@@ -85,43 +85,43 @@ impl WebDriverSession {
         }
     }
 
-    pub fn set_webview_id(&mut self, webview_id: WebViewId) {
+    pub(crate) fn set_webview_id(&mut self, webview_id: WebViewId) {
         self.webview_id = Some(webview_id);
     }
 
-    pub fn set_browsing_context_id(&mut self, browsing_context_id: BrowsingContextId) {
+    pub(crate) fn set_browsing_context_id(&mut self, browsing_context_id: BrowsingContextId) {
         self.browsing_context_id = Some(browsing_context_id);
     }
 
-    pub fn current_webview_id(&self) -> Option<WebViewId> {
+    pub(crate) fn current_webview_id(&self) -> Option<WebViewId> {
         self.webview_id
     }
 
-    pub fn current_browsing_context_id(&self) -> Option<BrowsingContextId> {
+    pub(crate) fn current_browsing_context_id(&self) -> Option<BrowsingContextId> {
         self.browsing_context_id
     }
 
-    pub fn session_timeouts(&self) -> &TimeoutsConfiguration {
+    pub(crate) fn session_timeouts(&self) -> &TimeoutsConfiguration {
         &self.timeouts
     }
 
-    pub fn session_timeouts_mut(&mut self) -> &mut TimeoutsConfiguration {
+    pub(crate) fn session_timeouts_mut(&mut self) -> &mut TimeoutsConfiguration {
         &mut self.timeouts
     }
 
-    pub fn page_loading_strategy(&self) -> PageLoadStrategy {
+    pub(crate) fn page_loading_strategy(&self) -> PageLoadStrategy {
         self.page_loading_strategy.clone()
     }
 
-    pub fn strict_file_interactability(&self) -> bool {
+    pub(crate) fn strict_file_interactability(&self) -> bool {
         self.strict_file_interactability
     }
 
-    pub fn user_prompt_handler(&self) -> &UserPromptHandler {
+    pub(crate) fn user_prompt_handler(&self) -> &UserPromptHandler {
         &self.user_prompt_handler
     }
 
-    pub fn pointer_ids(&self) -> FxHashSet<u32> {
+    pub(crate) fn pointer_ids(&self) -> FxHashSet<u32> {
         self.input_state_table
             .values()
             .filter_map(|source| match source {

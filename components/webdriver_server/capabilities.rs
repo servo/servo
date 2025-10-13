@@ -6,25 +6,25 @@ use serde_json::{Map, Value};
 use webdriver::capabilities::{BrowserCapabilities, Capabilities};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 
-pub struct ServoCapabilities {
-    pub browser_name: String,
-    pub browser_version: String,
-    pub platform_name: Option<String>,
-    pub accept_insecure_certs: bool,
-    pub set_window_rect: bool,
-    pub strict_file_interactability: bool,
-    pub accept_proxy: bool,
-    pub accept_custom: bool,
+pub(crate) struct ServoCapabilities {
+    pub(crate) browser_name: String,
+    pub(crate) browser_version: String,
+    pub(crate) platform_name: Option<String>,
+    pub(crate) set_window_rect: bool,
+    accept_insecure_certs: bool,
+    strict_file_interactability: bool,
+    accept_proxy: bool,
+    accept_custom: bool,
 }
 
 impl ServoCapabilities {
-    pub fn new() -> ServoCapabilities {
+    pub(crate) fn new() -> ServoCapabilities {
         ServoCapabilities {
             browser_name: "servo".to_string(),
             browser_version: "0.0.1".to_string(),
             platform_name: get_platform_name(),
-            accept_insecure_certs: false,
             set_window_rect: true,
+            accept_insecure_certs: false,
             strict_file_interactability: false,
             accept_proxy: false,
             accept_custom: true,

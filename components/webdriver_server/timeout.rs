@@ -18,10 +18,10 @@ pub(crate) const DEFAULT_PAGE_LOAD_TIMEOUT: u64 = 300_000;
 pub(crate) const DEFAULT_IMPLICIT_WAIT: u64 = 0;
 
 pub(crate) struct TimeoutsConfiguration {
-    pub script: Option<u64>,
-    pub page_load: Option<u64>,
-    pub implicit_wait: Option<u64>,
-    pub sleep_interval: u64,
+    pub(crate) script: Option<u64>,
+    pub(crate) page_load: Option<u64>,
+    pub(crate) implicit_wait: Option<u64>,
+    pub(crate) sleep_interval: u64,
 }
 
 impl Default for TimeoutsConfiguration {
