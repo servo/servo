@@ -56,7 +56,6 @@ use crate::dom::types::DebuggerGlobalScope;
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worker::{TrustedWorkerAddress, Worker};
 use crate::dom::workerglobalscope::{ScriptFetchContext, WorkerGlobalScope};
-use crate::fetch::CspViolationsProcessor;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
@@ -178,22 +177,6 @@ impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
 }
 
 unsafe_no_jsmanaged_fields!(TaskQueue<DedicatedWorkerScriptMsg>);
-
-struct DedicatedWorkerCspProcessor {
-    parent_event_loop_sender: ScriptEventLoopSender,
-    pipeline_id: PipelineId,
-}
-
-impl CspViolationsProcessor for DedicatedWorkerCspProcessor {
-    fn process_csp_violations(&self, violations: Vec<Violation>) {
-        let _ = self
-            .parent_event_loop_sender
-            .send(CommonScriptMsg::ReportCspViolations(
-                self.pipeline_id,
-                violations,
-            ));
-    }
-}
 
 // https://html.spec.whatwg.org/multipage/#dedicatedworkerglobalscope
 #[dom_struct]

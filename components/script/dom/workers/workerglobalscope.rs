@@ -160,7 +160,7 @@ impl FetchResponseListener for ScriptFetchContext {
                     FetchMetadata::Filtered { unsafe_, .. } => Some(unsafe_),
                 }
             },
-            Err(e) => error!("error loading script {} ({:?})", self.url.to_string(), e),
+            Err(e) => error!("error loading script {} ({:?})", self.url, e),
         }
     }
 
