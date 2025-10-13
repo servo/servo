@@ -182,7 +182,7 @@ impl FetchResponseListener for ScriptFetchContext {
         let metadata = self.response.take().unwrap();
 
         // The processResponseConsumeBody steps defined inside
-        // [run a worker](https://html.spec.whatwg.org/multipage/workers.html#run-a-worker)
+        // [run a worker](https://html.spec.whatwg.org/multipage/#run-a-worker)
 
         // Step 1 Set worker global scope's url to response's url.
         scope.set_url(metadata.final_url.clone());
