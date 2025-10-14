@@ -55,6 +55,15 @@ impl LargestContentfulPaintCalculator {
             .get_mut(&pipeline_id)
             .and_then(|container| container.calculate_largest_contentful_paint(paint_time))
     }
+
+    pub(crate) fn add_to_disabled_lcp_webviews(&mut self, webview_id: WebViewId) {
+        self.disabled_lcp_for_webviews.insert(webview_id);
+    }
+
+    pub(crate) fn clear(&mut self) {
+        self.lcp_containers.clear();
+        self.disabled_lcp_for_webviews.clear();
+    }
 }
 
 /// Holds the LCP candidates and the latest LCP for a specific pipeline.

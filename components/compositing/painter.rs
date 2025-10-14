@@ -347,6 +347,7 @@ impl Painter {
         if let Some(webrender) = self.webrender.take() {
             webrender.deinit();
         }
+        self.lcp_calculator.clear();
     }
 
     #[track_caller]
@@ -1383,6 +1384,7 @@ impl Painter {
 
             webview_renderer.notify_input_event(&self.webrender_api, event);
         }
+        self.disable_lcp_calculation_for_webview(webview_id);
     }
 
     pub(crate) fn notify_scroll_event(
@@ -1394,6 +1396,7 @@ impl Painter {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
             webview_renderer.notify_scroll_event(scroll, point);
         }
+        self.disable_lcp_calculation_for_webview(webview_id);
     }
 
     pub(crate) fn pinch_zoom(
@@ -1487,6 +1490,11 @@ impl Painter {
                     .set(PaintMetricState::Seen(epoch.into(), false));
             }
         };
+    }
+
+    /// Disable LCP feature when the user interacts with the page.
+    fn disable_lcp_calculation_for_webview(&mut self, webview_id: WebViewId) {
+        self.lcp_calculator.add_to_disabled_lcp_webviews(webview_id);
     }
 }
 
