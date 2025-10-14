@@ -2509,7 +2509,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                         // check if there's an opportunity to break the line
                         if can_wrap {
                             for line_break in line_breaks.linebreaks.iter() {
-                                if run.range.end().to_usize() == *lb {
+                                if run.range.end().to_usize() == *line_break {
                                     self.line_break_opportunity();
                                 }
                             }
