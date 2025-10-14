@@ -1241,6 +1241,8 @@ impl LayoutThread {
                     .layout_size(),
                 stacking_context_tree.compositor_info.epoch.into(),
             ));
+        } else {
+            *lcp_candidate_collector = None;
         }
 
         let built_display_list = DisplayListBuilder::build(

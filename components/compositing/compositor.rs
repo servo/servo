@@ -1536,6 +1536,7 @@ impl IOCompositor {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
             webview_renderer.notify_input_event(event);
         }
+        self.disable_lcp_calculation();
     }
 
     pub fn notify_scroll_event(
@@ -1547,6 +1548,7 @@ impl IOCompositor {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
             webview_renderer.notify_scroll_event(scroll_location, cursor);
         }
+        self.disable_lcp_calculation();
     }
 
     pub fn on_vsync(&mut self, webview_id: WebViewId) {
@@ -1639,6 +1641,15 @@ impl IOCompositor {
         let _ = self.global.borrow().constellation_sender.send(
             EmbedderToConstellationMessage::RequestScreenshotReadiness(webview_id),
         );
+    }
+
+    /// Disable LCP feature when the user interacts with the page.
+    fn disable_lcp_calculation(&mut self) {
+        let mut current_preferences = servo_config::prefs::get().clone();
+        if current_preferences.largest_contentful_paint_enabled {
+            current_preferences.largest_contentful_paint_enabled = false;
+            servo_config::prefs::set(current_preferences);
+        }
     }
 }
 
