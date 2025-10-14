@@ -680,14 +680,38 @@ impl HTMLInputElement {
 
     /// <https://html.spec.whatwg.org/multipage#concept-input-step>
     fn allowed_value_step(&self) -> Option<f64> {
-        // FIXME: This implementation is not correct. For example, for step=any,
-        // there should be no allowed value step.
-        self.upcast::<Element>()
+        // Step 1. If the attribute does not apply, then there is no allowed value step.
+        // NOTE: The attribute applies iff there is a default step
+        let default_step = self.default_step()?;
+
+        // Step 2. Otherwise, if the attribute is absent, then the allowed value step
+        // is the default step multiplied by the step scale factor.
+        let Some(attribute) = self
+            .upcast::<Element>()
             .get_attribute(&ns!(), &local_name!("step"))
-            .and_then(|attribute| parse_floating_point_number(&attribute.value()))
-            .filter(|step| *step > 0.0)
-            .or_else(|| self.default_step())
-            .map(|step| step * self.step_scale_factor())
+        else {
+            return Some(default_step * self.step_scale_factor());
+        };
+
+        // Step 3. Otherwise, if the attribute's value is an ASCII case-insensitive match
+        // for the string "any", then there is no allowed value step.
+        if attribute.value().eq_ignore_ascii_case("any") {
+            return None;
+        }
+
+        // Step 4. Otherwise, if the rules for parsing floating-point number values, when they
+        // are applied to the attribute's value, return an error, zero, or a number less than zero,
+        // then the allowed value step is the default step multiplied by the step scale factor.
+        let Some(parsed_value) =
+            parse_floating_point_number(&attribute.value()).filter(|value| *value > 0.0)
+        else {
+            return Some(default_step * self.step_scale_factor());
+        };
+
+        // Step 5. Otherwise, the allowed value step is the number returned by the rules for parsing
+        // floating-point number values when they are applied to the attribute's value,
+        // multiplied by the step scale factor.
+        Some(parsed_value * self.step_scale_factor())
     }
 
     /// <https://html.spec.whatwg.org/multipage#concept-input-min>
