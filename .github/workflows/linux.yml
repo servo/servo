@@ -212,10 +212,6 @@ jobs:
         run: xvfb-run ./mach smoketest --${{ inputs.profile  }}
       - name: Script tests
         run: ./mach test-scripts
-      - name: Install cargo nextest
-        uses: taiki-e/install-action@v2
-        with:
-          tool: nextest
       - name: Unit tests
         if: ${{ inputs.unit-tests }}
         env:

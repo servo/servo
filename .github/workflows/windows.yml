@@ -180,9 +180,6 @@ jobs:
       # commit we are building uses a different rustc version.
       - name: Install crown
         run: cargo install --path support/crown --force
-      - uses: taiki-e/install-action@v2
-        with:
-          tool: nextest
       - name: Debug logging for incremental builds
         if: ${{ runner.environment == 'self-hosted' }}
         run: |
