@@ -39,12 +39,12 @@ pub struct ViewportDescription {
     /// the zoom level when the page is first loaded
     pub initial_scale: Scale<f32, CSSPixel, DeviceIndependentPixel>,
 
+    /// The minimum page zoom that is allowed on this viewport's page.
     /// <https://developer.mozilla.org/en-US/docs/Web/HTML/Viewport_meta_tag#minimum_scale>
-    /// how much zoom out is allowed on the page.
     pub minimum_scale: Scale<f32, CSSPixel, DeviceIndependentPixel>,
 
+    /// The maximum page zoom that is allowed on this viewport's page.
     /// <https://developer.mozilla.org/en-US/docs/Web/HTML/Viewport_meta_tag#maximum_scale>
-    /// how much zoom in is allowed on the page
     pub maximum_scale: Scale<f32, CSSPixel, DeviceIndependentPixel>,
 
     /// <https://developer.mozilla.org/en-US/docs/Web/HTML/Viewport_meta_tag#user_scalable>
@@ -141,7 +141,7 @@ impl ViewportDescription {
     }
 
     /// Constrains a zoom value within the allowed scale range
-    pub fn clamp_zoom(&self, zoom: f32) -> f32 {
+    pub fn clamp_page_zoom(&self, zoom: f32) -> f32 {
         zoom.clamp(self.minimum_scale.get(), self.maximum_scale.get())
     }
 }

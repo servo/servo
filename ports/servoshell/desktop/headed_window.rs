@@ -746,7 +746,7 @@ impl WindowPortsMethods for Window {
                 )));
             },
             WindowEvent::PinchGesture { delta, .. } => {
-                webview.set_pinch_zoom(delta as f32 + 1.0);
+                webview.pinch_zoom(delta as f32 + 1.0);
             },
             WindowEvent::CloseRequested => {
                 state.servo().start_shutting_down();

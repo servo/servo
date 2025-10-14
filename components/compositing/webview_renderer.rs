@@ -374,14 +374,14 @@ impl WebViewRenderer {
                         ScrollLocation::Delta(LayoutVector2D::from_untyped(delta.to_untyped())),
                         point.cast(),
                     ),
-                    TouchMoveAction::Zoom(magnification, scroll_delta) => {
+                    TouchMoveAction::Zoom(zoom_delta, scroll_delta) => {
                         let cursor = Point2D::new(-1, -1); // Make sure this hits the base layer.
 
                         // The order of these events doesn't matter, because zoom is handled by
                         // a root display list and the scroll event here is handled by the scroll
                         // applied to the content display list.
                         self.pending_scroll_zoom_events
-                            .push(ScrollZoomEvent::PinchZoom(magnification));
+                            .push(ScrollZoomEvent::PinchZoom(zoom_delta));
                         self.pending_scroll_zoom_events
                             .push(ScrollZoomEvent::Scroll(ScrollEvent {
                                 scroll_location: ScrollLocation::Delta(
@@ -514,14 +514,14 @@ impl WebViewRenderer {
                                         )),
                                         point.cast(),
                                     ),
-                                TouchMoveAction::Zoom(magnification, scroll_delta) => {
+                                TouchMoveAction::Zoom(zoom_delta, scroll_delta) => {
                                     let cursor = Point2D::new(-1, -1);
                                     // Make sure this hits the base layer.
                                     // The order of these events doesn't matter, because zoom is handled by
                                     // a root display list and the scroll event here is handled by the scroll
                                     // applied to the content display list.
                                     self.pending_scroll_zoom_events
-                                        .push(ScrollZoomEvent::PinchZoom(magnification));
+                                        .push(ScrollZoomEvent::PinchZoom(zoom_delta));
                                     self.pending_scroll_zoom_events
                                         .push(ScrollZoomEvent::Scroll(ScrollEvent {
                                             scroll_location: ScrollLocation::Delta(
@@ -653,15 +653,15 @@ impl WebViewRenderer {
 
         // Batch up all scroll events into one, or else we'll do way too much painting.
         let mut combined_scroll_event: Option<ScrollEvent> = None;
-        let mut base_page_zoom = self.pinch_zoom_level().get();
-        let mut combined_magnification = 1.0;
+        let mut current_pinch_zoom = self.pinch_zoom_level().get();
+        let mut combined_pinch_zoom_delta = 1.0;
         for scroll_event in self.pending_scroll_zoom_events.drain(..) {
             match scroll_event {
-                ScrollZoomEvent::PinchZoom(magnification) => {
-                    combined_magnification *= magnification
+                ScrollZoomEvent::PinchZoom(pinch_zoom_delta) => {
+                    combined_pinch_zoom_delta *= pinch_zoom_delta
                 },
                 ScrollZoomEvent::InitialViewportZoom(magnification) => {
-                    base_page_zoom = magnification
+                    current_pinch_zoom = magnification
                 },
                 ScrollZoomEvent::Scroll(scroll_event_info) => {
                     let combined_event = match combined_scroll_event.as_mut() {
@@ -720,10 +720,7 @@ impl WebViewRenderer {
         }
 
         let pinch_zoom_result =
-            match self.set_pinch_zoom_level(base_page_zoom * combined_magnification) {
-                true => PinchZoomResult::DidPinchZoom,
-                false => PinchZoomResult::DidNotPinchZoom,
-            };
+            self.set_pinch_zoom_level(current_pinch_zoom * combined_pinch_zoom_delta);
 
         (pinch_zoom_result, scroll_result)
     }
@@ -798,13 +795,19 @@ impl WebViewRenderer {
         Scale::new(self.pinch_zoom.get())
     }
 
-    fn set_pinch_zoom_level(&mut self, mut zoom: f32) -> bool {
-        if let Some(viewport) = self.viewport_description.as_ref() {
-            zoom = viewport.clamp_zoom(zoom);
-        }
+    fn set_pinch_zoom_level(&mut self, requested_pinch_zoom: f32) -> PinchZoomResult {
+        const MINIMUM_PINCH_ZOOM: f32 = 1.0;
+        const MAXIMUM_PINCH_ZOOM: f32 = 10.0;
+        let new_pinch_zoom = requested_pinch_zoom.clamp(MINIMUM_PINCH_ZOOM, MAXIMUM_PINCH_ZOOM);
 
-        let old_zoom = std::mem::replace(&mut self.pinch_zoom, PinchZoomFactor::new(zoom));
-        old_zoom != self.pinch_zoom
+        let old_zoom =
+            std::mem::replace(&mut self.pinch_zoom, PinchZoomFactor::new(new_pinch_zoom));
+
+        if old_zoom != self.pinch_zoom {
+            PinchZoomResult::DidPinchZoom
+        } else {
+            PinchZoomResult::DidNotPinchZoom
+        }
     }
 
     pub(crate) fn set_page_zoom(
@@ -842,20 +845,15 @@ impl WebViewRenderer {
         self.page_zoom * self.hidpi_scale_factor
     }
 
-    /// Simulate a pinch zoom
-    pub(crate) fn set_pinch_zoom(&mut self, magnification: f32) {
+    /// Adjust the pinch zoom of the [`WebView`] by the given zoom delta.
+    pub(crate) fn pinch_zoom(&mut self, pinch_zoom_delta: f32) {
         if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
 
         // TODO: Scroll to keep the center in view?
         self.pending_scroll_zoom_events
-            .push(ScrollZoomEvent::PinchZoom(
-                self.viewport_description
-                    .clone()
-                    .unwrap_or_default()
-                    .clamp_zoom(magnification),
-            ));
+            .push(ScrollZoomEvent::PinchZoom(pinch_zoom_delta));
     }
 
     fn send_window_size_message(&self) {
@@ -904,7 +902,7 @@ impl WebViewRenderer {
             .push(ScrollZoomEvent::InitialViewportZoom(
                 viewport_description
                     .clone()
-                    .clamp_zoom(viewport_description.initial_scale.get()),
+                    .clamp_page_zoom(viewport_description.initial_scale.get()),
             ));
         self.viewport_description = Some(viewport_description);
     }

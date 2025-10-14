@@ -1519,9 +1519,9 @@ impl IOCompositor {
         }
     }
 
-    pub fn set_pinch_zoom(&mut self, webview_id: WebViewId, magnification: f32) {
+    pub fn pinch_zoom(&mut self, webview_id: WebViewId, pinch_zoom_delta: f32) {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
-            webview_renderer.set_pinch_zoom(magnification);
+            webview_renderer.pinch_zoom(pinch_zoom_delta);
         }
     }
 

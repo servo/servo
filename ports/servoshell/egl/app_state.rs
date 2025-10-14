@@ -826,21 +826,21 @@ impl RunningAppState {
     /// Start pinchzoom.
     /// x/y are pinch origin coordinates.
     pub fn pinchzoom_start(&self, factor: f32, _x: u32, _y: u32) {
-        self.active_webview().set_pinch_zoom(factor);
+        self.active_webview().pinch_zoom(factor);
         self.perform_updates();
     }
 
     /// Pinchzoom.
     /// x/y are pinch origin coordinates.
     pub fn pinchzoom(&self, factor: f32, _x: u32, _y: u32) {
-        self.active_webview().set_pinch_zoom(factor);
+        self.active_webview().pinch_zoom(factor);
         self.perform_updates();
     }
 
     /// End pinchzoom.
     /// x/y are pinch origin coordinates.
     pub fn pinchzoom_end(&self, factor: f32, _x: u32, _y: u32) {
-        self.active_webview().set_pinch_zoom(factor);
+        self.active_webview().pinch_zoom(factor);
         self.perform_updates();
     }
 
