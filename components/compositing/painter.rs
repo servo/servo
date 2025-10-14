@@ -14,6 +14,7 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PipelineId, WebViewId};
 use canvas_traits::webgl::{GlType, WebGLThreads};
 use compositing_traits::display_list::{CompositorDisplayListInfo, ScrollType};
+use compositing_traits::largest_contentful_paint_candidate::LCPCandidate;
 use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::viewport_description::ViewportDescription;
 use compositing_traits::{
@@ -60,6 +61,7 @@ use webrender_api::{
 use wr_malloc_size_of::MallocSizeOfOps;
 
 use crate::compositor::{RepaintReason, WebRenderDebugOption};
+use crate::largest_contentful_paint_calculator::LargestContentfulPaintCalculator;
 use crate::refresh_driver::{AnimationRefreshDriverObserver, BaseRefreshDriver};
 use crate::render_notifier::RenderNotifier;
 use crate::screenshot::ScreenshotTaker;
@@ -134,6 +136,9 @@ pub(crate) struct Painter {
 
     /// The channel on which messages can be sent to the constellation.
     embedder_to_constellation_sender: Sender<EmbedderToConstellationMessage>,
+
+    /// Calculater for largest-contentful-paint.
+    lcp_calculator: LargestContentfulPaintCalculator,
 }
 
 impl Drop for Painter {
@@ -304,6 +309,7 @@ impl Painter {
             webxr_main_thread,
             #[cfg(feature = "webgpu")]
             webgpu_image_map,
+            lcp_calculator: LargestContentfulPaintCalculator::new(),
         };
         painter.assert_gl_framebuffer_complete();
         painter
@@ -834,6 +840,8 @@ impl Painter {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
             webview_renderer.pipeline_exited(pipeline_id, pipeline_exit_source);
         }
+        self.lcp_calculator
+            .remove_lcp_candidates_for_pipeline(pipeline_id.into());
     }
 
     pub(crate) fn send_initial_pipeline_transaction(
@@ -1426,6 +1434,20 @@ impl Painter {
             EmbedderToConstellationMessage::RefreshCursor(hit_test_result.pipeline_id),
         ) {
             warn!("Sending event to constellation failed ({:?}).", error);
+        }
+    }
+    pub(crate) fn append_lcp_candidate(
+        &mut self,
+        lcp_candidate: LCPCandidate,
+        webview_id: WebViewId,
+        pipeline_id: PipelineId,
+        epoch: Epoch,
+    ) {
+        if self
+            .lcp_calculator
+            .append_lcp_candidate(webview_id, pipeline_id.into(), lcp_candidate)
+        {
+            // TODO
         }
     }
 }
