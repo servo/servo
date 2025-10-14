@@ -10,7 +10,6 @@ use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, RwLock, Weak};
 
 use base::generic_channel;
-use base::id::WebViewId;
 use base::threadpool::ThreadPool;
 use embedder_traits::{EmbedderControlId, EmbedderMsg, EmbedderProxy, FilterPattern};
 use headers::{ContentLength, ContentRange, ContentType, HeaderMap, HeaderMapExt, Range};

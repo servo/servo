@@ -2358,7 +2358,6 @@ impl HTMLInputElement {
 
         let mut files: Vec<DomRoot<File>> = vec![];
 
-        let webview_id = window.webview_id();
         let filter = filter_from_accept(&self.Accept());
         let target = self.upcast::<EventTarget>();
 

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
 use egui::Modal;
@@ -13,8 +13,8 @@ use servo::base::generic_channel::GenericSender;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::{
     AlertResponse, AuthenticationRequest, ColorPicker, ConfirmResponse, EmbedderControlId,
-    FilePicker, FilterPattern, PermissionRequest, PromptResponse, RgbColor, SelectElement,
-    SelectElementOption, SelectElementOptionOrOptgroup, SimpleDialog, WebDriverUserPrompt,
+    FilePicker, PermissionRequest, PromptResponse, RgbColor, SelectElement, SelectElementOption,
+    SelectElementOptionOrOptgroup, SimpleDialog, WebDriverUserPrompt,
 };
 
 #[allow(clippy::large_enum_variant)]

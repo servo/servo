@@ -6,7 +6,6 @@ use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::mem;
-use std::path::PathBuf;
 use std::rc::Rc;
 
 use crossbeam_channel::{Receiver, Sender};
@@ -18,7 +17,7 @@ use servo::config::pref;
 use servo::ipc_channel::ipc::IpcSender;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
-    AllowOrDenyRequest, AuthenticationRequest, EmbedderControl, EmbedderControlId, FilterPattern,
+    AllowOrDenyRequest, AuthenticationRequest, EmbedderControl, EmbedderControlId,
     GamepadHapticEffectType, InputEvent, InputEventId, InputEventResult, JSValue, LoadStatus,
     PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog, TraversalId,
     WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus, WebDriverSenders,

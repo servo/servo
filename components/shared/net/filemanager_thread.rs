@@ -7,7 +7,6 @@ use std::ops::Range;
 use std::path::PathBuf;
 use std::time::SystemTime;
 
-use base::id::WebViewId;
 use embedder_traits::{EmbedderControlId, FilterPattern};
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;

@@ -181,16 +181,16 @@ impl WebViewDelegate for WebViewDelegateImpl {
         }
     }
 
-    fn show_form_control(&self, _: WebView, form_control: EmbedderControl) {
+    fn show_embedder_control(&self, _: WebView, embedder_control: EmbedderControl) {
         // Even if not used, controls must be stored so that they do not automatically reply
         // when dropped.
-        self.controls_shown.borrow_mut().push(form_control);
+        self.controls_shown.borrow_mut().push(embedder_control);
 
         self.number_of_controls_shown
             .set(self.number_of_controls_shown.get() + 1);
     }
 
-    fn hide_form_control(&self, _webview: WebView, _control_id: servo::EmbedderControlId) {
+    fn hide_embedder_control(&self, _webview: WebView, _control_id: servo::EmbedderControlId) {
         self.number_of_controls_hidden
             .set(self.number_of_controls_hidden.get() + 1);
     }

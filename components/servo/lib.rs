@@ -66,7 +66,6 @@ use constellation::{
 pub use constellation_traits::EmbedderToConstellationMessage;
 use constellation_traits::ScriptToConstellationChan;
 use crossbeam_channel::{Receiver, Sender, unbounded};
-use embedder_traits::EmbedderControlRequest;
 use embedder_traits::user_content_manager::UserContentManager;
 pub use embedder_traits::{WebDriverSenders, *};
 use env_logger::Builder as EnvLoggerBuilder;

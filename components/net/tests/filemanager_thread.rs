@@ -7,9 +7,10 @@ use std::io::Read;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use base::id::TEST_WEBVIEW_ID;
+use base::Epoch;
+use base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
 use base::threadpool::ThreadPool;
-use embedder_traits::FilterPattern;
+use embedder_traits::{EmbedderControlId, FilterPattern};
 use ipc_channel::ipc;
 use net::filemanager_thread::FileManager;
 use net_traits::blob_url_store::BlobURLStoreError;
@@ -44,8 +45,13 @@ fn test_filemanager() {
     {
         // Try to select a dummy file "components/net/tests/test.jpeg"
         let (tx, rx) = ipc::channel().unwrap();
+        let control_id = EmbedderControlId {
+            webview_id: TEST_WEBVIEW_ID,
+            pipeline_id: TEST_PIPELINE_ID,
+            index: Epoch(0),
+        };
         filemanager.handle(FileManagerThreadMsg::SelectFile(
-            TEST_WEBVIEW_ID,
+            control_id,
             patterns.clone(),
             tx,
             origin.clone(),
