@@ -58,7 +58,6 @@ webxr = ["libservo/webxr"]
 bpaf = { version = "0.9.20", features = ["derive"] }
 cfg-if = { workspace = true }
 crossbeam-channel = { workspace = true }
-crown = "0.3.1"
 dpi = { workspace = true }
 euclid = { workspace = true }
 hitrace = { workspace = true, optional = true }
