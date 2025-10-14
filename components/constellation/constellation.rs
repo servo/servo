@@ -5680,6 +5680,11 @@ where
                 metric_value,
                 first_reflow,
             ),
+            PaintMetricEvent::LargestContentfulPaint(metric_value, area) => (
+                ProgressiveWebMetricType::LargestContentfulPaint { area },
+                metric_value,
+                false, // LCP doesn't care about first reflow
+            ),
         };
         if let Err(error) = pipeline.event_loop.send(ScriptThreadMessage::PaintMetric(
             pipeline_id,

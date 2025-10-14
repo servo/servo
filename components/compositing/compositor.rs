@@ -1293,6 +1293,29 @@ impl IOCompositor {
                     },
                     _ => {},
                 }
+
+                if let Some(lcp) = self.lcp_calculator.calculate_largest_contentful_paint(
+                    paint_time,
+                    current_epoch,
+                    pipeline_id.into(),
+                ) {
+                    #[cfg(feature = "tracing")]
+                    tracing::info!(
+                        name: "LargestContentfulPaint",
+                        servo_profiling = true,
+                        paint_time = ?paint_time,
+                        area = ?lcp.area,
+                        pipeline_id = ?pipeline_id,
+                    );
+                    if let Err(error) = self.global.borrow().constellation_sender.send(
+                        EmbedderToConstellationMessage::PaintMetric(
+                            *pipeline_id,
+                            PaintMetricEvent::LargestContentfulPaint(lcp.paint_time, lcp.area),
+                        ),
+                    ) {
+                        warn!("Sending paint metric event to constellation failed ({error:?}).");
+                    }
+                }
             }
         }
     }

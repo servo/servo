@@ -110,6 +110,14 @@ pub enum ProgressiveWebMetricType {
     FirstPaint,
     /// Time to first contentful paint
     FirstContentfulPaint,
+    /// Time for the largest contentful paint
+    ///
+    /// # Fields
+    /// * `area` - The pixel area of the largest contentful element.
+    LargestContentfulPaint {
+        /// The pixel area of the largest contentful element.
+        area: usize,
+    },
     /// Time to interactive
     TimeToInteractive,
 }
