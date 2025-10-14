@@ -198,6 +198,10 @@ jobs:
         run: cp D:\a\servo\servo\resources C:\a\servo\servo -Recurse
       - name: Smoketest
         run: .\mach smoketest --${{ inputs.profile }}
+      - name: Install cargo nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: nextest
       - name: Unit tests
         if: ${{ inputs.unit-tests }}
         uses: nick-fields/retry@v3
