@@ -1257,6 +1257,14 @@ impl LayoutThread {
             &stacking_context_tree.compositor_info,
             built_display_list,
         );
+        if let Some(lcp_candidate_collector) = lcp_candidate_collector.as_mut() {
+            if let Some(lcp_candidate) = lcp_candidate_collector.largest_contentful_paint() {
+                self.compositor_api.send_lcp_candidate(
+                    lcp_candidate,
+                    stacking_context_tree.compositor_info.pipeline_id,
+                );
+            }
+        }
 
         let (keys, instance_keys) = self
             .font_context

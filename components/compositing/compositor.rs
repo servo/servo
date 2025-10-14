@@ -805,6 +805,7 @@ impl IOCompositor {
                     self,
                 );
             },
+            CompositorMsg::LCPCandidate(_, _) => todo!(),
         }
     }
 

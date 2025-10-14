@@ -41,6 +41,7 @@ use webrender_api::{
     PipelineId as WebRenderPipelineId,
 };
 
+use crate::largest_contentful_paint_candidate::LCPCandidate;
 use crate::viewport_description::ViewportDescription;
 
 /// Sends messages to the compositor.
@@ -173,6 +174,8 @@ pub enum CompositorMsg {
     /// Let the compositor know that the given WebView is ready to have a screenshot taken
     /// after the given pipeline's epochs have been rendered.
     ScreenshotReadinessReponse(WebViewId, FxHashMap<PipelineId, Epoch>),
+    /// The candidate of largest-contentful-paint
+    LCPCandidate(LCPCandidate, WebRenderPipelineId),
 }
 
 impl Debug for CompositorMsg {
@@ -298,6 +301,20 @@ impl CrossProcessCompositorApi {
         }
         if let Err(error) = display_list_sender.send(&display_list_data.spatial_tree) {
             warn!("Error sending display spatial tree: {error}");
+        }
+    }
+
+    /// Send the largest contentful paint candidate to the compositor.
+    pub fn send_lcp_candidate(
+        &self,
+        lcp_candidate: LCPCandidate,
+        pipeline_id: WebRenderPipelineId,
+    ) {
+        if let Err(error) = self
+            .0
+            .send(CompositorMsg::LCPCandidate(lcp_candidate, pipeline_id))
+        {
+            warn!("Error sending LCPCandidate: {error}");
         }
     }
 
