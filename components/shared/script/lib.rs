@@ -177,8 +177,9 @@ pub enum ScriptThreadMessage {
         target: PipelineId,
         /// The webview associated with the source pipeline.
         source_webview: WebViewId,
-        /// The browsing context associated with the source.
-        source_browsing_context: BrowsingContextId,
+        /// The ancestry of browsing context associated with the source,
+        /// starting with the source itself.
+        source_ancestry: Vec<BrowsingContextId>,
         /// The expected origin of the target.
         target_origin: Option<ImmutableOrigin>,
         /// The source origin of the message.

@@ -4275,29 +4275,35 @@ where
         // and to prevent panic as part of that round-trip
         // in the case that the source would already have been closed.
         let mut next_iteration_pipeline = source_pipeline;
-        let source_browsing_context = loop {
+        let mut source_ancestry: Vec<BrowsingContextId> = vec![];
+        loop {
             match self
                 .pipelines
                 .get(&next_iteration_pipeline)
                 .and_then(|pipeline| self.browsing_contexts.get(&pipeline.browsing_context_id))
                 .map(|ctx| (ctx.id, ctx.parent_pipeline_id))
             {
-                Some((_, Some(parent))) => {
+                Some((bc, Some(parent))) => {
+                    source_ancestry.push(bc);
                     next_iteration_pipeline = parent;
                     continue;
                 },
                 Some((bc, None)) => {
-                    break bc;
+                    source_ancestry.push(bc);
+                    break;
                 },
                 None => {
-                    return warn!("{}: PostMessage from closed pipeline", source_pipeline);
+                    return warn!(
+                        "{}: PostMessage from pipeline with closed parent",
+                        source_pipeline
+                    );
                 },
             }
-        };
+        }
         let msg = ScriptThreadMessage::PostMessage {
             target: pipeline_id,
             source_webview,
-            source_browsing_context,
+            source_ancestry,
             target_origin: origin,
             source_origin,
             data: Box::new(data),

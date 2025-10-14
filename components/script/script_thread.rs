@@ -1776,14 +1776,14 @@ impl ScriptThread {
             ScriptThreadMessage::PostMessage {
                 target: target_pipeline_id,
                 source_webview,
-                source_browsing_context,
+                source_ancestry,
                 target_origin: origin,
                 source_origin,
                 data,
             } => self.handle_post_message_msg(
                 target_pipeline_id,
                 source_webview,
-                source_browsing_context,
+                source_ancestry,
                 origin,
                 source_origin,
                 *data,
@@ -2722,7 +2722,7 @@ impl ScriptThread {
         &self,
         pipeline_id: PipelineId,
         source_webview: WebViewId,
-        source_browsing_context: BrowsingContextId,
+        source_ancestry: Vec<BrowsingContextId>,
         origin: Option<ImmutableOrigin>,
         source_origin: ImmutableOrigin,
         data: StructuredSerializedData,
@@ -2731,14 +2731,25 @@ impl ScriptThread {
         match window {
             None => warn!("postMessage after target pipeline {} closed.", pipeline_id),
             Some(window) => {
-                let source = WindowProxy::new_dissimilar_origin(
-                    window.upcast::<GlobalScope>(),
-                    source_browsing_context,
-                    source_webview,
-                    None,
-                    None,
-                    CreatorBrowsingContextInfo::from(None, None),
-                );
+                let mut last: Option<DomRoot<WindowProxy>> = None;
+                let num_ancestors = source_ancestry.len();
+                for browsing_context_id in source_ancestry.into_iter().rev() {
+                    if let Some(window_proxy) = self.window_proxies.get(browsing_context_id) {
+                        last = Some(window_proxy);
+                        continue;
+                    }
+                    let window_proxy = WindowProxy::new_dissimilar_origin(
+                        window.upcast::<GlobalScope>(),
+                        browsing_context_id,
+                        source_webview,
+                        last.as_deref(),
+                        None,
+                        CreatorBrowsingContextInfo::from(last.as_deref(), None),
+                    );
+                    self.window_proxies
+                        .insert(browsing_context_id, window_proxy);
+                }
+                let source = last.expect("Ancestry should contain at least one bc.");
 
                 // FIXME(#22512): enqueues a task; unnecessary delay.
                 window.post_message(origin, source_origin, &source, data)
