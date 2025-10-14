@@ -118,7 +118,7 @@ jobs:
       fail-fast: ${{ fromJson(needs.parse-comment.outputs.configuration).fail_fast }}
       matrix:
         include: ${{ fromJson(needs.parse-comment.outputs.configuration).matrix }}
-    # We need to use `dipatch-workflow.yml` because workflows do not support using: ${}.
+    # We need to use `dispatch-workflow.yml` because workflows do not support using: ${}.
     uses: ./.github/workflows/dispatch-workflow.yml
     secrets: inherit
     with:
@@ -131,6 +131,7 @@ jobs:
       build-args: ${{ matrix.build_args }}
       number-of-wpt-chunks: ${{ matrix.number_of_wpt_chunks }}
       bencher: ${{ matrix.bencher }}
+      coverage: ${{ matrix.coverage }}
 
   results:
     name: Results
