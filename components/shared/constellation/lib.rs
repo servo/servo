@@ -17,6 +17,7 @@ use std::time::Duration;
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{MessagePortId, PipelineId, WebViewId};
+use compositing_traits::largest_contentful_paint_candidate::LargestContentfulPaintType;
 use embedder_traits::{
     CompositorHitTestResult, EmbedderControlId, EmbedderControlResponse, InputEventAndId,
     JavaScriptEvaluationId, MediaSessionActionType, Theme, TraversalId, ViewportDetails,
@@ -117,6 +118,11 @@ pub enum EmbedderToConstellationMessage {
 pub enum PaintMetricEvent {
     FirstPaint(CrossProcessInstant, bool /* first_reflow */),
     FirstContentfulPaint(CrossProcessInstant, bool /* first_reflow */),
+    LargestContentfulPaint(
+        CrossProcessInstant,
+        usize, /* area */
+        LargestContentfulPaintType,
+    ),
 }
 
 impl fmt::Debug for EmbedderToConstellationMessage {

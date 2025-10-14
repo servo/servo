@@ -50,7 +50,7 @@ impl LargestContentfulPaintCalculator {
         &mut self,
         paint_time: CrossProcessInstant,
         pipeline_id: PipelineId,
-    ) -> Option<&LargestContentfulPaint> {
+    ) -> Option<LargestContentfulPaint> {
         self.lcp_containers
             .get_mut(&pipeline_id)
             .and_then(|container| container.calculate_largest_contentful_paint(paint_time))
@@ -70,9 +70,9 @@ impl LargestContentfulPaintsContainer {
     fn calculate_largest_contentful_paint(
         &mut self,
         paint_time: CrossProcessInstant,
-    ) -> Option<&LargestContentfulPaint> {
+    ) -> Option<LargestContentfulPaint> {
         if self.lcp_candidates.is_empty() {
-            return self.latest_lcp.as_ref();
+            return self.latest_lcp;
         }
 
         let candidates = std::mem::take(&mut self.lcp_candidates);
@@ -90,6 +90,6 @@ impl LargestContentfulPaintsContainer {
             }
         }
 
-        self.latest_lcp.as_ref()
+        self.latest_lcp
     }
 }

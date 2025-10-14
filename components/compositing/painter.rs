@@ -545,6 +545,39 @@ impl Painter {
                     },
                     _ => {},
                 }
+
+                match pipeline.largest_contentful_paint_metric.get() {
+                    PaintMetricState::Seen(epoch, _) if epoch <= current_epoch => {
+                        if let Some(lcp) = self
+                            .lcp_calculator
+                            .calculate_largest_contentful_paint(paint_time, pipeline_id.into())
+                        {
+                            #[cfg(feature = "tracing")]
+                            tracing::info!(
+                                name: "LargestContentfulPaint",
+                                servo_profiling = true,
+                                paint_time = ?paint_time,
+                                area = ?lcp.area,
+                                lcp_type = ?lcp.lcp_type,
+                                pipeline_id = ?pipeline_id,
+                            );
+                            self.send_to_constellation(
+                                EmbedderToConstellationMessage::PaintMetric(
+                                    *pipeline_id,
+                                    PaintMetricEvent::LargestContentfulPaint(
+                                        lcp.paint_time,
+                                        lcp.area,
+                                        lcp.lcp_type,
+                                    ),
+                                ),
+                            );
+                        }
+                        pipeline
+                            .largest_contentful_paint_metric
+                            .set(PaintMetricState::Sent);
+                    },
+                    _ => {},
+                }
             }
         }
     }
@@ -1447,8 +1480,13 @@ impl Painter {
             .lcp_calculator
             .append_lcp_candidate(webview_id, pipeline_id.into(), lcp_candidate)
         {
-            // TODO
-        }
+            if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+                webview_renderer
+                    .ensure_pipeline_details(pipeline_id)
+                    .largest_contentful_paint_metric
+                    .set(PaintMetricState::Seen(epoch.into(), false));
+            }
+        };
     }
 }
 

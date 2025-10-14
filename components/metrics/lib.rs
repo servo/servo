@@ -7,6 +7,7 @@ use std::cmp::Ordering;
 use std::time::Duration;
 
 use base::cross_process_instant::CrossProcessInstant;
+use compositing_traits::largest_contentful_paint_candidate::LargestContentfulPaintType;
 use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::time::{
     ProfilerCategory, ProfilerChan, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
@@ -96,6 +97,10 @@ pub struct ProgressiveWebMetrics {
     ///
     /// See <https://w3c.github.io/paint-timing/#first-contentful-paint>
     first_contentful_paint: Cell<Option<CrossProcessInstant>>,
+    /// The time at which the largest contentful paint was rendered.
+    ///
+    /// See <https://www.w3.org/TR/largest-contentful-paint/>
+    largest_contentful_paint: Cell<Option<CrossProcessInstant>>,
     #[ignore_malloc_size_of = "can't measure channels"]
     time_profiler_chan: ProfilerChan,
     url: ServoUrl,
@@ -153,6 +158,7 @@ impl ProgressiveWebMetrics {
             time_to_interactive: Cell::new(None),
             first_paint: Cell::new(None),
             first_contentful_paint: Cell::new(None),
+            largest_contentful_paint: Cell::new(None),
             time_profiler_chan,
             url,
         }
@@ -194,6 +200,10 @@ impl ProgressiveWebMetrics {
         self.first_contentful_paint.get()
     }
 
+    pub fn largest_contentful_paint(&self) -> Option<CrossProcessInstant> {
+        self.largest_contentful_paint.get()
+    }
+
     pub fn main_thread_available(&self) -> Option<CrossProcessInstant> {
         self.main_thread_available.get()
     }
@@ -217,6 +227,23 @@ impl ProgressiveWebMetrics {
             ProgressiveWebMetricType::FirstContentfulPaint,
             ProfilerCategory::TimeToFirstContentfulPaint,
             &self.first_contentful_paint,
+            paint_time,
+            &self.url,
+        );
+    }
+
+    pub fn set_largest_contentful_paint(
+        &self,
+        paint_time: CrossProcessInstant,
+        area: usize,
+        lcp_type: LargestContentfulPaintType,
+    ) {
+        set_metric(
+            self,
+            Some(self.make_metadata(false)),
+            ProgressiveWebMetricType::LargestContentfulPaint { area, lcp_type },
+            ProfilerCategory::TimeToLargestContentfulPaint,
+            &self.largest_contentful_paint,
             paint_time,
             &self.url,
         );

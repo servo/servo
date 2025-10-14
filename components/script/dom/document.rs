@@ -3162,6 +3162,9 @@ impl Document {
             ProgressiveWebMetricType::FirstContentfulPaint => {
                 metrics.set_first_contentful_paint(metric_value, first_reflow)
             },
+            ProgressiveWebMetricType::LargestContentfulPaint { area, lcp_type } => {
+                metrics.set_largest_contentful_paint(metric_value, area, lcp_type)
+            },
             ProgressiveWebMetricType::TimeToInteractive => {
                 unreachable!("Unexpected non-paint metric.")
             },

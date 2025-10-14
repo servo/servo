@@ -40,6 +40,9 @@ pub(crate) struct PipelineDetails {
     /// The paint metric status of the first contentful paint.
     pub first_contentful_paint_metric: Cell<PaintMetricState>,
 
+    /// The paint metric status of the largest contentful paint.
+    pub largest_contentful_paint_metric: Cell<PaintMetricState>,
+
     /// The CSS pixel to device pixel scale of the viewport of this pipeline, including
     /// page zoom, but not including any pinch zoom amount. This is used to detect
     /// situations where the current display list is for an old scale.
@@ -76,6 +79,7 @@ impl PipelineDetails {
             scroll_tree: ScrollTree::default(),
             first_paint_metric: Cell::new(PaintMetricState::Waiting),
             first_contentful_paint_metric: Cell::new(PaintMetricState::Waiting),
+            largest_contentful_paint_metric: Cell::new(PaintMetricState::Waiting),
             exited: PipelineExitSource::empty(),
             display_list_epoch: None,
         }
