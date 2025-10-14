@@ -2414,6 +2414,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         inline_item: &InlineItem,
         inline_formatting_context: &InlineFormattingContext,
     ) {
+        let mut line_breaks = LineBreaker::new(&inline_formatting_context.text_content);
         match inline_item {
             InlineItem::StartInlineBox(inline_box) => {
                 // For margins and paddings, a cyclic percentage is resolved against zero
@@ -2504,6 +2505,16 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                         if can_wrap && run.glyph_store.ends_with_whitespace() {
                             self.line_break_opportunity();
                         }
+
+                        // check if there's an opportunity to break the line
+                        if can_wrap {
+                            for line_break in line_breaks.linebreaks.iter() {
+                                if run.range.end().to_usize() == *lb {
+                                    self.line_break_opportunity();
+                                }
+                            }
+                        }
+                        
                     }
                 }
             },
@@ -2542,9 +2553,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
     }
 
     fn add_inline_size(&mut self, l: Au) {
-        if l > self.current_line.min_content {
-            self.current_line.min_content = l;
-        }
+        self.current_lin.min_content += l;
         self.current_line.max_content += l;
     }
 
