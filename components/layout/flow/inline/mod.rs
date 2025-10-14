@@ -2511,7 +2511,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                             let textrun_range = run.range.begin().to_usize()..run.range.end().to_usize();
                             let linebreaks = linebreaker.advance_to_linebreaks_in_range(textrun_range.clone());
 
-                            if linebreaks.len() > 0 {
+                            if !linebreaks.is_empty() {
                                 self.line_break_opportunity();
                             }
                         }
