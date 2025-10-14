@@ -2780,7 +2780,9 @@ impl Element {
             // TODO focusable if "sorting interface th elements"
             _ => {
                 // Draggable elements are focusable.
-                element.get_string_attribute(&local_name!("draggable")) == "true"
+                element
+                    .get_string_attribute(&local_name!("draggable"))
+                    .eq_ascii("true")
             },
         }
     }
