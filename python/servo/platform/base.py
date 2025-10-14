@@ -104,14 +104,8 @@ class Base:
         return True
 
     def install_cargo_nextest(self, force: bool) -> bool:
-        def cargo_deny_installed() -> bool:
-            if force or not shutil.which("cargo-nextest"):
-                return False
-            return True
-
-        if cargo_deny_installed():
+        if not force and shutil.which("cargo-nextest") is not None:
             return False
-
         print(" * Installing cargo-nextest...")
         if subprocess.call(["cargo", "install", "cargo-nextest", "--locked"]) != 0:
             raise EnvironmentError("Installation of cargo-nextest failed.")
