@@ -200,6 +200,9 @@ pub(crate) struct PipelineDetails {
     /// The paint metric status of the first contentful paint.
     pub first_contentful_paint_metric: PaintMetricState,
 
+    /// The paint metric status of the largest contentful paint.
+    pub largest_contentful_paint_metric: PaintMetricState,
+
     /// The CSS pixel to device pixel scale of the viewport of this pipeline, including
     /// page zoom, but not including any pinch zoom amount. This is used to detect
     /// situations where the current display list is for an old scale.
@@ -236,6 +239,7 @@ impl PipelineDetails {
             scroll_tree: ScrollTree::default(),
             first_paint_metric: PaintMetricState::Waiting,
             first_contentful_paint_metric: PaintMetricState::Waiting,
+            largest_contentful_paint_metric: PaintMetricState::Waiting,
             exited: PipelineExitSource::empty(),
             display_list_epoch: None,
         }
@@ -641,7 +645,8 @@ impl IOCompositor {
                 let old_scale = webview_renderer.device_pixels_per_page_pixel();
 
                 let pipeline_id = display_list_info.pipeline_id;
-                let details = webview_renderer.ensure_pipeline_details(pipeline_id.into());
+                let details: &mut PipelineDetails =
+                    webview_renderer.ensure_pipeline_details(pipeline_id.into());
                 details.install_new_scroll_tree(display_list_info.scroll_tree);
                 details.viewport_scale =
                     Some(display_list_info.viewport_details.hidpi_scale_factor);
@@ -813,6 +818,12 @@ impl IOCompositor {
                 );
             },
             CompositorMsg::SendLCPCandidate(lcp_candidate, webview_id, pipeline_id, epoch) => {
+                if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+                    webview_renderer
+                        .ensure_pipeline_details(pipeline_id.into())
+                        .largest_contentful_paint_metric =
+                        PaintMetricState::Seen(epoch.into(), false);
+                };
                 self.lcp_calculator
                     .append_lcp_candidate(pipeline_id, lcp_candidate);
             },
@@ -1290,6 +1301,41 @@ impl IOCompositor {
                             );
                         }
                         pipeline.first_contentful_paint_metric = PaintMetricState::Sent;
+                    },
+                    _ => {},
+                }
+
+                match pipeline.largest_contentful_paint_metric {
+                    PaintMetricState::Seen(epoch, _) if epoch <= current_epoch => {
+                        if let Some(lcp) = self
+                            .lcp_calculator
+                            .calculate_largest_contentful_paint(paint_time, pipeline_id.into())
+                        {
+                            #[cfg(feature = "tracing")]
+                            tracing::info!(
+                                name: "LargestContentfulPaint",
+                                servo_profiling = true,
+                                paint_time = ?paint_time,
+                                area = ?lcp.area,
+                                lcp_type = ?lcp.lcp_type,
+                                pipeline_id = ?pipeline_id,
+                            );
+                            if let Err(error) = self.global.borrow().constellation_sender.send(
+                                EmbedderToConstellationMessage::PaintMetric(
+                                    *pipeline_id,
+                                    PaintMetricEvent::LargestContentfulPaint(
+                                        lcp.paint_time,
+                                        lcp.area,
+                                        lcp.lcp_type,
+                                    ),
+                                ),
+                            ) {
+                                warn!(
+                                    "Sending paint metric event to constellation failed ({error:?})."
+                                );
+                            }
+                        }
+                        pipeline.largest_contentful_paint_metric = PaintMetricState::Sent;
                     },
                     _ => {},
                 }
