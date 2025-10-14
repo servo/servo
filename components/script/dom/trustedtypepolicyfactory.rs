@@ -38,12 +38,16 @@ pub struct TrustedTypePolicyFactory {
 
 pub(crate) static DEFAULT_SCRIPT_SINK_GROUP: &str = "'script'";
 
-impl<'a> Convert<&'a DOMString> for &'a TrustedTypeOrString {
-    fn convert(self) -> &'a DOMString {
+// We currently always clone the result, so keep the `clone()` in the trait
+// for now to keep the caller side clean
+impl Convert<DOMString> for TrustedTypeOrString {
+    fn convert(self) -> DOMString {
         match self {
-            TrustedTypeOrString::TrustedHTML(trusted_html) => trusted_html.data(),
-            TrustedTypeOrString::TrustedScript(trusted_script) => trusted_script.data(),
-            TrustedTypeOrString::TrustedScriptURL(trusted_script_url) => trusted_script_url.data(),
+            TrustedTypeOrString::TrustedHTML(trusted_html) => trusted_html.data().clone(),
+            TrustedTypeOrString::TrustedScript(trusted_script) => trusted_script.data().clone(),
+            TrustedTypeOrString::TrustedScriptURL(trusted_script_url) => {
+                trusted_script_url.data().clone()
+            },
             TrustedTypeOrString::String(str_) => str_,
         }
     }
@@ -204,7 +208,7 @@ impl TrustedTypePolicyFactory {
             // Step 3.1. If newValue is a string, return newValue.
             // Step 3.2. Assert: newValue is TrustedHTML or TrustedScript or TrustedScriptURL.
             // Step 3.3. Return value’s associated data.
-            return Ok(new_value.convert().clone());
+            return Ok(new_value.convert());
         };
         // Step 4. Let expectedType be the value of the fourth member of attributeData.
         // Step 5. Let sink be the value of the fifth member of attributeData.
@@ -217,9 +221,9 @@ impl TrustedTypePolicyFactory {
             // check themselves. However, we should only do this if it matches
             // the expected type.
             if expected_type.matches_idl_trusted_type(&new_value) {
-                return Ok(new_value.convert().clone());
+                return Ok(new_value.convert());
             }
-            new_value.convert().clone()
+            new_value.convert()
         };
         // Step 6. Return the result of executing Get Trusted Type compliant string with the following arguments:
         // If the algorithm threw an error, rethrow the error.
