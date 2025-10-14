@@ -504,7 +504,7 @@ pub(crate) struct Document {
     /// <https://drafts.csswg.org/web-animations/#timeline>
     animation_timeline: DomRefCell<AnimationTimeline>,
     /// Animations for this Document
-    animations: DomRefCell<Animations>,
+    animations: Animations,
     /// Image Animation Manager for this Document
     image_animation_manager: DomRefCell<ImageAnimationManager>,
     /// The nearest inclusive ancestors to all the nodes that require a restyle.
@@ -3531,7 +3531,7 @@ impl Document {
             } else {
                 DomRefCell::new(AnimationTimeline::new())
             },
-            animations: DomRefCell::new(Animations::new()),
+            animations: Animations::new(),
             image_animation_manager: DomRefCell::new(ImageAnimationManager::default()),
             dirty_root: Default::default(),
             declarative_refresh: Default::default(),
@@ -4294,14 +4294,12 @@ impl Document {
         self.animation_timeline.borrow_mut().advance_specific(delta);
         let current_timeline_value = self.current_animation_timeline_value();
         self.animations
-            .borrow()
             .update_for_new_timeline_value(&self.window, current_timeline_value);
     }
 
     pub(crate) fn maybe_mark_animating_nodes_as_dirty(&self) {
         let current_timeline_value = self.current_animation_timeline_value();
         self.animations
-            .borrow()
             .mark_animating_nodes_as_dirty(current_timeline_value);
     }
 
@@ -4309,13 +4307,12 @@ impl Document {
         self.animation_timeline.borrow().current_value()
     }
 
-    pub(crate) fn animations(&self) -> Ref<'_, Animations> {
-        self.animations.borrow()
+    pub(crate) fn animations(&self) -> &Animations {
+        &self.animations
     }
 
     pub(crate) fn update_animations_post_reflow(&self) {
         self.animations
-            .borrow()
             .do_post_reflow_update(&self.window, self.current_animation_timeline_value());
         self.image_animation_manager
             .borrow()
@@ -4326,7 +4323,7 @@ impl Document {
     }
 
     pub(crate) fn cancel_animations_for_node(&self, node: &Node) {
-        self.animations.borrow().cancel_animations_for_node(node);
+        self.animations.cancel_animations_for_node(node);
         self.image_animation_manager
             .borrow()
             .cancel_animations_for_node(node);
@@ -4347,7 +4344,6 @@ impl Document {
         // value might have been advanced previously via the TestBinding.
         let current_timeline_value = self.current_animation_timeline_value();
         self.animations
-            .borrow()
             .update_for_new_timeline_value(&self.window, current_timeline_value);
         self.maybe_mark_animating_nodes_as_dirty();
 
