@@ -2508,14 +2508,15 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
 
                         // check if there's an opportunity to break the line
                         if can_wrap {
-                            let textrun_range = run.range.begin().to_usize()..run.range.end().to_usize();
-                            let linebreaks = linebreaker.advance_to_linebreaks_in_range(textrun_range.clone());
+                            let textrun_range =
+                                run.range.begin().to_usize()..run.range.end().to_usize();
+                            let linebreaks =
+                                linebreaker.advance_to_linebreaks_in_range(textrun_range.clone());
 
                             if !linebreaks.is_empty() {
                                 self.line_break_opportunity();
                             }
                         }
-                        
                     }
                 }
             },
