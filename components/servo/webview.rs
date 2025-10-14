@@ -513,11 +513,17 @@ impl WebView {
         self.inner().compositor.borrow_mut().on_vsync(self.id());
     }
 
-    /// Set the page zoom of the [`WebView`].
+    /// Set the page zoom of the [`WebView`]. This sets the final page zoom value of the
+    /// [`WebView`]. Unlike [`WebView::pinch_zoom`] *it is not* multiplied by the current
+    /// page zoom value, but overrides it.
     ///
-    /// [`WebView`]s have two types of zoom, pinch zoom and page zoom.
-    /// This adjusts page zoom, which will adjust the `devicePixelRatio` of the page
-    /// and cause it to modify its layout.
+    /// [`WebView`]s have two types of zoom, pinch zoom and page zoom. This adjusts page
+    /// zoom, which will adjust the `devicePixelRatio` of the page and cause it to modify
+    /// its layout.
+    ///
+    /// These values will be clamped internally. The values used for clamping can be
+    /// adjusted by page content when `<meta viewport>` parsing is enabled via
+    /// `Prefs::viewport_meta_enabled`.
     pub fn set_page_zoom(&self, new_zoom: f32) {
         let new_zoom = new_zoom.clamp(MIN_PAGE_ZOOM.get(), MAX_PAGE_ZOOM.get());
         if new_zoom == self.inner().page_zoom {
@@ -536,11 +542,20 @@ impl WebView {
         self.inner().page_zoom
     }
 
-    pub fn set_pinch_zoom(&self, new_pinch_zoom: f32) {
+    /// Adjust the pinch zoom on this [`WebView`] multiplying the current pinch zoom
+    /// level with the provided `pinch_zoom_delta`.
+    ///
+    /// [`WebView`]s have two types of zoom, pinch zoom and page zoom. This adjusts pinch
+    /// zoom, which is a type of zoom which does not modify layout, and instead simply
+    /// magnifies the view in the viewport.
+    ///
+    /// The final pinch zoom values will be clamped to reasonable defaults (currently to
+    /// the inclusive range [1.0, 10.0]).
+    pub fn pinch_zoom(&self, pinch_zoom_delta: f32) {
         self.inner()
             .compositor
             .borrow_mut()
-            .set_pinch_zoom(self.id(), new_pinch_zoom);
+            .pinch_zoom(self.id(), pinch_zoom_delta);
     }
 
     pub fn device_pixels_per_css_pixel(&self) -> Scale<f32, CSSPixel, DevicePixel> {
