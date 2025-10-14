@@ -127,6 +127,12 @@ class MachCommands(CommandBase):
         host = servo.platform.host_triple()
         target_triple = self.target.triple()
 
+        if self.enable_code_coverage:
+            print("Building with code coverage instrumentation...")
+            # We don't want coverage for build-scripts and proc macros.
+            kwargs["target_override"] = target_triple
+            env["RUSTFLAGS"] += " -Cinstrument-coverage=true --cfg=coverage"
+
         if sanitizer.is_some():
             self.build_sanitizer_env(env, opts, kwargs, target_triple, sanitizer)
 
