@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::id::WebViewId;
 use embedder_traits::{TouchId, TouchSequenceId};
 use euclid::{Point2D, Scale, Vector2D};
 use log::{debug, error, warn};
@@ -9,6 +10,9 @@ use rustc_hash::FxHashMap;
 use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint, LayoutVector2D};
 
 use self::TouchSequenceState::*;
+use crate::IOCompositor;
+use crate::refresh_driver::RefreshDriverObserver;
+use crate::webview_renderer::WebViewRenderer;
 
 // TODO: All `_SCREEN_PX` units below are currently actually used as `DevicePixel`
 // without multiplying with the `hidpi_factor`. This should be fixed and the
@@ -213,6 +217,14 @@ impl TouchHandler {
         }
     }
 
+    pub(crate) fn currently_in_touch_sequence(&self) -> bool {
+        self.touch_sequence_map
+            .get(&self.current_sequence_id)
+            .map(|sequence| sequence.state)
+            .unwrap_or(TouchSequenceState::Finished) !=
+            TouchSequenceState::Finished
+    }
+
     pub(crate) fn set_handling_touch_move(&mut self, sequence_id: TouchSequenceId, flag: bool) {
         if let Some(sequence) = self.touch_sequence_map.get_mut(&sequence_id) {
             sequence.handling_touch_move = flag;
@@ -346,7 +358,7 @@ impl TouchHandler {
         }
     }
 
-    pub fn on_vsync(&mut self) -> Option<FlingAction> {
+    pub fn notify_new_frame_start(&mut self) -> Option<FlingAction> {
         let touch_sequence = self.touch_sequence_map.get_mut(&self.current_sequence_id)?;
 
         let Flinging { velocity, cursor } = &mut touch_sequence.state else {
@@ -562,5 +574,18 @@ impl TouchHandler {
         if touch_sequence.active_touch_points.is_empty() {
             touch_sequence.state = Finished;
         }
+    }
+}
+
+pub(crate) struct FlingRefreshDriverObserver {
+    pub webview_id: WebViewId,
+}
+
+impl RefreshDriverObserver for FlingRefreshDriverObserver {
+    fn frame_started(&self, compositor: &mut IOCompositor) -> bool {
+        compositor
+            .webview_renderer_mut(self.webview_id)
+            .map(WebViewRenderer::update_touch_handling_at_new_frame_start)
+            .unwrap_or(false)
     }
 }
