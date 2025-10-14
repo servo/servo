@@ -2388,8 +2388,9 @@ impl HTMLInputElement {
             let (chan, recv) =
                 profile_traits::ipc::channel(self.global().time_profiler_chan().clone())
                     .expect("Error initializing channel");
+            let control_id = self.owner_document().embedder_controls().next_control_id();
             let msg =
-                FileManagerThreadMsg::SelectFiles(webview_id, filter, chan, origin, opt_test_paths);
+                FileManagerThreadMsg::SelectFiles(control_id, filter, chan, origin, opt_test_paths);
             resource_threads
                 .send(CoreResourceMsg::ToFileManager(msg))
                 .unwrap();
@@ -2420,8 +2421,9 @@ impl HTMLInputElement {
             let (chan, recv) =
                 profile_traits::ipc::channel(self.global().time_profiler_chan().clone())
                     .expect("Error initializing channel");
+            let control_id = self.owner_document().embedder_controls().next_control_id();
             let msg =
-                FileManagerThreadMsg::SelectFile(webview_id, filter, chan, origin, opt_test_path);
+                FileManagerThreadMsg::SelectFile(control_id, filter, chan, origin, opt_test_path);
             resource_threads
                 .send(CoreResourceMsg::ToFileManager(msg))
                 .unwrap();

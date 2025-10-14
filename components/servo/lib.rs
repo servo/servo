@@ -870,17 +870,23 @@ impl Servo {
                 }
             },
             EmbedderMsg::SelectFiles(
-                webview_id,
+                control_id,
                 filter_patterns,
                 allow_select_multiple,
                 response_sender,
             ) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.delegate().show_file_selection_dialog(
+                if let Some(webview) = self.get_webview_handle(control_id.webview_id) {
+                    webview.delegate().show_embedder_control(
                         webview,
-                        filter_patterns,
-                        allow_select_multiple,
-                        response_sender,
+                        EmbedderControl::FilePicker(FilePicker {
+                            id: control_id,
+                            // TODO: fill this field when we merge the message into script
+                            current_paths: None,
+                            filter_patterns,
+                            allow_select_multiple,
+                            response_sender,
+                            response_sent: false,
+                        }),
                     );
                 }
             },
@@ -1008,17 +1014,10 @@ impl Servo {
                             })
                         },
                         EmbedderControlRequest::FilePicker {
-                            current_paths,
-                            filter_patterns,
-                            allow_select_multiple,
-                        } => EmbedderControl::FilePicker(FilePicker {
-                            id: control_id,
-                            current_paths,
-                            filter_patterns,
-                            allow_select_multiple,
-                            constellation_proxy,
-                            response_sent: false,
-                        }),
+                            current_paths: _,
+                            filter_patterns: _,
+                            allow_select_multiple: _,
+                        } => todo!("Implement this when EmbedderMsg::SelectFiles is removed"),
                     };
 
                     webview

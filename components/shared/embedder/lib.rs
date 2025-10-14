@@ -475,7 +475,7 @@ pub enum EmbedderMsg {
     GetSelectedBluetoothDevice(WebViewId, Vec<String>, GenericSender<Option<String>>),
     /// Open file dialog to select files. Set boolean flag to true allows to select multiple files.
     SelectFiles(
-        WebViewId,
+        EmbedderControlId,
         Vec<FilterPattern>,
         bool,
         GenericSender<Option<Vec<PathBuf>>>,

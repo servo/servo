@@ -55,21 +55,25 @@ impl DocumentEmbedderControls {
         }
     }
 
+    /// Generate the next unused [`EmbedderControlId`]. This method is only needed for some older
+    /// types of controls that are still being migrated, and it will eventually be removed.
+    pub(crate) fn next_control_id(&self) -> EmbedderControlId {
+        let index = self.user_interface_element_index.get();
+        self.user_interface_element_index.set(index.next());
+        EmbedderControlId {
+            webview_id: self.window.webview_id(),
+            pipeline_id: self.window.pipeline_id(),
+            index,
+        }
+    }
+
     pub(crate) fn show_embedder_control(
         &self,
         element: ControlElement,
         rect: DeviceIntRect,
         embedder_control: EmbedderControlRequest,
     ) -> EmbedderControlId {
-        let index = self.user_interface_element_index.get();
-        self.user_interface_element_index.set(index.next());
-
-        let id = EmbedderControlId {
-            webview_id: self.window.webview_id(),
-            pipeline_id: self.window.pipeline_id(),
-            index,
-        };
-
+        let id = self.next_control_id();
         self.visible_elements
             .borrow_mut()
             .insert(id.index.into(), element);

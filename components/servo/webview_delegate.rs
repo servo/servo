@@ -15,6 +15,7 @@ use embedder_traits::{
     TraversalId, WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
+use log::warn;
 use serde::Serialize;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
@@ -442,7 +443,8 @@ pub struct FilePicker {
     pub(crate) current_paths: Option<Vec<PathBuf>>,
     pub(crate) filter_patterns: Vec<FilterPattern>,
     pub(crate) allow_select_multiple: bool,
-    pub(crate) constellation_proxy: ConstellationProxy,
+    // TODO: reroute this via the constellation and script, not directly to the file manager thread
+    pub(crate) response_sender: GenericSender<Option<Vec<PathBuf>>>,
     pub(crate) response_sent: bool,
 }
 
@@ -472,23 +474,20 @@ impl FilePicker {
 
     /// Resolve the prompt with the options that have been selected by calling [select] previously.
     pub fn submit(mut self) {
+        if let Err(error) = self.response_sender.send(self.current_paths.take()) {
+            warn!("Failed to send file selection response: {error}");
+            return;
+        }
         self.response_sent = true;
-        self.constellation_proxy
-            .send(EmbedderToConstellationMessage::EmbedderControlResponse(
-                self.id,
-                EmbedderControlResponse::FilePicker(self.current_paths.take()),
-            ));
     }
 }
 
 impl Drop for FilePicker {
     fn drop(&mut self) {
         if !self.response_sent {
-            self.constellation_proxy
-                .send(EmbedderToConstellationMessage::EmbedderControlResponse(
-                    self.id,
-                    EmbedderControlResponse::FilePicker(self.current_paths.take()),
-                ));
+            if let Err(error) = self.response_sender.send(self.current_paths.take()) {
+                warn!("Failed to send file selection response: {error}");
+            }
         }
     }
 }
@@ -624,17 +623,6 @@ pub trait WebViewDelegate {
         _webview: WebView,
         _: Vec<String>,
         response_sender: GenericSender<Option<String>>,
-    ) {
-        let _ = response_sender.send(None);
-    }
-
-    /// Open file dialog to select files. Set boolean flag to true allows to select multiple files.
-    fn show_file_selection_dialog(
-        &self,
-        _webview: WebView,
-        _filter_pattern: Vec<FilterPattern>,
-        _allow_select_mutiple: bool,
-        response_sender: GenericSender<Option<Vec<PathBuf>>>,
     ) {
         let _ = response_sender.send(None);
     }
