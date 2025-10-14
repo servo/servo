@@ -13,16 +13,15 @@ use servo::base::generic_channel::GenericSender;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::{
     AlertResponse, AuthenticationRequest, ColorPicker, ConfirmResponse, EmbedderControlId,
-    FilterPattern, PermissionRequest, PromptResponse, RgbColor, SelectElement, SelectElementOption,
-    SelectElementOptionOrOptgroup, SimpleDialog, WebDriverUserPrompt,
+    FilePicker, FilterPattern, PermissionRequest, PromptResponse, RgbColor, SelectElement,
+    SelectElementOption, SelectElementOptionOrOptgroup, SimpleDialog, WebDriverUserPrompt,
 };
 
 #[allow(clippy::large_enum_variant)]
 pub enum Dialog {
     File {
         dialog: EguiFileDialog,
-        multiple: bool,
-        response_sender: GenericSender<Option<Vec<PathBuf>>>,
+        maybe_picker: Option<FilePicker>,
     },
     #[allow(clippy::enum_variant_names, reason = "spec terminology")]
     SimpleDialog(SimpleDialog),
@@ -52,13 +51,10 @@ pub enum Dialog {
 }
 
 impl Dialog {
-    pub fn new_file_dialog(
-        multiple: bool,
-        response_sender: GenericSender<Option<Vec<PathBuf>>>,
-        patterns: Vec<FilterPattern>,
-    ) -> Self {
+    pub fn new_file_dialog(file_picker: FilePicker) -> Self {
         let mut dialog = EguiFileDialog::new();
-        if !patterns.is_empty() {
+        if !file_picker.filter_patterns().is_empty() {
+            let filter_patterns = file_picker.filter_patterns().to_owned();
             dialog = dialog
                 .add_file_filter(
                     "All Supported Types",
@@ -67,7 +63,7 @@ impl Dialog {
                             .and_then(|e| e.to_str())
                             .is_some_and(|ext| {
                                 let ext = ext.to_lowercase();
-                                patterns.iter().any(|pattern| ext == pattern.0)
+                                filter_patterns.iter().any(|pattern| ext == pattern.0)
                             })
                     }),
                 )
@@ -76,8 +72,7 @@ impl Dialog {
 
         Dialog::File {
             dialog,
-            multiple,
-            response_sender,
+            maybe_picker: Some(file_picker),
         }
     }
 
@@ -174,15 +169,19 @@ impl Dialog {
         }
     }
 
+    /// Returns false if the dialog has been closed, or true otherwise.
     pub fn update(&mut self, ctx: &egui::Context) -> bool {
         match self {
             Dialog::File {
                 dialog,
-                multiple,
-                response_sender,
+                maybe_picker,
             } => {
+                let Some(picker) = maybe_picker else {
+                    // Picker was dismissed, so the dialog should be closed too.
+                    return false;
+                };
                 if dialog.state() == DialogState::Closed {
-                    if *multiple {
+                    if picker.allow_select_multiple() {
                         dialog.pick_multiple();
                     } else {
                         dialog.pick_file();
@@ -193,21 +192,15 @@ impl Dialog {
                 match state {
                     DialogState::Open => true,
                     DialogState::Picked(path) => {
-                        if let Err(e) = response_sender.send(Some(vec![path])) {
-                            warn!("Failed to send file selection response: {}", e);
-                        }
+                        picker.select(Some(&[path]));
                         false
                     },
                     DialogState::PickedMultiple(paths) => {
-                        if let Err(e) = response_sender.send(Some(paths)) {
-                            warn!("Failed to send file selection response: {}", e);
-                        }
+                        picker.select(Some(&paths));
                         false
                     },
                     DialogState::Cancelled => {
-                        if let Err(e) = response_sender.send(None) {
-                            warn!("Failed to send cancellation response: {}", e);
-                        }
+                        picker.select(None);
                         false
                     },
                     DialogState::Closed => false,

@@ -738,18 +738,6 @@ impl WebViewDelegate for RunningAppState {
         );
     }
 
-    fn show_file_selection_dialog(
-        &self,
-        webview: servo::WebView,
-        filter_pattern: Vec<FilterPattern>,
-        allow_select_mutiple: bool,
-        response_sender: GenericSender<Option<Vec<PathBuf>>>,
-    ) {
-        let file_dialog =
-            Dialog::new_file_dialog(allow_select_mutiple, response_sender, filter_pattern);
-        self.add_dialog(webview, file_dialog);
-    }
-
     fn request_permission(&self, webview: servo::WebView, permission_request: PermissionRequest) {
         if self.servoshell_preferences.headless &&
             self.servoshell_preferences.webdriver_port.is_none()
@@ -834,6 +822,9 @@ impl WebViewDelegate for RunningAppState {
                     webview,
                     Dialog::new_color_picker_dialog(color_picker, offset),
                 );
+            },
+            EmbedderControl::FilePicker(file_picker) => {
+                self.add_dialog(webview, Dialog::new_file_dialog(file_picker));
             },
         }
     }

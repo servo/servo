@@ -303,6 +303,8 @@ pub enum EmbedderControl {
     SelectElement(SelectElement),
     /// The picker of a `<input type=color>` element.
     ColorPicker(ColorPicker),
+    /// The picker of a `<input type=file>` element.
+    FilePicker(FilePicker),
 }
 
 impl EmbedderControl {
@@ -310,6 +312,7 @@ impl EmbedderControl {
         match self {
             EmbedderControl::SelectElement(select_element) => select_element.id,
             EmbedderControl::ColorPicker(color_picker) => color_picker.id,
+            EmbedderControl::FilePicker(file_picker) => file_picker.id,
         }
     }
 }
@@ -428,6 +431,63 @@ impl Drop for ColorPicker {
                 .send(EmbedderToConstellationMessage::EmbedderControlResponse(
                     self.id,
                     EmbedderControlResponse::ColorPicker(self.current_color),
+                ));
+        }
+    }
+}
+
+/// Represents a dialog triggered by clicking a `<input type=color>` element.
+pub struct FilePicker {
+    pub(crate) id: EmbedderControlId,
+    pub(crate) current_paths: Option<Vec<PathBuf>>,
+    pub(crate) filter_patterns: Vec<FilterPattern>,
+    pub(crate) allow_select_multiple: bool,
+    pub(crate) constellation_proxy: ConstellationProxy,
+    pub(crate) response_sent: bool,
+}
+
+impl FilePicker {
+    /// Return the [`EmbedderControlId`] associated with this element.
+    pub fn id(&self) -> EmbedderControlId {
+        self.id
+    }
+
+    pub fn filter_patterns(&self) -> &[FilterPattern] {
+        &self.filter_patterns
+    }
+
+    pub fn allow_select_multiple(&self) -> bool {
+        self.allow_select_multiple
+    }
+
+    /// Get the currently selected files in this [`FilePicker`]. This is initially the files that
+    /// were previously selected before the picker is opened.
+    pub fn current_paths(&self) -> Option<&[PathBuf]> {
+        self.current_paths.as_deref()
+    }
+
+    pub fn select(&mut self, paths: Option<&[PathBuf]>) {
+        self.current_paths = paths.map(|paths| paths.to_owned());
+    }
+
+    /// Resolve the prompt with the options that have been selected by calling [select] previously.
+    pub fn submit(mut self) {
+        self.response_sent = true;
+        self.constellation_proxy
+            .send(EmbedderToConstellationMessage::EmbedderControlResponse(
+                self.id,
+                EmbedderControlResponse::FilePicker(self.current_paths.take()),
+            ));
+    }
+}
+
+impl Drop for FilePicker {
+    fn drop(&mut self) {
+        if !self.response_sent {
+            self.constellation_proxy
+                .send(EmbedderToConstellationMessage::EmbedderControlResponse(
+                    self.id,
+                    EmbedderControlResponse::FilePicker(self.current_paths.take()),
                 ));
         }
     }

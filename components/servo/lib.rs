@@ -138,8 +138,8 @@ use crate::webrender_api::FrameReadyParams;
 use crate::webview::MINIMUM_WEBVIEW_SIZE;
 pub use crate::webview::{WebView, WebViewBuilder};
 pub use crate::webview_delegate::{
-    AllowOrDenyRequest, AuthenticationRequest, ColorPicker, EmbedderControl, NavigationRequest,
-    PermissionRequest, SelectElement, WebResourceLoad, WebViewDelegate,
+    AllowOrDenyRequest, AuthenticationRequest, ColorPicker, EmbedderControl, FilePicker,
+    NavigationRequest, PermissionRequest, SelectElement, WebResourceLoad, WebViewDelegate,
 };
 
 #[cfg(feature = "media-gstreamer")]
@@ -1007,6 +1007,18 @@ impl Servo {
                                 response_sent: false,
                             })
                         },
+                        EmbedderControlRequest::FilePicker {
+                            current_paths,
+                            filter_patterns,
+                            allow_select_multiple,
+                        } => EmbedderControl::FilePicker(FilePicker {
+                            id: control_id,
+                            current_paths,
+                            filter_patterns,
+                            allow_select_multiple,
+                            constellation_proxy,
+                            response_sent: false,
+                        }),
                     };
 
                     webview

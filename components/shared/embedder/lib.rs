@@ -549,12 +549,19 @@ pub enum EmbedderControlRequest {
     SelectElement(Vec<SelectElementOptionOrOptgroup>, Option<usize>),
     /// Indicates that the user has activated a `<input type=color>` element.
     ColorPicker(RgbColor),
+    /// Indicates that the user has activated a `<input type=file>` element.
+    FilePicker {
+        current_paths: Option<Vec<PathBuf>>,
+        filter_patterns: Vec<FilterPattern>,
+        allow_select_multiple: bool,
+    },
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum EmbedderControlResponse {
     SelectElement(Option<usize>),
     ColorPicker(Option<RgbColor>),
+    FilePicker(Option<Vec<PathBuf>>),
 }
 
 /// Filter for file selection;
