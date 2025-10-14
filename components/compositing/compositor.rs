@@ -56,6 +56,7 @@ use webrender_api::{
 };
 
 use crate::InitialCompositorState;
+use crate::largest_contentful_paint_calculator::LargestContentfulPaintCalculator;
 use crate::refresh_driver::RefreshDriver;
 use crate::screenshot::ScreenshotTaker;
 use crate::webview_manager::WebViewManager;
@@ -136,6 +137,9 @@ pub struct IOCompositor {
     /// A handle to the memory profiler which will automatically unregister
     /// when it's dropped.
     _mem_profiler_registration: ProfilerRegistration,
+
+    /// Calculater for largest-contentful-paint.
+    lcp_calculator: LargestContentfulPaintCalculator,
 }
 
 /// Why we need to be repainted. This is used for debugging.
@@ -309,6 +313,7 @@ impl IOCompositor {
             pending_frames: Default::default(),
             screenshot_taker: Default::default(),
             _mem_profiler_registration: registration,
+            lcp_calculator: LargestContentfulPaintCalculator::new(),
         };
 
         {
@@ -497,6 +502,8 @@ impl IOCompositor {
                 if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
                     webview_renderer.pipeline_exited(pipeline_id, pipeline_exit_source);
                 }
+                self.lcp_calculator
+                    .remove_lcp_candidates_for_pipeline(pipeline_id.into());
             },
 
             CompositorMsg::NewWebRenderFrameReady(..) => {
@@ -805,7 +812,10 @@ impl IOCompositor {
                     self,
                 );
             },
-            CompositorMsg::SendLCPCandidate(_, _, _, _) => todo!(),
+            CompositorMsg::SendLCPCandidate(lcp_candidate, webview_id, pipeline_id, epoch) => {
+                self.lcp_calculator
+                    .append_lcp_candidate(pipeline_id, lcp_candidate);
+            },
         }
     }
 
@@ -828,6 +838,8 @@ impl IOCompositor {
                 if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
                     webview_renderer.pipeline_exited(pipeline_id, pipeline_exit_source);
                 }
+                self.lcp_calculator
+                    .remove_lcp_candidates_for_pipeline(pipeline_id.into());
             },
             CompositorMsg::GenerateImageKey(sender) => {
                 let _ = sender.send(self.global.borrow().webrender_api.generate_image_key());
