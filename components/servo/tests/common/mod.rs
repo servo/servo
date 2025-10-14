@@ -37,14 +37,14 @@ macro_rules! run_api_tests {
                     // the output MUST be empty
                     return;
                 } else {
-                        // Expected output:
-                        // ```
-                        // my-test-1: test
-                        // my-test-2: test
-                        // ```
-                        for (test_name, _test_fn) in test_map.iter() {
-                            println!("{test_name}: test")
-                        }
+                    // Expected output:
+                    // ```
+                    // my-test-1: test
+                    // my-test-2: test
+                    // ```
+                    for (test_name, _test_fn) in test_map.iter() {
+                        println!("{test_name}: test")
+                    }
                     return;
                 }
             } else if args.len() == 4 && args[2] == "--nocapture" && args[3] == "--exact" {
