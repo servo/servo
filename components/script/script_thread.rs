@@ -1776,14 +1776,14 @@ impl ScriptThread {
             ScriptThreadMessage::PostMessage {
                 target: target_pipeline_id,
                 source_webview,
-                source_ancestry,
+                source_with_ancestry,
                 target_origin: origin,
                 source_origin,
                 data,
             } => self.handle_post_message_msg(
                 target_pipeline_id,
                 source_webview,
-                source_ancestry,
+                source_with_ancestry,
                 origin,
                 source_origin,
                 *data,
@@ -2722,7 +2722,7 @@ impl ScriptThread {
         &self,
         pipeline_id: PipelineId,
         source_webview: WebViewId,
-        source_ancestry: Vec<BrowsingContextId>,
+        source_with_ancestry: Vec<BrowsingContextId>,
         origin: Option<ImmutableOrigin>,
         source_origin: ImmutableOrigin,
         data: StructuredSerializedData,
@@ -2732,8 +2732,7 @@ impl ScriptThread {
             None => warn!("postMessage after target pipeline {} closed.", pipeline_id),
             Some(window) => {
                 let mut last: Option<DomRoot<WindowProxy>> = None;
-                let num_ancestors = source_ancestry.len();
-                for browsing_context_id in source_ancestry.into_iter().rev() {
+                for browsing_context_id in source_with_ancestry.into_iter().rev() {
                     if let Some(window_proxy) = self.window_proxies.get(browsing_context_id) {
                         last = Some(window_proxy);
                         continue;
@@ -2747,7 +2746,8 @@ impl ScriptThread {
                         CreatorBrowsingContextInfo::from(last.as_deref(), None),
                     );
                     self.window_proxies
-                        .insert(browsing_context_id, window_proxy);
+                        .insert(browsing_context_id, window_proxy.clone());
+                    last = Some(window_proxy);
                 }
                 let source = last.expect("Ancestry should contain at least one bc.");
 

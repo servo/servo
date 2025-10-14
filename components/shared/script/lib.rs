@@ -179,7 +179,7 @@ pub enum ScriptThreadMessage {
         source_webview: WebViewId,
         /// The ancestry of browsing context associated with the source,
         /// starting with the source itself.
-        source_ancestry: Vec<BrowsingContextId>,
+        source_with_ancestry: Vec<BrowsingContextId>,
         /// The expected origin of the target.
         target_origin: Option<ImmutableOrigin>,
         /// The source origin of the message.

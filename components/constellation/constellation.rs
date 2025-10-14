@@ -4275,7 +4275,7 @@ where
         // and to prevent panic as part of that round-trip
         // in the case that the source would already have been closed.
         let mut next_iteration_pipeline = source_pipeline;
-        let mut source_ancestry: Vec<BrowsingContextId> = vec![];
+        let mut source_with_ancestry: Vec<BrowsingContextId> = vec![];
         loop {
             match self
                 .pipelines
@@ -4284,12 +4284,12 @@ where
                 .map(|ctx| (ctx.id, ctx.parent_pipeline_id))
             {
                 Some((bc, Some(parent))) => {
-                    source_ancestry.push(bc);
+                    source_with_ancestry.push(bc);
                     next_iteration_pipeline = parent;
                     continue;
                 },
                 Some((bc, None)) => {
-                    source_ancestry.push(bc);
+                    source_with_ancestry.push(bc);
                     break;
                 },
                 None => {
@@ -4303,7 +4303,7 @@ where
         let msg = ScriptThreadMessage::PostMessage {
             target: pipeline_id,
             source_webview,
-            source_ancestry,
+            source_with_ancestry,
             target_origin: origin,
             source_origin,
             data: Box::new(data),
