@@ -68,6 +68,7 @@ struct FetchResponseCollector {
 }
 
 fn create_embedder_proxy() -> EmbedderProxy {
+    let _init = ASYNC_RUNTIME.clone();
     let (sender, _) = unbounded();
     let event_loop_waker = || {
         struct DummyEventLoopWaker {}

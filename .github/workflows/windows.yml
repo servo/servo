@@ -198,6 +198,15 @@ jobs:
         run: cp D:\a\servo\servo\resources C:\a\servo\servo -Recurse
       - name: Smoketest
         run: .\mach smoketest --${{ inputs.profile }}
+      - name: Install cargo nextest
+        if: ${{ runner.environment != 'self-hosted' }}
+        uses: taiki-e/install-action@v2
+        with:
+          tool: nextest
+      # On self-hosted windows runners the install-action fails
+      - name: Install cargo nextest (self-hosted)
+        if: ${{ runner.environment == 'self-hosted' }}
+        run: cargo install cargo-nextest --locked
       - name: Unit tests
         if: ${{ inputs.unit-tests }}
         uses: nick-fields/retry@v3
