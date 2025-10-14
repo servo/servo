@@ -395,6 +395,7 @@ impl DOMString {
             return;
         }
 
+        self.make_rust();
         if let DOMStringType::Rust(ref mut s) = *self.0.borrow_mut() {
             let trailing_whitespace_len = s
                 .trim_end_matches(|ref c| char::is_ascii_whitespace(c))
@@ -916,9 +917,9 @@ mod tests {
         }
         {
             let s = from_latin1(vec![b'a', b'b', b'c', b'/']);
-            let res = match_domstring_ascii!( s, (),
-                "abc/" => assert!(true),
-                "bcd" => assert!(false),
+            let res = match_domstring_ascii!( s, false,
+                "abc/" => true,
+                "bcd" => false,
             );
             assert_eq!(res, true);
         }
@@ -972,5 +973,25 @@ mod tests {
         let _res = match_domstring_ascii!(s, false,
             "abc" => false,
         "❤" => true);
+    }
+
+    #[test]
+    fn test_strip_whitespace() {
+        {
+            let mut s = from_latin1(vec![
+                b' ', b' ', b' ', b'\n', b' ', b'a', b'b', b'c', b'%', b'$', 0xB2, b' ',
+            ]);
+
+            s.strip_leading_and_trailing_ascii_whitespace();
+            s.make_rust();
+            assert_eq!(&*s.str(), "abc%$²");
+        }
+        {
+            let mut s = DOMString::from_string(String::from("   \n  abc%$ "));
+
+            s.strip_leading_and_trailing_ascii_whitespace();
+            s.make_rust();
+            assert_eq!(&*s.str(), "abc%$");
+        }
     }
 }
