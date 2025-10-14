@@ -1315,7 +1315,7 @@ where
     Some(computed_values.clone_font())
 }
 
-fn transform_au_rectangle(
+pub(crate) fn transform_au_rectangle(
     rect_to_transform: Rect<Au>,
     transform: FastLayoutTransform,
 ) -> Option<Rect<Au>> {
