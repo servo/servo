@@ -35,7 +35,7 @@ jobs:
         run: |
           {
             echo 'result<<EOF'
-            python ./python/servo/try_parser.py ${{ github.event_name == 'pull_request' && 'linux-unit-tests lint' || github.event_name == 'push' && 'fail-fast full bencher production-bencher' || 'fail-fast full' }}
+            python ./python/servo/try_parser.py ${{ github.event_name == 'pull_request' && 'linux-unit-tests lint' || github.event_name == 'push' && 'fail-fast full bencher production-bencher coverage' || 'fail-fast full' }}
             echo EOF
            } >> $GITHUB_OUTPUT
 
@@ -59,6 +59,7 @@ jobs:
       build-args: ${{ matrix.build_args }}
       number-of-wpt-chunks: ${{ matrix.number_of_wpt_chunks }}
       bencher: ${{ matrix.bencher }}
+      coverage: ${{ matrix.coverage }}
 
   build-result:
     name: Result
