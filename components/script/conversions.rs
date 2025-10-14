@@ -40,22 +40,28 @@ impl<'a> std::ops::Deref for Utf8Chars<'a> {
 impl<'a> From<&'a str> for Utf8Chars<'a> {
     #[allow(unsafe_code)]
     fn from(value: &'a str) -> Self {
-        let start = js::jsapi::mozilla::RangedPtr {
-            _phantom_0: std::marker::PhantomData,
-            mPtr: value.as_ptr() as *mut _,
+        use std::marker::PhantomData;
+
+        use js::jsapi::UTF8Chars;
+        use js::jsapi::mozilla::{Range, RangedPtr};
+
+        let range = value.as_bytes().as_ptr_range();
+        let start = RangedPtr {
+            _phantom_0: PhantomData,
+            mPtr: range.start as *mut _,
         };
-        let end = js::jsapi::mozilla::RangedPtr {
-            _phantom_0: std::marker::PhantomData,
-            mPtr: unsafe { value.as_ptr().byte_add(value.len()) as *mut _ },
+        let end = RangedPtr {
+            _phantom_0: PhantomData,
+            mPtr: range.end as *mut _,
         };
-        let base = js::jsapi::mozilla::Range {
-            _phantom_0: std::marker::PhantomData,
+        let base = Range {
+            _phantom_0: PhantomData,
             mStart: start,
             mEnd: end,
         };
-        let inner = js::jsapi::UTF8Chars { _base: base };
+        let inner = UTF8Chars { _base: base };
         Self {
-            lt_marker: std::marker::PhantomData,
+            lt_marker: PhantomData,
             inner,
         }
     }
