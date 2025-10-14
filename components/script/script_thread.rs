@@ -2718,6 +2718,7 @@ impl ScriptThread {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#window-post-message-steps>
     fn handle_post_message_msg(
         &self,
         pipeline_id: PipelineId,
@@ -2749,6 +2750,9 @@ impl ScriptThread {
                         .insert(browsing_context_id, window_proxy.clone());
                     last = Some(window_proxy);
                 }
+
+                // Step 8.3: Let source be the WindowProxy object corresponding to
+                // incumbentSettings's global object (a Window object).
                 let source = last.expect("Source with ancestry should contain at least one bc.");
 
                 // FIXME(#22512): enqueues a task; unnecessary delay.
