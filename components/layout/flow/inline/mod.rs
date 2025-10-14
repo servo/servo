@@ -2414,7 +2414,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         inline_item: &InlineItem,
         inline_formatting_context: &InlineFormattingContext,
     ) {
-        let mut line_breaks = LineBreaker::new(&inline_formatting_context.text_content);
+        let mut linebreaker = LineBreaker::new(&inline_formatting_context.text_content);
         match inline_item {
             InlineItem::StartInlineBox(inline_box) => {
                 // For margins and paddings, a cyclic percentage is resolved against zero
@@ -2508,10 +2508,11 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
 
                         // check if there's an opportunity to break the line
                         if can_wrap {
-                            for line_break in line_breaks.linebreaks.iter() {
-                                if run.range.end().to_usize() == *line_break {
-                                    self.line_break_opportunity();
-                                }
+                            let textrun_range = run.range.begin().to_usize()..run.range().end().to_usize();
+                            let linebreaks = linebreaker.advance_to_linebreaks_in_range(textrun_range.clone());
+
+                            if linebreaks.len() > 0 {
+                                self.line_break_opportunity();
                             }
                         }
                         
