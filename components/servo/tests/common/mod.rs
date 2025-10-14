@@ -13,7 +13,8 @@ use compositing_traits::rendering_context::{RenderingContext, SoftwareRenderingC
 use dpi::PhysicalSize;
 use embedder_traits::EventLoopWaker;
 use servo::{
-    JSValue, JavaScriptEvaluationError, LoadStatus, Servo, ServoBuilder, WebView, WebViewDelegate,
+    FormControl, JSValue, JavaScriptEvaluationError, LoadStatus, Servo, ServoBuilder, WebView,
+    WebViewDelegate,
 };
 
 macro_rules! run_api_tests {
@@ -144,6 +145,9 @@ pub(crate) struct WebViewDelegateImpl {
     pub(crate) cursor_changed: Cell<bool>,
     pub(crate) new_frame_ready: Cell<bool>,
     pub(crate) load_status_changed: Cell<bool>,
+    pub(crate) controls_shown: RefCell<Vec<FormControl>>,
+    pub(crate) number_of_controls_shown: Cell<usize>,
+    pub(crate) number_of_controls_hidden: Cell<usize>,
 }
 
 impl WebViewDelegateImpl {
@@ -151,6 +155,9 @@ impl WebViewDelegateImpl {
         self.url_changed.set(false);
         self.cursor_changed.set(false);
         self.new_frame_ready.set(false);
+        self.controls_shown.borrow_mut().clear();
+        self.number_of_controls_shown.set(0);
+        self.number_of_controls_hidden.set(0);
     }
 }
 
@@ -172,6 +179,20 @@ impl WebViewDelegate for WebViewDelegateImpl {
         if status == LoadStatus::Complete {
             self.load_status_changed.set(true);
         }
+    }
+
+    fn show_form_control(&self, _: WebView, form_control: FormControl) {
+        // Even if not used, controls must be stored so that they do not automatically reply
+        // when dropped.
+        self.controls_shown.borrow_mut().push(form_control);
+
+        self.number_of_controls_shown
+            .set(self.number_of_controls_shown.get() + 1);
+    }
+
+    fn hide_form_control(&self, _webview: WebView, _control_id: servo::EmbedderControlId) {
+        self.number_of_controls_hidden
+            .set(self.number_of_controls_hidden.get() + 1);
     }
 }
 

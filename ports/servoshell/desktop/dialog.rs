@@ -12,8 +12,8 @@ use log::warn;
 use servo::base::generic_channel::GenericSender;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::{
-    AlertResponse, AuthenticationRequest, ColorPicker, ConfirmResponse, FilterPattern,
-    PermissionRequest, PromptResponse, RgbColor, SelectElement, SelectElementOption,
+    AlertResponse, AuthenticationRequest, ColorPicker, ConfirmResponse, EmbedderControlId,
+    FilterPattern, PermissionRequest, PromptResponse, RgbColor, SelectElement, SelectElementOption,
     SelectElementOptionOrOptgroup, SimpleDialog, WebDriverUserPrompt,
 };
 
@@ -616,6 +616,18 @@ impl Dialog {
             Dialog::SimpleDialog(SimpleDialog::Confirm { .. }) => WebDriverUserPrompt::Confirm,
             Dialog::SimpleDialog(SimpleDialog::Prompt { .. }) => WebDriverUserPrompt::Prompt,
             _ => WebDriverUserPrompt::Default,
+        }
+    }
+
+    pub(crate) fn embedder_control_id(&self) -> Option<EmbedderControlId> {
+        match self {
+            Dialog::SelectElement { maybe_prompt, .. } => {
+                maybe_prompt.as_ref().map(|element| element.id())
+            },
+            Dialog::ColorPicker { maybe_prompt, .. } => {
+                maybe_prompt.as_ref().map(|element| element.id())
+            },
+            _ => None,
         }
     }
 }
