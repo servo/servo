@@ -443,7 +443,6 @@ pub struct FilePicker {
     pub(crate) current_paths: Option<Vec<PathBuf>>,
     pub(crate) filter_patterns: Vec<FilterPattern>,
     pub(crate) allow_select_multiple: bool,
-    // TODO: reroute this via the constellation and script, not directly to the file manager thread
     pub(crate) response_sender: GenericSender<Option<Vec<PathBuf>>>,
     pub(crate) response_sent: bool,
 }
