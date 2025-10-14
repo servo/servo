@@ -480,7 +480,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
                 // Step 11. Let signature be the result of performing the sign operation specified
                 // by normalizedAlgorithm using key and algorithm and with data as message.
-                let signature = match normalized_algorithm.sign(&key, &data, CanGc::note()) {
+                let signature = match normalized_algorithm.sign(&key, &data) {
                     Ok(signature) => signature,
                     Err(error) => {
                         subtle.reject_promise_with_error(promise, error);
@@ -578,7 +578,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 12. Let result be the result of performing the verify operation specified
                 // by normalizedAlgorithm using key, algorithm and signature and with data as
                 // message.
-                let result = match normalized_algorithm.verify(&key, &data, &signature, CanGc::note()) {
+                let result = match normalized_algorithm.verify(&key, &data, &signature) {
                     Ok(result) => result,
                     Err(error) => {
                         subtle.reject_promise_with_error(promise, error);
@@ -2637,26 +2637,20 @@ impl NormalizedAlgorithm {
         }
     }
 
-    fn sign(&self, key: &CryptoKey, message: &[u8], can_gc: CanGc) -> Result<Vec<u8>, Error> {
+    fn sign(&self, key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
         match self {
             NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
-                ALG_HMAC => hmac_operation::sign(key, message, can_gc),
+                ALG_HMAC => hmac_operation::sign(key, message),
                 _ => Err(Error::NotSupported),
             },
             _ => Err(Error::NotSupported),
         }
     }
 
-    fn verify(
-        &self,
-        key: &CryptoKey,
-        message: &[u8],
-        signature: &[u8],
-        can_gc: CanGc,
-    ) -> Result<bool, Error> {
+    fn verify(&self, key: &CryptoKey, message: &[u8], signature: &[u8]) -> Result<bool, Error> {
         match self {
             NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
-                ALG_HMAC => hmac_operation::verify(key, message, signature, can_gc),
+                ALG_HMAC => hmac_operation::verify(key, message, signature),
                 _ => Err(Error::NotSupported),
             },
             _ => Err(Error::NotSupported),
