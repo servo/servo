@@ -13,7 +13,7 @@ use compositing_traits::rendering_context::{RenderingContext, SoftwareRenderingC
 use dpi::PhysicalSize;
 use embedder_traits::EventLoopWaker;
 use servo::{
-    FormControl, JSValue, JavaScriptEvaluationError, LoadStatus, Servo, ServoBuilder, WebView,
+    EmbedderControl, JSValue, JavaScriptEvaluationError, LoadStatus, Servo, ServoBuilder, WebView,
     WebViewDelegate,
 };
 
@@ -145,7 +145,7 @@ pub(crate) struct WebViewDelegateImpl {
     pub(crate) cursor_changed: Cell<bool>,
     pub(crate) new_frame_ready: Cell<bool>,
     pub(crate) load_status_changed: Cell<bool>,
-    pub(crate) controls_shown: RefCell<Vec<FormControl>>,
+    pub(crate) controls_shown: RefCell<Vec<EmbedderControl>>,
     pub(crate) number_of_controls_shown: Cell<usize>,
     pub(crate) number_of_controls_hidden: Cell<usize>,
 }
@@ -181,7 +181,7 @@ impl WebViewDelegate for WebViewDelegateImpl {
         }
     }
 
-    fn show_form_control(&self, _: WebView, form_control: FormControl) {
+    fn show_form_control(&self, _: WebView, form_control: EmbedderControl) {
         // Even if not used, controls must be stored so that they do not automatically reply
         // when dropped.
         self.controls_shown.borrow_mut().push(form_control);

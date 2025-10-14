@@ -50,7 +50,7 @@ use devtools_traits::{
 };
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    EmbedderControlId, EmbedderMsg, FocusSequenceNumber, FormControlResponse,
+    EmbedderControlId, EmbedderControlResponse, EmbedderMsg, FocusSequenceNumber,
     JavaScriptEvaluationError, JavaScriptEvaluationId, MediaSessionActionType, Theme,
     ViewportDetails, WebDriverScriptCommand,
 };
@@ -3907,7 +3907,7 @@ impl ScriptThread {
     fn handle_embedder_control_response(
         &self,
         id: EmbedderControlId,
-        response: FormControlResponse,
+        response: EmbedderControlResponse,
         can_gc: CanGc,
     ) {
         let Some(document) = self.documents.borrow().find_document(id.pipeline_id) else {

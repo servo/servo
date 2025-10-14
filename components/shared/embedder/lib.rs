@@ -515,7 +515,7 @@ pub enum EmbedderMsg {
     /// Request to display a notification.
     ShowNotification(Option<WebViewId>, Notification),
     /// Request to display a form control to the embedder.
-    ShowEmbedderControl(EmbedderControlId, DeviceIntRect, FormControlRequest),
+    ShowEmbedderControl(EmbedderControlId, DeviceIntRect, EmbedderControlRequest),
     /// Request to display a form control to the embedder.
     HideEmbedderControl(EmbedderControlId),
     /// Inform the embedding layer that a JavaScript evaluation has
@@ -544,7 +544,7 @@ pub struct EmbedderControlId {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub enum FormControlRequest {
+pub enum EmbedderControlRequest {
     /// Indicates that the user has activated a `<select>` element.
     SelectElement(Vec<SelectElementOptionOrOptgroup>, Option<usize>),
     /// Indicates that the user has activated a `<input type=color>` element.
@@ -552,7 +552,7 @@ pub enum FormControlRequest {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub enum FormControlResponse {
+pub enum EmbedderControlResponse {
     SelectElement(Option<usize>),
     ColorPicker(Option<RgbColor>),
 }

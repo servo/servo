@@ -18,7 +18,7 @@ use std::time::Duration;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{MessagePortId, PipelineId, WebViewId};
 use embedder_traits::{
-    CompositorHitTestResult, EmbedderControlId, FormControlResponse, InputEventAndId,
+    CompositorHitTestResult, EmbedderControlId, EmbedderControlResponse, InputEventAndId,
     JavaScriptEvaluationId, MediaSessionActionType, Theme, TraversalId, ViewportDetails,
     WebDriverCommandMsg,
 };
@@ -109,7 +109,7 @@ pub enum EmbedderToConstellationMessage {
     /// send a message to the Embedder when the screenshot is ready to be taken.
     RequestScreenshotReadiness(WebViewId),
     /// A response to a request to show an embedder user interface control.
-    EmbedderControlResponse(EmbedderControlId, FormControlResponse),
+    EmbedderControlResponse(EmbedderControlId, EmbedderControlResponse),
 }
 
 /// A description of a paint metric that is sent from the Servo renderer to the

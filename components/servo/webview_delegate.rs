@@ -9,10 +9,10 @@ use base::id::PipelineId;
 use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{
     AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, EmbedderControlId,
-    FilterPattern, FormControlResponse, GamepadHapticEffectType, InputEventId, InputEventResult,
-    InputMethodType, LoadStatus, MediaSessionEvent, Notification, PermissionFeature, RgbColor,
-    ScreenGeometry, SelectElementOptionOrOptgroup, SimpleDialog, TraversalId, WebResourceRequest,
-    WebResourceResponse, WebResourceResponseMsg,
+    EmbedderControlResponse, FilterPattern, GamepadHapticEffectType, InputEventId,
+    InputEventResult, InputMethodType, LoadStatus, MediaSessionEvent, Notification,
+    PermissionFeature, RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup, SimpleDialog,
+    TraversalId, WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
 use serde::Serialize;
@@ -298,18 +298,18 @@ impl Drop for InterceptedWebResourceLoad {
 }
 
 /// The controls of an interactive form element.
-pub enum FormControl {
+pub enum EmbedderControl {
     /// The picker of a `<select>` element.
     SelectElement(SelectElement),
     /// The picker of a `<input type=color>` element.
     ColorPicker(ColorPicker),
 }
 
-impl FormControl {
+impl EmbedderControl {
     pub fn id(&self) -> EmbedderControlId {
         match self {
-            FormControl::SelectElement(select_element) => select_element.id,
-            FormControl::ColorPicker(color_picker) => color_picker.id,
+            EmbedderControl::SelectElement(select_element) => select_element.id,
+            EmbedderControl::ColorPicker(color_picker) => color_picker.id,
         }
     }
 }
@@ -361,7 +361,7 @@ impl SelectElement {
         self.constellation_proxy
             .send(EmbedderToConstellationMessage::EmbedderControlResponse(
                 self.id,
-                FormControlResponse::SelectElement(self.selected_option()),
+                EmbedderControlResponse::SelectElement(self.selected_option()),
             ));
     }
 }
@@ -372,7 +372,7 @@ impl Drop for SelectElement {
             self.constellation_proxy
                 .send(EmbedderToConstellationMessage::EmbedderControlResponse(
                     self.id,
-                    FormControlResponse::SelectElement(self.selected_option()),
+                    EmbedderControlResponse::SelectElement(self.selected_option()),
                 ));
         }
     }
@@ -416,7 +416,7 @@ impl ColorPicker {
         self.constellation_proxy
             .send(EmbedderToConstellationMessage::EmbedderControlResponse(
                 self.id,
-                FormControlResponse::ColorPicker(self.current_color),
+                EmbedderControlResponse::ColorPicker(self.current_color),
             ));
     }
 }
@@ -427,7 +427,7 @@ impl Drop for ColorPicker {
             self.constellation_proxy
                 .send(EmbedderToConstellationMessage::EmbedderControlResponse(
                     self.id,
-                    FormControlResponse::ColorPicker(self.current_color),
+                    EmbedderControlResponse::ColorPicker(self.current_color),
                 ));
         }
     }
@@ -598,13 +598,13 @@ pub trait WebViewDelegate {
 
     /// Request that the embedder show UI elements for form controls that are not integrated
     /// into page content, such as dropdowns for `<select>` elements.
-    fn show_form_control(&self, _webview: WebView, _form_control: FormControl) {}
+    fn show_embedder_control(&self, _webview: WebView, _embedder_control: EmbedderControl) {}
 
-    /// Request that the embedder hide and ignore a previous [`FormControl`] request, if it hasn’t
+    /// Request that the embedder hide and ignore a previous [`EmbedderControl`] request, if it hasn’t
     /// already responded to it.
     ///
     /// After this point, any further responses to that request will be ignored.
-    fn hide_form_control(&self, _webview: WebView, _control_id: EmbedderControlId) {}
+    fn hide_embedder_control(&self, _webview: WebView, _control_id: EmbedderControlId) {}
 
     /// Request to play a haptic effect on a connected gamepad.
     fn play_gamepad_haptic_effect(
