@@ -144,6 +144,16 @@ impl Minibrowser {
     ) -> EventResponse {
         let mut result = self.context.on_window_event(window, event);
 
+        // For some reason, egui is eating all PinchGesture events, even when they happen
+        // on top of a WebView. Detect this situation and avoid sending those events to
+        // egui.
+        if matches!(event, WindowEvent::PinchGesture { .. }) &&
+            self.last_mouse_position
+                .is_some_and(|point| !self.is_in_egui_toolbar_rect(point))
+        {
+            return Default::default();
+        }
+
         if app_state.has_active_dialog() {
             result.consumed = true;
             return result;
