@@ -2150,24 +2150,6 @@ impl ScriptThread {
         msg: WebDriverScriptCommand,
         can_gc: CanGc,
     ) {
-        // https://github.com/servo/servo/issues/23535
-        // These two messages need different treatment since the JS script might mutate
-        // `self.documents`, which would conflict with the immutable borrow of it that
-        // occurs for the rest of the messages
-        match msg {
-            WebDriverScriptCommand::ExecuteScript(script, reply) => {
-                let window = self.documents.borrow().find_window(pipeline_id);
-                return webdriver_handlers::handle_execute_script(window, script, reply, can_gc);
-            },
-            WebDriverScriptCommand::ExecuteAsyncScript(script, reply) => {
-                let window = self.documents.borrow().find_window(pipeline_id);
-                return webdriver_handlers::handle_execute_async_script(
-                    window, script, reply, can_gc,
-                );
-            },
-            _ => (),
-        }
-
         let documents = self.documents.borrow();
         match msg {
             WebDriverScriptCommand::AddCookie(params, reply) => {
@@ -2461,7 +2443,22 @@ impl ScriptThread {
             WebDriverScriptCommand::RemoveLoadStatusSender(_) => {
                 webdriver_handlers::handle_remove_load_status_sender(&documents, pipeline_id)
             },
-            _ => (),
+            // https://github.com/servo/servo/issues/23535
+            // These two Script messages need different treatment since the JS script might mutate
+            // `self.documents`, which would conflict with the immutable borrow of it that
+            // occurs for the rest of the messages.
+            // We manually drop the immutable borrow first, and quickly
+            // end the borrow of documents to avoid runtime error.
+            WebDriverScriptCommand::ExecuteScript(script, reply) => {
+                let window = documents.find_window(pipeline_id);
+                drop(documents);
+                webdriver_handlers::handle_execute_script(window, script, reply, can_gc);
+            },
+            WebDriverScriptCommand::ExecuteAsyncScript(script, reply) => {
+                let window = documents.find_window(pipeline_id);
+                drop(documents);
+                webdriver_handlers::handle_execute_async_script(window, script, reply, can_gc);
+            },
         }
     }
 
