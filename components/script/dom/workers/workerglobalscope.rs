@@ -18,6 +18,7 @@ use content_security_policy::CspList;
 use crossbeam_channel::Receiver;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use dom_struct::dom_struct;
+use encoding_rs::UTF_8;
 use fonts::FontContext;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use ipc_channel::ipc::IpcSender;
@@ -69,7 +70,7 @@ use crate::dom::dedicatedworkerglobalscope::{
     AutoWorkerReset, DedicatedWorkerGlobalScope, interrupt_callback,
 };
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlscriptelement::SCRIPT_JS_MIMES;
+use crate::dom::htmlscriptelement::{SCRIPT_JS_MIMES, ScriptOrigin, ScriptType};
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::performance::Performance;
 use crate::dom::performanceresourcetiming::InitiatorType;
@@ -89,6 +90,7 @@ use crate::fetch::{CspViolationsProcessor, Fetch, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::network_listener::{PreInvoke, ResourceTimingListener, submit_timing};
 use crate::realms::{InRealm, enter_realm};
+use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType, JSContext, JSContextHelper, Runtime};
 use crate::task::TaskCanceller;
 use crate::timers::{IsInterval, TimerCallback};
@@ -226,7 +228,7 @@ impl FetchResponseListener for ScriptFetchContext {
         }
 
         // Step 4 Let sourceText be the result of UTF-8 decoding bodyBytes.
-        let source = String::from_utf8_lossy(&self.body_bytes);
+        let (source, _, _) = UTF_8.decode(&self.body_bytes);
 
         // Step 5 Let script be the result of creating a classic script using
         // sourceText, settingsObject, response's URL, and the default script fetch options.
@@ -568,6 +570,7 @@ impl WorkerGlobalScope {
         worker: TrustedWorkerAddress,
         can_gc: CanGc,
     ) {
+        let global = self.upcast::<GlobalScope>();
         let dedicated_worker_scope = self
             .downcast::<DedicatedWorkerGlobalScope>()
             .expect("Only DedicatedWorkerGlobalScope is supported for now");
@@ -590,6 +593,14 @@ impl WorkerGlobalScope {
             return;
         }
 
+        let script = ScriptOrigin::external(
+            Rc::new(DOMString::from(script)),
+            self.worker_url.borrow().clone(),
+            ScriptFetchOptions::default_classic_script(global),
+            ScriptType::Classic,
+            global.unminified_js_dir(),
+        );
+
         {
             let _ar = AutoWorkerReset::new(dedicated_worker_scope, worker);
             let realm = enter_realm(self);
@@ -599,7 +610,7 @@ impl WorkerGlobalScope {
                 can_gc,
             );
             self.execution_ready.store(true, Ordering::Relaxed);
-            self.execute_script(DOMString::from(script), can_gc);
+            global.run_a_classic_script(&script, 1, None, can_gc);
             dedicated_worker_scope.fire_queued_messages(can_gc);
         }
     }

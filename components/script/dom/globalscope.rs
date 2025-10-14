@@ -24,6 +24,7 @@ use constellation_traits::{
     PortMessageTask, ScriptToConstellationChan, ScriptToConstellationMessage,
 };
 use content_security_policy::CspList;
+use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
@@ -111,6 +112,7 @@ use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::html::htmlscriptelement::{ScriptId, SourceCode};
+use crate::dom::htmlscriptelement::ScriptOrigin;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::Performance;
@@ -3497,6 +3499,51 @@ impl GlobalScope {
             // Step 4. Append record to global's resolved module set.
             self.resolved_module_set.borrow_mut().insert(record);
         }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#run-a-classic-script>
+    pub(crate) fn run_a_classic_script(
+        &self,
+        script: &ScriptOrigin,
+        line_number: u32,
+        introduction_type: Option<&'static CStr>,
+        can_gc: CanGc,
+    ) {
+        // TODO use a settings object rather than this element's document/window
+        // Step 2
+        if !self.can_run_script() {
+            return;
+        }
+
+        // Steps 4-10
+        rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());
+        _ = self.evaluate_script_on_global_with_result(
+            &script.code,
+            script.url.as_str(),
+            rval.handle_mut(),
+            line_number,
+            script.fetch_options.clone(),
+            script.url.clone(),
+            can_gc,
+            introduction_type,
+        );
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/webappapis.html#check-if-we-can-run-script>
+    fn can_run_script(&self) -> bool {
+        // If the global object specified by settings is a Window object whose Document object is not fully active
+        // or it's active sandboxing flag set does not have its sandboxed scripts browsing context flag set.
+        if self.downcast::<Window>().is_some_and(|window| {
+            let doc = window.Document();
+            !doc.has_active_sandboxing_flag(
+                SandboxingFlagSet::SANDBOXED_SCRIPTS_BROWSING_CONTEXT_FLAG,
+            ) || !doc.is_fully_active()
+        }) {
+            return false;
+        }
+
+        // Or settings's global object is not a Window object
+        !self.is::<Window>()
     }
 }
 
