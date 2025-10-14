@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/CSS22/box.html#collapsing-margins">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/8919">
+<link rel="help" href="https://github.com/servo/servo/pull/32064">
+<meta name="assert" content="
+  Margins can collapse through when the used height is zero, regardless of the computed values
+  of `height`, `min-height` and `max-height`.
+
+  Note that this test uses sizing values which didn't exist in CSS2, but since the expectations
+  only depend on the used height, the test can still pass on implementations that don't support
+  these values.
+">
+
+<style>
+.before, .after {
+  overflow: hidden;
+}
+.wrapper {
+  border: 1px solid;
+  margin-bottom: 2em;
+}
+.test {
+  margin: 50px;
+}
+</style>
+
+<div id="log"></div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+let testcases = [
+  // Tests for `height`
+  { height: "auto" },
+  { height: "0px" },
+  { height: "1px" },
+  { height: "0%", parentHeight: "auto" },
+  { height: "0%", parentHeight: "0px" },
+  { height: "0%", parentHeight: "100px" },
+  { height: "1%", parentHeight: "auto" },
+  { height: "1%", parentHeight: "0px" },
+  { height: "1%", parentHeight: "100px" },
+  { height: "calc(0px + 0%)", parentHeight: "auto" },
+  { height: "calc(0px + 0%)", parentHeight: "0px" },
+  { height: "calc(0px + 0%)", parentHeight: "100px" },
+  { height: "calc(0px + 1%)", parentHeight: "auto" },
+  { height: "calc(0px + 1%)", parentHeight: "0px" },
+  { height: "calc(0px + 1%)", parentHeight: "100px" },
+  { height: "calc(1px + 0%)", parentHeight: "auto" },
+  { height: "calc(1px + 0%)", parentHeight: "0px" },
+  { height: "calc(1px + 0%)", parentHeight: "100px" },
+  { height: "calc(1px + 1%)", parentHeight: "auto" },
+  { height: "calc(1px + 1%)", parentHeight: "0px" },
+  { height: "calc(1px + 1%)", parentHeight: "100px" },
+  { height: "stretch", parentHeight: "auto" },
+  { height: "stretch", parentHeight: "0px" },
+  { height: "stretch", parentHeight: "100px" },
+
+  // Tests for `min-height` (with `height: auto`)
+  { minHeight: "auto" },
+  { minHeight: "0px" },
+  { minHeight: "1px" },
+  { minHeight: "0%", parentHeight: "auto" },
+  { minHeight: "0%", parentHeight: "0px" },
+  { minHeight: "0%", parentHeight: "100px" },
+  { minHeight: "1%", parentHeight: "auto" },
+  { minHeight: "1%", parentHeight: "0px" },
+  { minHeight: "1%", parentHeight: "100px" },
+  { minHeight: "calc(0px + 0%)", parentHeight: "auto" },
+  { minHeight: "calc(0px + 0%)", parentHeight: "0px" },
+  { minHeight: "calc(0px + 0%)", parentHeight: "100px" },
+  { minHeight: "calc(0px + 1%)", parentHeight: "auto" },
+  { minHeight: "calc(0px + 1%)", parentHeight: "0px" },
+  { minHeight: "calc(0px + 1%)", parentHeight: "100px" },
+  { minHeight: "calc(1px + 0%)", parentHeight: "auto" },
+  { minHeight: "calc(1px + 0%)", parentHeight: "0px" },
+  { minHeight: "calc(1px + 0%)", parentHeight: "100px" },
+  { minHeight: "calc(1px + 1%)", parentHeight: "auto" },
+  { minHeight: "calc(1px + 1%)", parentHeight: "0px" },
+  { minHeight: "calc(1px + 1%)", parentHeight: "100px" },
+  { minHeight: "stretch", parentHeight: "auto" },
+  { minHeight: "stretch", parentHeight: "0px" },
+  { minHeight: "stretch", parentHeight: "100px" },
+
+  // Tests for `max-height` (with `height: 1px`)
+  { height: "1px", maxHeight: "none" },
+  { height: "1px", maxHeight: "0px" },
+  { height: "1px", maxHeight: "1px" },
+  { height: "1px", maxHeight: "0%", parentHeight: "auto" },
+  { height: "1px", maxHeight: "0%", parentHeight: "0px" },
+  { height: "1px", maxHeight: "0%", parentHeight: "100px" },
+  { height: "1px", maxHeight: "1%", parentHeight: "auto" },
+  { height: "1px", maxHeight: "1%", parentHeight: "0px" },
+  { height: "1px", maxHeight: "1%", parentHeight: "100px" },
+  { height: "1px", maxHeight: "calc(0px + 0%)", parentHeight: "auto" },
+  { height: "1px", maxHeight: "calc(0px + 0%)", parentHeight: "0px" },
+  { height: "1px", maxHeight: "calc(0px + 0%)", parentHeight: "100px" },
+  { height: "1px", maxHeight: "calc(0px + 1%)", parentHeight: "auto" },
+  { height: "1px", maxHeight: "calc(0px + 1%)", parentHeight: "0px" },
+  { height: "1px", maxHeight: "calc(0px + 1%)", parentHeight: "100px" },
+  { height: "1px", maxHeight: "calc(1px + 0%)", parentHeight: "auto" },
+  { height: "1px", maxHeight: "calc(1px + 0%)", parentHeight: "0px" },
+  { height: "1px", maxHeight: "calc(1px + 0%)", parentHeight: "100px" },
+  { height: "1px", maxHeight: "calc(1px + 1%)", parentHeight: "auto" },
+  { height: "1px", maxHeight: "calc(1px + 1%)", parentHeight: "0px" },
+  { height: "1px", maxHeight: "calc(1px + 1%)", parentHeight: "100px" },
+  { height: "1px", maxHeight: "stretch", parentHeight: "auto" },
+  { height: "1px", maxHeight: "stretch", parentHeight: "0px" },
+  { height: "1px", maxHeight: "stretch", parentHeight: "100px" },
+];
+
+function generate(testcase, serialization) {
+  let { height, minHeight, maxHeight, parentHeight, ...unrecognized } = testcase;
+  assert_array_equals(Object.keys(unrecognized), [], "No unrecognized key.");
+  let wrapper = document.createElement("div");
+  wrapper.className = "wrapper";
+  wrapper.style.height = parentHeight || "";
+  let before = document.createElement("div");
+  before.className = "before";
+  before.textContent = serialization;
+  let after = document.createElement("div");
+  after.className = "after";
+  let test = document.createElement("div");
+  test.className = "test";
+  test.style.height = height || "";
+  test.style.minHeight = minHeight || "";
+  test.style.maxHeight = maxHeight || "";
+  wrapper.append(before, test, after);
+  document.body.append(wrapper);
+  return [before, test, after];
+}
+function round(value) {
+  return Math.round(value * 10) / 10;
+}
+
+let resolveDomReady;
+let domReady = new Promise(resolve => {
+  resolveDomReady = resolve;
+});
+for (let testcase of testcases) {
+  let serialization = JSON.stringify(testcase);
+  promise_test(async () => {
+    let [before, test, after] = generate(testcase, serialization);
+
+    // The checks below force layout, so as an optimization, run them asynchronously after generating all tests.
+    await domReady;
+    let height = round(test.getBoundingClientRect().height);
+    let marginSum = round(after.getBoundingClientRect().top - before.getBoundingClientRect().bottom) - height;
+    if (height === 0) {
+      assert_equals(marginSum, 50, "margins should collapse through");
+    } else {
+      assert_equals(marginSum, 100, "margins should NOT collapse through when height is " + height);
+    }
+  }, serialization);
+}
+resolveDomReady();
+</script>

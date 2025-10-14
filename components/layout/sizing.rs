@@ -609,6 +609,14 @@ impl SizeConstraint {
             _ => None,
         }
     }
+
+    #[inline]
+    pub(crate) fn definite_or_min(self) -> Au {
+        match self {
+            Self::Definite(size) => size,
+            Self::MinMax(min, _) => min,
+        }
+    }
 }
 
 impl From<Option<Au>> for SizeConstraint {
