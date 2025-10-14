@@ -311,7 +311,7 @@ impl OneshotTimers {
 
         let event_request = TimerEventRequest {
             callback,
-            duration: timer.scheduled_for - Instant::now(),
+            duration: timer.scheduled_for - self.base_time(),
         };
 
         self.global_scope.schedule_timer(event_request);
