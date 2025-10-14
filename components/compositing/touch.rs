@@ -40,7 +40,9 @@ pub enum TouchMoveAllowed {
     Pending,
 }
 
-/// Cache for the last touch hit test result.
+/// A cached [`CompositorHitTestResult`] to use during a touch sequence. This
+/// is kept so that the renderer doesn't have to constantly keep making hit tests
+/// while during panning and flinging actions.
 struct HitTestResultCache {
     value: CompositorHitTestResult,
     device_pixels_per_page: Scale<f32, CSSPixel, DevicePixel>,

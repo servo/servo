@@ -778,6 +778,11 @@ impl WebViewRenderer {
                     ScrollType::InputEvents,
                 );
                 if let Some((external_scroll_id, offset)) = scroll_result {
+                    // We would like to cache the hit test for the node that that actually scrolls
+                    // while panning, which we don't know until right now (as some nodes
+                    // might be at the end of their scroll area). In particular, directionality of
+                    // scroll matters. That's why this is done here and not as soon as the touch
+                    // starts.
                     self.touch_handler.set_hit_test_result_cache_value(
                         hit_test_result.clone(),
                         self.device_pixels_per_page_pixel(),
