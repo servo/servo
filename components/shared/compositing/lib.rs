@@ -18,6 +18,7 @@ use strum_macros::IntoStaticStr;
 use webrender_api::{DocumentId, FontVariation};
 
 pub mod display_list;
+pub mod largest_contentful_paint_candidate;
 pub mod rendering_context;
 pub mod viewport_description;
 
