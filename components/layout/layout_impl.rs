@@ -1261,6 +1261,19 @@ impl LayoutThread {
             &stacking_context_tree.compositor_info,
             built_display_list,
         );
+        if let Some(lcp_candidate_collector) = lcp_candidate_collector.as_mut() {
+            if lcp_candidate_collector.did_lcp_candidate_update {
+                if let Some(lcp_candidate) = lcp_candidate_collector.largest_contentful_paint() {
+                    self.compositor_api.send_lcp_candidate(
+                        lcp_candidate,
+                        self.webview_id,
+                        self.id,
+                        stacking_context_tree.compositor_info.epoch,
+                    );
+                    lcp_candidate_collector.did_lcp_candidate_update = false;
+                }
+            }
+        }
 
         let (keys, instance_keys) = self
             .font_context

@@ -345,6 +345,7 @@ impl IOCompositor {
                 self.painter()
                     .handle_screenshot_readiness_reply(webview_id, pipelines_and_epochs);
             },
+            CompositorMsg::SendLCPCandidate(_, _, _, _) => todo!(),
         }
     }
 
