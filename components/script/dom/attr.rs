@@ -225,8 +225,8 @@ impl Attr {
     pub(crate) fn summarize(&self) -> AttrInfo {
         AttrInfo {
             namespace: (**self.namespace()).to_owned(),
-            name: String::from(self.Name()),
-            value: String::from(self.Value()),
+            name: (**self.name()).to_owned(),
+            value: (**self.value()).to_owned(),
         }
     }
 

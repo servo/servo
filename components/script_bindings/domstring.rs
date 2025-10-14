@@ -403,29 +403,13 @@ impl DOMString {
         self.str().parse::<T>()
     }
 
-    /// This is a domspec
     /// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-floating-point-number-values>
     pub fn parse_floating_point_number(&self) -> Option<f64> {
-        // Steps 15-16 are telling us things about IEEE rounding modes
-        // for floating-point significands; this code assumes the Rust
-        // compiler already matches them in any cases where
-        // that actually matters. They are not
-        // related to f64::round(), which is for rounding to integers.
         self.make_rust();
-        let input = self.str();
-        if let Ok(val) = input.trim().parse::<f64>() {
-            if !(
-                // A valid number is the same as what rust considers to be valid,
-                // except for +1., NaN, and Infinity.
-                val.is_infinite() || val.is_nan() || input.ends_with('.') || input.starts_with('+')
-            ) {
-                return Some(val);
-            }
-        }
-        None
+        parse_floating_point_number(&self.str())
     }
 
-    /// This is a dom spec
+    /// <https://html.spec.whatwg.org/multipage/#best-representation-of-the-number-as-a-floating-point-number>
     pub fn set_best_representation_of_the_floating_point_number(&mut self) {
         if let Some(val) = self.parse_floating_point_number() {
             // [tc39] Step 2: If x is either +0 or -0, return "0".
@@ -509,6 +493,20 @@ impl DOMString {
         self.make_rust();
         BytesView(self.0.borrow())
     }
+}
+
+/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-floating-point-number-values>
+pub fn parse_floating_point_number(input: &str) -> Option<f64> {
+    // Steps 15-16 are telling us things about IEEE rounding modes
+    // for floating-point significands; this code assumes the Rust
+    // compiler already matches them in any cases where
+    // that actually matters. They are not
+    // related to f64::round(), which is for rounding to integers.
+    input.trim().parse::<f64>().ok().filter(|value| {
+        // A valid number is the same as what rust considers to be valid,
+        // except for +1., NaN, and Infinity.
+        !(value.is_infinite() || value.is_nan() || input.ends_with('.') || input.starts_with('+'))
+    })
 }
 
 pub struct BytesView<'a>(Ref<'a, DOMStringType>);
