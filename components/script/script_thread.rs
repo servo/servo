@@ -2749,7 +2749,7 @@ impl ScriptThread {
                         .insert(browsing_context_id, window_proxy.clone());
                     last = Some(window_proxy);
                 }
-                let source = last.expect("Ancestry should contain at least one bc.");
+                let source = last.expect("Source with ancestry should contain at least one bc.");
 
                 // FIXME(#22512): enqueues a task; unnecessary delay.
                 window.post_message(origin, source_origin, &source, data)
