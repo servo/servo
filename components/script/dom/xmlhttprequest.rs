@@ -764,7 +764,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
 
         self.fetch_time.set(Instant::now());
 
-        let rv = self.fetch(request, &self.global());
+        let rv = self.fetch(request, &self.global(), can_gc);
         // Step 10
         if self.sync.get() {
             return rv;
@@ -1556,7 +1556,12 @@ impl XMLHttpRequest {
         self.response_status.set(Err(()));
     }
 
-    fn fetch(&self, request_builder: RequestBuilder, global: &GlobalScope) -> ErrorResult {
+    fn fetch(
+        &self,
+        request_builder: RequestBuilder,
+        global: &GlobalScope,
+        can_gc: CanGc,
+    ) -> ErrorResult {
         let xhr = Trusted::new(self);
 
         let context = Arc::new(Mutex::new(XHRContext {
@@ -1591,7 +1596,7 @@ impl XMLHttpRequest {
 
         if let Some(script_port) = script_port {
             loop {
-                if !global.process_event(script_port.recv().unwrap()) {
+                if !global.process_event(script_port.recv().unwrap(), can_gc) {
                     // We're exiting.
                     return Err(Error::Abort);
                 }

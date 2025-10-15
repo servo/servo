@@ -11,7 +11,10 @@ use std::sync::{Arc, Mutex, RwLock, Weak};
 
 use base::generic_channel;
 use base::threadpool::ThreadPool;
-use embedder_traits::{EmbedderControlId, EmbedderMsg, EmbedderProxy, FilterPattern};
+use embedder_traits::{
+    EmbedderControlId, EmbedderControlRequest, EmbedderControlResponse, EmbedderMsg, EmbedderProxy,
+    FilePickerRequest, FilterPattern, SelectedFile,
+};
 use headers::{ContentLength, ContentRange, ContentType, HeaderMap, HeaderMapExt, Range};
 use http::header::{self, HeaderValue};
 use ipc_channel::ipc::IpcSender;
@@ -20,7 +23,7 @@ use mime::{self, Mime};
 use net_traits::blob_url_store::{BlobBuf, BlobURLStoreError};
 use net_traits::filemanager_thread::{
     FileManagerResult, FileManagerThreadError, FileManagerThreadMsg, FileOrigin, FileTokenCheck,
-    ReadFileProgress, RelativePos, SelectedFile,
+    ReadFileProgress, RelativePos,
 };
 use net_traits::http_percent_encode;
 use net_traits::response::{Response, ResponseBody};
@@ -151,36 +154,14 @@ impl FileManager {
     /// Message handler
     pub fn handle(&self, msg: FileManagerThreadMsg) {
         match msg {
-            FileManagerThreadMsg::SelectFile(control_id, filter, sender, origin, opt_test_path) => {
+            FileManagerThreadMsg::SelectFiles(control_id, file_picker_request, response_sender) => {
                 let store = self.store.clone();
                 let embedder = self.embedder_proxy.clone();
                 self.thread_pool
                     .upgrade()
                     .map(|pool| {
                         pool.spawn(move || {
-                            store.select_file(control_id, filter, sender, origin, opt_test_path, embedder);
-                        });
-                    })
-                    .unwrap_or_else(|| {
-                        warn!(
-                            "FileManager tried to select a file after CoreResourceManager has exited."
-                        );
-                    });
-            },
-            FileManagerThreadMsg::SelectFiles(
-                control_id,
-                filter,
-                sender,
-                origin,
-                opt_test_paths,
-            ) => {
-                let store = self.store.clone();
-                let embedder = self.embedder_proxy.clone();
-                self.thread_pool
-                    .upgrade()
-                    .map(|pool| {
-                        pool.spawn(move || {
-                            store.select_files(control_id, filter, sender, origin, opt_test_paths, embedder);
+                            store.select_files(control_id, file_picker_request, response_sender, embedder);
                         });
                     })
                     .unwrap_or_else(|| {
@@ -573,105 +554,48 @@ impl FileManagerStore {
         }
     }
 
-    fn query_files_from_embedder(
-        &self,
-        control_id: EmbedderControlId,
-        patterns: Vec<FilterPattern>,
-        multiple_files: bool,
-        embedder_proxy: EmbedderProxy,
-    ) -> Option<Vec<PathBuf>> {
-        let (ipc_sender, ipc_receiver) =
-            generic_channel::channel().expect("Failed to create IPC channel!");
-        embedder_proxy.send(EmbedderMsg::SelectFiles(
-            control_id,
-            patterns,
-            multiple_files,
-            ipc_sender,
-        ));
-        match ipc_receiver.recv() {
-            Ok(result) => result,
-            Err(e) => {
-                warn!("Failed to receive files from embedder ({:?}).", e);
-                None
-            },
-        }
-    }
-
-    fn select_file(
-        &self,
-        control_id: EmbedderControlId,
-        patterns: Vec<FilterPattern>,
-        sender: IpcSender<FileManagerResult<SelectedFile>>,
-        origin: FileOrigin,
-        opt_test_path: Option<PathBuf>,
-        embedder_proxy: EmbedderProxy,
-    ) {
-        // Check if the select_files preference is enabled
-        // to ensure process-level security against compromised script;
-        // Then try applying opt_test_path directly for testing convenience
-        let opt_s = if pref!(dom_testing_html_input_element_select_files_enabled) {
-            opt_test_path
-        } else {
-            self.query_files_from_embedder(control_id, patterns, false, embedder_proxy)
-                .and_then(|mut x| x.pop())
-        };
-
-        match opt_s {
-            Some(s) => {
-                let selected_path = Path::new(&s);
-                let result = self.create_entry(selected_path, &origin);
-                let _ = sender.send(result);
-            },
-            None => {
-                let _ = sender.send(Err(FileManagerThreadError::UserCancelled));
-            },
-        }
-    }
-
     fn select_files(
         &self,
         control_id: EmbedderControlId,
-        patterns: Vec<FilterPattern>,
-        sender: IpcSender<FileManagerResult<Vec<SelectedFile>>>,
-        origin: FileOrigin,
-        opt_test_paths: Option<Vec<PathBuf>>,
+        file_picker_request: FilePickerRequest,
+        response_sender: IpcSender<EmbedderControlResponse>,
         embedder_proxy: EmbedderProxy,
     ) {
-        // Check if the select_files preference is enabled
-        // to ensure process-level security against compromised script;
-        // Then try applying opt_test_paths directly for testing convenience
-        let opt_v = if pref!(dom_testing_html_input_element_select_files_enabled) {
-            opt_test_paths
-        } else {
-            self.query_files_from_embedder(control_id, patterns, true, embedder_proxy)
+        let (ipc_sender, ipc_receiver) =
+            generic_channel::channel().expect("Failed to create IPC channel!");
+
+        let origin = file_picker_request.origin.clone();
+        embedder_proxy.send(EmbedderMsg::SelectFiles(
+            control_id,
+            file_picker_request,
+            ipc_sender,
+        ));
+
+        let paths = match ipc_receiver.recv() {
+            Ok(Some(result)) => result,
+            Ok(None) => {
+                let _ = response_sender.send(EmbedderControlResponse::FilePicker(None));
+                return;
+            },
+            Err(error) => {
+                warn!("Failed to receive files from embedder ({:?}).", error);
+                let _ = response_sender.send(EmbedderControlResponse::FilePicker(None));
+                return;
+            },
         };
 
-        match opt_v {
-            Some(v) => {
-                let mut selected_paths = vec![];
+        let mut files = paths
+            .into_iter()
+            .filter_map(|path| match self.create_entry(&path, &origin) {
+                Ok(entry) => Some(entry),
+                Err(error) => {
+                    warn!("Failed to create entry for selected file: {error:?}");
+                    None
+                },
+            })
+            .collect();
 
-                for s in &v {
-                    selected_paths.push(Path::new(s));
-                }
-
-                let mut replies = vec![];
-
-                for path in selected_paths {
-                    match self.create_entry(path, &origin) {
-                        Ok(triple) => replies.push(triple),
-                        Err(e) => {
-                            let _ = sender.send(Err(e));
-                            return;
-                        },
-                    };
-                }
-
-                let _ = sender.send(Ok(replies));
-            },
-            None => {
-                let _ = sender.send(Err(FileManagerThreadError::UserCancelled));
-            },
-        }
+        let _ = response_sender.send(EmbedderControlResponse::FilePicker(Some(files)));
     }
 
     fn create_entry(

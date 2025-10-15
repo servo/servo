@@ -13,6 +13,7 @@ mod structured_data;
 
 use std::collections::VecDeque;
 use std::fmt;
+use std::path::PathBuf;
 use std::time::Duration;
 
 use base::cross_process_instant::CrossProcessInstant;

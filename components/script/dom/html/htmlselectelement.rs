@@ -6,7 +6,7 @@ use std::default::Default;
 use std::iter;
 
 use dom_struct::dom_struct;
-use embedder_traits::{EmbedderControlRequest as EmbedderFormControl};
+use embedder_traits::EmbedderControlRequest;
 use embedder_traits::{SelectElementOption, SelectElementOptionOrOptgroup};
 use euclid::{Point2D, Rect, Size2D};
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
@@ -393,20 +393,13 @@ impl HTMLSelectElement {
             })
             .collect();
 
-        let rect = self.upcast::<Node>().border_box().unwrap_or_default();
-        let rect = Rect::new(
-            Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
-            Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
-        );
-
         let selected_index = self.list_of_options().position(|option| option.Selected());
 
         self.owner_document()
             .embedder_controls()
             .show_embedder_control(
                 ControlElement::Select(DomRoot::from_ref(self)),
-                DeviceIntRect::from_untyped(&rect.to_box2d()),
-                EmbedderFormControl::SelectElement(options, selected_index),
+                EmbedderControlRequest::SelectElement(options, selected_index),
             );
     }
 

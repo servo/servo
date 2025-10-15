@@ -176,35 +176,42 @@ impl Dialog {
                 dialog,
                 maybe_picker,
             } => {
-                let Some(picker) = maybe_picker else {
+                let need_submit = if let Some(picker) = maybe_picker {
+                    if dialog.state() == DialogState::Closed {
+                        if picker.allow_select_multiple() {
+                            dialog.pick_multiple();
+                        } else {
+                            dialog.pick_file();
+                        }
+                    }
+
+                    let state = dialog.update(ctx).state();
+                    match state {
+                        DialogState::Open => false,
+                        DialogState::Picked(path) => {
+                            picker.select(Some(&[path]));
+                            true
+                        },
+                        DialogState::PickedMultiple(paths) => {
+                            picker.select(Some(&paths));
+                            true
+                        },
+                        DialogState::Cancelled => {
+                            picker.select(None);
+                            true
+                        },
+                        DialogState::Closed => unreachable!(),
+                    }
+                } else {
                     // Picker was dismissed, so the dialog should be closed too.
                     return false;
                 };
-                if dialog.state() == DialogState::Closed {
-                    if picker.allow_select_multiple() {
-                        dialog.pick_multiple();
-                    } else {
-                        dialog.pick_file();
+                if need_submit {
+                    if let Some(picker) = maybe_picker.take() {
+                        picker.submit();
                     }
                 }
-
-                let state = dialog.update(ctx).state();
-                match state {
-                    DialogState::Open => true,
-                    DialogState::Picked(path) => {
-                        picker.select(Some(&[path]));
-                        false
-                    },
-                    DialogState::PickedMultiple(paths) => {
-                        picker.select(Some(&paths));
-                        false
-                    },
-                    DialogState::Cancelled => {
-                        picker.select(None);
-                        false
-                    },
-                    DialogState::Closed => false,
-                }
+                !need_submit
             },
             Dialog::SimpleDialog(SimpleDialog::Alert {
                 message,
