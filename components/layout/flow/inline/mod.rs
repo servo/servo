@@ -2457,11 +2457,16 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
 
                     // TODO: This should take account whether or not the first and last character prevent
                     // linebreaks after atomics as in layout.
-                    if can_wrap && segment.break_at_start && self.had_content_yet_for_min_content {
-                        self.line_break_opportunity()
-                    }
+                    let break_at_start =
+                        segment.break_at_start && self.had_content_yet_for_min_content;
 
-                    for run in segment.runs.iter() {
+                    for (run_index, run) in segment.runs.iter().enumerate() {
+                        // Break before each unbreakable run in this TextRun, except the first unless the
+                        // linebreaker was set to break before the first run.
+                        if can_wrap && (run_index != 0 || break_at_start) {
+                            self.line_break_opportunity();
+                        }
+
                         let advance = run.glyph_store.total_advance();
                         if run.glyph_store.is_whitespace() {
                             // If this run is a forced line break, we *must* break the line
@@ -2504,16 +2509,6 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                         if can_wrap && run.glyph_store.ends_with_whitespace() {
                             self.line_break_opportunity();
                         }
-
-                        // check if there's an opportunity to break the line
-                        if can_wrap &&
-                            self.is_chinese(
-                                &inline_formatting_context.text_content,
-                                run.range.end().to_usize(),
-                            )
-                        {
-                            self.line_break_opportunity();
-                        }
                     }
                 }
             },
@@ -2548,30 +2543,6 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 }
             },
             _ => {},
-        }
-    }
-
-    fn is_chinese(&mut self, s: &str, end_bound: usize) -> bool {
-        if let Some(sub_str) = s.get(end_bound - 3..end_bound) {
-            let mut it = sub_str.chars();
-            if let (Some(chara), None) = (it.next(), it.next()) {
-                let u = chara as u32;
-
-                (0x4E00..=0x9FFF).contains(&u) || // common
-                (0x3400..=0x4DBF).contains(&u) || // rare
-                (0x20000..=0x2A6DF).contains(&u) || // rare, historic
-                (0x2A700..=0x2B73F).contains(&u) || // rare, historic
-                (0x2B740..=0x2B81F).contains(&u) || // uncommon
-                (0x2B820..=0x2CEAF).contains(&u) || // rare, historic
-                (0x2CEB0..=0x2EBEF).contains(&u) || // rare, historic
-                (0x30000..=0x3134F).contains(&u) || // rare, historic
-                (0xF900..=0xFAFF).contains(&u) ||  // duplicates
-                (0x2F800..=0x2FA1F).contains(&u) // unifiable variants
-            } else {
-                false
-            }
-        } else {
-            false
         }
     }
 
