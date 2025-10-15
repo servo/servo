@@ -45,6 +45,52 @@ test(t => {
   assert_equals(f, null, "The returned value must be null");
 }, "Event handler IDL attribute compilation errors must be fired on the element's document's global");
 
+async_test(t => {
+  const frame0 = document.createElement("iframe");
+  const frame1 = document.createElement("iframe");
+  document.body.append(frame0, frame1);
+  t.add_cleanup(() => {
+    frame0.remove();
+    frame1.remove();
+  });
+
+  const frame0Document = frame0.contentDocument.documentElement;
+  const frame1Img = frame1.contentDocument.createElement('img');
+  frame1Img.setAttribute("onload", "window.imageLoaded=true");
+  frame0Document.appendChild(frame1Img);
+
+  frame1Img.addEventListener("load", t.step_func_done(() => {
+    assert_true(frame0.contentWindow.imageLoaded, "The window object should point to the new document's global");
+  }));
+
+  frame1Img.setAttribute("src", "/images/green.png");
+}, "Event handler IDL attributes must point window to the element's document's global");
+
+async_test(t => {
+  const frame0 = document.createElement("iframe");
+  const frame1 = document.createElement("iframe");
+  document.body.append(frame0, frame1);
+  t.add_cleanup(() => {
+    frame0.remove();
+  });
+
+  frame1.onload = () => {
+    const frame0Document = frame0.contentDocument.documentElement;
+    const frame1Img = frame1.contentDocument.querySelector('img');
+    frame1Img.addEventListener("load", t.step_func(() => {
+      if (frame1Img.getAttribute('src') === '/images/green.png') {
+        assert_true(frame0.contentWindow.imageLoaded, "The window object should point to the new document's global");
+        t.done();
+      }
+    }));
+    frame0Document.appendChild(frame1Img);
+    frame1.remove();
+    frame1Img.setAttribute("src", "/images/green.png");
+  };
+
+  frame1.srcdoc = "<img src='/images/red.png' onload='window.imageLoaded=true'>";
+}, "Event handler IDL attributes must point window to the new element's document's global after old frame is removed");
+
 function getErrorRealm(event) {
   const { error } = event;
 
