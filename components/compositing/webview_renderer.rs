@@ -280,21 +280,24 @@ impl WebViewRenderer {
         }
     }
 
-    pub(crate) fn dispatch_input_event_with_hit_testing(&self, mut event: InputEventAndId) -> bool {
+    pub(crate) fn dispatch_input_event_with_hit_testing(
+        &mut self,
+        mut event: InputEventAndId,
+    ) -> bool {
         let event_point = event.event.point();
         let hit_test_result = match event_point {
             Some(point) => {
-                let hit_test_result = self
-                    .global
-                    .borrow()
-                    .hit_test_at_point(point)
-                    .into_iter()
-                    .nth(0);
-                if hit_test_result.is_none() {
-                    warn!("Empty hit test result for input event, ignoring.");
-                    return false;
-                }
-                hit_test_result
+                let cached_hit_test_result = match event.event {
+                    InputEvent::Touch(_) => self.touch_handler.get_hit_test_result_cache_value(),
+                    _ => None,
+                };
+                cached_hit_test_result.or_else(|| {
+                    self.global
+                        .borrow()
+                        .hit_test_at_point(point)
+                        .into_iter()
+                        .nth(0)
+                })
             },
             None => None,
         };
@@ -747,7 +750,11 @@ impl WebViewRenderer {
             ScrollLocation::Start | ScrollLocation::End => scroll_location,
         };
 
-        let hit_test_results = self.global.borrow().hit_test_at_point(cursor);
+        let hit_test_results: Vec<_> = self
+            .touch_handler
+            .get_hit_test_result_cache_value()
+            .map(|result| vec![result])
+            .unwrap_or_else(|| self.global.borrow().hit_test_at_point(cursor));
 
         // Iterate through all hit test results, processing only the first node of each pipeline.
         // This is needed to propagate the scroll events from a pipeline representing an iframe to
@@ -764,6 +771,15 @@ impl WebViewRenderer {
                     ScrollType::InputEvents,
                 );
                 if let Some((external_scroll_id, offset)) = scroll_result {
+                    // We would like to cache the hit test for the node that that actually scrolls
+                    // while panning, which we don't know until right now (as some nodes
+                    // might be at the end of their scroll area). In particular, directionality of
+                    // scroll matters. That's why this is done here and not as soon as the touch
+                    // starts.
+                    self.touch_handler.set_hit_test_result_cache_value(
+                        hit_test_result.clone(),
+                        self.device_pixels_per_page_pixel(),
+                    );
                     return Some(ScrollResult {
                         hit_test_result: hit_test_result.clone(),
                         external_scroll_id,
