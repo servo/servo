@@ -94,6 +94,7 @@ use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType, JSContext, JSContextHelper, Runtime};
 use crate::task::TaskCanceller;
 use crate::timers::{IsInterval, TimerCallback};
+use crate::unminify::unminify_js;
 
 pub(crate) fn prepare_workerscope_init(
     global: &GlobalScope,
@@ -593,13 +594,14 @@ impl WorkerGlobalScope {
             return;
         }
 
-        let script = ScriptOrigin::external(
+        let mut script = ScriptOrigin::external(
             Rc::new(DOMString::from(script)),
             self.worker_url.borrow().clone(),
             ScriptFetchOptions::default_classic_script(global),
             ScriptType::Classic,
             global.unminified_js_dir(),
         );
+        unminify_js(&mut script);
 
         {
             let _ar = AutoWorkerReset::new(dedicated_worker_scope, worker);
