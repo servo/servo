@@ -587,8 +587,11 @@ impl TouchHandler {
     }
 
     pub(crate) fn get_hit_test_result_cache_value(&self) -> Option<CompositorHitTestResult> {
-        self.touch_sequence_map
-            .get(&self.current_sequence_id)?
+        let sequence = self.touch_sequence_map.get(&self.current_sequence_id)?;
+        if sequence.state == Finished {
+            return None;
+        }
+        sequence
             .hit_test_result_cache
             .as_ref()
             .map(|cache| Some(cache.value.clone()))?
