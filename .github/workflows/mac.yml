@@ -193,7 +193,16 @@ jobs:
         if: ${{ inputs.unit-tests }}
         env:
           NEXTEST_RETRIES: 3 # https://github.com/servo/servo/issues/30683
-        run: ./mach test-unit --${{ inputs.profile }}
+        run: ./mach test-unit --${{ inputs.profile }} --nextest-profile ci
+      # We upload the test-results to Codecov to help us identify flaky unit-tests.
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          files: target/nextest/ci/junit.xml
+          disable_search: true
+          flags: unittests-mac
+          token: ${{ secrets.CODECOV_TOKEN }}
       - name: Devtools tests
         if: ${{ inputs.unit-tests }}
         run: ./mach test-devtools --${{ inputs.profile }}
