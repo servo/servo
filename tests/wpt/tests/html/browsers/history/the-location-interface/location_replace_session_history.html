@@ -1,0 +1,19 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>location.replace replaces the active session history entry</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      var t = async_test();
+      t.step(() => {
+          let i = document.createElement('iframe');
+          i.src = "resources/iframe_location_replace.html";
+          document.body.appendChild(i);
+      });
+    </script>
+  </body>
+</html>

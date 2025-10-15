@@ -2970,7 +2970,7 @@ impl Window {
             } else if load_data.url.scheme() == "javascript" || doc.is_initial_about_blank() {
                 NavigationHistoryBehavior::Replace
             } else {
-                NavigationHistoryBehavior::Push
+                history_handling
             };
 
             if let Some(sender) = self.webdriver_load_status_sender.borrow().as_ref() {
