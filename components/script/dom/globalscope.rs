@@ -3529,7 +3529,7 @@ impl GlobalScope {
         );
     }
 
-    /// <https://html.spec.whatwg.org/multipage/webappapis.html#check-if-we-can-run-script>
+    /// <https://html.spec.whatwg.org/multipage/#check-if-we-can-run-script>
     fn can_run_script(&self) -> bool {
         // If the global object specified by settings is a Window object whose Document object is not fully active
         // or it's active sandboxing flag set does not have its sandboxed scripts browsing context flag set.
