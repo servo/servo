@@ -1899,23 +1899,6 @@ where
     }
 }
 
-/// Helper to abstract the conversion process of a JS value into many different WebIDL dictionaries.
-fn boxed_dictionary_from_jsval<T>(
-    cx: JSContext,
-    value: HandleValue,
-) -> Fallible<RootedTraceableBox<T>>
-where
-    T: crate::JSTraceable + 'static,
-    RootedTraceableBox<T>: SafeFromJSValConvertible<Config = ()>,
-{
-    let conversion =
-        RootedTraceableBox::<T>::safe_from_jsval(cx, value, ()).map_err(|_| Error::JSFailed)?;
-    match conversion {
-        ConversionResult::Success(dictionary) => Ok(dictionary),
-        ConversionResult::Failure(error) => Err(Error::Type(error.into())),
-    }
-}
-
 pub(crate) enum ExportedKey {
     Raw(Vec<u8>),
     Jwk(Box<JsonWebKey>),
@@ -2213,14 +2196,18 @@ fn normalize_algorithm(
             let normalized_algorithm = match (alg_name, op) {
                 // <https://w3c.github.io/webcrypto/#aes-ctr-registration>
                 (ALG_AES_CTR, Operation::Encrypt) => {
-                    let mut params =
-                        boxed_dictionary_from_jsval::<AesCtrParams>(cx, value.handle())?;
+                    let mut params = dictionary_from_jsval::<RootedTraceableBox<AesCtrParams>>(
+                        cx,
+                        value.handle(),
+                    )?;
                     params.parent.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::AesCtrParams(params.into())
                 },
                 (ALG_AES_CTR, Operation::Decrypt) => {
-                    let mut params =
-                        boxed_dictionary_from_jsval::<AesCtrParams>(cx, value.handle())?;
+                    let mut params = dictionary_from_jsval::<RootedTraceableBox<AesCtrParams>>(
+                        cx,
+                        value.handle(),
+                    )?;
                     params.parent.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::AesCtrParams(params.into())
                 },
@@ -2248,14 +2235,18 @@ fn normalize_algorithm(
 
                 // <https://w3c.github.io/webcrypto/#aes-cbc-registration>
                 (ALG_AES_CBC, Operation::Encrypt) => {
-                    let mut params =
-                        boxed_dictionary_from_jsval::<AesCbcParams>(cx, value.handle())?;
+                    let mut params = dictionary_from_jsval::<RootedTraceableBox<AesCbcParams>>(
+                        cx,
+                        value.handle(),
+                    )?;
                     params.parent.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::AesCbcParams(params.into())
                 },
                 (ALG_AES_CBC, Operation::Decrypt) => {
-                    let mut params =
-                        boxed_dictionary_from_jsval::<AesCbcParams>(cx, value.handle())?;
+                    let mut params = dictionary_from_jsval::<RootedTraceableBox<AesCbcParams>>(
+                        cx,
+                        value.handle(),
+                    )?;
                     params.parent.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::AesCbcParams(params.into())
                 },
@@ -2283,14 +2274,18 @@ fn normalize_algorithm(
 
                 // <https://w3c.github.io/webcrypto/#aes-gcm-registration>
                 (ALG_AES_GCM, Operation::Encrypt) => {
-                    let mut params =
-                        boxed_dictionary_from_jsval::<AesGcmParams>(cx, value.handle())?;
+                    let mut params = dictionary_from_jsval::<RootedTraceableBox<AesGcmParams>>(
+                        cx,
+                        value.handle(),
+                    )?;
                     params.parent.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::AesGcmParams(params.into())
                 },
                 (ALG_AES_GCM, Operation::Decrypt) => {
-                    let mut params =
-                        boxed_dictionary_from_jsval::<AesGcmParams>(cx, value.handle())?;
+                    let mut params = dictionary_from_jsval::<RootedTraceableBox<AesGcmParams>>(
+                        cx,
+                        value.handle(),
+                    )?;
                     params.parent.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::AesGcmParams(params.into())
                 },
@@ -2361,14 +2356,18 @@ fn normalize_algorithm(
                     NormalizedAlgorithm::Algorithm(params.into())
                 },
                 (ALG_HMAC, Operation::GenerateKey) => {
-                    let mut params =
-                        boxed_dictionary_from_jsval::<HmacKeyGenParams>(cx, value.handle())?;
+                    let mut params = dictionary_from_jsval::<RootedTraceableBox<HmacKeyGenParams>>(
+                        cx,
+                        value.handle(),
+                    )?;
                     params.parent.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::HmacKeyGenParams(params.try_into()?)
                 },
                 (ALG_HMAC, Operation::ImportKey) => {
-                    let mut params =
-                        boxed_dictionary_from_jsval::<HmacImportParams>(cx, value.handle())?;
+                    let mut params = dictionary_from_jsval::<RootedTraceableBox<HmacImportParams>>(
+                        cx,
+                        value.handle(),
+                    )?;
                     params.parent.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::HmacImportParams(params.try_into()?)
                 },
@@ -2378,8 +2377,10 @@ fn normalize_algorithm(
                     NormalizedAlgorithm::Algorithm(params.into())
                 },
                 (ALG_HMAC, Operation::GetKeyLength) => {
-                    let mut params =
-                        boxed_dictionary_from_jsval::<HmacImportParams>(cx, value.handle())?;
+                    let mut params = dictionary_from_jsval::<RootedTraceableBox<HmacImportParams>>(
+                        cx,
+                        value.handle(),
+                    )?;
                     params.parent.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::HmacImportParams(params.try_into()?)
                 },
@@ -2408,7 +2409,10 @@ fn normalize_algorithm(
 
                 // <https://w3c.github.io/webcrypto/#hkdf-registration>
                 (ALG_HKDF, Operation::DeriveBits) => {
-                    let mut params = boxed_dictionary_from_jsval::<HkdfParams>(cx, value.handle())?;
+                    let mut params = dictionary_from_jsval::<RootedTraceableBox<HkdfParams>>(
+                        cx,
+                        value.handle(),
+                    )?;
                     params.parent.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::HkdfParams(params.try_into()?)
                 },
@@ -2425,8 +2429,10 @@ fn normalize_algorithm(
 
                 // <https://w3c.github.io/webcrypto/#pbkdf2-registration>
                 (ALG_PBKDF2, Operation::DeriveBits) => {
-                    let mut params =
-                        boxed_dictionary_from_jsval::<Pbkdf2Params>(cx, value.handle())?;
+                    let mut params = dictionary_from_jsval::<RootedTraceableBox<Pbkdf2Params>>(
+                        cx,
+                        value.handle(),
+                    )?;
                     params.parent.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::Pbkdf2Params(params.try_into()?)
                 },
