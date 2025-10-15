@@ -401,7 +401,7 @@ jobs:
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-llvm-cov
+          tool: cargo-llvm-cov,cargo-nextest
       - name: Bootstrap dependencies
         if: ${{ runner.environment != 'self-hosted' }}
         shell: bash
