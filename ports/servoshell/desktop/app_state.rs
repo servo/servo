@@ -113,6 +113,11 @@ impl RunningAppState {
         webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
     ) -> RunningAppState {
         servo.set_delegate(Rc::new(ServoShellServoDelegate));
+        let gamepad_support = if pref!(dom_gamepad_enabled) {
+            GamepadSupport::maybe_new()
+        } else {
+            None
+        };
         RunningAppState {
             servo,
             servoshell_preferences,
@@ -124,7 +129,7 @@ impl RunningAppState {
                 focused_webview_id: None,
                 dialogs: Default::default(),
                 window,
-                gamepad_support: GamepadSupport::maybe_new(),
+                gamepad_support,
                 need_update: false,
                 need_repaint: false,
                 dialog_amount_changed: false,
