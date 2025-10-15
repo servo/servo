@@ -90,6 +90,28 @@ impl Handler {
         }
     }
 
+    /// <https://w3c.github.io/webdriver/#dfn-deserialize-a-web-window>
+    fn deserialize_web_window(&self, element: &Value) -> WebDriverResult<String> {
+        // Step 2. Let reference be the result of getting the web window identifier property from object.
+        let window_ref = match element {
+            Value::String(s) => s.clone(),
+            _ => unreachable!(),
+        };
+
+        // Step 3. Let element be the result of trying to get a known element with session and reference.
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.browsing_context_script_command(
+            WebDriverScriptCommand::GetKnownWindow(window_ref.clone(), sender),
+            VerifyBrowsingContextIsOpen::No,
+        )?;
+
+        match wait_for_ipc_response(receiver)? {
+            // Step 4. Return success with data element.
+            Ok(_) => Ok(format!("window.webdriverWindow(\"{}\")", window_ref)),
+            Err(err) => Err(WebDriverError::new(err, "No such window")),
+        }
+    }
+
     /// <https://w3c.github.io/webdriver/#dfn-json-deserialize>
     fn json_deserialize(&self, v: &Value) -> WebDriverResult<String> {
         let res = match v {
