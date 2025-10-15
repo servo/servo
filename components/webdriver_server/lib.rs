@@ -8,7 +8,7 @@
 
 mod actions;
 mod capabilities;
-mod elements;
+mod script_argument_extraction;
 mod session;
 mod timeout;
 mod user_prompt;

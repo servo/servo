@@ -138,6 +138,34 @@ fn is_disabled(element: &Element) -> bool {
     element.is_actually_disabled()
 }
 
+pub(crate) fn handle_get_known_window(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    webview_id: String,
+    reply: IpcSender<Result<(), ErrorStatus>>,
+) {
+    if reply
+        .send(
+            documents
+                .find_window(pipeline)
+                .map_or(Err(ErrorStatus::NoSuchWindow), |window| {
+                    let window_proxy = window.window_proxy();
+                    // Step 3-4: Window must be top level browsing context.
+                    if window_proxy.browsing_context_id() != window_proxy.webview_id() ||
+                        window_proxy.webview_id().to_string() != webview_id
+                    {
+                        Err(ErrorStatus::NoSuchWindow)
+                    } else {
+                        Ok(())
+                    }
+                }),
+        )
+        .is_err()
+    {
+        error!("Webdriver get known window reply failed");
+    }
+}
+
 pub(crate) fn handle_get_known_shadow_root(
     documents: &DocumentCollection,
     pipeline: PipelineId,

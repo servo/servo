@@ -1647,19 +1647,15 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             .and_then(|iframe| iframe.GetContentWindow())
     }
 
-    fn WebdriverWindow(&self, webview_id: DOMString) -> Option<DomRoot<WindowProxy>> {
-        let window_proxy = self.window_proxy.get()?;
-
+    fn WebdriverWindow(&self, webview_id: DOMString) -> DomRoot<WindowProxy> {
+        let window_proxy = &self
+            .window_proxy
+            .get()
+            .expect("This must succeed as we checked");
         // Window must be top level browsing context.
-        if window_proxy.browsing_context_id() != window_proxy.webview_id() {
-            return None;
-        }
-
-        if self.webview_id().to_string() == webview_id {
-            Some(DomRoot::from_ref(&window_proxy))
-        } else {
-            None
-        }
+        assert!(window_proxy.browsing_context_id() == window_proxy.webview_id());
+        assert!(self.webview_id().to_string() == webview_id);
+        DomRoot::from_ref(window_proxy)
     }
 
     fn WebdriverShadowRoot(&self, id: DOMString) -> Option<DomRoot<ShadowRoot>> {
