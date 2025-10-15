@@ -2414,7 +2414,6 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         inline_item: &InlineItem,
         inline_formatting_context: &InlineFormattingContext,
     ) {
-        let mut linebreaker = LineBreaker::new(&inline_formatting_context.text_content);
         match inline_item {
             InlineItem::StartInlineBox(inline_box) => {
                 // For margins and paddings, a cyclic percentage is resolved against zero
@@ -2508,19 +2507,12 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
 
                         // check if there's an opportunity to break the line
                         if can_wrap &&
-                            !self.is_soft_hyphen_slice(
+                            self.is_chinese(
                                 &inline_formatting_context.text_content,
                                 run.range.end().to_usize(),
                             )
                         {
-                            let textrun_range =
-                                run.range.begin().to_usize()..run.range.end().to_usize();
-                            let linebreaks =
-                                linebreaker.advance_to_linebreaks_in_range(textrun_range.clone());
-
-                            if !linebreaks.is_empty() {
-                                self.line_break_opportunity();
-                            }
+                            self.line_break_opportunity();
                         }
                     }
                 }
@@ -2559,9 +2551,25 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         }
     }
 
-    fn is_soft_hyphen_slice(&mut self, s: &str, end_bound: usize) -> bool {
-        if let Some(sub_str) = s.get(end_bound - 2..end_bound) {
-            sub_str.as_bytes() == [0xC2, 0xAD]
+    fn is_chinese(&mut self, s: &str, end_bound: usize) -> bool {
+        if let Some(sub_str) = s.get(end_bound - 3..end_bound) {
+            let mut it = sub_str.chars();
+            if let (Some(chara), None) = (it.next(), it.next()) {
+                let u = chara as u32;
+
+                (0x4E00..=0x9FFF).contains(&u) || // common
+                (0x3400..=0x4DBF).contains(&u) || // rare
+                (0x20000..=0x2A6DF).contains(&u) || // rare, historic
+                (0x2A700..=0x2B73F).contains(&u) || // rare, historic
+                (0x2B740..=0x2B81F).contains(&u) || // uncommon
+                (0x2B820..=0x2CEAF).contains(&u) || // rare, historic
+                (0x2CEB0..=0x2EBEF).contains(&u) || // rare, historic
+                (0x30000..=0x3134F).contains(&u) || // rare, historic
+                (0xF900..=0xFAFF).contains(&u) ||  // duplicates
+                (0x2F800..=0x2FA1F).contains(&u) // unifiable variants
+            } else {
+                false
+            }
         } else {
             false
         }
