@@ -801,7 +801,7 @@ impl HTMLInputElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage#concept-input-step-scale
+    /// <https://html.spec.whatwg.org/multipage#concept-input-step-scale>
     fn step_scale_factor(&self) -> f64 {
         match self.input_type() {
             InputType::Date => 86400000.0,
@@ -856,42 +856,55 @@ impl HTMLInputElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-stepdown
-    // https://html.spec.whatwg.org/multipage/#dom-input-stepup
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-stepup>
+    ///
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-stepdown>
     fn step_up_or_down(&self, n: i32, dir: StepDirection, can_gc: CanGc) -> ErrorResult {
-        // Step 1
+        // Step 1. If the stepDown() and stepUp() methods do not apply, as defined for the
+        // input element's type attribute's current state, then throw an "InvalidStateError" DOMException.
         if !self.does_value_as_number_apply() {
             return Err(Error::InvalidState(None));
         }
         let step_base = self.step_base();
-        // Step 2
-        let allowed_value_step = match self.allowed_value_step() {
-            Some(avs) => avs,
-            None => return Err(Error::InvalidState(None)),
+
+        // Step 2. If the element has no allowed value step, then throw an "InvalidStateError" DOMException.
+        let Some(allowed_value_step) = self.allowed_value_step() else {
+            return Err(Error::InvalidState(None));
         };
+
+        // Step 3. If the element has a minimum and a maximum and the minimum is greater than the maximum,
+        // then return.
         let minimum = self.minimum();
         let maximum = self.maximum();
         if let (Some(min), Some(max)) = (minimum, maximum) {
-            // Step 3
             if min > max {
                 return Ok(());
             }
-            // Step 4
-            if let Some(smin) = self.stepped_minimum() {
-                if smin > max {
+
+            // Step 4. If the element has a minimum and a maximum and there is no value greater than or equal to the
+            // element's minimum and less than or equal to the element's maximum that, when subtracted from the step
+            // base, is an integral multiple of the allowed value step, then return.
+            if let Some(stepped_minimum) = self.stepped_minimum() {
+                if stepped_minimum > max {
                     return Ok(());
                 }
             }
         }
-        // Step 5
+
+        // Step 5. If applying the algorithm to convert a string to a number to the string given
+        // by the element's value does not result in an error, then let value be the result of
+        // that algorithm. Otherwise, let value be zero.
         let mut value: f64 = self
             .convert_string_to_number(&self.Value().str())
             .unwrap_or(0.0);
 
-        // Step 6
+        // Step 6. Let valueBeforeStepping be value.
         let valueBeforeStepping = value;
 
-        // Step 7
+        // Step 7. If value subtracted from the step base is not an integral multiple of the allowed value step,
+        // then set value to the nearest value that, when subtracted from the step base, is an integral multiple
+        // of the allowed value step, and that is less than value if the method invoked was the stepDown() method,
+        // and more than value otherwise.
         if (value - step_base) % allowed_value_step != 0.0 {
             value = match dir {
                 StepDirection::Down =>
@@ -907,28 +920,40 @@ impl HTMLInputElement {
                     intervals_from_base * allowed_value_step + step_base
                 },
             };
-        } else {
+        }
+        // Otherwise (value subtracted from the step base is an integral multiple of the allowed value step):
+        else {
+            // Step 7.1 Let n be the argument.
+            // Step 7.2 Let delta be the allowed value step multiplied by n.
+            // Step 7.3 If the method invoked was the stepDown() method, negate delta.
+            // Step 7.4 Let value be the result of adding delta to value.
             value += match dir {
                 StepDirection::Down => -f64::from(n) * allowed_value_step,
                 StepDirection::Up => f64::from(n) * allowed_value_step,
             };
         }
 
-        // Step 8
+        // Step 8. If the element has a minimum, and value is less than that minimum, then set value to the smallest
+        // value that, when subtracted from the step base, is an integral multiple of the allowed value step, and that
+        // is more than or equal to that minimum.
         if let Some(min) = minimum {
             if value < min {
                 value = self.stepped_minimum().unwrap_or(value);
             }
         }
 
-        // Step 9
+        // Step 9. If the element has a maximum, and value is greater than that maximum, then set value to the largest
+        // value that, when subtracted from the step base, is an integral multiple of the allowed value step, and that
+        // is less than or equal to that maximum.
         if let Some(max) = maximum {
             if value > max {
                 value = self.stepped_maximum().unwrap_or(value);
             }
         }
 
-        // Step 10
+        // Step 10. If either the method invoked was the stepDown() method and value is greater than
+        // valueBeforeStepping, or the method invoked was the stepUp() method and value is less than
+        // valueBeforeStepping, then return.
         match dir {
             StepDirection::Down => {
                 if value > valueBeforeStepping {
@@ -942,7 +967,9 @@ impl HTMLInputElement {
             },
         }
 
-        // Step 11
+        // Step 11. Let value as string be the result of running the algorithm to convert a number to a string,
+        // as defined for the input element's type attribute's current state, on value.
+        // Step 12. Set the value of the element to value as string.
         self.SetValueAsNumber(value, can_gc)
     }
 
@@ -1825,7 +1852,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             .unwrap_or(f64::NAN)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-valueasnumber
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-valueasnumber>
     fn SetValueAsNumber(&self, value: f64, can_gc: CanGc) -> ErrorResult {
         if value.is_infinite() {
             Err(Error::Type("value is not finite".to_string()))
@@ -2044,12 +2071,12 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-stepup
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-stepup>
     fn StepUp(&self, n: i32, can_gc: CanGc) -> ErrorResult {
         self.step_up_or_down(n, StepDirection::Up, can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-stepdown
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-stepdown>
     fn StepDown(&self, n: i32, can_gc: CanGc) -> ErrorResult {
         self.step_up_or_down(n, StepDirection::Down, can_gc)
     }
@@ -2462,7 +2489,7 @@ impl HTMLInputElement {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#value-sanitization-algorithm
+    /// <https://html.spec.whatwg.org/multipage/#value-sanitization-algorithm>
     fn sanitize_value(&self, value: &mut DOMString) {
         // if sanitization_flag is false, we are setting content attributes
         // on an element we haven't really finished creating; we will
