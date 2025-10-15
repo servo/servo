@@ -113,12 +113,14 @@ impl DocumentEmbedderControls {
                         let Ok(embedder_control_response) = result else {
                             return;
                         };
-                        main_thread_sender.send(
+                        if let Err(error) = main_thread_sender.send(
                             MainThreadScriptMsg::ForwardEmbedderControlResponseFromFileManager(
                                 id,
                                 embedder_control_response,
                             ),
-                        );
+                        ) {
+                            warn!("Could not send FileManager response to main thread: {error}")
+                        }
                     }),
                 );
                 self.window

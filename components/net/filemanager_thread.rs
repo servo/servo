@@ -12,8 +12,8 @@ use std::sync::{Arc, Mutex, RwLock, Weak};
 use base::generic_channel;
 use base::threadpool::ThreadPool;
 use embedder_traits::{
-    EmbedderControlId, EmbedderControlRequest, EmbedderControlResponse, EmbedderMsg, EmbedderProxy,
-    FilePickerRequest, FilterPattern, SelectedFile,
+    EmbedderControlId, EmbedderControlResponse, EmbedderMsg, EmbedderProxy, FilePickerRequest,
+    SelectedFile,
 };
 use headers::{ContentLength, ContentRange, ContentType, HeaderMap, HeaderMapExt, Range};
 use http::header::{self, HeaderValue};
@@ -29,7 +29,6 @@ use net_traits::http_percent_encode;
 use net_traits::response::{Response, ResponseBody};
 use rustc_hash::{FxHashMap, FxHashSet};
 use servo_arc::Arc as ServoArc;
-use servo_config::pref;
 use tokio::sync::mpsc::UnboundedSender as TokioSender;
 use url::Url;
 use uuid::Uuid;
@@ -584,7 +583,7 @@ impl FileManagerStore {
             },
         };
 
-        let mut files = paths
+        let files = paths
             .into_iter()
             .filter_map(|path| match self.create_entry(&path, &origin) {
                 Ok(entry) => Some(entry),
