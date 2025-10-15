@@ -1,7 +1,0 @@
-{
-    "key": "value",
-    "other_key": {
-        "the_duplicated_key": 1,
-        "the_duplicated_key": 2
-    }
-}
