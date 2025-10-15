@@ -392,6 +392,10 @@ impl PlatformFontMethods for PlatformFont {
     fn variations(&self) -> &[FontVariation] {
         &self.variations
     }
+
+    fn is_variable(&self) -> bool {
+        self.table_provider_data.has_variations()
+    }
 }
 
 impl PlatformFont {
