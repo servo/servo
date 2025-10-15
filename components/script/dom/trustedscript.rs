@@ -61,8 +61,8 @@ impl TrustedScript {
         }
     }
 
-    pub(crate) fn data(&self) -> DOMString {
-        self.data.clone()
+    pub(crate) fn data(&self) -> &DOMString {
+        &self.data
     }
 
     /// <https://www.w3.org/TR/CSP/#can-compile-strings>
@@ -107,7 +107,7 @@ impl TrustedScript {
                     TrustedScriptOrString::TrustedScript(trusted_script) => {
                         // Step 2.4.2.2.1. if parameterStrings[index] is not equal to arg’s data,
                         // set isTrusted to false.
-                        if parameter_strings[index] != trusted_script.data() {
+                        if parameter_strings[index] != *trusted_script.data() {
                             is_trusted = false;
                         }
                     },

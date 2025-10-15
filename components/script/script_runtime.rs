@@ -33,7 +33,7 @@ use js::jsapi::{
     GetPromiseUserInputEventHandlingState, Handle as RawHandle, HandleObject, HandleString,
     HandleValue as RawHandleValue, Heap, InitConsumeStreamCallback, JS_AddExtraGCRootsTracer,
     JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback, JS_NewObject,
-    JS_NewStringCopyN, JS_SetGCCallback, JS_SetGCParameter, JS_SetGlobalJitCompilerOption,
+    JS_NewStringCopyUTF8N, JS_SetGCCallback, JS_SetGCParameter, JS_SetGlobalJitCompilerOption,
     JS_SetOffthreadIonCompilationEnabled, JS_SetReservedSlot, JS_SetSecurityCallbacks,
     JSCLASS_RESERVED_SLOTS_MASK, JSCLASS_RESERVED_SLOTS_SHIFT, JSClass, JSClassOps,
     JSContext as RawJSContext, JSGCParamKey, JSGCStatus, JSJitCompilerOption, JSObject,
@@ -491,12 +491,9 @@ unsafe extern "C" fn code_for_eval_gets(
 ) -> bool {
     let cx = JSContext::from_ptr(cx);
     if let Ok(trusted_script) = root_from_object::<TrustedScript>(code.get(), *cx) {
-        let script_string = trusted_script.data();
-        let new_string = JS_NewStringCopyN(
-            *cx,
-            script_string.str().as_ptr() as *const libc::c_char,
-            script_string.len(),
-        );
+        let script_str = trusted_script.data().str();
+        let s = js::conversions::Utf8Chars::from(&*script_str);
+        let new_string = JS_NewStringCopyUTF8N(*cx, &*s as *const _);
         code_for_eval.set(new_string);
     }
     true

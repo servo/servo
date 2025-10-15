@@ -38,12 +38,16 @@ pub struct TrustedTypePolicyFactory {
 
 pub(crate) static DEFAULT_SCRIPT_SINK_GROUP: &str = "'script'";
 
+// We currently always clone the result, so keep the `clone()` in the trait
+// for now to keep the caller side clean
 impl Convert<DOMString> for TrustedTypeOrString {
     fn convert(self) -> DOMString {
         match self {
-            TrustedTypeOrString::TrustedHTML(trusted_html) => trusted_html.data(),
-            TrustedTypeOrString::TrustedScript(trusted_script) => trusted_script.data(),
-            TrustedTypeOrString::TrustedScriptURL(trusted_script_url) => trusted_script_url.data(),
+            TrustedTypeOrString::TrustedHTML(trusted_html) => trusted_html.data().clone(),
+            TrustedTypeOrString::TrustedScript(trusted_script) => trusted_script.data().clone(),
+            TrustedTypeOrString::TrustedScriptURL(trusted_script_url) => {
+                trusted_script_url.data().clone()
+            },
             TrustedTypeOrString::String(str_) => str_,
         }
     }
