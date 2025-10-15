@@ -753,15 +753,11 @@ impl WebViewRenderer {
             ScrollLocation::Start | ScrollLocation::End => scroll_location,
         };
 
-        let mut hit_test_results: Vec<_> = self
+        let hit_test_results: Vec<_> = self
             .touch_handler
             .get_hit_test_result_cache_value()
-            .into_iter()
-            .collect();
-
-        if hit_test_results.is_empty() {
-            hit_test_results = self.global.borrow().hit_test_at_point(cursor);
-        }
+            .map(|result| vec![result])
+            .unwrap_or_else(|| self.global.borrow().hit_test_at_point(cursor));
 
         // Iterate through all hit test results, processing only the first node of each pipeline.
         // This is needed to propagate the scroll events from a pipeline representing an iframe to
