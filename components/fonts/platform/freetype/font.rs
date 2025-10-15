@@ -424,12 +424,12 @@ impl FreeTypeFaceTableProviderData {
             .font_ref()
             .and_then(|font_ref| font_ref.os2())
             .is_ok_and(|table| table.us_weight_class() >= SEMI_BOLD_U16);
-        let is_variable_font = self.has_variation();
+        let is_variable_font = self.has_variations();
         !face_is_bold && !is_variable_font && synthetic_bold
     }
 
     /// Returns `true` if `Self` has non-empty variation axes, `false` otherwise
-    fn has_variation(&self) -> bool {
+    fn has_variations(&self) -> bool {
         self.font_ref()
             .and_then(|font_ref| font_ref.fvar())
             .is_ok_and(|table| table.axis_count() > 0)

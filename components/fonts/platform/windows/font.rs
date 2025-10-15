@@ -356,7 +356,7 @@ impl PlatformFontMethods for PlatformFont {
     }
 
     fn is_variable(&self) -> bool {
-        self.face.has_variation()
+        self.face.has_variations()
     }
 }
 

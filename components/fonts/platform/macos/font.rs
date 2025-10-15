@@ -83,7 +83,7 @@ impl PlatformFont {
         synthetic_bold: bool,
     ) -> PlatformFont {
         let ctfont_is_bold = ctfont.all_traits().weight() >= FontWeight::BOLD_THRESHOLD;
-        let is_variable_font = ctfont_has_variation(&ctfont);
+        let is_variable_font = ctfont_has_variations(&ctfont);
 
         let synthetic_bold = !ctfont_is_bold && !is_variable_font && synthetic_bold;
 
@@ -447,7 +447,7 @@ impl PlatformFontMethods for PlatformFont {
     }
 
     fn is_variable(&self) -> bool {
-        ctfont_has_variation(&self.ctfont)
+        ctfont_has_variations(&self.ctfont)
     }
 }
 
@@ -499,7 +499,7 @@ impl CoreTextFontTraitsMapping for CTFontTraits {
 }
 
 /// Returns `true` if `ctfont` has non-empty variation axes, `false` otherwise
-fn ctfont_has_variation(ctfont: &CTFont) -> bool {
+fn ctfont_has_variations(ctfont: &CTFont) -> bool {
     ctfont
         .get_variation_axes()
         .is_some_and(|arr| !arr.is_empty())
