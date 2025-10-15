@@ -100,7 +100,6 @@ jobs:
         id: select
         uses: ./.github/actions/runner-select
         with:
-          monitor-api-token: ${{ secrets.SERVO_CI_MONITOR_API_TOKEN }}
           github-hosted-runner-label: macos-13
           self-hosted-image-name: servo-macos13
           # You can disable self-hosted runners globally by creating a repository variable named
