@@ -2554,7 +2554,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         }
     }
 
-    fn is_soft_hyphen_slice(&mut self, s: &str, end_bound: usize){
+    fn is_soft_hyphen_slice(&mut self, s: &str, end_bound: usize) -> bool {
         if let Some(sub_str) = s.get(end_bound-2..end_bound){
             return sub_str.as_bytes() == [0xC2, 0xAD];
         }
