@@ -11,14 +11,12 @@ use std::ptr::NonNull;
 use std::str::FromStr;
 use std::{f64, ptr};
 
-use base::IpcSend;
 use dom_struct::dom_struct;
 use embedder_traits::{
     EmbedderControlRequest, FilePickerRequest, FilterPattern, InputMethodType, RgbColor,
     SelectedFile,
 };
 use encoding_rs::Encoding;
-use euclid::{Point2D, Rect, Size2D};
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use itertools::Itertools;
 use js::jsapi::{
@@ -28,13 +26,10 @@ use js::jsapi::{
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{CheckRegExpSyntax, ExecuteRegExpNoStatics, ObjectIsRegExp};
 use js::rust::{HandleObject, MutableHandleObject};
-use net_traits::CoreResourceMsg;
 use net_traits::blob_url_store::get_blob_origin;
-use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadMsg};
 use script_bindings::codegen::GenericBindings::CharacterDataBinding::CharacterDataMethods;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::domstring::parse_floating_point_number;
-use servo_config::pref;
 use style::attr::AttrValue;
 use style::selector_parser::PseudoElement;
 use style::str::split_commas;
@@ -43,7 +38,6 @@ use stylo_dom::ElementState;
 use time::{Month, OffsetDateTime, Time};
 use unicode_bidi::{BidiClass, bidi_class};
 use url::Url;
-use webrender_api::units::DeviceIntRect;
 
 use crate::clipboard_provider::EmbedderClipboardProvider;
 use crate::dom::activation::Activatable;
@@ -57,7 +51,6 @@ use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputE
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, FromInputValueString, ToInputValueString, USVString};
 use crate::dom::clipboardevent::ClipboardEvent;
@@ -2062,13 +2055,11 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             .set_dom_range_text(replacement, Some(start), Some(end), selection_mode)
     }
 
-    // Select the files based on filepaths passed in,
-    // enabled by dom.htmlinputelement.select_files.enabled,
-    // used for test purpose.
-    // check-tidy: no specs after this line
-    fn SelectFiles(&self, paths: Vec<DOMString>, can_gc: CanGc) {
+    /// Select the files based on filepaths passed in, enabled by
+    /// `dom.htmlinputelement.select_files.enabled`, used for test purpose.
+    fn SelectFiles(&self, paths: Vec<DOMString>) {
         if self.input_type() == InputType::File {
-            let _ = self.select_files(Some(paths), can_gc);
+            self.select_files(Some(paths));
         }
     }
 
@@ -2389,61 +2380,33 @@ impl HTMLInputElement {
             .SetData(placeholder_text);
     }
 
-    // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file)
-    // Select files by invoking UI or by passed in argument
-    pub(crate) fn select_files(
-        &self,
-        opt_test_paths: Option<Vec<DOMString>>,
-        can_gc: CanGc,
-    ) -> FileManagerResult<()> {
-        let window = self.owner_window();
-        let origin = get_blob_origin(&window.get_url());
-        let resource_threads = window.as_global_scope().resource_threads();
-
-        let mut files: Vec<DomRoot<File>> = vec![];
-
-        let filter = filter_from_accept(&self.Accept());
-        let target = self.upcast::<EventTarget>();
-
-        // When using WebDriver command element send keys,
-        // we are expected to append the files to the existing filelist.
-        if pref!(dom_testing_html_input_element_select_files_enabled) {
-            let filelist = self.filelist.get();
-            if let Some(filelist) = filelist {
-                for i in 0..filelist.Length() {
-                    files.push(
-                        filelist
-                            .Item(i)
-                            .expect("We should have iterate within filelist length"),
-                    );
-                }
-            }
-        }
-
-        let opt_test_paths = opt_test_paths.map(|paths| {
-            paths
+    /// Select files by invoking UI or by passed in argument.
+    ///
+    /// <https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file)>
+    pub(crate) fn select_files(&self, test_paths: Option<Vec<DOMString>>) {
+        let current_paths = match &test_paths {
+            Some(test_paths) => test_paths
                 .iter()
-                .filter_map(|p| PathBuf::from_str(&p.str()).ok())
-                .collect()
-        });
+                .filter_map(|path_str| PathBuf::from_str(&path_str.str()).ok())
+                .collect(),
+            // TODO: This should get the pathnames of the current files, but we currently don't have
+            // that information in Script. It should be passed through here.
+            None => Default::default(),
+        };
 
-        let accept_current_paths_for_testing = opt_test_paths.is_some();
+        let accept_current_paths_for_testing = test_paths.is_some();
         self.owner_document()
             .embedder_controls()
             .show_embedder_control(
                 ControlElement::FileInput(DomRoot::from_ref(self)),
                 EmbedderControlRequest::FilePicker(FilePickerRequest {
-                    origin,
-                    // TODO: in normal activation, fill this field with the currently selected paths
-                    // (`self.filelist` only contains filenames, not paths)
-                    current_paths: opt_test_paths,
-                    filter_patterns: filter,
+                    origin: get_blob_origin(&self.owner_window().get_url()),
+                    current_paths,
+                    filter_patterns: filter_from_accept(&self.Accept()),
                     allow_select_multiple: self.Multiple(),
                     accept_current_paths_for_testing,
                 }),
             );
-
-        Ok(())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#value-sanitization-algorithm>
@@ -2846,7 +2809,17 @@ impl HTMLInputElement {
         response: Option<Vec<SelectedFile>>,
         can_gc: CanGc,
     ) {
-        let Some(files) = response else { return };
+        let Some(mut files) = response else { return };
+
+        // Only use the last file if this isn't a multi-select file input. This could
+        // happen if the attribute changed after the file dialog was initiated.
+        if !self.Multiple() {
+            files = files
+                .pop()
+                .map(|last_file| vec![last_file])
+                .unwrap_or_default();
+        }
+
         let window = self.owner_window();
         let files = files
             .into_iter()
@@ -3592,7 +3565,7 @@ impl Activatable for HTMLInputElement {
             },
             // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file):input-activation-behavior
             InputType::File => {
-                let _ = self.select_files(None, can_gc);
+                self.select_files(None);
             },
             // https://html.spec.whatwg.org/multipage/#color-state-(type=color):input-activation-behavior
             InputType::Color => {

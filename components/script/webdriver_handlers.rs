@@ -1185,14 +1185,21 @@ fn is_keyboard_interactable(element: &Element) -> bool {
     element.is_focusable_area() || element.is::<HTMLBodyElement>() || element.is_document_element()
 }
 
-fn handle_send_keys_file(
-    file_input: &HTMLInputElement,
-    text: &str,
-    can_gc: CanGc,
-) -> Result<bool, ErrorStatus> {
+fn handle_send_keys_file(file_input: &HTMLInputElement, text: &str) -> Result<bool, ErrorStatus> {
     // Step 1. Let files be the result of splitting text
     // on the newline (\n) character.
-    let files: Vec<DOMString> = text.split("\n").map(|s| s.into()).collect();
+    //
+    // Be sure to also remove empty strings, as "" always splits to a single string.
+    let files: Vec<DOMString> = text
+        .split("\n")
+        .filter_map(|string| {
+            if string.is_empty() {
+                None
+            } else {
+                Some(string.into())
+            }
+        })
+        .collect();
 
     // Step 2. If files is of 0 length, return ErrorStatus::InvalidArgument.
     if files.is_empty() {
@@ -1211,9 +1218,7 @@ fn handle_send_keys_file(
     // Step 6. Set the selected files on the input event.
     // TODO: If multiple is true files are be appended to element's selected files.
     // Step 7. Fire input and change event (should already be fired in `htmlinputelement.rs`)
-    if file_input.select_files(Some(files), can_gc).is_err() {
-        return Err(ErrorStatus::InvalidArgument);
-    }
+    file_input.select_files(Some(files));
 
     // Step 8. Return success with data null.
     Ok(false)
@@ -1319,7 +1324,7 @@ pub(crate) fn handle_will_send_keys(
                 if let Some(input_element) = input_element {
                     // Step 8 (Handle file upload)
                     if is_file_input {
-                        return handle_send_keys_file(input_element, &text, can_gc);
+                        return handle_send_keys_file(input_element, &text);
                     }
 
                     // Step 8 (Handle non-typeable form control)

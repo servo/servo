@@ -556,7 +556,7 @@ pub enum EmbedderControlRequest {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct FilePickerRequest {
     pub origin: String,
-    pub current_paths: Option<Vec<PathBuf>>,
+    pub current_paths: Vec<PathBuf>,
     pub filter_patterns: Vec<FilterPattern>,
     pub allow_select_multiple: bool,
     pub accept_current_paths_for_testing: bool,

@@ -4,13 +4,8 @@
 
 use std::cmp::{max, min};
 use std::ops::Range;
-use std::path::PathBuf;
-use std::time::SystemTime;
 
-use embedder_traits::{
-    EmbedderControlId, EmbedderControlRequest, EmbedderControlResponse, FilePickerRequest,
-    FilterPattern,
-};
+use embedder_traits::{EmbedderControlId, EmbedderControlResponse, FilePickerRequest};
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
 use num_traits::ToPrimitive;

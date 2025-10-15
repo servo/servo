@@ -876,7 +876,7 @@ impl Servo {
             },
             EmbedderMsg::SelectFiles(control_id, file_picker_request, response_sender) => {
                 if file_picker_request.accept_current_paths_for_testing {
-                    let _ = response_sender.send(file_picker_request.current_paths);
+                    let _ = response_sender.send(Some(file_picker_request.current_paths));
                     return;
                 }
                 if let Some(webview) = self.get_webview_handle(control_id.webview_id) {

@@ -162,7 +162,8 @@ pub(crate) enum MainThreadScriptMsg {
     Inactive,
     /// Wake-up call from the task queue.
     WakeUp,
-    /// The `FileManagerThread` has finished selecting files is forwarding the response to the main thread of this `ScriptThread`.
+    /// The `FileManagerThread` has finished selecting files is forwarding the response to
+    /// the main thread of this `ScriptThread`.
     ForwardEmbedderControlResponseFromFileManager(EmbedderControlId, EmbedderControlResponse),
 }
 

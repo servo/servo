@@ -15,7 +15,6 @@ use embedder_traits::{
     TraversalId, WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
-use log::warn;
 use serde::Serialize;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
@@ -461,19 +460,19 @@ impl FilePicker {
 
     /// Get the currently selected files in this [`FilePicker`]. This is initially the files that
     /// were previously selected before the picker is opened.
-    pub fn current_paths(&self) -> Option<&[PathBuf]> {
-        self.file_picker_request.current_paths.as_deref()
+    pub fn current_paths(&self) -> &[PathBuf] {
+        &self.file_picker_request.current_paths
     }
 
-    pub fn select(&mut self, paths: Option<&[PathBuf]>) {
-        self.file_picker_request.current_paths = paths.map(|paths| paths.to_owned());
+    pub fn select(&mut self, paths: &[PathBuf]) {
+        self.file_picker_request.current_paths = paths.to_owned();
     }
 
     /// Resolve the prompt with the options that have been selected by calling [select] previously.
     pub fn submit(mut self) {
-        let _ = self
-            .response_sender
-            .send(self.file_picker_request.current_paths.take());
+        let _ = self.response_sender.send(Some(std::mem::take(
+            &mut self.file_picker_request.current_paths,
+        )));
         self.response_sent = true;
     }
 
