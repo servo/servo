@@ -874,21 +874,17 @@ impl Servo {
                     );
                 }
             },
-            EmbedderMsg::SelectFiles(
-                control_id,
-                filter_patterns,
-                allow_select_multiple,
-                response_sender,
-            ) => {
+            EmbedderMsg::SelectFiles(control_id, file_picker_request, response_sender) => {
+                if file_picker_request.accept_current_paths_for_testing {
+                    let _ = response_sender.send(file_picker_request.current_paths);
+                    return;
+                }
                 if let Some(webview) = self.get_webview_handle(control_id.webview_id) {
                     webview.delegate().show_embedder_control(
                         webview,
                         EmbedderControl::FilePicker(FilePicker {
                             id: control_id,
-                            // TODO: fill this field when we merge the message into script
-                            current_paths: None,
-                            filter_patterns,
-                            allow_select_multiple,
+                            file_picker_request,
                             response_sender,
                             response_sent: false,
                         }),
@@ -1018,11 +1014,9 @@ impl Servo {
                                 response_sent: false,
                             })
                         },
-                        EmbedderControlRequest::FilePicker {
-                            current_paths: _,
-                            filter_patterns: _,
-                            allow_select_multiple: _,
-                        } => todo!("Implement this when EmbedderMsg::SelectFiles is removed"),
+                        EmbedderControlRequest::FilePicker { .. } => unreachable!(
+                            "This message should be routed through the FileManagerThread"
+                        ),
                     };
 
                     webview

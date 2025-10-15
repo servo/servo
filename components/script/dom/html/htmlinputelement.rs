@@ -14,7 +14,8 @@ use std::{f64, ptr};
 use base::IpcSend;
 use dom_struct::dom_struct;
 use embedder_traits::{
-    EmbedderControlRequest as EmbedderFormControl, FilterPattern, InputMethodType, RgbColor,
+    EmbedderControlRequest, FilePickerRequest, FilterPattern, InputMethodType, RgbColor,
+    SelectedFile,
 };
 use encoding_rs::Encoding;
 use euclid::{Point2D, Rect, Size2D};
@@ -2404,88 +2405,43 @@ impl HTMLInputElement {
         let filter = filter_from_accept(&self.Accept());
         let target = self.upcast::<EventTarget>();
 
-        if self.Multiple() {
-            // When using WebDriver command element send keys,
-            // we are expected to append the files to the existing filelist.
-            if pref!(dom_testing_html_input_element_select_files_enabled) {
-                let filelist = self.filelist.get();
-                if let Some(filelist) = filelist {
-                    for i in 0..filelist.Length() {
-                        files.push(
-                            filelist
-                                .Item(i)
-                                .expect("We should have iterate within filelist length"),
-                        );
-                    }
+        // When using WebDriver command element send keys,
+        // we are expected to append the files to the existing filelist.
+        if pref!(dom_testing_html_input_element_select_files_enabled) {
+            let filelist = self.filelist.get();
+            if let Some(filelist) = filelist {
+                for i in 0..filelist.Length() {
+                    files.push(
+                        filelist
+                            .Item(i)
+                            .expect("We should have iterate within filelist length"),
+                    );
                 }
             }
-
-            let opt_test_paths = opt_test_paths.map(|paths| {
-                paths
-                    .iter()
-                    .filter_map(|p| PathBuf::from_str(&p.str()).ok())
-                    .collect()
-            });
-
-            let (chan, recv) =
-                profile_traits::ipc::channel(self.global().time_profiler_chan().clone())
-                    .expect("Error initializing channel");
-            let control_id = self.owner_document().embedder_controls().next_control_id();
-            let msg =
-                FileManagerThreadMsg::SelectFiles(control_id, filter, chan, origin, opt_test_paths);
-            resource_threads
-                .send(CoreResourceMsg::ToFileManager(msg))
-                .unwrap();
-
-            match recv.recv().expect("IpcSender side error") {
-                Ok(selected_files) => {
-                    for selected in selected_files {
-                        files.push(File::new_from_selected(&window, selected, can_gc));
-                    }
-                },
-                Err(err) => {
-                    debug!("Input multiple file select error: {:?}", err);
-                    return Err(err);
-                },
-            };
-        } else {
-            let opt_test_path = match opt_test_paths {
-                Some(paths) => {
-                    if paths.is_empty() {
-                        return Ok(());
-                    } else {
-                        Some(PathBuf::from(paths[0].to_string())) // neglect other paths
-                    }
-                },
-                None => None,
-            };
-
-            let (chan, recv) =
-                profile_traits::ipc::channel(self.global().time_profiler_chan().clone())
-                    .expect("Error initializing channel");
-            let control_id = self.owner_document().embedder_controls().next_control_id();
-            let msg =
-                FileManagerThreadMsg::SelectFile(control_id, filter, chan, origin, opt_test_path);
-            resource_threads
-                .send(CoreResourceMsg::ToFileManager(msg))
-                .unwrap();
-
-            match recv.recv().expect("IpcSender side error") {
-                Ok(selected) => {
-                    files.push(File::new_from_selected(&window, selected, can_gc));
-                },
-                Err(err) => {
-                    debug!("Input file select error: {:?}", err);
-                    return Err(err);
-                },
-            };
         }
 
-        let filelist = FileList::new(&window, files, can_gc);
-        self.filelist.set(Some(&filelist));
+        let opt_test_paths = opt_test_paths.map(|paths| {
+            paths
+                .iter()
+                .filter_map(|p| PathBuf::from_str(&p.str()).ok())
+                .collect()
+        });
 
-        target.fire_bubbling_event(atom!("input"), can_gc);
-        target.fire_bubbling_event(atom!("change"), can_gc);
+        let accept_current_paths_for_testing = opt_test_paths.is_some();
+        self.owner_document()
+            .embedder_controls()
+            .show_embedder_control(
+                ControlElement::FileInput(DomRoot::from_ref(self)),
+                EmbedderControlRequest::FilePicker(FilePickerRequest {
+                    origin,
+                    // TODO: in normal activation, fill this field with the currently selected paths
+                    // (`self.filelist` only contains filenames, not paths)
+                    current_paths: opt_test_paths,
+                    filter_patterns: filter,
+                    allow_select_multiple: self.Multiple(),
+                    accept_current_paths_for_testing,
+                }),
+            );
 
         Ok(())
     }
@@ -2861,11 +2817,6 @@ impl HTMLInputElement {
         // in the way it normally would when the user interacts with the control.
         if self.input_type() == InputType::Color {
             let document = self.owner_document();
-            let rect = self.upcast::<Node>().border_box().unwrap_or_default();
-            let rect = Rect::new(
-                Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
-                Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
-            );
             let current_value = self.Value();
             let current_color = RgbColor {
                 red: u8::from_str_radix(&current_value.str()[1..3], 16).unwrap(),
@@ -2874,8 +2825,7 @@ impl HTMLInputElement {
             };
             document.embedder_controls().show_embedder_control(
                 ControlElement::ColorInput(DomRoot::from_ref(self)),
-                DeviceIntRect::from_untyped(&rect.to_box2d()),
-                EmbedderFormControl::ColorPicker(current_color),
+                EmbedderControlRequest::ColorPicker(current_color),
             );
         }
     }
@@ -2889,6 +2839,25 @@ impl HTMLInputElement {
             selected_color.red, selected_color.green, selected_color.blue
         );
         let _ = self.SetValue(formatted_color.into(), can_gc);
+    }
+
+    pub(crate) fn handle_file_picker_response(
+        &self,
+        response: Option<Vec<SelectedFile>>,
+        can_gc: CanGc,
+    ) {
+        let Some(files) = response else { return };
+        let window = self.owner_window();
+        let files = files
+            .into_iter()
+            .map(|file| File::new_from_selected(&window, file, can_gc))
+            .collect();
+        let filelist = FileList::new(&window, files, can_gc);
+        self.filelist.set(Some(&filelist));
+
+        let target = self.upcast::<EventTarget>();
+        target.fire_bubbling_event(atom!("input"), can_gc);
+        target.fire_bubbling_event(atom!("change"), can_gc);
     }
 }
 
