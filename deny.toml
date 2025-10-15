@@ -199,4 +199,4 @@ skip = [
 
 # github.com organizations to allow git sources for
 [sources.allow-org]
-github = ["servo", "linebender"]
+github = ["servo", "linebender", "minghuaw"] # TODO: remove minghuaw once https://github.com/servo/mozjs/pull/625 lands

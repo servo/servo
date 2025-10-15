@@ -59,7 +59,6 @@ use script_bindings::script_runtime::{mark_runtime_dead, runtime_is_alive};
 use servo_config::{opts, pref};
 use style::thread_state::{self, ThreadState};
 
-use crate::conversions::Utf8Chars;
 use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::Response_Binding::ResponseMethods;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
@@ -493,7 +492,7 @@ unsafe extern "C" fn code_for_eval_gets(
     let cx = JSContext::from_ptr(cx);
     if let Ok(trusted_script) = root_from_object::<TrustedScript>(code.get(), *cx) {
         let script_str = trusted_script.data().str();
-        let s = Utf8Chars::from(&*script_str);
+        let s = js::conversions::Utf8Chars::from(&*script_str);
         let new_string = JS_NewStringCopyUTF8N(*cx, &*s as *const _);
         code_for_eval.set(new_string);
     }
