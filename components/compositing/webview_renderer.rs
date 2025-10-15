@@ -287,7 +287,7 @@ impl WebViewRenderer {
         let event_point = event.event.point();
         let hit_test_result = match event_point {
             Some(point) => {
-                let cached_hit_test_result = match event.event {
+                let hit_test_result = match event.event {
                     InputEvent::Touch(_) => self.touch_handler.get_hit_test_result_cache_value(),
                     _ => None,
                 }
@@ -298,11 +298,11 @@ impl WebViewRenderer {
                         .into_iter()
                         .nth(0)
                 });
-                if cached_hit_test_result.is_none() {
+                if hit_test_result.is_none() {
                     warn!("Empty hit test result for input event, ignoring.");
                     return false;
                 }
-                cached_hit_test_result
+                hit_test_result
             },
             None => None,
         };
