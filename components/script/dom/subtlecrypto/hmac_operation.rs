@@ -331,7 +331,7 @@ pub(crate) fn export(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, 
         KeyFormat::Jwk => match key.handle() {
             Handle::Hmac(key_data) => {
                 // Step 3. Set the k attribute of jwk to be a string containing data
-                let k = base64::engine::general_purpose::STANDARD_NO_PAD.encode(key_data);
+                let k = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(key_data);
                 let cx = GlobalScope::get_cx();
                 // Step 4. Let algorithm be the [[algorithm]] internal slot of key.
                 rooted!(in(*cx) let mut algorithm_slot = ObjectValue(key.Algorithm(cx).as_ptr()));
