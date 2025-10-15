@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta name="author" title="Josh Matthews" href="mailto:josh@joshmatthews.net">
+<link rel="help" href="https://github.com/servo/servo/issues/36397">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe></iframe>
+<script>
+  async_test(t => {
+    window.imageLoaded = false;
+    var iframe = document.querySelector('iframe');
+    iframe.onload = function() {
+      let img = iframe.contentDocument.body.firstChild;
+      document.body.appendChild(img);
+      iframe.remove();
+      img.addEventListener('load', () => {
+        assert_equals(window.imageLoaded, false, "Window should point to iframe contentWindow");
+        t.done();
+      });
+    };
+    iframe.srcdoc="<img src='/images/green.png' onload='window.imageLoaded=true'>";
+  });
+</script>
