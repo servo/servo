@@ -475,7 +475,7 @@ pub enum EmbedderMsg {
     GetSelectedBluetoothDevice(WebViewId, Vec<String>, GenericSender<Option<String>>),
     /// Open file dialog to select files. Set boolean flag to true allows to select multiple files.
     SelectFiles(
-        WebViewId,
+        EmbedderControlId,
         Vec<FilterPattern>,
         bool,
         GenericSender<Option<Vec<PathBuf>>>,
@@ -515,7 +515,7 @@ pub enum EmbedderMsg {
     /// Request to display a notification.
     ShowNotification(Option<WebViewId>, Notification),
     /// Request to display a form control to the embedder.
-    ShowEmbedderControl(EmbedderControlId, DeviceIntRect, FormControlRequest),
+    ShowEmbedderControl(EmbedderControlId, DeviceIntRect, EmbedderControlRequest),
     /// Request to display a form control to the embedder.
     HideEmbedderControl(EmbedderControlId),
     /// Inform the embedding layer that a JavaScript evaluation has
@@ -544,17 +544,24 @@ pub struct EmbedderControlId {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub enum FormControlRequest {
+pub enum EmbedderControlRequest {
     /// Indicates that the user has activated a `<select>` element.
     SelectElement(Vec<SelectElementOptionOrOptgroup>, Option<usize>),
     /// Indicates that the user has activated a `<input type=color>` element.
     ColorPicker(RgbColor),
+    /// Indicates that the user has activated a `<input type=file>` element.
+    FilePicker {
+        current_paths: Option<Vec<PathBuf>>,
+        filter_patterns: Vec<FilterPattern>,
+        allow_select_multiple: bool,
+    },
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub enum FormControlResponse {
+pub enum EmbedderControlResponse {
     SelectElement(Option<usize>),
     ColorPicker(Option<RgbColor>),
+    FilePicker(Option<Vec<PathBuf>>),
 }
 
 /// Filter for file selection;

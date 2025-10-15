@@ -28,7 +28,7 @@ use crossbeam_channel::{RecvTimeoutError, Sender};
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    CompositorHitTestResult, EmbedderControlId, FocusSequenceNumber, FormControlResponse,
+    CompositorHitTestResult, EmbedderControlId, EmbedderControlResponse, FocusSequenceNumber,
     InputEventAndId, JavaScriptEvaluationId, MediaSessionActionType, ScriptToEmbedderChan, Theme,
     ViewportDetails, WebDriverScriptCommand,
 };
@@ -274,7 +274,7 @@ pub enum ScriptThreadMessage {
     /// in the future.
     RequestScreenshotReadiness(PipelineId),
     /// A response to a request to show an embedder user interface control.
-    EmbedderControlResponse(EmbedderControlId, FormControlResponse),
+    EmbedderControlResponse(EmbedderControlId, EmbedderControlResponse),
 }
 
 impl fmt::Debug for ScriptThreadMessage {

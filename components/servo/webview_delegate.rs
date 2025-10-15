@@ -9,12 +9,13 @@ use base::id::PipelineId;
 use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{
     AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, EmbedderControlId,
-    FilterPattern, FormControlResponse, GamepadHapticEffectType, InputEventId, InputEventResult,
-    InputMethodType, LoadStatus, MediaSessionEvent, Notification, PermissionFeature, RgbColor,
-    ScreenGeometry, SelectElementOptionOrOptgroup, SimpleDialog, TraversalId, WebResourceRequest,
-    WebResourceResponse, WebResourceResponseMsg,
+    EmbedderControlResponse, FilterPattern, GamepadHapticEffectType, InputEventId,
+    InputEventResult, InputMethodType, LoadStatus, MediaSessionEvent, Notification,
+    PermissionFeature, RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup, SimpleDialog,
+    TraversalId, WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
+use log::warn;
 use serde::Serialize;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
@@ -298,18 +299,21 @@ impl Drop for InterceptedWebResourceLoad {
 }
 
 /// The controls of an interactive form element.
-pub enum FormControl {
+pub enum EmbedderControl {
     /// The picker of a `<select>` element.
     SelectElement(SelectElement),
     /// The picker of a `<input type=color>` element.
     ColorPicker(ColorPicker),
+    /// The picker of a `<input type=file>` element.
+    FilePicker(FilePicker),
 }
 
-impl FormControl {
+impl EmbedderControl {
     pub fn id(&self) -> EmbedderControlId {
         match self {
-            FormControl::SelectElement(select_element) => select_element.id,
-            FormControl::ColorPicker(color_picker) => color_picker.id,
+            EmbedderControl::SelectElement(select_element) => select_element.id,
+            EmbedderControl::ColorPicker(color_picker) => color_picker.id,
+            EmbedderControl::FilePicker(file_picker) => file_picker.id,
         }
     }
 }
@@ -361,7 +365,7 @@ impl SelectElement {
         self.constellation_proxy
             .send(EmbedderToConstellationMessage::EmbedderControlResponse(
                 self.id,
-                FormControlResponse::SelectElement(self.selected_option()),
+                EmbedderControlResponse::SelectElement(self.selected_option()),
             ));
     }
 }
@@ -372,7 +376,7 @@ impl Drop for SelectElement {
             self.constellation_proxy
                 .send(EmbedderToConstellationMessage::EmbedderControlResponse(
                     self.id,
-                    FormControlResponse::SelectElement(self.selected_option()),
+                    EmbedderControlResponse::SelectElement(self.selected_option()),
                 ));
         }
     }
@@ -416,7 +420,7 @@ impl ColorPicker {
         self.constellation_proxy
             .send(EmbedderToConstellationMessage::EmbedderControlResponse(
                 self.id,
-                FormControlResponse::ColorPicker(self.current_color),
+                EmbedderControlResponse::ColorPicker(self.current_color),
             ));
     }
 }
@@ -427,8 +431,62 @@ impl Drop for ColorPicker {
             self.constellation_proxy
                 .send(EmbedderToConstellationMessage::EmbedderControlResponse(
                     self.id,
-                    FormControlResponse::ColorPicker(self.current_color),
+                    EmbedderControlResponse::ColorPicker(self.current_color),
                 ));
+        }
+    }
+}
+
+/// Represents a dialog triggered by clicking a `<input type=color>` element.
+pub struct FilePicker {
+    pub(crate) id: EmbedderControlId,
+    pub(crate) current_paths: Option<Vec<PathBuf>>,
+    pub(crate) filter_patterns: Vec<FilterPattern>,
+    pub(crate) allow_select_multiple: bool,
+    pub(crate) response_sender: GenericSender<Option<Vec<PathBuf>>>,
+    pub(crate) response_sent: bool,
+}
+
+impl FilePicker {
+    /// Return the [`EmbedderControlId`] associated with this element.
+    pub fn id(&self) -> EmbedderControlId {
+        self.id
+    }
+
+    pub fn filter_patterns(&self) -> &[FilterPattern] {
+        &self.filter_patterns
+    }
+
+    pub fn allow_select_multiple(&self) -> bool {
+        self.allow_select_multiple
+    }
+
+    /// Get the currently selected files in this [`FilePicker`]. This is initially the files that
+    /// were previously selected before the picker is opened.
+    pub fn current_paths(&self) -> Option<&[PathBuf]> {
+        self.current_paths.as_deref()
+    }
+
+    pub fn select(&mut self, paths: Option<&[PathBuf]>) {
+        self.current_paths = paths.map(|paths| paths.to_owned());
+    }
+
+    /// Resolve the prompt with the options that have been selected by calling [select] previously.
+    pub fn submit(mut self) {
+        if let Err(error) = self.response_sender.send(self.current_paths.take()) {
+            warn!("Failed to send file selection response: {error}");
+            return;
+        }
+        self.response_sent = true;
+    }
+}
+
+impl Drop for FilePicker {
+    fn drop(&mut self) {
+        if !self.response_sent {
+            if let Err(error) = self.response_sender.send(self.current_paths.take()) {
+                warn!("Failed to send file selection response: {error}");
+            }
         }
     }
 }
@@ -568,17 +626,6 @@ pub trait WebViewDelegate {
         let _ = response_sender.send(None);
     }
 
-    /// Open file dialog to select files. Set boolean flag to true allows to select multiple files.
-    fn show_file_selection_dialog(
-        &self,
-        _webview: WebView,
-        _filter_pattern: Vec<FilterPattern>,
-        _allow_select_mutiple: bool,
-        response_sender: GenericSender<Option<Vec<PathBuf>>>,
-    ) {
-        let _ = response_sender.send(None);
-    }
-
     /// Request to present an IME to the user when an editable element is focused.
     /// If `type` is [`InputMethodType::Text`], then the `text` parameter specifies
     /// the pre-existing text content and the zero-based index into the string
@@ -598,13 +645,13 @@ pub trait WebViewDelegate {
 
     /// Request that the embedder show UI elements for form controls that are not integrated
     /// into page content, such as dropdowns for `<select>` elements.
-    fn show_form_control(&self, _webview: WebView, _form_control: FormControl) {}
+    fn show_embedder_control(&self, _webview: WebView, _embedder_control: EmbedderControl) {}
 
-    /// Request that the embedder hide and ignore a previous [`FormControl`] request, if it hasn’t
+    /// Request that the embedder hide and ignore a previous [`EmbedderControl`] request, if it hasn’t
     /// already responded to it.
     ///
     /// After this point, any further responses to that request will be ignored.
-    fn hide_form_control(&self, _webview: WebView, _control_id: EmbedderControlId) {}
+    fn hide_embedder_control(&self, _webview: WebView, _control_id: EmbedderControlId) {}
 
     /// Request to play a haptic effect on a connected gamepad.
     fn play_gamepad_haptic_effect(

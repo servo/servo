@@ -6,7 +6,6 @@ use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::mem;
-use std::path::PathBuf;
 use std::rc::Rc;
 
 use crossbeam_channel::{Receiver, Sender};
@@ -18,7 +17,7 @@ use servo::config::pref;
 use servo::ipc_channel::ipc::IpcSender;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
-    AllowOrDenyRequest, AuthenticationRequest, EmbedderControlId, FilterPattern, FormControl,
+    AllowOrDenyRequest, AuthenticationRequest, EmbedderControl, EmbedderControlId,
     GamepadHapticEffectType, InputEvent, InputEventId, InputEventResult, JSValue, LoadStatus,
     PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog, TraversalId,
     WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus, WebDriverSenders,
@@ -738,18 +737,6 @@ impl WebViewDelegate for RunningAppState {
         );
     }
 
-    fn show_file_selection_dialog(
-        &self,
-        webview: servo::WebView,
-        filter_pattern: Vec<FilterPattern>,
-        allow_select_mutiple: bool,
-        response_sender: GenericSender<Option<Vec<PathBuf>>>,
-    ) {
-        let file_dialog =
-            Dialog::new_file_dialog(allow_select_mutiple, response_sender, filter_pattern);
-        self.add_dialog(webview, file_dialog);
-    }
-
     fn request_permission(&self, webview: servo::WebView, permission_request: PermissionRequest) {
         if self.servoshell_preferences.headless &&
             self.servoshell_preferences.webdriver_port.is_none()
@@ -812,21 +799,21 @@ impl WebViewDelegate for RunningAppState {
         self.inner().window.hide_ime();
     }
 
-    fn show_form_control(&self, webview: WebView, form_control: FormControl) {
+    fn show_embedder_control(&self, webview: WebView, embedder_control: EmbedderControl) {
         if self.servoshell_preferences.headless &&
             self.servoshell_preferences.webdriver_port.is_none()
         {
             return;
         }
 
-        match form_control {
-            FormControl::SelectElement(prompt) => {
+        match embedder_control {
+            EmbedderControl::SelectElement(prompt) => {
                 // FIXME: Reading the toolbar height is needed here to properly position the select dialog.
                 // But if the toolbar height changes while the dialog is open then the position won't be updated
                 let offset = self.inner().window.toolbar_height();
                 self.add_dialog(webview, Dialog::new_select_element_dialog(prompt, offset));
             },
-            FormControl::ColorPicker(color_picker) => {
+            EmbedderControl::ColorPicker(color_picker) => {
                 // FIXME: Reading the toolbar height is needed here to properly position the select dialog.
                 // But if the toolbar height changes while the dialog is open then the position won't be updated
                 let offset = self.inner().window.toolbar_height();
@@ -835,10 +822,13 @@ impl WebViewDelegate for RunningAppState {
                     Dialog::new_color_picker_dialog(color_picker, offset),
                 );
             },
+            EmbedderControl::FilePicker(file_picker) => {
+                self.add_dialog(webview, Dialog::new_file_dialog(file_picker));
+            },
         }
     }
 
-    fn hide_form_control(&self, webview: WebView, control_id: servo::EmbedderControlId) {
+    fn hide_embedder_control(&self, webview: WebView, control_id: servo::EmbedderControlId) {
         self.dismiss_active_dialogs_with_control_id(webview.id(), control_id);
     }
 

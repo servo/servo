@@ -132,8 +132,8 @@ use devtools_traits::{
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    AnimationState, CompositorHitTestResult, EmbedderControlId, EmbedderMsg, EmbedderProxy,
-    FocusSequenceNumber, FormControlResponse, InputEvent, InputEventAndId, JSValue,
+    AnimationState, CompositorHitTestResult, EmbedderControlId, EmbedderControlResponse,
+    EmbedderMsg, EmbedderProxy, FocusSequenceNumber, InputEvent, InputEventAndId, JSValue,
     JavaScriptEvaluationError, JavaScriptEvaluationId, KeyboardEvent, MediaSessionActionType,
     MediaSessionEvent, MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent,
     ScriptToEmbedderChan, Theme, ViewportDetails, WebDriverCommandMsg, WebDriverLoadStatus,
@@ -5750,7 +5750,7 @@ where
     fn handle_embedder_control_response(
         &self,
         id: EmbedderControlId,
-        response: FormControlResponse,
+        response: EmbedderControlResponse,
     ) {
         let pipeline_id = id.pipeline_id;
         let Some(pipeline) = self.pipelines.get(&pipeline_id) else {

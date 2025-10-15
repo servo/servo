@@ -14,7 +14,7 @@ use std::{f64, ptr};
 use base::IpcSend;
 use dom_struct::dom_struct;
 use embedder_traits::{
-    FilterPattern, FormControlRequest as EmbedderFormControl, InputMethodType, RgbColor,
+    EmbedderControlRequest as EmbedderFormControl, FilterPattern, InputMethodType, RgbColor,
 };
 use encoding_rs::Encoding;
 use euclid::{Point2D, Rect, Size2D};
@@ -2401,7 +2401,6 @@ impl HTMLInputElement {
 
         let mut files: Vec<DomRoot<File>> = vec![];
 
-        let webview_id = window.webview_id();
         let filter = filter_from_accept(&self.Accept());
         let target = self.upcast::<EventTarget>();
 
@@ -2431,8 +2430,9 @@ impl HTMLInputElement {
             let (chan, recv) =
                 profile_traits::ipc::channel(self.global().time_profiler_chan().clone())
                     .expect("Error initializing channel");
+            let control_id = self.owner_document().embedder_controls().next_control_id();
             let msg =
-                FileManagerThreadMsg::SelectFiles(webview_id, filter, chan, origin, opt_test_paths);
+                FileManagerThreadMsg::SelectFiles(control_id, filter, chan, origin, opt_test_paths);
             resource_threads
                 .send(CoreResourceMsg::ToFileManager(msg))
                 .unwrap();
@@ -2463,8 +2463,9 @@ impl HTMLInputElement {
             let (chan, recv) =
                 profile_traits::ipc::channel(self.global().time_profiler_chan().clone())
                     .expect("Error initializing channel");
+            let control_id = self.owner_document().embedder_controls().next_control_id();
             let msg =
-                FileManagerThreadMsg::SelectFile(webview_id, filter, chan, origin, opt_test_path);
+                FileManagerThreadMsg::SelectFile(control_id, filter, chan, origin, opt_test_path);
             resource_threads
                 .send(CoreResourceMsg::ToFileManager(msg))
                 .unwrap();
@@ -2871,7 +2872,7 @@ impl HTMLInputElement {
                 green: u8::from_str_radix(&current_value.str()[3..5], 16).unwrap(),
                 blue: u8::from_str_radix(&current_value.str()[5..7], 16).unwrap(),
             };
-            document.embedder_controls().show_form_control(
+            document.embedder_controls().show_embedder_control(
                 ControlElement::ColorInput(DomRoot::from_ref(self)),
                 DeviceIntRect::from_untyped(&rect.to_box2d()),
                 EmbedderFormControl::ColorPicker(current_color),
@@ -3109,7 +3110,7 @@ impl VirtualMethods for HTMLInputElement {
         if could_have_had_embedder_control && !self.may_have_embedder_control() {
             self.owner_document()
                 .embedder_controls()
-                .hide_form_control(self.upcast());
+                .hide_embedder_control(self.upcast());
         }
     }
 
@@ -3180,7 +3181,7 @@ impl VirtualMethods for HTMLInputElement {
         if self.input_type() == InputType::Color {
             self.owner_document()
                 .embedder_controls()
-                .hide_form_control(self.upcast());
+                .hide_embedder_control(self.upcast());
         }
     }
 
@@ -3319,7 +3320,7 @@ impl VirtualMethods for HTMLInputElement {
             if *event.upcast::<Event>().type_() != *"blur" {
                 self.owner_document()
                     .embedder_controls()
-                    .hide_form_control(self.upcast());
+                    .hide_embedder_control(self.upcast());
             }
         }
 

@@ -66,7 +66,6 @@ use constellation::{
 pub use constellation_traits::EmbedderToConstellationMessage;
 use constellation_traits::ScriptToConstellationChan;
 use crossbeam_channel::{Receiver, Sender, unbounded};
-use embedder_traits::FormControlRequest as EmbedderFormControl;
 use embedder_traits::user_content_manager::UserContentManager;
 pub use embedder_traits::{WebDriverSenders, *};
 use env_logger::Builder as EnvLoggerBuilder;
@@ -138,8 +137,8 @@ use crate::webrender_api::FrameReadyParams;
 use crate::webview::MINIMUM_WEBVIEW_SIZE;
 pub use crate::webview::{WebView, WebViewBuilder};
 pub use crate::webview_delegate::{
-    AllowOrDenyRequest, AuthenticationRequest, ColorPicker, FormControl, NavigationRequest,
-    PermissionRequest, SelectElement, WebResourceLoad, WebViewDelegate,
+    AllowOrDenyRequest, AuthenticationRequest, ColorPicker, EmbedderControl, FilePicker,
+    NavigationRequest, PermissionRequest, SelectElement, WebResourceLoad, WebViewDelegate,
 };
 
 #[cfg(feature = "media-gstreamer")]
@@ -870,17 +869,23 @@ impl Servo {
                 }
             },
             EmbedderMsg::SelectFiles(
-                webview_id,
+                control_id,
                 filter_patterns,
                 allow_select_multiple,
                 response_sender,
             ) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.delegate().show_file_selection_dialog(
+                if let Some(webview) = self.get_webview_handle(control_id.webview_id) {
+                    webview.delegate().show_embedder_control(
                         webview,
-                        filter_patterns,
-                        allow_select_multiple,
-                        response_sender,
+                        EmbedderControl::FilePicker(FilePicker {
+                            id: control_id,
+                            // TODO: fill this field when we merge the message into script
+                            current_paths: None,
+                            filter_patterns,
+                            allow_select_multiple,
+                            response_sender,
+                            response_sent: false,
+                        }),
                     );
                 }
             },
@@ -984,12 +989,12 @@ impl Servo {
                     None => self.delegate().show_notification(notification),
                 }
             },
-            EmbedderMsg::ShowEmbedderControl(control_id, position, form_control) => {
+            EmbedderMsg::ShowEmbedderControl(control_id, position, embedder_control) => {
                 if let Some(webview) = self.get_webview_handle(control_id.webview_id) {
                     let constellation_proxy = self.constellation_proxy.clone();
-                    let form_control = match form_control {
-                        EmbedderFormControl::SelectElement(options, selected_option) => {
-                            FormControl::SelectElement(SelectElement {
+                    let embedder_control = match embedder_control {
+                        EmbedderControlRequest::SelectElement(options, selected_option) => {
+                            EmbedderControl::SelectElement(SelectElement {
                                 id: control_id,
                                 options,
                                 selected_option,
@@ -998,8 +1003,8 @@ impl Servo {
                                 response_sent: false,
                             })
                         },
-                        EmbedderFormControl::ColorPicker(current_color) => {
-                            FormControl::ColorPicker(ColorPicker {
+                        EmbedderControlRequest::ColorPicker(current_color) => {
+                            EmbedderControl::ColorPicker(ColorPicker {
                                 id: control_id,
                                 current_color: Some(current_color),
                                 position,
@@ -1007,14 +1012,23 @@ impl Servo {
                                 response_sent: false,
                             })
                         },
+                        EmbedderControlRequest::FilePicker {
+                            current_paths: _,
+                            filter_patterns: _,
+                            allow_select_multiple: _,
+                        } => todo!("Implement this when EmbedderMsg::SelectFiles is removed"),
                     };
 
-                    webview.delegate().show_form_control(webview, form_control);
+                    webview
+                        .delegate()
+                        .show_embedder_control(webview, embedder_control);
                 }
             },
             EmbedderMsg::HideEmbedderControl(control_id) => {
                 if let Some(webview) = self.get_webview_handle(control_id.webview_id) {
-                    webview.delegate().hide_form_control(webview, control_id);
+                    webview
+                        .delegate()
+                        .hide_embedder_control(webview, control_id);
                 }
             },
             EmbedderMsg::GetWindowRect(webview_id, response_sender) => {

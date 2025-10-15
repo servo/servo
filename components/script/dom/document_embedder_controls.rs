@@ -5,7 +5,9 @@
 use std::cell::Cell;
 
 use base::Epoch;
-use embedder_traits::{EmbedderControlId, EmbedderMsg, FormControlRequest, FormControlResponse};
+use embedder_traits::{
+    EmbedderControlId, EmbedderControlRequest, EmbedderControlResponse, EmbedderMsg,
+};
 use rustc_hash::FxHashMap;
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::script_runtime::CanGc;
@@ -53,31 +55,35 @@ impl DocumentEmbedderControls {
         }
     }
 
-    pub(crate) fn show_form_control(
-        &self,
-        element: ControlElement,
-        rect: DeviceIntRect,
-        form_control: FormControlRequest,
-    ) -> EmbedderControlId {
+    /// Generate the next unused [`EmbedderControlId`]. This method is only needed for some older
+    /// types of controls that are still being migrated, and it will eventually be removed.
+    pub(crate) fn next_control_id(&self) -> EmbedderControlId {
         let index = self.user_interface_element_index.get();
         self.user_interface_element_index.set(index.next());
-
-        let id = EmbedderControlId {
+        EmbedderControlId {
             webview_id: self.window.webview_id(),
             pipeline_id: self.window.pipeline_id(),
             index,
-        };
+        }
+    }
 
+    pub(crate) fn show_embedder_control(
+        &self,
+        element: ControlElement,
+        rect: DeviceIntRect,
+        embedder_control: EmbedderControlRequest,
+    ) -> EmbedderControlId {
+        let id = self.next_control_id();
         self.visible_elements
             .borrow_mut()
             .insert(id.index.into(), element);
         self.window
-            .send_to_embedder(EmbedderMsg::ShowEmbedderControl(id, rect, form_control));
+            .send_to_embedder(EmbedderMsg::ShowEmbedderControl(id, rect, embedder_control));
 
         id
     }
 
-    pub(crate) fn hide_form_control(&self, element: &Element) {
+    pub(crate) fn hide_embedder_control(&self, element: &Element) {
         self.visible_elements
             .borrow_mut()
             .retain(|index, control_element| {
@@ -98,7 +104,7 @@ impl DocumentEmbedderControls {
     pub(crate) fn handle_embedder_control_response(
         &self,
         id: EmbedderControlId,
-        response: FormControlResponse,
+        response: EmbedderControlResponse,
         can_gc: CanGc,
     ) {
         assert_eq!(self.window.pipeline_id(), id.pipeline_id);
@@ -111,13 +117,13 @@ impl DocumentEmbedderControls {
         match (element, response) {
             (
                 ControlElement::Select(select_element),
-                FormControlResponse::SelectElement(response),
+                EmbedderControlResponse::SelectElement(response),
             ) => {
                 select_element.handle_menu_response(response, can_gc);
             },
             (
                 ControlElement::ColorInput(input_element),
-                FormControlResponse::ColorPicker(response),
+                EmbedderControlResponse::ColorPicker(response),
             ) => {
                 input_element.handle_color_picker_response(response, can_gc);
             },

@@ -6,7 +6,7 @@ use std::default::Default;
 use std::iter;
 
 use dom_struct::dom_struct;
-use embedder_traits::{FormControlRequest as EmbedderFormControl};
+use embedder_traits::{EmbedderControlRequest as EmbedderFormControl};
 use embedder_traits::{SelectElementOption, SelectElementOptionOrOptgroup};
 use euclid::{Point2D, Rect, Size2D};
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
@@ -401,11 +401,13 @@ impl HTMLSelectElement {
 
         let selected_index = self.list_of_options().position(|option| option.Selected());
 
-        self.owner_document().embedder_controls().show_form_control(
-            ControlElement::Select(DomRoot::from_ref(self)),
-            DeviceIntRect::from_untyped(&rect.to_box2d()),
-            EmbedderFormControl::SelectElement(options, selected_index),
-        );
+        self.owner_document()
+            .embedder_controls()
+            .show_embedder_control(
+                ControlElement::Select(DomRoot::from_ref(self)),
+                DeviceIntRect::from_untyped(&rect.to_box2d()),
+                EmbedderFormControl::SelectElement(options, selected_index),
+            );
     }
 
     pub(crate) fn handle_menu_response(&self, response: Option<usize>, can_gc: CanGc) {
@@ -702,7 +704,7 @@ impl VirtualMethods for HTMLSelectElement {
         if could_have_had_embedder_control && !self.may_have_embedder_control() {
             self.owner_document()
                 .embedder_controls()
-                .hide_form_control(self.upcast());
+                .hide_embedder_control(self.upcast());
         }
     }
 
@@ -731,7 +733,7 @@ impl VirtualMethods for HTMLSelectElement {
 
         self.owner_document()
             .embedder_controls()
-            .hide_form_control(self.upcast());
+            .hide_embedder_control(self.upcast());
     }
 
     fn children_changed(&self, mutation: &ChildrenMutation) {
@@ -758,7 +760,7 @@ impl VirtualMethods for HTMLSelectElement {
             if *event.upcast::<Event>().type_() != *"blur" {
                 self.owner_document()
                     .embedder_controls()
-                    .hide_form_control(self.upcast());
+                    .hide_embedder_control(self.upcast());
             }
         }
     }
