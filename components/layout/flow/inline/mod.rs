@@ -2507,7 +2507,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                         }
 
                         // check if there's an opportunity to break the line
-                        if can_wrap {
+                        if can_wrap && !self.is_soft_hyphen_slice(&inline_formatting_context.text_content, run.range.end().to_usize()) {
                             let textrun_range =
                                 run.range.begin().to_usize()..run.range.end().to_usize();
                             let linebreaks =
@@ -2552,6 +2552,13 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
             },
             _ => {},
         }
+    }
+
+    fn is_soft_hyphen_slice(&mut self, s: &str, end_bound: usize){
+        if let Some(sub_str) = s.get(end_bound-2..end_bound){
+            return sub_str.as_bytes() == [0xC2, 0xAD];
+        }
+        return false;
     }
 
     fn add_inline_size(&mut self, l: Au) {
