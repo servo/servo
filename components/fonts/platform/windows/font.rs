@@ -354,6 +354,10 @@ impl PlatformFontMethods for PlatformFont {
     fn variations(&self) -> &[FontVariation] {
         &self.variations
     }
+
+    fn is_variable(&self) -> bool {
+        self.face.has_variation()
+    }
 }
 
 /// A wrapper struct around [`PlatformFont`] which is responsible for

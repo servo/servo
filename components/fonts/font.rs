@@ -124,6 +124,9 @@ pub trait PlatformFontMethods: Sized {
     /// Return all the variation values that the font was instantiated with.
     fn variations(&self) -> &[FontVariation];
 
+    /// Returns `true` if font variation is supported, otherwise `false`
+    fn is_variable(&self) -> bool;
+
     fn descriptor_from_os2_table(os2: &Os2) -> FontTemplateDescriptor {
         let mut style = FontStyle::NORMAL;
         if os2.fs_selection().contains(SelectionFlags::ITALIC) {
