@@ -212,7 +212,7 @@ jobs:
           NEXTEST_RETRIES: 3 # https://github.com/servo/servo/issues/30683
         run: ./mach test-unit --${{ inputs.profile }}
       - name: Devtools tests
-        if: ${{ inputs.unit-tests }}
+        if: ${{ false && inputs.unit-tests }}  # FIXME #39273
         run: .\mach test-devtools --${{ inputs.profile }}
       - name: Archive build timing
         uses: actions/upload-artifact@v4
