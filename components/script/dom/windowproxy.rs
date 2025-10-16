@@ -498,7 +498,7 @@ impl WindowProxy {
         // but it does prevent a panic at the constellation because the browsing context
         // has already been discarded. See issue: #39716
         if self.discarded.get() {
-            return Ok(None)
+            return Ok(None);
         }
         // Step 5. If target is the empty string, then set target to "_blank".
         let non_empty_target = if target.is_empty() {
