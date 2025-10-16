@@ -143,6 +143,7 @@ skip = [
     "http",
     "http-body",
     "hyper",
+    "socket2",
 
     # duplicated by winit
     "objc2-app-kit",
