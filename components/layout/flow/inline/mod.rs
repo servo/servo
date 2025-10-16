@@ -2457,11 +2457,16 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
 
                     // TODO: This should take account whether or not the first and last character prevent
                     // linebreaks after atomics as in layout.
-                    if can_wrap && segment.break_at_start && self.had_content_yet_for_min_content {
-                        self.line_break_opportunity()
-                    }
+                    let break_at_start =
+                        segment.break_at_start && self.had_content_yet_for_min_content;
 
-                    for run in segment.runs.iter() {
+                    for (run_index, run) in segment.runs.iter().enumerate() {
+                        // Break before each unbreakable run in this TextRun, except the first unless the
+                        // linebreaker was set to break before the first run.
+                        if can_wrap && (run_index != 0 || break_at_start) {
+                            self.line_break_opportunity();
+                        }
+
                         let advance = run.glyph_store.total_advance();
                         if run.glyph_store.is_whitespace() {
                             // If this run is a forced line break, we *must* break the line
