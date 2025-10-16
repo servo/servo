@@ -2732,7 +2732,7 @@ impl ScriptThread {
         match window {
             None => warn!("postMessage after target pipeline {} closed.", pipeline_id),
             Some(window) => {
-                let mut last: Option<DomRoot<WindowProxy>> = None;
+                let mut last = None;
                 for browsing_context_id in source_with_ancestry.into_iter().rev() {
                     if let Some(window_proxy) = self.window_proxies.get(browsing_context_id) {
                         last = Some(window_proxy);

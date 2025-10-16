@@ -4269,36 +4269,27 @@ where
             None => return warn!("{}: PostMessage from closed pipeline", source_pipeline),
         };
 
+        let browsing_context_for_pipeline = |pipeline_id| {
+            self.pipelines
+                .get(&pipeline_id)
+                .and_then(|pipeline| self.browsing_contexts.get(&pipeline.browsing_context_id))
+        };
+        let mut maybe_browsing_context = browsing_context_for_pipeline(source_pipeline);
+        if maybe_browsing_context.is_none() {
+            return warn!("{source_pipeline}: PostMessage from pipeline with closed parent");
+        }
+
         // Step 8.3: Let source be the WindowProxy object corresponding to
         // incumbentSettings's global object (a Window object).
         // Note: done here to prevent a round-trip to the constellation later,
         // and to prevent panic as part of that round-trip
         // in the case that the source would already have been closed.
-        let mut next_iteration_pipeline = source_pipeline;
-        let mut source_with_ancestry: Vec<BrowsingContextId> = vec![];
-        loop {
-            match self
-                .pipelines
-                .get(&next_iteration_pipeline)
-                .and_then(|pipeline| self.browsing_contexts.get(&pipeline.browsing_context_id))
-                .map(|ctx| (ctx.id, ctx.parent_pipeline_id))
-            {
-                Some((bc, Some(parent))) => {
-                    source_with_ancestry.push(bc);
-                    next_iteration_pipeline = parent;
-                    continue;
-                },
-                Some((bc, None)) => {
-                    source_with_ancestry.push(bc);
-                    break;
-                },
-                None => {
-                    return warn!(
-                        "{}: PostMessage from pipeline with closed parent",
-                        source_pipeline
-                    );
-                },
-            }
+        let mut source_with_ancestry = vec![];
+        while let Some(browsing_context) = maybe_browsing_context {
+            source_with_ancestry.push(browsing_context.id);
+            maybe_browsing_context = browsing_context
+                .parent_pipeline_id
+                .and_then(browsing_context_for_pipeline);
         }
         let msg = ScriptThreadMessage::PostMessage {
             target: pipeline_id,
