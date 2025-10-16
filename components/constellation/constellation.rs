@@ -4051,7 +4051,7 @@ where
                     throttled,
                 );
                 self.add_pending_change(SessionHistoryChange {
-                    webview_id: webview_id,
+                    webview_id,
                     browsing_context_id,
                     new_pipeline_id,
                     replace: Some(NeedsToReload::Yes(pipeline_id, load_data)),
