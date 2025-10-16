@@ -28,6 +28,7 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -42,6 +43,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
+use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 use crate::task::TaskOnce;
 use crate::task_source::SendableTaskSource;
@@ -131,12 +133,16 @@ impl WebSocket {
         sender: IpcSender<WebSocketDomAction>,
         can_gc: CanGc,
     ) -> DomRoot<WebSocket> {
-        reflect_dom_object_with_proto(
+        let websocket = reflect_dom_object_with_proto(
             Box::new(WebSocket::new_inherited(url, sender)),
             global,
             proto,
             can_gc,
-        )
+        );
+        if let Some(window) = global.downcast::<Window>() {
+            window.Document().track_websocket(&websocket);
+        }
+        websocket
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
@@ -175,6 +181,14 @@ impl WebSocket {
 
     pub(crate) fn origin(&self) -> ImmutableOrigin {
         self.url.origin()
+    }
+
+    /// <https://websockets.spec.whatwg.org/#make-disappear>
+    /// Returns true if any action was taken.
+    pub(crate) fn make_disappear(&self) -> bool {
+        let result = self.ready_state.get() != WebSocketRequestState::Closed;
+        let _ = self.Close(Some(1001), None);
+        result
     }
 }
 
