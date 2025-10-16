@@ -176,6 +176,7 @@ pub enum WebDriverScriptCommand {
     ElementClick(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     GetKnownElement(String, IpcSender<Result<(), ErrorStatus>>),
     GetKnownShadowRoot(String, IpcSender<Result<(), ErrorStatus>>),
+    GetKnownWindow(String, IpcSender<Result<(), ErrorStatus>>),
     GetActiveElement(IpcSender<Option<String>>),
     GetComputedRole(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     GetCookie(

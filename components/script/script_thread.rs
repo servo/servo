@@ -2319,6 +2319,14 @@ impl ScriptThread {
                     reply,
                 )
             },
+            WebDriverScriptCommand::GetKnownWindow(webview_id, reply) => {
+                webdriver_handlers::handle_get_known_window(
+                    &documents,
+                    pipeline_id,
+                    webview_id,
+                    reply,
+                )
+            },
             WebDriverScriptCommand::GetKnownShadowRoot(element_id, reply) => {
                 webdriver_handlers::handle_get_known_shadow_root(
                     &documents,
