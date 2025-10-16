@@ -759,19 +759,20 @@ async fn wait_for_response(
             }
         }
     } else {
-        let body = response.actual_response().body.lock().unwrap();
-        if let ResponseBody::Done(ref vec) = *body {
-            // in case there was no channel to wait for, the body was
-            // obtained synchronously via scheme_fetch for data/file/about/etc
-            // We should still send the body across as a chunk
-            target.process_response_chunk(request, vec.clone());
-            if context.devtools_chan.is_some() {
-                // Now that we've replayed the entire cached body,
-                // notify the DevTools server with the full Response.
-                send_response_to_devtools(request, context, response, Some(vec.clone()));
-            }
-        } else {
-            assert_eq!(*body, ResponseBody::Empty)
+        match *response.actual_response().body.lock().unwrap() {
+            ResponseBody::Done(ref vec) if !vec.is_empty() => {
+                // in case there was no channel to wait for, the body was
+                // obtained synchronously via scheme_fetch for data/file/about/etc
+                // We should still send the body across as a chunk
+                target.process_response_chunk(request, vec.clone());
+                if context.devtools_chan.is_some() {
+                    // Now that we've replayed the entire cached body,
+                    // notify the DevTools server with the full Response.
+                    send_response_to_devtools(request, context, response, Some(vec.clone()));
+                }
+            },
+            ResponseBody::Done(_) | ResponseBody::Empty => {},
+            _ => unreachable!(),
         }
     }
 }
