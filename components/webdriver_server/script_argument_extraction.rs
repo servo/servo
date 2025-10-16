@@ -47,7 +47,7 @@ impl Handler {
     fn deserialize_web_element(&self, element: &Value) -> WebDriverResult<String> {
         // Step 2. Let reference be the result of getting the web element identifier property from object.
         let element_ref = match element {
-            Value::String(s) => s.clone(),
+            Value::String(string) => string.clone(),
             _ => unreachable!(),
         };
 
@@ -69,7 +69,7 @@ impl Handler {
     fn deserialize_shadow_root(&self, shadow_root: &Value) -> WebDriverResult<String> {
         // Step 2. Let reference be the result of getting the shadow root identifier property from object.
         let shadow_root_ref = match shadow_root {
-            Value::String(s) => s.clone(),
+            Value::String(string) => string.clone(),
             _ => unreachable!(),
         };
 
@@ -94,11 +94,12 @@ impl Handler {
     fn deserialize_web_window(&self, window: &Value) -> WebDriverResult<String> {
         // Step 2. Let reference be the result of getting the web window identifier property from object.
         let window_ref = match window {
-            Value::String(s) => s.clone(),
+            Value::String(string) => string.clone(),
             _ => return Err(WebDriverError::new(ErrorStatus::InvalidArgument, "")),
         };
 
-        // Step 3 - 5.
+        // Step 3. Let browsing context be the browsing context whose window handle is reference,
+        // or null if no such browsing context exists.
         let (sender, receiver) = ipc::channel().unwrap();
         self.browsing_context_script_command(
             WebDriverScriptCommand::GetKnownWindow(window_ref.clone(), sender),
@@ -106,7 +107,10 @@ impl Handler {
         )?;
 
         match wait_for_ipc_response(receiver)? {
-            Ok(_) => Ok(format!("window.webdriverWindow(\"{}\")", window_ref)),
+            // Step 5. Return success with data browsing context's associated window.
+            Ok(_) => Ok(format!("window.webdriverWindow(\"{window_ref}\")")),
+            // Step 4. If browsing context is null or not a top-level browsing context,
+            // return error with error code no such window.
             Err(err) => Err(WebDriverError::new(err, "No such window")),
         }
     }
@@ -130,7 +134,7 @@ impl Handler {
                 }
                 if let Some(id) = map.get(FRAME_IDENTIFIER) {
                     let frame_ref = match id {
-                        Value::String(s) => s.clone(),
+                        Value::String(string) => string.clone(),
                         _ => id.to_string(),
                     };
                     return Ok(format!("window.webdriverFrame(\"{frame_ref}\")"));

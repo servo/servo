@@ -1651,7 +1651,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         let window_proxy = &self
             .window_proxy
             .get()
-            .expect("This must succeed as we checked");
+            .expect("Should always have a WindowProxy when calling WebdriverWindow");
         // Window must be top level browsing context.
         assert!(window_proxy.browsing_context_id() == window_proxy.webview_id());
         assert!(self.webview_id().to_string() == webview_id);
