@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::id::BrowsingContextId;
 use embedder_traits::WebDriverScriptCommand;
 use ipc_channel::ipc;
 use serde_json::Value;
@@ -90,6 +91,30 @@ impl Handler {
         }
     }
 
+    /// <https://w3c.github.io/webdriver/#dfn-deserialize-a-web-frame>
+    fn deserialize_web_frame(&self, frame: &Value) -> WebDriverResult<String> {
+        // Step 2. Let reference be the result of getting the web frame identifier property from object.
+        let frame_ref = match frame {
+            Value::String(string) => string.clone(),
+            _ => return Err(WebDriverError::new(ErrorStatus::InvalidArgument, "")),
+        };
+
+        // Step 3. Let browsing context be the browsing context whose window handle is reference,
+        // or null if no such browsing context exists.
+        let Some(browsing_context_id) = BrowsingContextId::from_string(&frame_ref) else {
+            // Step 4. If browsing context is null or a top-level browsing context,
+            // return error with error code no such frame.
+            return Err(WebDriverError::new(ErrorStatus::NoSuchFrame, ""));
+        };
+
+        match self.verify_browsing_context_is_open(browsing_context_id) {
+            // Step 5. Return success with data browsing context's associated window.
+            Ok(_) => Ok(format!("window.webdriverFrame(\"{frame_ref}\")")),
+            // Part of Step 4.
+            Err(_) => Err(WebDriverError::new(ErrorStatus::NoSuchFrame, "")),
+        }
+    }
+
     /// <https://w3c.github.io/webdriver/#dfn-deserialize-a-web-window>
     fn deserialize_web_window(&self, window: &Value) -> WebDriverResult<String> {
         // Step 2. Let reference be the result of getting the web window identifier property from object.
@@ -133,11 +158,7 @@ impl Handler {
                     return self.deserialize_shadow_root(id);
                 }
                 if let Some(id) = map.get(FRAME_IDENTIFIER) {
-                    let frame_ref = match id {
-                        Value::String(string) => string.clone(),
-                        _ => id.to_string(),
-                    };
-                    return Ok(format!("window.webdriverFrame(\"{frame_ref}\")"));
+                    return self.deserialize_web_frame(id);
                 }
                 if let Some(id) = map.get(WINDOW_IDENTIFIER) {
                     return self.deserialize_web_window(id);

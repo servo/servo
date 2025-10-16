@@ -15,6 +15,7 @@ use std::sync::{Arc, LazyLock, RwLock};
 use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::Mutex;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use webrender_api::{ExternalScrollId, PipelineId as WebRenderPipelineId};
 
@@ -293,6 +294,22 @@ pub struct BrowsingContextGroupId(pub u32);
 impl fmt::Display for BrowsingContextGroupId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "BrowsingContextGroup{:?}", self)
+    }
+}
+
+impl BrowsingContextId {
+    pub fn from_string(str: &str) -> Option<BrowsingContextId> {
+        let re = Regex::new(r"^BrowsingContext\((\d+),(\d+)\)$").ok()?;
+        let caps = re.captures(&str)?;
+        let namespace_id = caps.get(1)?.as_str().parse::<u32>().ok()?;
+        let index = caps.get(2)?.as_str().parse::<u32>().ok()?;
+
+        let result = BrowsingContextId {
+            namespace_id: PipelineNamespaceId(namespace_id),
+            index: Index::new(index).ok()?,
+        };
+        assert_eq!(result.to_string(), str.to_string());
+        Some(result)
     }
 }
 
