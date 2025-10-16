@@ -612,7 +612,7 @@ impl WorkerGlobalScope {
                 can_gc,
             );
             self.execution_ready.store(true, Ordering::Relaxed);
-            global.run_a_classic_script(&script, 1, None, can_gc);
+            global.run_a_classic_script(&script, 1, Some(IntroductionType::WORKER), can_gc);
             dedicated_worker_scope.fire_queued_messages(can_gc);
         }
     }

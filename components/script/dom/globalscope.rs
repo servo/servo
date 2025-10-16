@@ -3509,7 +3509,7 @@ impl GlobalScope {
         introduction_type: Option<&'static CStr>,
         can_gc: CanGc,
     ) {
-        // TODO use a settings object rather than this element's document/window
+        // TODO use a settings object
         // Step 2
         if !self.can_run_script() {
             return;
@@ -3531,19 +3531,25 @@ impl GlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#check-if-we-can-run-script>
     fn can_run_script(&self) -> bool {
-        // If the global object specified by settings is a Window object whose Document object is not fully active
-        // or it's active sandboxing flag set does not have its sandboxed scripts browsing context flag set.
-        if self.downcast::<Window>().is_some_and(|window| {
+        // Step 1 If the global object specified by settings is a Window object
+        // whose Document object is not fully active, then return "do not run".
+        //
+        // Step 2 If scripting is disabled for settings, then return "do not run".
+        //
+        // An user agent can also disable scripting
+        //
+        // Either settings's global object is not a Window object,
+        // or settings's global object's associated Document's active sandboxing flag set
+        // does not have its sandboxed scripts browsing context flag set.
+        if let Some(window) = self.downcast::<Window>() {
             let doc = window.Document();
-            !doc.has_active_sandboxing_flag(
-                SandboxingFlagSet::SANDBOXED_SCRIPTS_BROWSING_CONTEXT_FLAG,
-            ) || !doc.is_fully_active()
-        }) {
-            return false;
+            return doc.is_fully_active() ||
+                !doc.has_active_sandboxing_flag(
+                    SandboxingFlagSet::SANDBOXED_SCRIPTS_BROWSING_CONTEXT_FLAG,
+                );
+        } else {
+            true
         }
-
-        // Or settings's global object is not a Window object
-        !self.is::<Window>()
     }
 }
 
