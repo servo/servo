@@ -4223,6 +4223,7 @@ where
 
         let session_history = self.get_joint_session_history(webview_id);
         session_history.replace_history_state(pipeline_id, history_state_id, url);
+        self.notify_history_changed(webview_id);
     }
 
     #[servo_tracing::instrument(skip_all)]
