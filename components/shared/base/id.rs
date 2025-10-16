@@ -300,7 +300,7 @@ impl fmt::Display for BrowsingContextGroupId {
 impl BrowsingContextId {
     pub fn from_string(str: &str) -> Option<BrowsingContextId> {
         let re = Regex::new(r"^BrowsingContext\((\d+),(\d+)\)$").ok()?;
-        let caps = re.captures(&str)?;
+        let caps = re.captures(str)?;
         let namespace_id = caps.get(1)?.as_str().parse::<u32>().ok()?;
         let index = caps.get(2)?.as_str().parse::<u32>().ok()?;
 
