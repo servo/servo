@@ -1570,10 +1570,10 @@ pub(crate) struct SubtleKeyAlgorithm {
 impl SubtleKeyAlgorithm {
     fn block_size_in_bits(&self) -> Result<u32, Error> {
         let size = match self.name.as_str() {
-            ALG_SHA1 => 160,
-            ALG_SHA256 => 256,
-            ALG_SHA384 => 384,
-            ALG_SHA512 => 512,
+            ALG_SHA1 => 512,
+            ALG_SHA256 => 512,
+            ALG_SHA384 => 1024,
+            ALG_SHA512 => 1024,
             _ => {
                 return Err(Error::NotSupported);
             },
