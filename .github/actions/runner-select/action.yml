@@ -51,15 +51,18 @@ runs:
         if [ -n '${{ inputs.NO_SELF_HOSTED_RUNNERS }}' ]; then
           echo 'NO_SELF_HOSTED_RUNNERS is set!'
           echo "fall_back_to_github_hosted=true" | tee -a $GITHUB_OUTPUT
+          exit 0
         fi
 
         if [ '${{ inputs.force-github-hosted-runner }}' = true ]; then
           echo 'inputs.force-github-hosted-runner is set!'
           echo "fall_back_to_github_hosted=true" | tee -a $GITHUB_OUTPUT
+          exit 0
         fi
 
-        artifact_path=$(mktemp)
         echo "fall_back_to_github_hosted=false" | tee -a $GITHUB_OUTPUT
+
+        artifact_path=$(mktemp)
         echo "artifact_path=$artifact_path" | tee -a $GITHUB_OUTPUT
 
         echo "unique_id=$unique_id" | tee -a "$artifact_path"
