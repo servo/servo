@@ -169,7 +169,7 @@ def test_no_such_window_for_window_with_invalid_value(session, get_test_page):
     assert isinstance(frame, WebFrame)
 
     window_reference = WebWindow(session, frame.id)
-    
+
     result = execute_script(session, "return true", args=(window_reference,))
     assert_error(result, "no such window")
 
@@ -184,7 +184,7 @@ def test_no_such_frame_for_frame_with_invalid_value(session, get_test_page):
     assert isinstance(frame, WebFrame)
 
     frame_reference = WebFrame(session, window.id)
-    
+
     result = execute_script(session, "return true", args=(frame_reference,))
     assert_error(result, "no such frame")
 
