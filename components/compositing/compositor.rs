@@ -29,7 +29,7 @@ use embedder_traits::{
     CompositorHitTestResult, InputEventAndId, InputEventId, InputEventResult,
     ScreenshotCaptureError, ShutdownState, ViewportDetails,
 };
-use euclid::{Point2D, Scale, Size2D, Transform3D};
+use euclid::{Point2D, Scale, Size2D};
 use gleam::gl::RENDERER;
 use image::RgbaImage;
 use ipc_channel::ipc::{self, IpcSharedMemory};
@@ -48,7 +48,7 @@ use webrender::{
 };
 use webrender_api::units::{
     DeviceIntPoint, DeviceIntRect, DevicePixel, DevicePoint, DeviceRect, LayoutPoint, LayoutRect,
-    LayoutSize, WorldPoint,
+    LayoutSize, LayoutTransform, WorldPoint,
 };
 use webrender_api::{
     self, BuiltDisplayList, ColorF, DirtyRect, DisplayListPayload, DocumentId,
@@ -1013,16 +1013,25 @@ impl IOCompositor {
                 continue;
             };
 
-            let device_pixels_per_page_pixel = webview_renderer.device_pixels_per_page_pixel().0;
+            let pinch_zoom_transform = webview_renderer.pinch_zoom().transform().to_untyped();
+            let device_pixels_per_page_pixel_not_including_pinch_zoom = webview_renderer
+                .device_pixels_per_page_pixel_not_including_pinch_zoom()
+                .get();
+
+            let transform = LayoutTransform::scale(
+                device_pixels_per_page_pixel_not_including_pinch_zoom,
+                device_pixels_per_page_pixel_not_including_pinch_zoom,
+                1.0,
+            )
+            .then(&LayoutTransform::from_untyped(
+                &pinch_zoom_transform.to_3d(),
+            ));
+
             let webview_reference_frame = builder.push_reference_frame(
                 LayoutPoint::zero(),
                 root_reference_frame,
                 TransformStyle::Flat,
-                PropertyBinding::Value(Transform3D::scale(
-                    device_pixels_per_page_pixel,
-                    device_pixels_per_page_pixel,
-                    1.,
-                )),
+                PropertyBinding::Value(transform),
                 ReferenceFrameKind::Transform {
                     is_2d_scale_translation: true,
                     should_snap: true,
@@ -1031,7 +1040,8 @@ impl IOCompositor {
                 SpatialTreeItemKey::new(0, 0),
             );
 
-            let scaled_webview_rect = webview_renderer.rect / device_pixels_per_page_pixel;
+            let scaled_webview_rect = webview_renderer.rect /
+                webview_renderer.device_pixels_per_page_pixel_not_including_pinch_zoom();
             builder.push_iframe(
                 LayoutRect::from_untyped(&scaled_webview_rect.to_untyped()),
                 LayoutRect::from_untyped(&scaled_webview_rect.to_untyped()),
@@ -1617,9 +1627,14 @@ impl IOCompositor {
         }
     }
 
-    pub fn pinch_zoom(&mut self, webview_id: WebViewId, pinch_zoom_delta: f32) {
+    pub fn pinch_zoom(
+        &mut self,
+        webview_id: WebViewId,
+        pinch_zoom_delta: f32,
+        center: DevicePoint,
+    ) {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
-            webview_renderer.pinch_zoom(pinch_zoom_delta);
+            webview_renderer.adjust_pinch_zoom(pinch_zoom_delta, center);
         }
     }
 

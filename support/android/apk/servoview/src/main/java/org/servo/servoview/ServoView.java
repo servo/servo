@@ -55,6 +55,8 @@ public class ServoView extends SurfaceView
     private int mCurX = 0;
     private int mLastY = 0;
     private int mCurY = 0;
+    private float mFocusX = 0;
+    private float mFocusY = 0;
     private boolean mFlinging;
     private ScaleGestureDetector mScaleGestureDetector;
     private OverScroller mScroller;
@@ -179,7 +181,7 @@ public class ServoView extends SurfaceView
         }
 
         if (zoomNecessary) {
-            mServo.pinchZoom(mZoomFactor, 0, 0);
+            mServo.pinchZoom(mZoomFactor, mFocusX, mFocusY);
             mZoomFactor = 1;
         }
 
@@ -332,8 +334,10 @@ public class ServoView extends SurfaceView
     public boolean onScaleBegin(ScaleGestureDetector detector) {
         if (mScroller.isFinished()) {
             mZoomFactor = detector.getScaleFactor();
+            mFocusX = detector.getFocusX();
+            mFocusY = detector.getFocusY();
             mZooming = true;
-            mServo.pinchZoomStart(mZoomFactor, 0, 0);
+            mServo.pinchZoomStart(mZoomFactor, mFocusX, mFocusY);
             startLooping();
             return true;
         } else {
@@ -344,14 +348,18 @@ public class ServoView extends SurfaceView
     @Override
     public boolean onScale(ScaleGestureDetector detector) {
         mZoomFactor *= detector.getScaleFactor();
+        mFocusX = detector.getFocusX();
+        mFocusY = detector.getFocusY();
         return true;
     }
 
     @Override
     public void onScaleEnd(ScaleGestureDetector detector) {
         mZoomFactor = detector.getScaleFactor();
+        mFocusX = detector.getFocusX();
+        mFocusY = detector.getFocusY();
         mZooming = false;
-        mServo.pinchZoomEnd(mZoomFactor, 0, 0);
+        mServo.pinchZoomEnd(mZoomFactor, mFocusX, mFocusY);
     }
 
     private void initGestures(Context context) {

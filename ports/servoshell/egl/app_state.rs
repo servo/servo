@@ -17,7 +17,7 @@ use servo::base::id::WebViewId;
 use servo::ipc_channel::ipc::IpcSender;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::ScrollLocation;
-use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel};
+use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint};
 use servo::{
     AllowOrDenyRequest, ContextMenuResult, ImeEvent, InputEvent, InputMethodType, KeyboardEvent,
     LoadStatus, MediaSessionActionType, MediaSessionEvent, MouseButton, MouseButtonAction,
@@ -852,22 +852,25 @@ impl RunningAppState {
 
     /// Start pinchzoom.
     /// x/y are pinch origin coordinates.
-    pub fn pinchzoom_start(&self, factor: f32, _x: u32, _y: u32) {
-        self.active_webview().pinch_zoom(factor);
+    pub fn pinchzoom_start(&self, factor: f32, x: f32, y: f32) {
+        self.active_webview()
+            .pinch_zoom(factor, DevicePoint::new(x, y));
         self.perform_updates();
     }
 
     /// Pinchzoom.
     /// x/y are pinch origin coordinates.
-    pub fn pinchzoom(&self, factor: f32, _x: u32, _y: u32) {
-        self.active_webview().pinch_zoom(factor);
+    pub fn pinchzoom(&self, factor: f32, x: f32, y: f32) {
+        self.active_webview()
+            .pinch_zoom(factor, DevicePoint::new(x, y));
         self.perform_updates();
     }
 
     /// End pinchzoom.
     /// x/y are pinch origin coordinates.
-    pub fn pinchzoom_end(&self, factor: f32, _x: u32, _y: u32) {
-        self.active_webview().pinch_zoom(factor);
+    pub fn pinchzoom_end(&self, factor: f32, x: f32, y: f32) {
+        self.active_webview()
+            .pinch_zoom(factor, DevicePoint::new(x, y));
         self.perform_updates();
     }
 
