@@ -32,6 +32,13 @@
       {}
      ]
     ],
+    "destroyed-bc-iframe-open-auxiliary-crash.html": [
+     "d9eae5a026a391efda744b5dc1e6e2ce7c1a2dec",
+     [
+      null,
+      {}
+     ]
+    ],
     "form-navigate-loop-crash.html": [
      "1068ccc38eed223cf83a4cbd8fed336b83c0b745",
      [

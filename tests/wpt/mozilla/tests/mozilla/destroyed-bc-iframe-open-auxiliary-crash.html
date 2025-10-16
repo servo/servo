@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Opening an auxiliary with window from iframe unbound from tree does not panic</title>
+<script>
+onload = () => {
+  const iframe = document.createElement('iframe');
+
+  iframe.addEventListener('load', e => {
+    let w = iframe.contentWindow
+    document.body.removeChild(iframe);
+    w.open()
+  }, {once: true});
+
+  document.body.appendChild(iframe);
+};
+</script>
