@@ -429,7 +429,9 @@ pub(crate) struct Window {
     #[no_trace]
     player_context: WindowGLContext,
 
-    throttled: Cell<bool>,
+    /// Whether or not animations are stopped and timers are slowed down. This happens when
+    /// a Pipeline becomes inactive or its WebView is hidden.
+    animations_stopped_and_timers_slowed: Cell<bool>,
 
     /// A shared marker for the validity of any cached layout values. A value of true
     /// indicates that any such values remain valid; any new layout that invalidates
@@ -3206,7 +3208,7 @@ impl Window {
 
     /// Set whether to use less resources by running timers at a heavily limited rate.
     pub(crate) fn set_throttled(&self, throttled: bool) {
-        self.throttled.set(throttled);
+        self.animations_stopped_and_timers_slowed.set(throttled);
         if throttled {
             self.as_global_scope().slow_down_timers();
         } else {
@@ -3214,8 +3216,8 @@ impl Window {
         }
     }
 
-    pub(crate) fn throttled(&self) -> bool {
-        self.throttled.get()
+    pub(crate) fn animations_stopped_and_timers_slowed(&self) -> bool {
+        self.animations_stopped_and_timers_slowed.get()
     }
 
     pub(crate) fn unminified_css_dir(&self) -> Option<String> {
@@ -3448,7 +3450,7 @@ impl Window {
             unminify_css,
             user_content_manager,
             player_context,
-            throttled: Cell::new(false),
+            animations_stopped_and_timers_slowed: Cell::new(false),
             layout_marker: DomRefCell::new(Rc::new(Cell::new(true))),
             current_event: DomRefCell::new(None),
             theme: Cell::new(theme),

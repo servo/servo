@@ -587,7 +587,9 @@ impl Servo {
             .values()
             .filter_map(WebView::from_weak_handle)
         {
-            webview.delegate().notify_new_frame_ready(webview);
+            if webview.visible() {
+                webview.delegate().notify_new_frame_ready(webview);
+            }
         }
     }
 

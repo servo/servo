@@ -642,6 +642,7 @@ pub trait WebViewTrait {
     fn rendering_group_id(&self) -> Option<RenderingGroupId>;
     fn screen_geometry(&self) -> Option<ScreenGeometry>;
     fn set_animating(&self, new_value: bool);
+    fn set_visible(&self, new_value: bool);
 }
 
 /// What entity is reporting that a `Pipeline` has exited. Only when all have

@@ -96,6 +96,9 @@ pub(crate) struct WebViewRenderer {
     /// Whether or not this [`WebViewRenderer`] isn't throttled and has a pipeline with
     /// active animations or animation frame callbacks.
     animating: bool,
+    /// Whether or not this [`WebViewRenderer`] is shown in the renderer. [`WebView`]s that
+    /// are not shown, do not produce new animation frames.
+    visible: bool,
     /// A [`ViewportDescription`] for this [`WebViewRenderer`], which contains the limitations
     /// and initial values for zoom derived from the `viewport` meta tag in web content.
     viewport_description: Option<ViewportDescription>,
@@ -122,8 +125,22 @@ impl WebViewRenderer {
             pinch_zoom: PinchZoomFactor::new(1.0),
             hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
             animating: false,
+            visible: false,
             viewport_description: None,
         }
+    }
+
+    pub(crate) fn set_visible(&mut self, visible: bool) -> bool {
+        if self.visible == visible {
+            return false;
+        }
+
+        self.visible = visible;
+        self.webview.set_visible(visible);
+        let _ = self.global.borrow().constellation_sender.send(
+            EmbedderToConstellationMessage::SetWebViewVisible(self.id, visible),
+        );
+        true
     }
 
     pub(crate) fn animation_callbacks_running(&self) -> bool {
@@ -132,8 +149,9 @@ impl WebViewRenderer {
             .any(PipelineDetails::animation_callbacks_running)
     }
 
+    /// Whether or not this [`WebViewRenderer`] has active animations and is visible.
     pub(crate) fn animating(&self) -> bool {
-        self.animating
+        self.animating && self.visible
     }
 
     /// Returns the [`PipelineDetails`] for the given [`PipelineId`], creating it if needed.

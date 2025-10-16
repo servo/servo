@@ -94,6 +94,7 @@ pub(crate) struct WebViewInner {
     favicon: Option<Image>,
     focused: bool,
     animating: bool,
+    visible: bool,
     cursor: Cursor,
 
     rendering_group_id: RenderingGroupId,
@@ -139,6 +140,7 @@ impl WebView {
             favicon: None,
             focused: false,
             animating: false,
+            visible: false,
             cursor: Cursor::Pointer,
             rendering_group_id: builder.group_id.unwrap_or_default(),
         })));
@@ -341,6 +343,10 @@ impl WebView {
         self.delegate().notify_animating_changed(self, new_value);
     }
 
+    pub(crate) fn visible(&self) -> bool {
+        self.inner().visible
+    }
+
     pub fn rect(&self) -> DeviceRect {
         self.inner().rect
     }
@@ -395,24 +401,30 @@ impl WebView {
     }
 
     pub fn show(&self, hide_others: bool) {
-        self.inner()
-            .compositor
+        // Clone the `Rc` of the compositor as `show_webview()` will call back
+        // into this `WebView` to adjust the `visible` property.
+        let compositor = self.inner().compositor.clone();
+        compositor
             .borrow_mut()
             .show_webview(self.id(), hide_others)
             .expect("BUG: invalid WebView instance");
     }
 
     pub fn hide(&self) {
-        self.inner()
-            .compositor
+        // Clone the `Rc` of the compositor as `hide_webview()` will call back
+        // into this `WebView` to adjust the `visible` property.
+        let compositor = self.inner().compositor.clone();
+        compositor
             .borrow_mut()
             .hide_webview(self.id())
             .expect("BUG: invalid WebView instance");
     }
 
     pub fn raise_to_top(&self, hide_others: bool) {
-        self.inner()
-            .compositor
+        // Clone the `Rc` of the compositor as `raise_to_top()` will call back
+        // into this `WebView` to adjust the `visible` property.
+        let compositor = self.inner().compositor.clone();
+        compositor
             .borrow_mut()
             .raise_webview_to_top(self.id(), hide_others)
             .expect("BUG: invalid WebView instance");
@@ -574,9 +586,9 @@ impl WebView {
     pub fn set_throttled(&self, throttled: bool) {
         self.inner()
             .constellation_proxy
-            .send(EmbedderToConstellationMessage::SetWebViewThrottled(
+            .send(EmbedderToConstellationMessage::SetWebViewVisible(
                 self.id(),
-                throttled,
+                !throttled,
             ));
     }
 
@@ -677,6 +689,12 @@ impl WebViewTrait for ServoRendererWebView {
     fn set_animating(&self, new_value: bool) {
         if let Some(webview) = WebView::from_weak_handle(&self.weak_handle) {
             webview.set_animating(new_value);
+        }
+    }
+
+    fn set_visible(&self, new_value: bool) {
+        if let Some(webview) = WebView::from_weak_handle(&self.weak_handle) {
+            webview.inner_mut().visible = new_value;
         }
     }
 
