@@ -46,7 +46,7 @@ pub struct BrowsingContext {
     pub id: BrowsingContextId,
 
     /// The top-level browsing context ancestor
-    pub top_level_id: WebViewId,
+    pub webview_id: WebViewId,
 
     /// The [`ViewportDetails`] of the frame that this [`BrowsingContext`] represents.
     pub viewport_details: ViewportDetails,
@@ -80,7 +80,7 @@ impl BrowsingContext {
     pub fn new(
         bc_group_id: BrowsingContextGroupId,
         id: BrowsingContextId,
-        top_level_id: WebViewId,
+        webview_id: WebViewId,
         pipeline_id: PipelineId,
         parent_pipeline_id: Option<PipelineId>,
         viewport_details: ViewportDetails,
@@ -93,7 +93,7 @@ impl BrowsingContext {
         BrowsingContext {
             bc_group_id,
             id,
-            top_level_id,
+            webview_id,
             viewport_details,
             is_private,
             inherited_secure_context,
@@ -110,7 +110,7 @@ impl BrowsingContext {
 
     /// Is this a top-level browsing context?
     pub fn is_top_level(&self) -> bool {
-        self.id == self.top_level_id
+        self.id == self.webview_id
     }
 }
 

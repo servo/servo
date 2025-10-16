@@ -89,9 +89,9 @@ impl Log for FromEmbedderLogger {
 
     fn log(&self, record: &Record) {
         if let Some(entry) = log_entry(record) {
-            let top_level_id = WebViewId::installed();
+            let webview_id = WebViewId::installed();
             let thread_name = thread::current().name().map(ToOwned::to_owned);
-            let msg = EmbedderToConstellationMessage::LogEntry(top_level_id, thread_name, entry);
+            let msg = EmbedderToConstellationMessage::LogEntry(webview_id, thread_name, entry);
             let chan = self.constellation_chan.lock();
             let _ = chan.send(msg);
         }

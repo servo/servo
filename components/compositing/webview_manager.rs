@@ -127,7 +127,7 @@ mod test {
     use crate::webview_manager::WebViewManager;
     use crate::webview_renderer::UnknownWebView;
 
-    fn top_level_id(namespace_id: u32, index: u32) -> WebViewId {
+    fn webview_id(namespace_id: u32, index: u32) -> WebViewId {
         WebViewId::mock_for_testing(BrowsingContextId {
             namespace_id: PipelineNamespaceId(namespace_id),
             index: Index::new(index).unwrap(),
@@ -153,100 +153,100 @@ mod test {
         webviews.entry(WebViewId::new()).or_insert('a');
         webviews.entry(WebViewId::new()).or_insert('b');
         webviews.entry(WebViewId::new()).or_insert('c');
-        assert!(webviews.get(top_level_id(0, 1)).is_some());
-        assert!(webviews.get(top_level_id(0, 2)).is_some());
-        assert!(webviews.get(top_level_id(0, 3)).is_some());
+        assert!(webviews.get(webview_id(0, 1)).is_some());
+        assert!(webviews.get(webview_id(0, 2)).is_some());
+        assert!(webviews.get(webview_id(0, 3)).is_some());
         assert_eq!(
             webviews_sorted(&webviews),
             vec![
-                (top_level_id(0, 1), 'a'),
-                (top_level_id(0, 2), 'b'),
-                (top_level_id(0, 3), 'c'),
+                (webview_id(0, 1), 'a'),
+                (webview_id(0, 2), 'b'),
+                (webview_id(0, 3), 'c'),
             ]
         );
         assert!(webviews.painting_order.is_empty());
 
         // add() returns WebViewAlreadyExists if the webview id already exists.
-        webviews.entry(top_level_id(0, 3)).or_insert('d');
-        assert!(webviews.get(top_level_id(0, 3)).is_some());
+        webviews.entry(webview_id(0, 3)).or_insert('d');
+        assert!(webviews.get(webview_id(0, 3)).is_some());
 
         // Other methods return UnknownWebView or None if the webview id doesn’t exist.
         assert_eq!(
-            webviews.remove(top_level_id(1, 1)),
-            Err(UnknownWebView(top_level_id(1, 1)))
+            webviews.remove(webview_id(1, 1)),
+            Err(UnknownWebView(webview_id(1, 1)))
         );
-        assert_eq!(webviews.get(top_level_id(1, 1)), None);
-        assert_eq!(webviews.get_mut(top_level_id(1, 1)), None);
+        assert_eq!(webviews.get(webview_id(1, 1)), None);
+        assert_eq!(webviews.get_mut(webview_id(1, 1)), None);
         assert_eq!(
-            webviews.show(top_level_id(1, 1)),
-            Err(UnknownWebView(top_level_id(1, 1)))
-        );
-        assert_eq!(
-            webviews.hide(top_level_id(1, 1)),
-            Err(UnknownWebView(top_level_id(1, 1)))
+            webviews.show(webview_id(1, 1)),
+            Err(UnknownWebView(webview_id(1, 1)))
         );
         assert_eq!(
-            webviews.raise_to_top(top_level_id(1, 1)),
-            Err(UnknownWebView(top_level_id(1, 1)))
+            webviews.hide(webview_id(1, 1)),
+            Err(UnknownWebView(webview_id(1, 1)))
+        );
+        assert_eq!(
+            webviews.raise_to_top(webview_id(1, 1)),
+            Err(UnknownWebView(webview_id(1, 1)))
         );
 
         // For webviews not yet visible, both show() and raise_to_top() add the given webview on top.
-        assert_eq!(webviews.show(top_level_id(0, 2)), Ok(true));
-        assert_eq!(webviews.show(top_level_id(0, 2)), Ok(false));
-        assert_eq!(webviews.painting_order, vec![top_level_id(0, 2)]);
-        assert_eq!(webviews.raise_to_top(top_level_id(0, 1)), Ok(true));
-        assert_eq!(webviews.raise_to_top(top_level_id(0, 1)), Ok(false));
+        assert_eq!(webviews.show(webview_id(0, 2)), Ok(true));
+        assert_eq!(webviews.show(webview_id(0, 2)), Ok(false));
+        assert_eq!(webviews.painting_order, vec![webview_id(0, 2)]);
+        assert_eq!(webviews.raise_to_top(webview_id(0, 1)), Ok(true));
+        assert_eq!(webviews.raise_to_top(webview_id(0, 1)), Ok(false));
         assert_eq!(
             webviews.painting_order,
-            vec![top_level_id(0, 2), top_level_id(0, 1)]
+            vec![webview_id(0, 2), webview_id(0, 1)]
         );
-        assert_eq!(webviews.show(top_level_id(0, 3)), Ok(true));
-        assert_eq!(webviews.show(top_level_id(0, 3)), Ok(false));
+        assert_eq!(webviews.show(webview_id(0, 3)), Ok(true));
+        assert_eq!(webviews.show(webview_id(0, 3)), Ok(false));
         assert_eq!(
             webviews.painting_order,
-            vec![top_level_id(0, 2), top_level_id(0, 1), top_level_id(0, 3)]
+            vec![webview_id(0, 2), webview_id(0, 1), webview_id(0, 3)]
         );
 
         // For webviews already visible, show() does nothing, while raise_to_top() makes it on top.
-        assert_eq!(webviews.show(top_level_id(0, 1)), Ok(false));
+        assert_eq!(webviews.show(webview_id(0, 1)), Ok(false));
         assert_eq!(
             webviews.painting_order,
-            vec![top_level_id(0, 2), top_level_id(0, 1), top_level_id(0, 3)]
+            vec![webview_id(0, 2), webview_id(0, 1), webview_id(0, 3)]
         );
-        assert_eq!(webviews.raise_to_top(top_level_id(0, 1)), Ok(true));
-        assert_eq!(webviews.raise_to_top(top_level_id(0, 1)), Ok(false));
+        assert_eq!(webviews.raise_to_top(webview_id(0, 1)), Ok(true));
+        assert_eq!(webviews.raise_to_top(webview_id(0, 1)), Ok(false));
         assert_eq!(
             webviews.painting_order,
-            vec![top_level_id(0, 2), top_level_id(0, 3), top_level_id(0, 1)]
+            vec![webview_id(0, 2), webview_id(0, 3), webview_id(0, 1)]
         );
 
         // hide() removes the webview from the painting order, but not the map.
-        assert_eq!(webviews.hide(top_level_id(0, 3)), Ok(true));
-        assert_eq!(webviews.hide(top_level_id(0, 3)), Ok(false));
+        assert_eq!(webviews.hide(webview_id(0, 3)), Ok(true));
+        assert_eq!(webviews.hide(webview_id(0, 3)), Ok(false));
         assert_eq!(
             webviews.painting_order,
-            vec![top_level_id(0, 2), top_level_id(0, 1)]
+            vec![webview_id(0, 2), webview_id(0, 1)]
         );
         assert_eq!(
             webviews_sorted(&webviews),
             vec![
-                (top_level_id(0, 1), 'a'),
-                (top_level_id(0, 2), 'b'),
-                (top_level_id(0, 3), 'c'),
+                (webview_id(0, 1), 'a'),
+                (webview_id(0, 2), 'b'),
+                (webview_id(0, 3), 'c'),
             ]
         );
 
         // painting_order() returns only the visible webviews, in painting order.
         let mut painting_order = webviews.painting_order();
-        assert_eq!(painting_order.next(), Some((&top_level_id(0, 2), &'b')));
-        assert_eq!(painting_order.next(), Some((&top_level_id(0, 1), &'a')));
+        assert_eq!(painting_order.next(), Some((&webview_id(0, 2), &'b')));
+        assert_eq!(painting_order.next(), Some((&webview_id(0, 1), &'a')));
         assert_eq!(painting_order.next(), None);
         drop(painting_order);
 
         // remove() removes the given webview from both the map and the painting order.
-        assert!(webviews.remove(top_level_id(0, 1)).is_ok());
-        assert!(webviews.remove(top_level_id(0, 2)).is_ok());
-        assert!(webviews.remove(top_level_id(0, 3)).is_ok());
+        assert!(webviews.remove(webview_id(0, 1)).is_ok());
+        assert!(webviews.remove(webview_id(0, 2)).is_ok());
+        assert!(webviews.remove(webview_id(0, 3)).is_ok());
         assert!(webviews_sorted(&webviews).is_empty());
         assert!(webviews.painting_order.is_empty());
     }

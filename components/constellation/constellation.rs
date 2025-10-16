@@ -865,7 +865,7 @@ where
     ) {
         let relevant_top_level = if let Some(opener) = opener {
             match self.browsing_contexts.get(&opener) {
-                Some(opener) => opener.top_level_id,
+                Some(opener) => opener.webview_id,
                 None => {
                     warn!("Setting event-loop for an unknown auxiliary");
                     return;
@@ -1156,7 +1156,7 @@ where
     fn new_browsing_context(
         &mut self,
         browsing_context_id: BrowsingContextId,
-        top_level_id: WebViewId,
+        webview_id: WebViewId,
         pipeline_id: PipelineId,
         parent_pipeline_id: Option<PipelineId>,
         viewport_details: ViewportDetails,
@@ -1171,7 +1171,7 @@ where
             .filter_map(|(id, bc_group)| {
                 if bc_group
                     .top_level_browsing_context_set
-                    .contains(&top_level_id)
+                    .contains(&webview_id)
                 {
                     Some(id)
                 } else {
@@ -1195,7 +1195,7 @@ where
         let browsing_context = BrowsingContext::new(
             bc_group_id,
             browsing_context_id,
-            top_level_id,
+            webview_id,
             pipeline_id,
             parent_pipeline_id,
             viewport_details,
@@ -1914,7 +1914,7 @@ where
                 let result = self
                     .browsing_contexts
                     .get(&browsing_context_id)
-                    .map(|bc| bc.top_level_id);
+                    .map(|bc| bc.webview_id);
                 if let Err(e) = response_sender.send(result) {
                     warn!(
                         "Sending reply to get top for browsing context info failed ({:?}).",
@@ -4017,7 +4017,7 @@ where
                 );
 
                 let (
-                    top_level_id,
+                    webview_id,
                     old_pipeline_id,
                     parent_pipeline_id,
                     viewport_details,
@@ -4025,7 +4025,7 @@ where
                     throttled,
                 ) = match self.browsing_contexts.get(&browsing_context_id) {
                     Some(ctx) => (
-                        ctx.top_level_id,
+                        ctx.webview_id,
                         ctx.pipeline_id,
                         ctx.parent_pipeline_id,
                         ctx.viewport_details,
@@ -4042,7 +4042,7 @@ where
                 self.new_pipeline(
                     new_pipeline_id,
                     browsing_context_id,
-                    top_level_id,
+                    webview_id,
                     parent_pipeline_id,
                     opener,
                     viewport_details,
@@ -4051,7 +4051,7 @@ where
                     throttled,
                 );
                 self.add_pending_change(SessionHistoryChange {
-                    webview_id: top_level_id,
+                    webview_id: webview_id,
                     browsing_context_id,
                     new_pipeline_id,
                     replace: Some(NeedsToReload::Yes(pipeline_id, load_data)),
@@ -4063,7 +4063,7 @@ where
             },
         };
 
-        let (old_pipeline_id, parent_pipeline_id, top_level_id) =
+        let (old_pipeline_id, parent_pipeline_id, webview_id) =
             match self.browsing_contexts.get_mut(&browsing_context_id) {
                 Some(browsing_context) => {
                     let old_pipeline_id = browsing_context.pipeline_id;
@@ -4071,7 +4071,7 @@ where
                     (
                         old_pipeline_id,
                         browsing_context.parent_pipeline_id,
-                        browsing_context.top_level_id,
+                        browsing_context.webview_id,
                     )
                 },
                 None => {
@@ -4090,7 +4090,7 @@ where
                 let page_info = DevtoolsPageInfo {
                     title: new_pipeline.title.clone(),
                     url: new_pipeline.url.clone(),
-                    is_top_level_global: top_level_id == browsing_context_id,
+                    is_top_level_global: webview_id == browsing_context_id,
                 };
                 let state = NavigationState::Stop(new_pipeline.id, page_info);
                 let _ = chan.send(DevtoolsControlMsg::FromScript(
@@ -4109,7 +4109,7 @@ where
             let msg = ScriptThreadMessage::UpdatePipelineId(
                 parent_pipeline_id,
                 browsing_context_id,
-                top_level_id,
+                webview_id,
                 new_pipeline_id,
                 UpdatePipelineIdReason::Traversal,
             );
@@ -4361,7 +4361,7 @@ where
         focused_browsing_context_id: BrowsingContextId,
     ) {
         let webview_id = match self.browsing_contexts.get(&focused_browsing_context_id) {
-            Some(browsing_context) => browsing_context.top_level_id,
+            Some(browsing_context) => browsing_context.webview_id,
             None => return warn!("Browsing context {} not found", focused_browsing_context_id),
         };
 
@@ -4796,14 +4796,14 @@ where
             }
         }
 
-        let (old_pipeline_id, top_level_id) =
+        let (old_pipeline_id, webview_id) =
             match self.browsing_contexts.get_mut(&change.browsing_context_id) {
                 Some(browsing_context) => {
                     debug!("Adding pipeline to existing browsing context.");
                     let old_pipeline_id = browsing_context.pipeline_id;
                     browsing_context.pipelines.insert(change.new_pipeline_id);
                     browsing_context.update_current_entry(change.new_pipeline_id);
-                    (Some(old_pipeline_id), Some(browsing_context.top_level_id))
+                    (Some(old_pipeline_id), Some(browsing_context.webview_id))
                 },
                 None => {
                     debug!("Adding pipeline to new browsing context.");
@@ -4923,8 +4923,8 @@ where
             },
         }
 
-        if let Some(top_level_id) = top_level_id {
-            self.trim_history(top_level_id);
+        if let Some(webview_id) = webview_id {
+            self.trim_history(webview_id);
         }
 
         self.notify_focus_state(change.new_pipeline_id);
@@ -5402,7 +5402,7 @@ where
         };
 
         {
-            let session_history = self.get_joint_session_history(browsing_context.top_level_id);
+            let session_history = self.get_joint_session_history(browsing_context.webview_id);
             session_history.remove_entries_for_browsing_context(browsing_context_id);
         }
 
@@ -5416,7 +5416,7 @@ where
 
                     // If `browsing_context_id` has focus, focus the parent
                     // browsing context
-                    if let Some(webview) = self.webviews.get_mut(browsing_context.top_level_id) {
+                    if let Some(webview) = self.webviews.get_mut(browsing_context.webview_id) {
                         if webview.focused_browsing_context_id == browsing_context_id {
                             trace!(
                                 "About-to-be-closed browsing context {} is currently focused, so \
@@ -5430,7 +5430,7 @@ where
                         warn!(
                             "Browsing context {} contains a reference to \
                                 a non-existent top-level browsing context {}",
-                            browsing_context_id, browsing_context.top_level_id
+                            browsing_context_id, browsing_context.webview_id
                         );
                     }
                 },
@@ -5617,9 +5617,9 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn get_joint_session_history(&mut self, top_level_id: WebViewId) -> &mut JointSessionHistory {
+    fn get_joint_session_history(&mut self, webview_id: WebViewId) -> &mut JointSessionHistory {
         self.webviews
-            .get_mut(top_level_id)
+            .get_mut(webview_id)
             .map(|webview| &mut webview.session_history)
             .expect("Unknown top-level browsing context")
     }
