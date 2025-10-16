@@ -1837,6 +1837,7 @@ fn automatic_inline_size<T>(
     is_table: bool,
     is_replaced: bool,
 ) -> Size<T> {
+    // TODO: Normal alignment shouldn't stretch widgets.
     match justify_self {
         AlignFlags::STRETCH => Size::Stretch,
         AlignFlags::NORMAL if !is_table && !is_replaced => Size::Stretch,

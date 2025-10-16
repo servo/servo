@@ -415,7 +415,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
             DisplayInside::Flow {
                 is_list_item: false,
             },
-            NonReplacedContents::OfPseudoElement(contents).into(),
+            Contents::for_pseudo_element(contents),
             box_slot,
         );
     }
@@ -559,15 +559,12 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
                 },
                 _ => BlockLevelCreator::Independent {
                     display_inside,
-                    contents: contents.into(),
+                    contents: Contents::NonReplaced(contents),
                 },
             },
-            Contents::Replaced(contents) => {
-                let contents = Contents::Replaced(contents);
-                BlockLevelCreator::Independent {
-                    display_inside,
-                    contents,
-                }
+            Contents::Replaced(_) | Contents::Widget(_) => BlockLevelCreator::Independent {
+                display_inside,
+                contents,
             },
         };
         self.block_level_boxes.push(BlockLevelJob {

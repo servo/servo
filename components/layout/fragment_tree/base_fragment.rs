@@ -4,10 +4,10 @@
 
 use bitflags::bitflags;
 use html5ever::local_name;
+use layout_api::combine_id_with_fragment_type;
 use layout_api::wrapper_traits::{
     PseudoElementChain, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
-use layout_api::{LayoutElementType, LayoutNodeType, combine_id_with_fragment_type};
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoThreadSafeLayoutNode;
@@ -114,15 +114,6 @@ impl From<ServoThreadSafeLayoutNode<'_>> for BaseFragmentInfo {
                 _ => {},
             }
 
-            if matches!(
-                element.type_id(),
-                Some(LayoutNodeType::Element(
-                    LayoutElementType::HTMLInputElement | LayoutElementType::HTMLTextAreaElement
-                ))
-            ) {
-                flags.insert(FragmentFlags::IS_TEXT_CONTROL);
-            }
-
             if ThreadSafeLayoutElement::is_root(&element) {
                 flags.insert(FragmentFlags::IS_ROOT_ELEMENT);
             }
@@ -152,8 +143,11 @@ bitflags! {
         const IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT = 1 << 0;
         /// Whether or not the node that created this Fragment is a `<br>` element.
         const IS_BR_ELEMENT = 1 << 1;
-        /// Whether or not the node that created this Fragment is a `<input>` or `<textarea>` element.
-        const IS_TEXT_CONTROL = 1 << 2;
+        /// Whether or not the node that created this Fragment is a widget. Widgets behave similarly to
+        /// replaced elements, e.g. they are atomic when inline-level, and their automatic inline size
+        /// doesn't stretch when block-level.
+        /// <https://drafts.csswg.org/css-ui/#widget>
+        const IS_WIDGET = 1 << 2;
         /// Whether or not this Fragment is a flex item or a grid item.
         const IS_FLEX_OR_GRID_ITEM = 1 << 3;
         /// Whether or not this Fragment was created to contain a replaced element or is

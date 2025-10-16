@@ -33,7 +33,7 @@ use unicode_bidi::Level;
 use webrender_api as wr;
 use webrender_api::units::LayoutTransform;
 
-use crate::dom_traversal::{Contents, NonReplacedContents};
+use crate::dom_traversal::Contents;
 use crate::fragment_tree::FragmentFlags;
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalSides,
@@ -81,12 +81,10 @@ impl DisplayGeneratingBox {
                     is_list_item: false,
                 },
             }
-        } else if matches!(
-            contents,
-            Contents::NonReplaced(NonReplacedContents::OfTextControl)
-        ) {
-            // If it's an input or textarea, make sure the display-inside is flow-root.
+        } else if matches!(contents, Contents::Widget(_)) {
+            // If it's a widget, make sure the display-inside is flow-root.
             // <https://html.spec.whatwg.org/multipage/#form-controls>
+            // TODO: Do we want flow-root, or just an independent formatting context?
             if let DisplayGeneratingBox::OutsideInside { outside, .. } = self {
                 DisplayGeneratingBox::OutsideInside {
                     outside: *outside,
@@ -519,8 +517,7 @@ impl ComputedValuesExt for ComputedValues {
 
     fn is_inline_box(&self, fragment_flags: FragmentFlags) -> bool {
         self.get_box().display.is_inline_flow() &&
-            !fragment_flags
-                .intersects(FragmentFlags::IS_REPLACED | FragmentFlags::IS_TEXT_CONTROL)
+            !fragment_flags.intersects(FragmentFlags::IS_REPLACED | FragmentFlags::IS_WIDGET)
     }
 
     /// Returns true if this is a transformable element.
