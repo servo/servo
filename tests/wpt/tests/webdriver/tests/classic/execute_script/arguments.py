@@ -169,11 +169,24 @@ def test_no_such_window_for_window_with_invalid_value(session, get_test_page):
     assert isinstance(frame, WebFrame)
 
     window_reference = WebWindow(session, frame.id)
-    frame_reference = WebFrame(session, window.id)
+    
+    result = execute_script(session, "return true", args=(window_reference,))
+    assert_error(result, "no such window")
 
-    for reference in [window_reference, frame_reference]:
-        result = execute_script(session, "return true", args=(reference,))
-        assert_error(result, "no such window")
+
+def test_no_such_frame_for_frame_with_invalid_value(session, get_test_page):
+    session.url = get_test_page()
+
+    result = execute_script(session, "return [window, window.frames[0]];")
+    [window, frame] = assert_success(result)
+
+    assert isinstance(window, WebWindow)
+    assert isinstance(frame, WebFrame)
+
+    frame_reference = WebFrame(session, window.id)
+    
+    result = execute_script(session, "return true", args=(frame_reference,))
+    assert_error(result, "no such frame")
 
 
 @pytest.mark.parametrize("expression, expected_type", [
