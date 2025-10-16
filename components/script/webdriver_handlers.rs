@@ -20,7 +20,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use js::conversions::jsstr_to_string;
 use js::jsapi::{
     self, GetPropertyKeys, HandleValueArray, JS_GetOwnPropertyDescriptorById, JS_GetPropertyById,
-    JS_IsExceptionPending, JSAutoRealm, JSContext, JSObject, JSType, PropertyDescriptor,
+    JS_IsExceptionPending, JSAutoRealm, JSObject, JSType, PropertyDescriptor,
 };
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_CallFunctionName, JS_GetProperty, JS_HasOwnProperty, JS_TypeOfValue};
@@ -59,8 +59,8 @@ use crate::dom::bindings::codegen::Bindings::XPathResultBinding::{
 };
 use crate::dom::bindings::codegen::UnionTypes::BooleanOrScrollIntoViewOptions;
 use crate::dom::bindings::conversions::{
-    ConversionBehavior, ConversionResult, FromJSValConvertible, StringificationBehavior,
-    get_property, get_property_jsval, jsid_to_string, root_from_object,
+    ConversionBehavior, ConversionResult, FromJSValConvertible, get_property, get_property_jsval,
+    jsid_to_string, root_from_object,
 };
 use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
@@ -322,34 +322,24 @@ fn all_matching_links(
 }
 
 #[allow(unsafe_code)]
-unsafe fn object_has_to_json_property(
-    cx: *mut JSContext,
+fn object_has_to_json_property(
+    cx: SafeJSContext,
     global_scope: &GlobalScope,
     object: HandleObject,
 ) -> bool {
     let name = CString::new("toJSON").unwrap();
     let mut found = false;
-    if JS_HasOwnProperty(cx, object, name.as_ptr(), &mut found) && found {
-        rooted!(in(cx) let mut value = UndefinedValue());
-        let result = JS_GetProperty(cx, object, name.as_ptr(), value.handle_mut());
+    if unsafe { JS_HasOwnProperty(*cx, object, name.as_ptr(), &mut found) } && found {
+        rooted!(in(*cx) let mut value = UndefinedValue());
+        let result = unsafe { JS_GetProperty(*cx, object, name.as_ptr(), value.handle_mut()) };
         if !result {
-            throw_dom_exception(
-                SafeJSContext::from_ptr(cx),
-                global_scope,
-                Error::JSFailed,
-                CanGc::note(),
-            );
+            throw_dom_exception(cx, global_scope, Error::JSFailed, CanGc::note());
             false
         } else {
-            result && JS_TypeOfValue(cx, value.handle()) == JSType::JSTYPE_FUNCTION
+            result && unsafe { JS_TypeOfValue(*cx, value.handle()) } == JSType::JSTYPE_FUNCTION
         }
-    } else if JS_IsExceptionPending(cx) {
-        throw_dom_exception(
-            SafeJSContext::from_ptr(cx),
-            global_scope,
-            Error::JSFailed,
-            CanGc::note(),
-        );
+    } else if unsafe { JS_IsExceptionPending(*cx) } {
+        throw_dom_exception(cx, global_scope, Error::JSFailed, CanGc::note());
         false
     } else {
         false
@@ -358,12 +348,13 @@ unsafe fn object_has_to_json_property(
 
 #[allow(unsafe_code)]
 /// <https://w3c.github.io/webdriver/#dfn-collection>
-unsafe fn is_arguments_object(cx: *mut JSContext, value: HandleValue) -> bool {
-    rooted!(in(cx) let class_name = ToString(cx, value));
+fn is_arguments_object(cx: SafeJSContext, value: HandleValue) -> bool {
+    rooted!(in(*cx) let class_name = unsafe { ToString(*cx, value) });
     let Some(class_name) = NonNull::new(class_name.get()) else {
         return false;
     };
-    jsstr_to_string(cx, class_name) == "[object Arguments]"
+    let class_name = unsafe { jsstr_to_string(*cx, class_name) };
+    class_name == "[object Arguments]"
 }
 
 #[derive(Clone, Eq, Hash, PartialEq)]
@@ -375,7 +366,6 @@ impl From<HandleValue<'_>> for HashableJSVal {
     }
 }
 
-#[allow(unsafe_code)]
 /// <https://w3c.github.io/webdriver/#dfn-json-clone>
 pub(crate) fn jsval_to_webdriver(
     cx: SafeJSContext,
@@ -386,7 +376,7 @@ pub(crate) fn jsval_to_webdriver(
 ) -> WebDriverJSResult {
     let _aes = AutoEntryScript::new(global_scope);
     let mut seen = HashSet::new();
-    let result = unsafe { jsval_to_webdriver_inner(*cx, global_scope, val, &mut seen) };
+    let result = jsval_to_webdriver_inner(cx, global_scope, val, &mut seen);
     if result.is_err() {
         report_pending_exception(cx, true, realm, can_gc);
     }
@@ -395,8 +385,8 @@ pub(crate) fn jsval_to_webdriver(
 
 #[allow(unsafe_code)]
 /// <https://w3c.github.io/webdriver/#dfn-internal-json-clone>
-unsafe fn jsval_to_webdriver_inner(
-    cx: *mut JSContext,
+fn jsval_to_webdriver_inner(
+    cx: SafeJSContext,
     global_scope: &GlobalScope,
     val: HandleValue,
     seen: &mut HashSet<HashableJSVal>,
@@ -409,30 +399,19 @@ unsafe fn jsval_to_webdriver_inner(
     } else if val.get().is_boolean() {
         Ok(JSValue::Boolean(val.get().to_boolean()))
     } else if val.get().is_number() {
-        Ok(JSValue::Number(
-            match FromJSValConvertible::from_jsval(cx, val, ()).unwrap() {
-                ConversionResult::Success(c) => c,
-                _ => unreachable!(),
-            },
-        ))
+        Ok(JSValue::Number(val.to_number()))
     } else if val.get().is_string() {
-        // FIXME: use jsstr_to_string when jsval grows to_jsstring
-        let string: DOMString =
-            match FromJSValConvertible::from_jsval(cx, val, StringificationBehavior::Default)
-                .unwrap()
-            {
-                ConversionResult::Success(c) => c,
-                _ => unreachable!(),
-            };
-        Ok(JSValue::String(String::from(string)))
+        let string = NonNull::new(val.to_string()).expect("Should have a non-Null String");
+        let string = unsafe { jsstr_to_string(*cx, string) };
+        Ok(JSValue::String(string))
     } else if val.get().is_object() {
-        rooted!(in(cx) let object = match FromJSValConvertible::from_jsval(cx, val, ()).unwrap() {
+        rooted!(in(*cx) let object = match unsafe { FromJSValConvertible::from_jsval(*cx, val, ())}.unwrap() {
             ConversionResult::Success(object) => object,
             _ => unreachable!(),
         });
-        let _ac = JSAutoRealm::new(cx, *object);
+        let _ac = JSAutoRealm::new(*cx, *object);
 
-        if let Ok(element) = root_from_object::<Element>(*object, cx) {
+        if let Ok(element) = unsafe { root_from_object::<Element>(*object, *cx) } {
             // If the element is stale, return error with error code stale element reference.
             if is_stale(&element) {
                 Err(JavaScriptEvaluationError::SerializationError(
@@ -445,7 +424,7 @@ unsafe fn jsval_to_webdriver_inner(
                         .unique_id(element.owner_window().pipeline_id()),
                 ))
             }
-        } else if let Ok(shadow_root) = root_from_object::<ShadowRoot>(*object, cx) {
+        } else if let Ok(shadow_root) = unsafe { root_from_object::<ShadowRoot>(*object, *cx) } {
             // If the shadow root is detached, return error with error code detached shadow root.
             if is_detached(&shadow_root) {
                 Err(JavaScriptEvaluationError::SerializationError(
@@ -458,7 +437,7 @@ unsafe fn jsval_to_webdriver_inner(
                         .unique_id(shadow_root.owner_window().pipeline_id()),
                 ))
             }
-        } else if let Ok(window) = root_from_object::<Window>(*object, cx) {
+        } else if let Ok(window) = unsafe { root_from_object::<Window>(*object, *cx) } {
             let window_proxy = window.window_proxy();
             if window_proxy.is_browsing_context_discarded() {
                 Err(JavaScriptEvaluationError::SerializationError(
@@ -473,14 +452,18 @@ unsafe fn jsval_to_webdriver_inner(
             }
         } else if object_has_to_json_property(cx, global_scope, object.handle()) {
             let name = CString::new("toJSON").unwrap();
-            rooted!(in(cx) let mut value = UndefinedValue());
-            if JS_CallFunctionName(
-                cx,
-                object.handle(),
-                name.as_ptr(),
-                &HandleValueArray::empty(),
-                value.handle_mut(),
-            ) {
+            rooted!(in(*cx) let mut value = UndefinedValue());
+            let call_result = unsafe {
+                JS_CallFunctionName(
+                    *cx,
+                    object.handle(),
+                    name.as_ptr(),
+                    &HandleValueArray::empty(),
+                    value.handle_mut(),
+                )
+            };
+
+            if call_result {
                 Ok(jsval_to_webdriver_inner(
                     cx,
                     global_scope,
@@ -488,24 +471,13 @@ unsafe fn jsval_to_webdriver_inner(
                     seen,
                 )?)
             } else {
-                throw_dom_exception(
-                    SafeJSContext::from_ptr(cx),
-                    global_scope,
-                    Error::JSFailed,
-                    CanGc::note(),
-                );
+                throw_dom_exception(cx, global_scope, Error::JSFailed, CanGc::note());
                 Err(JavaScriptEvaluationError::SerializationError(
                     JavaScriptEvaluationResultSerializationError::OtherJavaScriptError,
                 ))
             }
         } else {
-            clone_an_object(
-                SafeJSContext::from_ptr(cx),
-                global_scope,
-                val,
-                seen,
-                object.handle(),
-            )
+            clone_an_object(cx, global_scope, val, seen, object.handle())
         }
     } else {
         Err(JavaScriptEvaluationError::SerializationError(
@@ -516,7 +488,7 @@ unsafe fn jsval_to_webdriver_inner(
 
 #[allow(unsafe_code)]
 /// <https://w3c.github.io/webdriver/#dfn-clone-an-object>
-unsafe fn clone_an_object(
+fn clone_an_object(
     cx: SafeJSContext,
     global_scope: &GlobalScope,
     val: HandleValue,
@@ -534,7 +506,7 @@ unsafe fn clone_an_object(
     seen.insert(hashable.clone());
 
     let return_val = if unsafe {
-        is_array_like::<crate::DomTypeHolder>(*cx, val) || is_arguments_object(*cx, val)
+        is_array_like::<crate::DomTypeHolder>(*cx, val) || is_arguments_object(cx, val)
     } {
         let mut result: Vec<JSValue> = Vec::new();
 
@@ -564,7 +536,7 @@ unsafe fn clone_an_object(
             match get_property_result {
                 Ok(_) => {
                     let conversion_result =
-                        unsafe { jsval_to_webdriver_inner(*cx, global_scope, item.handle(), seen) };
+                        jsval_to_webdriver_inner(cx, global_scope, item.handle(), seen);
                     match conversion_result {
                         Ok(converted_item) => result.push(converted_item),
                         err @ Err(_) => return err,
@@ -639,9 +611,7 @@ unsafe fn clone_an_object(
                     ));
                 };
 
-                let value = unsafe {
-                    jsval_to_webdriver_inner(*cx, global_scope, property.handle(), seen)?
-                };
+                let value = jsval_to_webdriver_inner(cx, global_scope, property.handle(), seen)?;
                 result.insert(name.into(), value);
             }
         }
@@ -653,7 +623,6 @@ unsafe fn clone_an_object(
     return_val
 }
 
-#[allow(unsafe_code)]
 pub(crate) fn handle_execute_script(
     window: Option<DomRoot<Window>>,
     eval: String,
