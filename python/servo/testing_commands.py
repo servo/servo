@@ -38,7 +38,7 @@ import servo.devtools_tests
 import servo.try_parser
 from servo.command_base import BuildType, CommandBase, call, check_call
 from servo.post_build_commands import PostBuildCommands
-from servo.util import delete
+from servo.util import delete, get_target_dir
 
 SCRIPT_PATH = os.path.split(__file__)[0]
 PROJECT_TOPLEVEL_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
@@ -403,6 +403,11 @@ class MachCommands(CommandBase):
     @CommandBase.common_command_arguments(binary_selection=True)
     def test_devtools(self, servo_binary: str, test_names: list[str], **kwargs: Any) -> int:
         print("Running devtools tests...")
+        if self.enable_code_coverage:
+            target_dir = get_target_dir()
+            # See `cargo llvm-cov show-env`. We only need the profile file environment variable
+            # The other variables are only required when creating a coverage report.
+            os.environ["LLVM_PROFILE_FILE"] = f"{target_dir}/servo-%p-%14m.profraw"
         passed = servo.devtools_tests.run_tests(SCRIPT_PATH, servo_binary, test_names)
         return 0 if passed else 1
 
@@ -423,6 +428,11 @@ class MachCommands(CommandBase):
     )
     @CommandBase.common_command_arguments(binary_selection=True)
     def test_wpt(self, servo_binary: str, **kwargs: Any) -> int:
+        if self.enable_code_coverage:
+            target_dir = get_target_dir()
+            # See `cargo llvm-cov show-env`. We only need the profile file environment variable
+            # The other variables are only required when creating a coverage report.
+            os.environ["LLVM_PROFILE_FILE"] = f"{target_dir}/servo-%p-%14m.profraw"
         return self._test_wpt(servo_binary, **kwargs)
 
     @CommandBase.allow_target_configuration

@@ -538,6 +538,7 @@ class CommandBase(object):
         build_type: bool = False,
         binary_selection: bool = False,
         package_configuration: bool = False,
+        coverage_report: bool = False,
     ) -> Callable:
         decorators = []
         if build_type or binary_selection:
@@ -692,6 +693,9 @@ class CommandBase(object):
 
                 if build_configuration or binary_selection:
                     self.enable_code_coverage = kwargs.pop("coverage", False)
+                    # In coverage report mode force-enable, so that the user doesn't need to
+                    # additionally specify `--coverage`.
+                    self.enable_code_coverage |= coverage_report
 
                 if binary_selection:
                     if "servo_binary" not in kwargs:
