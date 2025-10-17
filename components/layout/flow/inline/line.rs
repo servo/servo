@@ -902,7 +902,7 @@ pub(super) struct FloatLineItem {
     pub needs_placement: bool,
 }
 
-/// Sort a mutable slice by the the given indices array in place, reording the slice so that final
+/// Sort a mutable slice by the given indices array in place, reording the slice so that final
 /// value of `slice[x]` is `slice[indices[x]]`.
 fn sort_by_indices_in_place<T>(data: &mut [T], mut indices: Vec<usize>) {
     for idx in 0..data.len() {

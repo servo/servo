@@ -709,7 +709,7 @@ impl PipeTo {
                 self.writer.close_with_error_propagation(cx, global, can_gc)
             },
             ShutdownAction::Abort => {
-                // Note: implementation of the the `abortAlgorithm`
+                // Note: implementation of the `abortAlgorithm`
                 // of the signal associated with this piping operation.
 
                 // Let error be signal’s abort reason.

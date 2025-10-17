@@ -5738,7 +5738,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             if let Some(ref body) = self.GetBody() {
                 let e = body.upcast::<Element>();
                 // and it is not potentially scrollable, return the body element and abort these steps.
-                // For this purpose, a value of overflow:clip on the the body element’s parent element
+                // For this purpose, a value of overflow:clip on the body element’s parent element
                 // must be treated as overflow:hidden.
                 if !e.is_potentially_scrollable_body_for_scrolling_element() {
                     return Some(DomRoot::from_ref(e));

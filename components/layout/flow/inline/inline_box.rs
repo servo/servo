@@ -154,7 +154,7 @@ impl InlineBoxes {
         let is_reversed = to_index < from_index;
 
         // Do not include the first or final token, depending on direction. These can be equal
-        // if we are starting or going to the the root of the inline formatting context, in which
+        // if we are starting or going to the root of the inline formatting context, in which
         // case we don't want to adjust.
         if to_index > from_index && from.is_some() {
             from_index += 1;

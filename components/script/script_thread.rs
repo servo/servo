@@ -357,7 +357,7 @@ pub struct ScriptThread {
     /// Whether an animation tick or ScriptThread-triggered rendering update is pending. This might
     /// either be because the Servo renderer is managing animations and the [`ScriptThread`] has
     /// received a [`ScriptThreadMessage::TickAllAnimations`] message, because the [`ScriptThread`]
-    /// itself is managing animations the the timer fired triggering a [`ScriptThread`]-based
+    /// itself is managing animations the timer fired triggering a [`ScriptThread`]-based
     /// animation tick, or if there are no animations running and the [`ScriptThread`] has noticed a
     /// change that requires a rendering update.
     needs_rendering_update: Arc<AtomicBool>,

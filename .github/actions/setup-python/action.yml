@@ -2,7 +2,7 @@ name: Setup Python and uv
 inputs:
   python-version-file-path:
     required: false
-    description: "Path to the the .python-version file"
+    description: "Path to the .python-version file"
     default: '.python-version'
   skip-python-setup:
     required: false

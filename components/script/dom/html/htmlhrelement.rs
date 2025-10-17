@@ -91,7 +91,7 @@ impl HTMLHRElementMethods<crate::DomTypeHolder> for HTMLHRElement {
     make_dimension_setter!(SetWidth, "width");
 }
 
-/// The result of applying the the presentational hint for the `size` attribute.
+/// The result of applying the presentational hint for the `size` attribute.
 ///
 /// (This attribute can mean different things depending on its value and other attributes)
 #[allow(clippy::enum_variant_names)]
