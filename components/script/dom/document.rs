@@ -15,6 +15,7 @@ use std::time::Duration;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::WebViewId;
 use base::{Epoch, IpcSend, generic_channel};
+use bitflags::bitflags;
 use canvas_traits::canvas::CanvasId;
 use canvas_traits::webgl::{WebGLContextId, WebGLMsg};
 use chrono::Local;
@@ -277,6 +278,23 @@ pub(crate) enum DeclarativeRefresh {
         time: u64,
     },
     CreatedAfterLoad,
+}
+
+/// Reasons why a [`Document`] might need a rendering update that is otherwise
+/// untracked via other [`Document`] properties.
+#[derive(Clone, Copy, Debug, Default, JSTraceable, MallocSizeOf)]
+pub(crate) struct RenderingUpdateReason(u8);
+
+bitflags! {
+    impl RenderingUpdateReason: u8 {
+        /// When a `ResizeObserver` starts observing a target, this becomes true, which in turn is a
+        /// signal to the [`ScriptThread`] that a rendering update should happen.
+        const ResizeObserverStartedObservingTarget = 1 << 0;
+        /// All web fonts have loaded and `fonts.ready` promise has been fulfilled. We want to trigger
+        /// one more rendering update possibility after this happens, so that any potential screenshot
+        /// reflects the up-to-date contents.
+        const FontReadyPromiseFulfilled = 1 << 1;
+    }
 }
 
 /// <https://dom.spec.whatwg.org/#document>
@@ -555,9 +573,8 @@ pub(crate) struct Document {
     adopted_stylesheets_frozen_types: CachedFrozenArray,
     /// <https://drafts.csswg.org/cssom-view/#document-pending-scroll-event-targets>
     pending_scroll_event_targets: DomRefCell<Vec<Dom<EventTarget>>>,
-    /// When a `ResizeObserver` starts observing a target, this becomes true, which in turn is a
-    /// signal to the [`ScriptThread`] that a rendering update should happen.
-    resize_observer_started_observing_target: Cell<bool>,
+    /// Other reasons that a rendering update might be required for this [`Document`].
+    rendering_update_reasons: Cell<RenderingUpdateReason>,
     /// Whether or not this [`Document`] is waiting on canvas image updates. If it is
     /// waiting it will not do any new layout until the canvas images are up-to-date in
     /// the renderer.
@@ -2721,7 +2738,7 @@ impl Document {
         {
             return true;
         }
-        if self.resize_observer_started_observing_target.get() {
+        if !self.rendering_update_reasons.get().is_empty() {
             return true;
         }
         if self.event_handler.has_pending_input_events() {
@@ -2880,7 +2897,20 @@ impl Document {
         if !self.restyle_reason().is_empty() {
             return false;
         }
-        fonts.fulfill_ready_promise_if_needed(can_gc)
+        if !self.rendering_update_reasons.get().is_empty() {
+            return false;
+        }
+
+        let result = fonts.fulfill_ready_promise_if_needed(can_gc);
+
+        // Add a rendering update after the `fonts.ready` promise is fulfilled just for
+        // the sake of taking screenshots. This has the effect of delaying screenshots
+        // until layout has taken a shot at updating the rendering.
+        if result {
+            self.add_rendering_update_reason(RenderingUpdateReason::FontReadyPromiseFulfilled);
+        }
+
+        result
     }
 
     pub(crate) fn id_map(
@@ -3544,7 +3574,7 @@ impl Document {
             adopted_stylesheets: Default::default(),
             adopted_stylesheets_frozen_types: CachedFrozenArray::new(),
             pending_scroll_event_targets: Default::default(),
-            resize_observer_started_observing_target: Cell::new(false),
+            rendering_update_reasons: Default::default(),
             waiting_on_canvas_image_updates: Cell::new(false),
             current_rendering_epoch: Default::default(),
             custom_element_reaction_stack,
@@ -3587,8 +3617,17 @@ impl Document {
         !self.pending_scroll_event_targets.borrow().is_empty()
     }
 
-    pub(crate) fn set_resize_observer_started_observing_target(&self, value: bool) {
-        self.resize_observer_started_observing_target.set(value);
+    /// Add a [`RenderingUpdateReason`] to this [`Document`] which will trigger a
+    /// rendering update at a later time.
+    pub(crate) fn add_rendering_update_reason(&self, reason: RenderingUpdateReason) {
+        self.rendering_update_reasons
+            .set(self.rendering_update_reasons.get().union(reason));
+    }
+
+    /// Clear all [`RenderingUpdateReason`]s from this [`Document`].
+    pub(crate) fn clear_rendering_update_reasons(&self) {
+        self.rendering_update_reasons
+            .set(RenderingUpdateReason::empty())
     }
 
     /// Prevent any JS or layout from running until the corresponding call to

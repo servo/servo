@@ -2474,12 +2474,12 @@ impl Window {
         reflow_result.reflow_phases_run
     }
 
-    pub(crate) fn request_screenshot_readiness(&self) {
+    pub(crate) fn request_screenshot_readiness(&self, can_gc: CanGc) {
         self.has_pending_screenshot_readiness_request.set(true);
-        self.maybe_resolve_pending_screenshot_readiness_requests();
+        self.maybe_resolve_pending_screenshot_readiness_requests(can_gc);
     }
 
-    pub(crate) fn maybe_resolve_pending_screenshot_readiness_requests(&self) {
+    pub(crate) fn maybe_resolve_pending_screenshot_readiness_requests(&self, can_gc: CanGc) {
         let pending_request = self.has_pending_screenshot_readiness_request.get();
         if !pending_request {
             return;
@@ -2505,6 +2505,10 @@ impl Window {
         }
 
         if self.font_context().web_fonts_still_loading() != 0 {
+            return;
+        }
+
+        if self.Document().Fonts(can_gc).waiting_to_fullfill_promise() {
             return;
         }
 
