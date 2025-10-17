@@ -82,6 +82,13 @@ impl GPUSupportedFeatures {
         if features.contains(Features::DUAL_SOURCE_BLENDING) {
             set.insert(GPUFeatureName::Dual_source_blending);
         }
+        // While this feature exists in wgpu, it's not supported by naga yet
+        // https://github.com/gfx-rs/wgpu/issues/5555
+        /*
+        if features.contains(Features::SUBGROUP) {
+            set.insert(GPUFeatureName::Subgroups);
+        }
+        */
 
         reflect_dom_object_with_proto(
             Box::new(GPUSupportedFeatures {
@@ -107,8 +114,8 @@ impl GPUSupportedFeatures {
 }
 
 impl GPUSupportedFeatures {
-    pub(crate) fn wgpu_features(&self) -> Features {
-        self.features
+    pub(crate) fn wgpu_features(&self) -> &Features {
+        &self.features
     }
 }
 
@@ -136,6 +143,9 @@ pub(crate) fn gpu_to_wgt_feature(feature: GPUFeatureName) -> Option<Features> {
         GPUFeatureName::Dual_source_blending => Some(Features::DUAL_SOURCE_BLENDING),
         GPUFeatureName::Texture_compression_bc_sliced_3d => None,
         GPUFeatureName::Clip_distances => None,
+        // While this feature exists in wgpu, it's not supported by naga yet
+        // https://github.com/gfx-rs/wgpu/issues/5555
+        GPUFeatureName::Subgroups => None,
     }
 }
 
