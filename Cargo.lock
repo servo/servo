@@ -771,6 +771,7 @@ dependencies = [
  "malloc_size_of_derive",
  "parking_lot",
  "rayon",
+ "regex",
  "serde",
  "serde_json",
  "servo_config",
