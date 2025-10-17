@@ -4244,6 +4244,7 @@ where
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#window-post-message-steps>
     #[servo_tracing::instrument(skip_all)]
     fn handle_post_message_msg(
         &mut self,
@@ -4262,14 +4263,37 @@ where
             },
             Some(browsing_context) => browsing_context.pipeline_id,
         };
-        let source_browsing_context = match self.pipelines.get(&source_pipeline) {
+        let source_webview = match self.pipelines.get(&source_pipeline) {
             Some(pipeline) => pipeline.webview_id,
             None => return warn!("{}: PostMessage from closed pipeline", source_pipeline),
         };
+
+        let browsing_context_for_pipeline = |pipeline_id| {
+            self.pipelines
+                .get(&pipeline_id)
+                .and_then(|pipeline| self.browsing_contexts.get(&pipeline.browsing_context_id))
+        };
+        let mut maybe_browsing_context = browsing_context_for_pipeline(source_pipeline);
+        if maybe_browsing_context.is_none() {
+            return warn!("{source_pipeline}: PostMessage from pipeline with closed parent");
+        }
+
+        // Step 8.3: Let source be the WindowProxy object corresponding to
+        // incumbentSettings's global object (a Window object).
+        // Note: done here to prevent a round-trip to the constellation later,
+        // and to prevent panic as part of that round-trip
+        // in the case that the source would already have been closed.
+        let mut source_with_ancestry = vec![];
+        while let Some(browsing_context) = maybe_browsing_context {
+            source_with_ancestry.push(browsing_context.id);
+            maybe_browsing_context = browsing_context
+                .parent_pipeline_id
+                .and_then(browsing_context_for_pipeline);
+        }
         let msg = ScriptThreadMessage::PostMessage {
             target: pipeline_id,
-            source: source_pipeline,
-            source_browsing_context,
+            source_webview,
+            source_with_ancestry,
             target_origin: origin,
             source_origin,
             data: Box::new(data),

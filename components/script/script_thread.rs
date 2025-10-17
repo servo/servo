@@ -133,7 +133,7 @@ use crate::dom::types::DebuggerGlobalScope;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::Window;
-use crate::dom::windowproxy::WindowProxy;
+use crate::dom::windowproxy::{CreatorBrowsingContextInfo, WindowProxy};
 use crate::dom::worklet::WorkletThreadPool;
 use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
 use crate::fetch::FetchCanceller;
@@ -1775,15 +1775,15 @@ impl ScriptThread {
             ),
             ScriptThreadMessage::PostMessage {
                 target: target_pipeline_id,
-                source: source_pipeline_id,
-                source_browsing_context,
+                source_webview,
+                source_with_ancestry,
                 target_origin: origin,
                 source_origin,
                 data,
             } => self.handle_post_message_msg(
                 target_pipeline_id,
-                source_pipeline_id,
-                source_browsing_context,
+                source_webview,
+                source_with_ancestry,
                 origin,
                 source_origin,
                 *data,
@@ -2723,11 +2723,12 @@ impl ScriptThread {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#window-post-message-steps>
     fn handle_post_message_msg(
         &self,
         pipeline_id: PipelineId,
-        source_pipeline_id: PipelineId,
-        source_browsing_context: WebViewId,
+        source_webview: WebViewId,
+        source_with_ancestry: Vec<BrowsingContextId>,
         origin: Option<ImmutableOrigin>,
         source_origin: ImmutableOrigin,
         data: StructuredSerializedData,
@@ -2736,23 +2737,29 @@ impl ScriptThread {
         match window {
             None => warn!("postMessage after target pipeline {} closed.", pipeline_id),
             Some(window) => {
-                // FIXME: synchronously talks to constellation.
-                // send the required info as part of postmessage instead.
-                let source = match self.window_proxies.remote_window_proxy(
-                    &self.senders,
-                    window.upcast::<GlobalScope>(),
-                    source_browsing_context,
-                    source_pipeline_id,
-                    None,
-                ) {
-                    None => {
-                        return warn!(
-                            "postMessage after source pipeline {} closed.",
-                            source_pipeline_id,
-                        );
-                    },
-                    Some(source) => source,
-                };
+                let mut last = None;
+                for browsing_context_id in source_with_ancestry.into_iter().rev() {
+                    if let Some(window_proxy) = self.window_proxies.get(browsing_context_id) {
+                        last = Some(window_proxy);
+                        continue;
+                    }
+                    let window_proxy = WindowProxy::new_dissimilar_origin(
+                        window.upcast::<GlobalScope>(),
+                        browsing_context_id,
+                        source_webview,
+                        last.as_deref(),
+                        None,
+                        CreatorBrowsingContextInfo::from(last.as_deref(), None),
+                    );
+                    self.window_proxies
+                        .insert(browsing_context_id, window_proxy.clone());
+                    last = Some(window_proxy);
+                }
+
+                // Step 8.3: Let source be the WindowProxy object corresponding to
+                // incumbentSettings's global object (a Window object).
+                let source = last.expect("Source with ancestry should contain at least one bc.");
+
                 // FIXME(#22512): enqueues a task; unnecessary delay.
                 window.post_message(origin, source_origin, &source, data)
             },
