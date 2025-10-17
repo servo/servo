@@ -4,8 +4,7 @@
 
 // This interface is entirely internal to Servo, and should not be accessible to
 // web pages.
-[Global=DebuggerGlobalScope, Exposed=DebuggerGlobalScope]
-interface DebuggerGlobalScope: GlobalScope {
+partial interface DebuggerGlobalScope {
     undefined notifyNewSource(NotifyNewSource args);
 };
 

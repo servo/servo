@@ -1,0 +1,25 @@
+[package]
+name = "geolocation"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+deny_public_fields = { workspace = true }
+domobject_derive = { workspace = true }
+dom_struct = { workspace = true }
+js = { workspace = true }
+jstraceable_derive = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
+script_bindings = { workspace = true }
+script_bindings_geolocation = { path = "./script_bindings/" }
+
+[features]
+crown = ['js/crown']
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }
