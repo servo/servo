@@ -71,7 +71,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -qy --no-install-recommends mesa-vulkan-drivers fonts-noto-cjk
-          ./mach bootstrap --skip-lints
+          ./mach bootstrap --skip-lints --skip-nextest
       - name: Sync from upstream WPT
         if: ${{ inputs.wpt-sync-from-upstream }}
         run: |
