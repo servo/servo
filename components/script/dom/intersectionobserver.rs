@@ -35,7 +35,7 @@ use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
-use crate::dom::document::Document;
+use crate::dom::document::{Document, RenderingUpdateReason};
 use crate::dom::domrectreadonly::DOMRectReadOnly;
 use crate::dom::element::Element;
 use crate::dom::intersectionobserverentry::IntersectionObserverEntry;
@@ -284,6 +284,13 @@ impl IntersectionObserver {
         self.observation_targets
             .borrow_mut()
             .push(Dom::from_ref(target));
+
+        target
+            .owner_window()
+            .Document()
+            .add_rendering_update_reason(
+                RenderingUpdateReason::IntersectionObserverStartedObservingTarget,
+            );
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#unobserve-target-element>
