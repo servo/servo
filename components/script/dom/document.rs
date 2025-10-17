@@ -560,6 +560,10 @@ pub(crate) struct Document {
     adopted_stylesheets_frozen_types: CachedFrozenArray,
     /// <https://drafts.csswg.org/cssom-view/#document-pending-scroll-event-targets>
     pending_scroll_event_targets: DomRefCell<Vec<Dom<EventTarget>>>,
+    /// <https://drafts.csswg.org/cssom-view/#document-pending-scrollend-event-targets>
+    pending_scrollend_event_targets: DomRefCell<Vec<Dom<EventTarget>>>,
+    /// Flag to prevent reentrant calls to handle_scroll_complete_event
+    processing_scrollend_events: Cell<bool>,
     /// When a `ResizeObserver` starts observing a target, this becomes true, which in turn is a
     /// signal to the [`ScriptThread`] that a rendering update should happen.
     resize_observer_started_observing_target: Cell<bool>,
@@ -1686,6 +1690,123 @@ impl Document {
         self.pending_scroll_event_targets
             .borrow_mut()
             .push(Dom::from_ref(target));
+    }
+
+    /// Whenever scrolling is completed, the user agent must run these steps:
+    /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
+    ///
+    /// Note: This function should be called when all scrolling operations are complete.
+    /// For each scrolling box, the corresponding handle_viewport_scrollend_event or
+    /// handle_element_scrollend_event should have been called beforehand to populate
+    /// the pending_scrollend_event_targets list.
+    pub(crate) fn handle_scroll_complete_event(&self, can_gc: CanGc) {
+        // Prevent reentrant calls - if we're already processing scrollend events, return early
+        if self.processing_scrollend_events.get() {
+            return;
+        }
+
+        // Early return if no pending scrollend events to process
+        if self.pending_scrollend_event_targets.borrow().is_empty() {
+            return;
+        }
+
+        // Set the processing flag to prevent reentrant calls
+        self.processing_scrollend_events.set(true);
+
+        rooted_vec!(let notify_list <- self.pending_scrollend_event_targets.take().into_iter());
+        for target in notify_list.iter() {
+            if target.downcast::<Document>().is_some() {
+                // Step 3.1: If target is a Document, fire an event named scrollend that bubbles at target.
+                target.fire_bubbling_event(Atom::from("scrollend"), can_gc);
+            } else {
+                // Step 3.2: Otherwise, fire an event named scrollend at target.
+                target.fire_event(Atom::from("scrollend"), can_gc);
+            }
+        }
+
+        // Step 4: Empty doc's pending scrollend event targets.
+        // This was already done by taking the content above.
+
+        // Clear the processing flag
+        self.processing_scrollend_events.set(false);
+
+        // Check if new targets were added during processing and recursively process them
+        if !self.pending_scrollend_event_targets.borrow().is_empty() {
+            self.handle_scroll_complete_event(can_gc);
+        }
+    }
+
+    /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
+    pub(crate) fn handle_viewport_scrollend_event(&self) {
+        // For viewport scrolling, target is the document
+        let target = self.upcast::<EventTarget>();
+
+        // Step 1.2: If box belongs to a snap container, snapcontainer, run the update
+        // scrollsnapchange targets steps for snapcontainer.
+        // TODO(#7673): Implement scroll snapping
+
+        // Step 1.3: If target is already in pending scrollend event targets, abort these steps.
+        if self
+            .pending_scrollend_event_targets
+            .borrow()
+            .iter()
+            .any(|other_target| *other_target == target)
+        {
+            return;
+        }
+
+        // Step 1.4: Append target to pending scrollend event targets.
+        self.pending_scrollend_event_targets
+            .borrow_mut()
+            .push(Dom::from_ref(target));
+
+        // Schedule scrollend event dispatch to happen after current JavaScript execution
+        // This ensures that any JavaScript event listeners added synchronously have time to register
+        let document = Trusted::new(self);
+        self.window()
+            .as_global_scope()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(fire_instant_scrollend: move || {
+                let document = document.root();
+                document.handle_scroll_complete_event(CanGc::note());
+            }));
+    }
+
+    /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
+    pub(crate) fn handle_element_scrollend_event(&self, element: &Element) {
+        let target = element.upcast::<EventTarget>();
+
+        // Step 1.2: If box belongs to a snap container, snapcontainer, run the update
+        // scrollsnapchange targets steps for snapcontainer.
+        // TODO(#7673): Implement scroll snapping
+
+        // Step 1.3: If target is already in pending scrollend event targets, abort these steps.
+        if self
+            .pending_scrollend_event_targets
+            .borrow()
+            .iter()
+            .any(|other_target| *other_target == target)
+        {
+            return;
+        }
+
+        // Step 1.4: Append target to pending scrollend event targets.
+        self.pending_scrollend_event_targets
+            .borrow_mut()
+            .push(Dom::from_ref(target));
+
+        // Schedule scrollend event dispatch to happen after current JavaScript execution
+        // This ensures that any JavaScript event listeners added synchronously have time to register
+        let document = Trusted::new(self);
+        self.window()
+            .as_global_scope()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(fire_instant_scrollend: move || {
+                let document = document.root();
+                document.handle_scroll_complete_event(CanGc::note());
+            }));
     }
 
     // https://dom.spec.whatwg.org/#converting-nodes-into-a-node
@@ -3549,6 +3670,8 @@ impl Document {
             adopted_stylesheets: Default::default(),
             adopted_stylesheets_frozen_types: CachedFrozenArray::new(),
             pending_scroll_event_targets: Default::default(),
+            pending_scrollend_event_targets: Default::default(),
+            processing_scrollend_events: Cell::new(false),
             resize_observer_started_observing_target: Cell::new(false),
             waiting_on_canvas_image_updates: Cell::new(false),
             current_rendering_epoch: Default::default(),
