@@ -90,7 +90,7 @@ ipc-channel = "0.20.2"
 itertools = "0.14"
 js = { package = "mozjs", git = "https://github.com/servo/mozjs" }
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
-kurbo = { version = "0.11.3", features = ["euclid"] }
+kurbo = { version = "0.12.0", features = ["euclid"] }
 layout_api = { path = "components/shared/layout" }
 libc = "0.2"
 log = "0.4.27"
