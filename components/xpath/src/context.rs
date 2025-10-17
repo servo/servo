@@ -8,8 +8,6 @@ use crate::{Dom, NamespaceResolver, Node};
 
 /// The context during evaluation of an XPath expression.
 pub(crate) struct EvaluationCtx<D: Dom> {
-    /// Where we started at.
-    pub(crate) starting_node: D::Node,
     /// The "current" node in the evaluation.
     pub(crate) context_node: D::Node,
     /// Details needed for evaluating a predicate list.
@@ -28,7 +26,6 @@ impl<D: Dom> EvaluationCtx<D> {
     /// Prepares the context used while evaluating the XPath expression
     pub(crate) fn new(context_node: D::Node, resolver: Option<D::NamespaceResolver>) -> Self {
         EvaluationCtx {
-            starting_node: context_node.clone(),
             context_node,
             predicate_ctx: None,
             resolver,
@@ -38,7 +35,6 @@ impl<D: Dom> EvaluationCtx<D> {
     /// Creates a new context using the provided node as the context node
     pub(crate) fn subcontext_for_node(&self, node: D::Node) -> Self {
         EvaluationCtx {
-            starting_node: self.starting_node.clone(),
             context_node: node,
             predicate_ctx: self.predicate_ctx,
             resolver: self.resolver.clone(),
@@ -65,7 +61,6 @@ impl<D: Dom> EvaluationCtx<D> {
 impl<D: Dom> fmt::Debug for EvaluationCtx<D> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("EvaluationCtx")
-            .field("starting_node", &self.starting_node)
             .field("context_node", &self.context_node)
             .field("predicate_ctx", &self.predicate_ctx)
             .field("resolver", &"<callback function>")

@@ -56,6 +56,7 @@ pub trait Node: Eq + Clone + Debug {
     fn as_attribute(&self) -> Option<Self::Attribute>;
     fn as_element(&self) -> Option<Self::Element>;
     fn lookup_namespace_uri(&self, uri: Option<&str>) -> Option<String>;
+    fn get_root_node(&self) -> Self;
 }
 
 pub trait NamespaceResolver<E>: Clone {
@@ -258,6 +259,9 @@ mod dummy_implementation {
         }
         fn lookup_namespace_uri(&self, _: Option<&str>) -> Option<String> {
             None
+        }
+        fn get_root_node(&self) -> Self {
+            self.clone()
         }
     }
 
