@@ -576,6 +576,10 @@ impl WebViewDelegate for RunningAppState {
         self.inner_mut().need_update = true;
     }
 
+    fn notify_history_changed(&self, _webview: WebView, _entries: Vec<Url>, _current: usize) {
+        self.inner_mut().need_update = true;
+    }
+
     fn notify_page_title_changed(&self, webview: servo::WebView, title: Option<String>) {
         if webview.focused() {
             let window_title = format!("{} - Servo", title.clone().unwrap_or_default());
