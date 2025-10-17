@@ -14661,6 +14661,13 @@
       {}
      ]
     ],
+    "xpath-reuse-result-iterator.html": [
+     "5f97115a82dba24ae4ca807b1e60ee93b3a526ea",
+     [
+      null,
+      {}
+     ]
+    ],
     "zero_size_canvas_crash.html": [
      "45eb9b559e8d6105baca5ab4d336de520d33b36b",
      [
