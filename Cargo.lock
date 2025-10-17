@@ -1152,10 +1152,10 @@ dependencies = [
  "fonts",
  "futures-intrusive",
  "ipc-channel",
- "kurbo",
+ "kurbo 0.11.3",
  "log",
  "net_traits",
- "peniko",
+ "peniko 0.5.0",
  "pixels",
  "pollster",
  "range",
@@ -1181,7 +1181,7 @@ dependencies = [
  "fonts_traits",
  "glow",
  "ipc-channel",
- "kurbo",
+ "kurbo 0.11.3",
  "malloc_size_of_derive",
  "pixels",
  "serde",
@@ -4003,7 +4003,7 @@ dependencies = [
  "hyper 1.7.0",
  "libc",
  "pin-project-lite",
- "socket2 0.5.10",
+ "socket2 0.6.1",
  "tokio",
  "tower-service",
  "tracing",
@@ -4799,6 +4799,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "kurbo"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce9729cc38c18d86123ab736fd2e7151763ba226ac2490ec092d1dd148825e32"
+dependencies = [
+ "arrayvec",
+ "euclid",
+ "smallvec",
+]
+
+[[package]]
 name = "layout"
 version = "0.0.1"
 dependencies = [
@@ -4818,7 +4829,7 @@ dependencies = [
  "icu_segmenter",
  "ipc-channel",
  "itertools 0.14.0",
- "kurbo",
+ "kurbo 0.11.3",
  "layout_api",
  "log",
  "malloc_size_of_derive",
@@ -4927,7 +4938,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07033963ba89ebaf1584d767badaa2e8fcec21aedea6b8c0346d487d49c28667"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.6",
+ "windows-targets 0.53.5",
 ]
 
 [[package]]
@@ -6350,7 +6361,19 @@ checksum = "9b44f9ddd2f480176b34278eb653ec1c8062f3b143a4e16eeff5ffac3334e288"
 dependencies = [
  "bytemuck",
  "color",
- "kurbo",
+ "kurbo 0.11.3",
+ "linebender_resource_handle",
+ "smallvec",
+]
+
+[[package]]
+name = "peniko"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3c76095c9a636173600478e0373218c7b955335048c2bcd12dc6a79657649d8"
+dependencies = [
+ "color",
+ "kurbo 0.12.0",
  "linebender_resource_handle",
  "smallvec",
 ]
@@ -7294,7 +7317,7 @@ dependencies = [
  "itertools 0.14.0",
  "jstraceable_derive",
  "keyboard-types",
- "kurbo",
+ "kurbo 0.11.3",
  "layout_api",
  "libc",
  "log",
@@ -8536,7 +8559,7 @@ version = "0.15.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68c7541fff44b35860c1a7a47a7cadf3e4a304c457b58f9870d9706ece028afc"
 dependencies = [
- "kurbo",
+ "kurbo 0.11.3",
  "siphasher",
 ]
 
@@ -9357,7 +9380,7 @@ dependencies = [
  "flate2",
  "fontdb",
  "imagesize",
- "kurbo",
+ "kurbo 0.11.3",
  "log",
  "pico-args",
  "roxmltree",
@@ -9447,7 +9470,7 @@ dependencies = [
  "bytemuck",
  "futures-intrusive",
  "log",
- "peniko",
+ "peniko 0.4.1",
  "png",
  "skrifa",
  "static_assertions",
@@ -9465,7 +9488,7 @@ dependencies = [
  "bytemuck",
  "fearless_simd",
  "log",
- "peniko",
+ "peniko 0.4.1",
  "png",
  "skrifa",
  "smallvec",
@@ -9487,7 +9510,7 @@ source = "git+https://github.com/linebender/vello?rev=fdf025a88dd00c546c8fc53469
 dependencies = [
  "bytemuck",
  "guillotiere",
- "peniko",
+ "peniko 0.4.1",
  "skrifa",
  "smallvec",
 ]
