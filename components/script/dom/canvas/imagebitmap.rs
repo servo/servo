@@ -319,7 +319,7 @@ impl ImageBitmap {
             return p;
         }
 
-        // The promise with image bitmap should be fulfilled on the the bitmap task source.
+        // The promise with image bitmap should be fulfilled on the bitmap task source.
         let fullfill_promise_on_bitmap_task_source =
             |promise: &Rc<Promise>, image_bitmap: &ImageBitmap| {
                 let trusted_promise = TrustedPromise::new(promise.clone());
@@ -336,7 +336,7 @@ impl ImageBitmap {
             };
 
         // The promise with "InvalidStateError" DOMException should be rejected
-        // on the the bitmap task source.
+        // on the bitmap task source.
         let reject_promise_on_bitmap_task_source = |promise: &Rc<Promise>| {
             let trusted_promise = TrustedPromise::new(promise.clone());
 

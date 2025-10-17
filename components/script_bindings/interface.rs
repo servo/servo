@@ -641,7 +641,7 @@ pub fn get_desired_proto(
         // something akin to the ES6 specification's GetProtototypeFromConstructor (so
         // get .prototype on the newTarget, with a fallback to some sort of default).
 
-        // First, a fast path for the case when the the constructor is in fact one of
+        // First, a fast path for the case when the constructor is in fact one of
         // our DOM constructors.  This is safe because on those the "constructor"
         // property is non-configurable and non-writable, so we don't have to do the
         // slow JS_GetProperty call.

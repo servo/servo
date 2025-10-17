@@ -700,7 +700,7 @@ pub(super) struct InlineFormattingContextLayout<'layout_data> {
     /// A collection of [`InlineBoxContainerState`] of all the inlines that are present
     /// in this inline formatting context. We keep this as well as the stack, so that we
     /// can access them during line layout, which may happen after relevant [`InlineBoxContainerState`]s
-    /// have been popped of the the stack.
+    /// have been popped of the stack.
     inline_box_states: Vec<Rc<InlineBoxContainerState>>,
 
     /// A vector of fragment that are laid out. This includes one [`Fragment::Positioning`]

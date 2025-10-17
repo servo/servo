@@ -14,7 +14,7 @@ pub(crate) static XML: &str = "xml";
 /// Convenience methods to make the data_url Mime type more ergonomic.
 pub(crate) trait MimeExt {
     /// Checks that the subtype has a given suffix.
-    /// Eg. image/svg+xml has the the xml suffix.
+    /// Eg. image/svg+xml has the xml suffix.
     fn has_suffix(&self, suffix: &str) -> bool;
 
     /// TODO: replace by a derive on data_url.
