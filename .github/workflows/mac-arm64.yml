@@ -123,6 +123,10 @@ jobs:
       - name: Install crown
         run: cargo install --path support/crown
 
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: nextest
+
       - if: runner.environment != 'self-hosted'
         name: Bootstrap
         run: |
