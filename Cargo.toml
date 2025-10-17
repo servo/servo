@@ -65,12 +65,12 @@ fonts_traits = { path = "components/shared/fonts" }
 freetype-sys = "0.20"
 gleam = "0.15"
 glow = "0.16.0"
-gstreamer = { version = "0.23", features = ["v1_18"] }
-gstreamer-base = "0.23"
-gstreamer-gl = "0.23"
-gstreamer-gl-sys = "0.23"
-gstreamer-sys = "0.23"
-gstreamer-video = "0.23"
+gstreamer = { version = "0.24", features = ["v1_18"] }
+gstreamer-base = "0.24"
+gstreamer-gl = "0.24"
+gstreamer-gl-sys = "0.24"
+gstreamer-sys = "0.24"
+gstreamer-video = "0.24"
 harfbuzz-sys = "0.6.1"
 headers = "0.4"
 hitrace = "0.1.5"
