@@ -18,6 +18,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::document::RenderingUpdateReason;
 use crate::dom::domrectreadonly::DOMRectReadOnly;
 use crate::dom::element::Element;
 use crate::dom::node::{Node, NodeTraits};
@@ -229,7 +230,9 @@ impl ResizeObserverMethods<crate::DomTypeHolder> for ResizeObserver {
         target
             .owner_window()
             .Document()
-            .set_resize_observer_started_observing_target(true);
+            .add_rendering_update_reason(
+                RenderingUpdateReason::ResizeObserverStartedObservingTarget,
+            );
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-unobserve>

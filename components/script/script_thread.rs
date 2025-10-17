@@ -1179,7 +1179,7 @@ impl ScriptThread {
             if document.has_skipped_resize_observations() {
                 document.deliver_resize_loop_error_notification(can_gc);
             }
-            document.set_resize_observer_started_observing_target(false);
+            document.clear_rendering_update_reasons();
 
             // TODO(#31870): Implement step 17: if the focused area of doc is not a focusable area,
             // then run the focusing steps for document's viewport.
@@ -1295,11 +1295,11 @@ impl ScriptThread {
     /// If any `Pipeline`s are waiting to become ready for the purpose of taking a
     /// screenshot, check to see if the `Pipeline` is now ready and send a message to the
     /// Constellation, if so.
-    fn maybe_resolve_pending_screenshot_readiness_requests(&self) {
+    fn maybe_resolve_pending_screenshot_readiness_requests(&self, can_gc: CanGc) {
         for (_, document) in self.documents.borrow().iter() {
             document
                 .window()
-                .maybe_resolve_pending_screenshot_readiness_requests();
+                .maybe_resolve_pending_screenshot_readiness_requests(can_gc);
         }
     }
 
@@ -1528,7 +1528,7 @@ impl ScriptThread {
             self.update_the_rendering(can_gc);
 
         self.maybe_fulfill_font_ready_promises(can_gc);
-        self.maybe_resolve_pending_screenshot_readiness_requests();
+        self.maybe_resolve_pending_screenshot_readiness_requests(can_gc);
 
         // This must happen last to detect if any change above makes a rendering update necessary.
         self.maybe_schedule_rendering_opportunity_after_ipc_message(built_any_display_lists);
@@ -1914,7 +1914,7 @@ impl ScriptThread {
                 }
             },
             ScriptThreadMessage::RequestScreenshotReadiness(pipeline_id) => {
-                self.handle_request_screenshot_readiness(pipeline_id);
+                self.handle_request_screenshot_readiness(pipeline_id, can_gc);
             },
             ScriptThreadMessage::EmbedderControlResponse(id, response) => {
                 self.handle_embedder_control_response(id, response, can_gc);
@@ -3896,7 +3896,7 @@ impl ScriptThread {
         with_script_thread(|script_thread| script_thread.privileged_urls.contains(&url))
     }
 
-    fn handle_request_screenshot_readiness(&self, pipeline_id: PipelineId) {
+    fn handle_request_screenshot_readiness(&self, pipeline_id: PipelineId, can_gc: CanGc) {
         let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
             let _ = self.senders.pipeline_to_constellation_sender.send((
                 pipeline_id,
@@ -3906,7 +3906,7 @@ impl ScriptThread {
             ));
             return;
         };
-        window.request_screenshot_readiness();
+        window.request_screenshot_readiness(can_gc);
     }
 
     fn handle_embedder_control_response(
