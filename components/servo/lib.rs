@@ -764,6 +764,12 @@ impl Servo {
                     .finish_evaluation(evaluation_id, result);
             },
             EmbedderMsg::InputEventHandled(webview_id, input_event_id, result) => {
+                self.compositor.borrow_mut().notify_input_event_handled(
+                    webview_id,
+                    input_event_id,
+                    result,
+                );
+
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview
                         .delegate()

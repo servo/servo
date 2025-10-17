@@ -212,11 +212,6 @@ use crate::task::NonSendTaskBox;
 use crate::task_source::TaskSourceName;
 use crate::timers::OneshotTimerCallback;
 
-pub(crate) enum TouchEventResult {
-    Processed(bool),
-    Forwarded,
-}
-
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) enum FireMouseEventType {
     Move,

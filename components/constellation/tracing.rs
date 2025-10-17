@@ -164,7 +164,6 @@ mod from_script {
                 Self::ActivateDocument => target!("ActivateDocument"),
                 Self::SetDocumentState(..) => target!("SetDocumentState"),
                 Self::SetFinalUrl(..) => target!("SetFinalUrl"),
-                Self::TouchEventProcessed(..) => target!("TouchEventProcessed"),
                 Self::LogEntry(..) => target!("LogEntry"),
                 Self::DiscardDocument => target!("DiscardDocument"),
                 Self::DiscardTopLevelBrowsingContext => target!("DiscardTopLevelBrowsingContext"),

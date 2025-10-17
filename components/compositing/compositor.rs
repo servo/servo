@@ -26,8 +26,8 @@ use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{
-    CompositorHitTestResult, InputEventAndId, ScreenshotCaptureError, ShutdownState,
-    ViewportDetails,
+    CompositorHitTestResult, InputEventAndId, InputEventId, InputEventResult,
+    ScreenshotCaptureError, ShutdownState, ViewportDetails,
 };
 use euclid::{Point2D, Scale, Size2D, Transform3D};
 use image::RgbaImage;
@@ -466,14 +466,6 @@ impl IOCompositor {
 
             CompositorMsg::RemoveWebView(webview_id) => {
                 self.remove_webview(webview_id);
-            },
-
-            CompositorMsg::TouchEventProcessed(webview_id, result) => {
-                let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
-                    warn!("Handling input event for unknown webview: {webview_id}");
-                    return;
-                };
-                webview_renderer.on_touch_event_processed(result);
             },
 
             CompositorMsg::SetThrottled(webview_id, pipeline_id, throttled) => {
@@ -1603,6 +1595,19 @@ impl IOCompositor {
         let _ = self.global.borrow().constellation_sender.send(
             EmbedderToConstellationMessage::RequestScreenshotReadiness(webview_id),
         );
+    }
+
+    pub fn notify_input_event_handled(
+        &mut self,
+        webview_id: WebViewId,
+        input_event_id: InputEventId,
+        result: InputEventResult,
+    ) {
+        let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
+            warn!("Handled input event for unknown webview: {webview_id}");
+            return;
+        };
+        webview_renderer.notify_input_event_handled(input_event_id, result);
     }
 }
 

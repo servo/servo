@@ -950,15 +950,6 @@ pub struct CompositorHitTestResult {
     pub external_scroll_id: ExternalScrollId,
 }
 
-/// Whether the default action for a touch event was prevented by web content
-#[derive(Debug, Deserialize, Serialize)]
-pub enum TouchEventResult {
-    /// Allowed by web content
-    DefaultAllowed(TouchSequenceId, TouchEventType),
-    /// Prevented by web content
-    DefaultPrevented(TouchSequenceId, TouchEventType),
-}
-
 /// For a given pipeline, whether any animations are currently running
 /// and any animation callbacks are queued
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]

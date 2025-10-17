@@ -9,7 +9,7 @@ use std::fmt::{Debug, Error, Formatter};
 use base::Epoch;
 use base::id::{PipelineId, RenderingGroupId, WebViewId};
 use crossbeam_channel::Sender;
-use embedder_traits::{AnimationState, EventLoopWaker, TouchEventResult};
+use embedder_traits::{AnimationState, EventLoopWaker};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use rustc_hash::FxHashMap;
@@ -85,8 +85,6 @@ pub enum CompositorMsg {
     CreateOrUpdateWebView(SendableFrameTree),
     /// Remove a webview.
     RemoveWebView(WebViewId),
-    /// Script has handled a touch event, and either prevented or allowed default actions.
-    TouchEventProcessed(WebViewId, TouchEventResult),
     /// Set whether to use less resources by stopping animations.
     SetThrottled(WebViewId, PipelineId, bool),
     /// WebRender has produced a new frame. This message informs the compositor that
