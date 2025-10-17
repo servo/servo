@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="help" href="https://www.w3.org/TR/DOM-Level-3-XPath/xpath.html#XPathEvaluator-evaluate">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <link rel="author" title="Simon Wülker" href="simon.wuelker@arcor.de">
+    </head>
+    <body>
+        <div id="foo">
+            <div id="totally-not-the-root">
+            </div>
+        </div>
+        <script>
+            test(() => {
+              let context = document.getElementById("totally-not-the-root");
+              let result = document.evaluate("//div[@id='foo']", context, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+              assert_equals(result.singleNodeValue, document.getElementById("foo"));
+            });
+        </script>
+    </body>
+</html>
