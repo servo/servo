@@ -284,11 +284,12 @@ impl Contents {
         if let Some(replaced) = ReplacedContents::for_element(node, context) {
             return Self::Replaced(replaced);
         }
-        // TODO(#39927): <select> should also be a widget.
         let is_widget = matches!(
             node.type_id(),
             Some(LayoutNodeType::Element(
-                LayoutElementType::HTMLInputElement | LayoutElementType::HTMLTextAreaElement
+                LayoutElementType::HTMLInputElement |
+                    LayoutElementType::HTMLSelectElement |
+                    LayoutElementType::HTMLTextAreaElement
             ))
         );
         if is_widget {
