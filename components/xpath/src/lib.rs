@@ -55,7 +55,6 @@ pub trait Node: Eq + Clone + Debug {
     fn as_processing_instruction(&self) -> Option<Self::ProcessingInstruction>;
     fn as_attribute(&self) -> Option<Self::Attribute>;
     fn as_element(&self) -> Option<Self::Element>;
-    fn lookup_namespace_uri(&self, uri: Option<&str>) -> Option<String>;
     fn get_root_node(&self) -> Self;
 }
 
@@ -70,7 +69,6 @@ pub trait ProcessingInstruction {
 pub trait Document {
     type Node: Node<Document = Self>;
 
-    fn is_html_document(&self) -> bool;
     fn get_elements_with_id(&self, id: &str)
     -> impl Iterator<Item = <Self::Node as Node>::Element>;
 }
@@ -84,6 +82,7 @@ pub trait Element {
     fn namespace(&self) -> Namespace;
     fn local_name(&self) -> LocalName;
     fn attributes(&self) -> impl Iterator<Item = Self::Attribute>;
+    fn is_html_element_in_html_document(&self) -> bool;
 }
 
 pub trait Attribute {
@@ -257,9 +256,6 @@ mod dummy_implementation {
         fn as_element(&self) -> Option<Self::Element> {
             None
         }
-        fn lookup_namespace_uri(&self, _: Option<&str>) -> Option<String> {
-            None
-        }
         fn get_root_node(&self) -> Self {
             self.clone()
         }
@@ -274,9 +270,6 @@ mod dummy_implementation {
     impl Document for DummyDocument {
         type Node = DummyNode;
 
-        fn is_html_document(&self) -> bool {
-            true
-        }
         fn get_elements_with_id(
             &self,
             _: &str,
@@ -303,6 +296,9 @@ mod dummy_implementation {
         }
         fn attributes(&self) -> impl Iterator<Item = Self::Attribute> {
             iter::empty()
+        }
+        fn is_html_element_in_html_document(&self) -> bool {
+            true
         }
     }
 

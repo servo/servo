@@ -2,16 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use markup5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_prefix, ns};
+use markup5ever::{LocalName, Namespace, Prefix, QualName, local_name, ns};
 
 use crate::ast::{
     Axis, BinaryOperator, Expression, FilterExpression, KindTest, Literal, LocationStepExpression,
     NodeTest, PathExpression, PredicateListExpression,
 };
 use crate::context::PredicateCtx;
-use crate::{
-    Attribute, Document, Dom, Element, Error, EvaluationCtx, Node, ProcessingInstruction, Value,
-};
+use crate::{Attribute, Dom, Element, Error, EvaluationCtx, Node, ProcessingInstruction, Value};
 
 pub(crate) fn try_extract_nodeset<E, N: Node>(v: Value<N>) -> Result<Vec<N>, Error<E>> {
     match v {
@@ -161,7 +159,7 @@ impl PathExpression {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub(crate) enum NameTestComparisonMode {
     /// Namespaces must match exactly
     XHtml,
@@ -174,41 +172,21 @@ pub(crate) fn element_name_test(
     element_qualname: QualName,
     comparison_mode: NameTestComparisonMode,
 ) -> bool {
-    let is_wildcard = expected_name.local == local_name!("*");
-
-    let test_prefix = expected_name
-        .prefix
-        .clone()
-        .unwrap_or(namespace_prefix!(""));
-    let test_ns_uri = match test_prefix {
-        namespace_prefix!("*") => ns!(*),
-        namespace_prefix!("html") => ns!(html),
-        namespace_prefix!("xml") => ns!(xml),
-        namespace_prefix!("xlink") => ns!(xlink),
-        namespace_prefix!("svg") => ns!(svg),
-        namespace_prefix!("mathml") => ns!(mathml),
-        namespace_prefix!("") => {
-            if matches!(comparison_mode, NameTestComparisonMode::XHtml) {
-                ns!()
-            } else {
-                ns!(html)
-            }
-        },
-        _ => {
-            // We don't support custom namespaces, use fallback or panic depending on strictness
-            if matches!(comparison_mode, NameTestComparisonMode::XHtml) {
-                panic!("Unrecognized namespace prefix: {}", test_prefix)
-            } else {
-                ns!(html)
-            }
-        },
-    };
-
-    if is_wildcard {
-        test_ns_uri == element_qualname.ns
-    } else {
-        test_ns_uri == element_qualname.ns && expected_name.local == element_qualname.local
+    if expected_name.prefix.is_none() && expected_name.local == local_name!("*") {
+        return true;
     }
+
+    let should_compare_namespaces =
+        comparison_mode == NameTestComparisonMode::XHtml || expected_name.ns != ns!();
+    if should_compare_namespaces && expected_name.ns != element_qualname.ns {
+        return false;
+    }
+
+    if expected_name.local == local_name!("*") {
+        return true;
+    }
+
+    expected_name.local == element_qualname.local
 }
 
 fn apply_node_test<D: Dom>(
@@ -231,7 +209,7 @@ fn apply_node_test<D: Dom>(
             };
 
             if let Some(element) = node.as_element() {
-                let comparison_mode = if node.owner_document().is_html_document() {
+                let comparison_mode = if element.is_html_element_in_html_document() {
                     NameTestComparisonMode::Html
                 } else {
                     NameTestComparisonMode::XHtml
