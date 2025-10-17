@@ -108,9 +108,9 @@ impl PathExpression {
         &self,
         context: &EvaluationCtx<D>,
     ) -> Result<Value<D::Node>, Error<D::JsError>> {
-        // Use starting_node for absolute paths, context_node otherwise
+        // Use root node for absolute paths, context_node otherwise
         let mut current_nodes = if self.is_absolute {
-            vec![context.starting_node.clone()]
+            vec![context.context_node.get_root_node()]
         } else {
             vec![context.context_node.clone()]
         };
@@ -365,7 +365,6 @@ impl PredicateListExpression {
             for (i, node) in matched_nodes.iter().enumerate() {
                 // 1-based position, per XPath spec
                 let predicate_ctx: EvaluationCtx<D> = EvaluationCtx {
-                    starting_node: context.starting_node.clone(),
                     context_node: node.clone(),
                     predicate_ctx: Some(PredicateCtx { index: i + 1, size }),
                     resolver: context.resolver.clone(),
