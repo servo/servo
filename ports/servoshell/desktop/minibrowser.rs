@@ -322,7 +322,7 @@ impl Minibrowser {
             ..
         } = self;
 
-        let _duration = context.run(winit_window, |ctx| {
+        context.run(winit_window, |ctx| {
             load_pending_favicons(ctx, state, favicon_textures);
 
             // TODO: While in fullscreen add some way to mitigate the increased phishing risk
