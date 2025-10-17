@@ -10,15 +10,19 @@ on:
       profile:
         required: true
         type: string
+      arm:
+        required: true
+        type: boolean
 
 env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
+  NAME: ${{ inputs.arm && 'macos-arm64' || 'macos' }}
 
 jobs:
   mac-wpt:
     name: WPT
-    runs-on: macos-13
+    runs-on: ${{ inputs.arm && 'macos-15' || 'macos-13' }}
     env:
       max_chunk_id: 5
     strategy:
@@ -36,7 +40,7 @@ jobs:
           ref: refs/pull/${{ github.event.number }}/head
       - uses: actions/download-artifact@v4
         with:
-          name: ${{ inputs.profile }}-binary-macos
+          name: ${{ inputs.profile }}-binary-${{ env.NAME }}
       - name: Setup Python
         uses: ./.github/actions/setup-python
       - name: Prep test environment
@@ -48,26 +52,26 @@ jobs:
         run: ./mach smoketest --${{ inputs.profile }}
       - name: Run tests
         run: |
-          mkdir -p wpt-filtered-logs/macos
-          mkdir -p wpt-full-logs/macos
+          mkdir -p wpt-filtered-logs/${{ env.NAME }}
+          mkdir -p wpt-full-logs/${{ env.NAME }}
           ./mach test-wpt \
             --${{ inputs.profile }} --processes $(sysctl -n hw.logicalcpu) --timeout-multiplier 8 \
             --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
-            --log-raw wpt-full-logs/macos/${{ matrix.chunk_id }}.log \
-            --log-raw-unexpected wpt-filtered-logs/macos/${{ matrix.chunk_id }}.log \
-            --filter-intermittents wpt-filtered-logs/macos/${{ matrix.chunk_id }}.json
+            --log-raw wpt-full-logs/${{ env.NAME }}/${{ matrix.chunk_id }}.log \
+            --log-raw-unexpected wpt-filtered-logs/${{ env.NAME }}/${{ matrix.chunk_id }}.log \
+            --filter-intermittents wpt-filtered-logs/${{ env.NAME }}/${{ matrix.chunk_id }}.json
             ${{ inputs.wpt-args }}
       - name: Archive results (filtered)
         uses: actions/upload-artifact@v4
         if: ${{ always() }}
         with:
-          name: wpt-filtered-logs-macos-${{ matrix.chunk_id }}
+          name: wpt-filtered-logs-${{ env.NAME }}-${{ matrix.chunk_id }}
           path: wpt-filtered-logs/*/
       - name: Archive results (full)
         uses: actions/upload-artifact@v4
         if: ${{ always() }}
         with:
-          name: wpt-full-logs-macos-${{ matrix.chunk_id }}
+          name: wpt-full-logs-${{ env.NAME }}-${{ matrix.chunk_id }}
           path: wpt-full-logs/*/
 
   report-test-results:
@@ -79,14 +83,14 @@ jobs:
       - name: Merge logs (filtered)
         uses: actions/upload-artifact/merge@v4
         with:
-          name: wpt-filtered-logs-macos
-          pattern: wpt-filtered-logs-macos-*
+          name: wpt-filtered-logs-${{ env.NAME }}
+          pattern: wpt-filtered-logs-${{ env.NAME }}-*
           delete-merged: true
       - name: Merge logs (full)
         uses: actions/upload-artifact/merge@v4
         with:
-          name: wpt-full-logs-macos
-          pattern: wpt-full-logs-macos-*
+          name: wpt-full-logs-${{ env.NAME }}
+          pattern: wpt-full-logs-${{ env.NAME }}-*
           delete-merged: true
       - uses: actions/checkout@v3
         if: ${{ !cancelled() }}
@@ -95,14 +99,14 @@ jobs:
       - uses: actions/download-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          name: wpt-filtered-logs-macos
+          name: wpt-filtered-logs-${{ env.NAME }}
           path: results
       - name: Report results
         if: ${{ !cancelled() }}
         run: |
           etc/ci/report_aggregated_expected_results.py \
-            --tag="macos-wpt" \
-            results/macos/*.json
+            --tag="${{ env.NAME }}-wpt" \
+            results/${{ env.NAME }}/*.json
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
