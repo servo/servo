@@ -54,12 +54,13 @@ class Base:
         except FileNotFoundError:
             return False
 
-    def bootstrap(self, force: bool, skip_platform: bool, skip_lints: bool) -> None:
+    def bootstrap(self, force: bool, skip_platform: bool, skip_lints: bool, skip_nextest: bool) -> None:
         installed_something = False
         if not skip_platform:
             installed_something |= self._platform_bootstrap(force)
         self.install_rust_toolchain()
-        installed_something |= self.install_cargo_nextest(force)
+        if not skip_nextest:
+            installed_something |= self.install_cargo_nextest(force)
         if not skip_lints:
             installed_something |= self.install_taplo(force)
             installed_something |= self.install_cargo_deny(force)

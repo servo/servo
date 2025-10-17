@@ -42,7 +42,7 @@ jobs:
       - name: Bootstrap dependencies
         run: |
           sudo apt update
-          ./mach bootstrap
+          ./mach bootstrap --skip-nextest
       - name: Clippy
         run: |
           ./mach clippy --use-crown --locked --github-annotations -- -- --deny warnings
