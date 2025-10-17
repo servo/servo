@@ -21,7 +21,7 @@ use style_traits::CSSPixel;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::{LayoutBox, NodeExt};
-use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents};
+use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::flexbox::FlexLevelBox;
 use crate::flow::float::FloatBox;
 use crate::flow::inline::InlineItem;
@@ -30,7 +30,6 @@ use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::{FragmentFlags, FragmentTree};
 use crate::geom::{LogicalVec2, PhysicalSize};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
-use crate::replaced::ReplacedContents;
 use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside};
 use crate::taffy::{TaffyItemBox, TaffyItemBoxInner};
 use crate::{DefiniteContainingBlock, PropagatedBoxTreeData};
@@ -184,8 +183,7 @@ fn construct_for_root_element(
         Display::GeneratingBox(display_generating_box) => display_generating_box.display_inside(),
     };
 
-    let contents = ReplacedContents::for_element(root_element, context)
-        .map_or_else(|| NonReplacedContents::OfElement.into(), Contents::Replaced);
+    let contents = Contents::for_element(root_element, context);
 
     let propagated_data = PropagatedBoxTreeData::default();
     let root_box = if box_style.position.is_absolutely_positioned() {
@@ -412,8 +410,7 @@ impl<'dom> IncrementalBoxTreeUpdate<'dom> {
     #[servo_tracing::instrument(name = "Box Tree Update From Dirty Root", skip_all)]
     fn update_from_dirty_root(&self, context: &LayoutContext) {
         let node = self.node.to_threadsafe();
-        let contents = ReplacedContents::for_element(node, context)
-            .map_or_else(|| NonReplacedContents::OfElement.into(), Contents::Replaced);
+        let contents = Contents::for_element(node, context);
 
         let info =
             NodeAndStyleInfo::new(node, self.primary_style.clone(), node.take_restyle_damage());

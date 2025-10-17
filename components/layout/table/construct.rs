@@ -771,10 +771,10 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     let new_row_group_index = self.builder.table.row_groups.len() - 1;
                     self.current_row_group_index = Some(new_row_group_index);
 
-                    let Contents::NonReplaced(non_replaced_contents) = contents else {
-                        unreachable!("Replaced should not have a LayoutInternal display type.");
-                    };
-                    non_replaced_contents.traverse(self.context, info, self);
+                    contents
+                        .non_replaced_contents()
+                        .expect("Replaced should not have a LayoutInternal display type.")
+                        .traverse(self.context, info, self);
                     self.finish_anonymous_row_if_needed();
 
                     self.current_row_group_index = None;
@@ -791,10 +791,10 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     let mut row_builder =
                         TableRowBuilder::new(self, info, self.current_propagated_data);
 
-                    let Contents::NonReplaced(non_replaced_contents) = contents else {
-                        unreachable!("Replaced should not have a LayoutInternal display type.");
-                    };
-                    non_replaced_contents.traverse(context, info, &mut row_builder);
+                    contents
+                        .non_replaced_contents()
+                        .expect("Replaced should not have a LayoutInternal display type.")
+                        .traverse(context, info, &mut row_builder);
                     row_builder.finish();
 
                     let row = ArcRefCell::new(TableTrack {
@@ -828,10 +828,10 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                         columns: Vec::new(),
                     };
 
-                    let Contents::NonReplaced(non_replaced_contents) = contents else {
-                        unreachable!("Replaced should not have a LayoutInternal display type.");
-                    };
-                    non_replaced_contents.traverse(self.context, info, &mut column_group_builder);
+                    contents
+                        .non_replaced_contents()
+                        .expect("Replaced should not have a LayoutInternal display type.")
+                        .traverse(self.context, info, &mut column_group_builder);
 
                     let first_column = self.builder.table.columns.len();
                     if column_group_builder.columns.is_empty() {
@@ -861,10 +861,6 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     )));
                 },
                 DisplayLayoutInternal::TableCaption => {
-                    let Contents::NonReplaced(non_replaced_contents) = contents else {
-                        unreachable!("Replaced should not have a LayoutInternal display type.");
-                    };
-
                     let old_box = box_slot.take_layout_box_if_undamaged(info.damage);
                     let old_caption = old_box.and_then(|layout_box| match layout_box {
                         LayoutBox::TableLevelBox(TableLevelBox::Caption(caption)) => Some(caption),
@@ -872,6 +868,9 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     });
 
                     let caption = old_caption.unwrap_or_else(|| {
+                        let non_replaced_contents = contents
+                            .non_replaced_contents()
+                            .expect("Replaced should not have a LayoutInternal display type.");
                         let contents = IndependentFormattingContextContents::Flow(
                             BlockFormattingContext::construct(
                                 self.context,
@@ -1043,9 +1042,9 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
 
                         let propagated_data =
                             self.propagated_data.disallowing_percentage_table_columns();
-                        let Contents::NonReplaced(non_replaced_contents) = contents else {
-                            unreachable!("Replaced should not have a LayoutInternal display type.");
-                        };
+                        let non_replaced_contents = contents
+                            .non_replaced_contents()
+                            .expect("Replaced should not have a LayoutInternal display type.");
 
                         let contents = BlockFormattingContext::construct(
                             self.table_traversal.context,

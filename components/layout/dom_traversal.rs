@@ -74,8 +74,13 @@ impl<'dom> NodeAndStyleInfo<'dom> {
 
 #[derive(Debug)]
 pub(super) enum Contents {
-    /// Any kind of content that is not replaced, including the contents of pseudo-elements.
+    /// Any kind of content that is not replaced nor a widget, including the contents of pseudo-elements.
     NonReplaced(NonReplacedContents),
+    /// A widget with native appearance. This has several behavior in common with replaced elements,
+    /// but isn't fully replaced (see discussion in <https://github.com/w3c/csswg-drafts/issues/12876>).
+    /// Examples: `<input>`, `<textarea>`, `<select>`...
+    /// <https://drafts.csswg.org/css-ui/#widget>
+    Widget(NonReplacedContents),
     /// Example: an `<img src=…>` element.
     /// <https://drafts.csswg.org/css2/conform.html#replaced-element>
     Replaced(ReplacedContents),
@@ -89,8 +94,6 @@ pub(super) enum NonReplacedContents {
     /// Content of a `::before` or `::after` pseudo-element that is being generated.
     /// <https://drafts.csswg.org/css2/generate.html#content>
     OfPseudoElement(Vec<PseudoElementContentItem>),
-    /// Workaround for input and textarea element until we properly implement `display-inside`.
-    OfTextControl,
 }
 
 #[derive(Debug)]
@@ -161,7 +164,6 @@ fn traverse_element<'dom>(
 ) {
     element.unset_all_pseudo_boxes();
 
-    let replaced = ReplacedContents::for_element(element, context);
     let style = element.style(&context.style_context);
     let damage = element.take_restyle_damage();
     let info = NodeAndStyleInfo::new(element, style, damage);
@@ -169,7 +171,7 @@ fn traverse_element<'dom>(
     match Display::from(info.style.get_box().display) {
         Display::None => element.unset_all_boxes(),
         Display::Contents => {
-            if replaced.is_some() {
+            if ReplacedContents::for_element(element, context).is_some() {
                 // `display: content` on a replaced element computes to `display: none`
                 // <https://drafts.csswg.org/css-display-3/#valdef-display-contents>
                 element.unset_all_boxes()
@@ -185,18 +187,7 @@ fn traverse_element<'dom>(
             }
         },
         Display::GeneratingBox(display) => {
-            let contents = if let Some(replaced) = replaced {
-                Contents::Replaced(replaced)
-            } else if matches!(
-                element.type_id(),
-                Some(LayoutNodeType::Element(
-                    LayoutElementType::HTMLInputElement | LayoutElementType::HTMLTextAreaElement
-                ))
-            ) {
-                NonReplacedContents::OfTextControl.into()
-            } else {
-                NonReplacedContents::OfElement.into()
-            };
+            let contents = Contents::for_element(element, context);
             let display = display.used_value_for_contents(&contents);
             let box_slot = element.box_slot();
             handler.handle_element(&info, display, contents, box_slot);
@@ -237,7 +228,7 @@ fn traverse_eager_pseudo_element<'dom>(
         Display::GeneratingBox(display) => {
             let items = generate_pseudo_element_content(&pseudo_element_info, context);
             let box_slot = pseudo_element_info.node.box_slot();
-            let contents = NonReplacedContents::OfPseudoElement(items).into();
+            let contents = Contents::for_pseudo_element(items);
             handler.handle_element(&pseudo_element_info, display, contents, box_slot);
         },
     }
@@ -285,11 +276,37 @@ impl Contents {
     pub fn is_replaced(&self) -> bool {
         matches!(self, Contents::Replaced(_))
     }
-}
 
-impl From<NonReplacedContents> for Contents {
-    fn from(non_replaced_contents: NonReplacedContents) -> Self {
-        Contents::NonReplaced(non_replaced_contents)
+    pub(crate) fn for_element(
+        node: ServoThreadSafeLayoutNode<'_>,
+        context: &LayoutContext,
+    ) -> Self {
+        if let Some(replaced) = ReplacedContents::for_element(node, context) {
+            return Self::Replaced(replaced);
+        }
+        // TODO(#39927): <select> should also be a widget.
+        let is_widget = matches!(
+            node.type_id(),
+            Some(LayoutNodeType::Element(
+                LayoutElementType::HTMLInputElement | LayoutElementType::HTMLTextAreaElement
+            ))
+        );
+        if is_widget {
+            Self::Widget(NonReplacedContents::OfElement)
+        } else {
+            Self::NonReplaced(NonReplacedContents::OfElement)
+        }
+    }
+
+    pub(crate) fn for_pseudo_element(contents: Vec<PseudoElementContentItem>) -> Self {
+        Self::NonReplaced(NonReplacedContents::OfPseudoElement(contents))
+    }
+
+    pub(crate) fn non_replaced_contents(self) -> Option<NonReplacedContents> {
+        match self {
+            Self::NonReplaced(contents) | Self::Widget(contents) => Some(contents),
+            Self::Replaced(_) => None,
+        }
     }
 }
 
@@ -301,9 +318,7 @@ impl NonReplacedContents {
         handler: &mut impl TraversalHandler<'dom>,
     ) {
         match self {
-            NonReplacedContents::OfElement | NonReplacedContents::OfTextControl => {
-                traverse_children_of(info, context, handler)
-            },
+            NonReplacedContents::OfElement => traverse_children_of(info, context, handler),
             NonReplacedContents::OfPseudoElement(items) => {
                 traverse_pseudo_element_contents(info, context, handler, items)
             },

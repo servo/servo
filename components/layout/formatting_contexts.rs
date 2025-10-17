@@ -81,68 +81,68 @@ impl IndependentFormattingContext {
     ) -> Self {
         let mut base_fragment_info: BaseFragmentInfo = node_and_style_info.into();
 
-        match contents {
-            Contents::NonReplaced(non_replaced_contents) => {
-                let contents = match display_inside {
-                    DisplayInside::Flow { is_list_item } |
-                    DisplayInside::FlowRoot { is_list_item } => {
-                        IndependentFormattingContextContents::Flow(
-                            BlockFormattingContext::construct(
-                                context,
-                                node_and_style_info,
-                                non_replaced_contents,
-                                propagated_data,
-                                is_list_item,
-                            ),
-                        )
-                    },
-                    DisplayInside::Grid => {
-                        IndependentFormattingContextContents::Grid(TaffyContainer::construct(
-                            context,
-                            node_and_style_info,
-                            non_replaced_contents,
-                            propagated_data,
-                        ))
-                    },
-                    DisplayInside::Flex => {
-                        IndependentFormattingContextContents::Flex(FlexContainer::construct(
-                            context,
-                            node_and_style_info,
-                            non_replaced_contents,
-                            propagated_data,
-                        ))
-                    },
-                    DisplayInside::Table => {
-                        let table_grid_style = context
-                            .style_context
-                            .stylist
-                            .style_for_anonymous::<ServoLayoutElement>(
-                                &context.style_context.guards,
-                                &PseudoElement::ServoTableGrid,
-                                &node_and_style_info.style,
-                            );
-                        base_fragment_info.flags.insert(FragmentFlags::DO_NOT_PAINT);
-                        IndependentFormattingContextContents::Table(Table::construct(
-                            context,
-                            node_and_style_info,
-                            table_grid_style,
-                            non_replaced_contents,
-                            propagated_data,
-                        ))
-                    },
-                };
-                Self {
-                    base: LayoutBoxBase::new(base_fragment_info, node_and_style_info.style.clone()),
-                    contents,
-                }
-            },
+        let non_replaced_contents = match contents {
             Contents::Replaced(contents) => {
                 base_fragment_info.flags.insert(FragmentFlags::IS_REPLACED);
-                Self {
+                return Self {
                     base: LayoutBoxBase::new(base_fragment_info, node_and_style_info.style.clone()),
                     contents: IndependentFormattingContextContents::Replaced(contents),
-                }
+                };
             },
+            Contents::Widget(non_replaced_contents) => {
+                base_fragment_info.flags.insert(FragmentFlags::IS_WIDGET);
+                non_replaced_contents
+            },
+            Contents::NonReplaced(non_replaced_contents) => non_replaced_contents,
+        };
+        let contents = match display_inside {
+            DisplayInside::Flow { is_list_item } | DisplayInside::FlowRoot { is_list_item } => {
+                IndependentFormattingContextContents::Flow(BlockFormattingContext::construct(
+                    context,
+                    node_and_style_info,
+                    non_replaced_contents,
+                    propagated_data,
+                    is_list_item,
+                ))
+            },
+            DisplayInside::Grid => {
+                IndependentFormattingContextContents::Grid(TaffyContainer::construct(
+                    context,
+                    node_and_style_info,
+                    non_replaced_contents,
+                    propagated_data,
+                ))
+            },
+            DisplayInside::Flex => {
+                IndependentFormattingContextContents::Flex(FlexContainer::construct(
+                    context,
+                    node_and_style_info,
+                    non_replaced_contents,
+                    propagated_data,
+                ))
+            },
+            DisplayInside::Table => {
+                let table_grid_style = context
+                    .style_context
+                    .stylist
+                    .style_for_anonymous::<ServoLayoutElement>(
+                        &context.style_context.guards,
+                        &PseudoElement::ServoTableGrid,
+                        &node_and_style_info.style,
+                    );
+                base_fragment_info.flags.insert(FragmentFlags::DO_NOT_PAINT);
+                IndependentFormattingContextContents::Table(Table::construct(
+                    context,
+                    node_and_style_info,
+                    table_grid_style,
+                    non_replaced_contents,
+                    propagated_data,
+                ))
+            },
+        };
+        Self {
+            base: LayoutBoxBase::new(base_fragment_info, node_and_style_info.style.clone()),
+            contents,
         }
     }
 
