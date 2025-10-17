@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::cmp::Ordering;
 use std::ops::Range;
 use std::path::PathBuf;
@@ -18,6 +18,7 @@ use embedder_traits::{
 };
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
+use ipc_channel::ipc::IpcSender;
 use itertools::Itertools;
 use js::jsapi::{
     ClippedTime, DateGetMsecSinceEpoch, Handle, JS_ClearPendingException, JSObject, NewDateObject,
@@ -38,6 +39,7 @@ use stylo_dom::ElementState;
 use time::{Month, OffsetDateTime, Time};
 use unicode_bidi::{BidiClass, bidi_class};
 use url::Url;
+use webdriver::error::ErrorStatus;
 
 use crate::clipboard_provider::EmbedderClipboardProvider;
 use crate::dom::activation::Activatable;
@@ -440,6 +442,8 @@ pub(crate) struct HTMLInputElement {
     labels_node_list: MutNullableDom<NodeList>,
     validity_state: MutNullableDom<ValidityState>,
     shadow_tree: DomRefCell<Option<ShadowTree>>,
+    #[no_trace]
+    pending_webdriver_response: RefCell<Option<PendingWebDriverResponse>>,
 }
 
 #[derive(JSTraceable)]
@@ -499,6 +503,7 @@ impl HTMLInputElement {
             labels_node_list: MutNullableDom::new(None),
             validity_state: Default::default(),
             shadow_tree: Default::default(),
+            pending_webdriver_response: Default::default(),
         }
     }
 
@@ -2380,6 +2385,22 @@ impl HTMLInputElement {
             .SetData(placeholder_text);
     }
 
+    pub(crate) fn select_files_for_webdriver(
+        &self,
+        test_paths: Vec<DOMString>,
+        response_sender: IpcSender<Result<bool, ErrorStatus>>,
+    ) {
+        let mut stored_sender = self.pending_webdriver_response.borrow_mut();
+        assert!(stored_sender.is_none());
+
+        *stored_sender = Some(PendingWebDriverResponse {
+            response_sender,
+            expected_file_count: test_paths.len(),
+        });
+
+        self.select_files(Some(test_paths));
+    }
+
     /// Select files by invoking UI or by passed in argument.
     ///
     /// <https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file)>
@@ -2809,7 +2830,36 @@ impl HTMLInputElement {
         response: Option<Vec<SelectedFile>>,
         can_gc: CanGc,
     ) {
-        let Some(mut files) = response else { return };
+        let mut files = Vec::new();
+
+        if let Some(pending_webdriver_reponse) = self.pending_webdriver_response.borrow_mut().take()
+        {
+            // From: <https://w3c.github.io/webdriver/#dfn-dispatch-actions-for-a-string>
+            // "Complete implementation specific steps equivalent to setting the selected
+            // files on the input element. If multiple is true files are be appended to
+            // element's selected files."
+            //
+            // Note: This is annoying.
+            if self.Multiple() {
+                if let Some(filelist) = self.filelist.get() {
+                    files = filelist.iter_files().map(|file| file.as_rooted()).collect();
+                }
+            }
+
+            let number_files_selected = response.as_ref().map(Vec::len).unwrap_or_default();
+            pending_webdriver_reponse.finish(number_files_selected);
+        }
+
+        let Some(response_files) = response else {
+            return;
+        };
+
+        let window = self.owner_window();
+        files.extend(
+            response_files
+                .into_iter()
+                .map(|file| File::new_from_selected(&window, file, can_gc)),
+        );
 
         // Only use the last file if this isn't a multi-select file input. This could
         // happen if the attribute changed after the file dialog was initiated.
@@ -2820,13 +2870,8 @@ impl HTMLInputElement {
                 .unwrap_or_default();
         }
 
-        let window = self.owner_window();
-        let files = files
-            .into_iter()
-            .map(|file| File::new_from_selected(&window, file, can_gc))
-            .collect();
-        let filelist = FileList::new(&window, files, can_gc);
-        self.filelist.set(Some(&filelist));
+        self.filelist
+            .set(Some(&FileList::new(&window, files, can_gc)));
 
         let target = self.upcast::<EventTarget>();
         target.fire_bubbling_event(atom!("input"), can_gc);
@@ -3711,6 +3756,29 @@ fn matches_js_regex(
         } else {
             JS_ClearPendingException(*cx);
             Err(())
+        }
+    }
+}
+
+/// When WebDriver asks the [`HTMLInputElement`] to do some asynchronous actions, such
+/// as selecting files, this stores the details necessary to complete the response when
+/// the action is complete.
+#[derive(MallocSizeOf)]
+struct PendingWebDriverResponse {
+    /// An [`IpcSender`] to use to send the reply when the response is ready.
+    response_sender: IpcSender<Result<bool, ErrorStatus>>,
+    /// The number of files expected to be selected when the selection process is done.
+    expected_file_count: usize,
+}
+
+impl PendingWebDriverResponse {
+    fn finish(self, number_files_selected: usize) {
+        if number_files_selected == self.expected_file_count {
+            let _ = self.response_sender.send(Ok(false));
+        } else {
+            // If not all files are found the WebDriver specification says to return
+            // the InvalidArgument error.
+            let _ = self.response_sender.send(Err(ErrorStatus::InvalidArgument));
         }
     }
 }

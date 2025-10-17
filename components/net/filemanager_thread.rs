@@ -583,16 +583,27 @@ impl FileManagerStore {
             },
         };
 
-        let files = paths
+        let mut failed = false;
+        let files: Vec<_> = paths
             .into_iter()
             .filter_map(|path| match self.create_entry(&path, &origin) {
                 Ok(entry) => Some(entry),
                 Err(error) => {
+                    failed = true;
                     warn!("Failed to create entry for selected file: {error:?}");
                     None
                 },
             })
             .collect();
+
+        // WebDriver expects that if any of the files isn't found we don't select any files.
+        if failed {
+            for file in files.iter() {
+                self.remove(&file.id);
+            }
+            let _ = response_sender.send(EmbedderControlResponse::FilePicker(Some(Vec::new())));
+            return;
+        }
 
         let _ = response_sender.send(EmbedderControlResponse::FilePicker(Some(files)));
     }
