@@ -96,6 +96,10 @@ pub struct ProgressiveWebMetrics {
     ///
     /// See <https://w3c.github.io/paint-timing/#first-contentful-paint>
     first_contentful_paint: Cell<Option<CrossProcessInstant>>,
+    /// The time at which the largest contentful paint was rendered.
+    ///
+    /// See <https://www.w3.org/TR/largest-contentful-paint/>
+    largest_contentful_paint: Cell<Option<CrossProcessInstant>>,
     #[ignore_malloc_size_of = "can't measure channels"]
     time_profiler_chan: ProfilerChan,
     url: ServoUrl,
@@ -153,6 +157,7 @@ impl ProgressiveWebMetrics {
             time_to_interactive: Cell::new(None),
             first_paint: Cell::new(None),
             first_contentful_paint: Cell::new(None),
+            largest_contentful_paint: Cell::new(None),
             time_profiler_chan,
             url,
         }
@@ -194,6 +199,10 @@ impl ProgressiveWebMetrics {
         self.first_contentful_paint.get()
     }
 
+    pub fn largest_contentful_paint(&self) -> Option<CrossProcessInstant> {
+        self.largest_contentful_paint.get()
+    }
+
     pub fn main_thread_available(&self) -> Option<CrossProcessInstant> {
         self.main_thread_available.get()
     }
@@ -217,6 +226,18 @@ impl ProgressiveWebMetrics {
             ProgressiveWebMetricType::FirstContentfulPaint,
             ProfilerCategory::TimeToFirstContentfulPaint,
             &self.first_contentful_paint,
+            paint_time,
+            &self.url,
+        );
+    }
+
+    pub fn set_largest_contentful_paint(&self, paint_time: CrossProcessInstant, area: usize) {
+        set_metric(
+            self,
+            Some(self.make_metadata(false)),
+            ProgressiveWebMetricType::LargestContentfulPaint { area },
+            ProfilerCategory::TimeToLargestContentfulPaint,
+            &self.largest_contentful_paint,
             paint_time,
             &self.url,
         );
@@ -368,4 +389,11 @@ fn test_first_contentful_paint_setter() {
     let metrics = test_metrics();
     metrics.set_first_contentful_paint(CrossProcessInstant::now(), false);
     assert!(metrics.first_contentful_paint().is_some());
+}
+
+#[test]
+fn test_largest_contentful_paint_setter() {
+    let metrics = test_metrics();
+    metrics.set_largest_contentful_paint(CrossProcessInstant::now(), 1);
+    assert!(metrics.largest_contentful_paint().is_some());
 }

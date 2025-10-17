@@ -117,6 +117,7 @@ pub enum EmbedderToConstellationMessage {
 pub enum PaintMetricEvent {
     FirstPaint(CrossProcessInstant, bool /* first_reflow */),
     FirstContentfulPaint(CrossProcessInstant, bool /* first_reflow */),
+    LargestContentfulPaint(CrossProcessInstant, usize /* area */),
 }
 
 impl fmt::Debug for EmbedderToConstellationMessage {
