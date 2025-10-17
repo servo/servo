@@ -1476,6 +1476,7 @@ dependencies = [
  "dpi",
  "embedder_traits",
  "euclid",
+ "fnv",
  "gleam",
  "image",
  "ipc-channel",
@@ -5255,6 +5256,7 @@ name = "metrics"
 version = "0.0.1"
 dependencies = [
  "base",
+ "compositing_traits",
  "ipc-channel",
  "log",
  "malloc_size_of_derive",
