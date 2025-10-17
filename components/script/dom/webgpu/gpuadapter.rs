@@ -182,25 +182,6 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
         false
     }
 
-    /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestadapterinfo>
-    fn RequestAdapterInfo(
-        &self,
-        unmask_hints: Vec<DOMString>,
-        comp: InRealm,
-        can_gc: CanGc,
-    ) -> Rc<Promise> {
-        // XXX: Adapter info should be generated here ...
-        // Step 1
-        let promise = Promise::new_in_current_realm(comp, can_gc);
-        // Step 4
-        if !unmask_hints.is_empty() {
-            todo!("unmaskHints on RequestAdapterInfo");
-        }
-        promise.resolve_native(&*self.info, can_gc);
-        // Step 5
-        promise
-    }
-
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-features>
     fn Features(&self) -> DomRoot<GPUSupportedFeatures> {
         DomRoot::from_ref(&self.features)
@@ -209,6 +190,11 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-limits>
     fn Limits(&self) -> DomRoot<GPUSupportedLimits> {
         DomRoot::from_ref(&self.limits)
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-info>
+    fn Info(&self) -> DomRoot<GPUAdapterInfo> {
+        DomRoot::from_ref(&self.info)
     }
 }
 
