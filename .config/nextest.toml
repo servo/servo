@@ -1,3 +1,9 @@
 [profile.default]
 # Print a slow warning after period, terminate unit-test after 4x period.
 slow-timeout = { period = "5s", terminate-after = 4 }
+
+[profile.ci]
+fail-fast = false
+
+[profile.ci.junit]
+path = "junit.xml"
