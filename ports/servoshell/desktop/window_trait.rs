@@ -35,6 +35,9 @@ pub trait WindowPortsMethods {
     fn get_fullscreen(&self) -> bool;
     fn handle_winit_event(&self, state: Rc<RunningAppState>, event: winit::event::WindowEvent);
     fn set_title(&self, _title: &str) {}
+    fn set_title_if_changed(&self, _title: &str) -> bool {
+        false
+    }
     /// Request a new outer size for the window, including external decorations.
     /// This should be the same as `window.outerWidth` and `window.outerHeight``
     fn request_resize(&self, webview: &WebView, outer_size: DeviceIntSize)
