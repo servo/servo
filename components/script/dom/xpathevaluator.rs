@@ -20,6 +20,7 @@ use crate::dom::window::Window;
 use crate::dom::xpathexpression::XPathExpression;
 use crate::dom::xpathresult::XPathResult;
 use crate::script_runtime::CanGc;
+use crate::xpath::parse_expression;
 
 #[dom_struct]
 pub(crate) struct XPathEvaluator {
@@ -63,15 +64,12 @@ impl XPathEvaluatorMethods<crate::DomTypeHolder> for XPathEvaluator {
     fn CreateExpression(
         &self,
         expression: DOMString,
-        _resolver: Option<Rc<XPathNSResolver>>,
+        resolver: Option<Rc<XPathNSResolver>>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<XPathExpression>> {
         let global = self.global();
         let window = global.as_window();
-        // NB: this function is *not* Fallible according to the spec, so we swallow any parsing errors and
-        // just pass a None as the expression... it's not great.
-        let parsed_expression =
-            xpath::parse::<()>(&expression.str()).map_err(|_e| Error::Syntax(None))?;
+        let parsed_expression = parse_expression(&expression.str(), resolver)?;
         Ok(XPathExpression::new(
             window,
             None,
@@ -89,7 +87,7 @@ impl XPathEvaluatorMethods<crate::DomTypeHolder> for XPathEvaluator {
     /// <https://dom.spec.whatwg.org/#dom-xpathevaluatorbase-evaluate>
     fn Evaluate(
         &self,
-        expression_str: DOMString,
+        expression: DOMString,
         context_node: &Node,
         resolver: Option<Rc<XPathNSResolver>>,
         result_type: u16,
@@ -114,9 +112,8 @@ impl XPathEvaluatorMethods<crate::DomTypeHolder> for XPathEvaluator {
         let global = self.global();
         let window = global.as_window();
 
-        let parsed_expression =
-            xpath::parse::<()>(&expression_str.str()).map_err(|_| Error::Syntax(None))?;
+        let parsed_expression = parse_expression(&expression.str(), resolver)?;
         let expression = XPathExpression::new(window, None, can_gc, parsed_expression);
-        expression.evaluate_internal(context_node, result_type, result, resolver, can_gc)
+        expression.evaluate_internal(context_node, result_type, result, can_gc)
     }
 }

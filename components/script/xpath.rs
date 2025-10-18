@@ -21,7 +21,7 @@ use style::Atom;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::XPathNSResolverBinding::XPathNSResolver;
-use crate::dom::bindings::error::Error;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::comment::Comment;
@@ -286,4 +286,16 @@ impl<T> XPathWrapper<T> {
     pub(crate) fn into_inner(self) -> T {
         self.0
     }
+}
+
+pub(crate) fn parse_expression(
+    expression: &str,
+    resolver: Option<Rc<XPathNSResolver>>,
+) -> Fallible<xpath::Expression> {
+    xpath::parse::<XPathImplementation>(expression, resolver.map(XPathWrapper)).map_err(|error| {
+        match error {
+            xpath::ParserError::JsError(Error::JSFailed) => Error::JSFailed,
+            _ => Error::Syntax(Some(format!("Failed to parse XPath expression: {error:?}"))),
+        }
+    })
 }
