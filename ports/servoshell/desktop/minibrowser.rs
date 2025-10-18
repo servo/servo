@@ -13,7 +13,7 @@ use egui::text_edit::TextEditState;
 use egui::{
     Button, CentralPanel, Frame, Key, Label, Modifiers, PaintCallback, TopBottomPanel, Vec2, pos2,
 };
-use egui_glow::CallbackFn;
+use egui_glow::{CallbackFn, EguiGlow};
 use egui_winit::EventResponse;
 use euclid::{Box2D, Length, Point2D, Rect, Scale, Size2D};
 use log::{trace, warn};
@@ -29,7 +29,6 @@ use winit::event_loop::ActiveEventLoop;
 use winit::window::Window;
 
 use super::app_state::RunningAppState;
-use super::egui_glue::EguiGlow;
 use super::events_loop::EventLoopProxy;
 use super::geometry::winit_position_to_euclid_point;
 use super::headed_window::Window as ServoWindow;
@@ -99,19 +98,29 @@ impl Minibrowser {
         let rendering_context = window.offscreen_rendering_context();
         // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
         #[allow(clippy::arc_with_non_send_sync)]
-        let context = EguiGlow::new(
-            window,
+        let mut context = EguiGlow::new(
             event_loop,
-            event_loop_proxy,
             rendering_context.glow_gl_api(),
             None,
+            None,
+            false,
         );
 
-        // Disable the builtin egui handlers for the Ctrl+Plus, Ctrl+Minus and Ctrl+0
-        // shortcuts as they don't work well with servoshell's `device-pixel-ratio` CLI argument.
+        let winit_window = window.winit_window().unwrap();
         context
-            .egui_ctx
-            .options_mut(|options| options.zoom_with_keyboard = false);
+            .egui_winit
+            .init_accesskit(event_loop, winit_window, event_loop_proxy);
+        winit_window.set_visible(true);
+
+        context.egui_ctx.options_mut(|options| {
+            // Disable the builtin egui handlers for the Ctrl+Plus, Ctrl+Minus and Ctrl+0
+            // shortcuts as they don't work well with servoshell's `device-pixel-ratio` CLI argument.
+            options.zoom_with_keyboard = false;
+
+            // On platforms where winit fails to obtain a system theme, fall back to a light theme
+            // since it is the more common default.
+            options.fallback_theme = egui::Theme::Light;
+        });
 
         Self {
             rendering_context,
@@ -313,7 +322,7 @@ impl Minibrowser {
             ..
         } = self;
 
-        let _duration = context.run(winit_window, |ctx| {
+        context.run(winit_window, |ctx| {
             load_pending_favicons(ctx, state, favicon_textures);
 
             // TODO: While in fullscreen add some way to mitigate the increased phishing risk
