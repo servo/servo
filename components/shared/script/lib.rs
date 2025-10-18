@@ -160,9 +160,9 @@ pub enum ScriptThreadMessage {
     /// Notifies script thread of a change to one of its document's activity
     SetDocumentActivity(PipelineId, DocumentActivity),
     /// Set whether to use less resources by running timers at a heavily limited rate.
-    SetThrottled(PipelineId, bool),
+    SetThrottled(WebViewId, PipelineId, bool),
     /// Notify the containing iframe (in PipelineId) that the nested browsing context (BrowsingContextId) is throttled.
-    SetThrottledInContainingIframe(PipelineId, BrowsingContextId, bool),
+    SetThrottledInContainingIframe(WebViewId, PipelineId, BrowsingContextId, bool),
     /// Notifies script thread that a url should be loaded in this iframe.
     /// PipelineId is for the parent, BrowsingContextId is for the nested browsing context
     NavigateIframe(
@@ -259,7 +259,7 @@ pub enum ScriptThreadMessage {
     SetScrollStates(PipelineId, FxHashMap<ExternalScrollId, LayoutVector2D>),
     /// Evaluate the given JavaScript and return a result via a corresponding message
     /// to the Constellation.
-    EvaluateJavaScript(PipelineId, JavaScriptEvaluationId, String),
+    EvaluateJavaScript(WebViewId, PipelineId, JavaScriptEvaluationId, String),
     /// A new batch of keys for the image cache for the specific pipeline.
     SendImageKeysBatch(PipelineId, Vec<ImageKey>),
     /// Preferences were updated in the parent process.
@@ -273,7 +273,7 @@ pub enum ScriptThreadMessage {
     /// Request readiness for a screenshot from the given pipeline. The pipeline will
     /// respond when it is ready to take the screenshot or will not be able to take it
     /// in the future.
-    RequestScreenshotReadiness(PipelineId),
+    RequestScreenshotReadiness(WebViewId, PipelineId),
     /// A response to a request to show an embedder user interface control.
     EmbedderControlResponse(EmbedderControlId, EmbedderControlResponse),
 }

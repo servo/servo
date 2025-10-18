@@ -49,15 +49,17 @@ use crate::{
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ScriptToConstellationChan {
     /// Sender for communicating with constellation thread.
-    pub sender: GenericSender<(PipelineId, ScriptToConstellationMessage)>,
-    /// Used to identify the origin of the message.
+    pub sender: GenericSender<(WebViewId, PipelineId, ScriptToConstellationMessage)>,
+    /// Used to identify the origin `WebView` of the message.
+    pub webview_id: WebViewId,
+    /// Used to identify the origin `Pipeline` of the message.
     pub pipeline_id: PipelineId,
 }
 
 impl ScriptToConstellationChan {
     /// Send ScriptMsg and attach the pipeline_id to the message.
     pub fn send(&self, msg: ScriptToConstellationMessage) -> SendResult {
-        self.sender.send((self.pipeline_id, msg))
+        self.sender.send((self.webview_id, self.pipeline_id, msg))
     }
 }
 

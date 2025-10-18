@@ -297,11 +297,12 @@ pub struct Constellation<STF, SWF> {
 
     /// An IPC channel for script threads to send messages to the constellation.
     /// This is the script threads' view of `script_receiver`.
-    script_sender: GenericSender<(PipelineId, ScriptToConstellationMessage)>,
+    script_sender: GenericSender<(WebViewId, PipelineId, ScriptToConstellationMessage)>,
 
     /// A channel for the constellation to receive messages from script threads.
     /// This is the constellation's view of `script_sender`.
-    script_receiver: Receiver<Result<(PipelineId, ScriptToConstellationMessage), IpcError>>,
+    script_receiver:
+        Receiver<Result<(WebViewId, PipelineId, ScriptToConstellationMessage), IpcError>>,
 
     /// A handle to register components for hang monitoring.
     /// None when in multiprocess mode.
@@ -1010,6 +1011,7 @@ where
             opener,
             script_to_constellation_chan: ScriptToConstellationChan {
                 sender: self.script_sender.clone(),
+                webview_id,
                 pipeline_id,
             },
             script_to_embedder_chan,
@@ -1235,7 +1237,7 @@ where
         #[derive(Debug)]
         enum Request {
             PipelineNamespace(PipelineNamespaceRequest),
-            Script((PipelineId, ScriptToConstellationMessage)),
+            Script((WebViewId, PipelineId, ScriptToConstellationMessage)),
             BackgroundHangMonitor(HangMonitorAlert),
             Compositor(EmbedderToConstellationMessage),
             FromSWManager(SWManagerMsg),
@@ -1620,6 +1622,7 @@ where
         if pipeline
             .event_loop
             .send(ScriptThreadMessage::EvaluateJavaScript(
+                webview_id,
                 pipeline.id,
                 evaluation_id,
                 script,
@@ -1634,15 +1637,12 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_request_from_script(&mut self, message: (PipelineId, ScriptToConstellationMessage)) {
-        let (source_pipeline_id, content) = message;
+    fn handle_request_from_script(
+        &mut self,
+        message: (WebViewId, PipelineId, ScriptToConstellationMessage),
+    ) {
+        let (webview_id, source_pipeline_id, content) = message;
         trace_script_msg!(content, "{source_pipeline_id}: {content:?}");
-
-        let get_webview_id = || {
-            self.pipelines
-                .get(&source_pipeline_id)
-                .map(|pipeline| pipeline.webview_id)
-        };
 
         match content {
             ScriptToConstellationMessage::CompleteMessagePortTransfer(router_id, ports) => {
@@ -1745,21 +1745,9 @@ where
                 self.handle_pipeline_exited(source_pipeline_id);
             },
             ScriptToConstellationMessage::DiscardDocument => {
-                let Some(webview_id) = get_webview_id() else {
-                    return warn!(
-                        "{}: DiscardDocument from closed pipeline",
-                        source_pipeline_id
-                    );
-                };
                 self.handle_discard_document(webview_id, source_pipeline_id);
             },
             ScriptToConstellationMessage::DiscardTopLevelBrowsingContext => {
-                let Some(webview_id) = get_webview_id() else {
-                    return warn!(
-                        "{}: DiscardTopLevelBrowsingContext from closed pipeline",
-                        source_pipeline_id
-                    );
-                };
                 self.handle_close_top_level_browsing_context(webview_id);
             },
             ScriptToConstellationMessage::ScriptLoadedURLInIFrame(load_info) => {
@@ -1776,9 +1764,6 @@ where
             },
             // Ask the embedder for permission to load a new page.
             ScriptToConstellationMessage::LoadUrl(load_data, history_handling) => {
-                let Some(webview_id) = get_webview_id() else {
-                    return warn!("{}: LoadUrl from closed pipeline", source_pipeline_id);
-                };
                 self.schedule_navigation(
                     webview_id,
                     source_pipeline_id,
@@ -1791,9 +1776,6 @@ where
             },
             // A page loaded has completed all parsing, script, and reflow messages have been sent.
             ScriptToConstellationMessage::LoadComplete => {
-                let Some(webview_id) = get_webview_id() else {
-                    return warn!("{}: LoadComplete from closed pipeline", source_pipeline_id);
-                };
                 self.handle_load_complete_msg(webview_id, source_pipeline_id)
             },
             // Handle navigating to a fragment
@@ -1802,12 +1784,6 @@ where
             },
             // Handle a forward or back request
             ScriptToConstellationMessage::TraverseHistory(direction) => {
-                let Some(webview_id) = get_webview_id() else {
-                    return warn!(
-                        "{}: TraverseHistory from closed pipeline",
-                        source_pipeline_id
-                    );
-                };
                 self.handle_traverse_history_msg(webview_id, direction);
             },
             // Handle a push history state request.
@@ -1819,12 +1795,6 @@ where
             },
             // Handle a joint session history length request.
             ScriptToConstellationMessage::JointSessionHistoryLength(response_sender) => {
-                let Some(webview_id) = get_webview_id() else {
-                    return warn!(
-                        "{}: JointSessionHistoryLength from closed pipeline",
-                        source_pipeline_id
-                    );
-                };
                 self.handle_joint_session_history_length(webview_id, response_sender);
             },
             // Notification that the new document is ready to become active
@@ -1881,9 +1851,6 @@ where
                 self.document_states.insert(source_pipeline_id, state);
             },
             ScriptToConstellationMessage::LogEntry(thread_name, entry) => {
-                let Some(webview_id) = get_webview_id() else {
-                    return warn!("{}: LogEntry from closed pipeline", source_pipeline_id);
-                };
                 self.handle_log_entry(Some(webview_id), thread_name, entry);
             },
             ScriptToConstellationMessage::GetBrowsingContextInfo(pipeline_id, response_sender) => {
@@ -1959,12 +1926,6 @@ where
                 );
             },
             ScriptToConstellationMessage::MediaSessionEvent(pipeline_id, event) => {
-                let Some(webview_id) = get_webview_id() else {
-                    return warn!(
-                        "{}: MediaSessionEvent from closed pipeline",
-                        source_pipeline_id
-                    );
-                };
                 // Unlikely at this point, but we may receive events coming from
                 // different media sessions, so we set the active media session based
                 // on Playing events.
@@ -1986,30 +1947,19 @@ where
                     .send(EmbedderMsg::MediaSessionEvent(webview_id, event));
             },
             #[cfg(feature = "webgpu")]
-            ScriptToConstellationMessage::RequestAdapter(response_sender, options, ids) => {
-                let Some(webview_id) = get_webview_id() else {
-                    return warn!(
-                        "{}: RequestAdapter from closed pipeline",
-                        source_pipeline_id
-                    );
-                };
-                self.handle_wgpu_request(
+            ScriptToConstellationMessage::RequestAdapter(response_sender, options, ids) => self
+                .handle_wgpu_request(
                     source_pipeline_id,
                     BrowsingContextId::from(webview_id),
                     ScriptToConstellationMessage::RequestAdapter(response_sender, options, ids),
-                )
-            },
+                ),
             #[cfg(feature = "webgpu")]
-            ScriptToConstellationMessage::GetWebGPUChan(response_sender) => {
-                let Some(webview_id) = get_webview_id() else {
-                    return warn!("{}: GetWebGPUChan from closed pipeline", source_pipeline_id);
-                };
-                self.handle_wgpu_request(
+            ScriptToConstellationMessage::GetWebGPUChan(response_sender) => self
+                .handle_wgpu_request(
                     source_pipeline_id,
                     BrowsingContextId::from(webview_id),
                     ScriptToConstellationMessage::GetWebGPUChan(response_sender),
-                )
-            },
+                ),
             ScriptToConstellationMessage::TitleChanged(pipeline, title) => {
                 if let Some(pipeline) = self.pipelines.get_mut(&pipeline) {
                     pipeline.title = title;
@@ -4539,36 +4489,31 @@ where
 
     #[servo_tracing::instrument(skip_all)]
     fn handle_set_throttled_complete(&mut self, pipeline_id: PipelineId, throttled: bool) {
-        let browsing_context_id = match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => pipeline.browsing_context_id,
-            None => {
-                return warn!(
-                    "{}: Visibility change for closed browsing context",
-                    pipeline_id
-                );
-            },
+        let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
+            return warn!("{pipeline_id}: Visibility change for closed browsing context",);
         };
-        let parent_pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-            Some(ctx) => ctx.parent_pipeline_id,
-            None => {
-                return warn!("{}: Visibility change for closed pipeline", pipeline_id);
-            },
+        let Some(browsing_context) = self.browsing_contexts.get(&pipeline.browsing_context_id)
+        else {
+            return warn!("{}: Visibility change for closed pipeline", pipeline_id);
+        };
+        let Some(parent_pipeline_id) = browsing_context.parent_pipeline_id else {
+            return;
         };
 
-        if let Some(parent_pipeline_id) = parent_pipeline_id {
-            let msg = ScriptThreadMessage::SetThrottledInContainingIframe(
-                parent_pipeline_id,
-                browsing_context_id,
-                throttled,
-            );
-            let result = match self.pipelines.get(&parent_pipeline_id) {
-                None => return warn!("{}: Parent pipeline closed", parent_pipeline_id),
-                Some(parent_pipeline) => parent_pipeline.event_loop.send(msg),
-            };
+        let msg = ScriptThreadMessage::SetThrottledInContainingIframe(
+            pipeline.webview_id,
+            parent_pipeline_id,
+            browsing_context.id,
+            throttled,
+        );
 
-            if let Err(e) = result {
-                self.handle_send_error(parent_pipeline_id, e);
-            }
+        let result = match self.pipelines.get(&parent_pipeline_id) {
+            None => return warn!("{}: Parent pipeline closed", parent_pipeline_id),
+            Some(parent_pipeline) => parent_pipeline.event_loop.send(msg),
+        };
+
+        if let Err(e) = result {
+            self.handle_send_error(parent_pipeline_id, e);
         }
     }
 
@@ -5146,26 +5091,29 @@ where
                 return;
             }
 
-            *screenshot_request.pipeline_states.borrow_mut() = self
-                .fully_active_browsing_contexts_iter(screenshot_request.webview_id)
-                .filter_map(|browsing_context| {
-                    let pipeline_id = browsing_context.pipeline_id;
-                    let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
-                        // This can happen while Servo is shutting down, so just ignore it for now.
-                        return None;
-                    };
-                    // If the rectangle for this BrowsingContext is zero, it will never be
-                    // painted. In this case, don't query screenshot readiness as it won't
-                    // contribute to the final output image.
-                    if browsing_context.viewport_details.size == Size2D::zero() {
-                        return None;
-                    }
-                    let _ = pipeline
-                        .event_loop
-                        .send(ScriptThreadMessage::RequestScreenshotReadiness(pipeline_id));
-                    Some((pipeline_id, None))
-                })
-                .collect();
+            *screenshot_request.pipeline_states.borrow_mut() =
+                self.fully_active_browsing_contexts_iter(screenshot_request.webview_id)
+                    .filter_map(|browsing_context| {
+                        let pipeline_id = browsing_context.pipeline_id;
+                        let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
+                            // This can happen while Servo is shutting down, so just ignore it for now.
+                            return None;
+                        };
+                        // If the rectangle for this BrowsingContext is zero, it will never be
+                        // painted. In this case, don't query screenshot readiness as it won't
+                        // contribute to the final output image.
+                        if browsing_context.viewport_details.size == Size2D::zero() {
+                            return None;
+                        }
+                        let _ = pipeline.event_loop.send(
+                            ScriptThreadMessage::RequestScreenshotReadiness(
+                                pipeline.webview_id,
+                                pipeline_id,
+                            ),
+                        );
+                        Some((pipeline_id, None))
+                    })
+                    .collect();
             screenshot_request
                 .state
                 .set(ScreenshotRequestState::WaitingOnScript);

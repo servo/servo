@@ -459,6 +459,7 @@ impl WindowProxy {
             None => {
                 let sender_pipeline_id = self.currently_active().unwrap();
                 match ScriptThread::get_top_level_for_browsing_context(
+                    self.webview_id(),
                     sender_pipeline_id,
                     opener_id,
                 ) {
