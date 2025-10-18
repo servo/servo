@@ -15,7 +15,7 @@ use embedder_traits::resources::{self, Resource};
 use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt};
 use http::header::{self, HeaderMap, HeaderName, RANGE};
 use http::{HeaderValue, Method, StatusCode};
-use ipc_channel::ipc;
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use log::{debug, trace, warn};
 use mime::{self, Mime};
 use net_traits::fetch::headers::extract_mime_type_as_mime;
@@ -30,7 +30,8 @@ use net_traits::request::{
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::{
     FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
-    ResourceTimeValue, ResourceTimingType, set_default_accept_language,
+    ResourceTimeValue, ResourceTimingType, WebSocketDomAction, WebSocketNetworkEvent,
+    set_default_accept_language,
 };
 use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
@@ -39,6 +40,7 @@ use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use tokio::sync::mpsc::{UnboundedReceiver as TokioReceiver, UnboundedSender as TokioSender};
 
 use super::fetch_params::FetchParams;
+use crate::connector::CACertificates;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::FileManager;
@@ -62,6 +64,20 @@ pub enum Data {
     Cancelled,
 }
 
+pub struct WebSocketChannel {
+    pub sender: IpcSender<WebSocketNetworkEvent>,
+    pub receiver: Option<IpcReceiver<WebSocketDomAction>>,
+}
+
+impl WebSocketChannel {
+    pub fn new(
+        sender: IpcSender<WebSocketNetworkEvent>,
+        receiver: Option<IpcReceiver<WebSocketDomAction>>,
+    ) -> Self {
+        Self { sender, receiver }
+    }
+}
+
 pub struct FetchContext {
     pub state: Arc<HttpState>,
     pub user_agent: String,
@@ -72,6 +88,9 @@ pub struct FetchContext {
     pub cancellation_listener: Arc<CancellationListener>,
     pub timing: ServoArc<Mutex<ResourceFetchTiming>>,
     pub protocols: Arc<ProtocolRegistry>,
+    pub websocket_chan: Option<Arc<Mutex<WebSocketChannel>>>,
+    pub ca_certificates: CACertificates,
+    pub ignore_certificate_errors: bool,
 }
 
 #[derive(Default)]
@@ -178,8 +197,16 @@ pub(crate) fn convert_request_to_csp_request(request: &Request) -> Option<csp::R
         Origin::Client => return None,
         Origin::Origin(origin) => origin,
     };
+
+    // We need to retroactively upgrade the ws URL if the rewritten http URL was upgraded to a secure scheme.
+    // https://github.com/w3c/webappsec-csp/issues/532
+    let mut original_url = request.original_url();
+    if original_url.scheme() == "ws" && request.url().scheme() == "https" {
+        original_url.as_mut_url().set_scheme("wss").unwrap();
+    }
+
     let csp_request = csp::Request {
-        url: request.url().into_url(),
+        url: original_url.into_url(),
         origin: origin.clone().into_url_origin(),
         redirect_count: request.redirect_count,
         destination: request.destination,
@@ -238,6 +265,21 @@ fn should_response_be_blocked_by_csp(
             .actual_response()
             .url()
             .cloned()
+            // NOTE(pylbrecht): for WebSocket connections, the URL scheme is converted to http(s)
+            // to integrate with fetch(). We need to convert it back to ws(s) to get valid CSP
+            // checks.
+            // https://github.com/w3c/webappsec-csp/issues/532
+            .map(|mut url| {
+                match csp_request.url.scheme() {
+                    "ws" | "wss" => {
+                        url.as_mut_url()
+                            .set_scheme(csp_request.url.scheme())
+                            .expect("failed to set URL scheme");
+                    },
+                    _ => {},
+                };
+                url
+            })
             .expect("response must have a url")
             .into_url(),
         redirect_count: csp_request.redirect_count,
@@ -304,7 +346,7 @@ pub async fn main_fetch(
     // TODO: handle request abort.
 
     // Step 4. Upgrade request to a potentially trustworthy URL, if appropriate.
-    if should_upgrade_request_to_potentially_trustworty(request, context) ||
+    if should_upgrade_request_to_potentially_trustworthy(request, context) ||
         should_upgrade_mixed_content_request(request, &context.protocols)
     {
         trace!(
@@ -1115,7 +1157,7 @@ pub fn is_form_submission_request(request: &Request) -> bool {
 }
 
 /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-request>
-fn should_upgrade_request_to_potentially_trustworty(
+fn should_upgrade_request_to_potentially_trustworthy(
     request: &mut Request,
     context: &FetchContext,
 ) -> bool {

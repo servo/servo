@@ -28,6 +28,7 @@ use hyper::body::{Bytes, Incoming};
 use hyper::{Request as HyperRequest, Response as HyperResponse};
 use mime::{self, Mime};
 use net::async_runtime::spawn_blocking_task;
+use net::connector::CACertificates;
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, FetchContext};
 use net::filemanager_thread::FileManager;
@@ -763,6 +764,9 @@ fn test_fetch_with_hsts() {
             ResourceTimingType::Navigation,
         ))),
         protocols: Arc::new(ProtocolRegistry::default()),
+        websocket_chan: None,
+        ca_certificates: CACertificates::Default,
+        ignore_certificate_errors: false,
     };
 
     // The server certificate is self-signed, so we need to add an override
@@ -824,6 +828,9 @@ fn test_load_adds_host_to_hsts_list_when_url_is_https() {
             ResourceTimingType::Navigation,
         ))),
         protocols: Arc::new(ProtocolRegistry::default()),
+        websocket_chan: None,
+        ca_certificates: CACertificates::Default,
+        ignore_certificate_errors: false,
     };
 
     // The server certificate is self-signed, so we need to add an override
@@ -891,6 +898,9 @@ fn test_fetch_self_signed() {
             ResourceTimingType::Navigation,
         ))),
         protocols: Arc::new(ProtocolRegistry::default()),
+        websocket_chan: None,
+        ca_certificates: CACertificates::Default,
+        ignore_certificate_errors: false,
     };
 
     let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
@@ -1460,6 +1470,9 @@ fn test_fetch_request_intercepted() {
             ResourceTimingType::Navigation,
         ))),
         protocols: Arc::new(ProtocolRegistry::default()),
+        websocket_chan: None,
+        ca_certificates: CACertificates::Default,
+        ignore_certificate_errors: false,
     };
 
     let url = ServoUrl::parse("http://www.example.org").unwrap();

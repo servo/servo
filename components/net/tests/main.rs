@@ -39,7 +39,7 @@ use hyper::service::service_fn;
 use hyper::{Request as HyperRequest, Response as HyperResponse};
 use hyper_util::rt::tokio::TokioIo;
 use net::async_runtime::{init_async_runtime, spawn_blocking_task, spawn_task};
-use net::connector::{create_http_client, create_tls_config};
+use net::connector::{CACertificates, create_http_client, create_tls_config};
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, FetchContext};
 use net::filemanager_thread::FileManager;
@@ -184,6 +184,9 @@ fn new_fetch_context(
             ResourceTimingType::Navigation,
         ))),
         protocols: Arc::new(ProtocolRegistry::with_internal_protocols()),
+        websocket_chan: None,
+        ca_certificates: CACertificates::Default,
+        ignore_certificate_errors: false,
     }
 }
 impl FetchTaskTarget for FetchResponseCollector {
