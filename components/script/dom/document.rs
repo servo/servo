@@ -121,6 +121,7 @@ use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::{HashMapTracedValues, NoTrace};
+use crate::dom::bindings::weakref::DOMTracker;
 use crate::dom::bindings::xmlname::matches_name_production;
 use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use crate::dom::cdatasection::CDATASection;
@@ -196,6 +197,7 @@ use crate::dom::virtualmethods::vtable_for;
 use crate::dom::webgl::webglrenderingcontext::WebGLRenderingContext;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpucanvascontext::GPUCanvasContext;
+use crate::dom::websocket::WebSocket;
 use crate::dom::window::Window;
 use crate::dom::windowproxy::WindowProxy;
 use crate::dom::xpathevaluator::XPathEvaluator;
@@ -606,10 +608,55 @@ pub(crate) struct Document {
     #[no_trace]
     #[ignore_malloc_size_of = "TODO: unimplemented on Image"]
     favicon: RefCell<Option<Image>>,
+
+    /// All websockets created that are associated with this document.
+    websockets: DOMTracker<WebSocket>,
 }
 
 #[allow(non_snake_case)]
 impl Document {
+    /// <https://html.spec.whatwg.org/multipage/#unloading-document-cleanup-steps>
+    fn unloading_cleanup_steps(&self) {
+        // Step 1. Let window be document's relevant global object.
+        // Step 2. For each WebSocket object webSocket whose relevant global object is window, make disappear webSocket.
+        if self.close_outstanding_websockets() {
+            // If this affected any WebSocket objects, then make document unsalvageable given document and "websocket".
+            self.salvageable.set(false);
+        }
+
+        // Step 3. For each WebTransport object transport whose relevant global object is window, run the context cleanup steps given transport.
+        // TODO
+
+        // Step 4. If document's salvageable state is false, then:
+        if !self.salvageable.get() {
+            let global_scope = self.window.as_global_scope();
+
+            // Step 4.1. For each EventSource object eventSource whose relevant global object is equal to window, forcibly close eventSource.
+            global_scope.close_event_sources();
+
+            // Step 4.2. Clear window's map of active timers.
+            // TODO
+
+            // Ensure the constellation discards all bfcache information for this document.
+            let msg = ScriptToConstellationMessage::DiscardDocument;
+            let _ = global_scope.script_to_constellation_chan().send(msg);
+        }
+    }
+
+    pub(crate) fn track_websocket(&self, websocket: &WebSocket) {
+        self.websockets.track(websocket);
+    }
+
+    fn close_outstanding_websockets(&self) -> bool {
+        let mut closed_any_websocket = false;
+        self.websockets.for_each(|websocket: DomRoot<WebSocket>| {
+            if websocket.make_disappear() {
+                closed_any_websocket = true;
+            }
+        });
+        closed_any_websocket
+    }
+
     pub(crate) fn note_node_with_dirty_descendants(&self, node: &Node) {
         debug_assert!(*node.owner_doc() == *self);
         if !node.is_connected() {
@@ -2109,17 +2156,11 @@ impl Document {
             }
         }
 
-        let global_scope = self.window.as_global_scope();
-        // Step 10, 14
-        // https://html.spec.whatwg.org/multipage/#unloading-document-cleanup-steps
-        if !self.salvageable.get() {
-            // Step 1 of clean-up steps.
-            global_scope.close_event_sources();
-            let msg = ScriptToConstellationMessage::DiscardDocument;
-            let _ = global_scope.script_to_constellation_chan().send(msg);
-        }
+        // Step 18. Run any unloading document cleanup steps for oldDocument that are defined by this specification and other applicable specifications.
+        self.unloading_cleanup_steps();
+
         // https://w3c.github.io/FileAPI/#lifeTime
-        global_scope.clean_up_all_file_resources();
+        self.window.as_global_scope().clean_up_all_file_resources();
 
         // Step 15, End
         self.decr_ignore_opens_during_unload_counter();
@@ -3581,6 +3622,7 @@ impl Document {
             active_sandboxing_flag_set: Cell::new(SandboxingFlagSet::empty()),
             creation_sandboxing_flag_set: Cell::new(creation_sandboxing_flag_set),
             favicon: RefCell::new(None),
+            websockets: DOMTracker::new(),
         }
     }
 
