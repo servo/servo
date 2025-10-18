@@ -476,6 +476,22 @@ class PackageCommands(CommandBase):
                 path.basename(package),
             )
 
+        # Map the default platform shorthand to a name containing architecture.
+        def map_platform(platform: str) -> str:
+            if platform == "android":
+                return "aarch64-android"
+            elif platform == "linux":
+                return "x86_64-linux-gnu"
+            elif platform == "windows-msvc":
+                return "x86_64-windows-msvc"
+            elif platform == "mac":
+                return "x86_64-apple-darwin"
+            elif platform == "mac-arm64":
+                return "aarch64-apple-darwin"
+            elif platform == "ohos":
+                return "aarch64-linux-ohos"
+            raise Exception("Unknown platform: {}".format(platform))
+
         def upload_to_github_release(platform: str, package: str, package_hash: str) -> None:
             if not github_release_id:
                 return
@@ -485,7 +501,17 @@ class PackageCommands(CommandBase):
             nightly_repo = g.get_repo(os.environ["NIGHTLY_REPO"])
             release = nightly_repo.get_release(github_release_id)
 
-            asset_name = f"servo-latest.{extension}"
+            if platform != "mac-arm64":
+                # Legacy assetname. Will be removed after a period with duplicate assets.
+                asset_name = f"servo-latest.{extension}"
+                package_hash_fileobj = io.BytesIO(f"{package_hash}  {asset_name}".encode("utf-8"))
+                release.upload_asset(package, name=asset_name)
+                # pyrefly: ignore[missing-attribute]
+                release.upload_asset_from_memory(
+                    package_hash_fileobj, package_hash_fileobj.getbuffer().nbytes, name=f"{asset_name}.sha256"
+                )
+            asset_platform = map_platform(platform)
+            asset_name = f"servo-{asset_platform}.{extension}"
             package_hash_fileobj = io.BytesIO(f"{package_hash}  {asset_name}".encode("utf-8"))
             release.upload_asset(package, name=asset_name)
             # pyrefly: ignore[missing-attribute]
