@@ -2901,9 +2901,8 @@ where
         );
 
         let old_pipeline_id = pipeline_id;
-        let old_load_data = match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => pipeline.load_data.clone(),
-            None => return warn!("failed pipeline is missing"),
+        let Some(old_load_data) = self.refresh_load_data(pipeline_id) else {
+            return warn!("failed pipeline is missing");
         };
         if old_load_data.crash.is_some() {
             return error!("crash page crashed");
@@ -5030,13 +5029,8 @@ where
 
         let mut dead_pipelines = vec![];
         for evicted_id in pipelines_to_evict {
-            let load_data = match self.pipelines.get(&evicted_id) {
-                Some(pipeline) => {
-                    let mut load_data = pipeline.load_data.clone();
-                    load_data.url = pipeline.url.clone();
-                    load_data
-                },
-                None => continue,
+            let Some(load_data) = self.refresh_load_data(evicted_id) else {
+                continue;
             };
 
             dead_pipelines.push((evicted_id, NeedsToReload::Yes(evicted_id, load_data)));
@@ -5486,15 +5480,24 @@ where
         debug!("{}: Closed browsing context children", browsing_context_id);
     }
 
+    /// Returns the [LoadData] associated with the given pipeline if it exists,
+    /// containing the most recent URL associated with the given pipeline.
+    fn refresh_load_data(&self, pipeline_id: PipelineId) -> Option<LoadData> {
+        self.pipelines.get(&pipeline_id).map(|pipeline| {
+            let mut load_data = pipeline.load_data.clone();
+            load_data.url = pipeline.url.clone();
+            load_data
+        })
+    }
+
     // Discard the pipeline for a given document, udpdate the joint session history.
     #[servo_tracing::instrument(skip_all)]
     fn handle_discard_document(&mut self, webview_id: WebViewId, pipeline_id: PipelineId) {
+        let Some(load_data) = self.refresh_load_data(pipeline_id) else {
+            return warn!("{}: Discarding closed pipeline", pipeline_id);
+        };
         match self.webviews.get_mut(webview_id) {
             Some(webview) => {
-                let load_data = match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.load_data.clone(),
-                    None => return warn!("{}: Discarding closed pipeline", pipeline_id),
-                };
                 webview.session_history.replace_reloader(
                     NeedsToReload::No(pipeline_id),
                     NeedsToReload::Yes(pipeline_id, load_data),
