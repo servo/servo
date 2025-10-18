@@ -9,7 +9,6 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 use base::id::PipelineId;
-use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement, ModifyAttribute};
 use devtools_traits::{DevtoolScriptControlMsg, NodeInfo, ShadowRootMode};
 use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
@@ -29,6 +28,12 @@ const MAX_INLINE_LENGTH: usize = 50;
 
 #[derive(Serialize)]
 struct GetUniqueSelectorReply {
+    from: String,
+    value: String,
+}
+
+#[derive(Serialize)]
+struct GetXPathReply {
     from: String,
     value: String,
 }
@@ -139,7 +144,7 @@ impl Actor for NodeActor {
                 walker.new_mutations(&mut request, &self.name, &modifications);
 
                 self.script_chan
-                    .send(ModifyAttribute(
+                    .send(DevtoolScriptControlMsg::ModifyAttribute(
                         self.pipeline,
                         registry.actor_to_script(self.name()),
                         modifications,
@@ -153,7 +158,10 @@ impl Actor for NodeActor {
             "getUniqueSelector" => {
                 let (tx, rx) = ipc::channel().unwrap();
                 self.script_chan
-                    .send(GetDocumentElement(self.pipeline, tx))
+                    .send(DevtoolScriptControlMsg::GetDocumentElement(
+                        self.pipeline,
+                        tx,
+                    ))
                     .unwrap();
                 let doc_elem_info = rx
                     .recv()
@@ -169,6 +177,29 @@ impl Actor for NodeActor {
                 let msg = GetUniqueSelectorReply {
                     from: self.name(),
                     value: node.display_name,
+                };
+                request.reply_final(&msg)?
+            },
+            "getXPath" => {
+                let target = msg
+                    .get("to")
+                    .ok_or(ActorError::MissingParameter)?
+                    .as_str()
+                    .ok_or(ActorError::BadParameterType)?;
+
+                let (tx, rx) = ipc::channel().unwrap();
+                self.script_chan
+                    .send(DevtoolScriptControlMsg::GetXPath(
+                        self.pipeline,
+                        registry.actor_to_script(target.to_owned()),
+                        tx,
+                    ))
+                    .unwrap();
+
+                let xpath_selector = rx.recv().map_err(|_| ActorError::Internal)?;
+                let msg = GetXPathReply {
+                    from: self.name(),
+                    value: xpath_selector,
                 };
                 request.reply_final(&msg)?
             },
@@ -234,7 +265,11 @@ impl NodeInfoToProtocol for NodeInfo {
 
             let (tx, rx) = ipc::channel().ok()?;
             script_chan
-                .send(GetChildren(pipeline, name.clone(), tx))
+                .send(DevtoolScriptControlMsg::GetChildren(
+                    pipeline,
+                    name.clone(),
+                    tx,
+                ))
                 .unwrap();
             let mut children = rx.recv().ok()??;
 

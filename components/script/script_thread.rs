@@ -2078,6 +2078,9 @@ impl ScriptThread {
             DevtoolScriptControlMsg::GetLayout(id, node_id, reply) => {
                 devtools::handle_get_layout(&documents, id, node_id, reply, can_gc)
             },
+            DevtoolScriptControlMsg::GetXPath(id, node_id, reply) => {
+                devtools::handle_get_xpath(&documents, id, node_id, reply)
+            },
             DevtoolScriptControlMsg::ModifyAttribute(id, node_id, modifications) => {
                 devtools::handle_modify_attribute(&documents, id, node_id, modifications, can_gc)
             },

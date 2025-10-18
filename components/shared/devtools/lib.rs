@@ -259,6 +259,8 @@ pub enum DevtoolScriptControlMsg {
     GetComputedStyle(PipelineId, String, IpcSender<Option<Vec<NodeStyle>>>),
     /// Retrieve the computed layout properties of the given node in the given pipeline.
     GetLayout(PipelineId, String, IpcSender<Option<ComputedNodeLayout>>),
+    /// Get a unique XPath selector for the node.
+    GetXPath(PipelineId, String, IpcSender<String>),
     /// Update a given node's attributes with a list of modifications.
     ModifyAttribute(PipelineId, String, Vec<AttrModification>),
     /// Update a given node's style rules with a list of modifications.
