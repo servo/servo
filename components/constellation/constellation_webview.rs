@@ -39,6 +39,10 @@ pub(crate) struct ConstellationWebView {
     /// The [`Theme`] that this [`ConstellationWebView`] uses. This is communicated to all
     /// `ScriptThread`s so that they know how to render the contents of a particular `WebView.
     theme: Theme,
+
+    /// Whether or not this entire [`ConstellationWebView`] is visible. WebViews that
+    /// are not visible will be throttled.
+    pub visible: bool,
 }
 
 impl ConstellationWebView {
@@ -53,6 +57,7 @@ impl ConstellationWebView {
             last_mouse_move_point: Default::default(),
             session_history: JointSessionHistory::new(),
             theme: Theme::Light,
+            visible: true,
         }
     }
 

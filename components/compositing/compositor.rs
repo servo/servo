@@ -1038,6 +1038,20 @@ impl IOCompositor {
         } else {
             self.webview_renderers.show(webview_id)?
         };
+
+        for webview in self.webview_renderers.iter_mut() {
+            if webview.id == webview_id {
+                if webview.set_visible(true) && webview.animating() {
+                    self.global
+                        .borrow()
+                        .refresh_driver
+                        .notify_animation_state_changed(webview);
+                }
+            } else if hide_others {
+                webview.set_visible(false);
+            }
+        }
+
         if painting_order_changed {
             self.send_root_pipeline_display_list();
         }
@@ -1046,6 +1060,11 @@ impl IOCompositor {
 
     pub fn hide_webview(&mut self, webview_id: WebViewId) -> Result<(), UnknownWebView> {
         debug!("{webview_id}: Hiding webview");
+
+        if let Some(webview) = self.webview_renderers.get_mut(webview_id) {
+            webview.set_visible(false);
+        }
+
         if self.webview_renderers.hide(webview_id)? {
             self.send_root_pipeline_display_list();
         }
@@ -1070,6 +1089,20 @@ impl IOCompositor {
         } else {
             self.webview_renderers.raise_to_top(webview_id)?
         };
+
+        for webview in self.webview_renderers.iter_mut() {
+            if webview.id == webview_id {
+                if webview.set_visible(true) && webview.animating() {
+                    self.global
+                        .borrow()
+                        .refresh_driver
+                        .notify_animation_state_changed(webview);
+                }
+            } else if hide_others {
+                webview.set_visible(false);
+            }
+        }
+
         if painting_order_changed {
             self.send_root_pipeline_display_list();
         }

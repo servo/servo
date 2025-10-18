@@ -70,7 +70,7 @@ mod from_compositor {
                 Self::ToggleProfiler(..) => target!("EnableProfiler"),
                 Self::ExitFullScreen(_) => target!("ExitFullScreen"),
                 Self::MediaSessionAction(_) => target!("MediaSessionAction"),
-                Self::SetWebViewThrottled(_, _) => target!("SetWebViewThrottled"),
+                Self::SetWebViewVisible(_, _) => target!("SetWebViewThrottled"),
                 Self::SetScrollStates(..) => target!("SetScrollStates"),
                 Self::PaintMetric(..) => target!("PaintMetric"),
                 Self::EvaluateJavaScript(..) => target!("EvaluateJavaScript"),
