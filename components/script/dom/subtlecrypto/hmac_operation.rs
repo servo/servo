@@ -4,11 +4,11 @@
 
 use aws_lc_rs::hmac;
 use base64::prelude::*;
+use rand::TryRngCore;
+use rand::rngs::OsRng;
 use script_bindings::codegen::GenericBindings::CryptoKeyBinding::CryptoKeyMethods;
 use script_bindings::domstring::DOMString;
-use servo_rand::{RngCore, ServoRng};
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsage};
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
 use crate::dom::bindings::error::Error;
@@ -75,7 +75,6 @@ pub(crate) fn generate_key(
     normalized_algorithm: &SubtleHmacKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-    rng: &DomRefCell<ServoRng>,
     can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. If usages contains any entry which is not "sign" or "verify", then throw a SyntaxError.
@@ -107,11 +106,11 @@ pub(crate) fn generate_key(
     };
 
     // Step 3. Generate a key of length length bits.
-    let mut key_data = vec![0; length as usize];
-    rng.borrow_mut().fill_bytes(&mut key_data);
-
     // Step 4. If the key generation step fails, then throw an OperationError.
-    // NOTE: Our key generation is infallible.
+    let mut key_data = vec![0; length as usize];
+    if OsRng.try_fill_bytes(&mut key_data).is_err() {
+        return Err(Error::JSFailed);
+    }
 
     // Step 6. Let algorithm be a new HmacKeyAlgorithm.
     // Step 7. Set the name attribute of algorithm to "HMAC".

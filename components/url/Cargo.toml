@@ -17,8 +17,8 @@ doctest = false
 encoding_rs = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
+rand = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 servo_arc = { workspace = true }
-servo_rand = { path = "../rand" }
 url = { workspace = true, features = ["serde"] }
 uuid = { workspace = true, features = ["serde"] }

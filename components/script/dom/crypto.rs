@@ -6,10 +6,10 @@ use dom_struct::dom_struct;
 use js::jsapi::{JSObject, Type};
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{ArrayBufferView, ArrayBufferViewU8, TypedArray};
-use servo_rand::{RngCore, ServoRng};
+use rand::TryRngCore;
+use rand::rngs::OsRng;
 use uuid::Uuid;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CryptoBinding::CryptoMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
@@ -23,8 +23,6 @@ use crate::script_runtime::{CanGc, JSContext};
 #[dom_struct]
 pub(crate) struct Crypto {
     reflector_: Reflector,
-    #[no_trace]
-    rng: DomRefCell<ServoRng>,
     subtle: MutNullableDom<SubtleCrypto>,
 }
 
@@ -32,7 +30,6 @@ impl Crypto {
     fn new_inherited() -> Crypto {
         Crypto {
             reflector_: Reflector::new(),
-            rng: DomRefCell::new(ServoRng::default()),
             subtle: MutNullableDom::default(),
         }
     }
@@ -68,7 +65,11 @@ impl CryptoMethods<crate::DomTypeHolder> for Crypto {
                     requested: None,
                 });
             }
-            self.rng.borrow_mut().fill_bytes(data);
+
+            if OsRng.try_fill_bytes(data).is_err() {
+                return Err(Error::JSFailed);
+            }
+
             let underlying_object = unsafe { input.underlying_object() };
             TypedArray::<ArrayBufferViewU8, *mut JSObject>::from(*underlying_object)
                 .map_err(|_| Error::JSFailed)

@@ -19,8 +19,8 @@ blurmock = { version = "0.1.2", optional = true }
 embedder_traits = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
+rand = { workspace = true }
 servo_config = { path = "../config" }
-servo_rand = { path = "../rand" }
 uuid = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
