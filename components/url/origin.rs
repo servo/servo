@@ -40,14 +40,12 @@ impl ImmutableOrigin {
 
     /// Creates a new opaque origin that is only equal to itself.
     pub fn new_opaque() -> ImmutableOrigin {
-        ImmutableOrigin::Opaque(OpaqueOrigin::Opaque(servo_rand::random_uuid()))
+        ImmutableOrigin::Opaque(OpaqueOrigin::Opaque(Uuid::new_v4()))
     }
 
     // For use in mixed security context tests because data: URL workers inherit contexts
     pub fn new_opaque_data_url_worker() -> ImmutableOrigin {
-        ImmutableOrigin::Opaque(OpaqueOrigin::SecureWorkerFromDataUrl(
-            servo_rand::random_uuid(),
-        ))
+        ImmutableOrigin::Opaque(OpaqueOrigin::SecureWorkerFromDataUrl(Uuid::new_v4()))
     }
 
     pub fn scheme(&self) -> Option<&str> {

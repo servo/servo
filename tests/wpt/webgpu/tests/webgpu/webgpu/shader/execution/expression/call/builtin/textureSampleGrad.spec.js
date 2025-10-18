@@ -6,7 +6,11 @@ Samples a texture using explicit gradients.
 - TODO: test cube maps with more than one mip level.
 - TODO: Test un-encodable formats.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { kCompressedTextureFormats, kEncodableTextureFormats } from '../../../../../format_info.js';
+import {
+  isTextureFormatPossiblyFilterableAsTextureF32,
+  kAllTextureFormats } from
+'../../../../../format_info.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 
 import {
   appendComponentTypeForFormatToTextureType,
@@ -19,24 +23,19 @@ import {
   generateTextureBuiltinInputs3D,
   getTextureTypeForTextureViewDimension,
   isPotentiallyFilterableAndFillable,
-  isSupportedViewFormatCombo,
   kCubeSamplePointMethods,
   kSamplePointMethods,
   kShortAddressModes,
   kShortAddressModeToAddressMode,
   kShortShaderStages,
 
-  skipIfNeedsFilteringAndIsUnfilterable,
-  skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable,
+  skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable } from
 
 
 
-  WGSLTextureSampleTest } from
 './texture_utils.js';
 
-const kTestableColorFormats = [...kEncodableTextureFormats, ...kCompressedTextureFormats];
-
-export const g = makeTestGroup(WGSLTextureSampleTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('sampled_2d_coords').
 specURL('https://www.w3.org/TR/WGSL/#texturesamplegrad').
@@ -62,21 +61,19 @@ Parameters:
 params((u) =>
 u.
 combine('stage', kShortShaderStages).
-combine('format', kTestableColorFormats).
+combine('format', kAllTextureFormats).
 filter((t) => isPotentiallyFilterableAndFillable(t.format)).
 combine('filt', ['nearest', 'linear']).
+filter((t) => t.filt === 'nearest' || isTextureFormatPossiblyFilterableAsTextureF32(t.format)).
 combine('modeU', kShortAddressModes).
 combine('modeV', kShortAddressModes).
 combine('offset', [false, true]).
 beginSubcases().
 combine('samplePoints', kSamplePointMethods)
 ).
-beforeAllSubcases((t) =>
-skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable(t, t.params.format)
-).
 fn(async (t) => {
   const { format, stage, samplePoints, modeU, modeV, filt: minFilter, offset } = t.params;
-  skipIfNeedsFilteringAndIsUnfilterable(t, minFilter, format);
+  skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable(t, minFilter, format);
 
   // We want at least 4 blocks or something wide enough for 3 mip levels.
   const [width, height] = chooseTextureSize({ minSize: 8, minBlocks: 4, format });
@@ -161,11 +158,11 @@ Parameters:
 params((u) =>
 u.
 combine('stage', kShortShaderStages).
-combine('format', kTestableColorFormats).
+combine('format', kAllTextureFormats).
 filter((t) => isPotentiallyFilterableAndFillable(t.format)).
 combine('dim', ['3d', 'cube']).
-filter((t) => isSupportedViewFormatCombo(t.format, t.dim)).
 combine('filt', ['nearest', 'linear']).
+filter((t) => t.filt === 'nearest' || isTextureFormatPossiblyFilterableAsTextureF32(t.format)).
 combine('modeU', kShortAddressModes).
 combine('modeV', kShortAddressModes).
 combine('modeW', kShortAddressModes).
@@ -174,9 +171,6 @@ filter((t) => t.dim !== 'cube' || t.offset !== true).
 beginSubcases().
 combine('samplePoints', kCubeSamplePointMethods).
 filter((t) => t.samplePoints !== 'cube-edges' || t.dim !== '3d')
-).
-beforeAllSubcases((t) =>
-skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable(t, t.params.format)
 ).
 fn(async (t) => {
   const {
@@ -190,7 +184,8 @@ fn(async (t) => {
     filt: minFilter,
     offset
   } = t.params;
-  skipIfNeedsFilteringAndIsUnfilterable(t, minFilter, format);
+  skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable(t, minFilter, format);
+  t.skipIfTextureFormatAndViewDimensionNotCompatible(format, viewDimension);
 
   const size = chooseTextureSize({ minSize: 8, minBlocks: 2, format, viewDimension });
   const descriptor = {
@@ -301,32 +296,41 @@ Parameters:
 params((u) =>
 u.
 combine('stage', kShortShaderStages).
-combine('format', kTestableColorFormats).
+combine('format', kAllTextureFormats).
 filter((t) => isPotentiallyFilterableAndFillable(t.format)).
 combine('filt', ['nearest', 'linear']).
+filter((t) => t.filt === 'nearest' || isTextureFormatPossiblyFilterableAsTextureF32(t.format)).
 combine('modeU', kShortAddressModes).
 combine('modeV', kShortAddressModes).
 combine('offset', [false, true]).
 beginSubcases().
 combine('samplePoints', kSamplePointMethods).
-combine('A', ['i32', 'u32'])
-).
-beforeAllSubcases((t) =>
-skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable(t, t.params.format)
+combine('A', ['i32', 'u32']).
+combine('depthOrArrayLayers', [1, 8])
 ).
 fn(async (t) => {
-  const { format, stage, samplePoints, A, modeU, modeV, filt: minFilter, offset } = t.params;
-  skipIfNeedsFilteringAndIsUnfilterable(t, minFilter, format);
+  const {
+    format,
+    stage,
+    samplePoints,
+    A,
+    modeU,
+    modeV,
+    filt: minFilter,
+    offset,
+    depthOrArrayLayers
+  } = t.params;
+  skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable(t, minFilter, format);
 
   // We want at least 4 blocks or something wide enough for 3 mip levels.
   const [width, height] = chooseTextureSize({ minSize: 8, minBlocks: 4, format });
-  const depthOrArrayLayers = 4;
 
   const descriptor = {
     format,
     size: { width, height, depthOrArrayLayers },
     usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
-    mipLevelCount: 3
+    mipLevelCount: 3,
+    ...(t.isCompatibility && { textureBindingViewDimension: '2d-array' })
   };
   const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
   const sampler = {
@@ -358,7 +362,7 @@ fn(async (t) => {
     };
   });
   const textureType = 'texture_2d_array<f32>';
-  const viewDescriptor = {};
+  const viewDescriptor = { dimension: '2d-array' };
   const results = await doTextureCalls(
     t,
     texture,
@@ -407,21 +411,19 @@ Parameters:
 params((u) =>
 u.
 combine('stage', kShortShaderStages).
-combine('format', kTestableColorFormats).
+combine('format', kAllTextureFormats).
 filter((t) => isPotentiallyFilterableAndFillable(t.format)).
 combine('filt', ['nearest', 'linear']).
+filter((t) => t.filt === 'nearest' || isTextureFormatPossiblyFilterableAsTextureF32(t.format)).
 combine('mode', kShortAddressModes).
 beginSubcases().
 combine('samplePoints', kCubeSamplePointMethods).
 combine('A', ['i32', 'u32'])
 ).
-beforeAllSubcases((t) => {
-  skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable(t, t.params.format);
-  t.skipIfTextureViewDimensionNotSupported('cube-array');
-}).
 fn(async (t) => {
   const { format, stage, samplePoints, A, mode, filt: minFilter } = t.params;
-  skipIfNeedsFilteringAndIsUnfilterable(t, minFilter, format);
+  skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable(t, minFilter, format);
+  t.skipIfTextureViewDimensionNotSupported('cube-array');
 
   const viewDimension = 'cube-array';
   const size = chooseTextureSize({

@@ -28,7 +28,7 @@ import {
 '../../../../../common/util/util.js';
 import { kMaxQueryCount } from '../../../../capability_info.js';
 
-import { GPUTest } from '../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 
 const kRequiredQueryBufferOffsetAlignment = 256;
 const kBytesPerQuery = 8;
@@ -252,7 +252,7 @@ class QueryStarterRenderBundle {
   }
 }
 
-class OcclusionQueryTest extends GPUTest {
+class OcclusionQueryTest extends AllFeaturesMaxLimitsGPUTest {
   createVertexBuffer(data) {
     return this.makeBufferWithContents(data, GPUBufferUsage.VERTEX);
   }

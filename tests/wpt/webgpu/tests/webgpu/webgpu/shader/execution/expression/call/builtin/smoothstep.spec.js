@@ -14,7 +14,7 @@ If low >= high:
 * It is a shader-creation error if low and high are const-expressions.
 * It is a pipeline-creation error if low and high are override-expressions.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import { Type } from '../../../../../util/conversion.js';
 
 import { allInputSources, onlyConstInputSource, run } from '../../expression.js';
@@ -22,13 +22,13 @@ import { allInputSources, onlyConstInputSource, run } from '../../expression.js'
 import { abstractFloatBuiltin, builtin } from './builtin.js';
 import { d } from './smoothstep.cache.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 // Returns true if `c` is valid for a const evaluation of smoothstep.
 function validForConst(c) {
   const low = c.input[0];
   const high = c.input[1];
-  return low.value < high.value;
+  return low.value !== high.value;
 }
 
 g.test('abstract_float').
@@ -76,10 +76,8 @@ desc(`f16 tests`).
 params((u) =>
 u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get(t.params.inputSource === 'const' ? 'f16_const' : 'f16_non_const');
   const validCases = cases.filter((c) => t.params.inputSource !== 'const' || validForConst(c));
   await run(

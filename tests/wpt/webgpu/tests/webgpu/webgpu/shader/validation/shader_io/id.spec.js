@@ -118,9 +118,6 @@ override a = 4;
 g.test('id_fp16').
 desc(`Test validation of id with fp16`).
 params((u) => u.combine('ext', ['', 'h'])).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn((t) => {
   const code = `
 @id(1${t.params.ext})

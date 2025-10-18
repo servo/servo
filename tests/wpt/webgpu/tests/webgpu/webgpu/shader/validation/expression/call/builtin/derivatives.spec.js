@@ -112,11 +112,6 @@ Derivative builtins only accept f32 scalar and vector types.
 params((u) =>
 u.combine('type', keysOf(kArgumentTypes)).combine('call', ['', ...kDerivativeBuiltins])
 ).
-beforeAllSubcases((t) => {
-  if (scalarTypeOf(kArgumentTypes[t.params.type]) === Type.f16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const type = kArgumentTypes[t.params.type];
   const code = `

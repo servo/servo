@@ -4,6 +4,7 @@
 Tests limitations of createRenderPipeline related to vertex state in compat mode.
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { range } from '../../../../../common/util/util.js';
+import * as vtu from '../../../../api/validation/validation_test_utils.js';
 import { CompatibilityTest } from '../../../compatibility_test.js';
 
 export const g = makeTestGroup(CompatibilityTest);
@@ -89,5 +90,5 @@ fn((t) => {
     }
   };
 
-  t.doCreateRenderPipelineTest(isAsync, isValid, pipelineDescriptor);
+  vtu.doCreateRenderPipelineTest(t, isAsync, isValid, pipelineDescriptor);
 });

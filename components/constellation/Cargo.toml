@@ -49,12 +49,12 @@ net_traits = { workspace = true }
 parking_lot = { workspace = true }
 profile = { path = "../profile" }
 profile_traits = { workspace = true }
+rand = { workspace = true }
 rustc-hash = { workspace = true }
 script_traits = { workspace = true }
 serde = { workspace = true }
 servo-tracing = { workspace = true }
 servo_config = { path = "../config" }
-servo_rand = { path = "../rand" }
 servo_url = { path = "../url" }
 storage_traits = { workspace = true }
 stylo = { workspace = true }

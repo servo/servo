@@ -463,7 +463,7 @@ impl Pipeline {
     /// Set whether to make pipeline use less resources, by stopping animations and
     /// running timers at a heavily limited rate.
     pub fn set_throttled(&self, throttled: bool) {
-        let script_msg = ScriptThreadMessage::SetThrottled(self.id, throttled);
+        let script_msg = ScriptThreadMessage::SetThrottled(self.webview_id, self.id, throttled);
         let compositor_msg = CompositorMsg::SetThrottled(self.webview_id, self.id, throttled);
         let err = self.event_loop.send(script_msg);
         if let Err(e) = err {

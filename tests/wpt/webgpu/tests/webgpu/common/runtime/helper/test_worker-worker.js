@@ -1,6 +1,7 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { setBaseResourcePath } from '../../framework/resources.js';import { DefaultTestFileLoader } from '../../internal/file_loader.js';import { parseQuery } from '../../internal/query/parseQuery.js';
+**/import { runShutdownTasks } from '../../framework/on_shutdown.js';import { setBaseResourcePath } from '../../framework/resources.js';import { DefaultTestFileLoader } from '../../internal/file_loader.js';
+import { parseQuery } from '../../internal/query/parseQuery.js';
 import { assert } from '../../util/util.js';
 
 import { setupWorkerEnvironment } from './utils_worker.js';
@@ -13,7 +14,16 @@ const loader = new DefaultTestFileLoader();
 
 setBaseResourcePath('../../../resources');
 
-async function reportTestResults(ev) {
+// MessagePort, DedicatedWorkerGlobalScope, etc.
+
+
+async function handleOnMessage(port, ev) {
+  if (ev.data === 'shutdown') {
+    runShutdownTasks();
+    self.close();
+    return;
+  }
+
   const { query, expectations, ctsOptions } = ev.data;
 
   const log = setupWorkerEnvironment(ctsOptions);
@@ -25,7 +35,7 @@ async function reportTestResults(ev) {
   const [rec, result] = log.record(testcase.query.toString());
   await testcase.run(rec, expectations);
 
-  this.postMessage({
+  port.postMessage({
     query,
     result: {
       ...result,
@@ -35,13 +45,13 @@ async function reportTestResults(ev) {
 }
 
 self.onmessage = (ev) => {
-  void reportTestResults.call(ev.source || self, ev);
+  void handleOnMessage(ev.source || self, ev);
 };
 
 self.onconnect = (event) => {
   const port = event.ports[0];
 
   port.onmessage = (ev) => {
-    void reportTestResults.call(port, ev);
+    void handleOnMessage(port, ev);
   };
 };

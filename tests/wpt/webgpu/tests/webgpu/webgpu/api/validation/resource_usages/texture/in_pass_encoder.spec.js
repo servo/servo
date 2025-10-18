@@ -9,9 +9,11 @@ import { GPUConst } from '../../../../constants.js';
 import {
   kDepthStencilFormats,
   kDepthStencilFormatResolvedAspect,
-  kTextureFormatInfo } from
+  isStencilTextureFormat,
+  isDepthTextureFormat } from
 '../../../../format_info.js';
-import { ValidationTest } from '../../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
+import * as vtu from '../../validation_test_utils.js';
 
 
 
@@ -28,7 +30,7 @@ const kTextureBindingTypes = [
 
 
 const SIZE = 32;
-class TextureUsageTracking extends ValidationTest {
+class TextureUsageTracking extends AllFeaturesMaxLimitsGPUTest {
   createTestTexture(
   options =
 
@@ -201,8 +203,8 @@ class TextureUsageTracking extends ValidationTest {
       bindGroupLayouts
     });
     const pipeline = compute ?
-    this.createNoOpComputePipeline(pipelineLayout) :
-    this.createNoOpRenderPipeline(pipelineLayout, 'r32float');
+    vtu.createNoOpComputePipeline(this, pipelineLayout) :
+    vtu.createNoOpRenderPipeline(this, pipelineLayout, 'r32float');
     return {
       bindGroup0: bindGroups[0],
       bindGroup1: bindGroups[1],
@@ -232,9 +234,37 @@ class TextureUsageTracking extends ValidationTest {
   }
 
   setComputePipelineAndCallDispatch(pass, layout) {
-    const pipeline = this.createNoOpComputePipeline(layout);
+    const pipeline = vtu.createNoOpComputePipeline(this, layout);
     pass.setPipeline(pipeline);
     pass.dispatchWorkgroups(1);
+  }
+
+  skipIfNeedStorageTexturesByVisibilityAndNoStorageTextures(visibility) {
+    if (!this.isCompatibility) {
+      return;
+    }
+
+    this.skipIf(
+      (visibility & GPUConst.ShaderStage.VERTEX) !== 0 &&
+      !(this.device.limits.maxStorageTexturesInVertexStage >= 2),
+      `maxStorageTexturesInVertexStage(${this.device.limits.maxStorageTexturesInVertexStage}) < 2`
+    );
+
+    this.skipIf(
+      (visibility & GPUConst.ShaderStage.FRAGMENT) !== 0 &&
+      !(this.device.limits.maxStorageTexturesInFragmentStage >= 2),
+      `maxStorageTexturesInFragmentStage(${this.device.limits.maxStorageTexturesInFragmentStage}) < 2`
+    );
+  }
+
+  skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(s, visibility) {
+    if (
+    s === 'readonly-storage-texture' ||
+    s === 'writeonly-storage-texture' ||
+    s === 'readwrite-storage-texture')
+    {
+      this.skipIfNeedStorageTexturesByVisibilityAndNoStorageTextures(visibility);
+    }
   }
 }
 
@@ -650,13 +680,13 @@ combine('aspect0', ['all', 'depth-only', 'stencil-only']).
 combine('aspect1', ['all', 'depth-only', 'stencil-only']).
 unless(
   (p) =>
-  p.aspect0 === 'stencil-only' && !kTextureFormatInfo[p.format].stencil ||
-  p.aspect1 === 'stencil-only' && !kTextureFormatInfo[p.format].stencil
+  p.aspect0 === 'stencil-only' && !isStencilTextureFormat(p.format) ||
+  p.aspect1 === 'stencil-only' && !isStencilTextureFormat(p.format)
 ).
 unless(
   (p) =>
-  p.aspect0 === 'depth-only' && !kTextureFormatInfo[p.format].depth ||
-  p.aspect1 === 'depth-only' && !kTextureFormatInfo[p.format].depth
+  p.aspect0 === 'depth-only' && !isDepthTextureFormat(p.format) ||
+  p.aspect1 === 'depth-only' && !isDepthTextureFormat(p.format)
 ).
 combineWithParams([
 {
@@ -673,8 +703,8 @@ combineWithParams([
 unless(
   // Can't sample a multiplanar texture without selecting an aspect.
   (p) =>
-  !!kTextureFormatInfo[p.format].depth &&
-  !!kTextureFormatInfo[p.format].stencil && (
+  isDepthTextureFormat(p.format) &&
+  isStencilTextureFormat(p.format) && (
   p.aspect0 === 'all' && p.type0 === 'sampled-texture' ||
   p.aspect1 === 'all' && p.type1 === 'sampled-texture')
 ).
@@ -694,15 +724,11 @@ unless(
   // Depth-stencil attachment views must encompass all aspects of the texture. Invalid
   // cases are for depth-stencil textures when the aspect is not 'all'.
   p.type1 === 'render-target' &&
-  !!kTextureFormatInfo[p.format].depth &&
-  !!kTextureFormatInfo[p.format].stencil &&
+  isDepthTextureFormat(p.format) &&
+  isStencilTextureFormat(p.format) &&
   p.aspect1 !== 'all'
 )
 ).
-beforeAllSubcases((t) => {
-  const { format } = t.params;
-  t.selectDeviceOrSkipTestCase(kTextureFormatInfo[format].feature);
-}).
 fn((t) => {
   const {
     compute,
@@ -719,6 +745,7 @@ fn((t) => {
     _usageSuccess
   } = t.params;
 
+  t.skipIfTextureFormatNotSupported(format);
   t.skipIf(t.isCompatibility, 'sub ranges of layers are not supported in compat mode');
 
   const texture = t.createTestTexture({
@@ -745,8 +772,8 @@ fn((t) => {
     aspect: aspect1
   });
   const view1ResolvedFormat = kDepthStencilFormatResolvedAspect[format][aspect1];
-  const view1HasDepth = kTextureFormatInfo[view1ResolvedFormat].depth;
-  const view1HasStencil = kTextureFormatInfo[view1ResolvedFormat].stencil;
+  const view1HasDepth = isDepthTextureFormat(view1ResolvedFormat);
+  const view1HasStencil = isStencilTextureFormat(view1ResolvedFormat);
 
   const encoder = t.device.createCommandEncoder();
   // Color attachment's size should match depth/stencil attachment's size. Note that if
@@ -783,8 +810,8 @@ fn((t) => {
       case 'stencil-only':
         return 'uint';
       case 'all':
-        assert(kTextureFormatInfo[format].depth !== kTextureFormatInfo[format].stencil);
-        if (kTextureFormatInfo[format].stencil) {
+        assert(isDepthTextureFormat(format) !== isStencilTextureFormat(format));
+        if (isStencilTextureFormat(format)) {
           return 'uint';
         }
         return 'depth';
@@ -866,6 +893,8 @@ fn((t) => {
     secondUseConflicts
   } = t.params;
 
+  t.skipIfNeedStorageTexturesByVisibilityAndNoStorageTextures(readVisibility | writeVisibility);
+
   const usage = GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING;
   const view = t.createTestTexture({ usage }).createView();
   const view2 = secondUseConflicts ? view : t.createTestTexture({ usage }).createView();
@@ -939,6 +968,8 @@ combine('readEntry', [
 fn((t) => {
   const { readVisibility, readEntry, secondUseConflicts } = t.params;
 
+  t.skipIfNeedStorageTexturesByVisibilityAndNoStorageTextures(readVisibility);
+
   const usage =
   GPUTextureUsage.TEXTURE_BINDING |
   GPUTextureUsage.RENDER_ATTACHMENT |
@@ -991,6 +1022,8 @@ combine('entry', [
 fn((t) => {
   const { compute, callDrawOrDispatch, entry } = t.params;
 
+  t.skipIfNeedStorageTexturesByVisibilityAndNoStorageTextures(GPUShaderStage.FRAGMENT);
+
   const sampledView = t.createTestTexture().createView();
   const sampledStorageView = t.
   createTestTexture({
@@ -1036,8 +1069,8 @@ fn((t) => {
   pass.setBindGroup(0, bindGroup0);
   if (callDrawOrDispatch) {
     const pipeline = compute ?
-    t.createNoOpComputePipeline() :
-    t.createNoOpRenderPipeline('auto', 'r32float');
+    vtu.createNoOpComputePipeline(t) :
+    vtu.createNoOpRenderPipeline(t, 'auto', 'r32float');
     t.setPipeline(pass, pipeline);
     t.issueDrawOrDispatch(pass);
   }
@@ -1118,6 +1151,12 @@ unless(
 fn((t) => {
   const { binding0InBundle, binding1InBundle, type0, type1, _usage0, _usage1, _sampleCount } =
   t.params;
+
+  t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(type0, GPUShaderStage.FRAGMENT);
+  t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(type1, GPUShaderStage.FRAGMENT);
+  if (_sampleCount > 1) {
+    t.skipIfTextureFormatNotMultisampled('r32float');
+  }
 
   // Two bindings are attached to the same texture view.
   const usage =
@@ -1236,6 +1275,15 @@ fn((t) => {
   if (writableUsage === 'readwrite-storage-texture') {
     t.skipIfLanguageFeatureNotSupported('readonly_and_readwrite_storage_textures');
   }
+
+  t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(
+    readOnlyUsage,
+    GPUShaderStage.FRAGMENT
+  );
+  t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(
+    writableUsage,
+    GPUShaderStage.FRAGMENT
+  );
 
   const view = t.
   createTestTexture({
@@ -1370,6 +1418,9 @@ expand('setBindGroup1', (p) => p.dispatch ? [true] : [false, true])
 fn((t) => {
   const { dispatch, usage1, usage2, setBindGroup0, setBindGroup1 } = t.params;
 
+  t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(usage1, GPUShaderStage.FRAGMENT);
+  t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(usage2, GPUShaderStage.FRAGMENT);
+
   const { bindGroup0, bindGroup1, encoder, pass, pipeline } = t.testValidationScope(
     true,
     usage1,
@@ -1428,6 +1479,9 @@ expandWithParams(
 fn((t) => {
   const { setBindGroup0, setBindGroup1, usage1, usage2 } = t.params;
 
+  t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(usage1, GPUShaderStage.FRAGMENT);
+  t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(usage2, GPUShaderStage.FRAGMENT);
+
   const { bindGroup0, bindGroup1, encoder, pass } = t.testValidationScope(false, usage1, usage2);
   assert(pass instanceof GPURenderPassEncoder);
 
@@ -1463,16 +1517,21 @@ u.combine('splitPass', [false, true]).expandWithParams(
 fn((t) => {
   const { splitPass, usage1, usage2 } = t.params;
 
+  t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(usage1, GPUShaderStage.FRAGMENT);
+  t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(usage2, GPUShaderStage.FRAGMENT);
+
   const { bindGroupLayouts, bindGroups } = t.makeTwoBindGroupsWithOneTextureView(usage1, usage2);
 
   const encoder = t.device.createCommandEncoder();
 
-  const pipelineUsingBG0 = t.createNoOpComputePipeline(
+  const pipelineUsingBG0 = vtu.createNoOpComputePipeline(
+    t,
     t.device.createPipelineLayout({
       bindGroupLayouts: [bindGroupLayouts[0]]
     })
   );
-  const pipelineUsingBG1 = t.createNoOpComputePipeline(
+  const pipelineUsingBG1 = vtu.createNoOpComputePipeline(
+    t,
     t.device.createPipelineLayout({
       bindGroupLayouts: [bindGroupLayouts[1]]
     })
@@ -1520,17 +1579,22 @@ expandWithParams(
 fn((t) => {
   const { splitPass, draw, usage1, usage2 } = t.params;
 
+  t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(usage1, GPUShaderStage.FRAGMENT);
+  t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(usage2, GPUShaderStage.FRAGMENT);
+
   const { bindGroupLayouts, bindGroups } = t.makeTwoBindGroupsWithOneTextureView(usage1, usage2);
 
   const encoder = t.device.createCommandEncoder();
 
-  const pipelineUsingBG0 = t.createNoOpRenderPipeline(
+  const pipelineUsingBG0 = vtu.createNoOpRenderPipeline(
+    t,
     t.device.createPipelineLayout({
       bindGroupLayouts: [bindGroupLayouts[0]]
     }),
     'r32float'
   );
-  const pipelineUsingBG1 = t.createNoOpRenderPipeline(
+  const pipelineUsingBG1 = vtu.createNoOpRenderPipeline(
+    t,
     t.device.createPipelineLayout({
       bindGroupLayouts: [bindGroupLayouts[1]]
     }),

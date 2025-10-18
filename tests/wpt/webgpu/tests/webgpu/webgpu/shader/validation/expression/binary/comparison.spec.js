@@ -48,14 +48,6 @@ combine(
 beginSubcases().
 combine('op', keysOf(kComparisonOperators))
 ).
-beforeAllSubcases((t) => {
-  if (
-  scalarTypeOf(kScalarAndVectorTypes[t.params.lhs]) === Type.f16 ||
-  scalarTypeOf(kScalarAndVectorTypes[t.params.rhs]) === Type.f16)
-  {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const lhs = kScalarAndVectorTypes[t.params.lhs];
   const rhs = kScalarAndVectorTypes[t.params.rhs];

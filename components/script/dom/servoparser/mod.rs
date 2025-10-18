@@ -7,7 +7,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::PipelineId;
+use base::id::{PipelineId, WebViewId};
 use base64::Engine as _;
 use base64::engine::general_purpose;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
@@ -878,8 +878,10 @@ pub(crate) struct ParserContext {
     is_synthesized_document: bool,
     /// Has a document already been loaded (relevant for checking the resource header)
     has_loaded_document: bool,
-    /// The pipeline associated with this document.
-    id: PipelineId,
+    /// The [`WebViewId`] of the `WebView` associated with this document.
+    webview_id: WebViewId,
+    /// The [`PipelineId`] of the `Pipeline` associated with this document.
+    pipeline_id: PipelineId,
     /// The URL for this document.
     url: ServoUrl,
     /// timing data for this resource
@@ -892,7 +894,8 @@ pub(crate) struct ParserContext {
 
 impl ParserContext {
     pub(crate) fn new(
-        id: PipelineId,
+        webview_id: WebViewId,
+        pipeline_id: PipelineId,
         url: ServoUrl,
         creation_sandboxing_flag_set: SandboxingFlagSet,
     ) -> ParserContext {
@@ -900,7 +903,8 @@ impl ParserContext {
             parser: None,
             is_synthesized_document: false,
             has_loaded_document: false,
-            id,
+            webview_id,
+            pipeline_id,
             url,
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Navigation),
             pushed_entry_index: None,
@@ -1190,7 +1194,12 @@ impl FetchResponseListener for ParserContext {
             ),
         };
 
-        let parser = match ScriptThread::page_headers_available(&self.id, metadata, CanGc::note()) {
+        let parser = match ScriptThread::page_headers_available(
+            self.webview_id,
+            self.pipeline_id,
+            metadata,
+            CanGc::note(),
+        ) {
             Some(parser) => parser,
             None => return,
         };

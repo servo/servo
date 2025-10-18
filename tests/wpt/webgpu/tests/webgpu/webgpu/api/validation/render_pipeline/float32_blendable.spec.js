@@ -4,10 +4,12 @@
 Tests for capabilities added by float32-blendable flag.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 
+import { UniqueFeaturesOrLimitsGPUTest } from '../../../gpu_test.js';
+import * as vtu from '../validation_test_utils.js';
 
-import { CreateRenderPipelineValidationTest } from './common.js';
+import { getDescriptorForCreateRenderPipelineValidationTest } from './common.js';
 
-export const g = makeTestGroup(CreateRenderPipelineValidationTest);
+export const g = makeTestGroup(UniqueFeaturesOrLimitsGPUTest);
 
 const kFloat32Formats = ['r32float', 'rg32float', 'rgba32float'];
 
@@ -33,8 +35,7 @@ beforeAllSubcases((t) => {
 }).
 fn((t) => {
   const { isAsync, enabled, hasBlend, format } = t.params;
-
-  const descriptor = t.getDescriptor({
+  const descriptor = getDescriptorForCreateRenderPipelineValidationTest(t.device, {
     targets: [
     {
       format,
@@ -43,5 +44,5 @@ fn((t) => {
 
   });
 
-  t.doCreateRenderPipelineTest(isAsync, enabled || !hasBlend, descriptor);
+  vtu.doCreateRenderPipelineTest(t, isAsync, enabled || !hasBlend, descriptor);
 });

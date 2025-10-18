@@ -10,10 +10,10 @@ import {
   kBufferUsages } from
 '../../../capability_info.js';
 import { GPUConst } from '../../../constants.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import { kMaxSafeMultipleOf8 } from '../../../util/math.js';
-import { ValidationTest } from '../validation_test.js';
 
-export const g = makeTestGroup(ValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 assert(kBufferSizeAlignment === 4);
 g.test('size').
@@ -36,10 +36,9 @@ fn((t) => {
   const { mappedAtCreation, size } = t.params;
   const isValid = !mappedAtCreation || size % kBufferSizeAlignment === 0;
   const usage = BufferUsage.COPY_SRC;
-  t.expectGPUError(
-    'validation',
-    () => t.createBufferTracked({ size, usage, mappedAtCreation }),
-    !isValid
+
+  t.shouldThrow(isValid ? false : 'RangeError', () =>
+  t.createBufferTracked({ size, usage, mappedAtCreation })
   );
 });
 

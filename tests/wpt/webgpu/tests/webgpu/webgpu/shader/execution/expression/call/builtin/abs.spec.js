@@ -16,7 +16,7 @@ T is S or vecN<S>
 Returns the absolute value of e (e.g. e with a positive sign bit).
 Component-wise when T is a vector.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import { kBit } from '../../../../../util/constants.js';
 import { Type, i32Bits, u32Bits } from '../../../../../util/conversion.js';
 import { allInputSources, onlyConstInputSource, run } from '../../expression.js';
@@ -24,7 +24,7 @@ import { allInputSources, onlyConstInputSource, run } from '../../expression.js'
 import { d } from './abs.cache.js';
 import { abstractFloatBuiltin, abstractIntBuiltin, builtin } from './builtin.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('abstract_int').
 specURL('https://www.w3.org/TR/WGSL/#integer-builtin-functions').
@@ -173,10 +173,8 @@ desc(`f16 tests`).
 params((u) =>
 u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('f16');
   await run(t, builtin('abs'), [Type.f16], Type.f16, t.params, cases);
 });

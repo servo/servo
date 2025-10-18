@@ -9,8 +9,7 @@ import {
   Type,
   concreteTypeOf,
   isConvertible,
-  kAllScalarsAndVectors,
-  scalarTypeOf } from
+  kAllScalarsAndVectors } from
 '../../../../../util/conversion.js';
 import { ShaderValidationTest } from '../../../shader_validation_test.js';
 
@@ -27,14 +26,6 @@ Validates that scalar and vector arguments are not rejected by ${builtin}() for 
 `
 ).
 params((u) => u.combine('type1', keysOf(kArgumentTypes)).combine('type2', keysOf(kArgumentTypes))).
-beforeAllSubcases((t) => {
-  if (
-  scalarTypeOf(kArgumentTypes[t.params.type1]) === Type.f16 ||
-  scalarTypeOf(kArgumentTypes[t.params.type2]) === Type.f16)
-  {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const type1 = kArgumentTypes[t.params.type1];
   const type2 = kArgumentTypes[t.params.type2];
@@ -62,11 +53,6 @@ Validates that third argument must be bool for ${builtin}()
 `
 ).
 params((u) => u.combine('type', keysOf(kArgumentTypes))).
-beforeAllSubcases((t) => {
-  if (scalarTypeOf(kArgumentTypes[t.params.type]) === Type.f16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const type = kArgumentTypes[t.params.type];
   validateConstOrOverrideBuiltinEval(
@@ -215,11 +201,6 @@ fn((t) => {
 g.test('arguments').
 desc(`Test that ${builtin} is validated correctly.`).
 params((u) => u.combine('test', keysOf(kTests))).
-beforeAllSubcases((t) => {
-  if (t.params.test.includes('f16')) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const src = kTests[t.params.test].src;
   const enables = t.params.test.includes('f16') ? 'enable f16;' : '';

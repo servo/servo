@@ -54,11 +54,6 @@ filter((t) => {
   return !kDerefTypes[t.derefType].requires_pointer_composite_access;
 })
 ).
-beforeAllSubcases((t) => {
-  if (t.params.storageType === 'f16') {
-    t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-  }
-}).
 fn((t) => {
   const isLocal = t.params.addressSpace === 'function';
   const deref = kDerefTypes[t.params.derefType];
@@ -117,11 +112,6 @@ filter((t) => {
   return true;
 })
 ).
-beforeAllSubcases((t) => {
-  if (t.params.storageType === 'f16') {
-    t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-  }
-}).
 fn((t) => {
   const isLocal = t.params.addressSpace === 'function';
   const deref = kDerefTypes[t.params.derefType];

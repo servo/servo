@@ -3,7 +3,7 @@
 **/export const description = `
 Execution Tests for array indexing expressions
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import {
   False,
   True,
@@ -17,7 +17,7 @@ import { align } from '../../../../../util/math.js';
 
 import { allInputSources, basicExpressionBuilder, run } from '../../expression.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('concrete_scalar').
 specURL('https://www.w3.org/TR/WGSL/#array-access-expr').
@@ -32,12 +32,10 @@ combine(
 combine('elementType', ['i32', 'u32', 'f32', 'f16']).
 combine('indexType', ['i32', 'u32'])
 ).
-beforeAllSubcases((t) => {
-  if (t.params.elementType === 'f16') {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn(async (t) => {
+  if (t.params.elementType === 'f16') {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
   const elementType = Type[t.params.elementType];
   const indexType = Type[t.params.indexType];
   const cases = [
@@ -196,16 +194,15 @@ combine('elementType', [
 ).
 combine('indexType', ['i32', 'u32'])
 ).
-beforeAllSubcases((t) => {
-  if (scalarTypeOf(Type[t.params.elementType]).kind === 'f16') {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const elementType = Type[t.params.elementType];
   const valueArrayType = Type.array(0, elementType);
   const indexType = Type[t.params.indexType];
   const indexArrayType = Type.array(0, indexType);
+
+  if (scalarTypeOf(elementType).kind === 'f16') {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
 
   const wgsl = `
 ${scalarTypeOf(elementType).kind === 'f16' ? 'enable f16;' : ''}
@@ -300,14 +297,13 @@ t.inputSource === 'uniform' ?
 ).
 combine('indexType', ['i32', 'u32'])
 ).
-beforeAllSubcases((t) => {
-  if (t.params.elementType === 'vec4h') {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn(async (t) => {
+  if (t.params.elementType === 'vec4h') {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
   const elementType = Type[t.params.elementType];
   const indexType = Type[t.params.indexType];
+
   const cases = [
   {
     input: [
@@ -372,12 +368,10 @@ filter((u) => {
   return (align(mat.size, mat.alignment) & 15) === 0;
 })
 ).
-beforeAllSubcases((t) => {
-  if (t.params.elementType === 'f16') {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn(async (t) => {
+  if (t.params.elementType === 'f16') {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
   const elementType = Type[t.params.elementType];
   const indexType = Type[t.params.indexType];
   const matrixType = Type.mat(t.params.columns, t.params.rows, elementType);

@@ -157,11 +157,6 @@ g.test('function_return_types').
 specURL('https://gpuweb.github.io/gpuweb/wgsl/#function-restriction').
 desc(`Test that function return types must be constructible`).
 params((u) => u.combine('case', keysOf(kFunctionRetTypeCases))).
-beforeAllSubcases((t) => {
-  if (kFunctionRetTypeCases[t.params.case].name === 'f16') {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const testcase = kFunctionRetTypeCases[t.params.case];
   const enable = testcase.name === 'f16' ? 'enable f16;' : '';
@@ -299,11 +294,6 @@ g.test('function_parameter_types').
 specURL('https://gpuweb.github.io/gpuweb/wgsl/#function-restriction').
 desc(`Test validation of user-declared function parameter types`).
 params((u) => u.combine('case', keysOf(kFunctionParamTypeCases))).
-beforeAllSubcases((t) => {
-  if (kFunctionParamTypeCases[t.params.case].name === 'f16') {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const testcase = kFunctionParamTypeCases[t.params.case];
   const enable = testcase.name === 'f16' ? 'enable f16;' : '';
@@ -523,11 +513,6 @@ filter((u) => {
 beginSubcases().
 combine('arg', keysOf(kFunctionParamValueCases))
 ).
-beforeAllSubcases((t) => {
-  if (kFunctionParamTypeCases[t.params.decl].name === 'f16') {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const param = kFunctionParamTypeCases[t.params.decl];
   const arg = kFunctionParamValueCases[t.params.arg];

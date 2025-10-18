@@ -285,12 +285,6 @@ const kStructureCases = {
 g.test('structures').
 desc('Validation tests for structures').
 params((u) => u.combine('case', keysOf(kStructureCases))).
-beforeAllSubcases((t) => {
-  const testcase = kStructureCases[t.params.case];
-  if (testcase.f16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const testcase = kStructureCases[t.params.case];
   const code = `${testcase.f16 ? 'enable f16;' : ''}

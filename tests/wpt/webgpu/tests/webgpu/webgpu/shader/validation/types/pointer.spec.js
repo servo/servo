@@ -126,11 +126,6 @@ const kTypeCases = {
 g.test('type').
 desc('Tests that pointee type must be storable').
 params((u) => u.combine('case', keysOf(kTypeCases))).
-beforeAllSubcases((t) => {
-  if (kTypeCases[t.params.case].f16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const testcase = kTypeCases[t.params.case];
   const aspace = testcase.aspace ?? 'storage';

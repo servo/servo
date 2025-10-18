@@ -94,13 +94,12 @@ const kTypeCases = {
 g.test('type').
 desc('Test let types').
 params((u) => u.combine('case', keysOf(kTypeCases))).
-beforeAllSubcases((t) => {
-  if (t.params.case === 'f16') {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
+  if (t.params.case === 'f16') {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
   const testcase = kTypeCases[t.params.case];
+
   const code = `
 ${t.params.case === 'f16' ? 'enable f16;' : ''}
 ${testcase.decls ?? ''}

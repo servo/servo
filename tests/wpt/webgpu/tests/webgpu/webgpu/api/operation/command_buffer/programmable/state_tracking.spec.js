@@ -11,7 +11,11 @@ import { ProgrammableStateTest } from './programmable_state_test.js';
 
 export const g = makeTestGroup(ProgrammableStateTest);
 
-const kBufferUsage = GPUConst.BufferUsage.COPY_SRC | GPUConst.BufferUsage.STORAGE;
+const kBufferUsage =
+GPUConst.BufferUsage.COPY_SRC |
+GPUConst.BufferUsage.COPY_DST |
+GPUConst.BufferUsage.STORAGE |
+GPUConst.BufferUsage.UNIFORM;
 
 g.test('bind_group_indices').
 desc(
@@ -24,6 +28,7 @@ params((u) =>
 u //
 .combine('encoderType', kProgrammableEncoderTypes).
 beginSubcases().
+combine('type', ['storage', 'uniform']).
 combine('groupIndices', [
 { a: 0, b: 1, out: 2 },
 { a: 1, b: 2, out: 0 },
@@ -34,24 +39,40 @@ combine('groupIndices', [
 )
 ).
 fn((t) => {
-  const { encoderType, groupIndices } = t.params;
+  const { encoderType, groupIndices, type } = t.params;
+  t.skipIfNeedsStorageBuffersInFragmentStageAndHaveNone(type, encoderType);
 
-  const pipeline = t.createBindingStatePipeline(encoderType, groupIndices);
+  const pipeline = t.createBindingStatePipeline(
+    encoderType,
+    groupIndices,
+    type,
+    'a.value - b.value'
+  );
 
+  const inputType = type === 'storage' ? 'read-only-storage' : 'uniform';
   const out = t.makeBufferWithContents(new Int32Array([0]), kBufferUsage);
   const bindGroups = {
     a: t.createBindGroup(
       t.makeBufferWithContents(new Int32Array([3]), kBufferUsage),
-      'read-only-storage'
+      inputType,
+      encoderType
     ),
     b: t.createBindGroup(
       t.makeBufferWithContents(new Int32Array([2]), kBufferUsage),
-      'read-only-storage'
+      inputType,
+      encoderType
     ),
-    out: t.createBindGroup(out, 'storage')
+    out:
+    encoderType === 'compute pass' || type === 'storage' ?
+    t.createBindGroup(out, 'storage', encoderType) :
+    null
   };
 
-  const { encoder, validateFinishAndSubmit } = t.createEncoder(encoderType);
+  const { encoder, validateFinishAndSubmit } = t.createEncoderForStateTest(
+    type,
+    out,
+    encoderType
+  );
 
   t.setPipeline(encoder, pipeline);
   encoder.setBindGroup(groupIndices.a, bindGroups.a);
@@ -73,6 +94,7 @@ params((u) =>
 u //
 .combine('encoderType', kProgrammableEncoderTypes).
 beginSubcases().
+combine('type', ['storage', 'uniform']).
 combine('setOrder', [
 ['a', 'b', 'out'],
 ['b', 'out', 'a'],
@@ -83,25 +105,41 @@ combine('setOrder', [
 )
 ).
 fn((t) => {
-  const { encoderType, setOrder } = t.params;
+  const { encoderType, setOrder, type } = t.params;
+  t.skipIfNeedsStorageBuffersInFragmentStageAndHaveNone(type, encoderType);
 
   const groupIndices = { a: 0, b: 1, out: 2 };
-  const pipeline = t.createBindingStatePipeline(encoderType, groupIndices);
+  const pipeline = t.createBindingStatePipeline(
+    encoderType,
+    groupIndices,
+    type,
+    'a.value - b.value'
+  );
 
   const out = t.makeBufferWithContents(new Int32Array([0]), kBufferUsage);
+  const inputType = type === 'storage' ? 'read-only-storage' : 'uniform';
   const bindGroups = {
     a: t.createBindGroup(
       t.makeBufferWithContents(new Int32Array([3]), kBufferUsage),
-      'read-only-storage'
+      inputType,
+      encoderType
     ),
     b: t.createBindGroup(
       t.makeBufferWithContents(new Int32Array([2]), kBufferUsage),
-      'read-only-storage'
+      inputType,
+      encoderType
     ),
-    out: t.createBindGroup(out, 'storage')
+    out:
+    encoderType === 'compute pass' || type === 'storage' ?
+    t.createBindGroup(out, 'storage', encoderType) :
+    null
   };
 
-  const { encoder, validateFinishAndSubmit } = t.createEncoder(encoderType);
+  const { encoder, validateFinishAndSubmit } = t.createEncoderForStateTest(
+    type,
+    out,
+    encoderType
+  );
   t.setPipeline(encoder, pipeline);
 
   for (const bindingName of setOrder) {
@@ -124,6 +162,7 @@ params((u) =>
 u //
 .combine('encoderType', kProgrammableEncoderTypes).
 beginSubcases().
+combine('type', ['storage', 'uniform']).
 combineWithParams([
 { setBefore: ['a', 'b'], setAfter: ['out'] },
 { setBefore: ['a'], setAfter: ['b', 'out'] },
@@ -132,24 +171,41 @@ combineWithParams([
 )
 ).
 fn((t) => {
-  const { encoderType, setBefore, setAfter } = t.params;
+  const { encoderType, type, setBefore, setAfter } = t.params;
+  t.skipIfNeedsStorageBuffersInFragmentStageAndHaveNone(type, encoderType);
+
   const groupIndices = { a: 0, b: 1, out: 2 };
-  const pipeline = t.createBindingStatePipeline(encoderType, groupIndices);
+  const pipeline = t.createBindingStatePipeline(
+    encoderType,
+    groupIndices,
+    type,
+    'a.value - b.value'
+  );
 
   const out = t.makeBufferWithContents(new Int32Array([0]), kBufferUsage);
+  const inputType = type === 'storage' ? 'read-only-storage' : 'uniform';
   const bindGroups = {
     a: t.createBindGroup(
       t.makeBufferWithContents(new Int32Array([3]), kBufferUsage),
-      'read-only-storage'
+      inputType,
+      encoderType
     ),
     b: t.createBindGroup(
       t.makeBufferWithContents(new Int32Array([2]), kBufferUsage),
-      'read-only-storage'
+      inputType,
+      encoderType
     ),
-    out: t.createBindGroup(out, 'storage')
+    out:
+    encoderType === 'compute pass' || type === 'storage' ?
+    t.createBindGroup(out, 'storage', encoderType) :
+    null
   };
 
-  const { encoder, validateFinishAndSubmit } = t.createEncoder(encoderType);
+  const { encoder, validateFinishAndSubmit } = t.createEncoderForStateTest(
+    type,
+    out,
+    encoderType
+  );
 
   for (const bindingName of setBefore) {
     encoder.setBindGroup(groupIndices[bindingName], bindGroups[bindingName]);
@@ -175,22 +231,40 @@ desc(
 ).
 params((u) =>
 u //
-.combine('encoderType', kProgrammableEncoderTypes)
+.combine('encoderType', kProgrammableEncoderTypes).
+beginSubcases().
+combine('type', ['storage', 'uniform'])
 ).
 fn((t) => {
-  const { encoderType } = t.params;
-  const pipeline = t.createBindingStatePipeline(encoderType, { a: 0, b: 1, out: 2 });
+  const { encoderType, type } = t.params;
+  t.skipIfNeedsStorageBuffersInFragmentStageAndHaveNone(type, encoderType);
+
+  const pipeline = t.createBindingStatePipeline(
+    encoderType,
+    { a: 0, b: 1, out: 2 },
+    type,
+    'a.value - b.value'
+  );
 
   const out = t.makeBufferWithContents(new Int32Array([1]), kBufferUsage);
+  const inputType = type === 'storage' ? 'read-only-storage' : 'uniform';
   const bindGroups = {
     ab: t.createBindGroup(
       t.makeBufferWithContents(new Int32Array([3]), kBufferUsage),
-      'read-only-storage'
+      inputType,
+      encoderType
     ),
-    out: t.createBindGroup(out, 'storage')
+    out:
+    encoderType === 'compute pass' || type === 'storage' ?
+    t.createBindGroup(out, 'storage', encoderType) :
+    null
   };
 
-  const { encoder, validateFinishAndSubmit } = t.createEncoder(encoderType);
+  const { encoder, validateFinishAndSubmit } = t.createEncoderForStateTest(
+    type,
+    out,
+    encoderType
+  );
   t.setPipeline(encoder, pipeline);
 
   encoder.setBindGroup(0, bindGroups.ab);
@@ -211,32 +285,55 @@ desc(
 ).
 params((u) =>
 u //
-.combine('encoderType', kProgrammableEncoderTypes)
+.combine('encoderType', kProgrammableEncoderTypes).
+beginSubcases().
+combine('type', ['storage', 'uniform'])
 ).
 fn((t) => {
-  const { encoderType } = t.params;
-  const pipeline = t.createBindingStatePipeline(encoderType, { a: 0, b: 1, out: 2 });
+  const { encoderType, type } = t.params;
+  t.skipIfNeedsStorageBuffersInFragmentStageAndHaveNone(type, encoderType);
+
+  const pipeline = t.createBindingStatePipeline(
+    encoderType,
+    { a: 0, b: 1, out: 2 },
+    type,
+    'a.value - b.value'
+  );
 
   const badOut = t.makeBufferWithContents(new Int32Array([-1]), kBufferUsage);
   const out = t.makeBufferWithContents(new Int32Array([0]), kBufferUsage);
+  const inputType = type === 'storage' ? 'read-only-storage' : 'uniform';
   const bindGroups = {
     a: t.createBindGroup(
       t.makeBufferWithContents(new Int32Array([3]), kBufferUsage),
-      'read-only-storage'
+      inputType,
+      encoderType
     ),
     b: t.createBindGroup(
       t.makeBufferWithContents(new Int32Array([2]), kBufferUsage),
-      'read-only-storage'
+      inputType,
+      encoderType
     ),
     c: t.createBindGroup(
       t.makeBufferWithContents(new Int32Array([5]), kBufferUsage),
-      'read-only-storage'
+      inputType,
+      encoderType
     ),
-    badOut: t.createBindGroup(badOut, 'storage'),
-    out: t.createBindGroup(out, 'storage')
+    badOut:
+    encoderType === 'compute pass' || type === 'storage' ?
+    t.createBindGroup(badOut, 'storage', encoderType) :
+    null,
+    out:
+    encoderType === 'compute pass' || type === 'storage' ?
+    t.createBindGroup(out, 'storage', encoderType) :
+    null
   };
 
-  const { encoder, validateFinishAndSubmit } = t.createEncoder(encoderType);
+  const { encoder, validateFinishAndSubmit } = t.createEncoderForStateTest(
+    type,
+    out,
+    encoderType
+  );
 
   encoder.setBindGroup(1, bindGroups.c);
 
@@ -265,10 +362,18 @@ u //
 ).
 fn((t) => {
   const { encoderType } = t.params;
-  const pipelineA = t.createBindingStatePipeline(encoderType, { a: 0, b: 1, out: 2 });
+  t.skipIfNeedsStorageBuffersInFragmentStageAndHaveNone('storage', encoderType);
+
+  const pipelineA = t.createBindingStatePipeline(
+    encoderType,
+    { a: 0, b: 1, out: 2 },
+    'storage',
+    'a.value - b.value'
+  );
   const pipelineB = t.createBindingStatePipeline(
     encoderType,
     { a: 0, b: 1, out: 2 },
+    'storage',
     'a.value + b.value'
   );
 
@@ -277,17 +382,21 @@ fn((t) => {
   const bindGroups = {
     a: t.createBindGroup(
       t.makeBufferWithContents(new Int32Array([3]), kBufferUsage),
-      'read-only-storage'
+      'read-only-storage',
+      encoderType
     ),
     b: t.createBindGroup(
       t.makeBufferWithContents(new Int32Array([2]), kBufferUsage),
-      'read-only-storage'
+      'read-only-storage',
+      encoderType
     ),
-    outA: t.createBindGroup(outA, 'storage'),
-    outB: t.createBindGroup(outB, 'storage')
+    outA: t.createBindGroup(outA, 'storage', encoderType),
+    outB: t.createBindGroup(outB, 'storage', encoderType)
   };
 
-  const { encoder, validateFinishAndSubmit } = t.createEncoder(encoderType);
+  const { encoder, validateFinishAndSubmit } = t.createEncoder(encoderType, {
+    attachmentInfo: { colorFormats: ['r32sint'] }
+  });
   encoder.setBindGroup(0, bindGroups.a);
   encoder.setBindGroup(1, bindGroups.b);
 

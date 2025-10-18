@@ -41,6 +41,18 @@ export class SubcaseBatchState {
    * @internal MAINTENANCE_TODO: Make this not visible to test code?
    */
   async finalize() {}
+
+  /** Throws an exception marking the subcase as skipped. */
+  skip(msg) {
+    throw new SkipTestCase(msg);
+  }
+
+  /** Throws an exception making the subcase as skipped if condition is true */
+  skipIf(cond, msg = '') {
+    if (cond) {
+      this.skip(typeof msg === 'function' ? msg() : msg);
+    }
+  }
 }
 
 /**
@@ -190,6 +202,10 @@ export class Fixture {
 
   /** Log a debug message. */
   debug(msg) {
+    if (!this.rec.debugging) return;
+    if (typeof msg === 'function') {
+      msg = msg();
+    }
     this.rec.debug(new Error(msg));
   }
 
@@ -334,8 +350,22 @@ export class Fixture {
     }
   }
 
-  /** Expect that a condition is true. */
+  /**
+   * Expect that a condition is true.
+   *
+   * Note: You can pass a boolean condition, or a function that returns a boolean.
+   * The advantage to passing a function is that if it's short it is self documenting.
+   *
+   * t.expect(size >= maxSize);      // prints Expect OK:
+   * t.expect(() => size >= maxSize) // prints Expect OK: () => size >= maxSize
+   */
   expect(cond, msg) {
+    if (typeof cond === 'function') {
+      if (msg === undefined) {
+        msg = cond.toString();
+      }
+      cond = cond();
+    }
     if (cond) {
       const m = msg ? ': ' + msg : '';
       this.rec.debug(new Error('expect OK' + m));

@@ -4,9 +4,9 @@
 Validation tests for the dual_source_blending extension
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { keysOf } from '../../../../common/util/data_tables.js';
-import { ShaderValidationTest } from '../shader_validation_test.js';
+import { UniqueFeaturesAndLimitsShaderValidationTest } from '../shader_validation_test.js';
 
-export const g = makeTestGroup(ShaderValidationTest);
+export const g = makeTestGroup(UniqueFeaturesAndLimitsShaderValidationTest);
 
 g.test('use_blend_src_requires_extension_enabled').
 desc(

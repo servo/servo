@@ -11,11 +11,6 @@ export const g = makeTestGroup(ShaderValidationTest);
 g.test('condition_type').
 desc(`Tests that an 'if' condition must be a bool type`).
 params((u) => u.combine('type', keysOf(kTestTypes))).
-beforeAllSubcases((t) => {
-  if (kTestTypes[t.params.type].requires === 'f16') {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const type = kTestTypes[t.params.type];
   const code = `
@@ -38,11 +33,6 @@ fn f() -> bool {
 g.test('else_condition_type').
 desc(`Tests that an 'else if' condition must be a bool type`).
 params((u) => u.combine('type', keysOf(kTestTypes))).
-beforeAllSubcases((t) => {
-  if (kTestTypes[t.params.type].requires === 'f16') {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const type = kTestTypes[t.params.type];
   const code = `

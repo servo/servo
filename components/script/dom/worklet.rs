@@ -19,7 +19,7 @@ use std::sync::atomic::{AtomicIsize, Ordering};
 use std::thread;
 
 use base::IpcSend;
-use base::id::PipelineId;
+use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use dom_struct::dom_struct;
 use js::jsapi::{GCReason, JS_GC, JS_GetGCParameter, JSGCParamKey, JSTracer};
@@ -159,6 +159,7 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
             .thread_pool
             .get_or_init(|| ScriptThread::worklet_thread_pool(self.global().image_cache()))
             .fetch_and_invoke_a_worklet_script(
+                self.window.webview_id(),
                 self.window.pipeline_id(),
                 self.droppable_field.worklet_id,
                 self.global_type,
@@ -185,7 +186,7 @@ malloc_size_of_is_0!(WorkletId);
 
 impl WorkletId {
     fn new() -> WorkletId {
-        WorkletId(servo_rand::random_uuid())
+        WorkletId(Uuid::new_v4())
     }
 }
 
@@ -317,6 +318,7 @@ impl WorkletThreadPool {
     #[allow(clippy::too_many_arguments)]
     fn fetch_and_invoke_a_worklet_script(
         &self,
+        webview_id: WebViewId,
         pipeline_id: PipelineId,
         worklet_id: WorkletId,
         global_type: WorkletGlobalScopeType,
@@ -335,6 +337,7 @@ impl WorkletThreadPool {
             &self.control_sender_2,
         ] {
             let _ = sender.send(WorkletControl::FetchAndInvokeAWorkletScript {
+                webview_id,
                 pipeline_id,
                 worklet_id,
                 global_type,
@@ -391,6 +394,7 @@ enum WorkletData {
 enum WorkletControl {
     ExitWorklet(WorkletId),
     FetchAndInvokeAWorkletScript {
+        webview_id: WebViewId,
         pipeline_id: PipelineId,
         worklet_id: WorkletId,
         global_type: WorkletGlobalScopeType,
@@ -622,6 +626,7 @@ impl WorkletThread {
     /// Creates the worklet global scope if it doesn't exist.
     fn get_worklet_global_scope(
         &mut self,
+        webview_id: WebViewId,
         pipeline_id: PipelineId,
         worklet_id: WorkletId,
         global_type: WorkletGlobalScopeType,
@@ -634,6 +639,7 @@ impl WorkletThread {
                 let executor = WorkletExecutor::new(worklet_id, self.primary_sender.clone());
                 let result = WorkletGlobalScope::new(
                     global_type,
+                    webview_id,
                     pipeline_id,
                     base_url,
                     executor,
@@ -735,6 +741,7 @@ impl WorkletThread {
                 self.global_scopes.remove(&worklet_id);
             },
             WorkletControl::FetchAndInvokeAWorkletScript {
+                webview_id,
                 pipeline_id,
                 worklet_id,
                 global_type,
@@ -746,8 +753,13 @@ impl WorkletThread {
                 pending_tasks_struct,
                 promise,
             } => {
-                let global =
-                    self.get_worklet_global_scope(pipeline_id, worklet_id, global_type, base_url);
+                let global = self.get_worklet_global_scope(
+                    webview_id,
+                    pipeline_id,
+                    worklet_id,
+                    global_type,
+                    base_url,
+                );
                 self.fetch_and_invoke_a_worklet_script(
                     &global,
                     pipeline_id,

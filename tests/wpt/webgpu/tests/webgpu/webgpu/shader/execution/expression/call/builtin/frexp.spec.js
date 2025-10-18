@@ -14,7 +14,7 @@ Returns the result_struct for the appropriate overload.
 
 The magnitude of the significand is in the range of [0.5, 1.0) or 0.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import { Type } from '../../../../../util/conversion.js';
 import {
 
@@ -28,7 +28,7 @@ import {
 
 import { d } from './frexp.cache.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 /* @returns an ShaderBuilder that evaluates frexp and returns .fract from the result structure */
 function fractBuilder() {
@@ -351,10 +351,8 @@ struct __frexp_result_f16 {
 `
 ).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('f16_fract');
   await run(t, fractBuilder(), [Type.f16], Type.f16, t.params, cases);
 });
@@ -372,10 +370,8 @@ struct __frexp_result_f16 {
 `
 ).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('f16_exp');
   await run(t, expBuilder(), [Type.f16], Type.i32, t.params, cases);
 });
@@ -393,10 +389,8 @@ struct __frexp_result_vec2_f16 {
 `
 ).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('f16_vec2_fract');
   await run(t, fractBuilder(), [Type.vec2h], Type.vec2h, t.params, cases);
 });
@@ -414,10 +408,8 @@ struct __frexp_result_vec2_f16 {
 `
 ).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('f16_vec2_exp');
   await run(t, expBuilder(), [Type.vec2h], Type.vec2i, t.params, cases);
 });
@@ -435,10 +427,8 @@ struct __frexp_result_vec3_f16 {
 `
 ).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('f16_vec3_fract');
   await run(t, fractBuilder(), [Type.vec3h], Type.vec3h, t.params, cases);
 });
@@ -456,10 +446,8 @@ struct __frexp_result_vec3_f16 {
 `
 ).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('f16_vec3_exp');
   await run(t, expBuilder(), [Type.vec3h], Type.vec3i, t.params, cases);
 });
@@ -477,10 +465,8 @@ struct __frexp_result_vec4_f16 {
 `
 ).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('f16_vec4_fract');
   await run(t, fractBuilder(), [Type.vec4h], Type.vec4h, t.params, cases);
 });
@@ -498,10 +484,8 @@ struct __frexp_result_vec4_f16 {
 `
 ).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('f16_vec4_exp');
   await run(t, expBuilder(), [Type.vec4h], Type.vec4i, t.params, cases);
 });

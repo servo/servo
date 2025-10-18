@@ -136,13 +136,12 @@ const kTypeCases = {
 g.test('type').
 desc('Test override types').
 params((u) => u.combine('case', keysOf(kTypeCases))).
-beforeAllSubcases((t) => {
-  if (t.params.case === 'f16') {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
+  if (t.params.case === 'f16') {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
   const testcase = kTypeCases[t.params.case];
+
   const code = testcase.code;
   const expect = testcase.valid;
   t.expectCompileResult(expect, code);
@@ -206,6 +205,21 @@ const kInitCases = {
     code: `override x = y;
     override y : i32;`,
     valid: true
+  },
+  logical_lhs_override: {
+    code: `override x = 2;
+      override y = x == 2 && 1 < 2;`,
+    valid: true
+  },
+  logical_rhs_override: {
+    code: `override x = 2;
+      override y = 1 < 2 || x == 2;`,
+    valid: true
+  },
+  logical_both_override: {
+    code: `override x = 2;
+      override y = x > 2 || x == 2;`,
+    valid: true
   }
 };
 
@@ -224,4 +238,71 @@ desc('Test that override declarations are disallowed in functions').
 fn((t) => {
   const code = `fn foo() { override x : u32; }`;
   t.expectCompileResult(false, code);
+});
+
+const kArrayCases = {
+  workgroup_var: {
+    code: `var<workgroup> a: array<u32, size>;`,
+    valid_with_override_size: true
+  },
+  private_var: {
+    code: `var<private> a: array<u32, size>;`,
+    valid_with_override_size: false
+  },
+  uniform_var: {
+    code: `@group(0) @binding(0) var<uniform> a: array<vec4u, size>;`,
+    valid_with_override_size: false
+  },
+  storage_var: {
+    code: `@group(0) @binding(0) var<storage> a: array<u32, size>;`,
+    valid_with_override_size: false
+  },
+  function_var: {
+    code: `fn f() { var a: array<u32, size>; }`,
+    valid_with_override_size: false
+  },
+  workgroup_ptr_param: {
+    code: `fn f(a: ptr<workgroup, array<u32, size>>) {}`,
+    valid_with_override_size: true
+  },
+  private_ptr_param: {
+    code: `fn f(a: ptr<private, array<u32, size>>) {}`,
+    valid_with_override_size: false
+  },
+  workgroup_ptr_let: {
+    code: `var<workgroup> a: array<u32, size>; fn f() { let a = &a; }`,
+    valid_with_override_size: true
+  },
+  private_ptr_let: {
+    code: `var<private> a: array<u32, size>; fn f() { let a = &a; }`,
+    valid_with_override_size: false
+  },
+  array_in_struct: {
+    code: `struct S { a: array<u32, size> };`,
+    valid_with_override_size: false
+  },
+  array_in_array: {
+    code: `var<workgroup> a: array<array<u32, size>, 4>;`,
+    valid_with_override_size: false
+  },
+  construct_array: {
+    code: `fn a() -> u32 { return array<u32, size>()[0]; }`,
+    valid_with_override_size: false
+  }
+};
+
+g.test('array_size').
+desc(
+  'Test that override-sized arrays are only allowed in the workgroup address space, and cannot be nested in other types or constructed.'
+).
+params((u) => u.combine('case', keysOf(kArrayCases)).combine('stage', ['const', 'override'])).
+fn((t) => {
+  const testcase = kArrayCases[t.params.case];
+  const wgsl = `
+${t.params.stage} size = 1;
+${testcase.code}
+`;
+
+  // Using a `const` size is the control case that should always pass.
+  t.expectCompileResult(t.params.stage === 'const' || testcase.valid_with_override_size, wgsl);
 });

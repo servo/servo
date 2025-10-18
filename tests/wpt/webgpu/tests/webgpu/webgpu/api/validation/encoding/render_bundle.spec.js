@@ -4,9 +4,9 @@
 Tests execution of render bundles.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { kDepthStencilFormats } from '../../../format_info.js';
-import { ValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
-export const g = makeTestGroup(ValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('empty_bundle_list').
 desc(
@@ -34,9 +34,7 @@ paramsSubcasesOnly([
 { bundle0Mismatched: true, bundle1Mismatched: false },
 { bundle0Mismatched: false, bundle1Mismatched: true }]
 ).
-beforeAllSubcases((t) => {
-  t.selectMismatchedDeviceOrSkipTestCase(undefined);
-}).
+beforeAllSubcases((t) => t.usesMismatchedDevice()).
 fn((t) => {
   const { bundle0Mismatched, bundle1Mismatched } = t.params;
 
@@ -130,12 +128,9 @@ u.combineWithParams([
 { bundleFormat: 'stencil8', passFormat: 'depth24plus-stencil8' }]
 )
 ).
-beforeAllSubcases((t) => {
-  const { bundleFormat, passFormat } = t.params;
-  t.selectDeviceForTextureFormatOrSkipTestCase([bundleFormat, passFormat]);
-}).
 fn((t) => {
   const { bundleFormat, passFormat } = t.params;
+  t.skipIfTextureFormatNotSupported(bundleFormat, passFormat);
   const compatible = bundleFormat === passFormat;
 
   const bundleEncoder = t.device.createRenderBundleEncoder({
@@ -171,9 +166,6 @@ combine('bundleStencilReadOnly', [false, true]).
 combine('passDepthReadOnly', [false, true]).
 combine('passStencilReadOnly', [false, true])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceForTextureFormatOrSkipTestCase(t.params.depthStencilFormat);
-}).
 fn((t) => {
   const {
     depthStencilFormat,
@@ -182,6 +174,7 @@ fn((t) => {
     passDepthReadOnly,
     passStencilReadOnly
   } = t.params;
+  t.skipIfTextureFormatNotSupported(depthStencilFormat);
 
   const compatible =
   (!passDepthReadOnly || bundleDepthReadOnly === passDepthReadOnly) && (

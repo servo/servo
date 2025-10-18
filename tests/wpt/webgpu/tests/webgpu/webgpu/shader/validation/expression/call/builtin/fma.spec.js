@@ -5,7 +5,7 @@ Validation tests for the ${builtin}() builtin.
 `;
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { keysOf, objectsToRecord } from '../../../../../../common/util/data_tables.js';
-import { Type, kConvertableToFloatVectors, scalarTypeOf } from '../../../../../util/conversion.js';
+import { kConvertableToFloatVectors, scalarTypeOf } from '../../../../../util/conversion.js';
 import { ShaderValidationTest } from '../../../shader_validation_test.js';
 
 import {
@@ -37,11 +37,6 @@ expand('a', (u) => fullRangeForType(kValidArgumentTypes[u.type], 5)).
 expand('b', (u) => fullRangeForType(kValidArgumentTypes[u.type], 5)).
 expand('c', (u) => fullRangeForType(kValidArgumentTypes[u.type], 5))
 ).
-beforeAllSubcases((t) => {
-  if (scalarTypeOf(kValidArgumentTypes[t.params.type]) === Type.f16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const scalarType = scalarTypeOf(kValidArgumentTypes[t.params.type]);
   const vCheck = new ConstantOrOverrideValueChecker(t, scalarType);

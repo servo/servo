@@ -4,9 +4,9 @@
 Execution Tests for preservation of padding bytes in structures and arrays.
 `;import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { iterRange } from '../../../common/util/util.js';
-import { GPUTest } from '../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../gpu_test.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 /**
  * Run a shader and check that the buffer output matches expectations.
@@ -272,10 +272,8 @@ desc(
      preserved.
     `
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn((t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const wgsl = `
       enable f16;
       @group(0) @binding(0) var<storage, read_write> buffer : array<vec3<f16>, 4>;
@@ -315,10 +313,8 @@ desc(
      preserved.
     `
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn((t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const wgsl = `
       enable f16;
       @group(0) @binding(0) var<storage, read_write> buffer : array<vec3<f16>>;

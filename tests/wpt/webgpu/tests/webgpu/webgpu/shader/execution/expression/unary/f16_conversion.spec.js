@@ -3,14 +3,14 @@
 **/export const description = `
 Execution Tests for the f32 conversion operations
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 import { Type } from '../../../../util/conversion.js';
 import { allInputSources, run, onlyConstInputSource } from '../expression.js';
 
 import { d } from './f16_conversion.cache.js';
 import { unary } from './unary.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 /** Generate a ShaderBuilder based on how the test case is to be vectorized */
 function vectorizeToExpression(vectorize) {
@@ -34,10 +34,8 @@ The result is 1.0 if e is true and 0.0 otherwise
 params((u) =>
 u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('bool');
   await run(t, vectorizeToExpression(t.params.vectorize), [Type.bool], Type.f16, t.params, cases);
 });
@@ -54,10 +52,8 @@ Converted to f16, +/-Inf if out of range
 params((u) =>
 u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get(t.params.inputSource === 'const' ? 'u32_const' : 'u32_non_const');
   await run(t, vectorizeToExpression(t.params.vectorize), [Type.u32], Type.f16, t.params, cases);
 });
@@ -74,10 +70,8 @@ Converted to f16, +/-Inf if out of range
 params((u) =>
 u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get(t.params.inputSource === 'const' ? 'i32_const' : 'i32_non_const');
   await run(t, vectorizeToExpression(t.params.vectorize), [Type.i32], Type.f16, t.params, cases);
 });
@@ -96,10 +90,8 @@ u.
 combine('inputSource', onlyConstInputSource).
 combine('vectorize', [undefined, 2, 3, 4])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('abstract_int');
   await run(
     t,
@@ -123,10 +115,8 @@ Correctly rounded to f16
 params((u) =>
 u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get(t.params.inputSource === 'const' ? 'f32_const' : 'f32_non_const');
   await run(t, vectorizeToExpression(t.params.vectorize), [Type.f32], Type.f16, t.params, cases);
 });
@@ -140,10 +130,8 @@ combine('inputSource', allInputSources).
 combine('cols', [2, 3, 4]).
 combine('rows', [2, 3, 4])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cols = t.params.cols;
   const rows = t.params.rows;
   const cases = await d.get(
@@ -173,10 +161,8 @@ desc(
 params((u) =>
 u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('f16');
   await run(t, vectorizeToExpression(t.params.vectorize), [Type.f16], Type.f16, t.params, cases);
 });
@@ -190,10 +176,8 @@ combine('inputSource', allInputSources).
 combine('cols', [2, 3, 4]).
 combine('rows', [2, 3, 4])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cols = t.params.cols;
   const rows = t.params.rows;
   const cases = await d.get(
@@ -225,10 +209,8 @@ u.
 combine('inputSource', onlyConstInputSource).
 combine('vectorize', [undefined, 2, 3, 4])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('abstract_float');
   await run(
     t,
@@ -249,10 +231,8 @@ combine('inputSource', onlyConstInputSource).
 combine('cols', [2, 3, 4]).
 combine('rows', [2, 3, 4])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cols = t.params.cols;
   const rows = t.params.rows;
   const cases = await d.get(`abstract_float_mat${cols}x${rows}`);

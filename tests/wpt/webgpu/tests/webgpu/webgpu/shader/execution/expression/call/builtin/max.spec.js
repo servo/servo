@@ -17,7 +17,7 @@ If both operands are NaNs, a NaN is returned.
 Component-wise when T is a vector.
 
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import { Type, i32, u32, abstractInt } from '../../../../../util/conversion.js';
 import { maxBigInt } from '../../../../../util/math.js';
 
@@ -35,7 +35,7 @@ function generateTestCases(values, makeCase) {
   });
 }
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('abstract_int').
 specURL('https://www.w3.org/TR/WGSL/#integer-builtin-functions').
@@ -134,10 +134,8 @@ desc(`f16 tests`).
 params((u) =>
 u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('f16');
   await run(t, builtin('max'), [Type.f16, Type.f16], Type.f16, t.params, cases);
 });

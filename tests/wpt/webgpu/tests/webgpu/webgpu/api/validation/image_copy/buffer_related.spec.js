@@ -4,12 +4,14 @@
 import { kTextureDimensions } from '../../../capability_info.js';
 import { GPUConst } from '../../../constants.js';
 import {
+  getBlockInfoForSizedTextureFormat,
+  isDepthOrStencilTextureFormat,
   kSizedTextureFormats,
-  kTextureFormatInfo,
-  textureDimensionAndFormatCompatible } from
+  textureFormatAndDimensionPossiblyCompatible } from
 '../../../format_info.js';
 import { kResourceStates } from '../../../gpu_test.js';
 import { kImageCopyTypes } from '../../../util/texture/layout.js';
+import * as vtu from '../validation_test_utils.js';
 
 import { ImageCopyTest, formatCopyableWithMethod } from './image_copy.js';
 
@@ -33,7 +35,7 @@ fn((t) => {
   const { method, state } = t.params;
 
   // A valid buffer.
-  const buffer = t.createBufferWithState(state, {
+  const buffer = vtu.createBufferWithState(t, state, {
     size: 16,
     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
   });
@@ -62,9 +64,7 @@ desc('Tests the image copies cannot be called with a buffer created from another
 paramsSubcasesOnly((u) =>
 u.combine('method', ['CopyB2T', 'CopyT2B']).combine('mismatched', [true, false])
 ).
-beforeAllSubcases((t) => {
-  t.selectMismatchedDeviceOrSkipTestCase(undefined);
-}).
+beforeAllSubcases((t) => t.usesMismatchedDevice()).
 fn((t) => {
   const { method, mismatched } = t.params;
   const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
@@ -160,7 +160,9 @@ u //
 combine('format', kSizedTextureFormats).
 filter(formatCopyableWithMethod).
 combine('dimension', kTextureDimensions).
-filter(({ dimension, format }) => textureDimensionAndFormatCompatible(dimension, format)).
+filter(({ dimension, format }) =>
+textureFormatAndDimensionPossiblyCompatible(dimension, format)
+).
 beginSubcases().
 combine('bytesPerRow', [undefined, 0, 1, 255, 256, 257, 512]).
 combine('copyHeightInBlocks', [0, 1, 2, 3]).
@@ -170,9 +172,9 @@ p.copyHeightInBlocks === 0 ? 1 : p.copyHeightInBlocks]
 unless((p) => p.dimension === '1d' && p.copyHeightInBlocks > 1)
 // Depth/stencil format copies must copy the whole subresource.
 .unless((p) => {
-  const info = kTextureFormatInfo[p.format];
   return (
-    (!!info.depth || !!info.stencil) && p.copyHeightInBlocks !== p._textureHeightInBlocks);
+    isDepthOrStencilTextureFormat(p.format) &&
+    p.copyHeightInBlocks !== p._textureHeightInBlocks);
 
 })
 // bytesPerRow must be specified and it must be equal or greater than the bytes size of each row if we are copying multiple rows.
@@ -180,19 +182,17 @@ unless((p) => p.dimension === '1d' && p.copyHeightInBlocks > 1)
 .filter(
   ({ format, bytesPerRow, copyHeightInBlocks }) =>
   bytesPerRow === undefined && copyHeightInBlocks <= 1 ||
-  bytesPerRow !== undefined && bytesPerRow >= kTextureFormatInfo[format].bytesPerBlock
+  bytesPerRow !== undefined &&
+  bytesPerRow >= getBlockInfoForSizedTextureFormat(format).bytesPerBlock
 )
 ).
-beforeAllSubcases((t) => {
-  const info = kTextureFormatInfo[t.params.format];
-  t.skipIfTextureFormatNotSupported(t.params.format);
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const { method, dimension, format, bytesPerRow, copyHeightInBlocks, _textureHeightInBlocks } =
   t.params;
+  t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
 
-  const info = kTextureFormatInfo[format];
+  const info = getBlockInfoForSizedTextureFormat(format);
 
   const buffer = t.createBufferTracked({
     size: 512 * 8 * 16,

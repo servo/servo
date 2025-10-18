@@ -8,8 +8,7 @@ import { keysOf, objectsToRecord } from '../../../../../../common/util/data_tabl
 import {
   Type,
   kConcreteIntegerScalarsAndVectors,
-  kConvertableToFloatScalarsAndVectors,
-  scalarTypeOf } from
+  kConvertableToFloatScalarsAndVectors } from
 '../../../../../util/conversion.js';
 import { ShaderValidationTest } from '../../../shader_validation_test.js';
 
@@ -38,11 +37,6 @@ filter((u) => stageSupportsType(u.stage, kValuesTypes[u.type])).
 beginSubcases().
 expand('value', (u) => fullRangeForType(kValuesTypes[u.type]))
 ).
-beforeAllSubcases((t) => {
-  if (scalarTypeOf(kValuesTypes[t.params.type]) === Type.f16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const expectedResult = true; // ceil() should never error
   validateConstOrOverrideBuiltinEval(

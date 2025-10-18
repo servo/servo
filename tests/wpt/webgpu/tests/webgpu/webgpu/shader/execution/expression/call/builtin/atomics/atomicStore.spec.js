@@ -4,7 +4,7 @@
 Atomically stores the value v in the atomic object pointed to by atomic_ptr.
 `;import { makeTestGroup } from '../../../../../../../common/framework/test_group.js';
 import { keysOf } from '../../../../../../../common/util/data_tables.js';
-import { GPUTest } from '../../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../../gpu_test.js';
 
 import {
   dispatchSizes,
@@ -15,7 +15,7 @@ import {
   kMapId } from
 './harness.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('store_storage_basic').
 specURL('https://www.w3.org/TR/WGSL/#atomic-store').

@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-use base::id::PipelineId;
+use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::{Sender, unbounded};
 use dom_struct::dom_struct;
 use euclid::{Scale, Size2D};
@@ -87,6 +87,7 @@ pub(crate) struct PaintWorkletGlobalScope {
 impl PaintWorkletGlobalScope {
     #[allow(unsafe_code)]
     pub(crate) fn new(
+        webview_id: WebViewId,
         pipeline_id: PipelineId,
         base_url: ServoUrl,
         executor: WorkletExecutor,
@@ -98,6 +99,7 @@ impl PaintWorkletGlobalScope {
         );
         let global = Box::new(PaintWorkletGlobalScope {
             worklet_global: WorkletGlobalScope::new_inherited(
+                webview_id,
                 pipeline_id,
                 base_url,
                 executor,

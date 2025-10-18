@@ -1,6 +1,11 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { assert } from '../../common/util/util.js';import { isDepthOrStencilTextureFormat, kTextureFormatInfo } from '../format_info.js';
+**/import { assert, unreachable } from '../../common/util/util.js';import { getBlockInfoForTextureFormat,
+isDepthOrStencilTextureFormat,
+isDepthTextureFormat,
+isStencilTextureFormat } from
+'../format_info.js';
+
 
 import { getTextureCopyLayout } from './texture/layout.js';
 
@@ -17,35 +22,33 @@ const kLoadValueFromStorageInfo =
 
 
 
-
-
 {
   r8unorm: {
     storageType: 'u32',
     texelType: 'vec4f',
     unpackWGSL: `
-    return vec4f(unpack4x8unorm(src[byteOffset / 4])[byteOffset % 4], 0.123, 0.123, 0.123)
+    return vec4f(unpack4x8unorm(getSrc(byteOffset / 4))[byteOffset % 4], 0.123, 0.123, 0.123)
   `
   },
   r8uint: {
     storageType: 'u32',
     texelType: 'vec4u',
     unpackWGSL: `
-    return vec4u(unpack4xU8(src[byteOffset / 4])[byteOffset % 4], 123, 123, 123)
+    return vec4u(unpack4xU8(getSrc(byteOffset / 4))[byteOffset % 4], 123, 123, 123)
   `
   },
   r8sint: {
     storageType: 'u32',
     texelType: 'vec4i',
     unpackWGSL: `
-    return vec4i(unpack4xI8(src[byteOffset / 4])[byteOffset % 4], 123, 123, 123)
+    return vec4i(unpack4xI8(getSrc(byteOffset / 4))[byteOffset % 4], 123, 123, 123)
   `
   },
   rg8unorm: {
     storageType: 'u32',
     texelType: 'vec4f',
     unpackWGSL: `
-    let v = unpack4x8unorm(src[byteOffset / 4]);
+    let v = unpack4x8unorm(getSrc(byteOffset / 4));
     return vec4f(select(v.rg, v.ba, byteOffset % 4 >= 2), 0.123, 0.123)
   `
   },
@@ -53,7 +56,7 @@ const kLoadValueFromStorageInfo =
     storageType: 'u32',
     texelType: 'vec4u',
     unpackWGSL: `
-    let v = unpack4xU8(src[byteOffset / 4]);
+    let v = unpack4xU8(getSrc(byteOffset / 4));
     return vec4u(select(v.rg, v.ba, byteOffset % 4 >= 2), 123, 123)
   `
   },
@@ -61,20 +64,20 @@ const kLoadValueFromStorageInfo =
     storageType: 'u32',
     texelType: 'vec4i',
     unpackWGSL: `
-    let v = unpack4xI8(src[byteOffset / 4]);
+    let v = unpack4xI8(getSrc(byteOffset / 4));
     return vec4i(select(v.rg, v.ba, byteOffset % 4 >= 2), 123, 123)
   `
   },
   rgba8unorm: {
     storageType: 'u32',
     texelType: 'vec4f',
-    unpackWGSL: 'return unpack4x8unorm(src[byteOffset / 4])'
+    unpackWGSL: 'return unpack4x8unorm(getSrc(byteOffset / 4))'
   },
   'rgba8unorm-srgb': {
     storageType: 'u32',
     texelType: 'vec4f',
     unpackWGSL: `
-      let v = unpack4x8unorm(src[byteOffset / 4]);
+      let v = unpack4x8unorm(getSrc(byteOffset / 4));
       let srgb = select(
         v / 12.92,
         pow((v + 0.055) / 1.055, vec4f(2.4)),
@@ -86,13 +89,13 @@ const kLoadValueFromStorageInfo =
   bgra8unorm: {
     storageType: 'u32',
     texelType: 'vec4f',
-    unpackWGSL: 'return unpack4x8unorm(src[byteOffset / 4]).bgra'
+    unpackWGSL: 'return unpack4x8unorm(getSrc(byteOffset / 4)).bgra'
   },
   'bgra8unorm-srgb': {
     storageType: 'u32',
     texelType: 'vec4f',
     unpackWGSL: `
-      let v = unpack4x8unorm(src[byteOffset / 4]);
+      let v = unpack4x8unorm(getSrc(byteOffset / 4));
       let srgb = select(
         v / 12.92,
         pow((v + 0.055) / 1.055, vec4f(2.4)),
@@ -104,41 +107,46 @@ const kLoadValueFromStorageInfo =
   rgba8uint: {
     storageType: 'u32',
     texelType: 'vec4u',
-    unpackWGSL: 'return unpack4xU8(src[byteOffset / 4])'
+    unpackWGSL: 'return unpack4xU8(getSrc(byteOffset / 4))'
   },
   rgba8sint: {
     storageType: 'u32',
     texelType: 'vec4i',
-    unpackWGSL: 'return unpack4xI8(src[byteOffset / 4])'
+    unpackWGSL: 'return unpack4xI8(getSrc(byteOffset / 4))'
+  },
+  rg11b10ufloat: {
+    storageType: 'u32',
+    texelType: 'vec4f',
+    unpackWGSL: `return unpackRG11B10UFloat(getSrc(byteOffset / 4))`
   },
   r16float: {
     storageType: 'u32',
     texelType: 'vec4f',
     unpackWGSL:
-    'return vec4f(unpack2x16float(src[byteOffset / 4])[byteOffset % 4 / 2], 0.123, 0.123, 0.123)'
+    'return vec4f(unpack2x16float(getSrc(byteOffset / 4))[byteOffset % 4 / 2], 0.123, 0.123, 0.123)'
   },
   r16uint: {
     storageType: 'u32',
     texelType: 'vec4u',
     unpackWGSL:
-    'return vec4u(extractBits(src[byteOffset / 4], (byteOffset % 4 / 2 * 16), 16), 123, 123, 123)'
+    'return vec4u(extractBits(getSrc(byteOffset / 4), (byteOffset % 4 / 2 * 16), 16), 123, 123, 123)'
   },
   r16sint: {
     storageType: 'i32',
     texelType: 'vec4i',
     unpackWGSL:
-    'return vec4i(extractBits(src[byteOffset / 4], byteOffset % 4 / 2 * 16, 16), 123, 123, 123)'
+    'return vec4i(extractBits(getSrc(byteOffset / 4), byteOffset % 4 / 2 * 16, 16), 123, 123, 123)'
   },
   rg16float: {
     storageType: 'u32',
     texelType: 'vec4f',
-    unpackWGSL: 'return vec4f(unpack2x16float(src[byteOffset / 4]), 0.123, 0.123)'
+    unpackWGSL: 'return vec4f(unpack2x16float(getSrc(byteOffset / 4)), 0.123, 0.123)'
   },
   rg16uint: {
     storageType: 'u32',
     texelType: 'vec4u',
     unpackWGSL: `
-      let v = src[byteOffset / 4];
+      let v = getSrc(byteOffset / 4);
       return vec4u(v & 0xFFFF, v >> 16, 123, 123)
     `
   },
@@ -146,7 +154,7 @@ const kLoadValueFromStorageInfo =
     storageType: 'i32',
     texelType: 'vec4i',
     unpackWGSL: `
-      let v = src[byteOffset / 4];
+      let v = getSrc(byteOffset / 4);
       return vec4i(
         extractBits(v, 0, 16),
         extractBits(v, 16, 16),
@@ -158,16 +166,16 @@ const kLoadValueFromStorageInfo =
     texelType: 'vec4f',
     unpackWGSL: `
       return vec4f(
-        unpack2x16float(src[byteOffset / 4]),
-        unpack2x16float(src[byteOffset / 4 + 1]))
+        unpack2x16float(getSrc(byteOffset / 4)),
+        unpack2x16float(getSrc(byteOffset / 4 + 1)))
     `
   },
   rgba16uint: {
     storageType: 'u32',
     texelType: 'vec4u',
     unpackWGSL: `
-      let v0 = src[byteOffset / 4];
-      let v1 = src[byteOffset / 4 + 1];
+      let v0 = getSrc(byteOffset / 4);
+      let v1 = getSrc(byteOffset / 4 + 1);
       return vec4u(v0 & 0xFFFF, v0 >> 16, v1 & 0xFFFF, v1 >> 16)
     `
   },
@@ -175,8 +183,8 @@ const kLoadValueFromStorageInfo =
     storageType: 'i32',
     texelType: 'vec4i',
     unpackWGSL: `
-      let v0 = src[byteOffset / 4];
-      let v1 = src[byteOffset / 4 + 1];
+      let v0 = getSrc(byteOffset / 4);
+      let v1 = getSrc(byteOffset / 4 + 1);
       return vec4i(
         extractBits(v0, 0, 16),
         extractBits(v0, 16, 16),
@@ -185,16 +193,89 @@ const kLoadValueFromStorageInfo =
       )
     `
   },
+  r16unorm: {
+    storageType: 'u32',
+    texelType: 'vec4f',
+    unpackWGSL: `
+    let raw = extractBits(getSrc(byteOffset / 4), (byteOffset % 4 / 2) * 16, 16);
+    return vec4f(f32(raw) / 65535.0, 0.123, 0.123, 0.123);
+  `
+  },
+  r16snorm: {
+    storageType: 'i32',
+    texelType: 'vec4f',
+    unpackWGSL: `
+    let raw = extractBits(getSrc(byteOffset / 4), (byteOffset % 4 / 2) * 16, 16);
+    let signedVal = i32(raw);
+    return vec4f(f32(signedVal) / 32767.0, 0.123, 0.123, 0.123);
+  `
+  },
+  rg16unorm: {
+    storageType: 'u32',
+    texelType: 'vec4f',
+    unpackWGSL: `
+    let v = getSrc(byteOffset / 4);
+    let r = extractBits(v, 0, 16);
+    let g = extractBits(v, 16, 16);
+    return vec4f(f32(r) / 65535.0, f32(g) / 65535.0, 0.123, 0.123);
+  `
+  },
+  rg16snorm: {
+    storageType: 'i32',
+    texelType: 'vec4f',
+    unpackWGSL: `
+    let v = getSrc(byteOffset / 4);
+    let r = i32(extractBits(v, 0, 16));
+    let g = i32(extractBits(v, 16, 16));
+    return vec4f(f32(r) / 32767.0, f32(g) / 32767.0, 0.123, 0.123);
+  `
+  },
+  rgba16unorm: {
+    storageType: 'u32',
+    texelType: 'vec4f',
+    unpackWGSL: `
+    let v0 = getSrc(byteOffset / 4);
+    let v1 = getSrc(byteOffset / 4 + 1);
+    let r = extractBits(v0, 0, 16);
+    let g = extractBits(v0, 16, 16);
+    let b = extractBits(v1, 0, 16);
+    let a = extractBits(v1, 16, 16);
+    return vec4f(
+      f32(r) / 65535.0,
+      f32(g) / 65535.0,
+      f32(b) / 65535.0,
+      f32(a) / 65535.0
+    );
+  `
+  },
+  rgba16snorm: {
+    storageType: 'i32',
+    texelType: 'vec4f',
+    unpackWGSL: `
+    let v0 = getSrc(byteOffset / 4);
+    let v1 = getSrc(byteOffset / 4 + 1);
+    let r = i32(extractBits(v0, 0, 16));
+    let g = i32(extractBits(v0, 16, 16));
+    let b = i32(extractBits(v1, 0, 16));
+    let a = i32(extractBits(v1, 16, 16));
+    return vec4f(
+      f32(r) / 32767.0,
+      f32(g) / 32767.0,
+      f32(b) / 32767.0,
+      f32(a) / 32767.0
+    );
+  `
+  },
   r32float: {
     storageType: 'f32',
     texelType: 'vec4f',
-    unpackWGSL: 'return vec4f(src[byteOffset / 4], 0.123, 0.123, 0.123)'
+    unpackWGSL: 'return vec4f(getSrc(byteOffset / 4), 0.123, 0.123, 0.123)'
   },
   rgb10a2uint: {
     storageType: 'u32',
     texelType: 'vec4u',
     unpackWGSL: `
-      let v = src[byteOffset / 4];
+      let v = getSrc(byteOffset / 4);
       return vec4u(
         extractBits(v, 0, 10),
         extractBits(v, 10, 10),
@@ -207,7 +288,7 @@ const kLoadValueFromStorageInfo =
     storageType: 'u32',
     texelType: 'vec4f',
     unpackWGSL: `
-      let v = src[byteOffset / 4];
+      let v = getSrc(byteOffset / 4);
       return vec4f(
         f32(extractBits(v, 0, 10)) / f32(0x3FF),
         f32(extractBits(v, 10, 10)) / f32(0x3FF),
@@ -220,34 +301,43 @@ const kLoadValueFromStorageInfo =
     storageType: 'u32',
     texelType: 'vec4f',
     unpackWGSL: `
-      let v = unpack2x16unorm(src[byteOffset / 4])[byteOffset % 4 / 2];
+      let v = unpack2x16unorm(getSrc(byteOffset / 4))[byteOffset % 4 / 2];
       return vec4f(v, 0.123, 0.123, 0.123)
-    `,
-    useFragDepth: true
+    `
   },
   depth32float: {
     storageType: 'f32',
     texelType: 'vec4f',
     unpackWGSL: `
-      let v = src[byteOffset / 4];
+      let v = getSrc(byteOffset / 4);
       return vec4f(v, 0.123, 0.123, 0.123)
-    `,
-    useFragDepth: true
+    `
   },
   stencil8: {
     storageType: 'u32',
     texelType: 'vec4u',
     unpackWGSL: `
-      return vec4u(unpack4xU8(src[byteOffset / 4])[byteOffset % 4], 123, 123, 123)
-    `,
-    discardWithStencil: true
+      return vec4u(unpack4xU8(getSrc(byteOffset / 4))[byteOffset % 4], 123, 123, 123)
+    `
   }
 };
 
-function getCopyBufferToTextureViaRenderCode(format) {
-  const info = kLoadValueFromStorageInfo[format];
+function getDepthStencilOptionsForFormat(format) {
+  // Note: For now we prefer depth over stencil. To fix this would require passing GPUTextureAspect all the way down.
+  return {
+    useFragDepth: isDepthTextureFormat(format),
+    discardWithStencil: isStencilTextureFormat(format) && !isDepthTextureFormat(format)
+  };
+}
+
+function getCopyBufferToTextureViaRenderCode(
+srcFormat,
+dstFormat)
+{
+  const info = kLoadValueFromStorageInfo[srcFormat];
   assert(!!info);
-  const { storageType, texelType, unpackWGSL, useFragDepth, discardWithStencil } = info;
+  const { storageType, texelType, unpackWGSL } = info;
+  const { useFragDepth, discardWithStencil } = getDepthStencilOptionsForFormat(dstFormat);
 
   const [depthDecl, depthCode] = useFragDepth ?
   ['@builtin(frag_depth) d: f32,', 'fs.d = fs.v[0];'] :
@@ -255,12 +345,13 @@ function getCopyBufferToTextureViaRenderCode(format) {
 
   const stencilCode = discardWithStencil ? 'if ((fs.v.r & vin.stencilMask) == 0) { discard; }' : '';
 
-  return `
+  const code = `
     struct Uniforms {
       numTexelRows: u32,
       bytesPerRow: u32,
       bytesPerSample: u32,
       sampleCount: u32,
+      offset: u32,
     };
 
     struct VSOutput {
@@ -285,7 +376,62 @@ function getCopyBufferToTextureViaRenderCode(format) {
     }
 
     @group(0) @binding(0) var<uniform> uni: Uniforms;
-    @group(0) @binding(1) var<storage> src: array<${storageType}>;
+    @group(0) @binding(1) var src: texture_2d<${storageType}>;
+
+    // get a u32/i32/f32 from a r32uint/r32sint/r32float as though it was 1d array
+    fn getSrc(offset: u32) -> ${storageType} {
+      let width = textureDimensions(src, 0).x;
+      let x = offset % width;
+      let y = offset / width;
+      return textureLoad(src, vec2u(x, y), 0).r;
+    }
+
+    const kFloat32FormatMantissaBits = 23;
+    const kFloat32FormatBias = 127;
+    fn floatBitsToNumber(
+        rawBits: u32,
+        bitOffset: u32,
+        exponentBits: u32,
+        mantissaBits: u32,
+        bias: u32,
+        signed: bool) -> f32 {
+      let nonSignBits = exponentBits + mantissaBits;
+      let allBits = nonSignBits + select(0u, 1u, signed);
+      let allMask = (1u << allBits) - 1u;
+      let bits = (rawBits >> bitOffset) & allMask;
+      let nonSignBitsMask = (1u << nonSignBits) - 1u;
+      let exponentAndMantissaBits = bits & nonSignBitsMask;
+      let exponentMask = ((1u << exponentBits) - 1u) << mantissaBits;
+      let infinityOrNaN = (bits & exponentMask) == exponentMask;
+      if (infinityOrNaN) {
+        let mantissaMask = (1u << mantissaBits) - 1;
+        let signBit = 1u << nonSignBits;
+        let isNegative = (bits & signBit) != 0;
+        if ((bits & mantissaMask) != 0u) {
+          return 0.0; // NaN (does not exist in WGSL)
+        }
+        if (isNegative) {
+          return f32(-2e38); // NEGATIVE_INFINITY (does not exist in WGSL)
+        } else {
+          return f32(2e38); // POSITIVE_INFINITY (does not exist in WGSL)
+        }
+      }
+      var f32BitsWithWrongBias =
+        exponentAndMantissaBits << (kFloat32FormatMantissaBits - mantissaBits);
+      // add in the sign
+      f32BitsWithWrongBias |= (bits << (31u - nonSignBits)) & 0x80000000u;
+      let numberWithWrongBias = bitcast<f32>(f32BitsWithWrongBias);
+      return numberWithWrongBias * pow(2.0f, f32(kFloat32FormatBias - bias));
+    }
+
+    fn unpackRG11B10UFloat(v: u32) -> vec4f {
+      return vec4f(
+        floatBitsToNumber(v,  0, 5, 6, 15, false),
+        floatBitsToNumber(v, 11, 5, 6, 15, false),
+        floatBitsToNumber(v, 22, 5, 5, 15, false),
+        1
+      );
+    }
 
     fn unpack(byteOffset: u32) -> ${texelType} {
       ${unpackWGSL};
@@ -299,6 +445,7 @@ function getCopyBufferToTextureViaRenderCode(format) {
     @fragment fn fs(vin: VSOutput) -> FSOutput {
       let coord = vec2u(vin.pos.xy);
       let byteOffset =
+        uni.offset +
         coord.y * uni.bytesPerRow +
         (coord.x * uni.sampleCount + vin.sampleIndex) * uni.bytesPerSample;
       var fs: FSOutput;
@@ -308,6 +455,22 @@ function getCopyBufferToTextureViaRenderCode(format) {
       return fs;
     }
     `;
+
+  let dataFormat;
+  switch (storageType) {
+    case 'f32':
+      dataFormat = 'r32float';
+      break;
+    case 'i32':
+      dataFormat = 'r32sint';
+      break;
+    case 'u32':
+      dataFormat = 'r32uint';
+      break;
+    default:
+      unreachable();
+  }
+  return { code, dataFormat };
 }
 
 const s_copyBufferToTextureViaRenderPipelines = new WeakMap(
@@ -315,28 +478,39 @@ const s_copyBufferToTextureViaRenderPipelines = new WeakMap(
 
 );
 
+// This function emulates copyBufferToTexture by by rendering into the texture.
+// This is for formats that can't be copied to directly. depth textures, stencil
+// textures, multisampled textures.
+//
+// For source data it creates an r32uint/r32sint/r32float texture
+// and copies the source buffer into it and then reads the texture
+// as a 1d array. It does this because compat mode might not have
+// storage buffers in fragment shaders.
 function copyBufferToTextureViaRender(
 t,
 encoder,
 source,
+sourceFormat,
 dest,
 size)
 {
-  const { format, sampleCount } = dest.texture;
+  const { format: textureFormat, sampleCount } = dest.texture;
   const origin = reifyOrigin3D(dest.origin ?? [0]);
   const copySize = reifyExtent3D(size);
-
-  const msInfo = kLoadValueFromStorageInfo[format];
-  assert(!!msInfo);
-  const { useFragDepth, discardWithStencil } = msInfo;
+  const { useFragDepth, discardWithStencil } = getDepthStencilOptionsForFormat(dest.texture.format);
+  const resourcesToDestroy = [];
 
   const { device } = t;
   const numBlits = discardWithStencil ? 8 : 1;
   for (let blitCount = 0; blitCount < numBlits; ++blitCount) {
-    const code = getCopyBufferToTextureViaRenderCode(format);
+    const { code, dataFormat } = getCopyBufferToTextureViaRenderCode(
+      sourceFormat,
+      dest.texture.format
+    );
     const stencilWriteMask = 1 << blitCount;
     const id = JSON.stringify({
-      format,
+      textureFormat,
+      sourceFormat,
       useFragDepth,
       stencilWriteMask,
       discardWithStencil,
@@ -350,7 +524,7 @@ size)
     if (!pipeline) {
       const module = device.createShaderModule({ code });
       pipeline = device.createRenderPipeline({
-        label: `blitCopyFor-${format}`,
+        label: `blitCopyFor-${textureFormat}`,
         layout: 'auto',
         vertex: { module },
         ...(discardWithStencil ?
@@ -362,7 +536,7 @@ size)
           depthStencil: {
             depthWriteEnabled: false,
             depthCompare: 'always',
-            format,
+            format: textureFormat,
             stencilWriteMask,
             stencilFront: {
               passOp: 'replace'
@@ -378,13 +552,13 @@ size)
           depthStencil: {
             depthWriteEnabled: true,
             depthCompare: 'always',
-            format
+            format: textureFormat
           }
         } :
         {
           fragment: {
             module,
-            targets: [{ format }]
+            targets: [{ format: textureFormat }]
           }
         }),
         primitive: {
@@ -395,22 +569,40 @@ size)
       pipelines.set(id, pipeline);
     }
 
-    const info = kTextureFormatInfo[format];
-    const uniforms = new Uint32Array([
-    copySize.height, //  numTexelRows: u32,
-    source.bytesPerRow, //  bytesPerRow: u32,
-    info.bytesPerBlock, //  bytesPerSample: u32,
-    dest.texture.sampleCount //  sampleCount: u32,
-    ]);
-    const uniformBuffer = t.makeBufferWithContents(
-      uniforms,
-      GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM
-    );
-    const storageBuffer = t.createBufferTracked({
-      size: source.buffer.size,
-      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE
+    const width = 1024;
+    const bytesPerRow = width * 4;
+    const fullRows = Math.floor(source.buffer.size / bytesPerRow);
+    const rows = Math.ceil(source.buffer.size / bytesPerRow);
+    const srcTexture = t.createTextureTracked({
+      format: dataFormat,
+      size: [width, rows],
+      usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     });
-    encoder.copyBufferToBuffer(source.buffer, 0, storageBuffer, 0, storageBuffer.size);
+    resourcesToDestroy.push(srcTexture);
+
+    if (fullRows > 0) {
+      encoder.copyBufferToTexture({ buffer: source.buffer, bytesPerRow }, { texture: srcTexture }, [
+      width,
+      fullRows]
+      );
+    }
+    if (rows > fullRows) {
+      const totalPixels = source.buffer.size / 4;
+      const pixelsCopied = fullRows * width;
+      const pixelsInLastRow = totalPixels - pixelsCopied;
+      encoder.copyBufferToTexture(
+        {
+          buffer: source.buffer,
+          offset: pixelsCopied * 4,
+          bytesPerRow
+        },
+        {
+          texture: srcTexture,
+          origin: [0, fullRows]
+        },
+        [pixelsInLastRow, 1]
+      );
+    }
     const baseMipLevel = dest.mipLevel;
     for (let l = 0; l < copySize.depthOrArrayLayers; ++l) {
       const baseArrayLayer = origin.z + l;
@@ -444,7 +636,8 @@ size)
             }),
             depthClearValue: 0,
             depthLoadOp: 'clear',
-            depthStoreOp: 'store'
+            depthStoreOp: 'store',
+            stencilReadOnly: true
           }
         } :
         {
@@ -465,13 +658,27 @@ size)
       pass.setViewport(origin.x, origin.y, copySize.width, copySize.height, 0, 1);
       pass.setPipeline(pipeline);
 
+      const info = getBlockInfoForTextureFormat(sourceFormat);
       const offset =
       (source.offset ?? 0) + (source.bytesPerRow ?? 0) * (source.rowsPerImage ?? 0) * l;
+      const uniforms = new Uint32Array([
+      copySize.height, //  numTexelRows: u32,
+      source.bytesPerRow, //  bytesPerRow: u32,
+      info.bytesPerBlock, //  bytesPerSample: u32,
+      dest.texture.sampleCount, //  sampleCount: u32,
+      offset //  offset: u32,
+      ]);
+
+      const uniformBuffer = t.makeBufferWithContents(
+        uniforms,
+        GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM
+      );
+      resourcesToDestroy.push(uniformBuffer);
       const bindGroup = device.createBindGroup({
         layout: pipeline.getBindGroupLayout(0),
         entries: [
         { binding: 0, resource: { buffer: uniformBuffer } },
-        { binding: 1, resource: { buffer: storageBuffer, offset } }]
+        { binding: 1, resource: srcTexture.createView() }]
 
       });
 
@@ -481,6 +688,8 @@ size)
       pass.end();
     }
   }
+
+  return resourcesToDestroy;
 }
 
 /**
@@ -494,28 +703,35 @@ desc)
 {
   // All texel views must be the same format for mipmaps.
   assert(texelViews.length > 0 && texelViews.every((e) => e.format === texelViews[0].format));
-  const format = texelViews[0].format;
+  const viewsFormat = texelViews[0].format;
+  const textureFormat = desc.format ?? viewsFormat;
+  const isTextureFormatDifferentThanTexelViewFormat = textureFormat !== viewsFormat;
   const { width, height, depthOrArrayLayers } = reifyExtent3D(desc.size);
 
   // Create the texture and then initialize each mipmap level separately.
   const texture = t.createTextureTracked({
     ...desc,
-    format,
+    format: textureFormat,
     usage: desc.usage | GPUTextureUsage.COPY_DST,
     mipLevelCount: texelViews.length
   });
 
   // Copy the texel view into each mip level layer.
-  const commandEncoder = t.device.createCommandEncoder();
-  const stagingBuffers = [];
+  const commandEncoder = t.device.createCommandEncoder({ label: 'createTextureFromTexelViews' });
+  const resourcesToDestroy = [];
   for (let mipLevel = 0; mipLevel < texelViews.length; mipLevel++) {
     const {
       bytesPerRow,
       rowsPerImage,
       mipSize: [mipWidth, mipHeight, mipDepthOrArray]
-    } = getTextureCopyLayout(format, desc.dimension ?? '2d', [width, height, depthOrArrayLayers], {
-      mipLevel
-    });
+    } = getTextureCopyLayout(
+      viewsFormat,
+      desc.dimension ?? '2d',
+      [width, height, depthOrArrayLayers],
+      {
+        mipLevel
+      }
+    );
 
     // Create a staging buffer to upload the texture mip level contents.
     const stagingBuffer = t.createBufferTracked({
@@ -523,7 +739,7 @@ desc)
       size: bytesPerRow * mipHeight * mipDepthOrArray,
       usage: GPUBufferUsage.COPY_SRC
     });
-    stagingBuffers.push(stagingBuffer);
+    resourcesToDestroy.push(stagingBuffer);
 
     // Write the texels into the staging buffer.
     texelViews[mipLevel].writeTextureData(new Uint8Array(stagingBuffer.getMappedRange()), {
@@ -535,13 +751,20 @@ desc)
     });
     stagingBuffer.unmap();
 
-    if (texture.sampleCount > 1 || isDepthOrStencilTextureFormat(format)) {
-      copyBufferToTextureViaRender(
-        t,
-        commandEncoder,
-        { buffer: stagingBuffer, bytesPerRow, rowsPerImage },
-        { texture, mipLevel },
-        [mipWidth, mipHeight, mipDepthOrArray]
+    if (
+    isTextureFormatDifferentThanTexelViewFormat ||
+    texture.sampleCount > 1 ||
+    isDepthOrStencilTextureFormat(textureFormat))
+    {
+      resourcesToDestroy.push(
+        ...copyBufferToTextureViaRender(
+          t,
+          commandEncoder,
+          { buffer: stagingBuffer, bytesPerRow, rowsPerImage },
+          viewsFormat,
+          { texture, mipLevel },
+          [mipWidth, mipHeight, mipDepthOrArray]
+        )
       );
     } else {
       // Copy from the staging buffer into the texture.
@@ -554,8 +777,8 @@ desc)
   }
   t.device.queue.submit([commandEncoder.finish()]);
 
-  // Cleanup the staging buffers.
-  stagingBuffers.forEach((value) => value.destroy());
+  // Cleanup temp buffers and textures.
+  resourcesToDestroy.forEach((value) => value.destroy());
 
   return texture;
 }

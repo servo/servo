@@ -162,9 +162,9 @@ def test_stale_element_reference(session, stale_element, as_frame):
     assert_error(result, "stale element reference")
 
 
-@pytest.mark.parametrize("type", [WebFrame, WebWindow], ids=["frame", "window"])
+@pytest.mark.parametrize("type", [WebFrame, WebWindow, WebElement, ShadowRoot], ids=["frame", "window", "element", "shadow_root"])
 @pytest.mark.parametrize("value", [None, False, 42, [], {}])
-def test_invalid_argument_for_window_with_invalid_type(session, type, value):
+def test_invalid_argument_for_reference_with_invalid_type(session, type, value):
     reference = type(session, value)
 
     result = execute_async_script(session, "arguments[1](true)", args=(reference,))

@@ -4,19 +4,32 @@
 import { assert } from '../../../common/util/util.js';
 import {
   kEncodableTextureFormats,
-  kTextureFormatInfo } from
 
+  isColorTextureFormat,
+  canCopyToAllAspectsOfTextureFormat } from
 '../../format_info.js';
-import { GPUTest } from '../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../gpu_test.js';
 import { gammaCompress, floatAsNormalizedIntegerUnquantized } from '../conversion.js';
 
 import {
   kTexelRepresentationInfo,
   getSingleDataType,
   getComponentReadbackTraits } from
+
 './texel_data.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
+
+function isCopyDstColorTextureFormatOfType(
+format,
+type)
+{
+  return (
+    isColorTextureFormat(format) &&
+    canCopyToAllAspectsOfTextureFormat(format) &&
+    getSingleDataType(format) === type);
+
+}
 
 async function doTest(
 t)
@@ -32,6 +45,8 @@ t)
 
 {
   const { format } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
+
   const componentData = t.params.componentData;
 
   const rep = kTexelRepresentationInfo[format];
@@ -187,10 +202,7 @@ g.test('unorm_texel_data_in_shader').
 params((u) =>
 u.
 combine('format', kEncodableTextureFormats).
-filter(({ format }) => {
-  const info = kTextureFormatInfo[format];
-  return !!info.color && info.color.copyDst && getSingleDataType(format) === 'unorm';
-}).
+filter(({ format }) => isCopyDstColorTextureFormatOfType(format, 'unorm')).
 beginSubcases().
 expand('componentData', ({ format }) => {
   const max = (bitLength) => Math.pow(2, bitLength) - 1;
@@ -210,19 +222,13 @@ expand('componentData', ({ format }) => {
 
 })
 ).
-beforeAllSubcases((t) => {
-  t.skipIfTextureFormatNotSupported(t.params.format);
-}).
 fn(doTest);
 
 g.test('snorm_texel_data_in_shader').
 params((u) =>
 u.
 combine('format', kEncodableTextureFormats).
-filter(({ format }) => {
-  const info = kTextureFormatInfo[format];
-  return !!info.color && info.color.copyDst && getSingleDataType(format) === 'snorm';
-}).
+filter(({ format }) => isCopyDstColorTextureFormatOfType(format, 'snorm')).
 beginSubcases().
 expand('componentData', ({ format }) => {
   const max = (bitLength) => Math.pow(2, bitLength - 1) - 1;
@@ -251,10 +257,7 @@ g.test('uint_texel_data_in_shader').
 params((u) =>
 u.
 combine('format', kEncodableTextureFormats).
-filter(({ format }) => {
-  const info = kTextureFormatInfo[format];
-  return !!info.color && info.color.copyDst && getSingleDataType(format) === 'uint';
-}).
+filter(({ format }) => isCopyDstColorTextureFormatOfType(format, 'uint')).
 beginSubcases().
 expand('componentData', ({ format }) => {
   const max = (bitLength) => Math.pow(2, bitLength) - 1;
@@ -280,10 +283,7 @@ g.test('sint_texel_data_in_shader').
 params((u) =>
 u.
 combine('format', kEncodableTextureFormats).
-filter(({ format }) => {
-  const info = kTextureFormatInfo[format];
-  return !!info.color && info.color.copyDst && getSingleDataType(format) === 'sint';
-}).
+filter(({ format }) => isCopyDstColorTextureFormatOfType(format, 'sint')).
 beginSubcases().
 expand('componentData', ({ format }) => {
   const max = (bitLength) => Math.pow(2, bitLength - 1) - 1;
@@ -315,10 +315,7 @@ TODO: Test NaN, Infinity, -Infinity [1]`
 params((u) =>
 u.
 combine('format', kEncodableTextureFormats).
-filter(({ format }) => {
-  const info = kTextureFormatInfo[format];
-  return !!info.color && info.color.copyDst && getSingleDataType(format) === 'float';
-}).
+filter(({ format }) => isCopyDstColorTextureFormatOfType(format, 'float')).
 beginSubcases().
 expand('componentData', ({ format }) => {
   return [
@@ -354,10 +351,7 @@ TODO: Test NaN, Infinity`
 params((u) =>
 u.
 combine('format', kEncodableTextureFormats).
-filter(({ format }) => {
-  const info = kTextureFormatInfo[format];
-  return !!info.color && info.color.copyDst && getSingleDataType(format) === 'ufloat';
-}).
+filter(({ format }) => isCopyDstColorTextureFormatOfType(format, 'ufloat')).
 beginSubcases().
 expand('componentData', ({ format }) => {
   return [

@@ -51,12 +51,6 @@ const kConstructibleCases = {
 g.test('var_init_type').
 desc(`Test increment and decrement of a variable of various types`).
 params((u) => u.combine('type', keysOf(kConstructibleCases)).combine('direction', ['up', 'down'])).
-beforeAllSubcases((t) => {
-  const c = kConstructibleCases[t.params.type];
-  if (c.usesF16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const { value, pass, usesF16, gdecl } = kConstructibleCases[t.params.type];
   const operator = t.params.direction === 'up' ? '++' : '--';
@@ -114,12 +108,6 @@ const kComponentCases = {
 g.test('component').
 desc('Test increment and decrement of component of various types').
 params((u) => u.combine('type', keysOf(kComponentCases)).combine('direction', ['up', 'down'])).
-beforeAllSubcases((t) => {
-  const c = kComponentCases[t.params.type];
-  if (c.usesF16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const { type, wgsl, pass, usesF16, gdecl } = kComponentCases[t.params.type];
   const operator = t.params.direction === 'up' ? '++' : '--';

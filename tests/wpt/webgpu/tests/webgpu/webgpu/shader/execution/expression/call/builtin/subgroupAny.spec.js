@@ -10,8 +10,6 @@ local_invocation_index. Tests should avoid assuming there is.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { keysOf } from '../../../../../../common/util/data_tables.js';
 import { iterRange } from '../../../../../../common/util/util.js';
-import { kTextureFormatInfo } from '../../../../../format_info.js';
-import { align } from '../../../../../util/math.js';
 import { PRNG } from '../../../../../util/prng.js';
 
 import {
@@ -21,7 +19,8 @@ import {
   kDataSentinel,
   runComputeTest,
   runFragmentTest,
-  kFramebufferSizes } from
+  kFramebufferSizes,
+  getUintsPerFramebuffer } from
 './subgroup_util.js';
 
 export const g = makeTestGroup(SubgroupTest);
@@ -132,10 +131,8 @@ combine('wgSize', kWGSizes).
 beginSubcases().
 combine('case', [...iterRange(kNumCases, (x) => x)])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
 
   const wgsl = `
@@ -198,15 +195,16 @@ beginSubcases().
 combine('wgSize', kWGSizes).
 combine('case', [...iterRange(kNumCases, (x) => x)])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const testcase = kPredicateCases[t.params.predicate];
   const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
 
   const wgsl = `
 enable subgroups;
+
+diagnostic(off, subgroup_uniformity);
+diagnostic(off, subgroup_branching);
 
 @group(0) @binding(0)
 var<storage> inputs : array<u32>;
@@ -276,12 +274,7 @@ format,
 width,
 height)
 {
-  const { blockWidth, blockHeight, bytesPerBlock } = kTextureFormatInfo[format];
-  const blocksPerRow = width / blockWidth;
-  // 256 minimum comes from image copy requirements.
-  const bytesPerRow = align(blocksPerRow * (bytesPerBlock ?? 1), 256);
-  const uintsPerRow = bytesPerRow / 4;
-  const uintsPerTexel = (bytesPerBlock ?? 1) / blockWidth / blockHeight / 4;
+  const { uintsPerRow, uintsPerTexel } = getUintsPerFramebuffer(format, width, height);
 
   // Iteration skips last row and column to avoid helper invocations because it is not
   // guaranteed whether or not they participate in the subgroup operation.
@@ -334,10 +327,8 @@ beginSubcases().
 combine('case', [...iterRange(kNumCases, (x) => x)]).
 combineWithParams([{ format: 'rg32uint' }])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const numInputs = t.params.size[0] * t.params.size[1];
   const inputData = generateInputData(t.params.case, numInputs);
 
@@ -345,7 +336,7 @@ fn(async (t) => {
 enable subgroups;
 
 @group(0) @binding(0)
-var<storage, read_write> inputs : array<u32>;
+var<uniform> inputs : array<vec4u, ${inputData.length}>;
 
 @fragment
 fn main(
@@ -360,7 +351,7 @@ fn main(
   let x_in_range = u32(pos.x) < (${t.params.size[0]} - 1);
   let y_in_range = u32(pos.y) < (${t.params.size[1]} - 1);
   let in_range = x_in_range && y_in_range;
-  let input = select(0u, inputs[linear], in_range);
+  let input = select(0u, inputs[linear].x, in_range);
 
   let res = select(0u, 1u, subgroupAny(bool(input)));
   return vec2u(res, subgroup_id);

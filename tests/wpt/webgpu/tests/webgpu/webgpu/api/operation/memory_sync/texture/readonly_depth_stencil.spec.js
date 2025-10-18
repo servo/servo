@@ -3,10 +3,14 @@
 **/export const description = `
 Memory synchronization tests for depth-stencil attachments in a single pass, with checks for readonlyness.
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
-import { kDepthStencilFormats, kTextureFormatInfo } from '../../../../format_info.js';
-import { GPUTest } from '../../../../gpu_test.js';
+import {
+  isDepthTextureFormat,
+  isStencilTextureFormat,
+  kDepthStencilFormats } from
+'../../../../format_info.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('sampling_while_testing').
 desc(
@@ -24,19 +28,17 @@ combine('format', kDepthStencilFormats) //
 .combine('depthReadOnly', [true, false, undefined]).
 combine('stencilReadOnly', [true, false, undefined]).
 filter((p) => {
-  const info = kTextureFormatInfo[p.format];
-  const depthMatch = info.depth === undefined === (p.depthReadOnly === undefined);
-  const stencilMatch = info.stencil === undefined === (p.stencilReadOnly === undefined);
+  const depthMatch = !isDepthTextureFormat(p.format) === (p.depthReadOnly === undefined);
+  const stencilMatch =
+  !isStencilTextureFormat(p.format) === (p.stencilReadOnly === undefined);
   return depthMatch && stencilMatch;
 })
 ).
 beforeAllSubcases((t) => {
   const { format } = t.params;
-  const formatInfo = kTextureFormatInfo[format];
-  const hasDepth = formatInfo.depth !== undefined;
-  const hasStencil = formatInfo.stencil !== undefined;
+  const hasDepth = isDepthTextureFormat(format);
+  const hasStencil = isStencilTextureFormat(format);
 
-  t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format);
   t.skipIf(
     t.isCompatibility && hasDepth && hasStencil,
     'compatibility mode does not support different TEXTURE_BINDING views of the same texture in a single draw calls'
@@ -44,9 +46,10 @@ beforeAllSubcases((t) => {
 }).
 fn((t) => {
   const { format, depthReadOnly, stencilReadOnly } = t.params;
-  const formatInfo = kTextureFormatInfo[format];
-  const hasDepth = formatInfo.depth !== undefined;
-  const hasStencil = formatInfo.stencil !== undefined;
+  const hasDepth = isDepthTextureFormat(format);
+  const hasStencil = isStencilTextureFormat(format);
+
+  t.skipIfTextureFormatNotSupported(format);
 
   // The 3x3 depth stencil texture used for the tests.
   const ds = t.createTextureTracked({

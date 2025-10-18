@@ -15,14 +15,14 @@ Returns the component-wise linear blend of e1 and e2, using scalar blending fact
 Same as mix(e1,e2,T2(e3)).
 
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import { Type } from '../../../../../util/conversion.js';
 import { allInputSources, onlyConstInputSource, run } from '../../expression.js';
 
 import { abstractFloatBuiltin, builtin } from './builtin.js';
 import { d } from './mix.cache.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('abstract_float_matching').
 specURL('https://www.w3.org/TR/WGSL/#float-builtin-functions').
@@ -142,10 +142,8 @@ desc(`f16 test with matching third param`).
 params((u) =>
 u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get(t.params.inputSource === 'const' ? 'f16_const' : 'f16_non_const');
   await run(t, builtin('mix'), [Type.f16, Type.f16, Type.f16], Type.f16, t.params, cases);
 });
@@ -154,10 +152,8 @@ g.test('f16_nonmatching_vec2').
 specURL('https://www.w3.org/TR/WGSL/#float-builtin-functions').
 desc(`f16 tests with two vec2<f16> params and scalar third param`).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get(
     t.params.inputSource === 'const' ? 'f16_vec2_scalar_const' : 'f16_vec2_scalar_non_const'
   );
@@ -168,10 +164,8 @@ g.test('f16_nonmatching_vec3').
 specURL('https://www.w3.org/TR/WGSL/#float-builtin-functions').
 desc(`f16 tests with two vec3<f16> params and scalar third param`).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get(
     t.params.inputSource === 'const' ? 'f16_vec3_scalar_const' : 'f16_vec3_scalar_non_const'
   );
@@ -182,10 +176,8 @@ g.test('f16_nonmatching_vec4').
 specURL('https://www.w3.org/TR/WGSL/#float-builtin-functions').
 desc(`f16 tests with two vec4<f16> params and scalar third param`).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get(
     t.params.inputSource === 'const' ? 'f16_vec4_scalar_const' : 'f16_vec4_scalar_non_const'
   );

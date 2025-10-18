@@ -10,7 +10,10 @@ Validation tests for the ${builtin}() builtin.
 `;
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { keysOf, objectsToRecord } from '../../../../../../common/util/data_tables.js';
-import { kAllTextureFormats, kTextureFormatInfo } from '../../../../../format_info.js';
+import {
+  getTextureFormatColorType,
+  kPossibleStorageTextureFormats } from
+'../../../../../format_info.js';
 import {
   Type,
   kAllScalarsAndVectors,
@@ -145,14 +148,13 @@ u.
 combine('textureType', kTextureTypes).
 combine('valueType', keysOf(kValuesTypes)).
 beginSubcases().
-combine('format', kAllTextureFormats)
-// filter to only storage texture formats.
-.filter((t) => !!kTextureFormatInfo[t.format].color?.storage).
+combine('format', kPossibleStorageTextureFormats).
 combine('value', [0, 1, 2])
 ).
 fn((t) => {
   const { textureType, valueType, format, value } = t.params;
-  t.skipIfTextureFormatNotUsableAsStorageTexture(format);
+  t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureFormatNotUsableWithStorageAccessMode('write-only', format);
 
   const valueArgType = kValuesTypes[valueType];
   const args = [valueArgType.create(value)];
@@ -169,7 +171,7 @@ fn((t) => {
   return vec4f(0);
 }
 `;
-  const colorType = kTextureFormatInfo[format].color?.type;
+  const colorType = getTextureFormatColorType(format);
   const requiredValueType = kTextureColorTypeToType[colorType];
   const expectSuccess = isConvertible(valueArgType, requiredValueType);
   t.expectCompileResult(expectSuccess, code);
@@ -187,9 +189,7 @@ u.
 combine('testTextureType', kTestTextureTypes).
 beginSubcases().
 combine('textureType', keysOf(kValidTextureStoreParameterTypes)).
-combine('format', kAllTextureFormats)
-// filter to only storage texture formats.
-.filter((t) => !!kTextureFormatInfo[t.format].color?.storage)
+combine('format', kPossibleStorageTextureFormats)
 ).
 fn((t) => {
   const { testTextureType, textureType, format } = t.params;
@@ -197,7 +197,7 @@ fn((t) => {
 
   const coordWGSL = coordsArgTypes[0].create(0).wgsl();
   const arrayWGSL = hasArrayIndexArg ? ', 0' : '';
-  const colorType = kTextureFormatInfo[format].color?.type;
+  const colorType = getTextureFormatColorType(format);
   const valueType = kTextureColorTypeToType[colorType];
   const valueWGSL = valueType.create(0).wgsl();
 

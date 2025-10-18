@@ -13,18 +13,17 @@ import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { raceWithRejectOnTimeout, unreachable, assert } from '../../../../../common/util/util.js';
 import { kTextureUsages } from '../../../../capability_info.js';
 import {
-  kTextureFormatInfo,
   kAllTextureFormats,
-  kValidTextureFormatsForCopyE2T } from
+  isTextureFormatUsableWithCopyExternalImageToTexture } from
 '../../../../format_info.js';
-import { kResourceStates } from '../../../../gpu_test.js';
+import { kResourceStates, AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 import {
 
   createCanvas,
   createOnscreenCanvas,
   createOffscreenCanvas } from
 '../../../../util/create_elements.js';
-import { ValidationTest } from '../../validation_test.js';
+import * as vtu from '../../validation_test_utils.js';
 
 const kDefaultBytesPerPixel = 4; // using 'bgra8unorm' or 'rgba8unorm'
 const kDefaultWidth = 32;
@@ -136,7 +135,7 @@ function generateCopySizeForDstOOB({ mipLevel, dstOrigin }) {
   ];
 }
 
-class CopyExternalImageToTextureTest extends ValidationTest {
+class CopyExternalImageToTextureTest extends AllFeaturesMaxLimitsGPUTest {
   onlineCrossOriginUrl = 'https://raw.githubusercontent.com/gpuweb/gpuweb/main/logo/webgpu.png';
 
   getImageData(width, height) {
@@ -531,7 +530,7 @@ combine('copySize', [
 fn(async (t) => {
   const { state, copySize } = t.params;
   const imageBitmap = await t.createImageBitmap(t.getImageData(1, 1));
-  const dstTexture = t.createTextureWithState(state);
+  const dstTexture = vtu.createTextureWithState(t, state);
 
   t.runTest({ source: imageBitmap }, { texture: dstTexture }, copySize, state === 'valid');
 });
@@ -541,9 +540,7 @@ desc(
   'Tests copyExternalImageToTexture cannot be called with a destination texture created from another device'
 ).
 paramsSubcasesOnly((u) => u.combine('mismatched', [true, false])).
-beforeAllSubcases((t) => {
-  t.selectMismatchedDeviceOrSkipTestCase(undefined);
-}).
+beforeAllSubcases((t) => t.usesMismatchedDevice()).
 fn(async (t) => {
   const { mismatched } = t.params;
   const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
@@ -678,13 +675,9 @@ combine('copySize', [
 { width: 1, height: 1, depthOrArrayLayers: 1 }]
 )
 ).
-beforeAllSubcases((t) => {
-  const { format } = t.params;
-  t.skipIfTextureFormatNotSupported(format);
-  t.selectDeviceOrSkipTestCase(kTextureFormatInfo[format].feature);
-}).
 fn(async (t) => {
   const { format, copySize } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
 
   const imageBitmap = await t.createImageBitmap(t.getImageData(1, 1));
 
@@ -698,7 +691,7 @@ fn(async (t) => {
   });
   void t.device.popErrorScope();
 
-  const success = kValidTextureFormatsForCopyE2T.includes(format);
+  const success = isTextureFormatUsableWithCopyExternalImageToTexture(t.device, format);
 
   t.runTest({ source: imageBitmap }, { texture: dstTexture }, copySize, success);
 });

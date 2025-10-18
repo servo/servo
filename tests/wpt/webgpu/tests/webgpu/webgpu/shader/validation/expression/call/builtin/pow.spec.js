@@ -55,11 +55,6 @@ beginSubcases().
 expand('a', (u) => fullRangeForType(kValidArgumentTypes[u.type], 5)).
 expand('b', (u) => fullRangeForType(kValidArgumentTypes[u.type], 5))
 ).
-beforeAllSubcases((t) => {
-  if (scalarTypeOf(kValidArgumentTypes[t.params.type]) === Type.f16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   let expectedResult = true;
 
@@ -106,11 +101,6 @@ Validates that all integer or boolean scalar and vector arguments are rejected b
 `
 ).
 params((u) => u.combine('type', keysOf(kInvalidArgumentTypes))).
-beforeAllSubcases((t) => {
-  if (kInvalidArgumentTypes[t.params.type] === Type.f16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const expectedResult = false; // should always error with invalid argument types
   const type = kInvalidArgumentTypes[t.params.type];

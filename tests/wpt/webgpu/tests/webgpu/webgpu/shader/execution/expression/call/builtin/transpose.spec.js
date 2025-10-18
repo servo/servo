@@ -7,14 +7,14 @@ T is abstract-float, f32, or f16
 @const transpose(e: matRxC<T> ) -> matCxR<T>
 Returns the transpose of e.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import { Type } from '../../../../../util/conversion.js';
 import { allInputSources, onlyConstInputSource, run } from '../../expression.js';
 
 import { abstractFloatBuiltin, builtin } from './builtin.js';
 import { d } from './transpose.cache.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('abstract_float').
 specURL('https://www.w3.org/TR/WGSL/#matrix-builtin-functions').
@@ -75,10 +75,8 @@ combine('inputSource', allInputSources).
 combine('cols', [2, 3, 4]).
 combine('rows', [2, 3, 4])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cols = t.params.cols;
   const rows = t.params.rows;
   const cases = await d.get(

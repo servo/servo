@@ -3,11 +3,11 @@
 **/export const description = `
 Flow control tests for expression evaluation order.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
 import { runFlowControlTest } from './harness.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('binary_op').
 desc('Test that a binary operator evaluates the LHS then the RHS').

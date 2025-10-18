@@ -3,20 +3,28 @@
 **/export const description = `
 render pass descriptor validation tests.
 
+TODO(#3363): Make this into a MaxLimitTest and increase kMaxColorAttachments.
 TODO: review for completeness
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { range } from '../../../../common/util/util.js';
-import { kMaxColorAttachmentsToTest, kQueryTypes } from '../../../capability_info.js';
+import { getDefaultLimits, kQueryTypes } from '../../../capability_info.js';
 import { GPUConst } from '../../../constants.js';
 import {
   computeBytesPerSampleFromFormats,
   kDepthStencilFormats,
-  kRenderableColorTextureFormats,
-  kTextureFormatInfo } from
+  kPossibleColorRenderableTextureFormats,
+  isTextureFormatColorRenderable,
+  isDepthTextureFormat,
+  isStencilTextureFormat,
+  isTextureFormatResolvable } from
 '../../../format_info.js';
-import { ValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
-class F extends ValidationTest {
+// MAINTENANCE_TODO: This should be changed to kMaxColorAttachmentsToTest
+// when this is made a MaxLimitTest (see above).
+const kMaxColorAttachments = getDefaultLimits('core').maxColorAttachments.default;
+
+class F extends AllFeaturesMaxLimitsGPUTest {
   createTestTexture(
   options =
 
@@ -52,9 +60,13 @@ class F extends ValidationTest {
 
   getColorAttachment(
   texture,
-  textureViewDescriptor)
+  options =
+
+
+  {})
   {
-    const view = texture.createView(textureViewDescriptor);
+    const { textureViewDescriptor, bindTextureResource = false } = options;
+    const view = bindTextureResource ? texture : texture.createView(textureViewDescriptor);
 
     return {
       view,
@@ -66,9 +78,13 @@ class F extends ValidationTest {
 
   getDepthStencilAttachment(
   texture,
-  textureViewDescriptor)
+  options =
+
+
+  {})
   {
-    const view = texture.createView(textureViewDescriptor);
+    const { textureViewDescriptor, bindTextureResource = false } = options;
+    const view = bindTextureResource ? texture : texture.createView(textureViewDescriptor);
 
     return {
       view,
@@ -97,10 +113,12 @@ const kArrayLayerCount = 10;
 
 g.test('attachments,one_color_attachment').
 desc(`Test that a render pass works with only one color attachment.`).
+paramsSubcasesOnly((u) => u.combine('bindTextureResource', [false, true])).
 fn((t) => {
+  const { bindTextureResource } = t.params;
   const colorTexture = t.createTestTexture({ format: 'rgba8unorm' });
   const descriptor = {
-    colorAttachments: [t.getColorAttachment(colorTexture)]
+    colorAttachments: [t.getColorAttachment(colorTexture, { bindTextureResource })]
   };
 
   t.tryRenderPass(true, descriptor);
@@ -108,11 +126,15 @@ fn((t) => {
 
 g.test('attachments,one_depth_stencil_attachment').
 desc(`Test that a render pass works with only one depthStencil attachment.`).
+paramsSubcasesOnly((u) => u.combine('bindTextureResource', [false, true])).
 fn((t) => {
+  const { bindTextureResource } = t.params;
   const depthStencilTexture = t.createTestTexture({ format: 'depth24plus-stencil8' });
   const descriptor = {
     colorAttachments: [],
-    depthStencilAttachment: t.getDepthStencilAttachment(depthStencilTexture)
+    depthStencilAttachment: t.getDepthStencilAttachment(depthStencilTexture, {
+      bindTextureResource
+    })
   };
 
   t.tryRenderPass(true, descriptor);
@@ -197,20 +219,18 @@ desc(
 ).
 params((u) =>
 u.
-combine('format', kRenderableColorTextureFormats).
+combine('format', kPossibleColorRenderableTextureFormats).
 beginSubcases().
 combine(
   'attachmentCount',
-  range(kMaxColorAttachmentsToTest, (i) => i + 1)
+  range(kMaxColorAttachments, (i) => i + 1)
 )
 ).
-beforeAllSubcases((t) => {
-  t.skipIfTextureFormatNotSupported(t.params.format);
-}).
 fn((t) => {
   const { format, attachmentCount } = t.params;
-  const info = kTextureFormatInfo[format];
 
+  t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureFormatNotUsableAsRenderAttachment(format);
   t.skipIf(
     attachmentCount > t.device.limits.maxColorAttachments,
     `attachmentCount: ${attachmentCount} > maxColorAttachments: ${t.device.limits.maxColorAttachments}`
@@ -222,7 +242,7 @@ fn((t) => {
     colorAttachments.push(t.getColorAttachment(colorTexture));
   }
   const shouldError =
-  info.colorRender === undefined ||
+  !isTextureFormatColorRenderable(t.device, format) ||
   computeBytesPerSampleFromFormats(range(attachmentCount, () => format)) >
   t.device.limits.maxColorAttachmentBytesPerSample;
 
@@ -344,14 +364,14 @@ fn((t) => {
     mipLevelCount: mipLevel + 1
   });
 
-  const viewDescriptor = {
+  const textureViewDescriptor = {
     baseMipLevel: mipLevel,
     mipLevelCount: 1,
     baseArrayLayer: 0,
     arrayLayerCount: 1
   };
 
-  const colorAttachment = t.getColorAttachment(texture, viewDescriptor);
+  const colorAttachment = t.getColorAttachment(texture, { textureViewDescriptor });
   colorAttachment.depthSlice = depthSlice;
 
   const passDescriptor = {
@@ -436,7 +456,7 @@ fn((t) => {
   };
   const texture = t.createTestTexture(texDescriptor);
 
-  const viewDescriptor = {
+  const textureViewDescriptor = {
     baseMipLevel: 0,
     mipLevelCount: 1,
     baseArrayLayer: 0,
@@ -446,9 +466,9 @@ fn((t) => {
   const colorAttachments = [];
   for (let i = 0; i < mipLevelCount; i++) {
     if (!sameMipLevel) {
-      viewDescriptor.baseMipLevel = i;
+      textureViewDescriptor.baseMipLevel = i;
     }
-    const colorAttachment = t.getColorAttachment(texture, viewDescriptor);
+    const colorAttachment = t.getColorAttachment(texture, { textureViewDescriptor });
     colorAttachment.depthSlice = 0;
     colorAttachments.push(colorAttachment);
   }
@@ -599,7 +619,7 @@ fn((t) => {
     };
 
     const descriptor = {
-      colorAttachments: [t.getColorAttachment(colorTexture, textureViewDescriptor)]
+      colorAttachments: [t.getColorAttachment(colorTexture, { textureViewDescriptor })]
     };
 
     t.tryRenderPass(_success, descriptor);
@@ -613,10 +633,9 @@ fn((t) => {
 
     const descriptor = {
       colorAttachments: [],
-      depthStencilAttachment: t.getDepthStencilAttachment(
-        depthStencilTexture,
+      depthStencilAttachment: t.getDepthStencilAttachment(depthStencilTexture, {
         textureViewDescriptor
-      )
+      })
     };
 
     t.tryRenderPass(_success, descriptor);
@@ -676,7 +695,7 @@ fn((t) => {
     };
 
     const descriptor = {
-      colorAttachments: [t.getColorAttachment(colorTexture, textureViewDescriptor)]
+      colorAttachments: [t.getColorAttachment(colorTexture, { textureViewDescriptor })]
     };
 
     t.tryRenderPass(_success, descriptor);
@@ -690,10 +709,9 @@ fn((t) => {
 
     const descriptor = {
       colorAttachments: [],
-      depthStencilAttachment: t.getDepthStencilAttachment(
-        depthStencilTexture,
+      depthStencilAttachment: t.getDepthStencilAttachment(depthStencilTexture, {
         textureViewDescriptor
-      )
+      })
     };
 
     t.tryRenderPass(_success, descriptor);
@@ -1044,10 +1062,6 @@ combine('stencilReadOnly', [undefined, true, false]).
 combine('stencilLoadOp', [undefined, 'clear', 'load']).
 combine('stencilStoreOp', [undefined, 'discard', 'store'])
 ).
-beforeAllSubcases((t) => {
-  const info = kTextureFormatInfo[t.params.format];
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const {
     format,
@@ -1058,6 +1072,8 @@ fn((t) => {
     stencilLoadOp,
     stencilStoreOp
   } = t.params;
+
+  t.skipIfTextureFormatNotSupported(format);
 
   const depthAttachment = t.createTextureTracked({
     format,
@@ -1087,11 +1103,10 @@ fn((t) => {
   const pass = encoder.beginRenderPass(renderPassDescriptor);
   pass.end();
 
-  const info = kTextureFormatInfo[format];
   const hasDepthSettings = !!depthLoadOp && !!depthStoreOp && !depthReadOnly;
   const hasStencilSettings = !!stencilLoadOp && !!stencilStoreOp && !stencilReadOnly;
-  const hasDepth = info.depth;
-  const hasStencil = info.stencil;
+  const hasDepth = isDepthTextureFormat(format);
+  const hasStencil = isStencilTextureFormat(format);
 
   const goodAspectSettingsPresent =
   (hasDepthSettings ? hasDepth : true) && (hasStencilSettings ? hasStencil : true);
@@ -1157,17 +1172,11 @@ desc(
   if and only if they support 'resolve'.
   `
 ).
-params((u) =>
-u.
-combine('format', kRenderableColorTextureFormats).
-filter((t) => kTextureFormatInfo[t.format].multisample)
-).
-beforeAllSubcases((t) => {
-  t.skipIfTextureFormatNotSupported(t.params.format);
-}).
+params((u) => u.combine('format', kPossibleColorRenderableTextureFormats)).
 fn((t) => {
   const { format } = t.params;
-  const info = kTextureFormatInfo[format];
+  t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureFormatNotMultisampled(format);
 
   const multisampledColorTexture = t.createTestTexture({ format, sampleCount: 4 });
   const resolveTarget = t.createTestTexture({ format });
@@ -1175,7 +1184,7 @@ fn((t) => {
   const colorAttachment = t.getColorAttachment(multisampledColorTexture);
   colorAttachment.resolveTarget = resolveTarget.createView();
 
-  t.tryRenderPass(!!info.colorRender?.resolve, {
+  t.tryRenderPass(isTextureFormatResolvable(t.device, format), {
     colorAttachments: [colorAttachment]
   });
 });
@@ -1191,10 +1200,8 @@ params((u) =>
 u //
 .combine('queryType', kQueryTypes)
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase(['timestamp-query']);
-}).
 fn((t) => {
+  t.skipIfDeviceDoesNotSupportQueryType('timestamp');
   const { queryType } = t.params;
 
   const timestampWrites = {
@@ -1224,10 +1231,8 @@ u //
 .combine('beginningOfPassWriteIndex', [undefined, 0, 1, 2, 3]).
 combine('endOfPassWriteIndex', [undefined, 0, 1, 2, 3])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase(['timestamp-query']);
-}).
 fn((t) => {
+  t.skipIfDeviceDoesNotSupportQueryType('timestamp');
   const { beginningOfPassWriteIndex, endOfPassWriteIndex } = t.params;
 
   const querySetCount = 2;
@@ -1255,13 +1260,9 @@ fn((t) => {
 g.test('occlusionQuerySet,query_set_type').
 desc(`Test that occlusionQuerySet must have type 'occlusion'.`).
 params((u) => u.combine('queryType', kQueryTypes)).
-beforeAllSubcases((t) => {
-  if (t.params.queryType === 'timestamp') {
-    t.selectDeviceOrSkipTestCase(['timestamp-query']);
-  }
-}).
 fn((t) => {
   const { queryType } = t.params;
+  t.skipIfDeviceDoesNotSupportQueryType(queryType);
 
   const querySet = t.createQuerySetTracked({
     type: queryType,

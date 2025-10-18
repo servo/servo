@@ -4,9 +4,9 @@
 
 * test builtin(clip_distances)
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { GPUTest, TextureTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
-class VertexBuiltinTest extends TextureTestMixin(GPUTest) {}
+class VertexBuiltinTest extends AllFeaturesMaxLimitsGPUTest {}
 
 export const g = makeTestGroup(VertexBuiltinTest);
 
@@ -33,10 +33,8 @@ desc(
   `
 ).
 params((u) => u.combine('clipDistances', [1, 2, 3, 4, 5, 6, 7, 8])).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('clip-distances');
-}).
 fn((t) => {
+  t.skipIfDeviceDoesNotHaveFeature('clip-distances');
   const { clipDistances } = t.params;
 
   // Draw two triangles (top-right and bottom left) into Red, whose vertices have different clip

@@ -62,14 +62,6 @@ combine('compound_assignment', [false, true]).
 beginSubcases().
 combine('op', keysOf(kOperators))
 ).
-beforeAllSubcases((t) => {
-  if (
-  scalarTypeOf(kScalarAndVectorTypes[t.params.lhs]) === Type.f16 ||
-  scalarTypeOf(kScalarAndVectorTypes[t.params.rhs]) === Type.f16)
-  {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const op = kOperators[t.params.op];
   const lhs = kScalarAndVectorTypes[t.params.lhs];
@@ -138,14 +130,6 @@ filter((p) => {
 combine('valueCase', ['halfmax', 'halfmax+ulp', 'sqrtmax', 'sqrtmax+ulp']).
 combine('stage', kConstantAndOverrideStages)
 ).
-beforeAllSubcases((t) => {
-  if (
-  scalarTypeOf(kScalarAndVectorTypes[t.params.lhs]) === Type.f16 ||
-  scalarTypeOf(kScalarAndVectorTypes[t.params.rhs]) === Type.f16)
-  {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const { op, valueCase, nonZeroIndex, swap } = t.params;
   let { lhs, rhs } = t.params;

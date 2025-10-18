@@ -2,20 +2,27 @@
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/export const description = `
 Validation for attachment compatibility between render passes, bundles, and pipelines
+
+TODO(#3363): Make this into a MaxLimitTest and increase kMaxColorAttachments.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { range } from '../../../../common/util/util.js';
-import { kMaxColorAttachmentsToTest, kTextureSampleCounts } from '../../../capability_info.js';
+import { getDefaultLimits, kTextureSampleCounts } from '../../../capability_info.js';
 import {
-  kRegularTextureFormats,
   kSizedDepthStencilFormats,
   kUnsizedDepthStencilFormats,
-  kTextureFormatInfo,
   filterFormatsByFeature,
-  getFeaturesForFormats } from
+  getFeaturesForFormats,
+  isDepthTextureFormat,
+  isStencilTextureFormat,
+  kPossibleColorRenderableTextureFormats } from
 '../../../format_info.js';
-import { ValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
-const kColorAttachmentCounts = range(kMaxColorAttachmentsToTest, (i) => i + 1);
+// MAINTENANCE_TODO: This should be changed to kMaxColorAttachmentsToTest
+// when this is made a MaxLimitTest (see above).
+const kMaxColorAttachments = getDefaultLimits('core').maxColorAttachments.default;
+
+const kColorAttachmentCounts = range(kMaxColorAttachments, (i) => i + 1);
 const kColorAttachments = kColorAttachmentCounts.
 map((count) => {
   // generate cases with 0..1 null attachments at different location
@@ -83,7 +90,7 @@ const kFeaturesForDepthStencilAttachmentFormats = getFeaturesForFormats([
 ...kUnsizedDepthStencilFormats]
 );
 
-class F extends ValidationTest {
+class F extends AllFeaturesMaxLimitsGPUTest {
   createAttachmentTextureView(format, sampleCount) {
     return this.createTextureTracked({
       // Size matching the "arbitrary" size used by ValidationTest helpers.
@@ -115,12 +122,12 @@ class F extends ValidationTest {
     const attachment = {
       view: this.createAttachmentTextureView(format, sampleCount)
     };
-    if (kTextureFormatInfo[format].depth) {
+    if (isDepthTextureFormat(format)) {
       attachment.depthClearValue = 0;
       attachment.depthLoadOp = 'clear';
       attachment.depthStoreOp = 'discard';
     }
-    if (kTextureFormatInfo[format].stencil) {
+    if (isStencilTextureFormat(format)) {
       attachment.stencilClearValue = 1;
       attachment.stencilLoadOp = 'clear';
       attachment.stencilStoreOp = 'discard';
@@ -161,21 +168,17 @@ class F extends ValidationTest {
 
 export const g = makeTestGroup(F);
 
-const kColorAttachmentFormats = kRegularTextureFormats.filter(
-  (format) => !!kTextureFormatInfo[format].colorRender
-);
-
 g.test('render_pass_and_bundle,color_format').
 desc('Test that color attachment formats in render passes and bundles must match.').
 paramsSubcasesOnly((u) =>
 u //
-.combine('passFormat', kColorAttachmentFormats).
-combine('bundleFormat', kColorAttachmentFormats)
+.combine('passFormat', kPossibleColorRenderableTextureFormats).
+combine('bundleFormat', kPossibleColorRenderableTextureFormats)
 ).
 fn((t) => {
   const { passFormat, bundleFormat } = t.params;
-
   t.skipIfTextureFormatNotSupported(passFormat, bundleFormat);
+  t.skipIfTextureFormatNotUsableAsRenderAttachment(passFormat, bundleFormat);
 
   const bundleEncoder = t.device.createRenderBundleEncoder({
     colorFormats: [bundleFormat]
@@ -239,27 +242,26 @@ params((u) =>
 u //
 // introduce attachmentCount to make it easier to split the test
 .combine('attachmentCount', kColorAttachmentCounts).
-beginSubcases().
-combine('passAttachments', kColorAttachments).
-combine('bundleAttachments', kColorAttachments).
-filter(
-  (p) =>
-  p.attachmentCount === p.passAttachments.length &&
-  p.attachmentCount === p.bundleAttachments.length
+beginSubcases()
+// Indices into kColorAttachments
+.expand('iPass', (p) =>
+range(kColorAttachments.length, (i) => i).filter(
+  (i) => kColorAttachments[i].length === p.attachmentCount
+)
+).
+expand('iBundle', (p) =>
+range(kColorAttachments.length, (i) => i).filter(
+  (i) => kColorAttachments[i].length === p.attachmentCount
+)
 )
 ).
 fn((t) => {
-  const { passAttachments, bundleAttachments } = t.params;
+  const passAttachments = kColorAttachments[t.params.iPass];
+  const bundleAttachments = kColorAttachments[t.params.iBundle];
 
   const { maxColorAttachments } = t.device.limits;
-  t.skipIf(
-    passAttachments.length > maxColorAttachments,
-    `num passAttachments: ${passAttachments.length} > maxColorAttachments for device: ${maxColorAttachments}`
-  );
-  t.skipIf(
-    bundleAttachments.length > maxColorAttachments,
-    `num bundleAttachments: ${bundleAttachments.length} > maxColorAttachments for device: ${maxColorAttachments}`
-  );
+  t.skipIf(passAttachments.length > maxColorAttachments);
+  t.skipIf(bundleAttachments.length > maxColorAttachments);
 
   const colorFormats = bundleAttachments.map((i) => i ? 'rgba8uint' : null);
   const bundleEncoder = t.device.createRenderBundleEncoder({
@@ -296,12 +298,9 @@ expand('bundleFormat', ({ bundleFeature }) =>
 filterFormatsByFeature(bundleFeature, kDepthStencilAttachmentFormats)
 )
 ).
-beforeAllSubcases((t) => {
-  const { passFeature, bundleFeature } = t.params;
-  t.selectDeviceOrSkipTestCase([passFeature, bundleFeature]);
-}).
 fn((t) => {
   const { passFormat, bundleFormat } = t.params;
+  t.skipIfTextureFormatNotSupported(passFormat, bundleFormat);
 
   const bundleEncoder = t.device.createRenderBundleEncoder({
     colorFormats: ['rgba8unorm'],
@@ -346,14 +345,12 @@ fn((t) => {
 g.test('render_pass_and_bundle,device_mismatch').
 desc('Test that render passes cannot be called with bundles created from another device.').
 paramsSubcasesOnly((u) => u.combine('mismatched', [true, false])).
-beforeAllSubcases((t) => {
-  t.selectMismatchedDeviceOrSkipTestCase(undefined);
-}).
+beforeAllSubcases((t) => t.usesMismatchedDevice()).
 fn((t) => {
   const { mismatched } = t.params;
   const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
 
-  const format = 'r16float';
+  const format = 'r16uint';
   const bundleEncoder = sourceDevice.createRenderBundleEncoder({
     colorFormats: [format]
   });
@@ -378,13 +375,13 @@ params((u) =>
 u.
 combine('encoderType', ['render pass', 'render bundle']).
 beginSubcases().
-combine('encoderFormat', kColorAttachmentFormats).
-combine('pipelineFormat', kColorAttachmentFormats)
+combine('encoderFormat', kPossibleColorRenderableTextureFormats).
+combine('pipelineFormat', kPossibleColorRenderableTextureFormats)
 ).
 fn((t) => {
   const { encoderType, encoderFormat, pipelineFormat } = t.params;
-
   t.skipIfTextureFormatNotSupported(encoderFormat, pipelineFormat);
+  t.skipIfTextureFormatNotUsableAsRenderAttachment(encoderFormat, pipelineFormat);
 
   const pipeline = t.createRenderPipeline([{ format: pipelineFormat, writeMask: 0 }]);
 
@@ -444,26 +441,27 @@ u.
 combine('encoderType', ['render pass', 'render bundle'])
 // introduce attachmentCount to make it easier to split the test
 .combine('attachmentCount', kColorAttachmentCounts).
-beginSubcases().
-combine('encoderAttachments', kColorAttachments).
-combine('pipelineAttachments', kColorAttachments).
-filter(
-  (p) =>
-  p.attachmentCount === p.encoderAttachments.length &&
-  p.attachmentCount === p.pipelineAttachments.length
+beginSubcases()
+// Indices into kColorAttachments
+.expand('iEncoder', (p) =>
+range(kColorAttachments.length, (i) => i).filter(
+  (i) => kColorAttachments[i].length === p.attachmentCount
+)
+).
+expand('iPipeline', (p) =>
+range(kColorAttachments.length, (i) => i).filter(
+  (i) => kColorAttachments[i].length === p.attachmentCount
+)
 )
 ).
 fn((t) => {
-  const { encoderType, encoderAttachments, pipelineAttachments } = t.params;
+  const { encoderType } = t.params;
+  const encoderAttachments = kColorAttachments[t.params.iEncoder];
+  const pipelineAttachments = kColorAttachments[t.params.iPipeline];
+
   const { maxColorAttachments } = t.device.limits;
-  t.skipIf(
-    encoderAttachments.length > maxColorAttachments,
-    `num encoderAttachments: ${encoderAttachments.length} > maxColorAttachments for device: ${maxColorAttachments}`
-  );
-  t.skipIf(
-    pipelineAttachments.length > maxColorAttachments,
-    `num pipelineAttachments: ${pipelineAttachments.length} > maxColorAttachments for device: ${maxColorAttachments}`
-  );
+  t.skipIf(encoderAttachments.length > maxColorAttachments);
+  t.skipIf(pipelineAttachments.length > maxColorAttachments);
 
   const colorTargets = pipelineAttachments.map((i) =>
   i ? { format: 'rgba8uint', writeMask: 0 } : null
@@ -500,12 +498,9 @@ expand('pipelineFormat', ({ pipelineFormatFeature }) =>
 filterFormatsByFeature(pipelineFormatFeature, kDepthStencilAttachmentFormats)
 )
 ).
-beforeAllSubcases((t) => {
-  const { encoderFormatFeature, pipelineFormatFeature } = t.params;
-  t.selectDeviceOrSkipTestCase([encoderFormatFeature, pipelineFormatFeature]);
-}).
 fn((t) => {
   const { encoderType, encoderFormat, pipelineFormat } = t.params;
+  t.skipIfTextureFormatNotSupported(encoderFormat, pipelineFormat);
 
   const pipeline = t.createRenderPipeline(
     [{ format: 'rgba8unorm', writeMask: 0 }],
@@ -548,16 +543,15 @@ combine('stencilWriteMask', [0, 0xffffffff]).
 combine('cullMode', ['none', 'front', 'back']).
 filter((p) => {
   if (p.format) {
-    const depthStencilInfo = kTextureFormatInfo[p.format];
     // If the format has no depth aspect, the depthReadOnly, depthWriteEnabled of the pipeline must not be true
     // in order to create a valid render pipeline.
-    if (!depthStencilInfo.depth && p.depthWriteEnabled) {
+    if (!isDepthTextureFormat(p.format) && p.depthWriteEnabled) {
       return false;
     }
     // If the format has no stencil aspect, the stencil state operation must be 'keep'
     // in order to create a valid render pipeline.
     if (
-    !depthStencilInfo.stencil && (
+    !isStencilTextureFormat(p.format) && (
     p.stencilFront.failOp !== 'keep' || p.stencilBack.failOp !== 'keep'))
     {
       return false;
@@ -567,9 +561,6 @@ filter((p) => {
   return true;
 })
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format);
-}).
 fn((t) => {
   const {
     encoderType,
@@ -582,6 +573,7 @@ fn((t) => {
     stencilFront,
     stencilBack
   } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
 
   const pipeline = t.createRenderPipeline(
     [{ format: 'rgba8unorm', writeMask: 0 }],

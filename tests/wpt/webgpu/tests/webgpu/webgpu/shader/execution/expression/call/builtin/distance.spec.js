@@ -9,14 +9,14 @@ T is S or vecN<S>
 Returns the distance between e1 and e2 (e.g. length(e1-e2)).
 
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import { Type } from '../../../../../util/conversion.js';
 import { allInputSources, onlyConstInputSource, run } from '../../expression.js';
 
 import { abstractFloatBuiltin, builtin } from './builtin.js';
 import { d } from './distance.cache.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('abstract_float').
 specURL('https://www.w3.org/TR/WGSL/#float-builtin-functions').
@@ -128,10 +128,8 @@ g.test('f16').
 specURL('https://www.w3.org/TR/WGSL/#numeric-builtin-functions').
 desc(`f16 tests`).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get(t.params.inputSource === 'const' ? 'f16_const' : 'f16_non_const');
   await run(t, builtin('distance'), [Type.f16, Type.f16], Type.f16, t.params, cases);
 });
@@ -140,10 +138,8 @@ g.test('f16_vec2').
 specURL('https://www.w3.org/TR/WGSL/#numeric-builtin-functions').
 desc(`f16 tests using vec2s`).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get(
     t.params.inputSource === 'const' ? 'f16_vec2_const' : 'f16_vec2_non_const'
   );
@@ -154,10 +150,8 @@ g.test('f16_vec3').
 specURL('https://www.w3.org/TR/WGSL/#numeric-builtin-functions').
 desc(`f16 tests using vec3s`).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get(
     t.params.inputSource === 'const' ? 'f16_vec3_const' : 'f16_vec3_non_const'
   );
@@ -168,10 +162,8 @@ g.test('f16_vec4').
 specURL('https://www.w3.org/TR/WGSL/#numeric-builtin-functions').
 desc(`f16 tests using vec4s`).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get(
     t.params.inputSource === 'const' ? 'f16_vec4_const' : 'f16_vec4_non_const'
   );

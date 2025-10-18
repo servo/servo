@@ -86,7 +86,7 @@ const kValidStatements = {
   while3: `while true { continue; break; }`,
 
   switch1: `switch 1 { default { } }`,
-  swtich2: `switch 1 { case 1 { } default { } }`,
+  switch2: `switch 1 { case 1 { } default { } }`,
   switch3: `switch 1 { default { break; } }`,
   switch4: `switch 1 { default { } case 1 { break; } }`,
 
@@ -130,7 +130,9 @@ fn((t) => {
 const kValidFunctions = {
   empty: `fn foo() { }`,
   next_return: `fn foo() { if true { return; } }`,
-  no_final_return: `fn foo() -> bool { if true { return true; } else { return false; } }`
+  unreachable_code_after_return_with_value: `fn foo() -> bool { return false; _ = 0; }`,
+  no_final_return: `fn foo() -> bool { if true { return true; } else { return false; } }`,
+  no_final_return_unreachable_code: `fn foo() -> bool { if true { return true; } else { return false; } _ = 0; _ = 1; }`
 };
 
 g.test('valid_functions').

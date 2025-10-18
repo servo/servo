@@ -23,11 +23,11 @@ use ipc_channel::router::ROUTER;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
+use rand::{RngCore, rng};
 use request::RequestId;
 use rustc_hash::FxHashMap;
 use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
-use servo_rand::RngCore;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::filemanager_thread::FileManagerThreadMsg;
@@ -1107,5 +1107,4 @@ pub fn set_default_accept_language(headers: &mut HeaderMap) {
     );
 }
 
-pub static PRIVILEGED_SECRET: LazyLock<u32> =
-    LazyLock::new(|| servo_rand::ServoRng::default().next_u32());
+pub static PRIVILEGED_SECRET: LazyLock<u32> = LazyLock::new(|| rng().next_u32());

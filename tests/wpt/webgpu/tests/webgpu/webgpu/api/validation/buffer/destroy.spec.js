@@ -5,9 +5,10 @@ Validation tests for GPUBuffer.destroy.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { kBufferUsages } from '../../../capability_info.js';
 import { GPUConst } from '../../../constants.js';
-import { ValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
+import * as vtu from '../validation_test_utils.js';
 
-export const g = makeTestGroup(ValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('all_usages').
 desc('Test destroying buffers of every usage type.').
@@ -28,7 +29,7 @@ fn((t) => {
 g.test('error_buffer').
 desc('Test that error buffers may be destroyed without generating validation errors.').
 fn((t) => {
-  const buf = t.getErrorBuffer();
+  const buf = vtu.getErrorBuffer(t);
   buf.destroy();
 });
 

@@ -4,9 +4,9 @@
 Execution Tests for shadowing
 `;import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { iterRange } from '../../../common/util/util.js';
-import { GPUTest } from '../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../gpu_test.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 /**
  * Run a shader and check that the buffer output matches expectations.

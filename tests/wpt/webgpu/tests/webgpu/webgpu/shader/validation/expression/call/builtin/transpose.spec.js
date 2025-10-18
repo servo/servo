@@ -6,12 +6,10 @@ Validation tests for the ${builtin}() builtin.
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { keysOf, objectsToRecord } from '../../../../../../common/util/data_tables.js';
 import {
-  Type,
   isConvertible,
   kAllMatrices,
   kConcreteFloatScalars,
-  kFloatScalars,
-  scalarTypeOf } from
+  kFloatScalars } from
 '../../../../../util/conversion.js';
 import { ShaderValidationTest } from '../../../shader_validation_test.js';
 
@@ -38,11 +36,6 @@ combine('type', keysOf(kValidArgumentTypes)).
 beginSubcases().
 expand('value', (u) => fullRangeForType(kValidArgumentTypes[u.type]))
 ).
-beforeAllSubcases((t) => {
-  if (scalarTypeOf(kValidArgumentTypes[t.params.type]) === Type.f16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const expectedResult = true;
 
@@ -100,11 +93,6 @@ combine('output_type', keysOf(kValidReturnScalarTypes)).
 combine('output_rows', [2, 3, 4]).
 combine('output_cols', [2, 3, 4])
 ).
-beforeAllSubcases((t) => {
-  if (t.params.input_type === 'f16' || t.params.output_type === 'f16') {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const input_type = t.params.input_type;
   const input_cols = t.params.input_cols;

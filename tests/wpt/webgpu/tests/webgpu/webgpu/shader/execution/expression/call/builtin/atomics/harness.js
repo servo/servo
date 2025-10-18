@@ -100,7 +100,7 @@ export function runStorageVariableTest({
   });
 
   // Run the shader.
-  const encoder = t.device.createCommandEncoder();
+  const encoder = t.device.createCommandEncoder({ label: 'runStorageVariableTest' });
   const pass = encoder.beginComputePass();
   pass.setPipeline(pipeline);
   pass.setBindGroup(0, bindGroup);
@@ -194,7 +194,7 @@ export function runWorkgroupVariableTest({
   });
 
   // Run the shader.
-  const encoder = t.device.createCommandEncoder();
+  const encoder = t.device.createCommandEncoder({ label: 'runWorkgroupVariableTest' });
   const pass = encoder.beginComputePass();
   pass.setPipeline(pipeline);
   pass.setBindGroup(0, bindGroup);

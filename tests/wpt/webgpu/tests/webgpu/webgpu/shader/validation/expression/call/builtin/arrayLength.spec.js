@@ -58,11 +58,6 @@ u.combine('type', [
 'array<i32>']
 )
 ).
-beforeAllSubcases((t) => {
-  if (t.params.type.includes('f16')) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const code = `
 struct T {

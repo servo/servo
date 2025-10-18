@@ -3,13 +3,13 @@
 **/export const description = `
 Execution Tests for structure member accessing expressions
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import { Type, u32 } from '../../../../../util/conversion.js';
 import { align } from '../../../../../util/math.js';
 import { toComparator } from '../../expectation.js';
 import { structLayout, structStride } from '../../expression.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 const kMemberTypes = [
 ['bool'],
@@ -140,12 +140,10 @@ combine('inputSource', ['uniform', 'storage']).
 beginSubcases().
 expand('member_index', (t) => t.member_types.map((_, i) => i))
 ).
-beforeAllSubcases((t) => {
-  if (t.params.member_types.includes('f16')) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn(async (t) => {
+  if (t.params.member_types.includes('f16')) {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
   const values = t.params.member_types.map((ty, i) => Type[ty].create(i));
   const expected = values[t.params.member_index];
 
@@ -182,7 +180,6 @@ u.
 beginSubcases().
 combine('member_index', [0, 1, 2]).
 combine('alignments', [
-[1, 1, 1],
 [4, 4, 4],
 [4, 8, 16],
 [8, 4, 16],
@@ -287,12 +284,10 @@ combine('inputSource', ['uniform', 'storage']).
 beginSubcases().
 expand('member_index', (t) => t.member_types.map((_, i) => i))
 ).
-beforeAllSubcases((t) => {
-  if (t.params.member_types.includes('f16')) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn(async (t) => {
+  if (t.params.member_types.includes('f16')) {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
   const values = t.params.member_types.map((ty, i) => Type[ty].create(i));
   const expected = values[t.params.member_index];
 
@@ -329,12 +324,10 @@ combine('member_types', kMemberTypes).
 beginSubcases().
 expand('member_index', (t) => t.member_types.map((_, i) => i))
 ).
-beforeAllSubcases((t) => {
-  if (t.params.member_types.includes('f16')) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn(async (t) => {
+  if (t.params.member_types.includes('f16')) {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
   const memberType = Type[t.params.member_types[t.params.member_index]];
   const values = t.params.member_types.map((ty, i) => Type[ty].create(i));
   const expected =
@@ -375,12 +368,10 @@ combine('member_types', kMemberTypes).
 beginSubcases().
 expand('member_index', (t) => t.member_types.map((_, i) => i))
 ).
-beforeAllSubcases((t) => {
-  if (t.params.member_types.includes('f16')) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn(async (t) => {
+  if (t.params.member_types.includes('f16')) {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
   const memberType = Type[t.params.member_types[t.params.member_index]];
   const values = t.params.member_types.map((ty, i) => Type[ty].create(i));
   const expected =
@@ -424,12 +415,10 @@ combine('member_types', kMemberTypes).
 beginSubcases().
 expand('member_index', (t) => t.member_types.map((_, i) => i))
 ).
-beforeAllSubcases((t) => {
-  if (t.params.member_types.includes('f16')) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn(async (t) => {
+  if (t.params.member_types.includes('f16')) {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
   const memberType = Type[t.params.member_types[t.params.member_index]];
   const values = t.params.member_types.map((ty, i) => Type[ty].create(i));
   const expected =
@@ -471,12 +460,10 @@ combine('member_types', kMemberTypes).
 beginSubcases().
 expand('member_index', (t) => t.member_types.map((_, i) => i))
 ).
-beforeAllSubcases((t) => {
-  if (t.params.member_types.includes('f16')) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn(async (t) => {
+  if (t.params.member_types.includes('f16')) {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
   const memberType = Type[t.params.member_types[t.params.member_index]];
   const values = t.params.member_types.map((ty, i) => Type[ty].create(i));
   const expected =

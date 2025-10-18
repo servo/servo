@@ -1,6 +1,6 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { assert } from '../../../../../common/util/util.js';import { kTextureSampleCounts } from '../../../../capability_info.js';import { kTextureFormatInfo } from '../../../../format_info.js';
+**/import { assert } from '../../../../../common/util/util.js';import { kTextureSampleCounts } from '../../../../capability_info.js';import { getColorRenderAlignment, getColorRenderByteCost } from '../../../../format_info.js';
 import { align } from '../../../../util/math.js';
 
 import {
@@ -11,19 +11,16 @@ import {
 './limit_utils.js';
 
 const kFormatsToUseBySize = [
-'rgba32float',
-'rgba16float',
+'rgba32uint',
+'rgba16uint',
 'rgba8unorm',
 'rg8unorm',
 'r8unorm'];
 
 
-const kInterleaveFormats = [
-'rgba16float',
-'rg16float',
-'rgba8unorm',
-'rg8unorm',
-'r8unorm'];
+const kInterleaveFormats = ['rgba16uint', 'rg16uint', 'rgba8unorm', 'rg8unorm', 'r8unorm'];
+
+const kFormatsUsedInTest = [...kFormatsToUseBySize, ...kInterleaveFormats];
 
 
 function getAttachments(interleaveFormat, testValue) {
@@ -31,9 +28,8 @@ function getAttachments(interleaveFormat, testValue) {
   const targets = [];
 
   const addTexture = (format) => {
-    const info = kTextureFormatInfo[format];
     const newBytesPerSample =
-    align(bytesPerSample, info.colorRender.alignment) + info.colorRender.byteCost;
+    align(bytesPerSample, getColorRenderAlignment(format)) + getColorRenderByteCost(format);
     if (newBytesPerSample > testValue) {
       return false;
     }
@@ -70,12 +66,13 @@ targets)
     let offset = 0;
     return targets.
     map(({ format }) => {
-      const info = kTextureFormatInfo[format];
-      offset = align(offset, info.colorRender.alignment);
-      const s = `//   ${format.padEnd(11)} (offset: ${offset.toString().padStart(2)}, align: ${
-      info.colorRender.alignment
-      }, size: ${info.colorRender.byteCost})`;
-      offset += info.colorRender.byteCost;
+      const alignment = getColorRenderAlignment(format);
+      const byteCost = getColorRenderByteCost(format);
+      offset = align(offset, alignment);
+      const s = `//   ${format.padEnd(11)} (offset: ${offset.
+      toString().
+      padStart(2)}, align: ${alignment}, size: ${byteCost})`;
+      offset += byteCost;
       return s;
     }).
     join('\n    ');
@@ -95,14 +92,16 @@ testValue)
     return;
   }
 
+  const typedVec = interleaveFormat.includes('uint') ? 'vec4u' : 'vec4f';
+
   const code = `
     ${getDescription(testValue, actualLimit, sampleCount, targets)}
     @vertex fn vs() -> @builtin(position) vec4f {
       return vec4f(0);
     }
 
-    @fragment fn fs() -> @location(0) vec4f {
-      return vec4f(0);
+    @fragment fn fs() -> @location(0) ${typedVec} {
+      return ${typedVec}(0);
     }
   `;
   const module = device.createShaderModule({ code });

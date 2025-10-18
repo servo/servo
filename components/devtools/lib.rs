@@ -29,10 +29,10 @@ use devtools_traits::{
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::IpcSender;
 use log::{trace, warn};
+use rand::{RngCore, rng};
 use resource::{ResourceArrayType, ResourceAvailable};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
-use servo_rand::RngCore;
 
 use crate::actor::{Actor, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
@@ -142,7 +142,7 @@ impl DevtoolsInstance {
 
         // A token shared with the embedder to bypass permission prompt.
         let port = if bound.is_some() { Ok(port) } else { Err(()) };
-        let token = format!("{:X}", servo_rand::ServoRng::default().next_u32());
+        let token = format!("{:X}", rng().next_u32());
         embedder.send(EmbedderMsg::OnDevtoolsStarted(port, token.clone()));
 
         let listener = match bound {

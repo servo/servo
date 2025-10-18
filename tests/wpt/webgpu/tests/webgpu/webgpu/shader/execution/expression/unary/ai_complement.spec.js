@@ -3,14 +3,14 @@
 **/export const description = `
 Execution Tests for the Type.abstractInt bitwise complement operation
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 import { abstractInt, Type } from '../../../../util/conversion.js';
 import { fullI64Range } from '../../../../util/math.js';
 import { onlyConstInputSource, run } from '../expression.js';
 
 import { abstractIntUnary } from './unary.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('complement').
 specURL('https://www.w3.org/TR/WGSL/#bit-expr').

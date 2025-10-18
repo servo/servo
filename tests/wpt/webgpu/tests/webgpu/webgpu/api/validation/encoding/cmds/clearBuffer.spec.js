@@ -4,12 +4,12 @@
 API validation tests for clearBuffer.
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { kBufferUsages } from '../../../../capability_info.js';
-import { kResourceStates } from '../../../../gpu_test.js';
+import { kResourceStates, AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 import { kMaxSafeMultipleOf8 } from '../../../../util/math.js';
-import { ValidationTest } from '../../validation_test.js';
+import * as vtu from '../../validation_test_utils.js';
 
-class F extends ValidationTest {
-  TestClearBuffer(options)
+class F extends AllFeaturesMaxLimitsGPUTest {
+  testClearBuffer(options)
 
 
 
@@ -34,7 +34,7 @@ params((u) => u.combine('bufferState', kResourceStates)).
 fn((t) => {
   const { bufferState } = t.params;
 
-  const buffer = t.createBufferWithState(bufferState, {
+  const buffer = vtu.createBufferWithState(t, bufferState, {
     size: 8,
     usage: GPUBufferUsage.COPY_DST
   });
@@ -57,9 +57,7 @@ fn((t) => {
 g.test('buffer,device_mismatch').
 desc(`Tests clearBuffer cannot be called with buffer created from another device.`).
 paramsSubcasesOnly((u) => u.combine('mismatched', [true, false])).
-beforeAllSubcases((t) => {
-  t.selectMismatchedDeviceOrSkipTestCase(undefined);
-}).
+beforeAllSubcases((t) => t.usesMismatchedDevice()).
 fn((t) => {
   const { mismatched } = t.params;
   const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
@@ -72,7 +70,7 @@ fn((t) => {
     })
   );
 
-  t.TestClearBuffer({
+  t.testClearBuffer({
     buffer,
     offset: 0,
     size,
@@ -95,7 +93,7 @@ fn((t) => {
     usage: GPUBufferUsage.COPY_DST
   });
 
-  t.TestClearBuffer({
+  t.testClearBuffer({
     buffer,
     offset,
     size,
@@ -117,7 +115,7 @@ fn((t) => {
     usage
   });
 
-  t.TestClearBuffer({
+  t.testClearBuffer({
     buffer,
     offset: 0,
     size: 16,
@@ -152,7 +150,7 @@ fn((t) => {
     usage: GPUBufferUsage.COPY_DST
   });
 
-  t.TestClearBuffer({
+  t.testClearBuffer({
     buffer,
     offset: 0,
     size,
@@ -186,7 +184,7 @@ fn((t) => {
     usage: GPUBufferUsage.COPY_DST
   });
 
-  t.TestClearBuffer({
+  t.testClearBuffer({
     buffer,
     offset,
     size: 8,
@@ -210,7 +208,7 @@ fn((t) => {
     usage: GPUBufferUsage.COPY_DST
   });
 
-  t.TestClearBuffer({
+  t.testClearBuffer({
     buffer,
     offset,
     size,
@@ -238,7 +236,7 @@ fn((t) => {
     usage: GPUBufferUsage.COPY_DST
   });
 
-  t.TestClearBuffer({
+  t.testClearBuffer({
     buffer,
     offset,
     size,

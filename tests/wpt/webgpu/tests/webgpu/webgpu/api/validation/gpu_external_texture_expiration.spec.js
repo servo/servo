@@ -2,7 +2,8 @@
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/export const description = `
 GPUExternalTexture expiration mechanism validation tests.
-`;import { makeTestGroup } from '../../../common/framework/test_group.js';
+`;import { AllFeaturesMaxLimitsGPUTest } from '../.././gpu_test.js';
+import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { assert } from '../../../common/util/util.js';
 import {
   getVideoElement,
@@ -12,9 +13,7 @@ import {
   waitForNextTask } from
 '../../web_platform/util.js';
 
-import { ValidationTest } from './validation_test.js';
-
-class GPUExternalTextureExpireTest extends ValidationTest {
+class GPUExternalTextureExpireTest extends AllFeaturesMaxLimitsGPUTest {
   submitCommandBuffer(bindGroup, success) {
     const kHeight = 16;
     const kWidth = 16;

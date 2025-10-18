@@ -85,11 +85,6 @@ combine('op', keysOf(kOperators))
 combine('test', keysOf(kTests)).
 combine('swap', [true, false])
 ).
-beforeAllSubcases((t) => {
-  if (kTests[t.params.test].is_f16 === true || t.params.rhs.startsWith('mat2x3h(')) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   let lhs = kTests[t.params.test].src;
   let rhs = t.params.rhs === 'ai' ? 'mat2x3(0, 0, 0, 0, 0, 0)' : t.params.rhs;

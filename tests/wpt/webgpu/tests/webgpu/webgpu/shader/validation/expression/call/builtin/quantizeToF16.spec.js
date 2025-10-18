@@ -92,11 +92,6 @@ const kArgCases = {
 g.test('args').
 desc(`Test compilation failure of ${builtin} with variously shaped and typed arguments`).
 params((u) => u.combine('arg', keysOf(kArgCases))).
-beforeAllSubcases((t) => {
-  if (t.params.arg in kArgCasesF16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   t.expectCompileResult(
     t.params.arg === 'good',

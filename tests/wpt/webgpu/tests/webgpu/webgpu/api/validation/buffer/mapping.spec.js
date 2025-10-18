@@ -7,9 +7,10 @@ import { attemptGarbageCollection } from '../../../../common/util/collect_garbag
 import { assert, unreachable } from '../../../../common/util/util.js';
 import { kBufferUsages } from '../../../capability_info.js';
 import { GPUConst } from '../../../constants.js';
-import { ValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
+import * as vtu from '../validation_test_utils.js';
 
-class F extends ValidationTest {
+class F extends AllFeaturesMaxLimitsGPUTest {
   async testMapAsyncCall(
   expectation,
 
@@ -149,7 +150,7 @@ desc('Test that mapAsync is an error when called on an invalid buffer.').
 paramsSubcasesOnly((u) => u.combine('mapMode', kMapModeOptions)).
 fn(async (t) => {
   const { mapMode } = t.params;
-  const buffer = t.getErrorBuffer();
+  const buffer = vtu.getErrorBuffer(t);
   await t.testMapAsyncCall(
     { validationError: true, earlyRejection: false, rejectName: 'OperationError' },
     buffer,

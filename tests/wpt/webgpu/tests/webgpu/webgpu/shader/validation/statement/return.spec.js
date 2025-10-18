@@ -36,11 +36,6 @@ const kTestTypes = [
 g.test('return_missing_value').
 desc(`Tests that a 'return' must have a value if the function has a return type`).
 params((u) => u.combine('type', [...kTestTypesNoAbstract, undefined])).
-beforeAllSubcases((t) => {
-  if (t.params.type !== undefined && scalarTypeOf(Type[t.params.type]).kind) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const type = t.params.type ? Type[t.params.type] : undefined;
   const enable = type && scalarTypeOf(type).kind === 'f16' ? 'enable f16;' : '';
@@ -59,11 +54,6 @@ fn f()${type ? `-> ${type}` : ''} {
 g.test('return_unexpected_value').
 desc(`Tests that a 'return' must not have a value if the function has no return type`).
 params((u) => u.combine('type', [...kTestTypes, undefined])).
-beforeAllSubcases((t) => {
-  if (t.params.type !== undefined && scalarTypeOf(Type[t.params.type]).kind) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const type = t.params.type ? Type[t.params.type] : undefined;
   const enable = type && scalarTypeOf(type).kind === 'f16' ? 'enable f16;' : '';
@@ -84,14 +74,6 @@ desc(`Tests that a 'return' value type must match the function return type`).
 params((u) =>
 u.combine('return_value_type', kTestTypes).combine('fn_return_type', kTestTypesNoAbstract)
 ).
-beforeAllSubcases((t) => {
-  if (
-  scalarTypeOf(Type[t.params.return_value_type]).kind === 'f16' ||
-  scalarTypeOf(Type[t.params.fn_return_type]).kind === 'f16')
-  {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const returnValueType = Type[t.params.return_value_type];
   const fnReturnType = Type[t.params.fn_return_type];

@@ -45,11 +45,6 @@ combine('cols', [2, 3, 4]).
 combine('rows', [2, 3, 4]).
 combine('type', ['abstract-int', 'abstract-float', 'f32', 'f16'])
 ).
-beforeAllSubcases((t) => {
-  if (t.params.type === 'f16') {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const cols = t.params.cols;
   const rows = t.params.rows;

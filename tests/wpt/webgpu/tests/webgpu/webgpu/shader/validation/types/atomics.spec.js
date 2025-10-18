@@ -40,11 +40,6 @@ u.combine('type', [
 'sampler']
 )
 ).
-beforeAllSubcases((t) => {
-  if (t.params.type === 'f16') {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const code = `
 struct S {

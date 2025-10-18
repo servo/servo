@@ -17,7 +17,7 @@ The |i|'th component of the whole and fractional parts equal the whole and fract
 Returns the result_struct for the given type.
 
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import { Type } from '../../../../../util/conversion.js';
 import {
   abstractFloatShaderBuilder,
@@ -30,7 +30,7 @@ import {
 
 import { d } from './modf.cache.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 /** @returns an ShaderBuilder that evaluates modf and returns .whole from the result structure */
 function wholeBuilder() {
@@ -209,10 +209,8 @@ struct __modf_result_f16 {
 `
 ).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('f16_fract');
   await run(t, fractBuilder(), [Type.f16], Type.f16, t.params, cases);
 });
@@ -230,10 +228,8 @@ struct __modf_result_f16 {
 `
 ).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('f16_whole');
   await run(t, wholeBuilder(), [Type.f16], Type.f16, t.params, cases);
 });
@@ -251,10 +247,8 @@ struct __modf_result_vec2_f16 {
 `
 ).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('f16_vec2_fract');
   await run(t, fractBuilder(), [Type.vec2h], Type.vec2h, t.params, cases);
 });
@@ -272,10 +266,8 @@ struct __modf_result_vec2_f16 {
 `
 ).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('f16_vec2_whole');
   await run(t, wholeBuilder(), [Type.vec2h], Type.vec2h, t.params, cases);
 });
@@ -293,10 +285,8 @@ struct __modf_result_vec3_f16 {
 `
 ).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('f16_vec3_fract');
   await run(t, fractBuilder(), [Type.vec3h], Type.vec3h, t.params, cases);
 });
@@ -314,10 +304,8 @@ struct __modf_result_vec3_f16 {
 `
 ).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('f16_vec3_whole');
   await run(t, wholeBuilder(), [Type.vec3h], Type.vec3h, t.params, cases);
 });
@@ -335,10 +323,8 @@ struct __modf_result_vec4_f16 {
 `
 ).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('f16_vec4_fract');
   await run(t, fractBuilder(), [Type.vec4h], Type.vec4h, t.params, cases);
 });
@@ -356,10 +342,8 @@ struct __modf_result_vec4_f16 {
 `
 ).
 params((u) => u.combine('inputSource', allInputSources)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('f16_vec4_whole');
   await run(t, wholeBuilder(), [Type.vec4h], Type.vec4h, t.params, cases);
 });

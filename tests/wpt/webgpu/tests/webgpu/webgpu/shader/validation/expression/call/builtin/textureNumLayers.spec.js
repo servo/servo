@@ -8,7 +8,7 @@ Validation tests for the ${builtin}() builtin.
 `;
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { keysOf, objectsToRecord } from '../../../../../../common/util/data_tables.js';
-import { kAllTextureFormats, kTextureFormatInfo } from '../../../../../format_info.js';
+import { kPossibleStorageTextureFormats } from '../../../../../format_info.js';
 import {
   Type,
   kAllScalarsAndVectors,
@@ -83,20 +83,19 @@ u.
 combine('returnType', keysOf(kValuesTypes)).
 combine('textureType', kTextureNumLayersTextureTypesForStorageTextures).
 beginSubcases().
-combine('format', kAllTextureFormats)
-// filter to only storage texture formats.
-.filter((t) => !!kTextureFormatInfo[t.format].color?.storage)
+combine('format', kPossibleStorageTextureFormats)
 ).
 fn((t) => {
   const { returnType, textureType, format } = t.params;
-  t.skipIfTextureFormatNotUsableAsStorageTexture(format);
+  t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureFormatNotUsableWithStorageAccessMode('write-only', format);
 
   const returnVarType = kValuesTypes[returnType];
 
   const varWGSL = returnVarType.toString();
 
   const code = `
-@group(0) @binding(0) var t: ${textureType}<${format}, read>;
+@group(0) @binding(0) var t: ${textureType}<${format}, write>;
 @fragment fn fs() -> @location(0) vec4f {
   let v: ${varWGSL} = textureNumLayers(t);
   return vec4f(0);

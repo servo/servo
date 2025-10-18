@@ -9,7 +9,7 @@ use std::option::Option;
 use std::result::Result;
 
 use base::generic_channel::{GenericSender, RoutedReceiver};
-use base::id::PipelineId;
+use base::id::{PipelineId, WebViewId};
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use constellation_traits::ScriptToConstellationMessage;
@@ -70,8 +70,8 @@ impl MixedMessage {
                 ScriptThreadMessage::Viewport(id, ..) => Some(*id),
                 ScriptThreadMessage::GetTitle(id) => Some(*id),
                 ScriptThreadMessage::SetDocumentActivity(id, ..) => Some(*id),
-                ScriptThreadMessage::SetThrottled(id, ..) => Some(*id),
-                ScriptThreadMessage::SetThrottledInContainingIframe(id, ..) => Some(*id),
+                ScriptThreadMessage::SetThrottled(_, id, ..) => Some(*id),
+                ScriptThreadMessage::SetThrottledInContainingIframe(_, id, ..) => Some(*id),
                 ScriptThreadMessage::NavigateIframe(id, ..) => Some(*id),
                 ScriptThreadMessage::PostMessage { target: id, .. } => Some(*id),
                 ScriptThreadMessage::UpdatePipelineId(_, _, _, id, _) => Some(*id),
@@ -97,12 +97,12 @@ impl MixedMessage {
                 #[cfg(feature = "webgpu")]
                 ScriptThreadMessage::SetWebGPUPort(..) => None,
                 ScriptThreadMessage::SetScrollStates(id, ..) => Some(*id),
-                ScriptThreadMessage::EvaluateJavaScript(id, _, _) => Some(*id),
+                ScriptThreadMessage::EvaluateJavaScript(_, id, _, _) => Some(*id),
                 ScriptThreadMessage::SendImageKeysBatch(..) => None,
                 ScriptThreadMessage::PreferencesUpdated(..) => None,
                 ScriptThreadMessage::NoLongerWaitingOnAsychronousImageUpdates(_) => None,
                 ScriptThreadMessage::ForwardKeyboardScroll(id, _) => Some(*id),
-                ScriptThreadMessage::RequestScreenshotReadiness(id) => Some(*id),
+                ScriptThreadMessage::RequestScreenshotReadiness(_, id) => Some(*id),
                 ScriptThreadMessage::EmbedderControlResponse(id, _) => Some(id.pipeline_id),
             },
             MixedMessage::FromScript(inner_msg) => match inner_msg {
@@ -346,7 +346,7 @@ pub(crate) struct ScriptThreadSenders {
     /// particular pipelines.
     #[no_trace]
     pub(crate) pipeline_to_constellation_sender:
-        GenericSender<(PipelineId, ScriptToConstellationMessage)>,
+        GenericSender<(WebViewId, PipelineId, ScriptToConstellationMessage)>,
 
     /// A channel to send messages to the Embedder.
     #[no_trace]

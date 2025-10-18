@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use base::id::PipelineId;
+use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use dom_struct::dom_struct;
 use servo_url::ServoUrl;
@@ -31,6 +31,7 @@ pub(crate) struct TestWorkletGlobalScope {
 impl TestWorkletGlobalScope {
     #[allow(unsafe_code)]
     pub(crate) fn new(
+        webview_id: WebViewId,
         pipeline_id: PipelineId,
         base_url: ServoUrl,
         executor: WorkletExecutor,
@@ -42,6 +43,7 @@ impl TestWorkletGlobalScope {
         );
         let global = Box::new(TestWorkletGlobalScope {
             worklet_global: WorkletGlobalScope::new_inherited(
+                webview_id,
                 pipeline_id,
                 base_url,
                 executor,
