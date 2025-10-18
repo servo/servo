@@ -7,6 +7,7 @@ use constellation_traits::DomException;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
+use script_bindings::match_domstring_ascii;
 
 use crate::dom::bindings::codegen::Bindings::DOMExceptionBinding::{
     DOMExceptionConstants, DOMExceptionMethods,
@@ -61,7 +62,7 @@ pub(crate) enum DOMErrorName {
 
 impl DOMErrorName {
     pub(crate) fn from(s: &DOMString) -> Option<DOMErrorName> {
-        match &*s.str() {
+        match_domstring_ascii!(s, None,
             "IndexSizeError" => Some(DOMErrorName::IndexSizeError),
             "HierarchyRequestError" => Some(DOMErrorName::HierarchyRequestError),
             "WrongDocumentError" => Some(DOMErrorName::WrongDocumentError),
@@ -93,8 +94,7 @@ impl DOMErrorName {
             "OperationError" => Some(DOMErrorName::OperationError),
             "NotAllowedError" => Some(DOMErrorName::NotAllowedError),
             "ConstraintError" => Some(DOMErrorName::ConstraintError),
-            _ => None,
-        }
+        )
     }
 }
 
