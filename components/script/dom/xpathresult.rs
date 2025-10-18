@@ -106,19 +106,6 @@ impl XPathResult {
         result_type: XPathResultType,
         value: XPathResultValue,
     ) -> XPathResult {
-        // TODO(vlindhol): if the wanted result type is AnyUnorderedNode | FirstOrderedNode,
-        // we could drop all nodes except one to save memory.
-        let inferred_result_type = if result_type == XPathResultType::Any {
-            match value {
-                XPathResultValue::Boolean(_) => XPathResultType::Boolean,
-                XPathResultValue::Number(_) => XPathResultType::Number,
-                XPathResultValue::String(_) => XPathResultType::String,
-                XPathResultValue::Nodeset(_) => XPathResultType::UnorderedNodeIterator,
-            }
-        } else {
-            result_type
-        };
-
         XPathResult {
             reflector_: Reflector::new(),
             window: Dom::from_ref(window),
@@ -128,7 +115,7 @@ impl XPathResult {
                     .upcast::<Node>()
                     .inclusive_descendants_version(),
             ),
-            result_type: Cell::new(inferred_result_type),
+            result_type: Cell::new(result_type),
             iterator_pos: Cell::new(0),
             value: RefCell::new(value),
         }

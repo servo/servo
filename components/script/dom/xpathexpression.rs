@@ -82,17 +82,30 @@ impl XPathExpression {
             _ => result_value,
         };
 
+        // TODO: if the wanted result type is AnyUnorderedNode | FirstOrderedNode,
+        // we could drop all nodes except one to save memory.
+        let inferred_result_type = if result_type == XPathResultType::Any {
+            match result_value {
+                Value::Boolean(_) => XPathResultType::Boolean,
+                Value::Number(_) => XPathResultType::Number,
+                Value::String(_) => XPathResultType::String,
+                Value::Nodeset(_) => XPathResultType::UnorderedNodeIterator,
+            }
+        } else {
+            result_type
+        };
+
         if let Some(result) = result {
             // According to https://www.w3.org/TR/DOM-Level-3-XPath/xpath.html#XPathEvaluator-evaluate, reusing
             // the provided result object is optional. We choose to do it here because thats what other browsers do.
-            result.reinitialize_with(result_type, result_value.into());
+            result.reinitialize_with(inferred_result_type, result_value.into());
             Ok(DomRoot::from_ref(result))
         } else {
             Ok(XPathResult::new(
                 window,
                 None,
                 can_gc,
-                result_type,
+                inferred_result_type,
                 result_value.into(),
             ))
         }
