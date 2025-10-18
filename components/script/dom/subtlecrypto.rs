@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 mod aes_operation;
+mod ed25519_operation;
 mod hkdf_operation;
 mod hmac_operation;
 mod pbkdf2_operation;
@@ -22,7 +23,7 @@ use js::typedarray::ArrayBufferU8;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
-    CryptoKeyMethods, KeyType, KeyUsage,
+    CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesGcmParams, AesKeyAlgorithm,
@@ -63,6 +64,7 @@ const ALG_RSA_OAEP: &str = "RSA-OAEP";
 const ALG_RSA_PSS: &str = "RSA-PSS";
 const ALG_ECDH: &str = "ECDH";
 const ALG_ECDSA: &str = "ECDSA";
+const ALG_ED25519: &str = "Ed25519";
 
 static SUPPORTED_ALGORITHMS: &[&str] = &[
     ALG_AES_CBC,
@@ -81,6 +83,7 @@ static SUPPORTED_ALGORITHMS: &[&str] = &[
     ALG_RSA_PSS,
     ALG_ECDH,
     ALG_ECDSA,
+    ALG_ED25519,
 ];
 
 const NAMED_CURVE_P256: &str = "P-256";
@@ -194,6 +197,25 @@ impl SubtleCrypto {
                 let key = trusted_key.root();
                 let promise = trusted_promise.root();
                 promise.resolve_native(&key, CanGc::note());
+            }));
+    }
+
+    /// Queue a global task on the crypto task source, given realm's global object, to resolve
+    /// promise with a CryptoKeyPair.
+    fn resolve_promise_with_key_pair(&self, promise: Rc<Promise>, key_pair: CryptoKeyPair) {
+        let trusted_private_key = key_pair.privateKey.map(|key| Trusted::new(&*key));
+        let trusted_public_key = key_pair.publicKey.map(|key| Trusted::new(&*key));
+        let trusted_promise = TrustedPromise::new(promise);
+        self.global()
+            .task_manager()
+            .crypto_task_source()
+            .queue(task!(resolve_key: move || {
+                let key_pair = CryptoKeyPair {
+                    privateKey: trusted_private_key.map(|trusted_key| trusted_key.root()),
+                    publicKey: trusted_public_key.map(|trusted_key| trusted_key.root()),
+                };
+                let promise = trusted_promise.root();
+                promise.resolve_native(&key_pair, CanGc::note());
             }));
     }
 
@@ -730,6 +752,12 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                             return;
                         }
                     },
+                    CryptoKeyOrCryptoKeyPair::CryptoKeyPair(crypto_key_pair) => {
+                        if crypto_key_pair.privateKey.as_ref().is_none_or(|private_key| private_key.usages().is_empty()) {
+                            subtle.reject_promise_with_error(promise, Error::Syntax(None));
+                            return;
+                        }
+                    }
                 };
 
                 // Step 10. Queue a global task on the crypto task source, given realm's global
@@ -740,6 +768,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 match result {
                     CryptoKeyOrCryptoKeyPair::CryptoKey(key) => {
                         subtle.resolve_promise_with_key(promise, key);
+                    },
+                    CryptoKeyOrCryptoKeyPair::CryptoKeyPair(key_pair) => {
+                        subtle.resolve_promise_with_key_pair(promise, key_pair);
                     },
                 }
             }));
@@ -2188,6 +2219,33 @@ fn normalize_algorithm(
             // NOTE: Step 10.1.3 is done by the `From` and `TryFrom` trait implementation of
             // "subtle" binding structs.
             let normalized_algorithm = match (alg_name, op) {
+                // <https://w3c.github.io/webcrypto/#ed25519-registration>
+                (ALG_ED25519, Operation::Sign) => {
+                    let mut params = dictionary_from_jsval::<Algorithm>(cx, value.handle())?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+                (ALG_ED25519, Operation::Verify) => {
+                    let mut params = dictionary_from_jsval::<Algorithm>(cx, value.handle())?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+                (ALG_ED25519, Operation::GenerateKey) => {
+                    let mut params = dictionary_from_jsval::<Algorithm>(cx, value.handle())?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+                (ALG_ED25519, Operation::ImportKey) => {
+                    let mut params = dictionary_from_jsval::<Algorithm>(cx, value.handle())?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+                (ALG_ED25519, Operation::ExportKey) => {
+                    let mut params = dictionary_from_jsval::<Algorithm>(cx, value.handle())?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+
                 // <https://w3c.github.io/webcrypto/#aes-ctr-registration>
                 (ALG_AES_CTR, Operation::Encrypt) => {
                     let mut params = dictionary_from_jsval::<RootedTraceableBox<AesCtrParams>>(
@@ -2500,6 +2558,7 @@ impl NormalizedAlgorithm {
     fn sign(&self, key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
         match self {
             NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
+                ALG_ED25519 => ed25519_operation::sign(key, message),
                 ALG_HMAC => hmac_operation::sign(key, message),
                 _ => Err(Error::NotSupported),
             },
@@ -2510,6 +2569,7 @@ impl NormalizedAlgorithm {
     fn verify(&self, key: &CryptoKey, message: &[u8], signature: &[u8]) -> Result<bool, Error> {
         match self {
             NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
+                ALG_ED25519 => ed25519_operation::verify(key, message, signature),
                 ALG_HMAC => hmac_operation::verify(key, message, signature),
                 _ => Err(Error::NotSupported),
             },
@@ -2537,6 +2597,13 @@ impl NormalizedAlgorithm {
         can_gc: CanGc,
     ) -> Result<CryptoKeyOrCryptoKeyPair, Error> {
         match self {
+            NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
+                ALG_ED25519 => {
+                    ed25519_operation::generate_key(global, extractable, usages, rng, can_gc)
+                        .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair)
+                },
+                _ => Err(Error::NotSupported),
+            },
             NormalizedAlgorithm::AesKeyGenParams(algo) => match algo.name.as_str() {
                 ALG_AES_CTR => {
                     aes_operation::generate_key_aes_ctr(global, algo, extractable, usages, can_gc)
@@ -2585,6 +2652,14 @@ impl NormalizedAlgorithm {
     ) -> Result<DomRoot<CryptoKey>, Error> {
         match self {
             NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
+                ALG_ED25519 => ed25519_operation::import_key(
+                    global,
+                    format,
+                    key_data,
+                    extractable,
+                    usages,
+                    can_gc,
+                ),
                 ALG_AES_CTR => aes_operation::import_key_aes_ctr(
                     global,
                     format,
@@ -2683,6 +2758,7 @@ impl NormalizedAlgorithm {
 /// for export key operation.
 fn perform_export_key_operation(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
     match key.algorithm().name() {
+        ALG_ED25519 => ed25519_operation::export_key(format, key),
         ALG_AES_CTR => aes_operation::export_key_aes_ctr(format, key),
         ALG_AES_CBC => aes_operation::export_key_aes_cbc(format, key),
         ALG_AES_GCM => aes_operation::export_key_aes_gcm(format, key),
