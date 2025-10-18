@@ -49,7 +49,7 @@ impl Handler {
         // Step 2. Let reference be the result of getting the web element identifier property from object.
         let element_ref = match element {
             Value::String(string) => string.clone(),
-            _ => unreachable!(),
+            _ => return Err(WebDriverError::new(ErrorStatus::InvalidArgument, "")),
         };
 
         // Step 3. Let element be the result of trying to get a known element with session and reference.
@@ -71,7 +71,7 @@ impl Handler {
         // Step 2. Let reference be the result of getting the shadow root identifier property from object.
         let shadow_root_ref = match shadow_root {
             Value::String(string) => string.clone(),
-            _ => unreachable!(),
+            _ => return Err(WebDriverError::new(ErrorStatus::InvalidArgument, "")),
         };
 
         // Step 3. Let element be the result of trying to get a known element with session and reference.
