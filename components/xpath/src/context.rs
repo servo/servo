@@ -4,7 +4,7 @@
 
 use std::fmt;
 
-use crate::{Dom, NamespaceResolver, Node};
+use crate::{Dom, NamespaceResolver};
 
 /// The context during evaluation of an XPath expression.
 pub(crate) struct EvaluationCtx<D: Dom> {
@@ -53,8 +53,7 @@ impl<D: Dom> EvaluationCtx<D> {
             }
         }
 
-        // Then, see if it's defined on the context node
-        Ok(self.context_node.lookup_namespace_uri(prefix))
+        Ok(None)
     }
 }
 

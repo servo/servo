@@ -152,12 +152,6 @@ impl xpath::Node for XPathWrapper<DomRoot<Node>> {
             .map(XPathWrapper)
     }
 
-    fn lookup_namespace_uri(&self, uri: Option<&str>) -> Option<String> {
-        self.0
-            .LookupNamespaceURI(uri.map(DOMString::from))
-            .map(String::from)
-    }
-
     fn get_root_node(&self) -> Self {
         XPathWrapper(self.0.GetRootNode(&GetRootNodeOptions::empty()))
     }
@@ -165,10 +159,6 @@ impl xpath::Node for XPathWrapper<DomRoot<Node>> {
 
 impl xpath::Document for XPathWrapper<DomRoot<Document>> {
     type Node = XPathWrapper<DomRoot<Node>>;
-
-    fn is_html_document(&self) -> bool {
-        self.0.is_html_document()
-    }
 
     fn get_elements_with_id(
         &self,
@@ -241,6 +231,10 @@ impl xpath::Element for XPathWrapper<DomRoot<Element>> {
 
     fn local_name(&self) -> LocalName {
         self.0.local_name().clone()
+    }
+
+    fn is_html_element_in_html_document(&self) -> bool {
+        self.0.is_html_element() && self.0.owner_document().is_html_document()
     }
 }
 
