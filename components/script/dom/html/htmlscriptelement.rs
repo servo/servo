@@ -232,11 +232,11 @@ pub(crate) enum SourceCode {
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct ScriptOrigin {
-    code: SourceCode,
+    pub code: SourceCode,
     #[no_trace]
-    url: ServoUrl,
+    pub url: ServoUrl,
     external: bool,
-    fetch_options: ScriptFetchOptions,
+    pub fetch_options: ScriptFetchOptions,
     type_: ScriptType,
     unminified_dir: Option<String>,
     import_map: Fallible<ImportMap>,
@@ -1060,7 +1060,17 @@ impl HTMLScriptElement {
                 } else {
                     document.set_current_script(Some(self))
                 }
-                self.run_a_classic_script(&script, can_gc, Some(introduction_type));
+                let line_number = if script.external {
+                    1
+                } else {
+                    self.line_number as u32
+                };
+                self.owner_window().as_global_scope().run_a_classic_script(
+                    &script,
+                    line_number,
+                    Some(introduction_type),
+                    can_gc,
+                );
                 document.set_current_script(old_script.as_deref());
             },
             ScriptType::Module => {
@@ -1083,42 +1093,6 @@ impl HTMLScriptElement {
         if script.external {
             self.dispatch_load_event(can_gc);
         }
-    }
-
-    // https://html.spec.whatwg.org/multipage/#run-a-classic-script
-    pub(crate) fn run_a_classic_script(
-        &self,
-        script: &ScriptOrigin,
-        can_gc: CanGc,
-        introduction_type: Option<&'static CStr>,
-    ) {
-        // TODO use a settings object rather than this element's document/window
-        // Step 2
-        let document = self.owner_document();
-        if !document.is_fully_active() || !document.scripting_enabled() {
-            return;
-        }
-
-        // Steps 4-10
-        let window = self.owner_window();
-        let line_number = if script.external {
-            1
-        } else {
-            self.line_number as u32
-        };
-        rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());
-        _ = window
-            .as_global_scope()
-            .evaluate_script_on_global_with_result(
-                &script.code,
-                script.url.as_str(),
-                rval.handle_mut(),
-                line_number,
-                script.fetch_options.clone(),
-                script.url.clone(),
-                can_gc,
-                introduction_type,
-            );
     }
 
     #[allow(unsafe_code)]
