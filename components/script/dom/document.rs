@@ -292,10 +292,13 @@ bitflags! {
         /// When a `ResizeObserver` starts observing a target, this becomes true, which in turn is a
         /// signal to the [`ScriptThread`] that a rendering update should happen.
         const ResizeObserverStartedObservingTarget = 1 << 0;
+        /// When an `IntersectionObserver` starts observing a target, this becomes true, which in turn is a
+        /// signal to the [`ScriptThread`] that a rendering update should happen.
+        const IntersectionObserverStartedObservingTarget = 1 << 1;
         /// All web fonts have loaded and `fonts.ready` promise has been fulfilled. We want to trigger
         /// one more rendering update possibility after this happens, so that any potential screenshot
         /// reflects the up-to-date contents.
-        const FontReadyPromiseFulfilled = 1 << 1;
+        const FontReadyPromiseFulfilled = 1 << 2;
     }
 }
 
