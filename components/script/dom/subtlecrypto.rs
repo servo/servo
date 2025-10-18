@@ -19,10 +19,8 @@ use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::wrappers::JS_ParseJSON;
 use js::rust::{HandleValue, MutableHandleValue};
 use js::typedarray::ArrayBufferU8;
-use servo_rand::ServoRng;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, KeyType, KeyUsage,
 };
@@ -112,15 +110,12 @@ enum Operation {
 #[dom_struct]
 pub(crate) struct SubtleCrypto {
     reflector_: Reflector,
-    #[no_trace]
-    rng: DomRefCell<ServoRng>,
 }
 
 impl SubtleCrypto {
     fn new_inherited() -> SubtleCrypto {
         SubtleCrypto {
             reflector_: Reflector::new(),
-            rng: DomRefCell::new(ServoRng::default()),
         }
     }
 
@@ -709,7 +704,6 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     &subtle.global(),
                     extractable,
                     key_usages,
-                    &subtle.rng,
                     CanGc::note(),
                 ) {
                     Ok(result) => result,
@@ -2540,51 +2534,30 @@ impl NormalizedAlgorithm {
         global: &GlobalScope,
         extractable: bool,
         usages: Vec<KeyUsage>,
-        rng: &DomRefCell<ServoRng>,
         can_gc: CanGc,
     ) -> Result<CryptoKeyOrCryptoKeyPair, Error> {
         match self {
             NormalizedAlgorithm::AesKeyGenParams(algo) => match algo.name.as_str() {
-                ALG_AES_CTR => aes_operation::generate_key_aes_ctr(
-                    global,
-                    algo,
-                    extractable,
-                    usages,
-                    rng,
-                    can_gc,
-                )
-                .map(CryptoKeyOrCryptoKeyPair::CryptoKey),
-                ALG_AES_CBC => aes_operation::generate_key_aes_cbc(
-                    global,
-                    algo,
-                    extractable,
-                    usages,
-                    rng,
-                    can_gc,
-                )
-                .map(CryptoKeyOrCryptoKeyPair::CryptoKey),
-                ALG_AES_GCM => aes_operation::generate_key_aes_gcm(
-                    global,
-                    algo,
-                    extractable,
-                    usages,
-                    rng,
-                    can_gc,
-                )
-                .map(CryptoKeyOrCryptoKeyPair::CryptoKey),
-                ALG_AES_KW => aes_operation::generate_key_aes_kw(
-                    global,
-                    algo,
-                    extractable,
-                    usages,
-                    rng,
-                    can_gc,
-                )
-                .map(CryptoKeyOrCryptoKeyPair::CryptoKey),
+                ALG_AES_CTR => {
+                    aes_operation::generate_key_aes_ctr(global, algo, extractable, usages, can_gc)
+                        .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
+                },
+                ALG_AES_CBC => {
+                    aes_operation::generate_key_aes_cbc(global, algo, extractable, usages, can_gc)
+                        .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
+                },
+                ALG_AES_GCM => {
+                    aes_operation::generate_key_aes_gcm(global, algo, extractable, usages, can_gc)
+                        .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
+                },
+                ALG_AES_KW => {
+                    aes_operation::generate_key_aes_kw(global, algo, extractable, usages, can_gc)
+                        .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
+                },
                 _ => Err(Error::NotSupported),
             },
             NormalizedAlgorithm::HmacKeyGenParams(algo) => {
-                hmac_operation::generate_key(global, algo, extractable, usages, rng, can_gc)
+                hmac_operation::generate_key(global, algo, extractable, usages, can_gc)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
             },
             _ => Err(Error::NotSupported),

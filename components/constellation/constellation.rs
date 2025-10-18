@@ -158,6 +158,9 @@ use net_traits::{
 };
 use profile_traits::mem::ProfilerMsg;
 use profile_traits::{mem, time};
+use rand::rngs::SmallRng;
+use rand::seq::IndexedRandom;
+use rand::{Rng, SeedableRng};
 use rustc_hash::{FxHashMap, FxHashSet};
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, ProgressiveWebMetricType,
@@ -166,7 +169,6 @@ use script_traits::{
 use serde::{Deserialize, Serialize};
 use servo_config::prefs::{self, PrefValue};
 use servo_config::{opts, pref};
-use servo_rand::{Rng, ServoRng, SliceRandom, random};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::{StorageType, WebStorageThreadMsg};
@@ -449,7 +451,7 @@ pub struct Constellation<STF, SWF> {
 
     /// The random number generator and probability for closing pipelines.
     /// This is for testing the hardening of the constellation.
-    random_pipeline_closure: Option<(ServoRng, f32)>,
+    random_pipeline_closure: Option<(SmallRng, f32)>,
 
     /// Phantom data that keeps the Rust type system happy.
     phantom: PhantomData<(STF, SWF)>,
@@ -733,12 +735,12 @@ where
                     webrender_wgpu,
                     shutting_down: false,
                     handled_warnings: VecDeque::new(),
-                    random_pipeline_closure: random_pipeline_closure_probability.map(|prob| {
-                        let seed = random_pipeline_closure_seed.unwrap_or_else(random);
-                        let rng = ServoRng::new_manually_reseeded(seed as u64);
-                        warn!("Randomly closing pipelines.");
-                        info!("Using seed {} for random pipeline closure.", seed);
-                        (rng, prob)
+                    random_pipeline_closure: random_pipeline_closure_probability.map(|probability| {
+                        let rng = random_pipeline_closure_seed
+                            .map(|seed| SmallRng::seed_from_u64(seed as u64))
+                            .unwrap_or_else(SmallRng::from_os_rng);
+                        warn!("Randomly closing pipelines using seed {random_pipeline_closure_seed:?}.");
+                        (rng, probability)
                     }),
                     webgl_threads: state.webgl_threads,
                     webxr_registry: state.webxr_registry,
@@ -5600,7 +5602,7 @@ where
     fn maybe_close_random_pipeline(&mut self) {
         match self.random_pipeline_closure {
             Some((ref mut rng, probability)) => {
-                if probability <= rng.r#gen::<f32>() {
+                if probability <= rng.random::<f32>() {
                     return;
                 }
             },
@@ -5616,7 +5618,7 @@ where
                         .pending_changes
                         .iter()
                         .any(|change| change.new_pipeline_id == pipeline.id) &&
-                        probability <= rng.r#gen::<f32>()
+                        probability <= rng.random::<f32>()
                     {
                         // We tend not to close pending pipelines, as that almost always
                         // results in pipelines being closed early in their lifecycle,

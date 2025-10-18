@@ -34,8 +34,8 @@ use bluetooth_traits::{
 use embedder_traits::{EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use log::warn;
+use rand::{self, Rng};
 use servo_config::pref;
-use servo_rand::{self, Rng};
 
 use crate::bluetooth::{
     BluetoothAdapter, BluetoothDevice, BluetoothGATTCharacteristic, BluetoothGATTDescriptor,
@@ -430,9 +430,9 @@ impl BluetoothManager {
 
     fn generate_device_id(&mut self) -> String {
         let mut device_id;
-        let mut rng = servo_rand::thread_rng();
+        let mut rng = rand::rng();
         loop {
-            device_id = rng.r#gen::<u32>().to_string();
+            device_id = rng.random::<u32>().to_string();
             if !self.cached_devices.contains_key(&device_id) {
                 break;
             }

@@ -70,17 +70,6 @@ allow = []
 # List of crates to deny:
 deny = [
     "num",
-    # cargo-deny does not allow denying the rand crate while also skipping
-    # it for duplicate checks. While the ecosystem is split between 0.8 and 0.9,
-    # we need to prioritize allowing duplicate versions.
-    #{ crate = "rand", wrappers = [
-    #    "ipc-channel",
-    #    "phf_generator",
-    #    "quickcheck",
-    #    "servo_rand",
-    #    "tracing-perfetto",
-    #    "tungstenite",
-    #] },
 ]
 
 # List of crates to skip for the duplicate check:

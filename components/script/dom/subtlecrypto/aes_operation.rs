@@ -10,9 +10,9 @@ use aes_gcm::{AeadInPlace, AesGcm, KeyInit};
 use aes_kw::{KekAes128, KekAes192, KekAes256};
 use base64::prelude::*;
 use cipher::consts::{U12, U16, U32};
-use servo_rand::{RngCore, ServoRng};
+use rand::TryRngCore;
+use rand::rngs::OsRng;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, KeyType, KeyUsage,
 };
@@ -108,7 +108,6 @@ pub(crate) fn generate_key_aes_ctr(
     normalized_algorithm: &SubtleAesKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-    rng: &DomRefCell<ServoRng>,
     can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     generate_key_aes(
@@ -116,7 +115,6 @@ pub(crate) fn generate_key_aes_ctr(
         normalized_algorithm,
         extractable,
         usages,
-        rng,
         ALG_AES_CTR,
         &[
             KeyUsage::Encrypt,
@@ -258,7 +256,6 @@ pub(crate) fn generate_key_aes_cbc(
     normalized_algorithm: &SubtleAesKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-    rng: &DomRefCell<ServoRng>,
     can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     generate_key_aes(
@@ -266,7 +263,6 @@ pub(crate) fn generate_key_aes_cbc(
         normalized_algorithm,
         extractable,
         usages,
-        rng,
         ALG_AES_CBC,
         &[
             KeyUsage::Encrypt,
@@ -547,7 +543,6 @@ pub(crate) fn generate_key_aes_gcm(
     normalized_algorithm: &SubtleAesKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-    rng: &DomRefCell<ServoRng>,
     can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     generate_key_aes(
@@ -555,7 +550,6 @@ pub(crate) fn generate_key_aes_gcm(
         normalized_algorithm,
         extractable,
         usages,
-        rng,
         ALG_AES_GCM,
         &[
             KeyUsage::Encrypt,
@@ -687,7 +681,6 @@ pub(crate) fn generate_key_aes_kw(
     normalized_algorithm: &SubtleAesKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-    rng: &DomRefCell<ServoRng>,
     can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     generate_key_aes(
@@ -695,7 +688,6 @@ pub(crate) fn generate_key_aes_kw(
         normalized_algorithm,
         extractable,
         usages,
-        rng,
         ALG_AES_KW,
         &[KeyUsage::WrapKey, KeyUsage::UnwrapKey],
         can_gc,
@@ -745,7 +737,6 @@ fn generate_key_aes(
     normalized_algorithm: &SubtleAesKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-    rng: &DomRefCell<ServoRng>,
     alg_name: &str,
     allowed_usages: &[KeyUsage],
     can_gc: CanGc,
@@ -764,7 +755,10 @@ fn generate_key_aes(
     // Step 3. Generate an AES key of length equal to the length member of normalizedAlgorithm.
     // Step 4. If the key generation step fails, then throw an OperationError.
     let mut rand = vec![0; normalized_algorithm.length as usize / 8];
-    rng.borrow_mut().fill_bytes(&mut rand);
+    if OsRng.try_fill_bytes(&mut rand).is_err() {
+        return Err(Error::JSFailed);
+    }
+
     let handle = match normalized_algorithm.length {
         128 => Handle::Aes128(rand),
         192 => Handle::Aes192(rand),

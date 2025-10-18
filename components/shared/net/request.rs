@@ -26,7 +26,7 @@ pub struct RequestId(pub Uuid);
 
 impl Default for RequestId {
     fn default() -> Self {
-        Self(servo_rand::random_uuid())
+        Self(Uuid::new_v4())
     }
 }
 

@@ -25,8 +25,8 @@ use net_traits::CustomResponseMediator;
 use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer, RequestBuilder,
 };
+use rand::random;
 use servo_config::pref;
-use servo_rand::random;
 use servo_url::ServoUrl;
 use style::thread_state::{self, ThreadState};
 
