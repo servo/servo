@@ -1188,35 +1188,46 @@ fn is_keyboard_interactable(element: &Element) -> bool {
 fn handle_send_keys_file(
     file_input: &HTMLInputElement,
     text: &str,
-    can_gc: CanGc,
-) -> Result<bool, ErrorStatus> {
+    reply_sender: IpcSender<Result<bool, ErrorStatus>>,
+) {
     // Step 1. Let files be the result of splitting text
     // on the newline (\n) character.
-    let files: Vec<DOMString> = text.split("\n").map(|s| s.into()).collect();
+    //
+    // Be sure to also remove empty strings, as "" always splits to a single string.
+    let files: Vec<DOMString> = text
+        .split("\n")
+        .filter_map(|string| {
+            if string.is_empty() {
+                None
+            } else {
+                Some(string.into())
+            }
+        })
+        .collect();
 
     // Step 2. If files is of 0 length, return ErrorStatus::InvalidArgument.
     if files.is_empty() {
-        return Err(ErrorStatus::InvalidArgument);
+        let _ = reply_sender.send(Err(ErrorStatus::InvalidArgument));
+        return;
     }
 
-    // Step 3. Let multiple equal the result of calling
-    // hasAttribute() with "multiple" on element.
-    // Step 4. If multiple is false and the length of files
-    // is not equal to 1, return ErrorStatus::InvalidArgument.
+    // Step 3. Let multiple equal the result of calling hasAttribute() with "multiple" on
+    // element. Step 4. If multiple is false and the length of files is not equal to 1,
+    // return ErrorStatus::InvalidArgument.
     if !file_input.Multiple() && files.len() > 1 {
-        return Err(ErrorStatus::InvalidArgument);
+        let _ = reply_sender.send(Err(ErrorStatus::InvalidArgument));
+        return;
     }
 
     // Step 5. Return ErrorStatus::InvalidArgument if the files does not exist.
     // Step 6. Set the selected files on the input event.
     // TODO: If multiple is true files are be appended to element's selected files.
     // Step 7. Fire input and change event (should already be fired in `htmlinputelement.rs`)
-    if file_input.select_files(Some(files), can_gc).is_err() {
-        return Err(ErrorStatus::InvalidArgument);
-    }
-
     // Step 8. Return success with data null.
-    Ok(false)
+    //
+    // Do not reply to the response yet, as we are waiting for the files to arrive
+    // asynchronously.
+    file_input.select_files_for_webdriver(files, reply_sender);
 }
 
 /// We have verify previously that input element is not textual.
@@ -1272,84 +1283,88 @@ pub(crate) fn handle_will_send_keys(
     reply: IpcSender<Result<bool, ErrorStatus>>,
     can_gc: CanGc,
 ) {
-    reply
-        .send(
-            // Set 5. Let element be the result of trying to get a known element.
-            get_known_element(documents, pipeline, element_id).and_then(|element| {
-                let input_element = element.downcast::<HTMLInputElement>();
-                let mut element_has_focus = false;
+    // Set 5. Let element be the result of trying to get a known element.
+    let element = match get_known_element(documents, pipeline, element_id) {
+        Ok(element) => element,
+        Err(error) => {
+            let _ = reply.send(Err(error));
+            return;
+        },
+    };
 
-                // Step 6: Let file be true if element is input element
-                // in the file upload state, or false otherwise
-                let is_file_input =
-                    input_element.is_some_and(|e| e.input_type() == InputType::File);
+    let input_element = element.downcast::<HTMLInputElement>();
+    let mut element_has_focus = false;
 
-                // Step 7. If file is false or the session's strict file interactability
-                if !is_file_input || strict_file_interactability {
-                    // Step 7.1. Scroll into view the element
-                    scroll_into_view(&element, documents, &pipeline, can_gc);
+    // Step 6: Let file be true if element is input element
+    // in the file upload state, or false otherwise
+    let is_file_input = input_element.is_some_and(|e| e.input_type() == InputType::File);
 
-                    // TODO: Step 7.2 - 7.5
-                    // Wait until element become keyboard-interactable
+    // Step 7. If file is false or the session's strict file interactability
+    if !is_file_input || strict_file_interactability {
+        // Step 7.1. Scroll into view the element
+        scroll_into_view(&element, documents, &pipeline, can_gc);
 
-                    // Step 7.6. If element is not keyboard-interactable,
-                    // return ErrorStatus::ElementNotInteractable.
-                    if !is_keyboard_interactable(&element) {
-                        return Err(ErrorStatus::ElementNotInteractable);
-                    }
+        // TODO: Step 7.2 - 7.5
+        // Wait until element become keyboard-interactable
 
-                    // Step 7.7. If element is not the active element
-                    // run the focusing steps for the element.
-                    if let Some(html_element) = element.downcast::<HTMLElement>() {
-                        if !element.is_active_element() {
-                            html_element.Focus(
-                                &FocusOptions {
-                                    preventScroll: true,
-                                },
-                                can_gc,
-                            );
-                        } else {
-                            element_has_focus = element.focus_state();
-                        }
-                    } else {
-                        return Err(ErrorStatus::UnknownError);
-                    }
-                }
+        // Step 7.6. If element is not keyboard-interactable,
+        // return ErrorStatus::ElementNotInteractable.
+        if !is_keyboard_interactable(&element) {
+            let _ = reply.send(Err(ErrorStatus::ElementNotInteractable));
+            return;
+        }
 
-                if let Some(input_element) = input_element {
-                    // Step 8 (Handle file upload)
-                    if is_file_input {
-                        return handle_send_keys_file(input_element, &text, can_gc);
-                    }
+        // Step 7.7. If element is not the active element
+        // run the focusing steps for the element.
+        let Some(html_element) = element.downcast::<HTMLElement>() else {
+            let _ = reply.send(Err(ErrorStatus::UnknownError));
+            return;
+        };
 
-                    // Step 8 (Handle non-typeable form control)
-                    if input_element.is_nontypeable() {
-                        return handle_send_keys_non_typeable(input_element, &text, can_gc);
-                    }
-                }
+        if !element.is_active_element() {
+            html_element.Focus(
+                &FocusOptions {
+                    preventScroll: true,
+                },
+                can_gc,
+            );
+        } else {
+            element_has_focus = element.focus_state();
+        }
+    }
 
-                // TODO: Check content editable
+    if let Some(input_element) = input_element {
+        // Step 8 (Handle file upload)
+        if is_file_input {
+            handle_send_keys_file(input_element, &text, reply);
+            return;
+        }
 
-                // Step 8 (Other type of elements)
-                // Step 8.1. If element does not currently have focus,
-                // let current text length be the length of element's API value.
-                // Step 8.2. Set the text insertion caret using set selection range
-                // using current text length for both the start and end parameters.
-                if !element_has_focus {
-                    if let Some(input_element) = input_element {
-                        let length = input_element.Value().len() as u32;
-                        let _ = input_element.SetSelectionRange(length, length, None);
-                    } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>()
-                    {
-                        let length = textarea_element.Value().len() as u32;
-                        let _ = textarea_element.SetSelectionRange(length, length, None);
-                    }
-                }
+        // Step 8 (Handle non-typeable form control)
+        if input_element.is_nontypeable() {
+            let _ = reply.send(handle_send_keys_non_typeable(input_element, &text, can_gc));
+            return;
+        }
+    }
 
-                Ok(true)
-            }),
-        )
-        .unwrap();
+    // TODO: Check content editable
+
+    // Step 8 (Other type of elements)
+    // Step 8.1. If element does not currently have focus,
+    // let current text length be the length of element's API value.
+    // Step 8.2. Set the text insertion caret using set selection range
+    // using current text length for both the start and end parameters.
+    if !element_has_focus {
+        if let Some(input_element) = input_element {
+            let length = input_element.Value().len() as u32;
+            let _ = input_element.SetSelectionRange(length, length, None);
+        } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>() {
+            let length = textarea_element.Value().len() as u32;
+            let _ = textarea_element.SetSelectionRange(length, length, None);
+        }
+    }
+
+    let _ = reply.send(Ok(true));
 }
 
 pub(crate) fn handle_get_active_element(

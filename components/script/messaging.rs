@@ -15,7 +15,7 @@ use bluetooth_traits::BluetoothRequest;
 use constellation_traits::ScriptToConstellationMessage;
 use crossbeam_channel::{Receiver, SendError, Sender, select};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};
-use embedder_traits::ScriptToEmbedderChan;
+use embedder_traits::{EmbedderControlId, EmbedderControlResponse, ScriptToEmbedderChan};
 use ipc_channel::ipc::IpcSender;
 use net_traits::FetchResponseMsg;
 use net_traits::image_cache::ImageCacheResponseMessage;
@@ -119,6 +119,10 @@ impl MixedMessage {
                 MainThreadScriptMsg::RegisterPaintWorklet { pipeline_id, .. } => Some(*pipeline_id),
                 MainThreadScriptMsg::Inactive => None,
                 MainThreadScriptMsg::WakeUp => None,
+                MainThreadScriptMsg::ForwardEmbedderControlResponseFromFileManager(
+                    control_id,
+                    ..,
+                ) => Some(control_id.pipeline_id),
             },
             MixedMessage::FromImageCache(response) => match response {
                 ImageCacheResponseMessage::NotifyPendingImageLoadStatus(response) => {
@@ -158,6 +162,9 @@ pub(crate) enum MainThreadScriptMsg {
     Inactive,
     /// Wake-up call from the task queue.
     WakeUp,
+    /// The `FileManagerThread` has finished selecting files is forwarding the response to
+    /// the main thread of this `ScriptThread`.
+    ForwardEmbedderControlResponseFromFileManager(EmbedderControlId, EmbedderControlResponse),
 }
 
 /// Common messages used to control the event loops in both the script and the worker
