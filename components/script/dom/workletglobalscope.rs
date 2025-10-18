@@ -5,7 +5,7 @@
 use std::sync::Arc;
 
 use base::generic_channel::GenericSender;
-use base::id::PipelineId;
+use base::id::{PipelineId, WebViewId};
 use constellation_traits::{ScriptToConstellationChan, ScriptToConstellationMessage};
 use crossbeam_channel::Sender;
 use devtools_traits::ScriptToDevtoolsControlMsg;
@@ -56,6 +56,7 @@ impl WorkletGlobalScope {
     /// Create a new heap-allocated `WorkletGlobalScope`.
     pub(crate) fn new(
         scope_type: WorkletGlobalScopeType,
+        webview_id: WebViewId,
         pipeline_id: PipelineId,
         base_url: ServoUrl,
         executor: WorkletExecutor,
@@ -64,12 +65,14 @@ impl WorkletGlobalScope {
         let scope: DomRoot<WorkletGlobalScope> = match scope_type {
             #[cfg(feature = "testbinding")]
             WorkletGlobalScopeType::Test => DomRoot::upcast(TestWorkletGlobalScope::new(
+                webview_id,
                 pipeline_id,
                 base_url,
                 executor,
                 init,
             )),
             WorkletGlobalScopeType::Paint => DomRoot::upcast(PaintWorkletGlobalScope::new(
+                webview_id,
                 pipeline_id,
                 base_url,
                 executor,
@@ -85,6 +88,7 @@ impl WorkletGlobalScope {
 
     /// Create a new stack-allocated `WorkletGlobalScope`.
     pub(crate) fn new_inherited(
+        webview_id: WebViewId,
         pipeline_id: PipelineId,
         base_url: ServoUrl,
         executor: WorkletExecutor,
@@ -92,6 +96,7 @@ impl WorkletGlobalScope {
     ) -> Self {
         let script_to_constellation_chan = ScriptToConstellationChan {
             sender: init.to_constellation_sender.clone(),
+            webview_id,
             pipeline_id,
         };
         Self {
@@ -202,7 +207,8 @@ pub(crate) struct WorkletGlobalScopeInit {
     /// Channel to devtools
     pub(crate) devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// Messages to send to constellation
-    pub(crate) to_constellation_sender: GenericSender<(PipelineId, ScriptToConstellationMessage)>,
+    pub(crate) to_constellation_sender:
+        GenericSender<(WebViewId, PipelineId, ScriptToConstellationMessage)>,
     /// Messages to send to the Embedder
     pub(crate) to_embedder_sender: ScriptToEmbedderChan,
     /// The image cache
