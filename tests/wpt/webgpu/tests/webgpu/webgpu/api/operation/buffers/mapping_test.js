@@ -1,7 +1,7 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { assert } from '../../../../common/util/util.js';import { GPUTest } from '../../../gpu_test.js';
-export class MappingTest extends GPUTest {
+**/import { assert } from '../../../../common/util/util.js';import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
+export class MappingTest extends AllFeaturesMaxLimitsGPUTest {
   checkMapWrite(
   buffer,
   offset,

@@ -11,10 +11,11 @@ import {
 
 
 '../../../../common/util/util.js';
-import { GPUTest, TextureTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
+import * as ttu from '../../../texture_test_utils.js';
 
 
-class DrawTest extends TextureTestMixin(GPUTest) {
+class DrawTest extends AllFeaturesMaxLimitsGPUTest {
   checkTriangleDraw(opts)
 
 
@@ -39,6 +40,8 @@ class DrawTest extends TextureTestMixin(GPUTest) {
       baseVertex: opts.baseVertex ?? 0
     };
 
+    const haveStorageBuffersInFragmentStage =
+    !this.isCompatibility || this.device.limits.maxStorageBuffersInFragmentStage > 0;
     const renderTargetSize = [72, 36];
 
     // The test will split up the render target into a grid where triangles of
@@ -101,7 +104,7 @@ struct Output {
 @group(0) @binding(0) var<storage, read_write> output : Output;
 
 @fragment fn frag_main() -> @location(0) vec4<f32> {
-  output.value = 1u;
+  ${haveStorageBuffersInFragmentStage ? 'output.value = 1u;' : ''}
   return vec4<f32>(0.0, 1.0, 0.0, 1.0);
 }
 `
@@ -136,12 +139,15 @@ struct Output {
       }
     });
 
-    const resultBuffer = this.createBufferTracked({
+    const resultBuffer = haveStorageBuffersInFragmentStage ?
+    this.createBufferTracked({
       size: Uint32Array.BYTES_PER_ELEMENT,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
-    });
+    }) :
+    null;
 
-    const resultBindGroup = this.device.createBindGroup({
+    const resultBindGroup = haveStorageBuffersInFragmentStage ?
+    this.device.createBindGroup({
       layout: pipeline.getBindGroupLayout(0),
       entries: [
       {
@@ -151,7 +157,8 @@ struct Output {
         }
       }]
 
-    });
+    }) :
+    null;
 
     const commandEncoder = this.device.createCommandEncoder();
     const renderPass = commandEncoder.beginRenderPass({
@@ -279,7 +286,9 @@ struct Output {
 
     const didDraw = defaulted.count && defaulted.instanceCount;
 
-    this.expectGPUBufferValuesEqual(resultBuffer, new Uint32Array([didDraw ? 1 : 0]));
+    if (resultBuffer) {
+      this.expectGPUBufferValuesEqual(resultBuffer, new Uint32Array([didDraw ? 1 : 0]));
+    }
 
     const baseVertexCount = defaulted.baseVertex ?? 0;
     const pixelComparisons = [];
@@ -306,7 +315,11 @@ struct Output {
         });
       }
     }
-    this.expectSinglePixelComparisonsAreOkInTexture({ texture: renderTarget }, pixelComparisons);
+    ttu.expectSinglePixelComparisonsAreOkInTexture(
+      this,
+      { texture: renderTarget },
+      pixelComparisons
+    );
   }
 }
 
@@ -321,7 +334,7 @@ Increasing the |first| param should skip some of the beginning triangles on the 
 Increasing the |first_instance| param should skip of the beginning triangles on the vertical axis.
 The vertex buffer contains two sets of disjoint triangles, and base_vertex is used to select the second set.
 The test checks that the center of all of the expected triangles is drawn, and the others are empty.
-The fragment shader also writes out to a storage buffer. If the draw is zero-sized, check that no value is written.
+The fragment shader also writes out to a storage buffer if it can. If the draw is zero-sized, check that no value is written.
 
 Params:
   - first= {0, 3} - either the firstVertex or firstIndex
@@ -347,12 +360,10 @@ combine('vertex_buffer_offset', [0, 32]).
 expand('index_buffer_offset', (p) => p.indexed ? [0, 16] : [undefined]).
 expand('base_vertex', (p) => p.indexed ? [0, 9] : [undefined])
 ).
-beforeAllSubcases((t) => {
-  if (t.params.first_instance > 0 && t.params.indirect) {
-    t.selectDeviceOrSkipTestCase('indirect-first-instance');
-  }
-}).
 fn((t) => {
+  if (t.params.first_instance > 0 && t.params.indirect) {
+    t.skipIfDeviceDoesNotHaveFeature('indirect-first-instance');
+  }
   t.checkTriangleDraw({
     firstIndex: t.params.first,
     count: t.params.count,
@@ -428,6 +439,13 @@ unless((p) => p.vertex_attribute_count < p.vertex_buffer_count).
 unless((p) => p.step_mode === 'mixed' && p.vertex_buffer_count <= 1)
 ).
 fn((t) => {
+  // MAINTENANCE_TODO: refactor this test so it doesn't need a storage buffer OR
+  // consider removing it. It's possible the tests in src/webgpu/api/operation/vertex_state/correctness.spec.ts
+  // already test this.
+  t.skipIf(
+    t.isCompatibility && !(t.device.limits.maxStorageBuffersInFragmentStage > 0),
+    `maxStorageBuffersInFragmentStage(${t.device.limits.maxStorageBuffersInFragmentStage}) is 0`
+  );
   const vertexCount = 4;
   const instanceCount = 4;
 

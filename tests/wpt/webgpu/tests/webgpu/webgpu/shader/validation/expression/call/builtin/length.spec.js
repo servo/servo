@@ -83,11 +83,6 @@ filter((u) => stageSupportsType(u.stage, kScalarTypes[u.type])).
 beginSubcases().
 expand('value', (u) => fullRangeForType(kScalarTypes[u.type]))
 ).
-beforeAllSubcases((t) => {
-  if (scalarTypeOf(kScalarTypes[t.params.type]) === Type.f16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   // We only validate with numbers known to be representable by the type
   const expectedResult = true;
@@ -119,11 +114,6 @@ expand('y', (u) => fullRangeForType(kVec2Types[u.type], 5)).
 expand('_result', (u) => [calculate([u.x, u.y], scalarTypeOf(kVec2Types[u.type]))]).
 filter((u) => u._result.isResultRepresentable === u._result.isIntermediateRepresentable)
 ).
-beforeAllSubcases((t) => {
-  if (scalarTypeOf(kVec2Types[t.params.type]) === Type.f16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const expectedResult = t.params._result.isResultRepresentable;
   validateConstOrOverrideBuiltinEval(
@@ -155,11 +145,6 @@ expand('z', (u) => fullRangeForType(kVec3Types[u.type], 4)).
 expand('_result', (u) => [calculate([u.x, u.y, u.z], scalarTypeOf(kVec3Types[u.type]))]).
 filter((u) => u._result.isResultRepresentable === u._result.isIntermediateRepresentable)
 ).
-beforeAllSubcases((t) => {
-  if (scalarTypeOf(kVec3Types[t.params.type]) === Type.f16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const expectedResult = t.params._result.isResultRepresentable;
   validateConstOrOverrideBuiltinEval(
@@ -192,11 +177,6 @@ expand('w', (u) => fullRangeForType(kVec4Types[u.type], 3)).
 expand('_result', (u) => [calculate([u.x, u.y, u.z, u.w], scalarTypeOf(kVec4Types[u.type]))]).
 filter((u) => u._result.isResultRepresentable === u._result.isIntermediateRepresentable)
 ).
-beforeAllSubcases((t) => {
-  if (scalarTypeOf(kVec4Types[t.params.type]) === Type.f16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const expectedResult = t.params._result.isResultRepresentable;
   validateConstOrOverrideBuiltinEval(

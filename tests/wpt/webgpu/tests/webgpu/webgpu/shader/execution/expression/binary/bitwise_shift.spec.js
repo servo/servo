@@ -4,14 +4,14 @@
 Execution Tests for the bitwise shift binary expression operations
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { assert } from '../../../../../common/util/util.js';
-import { GPUTest } from '../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 import { Type, abstractInt, u32 } from '../../../../util/conversion.js';
 
 import { allInputSources, onlyConstInputSource, run } from '../expression.js';
 
 import { abstractIntBinary, binary, compoundBinary } from './binary.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 // Returns true if e1 << e2 is valid for const evaluation
 function isValidConstShiftLeft(e1, e2) {

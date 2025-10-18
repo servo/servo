@@ -8,20 +8,24 @@ Tests for external textures from HTMLVideoElement (and other video-type sources?
 
 TODO: consider whether external_texture and copyToTexture video tests should be in the same file
 TODO(#3193): Test video in BT.2020 color space
+TODO(#4364): Test camera capture with copyExternalImageToTexture (not necessarily in this file)
 `;import { makeTestGroup } from '../../../common/framework/test_group.js';
+import { unreachable } from '../../../common/util/util.js';
 
+import * as ttu from '../../texture_test_utils.js';
 import { TextureUploadingUtils } from '../../util/copy_to_texture.js';
 import { createCanvas } from '../../util/create_elements.js';
 import {
   startPlayingAndWaitForVideo,
   getVideoFrameFromVideoElement,
   getVideoElement,
-  captureCameraFrame,
   convertToUnorm8,
   kPredefinedColorSpace,
   kVideoNames,
   kVideoInfo,
-  kVideoExpectedColors } from
+  kVideoExpectedColors,
+  getVideoElementFromCamera,
+  getVideoFrameFromCamera } from
 '../../web_platform/util.js';
 
 const kHeight = 16;
@@ -227,7 +231,7 @@ fn(async (t) => {
 
     // For validation, we sample a few pixels away from the edges to avoid compression
     // artifacts.
-    t.expectSinglePixelComparisonsAreOkInTexture({ texture: colorAttachment }, [
+    ttu.expectSinglePixelComparisonsAreOkInTexture(t, { texture: colorAttachment }, [
     // Top-left.
     {
       coord: { x: kWidth * 0.25, y: kHeight * 0.25 },
@@ -353,7 +357,7 @@ fn((t) => {
 
   // For validation, we sample a few pixels away from the edges to avoid compression
   // artifacts.
-  t.expectSinglePixelComparisonsAreOkInTexture({ texture: colorAttachment }, [
+  ttu.expectSinglePixelComparisonsAreOkInTexture(t, { texture: colorAttachment }, [
   // Top-left.
   {
     coord: { x: kWidth * 0.25, y: kHeight * 0.25 },
@@ -487,7 +491,7 @@ fn(async (t) => {
 
       // For validation, we sample a few pixels away from the edges to avoid compression
       // artifacts.
-      t.expectSinglePixelComparisonsAreOkInTexture({ texture: colorAttachment }, [
+      ttu.expectSinglePixelComparisonsAreOkInTexture(t, { texture: colorAttachment }, [
       { coord: { x: kWidth * 0.1, y: kHeight * 0.1 }, exp: cropParam.color },
       { coord: { x: kWidth * 0.9, y: kHeight * 0.1 }, exp: cropParam.color },
       { coord: { x: kWidth * 0.1, y: kHeight * 0.9 }, exp: cropParam.color },
@@ -611,7 +615,7 @@ fn(async (t) => {
     // visible rect is whole frame, no clipping.
     const expect = kVideoInfo[videoName].display;
 
-    t.expectSinglePixelComparisonsAreOkInTexture({ texture: outputTexture }, [
+    ttu.expectSinglePixelComparisonsAreOkInTexture(t, { texture: outputTexture }, [
     // Top-left.
     { coord: { x: 0, y: 0 }, exp: convertToUnorm8(presentColors[expect.topLeftColor]) },
     // Top-right.
@@ -632,34 +636,64 @@ compared with 2d canvas rendering result.
 `
 ).
 params((u) =>
+// NOTE: Be careful not to add too many parameters here, this test is SLOW to initialize!
 u //
 .combineWithParams(checkNonStandardIsZeroCopyIfAvailable()).
-combine('dstColorSpace', kPredefinedColorSpace)
+combine('path', ['HTMLVideoElement', 'MediaStreamTrackProcessor']).
+combine('dstColorSpace', kPredefinedColorSpace).
+combine('constraints', [
+true,
+{ width: 64, height: 48 },
+{ width: 100, height: 300 }]
+)
 ).
 fn(async (t) => {
-  const { dstColorSpace } = t.params;
+  const { path, dstColorSpace, constraints } = t.params;
 
-  const frame = await captureCameraFrame(t);
+  // Enable this while debugging to show the "actual" and "expected" canvases on screen.
+  const kDebugShowCanvasesOnScreen = false;
 
-  if (frame.displayHeight === 0 || frame.displayWidth === 0) {
-    t.skip('Captured video frame has 0 height or width.');
+  let source;
+  let frameWidth, frameHeight;
+  switch (path) {
+    case 'HTMLVideoElement':{
+        const video = await getVideoElementFromCamera(t, constraints, true);
+        frameWidth = video.videoWidth;
+        frameHeight = video.videoHeight;
+        source = video;
+        break;
+      }
+    case 'MediaStreamTrackProcessor':{
+        const frame = await getVideoFrameFromCamera(t, constraints);
+        frameWidth = frame.displayWidth;
+        frameHeight = frame.displayHeight;
+        source = frame;
+        break;
+      }
+    default:
+      unreachable();
   }
 
-  const frameWidth = frame.displayWidth;
-  const frameHeight = frame.displayHeight;
-
   // Use WebGPU + GPUExternalTexture to render the captured frame.
-  const colorAttachment = t.createTextureTracked({
+  const webgpuCanvas = createCanvas(t, 'onscreen', frameWidth, frameHeight);
+  if (kDebugShowCanvasesOnScreen) {
+    document.body.append(document.createElement('br'));
+    document.body.append(webgpuCanvas);
+  }
+
+  const webgpuContext = webgpuCanvas.getContext('webgpu');
+  webgpuContext.configure({
+    device: t.device,
     format: kFormat,
-    size: { width: frameWidth, height: frameHeight },
-    usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
+    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
   });
+  const colorAttachment = webgpuContext.getCurrentTexture();
 
   const pipeline = createExternalTextureSamplingTestPipeline(t);
   const bindGroup = createExternalTextureSamplingTestBindGroup(
     t,
     t.params.checkNonStandardIsZeroCopy,
-    frame,
+    source,
     pipeline,
     dstColorSpace
   );
@@ -683,6 +717,9 @@ fn(async (t) => {
 
   // Use 2d context canvas as expected result.
   const canvas = createCanvas(t, 'onscreen', frameWidth, frameHeight);
+  if (kDebugShowCanvasesOnScreen) {
+    document.body.append(canvas);
+  }
 
   const canvasContext = canvas.getContext('2d', { colorSpace: dstColorSpace });
 
@@ -691,7 +728,7 @@ fn(async (t) => {
   }
 
   const ctx = canvasContext;
-  ctx.drawImage(frame, 0, 0, frameWidth, frameHeight);
+  ctx.drawImage(source, 0, 0, frameWidth, frameHeight);
 
   const imageData = ctx.getImageData(0, 0, frameWidth, frameHeight, {
     colorSpace: dstColorSpace
@@ -713,7 +750,7 @@ fn(async (t) => {
     }
   });
 
-  t.expectTexelViewComparisonIsOkInTexture({ texture: colorAttachment }, expectedView, [
+  ttu.expectTexelViewComparisonIsOkInTexture(t, { texture: colorAttachment }, expectedView, [
   frameWidth,
   frameHeight,
   1]

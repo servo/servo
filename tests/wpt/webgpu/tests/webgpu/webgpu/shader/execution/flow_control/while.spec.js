@@ -3,11 +3,11 @@
 **/export const description = `
 Flow control tests for while-loops.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
 import { runFlowControlTest } from './harness.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('while_basic').
 desc('Test that flow control executes a while-loop body the correct number of times').

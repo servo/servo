@@ -1,27 +1,32 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/export const description = `createTexture validation tests.`;import { SkipTestCase } from '../../../common/framework/fixture.js';
+**/export const description = `createTexture validation tests.`;import { AllFeaturesMaxLimitsGPUTest } from '../.././gpu_test.js';
 import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { assert, makeValueTestVariant } from '../../../common/util/util.js';
 import { kTextureDimensions, kTextureUsages } from '../../capability_info.js';
 import { GPUConst } from '../../constants.js';
 import {
   kAllTextureFormats,
-  kTextureFormatInfo,
   kCompressedTextureFormats,
   kUncompressedTextureFormats,
   kRegularTextureFormats,
   kFeaturesForFormats,
   filterFormatsByFeature,
-  viewCompatible,
-  textureDimensionAndFormatCompatible,
-  isTextureFormatUsableAsStorageFormat } from
+  textureFormatAndDimensionPossiblyCompatible,
+  getBlockInfoForTextureFormat,
+  isTextureFormatMultisampled,
+  isTextureFormatColorRenderable,
+  isTextureFormatPossiblyUsableAsColorRenderAttachment,
+  isTextureFormatPossiblyStorageReadable,
+  isColorTextureFormat,
+  textureFormatsAreViewCompatible,
+  textureDimensionAndFormatCompatibleForDevice,
+  getMaxValidTextureSizeForFormatAndDimension,
+  isTextureFormatUsableWithStorageAccessMode } from
 '../../format_info.js';
 import { maxMipLevelCount } from '../../util/texture/base.js';
 
-import { ValidationTest } from './validation_test.js';
-
-export const g = makeTestGroup(ValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('zero_size_and_usage').
 desc(
@@ -49,16 +54,16 @@ combine('zeroArgument', [
 'usage']
 )
 // Filter out incompatible dimension type and format combinations.
-.filter(({ dimension, format }) => textureDimensionAndFormatCompatible(dimension, format))
+.filter(({ dimension, format }) =>
+textureFormatAndDimensionPossiblyCompatible(dimension, format)
+)
 ).
-beforeAllSubcases((t) => {
-  const { format } = t.params;
-  const info = kTextureFormatInfo[format];
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const { dimension, zeroArgument, format } = t.params;
-  const info = kTextureFormatInfo[format];
+  t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
+
+  const info = getBlockInfoForTextureFormat(format);
 
   const size = [info.blockWidth, info.blockHeight, 1];
   let mipLevelCount = 1;
@@ -101,22 +106,18 @@ fn((t) => {
 
 g.test('dimension_type_and_format_compatibility').
 desc(
-  `Test every dimension type on every format. Note that compressed formats and depth/stencil formats are not valid for 1D/3D dimension types.`
+  `Test every dimension type on every format. Note that compressed formats and depth/stencil formats are not valid
+    for 1D dimension types while it depends on the format for 3D types.`
 ).
 params((u) =>
 u //
 .combine('dimension', [undefined, ...kTextureDimensions]).
 combine('format', kAllTextureFormats)
 ).
-beforeAllSubcases((t) => {
-  const { format } = t.params;
-  const info = kTextureFormatInfo[format];
-  t.skipIfTextureFormatNotSupported(format);
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const { dimension, format } = t.params;
-  const info = kTextureFormatInfo[format];
+  t.skipIfTextureFormatNotSupported(format);
+  const info = getBlockInfoForTextureFormat(format);
 
   const descriptor = {
     size: [info.blockWidth, info.blockHeight, 1],
@@ -125,9 +126,12 @@ fn((t) => {
     usage: GPUTextureUsage.TEXTURE_BINDING
   };
 
-  t.expectValidationError(() => {
-    t.createTextureTracked(descriptor);
-  }, !textureDimensionAndFormatCompatible(dimension, format));
+  t.expectValidationError(
+    () => {
+      t.createTextureTracked(descriptor);
+    },
+    !textureDimensionAndFormatCompatibleForDevice(t.device, dimension, format)
+  );
 });
 
 g.test('mipLevelCount,format').
@@ -142,19 +146,17 @@ combine('format', kAllTextureFormats).
 beginSubcases().
 combine('mipLevelCount', [1, 2, 3, 6, 7])
 // Filter out incompatible dimension type and format combinations.
-.filter(({ dimension, format }) => textureDimensionAndFormatCompatible(dimension, format)).
+.filter(({ dimension, format }) =>
+textureFormatAndDimensionPossiblyCompatible(dimension, format)
+).
 combine('largestDimension', [0, 1, 2]).
 unless(({ dimension, largestDimension }) => dimension === '1d' && largestDimension > 0)
 ).
-beforeAllSubcases((t) => {
-  const { format } = t.params;
-  const info = kTextureFormatInfo[format];
-  t.skipIfTextureFormatNotSupported(format);
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const { dimension, format, mipLevelCount, largestDimension } = t.params;
-  const info = kTextureFormatInfo[format];
+  t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
+  const info = getBlockInfoForTextureFormat(format);
 
   // Compute dimensions such that the dimensions are in range [17, 32] and aligned with the
   // format block size so that there will be exactly 6 mip levels.
@@ -221,17 +223,13 @@ unless(
   format === 'bc1-rgba-unorm' && (
   dimension === '1d' ||
   dimension === '3d' ||
-  size[0] % kTextureFormatInfo[format].blockWidth !== 0 ||
-  size[1] % kTextureFormatInfo[format].blockHeight !== 0)
+  size[0] % getBlockInfoForTextureFormat(format).blockWidth !== 0 ||
+  size[1] % getBlockInfoForTextureFormat(format).blockHeight !== 0)
 )
 ).
-beforeAllSubcases((t) => {
-  const { format } = t.params;
-  const info = kTextureFormatInfo[format];
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const { format, size, dimension } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
 
   const descriptor = {
     size,
@@ -277,15 +275,10 @@ combine('format', kAllTextureFormats).
 beginSubcases().
 combine('sampleCount', [0, 1, 2, 4, 8, 16, 32, 256])
 ).
-beforeAllSubcases((t) => {
-  const { format } = t.params;
-  const info = kTextureFormatInfo[format];
-  t.skipIfTextureFormatNotSupported(format);
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const { dimension, sampleCount, format } = t.params;
-  const info = kTextureFormatInfo[format];
+  t.skipIfTextureFormatNotSupported(format);
+  const info = getBlockInfoForTextureFormat(format);
 
   const usage =
   sampleCount > 1 ?
@@ -299,7 +292,8 @@ fn((t) => {
     usage
   };
 
-  const success = sampleCount === 1 || sampleCount === 4 && info.multisample;
+  const success =
+  sampleCount === 1 || sampleCount === 4 && isTextureFormatMultisampled(t.device, format);
 
   t.expectValidationError(() => {
     t.createTextureTracked(descriptor);
@@ -339,26 +333,28 @@ expand('usage', () => {
   return usageSet;
 })
 // Filter out incompatible dimension type and format combinations.
-.filter(({ dimension, format }) => textureDimensionAndFormatCompatible(dimension, format)).
+.filter(({ dimension, format }) =>
+textureFormatAndDimensionPossiblyCompatible(dimension, format)
+).
 unless(({ usage, format, mipLevelCount, dimension }) => {
-  const info = kTextureFormatInfo[format];
   return (
     (usage & GPUConst.TextureUsage.RENDER_ATTACHMENT) !== 0 && (
-    !info.colorRender || dimension !== '2d') ||
-    (usage & GPUConst.TextureUsage.STORAGE_BINDING) !== 0 && !info.color?.storage ||
+    !isTextureFormatPossiblyUsableAsColorRenderAttachment(format) ||
+    dimension !== '2d') ||
+    (usage & GPUConst.TextureUsage.STORAGE_BINDING) !== 0 &&
+    !isTextureFormatPossiblyStorageReadable(format) ||
     mipLevelCount !== 1 && dimension === '1d');
 
 })
 ).
-beforeAllSubcases((t) => {
-  const { format } = t.params;
-  const info = kTextureFormatInfo[format];
-  t.skipIfTextureFormatNotSupported(format);
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const { dimension, sampleCount, format, mipLevelCount, arrayLayerCount, usage } = t.params;
-  const { blockWidth, blockHeight } = kTextureFormatInfo[format];
+  t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
+  if ((usage & GPUConst.TextureUsage.RENDER_ATTACHMENT) !== 0) {
+    t.skipIfTextureFormatNotUsableAsRenderAttachment(format);
+  }
+  const { blockWidth, blockHeight } = getBlockInfoForTextureFormat(format);
 
   const size =
   dimension === '1d' ?
@@ -377,13 +373,13 @@ fn((t) => {
 
   const satisfyWithStorageUsageRequirement =
   (usage & GPUConst.TextureUsage.STORAGE_BINDING) === 0 ||
-  isTextureFormatUsableAsStorageFormat(format, t.isCompatibility);
+  isTextureFormatUsableWithStorageAccessMode(t.device, format, 'write-only');
 
   const success =
   sampleCount === 1 && satisfyWithStorageUsageRequirement ||
-  sampleCount === 4 && (
+  sampleCount === 4 &&
+  isTextureFormatMultisampled(t.device, format) && (
   dimension === '2d' || dimension === undefined) &&
-  kTextureFormatInfo[format].multisample &&
   mipLevelCount === 1 &&
   arrayLayerCount === 1 &&
   (usage & GPUConst.TextureUsage.RENDER_ATTACHMENT) !== 0 &&
@@ -431,16 +427,14 @@ combine('format', kUncompressedTextureFormats).
 beginSubcases().
 combine('size', [[1], [1, 1], [1, 1, 1]])
 // Filter out incompatible dimension type and format combinations.
-.filter(({ dimension, format }) => textureDimensionAndFormatCompatible(dimension, format))
+.filter(({ dimension, format }) =>
+textureFormatAndDimensionPossiblyCompatible(dimension, format)
+)
 ).
-beforeAllSubcases((t) => {
-  const { format } = t.params;
-  const info = kTextureFormatInfo[format];
-  t.skipIfTextureFormatNotSupported(format);
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const { dimension, format, size } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
 
   const descriptor = {
     size,
@@ -459,12 +453,15 @@ desc(
 ).
 params((u) =>
 u
-// Compressed formats are invalid for 1D and 3D.
-.combine('dimension', [undefined, '2d']).
+// Compressed formats are invalid for 1D.
+.combine('dimension', [undefined, '2d', '3d']).
 combine('format', kCompressedTextureFormats).
+filter(({ dimension, format }) =>
+textureFormatAndDimensionPossiblyCompatible(dimension, format)
+).
 beginSubcases().
 expandWithParams((p) => {
-  const { blockWidth, blockHeight } = kTextureFormatInfo[p.format];
+  const { blockWidth, blockHeight } = getBlockInfoForTextureFormat(p.format);
   return [
   { size: [1], _success: false },
   { size: [blockWidth], _success: false },
@@ -475,13 +472,10 @@ expandWithParams((p) => {
 
 })
 ).
-beforeAllSubcases((t) => {
-  const { format } = t.params;
-  const info = kTextureFormatInfo[format];
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const { dimension, format, size, _success } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
 
   const descriptor = {
     size,
@@ -510,14 +504,9 @@ combine('widthVariant', [
 combine('height', [1, 2]).
 combine('depthOrArrayLayers', [1, 2])
 ).
-beforeAllSubcases((t) => {
-  const { format } = t.params;
-  const info = kTextureFormatInfo[format];
-  t.skipIfTextureFormatNotSupported(format);
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const { format, widthVariant, height, depthOrArrayLayers } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
   const width = t.makeLimitVariant('maxTextureDimension1D', widthVariant);
 
   const descriptor = {
@@ -559,14 +548,9 @@ combine(
 
 )
 ).
-beforeAllSubcases((t) => {
-  const { format } = t.params;
-  const info = kTextureFormatInfo[format];
-  t.skipIfTextureFormatNotSupported(format);
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const { dimension, format, sizeVariant } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
   const size = [
   t.device.limits.maxTextureDimension2D,
   t.device.limits.maxTextureDimension2D,
@@ -598,7 +582,7 @@ combine('dimension', [undefined, '2d']).
 combine('format', kCompressedTextureFormats).
 beginSubcases().
 expand('sizeVariant', (p) => {
-  const { blockWidth, blockHeight } = kTextureFormatInfo[p.format];
+  const { blockWidth, blockHeight } = getBlockInfoForTextureFormat(p.format);
   return [
   // Test the bound of width
   [
@@ -746,19 +730,13 @@ expand('sizeVariant', (p) => {
 
 })
 ).
-beforeAllSubcases((t) => {
-  const { format } = t.params;
-  const info = kTextureFormatInfo[format];
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const { dimension, format, sizeVariant } = t.params;
-  const info = kTextureFormatInfo[format];
-  const size = [
-  t.device.limits.maxTextureDimension2D,
-  t.device.limits.maxTextureDimension2D,
-  t.device.limits.maxTextureArrayLayers].
-  map((limit, ndx) => makeValueTestVariant(limit, sizeVariant[ndx]));
+  t.skipIfTextureFormatNotSupported(format);
+  const info = getBlockInfoForTextureFormat(format);
+  const size = getMaxValidTextureSizeForFormatAndDimension(t.device, format, '2d').map(
+    (limit, ndx) => makeValueTestVariant(limit, sizeVariant[ndx])
+  );
 
   const descriptor = {
     size,
@@ -805,14 +783,10 @@ combine(
 
 )
 ).
-beforeAllSubcases((t) => {
-  const { format } = t.params;
-  const info = kTextureFormatInfo[format];
-  t.skipIfTextureFormatNotSupported(format);
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const { format, sizeVariant } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureFormatAndDimensionNotCompatible(format, '3d');
   const maxTextureDimension3D = t.device.limits.maxTextureDimension3D;
   const size = sizeVariant.map((variant) => t.makeLimitVariant('maxTextureDimension3D', variant));
 
@@ -840,7 +814,7 @@ u //
 .combine('format', kCompressedTextureFormats).
 beginSubcases().
 expand('sizeVariant', (p) => {
-  const { blockWidth, blockHeight } = kTextureFormatInfo[p.format];
+  const { blockWidth, blockHeight } = getBlockInfoForTextureFormat(p.format);
   return [
   // Test the bound of width
   [
@@ -988,24 +962,14 @@ expand('sizeVariant', (p) => {
 
 })
 ).
-beforeAllSubcases((t) => {
-  // Compressed formats are not supported in 3D in WebGPU v1 because they are complicated but not very useful for now.
-  throw new SkipTestCase('Compressed 3D texture is not supported');
-
-  const { format } = t.params;
-  const info = kTextureFormatInfo[format];
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const { format, sizeVariant } = t.params;
-  const info = kTextureFormatInfo[format];
-
+  t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureFormatAndDimensionNotCompatible(format, '3d');
   const maxTextureDimension3D = t.device.limits.maxTextureDimension3D;
-  const size = sizeVariant.map((variant) => t.makeLimitVariant('maxTextureDimension3D', variant));
-
-  assert(
-    maxTextureDimension3D % info.blockWidth === 0 &&
-    maxTextureDimension3D % info.blockHeight === 0
+  const info = getBlockInfoForTextureFormat(format);
+  const size = getMaxValidTextureSizeForFormatAndDimension(t.device, format, '3d').map(
+    (limit, ndx) => makeValueTestVariant(limit, sizeVariant[ndx])
   );
 
   const descriptor = {
@@ -1020,7 +984,8 @@ fn((t) => {
   size[1] % info.blockHeight === 0 &&
   size[0] <= maxTextureDimension3D &&
   size[1] <= maxTextureDimension3D &&
-  size[2] <= maxTextureDimension3D;
+  size[2] <= maxTextureDimension3D &&
+  textureDimensionAndFormatCompatibleForDevice(t.device, '3d', format);
 
   t.expectValidationError(() => {
     t.createTextureTracked(descriptor);
@@ -1040,17 +1005,15 @@ beginSubcases()
 .combine('usage0', kTextureUsages).
 combine('usage1', kTextureUsages)
 // Filter out incompatible dimension type and format combinations.
-.filter(({ dimension, format }) => textureDimensionAndFormatCompatible(dimension, format))
+.filter(({ dimension, format }) =>
+textureFormatAndDimensionPossiblyCompatible(dimension, format)
+)
 ).
-beforeAllSubcases((t) => {
-  const { format } = t.params;
-  const info = kTextureFormatInfo[format];
-  t.skipIfTextureFormatNotSupported(format);
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const { dimension, format, usage0, usage1 } = t.params;
-  const info = kTextureFormatInfo[format];
+  t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureFormatAndDimensionNotCompatible(format, dimension);
+  const info = getBlockInfoForTextureFormat(format);
 
   const size = [info.blockWidth, info.blockHeight, 1];
   const usage = usage0 | usage1;
@@ -1063,15 +1026,16 @@ fn((t) => {
 
   let success = true;
   const appliedDimension = dimension ?? '2d';
-  // Note that we unconditionally test copy usages for all formats. We don't check copySrc/copyDst in kTextureFormatInfo in capability_info.js
-  // if (!info.copySrc && (usage & GPUTextureUsage.COPY_SRC) !== 0) success = false;
-  // if (!info.copyDst && (usage & GPUTextureUsage.COPY_DST) !== 0) success = false;
+  // Note that we unconditionally test copy usages for all formats and
+  // expect failure if copying from or to is not supported.
   if (usage & GPUTextureUsage.STORAGE_BINDING) {
-    if (!isTextureFormatUsableAsStorageFormat(format, t.isCompatibility)) success = false;
+    if (!isTextureFormatUsableWithStorageAccessMode(t.device, format, 'write-only'))
+    success = false;
   }
   if (usage & GPUTextureUsage.RENDER_ATTACHMENT) {
     if (appliedDimension === '1d') success = false;
-    if (info.color && !info.colorRender) success = false;
+    if (isColorTextureFormat(format) && !isTextureFormatColorRenderable(t.device, format))
+    success = false;
   }
 
   t.expectValidationError(() => {
@@ -1095,17 +1059,12 @@ expand('viewFormat', ({ viewFormatFeature }) =>
 filterFormatsByFeature(viewFormatFeature, kAllTextureFormats)
 )
 ).
-beforeAllSubcases((t) => {
-  const { formatFeature, viewFormatFeature } = t.params;
-  t.selectDeviceOrSkipTestCase([formatFeature, viewFormatFeature]);
-}).
 fn((t) => {
   const { format, viewFormat } = t.params;
-  const { blockWidth, blockHeight } = kTextureFormatInfo[format];
-
   t.skipIfTextureFormatNotSupported(format, viewFormat);
 
-  const compatible = viewCompatible(t.isCompatibility, format, viewFormat);
+  const { blockWidth, blockHeight } = getBlockInfoForTextureFormat(format);
+  const compatible = textureFormatsAreViewCompatible(t.device, format, viewFormat);
 
   // Test the viewFormat in the list.
   t.expectValidationError(() => {

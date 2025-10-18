@@ -65,8 +65,12 @@ export const d = makeCaseCache('unary/u32_conversion', {
         return { input: f32(f), expected: u32(0) };
       }
 
-      if (f >= kValue.u32.max) {
-        return { input: f32(f), expected: u32(kValue.u32.max) };
+      const largestU32WhichIsF32 = 0xffffff00;
+      if (f >= largestU32WhichIsF32) {
+        // This is intentionally not kValue.u32.max
+        // See https://github.com/gpuweb/gpuweb/issues/5043
+
+        return { input: f32(f), expected: u32(largestU32WhichIsF32) };
       }
 
       // All f32 no larger than 2^24 has a precise integer part and a fractional

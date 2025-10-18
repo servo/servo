@@ -81,28 +81,61 @@ export class ErrorTest extends Fixture {
   }
 
   /**
+   * Pop `count` error scopes, and assert they all return `null`. Chunks the
+   * awaits so we only `Promise.all` 200 scopes at a time, instead of stalling
+   * on a huge `Promise.all` all at once. This helps Chromium's "heartbeat"
+   * mechanism know that the test is still running (and not hung).
+   */
+  async chunkedPopManyErrorScopes(count) {
+    const promises = [];
+    for (let i = 0; i < count; i++) {
+      promises.push(this.device.popErrorScope());
+      if (promises.length >= 200) {
+        this.expect((await Promise.all(promises)).every((e) => e === null));
+        promises.length = 0;
+      }
+    }
+    this.expect((await Promise.all(promises)).every((e) => e === null));
+  }
+
+  /**
    * Expect an uncapturederror event to occur. Note: this MUST be awaited, because
    * otherwise it could erroneously pass by capturing an error from later in the test.
    */
-  async expectUncapturedError(fn) {
+  async expectUncapturedError(
+  fn,
+  useOnuncapturederror = false)
+  {
     return this.immediateAsyncExpectation(() => {
-      // MAINTENANCE_TODO: Make arbitrary timeout value a test runner variable
-      const TIMEOUT_IN_MS = 1000;
-
       const promise = new Promise((resolve) => {
         const eventListener = (event) => {
+          // Don't emit error to console.
+          event.preventDefault();
+          // Unregister before resolving so we can be certain these are cleaned
+          // up before the next test.
+          if (useOnuncapturederror) {
+            this.device.onuncapturederror = null;
+          } else {
+            this.device.removeEventListener('uncapturederror', eventListener);
+          }
+
           this.debug(`Got uncaptured error event with ${event.error}`);
           resolve(event);
         };
 
-        this.device.addEventListener('uncapturederror', eventListener, { once: true });
+        if (useOnuncapturederror) {
+          this.device.onuncapturederror = eventListener;
+        } else {
+          this.device.addEventListener('uncapturederror', eventListener, { once: true });
+        }
       });
 
       fn();
 
+      const kTimeoutMS = 1000;
       return raceWithRejectOnTimeout(
         promise,
-        TIMEOUT_IN_MS,
+        kTimeoutMS,
         'Timeout occurred waiting for uncaptured error'
       );
     });

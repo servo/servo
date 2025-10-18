@@ -4,6 +4,7 @@
 This test dedicatedly tests validation of GPUMultisampleState of createRenderPipeline.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { kDefaultFragmentShaderCode } from '../../../util/shader.js';
+import * as vtu from '../validation_test_utils.js';
 
 import { CreateRenderPipelineValidationTest } from './common.js';
 
@@ -23,7 +24,7 @@ fn((t) => {
   const descriptor = t.getDescriptor({ multisample: { count, alphaToCoverageEnabled: false } });
 
   const _success = count === 1 || count === 4;
-  t.doCreateRenderPipelineTest(isAsync, _success, descriptor);
+  vtu.doCreateRenderPipelineTest(t, isAsync, _success, descriptor);
 });
 
 g.test('alpha_to_coverage,count').
@@ -43,7 +44,7 @@ fn((t) => {
   const descriptor = t.getDescriptor({ multisample: { count, alphaToCoverageEnabled } });
 
   const _success = alphaToCoverageEnabled ? count === 4 : count === 1 || count === 4;
-  t.doCreateRenderPipelineTest(isAsync, _success, descriptor);
+  vtu.doCreateRenderPipelineTest(t, isAsync, _success, descriptor);
 });
 
 g.test('alpha_to_coverage,sample_mask').
@@ -83,5 +84,5 @@ fn((t) => {
   });
 
   const _success = !hasSampleMaskOutput || !alphaToCoverageEnabled;
-  t.doCreateRenderPipelineTest(isAsync, _success, descriptor);
+  vtu.doCreateRenderPipelineTest(t, isAsync, _success, descriptor);
 });

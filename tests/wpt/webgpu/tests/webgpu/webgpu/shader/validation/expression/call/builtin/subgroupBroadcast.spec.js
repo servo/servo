@@ -17,36 +17,11 @@ export const g = makeTestGroup(ShaderValidationTest);
 g.test('requires_subgroups').
 desc('Validates that the subgroups feature is required').
 params((u) => u.combine('enable', [false, true])).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn((t) => {
   const wgsl = `
 ${t.params.enable ? 'enable subgroups;' : ''}
 fn foo() {
   _ = subgroupBroadcast(0, 0);
-}`;
-
-  t.expectCompileResult(t.params.enable, wgsl);
-});
-
-g.test('requires_subgroups_f16').
-desc('Validates that the subgroups feature is required').
-params((u) => u.combine('enable', [false, true])).
-beforeAllSubcases((t) => {
-  const features = ['shader-f16', 'subgroups'];
-  if (t.params.enable) {
-    features.push('subgroups-f16');
-  }
-  t.selectDeviceOrSkipTestCase(features);
-}).
-fn((t) => {
-  const wgsl = `
-enable f16;
-enable subgroups;
-${t.params.enable ? 'enable subgroups_f16;' : ''}
-fn foo() {
-  _ = subgroupBroadcast(0h, 0);
 }`;
 
   t.expectCompileResult(t.params.enable, wgsl);
@@ -75,9 +50,6 @@ fn main() {
 g.test('early_eval').
 desc('Ensures the builtin is not able to be compile time evaluated').
 params((u) => u.combine('stage', keysOf(kStages))).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn((t) => {
   const code = kStages[t.params.stage];
   t.expectCompileResult(t.params.stage === 'runtime', code);
@@ -86,9 +58,6 @@ fn((t) => {
 g.test('must_use').
 desc('Tests that the builtin has the @must_use attribute').
 params((u) => u.combine('must_use', [true, false])).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn((t) => {
   const wgsl = `
 enable subgroups;
@@ -103,20 +72,11 @@ fn main() {
 g.test('data_type').
 desc('Validates data parameter type').
 params((u) => u.combine('type', keysOf(kArgumentTypes))).
-beforeAllSubcases((t) => {
-  const features = ['subgroups'];
-  const type = kArgumentTypes[t.params.type];
-  if (type.requiresF16()) {
-    features.push('subgroups-f16');
-    features.push('shader-f16');
-  }
-  t.selectDeviceOrSkipTestCase(features);
-}).
 fn((t) => {
   const type = kArgumentTypes[t.params.type];
   let enables = `enable subgroups;\n`;
   if (type.requiresF16()) {
-    enables += `enable subgroups_f16;\nenable f16;`;
+    enables += `enable f16;`;
   }
   const wgsl = `
 ${enables}
@@ -147,22 +107,12 @@ filter((t) => {
 
 })
 ).
-beforeAllSubcases((t) => {
-  const features = ['subgroups'];
-  const dataType = kArgumentTypes[t.params.dataType];
-  const retType = kArgumentTypes[t.params.retType];
-  if (dataType.requiresF16() || retType.requiresF16()) {
-    features.push('subgroups-f16');
-    features.push('shader-f16');
-  }
-  t.selectDeviceOrSkipTestCase(features);
-}).
 fn((t) => {
   const dataType = kArgumentTypes[t.params.dataType];
   const retType = kArgumentTypes[t.params.retType];
   let enables = `enable subgroups;\n`;
   if (dataType.requiresF16() || retType.requiresF16()) {
-    enables += `enable subgroups_f16;\nenable f16;`;
+    enables += `enable f16;`;
   }
   const wgsl = `
 ${enables}
@@ -178,9 +128,6 @@ fn main() {
 g.test('id_type').
 desc('Validates id parameter type').
 params((u) => u.combine('type', keysOf(kArgumentTypes))).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn((t) => {
   const type = kArgumentTypes[t.params.type];
   const wgsl = `
@@ -228,9 +175,6 @@ const kIdCases = {
 g.test('id_constness').
 desc('Validates that id must be a const-expression').
 params((u) => u.combine('value', keysOf(kIdCases))).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn((t) => {
   const wgsl = `
 enable subgroups;
@@ -246,12 +190,38 @@ fn foo() {
   t.expectCompileResult(kIdCases[t.params.value].valid, wgsl);
 });
 
+g.test('id_values').
+desc('Validates that id must be in the range [0, 128)').
+params((u) =>
+u.
+combine('value', [-1, 0, 127, 128]).
+beginSubcases().
+combine('type', ['literal', 'const', 'expr'])
+).
+fn((t) => {
+  let arg = `${t.params.value}`;
+  if (t.params.type === 'const') {
+    arg = `c`;
+  } else if (t.params.type === 'expr') {
+    arg = `c + 0`;
+  }
+
+  const wgsl = `
+enable subgroups;
+
+const c = ${t.params.value};
+
+fn foo() {
+  _ = subgroupBroadcast(0, ${arg});
+}`;
+
+  const expect = t.params.value >= 0 && t.params.value < 128;
+  t.expectCompileResult(expect, wgsl);
+});
+
 g.test('stage').
 desc('Validates it is only usable in correct stage').
 params((u) => u.combine('stage', ['compute', 'fragment', 'vertex'])).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn((t) => {
   const compute = `
 @compute @workgroup_size(1)

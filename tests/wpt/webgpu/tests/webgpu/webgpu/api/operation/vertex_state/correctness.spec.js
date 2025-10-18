@@ -11,12 +11,8 @@ import {
   memcpy,
   unreachable } from
 '../../../../common/util/util.js';
-import {
-  kPerStageBindingLimits,
-  kVertexFormatInfo,
-  kVertexFormats } from
-'../../../capability_info.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { kVertexFormatInfo, kVertexFormats } from '../../../capability_info.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import { float32ToFloat16Bits, normalizedIntegerAsFloat } from '../../../util/conversion.js';
 import { align, clamp } from '../../../util/math.js';
 
@@ -87,7 +83,7 @@ function normalizeRgb10a2(rgba, index) {
 
 
 
-class VertexStateTest extends GPUTest {
+class VertexStateTest extends AllFeaturesMaxLimitsGPUTest {
   // Generate for VS + FS (entrypoints vsMain / fsMain) that for each attribute will check that its
   // value corresponds to what's expected (as provided by a uniform buffer per attribute) and then
   // renders each vertex at position (vertexIndex, instanceindex) with either 1 (success) or
@@ -105,21 +101,9 @@ class VertexStateTest extends GPUTest {
   vertexCount,
   instanceCount)
   {
-    // In the base WebGPU spec maxVertexAttributes is larger than maxUniformBufferPerStage. We'll
-    // use a combination of uniform and storage buffers to cover all possible attributes. This
-    // happens to work because maxUniformBuffer + maxStorageBuffer = 12 + 8 = 20 which is larger
-    // than maxVertexAttributes = 16.
-    // However this might not work in the future for implementations that allow even more vertex
-    // attributes so there will need to be larger changes when that happens.
-    const maxUniformBuffers = this.getDefaultLimit(kPerStageBindingLimits['uniformBuf'].maxLimit);
-    assert(
-      maxUniformBuffers + this.getDefaultLimit(kPerStageBindingLimits['storageBuf'].maxLimit) >=
-      this.device.limits.maxVertexAttributes
-    );
-
     let vsInputs = '';
     let vsChecks = '';
-    let vsBindings = '';
+    let providedDataDefs = '';
 
     for (const b of buffers) {
       for (const a of b.attributes) {
@@ -140,15 +124,8 @@ class VertexStateTest extends GPUTest {
           indexBuiltin = `input.instanceIndex`;
         }
 
-        // Start using storage buffers when we run out of uniform buffers.
-        let storageType = 'uniform';
-        if (i >= maxUniformBuffers) {
-          storageType = 'storage, read';
-        }
-
         vsInputs += `  @location(${i}) attrib${i} : ${shaderType},\n`;
-        vsBindings += `struct S${i} { data : array<vec4<${a.shaderBaseType}>, ${maxCount}> };\n`;
-        vsBindings += `@group(0) @binding(${i}) var<${storageType}> providedData${i} : S${i};\n`;
+        providedDataDefs += `  data${i}: array<vec4<${a.shaderBaseType}>, ${maxCount}>,\n`;
 
         // Generate the all the checks for the attributes.
         for (let component = 0; component < shaderComponentCount; component++) {
@@ -162,7 +139,7 @@ class VertexStateTest extends GPUTest {
           // Check each component individually, with special handling of tolerance for floats.
           const attribComponent =
           shaderComponentCount === 1 ? `input.attrib${i}` : `input.attrib${i}[${component}]`;
-          const providedData = `providedData${i}.data[${indexBuiltin}][${component}]`;
+          const providedData = `providedData.data${i}[${indexBuiltin}][${component}]`;
           if (format.type === 'uint' || format.type === 'sint') {
             vsChecks += `  check(${attribComponent} == ${providedData});\n`;
           } else {
@@ -181,7 +158,11 @@ ${vsInputs}
   @builtin(instance_index) instanceIndex: u32,
 };
 
-${vsBindings}
+struct ProvidedData {
+${providedDataDefs}
+};
+
+@group(0) @binding(0) var<uniform> providedData: ProvidedData;
 
 var<private> vsResult : i32 = 1;
 var<private> checkIndex : i32 = 0;
@@ -427,25 +408,51 @@ struct VSOutputs {
 
       case 'unorm':{
           if (formatInfo.bytesPerComponent === 'packed') {
-            assert(format === 'unorm10-10-10-2'); // This is the only packed format for now.
             assert(bitSize === 0);
 
+            switch (format) {
+              case 'unorm10-10-10-2':{
 
-            const data = [
-            [0, 0, 0, 0],
-            [1023, 1023, 1023, 3],
-            [243, 567, 765, 2]];
+                  const data = [
+                  [0, 0, 0, 0],
+                  [1023, 1023, 1023, 3],
+                  [243, 567, 765, 2]];
 
-            const vertexData = new Uint32Array(data.map(makeRgb10a2)).buffer;
-            const expectedData = new Float32Array(data.flat().map(normalizeRgb10a2)).buffer;
+                  const vertexData = new Uint32Array(data.map(makeRgb10a2)).buffer;
+                  const expectedData = new Float32Array(data.flat().map(normalizeRgb10a2)).buffer;
 
-            return {
-              shaderBaseType: 'f32',
-              testComponentCount: data.flat().length,
-              expectedData,
-              vertexData,
-              floatTolerance: 0.1 / 1023
-            };
+                  return {
+                    shaderBaseType: 'f32',
+                    testComponentCount: data.flat().length,
+                    expectedData,
+                    vertexData,
+                    floatTolerance: 0.1 / 1023
+                  };
+                }
+
+              case 'unorm8x4-bgra':{
+                  const data = [42, 0, 1, 2, 3, 4, 128, 255];
+                  const vertexData = new Uint8Array(data).buffer;
+                  const expectedData = new Float32Array(
+                    data.map((v) => normalizedIntegerAsFloat(v, 8, false))
+                  );
+
+                  for (let i = 0; i + 2 < expectedData.length; i += 4) {
+                    const r = expectedData[i + 0];
+                    const b = expectedData[i + 2];
+                    expectedData[i + 0] = b;
+                    expectedData[i + 2] = r;
+                  }
+
+                  return {
+                    shaderBaseType: 'f32',
+                    testComponentCount: data.length,
+                    expectedData: expectedData.buffer,
+                    vertexData,
+                    floatTolerance: 0.1 / 255
+                  };
+                }
+            }
           }
 
 
@@ -510,7 +517,7 @@ struct VSOutputs {
       shaderBaseType: data.shaderBaseType,
       testComponentCount: maxCount * componentCount,
       floatTolerance: data.floatTolerance,
-      expectedData: expandedExpectedData.buffer,
+      expectedData: expandedExpectedData.slice(0, maxCount * 4 * 4),
       vertexData: expandedVertexData.buffer
     };
   }
@@ -553,25 +560,29 @@ struct VSOutputs {
   }
 
   createExpectedBG(state, pipeline) {
-    // Create the bindgroups from that test data
-    const bgEntries = [];
+    // Create the bindgroup for the expected test data
 
+    // Concat expectedData into one buffer
+    let numBytes = 0;
+    const arrayBuffers = [];
     for (const buffer of state) {
       for (const attrib of buffer.attributes) {
-        const expectedDataBuffer = this.makeBufferWithContents(
-          new Uint8Array(attrib.expectedData),
-          GPUBufferUsage.UNIFORM | GPUBufferUsage.STORAGE
-        );
-        bgEntries.push({
-          binding: attrib.shaderLocation,
-          resource: { buffer: expectedDataBuffer }
-        });
+        numBytes += attrib.expectedData.byteLength;
+        arrayBuffers.push(attrib.expectedData);
       }
     }
 
+    const allExpectedData = new Uint8Array(numBytes);
+    let offset = 0;
+    for (const arrayBuffer of arrayBuffers) {
+      allExpectedData.set(new Uint8Array(arrayBuffer), offset);
+      offset += arrayBuffer.byteLength;
+    }
+    const expectedDataBuffer = this.makeBufferWithContents(allExpectedData, GPUBufferUsage.UNIFORM);
+
     return this.device.createBindGroup({
       layout: pipeline.getBindGroupLayout(0),
-      entries: bgEntries
+      entries: [{ binding: 0, resource: { buffer: expectedDataBuffer } }]
     });
   }
 
@@ -763,10 +774,14 @@ fn((t) => {
   const arrayStride = t.makeLimitVariant('maxVertexBufferArrayStride', arrayStrideVariant);
   const formatInfo = kVertexFormatInfo[format];
   const formatSize = formatInfo.byteSize;
-  const offset = clamp(makeValueTestVariant(arrayStride, offsetVariant), {
-    min: 0,
-    max: arrayStride - formatSize
-  });
+  const makeMultipleOf = Math.min(formatSize, 4);
+  const offset =
+  Math.floor(
+    clamp(makeValueTestVariant(arrayStride, offsetVariant), {
+      min: 0,
+      max: arrayStride - formatSize
+    }) / makeMultipleOf
+  ) * makeMultipleOf;
 
   t.runTest([
   {
@@ -968,14 +983,10 @@ fn((t) => {
       attributes: attribs
     }],
 
-    // Request one vertex more than what we need so we have an extra full stride. Otherwise WebGPU
-    // validation of vertex being in bounds will fail for all vertex buffers at an offset that's
-    // not 0 (since their last stride will go beyond the data for vertex kVertexCount -1).
-    kVertexCount + 1,
+    kVertexCount,
     kInstanceCount
   );
-  const vertexBuffer = t.createVertexBuffers(baseData, kVertexCount + 1, kInstanceCount)[0].
-  buffer;
+  const vertexBuffer = t.createVertexBuffers(baseData, kVertexCount, kInstanceCount)[0].buffer;
 
   // Then we recreate test data by:
   //   1) creating multiple "vertex buffers" that all point at the GPUBuffer above but at
@@ -1066,7 +1077,12 @@ expand('offsetVariant', (p) => {
 ).
 fn((t) => {
   const { format, stepMode, offsetVariant } = t.params;
-  const offset = t.makeLimitVariant('maxVertexBufferArrayStride', offsetVariant);
+  const formatInfo = kVertexFormatInfo[format];
+  const formatSize = formatInfo.byteSize;
+  const makeMultipleOf = Math.min(formatSize, 4);
+  const offset =
+  Math.floor(t.makeLimitVariant('maxVertexBufferArrayStride', offsetVariant) / makeMultipleOf) *
+  makeMultipleOf;
   const kCount = 10;
 
   // Create the stride 0 part of the test, first by faking a single vertex being drawn and

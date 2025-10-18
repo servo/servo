@@ -8,7 +8,7 @@ Clamp each component of e in the range [-128, 127] and then pack the lower 8 bit
 into a u32 value. Component e[i] of the input is mapped to bits (8 * i) through (8 * (i + 7)) of the
 result.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import { u32, toVector, i32, Type } from '../../../../../util/conversion.js';
 import { clamp } from '../../../../../util/math.js';
 
@@ -16,7 +16,7 @@ import { allInputSources, run } from '../../expression.js';
 
 import { builtin } from './builtin.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('basic').
 specURL('https://www.w3.org/TR/WGSL/#pack4xI8Clamp-builtin').

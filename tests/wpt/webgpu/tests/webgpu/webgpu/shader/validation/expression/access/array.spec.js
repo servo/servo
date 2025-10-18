@@ -32,11 +32,6 @@ u.combine('type', [
 'vec2i']
 )
 ).
-beforeAllSubcases((t) => {
-  if (t.params.type === 'f16') {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const ty = Type[t.params.type];
   const enable = ty.requiresF16() ? 'enable f16;' : '';
@@ -72,12 +67,6 @@ filter((t) => {
   return true;
 })
 ).
-beforeAllSubcases((t) => {
-  const ty = kTypes[t.params.type];
-  if (ty.requiresF16()) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const ty = kTypes[t.params.type];
   const enable = ty.requiresF16() ? 'enable f16;' : '';
@@ -205,6 +194,228 @@ const kOutOfBoundsCases = {
     result: false,
     pipeline: true,
     value: -1
+  },
+  runtime_nested_array_override_oob_neg: {
+    code: `@group(0) @binding(0) var<storage> v : array<array<u32, 4>>;
+    override x : i32;
+    override w = 0u;
+    fn y() -> u32 {
+      let tmp = v[w][x];
+      return 0;
+    }`,
+    result: false,
+    pipeline: true,
+    value: -1
+  },
+  runtime_nested_array_override_oob_pos: {
+    code: `@group(0) @binding(0) var<storage> v : array<array<u32,4>, 5>;
+    override x : i32;
+    override w = 0u;
+    fn y() -> u32 {
+      let tmp = v[w][x];
+      return 0;
+    }`,
+    result: false,
+    pipeline: true,
+    value: 4
+  },
+  runtime_nested_array_override_pos: {
+    code: `@group(0) @binding(0) var<storage> v : array<array<u32,10>, 2>;
+    override x : i32;
+    override w = 0u;
+    fn y() -> u32 {
+      let tmp = v[w][x];
+      return 0;
+    }`,
+    result: true,
+    pipeline: true,
+    value: 9
+  },
+  runtime_deep_nested_array_override_oob_pos: {
+    code: `@group(0) @binding(0) var<storage> v : array<array<array<u32, 3>, 4>, 5>;
+    override x : i32;
+    override w = 0u;
+    override u = 0u;
+    fn y() -> u32 {
+      let tmp = v[w][u][x];
+      return 0;
+    }`,
+    result: false,
+    pipeline: true,
+    value: 3
+  },
+  runtime_deep_nested_array_override_pos: {
+    code: `@group(0) @binding(0) var<storage> v : array<array<array<u32, 3>, 4>, 5>;
+    override x : i32;
+    override w = 4u;
+    override u = 3u;
+    fn y() -> u32 {
+      let tmp = v[w][u][x];
+      return 0;
+    }`,
+    result: true,
+    pipeline: true,
+    value: 2
+  },
+  runtime_structure_array_override_oob_neg: {
+    code: `
+      override x : i32;
+      struct S {
+        w : array<u32>
+      }
+      @group(0) @binding(0) var<storage> v : S;
+      fn y() -> u32 {
+        let tmp : u32 = v.w[x];
+        return 0;
+      }`,
+    result: false,
+    pipeline: true,
+    value: -1
+  },
+  runtime_structure_array_override_pos: {
+    code: `
+      override x : i32;
+      struct S {
+        w : array<u32>
+      }
+      @group(0) @binding(0) var<storage> v : S;
+      fn y() -> u32 {
+        let tmp : u32 = v.w[x];
+        return 0;
+      }`,
+    result: true,
+    pipeline: true,
+    value: 1
+  },
+  runtime_structure_array_override_oob_pos: {
+    code: `
+      override x : i32;
+      struct S {
+        w : array<u32, 5>
+      }
+      @group(0) @binding(0) var<storage> v : S;
+      fn y() -> u32 {
+        let tmp : u32 = v.w[x];
+        return 0;
+      }`,
+    result: false,
+    pipeline: true,
+    value: 5
+  },
+  runtime_nested_structure_array_override_oob_pos: {
+    code: `
+      override x : i32;
+      struct S {
+        w : array<u32, 5>
+      }
+      struct S2 {
+        r : S
+      }
+      @group(0) @binding(0) var<storage> v : S2;
+      fn y() -> u32 {
+        let tmp : u32 = v.r.w[x];
+        return 0;
+      }`,
+    result: false,
+    pipeline: true,
+    value: 5
+  },
+  runtime_nested_structure_array_override_pos: {
+    code: `
+      override x : i32;
+      struct S {
+        w : array<u32, 6>
+      }
+      struct S2 {
+        r : S
+      }
+      @group(0) @binding(0) var<storage> v : S2;
+      fn y() -> u32 {
+        let tmp : u32 = v.r.w[x];
+        return 0;
+      }`,
+    result: true,
+    pipeline: true,
+    value: 5
+  },
+  override_array_cnt_size_zero_unsigned: {
+    code: `override x : u32;
+    var<workgroup> v : array<u32,x>;
+    fn y() -> u32 {
+      return v[0];
+    }`,
+    result: false,
+    pipeline: true,
+    value: 0
+  },
+  override_array_cnt_size_zero_signed: {
+    code: `override x : i32;
+    var<workgroup> v : array<u32,x>;
+    fn y() -> u32 {
+      return v[0];
+    }`,
+    result: false,
+    pipeline: true,
+    value: 0
+  },
+  override_array_cnt_size_neg: {
+    code: `override x : i32;
+    var<workgroup> v : array<u32,x>;
+    fn y() -> u32 {
+      return v[0];
+    }`,
+    result: false,
+    pipeline: true,
+    value: -1
+  },
+  override_array_cnt_size_one: {
+    code: `override x : i32;
+    var<workgroup> v : array<u32,x>;
+    fn y() -> u32 {
+      return v[0];
+    }`,
+    result: true,
+    pipeline: true,
+    value: 1
+  },
+  override_array_dynamic_type_checked_oob_pos: {
+    code: `@group(0) @binding(0) var<storage> v : array<array<array<u32, 3>, 4>, 5>;
+    override x : i32;
+    override w = 0u;
+    fn y() -> u32 {
+      var u = 0;
+      let tmp = v[w][u][x];
+      return 0;
+    }`,
+    result: false,
+    pipeline: true,
+    value: 3
+  },
+  override_array_dynamic_type_checked_oob_neg: {
+    code: `@group(0) @binding(0) var<storage> v : array<array<array<u32, 3>, 4>, 5>;
+    override x : i32;
+    override w = 0u;
+    fn y() -> u32 {
+      var u = 0;
+      let tmp = v[w][u][x];
+      return 0;
+    }`,
+    result: false,
+    pipeline: true,
+    value: -1
+  },
+  override_array_dynamic_type_checked_bounds: {
+    code: `@group(0) @binding(0) var<storage> v : array<array<array<u32, 3>, 4>, 5>;
+    override x : i32;
+    override w = 0u;
+    fn y() -> u32 {
+      var u = 0;
+      let tmp = v[w][u][x];
+      return 0;
+    }`,
+    result: true,
+    pipeline: true,
+    value: 1
   }
 };
 

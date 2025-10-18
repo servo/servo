@@ -1,13 +1,14 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { SkipTestCase } from '../../common/framework/fixture.js';import { attemptGarbageCollection } from '../../common/util/collect_garbage.js';import { getGPU, getDefaultRequestAdapterOptions } from '../../common/util/navigator_gpu.js';
+**/import { SkipTestCase } from '../../common/framework/fixture.js';import { globalTestConfig } from '../../common/framework/test_config.js';import { attemptGarbageCollection } from '../../common/util/collect_garbage.js';
+import { getGPU, getDefaultRequestAdapterOptions } from '../../common/util/navigator_gpu.js';
 import {
   assert,
   raceWithRejectOnTimeout,
   assertReject,
   unreachable } from
 '../../common/util/util.js';
-import { getDefaultLimits, kLimits } from '../capability_info.js';
+import { getDefaultLimits, kPossibleLimits } from '../capability_info.js';
 
 // MUST_NOT_BE_IMPORTED_BY_DATA_CACHE
 // This file should not be transitively imported by .cache.ts files
@@ -23,19 +24,50 @@ class TestFailedButDeviceReusable extends Error {}
 class FeaturesNotSupported extends Error {}
 export class TestOOMedShouldAttemptGC extends Error {}
 
+/**
+ * DescriptorModifier lets you supply a function to select a device
+ * based on the limits/features available from the adapter.
+ * Devices pooled based on a key and that key is derived before
+ * an adapter is requested. That means you select key without
+ * knowledge of what the adapter will provide. You do this by
+ * providing a keyModifier function that appends a suffix.
+ *
+ * For example: If your modifier adds all the limits you might
+ * choose 'maxLimits' are your suffix
+ *
+ * ```js
+ *   keyModifier(s: string) { return `${s}:maxLimits`; },
+ * ```
+ *
+ * If your modifier selects only `maxBindGroups` and `maxColorAttachments`
+ * then your suffix might be `maxBindGroups&maxColorAttachments`
+ *
+ * ```js
+ *   keyModifier(s: string) { return `${s}:maxBindGroups&maxColorAttachments`; },
+ * ```
+ */
+
+
+
+
+
+
+
+
 export class DevicePool {
   holders = 'uninitialized';
 
   /** Acquire a device from the pool and begin the error scopes. */
   async acquire(
   recorder,
-  descriptor)
+  descriptor,
+  descriptorModifier)
   {
     let errorMessage = '';
     if (this.holders === 'uninitialized') {
       this.holders = new DescriptorToHolderMap();
       try {
-        await this.holders.getOrCreate(recorder, undefined);
+        await this.holders.getOrCreate(recorder, undefined, descriptorModifier);
       } catch (ex) {
         this.holders = 'failed';
         if (ex instanceof Error) {
@@ -49,7 +81,7 @@ export class DevicePool {
       `WebGPU device failed to initialize${errorMessage}; not retrying`
     );
 
-    const holder = await this.holders.getOrCreate(recorder, descriptor);
+    const holder = await this.holders.getOrCreate(recorder, descriptor, descriptorModifier);
 
     assert(holder.state === 'free', 'Device was in use on DevicePool.acquire');
     holder.state = 'acquired';
@@ -66,50 +98,60 @@ export class DevicePool {
     assert(holder instanceof DeviceHolder, 'DeviceProvider should always be a DeviceHolder');
 
     assert(holder.state === 'acquired', 'trying to release a device while already released');
+    let deviceNeedsReplacement = false;
     try {
       await holder.endTestScope();
 
-      // (Hopefully if the device was lost, it has been reported by the time endErrorScopes()
-      // has finished (or timed out). If not, it could cause a finite number of extra test
-      // failures following this one (but should recover eventually).)
-      assert(
-        holder.lostInfo === undefined,
-        `Device was unexpectedly lost. Reason: ${holder.lostInfo?.reason}, Message: ${holder.lostInfo?.message}`
-      );
+      if (holder.expectedLostReason) {
+        deviceNeedsReplacement = true;
+        assert(holder.lostInfo !== undefined, 'Device expected to be lost, but was not lost');
+        assert(
+          holder.lostInfo.reason === holder.expectedLostReason,
+          `Expected device loss reason "${holder.expectedLostReason}", got "${holder.lostInfo?.reason}"`
+        );
+      } else {
+        // Hopefully if the device was lost, it has been reported by the time endErrorScopes()
+        // has finished (or timed out). If not, it could cause a finite number of extra test
+        // failures following this test. (It should recover after one test in most cases.)
+        assert(holder.lostInfo === undefined, 'Device lost unexpectedly during test');
+      }
     } catch (ex) {
       // Any error that isn't explicitly TestFailedButDeviceReusable forces a new device to be
       // created for the next test.
       if (!(ex instanceof TestFailedButDeviceReusable)) {
-        this.holders.delete(holder);
-        if ('destroy' in holder.device) {
-          holder.device.destroy();
-          // Wait for destruction (or actual device loss if any) to complete.
-          await holder.device.lost;
-        }
+        deviceNeedsReplacement = true;
 
-        // Release the (hopefully only) ref to the GPUDevice.
-        holder.releaseGPUDevice();
-
-        // Try to clean up, in case there are stray GPU resources in need of collection.
+        // Try to clean up, in case there are stray resources in need of collection that won't be
+        // cleaned up by destroying the device - either outside the device (related to
+        // interop/video/canvas/ImageBitmap/etc.) or not destroyed along with the device for some
+        // other reason.
         if (ex instanceof TestOOMedShouldAttemptGC) {
           await attemptGarbageCollection();
         }
       }
-      // In the try block, we may throw an error if the device is lost in order to force device
-      // reinitialization, however, if the device lost was expected we want to suppress the error
-      // The device lost is expected when `holder.expectedLostReason` is equal to
-      // `holder.lostInfo.reason`.
-      const expectedDeviceLost =
-      holder.expectedLostReason !== undefined &&
-      holder.lostInfo !== undefined &&
-      holder.expectedLostReason === holder.lostInfo.reason;
-      if (!expectedDeviceLost) {
-        throw ex;
-      }
     } finally {
+      const deviceDueForReplacement =
+      holder.testCaseUseCounter >= globalTestConfig.casesBetweenReplacingDevice;
+      if (deviceNeedsReplacement || deviceDueForReplacement) {
+        this.holders.delete(holder);
+        holder.device.destroy();
+        await holder.device.lost;
+      }
+
       // Mark the holder as free so the device can be reused (if it's still in this.devices).
       holder.state = 'free';
     }
+  }
+
+  /**
+   * Destroy the pool, moving it to the persistent 'failed' state and destroy()ing any devices
+   * in the pool, regardless of whether they're in use by a test.
+   */
+  destroy() {
+    if (this.holders instanceof DescriptorToHolderMap) {
+      this.holders.clear();
+    }
+    this.holders = 'failed';
   }
 }
 
@@ -125,6 +167,7 @@ class DescriptorToHolderMap {
   delete(holder) {
     for (const [k, v] of this.holders) {
       if (v === holder) {
+        holder.device.destroy();
         this.holders.delete(k);
         return;
       }
@@ -143,9 +186,11 @@ class DescriptorToHolderMap {
    */
   async getOrCreate(
   recorder,
-  uncanonicalizedDescriptor)
+  uncanonicalizedDescriptor,
+  descriptorModifier)
   {
-    const [descriptor, key] = canonicalizeDescriptor(uncanonicalizedDescriptor);
+    const [descriptor, baseKey] = canonicalizeDescriptor(uncanonicalizedDescriptor);
+    const key = descriptorModifier?.keyModifier(baseKey) || baseKey;
     // Quick-reject descriptors that are known to be unsupported already.
     if (this.unsupported.has(key)) {
       throw new SkipTestCase(
@@ -167,7 +212,7 @@ class DescriptorToHolderMap {
     // No existing item was found; add a new one.
     let value;
     try {
-      value = await DeviceHolder.create(recorder, descriptor);
+      value = await DeviceHolder.create(recorder, descriptor, descriptorModifier);
     } catch (ex) {
       if (ex instanceof FeaturesNotSupported) {
         this.unsupported.add(key);
@@ -182,28 +227,32 @@ class DescriptorToHolderMap {
     return value;
   }
 
-  /** Insert an entry, then remove the least-recently-used items if there are too many. */
+  /**
+   * Insert an entry, then remove and destroy() the least-recently-used devices
+   * if there are too many.
+   */
   insertAndCleanUp(key, value) {
     this.holders.set(key, value);
 
     const kMaxEntries = 5;
     if (this.holders.size > kMaxEntries) {
       // Delete the first (least recently used) item in the set.
-      for (const [key] of this.holders) {
+      for (const [key, value] of this.holders) {
+        value.device.destroy();
         this.holders.delete(key);
-        return;
+        break;
       }
     }
   }
+
+  /** Destroy all the devices and clear the map. This destroys devices even if they're in use. */
+  clear() {
+    for (const [, value] of this.holders) {
+      value.device.destroy();
+    }
+    this.holders.clear();
+  }
 }
-
-
-
-
-
-
-
-
 
 
 
@@ -236,16 +285,13 @@ desc)
   /** Canonicalized version of the requested limits: in canonical order, with only values which are
    * specified _and_ non-default. */
   const limitsCanonicalized = {};
-  // MAINTENANCE_TODO: Remove cast when @webgpu/types includes compatibilityMode
-  const adapterOptions = getDefaultRequestAdapterOptions();
-
-
-  const featureLevel = adapterOptions?.compatibilityMode ? 'compatibility' : 'core';
+  const featureLevel = getDefaultRequestAdapterOptions()?.featureLevel ?? 'core';
+  assert(featureLevel === 'compatibility' || featureLevel === 'core');
   const defaultLimits = getDefaultLimits(featureLevel);
   if (desc.requiredLimits) {
-    for (const limit of kLimits) {
+    for (const limit of kPossibleLimits) {
       const requestedValue = desc.requiredLimits[limit];
-      const defaultValue = defaultLimits[limit].default;
+      const defaultValue = defaultLimits[limit]?.default;
       // Skip adding a limit to limitsCanonicalized if it is the same as the default.
       if (requestedValue !== undefined && requestedValue !== defaultValue) {
         limitsCanonicalized[limit] = requestedValue;
@@ -300,16 +346,22 @@ class DeviceHolder {
 
   /** Set if the device is expected to be lost. */
 
+  /** Number of test cases the device has been used for. */
+  testCaseUseCounter = 0;
 
   // Gets a device and creates a DeviceHolder.
   // If the device is lost, DeviceHolder.lost gets set.
   static async create(
   recorder,
-  descriptor)
+  descriptor,
+  descriptorModifier)
   {
     const gpu = getGPU(recorder);
     const adapter = await gpu.requestAdapter();
     assert(adapter !== null, 'requestAdapter returned null');
+    if (descriptorModifier) {
+      descriptor = descriptorModifier.descriptorModifier(adapter, descriptor);
+    }
     if (!supportsFeature(adapter, descriptor)) {
       throw new FeaturesNotSupported('One or more features are not supported');
     }
@@ -330,13 +382,13 @@ class DeviceHolder {
   }
 
   get device() {
-    assert(this._device !== undefined);
     return this._device;
   }
 
   /** Push error scopes that surround test execution. */
   beginTestScope() {
     assert(this.state === 'acquired');
+    this.testCaseUseCounter++;
     this.device.pushErrorScope('validation');
     this.device.pushErrorScope('internal');
     this.device.pushErrorScope('out-of-memory');
@@ -370,30 +422,28 @@ class DeviceHolder {
     let gpuInternalError;
     let gpuOutOfMemoryError;
 
-    // Submit to the queue to attempt to force a GPU flush.
-    this.device.queue.submit([]);
+    // Wait for queue to be idle just in case there are any implementation bugs where errors are not
+    // reported promptly. (This won't catch everything, e.g. deferred pipeline creations, but is
+    // still slightly more likely to catch things.)
+    await this.device.queue.onSubmittedWorkDone();
 
     try {
-      // May reject if the device was lost.
+      // If the device is lost, all of these should return null.
       [gpuOutOfMemoryError, gpuInternalError, gpuValidationError] = await Promise.all([
       this.device.popErrorScope(),
       this.device.popErrorScope(),
       this.device.popErrorScope()]
       );
     } catch (ex) {
-      assert(this.lostInfo !== undefined, 'popErrorScope failed; did beginTestScope get missed?');
-      throw ex;
+      unreachable('popErrorScope failed. Did the test body pop too many scopes?');
     }
 
-    // Attempt to wait for the queue to be idle.
-    if (this.device.queue.onSubmittedWorkDone) {
-      await this.device.queue.onSubmittedWorkDone();
+    if (!this.expectedLostReason) {
+      await assertReject('OperationError', this.device.popErrorScope(), {
+        allowMissingStack: true,
+        message: 'There was an extra error scope on the stack after a test'
+      });
     }
-
-    await assertReject('OperationError', this.device.popErrorScope(), {
-      allowMissingStack: true,
-      message: 'There was an extra error scope on the stack after a test'
-    });
 
     if (gpuOutOfMemoryError !== null) {
       assert(gpuOutOfMemoryError instanceof GPUOutOfMemoryError);
@@ -414,13 +464,5 @@ class DeviceHolder {
         `Unexpected validation error occurred: ${gpuValidationError.message}`
       );
     }
-  }
-
-  /**
-   * Release the ref to the GPUDevice. This should be the only ref held by the DevicePool or
-   * GPUTest, so in theory it can get garbage collected.
-   */
-  releaseGPUDevice() {
-    this._device = undefined;
   }
 }

@@ -3,9 +3,9 @@
 **/export const description = `Test memory layout requirements`;import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { keysOf } from '../../../common/util/data_tables.js';
 import { iterRange } from '../../../common/util/util.js';
-import { GPUTest } from '../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../gpu_test.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 
 
@@ -928,9 +928,6 @@ beginSubcases()
 ).
 beforeAllSubcases((t) => {
   const testcase = kLayoutCases[t.params.case];
-  if (testcase.f16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
   // Don't test atomics in workgroup due to initialization boilerplate.
   t.skipIf(
     testcase.type.includes('atomic') && t.params.aspace !== 'storage',
@@ -944,6 +941,10 @@ beforeAllSubcases((t) => {
 }).
 fn((t) => {
   const testcase = kLayoutCases[t.params.case];
+  if (testcase.f16) {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
+
   let code = `
 ${testcase.f16 ? 'enable f16;' : ''}
 ${testcase.decl ?? ''}
@@ -1068,9 +1069,6 @@ beginSubcases()
 ).
 beforeAllSubcases((t) => {
   const testcase = kLayoutCases[t.params.case];
-  if (testcase.f16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
   // Don't test atomics in workgroup due to initialization boilerplate.
   t.skipIf(
     testcase.type.includes('atomic') && t.params.aspace !== 'storage',
@@ -1079,6 +1077,10 @@ beforeAllSubcases((t) => {
 }).
 fn((t) => {
   const testcase = kLayoutCases[t.params.case];
+  if (testcase.f16) {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
+
   let code = `
 ${testcase.f16 ? 'enable f16;' : ''}
 ${testcase.decl ?? ''}

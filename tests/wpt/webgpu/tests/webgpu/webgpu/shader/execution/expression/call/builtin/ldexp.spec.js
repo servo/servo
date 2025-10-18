@@ -13,14 +13,14 @@ I is K or vecN<K>, where
 @const fn ldexp(e1: T ,e2: I ) -> T
 Returns e1 * 2^e2. Component-wise when T is a vector.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import { Type } from '../../../../../util/conversion.js';
 import { allInputSources, onlyConstInputSource, run } from '../../expression.js';
 
 import { abstractFloatBuiltin, builtin } from './builtin.js';
 import { d } from './ldexp.cache.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('abstract_float').
 specURL('https://www.w3.org/TR/WGSL/#float-builtin-functions').
@@ -62,10 +62,8 @@ desc(`f16 tests`).
 params((u) =>
 u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get(t.params.inputSource === 'const' ? 'f16_const' : 'f16_non_const');
   await run(t, builtin('ldexp'), [Type.f16, Type.i32], Type.f16, t.params, cases);
 });

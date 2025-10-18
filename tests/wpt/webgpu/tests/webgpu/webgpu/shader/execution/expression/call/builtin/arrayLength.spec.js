@@ -6,10 +6,10 @@ Execution tests for the 'arrayLength' builtin function.
 fn arrayLength(e: ptr<storage,array<T>> ) -> u32
 Returns the number of elements in the runtime-sized array.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import { align } from '../../../../../util/math.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 // List of array element types to test.
 const kTestTypes = [
@@ -160,12 +160,10 @@ desc(
     `
 ).
 params((u) => u.combineWithParams(kTestTypes)).
-beforeAllSubcases((t) => {
-  if (typeRequiresF16(t.params.type)) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
+  if (typeRequiresF16(t.params.type)) {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
   const wgsl =
   shaderHeader(t.params.type) +
   kWgslStructures +
@@ -200,12 +198,10 @@ desc(
 params((u) =>
 u.combine('buffer_size', [640, 1004, 1048576]).combineWithParams(kTestTypes)
 ).
-beforeAllSubcases((t) => {
-  if (typeRequiresF16(t.params.type)) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
+  if (typeRequiresF16(t.params.type)) {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
   const wgsl =
   shaderHeader(t.params.type) +
   kWgslStructures +
@@ -235,12 +231,10 @@ desc(
     `
 ).
 params((u) => u.combine('member_offset', [0, 4, 20]).combineWithParams(kTestTypes)).
-beforeAllSubcases((t) => {
-  if (typeRequiresF16(t.params.type)) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
+  if (typeRequiresF16(t.params.type)) {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
   const member_offset = align(t.params.member_offset, t.params.stride);
   const wgsl =
   shaderHeader(t.params.type) +

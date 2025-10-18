@@ -1,6 +1,7 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { LogMessageWithStack } from '../../internal/logging/log_message.js';
+**/import { registerShutdownTask, runShutdownTasks } from '../../framework/on_shutdown.js';import { LogMessageWithStack } from '../../internal/logging/log_message.js';
+
 
 import { timeout } from '../../util/timeout.js';
 import { assert } from '../../util/util.js';
@@ -17,16 +18,16 @@ function unregisterAllServiceWorkers() {
   });
 }
 
-// Firefox has serviceWorkers disabled in private mode
-// and Servo does not support serviceWorkers yet.
-if ('serviceWorker' in navigator) {
-  // NOTE: This code runs on startup for any runtime with worker support. Here, we use that chance to
-  // delete any leaked service workers, and register to clean up after ourselves at shutdown.
-  unregisterAllServiceWorkers();
-  window.addEventListener('beforeunload', () => {
-    unregisterAllServiceWorkers();
-  });
-}
+// In practice all Web-based runtimes should be including this file, so take the opportunity to set
+// up runShutdownTasks. None of these events are guaranteed to happen, but cleaning up is very
+// important, so we try our best (and don't worry about shutdown performance or disabling bfcache).
+// (We could try 'visibilitychange', but since it can happen in the middle of the page lifetime,
+// it is more likely to have unintended consequences and would need to do different stuff.)
+// - 'unload' supposedly always disables the bfcache, but is deprecated in Chrome.
+// - 'beforeunload' may disable the bfcache but may be called more reliably than 'unload'.
+window.addEventListener('beforeunload', runShutdownTasks);
+// - 'pagehide' won't disable the bfcache but may be called more reliably than the others.
+window.addEventListener('pagehide', runShutdownTasks);
 
 class TestBaseWorker {
 
@@ -104,8 +105,12 @@ export class TestDedicatedWorker extends TestBaseWorker {
       const selfPath = import.meta.url;
       const selfPathDir = selfPath.substring(0, selfPath.lastIndexOf('/'));
       const workerPath = selfPathDir + '/test_worker-worker.js';
-      this.worker = new Worker(workerPath, { type: 'module' });
+      const worker = new Worker(workerPath, { type: 'module' });
+      this.worker = worker;
       this.worker.onmessage = (ev) => this.onmessage(ev);
+
+      // Try to send a shutdown signal to the worker on shutdown.
+      registerShutdownTask(() => worker.postMessage('shutdown'));
     } catch (ex) {
       assert(ex instanceof Error);
       // Save the exception to re-throw in runImpl().
@@ -143,6 +148,9 @@ export class TestSharedWorker extends TestBaseWorker {
       this.port = worker.port;
       this.port.start();
       this.port.onmessage = (ev) => this.onmessage(ev);
+
+      // Try to send a shutdown signal to the worker on shutdown.
+      registerShutdownTask(() => worker.port.postMessage('shutdown'));
     } catch (ex) {
       assert(ex instanceof Error);
       // Save the exception to re-throw in runImpl().
@@ -160,8 +168,25 @@ export class TestSharedWorker extends TestBaseWorker {
 }
 
 export class TestServiceWorker extends TestBaseWorker {
+  lastServiceWorker = null;
+
   constructor(ctsOptions) {
     super('service', ctsOptions);
+
+    // If the runtime is trying to use service workers, first clean up any service workers that may
+    // have leaked from previous incarnations of the page. Service workers *shouldn't* affect
+    // worker=none/dedicated/shared, so it should be OK if this constructor isn't called.
+    unregisterAllServiceWorkers();
+
+    // Try to send a shutdown signal to the worker on shutdown.
+    registerShutdownTask(() => {
+      this.runShutdownTasksOnLastServiceWorker();
+      unregisterAllServiceWorkers();
+    });
+  }
+
+  runShutdownTasksOnLastServiceWorker() {
+    this.lastServiceWorker?.postMessage('shutdown');
   }
 
   async runImpl(query, expectations = []) {
@@ -178,16 +203,24 @@ export class TestServiceWorker extends TestBaseWorker {
       `${selfPathDir}/../../../${suite}/webworker/${fileName}.as_worker.js`
     ).toString();
 
-    // If a registration already exists for this path, it will be ignored.
+    // Ensure the correct service worker is registered.
     const registration = await navigator.serviceWorker.register(serviceWorkerURL, {
       type: 'module'
     });
-    // Make sure the registration we just requested is active. (We don't worry about it being
+    const registrationPending = () =>
+    !registration.active || registration.active.scriptURL !== serviceWorkerURL;
+
+    // Ensure the registration we just requested is active. (We don't worry about it being
     // outdated from a previous page load, because we wipe all service workers on shutdown/startup.)
-    while (!registration.active || registration.active.scriptURL !== serviceWorkerURL) {
-      await new Promise((resolve) => timeout(resolve, 0));
+    const isNewInstance = registrationPending();
+    if (isNewInstance) {
+      this.runShutdownTasksOnLastServiceWorker();
+      do {
+        await new Promise((resolve) => timeout(resolve, 0));
+      } while (registrationPending());
     }
     const serviceWorker = registration.active;
+    this.lastServiceWorker = serviceWorker;
 
     navigator.serviceWorker.onmessage = (ev) => this.onmessage(ev);
     return this.makeRequestAndRecordResult(serviceWorker, query, expectations);

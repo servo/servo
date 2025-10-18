@@ -3,10 +3,10 @@
 **/export const description = `Test trivial shaders for each shader stage kind`; // There are many many more shaders executed in other tests.
 
 import { makeTestGroup } from '../../../common/framework/test_group.js';
-import { GPUTest } from '../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../gpu_test.js';
 import { checkElementsEqual } from '../../util/check_contents.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('basic_compute').
 desc(`Test a trivial compute shader`).

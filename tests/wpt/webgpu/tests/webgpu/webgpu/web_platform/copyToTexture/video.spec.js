@@ -8,7 +8,8 @@ copyToTexture with HTMLVideoElement and VideoFrame.
 
   TODO: Test video in BT.2020 color space
 `;import { makeTestGroup } from '../../../common/framework/test_group.js';
-import { GPUTest, TextureTestMixin } from '../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../gpu_test.js';
+import * as ttu from '../../texture_test_utils.js';
 import {
   startPlayingAndWaitForVideo,
   getVideoElement,
@@ -22,7 +23,7 @@ import {
 
 const kFormat = 'rgba8unorm';
 
-export const g = makeTestGroup(TextureTestMixin(GPUTest));
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('copy_from_video').
 desc(
@@ -34,12 +35,12 @@ It creates HTMLVideoElement with videos under Resource folder.
   Then call copyExternalImageToTexture() to do a full copy to the 0 mipLevel
   of dst texture, and read the contents out to compare with the ImageBitmap contents.
 
-  If 'flipY' in 'GPUImageCopyExternalImage' is set to 'true', copy will ensure the result
+  If 'flipY' in 'GPUCopyExternalImageSourceInfo' is set to 'true', copy will ensure the result
   is flipped.
 
   The tests covers:
   - Video comes from different color spaces.
-  - Valid 'flipY' config in 'GPUImageCopyExternalImage' (named 'srcDoFlipYDuringCopy' in cases)
+  - Valid 'flipY' config in 'GPUCopyExternalImageSourceInfo' (named 'srcDoFlipYDuringCopy' in cases)
   - TODO: partial copy tests should be added
   - TODO: all valid dstColorFormat tests should be added.
 `
@@ -101,7 +102,7 @@ fn(async (t) => {
     const expect = kVideoInfo[videoName].display;
 
     if (srcDoFlipYDuringCopy) {
-      t.expectSinglePixelComparisonsAreOkInTexture({ texture: dstTexture }, [
+      ttu.expectSinglePixelComparisonsAreOkInTexture(t, { texture: dstTexture }, [
       // Flipped top-left.
       {
         coord: { x: width * 0.25, y: height * 0.25 },
@@ -124,7 +125,7 @@ fn(async (t) => {
       }]
       );
     } else {
-      t.expectSinglePixelComparisonsAreOkInTexture({ texture: dstTexture }, [
+      ttu.expectSinglePixelComparisonsAreOkInTexture(t, { texture: dstTexture }, [
       // Top-left.
       {
         coord: { x: width * 0.25, y: height * 0.25 },

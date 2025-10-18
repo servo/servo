@@ -1,6 +1,6 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { assert, unreachable } from '../../../../../common/util/util.js';import { kTextureFormatInfo } from '../../../../format_info.js';import { virtualMipSize } from '../../../../util/texture/base.js';
+**/import { assert, unreachable } from '../../../../../common/util/util.js';import { virtualMipSize } from '../../../../util/texture/base.js';
 import {
   kTexelRepresentationInfo,
   getSingleDataType,
@@ -16,7 +16,6 @@ texture,
 state,
 subresourceRange) =>
 {
-  assert(params.format in kTextureFormatInfo);
   const format = params.format;
   const rep = kTexelRepresentationInfo[format];
 
@@ -139,7 +138,7 @@ subresourceRange) =>
 
       });
 
-      const commandEncoder = t.device.createCommandEncoder();
+      const commandEncoder = t.device.createCommandEncoder({ label: 'checkContentsBySampling' });
       const pass = commandEncoder.beginComputePass();
       pass.setPipeline(computePipeline);
       pass.setBindGroup(0, bindGroup);

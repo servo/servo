@@ -20,9 +20,9 @@ Test those operations against buffers in the following states:
 Also tests every order of operations combination of mapping operations and command recording
 operations to ensure the mapping state is only considered when a command buffer is submitted.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { ValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
-class F extends ValidationTest {
+class F extends AllFeaturesMaxLimitsGPUTest {
   async runBufferDependencyTest(usage, callback) {
     const bufferDesc = {
       size: 8,

@@ -21,7 +21,9 @@ export class IDLTest extends Fixture {
    */
   assertMember(act, exp, key) {
     assert(key in act, () => `Expected key ${key} missing`);
-    assert(act[key] === exp[key], () => `Value of [${key}] was ${act[key]}, expected ${exp[key]}`);
+    const actValue = act[key];
+    const expValue = exp[key];
+    assert(actValue === expValue, () => `Value of [${key}] was ${actValue}, expected ${expValue}`);
   }
 
   /**

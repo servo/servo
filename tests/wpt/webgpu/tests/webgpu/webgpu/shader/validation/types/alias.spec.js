@@ -192,11 +192,6 @@ const kTypes = [
 g.test('any_type').
 desc('Test that any type can be aliased').
 params((u) => u.combine('type', kTypes)).
-beforeAllSubcases((t) => {
-  if (t.params.type === 'f16') {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const ty = t.params.type;
   t.skipIf(

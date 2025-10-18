@@ -9,7 +9,7 @@ Atomically read, min and store value.
 
 Returns the original value stored in the atomic object.
 `;import { makeTestGroup } from '../../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../../gpu_test.js';
 
 import {
   dispatchSizes,
@@ -19,7 +19,7 @@ import {
   typedArrayCtor } from
 './harness.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('min_storage').
 specURL('https://www.w3.org/TR/WGSL/#atomic-rmw').

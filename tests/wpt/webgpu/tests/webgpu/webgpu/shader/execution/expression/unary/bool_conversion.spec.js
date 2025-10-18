@@ -3,14 +3,14 @@
 **/export const description = `
 Execution Tests for the boolean conversion operations
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 import { Type } from '../../../../util/conversion.js';
 import { allInputSources, run } from '../expression.js';
 
 import { d } from './bool_conversion.cache.js';
 import { unary } from './unary.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 /** Generate expression builder based on how the test case is to be vectorized */
 function vectorizeToExpression(vectorize) {
@@ -108,10 +108,8 @@ The result is false if e is 0.0 or -0.0, and true otherwise.
 params((u) =>
 u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('f16');
   await run(t, vectorizeToExpression(t.params.vectorize), [Type.f16], Type.bool, t.params, cases);
 });

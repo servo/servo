@@ -10,15 +10,11 @@ local_invocation_index. Tests should avoid assuming there is.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { keysOf, objectsToRecord } from '../../../../../../common/util/data_tables.js';
 import { assert, unreachable } from '../../../../../../common/util/util.js';
-import { kTextureFormatInfo } from '../../../../../format_info.js';
-import { kBit } from '../../../../../util/constants.js';
 import {
   kConcreteNumericScalarsAndVectors,
-  Type,
-  VectorType,
-  scalarTypeOf } from
+
+  VectorType } from
 '../../../../../util/conversion.js';
-import { align } from '../../../../../util/math.js';
 
 import {
   kWGSizes,
@@ -27,7 +23,9 @@ import {
   runComputeTest,
   SubgroupTest,
   kFramebufferSizes,
-  runFragmentTest } from
+  runFragmentTest,
+  generateTypedInputs,
+  getUintsPerFramebuffer } from
 './subgroup_util.js';
 
 export const g = makeTestGroup(SubgroupTest);
@@ -37,114 +35,6 @@ const kTypes = objectsToRecord(kConcreteNumericScalarsAndVectors);
 
 
 const kOps = ['quadSwapX', 'quadSwapY', 'quadSwapDiagonal'];
-
-/**
- * Generates scalar values for type
- *
- * Generates 4 32-bit values whose bit patterns represent
- * interesting values of the data type.
- * @param type The data type
- */
-function generateScalarValues(type) {
-  const scalarTy = scalarTypeOf(type);
-  switch (scalarTy) {
-    case Type.u32:
-      return [kBit.u32.min, kBit.u32.max, 1111, 2222];
-    case Type.i32:
-      return [
-      kBit.i32.positive.min,
-      kBit.i32.positive.max,
-      kBit.i32.negative.min,
-      0xffffffff // -1
-      ];
-    case Type.f32:
-      return [
-      kBit.f32.positive.zero,
-      kBit.f32.positive.nearest_max,
-      kBit.f32.negative.nearest_min,
-      0xbf800000 // -1
-      ];
-    case Type.f16:
-      return [
-      kBit.f16.positive.zero,
-      kBit.f16.positive.nearest_max,
-      kBit.f16.negative.nearest_min,
-      0xbc00 // -1
-      ];
-    default:
-      unreachable(`Unsupported type: ${type.toString()}`);
-  }
-  return [0, 0, 0, 0];
-}
-
-/**
- * Generates input bit patterns for the input type
- *
- * Generates 4 values of type in a Uint32Array.
- * 16-bit types are appropriately packed.
- * @param type The data type
- */
-function generateTypedInputs(type) {
-  const scalarValues = generateScalarValues(type);
-  let elements = 1;
-  if (type instanceof VectorType) {
-    elements = type.width;
-  }
-  if (type.requiresF16()) {
-    switch (elements) {
-      case 1:
-        return new Uint32Array([
-        scalarValues[0] | scalarValues[1] << 16,
-        scalarValues[2] | scalarValues[3] << 16]
-        );
-      case 2:
-        return new Uint32Array([
-        scalarValues[0] | scalarValues[0] << 16,
-        scalarValues[1] | scalarValues[1] << 16,
-        scalarValues[2] | scalarValues[2] << 16,
-        scalarValues[3] | scalarValues[3] << 16]
-        );
-      case 3:
-        return new Uint32Array([
-        scalarValues[0] | scalarValues[0] << 16,
-        scalarValues[0] | kDataSentinel << 16,
-        scalarValues[1] | scalarValues[1] << 16,
-        scalarValues[1] | kDataSentinel << 16,
-        scalarValues[2] | scalarValues[2] << 16,
-        scalarValues[2] | kDataSentinel << 16,
-        scalarValues[3] | scalarValues[3] << 16,
-        scalarValues[3] | kDataSentinel << 16]
-        );
-      case 4:
-        return new Uint32Array([
-        scalarValues[0] | scalarValues[0] << 16,
-        scalarValues[0] | scalarValues[0] << 16,
-        scalarValues[1] | scalarValues[1] << 16,
-        scalarValues[1] | scalarValues[1] << 16,
-        scalarValues[2] | scalarValues[2] << 16,
-        scalarValues[2] | scalarValues[2] << 16,
-        scalarValues[3] | scalarValues[3] << 16,
-        scalarValues[3] | scalarValues[3] << 16]
-        );
-      default:
-        unreachable(`Unsupported type: ${type.toString()}`);
-    }
-    return new Uint32Array([0]);
-  } else {
-    const bound = elements === 3 ? 4 : elements;
-    const values = [];
-    for (let i = 0; i < 4; i++) {
-      for (let j = 0; j < bound; j++) {
-        if (j < elements) {
-          values.push(scalarValues[i]);
-        } else {
-          values.push(kDataSentinel);
-        }
-      }
-    }
-    return new Uint32Array(values);
-  }
-}
 
 /**
  * Returns the swapped quad invocation id for the given op
@@ -237,21 +127,17 @@ type)
 g.test('data_types').
 desc('Test allowed data types').
 params((u) => u.combine('type', keysOf(kTypes)).beginSubcases().combine('op', kOps)).
-beforeAllSubcases((t) => {
-  const features = ['subgroups'];
-  const type = kTypes[t.params.type];
-  if (type.requiresF16()) {
-    features.push('subgroups-f16');
-    features.push('shader-f16');
-  }
-  t.selectDeviceOrSkipTestCase(features);
-}).
 fn(async (t) => {
   const wgSize = [4, 1, 1];
   const type = kTypes[t.params.type];
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
+  if (type.requiresF16()) {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
+
   let enables = `enable subgroups;\n`;
   if (type.requiresF16()) {
-    enables += `enable f16;\nenable subgroups_f16;`;
+    enables += `enable f16;`;
   }
   const wgsl = `
 ${enables}
@@ -374,10 +260,8 @@ filter((t) => {
 beginSubcases().
 combine('op', kOps)
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
 
   const wgsl = `
@@ -456,15 +340,16 @@ filter((t) => {
 beginSubcases().
 combine('op', kOps)
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const wgThreads = t.params.wgSize[0] * t.params.wgSize[1] * t.params.wgSize[2];
   const testcase = kPredicateCases[t.params.predicate];
 
   const wgsl = `
 enable subgroups;
+
+diagnostic(off, subgroup_uniformity);
+diagnostic(off, subgroup_branching);
 
 @group(0) @binding(0)
 var<storage> inputs : u32; // unused
@@ -541,12 +426,7 @@ op)
     );
   }
 
-  const { blockWidth, blockHeight, bytesPerBlock } = kTextureFormatInfo[format];
-  const blocksPerRow = width / blockWidth;
-  // 256 minimum comes from image copy requirements.
-  const bytesPerRow = align(blocksPerRow * (bytesPerBlock ?? 1), 256);
-  const uintsPerRow = bytesPerRow / 4;
-  const uintsPerTexel = (bytesPerBlock ?? 1) / blockWidth / blockHeight / 4;
+  const { uintsPerRow, uintsPerTexel } = getUintsPerFramebuffer(format, width, height);
 
   const coordToIndex = (row, col) => {
     return uintsPerRow * row + col * uintsPerTexel;
@@ -611,15 +491,13 @@ beginSubcases().
 combine('op', kOps).
 combineWithParams([{ format: 'rgba32uint' }])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const fsShader = `
 enable subgroups;
 
 @group(0) @binding(0)
-var<storage, read_write> inputs : array<u32>; // unused
+var<uniform> inputs : array<vec4u, 1>; // unused
 
 @fragment
 fn main(

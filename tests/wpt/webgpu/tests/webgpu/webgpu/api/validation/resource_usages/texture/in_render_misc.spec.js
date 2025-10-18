@@ -5,14 +5,30 @@ Texture Usages Validation Tests on All Kinds of WebGPU Subresource Usage Scopes.
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { unreachable } from '../../../../../common/util/util.js';
 import { kTextureUsages } from '../../../../capability_info.js';
-import { ValidationTest } from '../../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
+import * as vtu from '../../validation_test_utils.js';
 import {
 
   kTextureBindingTypes,
-  IsReadOnlyTextureBindingType } from
+  isReadOnlyTextureBindingType } from
 '../texture/in_render_common.spec.js';
 
-class F extends ValidationTest {
+function skipIfStorageTexturesUsedAndNotAvailableInFragmentStage(
+t,
+usage,
+numRequired)
+{
+  t.skipIf(
+    t.isCompatibility && (
+    usage === 'writeonly-storage-texture' ||
+    usage === 'readonly-storage-texture' ||
+    usage === 'readwrite-storage-texture') &&
+    !(t.device.limits.maxStorageTexturesInFragmentStage > numRequired),
+    `maxStorageTexturesInFragmentStage${t.device.limits.maxStorageTexturesInFragmentStage} < ${numRequired}`
+  );
+}
+
+class F extends AllFeaturesMaxLimitsGPUTest {
   createBindGroupLayoutForTest(
   textureUsage,
   sampleType,
@@ -89,6 +105,12 @@ combine('baseLayer2', [0, 1]).
 combine('view1Binding', kTextureBindingTypes).
 combine('view2Binding', kTextureBindingTypes)
 ).
+beforeAllSubcases((t) => {
+  t.skipIf(
+    t.isCompatibility,
+    'texture views used in bindgroups must consist of the entire array in compatibility mode. textureView0 does not fit.'
+  );
+}).
 fn((t) => {
   const { useDifferentTextureAsTexture2, baseLayer2, view1Binding, view2Binding } = t.params;
 
@@ -146,7 +168,7 @@ fn((t) => {
   renderPassEncoder.end();
 
   const noConflict =
-  IsReadOnlyTextureBindingType(view1Binding) && IsReadOnlyTextureBindingType(view2Binding) ||
+  isReadOnlyTextureBindingType(view1Binding) && isReadOnlyTextureBindingType(view2Binding) ||
   view1Binding === view2Binding;
   t.expectValidationError(() => {
     encoder.finish();
@@ -232,6 +254,12 @@ combine('inRenderPass', [true, false]).
 combine('textureUsage0', kTextureBindingTypes).
 combine('textureUsage1', kTextureBindingTypes)
 ).
+beforeAllSubcases((t) => {
+  t.skipIf(
+    t.isCompatibility,
+    'texture views used in bindgroups must consist of the entire array in compatibility mode. textureView0 does not fit.'
+  );
+}).
 fn((t) => {
   const { inRenderPass, textureUsage0, textureUsage1 } = t.params;
 
@@ -326,7 +354,7 @@ fn((t) => {
       }),
       vertex: {
         module: t.device.createShaderModule({
-          code: t.getNoOpShaderCode('VERTEX')
+          code: vtu.getNoOpShaderCode('VERTEX')
         })
       },
       fragment: {
@@ -455,8 +483,8 @@ fn((t) => {
   //   the render pass’s usage scope.
   const success =
   !inRenderPass ||
-  IsReadOnlyTextureBindingType(textureUsage0) &&
-  IsReadOnlyTextureBindingType(textureUsage1) ||
+  isReadOnlyTextureBindingType(textureUsage0) &&
+  isReadOnlyTextureBindingType(textureUsage1) ||
   textureUsage0 === textureUsage1;
   t.expectValidationError(() => {
     encoder.finish();
@@ -495,6 +523,9 @@ filter(
 fn((t) => {
   const { usage0, usage1 } = t.params;
 
+  skipIfStorageTexturesUsedAndNotAvailableInFragmentStage(t, usage0, 1);
+  skipIfStorageTexturesUsedAndNotAvailableInFragmentStage(t, usage1, 1);
+
   const texture = t.createTextureTracked({
     format: 'r32float',
     usage:
@@ -509,14 +540,14 @@ fn((t) => {
     })
   });
 
-  const UseTextureOnCommandEncoder = (
+  const useTextureOnCommandEncoder = (
   texture,
   usage,
   encoder) =>
   {
     switch (usage) {
       case 'copy-src':{
-          const buffer = t.createBufferWithState('valid', {
+          const buffer = vtu.createBufferWithState(t, 'valid', {
             size: 4,
             usage: GPUBufferUsage.COPY_DST
           });
@@ -524,7 +555,7 @@ fn((t) => {
           break;
         }
       case 'copy-dst':{
-          const buffer = t.createBufferWithState('valid', {
+          const buffer = vtu.createBufferWithState(t, 'valid', {
             size: 4,
             usage: GPUBufferUsage.COPY_SRC
           });
@@ -566,8 +597,8 @@ fn((t) => {
     }
   };
   const encoder = t.device.createCommandEncoder();
-  UseTextureOnCommandEncoder(texture, usage0, encoder);
-  UseTextureOnCommandEncoder(texture, usage1, encoder);
+  useTextureOnCommandEncoder(texture, usage0, encoder);
+  useTextureOnCommandEncoder(texture, usage1, encoder);
   t.expectValidationError(() => {
     encoder.finish();
   }, false);
@@ -587,14 +618,16 @@ combine('viewUsage', [0, ...kTextureUsages])
 fn((t) => {
   const { bindingType, viewUsage } = t.params;
 
+  skipIfStorageTexturesUsedAndNotAvailableInFragmentStage(t, bindingType, 1);
+
   const texture = t.createTextureTracked({
     format: 'r32float',
     usage:
     GPUTextureUsage.COPY_SRC |
     GPUTextureUsage.COPY_DST |
     GPUTextureUsage.TEXTURE_BINDING |
-    GPUTextureUsage.STORAGE_BINDING |
-    GPUTextureUsage.RENDER_ATTACHMENT,
+    GPUTextureUsage.STORAGE_BINDING | (
+    bindingType === 'color-attachment' ? GPUTextureUsage.RENDER_ATTACHMENT : 0),
     size: [kTextureSize, kTextureSize, 1],
     ...(t.isCompatibility && {
       textureBindingViewDimension: '2d-array'

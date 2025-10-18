@@ -3,14 +3,14 @@
 **/export const description = `
 Execution Tests for the u32 bitwise complement operation
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 import { Type, u32 } from '../../../../util/conversion.js';
 import { fullU32Range } from '../../../../util/math.js';
 import { allInputSources, run } from '../expression.js';
 
 import { unary } from './unary.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('u32_complement').
 specURL('https://www.w3.org/TR/WGSL/#bit-expr').

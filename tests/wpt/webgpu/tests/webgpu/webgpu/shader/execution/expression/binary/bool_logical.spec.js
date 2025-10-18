@@ -3,13 +3,13 @@
 **/export const description = `
 Execution Tests for the boolean binary logical expression operations
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 import { bool, Type } from '../../../../util/conversion.js';
 import { allInputSources, run } from '../expression.js';
 
 import { binary, compoundBinary } from './binary.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 // Short circuiting vs no short circuiting is not tested here, it is covered in
 // src/webgpu/shader/execution/evaluation_order.spec.ts

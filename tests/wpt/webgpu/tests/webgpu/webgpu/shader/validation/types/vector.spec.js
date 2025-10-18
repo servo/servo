@@ -66,12 +66,6 @@ desc('Tests validation of vector types').
 params(
   (u) => u.combine('case', keysOf(kCases)) //
 ).
-beforeAllSubcases((t) => {
-  const c = kCases[t.params.case];
-  if (c.wgsl.indexOf('enable f16') >= 0) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const c = kCases[t.params.case];
   t.expectCompileResult(c.ok, c.wgsl);

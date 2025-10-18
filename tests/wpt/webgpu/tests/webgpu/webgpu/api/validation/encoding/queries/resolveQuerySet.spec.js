@@ -3,10 +3,10 @@
 **/export const description = `
 Validation tests for resolveQuerySet.
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';import { GPUConst } from '../../../../constants.js';
-import { kResourceStates } from '../../../../gpu_test.js';
-import { ValidationTest } from '../../validation_test.js';
+import { kResourceStates, AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
+import * as vtu from '../../validation_test_utils.js';
 
-export const g = makeTestGroup(ValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 export const kQueryCount = 2;
 
@@ -29,9 +29,9 @@ fn((t) => {
   const shouldBeValid = querySetState !== 'invalid' && destinationState !== 'invalid';
   const shouldSubmitSuccess = querySetState === 'valid' && destinationState === 'valid';
 
-  const querySet = t.createQuerySetWithState(querySetState);
+  const querySet = vtu.createQuerySetWithState(t, querySetState);
 
-  const destination = t.createBufferWithState(destinationState, {
+  const destination = vtu.createBufferWithState(t, destinationState, {
     size: kQueryCount * 8,
     usage: GPUBufferUsage.QUERY_RESOLVE
   });
@@ -153,9 +153,7 @@ paramsSubcasesOnly([
 { querySetMismatched: true, bufferMismatched: false },
 { querySetMismatched: false, bufferMismatched: true }]
 ).
-beforeAllSubcases((t) => {
-  t.selectMismatchedDeviceOrSkipTestCase(undefined);
-}).
+beforeAllSubcases((t) => t.usesMismatchedDevice()).
 fn((t) => {
   const { querySetMismatched, bufferMismatched } = t.params;
 

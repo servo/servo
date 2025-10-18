@@ -3,10 +3,10 @@
 **/export const description = `
 Basic command buffer compute tests.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import { checkElementsEqualGenerated } from '../../../util/check_contents.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('memcpy').fn((t) => {
   const data = new Uint32Array([0x01020304]);

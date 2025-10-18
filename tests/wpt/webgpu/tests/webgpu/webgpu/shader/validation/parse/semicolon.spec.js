@@ -19,9 +19,6 @@ fn((t) => {
 
 g.test('after_enable').
 desc(`Test that a semicolon must be placed after an enable directive.`).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 fn((t) => {
   t.expectCompileResult( /* pass */true, `enable f16;`);
   t.expectCompileResult( /* pass */false, `enable f16`);

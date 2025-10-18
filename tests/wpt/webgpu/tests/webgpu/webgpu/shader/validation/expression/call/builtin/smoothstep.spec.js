@@ -43,16 +43,11 @@ beginSubcases().
 expand('value1', (u) => [-1000, -10, 0, 10, 1000]).
 expand('value2', (u) => [-1000, -10, 0, 10, 1000])
 ).
-beforeAllSubcases((t) => {
-  if (scalarTypeOf(kValuesTypes[t.params.type]) === Type.f16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const type = kValuesTypes[t.params.type];
 
-  // We expect to fail if low >= high.
-  const expectedResult = t.params.value1 < t.params.value2;
+  // We expect to fail if low == high.
+  const expectedResult = t.params.value1 !== t.params.value2;
 
   validateConstOrOverrideBuiltinEval(
     t,
@@ -66,7 +61,7 @@ fn((t) => {
 const kStages = [...kConstantAndOverrideStages, 'runtime'];
 
 g.test('partial_eval_errors').
-desc('Validates that low < high').
+desc('Validates that low != high').
 params((u) =>
 u.
 combine('lowStage', kStages).
@@ -83,11 +78,6 @@ expand('high', (u) => [0, 10])
 // in_shader: Is the function call statically accessed by the entry point?
 .combine('in_shader', [false, true])
 ).
-beforeAllSubcases((t) => {
-  if (scalarTypeOf(kValuesTypes[t.params.type]) === Type.f16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const type = kValuesTypes[t.params.type];
   const scalarTy = scalarTypeOf(type);
@@ -127,7 +117,7 @@ fn foo() {
   let tmp = smoothstep(${lowArg}, ${highArg}, x);
 }`;
 
-  const error = t.params.low >= t.params.high;
+  const error = t.params.low === t.params.high;
   const shader_error =
   error && t.params.lowStage === 'constant' && t.params.highStage === 'constant';
   const pipeline_error =
@@ -157,11 +147,6 @@ Validates that scalar and vector arguments are rejected by ${builtin}() if not f
 `
 ).
 params((u) => u.combine('type', keysOf(kArgumentTypes))).
-beforeAllSubcases((t) => {
-  if (scalarTypeOf(kArgumentTypes[t.params.type]) === Type.f16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const type = kArgumentTypes[t.params.type];
   const expectedResult = isConvertibleToFloatType(elementTypeOf(type));
@@ -300,11 +285,6 @@ const kTests = {
 g.test('arguments').
 desc(`Test that ${builtin} is validated correctly when called with different arguments.`).
 params((u) => u.combine('test', keysOf(kTests))).
-beforeAllSubcases((t) => {
-  if (t.params.test.includes('f16')) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const src = kTests[t.params.test].src;
   const enables = t.params.test.includes('f16') ? 'enable f16;' : '';
@@ -349,7 +329,7 @@ fn((t) => {
   validateConstOrOverrideBuiltinEval(
     t,
     builtin,
-    /* expectedResult */t.params.low < t.params.high,
+    /* expectedResult */t.params.low !== t.params.high,
     [f32(t.params.low), f32(t.params.high), f32(0)],
     t.params.stage
   );

@@ -4,10 +4,10 @@
 Increment and decrement statement tests.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import { kValue } from '../../../util/constants.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 /**
  * Builds, runs then checks the output of a statement shader test.

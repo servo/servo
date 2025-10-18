@@ -6,9 +6,9 @@ Tests for the behavior of GPUQueue.onSubmittedWorkDone().
 Note that any promise timeouts will be detected by the framework.
 `;import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { range } from '../../../common/util/util.js';
-import { GPUTest } from '../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../gpu_test.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('without_work').
 desc(`Await onSubmittedWorkDone once without having submitted any work.`).

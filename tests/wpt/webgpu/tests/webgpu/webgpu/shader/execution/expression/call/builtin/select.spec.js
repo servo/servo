@@ -11,7 +11,7 @@ T is scalar or abstract numeric type
 @const fn select(f: vecN<T>, t: vecN<T>, cond: vecN<bool>) -> vecN<T>
 Component-wise selection. Result component i is evaluated as select(f[i],t[i],cond[i]).
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import {
 
   f32,
@@ -34,7 +34,7 @@ import { run, allInputSources } from '../../expression.js';
 
 import { abstractFloatBuiltin, abstractIntBuiltin, builtin } from './builtin.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 function makeBool(n) {
   return bool((n & 1) === 1);
@@ -94,13 +94,13 @@ combine('component', ['b', 'af', 'f', 'h', 'ai', 'i', 'u']).
 combine('overload', ['scalar', 'vec2', 'vec3', 'vec4'])
 ).
 beforeAllSubcases((t) => {
-  if (t.params.component === 'h') {
-    t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-  }
   t.skipIf(t.params.component === 'af' && t.params.inputSource !== 'const');
   t.skipIf(t.params.component === 'ai' && t.params.inputSource !== 'const');
 }).
 fn(async (t) => {
+  if (t.params.component === 'h') {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
   const componentType = dataType[t.params.component].type;
   const scalar_builder = dataType[t.params.component].scalar_builder;
 
@@ -172,13 +172,13 @@ combine('component', ['b', 'af', 'f', 'h', 'ai', 'i', 'u']).
 combine('overload', ['vec2', 'vec3', 'vec4'])
 ).
 beforeAllSubcases((t) => {
-  if (t.params.component === 'h') {
-    t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-  }
   t.skipIf(t.params.component === 'af' && t.params.inputSource !== 'const');
   t.skipIf(t.params.component === 'ai' && t.params.inputSource !== 'const');
 }).
 fn(async (t) => {
+  if (t.params.component === 'h') {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+  }
   const componentType = dataType[t.params.component].type;
   const scalar_builder = dataType[t.params.component].scalar_builder;
 

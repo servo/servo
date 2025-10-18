@@ -15,10 +15,10 @@ Conditions that still occur:
   * Writes to non-external memory
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { iterRange } from '../../../../common/util/util.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import { checkElementsPassPredicate } from '../../../util/check_contents.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 // Framebuffer dimensions
 const kWidth = 64;
@@ -27,7 +27,7 @@ const kHeight = 64;
 const kSharedCode = `
 @group(0) @binding(0) var<storage, read_write> output: array<vec2f>;
 @group(0) @binding(1) var<storage, read_write> atomicIndex : atomic<u32>;
-@group(0) @binding(2) var<storage> uniformValues : array<u32, 5>;
+@group(0) @binding(2) var<uniform> uniformValues : array<vec4u, 5>;
 
 @vertex
 fn vsMain(@builtin(vertex_index) index : u32) -> @builtin(position) vec4f {
@@ -51,9 +51,17 @@ fn vsMain(@builtin(vertex_index) index : u32) -> @builtin(position) vec4f {
 function drawFullScreen(
 t,
 code,
+useStorageBuffers,
 dataChecker,
 framebufferChecker)
 {
+  t.skipIf(
+    useStorageBuffers &&
+    t.isCompatibility &&
+    !(t.device.limits.maxStorageBuffersInFragmentStage >= 2),
+    `maxStorageBuffersInFragmentStage${t.device.limits.maxStorageBuffersInFragmentStage} is less than 2`
+  );
+
   const pipeline = t.device.createRenderPipeline({
     layout: 'auto',
     vertex: {
@@ -63,7 +71,7 @@ framebufferChecker)
     fragment: {
       module: t.device.createShaderModule({ code }),
       entryPoint: 'fsMain',
-      targets: [{ format: 'r32uint' }]
+      targets: [{ format: 'rg32uint' }]
     },
     primitive: {
       topology: 'triangle-list'
@@ -78,13 +86,13 @@ framebufferChecker)
     GPUTextureUsage.COPY_DST |
     GPUTextureUsage.RENDER_ATTACHMENT |
     GPUTextureUsage.TEXTURE_BINDING,
-    format: 'r32uint'
+    format: 'rg32uint'
   });
 
   // Create a buffer to copy the framebuffer contents into.
   // Initialize with a sentinel value and load this buffer to detect unintended writes.
   const fbBuffer = t.makeBufferWithContents(
-    new Uint32Array([...iterRange(kWidth * kHeight, (x) => kWidth * kHeight)]),
+    new Uint32Array([...iterRange(kWidth * kHeight * 2, (x) => kWidth * kHeight)]),
     GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
   );
 
@@ -98,17 +106,26 @@ framebufferChecker)
     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE
   });
 
-  const uniformSize = bytesPerWord * 5;
+  const uniformSize = bytesPerWord * 5 * 4;
   const uniformBuffer = t.makeBufferWithContents(
     // Loop bound, [derivative constants].
-    new Uint32Array([4, 1, 4, 4, 7]),
-    GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE
+
+    new Uint32Array([
+    4, 0, 0, 0,
+    1, 0, 0, 0,
+    4, 0, 0, 0,
+    4, 0, 0, 0,
+    7, 0, 0, 0]
+    ),
+    GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM
   );
 
   // 'atomicIndex' packed at the end of the buffer.
   const bg = t.device.createBindGroup({
     layout: pipeline.getBindGroupLayout(0),
     entries: [
+    ...(useStorageBuffers ?
+    [
     {
       binding: 0,
       resource: {
@@ -124,7 +141,9 @@ framebufferChecker)
         offset: dataSize,
         size: bytesPerWord
       }
-    },
+    }] :
+
+    []),
     {
       binding: 2,
       resource: {
@@ -141,7 +160,7 @@ framebufferChecker)
     {
       buffer: fbBuffer,
       offset: 0,
-      bytesPerRow: kWidth * bytesPerWord,
+      bytesPerRow: kWidth * bytesPerWord * 2,
       rowsPerImage: kHeight
     },
     { texture: framebuffer },
@@ -165,37 +184,47 @@ framebufferChecker)
     {
       buffer: fbBuffer,
       offset: 0,
-      bytesPerRow: kWidth * bytesPerWord,
+      bytesPerRow: kWidth * bytesPerWord * 2,
       rowsPerImage: kHeight
     },
     { width: kWidth, height: kHeight }
   );
   t.queue.submit([encoder.finish()]);
 
-  t.expectGPUBufferValuesPassCheck(dataBuffer, dataChecker, {
-    type: Float32Array,
-    typedLength: dataSize / bytesPerWord
-  });
+  if (useStorageBuffers) {
+    t.expectGPUBufferValuesPassCheck(dataBuffer, dataChecker, {
+      type: Float32Array,
+      typedLength: dataSize / bytesPerWord
+    });
+  }
 
   t.expectGPUBufferValuesPassCheck(fbBuffer, framebufferChecker, {
     type: Uint32Array,
-    typedLength: kWidth * kHeight
+    typedLength: kWidth * kHeight * 2
   });
 }
 
 g.test('all').
 desc('Test a shader that discards all fragments').
+params((u) => u.combine('useStorageBuffers', [false, true])).
 fn((t) => {
+  const { useStorageBuffers } = t.params;
   const code = `
 ${kSharedCode}
 
 @fragment
-fn fsMain(@builtin(position) pos : vec4f) -> @location(0) u32 {
+fn fsMain(@builtin(position) pos : vec4f) -> @location(0) vec2u {
   _ = uniformValues[0];
   discard;
+  ${
+  useStorageBuffers ?
+  `
   let idx = atomicAdd(&atomicIndex, 1);
   output[idx] = pos.xy;
-  return 1;
+  ` :
+  ''
+  }
+  return vec2u(1);
 }
 `;
 
@@ -239,24 +268,35 @@ fn fsMain(@builtin(position) pos : vec4f) -> @location(0) u32 {
     );
   };
 
-  drawFullScreen(t, code, dataChecker, fbChecker);
+  drawFullScreen(t, code, useStorageBuffers, dataChecker, fbChecker);
 });
 
 g.test('three_quarters').
 desc('Test a shader that discards all but the upper-left quadrant fragments').
+params((u) => u.combine('useStorageBuffers', [false, true])).
 fn((t) => {
+  const { useStorageBuffers } = t.params;
   const code = `
 ${kSharedCode}
 
 @fragment
-fn fsMain(@builtin(position) pos : vec4f) -> @location(0) u32 {
+fn fsMain(@builtin(position) pos : vec4f) -> @location(0) vec2u {
   _ = uniformValues[0];
   if (pos.x >= 0.5 * ${kWidth} || pos.y >= 0.5 * ${kHeight}) {
     discard;
   }
+  ${
+  useStorageBuffers ?
+  `
   let idx = atomicAdd(&atomicIndex, 1);
   output[idx] = pos.xy;
-  return idx;
+  return vec2u(idx);
+  ` :
+  `
+  return vec2(u32(pos.x), u32(pos.y));
+
+  `
+  }
 }
 `;
 
@@ -301,17 +341,22 @@ fn fsMain(@builtin(position) pos : vec4f) -> @location(0) u32 {
     );
   };
   const fbChecker = (a) => {
+    const discarded = (x, y) => x >= kWidth / 2 || y >= kHeight / 2;
     return checkElementsPassPredicate(
       a,
       (idx, value) => {
-        const x = idx % kWidth;
-        const y = Math.floor(idx / kWidth);
-        if (x < kWidth / 2 && y < kHeight / 2) {
-          return value < kWidth * kHeight / 4;
-        } else {
+        const fragId = idx / 2 | 0;
+        const x = fragId % kWidth;
+        const y = fragId / kWidth | 0;
+        if (discarded(x, y)) {
           return value === kWidth * kHeight;
+        } else {
+          if (useStorageBuffers) {
+            return value < kWidth * kHeight / 4;
+          } else {
+            return value === (idx % 2 ? y : x);
+          }
         }
-        return value < kWidth * kHeight / 4;
       },
       {
         predicatePrinter: [
@@ -320,10 +365,10 @@ fn fsMain(@builtin(position) pos : vec4f) -> @location(0) u32 {
           getValueForCell: (idx) => {
             const x = idx % kWidth;
             const y = Math.floor(idx / kWidth);
-            if (x < kWidth / 2 && y < kHeight / 2) {
-              return 'any';
-            } else {
+            if (discarded(x, y)) {
               return 0;
+            } else {
+              return useStorageBuffers ? 'any' : idx % 2 ? y : x;
             }
           }
         }]
@@ -332,12 +377,14 @@ fn fsMain(@builtin(position) pos : vec4f) -> @location(0) u32 {
     );
   };
 
-  drawFullScreen(t, code, dataChecker, fbChecker);
+  drawFullScreen(t, code, useStorageBuffers, dataChecker, fbChecker);
 });
 
 g.test('function_call').
 desc('Test discards happening in a function call').
+params((u) => u.combine('useStorageBuffers', [false, true])).
 fn((t) => {
+  const { useStorageBuffers } = t.params;
   const code = `
 ${kSharedCode}
 
@@ -352,12 +399,20 @@ fn foo(pos : vec2f) {
 }
 
 @fragment
-fn fsMain(@builtin(position) pos : vec4f) -> @location(0) u32 {
+fn fsMain(@builtin(position) pos : vec4f) -> @location(0) vec2u {
   _ = uniformValues[0];
   foo(pos.xy);
+  ${
+  useStorageBuffers ?
+  `
   let idx = atomicAdd(&atomicIndex, 1);
   output[idx] = pos.xy;
-  return idx;
+  return vec2u(idx);
+  ` :
+  `
+  return vec2u(u32(pos.x), u32(pos.y));
+  `
+  }
 }
 `;
 
@@ -396,15 +451,22 @@ fn fsMain(@builtin(position) pos : vec4f) -> @location(0) u32 {
     );
   };
   const fbChecker = (a) => {
+    const discarded = (x, y) =>
+    x >= kWidth / 2 && y >= kHeight / 2 || x <= kWidth / 2 && y <= kHeight / 2;
     return checkElementsPassPredicate(
       a,
       (idx, value) => {
-        const x = idx % kWidth;
-        const y = Math.floor(idx / kWidth);
-        if (x >= kWidth / 2 && y >= kHeight / 2 || x <= kWidth / 2 && y <= kHeight / 2) {
+        const fragId = idx / 2 | 0;
+        const x = fragId % kWidth;
+        const y = fragId / kWidth | 0;
+        if (discarded(x, y)) {
           return value === kWidth * kHeight;
         } else {
-          return value < kWidth * kHeight / 2;
+          if (useStorageBuffers) {
+            return value < kWidth * kHeight / 2;
+          } else {
+            return value === (idx % 2 ? y : x);
+          }
         }
       },
       {
@@ -414,13 +476,10 @@ fn fsMain(@builtin(position) pos : vec4f) -> @location(0) u32 {
           getValueForCell: (idx) => {
             const x = idx % kWidth;
             const y = Math.floor(idx / kWidth);
-            if (
-            x <= kWidth / 2 && y <= kHeight / 2 ||
-            x >= kWidth / 2 && y >= kHeight / 2)
-            {
+            if (discarded(x, y)) {
               return kWidth * kHeight;
             }
-            return 'any';
+            return useStorageBuffers ? 'any' : idx % 2 ? y : x;
           }
         }]
 
@@ -428,26 +487,34 @@ fn fsMain(@builtin(position) pos : vec4f) -> @location(0) u32 {
     );
   };
 
-  drawFullScreen(t, code, dataChecker, fbChecker);
+  drawFullScreen(t, code, useStorageBuffers, dataChecker, fbChecker);
 });
 
 g.test('loop').
 desc('Test discards in a loop').
+params((u) => u.combine('useStorageBuffers', [false, true])).
 fn((t) => {
+  const { useStorageBuffers } = t.params;
   const code = `
 ${kSharedCode}
 
 @fragment
-fn fsMain(@builtin(position) pos : vec4f) -> @location(0) u32 {
+fn fsMain(@builtin(position) pos : vec4f) -> @location(0) vec2u {
   _ = uniformValues[0];
   for (var i = 0; i < 2; i++) {
     if i > 0 {
       discard;
     }
   }
+  ${
+  useStorageBuffers ?
+  `
   let idx = atomicAdd(&atomicIndex, 1);
   output[idx] = pos.xy;
-  return 1;
+  ` :
+  ''
+  }
+  return vec2u(1);
 }
 `;
 
@@ -491,17 +558,19 @@ fn fsMain(@builtin(position) pos : vec4f) -> @location(0) u32 {
     );
   };
 
-  drawFullScreen(t, code, dataChecker, fbChecker);
+  drawFullScreen(t, code, useStorageBuffers, dataChecker, fbChecker);
 });
 
 g.test('continuing').
 desc('Test discards in a loop').
+params((u) => u.combine('useStorageBuffers', [false, true])).
 fn((t) => {
+  const { useStorageBuffers } = t.params;
   const code = `
 ${kSharedCode}
 
 @fragment
-fn fsMain(@builtin(position) pos : vec4f) -> @location(0) u32 {
+fn fsMain(@builtin(position) pos : vec4f) -> @location(0) vec2u {
   _ = uniformValues[0];
   var i = 0;
   loop {
@@ -513,9 +582,15 @@ fn fsMain(@builtin(position) pos : vec4f) -> @location(0) u32 {
       break if i >= 2;
     }
   }
+  ${
+  useStorageBuffers ?
+  `
   let idx = atomicAdd(&atomicIndex, 1);
   output[idx] = pos.xy;
-  return 1;
+  ` :
+  ''
+  }
+  return vec2u(1);
 }
 `;
 
@@ -559,23 +634,31 @@ fn fsMain(@builtin(position) pos : vec4f) -> @location(0) u32 {
     );
   };
 
-  drawFullScreen(t, code, dataChecker, fbChecker);
+  drawFullScreen(t, code, useStorageBuffers, dataChecker, fbChecker);
 });
 
 g.test('uniform_read_loop').
 desc('Test that helpers read a uniform value in a loop').
+params((u) => u.combine('useStorageBuffers', [false, true])).
 fn((t) => {
+  const { useStorageBuffers } = t.params;
   const code = `
 ${kSharedCode}
 
 @fragment
-fn fsMain(@builtin(position) pos : vec4f) -> @location(0) u32 {
+fn fsMain(@builtin(position) pos : vec4f) -> @location(0) vec2u {
   discard;
-  for (var i = 0u; i < uniformValues[0]; i++) {
+  for (var i = 0u; i < uniformValues[0].x; i++) {
   }
+  ${
+  useStorageBuffers ?
+  `
   let idx = atomicAdd(&atomicIndex, 1);
   output[idx] = pos.xy;
-  return 1;
+  ` :
+  ''
+  }
+  return vec2u(1);
 }
 `;
 
@@ -619,17 +702,19 @@ fn fsMain(@builtin(position) pos : vec4f) -> @location(0) u32 {
     );
   };
 
-  drawFullScreen(t, code, dataChecker, fbChecker);
+  drawFullScreen(t, code, useStorageBuffers, dataChecker, fbChecker);
 });
 
 g.test('derivatives').
 desc('Test that derivatives are correct in the presence of discard').
+params((u) => u.combine('useStorageBuffers', [false, true])).
 fn((t) => {
+  const { useStorageBuffers } = t.params;
   const code = `
 ${kSharedCode}
 
 @fragment
-fn fsMain(@builtin(position) pos : vec4f) -> @location(0) u32 {
+fn fsMain(@builtin(position) pos : vec4f) -> @location(0) vec2u {
   let ipos = vec2i(pos.xy);
   let lsb = ipos & vec2(0x1);
   let left_sel = select(2, 4, lsb.y == 1);
@@ -639,12 +724,20 @@ fn fsMain(@builtin(position) pos : vec4f) -> @location(0) u32 {
     discard;
   }
 
-  let v = uniformValues[uidx];
-  let idx = atomicAdd(&atomicIndex, 1);
+  let v = uniformValues[uidx].x;
   let dx = dpdx(f32(v));
   let dy = dpdy(f32(v));
+  ${
+  useStorageBuffers ?
+  `
+  let idx = atomicAdd(&atomicIndex, 1);
   output[idx] = vec2(dx, dy);
-  return idx;
+  return vec2u(idx);
+    ` :
+  `
+  return bitcast<vec2u>(vec2f(dx, dy));
+    `
+  }
 }
 `;
 
@@ -678,15 +771,25 @@ fn fsMain(@builtin(position) pos : vec4f) -> @location(0) u32 {
 
   // 3/4 of the fragments are written.
   const fbChecker = (a) => {
+    const discarded = (x, y) => ((x | y) & 0x1) === 0;
+    const asF32 = new Float32Array(1);
+    const asU32 = new Uint32Array(asF32.buffer);
     return checkElementsPassPredicate(
       a,
       (idx, value) => {
-        const x = idx % kWidth;
-        const y = Math.floor(idx / kWidth);
-        if (((x | y) & 0x1) === 0) {
+        const fragId = idx / 2 | 0;
+        const x = fragId % kWidth;
+        const y = fragId / kWidth | 0;
+        if (discarded(x, y)) {
           return value === kWidth * kHeight;
         } else {
-          return value < 3 * (kWidth * kHeight) / 4;
+          if (useStorageBuffers) {
+            return value < 3 * (kWidth * kHeight) / 4;
+          } else {
+            asU32[0] = value;
+            const v = asF32[0];
+            return v === -3 || v === 3;
+          }
         }
       },
       {
@@ -699,7 +802,7 @@ fn fsMain(@builtin(position) pos : vec4f) -> @location(0) u32 {
             if (((x | y) & 0x1) === 0) {
               return kWidth * kHeight;
             } else {
-              return 'any';
+              return useStorageBuffers ? 'any' : '+/- 3';
             }
           }
         }]
@@ -708,5 +811,5 @@ fn fsMain(@builtin(position) pos : vec4f) -> @location(0) u32 {
     );
   };
 
-  drawFullScreen(t, code, dataChecker, fbChecker);
+  drawFullScreen(t, code, useStorageBuffers, dataChecker, fbChecker);
 });

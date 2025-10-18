@@ -12,7 +12,8 @@ things. If there are no guarantees we can issue warnings instead of failures. Id
     more of the color in the correct direction).
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { assert } from '../../../../common/util/util.js';
-import { GPUTest, TextureTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
+import * as ttu from '../../../texture_test_utils.js';
 import { checkElementsEqual } from '../../../util/check_contents.js';
 import { TexelView } from '../../../util/texture/texel_view.js';
 
@@ -33,7 +34,7 @@ new Uint8Array([0x00, 0xff, 0x00, 0xff])];
 
 
 // renders texture a slanted plane placed in a specific way
-class SamplerAnisotropicFilteringSlantedPlaneTest extends GPUTest {
+class SamplerAnisotropicFilteringSlantedPlaneTest extends AllFeaturesMaxLimitsGPUTest {
   copyRenderTargetToBuffer(rt) {
     const byteLength = kRTSize * kBytesPerRow;
     const buffer = this.createBufferTracked({
@@ -161,7 +162,7 @@ class SamplerAnisotropicFilteringSlantedPlaneTest extends GPUTest {
   }
 }
 
-export const g = makeTestGroup(TextureTestMixin(SamplerAnisotropicFilteringSlantedPlaneTest));
+export const g = makeTestGroup(SamplerAnisotropicFilteringSlantedPlaneTest);
 
 g.test('anisotropic_filter_checkerboard').
 desc(
@@ -286,7 +287,8 @@ paramsSimple([
 }]
 ).
 fn((t) => {
-  const texture = t.createTextureFromTexelViewsMultipleMipmaps(
+  const texture = ttu.createTextureFromTexelViewsMultipleMipmaps(
+    t,
     colors.map((value) => TexelView.fromTexelsAsBytes(kTextureFormat, (_coords) => value)),
     { size: [4, 4, 1], usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING }
   );
@@ -321,5 +323,9 @@ fn((t) => {
       );
     }
   }
-  t.expectSinglePixelComparisonsAreOkInTexture({ texture: colorAttachment }, pixelComparisons);
+  ttu.expectSinglePixelComparisonsAreOkInTexture(
+    t,
+    { texture: colorAttachment },
+    pixelComparisons
+  );
 });

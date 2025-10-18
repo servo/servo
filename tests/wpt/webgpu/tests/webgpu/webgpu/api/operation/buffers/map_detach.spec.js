@@ -7,9 +7,9 @@
 import { getGPU } from '../../../../common/util/navigator_gpu.js';
 import { assert } from '../../../../common/util/util.js';
 import { GPUConst } from '../../../constants.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('while_mapped').
 desc(

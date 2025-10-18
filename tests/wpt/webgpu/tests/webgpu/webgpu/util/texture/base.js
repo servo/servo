@@ -1,6 +1,6 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { assert, unreachable } from '../../../common/util/util.js';import { kTextureFormatInfo } from '../../format_info.js';import { align } from '../../util/math.js';
+**/import { assert, unreachable } from '../../../common/util/util.js';import { getBlockInfoForTextureFormat } from '../../format_info.js';import { align } from '../../util/math.js';
 import { reifyExtent3D } from '../../util/unions.js';
 
 
@@ -55,16 +55,11 @@ level)
           () => `level (${level}) too large for base size (${baseSize.width}x${baseSize.height})`
         );
 
+        const { blockWidth, blockHeight } = getBlockInfoForTextureFormat(format);
         const virtualWidthAtLevel = Math.max(baseSize.width >> level, 1);
         const virtualHeightAtLevel = Math.max(baseSize.height >> level, 1);
-        const physicalWidthAtLevel = align(
-          virtualWidthAtLevel,
-          kTextureFormatInfo[format].blockWidth
-        );
-        const physicalHeightAtLevel = align(
-          virtualHeightAtLevel,
-          kTextureFormatInfo[format].blockHeight
-        );
+        const physicalWidthAtLevel = align(virtualWidthAtLevel, blockWidth);
+        const physicalHeightAtLevel = align(virtualHeightAtLevel, blockHeight);
         return {
           width: physicalWidthAtLevel,
           height: physicalHeightAtLevel,
@@ -80,14 +75,9 @@ level)
         );
         const virtualWidthAtLevel = Math.max(baseSize.width >> level, 1);
         const virtualHeightAtLevel = Math.max(baseSize.height >> level, 1);
-        const physicalWidthAtLevel = align(
-          virtualWidthAtLevel,
-          kTextureFormatInfo[format].blockWidth
-        );
-        const physicalHeightAtLevel = align(
-          virtualHeightAtLevel,
-          kTextureFormatInfo[format].blockHeight
-        );
+        const { blockWidth, blockHeight } = getBlockInfoForTextureFormat(format);
+        const physicalWidthAtLevel = align(virtualWidthAtLevel, blockWidth);
+        const physicalHeightAtLevel = align(virtualHeightAtLevel, blockHeight);
         return {
           width: physicalWidthAtLevel,
           height: physicalHeightAtLevel,
@@ -217,6 +207,7 @@ export function defaultViewDimensionsForTexture(textureDescriptor) {
  */
 export function reifyTextureDescriptor(
 desc)
+
 {
   return { dimension: '2d', mipLevelCount: 1, sampleCount: 1, ...desc };
 }

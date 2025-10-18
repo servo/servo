@@ -70,11 +70,6 @@ expand('a', (u) => fullRangeForType(kValidArgumentTypes[u.type], 5)).
 expand('b', (u) => fullRangeForType(kValidArgumentTypes[u.type], 5)).
 expand('c', (u) => fullRangeForType(kValidArgumentTypes[u.type], 5))
 ).
-beforeAllSubcases((t) => {
-  if (scalarTypeOf(kValidArgumentTypes[t.params.type]) === Type.f16) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const type = kValidArgumentTypes[t.params.type];
   const scalarType = scalarTypeOf(kValidArgumentTypes[t.params.type]);

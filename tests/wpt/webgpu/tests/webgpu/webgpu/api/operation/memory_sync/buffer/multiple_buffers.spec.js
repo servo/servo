@@ -66,6 +66,12 @@ expandWithParams(function* ({ _context }) {
 ).
 fn(async (t) => {
   const { readContext, readOp, writeContext, writeOp, boundary } = t.params;
+
+  t.skipIfReadOpsOrWriteOpsUsesStorageBufferInFragmentStageAndNoSupportStorageBuffersInFragmentShaders(
+    readOp,
+    writeOp
+  );
+
   const helper = new OperationContextHelper(t);
 
   const srcBuffers = [];
@@ -131,6 +137,12 @@ expandWithParams(function* ({ _context }) {
 ).
 fn(async (t) => {
   const { readContext, readOp, writeContext, writeOp, boundary } = t.params;
+
+  t.skipIfReadOpsOrWriteOpsUsesStorageBufferInFragmentStageAndNoSupportStorageBuffersInFragmentShaders(
+    readOp,
+    writeOp
+  );
+
   const helper = new OperationContextHelper(t);
 
   const srcBuffers = [];
@@ -196,6 +208,12 @@ expandWithParams(function* ({ _context }) {
 ).
 fn(async (t) => {
   const { writeOps, contexts, boundary } = t.params;
+
+  t.skipIfReadOpsOrWriteOpsUsesStorageBufferInFragmentStageAndNoSupportStorageBuffersInFragmentShaders(
+    [],
+    writeOps
+  );
+
   const helper = new OperationContextHelper(t);
 
   const buffers = [];
@@ -244,6 +262,8 @@ combine('secondDrawUseBundle', [false, true])
 ).
 fn(async (t) => {
   const { firstDrawUseBundle, secondDrawUseBundle } = t.params;
+
+  t.skipIfNoSupportForStorageBuffersInFragmentStage();
 
   const encoder = t.device.createCommandEncoder();
   const passEncoder = t.beginSimpleRenderPass(encoder);
@@ -294,6 +314,8 @@ fn(async (t) => {
     colorFormats: ['rgba8unorm']
   });
 
+  t.skipIfNoSupportForStorageBuffersInFragmentStage();
+
   const kBufferCount = 4;
   const buffers = [];
   for (let b = 0; b < kBufferCount; ++b) {
@@ -327,6 +349,8 @@ desc(
   `
 ).
 fn(async (t) => {
+  t.skipIfNoSupportForStorageBuffersInFragmentStage();
+
   const encoder = t.device.createCommandEncoder();
   const pass = encoder.beginComputePass();
 

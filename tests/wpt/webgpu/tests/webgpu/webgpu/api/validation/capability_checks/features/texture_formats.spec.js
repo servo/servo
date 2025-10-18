@@ -6,15 +6,20 @@ Tests for capability checking for features enabling optional texture formats.
 import { getGPU } from '../../../../../common/util/navigator_gpu.js';
 import { assert } from '../../../../../common/util/util.js';
 import { kCanvasTextureFormats } from '../../../../capability_info.js';
-import { kAllTextureFormats, kTextureFormatInfo } from '../../../../format_info.js';
+import {
+  kASTCCompressedTextureFormats,
+  kBCCompressedTextureFormats,
+  getBlockInfoForTextureFormat,
+  isDepthOrStencilTextureFormat,
+  isTextureFormatPossiblyStorageReadable,
+  isTextureFormatPossiblyUsableAsColorRenderAttachment,
+  kOptionalTextureFormats } from
+'../../../../format_info.js';
+import { UniqueFeaturesOrLimitsGPUTest } from '../../../../gpu_test.js';
 import { kAllCanvasTypes, createCanvas } from '../../../../util/create_elements.js';
-import { ValidationTest } from '../../validation_test.js';
+import * as vtu from '../../validation_test_utils.js';
 
-export const g = makeTestGroup(ValidationTest);
-
-const kOptionalTextureFormats = kAllTextureFormats.filter(
-  (t) => kTextureFormatInfo[t].feature !== undefined
-);
+export const g = makeTestGroup(UniqueFeaturesOrLimitsGPUTest);
 
 g.test('texture_descriptor').
 desc(
@@ -29,15 +34,14 @@ u.combine('format', kOptionalTextureFormats).combine('enable_required_feature', 
 beforeAllSubcases((t) => {
   const { format, enable_required_feature } = t.params;
 
-  const formatInfo = kTextureFormatInfo[format];
   if (enable_required_feature) {
-    t.selectDeviceOrSkipTestCase(formatInfo.feature);
+    t.selectDeviceForTextureFormatOrSkipTestCase(format);
   }
 }).
 fn((t) => {
   const { format, enable_required_feature } = t.params;
 
-  const formatInfo = kTextureFormatInfo[format];
+  const formatInfo = getBlockInfoForTextureFormat(format);
   t.shouldThrow(enable_required_feature ? false : 'TypeError', () => {
     t.createTextureTracked({
       format,
@@ -60,15 +64,14 @@ u.combine('format', kOptionalTextureFormats).combine('enable_required_feature', 
 beforeAllSubcases((t) => {
   const { format, enable_required_feature } = t.params;
 
-  const formatInfo = kTextureFormatInfo[format];
   if (enable_required_feature) {
-    t.selectDeviceOrSkipTestCase(formatInfo.feature);
+    t.selectDeviceForTextureFormatOrSkipTestCase(format);
   }
 }).
 fn((t) => {
   const { format, enable_required_feature } = t.params;
 
-  const formatInfo = kTextureFormatInfo[format];
+  const formatInfo = getBlockInfoForTextureFormat(format);
   t.shouldThrow(enable_required_feature ? false : 'TypeError', () => {
     t.createTextureTracked({
       format,
@@ -92,9 +95,8 @@ u.combine('format', kOptionalTextureFormats).combine('enable_required_feature', 
 beforeAllSubcases((t) => {
   const { format, enable_required_feature } = t.params;
 
-  const formatInfo = kTextureFormatInfo[format];
   if (enable_required_feature) {
-    t.selectDeviceOrSkipTestCase(formatInfo.feature);
+    t.selectDeviceForTextureFormatOrSkipTestCase(format);
   }
 }).
 fn((t) => {
@@ -107,7 +109,7 @@ fn((t) => {
   // has a chance to validate that the view and texture formats aren't compatible.
   const textureFormat = enable_required_feature ? format : 'rgba8unorm';
 
-  const formatInfo = kTextureFormatInfo[format];
+  const formatInfo = getBlockInfoForTextureFormat(format);
   const testTexture = t.createTextureTracked({
     format: textureFormat,
     size: [formatInfo.blockWidth, formatInfo.blockHeight, 1],
@@ -127,6 +129,94 @@ fn((t) => {
   });
 });
 
+g.test('texture_compression_bc_sliced_3d').
+desc(
+  `
+  Tests that creating a 3D texture with BC compressed format fails if the features don't contain
+  'texture-compression-bc' and 'texture-compression-bc-sliced-3d'.
+  `
+).
+params((u) =>
+u.
+combine('format', kBCCompressedTextureFormats).
+combine('supportsBC', [false, true]).
+combine('supportsBCSliced3D', [false, true])
+).
+beforeAllSubcases((t) => {
+  const { supportsBC, supportsBCSliced3D } = t.params;
+
+  const requiredFeatures = [];
+  if (supportsBC) {
+    requiredFeatures.push('texture-compression-bc');
+  }
+  if (supportsBCSliced3D) {
+    requiredFeatures.push('texture-compression-bc-sliced-3d');
+  }
+
+  t.selectDeviceOrSkipTestCase({ requiredFeatures });
+}).
+fn((t) => {
+  const { format, supportsBC, supportsBCSliced3D } = t.params;
+
+  t.skipIfTextureFormatNotSupported(format);
+  const info = getBlockInfoForTextureFormat(format);
+
+  const descriptor = {
+    size: [info.blockWidth, info.blockHeight, 1],
+    dimension: '3d',
+    format,
+    usage: GPUTextureUsage.TEXTURE_BINDING
+  };
+
+  t.expectValidationError(() => {
+    t.createTextureTracked(descriptor);
+  }, !supportsBC || !supportsBCSliced3D);
+});
+
+g.test('texture_compression_astc_sliced_3d').
+desc(
+  `
+  Tests that creating a 3D texture with ASTC compressed format fails if the features don't contain
+  'texture-compression-astc' and 'texture-compression-astc-sliced-3d'.
+  `
+).
+params((u) =>
+u.
+combine('format', kASTCCompressedTextureFormats).
+combine('supportsASTC', [false, true]).
+combine('supportsASTCSliced3D', [false, true])
+).
+beforeAllSubcases((t) => {
+  const { supportsASTC, supportsASTCSliced3D } = t.params;
+
+  const requiredFeatures = [];
+  if (supportsASTC) {
+    requiredFeatures.push('texture-compression-astc');
+  }
+  if (supportsASTCSliced3D) {
+    requiredFeatures.push('texture-compression-astc-sliced-3d');
+  }
+
+  t.selectDeviceOrSkipTestCase({ requiredFeatures });
+}).
+fn((t) => {
+  const { format, supportsASTC, supportsASTCSliced3D } = t.params;
+
+  t.skipIfTextureFormatNotSupported(format);
+  const info = getBlockInfoForTextureFormat(format);
+
+  const descriptor = {
+    size: [info.blockWidth, info.blockHeight, 1],
+    dimension: '3d',
+    format,
+    usage: GPUTextureUsage.TEXTURE_BINDING
+  };
+
+  t.expectValidationError(() => {
+    t.createTextureTracked(descriptor);
+  }, !supportsASTC || !supportsASTCSliced3D);
+});
+
 g.test('canvas_configuration').
 desc(
   `
@@ -144,9 +234,8 @@ combine('enable_required_feature', [true, false])
 beforeAllSubcases((t) => {
   const { format, enable_required_feature } = t.params;
 
-  const formatInfo = kTextureFormatInfo[format];
   if (enable_required_feature) {
-    t.selectDeviceOrSkipTestCase(formatInfo.feature);
+    t.selectDeviceForTextureFormatOrSkipTestCase(format);
   }
 }).
 fn((t) => {
@@ -235,19 +324,19 @@ desc(
 params((u) =>
 u.
 combine('format', kOptionalTextureFormats).
-filter((t) => !!kTextureFormatInfo[t.format].color?.storage).
+filter((t) => isTextureFormatPossiblyStorageReadable(t.format)).
 combine('enable_required_feature', [true, false])
 ).
 beforeAllSubcases((t) => {
   const { format, enable_required_feature } = t.params;
 
-  const formatInfo = kTextureFormatInfo[format];
   if (enable_required_feature) {
-    t.selectDeviceOrSkipTestCase(formatInfo.feature);
+    t.selectDeviceForTextureFormatOrSkipTestCase(format);
   }
 }).
 fn((t) => {
   const { format, enable_required_feature } = t.params;
+  t.skipIfTextureFormatNotUsableWithStorageAccessMode('write-only', format);
 
   t.shouldThrow(enable_required_feature ? false : 'TypeError', () => {
     t.device.createBindGroupLayout({
@@ -277,21 +366,22 @@ params((u) =>
 u.
 combine('isAsync', [false, true]).
 combine('format', kOptionalTextureFormats).
-filter((t) => !!kTextureFormatInfo[t.format].colorRender).
+filter((t) => isTextureFormatPossiblyUsableAsColorRenderAttachment(t.format)).
 combine('enable_required_feature', [true, false])
 ).
 beforeAllSubcases((t) => {
   const { format, enable_required_feature } = t.params;
 
-  const formatInfo = kTextureFormatInfo[format];
   if (enable_required_feature) {
-    t.selectDeviceOrSkipTestCase(formatInfo.feature);
+    t.selectDeviceForTextureFormatOrSkipTestCase(format);
   }
 }).
 fn((t) => {
   const { isAsync, format, enable_required_feature } = t.params;
+  t.skipIfTextureFormatNotUsableAsRenderAttachment(format);
 
-  t.doCreateRenderPipelineTest(
+  vtu.doCreateRenderPipelineTest(
+    t,
     isAsync,
     enable_required_feature,
     {
@@ -333,21 +423,21 @@ params((u) =>
 u.
 combine('isAsync', [false, true]).
 combine('format', kOptionalTextureFormats).
-filter((t) => !!(kTextureFormatInfo[t.format].depth || kTextureFormatInfo[t.format].stencil)).
+filter((t) => isDepthOrStencilTextureFormat(t.format)).
 combine('enable_required_feature', [true, false])
 ).
 beforeAllSubcases((t) => {
   const { format, enable_required_feature } = t.params;
 
-  const formatInfo = kTextureFormatInfo[format];
   if (enable_required_feature) {
-    t.selectDeviceOrSkipTestCase(formatInfo.feature);
+    t.selectDeviceForTextureFormatOrSkipTestCase(format);
   }
 }).
 fn((t) => {
   const { isAsync, format, enable_required_feature } = t.params;
 
-  t.doCreateRenderPipelineTest(
+  vtu.doCreateRenderPipelineTest(
+    t,
     isAsync,
     enable_required_feature,
     {
@@ -395,19 +485,19 @@ desc(
 params((u) =>
 u.
 combine('format', kOptionalTextureFormats).
-filter((t) => !!kTextureFormatInfo[t.format].colorRender).
+filter((t) => isTextureFormatPossiblyUsableAsColorRenderAttachment(t.format)).
 combine('enable_required_feature', [true, false])
 ).
 beforeAllSubcases((t) => {
   const { format, enable_required_feature } = t.params;
 
-  const formatInfo = kTextureFormatInfo[format];
   if (enable_required_feature) {
-    t.selectDeviceOrSkipTestCase(formatInfo.feature);
+    t.selectDeviceForTextureFormatOrSkipTestCase(format);
   }
 }).
 fn((t) => {
   const { format, enable_required_feature } = t.params;
+  t.skipIfTextureFormatNotUsableAsRenderAttachment(format);
 
   t.shouldThrow(enable_required_feature ? false : 'TypeError', () => {
     t.device.createRenderBundleEncoder({
@@ -426,15 +516,14 @@ desc(
 params((u) =>
 u.
 combine('format', kOptionalTextureFormats).
-filter((t) => !!(kTextureFormatInfo[t.format].depth || kTextureFormatInfo[t.format].stencil)).
+filter((t) => isDepthOrStencilTextureFormat(t.format)).
 combine('enable_required_feature', [true, false])
 ).
 beforeAllSubcases((t) => {
   const { format, enable_required_feature } = t.params;
 
-  const formatInfo = kTextureFormatInfo[format];
   if (enable_required_feature) {
-    t.selectDeviceOrSkipTestCase(formatInfo.feature);
+    t.selectDeviceForTextureFormatOrSkipTestCase(format);
   }
 }).
 fn((t) => {
@@ -450,15 +539,34 @@ fn((t) => {
 
 g.test('check_capability_guarantees').
 desc(
-  `check "texture-compression-bc" is supported or both "texture-compression-etc2" and "texture-compression-astc" are supported.`
+  `check any adapter returned by requestAdapter() must provide the following guarantees:
+      - "texture-compression-bc" is supported or both "texture-compression-etc2" and "texture-compression-astc" are supported
+      - if "texture-compression-bc-sliced-3d" is supported, then "texture-compression-bc" must be supported.
+      - if "texture-compression-astc-sliced-3d" is supported, then "texture-compression-astc" must be supported.
+    `
 ).
 fn(async (t) => {
   const adapter = await getGPU(t.rec).requestAdapter();
   assert(adapter !== null);
 
   const features = adapter.features;
+
+  const supportsBC = features.has('texture-compression-bc');
+  const supportsBCSliced3D = features.has('texture-compression-bc-sliced-3d');
+  const supportsASTC = features.has('texture-compression-astc');
+  const supportsASTCSliced3D = features.has('texture-compression-astc-sliced-3d');
+  const supportsETC2 = features.has('texture-compression-etc2');
+
   t.expect(
-    features.has('texture-compression-bc') ||
-    features.has('texture-compression-etc2') && features.has('texture-compression-astc')
+    supportsBC || supportsETC2 && supportsASTC,
+    'Adapter must support BC or both ETC2 and ASTC'
   );
+
+  if (supportsBCSliced3D) {
+    t.expect(supportsBC, 'If BC Sliced 3D is supported, BC must be supported');
+  }
+
+  if (supportsASTCSliced3D) {
+    t.expect(supportsASTC, 'If ASTC Sliced 3D is supported, ASTC must be supported');
+  }
 });

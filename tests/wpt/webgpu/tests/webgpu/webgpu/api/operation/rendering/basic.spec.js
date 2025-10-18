@@ -4,10 +4,10 @@
 Basic command buffer rendering tests.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { now } from '../../../../common/util/util.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import { checkElementsEqual } from '../../../util/check_contents.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('clear').fn((t) => {
   const dst = t.createBufferTracked({

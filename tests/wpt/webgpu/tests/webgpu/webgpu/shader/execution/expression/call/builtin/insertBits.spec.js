@@ -17,13 +17,13 @@ Otherwise, bits o..o+c-1 of the result are copied from bits 0..c-1 of newbits.
 Other bits of the result are copied from e.
 Component-wise when T is a vector.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import { i32Bits, Type, u32, u32Bits, vec2, vec3, vec4 } from '../../../../../util/conversion.js';
 import { allInputSources, run } from '../../expression.js';
 
 import { builtin } from './builtin.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('integer').
 specURL('https://www.w3.org/TR/WGSL/#integer-builtin-functions').

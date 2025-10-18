@@ -1,6 +1,6 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { ValidationTest } from '../api/validation/validation_test.js';export class CompatibilityTest extends ValidationTest {
+**/import { AllFeaturesMaxLimitsGPUTest } from '../gpu_test.js';export class CompatibilityTest extends AllFeaturesMaxLimitsGPUTest {
   async init() {
     await super.init();
   }

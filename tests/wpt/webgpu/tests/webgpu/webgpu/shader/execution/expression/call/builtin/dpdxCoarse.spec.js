@@ -8,12 +8,12 @@ fn dpdxCoarse(e:T) ->T
 Returns the partial derivative of e with respect to window x coordinates using local differences.
 This may result in fewer unique positions that dpdxFine(e).
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 
 import { d } from './derivatives.cache.js';
 import { runDerivativeTest } from './derivatives.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 const builtin = 'dpdxCoarse';
 

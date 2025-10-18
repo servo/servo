@@ -62,12 +62,17 @@ export class LogMessageWithStack extends Error {
    * Note `extra` may get mangled by postMessage.
    */
   toRawData() {
+    let extra = this.extra;
+    if (extra !== undefined) {
+      extra = JSON.parse(JSON.stringify(extra));
+    }
+
     return {
       name: this.name,
       message: this.message,
       stackHiddenMessage: this.stackHiddenMessage,
       stack: this.stack,
-      extra: this.extra
+      extra
     };
   }
 }

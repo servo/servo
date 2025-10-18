@@ -192,7 +192,7 @@ ${main_wgsl.extra}
   });
 
   // Run the shader.
-  const encoder = t.device.createCommandEncoder();
+  const encoder = t.device.createCommandEncoder({ label: 'runFlowControlTest' });
   const pass = encoder.beginComputePass();
   pass.setPipeline(pipeline);
   pass.setBindGroup(0, bindGroup);

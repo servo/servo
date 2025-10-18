@@ -1,10 +1,11 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/export const description = `Test the shared use of structures containing entry point IO attributes`;import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { GPUTest, TextureTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
+import * as ttu from '../../../texture_test_utils.js';
 import { checkElementsEqual } from '../../../util/check_contents.js';
 
-export const g = makeTestGroup(TextureTestMixin(GPUTest));
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('shared_with_buffer').
 desc(
@@ -192,7 +193,7 @@ fn((t) => {
   const redPixel = new Uint8Array([255, 0, 0, 255]);
   const greenPixel = new Uint8Array([0, 255, 0, 255]);
   const blackPixel = new Uint8Array([0, 0, 0, 0]);
-  t.expectSinglePixelComparisonsAreOkInTexture({ texture: renderTarget }, [
+  ttu.expectSinglePixelComparisonsAreOkInTexture(t, { texture: renderTarget }, [
   // Red pixels
   { coord: { x: 16, y: 15 }, exp: redPixel },
   { coord: { x: 16, y: 8 }, exp: redPixel },
@@ -317,7 +318,7 @@ fn((t) => {
   // Test a few points to make sure we rendered a red triangle.
   const redPixel = new Uint8Array([255, 0, 0, 255]);
   const blackPixel = new Uint8Array([0, 0, 0, 0]);
-  t.expectSinglePixelComparisonsAreOkInTexture({ texture: renderTarget }, [
+  ttu.expectSinglePixelComparisonsAreOkInTexture(t, { texture: renderTarget }, [
   // Red pixels
   { coord: { x: 15, y: 15 }, exp: redPixel },
   { coord: { x: 15, y: 8 }, exp: redPixel },

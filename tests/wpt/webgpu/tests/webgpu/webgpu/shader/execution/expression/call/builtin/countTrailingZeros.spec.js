@@ -11,13 +11,13 @@ when T is a scalar type.
 Component-wise when T is a vector.
 Also known as "ctz" in some languages.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import { i32, i32Bits, Type, u32, u32Bits } from '../../../../../util/conversion.js';
 import { allInputSources, run } from '../../expression.js';
 
 import { builtin } from './builtin.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('u32').
 specURL('https://www.w3.org/TR/WGSL/#integer-builtin-functions').

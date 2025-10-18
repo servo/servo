@@ -1,6 +1,6 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { assert } from '../../../../../common/util/util.js';import { kTextureFormatInfo } from '../../../../format_info.js';
+**/import { assert } from '../../../../../common/util/util.js';import { isDepthTextureFormat, isStencilTextureFormat } from '../../../../format_info.js';
 import { virtualMipSize } from '../../../../util/texture/base.js';
 
 
@@ -106,8 +106,6 @@ texture,
 state,
 subresourceRange) =>
 {
-  const formatInfo = kTextureFormatInfo[params.format];
-
   assert(params.dimension === '2d');
   for (const viewDescriptor of t.generateTextureViewDescriptorsForRendering(
     'all',
@@ -138,7 +136,7 @@ subresourceRange) =>
       resolveTarget = resolveTexture.createView();
     }
 
-    const commandEncoder = t.device.createCommandEncoder();
+    const commandEncoder = t.device.createCommandEncoder({ label: 'checkContents' });
     commandEncoder.pushDebugGroup('checkContentsWithDepthStencil');
 
     const pass = commandEncoder.beginRenderPass({
@@ -153,10 +151,10 @@ subresourceRange) =>
 
       depthStencilAttachment: {
         view: texture.createView(viewDescriptor),
-        depthLoadOp: formatInfo.depth ? 'load' : undefined,
-        depthStoreOp: formatInfo.depth ? 'store' : undefined,
-        stencilLoadOp: formatInfo.stencil ? 'load' : undefined,
-        stencilStoreOp: formatInfo.stencil ? 'store' : undefined
+        depthLoadOp: isDepthTextureFormat(params.format) ? 'load' : undefined,
+        depthStoreOp: isDepthTextureFormat(params.format) ? 'store' : undefined,
+        stencilLoadOp: isStencilTextureFormat(params.format) ? 'load' : undefined,
+        stencilStoreOp: isStencilTextureFormat(params.format) ? 'store' : undefined
       }
     });
 

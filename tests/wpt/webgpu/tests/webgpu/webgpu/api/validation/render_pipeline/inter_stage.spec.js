@@ -5,6 +5,7 @@ Interface matching between vertex and fragment shader validation for createRende
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { range } from '../../../../common/util/util.js';
 
+import * as vtu from '../validation_test_utils.js';
 
 import { CreateRenderPipelineValidationTest } from './common.js';
 
@@ -104,7 +105,7 @@ fn((t) => {
     t.getFragmentStateWithInputs(inputs)
   );
 
-  t.doCreateRenderPipelineTest(isAsync, _success, descriptor);
+  vtu.doCreateRenderPipelineTest(t, isAsync, _success, descriptor);
 });
 
 g.test('location,superset').
@@ -118,7 +119,7 @@ fn((t) => {
     t.getFragmentStateWithInputs(['@location(1) fin1: f32'])
   );
 
-  t.doCreateRenderPipelineTest(isAsync, true, descriptor);
+  vtu.doCreateRenderPipelineTest(t, isAsync, true, descriptor);
 });
 
 g.test('location,subset').
@@ -132,7 +133,7 @@ fn((t) => {
     t.getFragmentStateWithInputs(['@location(0) fin0: f32', '@location(1) fin1: f32'])
   );
 
-  t.doCreateRenderPipelineTest(isAsync, false, descriptor);
+  vtu.doCreateRenderPipelineTest(t, isAsync, false, descriptor);
 });
 
 g.test('type').
@@ -161,7 +162,7 @@ fn((t) => {
     t.getFragmentStateWithInputs([`@location(0) @interpolate(flat, either) fin0: ${input}`])
   );
 
-  t.doCreateRenderPipelineTest(isAsync, output === input, descriptor);
+  vtu.doCreateRenderPipelineTest(t, isAsync, output === input, descriptor);
 });
 
 g.test('interpolation_type').
@@ -201,7 +202,7 @@ fn((t) => {
   const shouldSucceed =
   (_success ?? output === input) && (!t.isCompatibility || _compat_success !== false);
 
-  t.doCreateRenderPipelineTest(isAsync, shouldSucceed, descriptor);
+  vtu.doCreateRenderPipelineTest(t, isAsync, shouldSucceed, descriptor);
 });
 1;
 g.test('interpolation_sampling').
@@ -247,7 +248,7 @@ fn((t) => {
   const shouldSucceed =
   (_success ?? output === input) && (!t.isCompatibility || _compat_success !== false);
 
-  t.doCreateRenderPipelineTest(isAsync, shouldSucceed, descriptor);
+  vtu.doCreateRenderPipelineTest(t, isAsync, shouldSucceed, descriptor);
 });
 
 g.test('max_shader_variable_location').
@@ -270,7 +271,7 @@ fn((t) => {
     t.getFragmentStateWithInputs([`@location(${location}) fin0: f32`])
   );
 
-  t.doCreateRenderPipelineTest(isAsync, location < maxInterStageShaderVariables, descriptor);
+  vtu.doCreateRenderPipelineTest(t, isAsync, location < maxInterStageShaderVariables, descriptor);
 });
 
 g.test('max_variables_count,output').
@@ -302,7 +303,7 @@ fn((t) => {
   );
   descriptor.primitive = { topology };
 
-  t.doCreateRenderPipelineTest(isAsync, _success, descriptor);
+  vtu.doCreateRenderPipelineTest(t, isAsync, _success, descriptor);
 });
 
 g.test('max_variables_count,input').
@@ -346,5 +347,5 @@ fn((t) => {
     t.getFragmentStateWithInputs(inputs, true)
   );
 
-  t.doCreateRenderPipelineTest(isAsync, success, descriptor);
+  vtu.doCreateRenderPipelineTest(t, isAsync, success, descriptor);
 });

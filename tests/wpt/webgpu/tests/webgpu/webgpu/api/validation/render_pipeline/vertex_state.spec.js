@@ -8,7 +8,7 @@ import {
   makeValueTestVariant } from
 '../../../../common/util/util.js';
 import { kVertexFormats, kVertexFormatInfo } from '../../../capability_info.js';
-import { ValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
 const VERTEX_SHADER_CODE_WITH_NO_INPUT = `
   @vertex fn main() -> @builtin(position) vec4<f32> {
@@ -55,7 +55,7 @@ attributes,
   }
 }
 
-class F extends ValidationTest {
+class F extends AllFeaturesMaxLimitsGPUTest {
   getDescriptor(
   buffers,
   vertexShaderCode)

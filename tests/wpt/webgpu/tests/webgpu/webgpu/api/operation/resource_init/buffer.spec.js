@@ -1,7 +1,7 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/import { makeTestGroup } from '../../../../common/framework/test_group.js';import { unreachable } from '../../../../common/util/util.js';import { GPUConst } from '../../../constants.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import { getTextureCopyLayout } from '../../../util/texture/layout.js';
 
 
@@ -21,8 +21,8 @@ GPUConst.BufferUsage.COPY_SRC | GPUConst.BufferUsage.MAP_WRITE,
 GPUConst.BufferUsage.COPY_SRC];
 
 
-class F extends GPUTest {
-  GetBufferUsageFromMapMode(mapMode) {
+class F extends AllFeaturesMaxLimitsGPUTest {
+  getBufferUsageFromMapMode(mapMode) {
     switch (mapMode) {
       case GPUMapMode.READ:
         return GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ;
@@ -34,7 +34,7 @@ class F extends GPUTest {
     }
   }
 
-  CheckGPUBufferContent(
+  checkGPUBufferContent(
   buffer,
   bufferUsage,
   expectedData)
@@ -43,9 +43,35 @@ class F extends GPUTest {
     this.expectGPUBufferValuesEqual(buffer, expectedData, 0, { method: mappable ? 'map' : 'copy' });
   }
 
-  TestBufferZeroInitInBindGroup(
+  testBufferZeroInitInBindGroup(
   computeShaderModule,
   buffer,
+  bufferOffset,
+  boundBufferSize)
+  {
+    this.TestBufferZeroInitInBindGroupInternal(
+      computeShaderModule,
+      buffer,
+      false,
+      bufferOffset,
+      boundBufferSize
+    );
+    const bindBufferResource = bufferOffset === 0 && boundBufferSize === buffer.size;
+    if (bindBufferResource) {
+      this.TestBufferZeroInitInBindGroupInternal(
+        computeShaderModule,
+        buffer,
+        true,
+        bufferOffset,
+        boundBufferSize
+      );
+    }
+  }
+
+  TestBufferZeroInitInBindGroupInternal(
+  computeShaderModule,
+  buffer,
+  bindBufferResource,
   bufferOffset,
   boundBufferSize)
   {
@@ -61,16 +87,19 @@ class F extends GPUTest {
       size: [1, 1, 1],
       usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.STORAGE_BINDING
     });
+    const resource = bindBufferResource ?
+    buffer :
+    {
+      buffer,
+      offset: bufferOffset,
+      size: boundBufferSize
+    };
     const bindGroup = this.device.createBindGroup({
       layout: computePipeline.getBindGroupLayout(0),
       entries: [
       {
         binding: 0,
-        resource: {
-          buffer,
-          offset: bufferOffset,
-          size: boundBufferSize
-        }
+        resource
       },
       {
         binding: 1,
@@ -87,10 +116,10 @@ class F extends GPUTest {
     computePass.end();
     this.queue.submit([encoder.finish()]);
 
-    this.CheckBufferAndOutputTexture(buffer, boundBufferSize + bufferOffset, outputTexture);
+    this.checkBufferAndOutputTexture(buffer, boundBufferSize + bufferOffset, outputTexture);
   }
 
-  CreateRenderPipelineForTest(
+  createRenderPipelineForTest(
   vertexShaderModule,
   testVertexBuffer)
   {
@@ -127,7 +156,7 @@ class F extends GPUTest {
     return this.device.createRenderPipeline(renderPipelineDescriptor);
   }
 
-  RecordInitializeTextureColor(
+  recordInitializeTextureColor(
   encoder,
   texture,
   color)
@@ -145,7 +174,7 @@ class F extends GPUTest {
     renderPass.end();
   }
 
-  CheckBufferAndOutputTexture(
+  checkBufferAndOutputTexture(
   buffer,
   bufferSize,
   outputTexture,
@@ -202,7 +231,7 @@ fn(async (t) => {
   const { mapMode } = t.params;
 
   const bufferSize = 32;
-  const bufferUsage = t.GetBufferUsageFromMapMode(mapMode);
+  const bufferUsage = t.getBufferUsageFromMapMode(mapMode);
   const buffer = t.createBufferTracked({
     size: bufferSize,
     usage: bufferUsage
@@ -216,7 +245,7 @@ fn(async (t) => {
   buffer.unmap();
 
   const expectedData = new Uint8Array(bufferSize);
-  t.CheckGPUBufferContent(buffer, bufferUsage, expectedData);
+  t.checkGPUBufferContent(buffer, bufferUsage, expectedData);
 });
 
 g.test('map_partial_buffer').
@@ -231,7 +260,7 @@ fn(async (t) => {
   const bufferSize = 32;
   const appliedOffset = offset >= 0 ? offset : bufferSize + offset;
 
-  const bufferUsage = t.GetBufferUsageFromMapMode(mapMode);
+  const bufferUsage = t.getBufferUsageFromMapMode(mapMode);
   const buffer = t.createBufferTracked({
     size: bufferSize,
     usage: bufferUsage
@@ -251,7 +280,7 @@ fn(async (t) => {
     buffer.unmap();
   }
 
-  t.CheckGPUBufferContent(buffer, bufferUsage, expectedData);
+  t.checkGPUBufferContent(buffer, bufferUsage, expectedData);
 });
 
 g.test('mapped_at_creation_whole_buffer').
@@ -278,7 +307,7 @@ fn((t) => {
   buffer.unmap();
 
   const expectedData = new Uint8Array(bufferSize);
-  t.CheckGPUBufferContent(buffer, bufferUsage, expectedData);
+  t.checkGPUBufferContent(buffer, bufferUsage, expectedData);
 });
 
 g.test('mapped_at_creation_partial_buffer').
@@ -317,7 +346,7 @@ fn((t) => {
     buffer.unmap();
   }
 
-  t.CheckGPUBufferContent(buffer, bufferUsage, expectedData);
+  t.checkGPUBufferContent(buffer, bufferUsage, expectedData);
 });
 
 g.test('copy_buffer_to_buffer_copy_source').
@@ -335,7 +364,7 @@ fn((t) => {
 
   const expectedData = new Uint8Array(bufferSize);
   // copyBufferToBuffer() is called inside t.CheckGPUBufferContent().
-  t.CheckGPUBufferContent(buffer, bufferUsage, expectedData);
+  t.checkGPUBufferContent(buffer, bufferUsage, expectedData);
 });
 
 g.test('copy_buffer_to_texture').
@@ -375,7 +404,7 @@ fn((t) => {
   );
   t.queue.submit([encoder.finish()]);
 
-  t.CheckBufferAndOutputTexture(srcBuffer, srcBufferSize, dstTexture, textureSize, {
+  t.checkBufferAndOutputTexture(srcBuffer, srcBufferSize, dstTexture, textureSize, {
     R: 0.0,
     G: 0.0,
     B: 0.0,
@@ -404,7 +433,7 @@ fn((t) => {
   t.queue.submit([encoder.finish()]);
 
   const expectedBufferData = new Uint8Array(bufferSize);
-  t.CheckGPUBufferContent(dstBuffer, bufferUsage, expectedBufferData);
+  t.checkGPUBufferContent(dstBuffer, bufferUsage, expectedBufferData);
 });
 
 g.test('copy_texture_to_partial_buffer').
@@ -524,7 +553,7 @@ fn((t) => {
   });
 
   // Verify the whole range of the buffer has been initialized to 0 in a compute shader.
-  t.TestBufferZeroInitInBindGroup(computeShaderModule, buffer, bufferOffset, boundBufferSize);
+  t.testBufferZeroInitInBindGroup(computeShaderModule, buffer, bufferOffset, boundBufferSize);
 });
 
 g.test('readonly_storage_buffer').
@@ -559,7 +588,7 @@ fn((t) => {
   });
 
   // Verify the whole range of the buffer has been initialized to 0 in a compute shader.
-  t.TestBufferZeroInitInBindGroup(computeShaderModule, buffer, bufferOffset, boundBufferSize);
+  t.testBufferZeroInitInBindGroup(computeShaderModule, buffer, bufferOffset, boundBufferSize);
 });
 
 g.test('storage_buffer').
@@ -594,7 +623,7 @@ fn((t) => {
   });
 
   // Verify the whole range of the buffer has been initialized to 0 in a compute shader.
-  t.TestBufferZeroInitInBindGroup(computeShaderModule, buffer, bufferOffset, boundBufferSize);
+  t.testBufferZeroInitInBindGroup(computeShaderModule, buffer, bufferOffset, boundBufferSize);
 });
 
 g.test('vertex_buffer').
@@ -606,7 +635,7 @@ paramsSubcasesOnly((u) => u.combine('bufferOffset', [0, 16])).
 fn((t) => {
   const { bufferOffset } = t.params;
 
-  const renderPipeline = t.CreateRenderPipelineForTest(
+  const renderPipeline = t.createRenderPipelineForTest(
     t.device.createShaderModule({
       code: `
       struct VertexOut {
@@ -657,7 +686,7 @@ fn((t) => {
   renderPass.end();
   t.queue.submit([encoder.finish()]);
 
-  t.CheckBufferAndOutputTexture(vertexBuffer, bufferSize, outputTexture);
+  t.checkBufferAndOutputTexture(vertexBuffer, bufferSize, outputTexture);
 });
 
 g.test('index_buffer').
@@ -669,7 +698,7 @@ paramsSubcasesOnly((u) => u.combine('bufferOffset', [0, 16])).
 fn((t) => {
   const { bufferOffset } = t.params;
 
-  const renderPipeline = t.CreateRenderPipelineForTest(
+  const renderPipeline = t.createRenderPipelineForTest(
     t.device.createShaderModule({
       code: `
     struct VertexOut {
@@ -722,7 +751,7 @@ fn((t) => {
   renderPass.end();
   t.queue.submit([encoder.finish()]);
 
-  t.CheckBufferAndOutputTexture(indexBuffer, bufferSize, outputTexture);
+  t.checkBufferAndOutputTexture(indexBuffer, bufferSize, outputTexture);
 });
 
 g.test('indirect_buffer_for_draw_indirect').
@@ -737,7 +766,7 @@ u.combine('test_indexed_draw', [true, false]).beginSubcases().combine('bufferOff
 fn((t) => {
   const { test_indexed_draw, bufferOffset } = t.params;
 
-  const renderPipeline = t.CreateRenderPipelineForTest(
+  const renderPipeline = t.createRenderPipelineForTest(
     t.device.createShaderModule({
       code: `
     struct VertexOut {
@@ -772,7 +801,7 @@ fn((t) => {
 
   // Initialize outputTexture to green.
   const encoder = t.device.createCommandEncoder();
-  t.RecordInitializeTextureColor(encoder, outputTexture, { r: 0.0, g: 1.0, b: 0.0, a: 1.0 });
+  t.recordInitializeTextureColor(encoder, outputTexture, { r: 0.0, g: 1.0, b: 0.0, a: 1.0 });
 
   const renderPass = encoder.beginRenderPass({
     colorAttachments: [
@@ -802,7 +831,7 @@ fn((t) => {
 
   // The indirect buffer should be lazily cleared to 0, so we actually draw nothing and the color
   // attachment will keep its original color (green) after we end the render pass.
-  t.CheckBufferAndOutputTexture(indirectBuffer, bufferSize, outputTexture);
+  t.checkBufferAndOutputTexture(indirectBuffer, bufferSize, outputTexture);
 });
 
 g.test('indirect_buffer_for_dispatch_indirect').
@@ -848,7 +877,7 @@ fn((t) => {
 
   // Initialize outputTexture to green.
   const encoder = t.device.createCommandEncoder();
-  t.RecordInitializeTextureColor(encoder, outputTexture, { r: 0.0, g: 1.0, b: 0.0, a: 1.0 });
+  t.recordInitializeTextureColor(encoder, outputTexture, { r: 0.0, g: 1.0, b: 0.0, a: 1.0 });
 
   const bindGroup = t.device.createBindGroup({
     layout: computePipeline.getBindGroupLayout(0),
@@ -871,5 +900,5 @@ fn((t) => {
 
   // The indirect buffer should be lazily cleared to 0, so we actually draw nothing and the color
   // attachment will keep its original color (green) after we end the compute pass.
-  t.CheckBufferAndOutputTexture(indirectBuffer, bufferSize, outputTexture);
+  t.checkBufferAndOutputTexture(indirectBuffer, bufferSize, outputTexture);
 });

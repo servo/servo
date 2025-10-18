@@ -3,7 +3,7 @@
 **/export const description = `
 Execution Tests for assignment of AbstractFloats
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 import { Type } from '../../../../util/conversion.js';
 import {
 
@@ -23,7 +23,7 @@ function abstract_assignment() {
   return abstractFloatShaderBuilder((value) => `${value}`);
 }
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('abstract').
 specURL('https://www.w3.org/TR/WGSL/#floating-point-conversion').
@@ -66,11 +66,9 @@ desc(
 concretizing to f16
 `
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 params((u) => u.combine('inputSource', onlyConstInputSource)).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('f16');
   await run(t, concrete_assignment(), [Type.abstractFloat], Type.f16, t.params, cases);
 });

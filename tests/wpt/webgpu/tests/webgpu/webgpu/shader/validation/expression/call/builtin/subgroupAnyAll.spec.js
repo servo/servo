@@ -14,9 +14,6 @@ const kOps = ['subgroupAny', 'subgroupAll'];
 g.test('requires_subgroups').
 desc('Validates that the subgroups feature is required').
 params((u) => u.combine('enable', [false, true]).combine('op', kOps)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn((t) => {
   const wgsl = `
 ${t.params.enable ? 'enable subgroups;' : ''}
@@ -54,9 +51,6 @@ fn main() {
 g.test('early_eval').
 desc('Ensures the builtin is not able to be compile time evaluated').
 params((u) => u.combine('stage', keysOf(kStages)).combine('op', kOps)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn((t) => {
   const code = kStages[t.params.stage](t.params.op);
   t.expectCompileResult(t.params.stage === 'runtime', code);
@@ -65,9 +59,6 @@ fn((t) => {
 g.test('must_use').
 desc('Tests that the builtin has the @must_use attribute').
 params((u) => u.combine('must_use', [true, false]).combine('op', kOps)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn((t) => {
   const wgsl = `
 enable subgroups;
@@ -84,20 +75,11 @@ const kTypes = objectsToRecord(kAllScalarsAndVectors);
 g.test('data_type').
 desc('Validates data parameter type').
 params((u) => u.combine('type', keysOf(kTypes)).combine('op', kOps)).
-beforeAllSubcases((t) => {
-  const features = ['subgroups'];
-  const type = kTypes[t.params.type];
-  if (type.requiresF16()) {
-    features.push('shader-f16');
-    features.push('subgroups-f16');
-  }
-  t.selectDeviceOrSkipTestCase(features);
-}).
 fn((t) => {
   const type = kTypes[t.params.type];
   let enables = `enable subgroups;\n`;
   if (type.requiresF16()) {
-    enables += `enable f16;\nenable subgroups_f16;`;
+    enables += `enable f16;`;
   }
   const wgsl = `
 ${enables}
@@ -121,20 +103,11 @@ filter((t) => {
 }).
 combine('op', kOps)
 ).
-beforeAllSubcases((t) => {
-  const features = ['subgroups'];
-  const type = kTypes[t.params.type];
-  if (type.requiresF16()) {
-    features.push('shader-f16');
-    features.push('subgroups-f16');
-  }
-  t.selectDeviceOrSkipTestCase(features);
-}).
 fn((t) => {
   const type = kTypes[t.params.type];
   let enables = `enable subgroups;\n`;
   if (type.requiresF16()) {
-    enables += `enable f16;\nenable subgroups_f16;`;
+    enables += `enable f16;`;
   }
   const wgsl = `
 ${enables}
@@ -149,9 +122,6 @@ fn main() {
 g.test('stage').
 desc('validates builtin is only usable in the correct stages').
 params((u) => u.combine('stage', ['compute', 'fragment', 'vertex']).combine('op', kOps)).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn((t) => {
   const compute = `
 @compute @workgroup_size(1)

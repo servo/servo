@@ -57,19 +57,20 @@ expectedName,
 p,
 { allowMissingStack = false, message } = {})
 {
-  try {
-    await p;
-    unreachable(message);
-  } catch (ex) {
-    // Asserted as expected
-    if (!allowMissingStack) {
-      const m = message ? ` (${message})` : '';
-      assert(
-        ex instanceof Error && typeof ex.stack === 'string',
-        'threw as expected, but missing stack' + m
-      );
+  await p.then(
+    () => {
+      unreachable(message);
+    },
+    (ex) => {
+      assert(ex instanceof Error, 'rejected with a non-Error object');
+      assert(ex.name === expectedName, `rejected with name ${ex.name} instead of ${expectedName}`);
+      // Asserted as expected
+      if (!allowMissingStack) {
+        const m = message ? ` (${message})` : '';
+        assert(typeof ex.stack === 'string', 'threw as expected, but missing stack' + m);
+      }
     }
-  }
+  );
 }
 
 /**
@@ -258,6 +259,15 @@ export function mapLazy(xs, f) {
   };
 }
 
+/** Count the number of elements `x` for which `predicate(x)` is true. */
+export function count(xs, predicate) {
+  let count = 0;
+  for (const x of xs) {
+    if (predicate(x)) count++;
+  }
+  return count;
+}
+
 const ReorderOrders = {
   forward: true,
   backward: true,
@@ -291,6 +301,16 @@ export function reorder(order, arr) {
         return shiftByHalf(arr);
       }
   }
+}
+
+/**
+ * A typed version of Object.entries
+ */
+
+export function typedEntries(obj) {
+  // The cast is done once, inside the helper function,
+  // keeping the call site clean and type-safe.
+  return Object.entries(obj);
 }
 
 const TypedArrayBufferViewInstances = [

@@ -4,6 +4,7 @@
 Tests limitations of createShaderModule in compat mode.
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { keysOf } from '../../../../../common/util/data_tables.js';
+import * as vtu from '../../../../api/validation/validation_test_utils.js';
 import { kCompatModeUnsupportedStorageTextureFormats } from '../../../../format_info.js';
 import { CompatibilityTest } from '../../../compatibility_test.js';
 
@@ -48,7 +49,7 @@ fn((t) => {
       `
   });
   const isValid = !t.isCompatibility || entryPoint === 'fsWithoutSampleMaskUsage';
-  t.doCreateRenderPipelineTest(async, isValid, {
+  vtu.doCreateRenderPipelineTest(t, async, isValid, {
     layout: 'auto',
     vertex: { module },
     fragment: {
@@ -93,7 +94,7 @@ fn((t) => {
   });
 
   const isValid = !t.isCompatibility || entryPoint === 'fsWithoutSampleIndexUsage';
-  t.doCreateRenderPipelineTest(async, isValid, {
+  vtu.doCreateRenderPipelineTest(t, async, isValid, {
     layout: 'auto',
     vertex: { module },
     fragment: {
@@ -158,7 +159,7 @@ fn((t) => {
   });
 
   const isValid = success || !t.isCompatibility || entryPoint === 'fsWithoutInterpolationUsage';
-  t.doCreateRenderPipelineTest(async, isValid, {
+  vtu.doCreateRenderPipelineTest(t, async, isValid, {
     layout: 'auto',
     vertex: { module },
     fragment: {
@@ -195,7 +196,7 @@ fn((t) => {
   });
 
   const isValid = !t.isCompatibility || entryPoint === 'csWithoutStorageUsage';
-  t.doCreateComputePipelineTest(async, isValid, {
+  vtu.doCreateComputePipelineTest(t, async, isValid, {
     layout: 'auto',
     compute: { module, entryPoint }
   });
@@ -229,7 +230,7 @@ fn((t) => {
   });
 
   const isValid = !t.isCompatibility || entryPoint === 'vsWithoutStorageUsage';
-  t.doCreateRenderPipelineTest(async, isValid, {
+  vtu.doCreateRenderPipelineTest(t, async, isValid, {
     layout: 'auto',
     vertex: { module, entryPoint },
     depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'always' }
@@ -269,7 +270,7 @@ fn((t) => {
   });
 
   const isValid = !t.isCompatibility || entryPoint === 'csWithoutDepthUsage';
-  t.doCreateComputePipelineTest(async, isValid, {
+  vtu.doCreateComputePipelineTest(t, async, isValid, {
     layout: 'auto',
     compute: { module, entryPoint }
   });
@@ -303,7 +304,7 @@ fn((t) => {
   });
 
   const isValid = !t.isCompatibility || entryPoint === 'vsWithoutDepthUsage';
-  t.doCreateRenderPipelineTest(async, isValid, {
+  vtu.doCreateRenderPipelineTest(t, async, isValid, {
     layout: 'auto',
     vertex: { module, entryPoint },
     depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'always' }

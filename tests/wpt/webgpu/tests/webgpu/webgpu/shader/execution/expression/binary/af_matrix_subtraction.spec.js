@@ -3,14 +3,14 @@
 **/export const description = `
 Execution Tests for matrix abstract-float subtraction expression
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 import { Type } from '../../../../util/conversion.js';
 import { onlyConstInputSource, run } from '../expression.js';
 
 import { d } from './af_matrix_subtraction.cache.js';
 import { abstractFloatBinary } from './binary.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('matrix').
 specURL('https://www.w3.org/TR/WGSL/#floating-point-evaluation').

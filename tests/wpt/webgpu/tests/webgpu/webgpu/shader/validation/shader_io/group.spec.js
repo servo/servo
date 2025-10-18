@@ -110,9 +110,6 @@ var<storage> a: i32;
 
 g.test('group_f16').
 desc(`Test validation of group with f16`).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
-}).
 fn((t) => {
   const code = `
 @group(1h) @binding(1)

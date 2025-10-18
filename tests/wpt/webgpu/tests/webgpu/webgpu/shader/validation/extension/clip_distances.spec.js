@@ -3,9 +3,9 @@
 **/export const description = `
 Validation tests for the clip_distances extension
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { ShaderValidationTest } from '../shader_validation_test.js';
+import { UniqueFeaturesAndLimitsShaderValidationTest } from '../shader_validation_test.js';
 
-export const g = makeTestGroup(ShaderValidationTest);
+export const g = makeTestGroup(UniqueFeaturesAndLimitsShaderValidationTest);
 
 g.test('use_clip_distances_requires_extension_enabled').
 desc(

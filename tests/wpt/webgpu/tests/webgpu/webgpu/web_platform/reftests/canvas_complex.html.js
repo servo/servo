@@ -1,6 +1,6 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { assert, unreachable } from '../../../common/util/util.js';import { kTextureFormatInfo } from '../../format_info.js';import { gammaDecompress, float32ToFloat16Bits } from '../../util/conversion.js';
+**/import { assert, unreachable } from '../../../common/util/util.js';import { getBlockInfoForColorTextureFormat } from '../../format_info.js';import { gammaDecompress, float32ToFloat16Bits } from '../../util/conversion.js';
 import { align } from '../../util/math.js';
 
 import { runRefTest } from './gpu_ref_test.js';
@@ -43,10 +43,7 @@ targets)
 
     function copyBufferToTexture(ctx) {
       const rows = ctx.canvas.height;
-      const bytesPerPixel = kTextureFormatInfo[format].color.bytes;
-      if (bytesPerPixel === undefined) {
-        unreachable();
-      }
+      const { bytesPerBlock: bytesPerPixel } = getBlockInfoForColorTextureFormat(format);
       const bytesPerRow = align(bytesPerPixel * ctx.canvas.width, 256);
       const componentsPerPixel = 4;
 
@@ -136,7 +133,9 @@ targets)
       }
       buffer.unmap();
 
-      const encoder = t.device.createCommandEncoder();
+      const encoder = t.device.createCommandEncoder({
+        label: 'canvas_complex:copyBufferToTexture'
+      });
       encoder.copyBufferToTexture({ buffer, bytesPerRow }, { texture: ctx.getCurrentTexture() }, [
       ctx.canvas.width,
       ctx.canvas.height,
@@ -199,7 +198,9 @@ targets)
       const imageBitmap = await getImageBitmap(ctx);
       const srcTexture = setupSrcTexture(imageBitmap);
 
-      const encoder = t.device.createCommandEncoder();
+      const encoder = t.device.createCommandEncoder({
+        label: 'canvas_complex:copyTextureToTexture'
+      });
       encoder.copyTextureToTexture(
         { texture: srcTexture, mipLevel: 0, origin: { x: 0, y: 0, z: 0 } },
         { texture: ctx.getCurrentTexture(), mipLevel: 0, origin: { x: 0, y: 0, z: 0 } },
@@ -321,7 +322,7 @@ fn linearMain(@location(0) fragUV: vec2<f32>) -> @location(0) vec4<f32> {
 
       };
 
-      const commandEncoder = t.device.createCommandEncoder();
+      const commandEncoder = t.device.createCommandEncoder({ label: 'DrawTextureSample' });
       const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
       passEncoder.setPipeline(pipeline);
       passEncoder.setBindGroup(0, uniformBindGroup);
@@ -401,7 +402,7 @@ fn main(@location(0) fragColor: vec4<f32>) -> @location(0) vec4<f32> {
 
       };
 
-      const commandEncoder = t.device.createCommandEncoder();
+      const commandEncoder = t.device.createCommandEncoder({ label: 'DrawVertexColor' });
       const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
       passEncoder.setPipeline(pipeline);
       passEncoder.draw(24, 1, 0, 0);
@@ -487,7 +488,7 @@ fn main(@builtin(position) fragcoord: vec4<f32>) -> @location(0) vec4<f32> {
 
       };
 
-      const commandEncoder = t.device.createCommandEncoder();
+      const commandEncoder = t.device.createCommandEncoder({ label: 'DrawFragcoord' });
       const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
       passEncoder.setPipeline(pipeline);
       passEncoder.draw(6, 1, 0, 0);
@@ -584,7 +585,7 @@ fn main(@builtin(position) fragcoord: vec4<f32>) -> @location(0) vec4<f32> {
 
       };
 
-      const commandEncoder = t.device.createCommandEncoder();
+      const commandEncoder = t.device.createCommandEncoder({ label: 'FragmentTextureStore' });
       const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
       passEncoder.setPipeline(pipeline);
       passEncoder.setBindGroup(0, bg);
@@ -634,7 +635,7 @@ fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
         layout: pipeline.getBindGroupLayout(0)
       });
 
-      const encoder = t.device.createCommandEncoder();
+      const encoder = t.device.createCommandEncoder({ label: 'ComputeWorkgroup1x1TextureStore' });
       const pass = encoder.beginComputePass();
       pass.setPipeline(pipeline);
       pass.setBindGroup(0, bg);
@@ -690,7 +691,7 @@ fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
         layout: pipeline.getBindGroupLayout(0)
       });
 
-      const encoder = t.device.createCommandEncoder();
+      const encoder = t.device.createCommandEncoder({ label: 'ComputeWorkgroup16x16TextureStore' });
       const pass = encoder.beginComputePass();
       pass.setPipeline(pipeline);
       pass.setBindGroup(0, bg);

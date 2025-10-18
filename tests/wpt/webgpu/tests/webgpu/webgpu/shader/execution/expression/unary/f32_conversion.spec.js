@@ -3,14 +3,14 @@
 **/export const description = `
 Execution Tests for the f32 conversion operations
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 import { Type } from '../../../../util/conversion.js';
 import { allInputSources, run, onlyConstInputSource } from '../expression.js';
 
 import { d } from './f32_conversion.cache.js';
 import { unary } from './unary.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 /** Generate a ShaderBuilder based on how the test case is to be vectorized */
 function vectorizeToExpression(vectorize) {
@@ -155,10 +155,8 @@ desc(
 params((u) =>
 u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cases = await d.get('f16');
   await run(t, vectorizeToExpression(t.params.vectorize), [Type.f16], Type.f32, t.params, cases);
 });
@@ -172,10 +170,8 @@ combine('inputSource', allInputSources).
 combine('cols', [2, 3, 4]).
 combine('rows', [2, 3, 4])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const cols = t.params.cols;
   const rows = t.params.rows;
   const cases = await d.get(

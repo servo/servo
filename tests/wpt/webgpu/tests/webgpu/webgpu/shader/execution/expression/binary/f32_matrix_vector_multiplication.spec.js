@@ -3,14 +3,14 @@
 **/export const description = `
 Execution Tests for matrix-vector and vector-matrix f32 multiplication expression
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 import { Type } from '../../../../util/conversion.js';
 import { allInputSources, run } from '../expression.js';
 
 import { binary, compoundBinary } from './binary.js';
 import { d } from './f32_matrix_vector_multiplication.cache.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('matrix_vector').
 specURL('https://www.w3.org/TR/WGSL/#floating-point-evaluation').

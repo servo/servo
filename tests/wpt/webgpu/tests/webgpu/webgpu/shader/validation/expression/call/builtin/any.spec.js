@@ -157,11 +157,6 @@ fn((t) => {
 g.test('arguments').
 desc(`Test that ${builtin} is validated correctly.`).
 params((u) => u.combine('test', keysOf(kTests))).
-beforeAllSubcases((t) => {
-  if (t.params.test.includes('f16')) {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  }
-}).
 fn((t) => {
   const src = kTests[t.params.test].src;
   const enables = t.params.test.includes('f16') ? 'enable f16;' : '';

@@ -80,6 +80,25 @@ fn((t) => {
   t.expectCompileResult(t.params.name === 'position', code);
 });
 
+g.test('valid_only_with_position_in_non_entry_point_struct').
+desc(
+  `Test that the invariant attribute requires position, regardless if the struct is used in an entry point`
+).
+params((u) => u.combine('has_position', [true, false])).
+fn((t) => {
+  let code = 'struct A {\n';
+  code += '  @invariant';
+  if (t.params.has_position) {
+    code += ' @builtin(position)';
+  }
+  code += '  a : vec4f,\n';
+  code += '}\n';
+  code += '@group(0) @binding(0) var<storage> a: A;\n';
+  code += '@compute @workgroup_size(1) fn main() { let b = a; }';
+
+  t.expectCompileResult(t.params.has_position, code);
+});
+
 g.test('not_valid_on_user_defined_io').
 desc(`Test that the invariant attribute is not accepted on user-defined IO attributes.`).
 params((u) => u.combine('use_invariant', [true, false]).beginSubcases()).

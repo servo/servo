@@ -9,12 +9,12 @@ Partial derivative of e with respect to window x coordinates.
 The result is the same as either dpdxFine(e) or dpdxCoarse(e).
 
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 
 import { d } from './derivatives.cache.js';
 import { runDerivativeTest } from './derivatives.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 const builtin = 'dpdx';
 

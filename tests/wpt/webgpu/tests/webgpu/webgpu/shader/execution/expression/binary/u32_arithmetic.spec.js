@@ -3,14 +3,14 @@
 **/export const description = `
 Execution Tests for the u32 arithmetic binary expression operations
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 import { Type } from '../../../../util/conversion.js';
 import { allInputSources, run } from '../expression.js';
 
 import { binary, compoundBinary } from './binary.js';
 import { d } from './u32_arithmetic.cache.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('addition').
 specURL('https://www.w3.org/TR/WGSL/#arithmetic-expr').

@@ -7,14 +7,14 @@ Execution tests for the 'unpack4xU8' builtin function
 e is interpreted as a vector with four 8-bit unsigned integer components. Unpack e into a vec4<u32>
 with zero extension.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../../gpu_test.js';
 import { u32, toVector, Type } from '../../../../../util/conversion.js';
 
 import { allInputSources, run } from '../../expression.js';
 
 import { builtin } from './builtin.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('basic').
 specURL('https://www.w3.org/TR/WGSL/#unpack4xU8-builtin').
