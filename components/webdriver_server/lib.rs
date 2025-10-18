@@ -951,12 +951,9 @@ impl Handler {
             VerifyBrowsingContextIsOpen::No,
         )?;
 
-        match wait_for_ipc_response(receiver)? {
-            Ok(is_enabled) => Ok(WebDriverResponse::Generic(ValueResponse(
-                serde_json::to_value(is_enabled)?,
-            ))),
-            Err(error) => Err(WebDriverError::new(error, "")),
-        }
+        Ok(WebDriverResponse::Generic(ValueResponse(
+            serde_json::to_value(wait_for_ipc_response_flatten(receiver)?)?,
+        )))
     }
 
     fn handle_is_selected(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
@@ -975,12 +972,9 @@ impl Handler {
             VerifyBrowsingContextIsOpen::No,
         )?;
 
-        match wait_for_ipc_response(receiver)? {
-            Ok(is_selected) => Ok(WebDriverResponse::Generic(ValueResponse(
-                serde_json::to_value(is_selected)?,
-            ))),
-            Err(error) => Err(WebDriverError::new(error, "")),
-        }
+        Ok(WebDriverResponse::Generic(ValueResponse(
+            serde_json::to_value(wait_for_ipc_response_flatten(receiver)?)?,
+        )))
     }
 
     /// <https://w3c.github.io/webdriver/#back>
@@ -1250,18 +1244,14 @@ impl Handler {
 
         // Step 4. If session's current parent browsing context is not null,
         // set the current browsing context with session and current parent browsing context.
-        match wait_for_ipc_response(receiver)? {
-            Ok(browsing_context_id) => {
-                self.session_mut()?
-                    .set_browsing_context_id(browsing_context_id);
-                // Step 5. Update any implementation-specific state that would result from
-                // the user selecting session's current browsing context for interaction,
-                // without altering OS-level focus.
-                self.focus_browsing_context(browsing_context_id)?;
-                Ok(WebDriverResponse::Void)
-            },
-            Err(error) => Err(WebDriverError::new(error, "")),
-        }
+        let browsing_context_id = wait_for_ipc_response_flatten(receiver)?;
+        self.session_mut()?
+            .set_browsing_context_id(browsing_context_id);
+        // Step 5. Update any implementation-specific state that would result from
+        // the user selecting session's current browsing context for interaction,
+        // without altering OS-level focus.
+        self.focus_browsing_context(browsing_context_id)?;
+        Ok(WebDriverResponse::Void)
     }
 
     // https://w3c.github.io/webdriver/#switch-to-window
@@ -1301,18 +1291,14 @@ impl Handler {
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
         self.handle_any_user_prompts(self.webview_id()?)?;
 
-        match wait_for_ipc_response(receiver)? {
-            Ok(browsing_context_id) => {
-                self.session_mut()?
-                    .set_browsing_context_id(browsing_context_id);
-                // Step 4. Update any implementation-specific state that would result from
-                // the user selecting session's current browsing context for interaction,
-                // without altering OS-level focus.
-                self.focus_browsing_context(browsing_context_id)?;
-                Ok(WebDriverResponse::Void)
-            },
-            Err(error) => Err(WebDriverError::new(error, "")),
-        }
+        let browsing_context_id = wait_for_ipc_response_flatten(receiver)?;
+        self.session_mut()?
+            .set_browsing_context_id(browsing_context_id);
+        // Step 4. Update any implementation-specific state that would result from
+        // the user selecting session's current browsing context for interaction,
+        // without altering OS-level focus.
+        self.focus_browsing_context(browsing_context_id)?;
+        Ok(WebDriverResponse::Void)
     }
 
     /// <https://w3c.github.io/webdriver/#find-element>
@@ -1589,17 +1575,13 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetElementShadowRoot(element.to_string(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-        match wait_for_ipc_response(receiver)? {
-            Ok(value) => {
-                let Some(value) = value else {
-                    return Err(WebDriverError::new(ErrorStatus::NoSuchShadowRoot, ""));
-                };
-                Ok(WebDriverResponse::Generic(ValueResponse(
-                    serde_json::to_value(ShadowRoot(value))?,
-                )))
-            },
-            Err(error) => Err(WebDriverError::new(error, "")),
-        }
+        // Step 5. If shadow root is null, return error with error code no such shadow root.
+        let Some(value) = wait_for_ipc_response_flatten(receiver)? else {
+            return Err(WebDriverError::new(ErrorStatus::NoSuchShadowRoot, ""));
+        };
+        Ok(WebDriverResponse::Generic(ValueResponse(
+            serde_json::to_value(ShadowRoot(value))?,
+        )))
     }
 
     /// <https://w3c.github.io/webdriver/#get-element-rect>
@@ -1612,18 +1594,14 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetElementRect(element.to_string(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-        match wait_for_ipc_response(receiver)? {
-            Ok(rect) => {
-                let response = ElementRectResponse {
-                    x: rect.origin.x,
-                    y: rect.origin.y,
-                    width: rect.size.width,
-                    height: rect.size.height,
-                };
-                Ok(WebDriverResponse::ElementRect(response))
-            },
-            Err(error) => Err(WebDriverError::new(error, "")),
-        }
+        let rect = wait_for_ipc_response_flatten(receiver)?;
+        let response = ElementRectResponse {
+            x: rect.origin.x,
+            y: rect.origin.y,
+            width: rect.size.width,
+            height: rect.size.height,
+        };
+        Ok(WebDriverResponse::ElementRect(response))
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-get-element-text>
@@ -1636,12 +1614,9 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetElementText(element.to_string(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-        match wait_for_ipc_response(receiver)? {
-            Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
-                serde_json::to_value(value)?,
-            ))),
-            Err(error) => Err(WebDriverError::new(error, "")),
-        }
+        Ok(WebDriverResponse::Generic(ValueResponse(
+            serde_json::to_value(wait_for_ipc_response_flatten(receiver)?)?,
+        )))
     }
 
     ///<https://w3c.github.io/webdriver/#get-active-element>
@@ -1681,12 +1656,9 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetComputedRole(element.to_string(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-        match wait_for_ipc_response(receiver)? {
-            Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
-                serde_json::to_value(value)?,
-            ))),
-            Err(error) => Err(WebDriverError::new(error, "")),
-        }
+        Ok(WebDriverResponse::Generic(ValueResponse(
+            serde_json::to_value(wait_for_ipc_response_flatten(receiver)?)?,
+        )))
     }
 
     /// <https://w3c.github.io/webdriver/#get-element-tag-name>
@@ -1699,12 +1671,9 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetElementTagName(element.to_string(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-        match wait_for_ipc_response(receiver)? {
-            Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
-                serde_json::to_value(value)?,
-            ))),
-            Err(error) => Err(WebDriverError::new(error, "")),
-        }
+        Ok(WebDriverResponse::Generic(ValueResponse(
+            serde_json::to_value(wait_for_ipc_response_flatten(receiver)?)?,
+        )))
     }
 
     /// <https://w3c.github.io/webdriver/#get-element-attribute>
@@ -1725,12 +1694,9 @@ impl Handler {
             sender,
         );
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-        match wait_for_ipc_response(receiver)? {
-            Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
-                serde_json::to_value(value)?,
-            ))),
-            Err(error) => Err(WebDriverError::new(error, "")),
-        }
+        Ok(WebDriverResponse::Generic(ValueResponse(
+            serde_json::to_value(wait_for_ipc_response_flatten(receiver)?)?,
+        )))
     }
 
     /// <https://w3c.github.io/webdriver/#get-element-property>
@@ -1753,12 +1719,9 @@ impl Handler {
         );
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
 
-        match wait_for_ipc_response(receiver)? {
-            Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
-                serde_json::to_value(SendableJSValue(value))?,
-            ))),
-            Err(error) => Err(WebDriverError::new(error, "")),
-        }
+        Ok(WebDriverResponse::Generic(ValueResponse(
+            serde_json::to_value(SendableJSValue(wait_for_ipc_response_flatten(receiver)?))?,
+        )))
     }
 
     /// <https://w3c.github.io/webdriver/#get-element-css-value>
@@ -1776,12 +1739,9 @@ impl Handler {
         let cmd =
             WebDriverScriptCommand::GetElementCSS(element.to_string(), name.to_owned(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-        match wait_for_ipc_response(receiver)? {
-            Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
-                serde_json::to_value(value)?,
-            ))),
-            Err(error) => Err(WebDriverError::new(error, "")),
-        }
+        Ok(WebDriverResponse::Generic(ValueResponse(
+            serde_json::to_value(wait_for_ipc_response_flatten(receiver)?)?,
+        )))
     }
 
     /// <https://w3c.github.io/webdriver/#get-all-cookies>
@@ -1794,10 +1754,7 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetCookies(sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-        let cookies = match wait_for_ipc_response(receiver)? {
-            Ok(cookies) => cookies,
-            Err(error) => return Err(WebDriverError::new(error, "")),
-        };
+        let cookies = wait_for_ipc_response_flatten(receiver)?;
         let response = cookies
             .into_iter()
             .map(|cookie| cookie_msg_to_cookie(cookie.into_inner()))
@@ -1815,10 +1772,7 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetCookie(name, sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-        let cookies = match wait_for_ipc_response(receiver)? {
-            Ok(cookies) => cookies,
-            Err(error) => return Err(WebDriverError::new(error, "")),
-        };
+        let cookies = wait_for_ipc_response_flatten(receiver)?;
         let Some(response) = cookies
             .into_iter()
             .map(|cookie| cookie_msg_to_cookie(cookie.into_inner()))
@@ -1870,10 +1824,8 @@ impl Handler {
 
         let cmd = WebDriverScriptCommand::AddCookie(cookie_builder.build(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-        match wait_for_ipc_response(receiver)? {
-            Ok(_) => Ok(WebDriverResponse::Void),
-            Err(error) => Err(WebDriverError::new(error, "")),
-        }
+        wait_for_ipc_response_flatten(receiver)?;
+        Ok(WebDriverResponse::Void)
     }
 
     /// <https://w3c.github.io/webdriver/#delete-cookie>
@@ -1886,10 +1838,8 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::DeleteCookie(name, sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-        match wait_for_ipc_response(receiver)? {
-            Ok(_) => Ok(WebDriverResponse::Void),
-            Err(error) => Err(WebDriverError::new(error, "")),
-        }
+        wait_for_ipc_response_flatten(receiver)?;
+        Ok(WebDriverResponse::Void)
     }
 
     /// <https://w3c.github.io/webdriver/#delete-all-cookies>
@@ -1902,10 +1852,8 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::DeleteCookies(sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
-        match wait_for_ipc_response(receiver)? {
-            Ok(_) => Ok(WebDriverResponse::Void),
-            Err(error) => Err(WebDriverError::new(error, "")),
-        }
+        wait_for_ipc_response_flatten(receiver)?;
+        Ok(WebDriverResponse::Void)
     }
 
     /// <https://w3c.github.io/webdriver/#get-timeouts>
@@ -1956,12 +1904,9 @@ impl Handler {
         let cmd = WebDriverScriptCommand::GetPageSource(sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
 
-        match wait_for_ipc_response(receiver)? {
-            Ok(source) => Ok(WebDriverResponse::Generic(ValueResponse(
-                serde_json::to_value(source)?,
-            ))),
-            Err(error) => Err(WebDriverError::new(error, "")),
-        }
+        Ok(WebDriverResponse::Generic(ValueResponse(
+            serde_json::to_value(wait_for_ipc_response_flatten(receiver)?)?,
+        )))
     }
 
     /// <https://w3c.github.io/webdriver/#perform-actions>
@@ -2178,7 +2123,7 @@ impl Handler {
 
         // File input and non-typeable form control should have
         // been handled in `webdriver_handler.rs`.
-        if !wait_for_ipc_response(receiver)?.map_err(|error| WebDriverError::new(error, ""))? {
+        if !wait_for_ipc_response_flatten(receiver)? {
             return Ok(WebDriverResponse::Void);
         }
 
@@ -2244,10 +2189,8 @@ impl Handler {
         let cmd = WebDriverScriptCommand::ElementClear(element.to_string(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
 
-        match wait_for_ipc_response(receiver)? {
-            Ok(_) => Ok(WebDriverResponse::Void),
-            Err(error) => Err(WebDriverError::new(error, "")),
-        }
+        wait_for_ipc_response_flatten(receiver)?;
+        Ok(WebDriverResponse::Void)
     }
 
     /// <https://w3c.github.io/webdriver/#element-click>
@@ -2266,28 +2209,25 @@ impl Handler {
         let cmd = WebDriverScriptCommand::ElementClick(element.to_string(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
 
-        match wait_for_ipc_response(receiver)? {
-            Ok(element_id) => match element_id {
-                Some(element_id) => {
-                    // Load status sender should be set up before we dispatch actions
-                    // to ensure webdriver can capture any navigation events.
-                    self.add_load_status_sender()?;
+        match wait_for_ipc_response_flatten(receiver)? {
+            Some(element_id) => {
+                // Load status sender should be set up before we dispatch actions
+                // to ensure webdriver can capture any navigation events.
+                self.add_load_status_sender()?;
 
-                    self.perform_element_click(element_id)?;
+                self.perform_element_click(element_id)?;
 
-                    // Step 11. Try to wait for navigation to complete with session.
-                    // Check if there is a navigation with script
-                    let res = self.wait_for_navigation()?;
+                // Step 11. Try to wait for navigation to complete with session.
+                // Check if there is a navigation with script
+                let res = self.wait_for_navigation()?;
 
-                    // Clear the load status sender
-                    self.clear_load_status_sender()?;
+                // Clear the load status sender
+                self.clear_load_status_sender()?;
 
-                    Ok(res)
-                },
-                // Step 13
-                None => Ok(WebDriverResponse::Void),
+                Ok(res)
             },
-            Err(error) => Err(WebDriverError::new(error, "")),
+            // Step 13
+            None => Ok(WebDriverResponse::Void),
         }
     }
 
@@ -2429,18 +2369,15 @@ impl Handler {
             WebDriverScriptCommand::ScrollAndGetBoundingClientRect(element.to_string(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
 
-        match wait_for_ipc_response(receiver)? {
-            Ok(rect) => {
-                // Step 5
-                let encoded = self.take_screenshot(Some(Rect::from_untyped(&rect)))?;
+        let rect = wait_for_ipc_response_flatten(receiver)?;
 
-                // Step 6 return success with data encoded string.
-                Ok(WebDriverResponse::Generic(ValueResponse(
-                    serde_json::to_value(encoded)?,
-                )))
-            },
-            Err(error) => Err(WebDriverError::new(error, "")),
-        }
+        // Step 5
+        let encoded = self.take_screenshot(Some(Rect::from_untyped(&rect)))?;
+
+        // Step 6 return success with data encoded string.
+        Ok(WebDriverResponse::Generic(ValueResponse(
+            serde_json::to_value(encoded)?,
+        )))
     }
 
     fn handle_get_prefs(
