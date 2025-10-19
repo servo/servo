@@ -7,8 +7,6 @@ interface Origin {
   static Origin? parse(USVString serializedOrigin);
   static Origin? fromURL(USVString serializedURL);
 
-  stringifier USVString toJSON();
-
   readonly attribute boolean opaque;
 
   boolean isSameOrigin(Origin other);

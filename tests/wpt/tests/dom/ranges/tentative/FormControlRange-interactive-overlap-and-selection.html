@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<body></body>
+<script>
+'use strict';
+
+const KEY_BACKSPACE = '\uE003';
+const KEY_DELETE = '\uE017';
+const controls = ['input', 'textarea'];
+
+function setup(control, value) {
+  document.body.innerHTML = control === 'input' ? '<input type="text">' : '<textarea></textarea>';
+  const element = document.body.firstElementChild;
+  element.value = value;
+  element.focus();
+  return element;
+}
+
+async function typeKeys(element, text) { await test_driver.send_keys(element, text); }
+
+function makeRange(element, start, end) {
+  const range = new FormControlRange();
+  range.setFormControlRange(element, start, end);
+  return range;
+}
+
+controls.forEach(control => {
+  [
+    // Selection partially overlaps the start of the live range: deletion shrinks and shifts start.
+    { name:'partial overlap at start (delete selection)',
+      init:{ value:'ABCDE', rangeStart:2, rangeEnd:4, selA:1, selB:3, key:KEY_BACKSPACE },
+      expect:{ value:'ADE', start:1, end:2, text:'D' } },
+    // Selection partially overlaps the end of the live range: deletion contracts end.
+    { name:'partial overlap at end (delete selection)',
+      init:{ value:'ABCDE', rangeStart:1, rangeEnd:3, selA:2, selB:4, key:KEY_BACKSPACE },
+      expect:{ value:'ABE', start:1, end:2, text:'B' } },
+  ].forEach(tc => {
+    promise_test(async t => {
+      const element = setup(control, tc.init.value);
+      const range = makeRange(element, tc.init.rangeStart, tc.init.rangeEnd);
+      element.setSelectionRange(tc.init.selA, tc.init.selB);
+      if (tc.init.key) {
+        await typeKeys(element, tc.init.key);
+      } else if (tc.init.text) {
+        await typeKeys(element, tc.init.text);
+      }
+      assert_equals(element.value, tc.expect.value, 'post-edit element.value');
+      assert_equals(range.startOffset, tc.expect.start, 'range start');
+      assert_equals(range.endOffset, tc.expect.end, 'range end');
+      assert_equals(range.toString(), tc.expect.text, 'range text');
+    }, `Overlap: ${tc.name} (${control}).`);
+  });
+
+  [
+    { name:'delete selection exactly equal to range (collapse)',
+      init:{ value:'ABCDE', rangeStart:1, rangeEnd:3, selA:1, selB:3, key:KEY_BACKSPACE },
+      expect:{ value:'ADE', start:1, end:1, text:'' } },
+    { name:'delete subset inside range (contract end)',
+      init:{ value:'ABCDE', rangeStart:1, rangeEnd:4, selA:2, selB:3, key:KEY_BACKSPACE },
+      expect:{ value:'ABDE', start:1, end:3, text:'BD' } },
+  ].forEach(tc => {
+    promise_test(async t => {
+      const element = setup(control, tc.init.value);
+      const range = makeRange(element, tc.init.rangeStart, tc.init.rangeEnd);
+      element.setSelectionRange(tc.init.selA, tc.init.selB);
+      await typeKeys(element, tc.init.key);
+      assert_equals(element.value, tc.expect.value, 'post-delete value');
+      assert_equals(range.startOffset, tc.expect.start, 'start after delete');
+      assert_equals(range.endOffset, tc.expect.end, 'end after delete');
+      assert_equals(range.toString(), tc.expect.text, 'text after delete');
+      if (tc.expect.start === tc.expect.end) {
+        assert_true(range.collapsed, 'range collapsed');
+      }
+    }, `Selection deletion: ${tc.name} (${control}).`);
+  });
+
+  promise_test(async t => {
+    const element = setup(control, 'ABCDE');
+    const range = makeRange(element, 2, 4);
+    element.setSelectionRange(1, 1);
+    await typeKeys(element, KEY_DELETE);
+    assert_equals(element.value, 'ACDE');
+    assert_equals(range.startOffset, 1);
+    assert_equals(range.endOffset, 3);
+    assert_equals(range.toString(), 'CD');
+  }, `Boundary forward delete shifts range left (${control}).`);
+
+});
+</script>

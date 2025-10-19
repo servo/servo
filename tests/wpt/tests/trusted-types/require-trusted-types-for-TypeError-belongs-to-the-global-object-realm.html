@@ -13,7 +13,8 @@
   promise_test(async t => {
     const iframe = document.createElement("iframe");
     const passThroughPolicy =
-          trustedTypes.createPolicy("passThrough", { createHTML: s => s });
+          trustedTypes.createPolicy("passThrough", { createHTML: s => s,
+                                                     createScript: s => s });
     iframe.srcdoc = passThroughPolicy.createHTML("<!DOCTYPE html><div></div>");
     await new Promise(resolve => {
       iframe.addEventListener("load", resolve);
@@ -29,7 +30,8 @@
     // realm.
     // Discussion at: https://github.com/web-platform-tests/wpt/issues/45405
     assert_throws_js(
-          divAdoptedFromIframe.ownerDocument.defaultView.TypeError,
+          divAdoptedFromIframe.constructor.constructor(
+              passThroughPolicy.createScript("return TypeError"))(),
           _ => divAdoptedFromIframe.innerHTML = 'unsafe');
   }, "Setting innerHTML on a node adopted from a subframe.");
 </script>

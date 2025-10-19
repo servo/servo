@@ -1017,8 +1017,6 @@
 
     const answer = await pc2.createAnswer();
     trackEvents = await setRemoteDescriptionReturnTrackEvents(pc1, answer);
-    // Spec language doesn't say anything about checking whether the transceiver
-    // is stopped here.
     hasProps(trackEvents,
       [
         {

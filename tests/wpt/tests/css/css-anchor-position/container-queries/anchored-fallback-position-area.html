@@ -30,6 +30,7 @@
     @container anchored(fallback: block-end span-all) { --block-end-span-all: yes; }
     @container anchored(fallback: self-block-end) { --self-block-end: yes; }
     @container anchored(fallback: span-all self-block-end) { --span-all-self-block-end: yes; }
+    @container anchored(fallback: self-y-end) { --self-y-end: yes; }
   }
 </style>
 <div id="anchor"></div>
@@ -45,5 +46,6 @@
     assert_equals(style.getPropertyValue("--block-end-span-all"), "yes");
     assert_equals(style.getPropertyValue("--self-block-end"), "yes");
     assert_equals(style.getPropertyValue("--span-all-self-block-end"), "yes");
+    assert_equals(style.getPropertyValue("--self-y-end"), "yes");
   }, "@container anchored(fallback) with <position-area> fallback applied");
 </script>

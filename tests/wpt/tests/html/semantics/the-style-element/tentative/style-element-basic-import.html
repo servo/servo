@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<meta name="timeout" content="long" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#the-style-element" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/ShadowDOM/explainer.md" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style type="module" specifier="foo">
+    #test {color:blue}
+</style>
+
+<div id="test">Test content</div>
+
+<script type="module">
+  import sheet from "foo" with { type: "css"};
+
+  test(function (t) {
+    assert_equals(
+      sheet.cssRules.length,
+      1,
+      "Declaratively defined rules were imported imperatively.",
+    );
+
+    document.adoptedStyleSheets = [sheet];
+    const test_element = document.getElementById("test");
+    assert_equals(getComputedStyle(test_element)
+              .color, "rgb(0, 0, 255)",
+              "Declarative styles were applied.");
+
+  }, "CSS Modules can be defined declaratively.");
+</script>
+

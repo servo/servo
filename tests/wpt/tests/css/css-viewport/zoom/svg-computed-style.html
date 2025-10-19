@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-viewport/#zoom-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<svg id="svg">
+  <rect id="target" width="200" height="100" x="10" y="10" rx="20" ry="20" fill="blue" />
+</svg>
+
+<script>
+  const target = document.getElementById("target");
+  const properties = {
+    "border-spacing": {
+      "value": "10px 20px",
+      "otherValues": ["1px", "1px 2px"]
+    },
+    "text-underline-offset": {
+      "value": "2px",
+      "otherValues": ["4px"]
+    },
+    "-webkit-text-stroke-width": {
+      "value": "2px",
+      "otherValues": ["4px"]
+    }
+  };
+
+  for (const [property, {value, otherValues}] of Object.entries(properties)) {
+    svg.style[property] = value;
+    for (const otherValue of otherValues) {
+      test_computed_value(property, otherValue, otherValue, "no zoom");
+    }
+    test_computed_value(property, "inherit", value, "no zoom");
+
+    target.style.zoom = 2;
+
+    for (const otherValue of otherValues) {
+      test_computed_value(property, otherValue, otherValue, "zoom: 2");
+    }
+    test_computed_value(property, "inherit", value, "zoom: 2");
+    svg.style.removeProperty(property);
+  }
+</script>
+</body>
+</html>

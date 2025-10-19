@@ -2289,11 +2289,6 @@
     ctx.fillRect(0, 0, 100, 50);
     @assert pixel 50,25 == 0,0,0,128;
 
-    ctx.fillStyle = new CSSHSL(CSS.deg(0), 1, 1).toRGB();
-    @assert ctx.fillStyle === '#ffffff';
-    ctx.fillRect(0, 0, 100, 50);
-    @assert pixel 50,25 == 255,255,255,255;
-
     color.alpha = 1;
     color.g = 1;
     ctx.fillStyle = color;
@@ -2318,11 +2313,6 @@
     @assert ctx.fillStyle === '#00ffff';
     ctx.fillRect(0, 0, 100, 50);
     @assert pixel 50,25 == 0,255,255,255;
-
-    ctx.fillStyle = new CSSRGB(1, 0, 1).toHSL();
-    @assert ctx.fillStyle === '#ff00ff';
-    ctx.fillRect(0, 0, 100, 50);
-    @assert pixel 50,25 == 255,0,255,255;
 
     color.h = CSS.deg(120);
     color.s = 1;

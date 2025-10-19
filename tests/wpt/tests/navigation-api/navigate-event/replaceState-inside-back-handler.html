@@ -9,7 +9,7 @@ promise_test(async t => {
   await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
 
   await navigation.navigate("#push").finished;
-  navigation.onnavigate = () => history.replaceState(null, "", "#");
+  navigation.addEventListener("navigate", () => history.replaceState(null, "", "#"), {once: true});
   await assertBothRejectDOM(t, navigation.back(), "AbortError");
 }, "replaceState inside a navigate event for navigation.back()");
 </script>

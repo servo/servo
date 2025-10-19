@@ -6,11 +6,11 @@
 <script>
 promise_test(async t => {
   // Open a cross-origin window.
-  let w = window.open(get_host_info().HTTP_REMOTE_ORIGIN + "/navigation-api/navigate-event/resources/opener-postMessage-onload.html");
+  let w = window.open(get_host_info().HTTP_REMOTE_ORIGIN + "/navigation-api/navigate-event/resources/opener-postMessage-onpageshow.html");
   await new Promise(resolve => window.onmessage = resolve);
 
   // Navigate the opened window to this origin.
-  w.location = get_host_info().ORIGIN + "/navigation-api/navigate-event/resources/opener-postMessage-onload.html";
+  w.location = get_host_info().ORIGIN + "/navigation-api/navigate-event/resources/opener-postMessage-onpageshow.html";
   await new Promise(resolve => window.onmessage = resolve);
   assert_equals(w.navigation.entries().length, 1);
   assert_equals(w.navigation.currentEntry.index, 0);

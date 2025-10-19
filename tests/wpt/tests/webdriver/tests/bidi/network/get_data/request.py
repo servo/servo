@@ -28,6 +28,26 @@ async def test_request_base64_file(
     assert isinstance(data["value"], str)
 
 
+async def test_request_data_scheme_text(
+    bidi_session, url, setup_collected_response,
+):
+    [request, _] = await setup_collected_response(fetch_url="data:text/plain,abcdefgh")
+    data = await bidi_session.network.get_data(request=request, data_type="response")
+
+    assert data["type"] == "string"
+    assert data["value"] == "abcdefgh"
+
+
+async def test_request_data_scheme_image(
+    bidi_session, url, setup_collected_response,
+):
+    [request, _] = await setup_collected_response(fetch_url="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==")
+    data = await bidi_session.network.get_data(request=request, data_type="response")
+
+    assert data["type"] == "base64"
+    assert data["value"] == "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+
+
 async def test_request_empty_response(
     bidi_session, inline, setup_collected_response,
 ):

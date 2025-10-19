@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#the-style-element" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/ShadowDOM/explainer.md" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<meta http-equiv="Content-Security-Policy" content="style-src 'none';">
+
+<script>
+  async_test(function(t1) {
+    document.documentElement.addEventListener("securitypolicyviolation",
+      t1.done());
+  }, "securitypolicyviolation events should be fired for declarative style violations.");
+
+  const t2 = async_test("Test error event fires on inline style");
+</script>
+
+<style type="module" specifier="foo" onerror="t2.done();">
+    #test {color:blue}
+</style>
+
+</head>
+<body>
+
+<div id="test">Test content</div>
+
+<script type="module">
+  test(function (t) {
+    const test_element = document.getElementById("test");
+    assert_equals(getComputedStyle(test_element)
+              .color, "rgb(0, 0, 0)",
+              "Declarative styles were blocked via CSP.");
+
+  }, "style-src CSP can block Declarative CSS Modules.");
+</script>
+</body>
+</html>

@@ -212,6 +212,169 @@ test(t => {
                        { name: "class", namespace: null });
 }, "Test removeAttribute-per-element sets (i.e. overwrites).");
 
+// Tests for valid/invalid config parameter combinations.
+// 1. The config has either an elements or a removeElements key, but not both.
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new Sanitizer({ elements: [], removeElements: [] });
+  });
+}, "Both elements and removeElements should not be allowed.");
+
+// 2. The config has either an attributes or a removeAttributes key, but not both.
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new Sanitizer({ attributes: [], removeAttributes: [] });
+  });
+}, "Both attributes and removeAttributes should not be allowed.");
+
+// 3. Assert: All SanitizerElementNamespaceWithAttributes, SanitizerElementNamespace, and SanitizerAttributeNamespace items in config are canonical, meaning they have been run through canonicalize a sanitizer element or canonicalize a sanitizer attribute, as appropriate.
+// This is tested in the sanitizer-config test file.
+
+// 4. None of config[elements], config[removeElements], config[replaceWithChildrenElements], config[attributes], or config[removeAttributes], if they exist, has duplicates.
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new Sanitizer({ elements: ["div", { name: "div" }] });
+  });
+}, "config[elements] should not allow duplicates");
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new Sanitizer({ removeElements: ["div", { name: "div" }] });
+  });
+}, "config[removeElements] should not allow duplicates");
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new Sanitizer({ replaceWithChildrenElements: ["div", { name: "div" }] });
+  });
+}, "config[replaceWithChildrenElements] should not allow duplicates");
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new Sanitizer({ attributes: ["title", { name: "title" }] });
+  });
+}, "config[attributes] should not allow duplicates");
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new Sanitizer({ removeAttributes: ["title", { name: "title" }] });
+  });
+}, "config[removeAttributes] should not allow duplicates");
+
+// 5. If both config[elements] and config[replaceWithChildrenElements] exist, then the intersection of config[elements] and config[replaceWithChildrenElements] is empty.
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new Sanitizer({
+      elements: ["div"],
+      replaceWithChildrenElements: ["div"],
+    });
+  });
+}, "config[elements] and config[replaceWithChildrenElements] should not intersect");
+
+// 6. If both config[removeElements] and config[replaceWithChildrenElements] exist, then the intersection of config[removeElements] and config[replaceWithChildrenElements] is empty.
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new Sanitizer({
+      removeElements: ["div"],
+      replaceWithChildrenElements: ["div"],
+    });
+  });
+}, "config[removeElements] and config[replaceWithChildrenElements] should not intersect");
+
+// If config[attributes] exists:
+// Neither element[attributes] nor element[removeAttributes], if they exist, has duplicates.
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new Sanitizer({
+      attributes: [],
+      elements: [{ name: "div", attributes: ["title", { name: "title" }] }],
+    });
+  });
+}, "Duplicates in element[attributes] should not be allowed.");
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new Sanitizer({
+      removeAttributes: [],
+      elements: [
+        { name: "div", removeAttributes: ["title", { name: "title" }] },
+      ],
+    });
+  });
+}, "Duplicates in element[removeAttributes] should not be allowed.");
+
+// The intersection of config[attributes] and element[attributes] with default « » is empty.
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new Sanitizer({
+      attributes: ["title"],
+      elements: [{ name: "div", attributes: ["title"] }],
+    });
+  });
+}, "config[attributes] and element[attributes] should not intersect.");
+
+// element[removeAttributes] with default « » is a subset of config[attributes].
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new Sanitizer({
+      attributes: ["class"],
+      elements: [{ name: "div", removeAttributes: ["title"] }],
+    });
+  });
+}, "element[removeAttributes] should be a subset of config[attributes]");
+
+// If dataAttributes exists and dataAttributes is true:
+// element[attributes] does not contain a custom data attribute.
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new Sanitizer({
+      attributes: [],
+      dataAttributes: true,
+      elements: [{ name: "div", attributes: ["data-foo"] }],
+    });
+  });
+}, "Per-element allow list with a data attribute must not co-exist with config[dataAttributes] set to true.");
+
+// If dataAttributes is true:
+// config[attributes] does not contain a custom data attribute.
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new Sanitizer({
+      attributes: [],
+      dataAttributes: true,
+      attributes: ["data-bar"],
+    });
+  });
+}, "Global attribute allow-list with a data attribute must not co-exist with config[dataAttributes] set to true.");
+
+// If config[removeAttributes] exists:
+// The intersection of config[removeAttributes] and element[attributes] with default « » is empty.
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new Sanitizer({
+      removeAttributes: ["class"],
+      elements: [{ name: "div", attributes: ["class"] }],
+    });
+  });
+}, "config[removeAttributes] and element[attributes] should not intersect.");
+
+// The intersection of config[removeAttributes] and element[removeAttributes] with default « » is empty.
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new Sanitizer({
+      removeAttributes: ["class"],
+      elements: [{ name: "div", removeAttributes: ["class"] }],
+    });
+  });
+}, "config[removeAttributes] and element[removeAttributes] should not intersect.");
+
+// config[dataAttributes] is an extension of the config[attributes] allow-list. It isn't compatible work with a block-list approach.
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new Sanitizer({ removeAttributes: [], dataAttributes: true });
+  });
+}, "Can not use config[dataAttributes] and config[attributes] together.");
+
 </script>
 </body>
 </html>

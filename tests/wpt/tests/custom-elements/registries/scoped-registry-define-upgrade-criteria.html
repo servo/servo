@@ -32,13 +32,18 @@ function nextCustomElementName() {
   return `test-element-${++definitionCount}`;
 }
 
+function insertNewElementIntoShadow(shadow, name) {
+  shadow.innerHTML = `<${name}></${name}>`;
+  return shadow.querySelector(name);
+}
+
 test(t => {
   const name = nextCustomElementName();
   document.body.appendChild(document.createElement(name));
 
   const registry = new CustomElementRegistry;
   const shadow = attachShadowForTest(t, registry);
-  shadow.appendChild(document.createElement(name));
+  insertNewElementIntoShadow(shadow, name);
 
   class TestElement extends HTMLElement {};
   customElements.define(name, TestElement);
@@ -68,10 +73,10 @@ test(t => {
 
   const registry = new CustomElementRegistry;
   const shadow1 = attachShadowForTest(t, registry);
-  shadow1.appendChild(document.createElement(name));
+  insertNewElementIntoShadow(shadow1, name);
 
   const shadow2 = attachShadowForTest(t, registry);
-  shadow2.appendChild(document.createElement(name));
+  insertNewElementIntoShadow(shadow2, name);
 
   class TestElement extends HTMLElement {};
   registry.define(name, TestElement);
@@ -86,7 +91,7 @@ test(t => {
 
   const registry = new CustomElementRegistry;
   const shadow = attachShadowForTest(t, registry);
-  shadow.appendChild(document.createElement(name));
+  insertNewElementIntoShadow(shadow, name);
 
   class TestElement extends HTMLElement {};
   registry.define(name, TestElement);
@@ -100,13 +105,13 @@ test(t => {
 
   const registry = new CustomElementRegistry;
   const shadow1 = attachShadowForTest(t, registry);
-  shadow1.appendChild(document.createElement(name));
+  insertNewElementIntoShadow(shadow1, name);
 
   const shadow2 = attachShadowForTest(t, new CustomElementRegistry);
-  shadow2.appendChild(document.createElement(name));
+  insertNewElementIntoShadow(shadow2, name);
 
   const shadow3 = attachShadowForTest(t);
-  shadow3.appendChild(document.createElement(name));
+  insertNewElementIntoShadow(shadow3, name);
 
   class TestElement extends HTMLElement {};
   registry.define(name, TestElement);
@@ -127,15 +132,15 @@ test(t => {
   class TestElement extends HTMLElement {};
   customElements.define(name, TestElement);
 
-  assert_false(node instanceof TestElement);
-}, 'Adding definition to global registry should not upgrade nodes no longer using the registry');
+  assert_true(node instanceof TestElement);
+}, 'Adding definition to global registry should upgrade nodes even after the node is moved into a separate shadow tree.');
 
 test(t => {
   const name = nextCustomElementName();
 
   const registry = new CustomElementRegistry;
   const shadow1 = attachShadowForTest(t, registry);
-  const node = shadow1.appendChild(document.createElement(name));
+  const node = insertNewElementIntoShadow(shadow1, name);
 
   const shadow2 = attachShadowForTest(t, new CustomElementRegistry);
   shadow2.appendChild(node);
@@ -143,20 +148,20 @@ test(t => {
   class TestElement extends HTMLElement {};
   registry.define(name, TestElement);
 
-  assert_false(node instanceof TestElement);
-}, 'Adding definition to scoped registry should not upgrade nodes no longer using the registry');
+  assert_true(node instanceof TestElement);
+}, 'Adding definition to scoped registry should upgrade nodes even after the node is moved to a separate shadow tree using a different registry.');
 
 test(t => {
   const name = nextCustomElementName();
 
   const registry = new CustomElementRegistry;
   const shadow1 = attachShadowForTest(t, registry);
-  const node1 = shadow1.appendChild(document.createElement(name));
+  const node1 = insertNewElementIntoShadow(shadow1, name);
 
   const iframe = createIFrameForTest(t);
   const host2 = iframe.contentDocument.createElement('div');
   const shadow2 = host2.attachShadow({mode: 'open', customElementRegistry: registry});
-  const node2 = shadow2.appendChild(iframe.contentDocument.createElement(name));
+  const node2 = insertNewElementIntoShadow(shadow2, name);
   iframe.contentDocument.body.appendChild(host2);
 
   class TestElement extends HTMLElement {};
@@ -176,7 +181,7 @@ test(t => {
 
   const host = newWindow.document.createElement('div');
   const shadow = host.attachShadow({mode: 'open', customElementRegistry: registry});
-  const node = shadow.appendChild(newWindow.document.createElement(name));
+  const node = insertNewElementIntoShadow(shadow, name);
   newWindow.document.body.appendChild(host);
 
   class TestElement extends HTMLElement {};
@@ -190,7 +195,7 @@ test(t => {
 
   const registry = new CustomElementRegistry;
   const shadow = attachShadowForTest(t, registry);
-  const node = shadow.appendChild(document.createElement(name));
+  const node = insertNewElementIntoShadow(shadow, name);
   shadow.host.remove();
 
   class TestElement extends HTMLElement {};
@@ -206,7 +211,7 @@ test(t => {
   const doc = document.implementation.createHTMLDocument();
   const host = doc.createElement('div');
   const shadow = host.attachShadow({mode: 'open', registry});
-  const node = shadow.appendChild(doc.createElement(name));
+  const node = insertNewElementIntoShadow(shadow, name);
   doc.body.appendChild(host);
 
   class TestElement extends HTMLElement {};
@@ -222,7 +227,7 @@ test(t => {
   const registry = new CustomElementRegistry;
   const host = iframe.contentDocument.createElement('div');
   const shadow = host.attachShadow({mode: 'open', registry});
-  const node = shadow.appendChild(iframe.contentDocument.createElement(name));
+  const node = insertNewElementIntoShadow(shadow, name);
   iframe.contentDocument.body.appendChild(host);
 
   iframe.remove();
@@ -241,7 +246,7 @@ promise_test(async t => {
 
   const host = newWindow.document.createElement('div');
   const shadow = host.attachShadow({mode: 'open', registry: window.customElements});
-  const node = shadow.appendChild(newWindow.document.createElement(name));
+  const node = insertNewElementIntoShadow(shadow, name);
   newWindow.document.body.appendChild(host);
 
   newWindow.close();

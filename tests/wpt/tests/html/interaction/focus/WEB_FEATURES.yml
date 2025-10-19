@@ -2,3 +2,6 @@ features:
 - name: tabindex
   files:
   - tabindex-focus-flag.html
+- name: input-file
+  files:
+  - focus-file-input.html

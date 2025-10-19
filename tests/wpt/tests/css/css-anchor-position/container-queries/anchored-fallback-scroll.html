@@ -14,7 +14,7 @@
     height: 100px;
   }
   #anchored {
-    position: absolute;
+    position: fixed;
     position-anchor: --a;
     position-area: top;
     position-try-fallbacks: flip-block;
@@ -37,7 +37,6 @@
 <script>
   promise_test(async t => {
     await waitForAnimationFrames(2);
-    assert_equals(anchored.offsetTop, 0);
     assert_equals(document.documentElement.scrollTop, 0);
     assert_equals(getComputedStyle(t1).getPropertyValue("--fallback"), "no");
   }, "@container anchored() without applied fallback at initial scroll position");
@@ -45,7 +44,6 @@
   promise_test(async t => {
     document.documentElement.scrollTop = 100;
     await waitForAnimationFrames(2);
-    assert_equals(anchored.offsetTop, 200);
     assert_equals(getComputedStyle(t1).getPropertyValue("--fallback"), "yes");
   }, "@container anchored() applies fallback after scrolling down");
 </script>

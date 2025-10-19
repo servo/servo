@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>Adding a missed cue during playback should not fire events</title>
+<script src="/common/media.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+</video>
+<script>
+async_test(t => {
+    const video = document.querySelector("video");
+    const track = video.addTextTrack("subtitles");
+    let cueAdded = false;
+
+    video.ontimeupdate = t.step_func(() => {
+        // After 0.3s, add a cue that is completely before currentTime.
+        if (!cueAdded && video.currentTime > 0.3) {
+            cueAdded = true;
+            let missedCue = new VTTCue(0.1, 0.3, "Test");
+            missedCue.onenter = t.unreached_func("onenter for missed cue should not fire");
+            missedCue.onexit = t.unreached_func("onexit for missed cue should not fire");
+            track.addCue(missedCue);
+        }
+
+        // We should play past 1s without the events firing.
+        if (video.currentTime > 1.0) {
+            video.ontimeupdate = null;
+            t.done();
+        }
+    });
+
+    video.src = getVideoURI("/media/test");
+    video.play();
+});
+</script>

@@ -68,9 +68,9 @@ jobs:
           REV: ${{ inputs.test-rev }}
         run: |-
           git switch --force --progress -d "$REV"
-      - name: Set display color profile
+      - name: Reconfigure the display(s)
         run: |-
-          ./wpt macos-color-profile
+          ./wpt macos-display-configuration
       - name: Set system caption style to ""
         run: |-
           defaults write com.apple.mediaaccessibility MACaptionActiveProfile -string ""

@@ -15,7 +15,7 @@
 
 from io import BytesIO
 
-from .node import (Node, AtomNode, BinaryExpressionNode, BinaryOperatorNode,
+from .node import (Node, AtomNode, AtomExprNode, BinaryExpressionNode, BinaryOperatorNode,
                    ConditionalNode, DataNode, IndexNode, KeyValueNode, ListNode,
                    NumberNode, StringNode, UnaryExpressionNode,
                    UnaryOperatorNode, ValueNode, VariableNode)
@@ -45,7 +45,8 @@ operators = ["==", "!=", "not", "and", "or"]
 
 atoms = {"True": True,
          "False": False,
-         "Reset": object()}
+         "Reset": object(),
+         "Null": None}
 
 def decode(s):
     assert isinstance(s, str)
@@ -326,9 +327,7 @@ class Tokenizer:
             yield (token_types.string, self.consume_string(quote_char))
             self.state = self.line_end_state
         elif c == "@":
-            self.consume()
-            for _, value in self.value_inner_state():
-                yield token_types.atom, value
+            self.state = self.value_atom_state
         elif c == "[":
             self.state = self.list_start_state
         else:
@@ -433,6 +432,8 @@ class Tokenizer:
             self.state = self.operator_state
         elif c in digits:
             self.state = self.digit_state
+        elif c == "@":
+            self.state = self.expr_atom_state
         else:
             self.state = self.ident_state
 
@@ -498,6 +499,17 @@ class Tokenizer:
                 self.consume()
         self.state = self.expr_state
         yield (token_types.ident, self.line[index_0:self.index])
+
+    def value_atom_state(self):
+        self.consume()
+        _, value = next(self.ident_state())
+        self.state = self.line_end_state
+        yield (token_types.atom, value)
+
+    def expr_atom_state(self):
+        self.consume()
+        _, value = next(self.ident_state())
+        yield (token_types.atom, value)
 
     def consume_escape(self):
         assert self.char() == "\\"
@@ -755,7 +767,7 @@ class Parser:
         elif self.token[0] == token_types.ident and self.token[1] in unary_operators:
             self.expr_unary_op()
             self.expr_operand()
-        elif self.token[0] in [token_types.string, token_types.ident]:
+        elif self.token[0] in [token_types.string, token_types.ident, token_types.atom]:
             self.expr_value()
         elif self.token[0] == token_types.number:
             self.expr_number()
@@ -778,8 +790,14 @@ class Parser:
 
     def expr_value(self):
         node_type = {token_types.string: StringNode,
-                     token_types.ident: VariableNode}[self.token[0]]
-        self.expr_builder.push_operand(node_type(self.token[1]))
+                     token_types.ident: VariableNode,
+                     token_types.atom: AtomExprNode}[self.token[0]]
+        if self.token[0] == token_types.atom:
+            value = atoms[self.token[1]]
+        else:
+            value = self.token[1]
+
+        self.expr_builder.push_operand(node_type(value))
         self.consume()
         if self.token == (token_types.paren, "["):
             self.consume()

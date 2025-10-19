@@ -56,3 +56,38 @@ def test_unconditional_default_promotion():
                 TIMEOUT
             """).encode())
     assert manifest.node == wptmanifest.parse(contents_after)
+
+
+def test_none_value():
+    contents_before = io.BytesIO(
+        textwrap.dedent(
+            """\
+            [b.html]
+            """).encode())
+    manifest = manifestupdate.compile(
+        contents_before,
+        test_path='a/b.html',
+        url_base='/',
+        run_info_properties=(['display'], {}),
+        update_intermittent=True,
+        remove_intermittent=False)
+    test = manifest.get_test('/a/b.html')
+    test.set_result(
+        metadata.RunInfo({'display': "x11"}),
+        metadata.Result('PASS', [], 'PASS'))
+    test.set_result(
+        metadata.RunInfo({'display': "wayland"}),
+        metadata.Result('PASS', [], 'PASS'))
+    test.set_result(
+        metadata.RunInfo({'display': None}),
+        metadata.Result('FAIL', [], 'PASS'))
+    test.update(full_update=True, disable_intermittent=False)
+
+    contents_after = io.BytesIO(
+        textwrap.dedent(
+            """\
+            [b.html]
+              expected:
+                if display == @Null: FAIL
+            """).encode())
+    assert manifest.node == wptmanifest.parse(contents_after)

@@ -13,13 +13,14 @@
     "help": "Output a hosts file to stdout",
     "virtualenv": false
   },
-  "macos-color-profile": {
-    "path": "macos_color_profile.py",
+  "macos-display-configuration": {
+    "path": "macos_display_configuration.py",
     "script": "run",
-    "help": "Change the macOS color profile to sRGB",
+    "parser": "create_parser",
+    "help": "Configure macOS displays (scale, color profile)",
     "virtualenv": true,
     "requirements": [
-      "requirements_macos_color_profile.txt"
+      "requirements_macos_display_configuration.txt"
     ]
   },
   "regen-certs": {

@@ -124,8 +124,6 @@ jobs:
   - task: UsePythonVersion@0
     inputs:
       versionSpec: '3.8'
-  - template: tools/ci/azure/install_chrome.yml
-  - template: tools/ci/azure/install_firefox.yml
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
   - template: tools/ci/azure/tox_pytest.yml
@@ -144,8 +142,6 @@ jobs:
   - task: UsePythonVersion@0
     inputs:
       versionSpec: '3.13'
-  - template: tools/ci/azure/install_chrome.yml
-  - template: tools/ci/azure/install_firefox.yml
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
   - template: tools/ci/azure/tox_pytest.yml
@@ -234,10 +230,6 @@ jobs:
   - task: UsePythonVersion@0
     inputs:
       versionSpec: '3.8'
-  # currently just using the outdated Chrome/Firefox on the VM rather than
-  # figuring out how to install Chrome Dev channel on Windows
-  # - template: tools/ci/azure/install_chrome.yml
-  # - template: tools/ci/azure/install_firefox.yml
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
   - template: tools/ci/azure/tox_pytest.yml
@@ -256,10 +248,6 @@ jobs:
   - task: UsePythonVersion@0
     inputs:
       versionSpec: '3.13'
-  # currently just using the outdated Chrome/Firefox on the VM rather than
-  # figuring out how to install Chrome Dev channel on Windows
-  # - template: tools/ci/azure/install_chrome.yml
-  # - template: tools/ci/azure/install_firefox.yml
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
   - template: tools/ci/azure/tox_pytest.yml

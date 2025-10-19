@@ -5,3 +5,8 @@ features:
 - name: object-view-box
   files:
   - object-view-box-*
+- name: crisp-edges
+  files:
+  - object-fit-*-png*
+  - "!object-fit-containcontainintrinsicsize-png-*"
+  - "!object-fit-containsize-png-*"

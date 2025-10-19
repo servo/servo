@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode: Emoji with VS16 should still be monochrome</title>
+<link rel="author" title="Sejal Anand" href="sejalanand@microsoft.com">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-4/#font-variant-emoji-prop">
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<link rel="match" href="forced-colors-mode-59-ref.html">
+<meta name="assert" content="In forced-colors mode, emoji with VS16 (emoji presentation selector) should be rendered in monochrome, overriding the variation selector.">
+
+<style>
+  @media (forced-colors: active) {
+    .normal {
+      font-variant-emoji: normal;
+    }
+
+    .unicode {
+      font-variant-emoji: unicode;
+    }
+
+    .text {
+      font-variant-emoji: text;
+    }
+  }
+</style>
+
+<p>All emoji below are followed by VS16 (emoji presentation). They should render as monochrome (text-style) if forced-colors mode is active.</p>
+<div class="normal">&#x1F600;&#xFE0F;</div>
+<div class="unicode">&#x1F600;&#xFE0F;</div>
+<div class="text">&#x1F600;&#xFE0F;</div>

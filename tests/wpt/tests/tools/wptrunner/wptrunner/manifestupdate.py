@@ -7,7 +7,7 @@ from math import ceil
 from typing import Any, Callable, ClassVar, Dict, List, Optional
 
 from .wptmanifest import serialize
-from .wptmanifest.node import (DataNode, ConditionalNode, BinaryExpressionNode,
+from .wptmanifest.node import (AtomExprNode, DataNode, ConditionalNode, BinaryExpressionNode,
                               BinaryOperatorNode, NumberNode, StringNode, VariableNode,
                               ValueNode, UnaryExpressionNode, UnaryOperatorNode,
                               ListNode)
@@ -919,6 +919,7 @@ def make_expr(prop_set, rhs):
                         UnaryOperatorNode("not"),
                         VariableNode(prop)
                     ))
+
     if len(expressions) > 1:
         prev = expressions[-1]
         for curr in reversed(expressions[:-1]):
@@ -938,7 +939,9 @@ def make_expr(prop_set, rhs):
 
 
 def make_node(value):
-    if isinstance(value, (int, float,)):
+    if value is None:
+        node = AtomExprNode(None)
+    elif isinstance(value, (int, float,)):
         node = NumberNode(value)
     elif isinstance(value, str):
         node = StringNode(str(value))

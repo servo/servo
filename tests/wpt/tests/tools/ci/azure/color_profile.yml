@@ -1,5 +1,5 @@
 steps:
 - script: |
-    ./wpt macos-color-profile
-  displayName: 'Set display color profile'
+    ./wpt macos-display-configuration
+  displayName: 'Reconfigure the display(s)'
   condition: and(succeeded(), eq(variables['Agent.OS'], 'Darwin'))

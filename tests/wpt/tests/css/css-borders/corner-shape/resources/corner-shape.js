@@ -100,8 +100,8 @@ function add_corner(ctx, ax, ay, bx, by, curvature) {
 function render_rect_with_corner_shapes(style, ctx, width, height) {
   const corner_params = resolve_corner_params(style, width, height);
 
-  function draw_outer_corner(corner) {
-    const params = corner_params[corner];
+  function draw_outer_corner(corner, spread) {
+    const params = (spread ? resolve_corner_params(style, width, height, spread) : corner_params)[corner];
     add_corner(ctx, ...params.outer_rect, params.shape);
   }
 
@@ -109,12 +109,12 @@ function render_rect_with_corner_shapes(style, ctx, width, height) {
     add_corner(ctx, ...corner_params[corner].inner_rect, corner_params[corner].shape);
   }
 
-  function draw_outer_path() {
+  function draw_outer_path(spread) {
     ctx.beginPath();
-    draw_outer_corner("top-right");
-    draw_outer_corner("bottom-right");
-    draw_outer_corner("bottom-left");
-    draw_outer_corner("top-left");
+    draw_outer_corner("top-right", spread);
+    draw_outer_corner("bottom-right", spread);
+    draw_outer_corner("bottom-left", spread);
+    draw_outer_corner("top-left", spread);
     ctx.closePath();
     ctx.fill("nonzero");
   }
@@ -122,9 +122,8 @@ function render_rect_with_corner_shapes(style, ctx, width, height) {
   for (const {spread, offset, color} of (style.shadow || [])) {
     ctx.save();
     ctx.translate(offset[0] - spread, offset[1] - spread);
-    ctx.scale((width + spread * 2) / width, (height + spread * 2) / height);
     ctx.fillStyle = color;
-    draw_outer_path();
+    draw_outer_path(spread);
     ctx.restore();
   }
 
@@ -136,7 +135,7 @@ function render_rect_with_corner_shapes(style, ctx, width, height) {
   ];
 
   ctx.fillStyle = "black";
-  draw_outer_path();
+  draw_outer_path(0);
 
   ctx.save();
   ctx.beginPath();

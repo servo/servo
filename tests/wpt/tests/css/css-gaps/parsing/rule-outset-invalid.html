@@ -12,10 +12,13 @@
 <body>
   <div id="target"></div>
   <script>
-    test_invalid_value('column-rule-outset', 'auto');
-    test_invalid_value('column-rule-outset', 'none');
-    test_invalid_value('row-rule-outset', '10');
-    test_invalid_value('row-rule-outset', '10px 20px');
+    const properties = ['column-rule-outset', 'row-rule-outset', 'rule-outset'];
+    for (const property of properties) {
+      test_invalid_value(property, 'auto');
+      test_invalid_value(property, 'none');
+      test_invalid_value(property, '10');
+      test_invalid_value(property, '10px 20px');
+    }
   </script>
 </body>
 </html>

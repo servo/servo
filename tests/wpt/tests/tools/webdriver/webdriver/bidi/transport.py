@@ -25,12 +25,15 @@ def get_running_loop() -> asyncio.AbstractEventLoop:
 class Transport:
     """Low level message handler for the WebSockets connection"""
     def __init__(self, url: str,
-                 msg_handler: Callable[[Mapping[str, Any]], Coroutine[Any, Any, None]],
-                 loop: Optional[asyncio.AbstractEventLoop] = None):
+            msg_handler: Callable[
+                [Mapping[str, Any]], Coroutine[Any, Any, None]],
+            loop: Optional[asyncio.AbstractEventLoop] = None,
+            on_closed: Optional[Callable[[], None]] = None):
         self.url = url
         self.connection: Optional[websockets.WebSocketClientProtocol] = None
         self.msg_handler = msg_handler
         self.send_buf: List[Mapping[str, Any]] = []
+        self.on_closed = on_closed
 
         if loop is None:
             loop = get_running_loop()
@@ -81,6 +84,8 @@ class Transport:
                 await self.handle(msg)
         except ConnectionClosed:
             logger.debug("connection closed while reading messages")
+            if self.on_closed:
+                self.on_closed()
 
     async def wait_closed(self) -> None:
         if self.connection and not self.connection.closed:

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>View Transition: waitUntil delays the finished promise</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+  view-transition-name: target;
+}
+::view-transition-group(*) {
+  animation-duration: 1ms;
+}
+</style>
+
+<div id=target></div>
+
+<script>
+promise_test(async t => {
+  assert_implements(document.startViewTransition, "View Transitions are not supported");
+  assert_implements(ViewTransition.prototype.waitUntil, "ViewTransition.waitUntil is not available");
+
+  let waitUntilPromiseResolve;
+  const waitUntilPromise = new Promise(resolve => {
+    waitUntilPromiseResolve = resolve;
+  });
+
+  const transition = document.startViewTransition(() => {});
+  transition.waitUntil(waitUntilPromise);
+
+  let finished = false;
+  transition.finished.then(() => {
+    finished = true;
+  });
+
+  // Wait for longer than the animation duration.
+  await new Promise(resolve => t.step_timeout(resolve, 100));
+
+  assert_false(finished, "transition.finished should not resolve before waitUntil promise");
+
+  waitUntilPromiseResolve();
+  await transition.finished;
+
+  assert_true(finished, "transition.finished should resolve after waitUntil promise");
+}, "View transition finished promise is delayed by waitUntil");
+
+promise_test(async t => {
+  assert_implements(document.startViewTransition, "View Transitions are not supported");
+
+  let resolve1, resolve2;
+  const promise1 = new Promise(r => resolve1 = r);
+  const promise2 = new Promise(r => resolve2 = r);
+
+  const transition = document.startViewTransition(() => {});
+  transition.waitUntil(promise1);
+  transition.waitUntil(promise2);
+
+  let finished = false;
+  transition.finished.then(() => finished = true);
+
+  // Wait for longer than the animation duration.
+  await new Promise(resolve => t.step_timeout(resolve, 100));
+  assert_false(finished, "transition.finished should not resolve before first promise");
+
+  resolve1();
+  // Wait a bit to ensure the promise resolution propagates.
+  await new Promise(resolve => t.step_timeout(resolve, 10));
+  assert_false(finished, "transition.finished should not resolve after first promise but before second");
+
+  resolve2();
+  await transition.finished;
+  assert_true(finished, "transition.finished should resolve after both promises");
+}, "View transition finished promise is delayed by multiple waitUntil calls");
+
+promise_test(async t => {
+  assert_implements(document.startViewTransition, "View Transitions are not supported");
+
+  let reject1;
+  const promise1 = new Promise((_, r) => reject1 = r);
+
+  const transition = document.startViewTransition(() => {});
+  transition.waitUntil(promise1);
+
+  let finished = false;
+  transition.finished.then(() => finished = true);
+
+  // Wait for longer than the animation duration.
+  await new Promise(resolve => t.step_timeout(resolve, 100));
+  assert_false(finished, "transition.finished should not resolve before rejected promise");
+
+  reject1(new DOMException("test", "AbortError"));
+  await transition.finished;
+  assert_true(finished, "transition.finished should resolve after rejected promise");
+}, "View transition finished promise is delayed by a rejecting waitUntil promise");
+</script>

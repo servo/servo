@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+#target {
+  width: 100px;
+  height: 100px;
+  background-color: lightblue;
+  will-change: transform;
+}
+@keyframes slideup {
+  0% { transform: translateY(0) }
+  30% { transform: translateY(0) }
+  31% { transform: translateY(-2000px) }
+  100% { transform: translateY(-2000px) }
+}
+</style>
+
+<div id="target"></div>
+
+<script>
+promise_test(t => {
+  return new Promise(async function(resolve, reject) {
+    let entries = [];
+    let target = document.getElementById("target");
+    let observer = new IntersectionObserver(function(changes) {
+      entries = entries.concat(changes);
+      changes.forEach(entry => {
+        if (!entry.isIntersecting) {
+          resolve("Received not-intersecting notification before animationend.");
+        }
+      });
+    });
+    observer.observe(target);
+    await waitForNotification();
+    assert_equals(entries.length, 1);
+    assert_true(entries[0].isIntersecting);
+    target.style.animation = "3s linear slideup";
+    setTimeout(() => {
+      reject("Did not get a not-intersecting notification within 2 seconds.");
+    }, 2000);
+  });
+}, "IntersectionObserver generates notifications when "
+  + "a transform animation changes intersection state");
+</script>

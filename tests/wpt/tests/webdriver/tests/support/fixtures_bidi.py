@@ -28,6 +28,7 @@ from webdriver.bidi.modules.network import (
     NetworkStringValue,
 )
 from webdriver.bidi.modules.script import ContextTarget
+from webdriver.bidi.undefined import UNDEFINED
 from webdriver.error import TimeoutException
 
 
@@ -530,8 +531,8 @@ async def create_user_context(bidi_session):
 
     user_contexts = []
 
-    async def create_user_context(accept_insecure_certs=None, proxy=None,
-            unhandled_prompt_behavior=None):
+    async def create_user_context(accept_insecure_certs=UNDEFINED, proxy=UNDEFINED,
+            unhandled_prompt_behavior=UNDEFINED):
         nonlocal user_contexts
         user_context = await bidi_session.browser.create_user_context(
             accept_insecure_certs=accept_insecure_certs, proxy=proxy,

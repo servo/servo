@@ -1,4 +1,5 @@
 // META: global=window,worker,shadowrealm
+// META: script=resources/formats.js
 
 'use strict';
 
@@ -41,34 +42,16 @@ const badChunks = [
   },
 ];
 
-for (const chunk of badChunks) {
-  promise_test(async t => {
-    const cs = new CompressionStream('gzip');
-    const reader = cs.readable.getReader();
-    const writer = cs.writable.getWriter();
-    const writePromise = writer.write(chunk.value);
-    const readPromise = reader.read();
-    await promise_rejects_js(t, TypeError, writePromise, 'write should reject');
-    await promise_rejects_js(t, TypeError, readPromise, 'read should reject');
-  }, `chunk of type ${chunk.name} should error the stream for gzip`);
-
-  promise_test(async t => {
-    const cs = new CompressionStream('deflate');
-    const reader = cs.readable.getReader();
-    const writer = cs.writable.getWriter();
-    const writePromise = writer.write(chunk.value);
-    const readPromise = reader.read();
-    await promise_rejects_js(t, TypeError, writePromise, 'write should reject');
-    await promise_rejects_js(t, TypeError, readPromise, 'read should reject');
-  }, `chunk of type ${chunk.name} should error the stream for deflate`);
-
-  promise_test(async t => {
-    const cs = new CompressionStream('deflate-raw');
-    const reader = cs.readable.getReader();
-    const writer = cs.writable.getWriter();
-    const writePromise = writer.write(chunk.value);
-    const readPromise = reader.read();
-    await promise_rejects_js(t, TypeError, writePromise, 'write should reject');
-    await promise_rejects_js(t, TypeError, readPromise, 'read should reject');
-  }, `chunk of type ${chunk.name} should error the stream for deflate-raw`);
+for (const format of formats) {
+  for (const chunk of badChunks) {
+    promise_test(async t => {
+      const cs = new CompressionStream(format);
+      const reader = cs.readable.getReader();
+      const writer = cs.writable.getWriter();
+      const writePromise = writer.write(chunk.value);
+      const readPromise = reader.read();
+      await promise_rejects_js(t, TypeError, writePromise, 'write should reject');
+      await promise_rejects_js(t, TypeError, readPromise, 'read should reject');
+    }, `chunk of type ${chunk.name} should error the stream for ${format}`);
+  }
 }

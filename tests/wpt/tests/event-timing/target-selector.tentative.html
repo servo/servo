@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<meta charset=utf-8 />
+<meta name="timeout" content="long">
+<title>Event Timing targetSelector.</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-actions.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=resources/event-timing-test-utils.js></script>
+<div id='div-with-id'>Target with ID</div>
+<div>Target without ID</div>
+<img id='img-with-id-and-src' src='/images/blue.png'>
+<img src='/images/green.png'>
+<script>
+  function computeExpectedTargetSelector(target) {
+    let selector = target.tagName;
+    if (target.id) {
+      selector += '#' + target.id;
+    } else if (target.hasAttribute('src')) {
+      selector += '[src="' + target.getAttribute('src') + '"]';
+    }
+    return selector;
+  }
+
+  function runTest(t, eventType, target) {
+    let entry;
+    const callback = (entryList) => {
+      const entries = entryList.getEntriesByName(eventType);
+      if (entries.length > 0) {
+        entry = entries[0];
+      }
+    };
+    const readyToResolve = () => !!entry;
+    const observerPromise = createPerformanceObserverPromise(['event'], callback, readyToResolve);
+    return interactAndObserve(eventType, target, observerPromise)
+      .then(() => {
+        assert_equals(entry.name, eventType);
+        assert_equals(entry.entryType, 'event');
+        assert_equals(entry.target, target);
+        assert_equals(entry.targetSelector, computeExpectedTargetSelector(entry.target));
+        const matchingElements = document.querySelectorAll(entry.targetSelector);
+        assert_true(Array.from(matchingElements).includes(target));
+      });
+  }
+
+  promise_test(async t => {
+    // Element with tagName and id.
+    return runTest(t, 'click', document.getElementById('div-with-id'));
+  }, "Test with target that has an ID");
+
+  promise_test(async t => {
+    // Element with tagName only.
+    return runTest(t, 'click', document.querySelector('div:not([id])'));
+  }, "Test with simple target (no id)");
+
+  promise_test(async t => {
+    // Element with tagName, id, and src.
+    return runTest(t, 'click', document.getElementById('img-with-id-and-src'));
+  }, "Test with image target with id and src");
+
+  promise_test(async t => {
+    // Element with tagName and src.
+    return runTest(t, 'click', document.querySelector('img:not([id])'));
+  }, "Test with image target with src only");
+
+  promise_test(async t => {
+    let entry;
+    const callback = (entryList) => {
+      const entries = entryList.getEntriesByName('click');
+      if (entries.length > 0) {
+        entry = entries[0];
+      }
+    };
+    const readyToResolve = () => !!entry;
+    const observerPromise = createPerformanceObserverPromise(['event'], callback, readyToResolve);
+    const parent = document.body;
+    const target = document.createElement('button');
+    target.id = 'temp-target';
+    target.textContent = 'Click Me';
+    parent.appendChild(target);
+    await interactAndObserve('click', target, observerPromise);
+    const expectedIdentifier = target.tagName + '#' + target.id;
+    parent.removeChild(target);
+    // The garbage collector might need some time to collect |target|.
+    await new Promise(r => t.step_timeout(r, 0));
+    assert_equals(entry.target, null);
+    assert_equals(entry.targetSelector, expectedIdentifier);
+  }, "Test with disconnected target");
+</script>
+</html>

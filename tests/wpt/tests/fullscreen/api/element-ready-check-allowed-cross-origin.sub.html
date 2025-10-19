@@ -13,7 +13,7 @@
         await new Promise((resolve) => {
             iframe.onload = resolve;
             iframe.src =
-                "http://{{hosts[][]}}:{{ports[http][0]}}/fullscreen/api/resources/attempt-fullscreen.html";
+                "http://{{hosts[alt][]}}:{{ports[http][0]}}/fullscreen/api/resources/attempt-fullscreen.html";
         });
 
         // Activate the child frame.

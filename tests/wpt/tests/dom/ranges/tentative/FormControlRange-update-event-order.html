@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<body></body>
+<script>
+'use strict';
+
+// Verifies that FormControlRange updates are applied after the value mutation
+// but before 'input' event listeners execute. Specifically, offsets remain at
+// their pre-edit positions in 'beforeinput' and reflect the new positions in 'input'.
+
+const controls = ['input', 'textarea'];
+
+function setup(control, value) {
+  document.body.innerHTML = control === 'input' ? '<input type="text">' : '<textarea></textarea>';
+  const element = document.body.firstElementChild;
+  element.value = value;
+  element.focus();
+  return element;
+}
+
+async function typeKeys(element, text) { await test_driver.send_keys(element, text); }
+
+function makeRange(element, start, end) {
+  const range = new FormControlRange();
+  range.setFormControlRange(element, start, end);
+  return range;
+}
+
+controls.forEach(control => {
+  promise_test(async t => {
+    const element = setup(control, 'ABCDE');
+    const range = makeRange(element, 1, 3);
+
+    // Place caret before the range, then insert text.
+    element.setSelectionRange(0, 0);
+
+    const seen = { beforeinput: null, input: null };
+
+    element.addEventListener('beforeinput', t.step_func(e => {
+      seen.beforeinput = {
+        value: element.value,
+        start: range.startOffset,
+        end: range.endOffset,
+        rangeText: range.toString()
+      };
+      assert_equals(seen.beforeinput.start, 1, 'beforeinput start should be old');
+      assert_equals(seen.beforeinput.end, 3, 'beforeinput end should be old');
+    }), { once: true });
+
+    const inputPromise = new Promise(resolve => {
+      element.addEventListener('input', t.step_func(() => {
+        seen.input = {
+          value: element.value,
+          start: range.startOffset,
+          end: range.endOffset,
+          rangeText: range.toString()
+        };
+        resolve();
+      }), { once: true });
+    });
+
+    await typeKeys(element, 'Z');
+    await inputPromise;
+
+    // Range should have shifted forward by 1.
+    assert_equals(seen.input.value, 'ZABCDE', 'value after insertion');
+    assert_equals(seen.input.start, 2, 'updated start after insertion');
+    assert_equals(seen.input.end, 4, 'updated end after insertion');
+    assert_not_equals(seen.beforeinput, null, 'captured beforeinput');
+    assert_not_equals(seen.input, null, 'captured input');
+    assert_not_equals(seen.beforeinput.start, seen.input.start, 'start changed between events');
+    assert_not_equals(seen.beforeinput.end, seen.input.end, 'end changed between events');
+  }, `Event order: FormControlRange updates between beforeinput and input (${control}).`);
+
+  promise_test(async t => {
+    const element = setup(control, 'ABCDE');
+    const range = makeRange(element, 1, 3);
+    element.setSelectionRange(0, 0);
+
+    let beforeSnapshot = null;
+    const before = new Promise(resolve => {
+      element.addEventListener('beforeinput', t.step_func(e => {
+        e.preventDefault();
+        beforeSnapshot = {
+          value: element.value,
+          start: range.startOffset,
+          end: range.endOffset,
+        };
+        resolve();
+      }), { once: true });
+    });
+
+    let sawInput = false;
+    element.addEventListener('input', t.step_func(() => { sawInput = true; }));
+
+    // Attempt insertion, which will be canceled.
+    await typeKeys(element, 'Z');
+    await before;
+
+    // Ensure beforeinput fired and the edit was canceled.
+    assert_not_equals(beforeSnapshot, null, 'beforeinput captured');
+    assert_false(sawInput, 'input should not fire when beforeinput is canceled');
+    assert_equals(element.value, 'ABCDE', 'value unchanged after canceled beforeinput');
+    assert_equals(range.startOffset, 1, 'range start unchanged after cancel');
+    assert_equals(range.endOffset, 3, 'range end unchanged after cancel');
+  }, `Canceled beforeinput leaves FormControlRange unchanged (${control}).`);
+});
+</script>

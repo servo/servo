@@ -12,12 +12,12 @@
 <body>
   <div id="target"></div>
   <script>
-    test_valid_value('column-rule-break', 'none');
-    test_valid_value('column-rule-break', 'spanning-item');
-    test_valid_value('column-rule-break', 'intersection');
-    test_valid_value('row-rule-break', 'none');
-    test_valid_value('row-rule-break', 'spanning-item');
-    test_valid_value('row-rule-break', 'intersection');
+    const properties = ['column-rule-break', 'row-rule-break', 'rule-break'];
+    for (const property of properties) {
+      test_valid_value(property, 'none');
+      test_valid_value(property, 'spanning-item');
+      test_valid_value(property, 'intersection');
+    }
   </script>
 </body>
 </html>
