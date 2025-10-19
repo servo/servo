@@ -5,9 +5,9 @@
 use aws_lc_rs::encoding::{AsBigEndian, AsDer};
 use aws_lc_rs::signature::{ED25519, Ed25519KeyPair, KeyPair, ParsedPublicKey, UnparsedPublicKey};
 use base64::prelude::*;
-use servo_rand::{RngCore, ServoRng};
+use rand::TryRngCore;
+use rand::rngs::OsRng;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
 };
@@ -79,7 +79,6 @@ pub(crate) fn generate_key(
     global: &GlobalScope,
     extractable: bool,
     usages: Vec<KeyUsage>,
-    rng: &DomRefCell<ServoRng>,
     can_gc: CanGc,
 ) -> Result<CryptoKeyPair, Error> {
     // Step 1. If usages contains any entry which is not "sign" or "verify", then throw a
@@ -93,7 +92,9 @@ pub(crate) fn generate_key(
 
     // Step 2. Generate an Ed25519 key pair, as defined in [RFC8032], section 5.1.5.
     let mut seed = vec![0u8; ED25519_SEED_LENGTH];
-    rng.borrow_mut().fill_bytes(&mut seed);
+    if OsRng.try_fill_bytes(&mut seed).is_err() {
+        return Err(Error::Operation);
+    }
     let key_pair = Ed25519KeyPair::from_seed_unchecked(&seed).map_err(|_| Error::Operation)?;
 
     // Step 3. Let algorithm be a new KeyAlgorithm object.

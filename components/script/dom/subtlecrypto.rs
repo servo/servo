@@ -2598,10 +2598,8 @@ impl NormalizedAlgorithm {
     ) -> Result<CryptoKeyOrCryptoKeyPair, Error> {
         match self {
             NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
-                ALG_ED25519 => {
-                    ed25519_operation::generate_key(global, extractable, usages, rng, can_gc)
-                        .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair)
-                },
+                ALG_ED25519 => ed25519_operation::generate_key(global, extractable, usages, can_gc)
+                    .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair),
                 _ => Err(Error::NotSupported),
             },
             NormalizedAlgorithm::AesKeyGenParams(algo) => match algo.name.as_str() {
