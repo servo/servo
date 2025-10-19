@@ -3572,6 +3572,48 @@ impl GlobalScope {
             true
         }
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#run-steps-after-a-timeout>
+    pub(crate) fn run_steps_after_a_timeout<F>(
+        &self,
+        ordering_identifier: DOMString,
+        milliseconds: i64,
+        completion_steps: F,
+    ) -> i32
+    where
+        F: 'static + FnOnce(&GlobalScope, CanGc),
+    {
+        let timers = self.timers();
+
+        // Step 1. Let timerKey be a new unique internal value.
+        let timer_key = timers.fresh_runsteps_key();
+
+        // Step 2. Let startTime be the current high resolution time given global.
+        let start_time = timers.now_for_runsteps();
+
+        // Step 3. Set global's map of active timers[timerKey] to startTime plus milliseconds.
+        let ms = milliseconds.max(0) as u64;
+        let delay = std::time::Duration::from_millis(ms);
+        let deadline = start_time + delay;
+        timers.runsteps_set_active(timer_key, deadline);
+
+        // Step 4. Run the following steps in parallel:
+        //   (We schedule a oneshot that will enforce the sub-steps when it fires.)
+        let callback = crate::timers::OneshotTimerCallback::RunStepsAfterTimeout {
+            // Step 1. timerKey
+            timer_key,
+            // Step 4. orderingIdentifier
+            ordering_id: ordering_identifier,
+            // Spec: milliseconds
+            milliseconds: ms,
+            // Step 4.4 Perform completionSteps.
+            completion: Box::new(completion_steps),
+        };
+        let _ = self.schedule_callback(callback, delay);
+
+        // Step 5. Return timerKey.
+        timer_key
+    }
 }
 
 /// Returns the Rust global scope from a JS global object.
