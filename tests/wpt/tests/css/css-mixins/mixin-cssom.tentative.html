@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Mixins: CSSOM support</title>
+    <link rel="help" href="https://drafts.csswg.org/css-mixins/#cssom">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <style id=style1>
+      @mixin --m1() {
+        color: green;
+        & {
+          --foo: bar;
+        }
+      }
+    </style>
+    <script>
+      test(() => {
+        let ss = style1.sheet;
+        assert_equals(ss.cssRules.length, 1);
+        assert_equals(ss.cssRules[0].cssText,
+`@mixin --m1() {
+  color: green;
+  & { --foo: bar; }
+}`);
+       }, 'serialization of @mixin');
+    </script>
+
+
+    <style id=style2>
+       #foo {
+         @apply --m1;
+       }
+    </style>
+    <script>
+      test(() => {
+        let ss = style2.sheet;
+        assert_equals(ss.cssRules[0].cssText,
+`#foo {
+  @apply --m1;
+}`);
+      }, 'serialization of rule with @apply');
+    </script>
+
+
+    <style id=style3>
+      @mixin --m2(@contents) {
+       @contents
+      }
+    </style>
+    <script>
+      test(() => {
+        let ss = style3.sheet;
+        assert_equals(ss.cssRules[0].cssText,
+`@mixin --m2(@contents) {
+  @contents;
+}`);
+      }, 'serialization of @mixin with @contents');
+    </script>
+
+
+    <style id=style4>
+      #foo {
+        color: red;
+        @apply --m2 { color: green; }
+      }
+    </style>
+    <script>
+      test(() => {
+        let ss = style4.sheet;
+        assert_equals(ss.cssRules[0].cssText,
+`#foo {
+  color: red;
+  @apply --m2 { color: green; }
+}`);
+        }, 'serialization of rule with @apply and contents argument');
+    </script>
+
+
+    <style id=style5>
+    </style>
+    <script>
+      test(() => {
+        assert_throws_dom('SyntaxError', () => {
+          let ss = style5.sheet;
+          ss.insertRule('@apply --m1();');
+        });
+      }, '@apply is not legal at top level');
+    </script>
+  </body>
+</html>

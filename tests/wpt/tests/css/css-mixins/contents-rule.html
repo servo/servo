@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>CSS Mixins: Mixins depending on other mixins</title>
-    <link rel="help" href="https://drafts.csswg.org/css-mixins-1/#apply-rule">
+    <title>CSS Mixins: The @contents rule</title>
+    <link rel="help" href="https://drafts.csswg.org/css-mixins-1/#contents-rule">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+
     <style>
       @mixin --m1(@contents) {
         @contents;
@@ -13,15 +16,35 @@
         color: red;
         @apply --m1 { color: green; }
       }
+    </style>
+    <div id="e1">This text should be green.</div>
+    <script>
+      test(() => {
+        let target = document.getElementById('e1');
+        assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+      }, 'Simple @contents with no fallback');
+    </script>
 
+
+    <style>
       @mixin --m2(@contents) {
         @contents
       }
       #e2 {
         color: red;
-        @apply --m1 { color: green; }
+        @apply --m2 { color: green; }
       }
+    </style>
+    <div id="e2">This text should be green.</div>
+    <script>
+      test(() => {
+        let target = document.getElementById('e2');
+        assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+      }, 'Implicit semicolon after @contents, at end of block');
+    </script>
 
+
+    <style>
       @mixin --m3(@contents) {
         &.a {
           @contents { color: blue; }
@@ -31,7 +54,17 @@
         color: red;
         @apply --m3 { color: green; }
       }
+    </style>
+    <div class="a b" id="e3">This text should be green.</div>
+    <script>
+      test(() => {
+        let target = document.getElementById('e3');
+        assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+      }, 'Block in @apply overrides fallback');
+    </script>
 
+
+    <style>
       @mixin --m4(@contents) {
         &.c {
           @contents { color: green; }
@@ -41,7 +74,17 @@
         color: red;
         @apply --m4;
       }
+    </style>
+    <div class="c d" id="e4">This text should be green.</div>
+    <script>
+      test(() => {
+        let target = document.getElementById('e4');
+        assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+      }, 'Fallback is used if @apply has no block');
+    </script>
 
+
+    <style>
       @mixin --m5() {
         @contents { color: red !important; }
         color: green;
@@ -49,7 +92,17 @@
       #e5 {
         @apply --m5 { color: red !important; }
       }
+    </style>
+    <div id="e5">This text should be green.</div>
+    <script>
+      test(() => {
+        let target = document.getElementById('e5');
+        assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+      }, '@contents is ignored if there is no @contents parameter');
+    </script>
 
+
+    <style>
       @mixin --m6(@contents) {
         @contents { }
         color: green;
@@ -57,59 +110,31 @@
       #e6 {
         @apply --m6;
       }
-
-      @mixin --m7(@contents) {
-        @contents;
-        color: green;
-      }
-      #e7 {
-        @apply --m7 {};
-      }
     </style>
-  </head>
-  <body>
-    <div id="e1">This text should be green.</div>
-    <div id="e2">This text should be green.</div>
-    <div class="a b" id="e3">This text should be green.</div>
-    <div class="c d" id="e4">This text should be green.</div>
-    <div id="e5">This text should be green.</div>
     <div id="e6">This text should be green.</div>
+    <script>
+      test(() => {
+        let target = document.getElementById('e6');
+        assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+      }, 'Empty @contents block is allowed, but does nothing');
+    </script>
+
+
+    <style>
+        @mixin --m7(@contents) {
+          @contents;
+          color: green;
+        }
+        #e7 {
+          @apply --m7 {};
+        }
+    </style>
     <div id="e7">This text should be green.</div>
-  <script>
-    test(() => {
-      let target = document.getElementById('e1');
-      assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
-    }, 'Simple @contents with no fallback');
-
-    test(() => {
-      let target = document.getElementById('e2');
-      assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
-    }, 'Implicit semicolon after @contents, at end of block');
-
-    test(() => {
-      let target = document.getElementById('e3');
-      assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
-    }, 'Block in @apply overrides fallback');
-
-    test(() => {
-      let target = document.getElementById('e4');
-      assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
-    }, 'Fallback is used if @apply has no block');
-
-    test(() => {
-      let target = document.getElementById('e5');
-      assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
-    }, '@contents is ignored if there is no @contents parameter');
-
-    test(() => {
-      let target = document.getElementById('e6');
-      assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
-    }, 'Empty @contents block is allowed, but does nothing');
-
-    test(() => {
-      let target = document.getElementById('e7');
-      assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
-    }, 'Empty @contents parameter does not crash');
-  </script>
+    <script>
+      test(() => {
+        let target = document.getElementById('e7');
+        assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+      }, 'Empty @contents parameter does not crash');
+    </script>
   </body>
 </html>

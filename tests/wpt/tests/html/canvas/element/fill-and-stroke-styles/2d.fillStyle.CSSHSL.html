@@ -35,11 +35,6 @@ _addTest(function(canvas, ctx) {
   ctx.fillRect(0, 0, 100, 50);
   _assertPixel(canvas, 50,25, 0,255,255,255);
 
-  ctx.fillStyle = new CSSRGB(1, 0, 1).toHSL();
-  _assertSame(ctx.fillStyle, '#ff00ff', "ctx.fillStyle", "'#ff00ff'");
-  ctx.fillRect(0, 0, 100, 50);
-  _assertPixel(canvas, 50,25, 255,0,255,255);
-
   color.h = CSS.deg(120);
   color.s = 1;
   color.l = 0.5;

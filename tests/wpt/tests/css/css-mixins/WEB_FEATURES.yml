@@ -5,9 +5,9 @@ features:
   - dashed-function-*
   - function-*
   - local-*-substitution.html
-  - parameter-types.tentative.html
+  - function-parameter-types.tentative.html
 - name: mixin
   files:
-  - basic.html
-  - declarations.html
-  - mixins-including-mixins.html
+  - mixin-basic.html
+  - mixin-declarations.html
+  - apply-within-mixin.html

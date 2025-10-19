@@ -15,13 +15,11 @@ for (const opaque of opaqueURLs) {
   test(t => {
     const origin = Origin.fromURL(opaque);
     assert_true(origin.opaque, "Origin should be opaque.");
-    assert_equals(origin.toJSON(), "null", "toJSON() should return the serialized origin.");
   }, `Origin.fromURL for opaque URL as string '${opaque}'.`);
 
   test(t => {
     const origin = Origin.fromURL(new URL(opaque));
     assert_true(origin.opaque, "Origin should be opaque.");
-    assert_equals(origin.toJSON(), "null", "toJSON() should return the serialized origin.");
   }, `Origin.fromURL for opaque URL as URL '${opaque}'.`);
 }
 
@@ -69,6 +67,5 @@ for (const tuple of tupleSerializations) {
   test(t => {
     const origin = Origin.fromURL(tuple);
     assert_false(origin.opaque, "Origin should not be opaque.");
-    assert_equals(origin.toJSON(), (new URL(tuple)).origin, "toJSON() should return the serialized origin.");
   }, `Origin constructed from '${tuple}' is a tuple origin.`);
 }

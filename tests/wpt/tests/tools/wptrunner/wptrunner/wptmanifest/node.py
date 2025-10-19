@@ -33,12 +33,12 @@ class Node:
         return "\n".join(rv)
 
     def __eq__(self, other):
-        if not (self.__class__ == other.__class__ and
-                self.data == other.data and
-                len(self.children) == len(other.children)):
+        if (self.__class__ != other.__class__ or
+            self.data != other.data or
+            len(self.children) != len(other.children)):
             return False
         for child, other_child in zip(self.children, other.children):
-            if not child == other_child:
+            if child != other_child:
                 return False
         return True
 
@@ -170,4 +170,8 @@ class StringNode(Node):
 
 
 class NumberNode(ValueNode):
+    pass
+
+
+class AtomExprNode(ValueNode):
     pass

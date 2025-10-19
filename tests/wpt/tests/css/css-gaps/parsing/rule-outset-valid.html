@@ -12,11 +12,14 @@
 <body>
   <div id="target"></div>
   <script>
-    test_valid_value('column-rule-outset', '0', '0px');
-    test_valid_value('column-rule-outset', '-20px');
-    test_valid_value('column-rule-outset', '5%');
-    test_valid_value('row-rule-outset', '10vmin');
-    test_valid_value('row-rule-outset', 'calc(8em + 4ex)');
+    const properties = ['column-rule-outset', 'row-rule-outset', 'rule-outset'];
+    for (const property of properties) {
+      test_valid_value(property, '0', '0px');
+      test_valid_value(property, '-20px');
+      test_valid_value(property, '5%');
+      test_valid_value(property, '10vmin');
+      test_valid_value(property, 'calc(8em + 4ex)');
+    }
   </script>
 </body>
 </html>

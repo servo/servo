@@ -6,3 +6,6 @@ features:
   files:
   - navigator_user_agent.tentative.html
   - navigator_user_agent.https.tentative.html
+- name: registerprotocolhandler
+  files:
+  - protocol-*

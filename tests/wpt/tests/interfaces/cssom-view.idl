@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: CSSOM View Module (https://drafts.csswg.org/cssom-view-1/)
+// Source: CSSOM View Module Level 1 (https://drafts.csswg.org/cssom-view-1/)
 
 enum ScrollBehavior { "auto", "instant", "smooth" };
 
@@ -33,12 +33,12 @@ partial interface Window {
     [Replaceable] readonly attribute double pageXOffset;
     [Replaceable] readonly attribute double scrollY;
     [Replaceable] readonly attribute double pageYOffset;
-    undefined scroll(optional ScrollToOptions options = {});
-    undefined scroll(unrestricted double x, unrestricted double y);
-    undefined scrollTo(optional ScrollToOptions options = {});
-    undefined scrollTo(unrestricted double x, unrestricted double y);
-    undefined scrollBy(optional ScrollToOptions options = {});
-    undefined scrollBy(unrestricted double x, unrestricted double y);
+    Promise<undefined> scroll(optional ScrollToOptions options = {});
+    Promise<undefined> scroll(unrestricted double x, unrestricted double y);
+    Promise<undefined> scrollTo(optional ScrollToOptions options = {});
+    Promise<undefined> scrollTo(unrestricted double x, unrestricted double y);
+    Promise<undefined> scrollBy(optional ScrollToOptions options = {});
+    Promise<undefined> scrollBy(unrestricted double x, unrestricted double y);
 
     // client
     [Replaceable] readonly attribute long screenX;
@@ -122,13 +122,13 @@ partial interface Element {
 
   boolean checkVisibility(optional CheckVisibilityOptions options = {});
 
-  undefined scrollIntoView(optional (boolean or ScrollIntoViewOptions) arg = {});
-  undefined scroll(optional ScrollToOptions options = {});
-  undefined scroll(unrestricted double x, unrestricted double y);
-  undefined scrollTo(optional ScrollToOptions options = {});
-  undefined scrollTo(unrestricted double x, unrestricted double y);
-  undefined scrollBy(optional ScrollToOptions options = {});
-  undefined scrollBy(unrestricted double x, unrestricted double y);
+  Promise<undefined> scrollIntoView(optional (boolean or ScrollIntoViewOptions) arg = {});
+  Promise<undefined> scroll(optional ScrollToOptions options = {});
+  Promise<undefined> scroll(unrestricted double x, unrestricted double y);
+  Promise<undefined> scrollTo(optional ScrollToOptions options = {});
+  Promise<undefined> scrollTo(unrestricted double x, unrestricted double y);
+  Promise<undefined> scrollBy(optional ScrollToOptions options = {});
+  Promise<undefined> scrollBy(unrestricted double x, unrestricted double y);
   attribute unrestricted double scrollTop;
   attribute unrestricted double scrollLeft;
   readonly attribute long scrollWidth;

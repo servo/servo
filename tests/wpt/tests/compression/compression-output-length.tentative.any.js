@@ -1,4 +1,5 @@
 // META: global=window,worker,shadowrealm
+// META: script=resources/formats.js
 
 'use strict';
 
@@ -33,32 +34,14 @@ async function compressArrayBuffer(input, format) {
   return concatenated;
 }
 
-promise_test(async () => {
-  const response = await fetch(LARGE_FILE);
-  const buffer = await response.arrayBuffer();
-  const bufferView = new Uint8Array(buffer);
-  const originalLength = bufferView.length;
-  const compressedData = await compressArrayBuffer(bufferView, 'deflate');
-  const compressedLength = compressedData.length;
-  assert_less_than(compressedLength, originalLength, 'output should be smaller');
-}, 'the length of deflated data should be shorter than that of the original data');
-
-promise_test(async () => {
-  const response = await fetch(LARGE_FILE);
-  const buffer = await response.arrayBuffer();
-  const bufferView = new Uint8Array(buffer);
-  const originalLength = bufferView.length;
-  const compressedData = await compressArrayBuffer(bufferView, 'gzip');
-  const compressedLength = compressedData.length;
-  assert_less_than(compressedLength, originalLength, 'output should be smaller');
-}, 'the length of gzipped data should be shorter than that of the original data');
-
-promise_test(async () => {
-  const response = await fetch(LARGE_FILE);
-  const buffer = await response.arrayBuffer();
-  const bufferView = new Uint8Array(buffer);
-  const originalLength = bufferView.length;
-  const compressedData = await compressArrayBuffer(bufferView, 'deflate-raw');
-  const compressedLength = compressedData.length;
-  assert_less_than(compressedLength, originalLength, 'output should be smaller');
-}, 'the length of deflated (with -raw) data should be shorter than that of the original data');
+for (const format of formats) {
+  promise_test(async () => {
+    const response = await fetch(LARGE_FILE);
+    const buffer = await response.arrayBuffer();
+    const bufferView = new Uint8Array(buffer);
+    const originalLength = bufferView.length;
+    const compressedData = await compressArrayBuffer(bufferView, format);
+    const compressedLength = compressedData.length;
+    assert_less_than(compressedLength, originalLength, 'output should be smaller');
+  }, `the length of ${format} data should be shorter than that of the original data`);
+}

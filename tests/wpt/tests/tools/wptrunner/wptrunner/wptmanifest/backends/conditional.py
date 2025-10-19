@@ -114,7 +114,7 @@ class Compiler(NodeVisitor):
         return self.data_cls_getter(None, None)(node, **kwargs)
 
     def visit_DataNode(self, node):
-        if node != self.tree:
+        if node is not self.tree:
             output_parent = self.output_node
             self.output_node = self.data_cls_getter(self.output_node, node)(node)
         else:
@@ -177,6 +177,9 @@ class Compiler(NodeVisitor):
                 data = data[index(x)]
             return data
         return value
+
+    def visit_AtomExprNode(self, node):
+        return lambda x: node.data
 
     def visit_IndexNode(self, node):
         assert len(node.children) == 1
@@ -344,7 +347,7 @@ class ManifestItem:
     def append(self, child):
         self.children.append(child)
         child.parent = self
-        if child.node.parent != self.node:
+        if child.node.parent is not self.node:
             self.node.append(child.node)
         return child
 

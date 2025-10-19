@@ -7,68 +7,55 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="/webaudio/resources/audit-util.js"></script>
-    <script src="/webaudio/resources/audit.js"></script>
     <script src="/webaudio/resources/audioparam-testing.js"></script>
   </head>
   <body>
-    <script id="layout-test-code">
-      let sampleRate = 48000;
-      let renderFrames = 1000;
+    <script>
+      const sampleRate = 48000;
+      const renderFrames = 1000;
 
-      let audit = Audit.createTaskRunner();
-
-      audit.define('buffersource: huge stop time', (task, should) => {
+      promise_test(async () => {
         // We only need to generate a small number of frames for this test.
-        let context = new OfflineAudioContext(1, renderFrames, sampleRate);
-        let src = context.createBufferSource();
-
+        const context = new OfflineAudioContext(1, renderFrames, sampleRate);
         // Constant source of amplitude 1, looping.
-        src.buffer = createConstantBuffer(context, 1, 1);
-        src.loop = true;
+        const src = new AudioBufferSourceNode(context, {
+          buffer: createConstantBuffer(context, 1, 1),
+          loop: true,
+        });
 
         // Create the graph and go!
-        let endTime = 1e300;
+        const endTime = 1e300;
         src.connect(context.destination);
         src.start();
         src.stop(endTime);
 
-        context.startRendering()
-            .then(function(resultBuffer) {
-              let result = resultBuffer.getChannelData(0);
-              should(
-                  result, 'Output from AudioBufferSource.stop(' + endTime + ')')
-                  .beConstantValueOf(1);
-            })
-            .then(() => task.done());
-      });
+        const resultBuffer = await context.startRendering();
+        const result = resultBuffer.getChannelData(0);
+        assert_array_equals(
+            result,
+            new Float32Array(result.length).fill(1),
+            `Output from AudioBufferSource.stop(${endTime})`);
+      }, 'buffersource: huge stop time');
 
-
-      audit.define('oscillator: huge stop time', (task, should) => {
+      promise_test(async () => {
         // We only need to generate a small number of frames for this test.
-        let context = new OfflineAudioContext(1, renderFrames, sampleRate);
-        let src = context.createOscillator();
+        const context = new OfflineAudioContext(1, renderFrames, sampleRate);
+        const src = new OscillatorNode(context);
 
         // Create the graph and go!
-        let endTime = 1e300;
+        const endTime = 1e300;
         src.connect(context.destination);
         src.start();
         src.stop(endTime);
 
-        context.startRendering()
-            .then(function(resultBuffer) {
-              let result = resultBuffer.getChannelData(0);
-              // The buffer should not be empty.  Just find the max and verify
-              // that it's not zero.
-              let max = Math.max.apply(null, result);
-              should(
-                  max, 'Peak amplitude from oscillator.stop(' + endTime + ')')
-                  .beGreaterThan(0);
-            })
-            .then(() => task.done());
-      });
-
-
-      audit.run();
+        const resultBuffer = await context.startRendering();
+        const result = resultBuffer.getChannelData(0);
+        // The buffer should not be empty.  Just find the max and verify
+        // that it's not zero.
+        const max = Math.max(...result);
+        assert_greater_than(
+            max, 0, `Peak amplitude from oscillator.stop(${endTime})`);
+      }, 'oscillator: huge stop time');
     </script>
   </body>
 </html>

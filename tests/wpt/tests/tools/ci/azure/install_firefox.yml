@@ -1,6 +1,0 @@
-steps:
-- script: |
-    set -eux -o pipefail
-    HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask firefox@nightly
-  displayName: 'Install Firefox Nightly'
-  condition: and(succeeded(), eq(variables['Agent.OS'], 'Darwin'))

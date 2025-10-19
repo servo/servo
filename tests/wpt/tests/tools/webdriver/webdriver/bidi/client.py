@@ -6,7 +6,7 @@ from typing import Any, Awaitable, Callable, List, Optional, Mapping, MutableMap
 from urllib.parse import urljoin, urlparse
 
 from . import modules
-from .error import from_error_details
+from .error import from_error_details, UnknownErrorException
 from .transport import Transport
 
 
@@ -144,7 +144,10 @@ class BidiSession:
     async def start_transport(self,
                               loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
         if self.transport is None:
-            self.transport = Transport(self.websocket_url, self.on_message, loop=loop)
+            self.transport = Transport(self.websocket_url,
+                 self.on_message,
+                 loop=loop,
+                                       on_closed=self.on_transport_closed)
             await self.transport.start()
         elif loop is not None and loop is not self.event_loop:
             raise ValueError("Transport with a different event loop already exists")
@@ -158,6 +161,11 @@ class BidiSession:
         if self.session_id is None:
             self.session_id, self.capabilities = await self.session.new(  # type: ignore
                 capabilities=self.requested_capabilities)
+
+    def on_transport_closed(self):
+        for future in self.pending_commands.values():
+            if future is not None and not future.done():
+                future.set_exception(UnknownErrorException("WebSocket connection closed"))
 
     async def send_command(
         self,

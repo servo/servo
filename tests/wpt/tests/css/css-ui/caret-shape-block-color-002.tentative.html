@@ -2,6 +2,7 @@
 <title>Test caret-shape block color when there is no CSS color property specified</title>
 <link rel=help href="https://drafts.csswg.org/css-ui/#caret-shape">
 <link rel=match href="caret-shape-block-color-002-ref.tentative.html">
+<meta name=fuzzy content="maxDifference=1;totalPixels=0-3000">
 <meta name="assert"
   content="Test checks that caret-shape block color has an opacity of 0.5 of the default color when there is no CSS color property specified">
 <style>
@@ -18,7 +19,7 @@
     outline: none;
   }
 </style>
-<div id="target" contenteditable>abc</div>
+<div id="target" contenteditable spellcheck="false">abc</div>
 <script>
   target.focus();
 </script>

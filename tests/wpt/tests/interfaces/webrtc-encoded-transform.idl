@@ -14,11 +14,6 @@ partial interface RTCRtpReceiver {
     attribute RTCRtpTransform? transform;
 };
 
-enum SFrameTransformRole {
-    "encrypt",
-    "decrypt"
-};
-
 // List of supported cipher suites, as defined in [[RFC9605]] section 4.5.
 enum SFrameCipherSuite {
      "AES_128_CTR_HMAC_SHA256_80",
@@ -29,20 +24,36 @@ enum SFrameCipherSuite {
 };
 
 dictionary SFrameTransformOptions {
-    SFrameTransformRole role = "encrypt";
     required SFrameCipherSuite cipherSuite;
 };
 
 typedef [EnforceRange] unsigned long long SmallCryptoKeyID;
 typedef (SmallCryptoKeyID or bigint) CryptoKeyID;
 
-[Exposed=(Window,DedicatedWorker)]
-interface SFrameTransform : EventTarget {
-    constructor(optional SFrameTransformOptions options = {});
+interface mixin SFrameKeyManagement {
     Promise<undefined> setEncryptionKey(CryptoKey key, optional CryptoKeyID keyID);
     attribute EventHandler onerror;
 };
-SFrameTransform includes GenericTransformStream;
+
+[Exposed=Window]
+interface SFrameTransform : EventTarget {
+    constructor(optional SFrameTransformOptions options = {});
+};
+SFrameTransform includes SFrameKeyManagement;
+
+[Exposed=(Window,DedicatedWorker)]
+interface SFrameEncrypterStream : EventTarget {
+    constructor(optional SFrameTransformOptions options = {});
+};
+SFrameEncrypterStream includes GenericTransformStream;
+SFrameEncrypterStream includes SFrameKeyManagement;
+
+[Exposed=(Window,DedicatedWorker)]
+interface SFrameDecrypterStream : EventTarget {
+    constructor(optional SFrameTransformOptions options = {});
+};
+SFrameDecrypterStream includes GenericTransformStream;
+SFrameDecrypterStream includes SFrameKeyManagement;
 
 enum SFrameTransformErrorEventType {
     "authentication",

@@ -116,7 +116,7 @@ def generateTestFor(mathvariant, mathml):
         source = '\
 <link rel="help" href="https://w3c.github.io/mathml-core/#css-styling">\n\
 <link rel="help" href="https://w3c.github.io/mathml-core/#the-mathvariant-attribute">\n\
-<link rel="help" href="https://w3c.github.io/mathml-core/#new-text-transform-values">\n\
+<link rel="help" href="https://w3c.github.io/mathml-core/#math-auto-transform">\n\
 <link rel="help" href="https://w3c.github.io/mathml-core/#%s-mappings">\n\
 <link rel="match" href="mathvariant-%s-ref.html"/>\n\
 <meta name="assert" content="%s">\n'
@@ -124,7 +124,7 @@ def generateTestFor(mathvariant, mathml):
     else:
         source = '\
 <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/3745"/>\n\
-<link rel="help" href="https://w3c.github.io/mathml-core/#new-text-transform-values">\n\
+<link rel="help" href="https://w3c.github.io/mathml-core/#math-auto-transform">\n\
 <link rel="help" href="https://w3c.github.io/mathml-core/#%s-mappings">\n\
 <link rel="match" href="text-transform-math-%s-001-ref.html"/>\n\
 <meta name="assert" content="Verify that a character with \'text-transform: math-%s\' renders the same as the transformed unicode character.">\n'

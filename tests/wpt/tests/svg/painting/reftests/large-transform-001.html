@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Large intermediate transforms that are scaled down</title>
+  <link rel="match"  href="large-transform-ref.html">
+</head>
+
+<svg width="600" height="500" style="background: gray">
+  <g transform="scale(0.00004)">
+    <g transform="scale(25000)">
+      <rect style="stroke-width: 50px; stroke: blue; fill: cyan;"
+            x="25" y="25" width="500" height="200"></rect>
+    </g>
+  </g>
+</svg>

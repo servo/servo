@@ -70,8 +70,10 @@ function verifyEvent(entry, eventType, targetId, isFirst=false, minDuration=104,
     assert_equals(firstInput.processingEnd, entry.processingEnd);
     assert_equals(firstInput.cancelable, entry.cancelable);
   }
-  if (targetId)
-    assert_equals(entry.target, document.getElementById(targetId));
+  if (targetId) {
+    const target = document.getElementById(targetId);
+    assert_equals(entry.target, target);
+  }
 }
 
 function verifyClickEvent(entry, targetId, isFirst=false, minDuration=104, event='pointerdown') {
@@ -256,9 +258,9 @@ function testCounts(t, resolve, looseCount, eventType, expectedCount) {
 // 'target'. The test assumes that such element already exists. |looseCount| is set for
 // eventTypes for which events would occur for other interactions other than the ones being
 // specified for the target, so the counts could be larger.
-async function testEventType(t, eventType, looseCount=false) {
+async function testEventType(t, eventType, looseCount=false, targetId='target') {
   assert_implements(window.EventCounts, "Event Counts isn't supported");
-  const target = document.getElementById('target');
+  const target = document.getElementById(targetId);
   if (requiresListener(eventType)) {
     target.addEventListener(eventType, () =>{});
   }
@@ -293,7 +295,7 @@ async function testEventType(t, eventType, looseCount=false) {
         // The other events could also be considered slow. Find the one with the correct
         // target.
         eventTypeEntries.forEach(e => {
-          if (e.target === document.getElementById('target'))
+          if (e.target === document.getElementById(targetId))
             entry = e;
         });
         if (!entry)
@@ -301,7 +303,7 @@ async function testEventType(t, eventType, looseCount=false) {
       }
       verifyEvent(entry,
                   eventType,
-                  'target',
+                  targetId,
                   false /* isFirst */,
                   durationThreshold,
                   notCancelable(eventType));

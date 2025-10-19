@@ -116,6 +116,7 @@ CONSOLE: common/gc.js
 CONSOLE: resources/check-layout-th.js
 CONSOLE: resources/chromium/*
 CONSOLE: resources/testharness.js
+CONSOLE: wasm/core/js/harness/testharness.js
 CONSOLE: content-security-policy/inheritance/blob-inherits-from-meta-http-equiv-with-invalid-characters.html
 CONSOLE: service-workers/service-worker/resources/navigation-redirect-other-origin.html
 CONSOLE: service-workers/service-worker/navigation-redirect.https.html
@@ -215,8 +216,10 @@ SET TIMEOUT: html/webappapis/scripting/events/event-handler-processing-algorithm
 SET TIMEOUT: html/webappapis/scripting/processing-model-2/*
 SET TIMEOUT: IndexedDB/*
 SET TIMEOUT: infrastructure/*
+SET TIMEOUT: intersection-observer/animating.html
 SET TIMEOUT: intersection-observer/resources/*
 SET TIMEOUT: intersection-observer/target-in-different-window.html
+SET TIMEOUT: intersection-observer/v2/animated-opacity.html
 SET TIMEOUT: js-self-profiling/resources/profiling-script.js
 SET TIMEOUT: measure-memory/*
 SET TIMEOUT: media-source/mediasource-util.js
@@ -656,6 +659,7 @@ AHEM SYSTEM FONT: resource-timing/font-timestamps.html
 AHEM SYSTEM FONT: resource-timing/initiator-type/style.html
 AHEM SYSTEM FONT: resource-timing/resources/iframe-reload-TAO.sub.html
 AHEM SYSTEM FONT: html/canvas/element/text/2d.text.measure.fontBoundingBox.ahem.html
+AHEM SYSTEM FONT: css/css-font-loading/fontface-fonts-loading.html
 AHEM SYSTEM FONT: css/css-font-loading/fontface-override-descriptors.html
 AHEM SYSTEM FONT: css/css-font-loading/fontface-size-adjust-descriptor.html
 AHEM SYSTEM FONT: css/css-font-loading/fontface-size-adjust-descriptor-ref.html

@@ -66,6 +66,15 @@ const EXPECT_INVALID = false;
 
 /* DATA **********************************************************************/
 
+let hostrefs = {};
+let hostsym = Symbol("hostref");
+function hostref(s) {
+  if (! (s in hostrefs)) hostrefs[s] = {[hostsym]: s};
+  return hostrefs[s];
+}
+function eq_ref(x, y) {
+  return x === y ? 1 : 0;
+}
 let externrefs = {};
 let externsym = Symbol("externref");
 function externref(s) {
@@ -96,6 +105,8 @@ function reinitializeRegistry() {
         return;
 
     let spectest = {
+        hostref: hostref,
+        eq_ref: eq_ref,
         externref: externref,
         is_externref: is_externref,
         is_funcref: is_funcref,
@@ -139,7 +150,7 @@ function binary(bytes) {
 /**
  * Returns a compiled module, or throws if there was an error at compilation.
  */
-function module(bytes, valid = true) {
+function module(bytes, source, valid = true) {
     let buffer = binary(bytes);
     let validated;
 
@@ -165,6 +176,7 @@ function module(bytes, valid = true) {
     let module;
     try {
         module = new WebAssembly.Module(buffer);
+        module.source = source;
     } catch(e) {
         if (valid)
             throw new Error('WebAssembly.Module ctor unexpectedly throws ${typeof e}: ${e}${e.stack}');
@@ -178,20 +190,32 @@ function uniqueTest(func, desc) {
     test(func, testNum() + desc);
 }
 
-function assert_invalid(bytes) {
+function assert_invalid(bytes, source) {
     uniqueTest(() => {
         try {
-            module(bytes, /* valid */ false);
+            module(bytes, source, /* valid */ false);
             throw new Error('did not fail');
         } catch(e) {
             assert_true(e instanceof WebAssembly.CompileError, "expected invalid failure:");
         }
-    }, "A wast module that should be invalid or malformed.");
+    }, `A wast module that should be invalid or malformed. (${source})`);
 }
 
 const assert_malformed = assert_invalid;
 
-function instance(bytes, imports = registry, valid = true) {
+function assert_invalid_custom(bytes, source) {
+    uniqueTest(() => {
+        try {
+            module(bytes, source, /* valid */ true);
+        } catch(e) {
+            throw new Error('failed on custom section error');
+        }
+    }, `A wast module that should have an invalid or malformed custom section. (${source})`);
+}
+
+const assert_malformed_custom = assert_invalid_custom;
+
+function instance(module, imports = registry, valid = true) {
     if (imports instanceof Result) {
         if (imports.isError())
             return imports;
@@ -200,10 +224,9 @@ function instance(bytes, imports = registry, valid = true) {
 
     let err = null;
 
-    let m, i;
+    let i;
     try {
-        let m = module(bytes);
-        i = new WebAssembly.Instance(m, imports);
+        i = new WebAssembly.Instance(module, imports);
     } catch(e) {
         err = e;
     }
@@ -212,7 +235,7 @@ function instance(bytes, imports = registry, valid = true) {
         uniqueTest(() => {
             let instantiated = err === null;
             assert_true(instantiated, err);
-        }, "module successfully instantiated");
+        }, `module successfully instantiated (${module.source})`);
     }
 
     return err !== null ? ErrorResult(err) : ValueResult(i);
@@ -263,7 +286,7 @@ function exports(instance) {
     return ValueResult({ module: instance.value.exports, spectest: registry.spectest });
 }
 
-function run(action) {
+function run(action, source) {
     let result = action();
 
     _assert(result instanceof Result);
@@ -271,7 +294,7 @@ function run(action) {
     uniqueTest(() => {
         if (result.isError())
             throw result.value;
-    }, "A wast test that runs without any special assertion.");
+    }, `A wast test that runs without any special assertion. (${source})`);
 }
 
 function assert_unlinkable(bytes) {
@@ -302,7 +325,7 @@ function assert_uninstantiable(bytes) {
     }, "A wast module that is uninstantiable.");
 }
 
-function assert_trap(action) {
+function assert_trap(action, source) {
     let result = action();
 
     _assert(result instanceof Result);
@@ -313,7 +336,17 @@ function assert_trap(action) {
             let e = result.value;
             assert_true(e instanceof WebAssembly.RuntimeError, `expected runtime error, observed ${e}:`);
         }
-    }, "A wast module that must trap at runtime.");
+    }, `A wast module that must trap at runtime. (${source})`);
+}
+
+function assert_exception(action, source) {
+    let result = action();
+
+    _assert(result instanceof Result);
+
+    uniqueTest(() => {
+        assert_true(result.isError(), 'expected error result');
+    }, `A wast module that must throw an exception at runtime. (${source})`);
 }
 
 let StackOverflow;
@@ -333,7 +366,7 @@ function assert_exhaustion(action) {
     }, "A wast module that must exhaust the stack space.");
 }
 
-function assert_return(action, ...expected) {
+function assert_return(action, source, ...expected) {
     let result = action();
     _assert(result instanceof Result);
 
@@ -362,17 +395,31 @@ function assert_return(action, ...expected) {
                     // so there's no good way to test that it's a canonical NaN.
                     assert_true(Number.isNaN(actual[i]), `expected NaN, observed ${actual[i]}.`);
                     return;
+                case "ref.i31":
+                    assert_true(typeof actual[i] === "number" && (actual[i] & 0x7fffffff) === actual[i], `expected Wasm i31, got ${actual[i]}`);
+                    return;
+                case "ref.any":
+                case "ref.eq":
+                case "ref.struct":
+                case "ref.array":
+                    // For now, JS can't distinguish exported Wasm GC values,
+                    // so we only test for object.
+                    assert_true(typeof actual[i] === "object", `expected Wasm GC object, got ${actual[i]}`);
+                    return;
                 case "ref.func":
                     assert_true(typeof actual[i] === "function", `expected Wasm function, got ${actual[i]}`);
                     return;
                 case "ref.extern":
                     assert_true(actual[i] !== null, `expected Wasm reference, got ${actual[i]}`);
                     return;
+                case "ref.null":
+                    assert_true(actual[i] === null, `expected Wasm null reference, got ${actual[i]}`);
+                    return;
                 default:
                     assert_equals(actual[i], expected[i]);
             }
         }
-    }, "A wast module that must return a particular value.");
+    }, `A wast module that must return a particular value. (${source})`);
 }
 
 function assert_return_nan(action) {

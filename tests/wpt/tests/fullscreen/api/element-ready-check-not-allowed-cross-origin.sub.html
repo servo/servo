@@ -21,7 +21,7 @@
     await new Promise((resolve) => {
       iframe.onload = resolve;
       iframe.src =
-        "http://{{hosts[][]}}:{{ports[http][0]}}/fullscreen/api/resources/attempt-fullscreen.html";
+        "http://{{hosts[alt][]}}:{{ports[http][0]}}/fullscreen/api/resources/attempt-fullscreen.html";
     });
     // Trigger the child frame to report as soon as its content is loaded.
     await trusted_click();

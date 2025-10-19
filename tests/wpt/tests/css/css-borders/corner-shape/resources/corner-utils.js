@@ -48,7 +48,33 @@ function superellipse_t_for_y(y, curvature) {
   } else return 1 - Math.log(y) / Math.log(1 / curvature);
 }
 
-function resolve_corner_params(style, width, height, outset = null) {
+function adjust_corner_for_spread([rx, ry], spread, width, height) {
+  rx = +rx;
+  ry = +ry;
+  spread = +spread;
+  const coverage = 2 * Math.min(rx / width, ry / height);
+
+  return [rx, ry].map(value => {
+    if (value > spread || coverage > 1)
+      return value + spread;
+    else
+      return value + spread * (1 - (1 - value / spread)**3 * (1 - coverage ** 3));
+  });
+}
+
+function adjust_spread(original_style, spread, width, height) {
+  return {...original_style,
+    "border-top-left-radius": adjust_corner_for_spread(original_style["border-top-left-radius"], spread, width, height),
+    "border-top-right-radius": adjust_corner_for_spread(original_style["border-top-right-radius"], spread, width, height),
+    "border-bottom-right-radius": adjust_corner_for_spread(original_style["border-bottom-right-radius"], spread, width, height),
+    "border-bottom-left-radius": adjust_corner_for_spread(original_style["border-bottom-left-radius"], spread, width, height),
+  };
+}
+
+function resolve_corner_params(original_style, width, height, spread = 0) {
+  const style = spread ? adjust_spread(original_style, spread, width, height) : original_style;
+  width += spread * 2;
+  height += spread * 2;
   const params = {
     "top-right": {
       outer: [

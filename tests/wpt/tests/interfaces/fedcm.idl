@@ -120,6 +120,7 @@ dictionary IdentityAssertionResponse {
 dictionary IdentityProviderClientMetadata {
   USVString privacy_policy_url;
   USVString terms_of_service_url;
+  boolean client_is_third_party_to_top_frame_origin = false;
 };
 
 dictionary IdentityUserInfo {

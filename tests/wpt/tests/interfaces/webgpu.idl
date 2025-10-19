@@ -130,6 +130,7 @@ enum GPUFeatureName {
     "texture-formats-tier1",
     "texture-formats-tier2",
     "primitive-index",
+    "texture-component-swizzle",
 };
 
 [Exposed=(Window, Worker), SecureContext]
@@ -273,6 +274,9 @@ dictionary GPUTextureViewDescriptor
     GPUIntegerCoordinate mipLevelCount;
     GPUIntegerCoordinate baseArrayLayer = 0;
     GPUIntegerCoordinate arrayLayerCount;
+
+    // Requires "texture-component-swizzle" feature.
+    DOMString swizzle = "rgba";
 };
 
 enum GPUTextureViewDimension {

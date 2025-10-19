@@ -9,3 +9,12 @@ features:
 - name: show-picker-input
   files:
   - show-picker-*
+- name: input-date-time
+  files:
+  - date*
+  - time*
+  - input-valueasdate*
+- name: input-file
+  files:
+  - type-change-file-to-text-crash.html
+  - input-value-invalidstateerr.html

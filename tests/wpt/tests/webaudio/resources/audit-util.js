@@ -315,3 +315,17 @@ function assert_array_equal_within_eps(
             ` = ${diff} > ${epsilon}`);
   }
 }
+
+function assert_not_constant_value_of(array, value, description) {
+  assert_true(array && typeof array.length === 'number' && array.length > 0,
+      `${description}: input must be a non-empty array`);
+
+  const hasDifferentValues = array.some(element => element !== value);
+
+  // Pass if there's at least one element not strictly equal to `value`.
+  assert_true(
+      hasDifferentValues,
+      `${description}: ${array} should have contained at least `+
+          `one value different from ${value}.`
+  );
+}

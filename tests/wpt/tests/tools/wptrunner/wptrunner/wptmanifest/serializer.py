@@ -115,6 +115,9 @@ class ManifestSerializer(NodeVisitor):
     def visit_NumberNode(self, node):
         return [node.data]
 
+    def visit_AtomExprNode(self, node):
+        return [atom_names[node.data]]
+
     def visit_VariableNode(self, node):
         rv = escape(node.data)
         for child in node.children:

@@ -42,7 +42,7 @@ class Compiler(NodeVisitor):
         return self.data_cls_getter(None, None)(node, **kwargs)
 
     def visit_DataNode(self, node):
-        if node != self.tree:
+        if node is not self.tree:
             output_parent = self.output_node
             self.output_node = self.data_cls_getter(self.output_node, node)(node, **self._kwargs)
         else:
@@ -102,6 +102,9 @@ class Compiler(NodeVisitor):
                 data = data[index(x)]
             return data
         return value
+
+    def visit_AtomExprNode(self, node):
+        return node.data
 
     def visit_IndexNode(self, node):
         assert len(node.children) == 1

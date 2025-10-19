@@ -92,8 +92,8 @@ test(function() {
   newChild.appendChild(newOption);
   a.appendChild(newChild);
   a.value = 3;
-  assert_equals(a_opts.length, 5, "Correct length");
-  assert_values_equals(a_opts, ["1","2","3","4","5"], "Correct elements inserted")
+  assert_equals(a_opts.length, 6, "Correct length");
+  assert_values_equals(a_opts, ["1","2","3","4","5","6"], "Correct elements inserted")
   assert_equals(a.value, "3", "Correct value set");
 }, "Insert <p><option>6</option></p> into <select>");
 

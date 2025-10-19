@@ -1,3 +1,8 @@
 features:
 - name: text-indent
-  files: "**"
+  files:
+  - "*"
+  - "!text-indent-each-line-hanging.html"
+- name: text-indent-each-line
+  files:
+  - text-indent-each-line-hanging.html

@@ -340,7 +340,7 @@ const receiveReport = async function(uuid, type) {
     let reports = await Promise.race([
       receive(uuid),
       new Promise(resolve => {
-        step_timeout(resolve, 1000, "timeout");
+        step_timeout(resolve, 3000, "timeout");
       })
     ]);
     if (reports == "timeout")

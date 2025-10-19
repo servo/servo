@@ -6,19 +6,16 @@
 test(t => {
   const origin = new Origin();
   assert_true(origin.opaque, "Origin should be opaque.");
-  assert_equals(origin.toJSON(), "null", "toJSON() should return 'null'.");
 }, "Default-constructed Origin is opaque.");
 
 test(t => {
   const origin = new Origin("null");
   assert_true(origin.opaque, "Origin should be opaque.");
-  assert_equals(origin.toJSON(), "null", "toJSON() should return 'null'.");
 }, "Origin constructed with 'null' is opaque.");
 
 test(t => {
   const origin = Origin.parse("null");
   assert_true(origin.opaque, "Origin should be opaque.");
-  assert_equals(origin.toJSON(), "null", "toJSON() should return 'null'.");
 }, "Origin parsed from 'null' is opaque.");
 
 //
@@ -67,13 +64,11 @@ for (const tuple of tupleSerializations) {
   test(t => {
     const origin = new Origin(tuple);
     assert_false(origin.opaque, "Origin should not be opaque.");
-    assert_equals(origin.toJSON(), tuple, "toJSON() should return the serialized origin.");
   }, `Origin constructed from '${tuple}' is a tuple origin.`);
 
   test(t => {
     const origin = Origin.parse(tuple);
     assert_false(origin.opaque, "Origin should not be opaque.");
-    assert_equals(origin.toJSON(), tuple, "toJSON() should return the serialized origin.");
   }, `Origin parsed from '${tuple}' is a tuple origin.`);
 
   test(t => {

@@ -18,13 +18,16 @@
     }
   </style>
   <script>
-    test_computed_value("column-rule-outset", "10px");
-    test_computed_value("column-rule-outset", "-20px");
-    test_computed_value("column-rule-outset", "0.5em", "20px");
-    test_computed_value("column-rule-outset", "calc(10px + 0.5em)", "30px");
-    test_computed_value("row-rule-outset", "calc(10px - 0.5em)", "-10px");
-    test_computed_value("row-rule-outset", "30%");
-    test_computed_value("row-rule-outset", "calc(25% + 10px)");
+    const properties = ["column-rule-outset", "row-rule-outset", "rule-outset"];
+    for (const property of properties) {
+      test_computed_value(property, "10px");
+      test_computed_value(property, "-20px");
+      test_computed_value(property, "0.5em", "20px");
+      test_computed_value(property, "calc(10px + 0.5em)", "30px");
+      test_computed_value(property, "calc(10px - 0.5em)", "-10px");
+      test_computed_value(property, "30%");
+      test_computed_value(property, "calc(25% + 10px)");
+    }
   </script>
 </body>
 </html>
