@@ -71,14 +71,6 @@ impl Decompressor {
         }
     }
 
-    fn write_all(&mut self, buf: &[u8]) -> Result<(), io::Error> {
-        match self {
-            Decompressor::Deflate(zlib_decoder) => zlib_decoder.write_all(buf),
-            Decompressor::DeflateRaw(deflate_decoder) => deflate_decoder.write_all(buf),
-            Decompressor::Gzip(gz_decoder) => gz_decoder.write_all(buf),
-        }
-    }
-
     fn flush(&mut self) -> io::Result<()> {
         match self {
             Decompressor::Deflate(zlib_decoder) => zlib_decoder.flush(),
@@ -202,14 +194,17 @@ pub(crate) fn decompress_and_enqueue_a_chunk(
     // this results in an error, then throw a TypeError.
     // NOTE: In our implementation, the enum type of context already indicates the format.
     let mut decompressor = ds.context.borrow_mut();
-    let offset = decompressor.get_ref().len();
-    decompressor
-        .write_all(&chunk)
-        .map_err(|_| Error::Type("DecompressionStream: write_all() failed".to_string()))?;
+    let mut offset = 0;
+    let mut written = 1;
+    while offset < chunk.len() && written > 0 {
+        written = decompressor.write(&chunk[offset..])
+            .map_err(|_| Error::Type("DecompressionStream: write() failed".to_string()))?;
+        offset += written;
+    }
     decompressor
         .flush()
         .map_err(|_| Error::Type("DecompressionStream: flush() failed".to_string()))?;
-    let buffer = &decompressor.get_ref()[offset..];
+    let buffer = decompressor.get_ref();
 
     // Step 3. If buffer is empty, return.
     if buffer.is_empty() {
@@ -233,7 +228,9 @@ pub(crate) fn decompress_and_enqueue_a_chunk(
 
     // Step 6. If the end of the compressed input has been reached, and ds’s context has not fully
     // consumed chunk, then throw a TypeError.
-    // NOTE: Done by `write_all` in Step 2.
+    if offset < chunk.len() {
+        return Err(Error::Type("The end of the compressed input has been reached".to_string()))
+    }
 
     Ok(())
 }
