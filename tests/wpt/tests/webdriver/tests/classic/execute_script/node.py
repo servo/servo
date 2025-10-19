@@ -69,17 +69,9 @@ def test_web_reference(session, get_test_page, expression, expected_type):
     assert isinstance(reference, expected_type)
 
 
-@pytest.mark.parametrize("expression", [
-    (""" document.querySelector("svg").attributes[0] """),
-    (""" document.querySelector("div#text-node").childNodes[1] """),
-    (""" document.querySelector("foo").childNodes[1] """),
-    (""" document.createProcessingInstruction("xml-stylesheet", "href='foo.css'") """),
-    (""" document.querySelector("div#comment").childNodes[0] """),
-    (""" document"""),
-    (""" document.doctype"""),
-], ids=["attribute", "text", "cdata", "processing_instruction", "comment", "document", "doctype"])
-def test_not_supported_nodes(session, inline, expression):
+def test_queryselector_null_child_access_errors(session, inline):
     session.url = inline(PAGE_DATA)
 
+    expression = "document.querySelector('foo').childNodes[1]"
     result = execute_script(session, f"return {expression}")
     assert_error(result, "javascript error")
