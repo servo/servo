@@ -7,18 +7,10 @@ use embedder_traits::WebDriverScriptCommand;
 use ipc_channel::ipc;
 use serde_json::Value;
 use webdriver::command::JavascriptCommandParameters;
+use webdriver::common::{ELEMENT_KEY, FRAME_KEY, SHADOW_KEY, WINDOW_KEY};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 
-use crate::{Handler, VerifyBrowsingContextIsOpen, wait_for_ipc_response};
-
-/// <https://w3c.github.io/webdriver/#dfn-web-element-identifier>
-const ELEMENT_IDENTIFIER: &str = "element-6066-11e4-a52e-4f735466cecf";
-/// <https://w3c.github.io/webdriver/#dfn-web-frame-identifier>
-const FRAME_IDENTIFIER: &str = "frame-075b-4da1-b6ba-e579c2d3230a";
-/// <https://w3c.github.io/webdriver/#dfn-web-window-identifier>
-const WINDOW_IDENTIFIER: &str = "window-fcc6-11e5-b4f8-330a88ab9d7f";
-/// <https://w3c.github.io/webdriver/#dfn-shadow-root-identifier>
-const SHADOW_ROOT_IDENTIFIER: &str = "shadow-6066-11e4-a52e-4f735466cecf";
+use crate::{Handler, VerifyBrowsingContextIsOpen, wait_for_ipc_response_flatten};
 
 impl Handler {
     /// <https://w3c.github.io/webdriver/#dfn-extract-the-script-arguments-from-a-request>
@@ -59,11 +51,9 @@ impl Handler {
             VerifyBrowsingContextIsOpen::No,
         )?;
 
-        match wait_for_ipc_response(receiver)? {
-            // Step 4. Return success with data element.
-            Ok(_) => Ok(format!("window.webdriverElement(\"{}\")", element_ref)),
-            Err(err) => Err(WebDriverError::new(err, "No such element")),
-        }
+        wait_for_ipc_response_flatten(receiver)?;
+        // Step 4. Return success with data element.
+        Ok(format!("window.webdriverElement(\"{}\")", element_ref))
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-deserialize-a-shadow-root>
@@ -81,14 +71,12 @@ impl Handler {
             VerifyBrowsingContextIsOpen::No,
         )?;
 
-        match wait_for_ipc_response(receiver)? {
-            // Step 4. Return success with data element.
-            Ok(_) => Ok(format!(
-                "window.webdriverShadowRoot(\"{}\")",
-                shadow_root_ref
-            )),
-            Err(err) => Err(WebDriverError::new(err, "No such shadowroot")),
-        }
+        wait_for_ipc_response_flatten(receiver)?;
+        // Step 4. Return success with data element.
+        Ok(format!(
+            "window.webdriverShadowRoot(\"{}\")",
+            shadow_root_ref
+        ))
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-deserialize-a-web-frame>
@@ -131,13 +119,11 @@ impl Handler {
             VerifyBrowsingContextIsOpen::No,
         )?;
 
-        match wait_for_ipc_response(receiver)? {
-            // Step 5. Return success with data browsing context's associated window.
-            Ok(_) => Ok(format!("window.webdriverWindow(\"{window_ref}\")")),
-            // Step 4. If browsing context is null or not a top-level browsing context,
-            // return error with error code no such window.
-            Err(err) => Err(WebDriverError::new(err, "No such window")),
-        }
+        // Step 4. If browsing context is null or not a top-level browsing context,
+        // return error with error code no such window.
+        wait_for_ipc_response_flatten(receiver)?;
+        // Step 5. Return success with data browsing context's associated window.
+        Ok(format!("window.webdriverWindow(\"{window_ref}\")"))
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-json-deserialize>
@@ -151,16 +137,16 @@ impl Handler {
                 format!("[{}]", elems.join(", "))
             },
             Value::Object(map) => {
-                if let Some(id) = map.get(ELEMENT_IDENTIFIER) {
+                if let Some(id) = map.get(ELEMENT_KEY) {
                     return self.deserialize_web_element(id);
                 }
-                if let Some(id) = map.get(SHADOW_ROOT_IDENTIFIER) {
+                if let Some(id) = map.get(SHADOW_KEY) {
                     return self.deserialize_shadow_root(id);
                 }
-                if let Some(id) = map.get(FRAME_IDENTIFIER) {
+                if let Some(id) = map.get(FRAME_KEY) {
                     return self.deserialize_web_frame(id);
                 }
-                if let Some(id) = map.get(WINDOW_IDENTIFIER) {
+                if let Some(id) = map.get(WINDOW_KEY) {
                     return self.deserialize_web_window(id);
                 }
                 let elems = map

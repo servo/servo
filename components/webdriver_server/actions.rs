@@ -87,7 +87,7 @@ impl PointerInputState {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-get-a-pointer-id>
-    pub(crate) fn get_pointer_id(subtype: PointerType, pointer_ids: FxHashSet<u32>) -> u32 {
+    fn get_pointer_id(subtype: PointerType, pointer_ids: FxHashSet<u32>) -> u32 {
         // Step 2 - 4: Let pointer ids be all the values in input state map which is
         // pointer input source. This is already done and passed by the caller.
         if subtype == PointerType::Mouse {
@@ -352,11 +352,7 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerdown-action>
-    pub(crate) fn dispatch_pointerdown_action(
-        &mut self,
-        source_id: &str,
-        action: &PointerDownAction,
-    ) {
+    fn dispatch_pointerdown_action(&mut self, source_id: &str, action: &PointerDownAction) {
         let pointer_input_state = self.get_pointer_input_state_mut(source_id);
         // Step 3. If the source's pressed property contains button return success with data null.
         if pointer_input_state.pressed.contains(&action.button) {
@@ -380,7 +376,7 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerup-action>
-    pub(crate) fn dispatch_pointerup_action(&mut self, source_id: &str, action: &PointerUpAction) {
+    fn dispatch_pointerup_action(&mut self, source_id: &str, action: &PointerUpAction) {
         let pointer_input_state = self.get_pointer_input_state_mut(source_id);
         // Step 3. If the source's pressed property does not contain button, return success with data null.
         if !pointer_input_state.pressed.contains(&action.button) {
@@ -416,7 +412,7 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointermove-action>
-    pub(crate) fn dispatch_pointermove_action(
+    fn dispatch_pointermove_action(
         &mut self,
         source_id: &str,
         action: &PointerMoveAction,
@@ -842,7 +838,7 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-process-an-input-source-action-sequence>
-    pub(crate) fn process_an_input_source_action_sequence(
+    fn process_an_input_source_action_sequence(
         &mut self,
         action_sequence: ActionSequence,
     ) -> Vec<ActionItem> {
