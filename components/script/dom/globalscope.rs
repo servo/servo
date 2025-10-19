@@ -3352,6 +3352,10 @@ impl GlobalScope {
         );
     }
 
+    pub(crate) fn unminify_js(&self) -> bool {
+        self.unminified_js_dir.is_some()
+    }
+
     pub(crate) fn unminified_js_dir(&self) -> Option<String> {
         self.unminified_js_dir.clone()
     }

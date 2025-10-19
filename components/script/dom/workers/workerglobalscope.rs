@@ -91,7 +91,6 @@ use crate::network_listener::{PreInvoke, ResourceTimingListener, submit_timing};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType, JSContext, JSContextHelper, Runtime};
-use crate::script_thread::ScriptThread;
 use crate::task::TaskCanceller;
 use crate::timers::{IsInterval, TimerCallback};
 use crate::unminify::unminify_js;
@@ -115,6 +114,7 @@ pub(crate) fn prepare_workerscope_init(
         origin: global.origin().immutable().clone(),
         creation_url: global.creation_url().clone(),
         inherited_secure_context: Some(global.is_secure_context()),
+        unminify_js: global.unminify_js(),
     }
 }
 
@@ -373,7 +373,7 @@ impl WorkerGlobalScope {
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,
                 init.inherited_secure_context,
-                ScriptThread::unminify_js(),
+                init.unminify_js,
                 font_context,
             ),
             worker_id: init.worker_id,

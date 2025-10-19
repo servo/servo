@@ -701,10 +701,6 @@ impl ScriptThread {
         with_script_thread(|script_thread| script_thread.is_user_interacting.get())
     }
 
-    pub(crate) fn unminify_js() -> bool {
-        with_script_thread(|script_thread| script_thread.unminify_js)
-    }
-
     pub(crate) fn get_fully_active_document_ids(&self) -> FxHashSet<PipelineId> {
         self.documents
             .borrow()
