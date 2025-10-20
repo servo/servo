@@ -2763,7 +2763,7 @@ dependencies = [
  "parking_lot",
  "profile_traits",
  "range",
- "read-fonts",
+ "read-fonts 0.34.0",
  "rustc-hash 2.1.1",
  "serde",
  "servo-tracing",
@@ -2800,7 +2800,7 @@ dependencies = [
  "parking_lot",
  "profile_traits",
  "range",
- "read-fonts",
+ "read-fonts 0.34.0",
  "serde",
  "servo_malloc_size_of",
  "servo_url",
@@ -6963,6 +6963,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "read-fonts"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8941f8e9d5f8ad3aebea330d01ac68c0167600eb31a86ecd86e97be4d13b51f5"
+dependencies = [
+ "bytemuck",
+ "font-types",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8088,7 +8098,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "576e60c7de4bb6a803a0312f9bef17e78cf1e8d25a80e1ade76770d7a0237955"
 dependencies = [
  "bytemuck",
- "read-fonts",
+ "read-fonts 0.33.1",
 ]
 
 [[package]]
