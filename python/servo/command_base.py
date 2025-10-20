@@ -77,7 +77,7 @@ class BuildType:
         return self.kind == BuildType.Kind.RELEASE
 
     def is_prod(self) -> bool:
-        return self.is_custom() and (self.profile == "production" or self.profile == "production-stripped")
+        return self.is_custom() and (self.profile in ["production", "production-stripped"])
 
     def is_custom(self) -> bool:
         return self.kind == BuildType.Kind.CUSTOM
