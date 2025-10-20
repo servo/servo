@@ -185,7 +185,7 @@ impl Dialog {
                 let action = maybe_picker
                     .as_mut()
                     .map(|picker| {
-                        if dialog.state() == DialogState::Closed {
+                        if *dialog.state() == DialogState::Closed {
                             if picker.allow_select_multiple() {
                                 dialog.pick_multiple();
                             } else {
@@ -197,11 +197,12 @@ impl Dialog {
                         match state {
                             DialogState::Open => SelectFilesAction::Continue,
                             DialogState::Picked(path) => {
-                                picker.select(&[path]);
+                                let paths = std::slice::from_ref(path);
+                                picker.select(paths);
                                 SelectFilesAction::Submit
                             },
                             DialogState::PickedMultiple(paths) => {
-                                picker.select(&paths);
+                                picker.select(paths);
                                 SelectFilesAction::Submit
                             },
                             DialogState::Cancelled | DialogState::Closed => {

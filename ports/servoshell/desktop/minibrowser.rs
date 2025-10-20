@@ -96,7 +96,6 @@ impl Minibrowser {
         preferences: &ServoShellPreferences,
     ) -> Self {
         let rendering_context = window.offscreen_rendering_context();
-        // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
         #[allow(clippy::arc_with_non_send_sync)]
         let mut context = EguiGlow::new(
             event_loop,
@@ -571,19 +570,22 @@ impl Minibrowser {
     }
 
     /// Returns true if a redraw is required after handling the provided event.
-    pub(crate) fn handle_accesskit_event(&mut self, event: &accesskit_winit::WindowEvent) -> bool {
+    pub(crate) fn handle_accesskit_event(
+        &mut self,
+        event: &egui_winit::accesskit_winit::WindowEvent,
+    ) -> bool {
         match event {
-            accesskit_winit::WindowEvent::InitialTreeRequested => {
+            egui_winit::accesskit_winit::WindowEvent::InitialTreeRequested => {
                 self.context.egui_ctx.enable_accesskit();
                 true
             },
-            accesskit_winit::WindowEvent::ActionRequested(req) => {
+            egui_winit::accesskit_winit::WindowEvent::ActionRequested(req) => {
                 self.context
                     .egui_winit
                     .on_accesskit_action_request(req.clone());
                 true
             },
-            accesskit_winit::WindowEvent::AccessibilityDeactivated => {
+            egui_winit::accesskit_winit::WindowEvent::AccessibilityDeactivated => {
                 self.context.egui_ctx.disable_accesskit();
                 false
             },
