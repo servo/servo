@@ -250,7 +250,8 @@ impl MediaSessionMethods<crate::DomTypeHolder> for MediaSession {
             // If the playbackRate is not present or its value is null, set it to 1.0.
             media_instance.SetPlaybackRate(state.playbackRate.unwrap_or(Finite::wrap(1.0)))?;
             // If the position is not present or its value is null, set it to zero.
-            media_instance.SetCurrentTime(state.position.unwrap_or(Finite::wrap(0.0)));
+            media_instance
+                .SetCurrentTime(state.position.unwrap_or(Finite::wrap(0.0)), CanGc::note());
         }
 
         Ok(())
