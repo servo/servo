@@ -952,7 +952,11 @@ impl BoxFragment {
                     },
                     OverflowClipMarginBox::BorderBox => {},
                 };
-                radii = offset_radii(builder.border_radius(), offsets_from_border);
+                radii = offset_radii(
+                    builder.border_radius(),
+                    offsets_from_border,
+                    self.border_rect().size.to_webrender(),
+                );
             } else if overflow.x != ComputedOverflow::Clip {
                 let max = LayoutRect::max_rect();
                 overflow_clip_rect.min.x = max.min.x;
