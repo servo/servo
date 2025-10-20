@@ -685,7 +685,25 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                 can_gc,
             ) {
                 Err(_) => return Err(Error::Network),
-                Ok((metadata, bytes)) => (metadata.final_url, String::from_utf8(bytes).unwrap()),
+                Ok((metadata, bytes)) => {
+                    // https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-imported-script
+                    // Step 7: Check if response status is not an ok status
+                    if !metadata.status.is_success() {
+                        return Err(Error::Network);
+                    }
+
+                    // Step 7: Check if the MIME type is not a JavaScript MIME type
+                    let not_a_javascript_mime_type =
+                        !metadata.content_type.clone().is_some_and(|ct| {
+                            let mime: Mime = ct.into_inner().into();
+                            SCRIPT_JS_MIMES.contains(&mime.essence_str())
+                        });
+                    if not_a_javascript_mime_type {
+                        return Err(Error::Network);
+                    }
+
+                    (metadata.final_url, String::from_utf8(bytes).unwrap())
+                },
             };
 
             let options = self
