@@ -176,35 +176,55 @@ impl Dialog {
                 dialog,
                 maybe_picker,
             } => {
-                let Some(picker) = maybe_picker else {
-                    // Picker was dismissed, so the dialog should be closed too.
-                    return false;
-                };
-                if dialog.state() == DialogState::Closed {
-                    if picker.allow_select_multiple() {
-                        dialog.pick_multiple();
-                    } else {
-                        dialog.pick_file();
-                    }
+                enum SelectFilesAction {
+                    Dismiss,
+                    Submit,
+                    Continue,
                 }
 
-                let state = dialog.update(ctx).state();
-                match state {
-                    DialogState::Open => true,
-                    DialogState::Picked(path) => {
-                        picker.select(Some(&[path]));
-                        false
+                let action = maybe_picker
+                    .as_mut()
+                    .map(|picker| {
+                        if dialog.state() == DialogState::Closed {
+                            if picker.allow_select_multiple() {
+                                dialog.pick_multiple();
+                            } else {
+                                dialog.pick_file();
+                            }
+                        }
+
+                        let state = dialog.update(ctx).state();
+                        match state {
+                            DialogState::Open => SelectFilesAction::Continue,
+                            DialogState::Picked(path) => {
+                                picker.select(&[path]);
+                                SelectFilesAction::Submit
+                            },
+                            DialogState::PickedMultiple(paths) => {
+                                picker.select(&paths);
+                                SelectFilesAction::Submit
+                            },
+                            DialogState::Cancelled | DialogState::Closed => {
+                                SelectFilesAction::Dismiss
+                            },
+                        }
+                    })
+                    .unwrap_or(SelectFilesAction::Dismiss);
+
+                match action {
+                    SelectFilesAction::Dismiss => {
+                        if let Some(picker) = maybe_picker.take() {
+                            picker.dismiss();
+                        }
                     },
-                    DialogState::PickedMultiple(paths) => {
-                        picker.select(Some(&paths));
-                        false
+                    SelectFilesAction::Submit => {
+                        if let Some(picker) = maybe_picker.take() {
+                            picker.submit();
+                        }
                     },
-                    DialogState::Cancelled => {
-                        picker.select(None);
-                        false
-                    },
-                    DialogState::Closed => false,
+                    SelectFilesAction::Continue => {},
                 }
+                matches!(action, SelectFilesAction::Continue)
             },
             Dialog::SimpleDialog(SimpleDialog::Alert {
                 message,

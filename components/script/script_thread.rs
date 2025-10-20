@@ -525,12 +525,12 @@ impl ScriptThread {
     /// Process a single event as if it were the next event
     /// in the queue for this window event-loop.
     /// Returns a boolean indicating whether further events should be processed.
-    pub(crate) fn process_event(msg: CommonScriptMsg) -> bool {
+    pub(crate) fn process_event(msg: CommonScriptMsg, can_gc: CanGc) -> bool {
         with_script_thread(|script_thread| {
             if !script_thread.can_continue_running_inner() {
                 return false;
             }
-            script_thread.handle_msg_from_script(MainThreadScriptMsg::Common(msg));
+            script_thread.handle_msg_from_script(MainThreadScriptMsg::Common(msg), can_gc);
             true
         })
     }
@@ -1489,7 +1489,9 @@ impl ScriptThread {
                     MixedMessage::FromConstellation(inner_msg) => {
                         self.handle_msg_from_constellation(inner_msg, can_gc)
                     },
-                    MixedMessage::FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
+                    MixedMessage::FromScript(inner_msg) => {
+                        self.handle_msg_from_script(inner_msg, can_gc)
+                    },
                     MixedMessage::FromDevtools(inner_msg) => {
                         self.handle_msg_from_devtools(inner_msg, can_gc)
                     },
@@ -2018,7 +2020,7 @@ impl ScriptThread {
         }
     }
 
-    fn handle_msg_from_script(&self, msg: MainThreadScriptMsg) {
+    fn handle_msg_from_script(&self, msg: MainThreadScriptMsg, can_gc: CanGc) {
         match msg {
             MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, task, pipeline_id, _)) => {
                 let _realm = pipeline_id.and_then(|id| {
@@ -2055,6 +2057,12 @@ impl ScriptThread {
             } => self.handle_register_paint_worklet(pipeline_id, name, properties, painter),
             MainThreadScriptMsg::Inactive => {},
             MainThreadScriptMsg::WakeUp => {},
+            MainThreadScriptMsg::ForwardEmbedderControlResponseFromFileManager(
+                control_id,
+                response,
+            ) => {
+                self.handle_embedder_control_response(control_id, response, can_gc);
+            },
         }
     }
 

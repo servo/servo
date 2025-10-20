@@ -9,13 +9,12 @@ use base::id::PipelineId;
 use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{
     AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, EmbedderControlId,
-    EmbedderControlResponse, FilterPattern, GamepadHapticEffectType, InputEventId,
-    InputEventResult, InputMethodType, LoadStatus, MediaSessionEvent, Notification,
+    EmbedderControlResponse, FilePickerRequest, FilterPattern, GamepadHapticEffectType,
+    InputEventId, InputEventResult, InputMethodType, LoadStatus, MediaSessionEvent, Notification,
     PermissionFeature, RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup, SimpleDialog,
     TraversalId, WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
-use log::warn;
 use serde::Serialize;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
@@ -440,9 +439,7 @@ impl Drop for ColorPicker {
 /// Represents a dialog triggered by clicking a `<input type=color>` element.
 pub struct FilePicker {
     pub(crate) id: EmbedderControlId,
-    pub(crate) current_paths: Option<Vec<PathBuf>>,
-    pub(crate) filter_patterns: Vec<FilterPattern>,
-    pub(crate) allow_select_multiple: bool,
+    pub(crate) file_picker_request: FilePickerRequest,
     pub(crate) response_sender: GenericSender<Option<Vec<PathBuf>>>,
     pub(crate) response_sent: bool,
 }
@@ -454,29 +451,34 @@ impl FilePicker {
     }
 
     pub fn filter_patterns(&self) -> &[FilterPattern] {
-        &self.filter_patterns
+        &self.file_picker_request.filter_patterns
     }
 
     pub fn allow_select_multiple(&self) -> bool {
-        self.allow_select_multiple
+        self.file_picker_request.allow_select_multiple
     }
 
     /// Get the currently selected files in this [`FilePicker`]. This is initially the files that
     /// were previously selected before the picker is opened.
-    pub fn current_paths(&self) -> Option<&[PathBuf]> {
-        self.current_paths.as_deref()
+    pub fn current_paths(&self) -> &[PathBuf] {
+        &self.file_picker_request.current_paths
     }
 
-    pub fn select(&mut self, paths: Option<&[PathBuf]>) {
-        self.current_paths = paths.map(|paths| paths.to_owned());
+    pub fn select(&mut self, paths: &[PathBuf]) {
+        self.file_picker_request.current_paths = paths.to_owned();
     }
 
     /// Resolve the prompt with the options that have been selected by calling [select] previously.
     pub fn submit(mut self) {
-        if let Err(error) = self.response_sender.send(self.current_paths.take()) {
-            warn!("Failed to send file selection response: {error}");
-            return;
-        }
+        let _ = self.response_sender.send(Some(std::mem::take(
+            &mut self.file_picker_request.current_paths,
+        )));
+        self.response_sent = true;
+    }
+
+    /// Tell Servo that the file picker was dismissed with no selection.
+    pub fn dismiss(mut self) {
+        let _ = self.response_sender.send(None);
         self.response_sent = true;
     }
 }
@@ -484,9 +486,7 @@ impl FilePicker {
 impl Drop for FilePicker {
     fn drop(&mut self) {
         if !self.response_sent {
-            if let Err(error) = self.response_sender.send(self.current_paths.take()) {
-                warn!("Failed to send file selection response: {error}");
-            }
+            let _ = self.response_sender.send(None);
         }
     }
 }

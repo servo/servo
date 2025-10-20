@@ -20,6 +20,7 @@ use std::hash::Hash;
 use std::ops::Range;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::SystemTime;
 
 use base::Epoch;
 use base::generic_channel::{GenericCallback, GenericSender, SendResult};
@@ -476,8 +477,7 @@ pub enum EmbedderMsg {
     /// Open file dialog to select files. Set boolean flag to true allows to select multiple files.
     SelectFiles(
         EmbedderControlId,
-        Vec<FilterPattern>,
-        bool,
+        FilePickerRequest,
         GenericSender<Option<Vec<PathBuf>>>,
     ),
     /// Open interface to request permission specified by prompt.
@@ -550,18 +550,34 @@ pub enum EmbedderControlRequest {
     /// Indicates that the user has activated a `<input type=color>` element.
     ColorPicker(RgbColor),
     /// Indicates that the user has activated a `<input type=file>` element.
-    FilePicker {
-        current_paths: Option<Vec<PathBuf>>,
-        filter_patterns: Vec<FilterPattern>,
-        allow_select_multiple: bool,
-    },
+    FilePicker(FilePickerRequest),
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct FilePickerRequest {
+    pub origin: String,
+    pub current_paths: Vec<PathBuf>,
+    pub filter_patterns: Vec<FilterPattern>,
+    pub allow_select_multiple: bool,
+    pub accept_current_paths_for_testing: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum EmbedderControlResponse {
     SelectElement(Option<usize>),
     ColorPicker(Option<RgbColor>),
-    FilePicker(Option<Vec<PathBuf>>),
+    FilePicker(Option<Vec<SelectedFile>>),
+}
+
+/// Response to file selection request
+#[derive(Debug, Deserialize, Serialize)]
+pub struct SelectedFile {
+    pub id: Uuid,
+    pub filename: PathBuf,
+    pub modified: SystemTime,
+    pub size: u64,
+    // https://w3c.github.io/FileAPI/#dfn-type
+    pub type_string: String,
 }
 
 /// Filter for file selection;

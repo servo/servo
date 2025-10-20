@@ -4,10 +4,14 @@
 
 use std::cell::Cell;
 
-use base::Epoch;
+use base::{Epoch, IpcSend};
 use embedder_traits::{
     EmbedderControlId, EmbedderControlRequest, EmbedderControlResponse, EmbedderMsg,
 };
+use euclid::{Point2D, Rect, Size2D};
+use ipc_channel::router::ROUTER;
+use net_traits::CoreResourceMsg;
+use net_traits::filemanager_thread::FileManagerThreadMsg;
 use rustc_hash::FxHashMap;
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::script_runtime::CanGc;
@@ -16,12 +20,15 @@ use webrender_api::units::DeviceIntRect;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::inheritance::Castable as _;
 use crate::dom::bindings::trace::NoTrace;
+use crate::dom::node::Node;
 use crate::dom::types::{Element, HTMLInputElement, HTMLSelectElement, Window};
+use crate::messaging::MainThreadScriptMsg;
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum ControlElement {
     Select(DomRoot<HTMLSelectElement>),
     ColorInput(DomRoot<HTMLInputElement>),
+    FileInput(DomRoot<HTMLInputElement>),
 }
 
 impl ControlElement {
@@ -29,6 +36,7 @@ impl ControlElement {
         match self {
             ControlElement::Select(element) => element.upcast::<Element>(),
             ControlElement::ColorInput(element) => element.upcast::<Element>(),
+            ControlElement::FileInput(element) => element.upcast::<Element>(),
         }
     }
 }
@@ -70,15 +78,61 @@ impl DocumentEmbedderControls {
     pub(crate) fn show_embedder_control(
         &self,
         element: ControlElement,
-        rect: DeviceIntRect,
-        embedder_control: EmbedderControlRequest,
+        request: EmbedderControlRequest,
     ) -> EmbedderControlId {
         let id = self.next_control_id();
+        let rect = element
+            .element()
+            .upcast::<Node>()
+            .border_box()
+            .unwrap_or_default();
+        let rect = Rect::new(
+            Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
+            Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
+        );
+        // FIXME: this is a CSS px rect, not a device rect
+        let rect = DeviceIntRect::from_untyped(&rect.to_box2d());
         self.visible_elements
             .borrow_mut()
             .insert(id.index.into(), element);
-        self.window
-            .send_to_embedder(EmbedderMsg::ShowEmbedderControl(id, rect, embedder_control));
+
+        match request {
+            EmbedderControlRequest::SelectElement(..) | EmbedderControlRequest::ColorPicker(..) => {
+                self.window
+                    .send_to_embedder(EmbedderMsg::ShowEmbedderControl(id, rect, request))
+            },
+            EmbedderControlRequest::FilePicker(file_picker_request) => {
+                let (sender, receiver) = profile_traits::ipc::channel(
+                    self.window.as_global_scope().time_profiler_chan().clone(),
+                )
+                .expect("Error initializing channel");
+                let main_thread_sender = self.window.main_thread_script_chan().clone();
+                ROUTER.add_typed_route(
+                    receiver.to_ipc_receiver(),
+                    Box::new(move |result| {
+                        let Ok(embedder_control_response) = result else {
+                            return;
+                        };
+                        if let Err(error) = main_thread_sender.send(
+                            MainThreadScriptMsg::ForwardEmbedderControlResponseFromFileManager(
+                                id,
+                                embedder_control_response,
+                            ),
+                        ) {
+                            warn!("Could not send FileManager response to main thread: {error}")
+                        }
+                    }),
+                );
+                self.window
+                    .as_global_scope()
+                    .resource_threads()
+                    .sender()
+                    .send(CoreResourceMsg::ToFileManager(
+                        FileManagerThreadMsg::SelectFiles(id, file_picker_request, sender),
+                    ))
+                    .unwrap();
+            },
+        }
 
         id
     }
@@ -126,6 +180,12 @@ impl DocumentEmbedderControls {
                 EmbedderControlResponse::ColorPicker(response),
             ) => {
                 input_element.handle_color_picker_response(response, can_gc);
+            },
+            (
+                ControlElement::FileInput(input_element),
+                EmbedderControlResponse::FilePicker(response),
+            ) => {
+                input_element.handle_file_picker_response(response, can_gc);
             },
             (_, _) => unreachable!(
                 "The response to a form control should always match it's originating type."

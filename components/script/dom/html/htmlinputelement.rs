@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::cmp::Ordering;
 use std::ops::Range;
 use std::path::PathBuf;
@@ -11,14 +11,14 @@ use std::ptr::NonNull;
 use std::str::FromStr;
 use std::{f64, ptr};
 
-use base::IpcSend;
 use dom_struct::dom_struct;
 use embedder_traits::{
-    EmbedderControlRequest as EmbedderFormControl, FilterPattern, InputMethodType, RgbColor,
+    EmbedderControlRequest, FilePickerRequest, FilterPattern, InputMethodType, RgbColor,
+    SelectedFile,
 };
 use encoding_rs::Encoding;
-use euclid::{Point2D, Rect, Size2D};
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
+use ipc_channel::ipc::IpcSender;
 use itertools::Itertools;
 use js::jsapi::{
     ClippedTime, DateGetMsecSinceEpoch, Handle, JS_ClearPendingException, JSObject, NewDateObject,
@@ -27,13 +27,10 @@ use js::jsapi::{
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{CheckRegExpSyntax, ExecuteRegExpNoStatics, ObjectIsRegExp};
 use js::rust::{HandleObject, MutableHandleObject};
-use net_traits::CoreResourceMsg;
 use net_traits::blob_url_store::get_blob_origin;
-use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadMsg};
 use script_bindings::codegen::GenericBindings::CharacterDataBinding::CharacterDataMethods;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::domstring::parse_floating_point_number;
-use servo_config::pref;
 use style::attr::AttrValue;
 use style::selector_parser::PseudoElement;
 use style::str::split_commas;
@@ -42,7 +39,7 @@ use stylo_dom::ElementState;
 use time::{Month, OffsetDateTime, Time};
 use unicode_bidi::{BidiClass, bidi_class};
 use url::Url;
-use webrender_api::units::DeviceIntRect;
+use webdriver::error::ErrorStatus;
 
 use crate::clipboard_provider::EmbedderClipboardProvider;
 use crate::dom::activation::Activatable;
@@ -56,7 +53,6 @@ use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputE
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, FromInputValueString, ToInputValueString, USVString};
 use crate::dom::clipboardevent::ClipboardEvent;
@@ -446,6 +442,8 @@ pub(crate) struct HTMLInputElement {
     labels_node_list: MutNullableDom<NodeList>,
     validity_state: MutNullableDom<ValidityState>,
     shadow_tree: DomRefCell<Option<ShadowTree>>,
+    #[no_trace]
+    pending_webdriver_response: RefCell<Option<PendingWebDriverResponse>>,
 }
 
 #[derive(JSTraceable)]
@@ -505,6 +503,7 @@ impl HTMLInputElement {
             labels_node_list: MutNullableDom::new(None),
             validity_state: Default::default(),
             shadow_tree: Default::default(),
+            pending_webdriver_response: Default::default(),
         }
     }
 
@@ -2061,13 +2060,11 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             .set_dom_range_text(replacement, Some(start), Some(end), selection_mode)
     }
 
-    // Select the files based on filepaths passed in,
-    // enabled by dom.htmlinputelement.select_files.enabled,
-    // used for test purpose.
-    // check-tidy: no specs after this line
-    fn SelectFiles(&self, paths: Vec<DOMString>, can_gc: CanGc) {
+    /// Select the files based on filepaths passed in, enabled by
+    /// `dom.htmlinputelement.select_files.enabled`, used for test purpose.
+    fn SelectFiles(&self, paths: Vec<DOMString>) {
         if self.input_type() == InputType::File {
-            let _ = self.select_files(Some(paths), can_gc);
+            self.select_files(Some(paths));
         }
     }
 
@@ -2388,106 +2385,49 @@ impl HTMLInputElement {
             .SetData(placeholder_text);
     }
 
-    // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file)
-    // Select files by invoking UI or by passed in argument
-    pub(crate) fn select_files(
+    pub(crate) fn select_files_for_webdriver(
         &self,
-        opt_test_paths: Option<Vec<DOMString>>,
-        can_gc: CanGc,
-    ) -> FileManagerResult<()> {
-        let window = self.owner_window();
-        let origin = get_blob_origin(&window.get_url());
-        let resource_threads = window.as_global_scope().resource_threads();
+        test_paths: Vec<DOMString>,
+        response_sender: IpcSender<Result<bool, ErrorStatus>>,
+    ) {
+        let mut stored_sender = self.pending_webdriver_response.borrow_mut();
+        assert!(stored_sender.is_none());
 
-        let mut files: Vec<DomRoot<File>> = vec![];
+        *stored_sender = Some(PendingWebDriverResponse {
+            response_sender,
+            expected_file_count: test_paths.len(),
+        });
 
-        let filter = filter_from_accept(&self.Accept());
-        let target = self.upcast::<EventTarget>();
+        self.select_files(Some(test_paths));
+    }
 
-        if self.Multiple() {
-            // When using WebDriver command element send keys,
-            // we are expected to append the files to the existing filelist.
-            if pref!(dom_testing_html_input_element_select_files_enabled) {
-                let filelist = self.filelist.get();
-                if let Some(filelist) = filelist {
-                    for i in 0..filelist.Length() {
-                        files.push(
-                            filelist
-                                .Item(i)
-                                .expect("We should have iterate within filelist length"),
-                        );
-                    }
-                }
-            }
+    /// Select files by invoking UI or by passed in argument.
+    ///
+    /// <https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file)>
+    pub(crate) fn select_files(&self, test_paths: Option<Vec<DOMString>>) {
+        let current_paths = match &test_paths {
+            Some(test_paths) => test_paths
+                .iter()
+                .filter_map(|path_str| PathBuf::from_str(&path_str.str()).ok())
+                .collect(),
+            // TODO: This should get the pathnames of the current files, but we currently don't have
+            // that information in Script. It should be passed through here.
+            None => Default::default(),
+        };
 
-            let opt_test_paths = opt_test_paths.map(|paths| {
-                paths
-                    .iter()
-                    .filter_map(|p| PathBuf::from_str(&p.str()).ok())
-                    .collect()
-            });
-
-            let (chan, recv) =
-                profile_traits::ipc::channel(self.global().time_profiler_chan().clone())
-                    .expect("Error initializing channel");
-            let control_id = self.owner_document().embedder_controls().next_control_id();
-            let msg =
-                FileManagerThreadMsg::SelectFiles(control_id, filter, chan, origin, opt_test_paths);
-            resource_threads
-                .send(CoreResourceMsg::ToFileManager(msg))
-                .unwrap();
-
-            match recv.recv().expect("IpcSender side error") {
-                Ok(selected_files) => {
-                    for selected in selected_files {
-                        files.push(File::new_from_selected(&window, selected, can_gc));
-                    }
-                },
-                Err(err) => {
-                    debug!("Input multiple file select error: {:?}", err);
-                    return Err(err);
-                },
-            };
-        } else {
-            let opt_test_path = match opt_test_paths {
-                Some(paths) => {
-                    if paths.is_empty() {
-                        return Ok(());
-                    } else {
-                        Some(PathBuf::from(paths[0].to_string())) // neglect other paths
-                    }
-                },
-                None => None,
-            };
-
-            let (chan, recv) =
-                profile_traits::ipc::channel(self.global().time_profiler_chan().clone())
-                    .expect("Error initializing channel");
-            let control_id = self.owner_document().embedder_controls().next_control_id();
-            let msg =
-                FileManagerThreadMsg::SelectFile(control_id, filter, chan, origin, opt_test_path);
-            resource_threads
-                .send(CoreResourceMsg::ToFileManager(msg))
-                .unwrap();
-
-            match recv.recv().expect("IpcSender side error") {
-                Ok(selected) => {
-                    files.push(File::new_from_selected(&window, selected, can_gc));
-                },
-                Err(err) => {
-                    debug!("Input file select error: {:?}", err);
-                    return Err(err);
-                },
-            };
-        }
-
-        let filelist = FileList::new(&window, files, can_gc);
-        self.filelist.set(Some(&filelist));
-
-        target.fire_bubbling_event(atom!("input"), can_gc);
-        target.fire_bubbling_event(atom!("change"), can_gc);
-
-        Ok(())
+        let accept_current_paths_for_testing = test_paths.is_some();
+        self.owner_document()
+            .embedder_controls()
+            .show_embedder_control(
+                ControlElement::FileInput(DomRoot::from_ref(self)),
+                EmbedderControlRequest::FilePicker(FilePickerRequest {
+                    origin: get_blob_origin(&self.owner_window().get_url()),
+                    current_paths,
+                    filter_patterns: filter_from_accept(&self.Accept()),
+                    allow_select_multiple: self.Multiple(),
+                    accept_current_paths_for_testing,
+                }),
+            );
     }
 
     /// <https://html.spec.whatwg.org/multipage/#value-sanitization-algorithm>
@@ -2861,11 +2801,6 @@ impl HTMLInputElement {
         // in the way it normally would when the user interacts with the control.
         if self.input_type() == InputType::Color {
             let document = self.owner_document();
-            let rect = self.upcast::<Node>().border_box().unwrap_or_default();
-            let rect = Rect::new(
-                Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
-                Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
-            );
             let current_value = self.Value();
             let current_color = RgbColor {
                 red: u8::from_str_radix(&current_value.str()[1..3], 16).unwrap(),
@@ -2874,8 +2809,7 @@ impl HTMLInputElement {
             };
             document.embedder_controls().show_embedder_control(
                 ControlElement::ColorInput(DomRoot::from_ref(self)),
-                DeviceIntRect::from_untyped(&rect.to_box2d()),
-                EmbedderFormControl::ColorPicker(current_color),
+                EmbedderControlRequest::ColorPicker(current_color),
             );
         }
     }
@@ -2889,6 +2823,59 @@ impl HTMLInputElement {
             selected_color.red, selected_color.green, selected_color.blue
         );
         let _ = self.SetValue(formatted_color.into(), can_gc);
+    }
+
+    pub(crate) fn handle_file_picker_response(
+        &self,
+        response: Option<Vec<SelectedFile>>,
+        can_gc: CanGc,
+    ) {
+        let mut files = Vec::new();
+
+        if let Some(pending_webdriver_reponse) = self.pending_webdriver_response.borrow_mut().take()
+        {
+            // From: <https://w3c.github.io/webdriver/#dfn-dispatch-actions-for-a-string>
+            // "Complete implementation specific steps equivalent to setting the selected
+            // files on the input element. If multiple is true files are be appended to
+            // element's selected files."
+            //
+            // Note: This is annoying.
+            if self.Multiple() {
+                if let Some(filelist) = self.filelist.get() {
+                    files = filelist.iter_files().map(|file| file.as_rooted()).collect();
+                }
+            }
+
+            let number_files_selected = response.as_ref().map(Vec::len).unwrap_or_default();
+            pending_webdriver_reponse.finish(number_files_selected);
+        }
+
+        let Some(response_files) = response else {
+            return;
+        };
+
+        let window = self.owner_window();
+        files.extend(
+            response_files
+                .into_iter()
+                .map(|file| File::new_from_selected(&window, file, can_gc)),
+        );
+
+        // Only use the last file if this isn't a multi-select file input. This could
+        // happen if the attribute changed after the file dialog was initiated.
+        if !self.Multiple() {
+            files = files
+                .pop()
+                .map(|last_file| vec![last_file])
+                .unwrap_or_default();
+        }
+
+        self.filelist
+            .set(Some(&FileList::new(&window, files, can_gc)));
+
+        let target = self.upcast::<EventTarget>();
+        target.fire_bubbling_event(atom!("input"), can_gc);
+        target.fire_bubbling_event(atom!("change"), can_gc);
     }
 }
 
@@ -3623,7 +3610,7 @@ impl Activatable for HTMLInputElement {
             },
             // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file):input-activation-behavior
             InputType::File => {
-                let _ = self.select_files(None, can_gc);
+                self.select_files(None);
             },
             // https://html.spec.whatwg.org/multipage/#color-state-(type=color):input-activation-behavior
             InputType::Color => {
@@ -3769,6 +3756,29 @@ fn matches_js_regex(
         } else {
             JS_ClearPendingException(*cx);
             Err(())
+        }
+    }
+}
+
+/// When WebDriver asks the [`HTMLInputElement`] to do some asynchronous actions, such
+/// as selecting files, this stores the details necessary to complete the response when
+/// the action is complete.
+#[derive(MallocSizeOf)]
+struct PendingWebDriverResponse {
+    /// An [`IpcSender`] to use to send the reply when the response is ready.
+    response_sender: IpcSender<Result<bool, ErrorStatus>>,
+    /// The number of files expected to be selected when the selection process is done.
+    expected_file_count: usize,
+}
+
+impl PendingWebDriverResponse {
+    fn finish(self, number_files_selected: usize) {
+        if number_files_selected == self.expected_file_count {
+            let _ = self.response_sender.send(Ok(false));
+        } else {
+            // If not all files are found the WebDriver specification says to return
+            // the InvalidArgument error.
+            let _ = self.response_sender.send(Err(ErrorStatus::InvalidArgument));
         }
     }
 }
