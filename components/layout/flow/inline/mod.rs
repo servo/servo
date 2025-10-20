@@ -248,33 +248,6 @@ impl InlineItem {
         }
     }
 
-    pub(crate) fn clear_fragment_layout_cache(&self) {
-        match self {
-            InlineItem::StartInlineBox(inline_box) => {
-                inline_box.borrow().base.clear_fragment_layout_cache()
-            },
-            InlineItem::EndInlineBox | InlineItem::TextRun(..) => {},
-            InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, ..) => {
-                positioned_box
-                    .borrow()
-                    .context
-                    .base
-                    .clear_fragment_layout_cache();
-            },
-            InlineItem::OutOfFlowFloatBox(float_box) => float_box
-                .borrow()
-                .contents
-                .base
-                .clear_fragment_layout_cache(),
-            InlineItem::Atomic(independent_formatting_context, ..) => {
-                independent_formatting_context
-                    .borrow()
-                    .base
-                    .clear_fragment_layout_cache()
-            },
-        }
-    }
-
     pub(crate) fn with_base<T>(&self, callback: impl FnOnce(&LayoutBoxBase) -> T) -> T {
         match self {
             InlineItem::StartInlineBox(inline_box) => callback(&inline_box.borrow().base),

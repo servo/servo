@@ -128,25 +128,6 @@ impl TaffyItemBox {
         }
     }
 
-    pub(crate) fn clear_fragment_layout_cache(&mut self) {
-        self.taffy_layout = Default::default();
-        self.positioning_context = PositioningContext::default();
-        match self.taffy_level_box {
-            TaffyItemBoxInner::InFlowBox(ref independent_formatting_context) => {
-                independent_formatting_context
-                    .base
-                    .clear_fragment_layout_cache()
-            },
-            TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(ref positioned_box) => {
-                positioned_box
-                    .borrow()
-                    .context
-                    .base
-                    .clear_fragment_layout_cache()
-            },
-        }
-    }
-
     pub(crate) fn with_base<T>(&self, callback: impl FnOnce(&LayoutBoxBase) -> T) -> T {
         match self.taffy_level_box {
             TaffyItemBoxInner::InFlowBox(ref independent_formatting_context) => {

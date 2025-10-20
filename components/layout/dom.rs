@@ -96,7 +96,7 @@ impl InnerDOMLayoutData {
 
     fn clear_fragment_layout_cache(&self) {
         if let Some(data) = self.self_box.borrow().as_ref() {
-            data.clear_fragment_layout_cache();
+            data.with_each_base(LayoutBoxBase::clear_fragment_layout_cache);
         }
         for pseudo_layout_data in self.pseudo_boxes.iter() {
             pseudo_layout_data
@@ -119,25 +119,8 @@ pub(super) enum LayoutBox {
 }
 
 impl LayoutBox {
-    fn clear_fragment_layout_cache(&self) {
-        match self {
-            LayoutBox::DisplayContents(..) => {},
-            LayoutBox::BlockLevel(block_level_box) => {
-                block_level_box.borrow().clear_fragment_layout_cache()
-            },
-            LayoutBox::InlineLevel(inline_items) => {
-                for inline_item in inline_items.iter() {
-                    inline_item.borrow().clear_fragment_layout_cache()
-                }
-            },
-            LayoutBox::FlexLevel(flex_level_box) => {
-                flex_level_box.borrow().clear_fragment_layout_cache()
-            },
-            LayoutBox::TaffyItemBox(taffy_item_box) => {
-                taffy_item_box.borrow_mut().clear_fragment_layout_cache()
-            },
-            LayoutBox::TableLevelBox(table_box) => table_box.clear_fragment_layout_cache(),
-        }
+    pub(crate) fn with_each_base(&self, callback: impl Fn(&LayoutBoxBase)) {
+        self.with_base_fold((), |_, base| callback(base))
     }
 
     pub(crate) fn with_first_base<T>(
@@ -167,6 +150,31 @@ impl LayoutBox {
             LayoutBox::FlexLevel(flex_level_box) => flex_level_box.borrow().with_base(callback),
             LayoutBox::TaffyItemBox(taffy_item_box) => taffy_item_box.borrow().with_base(callback),
             LayoutBox::TableLevelBox(table_box) => table_box.with_base(callback),
+        }
+    }
+
+    pub(crate) fn with_base_fold<T>(
+        &self,
+        init: T,
+        callback: impl Fn(T, &LayoutBoxBase) -> T,
+    ) -> T {
+        match self {
+            LayoutBox::DisplayContents(..) => init,
+            LayoutBox::BlockLevel(block_level_box) => block_level_box
+                .borrow()
+                .with_base(|base| callback(init, base)),
+            LayoutBox::InlineLevel(inline_items) => inline_items.iter().fold(init, |acc, item| {
+                item.borrow().with_base(|base| callback(acc, base))
+            }),
+            LayoutBox::FlexLevel(flex_level_box) => flex_level_box
+                .borrow()
+                .with_base(|base| callback(init, base)),
+            LayoutBox::TableLevelBox(table_level_box) => {
+                table_level_box.with_base(|base| callback(init, base))
+            },
+            LayoutBox::TaffyItemBox(taffy_item_box) => taffy_item_box
+                .borrow()
+                .with_base(|base| callback(init, base)),
         }
     }
 

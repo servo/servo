@@ -177,20 +177,6 @@ impl FlexLevelBox {
         }
     }
 
-    pub(crate) fn clear_fragment_layout_cache(&self) {
-        match self {
-            FlexLevelBox::FlexItem(flex_item_box) => flex_item_box
-                .independent_formatting_context
-                .base
-                .clear_fragment_layout_cache(),
-            FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => positioned_box
-                .borrow()
-                .context
-                .base
-                .clear_fragment_layout_cache(),
-        }
-    }
-
     pub(crate) fn with_base<T>(&self, callback: impl FnOnce(&LayoutBoxBase) -> T) -> T {
         match self {
             FlexLevelBox::FlexItem(flex_item_box) => {

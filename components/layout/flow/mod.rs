@@ -134,10 +134,6 @@ impl BlockLevelBox {
         }
     }
 
-    pub(crate) fn clear_fragment_layout_cache(&self) {
-        self.with_base(|base| base.clear_fragment_layout_cache());
-    }
-
     pub(crate) fn with_base<T>(&self, callback: impl FnOnce(&LayoutBoxBase) -> T) -> T {
         match self {
             BlockLevelBox::Independent(independent_formatting_context) => {

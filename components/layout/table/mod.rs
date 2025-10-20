@@ -397,21 +397,6 @@ pub(crate) enum TableLevelBox {
 }
 
 impl TableLevelBox {
-    pub(crate) fn clear_fragment_layout_cache(&self) {
-        match self {
-            TableLevelBox::Caption(caption) => {
-                caption.borrow().context.base.clear_fragment_layout_cache();
-            },
-            TableLevelBox::Cell(cell) => {
-                cell.borrow().base.clear_fragment_layout_cache();
-            },
-            TableLevelBox::TrackGroup(track_group) => {
-                track_group.borrow().base.clear_fragment_layout_cache()
-            },
-            TableLevelBox::Track(track) => track.borrow().base.clear_fragment_layout_cache(),
-        }
-    }
-
     pub(crate) fn with_base<T>(&self, callback: impl FnOnce(&LayoutBoxBase) -> T) -> T {
         match self {
             TableLevelBox::Caption(caption) => callback(&caption.borrow().context.base),
