@@ -313,7 +313,7 @@ impl WebViewRenderer {
             InputEvent::MouseLeftViewport(_) => {
                 self.global.borrow_mut().last_mouse_move_position = None;
             },
-            InputEvent::MouseButton(_) | InputEvent::Wheel(_) => {},
+            InputEvent::Touch(_) | InputEvent::MouseButton(_) | InputEvent::Wheel(_) => {},
             _ => unreachable!("Unexpected input event type: {event:?}"),
         }
 
