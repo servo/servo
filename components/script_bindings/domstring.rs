@@ -371,7 +371,7 @@ impl DOMString {
         self.view().is_empty()
     }
 
-    /// This length (as rust spec) is in bytes not chars.
+    /// This length (as rust spec) is in bytes if the string would be utf8 not chars.
     pub fn len(&self) -> usize {
         self.view().len()
     }
@@ -792,6 +792,61 @@ mod tests {
     }
 
     #[test]
+    fn test_length() {
+        let s1 = from_latin1(vec![
+            0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD,
+            0xAE, 0xAF,
+        ]);
+        let s2 = from_latin1(vec![
+            0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7, 0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD,
+            0xBE, 0xBF,
+        ]);
+        let s3 = from_latin1(vec![
+            0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8, 0xC9, 0xCA, 0xCB, 0xCC, 0xCD,
+            0xCE, 0xCF,
+        ]);
+        let s4 = from_latin1(vec![
+            0xD0, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD,
+            0xDE, 0xDF,
+        ]);
+        let s5 = from_latin1(vec![
+            0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xE9, 0xEA, 0xEB, 0xEC, 0xED,
+            0xEE, 0xEF,
+        ]);
+        let s6 = from_latin1(vec![
+            0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD,
+            0xFE, 0xFF,
+        ]);
+
+        let s1_utf8 = String::from("\u{00A0}¡¢£¤¥¦§¨©ª«¬\u{00AD}®¯");
+        let s2_utf8 = String::from("°±²³´µ¶·¸¹º»¼½¾¿");
+        let s3_utf8 = String::from("ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏ");
+        let s4_utf8 = String::from("ÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞß");
+        let s5_utf8 = String::from("àáâãäåæçèéêëìíîï");
+        let s6_utf8 = String::from("ðñòóôõö÷øùúûüýþÿ");
+
+        assert_eq!(s1.len(), s1_utf8.len());
+        assert_eq!(s2.len(), s2_utf8.len());
+        assert_eq!(s3.len(), s3_utf8.len());
+        assert_eq!(s4.len(), s4_utf8.len());
+        assert_eq!(s5.len(), s5_utf8.len());
+        assert_eq!(s6.len(), s6_utf8.len());
+
+        s1.make_rust();
+        s2.make_rust();
+        s3.make_rust();
+        s4.make_rust();
+        s5.make_rust();
+        s6.make_rust();
+        assert_eq!(s1.len(), s1_utf8.len());
+        assert_eq!(s2.len(), s2_utf8.len());
+        assert_eq!(s3.len(), s3_utf8.len());
+        assert_eq!(s4.len(), s4_utf8.len());
+        assert_eq!(s5.len(), s5_utf8.len());
+        assert_eq!(s6.len(), s6_utf8.len());
+    }
+
+    #[test]
     fn test_convert() {
         let s = from_latin1(vec![b'a', b'b', b'c', b'%', b'$']);
         s.make_rust();
@@ -883,8 +938,8 @@ mod tests {
 
         {
             let s = DOMString::from_string(String::from("abcde"));
-            match_domstring_ascii!( s, (),
-                "abc" => assert!(true),
+            match_domstring_ascii!( s, assert!(true),
+                "abc" => assert!(false),
                 "bcd" => assert!(false),
             );
         }
