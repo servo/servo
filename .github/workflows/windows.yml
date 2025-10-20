@@ -188,7 +188,7 @@ jobs:
         with:
           files: target/nextest/ci/junit.xml
           disable_search: true
-          flags: unittests-windows
+          flags: unittests,unittests-windows,unittests-windows-${{ inputs.profile }}
           token: ${{ secrets.CODECOV_TOKEN }}
       - name: Devtools tests
         if: ${{ false && inputs.unit-tests }}  # FIXME #39273
