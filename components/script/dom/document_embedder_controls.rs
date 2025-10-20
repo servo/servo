@@ -21,7 +21,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::inheritance::Castable as _;
 use crate::dom::bindings::trace::NoTrace;
 use crate::dom::node::Node;
-use crate::dom::types::{Element, HTMLInputElement, HTMLSelectElement, Window};
+use crate::dom::types::{Element, HTMLElement, HTMLInputElement, HTMLSelectElement, Window};
 use crate::messaging::MainThreadScriptMsg;
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -29,6 +29,7 @@ pub(crate) enum ControlElement {
     Select(DomRoot<HTMLSelectElement>),
     ColorInput(DomRoot<HTMLInputElement>),
     FileInput(DomRoot<HTMLInputElement>),
+    Ime(DomRoot<HTMLElement>),
 }
 
 impl ControlElement {
@@ -37,6 +38,7 @@ impl ControlElement {
             ControlElement::Select(element) => element.upcast::<Element>(),
             ControlElement::ColorInput(element) => element.upcast::<Element>(),
             ControlElement::FileInput(element) => element.upcast::<Element>(),
+            ControlElement::Ime(element) => element.upcast::<Element>(),
         }
     }
 }
@@ -97,10 +99,11 @@ impl DocumentEmbedderControls {
             .insert(id.index.into(), element);
 
         match request {
-            EmbedderControlRequest::SelectElement(..) | EmbedderControlRequest::ColorPicker(..) => {
-                self.window
-                    .send_to_embedder(EmbedderMsg::ShowEmbedderControl(id, rect, request))
-            },
+            EmbedderControlRequest::SelectElement(..) |
+            EmbedderControlRequest::ColorPicker(..) |
+            EmbedderControlRequest::InputMethod(..) => self
+                .window
+                .send_to_embedder(EmbedderMsg::ShowEmbedderControl(id, rect, request)),
             EmbedderControlRequest::FilePicker(file_picker_request) => {
                 let (sender, receiver) = profile_traits::ipc::channel(
                     self.window.as_global_scope().time_profiler_chan().clone(),

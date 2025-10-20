@@ -30,8 +30,6 @@ use embedder_traits::{
     AllowOrDeny, AnimationState, EmbedderMsg, FocusSequenceNumber, Image, LoadStatus,
 };
 use encoding_rs::{Encoding, UTF_8};
-use euclid::Point2D;
-use euclid::default::{Rect, Size2D};
 use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use hyper_serde::Serde;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
@@ -73,7 +71,6 @@ use url::Host;
 use uuid::Uuid;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::WebGPUContextId;
-use webrender_api::units::DeviceIntRect;
 
 use crate::animation_timeline::AnimationTimeline;
 use crate::animations::Animations;
@@ -92,9 +89,7 @@ use crate::dom::bindings::codegen::Bindings::ElementBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElement_Binding::HTMLIFrameElementMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
-use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::Navigator_Binding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
@@ -159,9 +154,7 @@ use crate::dom::html::htmlheadelement::HTMLHeadElement;
 use crate::dom::html::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::html::htmliframeelement::HTMLIFrameElement;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
-use crate::dom::html::htmlinputelement::HTMLInputElement;
 use crate::dom::html::htmlscriptelement::{HTMLScriptElement, ScriptResult};
-use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::html::htmltitleelement::HTMLTitleElement;
 use crate::dom::intersectionobserver::IntersectionObserver;
 use crate::dom::keyboardevent::KeyboardEvent;
@@ -1447,11 +1440,6 @@ impl Document {
                 if node.is_connected() {
                     self.fire_focus_event(FocusEventType::Blur, node.upcast(), None, can_gc);
                 }
-
-                // Notify the embedder to hide the input method.
-                if elem.input_method_type().is_some() {
-                    self.send_to_embedder(EmbedderMsg::HideIME(self.webview_id()));
-                }
             }
         }
 
@@ -1473,41 +1461,6 @@ impl Document {
                 // FIXME: pass appropriate relatedTarget
                 self.fire_focus_event(FocusEventType::Focus, node.upcast(), None, can_gc);
 
-                // Notify the embedder to display an input method.
-                if let Some(kind) = elem.input_method_type() {
-                    let rect = elem.upcast::<Node>().border_box().unwrap_or_default();
-                    let rect = Rect::new(
-                        Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
-                        Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
-                    );
-                    let (text, multiline) = if let Some(input) = elem.downcast::<HTMLInputElement>()
-                    {
-                        (
-                            Some((
-                                (input.Value()).to_string(),
-                                input.GetSelectionEnd().unwrap_or(0) as i32,
-                            )),
-                            false,
-                        )
-                    } else if let Some(textarea) = elem.downcast::<HTMLTextAreaElement>() {
-                        (
-                            Some((
-                                (textarea.Value()).to_string(),
-                                textarea.GetSelectionEnd().unwrap_or(0) as i32,
-                            )),
-                            true,
-                        )
-                    } else {
-                        (None, false)
-                    };
-                    self.send_to_embedder(EmbedderMsg::ShowIME(
-                        self.webview_id(),
-                        kind,
-                        text,
-                        multiline,
-                        DeviceIntRect::from_untyped(&rect.to_box2d()),
-                    ));
-                }
                 // Scroll operation to happen after element gets focus.
                 // This is needed to ensure that the focused element is visible.
                 // Only scroll if preventScroll was not specified

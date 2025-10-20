@@ -13,8 +13,8 @@ use std::{f64, ptr};
 
 use dom_struct::dom_struct;
 use embedder_traits::{
-    EmbedderControlRequest, FilePickerRequest, FilterPattern, InputMethodType, RgbColor,
-    SelectedFile,
+    EmbedderControlRequest, FilePickerRequest, FilterPattern, InputMethodRequest, InputMethodType,
+    RgbColor, SelectedFile,
 };
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
@@ -345,23 +345,27 @@ impl InputType {
             InputType::Week => "week",
         }
     }
+}
 
-    pub(crate) fn as_ime_type(&self) -> Option<InputMethodType> {
-        match *self {
-            InputType::Color => Some(InputMethodType::Color),
-            InputType::Date => Some(InputMethodType::Date),
-            InputType::DatetimeLocal => Some(InputMethodType::DatetimeLocal),
-            InputType::Email => Some(InputMethodType::Email),
-            InputType::Month => Some(InputMethodType::Month),
-            InputType::Number => Some(InputMethodType::Number),
-            InputType::Password => Some(InputMethodType::Password),
-            InputType::Search => Some(InputMethodType::Search),
-            InputType::Tel => Some(InputMethodType::Tel),
-            InputType::Text => Some(InputMethodType::Text),
-            InputType::Time => Some(InputMethodType::Time),
-            InputType::Url => Some(InputMethodType::Url),
-            InputType::Week => Some(InputMethodType::Week),
-            _ => None,
+impl TryInto<InputMethodType> for InputType {
+    type Error = &'static str;
+
+    fn try_into(self) -> Result<InputMethodType, Self::Error> {
+        match self {
+            InputType::Color => Ok(InputMethodType::Color),
+            InputType::Date => Ok(InputMethodType::Date),
+            InputType::DatetimeLocal => Ok(InputMethodType::DatetimeLocal),
+            InputType::Email => Ok(InputMethodType::Email),
+            InputType::Month => Ok(InputMethodType::Month),
+            InputType::Number => Ok(InputMethodType::Number),
+            InputType::Password => Ok(InputMethodType::Password),
+            InputType::Search => Ok(InputMethodType::Search),
+            InputType::Tel => Ok(InputMethodType::Tel),
+            InputType::Text => Ok(InputMethodType::Text),
+            InputType::Time => Ok(InputMethodType::Time),
+            InputType::Url => Ok(InputMethodType::Url),
+            InputType::Week => Ok(InputMethodType::Week),
+            _ => Err("Input does not support IME."),
         }
     }
 }
@@ -2877,6 +2881,24 @@ impl HTMLInputElement {
         target.fire_bubbling_event(atom!("input"), can_gc);
         target.fire_bubbling_event(atom!("change"), can_gc);
     }
+
+    fn handle_focus(&self) {
+        let Ok(ime_type) = self.input_type().try_into() else {
+            return;
+        };
+
+        self.owner_document()
+            .embedder_controls()
+            .show_embedder_control(
+                ControlElement::Ime(DomRoot::from_ref(self.upcast())),
+                EmbedderControlRequest::InputMethod(InputMethodRequest {
+                    ime_type,
+                    text: self.Value().to_string(),
+                    insertion_point: self.GetSelectionEnd(),
+                    multiline: false,
+                }),
+            );
+    }
 }
 
 impl VirtualMethods for HTMLInputElement {
@@ -3309,10 +3331,13 @@ impl VirtualMethods for HTMLInputElement {
                 self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
             }
         } else if let Some(event) = event.downcast::<FocusEvent>() {
-            if *event.upcast::<Event>().type_() != *"blur" {
+            if *event.upcast::<Event>().type_() == *"blur" {
                 self.owner_document()
                     .embedder_controls()
                     .hide_embedder_control(self.upcast());
+            }
+            if *event.upcast::<Event>().type_() == *"focus" {
+                self.handle_focus();
             }
         }
 

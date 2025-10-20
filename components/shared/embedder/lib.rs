@@ -493,19 +493,6 @@ pub enum EmbedderMsg {
     ),
     /// Open interface to request permission specified by prompt.
     PromptPermission(WebViewId, PermissionFeature, GenericSender<AllowOrDeny>),
-    /// Request to present an IME to the user when an editable element is focused.
-    /// If the input is text, the second parameter defines the pre-existing string
-    /// text content and the zero-based index into the string locating the insertion point.
-    /// bool is true for multi-line and false otherwise.
-    ShowIME(
-        WebViewId,
-        InputMethodType,
-        Option<(String, i32)>,
-        bool,
-        DeviceIntRect,
-    ),
-    /// Request to hide the IME when the editable element is blurred.
-    HideIME(WebViewId),
     /// Report a complete sampled profile
     ReportProfile(Vec<u8>),
     /// Notifies the embedder about media session events
@@ -562,6 +549,17 @@ pub enum EmbedderControlRequest {
     ColorPicker(RgbColor),
     /// Indicates that the user has activated a `<input type=file>` element.
     FilePicker(FilePickerRequest),
+    /// Indicates that the the user has activated a text or input control that should show
+    /// an IME.
+    InputMethod(InputMethodRequest),
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct InputMethodRequest {
+    pub ime_type: InputMethodType,
+    pub text: String,
+    pub insertion_point: Option<u32>,
+    pub multiline: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

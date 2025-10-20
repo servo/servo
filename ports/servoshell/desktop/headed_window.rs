@@ -23,8 +23,8 @@ use servo::servo_geometry::{
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{
-    Cursor, ImeEvent, InputEvent, InputEventId, InputEventResult, Key, KeyState, KeyboardEvent,
-    Modifiers, MouseButton as ServoMouseButton, MouseButtonAction, MouseButtonEvent,
+    Cursor, ImeEvent, InputEvent, InputEventId, InputEventResult, InputMethod, Key, KeyState,
+    KeyboardEvent, Modifiers, MouseButton as ServoMouseButton, MouseButtonAction, MouseButtonEvent,
     MouseLeftViewportEvent, MouseMoveEvent, NamedKey, OffscreenRenderingContext, RenderingContext,
     ScreenGeometry, Theme, TouchEvent, TouchEventType, TouchId, WebRenderDebugOption, WebView,
     WheelDelta, WheelEvent, WheelMode, WindowRenderingContext,
@@ -863,13 +863,8 @@ impl WindowPortsMethods for Window {
         self.rendering_context.clone()
     }
 
-    fn show_ime(
-        &self,
-        _input_type: servo::InputMethodType,
-        _text: Option<(String, i32)>,
-        _multiline: bool,
-        position: servo::webrender_api::units::DeviceIntRect,
-    ) {
+    fn show_ime(&self, input_method: InputMethod) {
+        let position = input_method.position();
         self.winit_window.set_ime_allowed(true);
         self.winit_window.set_ime_cursor_area(
             LogicalPosition::new(

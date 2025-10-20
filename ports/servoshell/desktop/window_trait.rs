@@ -10,7 +10,9 @@ use std::rc::Rc;
 use euclid::{Length, Scale};
 use servo::servo_geometry::{DeviceIndependentIntRect, DeviceIndependentPixel};
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
-use servo::{Cursor, InputEventId, InputEventResult, RenderingContext, ScreenGeometry, WebView};
+use servo::{
+    Cursor, InputEventId, InputEventResult, InputMethod, RenderingContext, ScreenGeometry, WebView,
+};
 
 use super::app_state::RunningAppState;
 
@@ -55,14 +57,7 @@ pub trait WindowPortsMethods {
     fn set_toolbar_height(&self, height: Length<f32, DeviceIndependentPixel>);
     /// This returns [`RenderingContext`] matching the viewport.
     fn rendering_context(&self) -> Rc<dyn RenderingContext>;
-    fn show_ime(
-        &self,
-        _input_type: servo::InputMethodType,
-        _text: Option<(String, i32)>,
-        _multiline: bool,
-        _position: servo::webrender_api::units::DeviceIntRect,
-    ) {
-    }
+    fn show_ime(&self, _input_method: InputMethod) {}
     fn hide_ime(&self) {}
     fn theme(&self) -> servo::Theme {
         servo::Theme::Light

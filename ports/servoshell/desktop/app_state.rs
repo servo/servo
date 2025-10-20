@@ -18,8 +18,8 @@ use servo::ipc_channel::ipc::IpcSender;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, EmbedderControl, EmbedderControlId,
-    GamepadHapticEffectType, InputEvent, InputEventId, InputEventResult, JSValue, LoadStatus,
-    PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog, TraversalId,
+    GamepadHapticEffectType, InputEvent, InputEventId, InputEventResult, InputMethod, JSValue,
+    LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog, TraversalId,
     WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus, WebDriverSenders,
     WebDriverUserPrompt, WebView, WebViewBuilder, WebViewDelegate,
 };
@@ -97,6 +97,9 @@ pub struct RunningAppStateInner {
     /// to inform the WebDriver server when the event has been fully handled. This map is used
     /// to report back to WebDriver when that happens.
     pending_webdriver_events: HashMap<InputEventId, Sender<()>>,
+
+    /// A list of showing [`InputMethod`] interfaces.
+    visible_input_method: Vec<EmbedderControlId>,
 }
 
 impl Drop for RunningAppState {
@@ -136,6 +139,7 @@ impl RunningAppState {
                 pending_favicon_loads: Default::default(),
                 achieved_stable_image: Default::default(),
                 pending_webdriver_events: Default::default(),
+                visible_input_method: Default::default(),
             }),
         }
     }
@@ -394,11 +398,27 @@ impl RunningAppState {
         }
     }
 
-    pub(crate) fn dismiss_active_dialogs_with_control_id(
+    fn show_ime(&self, id: EmbedderControlId, input_method: InputMethod) {
+        self.inner_mut().visible_input_method.push(id);
+        self.inner().window.show_ime(input_method);
+    }
+
+    pub(crate) fn dismiss_control_with_control_id(
         &self,
         webview_id: WebViewId,
         control_id: EmbedderControlId,
     ) {
+        {
+            let mut inner_mut = self.inner_mut();
+            if let Some(index) = inner_mut
+                .visible_input_method
+                .iter()
+                .position(|visible_id| *visible_id == control_id)
+            {
+                inner_mut.visible_input_method.remove(index);
+                inner_mut.window.hide_ime();
+            }
+        }
         if let Some(dialogs) = self.inner_mut().dialogs.get_mut(&webview_id) {
             dialogs.retain(|dialog| dialog.embedder_control_id() != Some(control_id));
         }
@@ -791,22 +811,6 @@ impl WebViewDelegate for RunningAppState {
         };
         let _ = haptic_stop_sender.send(stopped);
     }
-    fn show_ime(
-        &self,
-        _webview: WebView,
-        input_type: servo::InputMethodType,
-        text: Option<(String, i32)>,
-        multiline: bool,
-        position: servo::webrender_api::units::DeviceIntRect,
-    ) {
-        self.inner()
-            .window
-            .show_ime(input_type, text, multiline, position);
-    }
-
-    fn hide_ime(&self, _webview: WebView) {
-        self.inner().window.hide_ime();
-    }
 
     fn show_embedder_control(&self, webview: WebView, embedder_control: EmbedderControl) {
         if self.servoshell_preferences.headless &&
@@ -815,6 +819,7 @@ impl WebViewDelegate for RunningAppState {
             return;
         }
 
+        let control_id = embedder_control.id();
         match embedder_control {
             EmbedderControl::SelectElement(prompt) => {
                 // FIXME: Reading the toolbar height is needed here to properly position the select dialog.
@@ -831,6 +836,7 @@ impl WebViewDelegate for RunningAppState {
                     Dialog::new_color_picker_dialog(color_picker, offset),
                 );
             },
+            EmbedderControl::InputMethod(input_method) => self.show_ime(control_id, input_method),
             EmbedderControl::FilePicker(file_picker) => {
                 self.add_dialog(webview, Dialog::new_file_dialog(file_picker));
             },
@@ -838,7 +844,7 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn hide_embedder_control(&self, webview: WebView, control_id: servo::EmbedderControlId) {
-        self.dismiss_active_dialogs_with_control_id(webview.id(), control_id);
+        self.dismiss_control_with_control_id(webview.id(), control_id);
     }
 
     fn notify_favicon_changed(&self, webview: WebView) {
