@@ -136,10 +136,14 @@ class PackageCommands(CommandBase):
 
             if build_type.is_dev():
                 build_type_string = "Debug"
-            elif build_type.is_release():
+            elif build_type.is_release() or build_type.is_prod():
                 build_type_string = "Release"
             else:
-                raise Exception("TODO what should this be?")
+                print(f"Servo was built with custom cargo profile `{build_type.profile}`.")
+                print("Using Debug build for gradle.")
+                build_type_string = "Debug"
+            # Inform the android build of where `libservoshell.so` is located.
+            env["SERVO_TARGET_DIR"] = target_dir
 
             flavor_name = "Basic"
             if flavor is not None:
