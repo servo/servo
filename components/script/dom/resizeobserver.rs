@@ -91,13 +91,13 @@ impl ResizeObserver {
             observation.state = Default::default();
 
             // Step 2.2.1 If observation.isActive() is true
-            if let Some(size) = observation.is_active(target) {
+            if observation.is_active(target) {
                 // Step 2.2.1.1 Let targetDepth be result of calculate depth for node for observation.target.
                 let target_depth = calculate_depth_for_node(target);
 
                 // Step 2.2.1.2 If targetDepth is greater than depth then add observation to [[activeTargets]].
                 if target_depth > *depth {
-                    observation.state = ObservationState::Active(size);
+                    observation.state = ObservationState::Active;
                     *has_active = true;
                 }
                 // Step 2.2.1.3 Else add observation to [[skippedTargets]].
@@ -125,50 +125,18 @@ impl ResizeObserver {
 
         // Step 2.3 For each observation in [[activeTargets]] perform these steps:
         for (observation, target) in self.observation_targets.borrow_mut().iter_mut() {
-            let box_size = {
-                let ObservationState::Active(box_size) = observation.state else {
-                    continue;
-                };
-                box_size
+            let ObservationState::Active = observation.state else {
+                continue;
             };
             has_active_observation_targets = true;
 
             // #create-and-populate-a-resizeobserverentry
-
-            // Note: only calculating content box size.
-            let width = box_size.width().to_f64_px();
-            let height = box_size.height().to_f64_px();
-            let size_impl = ResizeObserverSizeImpl::new(width, height);
             let window = target.owner_window();
-            let observer_size = ResizeObserverSize::new(&window, size_impl, can_gc);
-
-            // Note: content rect is built from content box size.
-            let content_rect = DOMRectReadOnly::new(
-                window.upcast(),
-                None,
-                box_size.origin.x.to_f64_px(),
-                box_size.origin.y.to_f64_px(),
-                width,
-                height,
-                can_gc,
-            );
-            let entry = ResizeObserverEntry::new(
-                &window,
-                target,
-                &content_rect,
-                &[],
-                &[&*observer_size],
-                &[],
-                can_gc,
-            );
+            let entry =
+                create_and_populate_a_resizeobserverentry(&window, target, observation, can_gc);
             entries.push(entry);
-
-            // Note: this is safe because an observation is
-            // initialized with one reported size (zero).
-            // The spec plans to store multiple reported sizes,
-            // but for now there can be only one.
-            observation.last_reported_sizes[0] = size_impl;
             observation.state = ObservationState::Done;
+
             let target_depth = calculate_depth_for_node(target);
             if target_depth < *shallowest_target_depth {
                 *shallowest_target_depth = target_depth;
@@ -197,6 +165,73 @@ impl ResizeObserver {
     }
 }
 
+/// <https://drafts.csswg.org/resize-observer/#create-and-populate-a-resizeobserverentry>
+fn create_and_populate_a_resizeobserverentry(
+    window: &Window,
+    target: &Element,
+    observation: &mut ResizeObservation,
+    can_gc: CanGc,
+) -> DomRoot<ResizeObserverEntry> {
+    let border_box_size = calculate_box_size(target, &ResizeObserverBoxOptions::Border_box);
+    let content_box_size = calculate_box_size(target, &ResizeObserverBoxOptions::Content_box);
+    let device_pixel_content_box =
+        calculate_box_size(target, &ResizeObserverBoxOptions::Device_pixel_content_box);
+
+    // Note: this is safe because an observation is
+    // initialized with one reported size (zero).
+    // The spec plans to store multiple reported sizes,
+    // but for now there can be only one.
+    observation.last_reported_sizes[0] = ResizeObserverSizeImpl::new(
+        content_box_size.width().to_f64_px(),
+        content_box_size.height().to_f64_px(),
+    );
+
+    let content_rect = DOMRectReadOnly::new(
+        window.upcast(),
+        None,
+        content_box_size.origin.x.to_f64_px(),
+        content_box_size.origin.y.to_f64_px(),
+        content_box_size.width().to_f64_px(),
+        content_box_size.height().to_f64_px(),
+        can_gc,
+    );
+
+    let border_box_size = ResizeObserverSize::new(
+        window,
+        ResizeObserverSizeImpl::new(
+            border_box_size.width().to_f64_px(),
+            border_box_size.height().to_f64_px(),
+        ),
+        can_gc,
+    );
+    let content_box_size = ResizeObserverSize::new(
+        window,
+        ResizeObserverSizeImpl::new(
+            content_box_size.width().to_f64_px(),
+            content_box_size.height().to_f64_px(),
+        ),
+        can_gc,
+    );
+    let device_pixel_content_box = ResizeObserverSize::new(
+        window,
+        ResizeObserverSizeImpl::new(
+            device_pixel_content_box.width().to_f64_px(),
+            device_pixel_content_box.height().to_f64_px(),
+        ),
+        can_gc,
+    );
+
+    ResizeObserverEntry::new(
+        window,
+        target,
+        &content_rect,
+        &[&*border_box_size],
+        &[&*content_box_size],
+        &[&*device_pixel_content_box],
+        can_gc,
+    )
+}
+
 impl ResizeObserverMethods<crate::DomTypeHolder> for ResizeObserver {
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-resizeobserver>
     fn Constructor(
@@ -213,6 +248,7 @@ impl ResizeObserverMethods<crate::DomTypeHolder> for ResizeObserver {
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-observe>
     fn Observe(&self, target: &Element, options: &ResizeObserverOptions) {
+        // Step 1. If target is in [[observationTargets]] slot, call unobserve() with argument target.
         let is_present = self
             .observation_targets
             .borrow()
@@ -222,8 +258,11 @@ impl ResizeObserverMethods<crate::DomTypeHolder> for ResizeObserver {
             self.Unobserve(target);
         }
 
+        // Step 2. Let observedBox be the value of the box dictionary member of options.
+        // Step 3. Let resizeObservation be new ResizeObservation(target, observedBox).
         let resize_observation = ResizeObservation::new(options.box_);
 
+        // Step 4. Add the resizeObservation to the [[observationTargets]] slot.
         self.observation_targets
             .borrow_mut()
             .push((resize_observation, Dom::from_ref(target)));
@@ -254,9 +293,7 @@ enum ObservationState {
     #[default]
     Done,
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-activetargets-slot>
-    /// With the result of the box size calculated when setting the state to active,
-    /// in order to avoid recalculating it in the subsequent broadcast.
-    Active(Rect<Au>),
+    Active,
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-skippedtargets-slot>
     Skipped,
 }
@@ -288,14 +325,11 @@ impl ResizeObservation {
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobservation-isactive>
-    /// Returning an optional calculated size, instead of a boolean,
-    /// to avoid recalculating the size in the subsequent broadcast.
-    fn is_active(&self, target: &Element) -> Option<Rect<Au>> {
+    fn is_active(&self, target: &Element) -> bool {
         let last_reported_size = self.last_reported_sizes[0];
         let box_size = calculate_box_size(target, &self.observed_box);
-        let is_active = box_size.width().to_f64_px() != last_reported_size.inline_size() ||
-            box_size.height().to_f64_px() != last_reported_size.block_size();
-        if is_active { Some(box_size) } else { None }
+        box_size.width().to_f64_px() != last_reported_size.inline_size() ||
+            box_size.height().to_f64_px() != last_reported_size.block_size()
     }
 }
 
