@@ -144,7 +144,6 @@ skip = [
     "rand",
     "rand_chacha",
     "rand_core",
-    "webpki-roots",
 
     # duplicated by blurz/blurmock
     "hex",
