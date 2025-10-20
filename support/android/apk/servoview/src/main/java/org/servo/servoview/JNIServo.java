@@ -43,6 +43,9 @@ public class JNIServo {
 
     public native void scroll(int dx, int dy, int x, int y);
 
+    public native void keydown(int keycode, int unicode);
+    public native void keyup(int keycode, int unicode);
+
     public native void touchDown(float x, float y, int pointer_id);
 
     public native void touchMove(float x, float y, int pointer_id);
@@ -105,6 +108,9 @@ public class JNIServo {
         void onHistoryChanged(boolean canGoBack, boolean canGoForward);
 
         void onShutdownComplete();
+
+        void onImeShow();
+        void onImeHide();
 
         void onMediaSessionMetadata(String title, String artist, String album);
 

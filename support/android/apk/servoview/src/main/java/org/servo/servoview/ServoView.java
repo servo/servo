@@ -13,6 +13,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Surface;
 import android.view.SurfaceView;
 import android.view.SurfaceHolder;
@@ -227,6 +228,16 @@ public class ServoView extends SurfaceView
         } else {
             mInitialUri = uri;
         }
+    }
+
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        mServo.onKeyDown(keyCode, event);
+        return true;
+    }
+
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        mServo.onKeyUp(keyCode, event);
+        return true;
     }
 
     public void scroll(int dx, int dy, int x, int y) {

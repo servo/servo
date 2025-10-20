@@ -15,6 +15,7 @@ use android_logger::{self, Config, FilterBuilder};
 use jni::objects::{GlobalRef, JClass, JObject, JString, JValue, JValueOwned};
 use jni::sys::{jboolean, jfloat, jint, jobject};
 use jni::{JNIEnv, JavaVM};
+use keyboard_types::{Key, NamedKey};
 use log::{debug, error, info, warn};
 use raw_window_handle::{
     AndroidDisplayHandle, AndroidNdkWindowHandle, RawDisplayHandle, RawWindowHandle,
@@ -48,7 +49,7 @@ pub extern "C" fn android_main() {
 
 fn call<F>(env: &mut JNIEnv, f: F)
 where
-    F: Fn(&RunningAppState),
+    F: FnOnce(&RunningAppState),
 {
     APP.with(|app| match app.borrow().as_ref() {
         Some(ref app_state) => (f)(app_state),
@@ -255,6 +256,81 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_scroll<'local>(
 ) {
     debug!("scroll");
     call(&mut env, |s| s.scroll(dx as f32, dy as f32, x, y));
+}
+
+enum KeyCode {
+    Delete,
+    ForwardDelete,
+    Enter,
+    ArrowLeft,
+    ArrowRight,
+    ArrowUp,
+    ArrowDown,
+}
+
+impl TryFrom<i32> for KeyCode {
+    type Error = ();
+
+    // Values derived from <https://developer.android.com/reference/android/view/KeyEvent>
+    fn try_from(keycode: i32) -> Result<KeyCode, ()> {
+        Ok(match keycode {
+            66 => KeyCode::Enter,
+            67 => KeyCode::Delete,
+            112 => KeyCode::ForwardDelete,
+            21 => KeyCode::ArrowLeft,
+            22 => KeyCode::ArrowRight,
+            19 => KeyCode::ArrowUp,
+            20 => KeyCode::ArrowDown,
+            _ => return Err(()),
+        })
+    }
+}
+
+impl From<KeyCode> for Key {
+    fn from(keycode: KeyCode) -> Key {
+        Key::Named(match keycode {
+            KeyCode::Enter => NamedKey::Enter,
+            KeyCode::Delete => NamedKey::Backspace,
+            KeyCode::ForwardDelete => NamedKey::Delete,
+            KeyCode::ArrowLeft => NamedKey::ArrowLeft,
+            KeyCode::ArrowRight => NamedKey::ArrowRight,
+            KeyCode::ArrowUp => NamedKey::ArrowUp,
+            KeyCode::ArrowDown => NamedKey::ArrowDown,
+        })
+    }
+}
+
+fn key_from_unicode_keycode(unicode: u32, keycode: i32) -> Option<Key> {
+    char::from_u32(unicode)
+        .filter(|c| *c != '\0')
+        .map(|c| Key::Character(String::from(c)))
+        .or_else(|| KeyCode::try_from(keycode).ok().map(Key::from))
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn Java_org_servo_servoview_JNIServo_keydown<'local>(
+    mut env: JNIEnv<'local>,
+    _: JClass<'local>,
+    keycode: jint,
+    unicode: jint,
+) {
+    debug!("keydown {keycode}");
+    if let Some(key) = key_from_unicode_keycode(unicode as u32, keycode) {
+        call(&mut env, move |s| s.key_down(key));
+    }
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn Java_org_servo_servoview_JNIServo_keyup<'local>(
+    mut env: JNIEnv<'local>,
+    _: JClass<'local>,
+    keycode: jint,
+    unicode: jint,
+) {
+    debug!("keyup {keycode}");
+    if let Some(key) = key_from_unicode_keycode(unicode as u32, keycode) {
+        call(&mut env, move |s| s.key_up(key));
+    }
 }
 
 #[unsafe(no_mangle)]
@@ -595,8 +671,16 @@ impl HostTrait for HostCallbacks {
         _multiline: bool,
         _rect: DeviceIntRect,
     ) {
+        let mut env = self.jvm.get_env().unwrap();
+        env.call_method(self.callbacks.as_obj(), "onImeShow", "()V", &[])
+            .unwrap();
     }
-    fn on_ime_hide(&self) {}
+
+    fn on_ime_hide(&self) {
+        let mut env = self.jvm.get_env().unwrap();
+        env.call_method(self.callbacks.as_obj(), "onImeHide", "()V", &[])
+            .unwrap();
+    }
 
     fn on_media_session_metadata(&self, title: String, artist: String, album: String) {
         info!("on_media_session_metadata");
