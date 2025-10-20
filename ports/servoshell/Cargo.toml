@@ -106,7 +106,6 @@ serde_json = { workspace = true }
 surfman = { workspace = true, features = ["sm-angle-default"] }
 
 [target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
-accesskit_winit = "0.27"
 dirs = "6.0"
 egui = { version = "0.33.0", features = ["accesskit"] }
 egui-file-dialog = "0.12.0"
