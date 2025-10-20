@@ -49,6 +49,10 @@ updates:
       patterns:
         - "strum"
         - "strum_macros"
+    tungstenite-related:
+      patterns:
+        - "async-tungstenite"
+        - "tungstenite"
   ignore:
   # Ignore all stylo crates as their upgrades are coordinated via companion PRs.
   - dependency-name: selectors
