@@ -37,7 +37,7 @@ backtrace = "0.3"
 base = { path = "components/shared/base" }
 base64 = "0.22.1"
 bincode = "1"
-bitflags = "2.9"
+bitflags = "2.10"
 bluetooth_traits = { path = "components/shared/bluetooth" }
 bytemuck = "1"
 byteorder = "1.5"
