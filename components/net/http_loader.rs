@@ -43,12 +43,13 @@ use ipc_channel::router::ROUTER;
 use log::{debug, error, info, log_enabled, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::http_status::HttpStatus;
+use net_traits::policy_container::RequestPolicyContainer;
 use net_traits::pub_domains::reg_suffix;
 use net_traits::request::Origin::Origin as SpecificOrigin;
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, CacheMode, CredentialsMode, Destination, Initiator,
     Origin, RedirectMode, Referrer, Request, RequestBuilder, RequestMode, ResponseTainting,
-    ServiceWorkersMode, Window as RequestWindow, get_cors_unsafe_header_names,
+    ServiceWorkersMode, TraversableForUserPrompts, get_cors_unsafe_header_names,
     is_cors_non_wildcard_request_header_name, is_cors_safelisted_method,
     is_cors_safelisted_request_header,
 };
@@ -152,15 +153,19 @@ impl HttpState {
     }
 }
 
-/// Step 13 of <https://fetch.spec.whatwg.org/#concept-fetch>.
+/// Step 11 of <https://fetch.spec.whatwg.org/#concept-fetch>.
 pub(crate) fn set_default_accept(request: &mut Request) {
+    // Step 11. If request’s header list does not contain `Accept`, then:
     if request.headers.contains_key(header::ACCEPT) {
         return;
     }
 
+    // Step 11.2. If request’s initiator is "prefetch", then set value to the document `Accept` header value.
     let value = if request.initiator == Initiator::Prefetch {
         DOCUMENT_ACCEPT_HEADER_VALUE
     } else {
+        // Step 11.3. Otherwise, the user agent should set value to the first matching statement,
+        // if any, switching on request’s destination:
         match request.destination {
             Destination::Document | Destination::Frame | Destination::IFrame => {
                 DOCUMENT_ACCEPT_HEADER_VALUE
@@ -170,10 +175,12 @@ pub(crate) fn set_default_accept(request: &mut Request) {
             },
             Destination::Json => HeaderValue::from_static("application/json,*/*;q=0.5"),
             Destination::Style => HeaderValue::from_static("text/css,*/*;q=0.1"),
+            // Step 11.1. Let value be `*/*`.
             _ => HeaderValue::from_static("*/*"),
         }
     };
 
+    // Step 11.4. Append (`Accept`, value) to request’s header list.
     request.headers.insert(header::ACCEPT, value);
 }
 
@@ -1269,11 +1276,12 @@ async fn http_network_or_cache_fetch(
     let mut revalidating_flag = false;
 
     // TODO(#33616): Step 8. Run these steps, but abort when fetchParams is canceled:
-    // Step 8.1: If request’s window is "no-window" and request’s redirect mode is "error", then set
-    // httpFetchParams to fetchParams and httpRequest to request.
-    let request_has_no_window = request.window == RequestWindow::NoWindow;
-
-    let http_request = if request_has_no_window && request.redirect_mode == RedirectMode::Error {
+    // Step 8.1. If request’s traversable for user prompts is "no-traversable"
+    // and request’s redirect mode is "error", then set httpFetchParams to fetchParams and httpRequest to request.
+    let http_request = if request.traversable_for_user_prompts ==
+        TraversableForUserPrompts::NoTraversable &&
+        request.redirect_mode == RedirectMode::Error
+    {
         http_fetch_params = fetch_params;
         &mut http_fetch_params.request
     }
@@ -1786,9 +1794,9 @@ async fn http_network_or_cache_fetch(
     // Step 15. If response’s status is 407, then:
     if response.status == StatusCode::PROXY_AUTHENTICATION_REQUIRED {
         let request = &mut fetch_params.request;
-        // Step 15.1 If request’s window is "no-window", then return a network error.
+        // Step 15.1 If request’s traversable for user prompts is "no-traversable", then return a network error.
 
-        if request_has_no_window {
+        if request.traversable_for_user_prompts == TraversableForUserPrompts::NoTraversable {
             return Response::network_error(NetworkError::Internal(
                 "Can't find Window object".into(),
             ));
@@ -2290,6 +2298,12 @@ async fn cors_preflight_fetch(
     .referrer_policy(request.referrer_policy)
     .mode(RequestMode::CorsMode)
     .response_tainting(ResponseTainting::CorsTainting)
+    .policy_container(match &request.policy_container {
+        RequestPolicyContainer::Client => {
+            unreachable!("We should have a policy container for request in cors_preflight_fetch")
+        },
+        RequestPolicyContainer::PolicyContainer(policy_container) => policy_container.clone(),
+    })
     .build();
 
     // Step 2. Append (`Accept`, `*/*`) to preflight’s header list.

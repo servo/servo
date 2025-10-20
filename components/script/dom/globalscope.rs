@@ -49,8 +49,10 @@ use net_traits::filemanager_thread::{
     FileManagerResult, FileManagerThreadMsg, ReadFileProgress, RelativePos,
 };
 use net_traits::image_cache::ImageCache;
-use net_traits::policy_container::PolicyContainer;
-use net_traits::request::{InsecureRequestsPolicy, Referrer, RequestBuilder};
+use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
+use net_traits::request::{
+    InsecureRequestsPolicy, Origin as RequestOrigin, Referrer, RequestBuilder, RequestClient,
+};
 use net_traits::response::HttpsState;
 use net_traits::{
     CoreResourceMsg, CoreResourceThread, FetchResponseListener, ReferrerPolicy, ResourceThreads,
@@ -2554,6 +2556,21 @@ impl GlobalScope {
         match self.downcast::<WorkerGlobalScope>() {
             Some(worker_global) => Some(worker_global.timer_scheduler().schedule_timer(request)),
             _ => with_script_thread(|script_thread| Some(script_thread.schedule_timer(request))),
+        }
+    }
+
+    /// Part of <https://fetch.spec.whatwg.org/#populate-request-from-client>
+    pub(crate) fn request_client(&self) -> RequestClient {
+        // Step 1.2.2. If global is a Window object and global’s navigable is not null,
+        // then set request’s traversable for user prompts to global’s navigable’s traversable navigable.
+        let preloaded_resources = self
+            .downcast::<Window>()
+            .map(|window: &Window| window.Document().preloaded_resources())
+            .unwrap_or_default();
+        RequestClient {
+            preloaded_resources,
+            policy_container: RequestPolicyContainer::PolicyContainer(self.policy_container()),
+            origin: RequestOrigin::Origin(self.origin().immutable().clone()),
         }
     }
 

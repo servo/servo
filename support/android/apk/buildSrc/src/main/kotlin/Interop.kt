@@ -15,7 +15,11 @@ fun Project.getTargetDir(debug: Boolean, arch: String): String {
 
 fun Project.getNativeTargetDir(debug: Boolean, arch: String): String {
     val basePath = project.rootDir.parentFile.parentFile.parentFile.absolutePath
-    return basePath + "/target/" + getSubTargetDir(debug, arch)
+    val fallback = basePath + "/target/" + getSubTargetDir(debug, arch)
+    // Prefer the value provided by `mach`, which supports custom cargo profiles.
+    // The fallback is for packaging in Android studio, after a mach build (only debug / release).
+    val target_dir = System.getenv("SERVO_TARGET_DIR") ?: fallback
+    return target_dir
 }
 
 fun getSubTargetDir(debug: Boolean, arch: String): String {

@@ -6,6 +6,7 @@
 package org.servo.servoview;
 
 import android.app.Activity;
+import android.view.KeyEvent;
 import android.view.Surface;
 
 import org.servo.servoview.JNIServo.ServoCoordinates;
@@ -111,6 +112,14 @@ public class Servo {
         mRunCallback.inGLThread(() -> mJNI.scroll(dx, dy, x, y));
     }
 
+    public void onKeyDown(int keyCode, KeyEvent event) {
+        mRunCallback.inGLThread(() -> mJNI.keydown(keyCode, event.getUnicodeChar()));
+    }
+
+    public void onKeyUp(int keyCode, KeyEvent event) {
+        mRunCallback.inGLThread(() -> mJNI.keyup(keyCode, event.getUnicodeChar()));
+    }
+
     public void touchDown(float x, float y, int pointerId) {
         mRunCallback.inGLThread(() -> mJNI.touchDown(x, y, pointerId));
     }
@@ -175,6 +184,9 @@ public class Servo {
 
         void onRedrawing(boolean redrawing);
 
+        void onImeShow();
+        void onImeHide();
+
         void onMediaSessionMetadata(String title, String artist, String album);
 
         void onMediaSessionPlaybackStateChange(int state);
@@ -232,6 +244,14 @@ public class Servo {
 
         public void onShutdownComplete() {
             mShutdownComplete = true;
+        }
+
+        public void onImeShow() {
+            mRunCallback.inUIThread(() -> mClient.onImeShow());
+        }
+
+        public void onImeHide() {
+            mRunCallback.inUIThread(() -> mClient.onImeHide());
         }
 
         public void onAnimatingChanged(boolean animating) {

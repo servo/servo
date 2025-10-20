@@ -14,6 +14,7 @@ import android.os.Bundle;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
@@ -38,6 +39,7 @@ public class MainActivity extends Activity implements Servo.Client {
     ImageButton mReloadButton;
     ImageButton mStopButton;
     EditText mUrlField;
+    boolean mUrlFieldIsFocused;
     ProgressBar mProgressBar;
     TextView mIdleText;
     boolean mCanGoBack;
@@ -54,6 +56,7 @@ public class MainActivity extends Activity implements Servo.Client {
         mReloadButton = findViewById(R.id.reloadbutton);
         mStopButton = findViewById(R.id.stopbutton);
         mUrlField = findViewById(R.id.urlfield);
+        mUrlFieldIsFocused = false;
         mProgressBar = findViewById(R.id.progressbar);
         mIdleText = findViewById(R.id.redrawing);
         mCanGoBack = false;
@@ -105,11 +108,12 @@ public class MainActivity extends Activity implements Servo.Client {
             return false;
         });
         mUrlField.setOnFocusChangeListener((v, hasFocus) -> {
-            if (v.getId() == R.id.urlfield && !hasFocus) {
-                InputMethodManager imm =
-                        (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                assert imm != null;
-                imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+            if (v.getId() == R.id.urlfield) {
+                mUrlFieldIsFocused = hasFocus;
+                if (!hasFocus) {
+                    InputMethodManager imm = getSystemService(InputMethodManager.class);
+                    imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+                }
             }
         });
     }
@@ -136,6 +140,34 @@ public class MainActivity extends Activity implements Servo.Client {
 
     public void onStopClicked(View v) {
         mServoView.stop();
+    }
+
+    @Override
+    public void onImeShow() {
+        InputMethodManager imm = getSystemService(InputMethodManager.class);
+        imm.showSoftInput(mServoView, InputMethodManager.SHOW_IMPLICIT);
+    }
+
+    @Override
+    public void onImeHide() {
+        InputMethodManager imm = getSystemService(InputMethodManager.class);
+        imm.hideSoftInputFromWindow(mServoView.getWindowToken(), InputMethodManager.SHOW_IMPLICIT);
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (mUrlFieldIsFocused) {
+            return true;
+        }
+        return mServoView.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        if (mUrlFieldIsFocused) {
+            return true;
+        }
+        return mServoView.onKeyUp(keyCode, event);
     }
 
     @Override
