@@ -40,7 +40,7 @@ use net::test::{DECODER_BUFFER_SIZE, replace_host_table};
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{
     CredentialsMode, Destination, Referrer, Request, RequestBuilder, RequestMode,
-    create_request_body_with_content,
+    TraversableForUserPrompts, create_request_body_with_content,
 };
 use net_traits::response::{Response, ResponseBody};
 use net_traits::{CookieSource, FetchTaskTarget, NetworkError, ReferrerPolicy};
@@ -49,12 +49,8 @@ use url::Url;
 
 use crate::{
     create_embedder_proxy_and_receiver, fetch, fetch_with_context, make_body, make_server,
-    new_fetch_context, receive_credential_prompt_msgs, spawn_blocking_task,
+    mock_origin, new_fetch_context, receive_credential_prompt_msgs, spawn_blocking_task,
 };
-
-fn mock_origin() -> ImmutableOrigin {
-    ServoUrl::parse("http://servo.org").unwrap().origin()
-}
 
 fn assert_cookie_for_domain(
     cookie_jar: &RwLock<CookieStorage>,
@@ -493,6 +489,7 @@ fn test_redirected_request_to_devtools() {
         .method(Method::POST)
         .destination(Destination::Document)
         .pipeline_id(Some(TEST_PIPELINE_ID))
+        .origin(mock_origin())
         .policy_container(Default::default())
         .build();
 
@@ -1696,7 +1693,7 @@ fn test_user_credentials_prompt_when_proxy_authentication_is_required() {
         };
     let (server, url) = make_server(handler);
 
-    let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
+    let mut request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .body(None)
         .destination(Destination::Document)
@@ -1706,6 +1703,9 @@ fn test_user_credentials_prompt_when_proxy_authentication_is_required() {
         .credentials_mode(CredentialsMode::Include)
         .policy_container(Default::default())
         .build();
+
+    request.traversable_for_user_prompts =
+        TraversableForUserPrompts::TraversableNavigable(Default::default());
 
     let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
     let _ = receive_credential_prompt_msgs(

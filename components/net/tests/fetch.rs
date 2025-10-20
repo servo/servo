@@ -46,14 +46,14 @@ use net_traits::{
     ResourceTimingType,
 };
 use servo_arc::Arc as ServoArc;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
 
 use crate::http_loader::{devtools_response_with_body, expect_devtools_http_request};
 use crate::{
     DEFAULT_USER_AGENT, create_embedder_proxy, create_embedder_proxy_and_receiver,
     create_http_state, fetch, fetch_with_context, fetch_with_cors_cache, make_body, make_server,
-    make_ssl_server, new_fetch_context,
+    make_ssl_server, mock_origin, new_fetch_context,
 };
 
 // TODO write a struct that impls Handler for storing test values
@@ -415,6 +415,7 @@ fn test_cors_preflight_cache_fetch() {
 
     let mut request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url, Referrer::NoReferrer)
         .policy_container(Default::default())
+        .origin(mock_origin())
         .build();
     request.use_cors_preflight = true;
     request.mode = RequestMode::CorsMode;
@@ -486,6 +487,7 @@ fn test_cors_preflight_fetch_network_error() {
 
     let mut request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url, Referrer::NoReferrer)
         .policy_container(Default::default())
+        .origin(mock_origin())
         .build();
     request.method = Method::from_bytes(b"CHICKEN").unwrap();
     request.use_cors_preflight = true;
@@ -585,6 +587,7 @@ fn test_fetch_response_is_cors_filtered() {
     // an origin mis-match will stop it from defaulting to a basic filtered response
     let mut request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url, Referrer::NoReferrer)
         .policy_container(Default::default())
+        .origin(mock_origin())
         .build();
     request.mode = RequestMode::CorsMode;
     let fetch_response = fetch(request, None);
@@ -623,6 +626,7 @@ fn test_fetch_response_is_opaque_filtered() {
     // an origin mis-match will fall through to an Opaque filtered response
     let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url, Referrer::NoReferrer)
         .policy_container(Default::default())
+        .origin(ImmutableOrigin::new_opaque())
         .build();
     let fetch_response = fetch(request, None);
     let _ = server.close();
@@ -1269,6 +1273,7 @@ fn test_opaque_filtered_fetch_async_returns_complete_response() {
     // an origin mis-match will fall through to an Opaque filtered response
     let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url, Referrer::NoReferrer)
         .policy_container(Default::default())
+        .origin(ImmutableOrigin::new_opaque())
         .build();
     let fetch_response = fetch(request, None);
 

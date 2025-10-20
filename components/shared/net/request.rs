@@ -8,6 +8,7 @@ use base::id::{PipelineId, WebViewId};
 use content_security_policy::{self as csp};
 use http::header::{AUTHORIZATION, HeaderName};
 use http::{HeaderMap, Method};
+use indexmap::IndexMap;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use malloc_size_of_derive::MallocSizeOf;
@@ -17,7 +18,7 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
 
 use crate::policy_container::{PolicyContainer, RequestPolicyContainer};
-use crate::response::HttpsState;
+use crate::response::{HttpsState, Response};
 use crate::{ReferrerPolicy, ResourceTimingType};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
@@ -72,7 +73,7 @@ pub enum Referrer {
 }
 
 /// A [request mode](https://fetch.spec.whatwg.org/#concept-request-mode)
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum RequestMode {
     Navigate,
     SameOrigin,
@@ -85,7 +86,7 @@ pub enum RequestMode {
 }
 
 /// Request [credentials mode](https://fetch.spec.whatwg.org/#concept-request-credentials-mode)
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum CredentialsMode {
     Omit,
     CredentialsSameOrigin,
@@ -126,11 +127,155 @@ pub enum ResponseTainting {
     Opaque,
 }
 
-/// [Window](https://fetch.spec.whatwg.org/#concept-request-window)
+/// <https://html.spec.whatwg.org/multipage/#preload-key>
+#[derive(Clone, Debug, Eq, Hash, Deserialize, MallocSizeOf, Serialize, PartialEq)]
+pub struct PreloadKey {
+    /// <https://html.spec.whatwg.org/multipage/#preload-url>
+    url: ServoUrl,
+    /// <https://html.spec.whatwg.org/multipage/#preload-destination>
+    destination: Destination,
+    /// <https://html.spec.whatwg.org/multipage/#preload-mode>
+    mode: RequestMode,
+    /// <https://html.spec.whatwg.org/multipage/#preload-credentials-mode>
+    credentials_mode: CredentialsMode,
+}
+
+impl PreloadKey {
+    pub fn new(request: &RequestBuilder) -> Self {
+        Self {
+            url: request.url.clone(),
+            destination: request.destination,
+            mode: request.mode.clone(),
+            credentials_mode: request.credentials_mode,
+        }
+    }
+}
+
+/// <https://html.spec.whatwg.org/multipage/#preload-entry>
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct PreloadEntry {
+    /// <https://html.spec.whatwg.org/multipage/#preload-integrity-metadata>
+    integrity_metadata: String,
+    /// <https://html.spec.whatwg.org/multipage/#preload-response>
+    #[serde(skip)]
+    response: Option<Response>,
+}
+
+impl PreloadEntry {
+    pub fn new(integrity_metadata: String) -> Self {
+        Self {
+            integrity_metadata,
+            response: None,
+        }
+    }
+
+    pub fn with_response(&self, response: Response) -> Self {
+        Self {
+            integrity_metadata: self.integrity_metadata.clone(),
+            response: Some(response),
+        }
+    }
+}
+
+pub type PreloadedResources = Arc<Mutex<IndexMap<PreloadKey, PreloadEntry>>>;
+
+/// <https://fetch.spec.whatwg.org/#concept-request-client>
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct RequestClient {
+    /// <https://html.spec.whatwg.org/multipage/#map-of-preloaded-resources>
+    #[conditional_malloc_size_of]
+    #[serde(skip)] // TODO: Figure out what we need to do here to serialize this map
+    pub preloaded_resources: PreloadedResources,
+    /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-policy-container>
+    pub policy_container: RequestPolicyContainer,
+    /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-origin>
+    pub origin: Origin,
+}
+
+impl RequestClient {
+    /// <https://html.spec.whatwg.org/multipage/#consume-a-preloaded-resource>
+    pub fn consume_preloaded_resource(
+        &self,
+        request: &Request,
+        on_response_available: impl FnOnce(Response),
+    ) -> bool {
+        // Step 1. Let key be a preload key whose URL is url,
+        // destination is destination, mode is mode, and credentials mode is credentialsMode.
+        let key = PreloadKey {
+            url: request.url().clone(),
+            destination: request.destination,
+            mode: request.mode.clone(),
+            credentials_mode: request.credentials_mode,
+        };
+        // Step 2. Let preloads be window's associated Document's map of preloaded resources.
+        let mut preloaded_resources_lock = self.preloaded_resources.lock();
+        let preloads = preloaded_resources_lock.as_mut().unwrap();
+        // Step 4. Let entry be preloads[key].
+        let Some(entry) = preloads.get_mut(&key) else {
+            // Step 3. If key does not exist in preloads, then return false.
+            return false;
+        };
+        // Step 5. Let consumerIntegrityMetadata be the result of parsing integrityMetadata.
+        let consumer_integrity_metadata =
+            csp::parse_subresource_integrity_metadata(&request.integrity_metadata);
+        // Step 6. Let preloadIntegrityMetadata be the result of parsing entry's integrity metadata.
+        let preload_integrity_metadata =
+            csp::parse_subresource_integrity_metadata(&entry.integrity_metadata);
+        // Step 7. If none of the following conditions apply:
+        if !(
+            // consumerIntegrityMetadata is no metadata;
+            consumer_integrity_metadata == csp::SubresourceIntegrityMetadata::NoMetadata
+            // consumerIntegrityMetadata is equal to preloadIntegrityMetadata; or
+            || consumer_integrity_metadata == preload_integrity_metadata
+        ) {
+            // then return false.
+            return false;
+        }
+        // Step 10. Otherwise, call onResponseAvailable with entry's response.
+        if let Some(response) = entry.response.as_ref() {
+            on_response_available(response.clone());
+        } else {
+            // Step 9. If entry's response is null, then set entry's on response available to onResponseAvailable.
+            // TODO
+        }
+        // Step 8. Remove preloads[key].
+        //
+        // Moved down to avoid double borrow on preloads with entry
+        preloads.shift_remove(&key);
+        // Step 11. Return true.
+        true
+    }
+}
+
+/// <https://html.spec.whatwg.org/multipage/#system-visibility-state>
+#[derive(Clone, Copy, Default, MallocSizeOf, PartialEq)]
+pub enum SystemVisibilityState {
+    #[default]
+    Hidden,
+    Visible,
+}
+
+/// <https://html.spec.whatwg.org/multipage/#traversable-navigable>
+#[derive(Clone, Copy, Default, MallocSizeOf, PartialEq)]
+pub struct TraversableNavigable {
+    /// <https://html.spec.whatwg.org/multipage/#tn-current-session-history-step>
+    current_session_history_step: u8,
+    // TODO: https://html.spec.whatwg.org/multipage/#tn-session-history-entries
+    // TODO: https://html.spec.whatwg.org/multipage/#tn-session-history-traversal-queue
+    /// <https://html.spec.whatwg.org/multipage/#tn-running-nested-apply-history-step>
+    running_nested_apply_history_step: bool,
+    /// <https://html.spec.whatwg.org/multipage/#system-visibility-state>
+    system_visibility_state: SystemVisibilityState,
+    /// <https://html.spec.whatwg.org/multipage/#is-created-by-web-content>
+    is_created_by_web_content: bool,
+}
+
+/// <https://fetch.spec.whatwg.org/#concept-request-window>
 #[derive(Clone, Copy, MallocSizeOf, PartialEq)]
-pub enum Window {
-    NoWindow,
-    Client, // TODO: Environmental settings object
+pub enum TraversableForUserPrompts {
+    NoTraversable,
+    Client,
+    TraversableNavigable(TraversableNavigable),
 }
 
 /// [CORS settings attribute](https://html.spec.whatwg.org/multipage/#attr-crossorigin-anonymous)
@@ -285,7 +430,7 @@ pub struct RequestBuilder {
 
     /// <https://fetch.spec.whatwg.org/#request-service-workers-mode>
     pub service_workers_mode: ServiceWorkersMode,
-    // TODO: client object
+    pub client: Option<RequestClient>,
     /// <https://fetch.spec.whatwg.org/#concept-request-destination>
     pub destination: Destination,
     pub synchronous: bool,
@@ -302,7 +447,7 @@ pub struct RequestBuilder {
     pub use_url_credentials: bool,
 
     /// <https://fetch.spec.whatwg.org/#concept-request-origin>
-    pub origin: ImmutableOrigin,
+    pub origin: Origin,
 
     /// <https://fetch.spec.whatwg.org/#concept-request-policy-container>
     pub policy_container: RequestPolicyContainer,
@@ -357,7 +502,8 @@ impl RequestBuilder {
             use_cors_preflight: false,
             credentials_mode: CredentialsMode::CredentialsSameOrigin,
             use_url_credentials: false,
-            origin: ImmutableOrigin::new_opaque(),
+            origin: Origin::Client,
+            client: None,
             policy_container: RequestPolicyContainer::default(),
             insecure_requests_policy: InsecureRequestsPolicy::DoNotUpgrade,
             has_trustworthy_ancestor_origin: false,
@@ -442,7 +588,7 @@ impl RequestBuilder {
 
     /// <https://fetch.spec.whatwg.org/#concept-request-origin>
     pub fn origin(mut self, origin: ImmutableOrigin) -> RequestBuilder {
-        self.origin = origin;
+        self.origin = Origin::Origin(origin);
         self
     }
 
@@ -502,6 +648,12 @@ impl RequestBuilder {
         self
     }
 
+    /// <https://fetch.spec.whatwg.org/#concept-request-client>
+    pub fn client(mut self, client: RequestClient) -> RequestBuilder {
+        self.client = Some(client);
+        self
+    }
+
     pub fn insecure_requests_policy(
         mut self,
         insecure_requests_policy: InsecureRequestsPolicy,
@@ -537,7 +689,7 @@ impl RequestBuilder {
         let mut request = Request::new(
             self.id,
             self.url.clone(),
-            Some(Origin::Origin(self.origin)),
+            Some(self.origin),
             self.referrer,
             self.pipeline_id,
             self.target_webview_id,
@@ -569,6 +721,7 @@ impl RequestBuilder {
         request.parser_metadata = self.parser_metadata;
         request.response_tainting = self.response_tainting;
         request.crash = self.crash;
+        request.client = self.client;
         request.policy_container = self.policy_container;
         request.insecure_requests_policy = self.insecure_requests_policy;
         request.has_trustworthy_ancestor_origin = self.has_trustworthy_ancestor_origin;
@@ -596,8 +749,10 @@ pub struct Request {
     pub unsafe_request: bool,
     /// <https://fetch.spec.whatwg.org/#concept-request-body>
     pub body: Option<RequestBody>,
-    // TODO: client object
-    pub window: Window,
+    /// <https://fetch.spec.whatwg.org/#concept-request-client>
+    pub client: Option<RequestClient>,
+    /// <https://fetch.spec.whatwg.org/#concept-request-window>
+    pub traversable_for_user_prompts: TraversableForUserPrompts,
     pub target_webview_id: Option<WebViewId>,
     /// <https://fetch.spec.whatwg.org/#request-keepalive-flag>
     pub keep_alive: bool,
@@ -670,7 +825,8 @@ impl Request {
             headers: HeaderMap::new(),
             unsafe_request: false,
             body: None,
-            window: Window::Client,
+            client: None,
+            traversable_for_user_prompts: TraversableForUserPrompts::Client,
             keep_alive: false,
             service_workers_mode: ServiceWorkersMode::All,
             initiator: Initiator::None,
@@ -760,6 +916,45 @@ impl Request {
             ResourceTimingType::Navigation
         } else {
             ResourceTimingType::Resource
+        }
+    }
+
+    /// <https://fetch.spec.whatwg.org/#populate-request-from-client>
+    pub fn populate_request_from_client(&mut self) {
+        // Step 1. If request’s traversable for user prompts is "client":
+        if self.traversable_for_user_prompts == TraversableForUserPrompts::Client {
+            // Step 1.1. Set request’s traversable for user prompts to "no-traversable".
+            self.traversable_for_user_prompts = TraversableForUserPrompts::NoTraversable;
+            // Step 1.2. If request’s client is non-null:
+            if self.client.is_some() {
+                // Step 1.2.1. Let global be request’s client’s global object.
+                // TODO
+                // Step 1.2.2. If global is a Window object and global’s navigable is not null,
+                // then set request’s traversable for user prompts to global’s navigable’s traversable navigable.
+                self.traversable_for_user_prompts =
+                    TraversableForUserPrompts::TraversableNavigable(Default::default());
+            }
+        }
+        // Step 2. If request’s origin is "client":
+        if self.origin == Origin::Client {
+            let Some(client) = self.client.as_ref() else {
+                // Step 2.1. Assert: request’s client is non-null.
+                unreachable!();
+            };
+            // Step 2.2. Set request’s origin to request’s client’s origin.
+            self.origin = client.origin.clone();
+        }
+        // Step 3. If request’s policy container is "client":
+        if matches!(self.policy_container, RequestPolicyContainer::Client) {
+            // Step 3.1. If request’s client is non-null, then set request’s
+            // policy container to a clone of request’s client’s policy container. [HTML]
+            if let Some(client) = self.client.as_ref() {
+                self.policy_container = client.policy_container.clone();
+            } else {
+                // Step 3.2. Otherwise, set request’s policy container to a new policy container.
+                self.policy_container =
+                    RequestPolicyContainer::PolicyContainer(PolicyContainer::default());
+            }
         }
     }
 }

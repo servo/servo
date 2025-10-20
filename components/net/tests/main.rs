@@ -16,7 +16,6 @@ mod http_cache;
 mod http_loader;
 mod resource_thread;
 mod subresource_integrity;
-
 use core::convert::Infallible;
 use std::collections::HashMap;
 use std::fs::File;
@@ -54,7 +53,7 @@ use rustc_hash::FxHashMap;
 use rustls_pemfile::{certs, pkcs8_private_keys};
 use rustls_pki_types::{CertificateDer, PrivateKeyDer};
 use servo_arc::Arc as ServoArc;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_rustls::{self, TlsAcceptor};
 
@@ -420,4 +419,8 @@ pub fn make_body(bytes: Vec<u8>) -> BoxBody<Bytes, hyper::Error> {
     Full::new(Bytes::from(bytes))
         .map_err(|_| unreachable!())
         .boxed()
+}
+
+pub(crate) fn mock_origin() -> ImmutableOrigin {
+    ServoUrl::parse("http://servo.org").unwrap().origin()
 }

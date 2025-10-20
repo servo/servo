@@ -13,7 +13,7 @@ use js::jsapi::{ExceptionStackBehavior, JS_IsExceptionPending};
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use js::rust::wrappers::JS_SetPendingException;
-use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, Referrer,
     Request as NetTraitsRequest, RequestBuilder, RequestId, RequestMode, ServiceWorkersMode,
@@ -109,39 +109,33 @@ impl Drop for FetchCanceller {
 }
 
 fn request_init_from_request(request: NetTraitsRequest, global: &GlobalScope) -> RequestBuilder {
-    RequestBuilder {
-        id: request.id,
-        method: request.method.clone(),
-        url: request.url(),
-        headers: request.headers.clone(),
-        unsafe_request: request.unsafe_request,
-        body: request.body.clone(),
-        service_workers_mode: ServiceWorkersMode::All,
-        destination: request.destination,
-        synchronous: request.synchronous,
-        mode: request.mode.clone(),
-        cache_mode: request.cache_mode,
-        use_cors_preflight: request.use_cors_preflight,
-        credentials_mode: request.credentials_mode,
-        use_url_credentials: request.use_url_credentials,
-        origin: global.origin().immutable().clone(),
-        referrer: request.referrer.clone(),
-        referrer_policy: request.referrer_policy,
-        pipeline_id: request.pipeline_id,
-        target_webview_id: request.target_webview_id,
-        redirect_mode: request.redirect_mode,
-        integrity_metadata: request.integrity_metadata.clone(),
-        cryptographic_nonce_metadata: request.cryptographic_nonce_metadata.clone(),
-        url_list: vec![],
-        parser_metadata: request.parser_metadata,
-        initiator: request.initiator,
-        policy_container: RequestPolicyContainer::PolicyContainer(global.policy_container()),
-        insecure_requests_policy: request.insecure_requests_policy,
-        has_trustworthy_ancestor_origin: request.has_trustworthy_ancestor_origin,
-        https_state: request.https_state,
-        response_tainting: request.response_tainting,
-        crash: None,
-    }
+    let mut builder =
+        RequestBuilder::new(request.target_webview_id, request.url(), request.referrer)
+            .method(request.method)
+            .headers(request.headers)
+            .unsafe_request(request.unsafe_request)
+            .body(request.body)
+            .destination(request.destination)
+            .synchronous(request.synchronous)
+            .mode(request.mode)
+            .cache_mode(request.cache_mode)
+            .use_cors_preflight(request.use_cors_preflight)
+            .credentials_mode(request.credentials_mode)
+            .use_url_credentials(request.use_url_credentials)
+            .referrer_policy(request.referrer_policy)
+            .pipeline_id(request.pipeline_id)
+            .redirect_mode(request.redirect_mode)
+            .integrity_metadata(request.integrity_metadata)
+            .cryptographic_nonce_metadata(request.cryptographic_nonce_metadata)
+            .parser_metadata(request.parser_metadata)
+            .initiator(request.initiator)
+            .client(global.request_client())
+            .insecure_requests_policy(request.insecure_requests_policy)
+            .has_trustworthy_ancestor_origin(request.has_trustworthy_ancestor_origin)
+            .https_state(request.https_state)
+            .response_tainting(request.response_tainting);
+    builder.id = request.id;
+    builder
 }
 
 /// <https://fetch.spec.whatwg.org/#abort-fetch>
@@ -439,7 +433,6 @@ impl DeferredFetchRecord {
             global: self.global.clone(),
         }));
         let global = self.global.root();
-        let _realm = enter_realm(&*global);
         let request_init = request_init_from_request(self.request.clone(), &global);
         global.fetch(
             request_init,
