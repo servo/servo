@@ -134,6 +134,17 @@ impl Clone for EmbedderProxy {
     }
 }
 
+/// A [`RefreshDriver`] is a trait that can be implemented by Servo embedders in
+/// order to drive let Servo know when to start preparing the next frame. For example,
+/// on systems that support Vsync notifications, an embedder may want to implement
+/// this trait to drive Servo animations via those notifications.
+pub trait RefreshDriver {
+    /// Servo will call this method when it wants to be informed of the next frame start
+    /// time. Implementors should call the callback when it is time to start preparing
+    /// the new frame.
+    fn observe_next_frame(&self, start_frame_callback: Box<dyn Fn() + Send + 'static>);
+}
+
 #[derive(Deserialize, Serialize)]
 pub enum ContextMenuResult {
     Dismissed,

@@ -21,11 +21,11 @@ use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{
     AllowOrDenyRequest, ContextMenuResult, ImeEvent, InputEvent, InputMethodType, KeyboardEvent,
     LoadStatus, MediaSessionActionType, MediaSessionEvent, MouseButton, MouseButtonAction,
-    MouseButtonEvent, MouseMoveEvent, NavigationRequest, PermissionRequest, RenderingContext,
-    ScreenGeometry, Servo, ServoDelegate, ServoError, SimpleDialog, TouchEvent, TouchEventType,
-    TouchId, TraversalId, WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus,
-    WebDriverScriptCommand, WebDriverSenders, WebView, WebViewBuilder, WebViewDelegate,
-    WindowRenderingContext,
+    MouseButtonEvent, MouseMoveEvent, NavigationRequest, PermissionRequest, RefreshDriver,
+    RenderingContext, ScreenGeometry, Servo, ServoDelegate, ServoError, SimpleDialog, TouchEvent,
+    TouchEventType, TouchId, TraversalId, WebDriverCommandMsg, WebDriverJSResult,
+    WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView, WebViewBuilder,
+    WebViewDelegate, WindowRenderingContext,
 };
 use url::Url;
 
@@ -74,6 +74,7 @@ pub struct RunningAppState {
     servo: Servo,
     rendering_context: Rc<WindowRenderingContext>,
     callbacks: Rc<ServoWindowCallbacks>,
+    refresh_driver: Option<Rc<VsyncRefreshDriver>>,
     inner: RefCell<RunningAppStateInner>,
     /// servoshell specific preferences created during startup of the application.
     servoshell_preferences: ServoShellPreferences,
@@ -332,6 +333,30 @@ impl WebViewDelegate for RunningAppState {
     }
 }
 
+#[derive(Default)]
+pub(crate) struct VsyncRefreshDriver {
+    start_frame_callback: RefCell<Option<Box<dyn Fn() + Send>>>,
+}
+
+impl VsyncRefreshDriver {
+    fn notify_vsync(&self) {
+        let Some(start_frame_callback) = self.start_frame_callback.borrow_mut().take() else {
+            return;
+        };
+        start_frame_callback();
+    }
+}
+
+impl RefreshDriver for VsyncRefreshDriver {
+    fn observe_next_frame(&self, new_start_frame_callback: Box<dyn Fn() + Send + 'static>) {
+        let mut start_frame_callback = self.start_frame_callback.borrow_mut();
+        if start_frame_callback.is_some() {
+            warn!("Already observing the next frame.");
+        }
+        *start_frame_callback = Some(new_start_frame_callback);
+    }
+}
+
 #[allow(unused)]
 impl RunningAppState {
     pub(super) fn new(
@@ -340,6 +365,7 @@ impl RunningAppState {
         rendering_context: Rc<WindowRenderingContext>,
         servo: Servo,
         callbacks: Rc<ServoWindowCallbacks>,
+        refresh_driver: Option<Rc<VsyncRefreshDriver>>,
         servoshell_preferences: ServoShellPreferences,
         webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
     ) -> Rc<Self> {
@@ -358,6 +384,7 @@ impl RunningAppState {
             rendering_context,
             servo,
             callbacks,
+            refresh_driver,
             servoshell_preferences,
             webdriver_receiver,
             webdriver_senders: RefCell::default(),
@@ -882,7 +909,9 @@ impl RunningAppState {
     }
 
     pub fn notify_vsync(&self) {
-        self.active_webview().notify_vsync();
+        if let Some(refresh_driver) = &self.refresh_driver {
+            refresh_driver.notify_vsync();
+        };
         self.perform_updates();
     }
 

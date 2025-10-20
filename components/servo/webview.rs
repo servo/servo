@@ -509,10 +509,6 @@ impl WebView {
             .send(EmbedderToConstellationMessage::MediaSessionAction(event));
     }
 
-    pub fn notify_vsync(&self) {
-        self.inner().compositor.borrow_mut().on_vsync(self.id());
-    }
-
     /// Set the page zoom of the [`WebView`]. This sets the final page zoom value of the
     /// [`WebView`]. Unlike [`WebView::pinch_zoom`] *it is not* multiplied by the current
     /// page zoom value, but overrides it.

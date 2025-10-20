@@ -56,7 +56,7 @@ use webrender_api::{
 };
 
 use crate::InitialCompositorState;
-use crate::refresh_driver::RefreshDriver;
+use crate::refresh_driver::{AnimationRefreshDriverObserver, BaseRefreshDriver};
 use crate::screenshot::ScreenshotTaker;
 use crate::webview_manager::WebViewManager;
 use crate::webview_renderer::{PinchZoomResult, UnknownWebView, WebViewRenderer};
@@ -71,8 +71,11 @@ pub enum WebRenderDebugOption {
 
 /// Data that is shared by all WebView renderers.
 pub struct ServoRenderer {
-    /// The [`RefreshDriver`] which manages the rythym of painting.
-    refresh_driver: RefreshDriver,
+    /// The [`BaseRefreshDriver`] which manages the painting of `WebView`s during animations.
+    pub(crate) refresh_driver: Rc<BaseRefreshDriver>,
+
+    /// A [`RefreshDriverObserver`] for WebView content animations.
+    animation_refresh_driver_observer: Rc<AnimationRefreshDriverObserver>,
 
     /// Tracks whether we are in the process of shutting down, or have shut down and should close
     /// the compositor. This is shared with the `Servo` instance.
@@ -284,12 +287,19 @@ impl IOCompositor {
             state.sender.clone(),
             CompositorMsg::CollectMemoryReport,
         );
+
+        let refresh_driver = Rc::new(BaseRefreshDriver::new(
+            state.event_loop_waker,
+            state.refresh_driver,
+        ));
+        let animation_refresh_driver_observer = Rc::new(AnimationRefreshDriverObserver::new(
+            state.constellation_chan.clone(),
+        ));
+
         let compositor = IOCompositor {
             global: Rc::new(RefCell::new(ServoRenderer {
-                refresh_driver: RefreshDriver::new(
-                    state.constellation_chan.clone(),
-                    state.event_loop_waker,
-                ),
+                refresh_driver,
+                animation_refresh_driver_observer,
                 shutdown_state: state.shutdown_state,
                 compositor_receiver: state.receiver,
                 constellation_sender: state.constellation_chan,
@@ -350,6 +360,13 @@ impl IOCompositor {
 
     pub(crate) fn webview_renderer(&self, webview_id: WebViewId) -> Option<&WebViewRenderer> {
         self.webview_renderers.get(webview_id)
+    }
+
+    pub(crate) fn webview_renderer_mut(
+        &mut self,
+        webview_id: WebViewId,
+    ) -> Option<&mut WebViewRenderer> {
+        self.webview_renderers.get_mut(webview_id)
     }
 
     pub(crate) fn set_needs_repaint(&self, reason: RepaintReason) {
@@ -453,10 +470,15 @@ impl IOCompositor {
                 if webview_renderer
                     .change_pipeline_running_animations_state(pipeline_id, animation_state)
                 {
-                    self.global
-                        .borrow()
-                        .refresh_driver
-                        .notify_animation_state_changed(webview_renderer);
+                    let global = self.global.borrow();
+                    if global
+                        .animation_refresh_driver_observer
+                        .notify_animation_state_changed(webview_renderer)
+                    {
+                        global
+                            .refresh_driver
+                            .add_observer(global.animation_refresh_driver_observer.clone());
+                    }
                 }
             },
 
@@ -474,10 +496,15 @@ impl IOCompositor {
                 };
 
                 if webview_renderer.set_throttled(pipeline_id, throttled) {
-                    self.global
-                        .borrow()
-                        .refresh_driver
-                        .notify_animation_state_changed(webview_renderer);
+                    let global = self.global.borrow();
+                    if global
+                        .animation_refresh_driver_observer
+                        .notify_animation_state_changed(webview_renderer)
+                    {
+                        global
+                            .refresh_driver
+                            .add_observer(global.animation_refresh_driver_observer.clone());
+                    }
                 }
             },
 
@@ -1149,12 +1176,23 @@ impl IOCompositor {
             .any(WebViewRenderer::animation_callbacks_running)
     }
 
+    pub(crate) fn animating_webviews(&self) -> Vec<WebViewId> {
+        self.webview_renderers
+            .iter()
+            .filter_map(|webview_renderer| {
+                if webview_renderer.animating() {
+                    Some(webview_renderer.id)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
     /// Render the WebRender scene to the active `RenderingContext`.
     pub fn render(&mut self) {
-        self.global
-            .borrow()
-            .refresh_driver
-            .notify_will_paint(self.webview_renderers.iter());
+        let refresh_driver = &self.global.borrow().refresh_driver.clone();
+        refresh_driver.notify_will_paint(self);
 
         self.render_inner();
 
@@ -1502,12 +1540,6 @@ impl IOCompositor {
     ) {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
             webview_renderer.notify_scroll_event(scroll_location, cursor);
-        }
-    }
-
-    pub fn on_vsync(&mut self, webview_id: WebViewId) {
-        if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
-            webview_renderer.on_vsync();
         }
     }
 
