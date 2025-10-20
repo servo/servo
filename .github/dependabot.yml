@@ -45,6 +45,10 @@ updates:
     servo-media-related:
       patterns:
         - "servo-media*"
+    strum-related:
+      patterns:
+        - "strum"
+        - "strum_macros"
   ignore:
   # Ignore all stylo crates as their upgrades are coordinated via companion PRs.
   - dependency-name: selectors
