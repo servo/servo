@@ -378,6 +378,36 @@ fn test_page_zoom(servo_test: &ServoTest) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
+fn test_viewport_meta_tag_initial_zoom(servo_test: &ServoTest) -> Result<(), anyhow::Error> {
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                "data:text/html,\
+                    <!DOCTYPE html>\
+                    <meta name=viewport content=\"initial-scale=5\">",
+            )
+            .unwrap(),
+        )
+        .build();
+
+    webview.focus();
+    webview.show(true);
+    webview.move_resize(servo_test.rendering_context.size2d().to_f32().into());
+
+    let load_webview = webview.clone();
+    let _ = servo_test.spin(move || Ok(load_webview.load_status() != LoadStatus::Complete));
+
+    // Wait for at least one frame after the load completes.
+    delegate.reset();
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || Ok(!captured_delegate.new_frame_ready.get()))?;
+
+    ensure!(webview.page_zoom() == 5.0);
+    Ok(())
+}
+
 fn main() {
     run_api_tests!(
         test_create_webview,
@@ -389,6 +419,7 @@ fn main() {
         test_resize_webview_zero,
         test_page_zoom,
         test_control_show_and_hide,
+        test_viewport_meta_tag_initial_zoom,
         // This test needs to be last, as it tests creating and dropping
         // a WebView right before shutdown.
         test_create_webview_and_immediately_drop_webview_before_shutdown
