@@ -13,8 +13,8 @@ use script_bindings::str::DOMString;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, SharedRwLockReadGuard};
 use style::stylesheets::{
-    AllowImportRules, CssRuleType, CssRuleTypes, CssRules, CssRulesHelpers, KeyframesRule,
-    RulesMutateError, StylesheetLoader as StyleStylesheetLoader,
+    AllowImportRules, CssRuleType, CssRuleTypes, CssRules, KeyframesRule, RulesMutateError,
+    StylesheetInDocument, StylesheetLoader as StyleStylesheetLoader,
 };
 
 use crate::conversions::Convert;
@@ -136,18 +136,29 @@ impl CSSRuleList {
         } else {
             AllowImportRules::Yes
         };
-        let new_rule = css_rules
-            .insert_rule(
-                &parent_stylesheet.shared_lock,
-                &rule.str(),
-                &parent_stylesheet.contents,
-                index,
-                containing_rule_types,
-                parse_relative_rule_type,
-                loader.as_ref().map(|l| l as &dyn StyleStylesheetLoader),
-                allow_import_rules,
-            )
-            .map_err(Convert::convert)?;
+        let new_rule = {
+            let guard = parent_stylesheet.shared_lock.read();
+            css_rules
+                .read_with(&guard)
+                .parse_rule_for_insert(
+                    &parent_stylesheet.shared_lock,
+                    &rule.str(),
+                    parent_stylesheet.contents(&guard),
+                    index,
+                    containing_rule_types,
+                    parse_relative_rule_type,
+                    loader.as_ref().map(|l| l as &dyn StyleStylesheetLoader),
+                    allow_import_rules,
+                )
+                .map_err(Convert::convert)?
+        };
+        {
+            let mut guard = parent_stylesheet.shared_lock.write();
+            css_rules
+                .write_with(&mut guard)
+                .0
+                .insert(index, new_rule.clone());
+        }
 
         let parent_stylesheet = &*self.parent_stylesheet;
         parent_stylesheet.will_modify();

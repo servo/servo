@@ -17,7 +17,7 @@ use style::properties::{
 };
 use style::selector_parser::PseudoElement;
 use style::shared_lock::Locked;
-use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
+use style::stylesheets::{CssRuleType, Origin, StylesheetInDocument, UrlExtraData};
 use style_traits::ParsingMode;
 
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
@@ -175,15 +175,15 @@ impl CSSStyleOwner {
                 unreachable!("Should never try to access base URL of CSStyleOwner::Null")
             },
             CSSStyleOwner::Element(ref el) => el.owner_document().base_url(),
-            CSSStyleOwner::CSSRule(ref rule, _) => ServoUrl::from(
+            CSSStyleOwner::CSSRule(ref rule, _) => ServoUrl::from({
+                let guard = rule.shared_lock().read();
                 rule.parent_stylesheet()
                     .style_stylesheet()
-                    .contents
+                    .contents(&guard)
                     .url_data
-                    .read()
                     .0
-                    .clone(),
-            )
+                    .clone()
+            })
             .clone(),
         }
     }
@@ -362,7 +362,7 @@ impl CSSStyleDeclaration {
                 }
             },
         };
-
+        let base_url = UrlExtraData(self.owner.base_url().get_arc());
         self.owner.mutate_associated_block(
             |pdb, changed| {
                 // Step 3. If value is the empty string, invoke removeProperty()
@@ -392,7 +392,7 @@ impl CSSStyleDeclaration {
                     id,
                     &value.str(),
                     Origin::Author,
-                    &UrlExtraData(self.owner.base_url().get_arc()),
+                    &base_url,
                     window.css_error_reporter(),
                     ParsingMode::DEFAULT,
                     quirks_mode,
@@ -605,12 +605,13 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
         }
 
         let quirks_mode = window.Document().quirks_mode();
+        let base_url = UrlExtraData(self.owner.base_url().get_arc());
         self.owner.mutate_associated_block(
             |pdb, _changed| {
                 // Step 3
                 *pdb = parse_style_attribute(
                     &value.str(),
-                    &UrlExtraData(self.owner.base_url().get_arc()),
+                    &base_url,
                     window.css_error_reporter(),
                     quirks_mode,
                     CssRuleType::Style,

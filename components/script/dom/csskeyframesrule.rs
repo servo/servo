@@ -8,8 +8,8 @@ use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, SharedRwLockReadGuard, ToCssWithGuard};
-use style::stylesheets::CssRuleType;
 use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframesRule};
+use style::stylesheets::{CssRuleType, StylesheetInDocument};
 use style::values::KeyframesName;
 
 use crate::dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding::CSSKeyframesRuleMethods;
@@ -118,11 +118,14 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
     fn AppendRule(&self, rule: DOMString, can_gc: CanGc) {
         let style_stylesheet = self.cssrule.parent_stylesheet().style_stylesheet();
         let rule = rule.str();
-        let rule = Keyframe::parse(
-            &rule,
-            &style_stylesheet.contents,
-            &style_stylesheet.shared_lock,
-        );
+        let rule = {
+            let guard = style_stylesheet.shared_lock.read();
+            Keyframe::parse(
+                &rule,
+                style_stylesheet.contents(&guard),
+                &style_stylesheet.shared_lock,
+            )
+        };
 
         if let Ok(rule) = rule {
             self.cssrule.parent_stylesheet().will_modify();
