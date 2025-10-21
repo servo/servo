@@ -167,6 +167,10 @@ public class Servo {
         mRunCallback.inGLThread(() -> mJNI.mediaSessionAction(action));
     }
 
+    public void setExperimentalMode(boolean enable) {
+        mRunCallback.inGLThread(() -> mJNI.setExperimentalMode(enable));
+    }
+
     public interface Client {
         void onAlert(String message);
 

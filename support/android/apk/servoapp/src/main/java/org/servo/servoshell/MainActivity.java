@@ -50,9 +50,11 @@ public class MainActivity extends Activity implements Servo.Client {
     class Settings {
         Settings(SharedPreferences preferences) {
             showAnimatingIndicator = preferences.getBoolean("animating_indicator", false);
+            experimental = preferences.getBoolean("experimental", false);
         }
 
         boolean showAnimatingIndicator;
+        boolean experimental;
     }
     Settings mSettings;
 
@@ -95,7 +97,7 @@ public class MainActivity extends Activity implements Servo.Client {
         Intent intent = getIntent();
         String args = intent.getStringExtra("servoargs");
         String log = intent.getStringExtra("servolog");
-        mServoView.setServoArgs(args, log);
+        mServoView.setServoArgs(args, log, mSettings.experimental);
 
         if (Intent.ACTION_VIEW.equals(intent.getAction())) {
             mServoView.loadUri(intent.getData().toString());
@@ -319,12 +321,20 @@ public class MainActivity extends Activity implements Servo.Client {
         }
     }
 
+    public void onExperimentalPrefChanged(boolean value) {
+        mServoView.setExperimentalMode(value);
+    }
+
     public void updateSettingsIfNecessary(boolean force) {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         Settings updated = new Settings(preferences);
 
         if (force || updated.showAnimatingIndicator != mSettings.showAnimatingIndicator) {
             onAnimatingIndicatorPrefChanged(updated.showAnimatingIndicator);
+        }
+
+        if (force || updated.experimental != mSettings.experimental) {
+            onExperimentalPrefChanged(updated.experimental);
         }
 
         mSettings = updated;
