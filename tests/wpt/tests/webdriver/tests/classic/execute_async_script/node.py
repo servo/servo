@@ -18,6 +18,17 @@ PAGE_DATA = """
     </script>
 """
 
+# https://dom.spec.whatwg.org/#ref-for-dom-node-nodetype%E2%91%A0
+NODE_TYPE = {
+    "element": 1,
+    "attribute": 2,
+    "text": 3,
+    "cdata": 4,
+    "processing_instruction": 7,
+    "comment": 8,
+    "document": 9,
+    "doctype": 10,
+}
 
 @pytest.mark.parametrize("as_frame", [False, True], ids=["top_context", "child_context"])
 def test_detached_shadow_root(session, get_test_page, as_frame):
@@ -56,6 +67,23 @@ def test_stale_element(session, get_test_page, as_frame):
         resolve(elem);
         """, args=[element])
     assert_error(result, "stale element reference")
+
+
+@pytest.mark.parametrize("expression, expected_type", [
+    (""" document.querySelector("svg").attributes[0] """, "attribute"),
+    (""" document.querySelector("div#text-node").childNodes[1] """, "text"),
+    (""" document.implementation.createDocument("", "root", null).createCDATASection("foo") """, "cdata"),
+    (""" document.createProcessingInstruction("xml-stylesheet", "href='foo.css'") """, "processing_instruction"),
+    (""" document.querySelector("div#comment").childNodes[0] """, "comment"),
+    (""" document""", "document"),
+    (""" document.doctype""", "doctype"),
+], ids=["attribute", "text", "cdata", "processing_instruction", "comment", "document", "doctype"])
+def test_node_type(session, inline, expression, expected_type):
+    session.url = inline(PAGE_DATA)
+
+    response = execute_async_script(session, f"arguments[0]({expression}.nodeType)")
+    result = assert_success(response)
+    assert result == NODE_TYPE[expected_type]
 
 
 @pytest.mark.parametrize("expression, expected_type", [
