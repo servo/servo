@@ -9,8 +9,10 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.util.Log;
@@ -45,6 +47,15 @@ public class MainActivity extends Activity implements Servo.Client {
     boolean mCanGoBack;
     MediaSession mMediaSession;
 
+    class Settings {
+        Settings(SharedPreferences preferences) {
+            showAnimatingIndicator = preferences.getBoolean("animating_indicator", false);
+        }
+
+        boolean showAnimatingIndicator;
+    }
+    Settings mSettings;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -60,6 +71,8 @@ public class MainActivity extends Activity implements Servo.Client {
         mProgressBar = findViewById(R.id.progressbar);
         mIdleText = findViewById(R.id.redrawing);
         mCanGoBack = false;
+
+        updateSettingsIfNecessary(true);
 
         mBackButton.setEnabled(false);
         mFwdButton.setEnabled(false);
@@ -126,6 +139,11 @@ public class MainActivity extends Activity implements Servo.Client {
     }
 
     // From activity_main.xml:
+    public void onSettingsClicked(View v) {
+        Intent myIntent = new Intent(this, SettingsActivity.class);
+        startActivity(myIntent);
+    }
+
     public void onReloadClicked(View v) {
         mServoView.reload();
     }
@@ -243,6 +261,7 @@ public class MainActivity extends Activity implements Servo.Client {
     public void onResume() {
         mServoView.onResume();
         super.onResume();
+        updateSettingsIfNecessary(false);
     }
 
     @Override
@@ -290,5 +309,24 @@ public class MainActivity extends Activity implements Servo.Client {
         }
 
         mMediaSession.setPositionState(duration, position, playbackRate);
+    }
+
+    public void onAnimatingIndicatorPrefChanged(boolean value) {
+        if (value) {
+            mIdleText.setVisibility(View.VISIBLE);
+        } else {
+            mIdleText.setVisibility(View.GONE);
+        }
+    }
+
+    public void updateSettingsIfNecessary(boolean force) {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        Settings updated = new Settings(preferences);
+
+        if (force || updated.showAnimatingIndicator != mSettings.showAnimatingIndicator) {
+            onAnimatingIndicatorPrefChanged(updated.showAnimatingIndicator);
+        }
+
+        mSettings = updated;
     }
 }

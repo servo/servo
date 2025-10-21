@@ -126,7 +126,19 @@
                 android:onClick="onForwardClicked"
                 android:src="@drawable/history_forward" />
 
+            <ImageButton
+                android:id="@+id/settingsbutton"
+                style="@android:style/Widget.Material.ImageButton"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:scaleType="centerInside"
+                android:adjustViewBounds="true"
+                android:onClick="onSettingsClicked"
+                android:src="@drawable/kebab" />
+
         </LinearLayout>
 
     </LinearLayout>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

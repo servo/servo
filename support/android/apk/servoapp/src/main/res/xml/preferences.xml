@@ -1,0 +1,10 @@
+<PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <SwitchPreferenceCompat
+        android:key="animating_indicator"
+        android:defaultValue="false"
+        android:title="Enable idle/animating indicator"/>
+
+</PreferenceScreen>
