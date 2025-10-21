@@ -1026,10 +1026,10 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm>
-    fn select_next_source_child(&self) {
+    fn select_next_source_child(&self, can_gc: CanGc) {
         // Step 9.children.12. Forget the media element's media-resource-specific tracks.
-        self.AudioTracks().clear();
-        self.VideoTracks().clear();
+        self.AudioTracks(can_gc).clear();
+        self.VideoTracks(can_gc).clear();
 
         // Step 9.children.13. Find next candidate: Let candidate be null.
         let mut source_candidate = None;
@@ -1351,8 +1351,8 @@ impl HTMLMediaElement {
                         MEDIA_ERR_SRC_NOT_SUPPORTED, CanGc::note())));
 
                     // Step 2. Forget the media element's media-resource-specific tracks.
-                    this.AudioTracks().clear();
-                    this.VideoTracks().clear();
+                    this.AudioTracks(CanGc::note()).clear();
+                    this.VideoTracks(CanGc::note()).clear();
 
                     // Step 3. Set the element's networkState attribute to the NETWORK_NO_SOURCE
                     // value.
@@ -1469,8 +1469,8 @@ impl HTMLMediaElement {
             // object, then detach it.
 
             // Step 7.4. Forget the media element's media-resource-specific tracks.
-            self.AudioTracks().clear();
-            self.VideoTracks().clear();
+            self.AudioTracks(can_gc).clear();
+            self.VideoTracks(can_gc).clear();
 
             // Step 7.5. If readyState is not set to HAVE_NOTHING, then set it to that state.
             if self.ready_state.get() != ReadyState::HaveNothing {
@@ -1625,20 +1625,20 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm>
-    fn select_next_source_child_after_wait(&self) {
+    fn select_next_source_child_after_wait(&self, can_gc: CanGc) {
         // Step 9.children.24. Set the element's delaying-the-load-event flag back to true (this
         // delays the load event again, in case it hasn't been fired yet).
-        self.delay_load_event(true, CanGc::note());
+        self.delay_load_event(true, can_gc);
 
         // Step 9.children.25. Set the networkState back to NETWORK_LOADING.
         self.network_state.set(NetworkState::Loading);
 
         // Step 9.children.26. Jump back to the find next candidate step above.
-        self.select_next_source_child();
+        self.select_next_source_child(can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-seek
-    fn seek(&self, time: f64, _approximate_for_speed: bool) {
+    fn seek(&self, time: f64, _approximate_for_speed: bool, can_gc: CanGc) {
         // Step 1.
         self.show_poster.set(false);
 
@@ -1666,7 +1666,7 @@ impl HTMLMediaElement {
         let time = f64::max(time, 0.);
 
         // Step 8.
-        let seekable = self.Seekable();
+        let seekable = self.Seekable(can_gc);
         if seekable.Length() == 0 {
             self.seeking.set(false);
             return;
@@ -1905,13 +1905,14 @@ impl HTMLMediaElement {
         }
     }
 
-    fn end_of_playback_in_forwards_direction(&self) {
+    fn end_of_playback_in_forwards_direction(&self, can_gc: CanGc) {
         // Step 1. If the media element has a loop attribute specified, then seek to the earliest
         // posible position of the media resource and return.
         if self.Loop() {
             self.seek(
                 self.earliest_possible_position(),
                 /* approximate_for_speed*/ false,
+                can_gc,
             );
             return;
         }
@@ -1954,7 +1955,7 @@ impl HTMLMediaElement {
         self.change_ready_state(ReadyState::HaveCurrentData);
     }
 
-    fn playback_end(&self) {
+    fn playback_end(&self, can_gc: CanGc) {
         // <https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list>
         // => "If the media data can be fetched but is found by inspection to be in
         //    an unsupported format, or can otherwise not be rendered at all"
@@ -1971,7 +1972,7 @@ impl HTMLMediaElement {
 
         // https://html.spec.whatwg.org/multipage/#reaches-the-end
         match self.direction_of_playback() {
-            PlaybackDirection::Forwards => self.end_of_playback_in_forwards_direction(),
+            PlaybackDirection::Forwards => self.end_of_playback_in_forwards_direction(can_gc),
 
             PlaybackDirection::Backwards => {
                 if self.playback_position.get() <= self.earliest_possible_position() {
@@ -2061,33 +2062,33 @@ impl HTMLMediaElement {
                     kind,
                     DOMString::new(),
                     DOMString::new(),
-                    Some(&*self.AudioTracks()),
+                    Some(&*self.AudioTracks(can_gc)),
                     can_gc,
                 );
 
                 // Steps 2. & 3.
-                self.AudioTracks().add(&audio_track);
+                self.AudioTracks(can_gc).add(&audio_track);
 
                 // Step 4
                 if let Some(servo_url) = self.resource_url.borrow().as_ref() {
                     let fragment = MediaFragmentParser::from(servo_url);
                     if let Some(id) = fragment.id() {
                         if audio_track.id() == id {
-                            self.AudioTracks()
-                                .set_enabled(self.AudioTracks().len() - 1, true);
+                            self.AudioTracks(can_gc)
+                                .set_enabled(self.AudioTracks(can_gc).len() - 1, true);
                         }
                     }
 
                     if fragment.tracks().contains(&audio_track.kind().into()) {
-                        self.AudioTracks()
-                            .set_enabled(self.AudioTracks().len() - 1, true);
+                        self.AudioTracks(can_gc)
+                            .set_enabled(self.AudioTracks(can_gc).len() - 1, true);
                     }
                 }
 
                 // Step 5. & 6,
-                if self.AudioTracks().enabled_index().is_none() {
-                    self.AudioTracks()
-                        .set_enabled(self.AudioTracks().len() - 1, true);
+                if self.AudioTracks(can_gc).enabled_index().is_none() {
+                    self.AudioTracks(can_gc)
+                        .set_enabled(self.AudioTracks(can_gc).len() - 1, true);
                 }
 
                 // Steps 7.
@@ -2121,31 +2122,31 @@ impl HTMLMediaElement {
                     kind,
                     DOMString::new(),
                     DOMString::new(),
-                    Some(&*self.VideoTracks()),
+                    Some(&*self.VideoTracks(can_gc)),
                     can_gc,
                 );
 
                 // Steps 2. & 3.
-                self.VideoTracks().add(&video_track);
+                self.VideoTracks(can_gc).add(&video_track);
 
                 // Step 4.
-                if let Some(track) = self.VideoTracks().item(0) {
+                if let Some(track) = self.VideoTracks(can_gc).item(0) {
                     if let Some(servo_url) = self.resource_url.borrow().as_ref() {
                         let fragment = MediaFragmentParser::from(servo_url);
                         if let Some(id) = fragment.id() {
                             if track.id() == id {
-                                self.VideoTracks().set_selected(0, true);
+                                self.VideoTracks(can_gc).set_selected(0, true);
                             }
                         } else if fragment.tracks().contains(&track.kind().into()) {
-                            self.VideoTracks().set_selected(0, true);
+                            self.VideoTracks(can_gc).set_selected(0, true);
                         }
                     }
                 }
 
                 // Step 5. & 6.
-                if self.VideoTracks().selected_index().is_none() {
-                    self.VideoTracks()
-                        .set_selected(self.VideoTracks().len() - 1, true);
+                if self.VideoTracks(can_gc).selected_index().is_none() {
+                    self.VideoTracks(can_gc)
+                        .set_selected(self.VideoTracks(can_gc).len() - 1, true);
                 }
 
                 // Steps 7.
@@ -2202,6 +2203,7 @@ impl HTMLMediaElement {
             self.seek(
                 self.default_playback_start_position.get(),
                 /* approximate_for_speed*/ false,
+                can_gc,
             );
             jumped = true;
         }
@@ -2216,7 +2218,7 @@ impl HTMLMediaElement {
                 if start > 0. && start < self.duration.get() {
                     self.playback_position.set(start);
                     if !jumped {
-                        self.seek(self.playback_position.get(), false)
+                        self.seek(self.playback_position.get(), false, can_gc)
                     }
                 }
             }
@@ -2249,7 +2251,7 @@ impl HTMLMediaElement {
         }
     }
 
-    fn playback_need_data(&self) {
+    fn playback_need_data(&self, can_gc: CanGc) {
         // The player needs more data.
         // If we already have a valid fetch request, we do nothing.
         // Otherwise, if we have no request and the previous request was
@@ -2263,7 +2265,7 @@ impl HTMLMediaElement {
                 // seeking to the current playback position for now which will create
                 // a new fetch request for the last rendered frame.
                 if *reason == CancelReason::Backoff {
-                    self.seek(self.playback_position.get(), false);
+                    self.seek(self.playback_position.get(), false, can_gc);
                 }
                 return;
             }
@@ -2370,13 +2372,13 @@ impl HTMLMediaElement {
         }
 
         match *event {
-            PlayerEvent::EndOfStream => self.playback_end(),
+            PlayerEvent::EndOfStream => self.playback_end(can_gc),
             PlayerEvent::Error(ref error) => self.playback_error(error, can_gc),
             PlayerEvent::VideoFrameUpdated => self.playback_video_frame_updated(),
             PlayerEvent::MetadataUpdated(ref metadata) => {
                 self.playback_metadata_updated(metadata, can_gc)
             },
-            PlayerEvent::NeedData => self.playback_need_data(),
+            PlayerEvent::NeedData => self.playback_need_data(can_gc),
             PlayerEvent::EnoughData => self.playback_enough_data(),
             PlayerEvent::PositionChanged(position) => self.playback_position_changed(position),
             PlayerEvent::SeekData(p, ref seek_lock) => {
@@ -2740,6 +2742,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
             self.seek(
                 self.earliest_possible_position(),
                 /* approximate_for_speed */ false,
+                can_gc,
             );
         }
 
@@ -2876,12 +2879,12 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-currenttime
-    fn SetCurrentTime(&self, time: Finite<f64>) {
+    fn SetCurrentTime(&self, time: Finite<f64>, can_gc: CanGc) {
         if self.ready_state.get() == ReadyState::HaveNothing {
             self.default_playback_start_position.set(*time);
         } else {
             self.playback_position.set(*time);
-            self.seek(*time, /* approximate_for_speed */ false);
+            self.seek(*time, /* approximate_for_speed */ false, can_gc);
         }
     }
 
@@ -2905,8 +2908,8 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-fastseek
-    fn FastSeek(&self, time: Finite<f64>) {
-        self.seek(*time, /* approximate_for_speed */ true);
+    fn FastSeek(&self, time: Finite<f64>, can_gc: CanGc) {
+        self.seek(*time, /* approximate_for_speed */ true, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-played
@@ -2919,7 +2922,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-seekable
-    fn Seekable(&self) -> DomRoot<TimeRanges> {
+    fn Seekable(&self, can_gc: CanGc) -> DomRoot<TimeRanges> {
         let mut seekable = TimeRangesContainer::default();
         if let Some(ref player) = *self.player.borrow() {
             if let Ok(ranges) = player.lock().unwrap().seekable() {
@@ -2928,11 +2931,11 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
                 }
             }
         }
-        TimeRanges::new(self.global().as_window(), seekable, CanGc::note())
+        TimeRanges::new(self.global().as_window(), seekable, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-buffered
-    fn Buffered(&self) -> DomRoot<TimeRanges> {
+    fn Buffered(&self, can_gc: CanGc) -> DomRoot<TimeRanges> {
         let mut buffered = TimeRangesContainer::default();
         if let Some(ref player) = *self.player.borrow() {
             if let Ok(ranges) = player.lock().unwrap().buffered() {
@@ -2941,28 +2944,28 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
                 }
             }
         }
-        TimeRanges::new(self.global().as_window(), buffered, CanGc::note())
+        TimeRanges::new(self.global().as_window(), buffered, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-audiotracks
-    fn AudioTracks(&self) -> DomRoot<AudioTrackList> {
+    fn AudioTracks(&self, can_gc: CanGc) -> DomRoot<AudioTrackList> {
         let window = self.owner_window();
         self.audio_tracks_list
-            .or_init(|| AudioTrackList::new(&window, &[], Some(self), CanGc::note()))
+            .or_init(|| AudioTrackList::new(&window, &[], Some(self), can_gc))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-videotracks
-    fn VideoTracks(&self) -> DomRoot<VideoTrackList> {
+    fn VideoTracks(&self, can_gc: CanGc) -> DomRoot<VideoTrackList> {
         let window = self.owner_window();
         self.video_tracks_list
-            .or_init(|| VideoTrackList::new(&window, &[], Some(self), CanGc::note()))
+            .or_init(|| VideoTrackList::new(&window, &[], Some(self), can_gc))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-texttracks
-    fn TextTracks(&self) -> DomRoot<TextTrackList> {
+    fn TextTracks(&self, can_gc: CanGc) -> DomRoot<TextTrackList> {
         let window = self.owner_window();
         self.text_tracks_list
-            .or_init(|| TextTrackList::new(&window, &[], CanGc::note()))
+            .or_init(|| TextTrackList::new(&window, &[], can_gc))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-addtexttrack
@@ -2971,6 +2974,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         kind: TextTrackKind,
         label: DOMString,
         language: DOMString,
+        can_gc: CanGc,
     ) -> DomRoot<TextTrack> {
         let window = self.owner_window();
         // Step 1 & 2
@@ -2983,10 +2987,10 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
             language,
             TextTrackMode::Hidden,
             None,
-            CanGc::note(),
+            can_gc,
         );
         // Step 3 & 4
-        self.TextTracks().add(&track);
+        self.TextTracks(can_gc).add(&track);
         // Step 5
         DomRoot::from_ref(&track)
     }
@@ -3126,7 +3130,7 @@ impl MicrotaskRunnable for MediaElementMicrotask {
                 generation_id,
             } => {
                 if generation_id == elem.generation_id.get() {
-                    elem.select_next_source_child();
+                    elem.select_next_source_child(can_gc);
                 }
             },
             &MediaElementMicrotask::SelectNextSourceChildAfterWait {
@@ -3134,7 +3138,7 @@ impl MicrotaskRunnable for MediaElementMicrotask {
                 generation_id,
             } => {
                 if generation_id == elem.generation_id.get() {
-                    elem.select_next_source_child_after_wait();
+                    elem.select_next_source_child_after_wait(can_gc);
                 }
             },
         }
