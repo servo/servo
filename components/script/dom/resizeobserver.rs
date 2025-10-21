@@ -324,7 +324,7 @@ impl ResizeObservation {
     }
 }
 
-/// <https://drafts.csswg.org/resize-observer/s#calculate-depth-for-node>
+/// <https://drafts.csswg.org/resize-observer/#calculate-depth-for-node>
 fn calculate_depth_for_node(target: &Element) -> ResizeObservationDepth {
     let node = target.upcast::<Node>();
     let depth = node.inclusive_ancestors_in_flat_tree().count() - 1;
