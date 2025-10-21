@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use wgpu_types::AdapterInfo;
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUAdapterInfoMethods;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -15,43 +14,116 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct GPUAdapterInfo {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "defined in wgpu-types"]
-    #[no_trace]
-    info: AdapterInfo,
+    vendor: DOMString,
+    architecture: DOMString,
+    device: DOMString,
+    description: DOMString,
+    subgroup_min_size: u32,
+    subgroup_max_size: u32,
+    is_fallback_adapter: bool,
 }
 
 impl GPUAdapterInfo {
-    fn new_inherited(info: AdapterInfo) -> Self {
+    fn new_inherited(
+        vendor: DOMString,
+        architecture: DOMString,
+        device: DOMString,
+        description: DOMString,
+        subgroup_min_size: u32,
+        subgroup_max_size: u32,
+        is_fallback_adapter: bool,
+    ) -> Self {
         Self {
             reflector_: Reflector::new(),
-            info,
+            vendor,
+            architecture,
+            device,
+            description,
+            subgroup_min_size,
+            subgroup_max_size,
+            is_fallback_adapter,
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, info: AdapterInfo, can_gc: CanGc) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(Self::new_inherited(info)), global, can_gc)
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn new(
+        global: &GlobalScope,
+        vendor: DOMString,
+        architecture: DOMString,
+        device: DOMString,
+        description: DOMString,
+        subgroup_min_size: u32,
+        subgroup_max_size: u32,
+        is_fallback_adapter: bool,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
+        reflect_dom_object(
+            Box::new(Self::new_inherited(
+                vendor,
+                architecture,
+                device,
+                description,
+                subgroup_min_size,
+                subgroup_max_size,
+                is_fallback_adapter,
+            )),
+            global,
+            can_gc,
+        )
+    }
+
+    pub(crate) fn clone_from(
+        global: &GlobalScope,
+        info: &GPUAdapterInfo,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
+        Self::new(
+            global,
+            info.vendor.clone(),
+            info.architecture.clone(),
+            info.device.clone(),
+            info.description.clone(),
+            info.subgroup_min_size,
+            info.subgroup_max_size,
+            info.is_fallback_adapter,
+            can_gc,
+        )
     }
 }
 
-// TODO: wgpu does not expose right fields right now
 impl GPUAdapterInfoMethods<crate::DomTypeHolder> for GPUAdapterInfo {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-vendor>
     fn Vendor(&self) -> DOMString {
-        DOMString::new()
+        self.vendor.clone()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-architecture>
     fn Architecture(&self) -> DOMString {
-        DOMString::new()
+        self.architecture.clone()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-device>
     fn Device(&self) -> DOMString {
-        DOMString::new()
+        self.device.clone()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-description>
     fn Description(&self) -> DOMString {
-        DOMString::from_string(self.info.driver_info.clone())
+        self.description.clone()
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-subgroupminsize>
+    fn SubgroupMinSize(&self) -> u32 {
+        self.subgroup_min_size
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-subgroupmaxsize>
+    fn SubgroupMaxSize(&self) -> u32 {
+        self.subgroup_max_size
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-isfallbackadapter>
+    fn IsFallbackAdapter(&self) -> bool {
+        self.is_fallback_adapter
     }
 }

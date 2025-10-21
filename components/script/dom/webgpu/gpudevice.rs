@@ -28,7 +28,7 @@ use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUBindGroupDescriptor, GPUBindGroupLayoutDescriptor, GPUBufferDescriptor,
+    GPUAdapterMethods, GPUBindGroupDescriptor, GPUBindGroupLayoutDescriptor, GPUBufferDescriptor,
     GPUCommandEncoderDescriptor, GPUComputePipelineDescriptor, GPUDeviceLostReason,
     GPUDeviceMethods, GPUErrorFilter, GPUPipelineErrorReason, GPUPipelineLayoutDescriptor,
     GPURenderBundleEncoderDescriptor, GPURenderPipelineDescriptor, GPUSamplerDescriptor,
@@ -49,6 +49,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::types::GPUError;
 use crate::dom::webgpu::gpuadapter::GPUAdapter;
+use crate::dom::webgpu::gpuadapterinfo::GPUAdapterInfo;
 use crate::dom::webgpu::gpubindgroup::GPUBindGroup;
 use crate::dom::webgpu::gpubindgrouplayout::GPUBindGroupLayout;
 use crate::dom::webgpu::gpubuffer::GPUBuffer;
@@ -78,6 +79,7 @@ pub(crate) struct GPUDevice {
     extensions: Heap<*mut JSObject>,
     features: Dom<GPUSupportedFeatures>,
     limits: Dom<GPUSupportedLimits>,
+    adapter_info: Dom<GPUAdapterInfo>,
     label: DomRefCell<USVString>,
     #[no_trace]
     device: WebGPUDevice,
@@ -118,6 +120,7 @@ impl GPUDevice {
         adapter: &GPUAdapter,
         features: &GPUSupportedFeatures,
         limits: &GPUSupportedLimits,
+        adapter_info: &GPUAdapterInfo,
         device: WebGPUDevice,
         queue: &GPUQueue,
         label: String,
@@ -130,6 +133,7 @@ impl GPUDevice {
             extensions: Heap::default(),
             features: Dom::from_ref(features),
             limits: Dom::from_ref(limits),
+            adapter_info: Dom::from_ref(adapter_info),
             label: DomRefCell::new(USVString::from(label)),
             device,
             default_queue: Dom::from_ref(queue),
@@ -154,6 +158,7 @@ impl GPUDevice {
         let queue = GPUQueue::new(global, channel.clone(), queue, can_gc);
         let limits = GPUSupportedLimits::new(global, limits, can_gc);
         let features = GPUSupportedFeatures::Constructor(global, None, features, can_gc).unwrap();
+        let adapter_info = GPUAdapterInfo::clone_from(global, &adapter.Info(), can_gc);
         let lost_promise = Promise::new(global, can_gc);
         let device = reflect_dom_object(
             Box::new(GPUDevice::new_inherited(
@@ -161,6 +166,7 @@ impl GPUDevice {
                 adapter,
                 &features,
                 &limits,
+                &adapter_info,
                 device,
                 &queue,
                 label,
@@ -410,6 +416,11 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-limits>
     fn Limits(&self) -> DomRoot<GPUSupportedLimits> {
         DomRoot::from_ref(&self.limits)
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-adapterinfo>
+    fn AdapterInfo(&self) -> DomRoot<GPUAdapterInfo> {
+        DomRoot::from_ref(&self.adapter_info)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-queue>

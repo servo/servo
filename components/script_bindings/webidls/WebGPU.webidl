@@ -67,6 +67,9 @@ interface GPUAdapterInfo {
     readonly attribute DOMString architecture;
     readonly attribute DOMString device;
     readonly attribute DOMString description;
+    readonly attribute unsigned long subgroupMinSize;
+    readonly attribute unsigned long subgroupMaxSize;
+    readonly attribute boolean isFallbackAdapter;
 };
 
 interface mixin NavigatorGPU {
@@ -98,12 +101,10 @@ enum GPUPowerPreference {
 interface GPUAdapter {
     [SameObject] readonly attribute GPUSupportedFeatures features;
     [SameObject] readonly attribute GPUSupportedLimits limits;
-    readonly attribute boolean isFallbackAdapter;
+    [SameObject] readonly attribute GPUAdapterInfo info;
 
     [NewObject]
     Promise<GPUDevice> requestDevice(optional GPUDeviceDescriptor descriptor = {});
-    [NewObject]
-    Promise<GPUAdapterInfo> requestAdapterInfo(optional sequence<DOMString> unmaskHints = []);
 };
 
 dictionary GPUDeviceDescriptor: GPUObjectDescriptorBase {
@@ -126,12 +127,14 @@ enum GPUFeatureName {
     "float32-filterable",
     "clip-distances",
     "dual-source-blending",
+    "subgroups",
 };
 
-[Exposed=(Window, DedicatedWorker), /*Serializable,*/ Pref="dom_webgpu_enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom_webgpu_enabled"]
 interface GPUDevice: EventTarget {
     [SameObject] readonly attribute GPUSupportedFeatures features;
     [SameObject] readonly attribute GPUSupportedLimits limits;
+    [SameObject] readonly attribute GPUAdapterInfo adapterInfo;
 
     // Overriding the name to avoid collision with `class Queue` in gcc
     [SameObject, BinaryName="getQueue"] readonly attribute GPUQueue queue;

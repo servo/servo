@@ -34,6 +34,12 @@ impl GPUSupportedLimits {
     }
 }
 
+impl GPUSupportedLimits {
+    pub(crate) fn wgpu_limits(&self) -> &Limits {
+        &self.limits
+    }
+}
+
 impl GPUSupportedLimitsMethods<crate::DomTypeHolder> for GPUSupportedLimits {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxtexturedimension1d>
     fn MaxTextureDimension1D(&self) -> u32 {

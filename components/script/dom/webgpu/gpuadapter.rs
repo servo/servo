@@ -9,7 +9,7 @@ use js::jsapi::{HandleObject, Heap, JSObject};
 use webgpu_traits::{
     RequestDeviceError, WebGPU, WebGPUAdapter, WebGPUDeviceResponse, WebGPURequest,
 };
-use wgpu_types::{self, MemoryHints};
+use wgpu_types::{self, AdapterInfo, MemoryHints};
 
 use super::gpusupportedfeatures::GPUSupportedFeatures;
 use super::gpusupportedlimits::set_limit;
@@ -17,6 +17,7 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUAdapterMethods, GPUDeviceDescriptor, GPUDeviceLostReason,
 };
 use crate::dom::bindings::error::Error;
+use crate::dom::bindings::like::Setlike;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
@@ -80,7 +81,7 @@ impl GPUAdapter {
     ) -> DomRoot<Self> {
         let features = GPUSupportedFeatures::Constructor(global, None, features, can_gc).unwrap();
         let limits = GPUSupportedLimits::new(global, limits, can_gc);
-        let info = GPUAdapterInfo::new(global, info, can_gc);
+        let info = GPUAdapter::create_adapter_info(global, info, &features, &limits, can_gc);
         let dom_root = reflect_dom_object(
             Box::new(GPUAdapter::new_inherited(
                 channel, name, &features, &limits, &info, adapter,
@@ -90,6 +91,79 @@ impl GPUAdapter {
         );
         dom_root.extensions.set(*extensions);
         dom_root
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-new-adapter-info>
+    fn create_adapter_info(
+        global: &GlobalScope,
+        info: AdapterInfo,
+        features: &GPUSupportedFeatures,
+        limits: &GPUSupportedLimits,
+        can_gc: CanGc,
+    ) -> DomRoot<GPUAdapterInfo> {
+        // Step 2. If the vendor is known, set adapterInfo.vendor to the name of adapter’s vendor as
+        // a normalized identifier string. To preserve privacy, the user agent may instead set
+        // adapterInfo.vendor to the empty string or a reasonable approximation of the vendor as a
+        // normalized identifier string.
+        let vendor = if info.vendor != 0 {
+            DOMString::from_string(info.vendor.to_string())
+        } else {
+            DOMString::new()
+        };
+
+        // Step 3. If the architecture is known, set adapterInfo.architecture to a normalized
+        // identifier string representing the family or class of adapters to which adapter belongs.
+        // To preserve privacy, the user agent may instead set adapterInfo.architecture to the empty
+        // string or a reasonable approximation of the architecture as a normalized identifier
+        // string.
+        // TODO: AdapterInfo::architecture missing
+        // https://github.com/gfx-rs/wgpu/issues/2170
+        let architecture = DOMString::new();
+
+        // Step 4. If the device is known, set adapterInfo.device to a normalized identifier string
+        // representing a vendor-specific identifier for adapter. To preserve privacy, the user
+        // agent may instead set adapterInfo.device to to the empty string or a reasonable
+        // approximation of a vendor-specific identifier as a normalized identifier string.
+        let device = if info.device != 0 {
+            DOMString::from_string(info.device.to_string())
+        } else {
+            DOMString::new()
+        };
+
+        // Step 5. If a description is known, set adapterInfo.description to a description of the
+        // adapter as reported by the driver. To preserve privacy, the user agent may instead set
+        // adapterInfo.description to the empty string or a reasonable approximation of a
+        // description.
+        let description = DOMString::from_string(info.name.clone());
+
+        // Step 6. If "subgroups" is supported, set subgroupMinSize to the smallest supported
+        // subgroup size. Otherwise, set this value to 4.
+        // Step 7. If "subgroups" is supported, set subgroupMaxSize to the largest supported
+        // subgroup size. Otherwise, set this value to 128.
+        let (subgroup_min_size, subgroup_max_size) = if features.has("subgroups".into()) {
+            (
+                limits.wgpu_limits().min_subgroup_size,
+                limits.wgpu_limits().max_subgroup_size,
+            )
+        } else {
+            (4, 128)
+        };
+
+        // Step 8. Set adapterInfo.isFallbackAdapter to adapter.[[fallback]].
+        let is_fallback_adapter = info.device_type == wgpu_types::DeviceType::Cpu;
+
+        // Step 1. Let adapterInfo be a new GPUAdapterInfo.
+        GPUAdapterInfo::new(
+            global,
+            vendor,
+            architecture,
+            device,
+            description,
+            subgroup_min_size,
+            subgroup_max_size,
+            is_fallback_adapter,
+            can_gc,
+        )
     }
 }
 
@@ -176,31 +250,6 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
         promise
     }
 
-    /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-isfallbackadapter>
-    fn IsFallbackAdapter(&self) -> bool {
-        // TODO
-        false
-    }
-
-    /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestadapterinfo>
-    fn RequestAdapterInfo(
-        &self,
-        unmask_hints: Vec<DOMString>,
-        comp: InRealm,
-        can_gc: CanGc,
-    ) -> Rc<Promise> {
-        // XXX: Adapter info should be generated here ...
-        // Step 1
-        let promise = Promise::new_in_current_realm(comp, can_gc);
-        // Step 4
-        if !unmask_hints.is_empty() {
-            todo!("unmaskHints on RequestAdapterInfo");
-        }
-        promise.resolve_native(&*self.info, can_gc);
-        // Step 5
-        promise
-    }
-
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-features>
     fn Features(&self) -> DomRoot<GPUSupportedFeatures> {
         DomRoot::from_ref(&self.features)
@@ -209,6 +258,11 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-limits>
     fn Limits(&self) -> DomRoot<GPUSupportedLimits> {
         DomRoot::from_ref(&self.limits)
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-info>
+    fn Info(&self) -> DomRoot<GPUAdapterInfo> {
+        DomRoot::from_ref(&self.info)
     }
 }
 
