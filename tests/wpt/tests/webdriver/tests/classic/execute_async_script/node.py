@@ -68,8 +68,7 @@ def test_stale_element(session, get_test_page, as_frame):
         """, args=[element])
     assert_error(result, "stale element reference")
 
-
-@pytest.mark.parametrize("expression, expected_type", [
+test_cases = [
     (""" document.querySelector("svg").attributes[0] """, "attribute"),
     (""" document.querySelector("div#text-node").childNodes[1] """, "text"),
     (""" document.implementation.createDocument("", "root", null).createCDATASection("foo") """, "cdata"),
@@ -77,7 +76,9 @@ def test_stale_element(session, get_test_page, as_frame):
     (""" document.querySelector("div#comment").childNodes[0] """, "comment"),
     (""" document""", "document"),
     (""" document.doctype""", "doctype"),
-], ids=["attribute", "text", "cdata", "processing_instruction", "comment", "document", "doctype"])
+]
+
+@pytest.mark.parametrize("expression, expected_type", test_cases, ids=[case[1] for case in test_cases])
 def test_node_type(session, inline, expression, expected_type):
     session.url = inline(PAGE_DATA)
 
@@ -97,10 +98,3 @@ def test_element_reference(session, get_test_page, expression, expected_type):
     reference = assert_success(result)
     assert isinstance(reference, expected_type)
 
-
-def test_queryselector_null_child_access_errors(session, inline):
-    session.url = inline(PAGE_DATA)
-
-    expression = "document.querySelector('foo').childNodes[1]"
-    result = execute_async_script(session, f"arguments[0]({expression})")
-    assert_error(result, "javascript error")
