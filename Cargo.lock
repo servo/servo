@@ -811,7 +811,7 @@ dependencies = [
  "bitflags 2.10.0",
  "cexpr",
  "clang-sys",
- "itertools 0.10.5",
+ "itertools 0.12.1",
  "proc-macro2",
  "quote",
  "regex",
@@ -829,7 +829,7 @@ dependencies = [
  "bitflags 2.10.0",
  "cexpr",
  "clang-sys",
- "itertools 0.10.5",
+ "itertools 0.12.1",
  "log",
  "prettyplease",
  "proc-macro2",
@@ -4057,7 +4057,7 @@ dependencies = [
  "calendrical_calculations",
  "displaydoc",
  "icu_calendar_data",
- "icu_locid",
+ "icu_locid 1.5.0",
  "icu_locid_transform",
  "icu_provider",
  "tinystr",
@@ -4087,7 +4087,7 @@ dependencies = [
  "icu_decimal",
  "icu_experimental",
  "icu_list",
- "icu_locid",
+ "icu_locid 1.5.0",
  "icu_locid_transform",
  "icu_normalizer",
  "icu_plurals",
@@ -4110,7 +4110,7 @@ dependencies = [
  "displaydoc",
  "icu_casemap_data",
  "icu_collections",
- "icu_locid",
+ "icu_locid 1.5.0",
  "icu_properties",
  "icu_provider",
  "writeable",
@@ -4172,7 +4172,7 @@ dependencies = [
  "icu_calendar",
  "icu_datetime_data",
  "icu_decimal",
- "icu_locid",
+ "icu_locid 1.5.0",
  "icu_locid_transform",
  "icu_plurals",
  "icu_provider",
@@ -4220,7 +4220,7 @@ dependencies = [
  "icu_collections",
  "icu_decimal",
  "icu_experimental_data",
- "icu_locid",
+ "icu_locid 1.5.0",
  "icu_locid_transform",
  "icu_normalizer",
  "icu_pattern",
@@ -4279,13 +4279,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "icu_locid"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4b1caaf463dca211ec77afa9210dfa507f99f76168faf15d650ab7ad03416fd"
+
+[[package]]
 name = "icu_locid_transform"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "01d11ac35de8e40fdeda00d9e1e9d92525f3f9d887cdd7aa81d727596788b54e"
 dependencies = [
  "displaydoc",
- "icu_locid",
+ "icu_locid 1.5.0",
  "icu_locid_transform_data",
  "icu_provider",
  "tinystr",
@@ -4384,7 +4390,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ed421c8a8ef78d3e2dbc98a973be2f3770cb42b606e3ab18d6237c4dfde68d9"
 dependencies = [
  "displaydoc",
- "icu_locid",
+ "icu_locid 1.5.0",
  "icu_provider_macros",
  "stable_deref_trait",
  "tinystr",
@@ -4400,7 +4406,7 @@ version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6324dfd08348a8e0374a447ebd334044d766b1839bb8d5ccf2482a99a77c0bc"
 dependencies = [
- "icu_locid",
+ "icu_locid 1.5.0",
  "icu_locid_transform",
  "icu_provider",
  "tinystr",
@@ -4427,7 +4433,7 @@ dependencies = [
  "core_maths",
  "displaydoc",
  "icu_collections",
- "icu_locid",
+ "icu_locid 1.5.0",
  "icu_provider",
  "icu_segmenter_data",
  "utf8_iter",
@@ -4823,7 +4829,7 @@ dependencies = [
  "fonts",
  "fonts_traits",
  "html5ever",
- "icu_locid",
+ "icu_locid 2.0.0",
  "icu_segmenter",
  "ipc-channel",
  "itertools 0.14.0",
@@ -6746,7 +6752,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
 dependencies = [
  "anyhow",
- "itertools 0.10.5",
+ "itertools 0.12.1",
  "proc-macro2",
  "quote",
  "syn",
