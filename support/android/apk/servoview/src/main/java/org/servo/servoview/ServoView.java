@@ -272,6 +272,7 @@ public class ServoView extends SurfaceView
 
     @Override
     public boolean onTouchEvent(final MotionEvent e) {
+        requestFocus();
         mGestureDetector.onTouchEvent(e);
         mScaleGestureDetector.onTouchEvent(e);
 
