@@ -68,7 +68,7 @@ def test_stale_element(session, get_test_page, as_frame):
 
 @pytest.mark.parametrize("expression, expected_type", [
     (""" document.querySelector("svg").attributes[0] """, "attribute"),
-    (""" document.querySelector("foo").childNodes[1] """, "text"),
+    (""" document.querySelector("text-node").childNodes[1] """, "text"),
     (""" document.createProcessingInstruction("xml-stylesheet", "href='foo.css'") """, "processing_instruction"),
     (""" document.querySelector("div#comment").childNodes[0] """, "comment"),
     (""" document""", "document"),
