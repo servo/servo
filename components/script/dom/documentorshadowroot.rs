@@ -14,7 +14,6 @@ use script_bindings::error::{Error, ErrorResult};
 use script_bindings::script_runtime::JSContext;
 use servo_arc::Arc;
 use servo_config::pref;
-use style::invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use style::media_queries::MediaList;
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
 use style::stylesheets::scope_rule::ImplicitScopeRoot;
@@ -100,12 +99,6 @@ impl PartialEq for ServoStylesheetInDocument {
     }
 }
 
-impl ToMediaListKey for ServoStylesheetInDocument {
-    fn to_media_list_key(&self) -> MediaListKey {
-        self.sheet.contents.to_media_list_key()
-    }
-}
-
 impl ::style::stylesheets::StylesheetInDocument for ServoStylesheetInDocument {
     fn enabled(&self) -> bool {
         self.sheet.enabled()
@@ -115,8 +108,8 @@ impl ::style::stylesheets::StylesheetInDocument for ServoStylesheetInDocument {
         self.sheet.media(guard)
     }
 
-    fn contents(&self) -> &StylesheetContents {
-        self.sheet.contents()
+    fn contents<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> &'a StylesheetContents {
+        self.sheet.contents(guard)
     }
 
     fn implicit_scope_root(&self) -> Option<ImplicitScopeRoot> {

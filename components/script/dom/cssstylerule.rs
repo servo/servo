@@ -11,7 +11,7 @@ use selectors::parser::{ParseRelative, SelectorList};
 use servo_arc::Arc;
 use style::selector_parser::SelectorParser;
 use style::shared_lock::{Locked, SharedRwLockReadGuard, ToCssWithGuard};
-use style::stylesheets::{CssRuleType, CssRules, Origin, StyleRule};
+use style::stylesheets::{CssRuleType, CssRules, Origin, StyleRule, StylesheetInDocument};
 
 use crate::dom::bindings::codegen::Bindings::CSSStyleRuleBinding::CSSStyleRuleMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -135,38 +135,36 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
 
     // https://drafts.csswg.org/cssom/#dom-cssstylerule-selectortext
     fn SetSelectorText(&self, value: DOMString) {
-        let contents = &self
-            .cssgroupingrule
-            .parent_stylesheet()
-            .style_stylesheet()
-            .contents
-            .clone();
-        // It's not clear from the spec if we should use the stylesheet's namespaces.
-        // https://github.com/w3c/csswg-drafts/issues/1511
-        let namespaces = contents.namespaces.read();
-        let url_data = contents.url_data.read();
-        let parser = SelectorParser {
-            stylesheet_origin: Origin::Author,
-            namespaces: &namespaces,
-            url_data: &url_data,
-            for_supports_rule: false,
-        };
         let value = value.str();
-        let mut css_parser = CssParserInput::new(&value);
-        let mut css_parser = CssParser::new(&mut css_parser);
-        // TODO: Maybe allow setting relative selectors from the OM, if we're in a nested style
-        // rule?
-        if let Ok(mut s) = SelectorList::parse(&parser, &mut css_parser, ParseRelative::No) {
-            self.cssgroupingrule.parent_stylesheet().will_modify();
-            // This mirrors what we do in CSSStyleOwner::mutate_associated_block.
-            let mut guard = self.cssgroupingrule.shared_lock().write();
-            mem::swap(
-                &mut self.stylerule.borrow().write_with(&mut guard).selectors,
-                &mut s,
-            );
-            self.cssgroupingrule
-                .parent_stylesheet()
-                .notify_invalidations();
-        }
+        let Ok(mut selector) = ({
+            let guard = self.cssgroupingrule.shared_lock().read();
+            let sheet = self.cssgroupingrule.parent_stylesheet().style_stylesheet();
+            let contents = sheet.contents(&guard);
+            // It's not clear from the spec if we should use the stylesheet's namespaces.
+            // https://github.com/w3c/csswg-drafts/issues/1511
+            let parser = SelectorParser {
+                stylesheet_origin: Origin::Author,
+                namespaces: &contents.namespaces,
+                url_data: &contents.url_data,
+                for_supports_rule: false,
+            };
+            let mut css_parser = CssParserInput::new(&value);
+            let mut css_parser = CssParser::new(&mut css_parser);
+            // TODO: Maybe allow setting relative selectors from the OM, if we're in a nested style
+            // rule?
+            SelectorList::parse(&parser, &mut css_parser, ParseRelative::No)
+        }) else {
+            return;
+        };
+        self.cssgroupingrule.parent_stylesheet().will_modify();
+        // This mirrors what we do in CSSStyleOwner::mutate_associated_block.
+        let mut guard = self.cssgroupingrule.shared_lock().write();
+        mem::swap(
+            &mut self.stylerule.borrow().write_with(&mut guard).selectors,
+            &mut selector,
+        );
+        self.cssgroupingrule
+            .parent_stylesheet()
+            .notify_invalidations();
     }
 }

@@ -14,7 +14,8 @@ use servo_arc::Arc;
 use style::media_queries::MediaList as StyleMediaList;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard};
 use style::stylesheets::{
-    AllowImportRules, CssRuleTypes, Origin, Stylesheet as StyleStyleSheet, UrlExtraData,
+    AllowImportRules, CssRuleTypes, Origin, Stylesheet as StyleStyleSheet, StylesheetContents,
+    StylesheetInDocument, UrlExtraData,
 };
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -158,7 +159,9 @@ impl CSSStyleSheet {
 
     fn rulelist(&self, can_gc: CanGc) -> DomRoot<CSSRuleList> {
         self.rulelist.or_init(|| {
-            let rules = self.style_stylesheet.borrow().contents.rules.clone();
+            let sheet = self.style_stylesheet.borrow();
+            let guard = sheet.shared_lock.read();
+            let rules = sheet.contents(&guard).rules.clone();
             CSSRuleList::new(
                 self.global().as_window(),
                 self,
@@ -260,7 +263,7 @@ impl CSSStyleSheet {
         // on the new copy.
         *self.style_stylesheet.borrow_mut() = style_stylesheet.clone();
         if let Some(rulelist) = self.rulelist.get() {
-            let rules = style_stylesheet.contents.rules.clone();
+            let rules = style_stylesheet.contents(guard).rules.clone();
             rulelist.update_rules(RulesSource::Rules(rules), guard);
         }
     }
@@ -278,6 +281,43 @@ impl CSSStyleSheet {
     /// <https://drafts.csswg.org/cssom/#concept-css-style-sheet-disallow-modification-flag>
     pub(crate) fn disallow_modification(&self) -> bool {
         self.disallow_modification.get()
+    }
+
+    /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-replacesync> Steps 2+
+    fn do_replace_sync(&self, text: USVString) {
+        // Step 2. Let rules be the result of running parse a stylesheet’s contents from text.
+        let global = self.global();
+        let window = global.as_window();
+
+        self.will_modify();
+
+        #[cfg(feature = "tracing")]
+        let _span = tracing::trace_span!("ParseStylesheet", servo_profiling = true).entered();
+        let sheet = self.style_stylesheet();
+        let new_contents = StylesheetContents::from_str(
+            &text,
+            UrlExtraData(window.get_url().get_arc()),
+            Origin::Author,
+            &self.style_shared_lock,
+            None,
+            window.css_error_reporter(),
+            window.Document().quirks_mode(),
+            AllowImportRules::No, // Step 3.If rules contains one or more @import rules, remove those rules from rules.
+            /* sanitization_data = */ None,
+        );
+
+        {
+            let mut write_guard = self.style_shared_lock.write();
+            *sheet.contents.write_with(&mut write_guard) = new_contents;
+        }
+
+        // Step 4. Set sheet’s CSS rules to rules.
+        // We reset our rule list, which will be initialized properly
+        // at the next getter access.
+        self.rulelist.set(None);
+
+        // Notify invalidation to update the styles immediately.
+        self.notify_invalidations();
     }
 }
 
@@ -430,32 +470,8 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
             .queue(task!(cssstylesheet_replace: move || {
                 let sheet = trusted_sheet.root();
 
-                // Step 4.1. Let rules be the result of running parse a stylesheet’s contents from text.
-                // Step 4.2. If rules contains one or more @import rules, remove those rules from rules.
-                // We are disallowing import rules in parsing
-                let global = sheet.global();
-                let window = global.as_window();
-
-                sheet.will_modify();
-
-                #[cfg(feature = "tracing")]
-                let _span = tracing::trace_span!("ParseStylesheet", servo_profiling = true).entered();
-                StyleStyleSheet::update_from_str(
-                    &sheet.style_stylesheet(),
-                    &text,
-                    UrlExtraData(window.get_url().get_arc()),
-                    None,
-                    window.css_error_reporter(),
-                    AllowImportRules::No,
-                );
-
-                // Step 4.3. Set sheet’s CSS rules to rules.
-                // We reset our rule list, which will be initialized properly
-                // at the next getter access.
-                sheet.rulelist.set(None);
-
-                // Notify invalidation to update the styles immediately.
-                sheet.notify_invalidations();
+                // Step 4.1..4.3
+                sheet.do_replace_sync(text);
 
                 // Step 4.4. Unset sheet’s disallow modification flag.
                 sheet.disallow_modification.set(false);
@@ -474,32 +490,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
         if !self.is_constructed() || self.disallow_modification() {
             return Err(Error::NotAllowed);
         }
-
-        // Step 2. Let rules be the result of running parse a stylesheet’s contents from text.
-        let global = self.global();
-        let window = global.as_window();
-
-        self.will_modify();
-
-        #[cfg(feature = "tracing")]
-        let _span = tracing::trace_span!("ParseStylesheet", servo_profiling = true).entered();
-        StyleStyleSheet::update_from_str(
-            &self.style_stylesheet(),
-            &text,
-            UrlExtraData(window.get_url().get_arc()),
-            None,
-            window.css_error_reporter(),
-            AllowImportRules::No, // Step 3.If rules contains one or more @import rules, remove those rules from rules.
-        );
-
-        // Step 4. Set sheet’s CSS rules to rules.
-        // We reset our rule list, which will be initialized properly
-        // at the next getter access.
-        self.rulelist.set(None);
-
-        // Notify invalidation to update the styles immediately.
-        self.notify_invalidations();
-
+        self.do_replace_sync(text);
         Ok(())
     }
 }

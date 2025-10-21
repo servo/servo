@@ -538,7 +538,7 @@ impl FontContextWebFontMethods for Arc<FontContext> {
         finished_callback: StylesheetWebFontLoadFinishedCallback,
     ) -> usize {
         let mut number_loading = 0;
-        for rule in stylesheet.effective_rules(device, guard) {
+        for rule in stylesheet.contents(guard).effective_rules(device, guard) {
             let CssRule::FontFace(ref lock) = *rule else {
                 continue;
             };

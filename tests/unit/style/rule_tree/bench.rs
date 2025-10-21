@@ -13,7 +13,9 @@ use style::properties::{Importance, PropertyDeclaration, PropertyDeclarationBloc
 use style::rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
 use style::shared_lock::{SharedRwLock, StylesheetGuards};
 use style::stylesheets::layer_rule::LayerOrder;
-use style::stylesheets::{AllowImportRules, CssRule, Origin, Stylesheet, UrlExtraData};
+use style::stylesheets::{
+    AllowImportRules, CssRule, Origin, Stylesheet, StylesheetInDocument, UrlExtraData,
+};
 use style::thread_state::{self, ThreadState};
 use test::{self, Bencher};
 use url::Url;
@@ -77,7 +79,7 @@ fn parse_rules(lock: &SharedRwLock, css: &str) -> Vec<(StyleSource, CascadeLevel
         AllowImportRules::Yes,
     );
     let guard = s.shared_lock.read();
-    let rules = s.contents.rules.read_with(&guard);
+    let rules = s.contents(&guard).rules.read_with(&guard);
     rules
         .0
         .iter()
