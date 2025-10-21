@@ -5578,6 +5578,7 @@ dependencies = [
  "servo_arc",
  "servo_malloc_size_of",
  "servo_url",
+ "tokio",
  "url",
  "uuid",
  "webrender_api",
