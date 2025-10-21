@@ -22,6 +22,7 @@ NODE_TYPE = {
     "element": 1,
     "attribute": 2,
     "text": 3,
+    "cdata": 4,
     "processing_instruction": 7,
     "comment": 8,
     "document": 9,
@@ -68,12 +69,13 @@ def test_stale_element(session, get_test_page, as_frame):
 
 @pytest.mark.parametrize("expression, expected_type", [
     (""" document.querySelector("svg").attributes[0] """, "attribute"),
-    (""" document.querySelector("text-node").childNodes[1] """, "text"),
+    (""" document.querySelector("div#text-node").childNodes[1] """, "text"),
+    (""" document.implementation.createDocument("", "root", null).createCDATASection("foo") """, "cdata"),
     (""" document.createProcessingInstruction("xml-stylesheet", "href='foo.css'") """, "processing_instruction"),
     (""" document.querySelector("div#comment").childNodes[0] """, "comment"),
     (""" document""", "document"),
     (""" document.doctype""", "doctype"),
-], ids=["attribute", "text", "processing_instruction", "comment", "document", "doctype"])
+], ids=["attribute", "text", "cdata", "processing_instruction", "comment", "document", "doctype"])
 def test_node_type(session, inline, expression, expected_type):
     session.url = inline(PAGE_DATA)
 
