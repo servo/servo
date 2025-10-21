@@ -35,3 +35,11 @@
 
 # Reviewers for XPath related code
 /components/xpath @simonwuelker
+
+# Reviewers for CI related code
+/.github/workflows @sagudev
+/.github/actions @sagudev
+/python/servo/try_parser.py @sagudev
+
+# Reviewers for crown
+/support/crown @sagudev
