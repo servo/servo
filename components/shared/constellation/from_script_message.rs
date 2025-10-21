@@ -455,6 +455,8 @@ pub struct WorkerGlobalScopeInit {
     pub creation_url: ServoUrl,
     /// True if secure context
     pub inherited_secure_context: Option<bool>,
+    /// Unminify Javascript.
+    pub unminify_js: bool,
 }
 
 /// Common entities representing a network load origin

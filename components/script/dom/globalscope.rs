@@ -24,6 +24,7 @@ use constellation_traits::{
     PortMessageTask, ScriptToConstellationChan, ScriptToConstellationMessage,
 };
 use content_security_policy::CspList;
+use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
@@ -113,6 +114,7 @@ use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::html::htmlscriptelement::{ScriptId, SourceCode};
+use crate::dom::htmlscriptelement::ScriptOrigin;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::Performance;
@@ -3367,6 +3369,10 @@ impl GlobalScope {
         );
     }
 
+    pub(crate) fn unminify_js(&self) -> bool {
+        self.unminified_js_dir.is_some()
+    }
+
     pub(crate) fn unminified_js_dir(&self) -> Option<String> {
         self.unminified_js_dir.clone()
     }
@@ -3513,6 +3519,57 @@ impl GlobalScope {
                 ResolvedModule::new(base_url.to_owned(), specifier.to_owned(), specifier_url);
             // Step 4. Append record to global's resolved module set.
             self.resolved_module_set.borrow_mut().insert(record);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#run-a-classic-script>
+    pub(crate) fn run_a_classic_script(
+        &self,
+        script: &ScriptOrigin,
+        line_number: u32,
+        introduction_type: Option<&'static CStr>,
+        can_gc: CanGc,
+    ) {
+        // TODO use a settings object
+        // Step 2
+        if !self.can_run_script() {
+            return;
+        }
+
+        // Steps 4-10
+        rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());
+        _ = self.evaluate_script_on_global_with_result(
+            &script.code,
+            script.url.as_str(),
+            rval.handle_mut(),
+            line_number,
+            script.fetch_options.clone(),
+            script.url.clone(),
+            can_gc,
+            introduction_type,
+        );
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#check-if-we-can-run-script>
+    fn can_run_script(&self) -> bool {
+        // Step 1 If the global object specified by settings is a Window object
+        // whose Document object is not fully active, then return "do not run".
+        //
+        // Step 2 If scripting is disabled for settings, then return "do not run".
+        //
+        // An user agent can also disable scripting
+        //
+        // Either settings's global object is not a Window object,
+        // or settings's global object's associated Document's active sandboxing flag set
+        // does not have its sandboxed scripts browsing context flag set.
+        if let Some(window) = self.downcast::<Window>() {
+            let doc = window.Document();
+            doc.is_fully_active() ||
+                !doc.has_active_sandboxing_flag(
+                    SandboxingFlagSet::SANDBOXED_SCRIPTS_BROWSING_CONTEXT_FLAG,
+                )
+        } else {
+            true
         }
     }
 }

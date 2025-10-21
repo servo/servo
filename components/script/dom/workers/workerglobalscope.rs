@@ -18,6 +18,7 @@ use content_security_policy::CspList;
 use crossbeam_channel::Receiver;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use dom_struct::dom_struct;
+use encoding_rs::UTF_8;
 use fonts::FontContext;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use ipc_channel::ipc::IpcSender;
@@ -54,12 +55,11 @@ use crate::dom::bindings::codegen::UnionTypes::{
     RequestOrUSVString, TrustedScriptOrString, TrustedScriptOrStringOrFunction,
     TrustedScriptURLOrUSVString,
 };
-use crate::dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception};
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
@@ -69,7 +69,7 @@ use crate::dom::dedicatedworkerglobalscope::{
     AutoWorkerReset, DedicatedWorkerGlobalScope, interrupt_callback,
 };
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlscriptelement::SCRIPT_JS_MIMES;
+use crate::dom::htmlscriptelement::{SCRIPT_JS_MIMES, ScriptOrigin, ScriptType};
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::performance::Performance;
 use crate::dom::performanceresourcetiming::InitiatorType;
@@ -89,9 +89,11 @@ use crate::fetch::{CspViolationsProcessor, Fetch, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::network_listener::{PreInvoke, ResourceTimingListener, submit_timing};
 use crate::realms::{InRealm, enter_realm};
+use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType, JSContext, JSContextHelper, Runtime};
 use crate::task::TaskCanceller;
 use crate::timers::{IsInterval, TimerCallback};
+use crate::unminify::unminify_js;
 
 pub(crate) fn prepare_workerscope_init(
     global: &GlobalScope,
@@ -112,6 +114,7 @@ pub(crate) fn prepare_workerscope_init(
         origin: global.origin().immutable().clone(),
         creation_url: global.creation_url().clone(),
         inherited_secure_context: Some(global.is_secure_context()),
+        unminify_js: global.unminify_js(),
     }
 }
 
@@ -226,7 +229,7 @@ impl FetchResponseListener for ScriptFetchContext {
         }
 
         // Step 4 Let sourceText be the result of UTF-8 decoding bodyBytes.
-        let source = String::from_utf8_lossy(&self.body_bytes);
+        let (source, _, _) = UTF_8.decode(&self.body_bytes);
 
         // Step 5 Let script be the result of creating a classic script using
         // sourceText, settingsObject, response's URL, and the default script fetch options.
@@ -370,7 +373,7 @@ impl WorkerGlobalScope {
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,
                 init.inherited_secure_context,
-                false,
+                init.unminify_js,
                 font_context,
             ),
             worker_id: init.worker_id,
@@ -921,44 +924,18 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
 }
 
 impl WorkerGlobalScope {
-    #[allow(unsafe_code)]
     pub(crate) fn execute_script(&self, source: DOMString, can_gc: CanGc) {
-        let _aes = AutoEntryScript::new(self.upcast());
-        let cx = self.runtime.borrow().as_ref().unwrap().cx();
-        rooted!(in(cx) let mut rval = UndefinedValue());
-        let mut options = self
-            .runtime
-            .borrow()
-            .as_ref()
-            .unwrap()
-            .new_compile_options(self.worker_url.borrow().as_str(), 1);
-        options.set_introduction_type(IntroductionType::WORKER);
-        match self.runtime.borrow().as_ref().unwrap().evaluate_script(
-            self.reflector().get_jsobject(),
-            &source.str(),
-            rval.handle_mut(),
-            options,
-        ) {
-            Ok(_) => (),
-            Err(_) => {
-                if self.is_closing() {
-                    println!("evaluate_script failed (terminated)");
-                } else {
-                    // TODO: An error needs to be dispatched to the parent.
-                    // https://github.com/servo/servo/issues/6422
-                    println!("evaluate_script failed");
-                    unsafe {
-                        let ar = enter_realm(self);
-                        report_pending_exception(
-                            JSContext::from_ptr(cx),
-                            true,
-                            InRealm::Entered(&ar),
-                            can_gc,
-                        );
-                    }
-                }
-            },
-        }
+        let global = self.upcast::<GlobalScope>();
+        let mut script = ScriptOrigin::external(
+            Rc::new(source),
+            self.worker_url.borrow().clone(),
+            ScriptFetchOptions::default_classic_script(global),
+            ScriptType::Classic,
+            global.unminified_js_dir(),
+        );
+        unminify_js(&mut script);
+
+        global.run_a_classic_script(&script, 1, Some(IntroductionType::WORKER), can_gc);
     }
 
     pub(crate) fn new_script_pair(&self) -> (ScriptEventLoopSender, ScriptEventLoopReceiver) {
