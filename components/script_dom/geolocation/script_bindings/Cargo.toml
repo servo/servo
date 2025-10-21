@@ -1,5 +1,5 @@
 [package]
-name = "script_bindings"
+name = "script_bindings_geolocation"
 build = "build.rs"
 version.workspace = true
 authors.workspace = true
@@ -9,10 +9,10 @@ publish.workspace = true
 rust-version.workspace = true
 
 # https://github.com/rust-lang/cargo/issues/3544
-links = "script_bindings_crate"
+links = "script_bindings_geolocation_crate"
 
 [lib]
-name = "script_bindings"
+name = "script_bindings_geolocation"
 path = "lib.rs"
 
 [dependencies]
@@ -25,7 +25,7 @@ domobject_derive = { workspace = true }
 html5ever = { workspace = true }
 indexmap = { workspace = true }
 js = { workspace = true }
-jstraceable_derive = { path = "../jstraceable_derive" }
+jstraceable_derive = { workspace = true }
 keyboard-types = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
@@ -35,10 +35,9 @@ num-traits = { workspace = true }
 parking_lot = { workspace = true }
 phf = "0.11"
 regex = { workspace = true }
-script_bindings_geolocation = { path = "../script_dom/geolocation/script_bindings" }
 servo_arc = { workspace = true }
-servo_config = { path = "../config" }
-servo_url = { path = "../url" }
+servo_config = { path = "../../../config" }
+servo_url = { path = "../../../url" }
 smallvec = { workspace = true }
 stylo = { workspace = true }
 stylo_atoms = { workspace = true }
@@ -46,11 +45,6 @@ tendril = { version = "0.4.1", features = ["encoding_rs"] }
 tracing = { workspace = true, optional = true }
 webxr-api = { workspace = true, optional = true }
 xml5ever = { workspace = true }
-
-[build-dependencies]
-phf_codegen = "0.11"
-phf_shared = "0.11"
-serde_json = { workspace = true }
 
 [features]
 bluetooth = []
