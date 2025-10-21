@@ -178,7 +178,7 @@ webrender = { git = "https://github.com/servo/webrender", branch = "0.68", featu
 webrender_api = { git = "https://github.com/servo/webrender", branch = "0.68" }
 webxr-api = { path = "components/shared/webxr" }
 wgpu-core = "26"
-wgpu-types = "26"
+wgpu-types = "27"
 winapi = "0.3"
 windows-sys = "0.61"
 winit = "0.30.12"
