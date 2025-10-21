@@ -3574,6 +3574,8 @@ impl GlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-steps-after-a-timeout>
+    /// TODO: This should end-up being used in the other timer mechanism
+    /// integrate as per <https://html.spec.whatwg.org/multipage/#timers:run-steps-after-a-timeout?
     pub(crate) fn run_steps_after_a_timeout<F>(
         &self,
         ordering_identifier: DOMString,

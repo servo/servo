@@ -47,11 +47,16 @@ type TimerKey = i32;
 type RunStepsDeadline = Instant;
 type CompletionStep = Box<dyn FnOnce(&GlobalScope, CanGc) + 'static>;
 
-// OrderingIdentifier per spec ("orderingIdentifier")
+/// <https://html.spec.whatwg.org/multipage/#run-steps-after-a-timeout>
+/// OrderingIdentifier per spec ("orderingIdentifier")
 type OrderingIdentifier = DOMString;
 
-// Per-ordering queue entry: (deadline_ms, sequence, handle)
-type OrderingEntry = (u64, u64, OneshotTimerHandle);
+#[derive(JSTraceable, MallocSizeOf)]
+struct OrderingEntry {
+    milliseconds: u64,
+    start_seq: u64,
+    handle: OneshotTimerHandle,
+}
 
 // Per-ordering queues map
 type OrderingQueues = FxHashMap<OrderingIdentifier, Vec<OrderingEntry>>;
@@ -83,17 +88,17 @@ pub(crate) struct OneshotTimers {
     ///    original timer is rescheduled when it is the next one to get called.
     #[no_trace]
     expected_event_id: Cell<TimerEventId>,
-    /// <https://html.spec.whatwg.org/multipage/#run-steps-after-a-timeout>
-    /// Step 3. Set global's map of active timers[timerKey] to startTime plus milliseconds.
-    runsteps_active: DomRefCell<RunStepsActiveMap>,
+    /// <https://html.spec.whatwg.org/multipage/#map-of-active-timers>
+    /// TODO this should also be used for the other timers
+    /// as per <html.spec.whatwg.org/multipage/#map-of-settimeout-and-setinterval-ids>Z.
+    map_of_active_timers: DomRefCell<RunStepsActiveMap>,
 
     /// <https://html.spec.whatwg.org/multipage/#run-steps-after-a-timeout>
     /// Step 4.2 Wait until any invocations of this algorithm that had the same global and orderingIdentifier,
     /// that started before this one, and whose milliseconds is less than or equal to this one's, have completed.
     runsteps_queues: DomRefCell<OrderingQueues>,
 
-    /// <https://html.spec.whatwg.org/multipage/#run-steps-after-a-timeout>
-    /// Step 1. Let timerKey be a new unique internal value.
+    /// <html.spec.whatwg.org/multipage/#timers:unique-internal-value-5>
     next_runsteps_key: Cell<TimerKey>,
 
     /// <https://html.spec.whatwg.org/multipage/#run-steps-after-a-timeout>
@@ -123,13 +128,13 @@ pub(crate) enum OneshotTimerCallback {
     RefreshRedirectDue(RefreshRedirectDue),
     /// <https://html.spec.whatwg.org/multipage/#run-steps-after-a-timeout>
     RunStepsAfterTimeout {
-        // Step 1. timerKey
+        /// Step 1. timerKey
         timer_key: i32,
-        // Step 4. orderingIdentifier
+        /// Step 4. orderingIdentifier
         ordering_id: DOMString,
-        // Spec: milliseconds (the algorithm input)
+        /// Spec: milliseconds (the algorithm input)
         milliseconds: u64,
-        // Perform completionSteps.
+        /// Perform completionSteps.
         #[no_trace]
         #[ignore_malloc_size_of = "Closure"]
         completion: CompletionStep,
@@ -186,17 +191,17 @@ impl OneshotTimers {
             suspended_since: Cell::new(None),
             suspension_offset: Cell::new(Duration::ZERO),
             expected_event_id: Cell::new(TimerEventId(0)),
-            runsteps_active: DomRefCell::new(FxHashMap::default()),
-            runsteps_queues: DomRefCell::new(FxHashMap::default()),
+            map_of_active_timers: Default::default(),
+            runsteps_queues: Default::default(),
             next_runsteps_key: Cell::new(1),
             runsteps_start_seq: Cell::new(0),
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-steps-after-a-timeout>
-    /// Step 2. Let startTime be the current high resolution time given global.
     #[inline]
     pub(crate) fn now_for_runsteps(&self) -> Instant {
+        // Step 2. Let startTime be the current high resolution time given global.
         self.base_time()
     }
 
@@ -211,7 +216,7 @@ impl OneshotTimers {
     /// <https://html.spec.whatwg.org/multipage/#run-steps-after-a-timeout>
     /// Step 3. Set global's map of active timers[timerKey] to startTime plus milliseconds.
     pub(crate) fn runsteps_set_active(&self, timer_key: TimerKey, deadline: RunStepsDeadline) {
-        self.runsteps_active
+        self.map_of_active_timers
             .borrow_mut()
             .insert(timer_key, deadline);
     }
@@ -233,13 +238,19 @@ impl OneshotTimers {
             cur
         };
 
-        let key = (milliseconds, seq, handle);
+        let key = OrderingEntry {
+            milliseconds,
+            start_seq: seq,
+            handle,
+        };
 
         let idx = q
-            .binary_search_by(|&(d, s, _)| match d.cmp(&milliseconds) {
-                Ordering::Less => Ordering::Less,
-                Ordering::Greater => Ordering::Greater,
-                Ordering::Equal => s.cmp(&seq),
+            .binary_search_by(|ordering_entry| {
+                match ordering_entry.milliseconds.cmp(&milliseconds) {
+                    Ordering::Less => Ordering::Less,
+                    Ordering::Greater => Ordering::Greater,
+                    Ordering::Equal => ordering_entry.start_seq.cmp(&seq),
+                }
             })
             .unwrap_or_else(|i| i);
 
@@ -350,6 +361,7 @@ impl OneshotTimers {
                 return;
             }
             match &timer.callback {
+                // TODO: https://github.com/servo/servo/issues/40060
                 OneshotTimerCallback::RunStepsAfterTimeout { ordering_id, .. } => {
                     // Step 4.2 Wait until any invocations of this algorithm that had the same global and orderingIdentifier,
                     // that started before this one, and whose milliseconds is less than or equal to this one's, have completed.
@@ -357,11 +369,12 @@ impl OneshotTimers {
                         let queues_ref = self.runsteps_queues.borrow();
                         queues_ref
                             .get(ordering_id)
-                            .and_then(|v| v.first().map(|t| t.2))
+                            .and_then(|v| v.first().map(|t| t.handle))
                     };
                     let is_head = head_handle_opt.is_none_or(|head| head == timer.handle);
 
                     if !is_head {
+                        // TODO: this re queuing would go away when we revisit timers implementation.
                         let rein = OneshotTimer {
                             handle: timer.handle,
                             source: timer.source,
@@ -391,7 +404,7 @@ impl OneshotTimers {
                     (completion)(global, can_gc);
 
                     // Step 4.5 Remove global's map of active timers[timerKey].
-                    self.runsteps_active.borrow_mut().remove(&timer_key);
+                    self.map_of_active_timers.borrow_mut().remove(&timer_key);
 
                     {
                         let mut queues_mut = self.runsteps_queues.borrow_mut();
