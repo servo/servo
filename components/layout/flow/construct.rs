@@ -477,11 +477,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         // Otherwise, this is just a normal inline box. Whatever happened before, all we need to do
         // before recurring is to remember this ongoing inline level box.
         self.ensure_inline_formatting_context_builder()
-            .start_inline_box(
-                || ArcRefCell::new(InlineBox::new(info)),
-                None,
-                old_layout_box,
-            );
+            .start_inline_box(|| ArcRefCell::new(InlineBox::new(info)), old_layout_box);
 
         if is_list_item {
             if let Some((marker_info, marker_contents)) =
