@@ -36,7 +36,7 @@ background_hang_monitor_api = { path = "components/shared/background_hang_monito
 backtrace = "0.3"
 base = { path = "components/shared/base" }
 base64 = "0.22.1"
-bincode = "1"
+bincode = "2"
 bitflags = "2.10"
 bluetooth_traits = { path = "components/shared/bluetooth" }
 bytemuck = "1"
