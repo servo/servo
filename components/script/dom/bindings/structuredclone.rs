@@ -9,14 +9,15 @@ use std::os::raw;
 use std::ptr;
 
 use base::id::{
-    BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, ImageBitmapId, Index,
-    MessagePortId, NamespaceIndex, OffscreenCanvasId, PipelineNamespaceId, QuotaExceededErrorId,
+    BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, ImageBitmapId,
+    ImageDataId, Index, MessagePortId, NamespaceIndex, OffscreenCanvasId, PipelineNamespaceId,
+    QuotaExceededErrorId,
 };
 use constellation_traits::{
     BlobImpl, DomException, DomMatrix, DomPoint, DomQuad, DomRect, MessagePortImpl,
-    Serializable as SerializableInterface, SerializableImageBitmap, SerializableQuotaExceededError,
-    StructuredSerializedData, TransferableOffscreenCanvas, Transferrable as TransferrableInterface,
-    TransformStreamData,
+    Serializable as SerializableInterface, SerializableImageBitmap, SerializableImageData,
+    SerializableQuotaExceededError, StructuredSerializedData, TransferableOffscreenCanvas,
+    Transferrable as TransferrableInterface, TransformStreamData,
 };
 use js::gc::RootedVec;
 use js::glue::{
@@ -47,6 +48,7 @@ use crate::dom::dompoint::DOMPoint;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::imagebitmap::ImageBitmap;
+use crate::dom::imagedata::ImageData;
 use crate::dom::messageport::MessagePort;
 use crate::dom::offscreencanvas::OffscreenCanvas;
 use crate::dom::readablestream::ReadableStream;
@@ -83,6 +85,7 @@ pub(super) enum StructuredCloneTags {
     DomQuad = 0xFFFF800F,
     DomMatrix = 0xFFFF8010,
     DomMatrixReadOnly = 0xFFFF8011,
+    ImageData = 0xFFFF8012,
     Max = 0xFFFFFFFF,
 }
 
@@ -100,6 +103,7 @@ impl From<SerializableInterface> for StructuredCloneTags {
             SerializableInterface::DomException => StructuredCloneTags::DomException,
             SerializableInterface::ImageBitmap => StructuredCloneTags::ImageBitmap,
             SerializableInterface::QuotaExceededError => StructuredCloneTags::QuotaExceededError,
+            SerializableInterface::ImageData => StructuredCloneTags::ImageData,
         }
     }
 }
@@ -137,6 +141,7 @@ fn reader_for_type(
         SerializableInterface::DomException => read_object::<DOMException>,
         SerializableInterface::ImageBitmap => read_object::<ImageBitmap>,
         SerializableInterface::QuotaExceededError => read_object::<QuotaExceededError>,
+        SerializableInterface::ImageData => read_object::<ImageData>,
     }
 }
 
@@ -287,6 +292,7 @@ fn serialize_for_type(val: SerializableInterface) -> SerializeOperation {
         SerializableInterface::DomException => try_serialize::<DOMException>,
         SerializableInterface::ImageBitmap => try_serialize::<ImageBitmap>,
         SerializableInterface::QuotaExceededError => try_serialize::<QuotaExceededError>,
+        SerializableInterface::ImageData => try_serialize::<ImageData>,
     }
 }
 
@@ -614,6 +620,8 @@ pub(crate) struct StructuredDataReader<'a> {
     /// A map of transferred offscreen canvases.
     pub(crate) offscreen_canvases:
         Option<FxHashMap<OffscreenCanvasId, TransferableOffscreenCanvas>>,
+    // A map of serialized image data.
+    pub(crate) image_data: Option<FxHashMap<ImageDataId, SerializableImageData>>,
 }
 
 /// A data holder for transferred and serialized objects.
@@ -648,6 +656,8 @@ pub(crate) struct StructuredDataWriter {
     /// Transferred offscreen canvases.
     pub(crate) offscreen_canvases:
         Option<FxHashMap<OffscreenCanvasId, TransferableOffscreenCanvas>>,
+    // A map of serialized image data.
+    pub(crate) image_data: Option<FxHashMap<ImageDataId, SerializableImageData>>,
 }
 
 /// Writes a structured clone. Returns a `DataClone` error if that fails.
@@ -712,6 +722,7 @@ pub(crate) fn write(
             image_bitmaps: sc_writer.image_bitmaps.take(),
             transferred_image_bitmaps: sc_writer.transferred_image_bitmaps.take(),
             offscreen_canvases: sc_writer.offscreen_canvases.take(),
+            image_data: sc_writer.image_data.take(),
         };
 
         Ok(data)
@@ -743,6 +754,7 @@ pub(crate) fn read(
         image_bitmaps: data.image_bitmaps.take(),
         transferred_image_bitmaps: data.transferred_image_bitmaps.take(),
         offscreen_canvases: data.offscreen_canvases.take(),
+        image_data: data.image_data.take(),
     };
     let sc_reader_ptr = &mut sc_reader as *mut _;
     unsafe {
