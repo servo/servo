@@ -56,6 +56,10 @@ impl<WebView> WebViewManager<WebView> {
         Ok(false)
     }
 
+    pub(crate) fn is_shown(&self, webview_id: WebViewId) -> bool {
+        self.painting_order.contains(&webview_id)
+    }
+
     /// Returns true iff the painting order actually changed.
     pub fn hide(&mut self, webview_id: WebViewId) -> Result<bool, UnknownWebView> {
         if !self.webviews.contains_key(&webview_id) {
