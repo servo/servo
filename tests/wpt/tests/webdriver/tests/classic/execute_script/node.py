@@ -68,7 +68,7 @@ def test_stale_element(session, get_test_page, as_frame):
     assert_error(result, "stale element reference")
 
 
-test_cases = [
+@pytest.mark.parametrize("expression, expected_type", [
     (""" document.querySelector("svg").attributes[0] """, "attribute"),
     (""" document.querySelector("div#text-node").childNodes[1] """, "text"),
     (""" document.implementation.createDocument("", "root", null).createCDATASection("foo") """, "cdata"),
@@ -76,15 +76,20 @@ test_cases = [
     (""" document.querySelector("div#comment").childNodes[0] """, "comment"),
     (""" document""", "document"),
     (""" document.doctype""", "doctype"),
-]
-
-@pytest.mark.parametrize("expression, expected_type", test_cases, ids=[case[1] for case in test_cases])
+], ids=["attribute", "text", "cdata", "processing_instruction", "comment", "document", "doctype"])
 def test_node_type(session, inline, expression, expected_type):
     session.url = inline(PAGE_DATA)
 
-    response = execute_script(session, f"return {expression}")
+    response = execute_script(
+        session,
+        f"const result = {expression}; return {{'result': result, 'type': result.nodeType}}",
+    )
     result = assert_success(response)
-    print(result)
+    if expected_type == "document":
+        assert 'location' in result['result']
+    else:
+        assert result['result'] == {}
+    assert result["type"] == NODE_TYPE[expected_type]
 
 
 @pytest.mark.parametrize("expression, expected_type", [
