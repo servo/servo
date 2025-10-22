@@ -11,8 +11,8 @@ use crate::dom::bindings::codegen::Bindings::IDBCursorWithValueBinding::IDBCurso
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::idbcursor::{IDBCursor, ObjectStoreOrIndex};
-use crate::dom::idbtransaction::IDBTransaction;
+use crate::dom::indexeddb::idbcursor::{IDBCursor, ObjectStoreOrIndex};
+use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[dom_struct]

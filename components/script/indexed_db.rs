@@ -38,8 +38,8 @@ use crate::dom::bindings::utils::set_dictionary_property;
 use crate::dom::blob::Blob;
 use crate::dom::file::File;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::idbkeyrange::IDBKeyRange;
-use crate::dom::idbobjectstore::KeyPath;
+use crate::dom::indexeddb::idbkeyrange::IDBKeyRange;
+use crate::dom::indexeddb::idbobjectstore::KeyPath;
 
 pub fn create_channel<T>(
     global: DomRoot<GlobalScope>,

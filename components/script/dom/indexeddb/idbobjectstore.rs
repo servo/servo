@@ -32,10 +32,10 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::domstringlist::DOMStringList;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::idbcursor::{IDBCursor, IterationParam, ObjectStoreOrIndex};
-use crate::dom::idbcursorwithvalue::IDBCursorWithValue;
-use crate::dom::idbrequest::IDBRequest;
-use crate::dom::idbtransaction::IDBTransaction;
+use crate::dom::indexeddb::idbcursor::{IDBCursor, IterationParam, ObjectStoreOrIndex};
+use crate::dom::indexeddb::idbcursorwithvalue::IDBCursorWithValue;
+use crate::dom::indexeddb::idbrequest::IDBRequest;
+use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::indexed_db::{
     self, ExtractionResult, convert_value_to_key, convert_value_to_key_range, extract_key,
 };

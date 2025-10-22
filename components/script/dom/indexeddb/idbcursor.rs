@@ -21,10 +21,10 @@ use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::structuredclone;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::idbindex::IDBIndex;
-use crate::dom::idbobjectstore::IDBObjectStore;
-use crate::dom::idbrequest::IDBRequest;
-use crate::dom::idbtransaction::IDBTransaction;
+use crate::dom::indexeddb::idbindex::IDBIndex;
+use crate::dom::indexeddb::idbobjectstore::IDBObjectStore;
+use crate::dom::indexeddb::idbrequest::IDBRequest;
+use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::indexed_db::key_type_to_jsval;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
