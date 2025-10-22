@@ -81,10 +81,6 @@ def test_stale_element(session, get_test_page, as_frame):
 def test_node_type(session, inline, expression, expected_type):
     session.url = inline(PAGE_DATA)
 
-    response = execute_async_script(session, f"arguments[0]({expression}.nodeType)")
-    result = assert_success(response)
-    assert result == NODE_TYPE[expected_type]
-
     response = execute_async_script(
         session,
         f"""
@@ -96,11 +92,13 @@ def test_node_type(session, inline, expression, expected_type):
     )
     result = assert_success(response)
 
+    assert result["type"] == NODE_TYPE[expected_type]
+
     if expected_type == "document":
         assert 'location' in result['result']
     else:
         assert result['result'] == {}
-    assert result["type"] == NODE_TYPE[expected_type]
+
 
 
 @pytest.mark.parametrize("expression, expected_type", [

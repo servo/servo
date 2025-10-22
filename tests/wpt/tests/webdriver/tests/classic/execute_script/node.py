@@ -85,11 +85,14 @@ def test_node_type(session, inline, expression, expected_type):
         f"const result = {expression}; return {{'result': result, 'type': result.nodeType}}",
     )
     result = assert_success(response)
+
+    assert result["type"] == NODE_TYPE[expected_type]
+
     if expected_type == "document":
         assert 'location' in result['result']
     else:
         assert result['result'] == {}
-    assert result["type"] == NODE_TYPE[expected_type]
+
 
 
 @pytest.mark.parametrize("expression, expected_type", [
