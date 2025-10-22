@@ -68,6 +68,25 @@ interface SubtleCrypto {
                          sequence<KeyUsage> keyUsages );
 };
 
+// ECDSA
+dictionary EcdsaParams : Algorithm {
+  required HashAlgorithmIdentifier hash;
+};
+
+typedef DOMString NamedCurve;
+
+dictionary EcKeyGenParams : Algorithm {
+  required NamedCurve namedCurve;
+};
+
+dictionary EcKeyAlgorithm : KeyAlgorithm {
+  required NamedCurve namedCurve;
+};
+
+dictionary EcKeyImportParams : Algorithm {
+  required NamedCurve namedCurve;
+};
+
 // AES shared
 dictionary AesKeyAlgorithm : KeyAlgorithm {
   required unsigned short length;

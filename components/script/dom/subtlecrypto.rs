@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 mod aes_operation;
+mod ecdsa_operation;
 mod hkdf_operation;
 mod hmac_operation;
 mod pbkdf2_operation;
@@ -19,6 +20,9 @@ use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::wrappers::JS_ParseJSON;
 use js::rust::{HandleValue, MutableHandleValue};
 use js::typedarray::ArrayBufferU8;
+use script_bindings::codegen::GenericBindings::SubtleCryptoBinding::{
+    EcKeyAlgorithm, EcKeyGenParams, EcdsaParams,
+};
 use servo_rand::ServoRng;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
@@ -1601,6 +1605,41 @@ impl SafeToJSValConvertible for SubtleKeyAlgorithm {
 }
 
 #[derive(Clone, Debug, MallocSizeOf)]
+pub(crate) struct SubtleEcdsaParams {
+    pub(crate) name: String,
+    /// <https://www.w3.org/TR/webcrypto-2/#dfn-EcdsaParams-hash>
+    pub(crate) hash: SubtleKeyAlgorithm,
+}
+
+impl TryFrom<RootedTraceableBox<EcdsaParams>> for SubtleEcdsaParams {
+    type Error = Error;
+
+    fn try_from(params: RootedTraceableBox<EcdsaParams>) -> Result<Self, Error> {
+        let cx = GlobalScope::get_cx();
+        let hash = normalize_algorithm(cx, &Operation::Digest, &params.hash)?;
+        Ok(SubtleEcdsaParams {
+            name: params.parent.name.to_string(),
+            hash: hash.into(),
+        })
+    }
+}
+
+#[derive(Clone, Debug, MallocSizeOf)]
+pub(crate) struct SubtleEcKeyGenParams {
+    pub(crate) name: String,
+    pub(crate) named_curve: String,
+}
+
+impl From<EcKeyGenParams> for SubtleEcKeyGenParams {
+    fn from(params: EcKeyGenParams) -> Self {
+        SubtleEcKeyGenParams {
+            name: params.parent.name.to_string(),
+            named_curve: params.namedCurve.to_string(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) struct SubtleAesCbcParams {
     pub(crate) name: String,
     pub(crate) iv: Vec<u8>,
@@ -1665,6 +1704,29 @@ impl From<RootedTraceableBox<AesGcmParams>> for SubtleAesGcmParams {
             additional_data,
             tag_length: params.tagLength,
         }
+    }
+}
+
+/// <https://www.w3.org/TR/webcrypto-2/#dfn-EcKeyAlgorithm>
+#[derive(Clone, Debug, MallocSizeOf)]
+pub(crate) struct SubtleEcKeyAlgorithm {
+    /// <https://w3c.github.io/webcrypto/#dom-keyalgorithm-name>
+    name: String,
+
+    /// <https://www.w3.org/TR/webcrypto-2/#dfn-EcKeyAlgorithm-namedCurve
+    named_curve: String,
+}
+
+impl SafeToJSValConvertible for SubtleEcKeyAlgorithm {
+    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue) {
+        let parent = KeyAlgorithm {
+            name: self.name.clone().into(),
+        };
+        let dictionary = EcKeyAlgorithm {
+            parent,
+            namedCurve: self.named_curve.clone().into(),
+        };
+        dictionary.safe_to_jsval(cx, rval);
     }
 }
 
@@ -1911,6 +1973,7 @@ pub(crate) enum ExportedKey {
 #[allow(clippy::enum_variant_names)]
 pub(crate) enum KeyAlgorithmAndDerivatives {
     KeyAlgorithm(SubtleKeyAlgorithm),
+    EcKeyAlgorithm(SubtleEcKeyAlgorithm),
     AesKeyAlgorithm(SubtleAesKeyAlgorithm),
     HmacKeyAlgorithm(SubtleHmacKeyAlgorithm),
 }
@@ -1919,6 +1982,7 @@ impl KeyAlgorithmAndDerivatives {
     fn name(&self) -> &str {
         match self {
             KeyAlgorithmAndDerivatives::KeyAlgorithm(algo) => &algo.name,
+            KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algo) => &algo.name,
             KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algo) => &algo.name,
             KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => &algo.name,
         }
@@ -1937,6 +2001,7 @@ impl SafeToJSValConvertible for KeyAlgorithmAndDerivatives {
     fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue) {
         match self {
             KeyAlgorithmAndDerivatives::KeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
+            KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
             KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
             KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
         }
@@ -2100,6 +2165,8 @@ impl JsonWebKeyExt for JsonWebKey {
 #[derive(Clone, Debug, MallocSizeOf)]
 enum NormalizedAlgorithm {
     Algorithm(SubtleAlgorithm),
+    EcdsaParams(SubtleEcdsaParams),
+    EcKeyGenParams(SubtleEcKeyGenParams),
     AesCtrParams(SubtleAesCtrParams),
     AesKeyGenParams(SubtleAesKeyGenParams),
     AesDerivedKeyParams(SubtleAesDerivedKeyParams),
@@ -2194,6 +2261,28 @@ fn normalize_algorithm(
             // NOTE: Step 10.1.3 is done by the `From` and `TryFrom` trait implementation of
             // "subtle" binding structs.
             let normalized_algorithm = match (alg_name, op) {
+                (ALG_ECDSA, Operation::Sign) => {
+                    let mut params = dictionary_from_jsval::<RootedTraceableBox<EcdsaParams>>(
+                        cx,
+                        value.handle(),
+                    )?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::EcdsaParams(params.try_into()?)
+                },
+                (ALG_ECDSA, Operation::Verify) => {
+                    let mut params = dictionary_from_jsval::<RootedTraceableBox<EcdsaParams>>(
+                        cx,
+                        value.handle(),
+                    )?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::EcdsaParams(params.try_into()?)
+                },
+                (ALG_ECDSA, Operation::GenerateKey) => {
+                    let mut params = dictionary_from_jsval::<EcKeyGenParams>(cx, value.handle())?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::EcKeyGenParams(params.into())
+                },
+                // TODO: ALG_ECDSA with ImportKey and ExportKey
                 // <https://w3c.github.io/webcrypto/#aes-ctr-registration>
                 (ALG_AES_CTR, Operation::Encrypt) => {
                     let mut params = dictionary_from_jsval::<RootedTraceableBox<AesCtrParams>>(
@@ -2461,6 +2550,8 @@ impl NormalizedAlgorithm {
     fn name(&self) -> &str {
         match self {
             NormalizedAlgorithm::Algorithm(algo) => &algo.name,
+            NormalizedAlgorithm::EcdsaParams(algo) => &algo.name,
+            NormalizedAlgorithm::EcKeyGenParams(algo) => &algo.name,
             NormalizedAlgorithm::AesCtrParams(algo) => &algo.name,
             NormalizedAlgorithm::AesKeyGenParams(algo) => &algo.name,
             NormalizedAlgorithm::AesDerivedKeyParams(algo) => &algo.name,
@@ -2506,6 +2597,13 @@ impl NormalizedAlgorithm {
     fn sign(&self, key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
         match self {
             NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
+                ALG_ECDSA => {
+                    if let NormalizedAlgorithm::EcdsaParams(algo) = algo {
+                        ecdsa_operation::sign(algo, key, message)
+                    } else {
+                        Err(Error::NotSupported)
+                    }
+                },
                 ALG_HMAC => hmac_operation::sign(key, message),
                 _ => Err(Error::NotSupported),
             },
@@ -2516,6 +2614,7 @@ impl NormalizedAlgorithm {
     fn verify(&self, key: &CryptoKey, message: &[u8], signature: &[u8]) -> Result<bool, Error> {
         match self {
             NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
+                ALG_ECDSA => ecdsa_operation::verify(),
                 ALG_HMAC => hmac_operation::verify(key, message, signature),
                 _ => Err(Error::NotSupported),
             },
