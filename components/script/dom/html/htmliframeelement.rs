@@ -242,6 +242,14 @@ impl HTMLIFrameElement {
         }
     }
 
+    /// When an iframe is first inserted into the document,
+    /// an "about:blank" document is created,
+    /// and synchronously processed by the script thread.
+    /// This initial synchronous load should have no noticeable effect in script.
+    pub(crate) fn is_initial_blank_document(&self) -> bool {
+        self.about_blank_pipeline_id.get() == self.pipeline_id.get()
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
     fn process_the_iframe_attributes(&self, mode: ProcessingMode, can_gc: CanGc) {
         // > 1. If `element`'s `srcdoc` attribute is specified, then:
@@ -377,22 +385,14 @@ impl HTMLIFrameElement {
         self.navigate_or_reload_child_browsing_context(load_data, history_handling, can_gc);
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#create-a-new-child-navigable>
+    /// Synchronously create a new browsing context(This is not a navigation).
+    /// The pipeline started here should remain unnoticable to script, but this is not easy 
+    /// to refactor because it appears other features have come to rely on the current behavior.
+    /// For now only the iframe load event steps are skipped for this initial document,
+    /// and we still fire load and pageshow events as part of `maybe_queue_document_completion`.
+    /// Also, some controversy spec-wise remains: https://github.com/whatwg/html/issues/4965
     fn create_nested_browsing_context(&self, can_gc: CanGc) {
-        // Synchronously create a new browsing context, which will present
-        // `about:blank`. (This is not a navigation.)
-        //
-        // The pipeline started here will synchronously "completely finish
-        // loading", which will then asynchronously call
-        // `iframe_load_event_steps`.
-        //
-        // The precise event timing differs between implementations and
-        // remains controversial:
-        //
-        //  - [Unclear "iframe load event steps" for initial load of about:blank
-        //    in an iframe #490](https://github.com/whatwg/html/issues/490)
-        //  - [load event handling for iframes with no src may not be web
-        //    compatible #4965](https://github.com/whatwg/html/issues/4965)
-        //
         let url = ServoUrl::parse("about:blank").unwrap();
         let document = self.owner_document();
         let window = self.owner_window();
@@ -526,7 +526,23 @@ impl HTMLIFrameElement {
     pub(crate) fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId, can_gc: CanGc) {
         // TODO(#9592): assert that the load blocker is present at all times when we
         //              can guarantee that it's created for the case of iframe.reload().
-        if Some(loaded_pipeline) != self.pending_pipeline_id.get() {
+        if Some(loaded_pipeline) != self.pending_pipeline_id.get()
+        {
+            return;
+        }
+
+        // The initial about:blank document, created as part of
+        // https://html.spec.whatwg.org/multipage/#create-a-new-child-navigable
+        // which is step 1 of 
+        // https://html.spec.whatwg.org/multipage/#the-iframe-element:html-element-post-connection-steps
+        // should not result in the running of the iframe load event steps.
+        //
+        // In Servo, this initial document,
+        // although created and loaded synchronously by the script-thread,
+        // is run through the document completion steps
+        // like any other document(and this is hard to refactor).
+        // this flag is necessary to prevent the load event steps from running.
+        if self.is_initial_blank_document() {
             return;
         }
 
