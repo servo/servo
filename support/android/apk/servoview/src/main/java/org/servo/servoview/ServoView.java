@@ -59,6 +59,7 @@ public class ServoView extends SurfaceView
     private ScaleGestureDetector mScaleGestureDetector;
     private OverScroller mScroller;
 
+    private boolean mExperimentalMode;
     private boolean mZooming;
     private float mZoomFactor = 1;
     private boolean mRedrawing;
@@ -95,9 +96,10 @@ public class ServoView extends SurfaceView
         mClient = client;
     }
 
-    public void setServoArgs(String args, String log) {
+    public void setServoArgs(String args, String log, boolean experimentalMode) {
         mServoArgs = args;
         mServoLog = log;
+        mExperimentalMode = experimentalMode;
     }
 
     // RunCallback
@@ -362,6 +364,12 @@ public class ServoView extends SurfaceView
         mServo.mediaSessionAction(action);
     }
 
+    public void setExperimentalMode(boolean enable) {
+        if (mServo != null) {
+            mServo.setExperimentalMode(enable);
+        }
+    }
+
     class GLThread extends Thread implements SurfaceHolder.Callback {
         private Activity mActivity;
         private ServoView mServoView;
@@ -384,6 +392,7 @@ public class ServoView extends SurfaceView
             options.coordinates = coords;
             options.enableLogs = true;
             options.enableSubpixelTextAntialiasing = true;
+            options.experimentalMode = mServoView.mExperimentalMode;
 
             DisplayMetrics metrics = new DisplayMetrics();
             mActivity.getWindowManager().getDefaultDisplay().getMetrics(metrics);

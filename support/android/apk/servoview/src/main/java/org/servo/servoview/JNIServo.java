@@ -67,6 +67,8 @@ public class JNIServo {
 
     public native void mediaSessionAction(int action);
 
+    public native void setExperimentalMode(boolean enable);
+
     public static class ServoOptions {
       public String args;
       public String url;
@@ -77,6 +79,7 @@ public class JNIServo {
       public String logStr;
       public String gstDebugStr;
       public boolean enableLogs = false;
+      public boolean experimentalMode = false;
     }
 
     public static class ServoCoordinates {

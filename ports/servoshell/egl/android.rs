@@ -22,12 +22,13 @@ use raw_window_handle::{
 };
 use servo::{
     AlertResponse, EventLoopWaker, LoadStatus, MediaSessionActionType, MouseButton,
-    PermissionRequest, SimpleDialog, WebView,
+    PermissionRequest, PrefValue, SimpleDialog, WebView,
 };
 use simpleservo::{APP, DeviceIntRect, InitOptions, InputMethodType, MediaSessionPlaybackState};
 
 use super::app_state::{Coordinates, RunningAppState};
 use super::host_trait::HostTrait;
+use crate::prefs::EXPERIMENTAL_PREFS;
 
 struct HostCallbacks {
     callbacks: GlobalRef,
@@ -145,6 +146,20 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
     if let Err(err) = simpleservo::init(opts, wakeup, callbacks) {
         throw(&mut env, err)
     };
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn Java_org_servo_servoview_JNIServo_setExperimentalMode<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+    enable: jboolean,
+) {
+    debug!("setExperimentalMode {enable}");
+    call(&mut env, |s| {
+        for pref in EXPERIMENTAL_PREFS {
+            s.servo().set_preference(pref, PrefValue::Bool(enable != 0));
+        }
+    });
 }
 
 #[unsafe(no_mangle)]
@@ -853,6 +868,9 @@ fn get_options<'local>(
     let url = get_field_as_string(env, opts, "url")?;
     let log_str = get_field_as_string(env, opts, "logStr")?;
     let gst_debug_str = get_field_as_string(env, opts, "gstDebugStr")?;
+    let experimental_mode = get_non_null_field(env, opts, "experimentalMode", "Z")?
+        .z()
+        .map_err(|_| "experimentalMode not a boolean")?;
     let density = get_non_null_field(env, opts, "density", "F")?
         .f()
         .map_err(|_| "density not a float")? as f32;
@@ -869,15 +887,19 @@ fn get_options<'local>(
     .map_err(|_| "coordinates is not an object")?;
     let coordinates = jni_coords_to_rust_coords(env, &coordinates)?;
 
-    let args = match args {
+    let mut args: Vec<String> = match args {
         Some(args) => serde_json::from_str(&args)
             .map_err(|_| "Invalid arguments. Servo arguments must be formatted as a JSON array")?,
         None => None,
-    };
+    }
+    .unwrap_or_default();
+    if experimental_mode {
+        args.push("--enable-experimental-web-platform-features".to_owned());
+    }
 
     let (display_handle, window_handle) = display_and_window_handle(env, surface);
     let opts = InitOptions {
-        args: args.unwrap_or(vec![]),
+        args,
         url,
         coordinates,
         density,

@@ -43,6 +43,11 @@
               <data android:mimeType="application/xhtml+xml"/>
             </intent-filter>
         </activity>
+        <activity android:name=".SettingsActivity"
+            android:configChanges="density|keyboardHidden|navigation|orientation|screenSize|uiMode"
+            android:exported="true"
+            android:theme="@style/AppTheme">
+        </activity>
     </application>
 
 </manifest>
