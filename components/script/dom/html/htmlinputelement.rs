@@ -3270,12 +3270,17 @@ impl VirtualMethods for HTMLInputElement {
                         .borrow_mut()
                         .handle_compositionend(compositionevent);
                     self.upcast::<Node>().dirty(NodeDamage::Other);
+                    self.update_placeholder_shown_state();
                 } else if event.type_() == atom!("compositionupdate") {
                     let _ = self
                         .textinput
                         .borrow_mut()
                         .handle_compositionupdate(compositionevent);
                     self.upcast::<Node>().dirty(NodeDamage::Other);
+                    self.update_placeholder_shown_state();
+                } else if event.type_() == atom!("compositionstart") {
+                    // Update placeholder state when composition starts
+                    self.update_placeholder_shown_state();
                 }
                 event.mark_as_handled();
             }
