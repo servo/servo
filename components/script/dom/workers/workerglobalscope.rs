@@ -637,9 +637,17 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         url_strings: Vec<TrustedScriptURLOrUSVString>,
         can_gc: CanGc,
     ) -> ErrorResult {
-        // Step 1: Let urlStrings be « ».
+        // https://html.spec.whatwg.org/multipage/#import-scripts-into-worker-global-scope
+        // Step 1: If worker global scope's type is "module", throw a TypeError exception.
+        if self.worker_type == WorkerType::Module {
+            return Err(Error::Type(
+                "importScripts() is not allowed in module workers".to_string(),
+            ));
+        }
+
+        // Step 4: Let urlStrings be « ».
         let mut urls = Vec::with_capacity(url_strings.len());
-        // Step 2: For each url of urls:
+        // Step 5: For each url of urls:
         for url in url_strings {
             // Step 3: Append the result of invoking the Get Trusted Type compliant string algorithm
             // with TrustedScriptURL, this's relevant global object, url, "WorkerGlobalScope importScripts",

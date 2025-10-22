@@ -59,19 +59,64 @@ unsafe extern "C" fn is_dom_object(obj: *mut JSObject) -> bool {
     !obj.is_null() && (is_platform_object_static(obj) || is_dom_proxy(obj))
 }
 
+/// Returns true if JIT is forbidden
+///
+/// Spidermonkey will crash if JIT is not allowed on a system, so we do a short detection
+/// if jit is allowed or not.
+#[cfg(target_os = "linux")]
+#[allow(unsafe_code)]
+fn jit_forbidden() -> bool {
+    let flags = libc::MAP_NORESERVE | libc::MAP_PRIVATE | libc::MAP_ANON;
+    let first_mmap =
+        unsafe { libc::mmap(core::ptr::null_mut(), 4096, libc::PROT_NONE, flags, -1, 0) };
+    assert_ne!(first_mmap, libc::MAP_FAILED, "mmap not allowed?");
+    let remap_flags =
+        libc::MAP_ANONYMOUS | libc::MAP_FIXED | libc::MAP_PRIVATE | libc::MAP_EXECUTABLE;
+    // remap the page with PROT_EXEC. If this fails, JIT is not possible.
+    let second_mmap = unsafe {
+        libc::mmap(
+            first_mmap,
+            4096,
+            libc::PROT_READ | libc::PROT_EXEC,
+            remap_flags,
+            -1,
+            0,
+        )
+    };
+    let remap_failed = second_mmap == libc::MAP_FAILED;
+    // SAFETY: For the second mmap we used `MAP_FIXED` so in both success and failure case, the
+    // address will be the same as the first mmap.
+    unsafe { libc::munmap(first_mmap, 4096) };
+    remap_failed
+}
+
+#[cfg(not(target_os = "linux"))]
+fn jit_forbidden() -> bool {
+    false
+}
+
 #[allow(unsafe_code)]
 pub fn init() -> JSEngineSetup {
-    unsafe {
-        if pref!(js_disable_jit) {
+    if pref!(js_disable_jit) || jit_forbidden() {
+        let reason = if pref!(js_disable_jit) {
+            "preference `js_disable_jit` is set to true"
+        } else {
+            "runtime test determined JIT is forbidden on this system"
+        };
+        warn!("Disabling JIT for Javascript, since {reason}. This may cause subpar performance");
+        // SAFETY: This function has no particular preconditions.
+        unsafe {
             js::jsapi::DisableJitBackend();
         }
-        proxyhandler::init();
+    }
+    proxyhandler::init();
 
-        // Create the global vtables used by the (generated) DOM
-        // bindings to implement JS proxies.
-        RegisterBindings::RegisterProxyHandlers::<crate::DomTypeHolder>();
-        RegisterBindings::InitAllStatics::<crate::DomTypeHolder>();
+    // Create the global vtables used by the (generated) DOM
+    // bindings to implement JS proxies.
+    RegisterBindings::RegisterProxyHandlers::<crate::DomTypeHolder>();
+    RegisterBindings::InitAllStatics::<crate::DomTypeHolder>();
 
+    unsafe {
         js::glue::InitializeMemoryReporter(Some(is_dom_object));
     }
 
