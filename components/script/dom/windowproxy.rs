@@ -198,7 +198,6 @@ impl WindowProxy {
             assert!(!js_proxy.is_null());
 
             // Create a new browsing context.
-
             let current = Some(window.upcast::<GlobalScope>().pipeline_id());
             let window_proxy = Box::new(WindowProxy::new_inherited(
                 browsing_context_id,
