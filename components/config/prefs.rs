@@ -277,7 +277,7 @@ impl Preferences {
             css_animations_testing_enabled: false,
             devtools_server_enabled: false,
             devtools_server_port: 0,
-            dom_abort_controller_enabled: false,
+            dom_abort_controller_enabled: true,
             dom_adoptedstylesheet_enabled: false,
             dom_allow_scripts_to_close_windows: false,
             dom_async_clipboard_enabled: false,
