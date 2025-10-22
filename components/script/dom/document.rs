@@ -2179,6 +2179,29 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#the-end
     pub(crate) fn maybe_queue_document_completion(&self) {
+        let should_fire_page_show = if let Some(window_proxy) = self.window().undiscarded_window_proxy() {
+            if let Some(frame) = window_proxy
+                .frame_element()
+                .and_then(|e| e.downcast::<HTMLIFrameElement>())
+            {
+                // Both the initial about:blank document,
+                // and the initial inserted iframe that matches about:blank,
+                // should not fire load or pageshow events.
+                if frame.is_initial_blank_document() ||
+                    (frame.is_initial_navigated_document_that_matches_about_blank() &&
+                        self.url().matches_about_blank())
+                {
+                    false
+                } else {
+                    true
+                }
+            } else {
+                true
+            }
+        } else {
+            // Note: unclear if this is reachable.
+            true
+        };
         // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
         let is_in_delaying_load_events_mode = match self.window.undiscarded_window_proxy() {
             Some(window_proxy) => window_proxy.is_delaying_load_events_mode(),
@@ -2246,33 +2269,35 @@ impl Document {
             }));
 
         // Step 8.
-        let document = Trusted::new(self);
-        if document.root().browsing_context().is_some() {
-            self.owner_global()
-                .task_manager()
-                .dom_manipulation_task_source()
-                .queue(task!(fire_pageshow_event: move || {
-                    let document = document.root();
-                    let window = document.window();
-                    if document.page_showing.get() || !window.is_alive() {
-                        return;
-                    }
+        if should_fire_page_show {
+            let document = Trusted::new(self);
+            if document.root().browsing_context().is_some() {
+                self.owner_global()
+                    .task_manager()
+                    .dom_manipulation_task_source()
+                    .queue(task!(fire_pageshow_event: move || {
+                        let document = document.root();
+                        let window = document.window();
+                        if document.page_showing.get() || !window.is_alive() {
+                            return;
+                        }
 
-                    document.page_showing.set(true);
+                        document.page_showing.set(true);
 
-                    let event = PageTransitionEvent::new(
-                        window,
-                        atom!("pageshow"),
-                        false, // bubbles
-                        false, // cancelable
-                        false, // persisted
-                        CanGc::note(),
-                    );
-                    let event = event.upcast::<Event>();
-                    event.set_trusted(true);
+                        let event = PageTransitionEvent::new(
+                            window,
+                            atom!("pageshow"),
+                            false, // bubbles
+                            false, // cancelable
+                            false, // persisted
+                            CanGc::note(),
+                        );
+                        let event = event.upcast::<Event>();
+                        event.set_trusted(true);
 
-                    window.dispatch_event_with_target_override(event, CanGc::note());
-                }));
+                        window.dispatch_event_with_target_override(event, CanGc::note());
+                    }));
+            }
         }
 
         // Step 9.
