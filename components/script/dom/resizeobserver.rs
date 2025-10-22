@@ -4,8 +4,8 @@
 
 use std::rc::Rc;
 
-use app_units::Au;
 use dom_struct::dom_struct;
+use euclid::Size2D;
 use euclid::default::Rect;
 use js::rust::HandleObject;
 
@@ -130,7 +130,6 @@ impl ResizeObserver {
             };
             has_active_observation_targets = true;
 
-            // #create-and-populate-a-resizeobserverentry
             let window = target.owner_window();
             let entry =
                 create_and_populate_a_resizeobserverentry(&window, target, observation, can_gc);
@@ -181,42 +180,34 @@ fn create_and_populate_a_resizeobserverentry(
     // initialized with one reported size (zero).
     // The spec plans to store multiple reported sizes,
     // but for now there can be only one.
-    observation.last_reported_sizes[0] = ResizeObserverSizeImpl::new(
-        content_box_size.width().to_f64_px(),
-        content_box_size.height().to_f64_px(),
-    );
+    observation.last_reported_sizes[0] =
+        ResizeObserverSizeImpl::new(content_box_size.width(), content_box_size.height());
 
     let content_rect = DOMRectReadOnly::new(
         window.upcast(),
         None,
-        content_box_size.origin.x.to_f64_px(),
-        content_box_size.origin.y.to_f64_px(),
-        content_box_size.width().to_f64_px(),
-        content_box_size.height().to_f64_px(),
+        content_box_size.origin.x,
+        content_box_size.origin.y,
+        content_box_size.width(),
+        content_box_size.height(),
         can_gc,
     );
 
     let border_box_size = ResizeObserverSize::new(
         window,
-        ResizeObserverSizeImpl::new(
-            border_box_size.width().to_f64_px(),
-            border_box_size.height().to_f64_px(),
-        ),
+        ResizeObserverSizeImpl::new(border_box_size.width(), border_box_size.height()),
         can_gc,
     );
     let content_box_size = ResizeObserverSize::new(
         window,
-        ResizeObserverSizeImpl::new(
-            content_box_size.width().to_f64_px(),
-            content_box_size.height().to_f64_px(),
-        ),
+        ResizeObserverSizeImpl::new(content_box_size.width(), content_box_size.height()),
         can_gc,
     );
     let device_pixel_content_box = ResizeObserverSize::new(
         window,
         ResizeObserverSizeImpl::new(
-            device_pixel_content_box.width().to_f64_px(),
-            device_pixel_content_box.height().to_f64_px(),
+            device_pixel_content_box.width(),
+            device_pixel_content_box.height(),
         ),
         can_gc,
     );
@@ -328,8 +319,8 @@ impl ResizeObservation {
     fn is_active(&self, target: &Element) -> bool {
         let last_reported_size = self.last_reported_sizes[0];
         let box_size = calculate_box_size(target, &self.observed_box);
-        box_size.width().to_f64_px() != last_reported_size.inline_size() ||
-            box_size.height().to_f64_px() != last_reported_size.block_size()
+        box_size.width() != last_reported_size.inline_size() ||
+            box_size.height() != last_reported_size.block_size()
     }
 }
 
@@ -341,25 +332,67 @@ fn calculate_depth_for_node(target: &Element) -> ResizeObservationDepth {
 }
 
 /// <https://drafts.csswg.org/resize-observer/#calculate-box-size>
-fn calculate_box_size(target: &Element, observed_box: &ResizeObserverBoxOptions) -> Rect<Au> {
+///
+/// The dimensions of the returned `Rect` depend on the type of box being observed.
+/// For `ResizeObserverBoxOptions::Content_box` and `ResizeObserverBoxOptions::Border_box`,
+/// the values will be in `px`. For `ResizeObserverBoxOptions::Device_pixel_content_box` they
+/// will be in integral device pixels.
+fn calculate_box_size(target: &Element, observed_box: &ResizeObserverBoxOptions) -> Rect<f64> {
     match observed_box {
         ResizeObserverBoxOptions::Content_box => {
             // Note: only taking first fragment,
             // but the spec will expand to cover all fragments.
-            target
+            let content_box = target
                 .upcast::<Node>()
                 .content_box()
-                .unwrap_or_else(Rect::zero)
+                .unwrap_or_else(Rect::zero);
+
+            Rect::new(
+                content_box.origin.map(|coordinate| coordinate.to_f64_px()),
+                Size2D::new(
+                    content_box.size.width.to_f64_px(),
+                    content_box.size.height.to_f64_px(),
+                ),
+            )
         },
         ResizeObserverBoxOptions::Border_box => {
             // Note: only taking first fragment,
             // but the spec will expand to cover all fragments.
-            target
+            let border_box = target
                 .upcast::<Node>()
                 .border_box()
-                .unwrap_or_else(Rect::zero)
+                .unwrap_or_else(Rect::zero);
+
+            Rect::new(
+                border_box.origin.map(|coordinate| coordinate.to_f64_px()),
+                Size2D::new(
+                    border_box.size.width.to_f64_px(),
+                    border_box.size.height.to_f64_px(),
+                ),
+            )
         },
-        // TODO(#31182): add support for device pixel size calculations.
-        _ => Rect::zero(),
+        ResizeObserverBoxOptions::Device_pixel_content_box => {
+            let device_pixel_ratio = target.owner_window().device_pixel_ratio();
+            let content_box = target
+                .upcast::<Node>()
+                .content_box()
+                .unwrap_or_else(Rect::zero);
+
+            Rect::new(
+                content_box
+                    .origin
+                    .map(|coordinate| coordinate.to_nearest_pixel(device_pixel_ratio.get()) as f64),
+                Size2D::new(
+                    content_box
+                        .size
+                        .width
+                        .to_nearest_pixel(device_pixel_ratio.get()) as f64,
+                    content_box
+                        .size
+                        .height
+                        .to_nearest_pixel(device_pixel_ratio.get()) as f64,
+                ),
+            )
+        },
     }
 }
