@@ -84,8 +84,9 @@ def test_node_type(session, inline, expression, expected_type):
     response = execute_async_script(
         session,
         f"""
+    const [resolve] = arguments;
     const result = {expression};
-    arguments[0]({{
+    resolve({{
         'result': result,
         'type': result.nodeType
     }});""",
