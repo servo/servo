@@ -293,15 +293,6 @@ impl KeyboardEventMethods<crate::DomTypeHolder> for KeyboardEvent {
         self.key_code.get()
     }
 
-    /// <https://w3c.github.io/uievents/#dom-uievent-which>
-    fn Which(&self) -> u32 {
-        if self.char_code.get() != 0 {
-            self.char_code.get()
-        } else {
-            self.key_code.get()
-        }
-    }
-
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.uievent.IsTrusted()

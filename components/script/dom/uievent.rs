@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use servo_config::pref;
 use std::cell::Cell;
 use std::default::Default;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use servo_config::pref;
 use stylo_atoms::Atom;
 
 use super::node::NodeTraits;
@@ -61,6 +61,7 @@ impl UIEvent {
         reflect_dom_object_with_proto(Box::new(UIEvent::new_inherited()), window, proto, can_gc)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         window: &Window,
         type_: DOMString,

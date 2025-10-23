@@ -40,7 +40,6 @@ partial interface KeyboardEvent {
     // The following support legacy user agents
     readonly    attribute unsigned long charCode;
     readonly    attribute unsigned long keyCode;
-    readonly    attribute unsigned long which;
 };
 
 // https://w3c.github.io/uievents/#dictdef-keyboardeventinit
