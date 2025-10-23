@@ -5,6 +5,8 @@
 use std::borrow::Cow;
 use std::vec::Vec;
 
+use base::id::{ImageDataId, ImageDataIndex};
+use constellation_traits::SerializableImageData;
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D};
 use ipc_channel::ipc::IpcSharedMemory;
@@ -13,6 +15,7 @@ use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use js::typedarray::{ClampedU8, Uint8ClampedArray};
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
+use rustc_hash::FxHashMap;
 
 use crate::dom::bindings::buffer_source::{
     HeapBufferSource, create_buffer_source, create_heap_buffer_source_with_length,
@@ -23,6 +26,8 @@ use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::serializable::Serializable;
+use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
 
@@ -207,6 +212,60 @@ impl ImageData {
     pub(crate) fn to_vec(&self) -> Vec<u8> {
         // This is safe because we copy the slice content
         unsafe { self.as_slice() }.to_vec()
+    }
+}
+
+impl Serializable for ImageData {
+    type Index = ImageDataIndex;
+    type Data = SerializableImageData;
+
+    /// <https://html.spec.whatwg.org/multipage/#the-imagedata-interface:serializable-objects>
+    fn serialize(&self) -> Result<(ImageDataId, Self::Data), ()> {
+        // Step 1 Set serialized.[[Data]] to the sub-serialization of the value of value's data attribute.
+        let data = self.to_vec();
+
+        // Step 2 Set serialized.[[Width]] to the value of value's width attribute.
+        // Step 3 Set serialized.[[Height]] to the value of value's height attribute.
+        // Step 4 Set serialized.[[ColorSpace]] to the value of value's colorSpace attribute.
+        // Step 5 Set serialized.[[PixelFormat]] to the value of value's pixelFormat attribute.
+        // Note: Since we don't support Float16Array and display-p3 color space
+        // we don't need to serialize colorSpace and pixelFormat
+        let serialized = SerializableImageData {
+            data,
+            width: self.width,
+            height: self.height,
+        };
+        Ok((ImageDataId::new(), serialized))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#the-imagedata-interface:deserialization-steps>
+    fn deserialize(
+        owner: &GlobalScope,
+        serialized: Self::Data,
+        can_gc: CanGc,
+    ) -> Result<DomRoot<Self>, ()> {
+        // Step 1 Initialize value's data attribute to the sub-deserialization of serialized.[[Data]].
+        // Step 2 Initialize value's width attribute to serialized.[[Width]].
+        // Step 3 Initialize value's height attribute to serialized.[[Height]].
+        // Step 4 Initialize value's colorSpace attribute to serialized.[[ColorSpace]].
+        // Step 5 Initialize value's pixelFormat attribute to serialized.[[PixelFormat]].
+        ImageData::new(
+            owner,
+            serialized.width,
+            serialized.height,
+            Some(serialized.data),
+            can_gc,
+        )
+        .map_err(|_| ())
+    }
+
+    fn serialized_storage<'a>(
+        reader: StructuredData<'a, '_>,
+    ) -> &'a mut Option<FxHashMap<ImageDataId, Self::Data>> {
+        match reader {
+            StructuredData::Reader(r) => &mut r.image_data,
+            StructuredData::Writer(w) => &mut w.image_data,
+        }
     }
 }
 

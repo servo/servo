@@ -10,7 +10,7 @@ mod transferable;
 
 use base::id::{
     BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, ImageBitmapId,
-    MessagePortId, OffscreenCanvasId, QuotaExceededErrorId,
+    ImageDataId, MessagePortId, OffscreenCanvasId, QuotaExceededErrorId,
 };
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
@@ -51,6 +51,8 @@ pub struct StructuredSerializedData {
     pub transferred_image_bitmaps: Option<FxHashMap<ImageBitmapId, SerializableImageBitmap>>,
     /// Transferred offscreen canvas objects.
     pub offscreen_canvases: Option<FxHashMap<OffscreenCanvasId, TransferableOffscreenCanvas>>,
+    /// Serialized image data objects.
+    pub image_data: Option<FxHashMap<ImageDataId, SerializableImageData>>,
 }
 
 impl StructuredSerializedData {
