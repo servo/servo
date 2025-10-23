@@ -75,6 +75,7 @@ pub(crate) struct TextFragment {
     /// Extra space to add for each justification opportunity.
     pub justification_adjustment: Au,
     pub selection_range: Option<ServoRange<ByteIndex>>,
+    pub parent_width: Au, // used to obtain the width of the containing block
 }
 
 #[derive(MallocSizeOf)]

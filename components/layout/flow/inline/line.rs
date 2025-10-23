@@ -595,6 +595,7 @@ impl LineItemLayout<'_, '_> {
                 glyphs: text_item.text,
                 justification_adjustment: self.justification_adjustment,
                 selection_range: text_item.selection_range,
+                parent_width: self.layout.containing_block.size.inline,
             })),
             content_rect,
         ));
