@@ -10,12 +10,13 @@ use euclid::{Point2D, Scale, Vector2D};
 use log::{debug, error, warn};
 use rustc_hash::FxHashMap;
 use style_traits::CSSPixel;
+use webrender_api::ScrollLocation;
 use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint, LayoutVector2D};
 
 use self::TouchSequenceState::*;
 use crate::IOCompositor;
 use crate::refresh_driver::RefreshDriverObserver;
-use crate::webview_renderer::WebViewRenderer;
+use crate::webview_renderer::{ScrollEvent, ScrollZoomEvent, WebViewRenderer};
 
 /// An ID for a sequence of touch events between a `Down` and the `Up` or `Cancel` event.
 /// The ID is the same for all events between `Down` and `Up` or `Cancel`
@@ -106,7 +107,7 @@ pub struct TouchSequenceInfo {
     /// this requires some additional work to handle the merging of pending
     /// touch move events. Presumably if we keep a history of previous touch points,
     /// this would allow a better fling algorithm and easier merging of zoom events.
-    pending_touch_move_action: Option<TouchMoveAction>,
+    pending_touch_move_actions: Vec<ScrollZoomEvent>,
     /// Cache for the last touch hit test result.
     hit_test_result_cache: Option<HitTestResultCache>,
 }
@@ -126,40 +127,9 @@ impl TouchSequenceInfo {
         (distance, center)
     }
 
-    fn update_pending_touch_move_action(&mut self, action: TouchMoveAction) {
+    fn add_pending_touch_move_action(&mut self, action: ScrollZoomEvent) {
         debug_assert!(self.prevent_move == TouchMoveAllowed::Pending);
-
-        if let Some(pre_action) = self.pending_touch_move_action {
-            let combine_action = match (pre_action, action) {
-                (TouchMoveAction::NoAction, _) | (_, TouchMoveAction::NoAction) => action,
-                // Combine touch move action.
-                (TouchMoveAction::Scroll(delta, point), TouchMoveAction::Scroll(delta_new, _)) => {
-                    TouchMoveAction::Scroll(delta + delta_new, point)
-                },
-                (
-                    TouchMoveAction::Scroll(delta, _),
-                    TouchMoveAction::Zoom(magnification, scroll_delta),
-                ) |
-                (
-                    TouchMoveAction::Zoom(magnification, scroll_delta),
-                    TouchMoveAction::Scroll(delta, _),
-                ) => {
-                    // Todo: It's unclear what the best action would be. Should we keep both
-                    // scroll and zoom?
-                    TouchMoveAction::Zoom(magnification, delta + scroll_delta)
-                },
-                (
-                    TouchMoveAction::Zoom(magnification, scroll_delta),
-                    TouchMoveAction::Zoom(magnification_new, scroll_delta_new),
-                ) => TouchMoveAction::Zoom(
-                    magnification * magnification_new,
-                    scroll_delta + scroll_delta_new,
-                ),
-            };
-            self.pending_touch_move_action = Some(combine_action);
-        } else {
-            self.pending_touch_move_action = Some(action);
-        }
+        self.pending_touch_move_actions.push(action);
     }
 
     /// Returns true when all touch events of a sequence have been received.
@@ -183,16 +153,7 @@ impl TouchSequenceInfo {
 /// An action that can be immediately performed in response to a touch move event
 /// without waiting for script.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum TouchMoveAction {
-    /// Scroll by the provided offset.
-    Scroll(Vector2D<f32, DevicePixel>, DevicePoint),
-    /// Zoom by a magnification factor and scroll by the provided offset.
-    Zoom(f32, Vector2D<f32, DevicePixel>),
-    /// Don't do anything.
-    NoAction,
-}
 
-#[derive(Clone, Copy, Debug)]
 pub struct TouchPoint {
     pub id: TouchId,
     pub point: Point2D<f32, DevicePixel>,
@@ -249,7 +210,7 @@ impl TouchHandler {
             handling_touch_move: false,
             prevent_click: false,
             prevent_move: TouchMoveAllowed::Pending,
-            pending_touch_move_action: None,
+            pending_touch_move_actions: vec![],
             hit_test_result_cache: None,
         };
         // We insert a simulated initial touch sequence, which is already finished,
@@ -310,26 +271,26 @@ impl TouchHandler {
         }
     }
 
-    pub(crate) fn pending_touch_move_action(
+    pub(crate) fn take_pending_touch_move_actions(
         &mut self,
         sequence_id: TouchSequenceId,
-    ) -> Option<TouchMoveAction> {
-        match self.touch_sequence_map.get(&sequence_id) {
-            Some(sequence) => sequence.pending_touch_move_action,
-            None => None,
-        }
+    ) -> Vec<ScrollZoomEvent> {
+        self.touch_sequence_map
+            .get_mut(&sequence_id)
+            .map(|sequence| std::mem::take(&mut sequence.pending_touch_move_actions))
+            .unwrap_or_default()
     }
 
-    pub(crate) fn remove_pending_touch_move_action(&mut self, sequence_id: TouchSequenceId) {
+    pub(crate) fn remove_pending_touch_move_actions(&mut self, sequence_id: TouchSequenceId) {
         if let Some(sequence) = self.touch_sequence_map.get_mut(&sequence_id) {
-            sequence.pending_touch_move_action = None;
+            sequence.pending_touch_move_actions = Vec::new();
         }
     }
 
     // try to remove touch sequence, if touch sequence end and not has pending action.
     pub(crate) fn try_remove_touch_sequence(&mut self, sequence_id: TouchSequenceId) {
         if let Some(sequence) = self.touch_sequence_map.get(&sequence_id) {
-            if sequence.pending_touch_move_action.is_none() && sequence.state == Finished {
+            if sequence.pending_touch_move_actions.is_empty() && sequence.state == Finished {
                 self.touch_sequence_map.remove(&sequence_id);
             }
         }
@@ -381,7 +342,7 @@ impl TouchHandler {
                     handling_touch_move: false,
                     prevent_click: false,
                     prevent_move: TouchMoveAllowed::Pending,
-                    pending_touch_move_action: None,
+                    pending_touch_move_actions: vec![],
                     hit_test_result_cache: None,
                 },
             );
@@ -432,13 +393,11 @@ impl TouchHandler {
         &mut self,
         id: TouchId,
         point: Point2D<f32, DevicePixel>,
-    ) -> TouchMoveAction {
+    ) -> Option<ScrollZoomEvent> {
         // As `TouchHandler` is per `WebViewRenderer` which is per `WebView` we might get a Touch Sequence Move that
         // started with a down on a different webview. As the touch_sequence id is only changed on touch_down this
         // move event gets a touch id which is already cleaned up.
-        let Some(touch_sequence) = self.try_get_current_touch_sequence_mut() else {
-            return TouchMoveAction::NoAction;
-        };
+        let touch_sequence = self.try_get_current_touch_sequence_mut()?;
         let idx = match touch_sequence
             .active_touch_points
             .iter_mut()
@@ -447,7 +406,7 @@ impl TouchHandler {
             Some(i) => i,
             None => {
                 error!("Got a touchmove event for a non-active touch point");
-                return TouchMoveAction::NoAction;
+                return None;
             },
         };
         let old_point = touch_sequence.active_touch_points[idx].point;
@@ -464,7 +423,11 @@ impl TouchHandler {
                     touch_sequence.active_touch_points[idx].point = point;
 
                     // Scroll offsets are opposite to the direction of finger motion.
-                    TouchMoveAction::Scroll(-delta, point)
+                    Some(ScrollZoomEvent::Scroll(ScrollEvent {
+                        scroll_location: ScrollLocation::Delta(-delta.cast_unit()),
+                        cursor: point.to_i32(),
+                        event_count: 1,
+                    }))
                 } else if delta.x.abs() > TOUCH_PAN_MIN_SCREEN_PX ||
                     delta.y.abs() > TOUCH_PAN_MIN_SCREEN_PX
                 {
@@ -477,11 +440,15 @@ impl TouchHandler {
                     touch_sequence.active_touch_points[idx].point = point;
 
                     // Scroll offsets are opposite to the direction of finger motion.
-                    TouchMoveAction::Scroll(-delta, point)
+                    Some(ScrollZoomEvent::Scroll(ScrollEvent {
+                        scroll_location: ScrollLocation::Delta(-delta.cast_unit()),
+                        cursor: point.to_i32(),
+                        event_count: 1,
+                    }))
                 } else {
                     // We don't update the touchpoint, so multiple small moves can
                     // accumulate and merge into a larger move.
-                    TouchMoveAction::NoAction
+                    None
                 }
             },
             2 => {
@@ -490,34 +457,31 @@ impl TouchHandler {
                     delta.y.abs() > TOUCH_PAN_MIN_SCREEN_PX
                 {
                     touch_sequence.state = Pinching;
-                    let (d0, c0) = touch_sequence.pinch_distance_and_center();
+                    let (d0, _) = touch_sequence.pinch_distance_and_center();
+
                     // update the touch point with the enough distance or pinching.
                     touch_sequence.active_touch_points[idx].point = point;
                     let (d1, c1) = touch_sequence.pinch_distance_and_center();
-                    let magnification = d1 / d0;
 
-                    let scroll_delta = c1 - c0 * Scale::new(magnification);
-
-                    // Scroll offsets are opposite to the direction of finger motion.
-                    TouchMoveAction::Zoom(magnification, -scroll_delta)
+                    Some(ScrollZoomEvent::PinchZoom(d1 / d0, c1))
                 } else {
                     // We don't update the touchpoint, so multiple small moves can
                     // accumulate and merge into a larger move.
-                    TouchMoveAction::NoAction
+                    None
                 }
             },
             _ => {
                 touch_sequence.active_touch_points[idx].point = point;
                 touch_sequence.state = MultiTouch;
-                TouchMoveAction::NoAction
+                None
             },
         };
         // If the touch action is not `NoAction` and the first move has not been processed,
         //  set pending_touch_move_action.
-        if TouchMoveAction::NoAction != action &&
-            touch_sequence.prevent_move == TouchMoveAllowed::Pending
-        {
-            touch_sequence.update_pending_touch_move_action(action);
+        if let Some(action) = action {
+            if touch_sequence.prevent_move == TouchMoveAllowed::Pending {
+                touch_sequence.add_pending_touch_move_action(action);
+            }
         }
 
         action

@@ -54,11 +54,11 @@ public class JNIServo {
 
     public native void touchCancel(float x, float y, int pointer_id);
 
-    public native void pinchZoomStart(float factor, int x, int y);
+    public native void pinchZoomStart(float factor, float x, float y);
 
-    public native void pinchZoom(float factor, int x, int y);
+    public native void pinchZoom(float factor, float x, float y);
 
-    public native void pinchZoomEnd(float factor, int x, int y);
+    public native void pinchZoomEnd(float factor, float x, float y);
 
     public native void click(float x, float y);
 
@@ -122,4 +122,3 @@ public class JNIServo {
         void onMediaSessionSetPositionState(float duration, float position, float playbackRate);
     }
 }
-

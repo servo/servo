@@ -401,11 +401,11 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoomStart<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
     factor: jfloat,
-    x: jint,
-    y: jint,
+    x: jfloat,
+    y: jfloat,
 ) {
     debug!("pinchZoomStart");
-    call(&mut env, |s| s.pinchzoom_start(factor, x as u32, y as u32));
+    call(&mut env, |s| s.pinchzoom_start(factor, x, y));
 }
 
 #[unsafe(no_mangle)]
@@ -413,11 +413,11 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoom<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
     factor: jfloat,
-    x: jint,
-    y: jint,
+    x: jfloat,
+    y: jfloat,
 ) {
     debug!("pinchZoom");
-    call(&mut env, |s| s.pinchzoom(factor, x as u32, y as u32));
+    call(&mut env, |s| s.pinchzoom(factor, x, y));
 }
 
 #[unsafe(no_mangle)]
@@ -425,11 +425,11 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoomEnd<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
     factor: jfloat,
-    x: jint,
-    y: jint,
+    x: jfloat,
+    y: jfloat,
 ) {
     debug!("pinchZoomEnd");
-    call(&mut env, |s| s.pinchzoom_end(factor, x as u32, y as u32));
+    call(&mut env, |s| s.pinchzoom_end(factor, x, y));
 }
 
 #[unsafe(no_mangle)]

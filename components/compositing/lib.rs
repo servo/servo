@@ -22,6 +22,7 @@ pub use crate::compositor::{IOCompositor, WebRenderDebugOption};
 mod tracing;
 
 mod compositor;
+mod pinch_zoom;
 mod refresh_driver;
 mod render_notifier;
 mod screenshot;

@@ -18,35 +18,37 @@ use embedder_traits::{
     InputEventResult, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
     ScrollEvent as EmbedderScrollEvent, ShutdownState, TouchEvent, TouchEventType, ViewportDetails,
 };
-use euclid::{Point2D, Scale, Vector2D};
+use euclid::{Scale, Vector2D};
 use log::{debug, warn};
 use malloc_size_of::MallocSizeOf;
 use rustc_hash::FxHashMap;
 use servo_geometry::DeviceIndependentPixel;
-use style_traits::{CSSPixel, PinchZoomFactor};
+use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint, DeviceRect, LayoutVector2D};
 use webrender_api::{ExternalScrollId, ScrollLocation};
 
 use crate::compositor::{PipelineDetails, ServoRenderer};
+use crate::pinch_zoom::PinchZoom;
 use crate::touch::{
-    FlingRefreshDriverObserver, PendingTouchInputEvent, TouchHandler, TouchMoveAction,
-    TouchMoveAllowed, TouchSequenceState,
+    FlingRefreshDriverObserver, PendingTouchInputEvent, TouchHandler, TouchMoveAllowed,
+    TouchSequenceState,
 };
 
 #[derive(Clone, Copy)]
-struct ScrollEvent {
+pub(crate) struct ScrollEvent {
     /// Scroll by this offset, or to Start or End
-    scroll_location: ScrollLocation,
+    pub scroll_location: ScrollLocation,
     /// Apply changes to the frame at this location
-    cursor: DeviceIntPoint,
+    pub cursor: DeviceIntPoint,
     /// The number of OS events that have been coalesced together into this one event.
-    event_count: u32,
+    pub event_count: u32,
 }
 
 #[derive(Clone, Copy)]
-enum ScrollZoomEvent {
-    /// A pinch zoom event that magnifies the view by the given factor.
-    PinchZoom(f32),
+pub(crate) enum ScrollZoomEvent {
+    /// A pinch zoom event that magnifies the view by the given factor from the given
+    /// center point.
+    PinchZoom(f32, DevicePoint),
     /// A scroll event that scrolls the scroll node at the given location by the
     /// given amount.
     Scroll(ScrollEvent),
@@ -89,8 +91,9 @@ pub(crate) struct WebViewRenderer {
     touch_handler: TouchHandler,
     /// "Desktop-style" zoom that resizes the viewport to fit the window.
     pub page_zoom: Scale<f32, CSSPixel, DeviceIndependentPixel>,
-    /// "Mobile-style" zoom that does not reflow the page.
-    pinch_zoom: PinchZoomFactor,
+    /// "Mobile-style" zoom that does not reflow the page. When there is no [`PinchZoom`] a
+    /// zoom factor of 1.0 is implied and the [`PinchZoom::transform`] will be the identity.
+    pinch_zoom: PinchZoom,
     /// The HiDPI scale factor for the `WebView` associated with this renderer. This is controlled
     /// by the embedding layer.
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
@@ -110,17 +113,18 @@ impl WebViewRenderer {
     ) -> Self {
         let hidpi_scale_factor = viewport_details.hidpi_scale_factor;
         let size = viewport_details.size * viewport_details.hidpi_scale_factor;
+        let rect = DeviceRect::from_origin_and_size(DevicePoint::origin(), size);
         Self {
             id: renderer_webview.id(),
             webview: renderer_webview,
             root_pipeline_id: None,
-            rect: DeviceRect::from_origin_and_size(DevicePoint::origin(), size),
+            rect,
             pipelines: Default::default(),
             touch_handler: TouchHandler::new(),
             global,
             pending_scroll_zoom_events: Default::default(),
             page_zoom: DEFAULT_PAGE_ZOOM,
-            pinch_zoom: PinchZoomFactor::new(1.0),
+            pinch_zoom: PinchZoom::new(rect),
             hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
             animating: false,
             viewport_description: None,
@@ -386,8 +390,8 @@ impl WebViewRenderer {
     }
 
     fn on_touch_move(&mut self, mut event: TouchEvent, id: InputEventId) {
-        let action: TouchMoveAction = self.touch_handler.on_touch_move(event.id, event.point);
-        if TouchMoveAction::NoAction != action {
+        let action = self.touch_handler.on_touch_move(event.id, event.point);
+        if let Some(action) = action {
             // if first move processed and allowed, we directly process the move event,
             // without waiting for the script handler.
             if self
@@ -396,30 +400,7 @@ impl WebViewRenderer {
             {
                 // https://w3c.github.io/touch-events/#cancelability
                 event.disable_cancelable();
-                match action {
-                    TouchMoveAction::Scroll(delta, point) => self.on_scroll_window_event(
-                        ScrollLocation::Delta(LayoutVector2D::from_untyped(delta.to_untyped())),
-                        point.cast(),
-                    ),
-                    TouchMoveAction::Zoom(zoom_delta, scroll_delta) => {
-                        let cursor = Point2D::new(-1, -1); // Make sure this hits the base layer.
-
-                        // The order of these events doesn't matter, because zoom is handled by
-                        // a root display list and the scroll event here is handled by the scroll
-                        // applied to the content display list.
-                        self.pending_scroll_zoom_events
-                            .push(ScrollZoomEvent::PinchZoom(zoom_delta));
-                        self.pending_scroll_zoom_events
-                            .push(ScrollZoomEvent::Scroll(ScrollEvent {
-                                scroll_location: ScrollLocation::Delta(
-                                    LayoutVector2D::from_untyped(scroll_delta.to_untyped()),
-                                ),
-                                cursor,
-                                event_count: 1,
-                            }));
-                    },
-                    _ => {},
-                }
+                self.pending_scroll_zoom_events.push(action);
             }
             // When the event is touchmove, if the script thread is processing the touch
             // move event, we skip sending the event to the script thread.
@@ -468,7 +449,7 @@ impl WebViewRenderer {
                     self.touch_handler.prevent_click(sequence_id);
                     self.touch_handler.prevent_move(sequence_id);
                     self.touch_handler
-                        .remove_pending_touch_move_action(sequence_id);
+                        .remove_pending_touch_move_actions(sequence_id);
                 },
                 TouchEventType::Move => {
                     // script thread processed the touch move event, mark this false.
@@ -480,7 +461,7 @@ impl WebViewRenderer {
                         self.touch_handler
                             .set_handling_touch_move(self.touch_handler.current_sequence_id, false);
                         self.touch_handler
-                            .remove_pending_touch_move_action(sequence_id);
+                            .remove_pending_touch_move_actions(sequence_id);
                     }
                 },
                 TouchEventType::Up => {
@@ -522,7 +503,7 @@ impl WebViewRenderer {
                     // We could still have pending event handlers, so we remove the pending
                     // actions, and try to remove the touch sequence.
                     self.touch_handler
-                        .remove_pending_touch_move_action(sequence_id);
+                        .remove_pending_touch_move_actions(sequence_id);
                     self.touch_handler.try_remove_touch_sequence(sequence_id);
                 },
             }
@@ -534,39 +515,10 @@ impl WebViewRenderer {
             match event_type {
                 TouchEventType::Down => {},
                 TouchEventType::Move => {
-                    if let Some(action) = self.touch_handler.pending_touch_move_action(sequence_id)
-                    {
-                        match action {
-                            TouchMoveAction::Scroll(delta, point) => self.on_scroll_window_event(
-                                ScrollLocation::Delta(LayoutVector2D::from_untyped(
-                                    delta.to_untyped(),
-                                )),
-                                point.cast(),
-                            ),
-                            TouchMoveAction::Zoom(zoom_delta, scroll_delta) => {
-                                let cursor = Point2D::new(-1, -1);
-                                // Make sure this hits the base layer.
-                                // The order of these events doesn't matter, because zoom is handled by
-                                // a root display list and the scroll event here is handled by the scroll
-                                // applied to the content display list.
-                                self.pending_scroll_zoom_events
-                                    .push(ScrollZoomEvent::PinchZoom(zoom_delta));
-                                self.pending_scroll_zoom_events
-                                    .push(ScrollZoomEvent::Scroll(ScrollEvent {
-                                        scroll_location: ScrollLocation::Delta(
-                                            LayoutVector2D::from_untyped(scroll_delta.to_untyped()),
-                                        ),
-                                        cursor,
-                                        event_count: 1,
-                                    }));
-                            },
-                            TouchMoveAction::NoAction => {
-                                // This shouldn't happen, but we can also just ignore it.
-                            },
-                        }
+                    self.pending_scroll_zoom_events.extend(
                         self.touch_handler
-                            .remove_pending_touch_move_action(sequence_id);
-                    }
+                            .take_pending_touch_move_actions(sequence_id),
+                    );
                     self.touch_handler
                         .set_handling_touch_move(self.touch_handler.current_sequence_id, false);
                     if let Some(info) = self.touch_handler.get_touch_sequence_mut(sequence_id) {
@@ -616,7 +568,7 @@ impl WebViewRenderer {
                 },
                 TouchEventType::Cancel => {
                     self.touch_handler
-                        .remove_pending_touch_move_action(sequence_id);
+                        .remove_pending_touch_move_actions(sequence_id);
                     self.touch_handler.try_remove_touch_sequence(sequence_id);
                 },
             }
@@ -686,14 +638,15 @@ impl WebViewRenderer {
             return (PinchZoomResult::DidNotPinchZoom, None);
         }
 
-        // Batch up all scroll events into one, or else we'll do way too much painting.
+        // Batch up all scroll events and changes to pinch zoom into a single change, or
+        // else we'll do way too much painting.
         let mut combined_scroll_event: Option<ScrollEvent> = None;
-        let current_pinch_zoom = self.pinch_zoom_level().get();
-        let mut combined_pinch_zoom_delta = 1.0;
+        let mut new_pinch_zoom = self.pinch_zoom;
+
         for scroll_event in self.pending_scroll_zoom_events.drain(..) {
             match scroll_event {
-                ScrollZoomEvent::PinchZoom(pinch_zoom_delta) => {
-                    combined_pinch_zoom_delta *= pinch_zoom_delta
+                ScrollZoomEvent::PinchZoom(factor, center) => {
+                    new_pinch_zoom.zoom(factor, center);
                 },
                 ScrollZoomEvent::Scroll(scroll_event_info) => {
                     let combined_event = match combined_scroll_event.as_mut() {
@@ -716,9 +669,8 @@ impl WebViewRenderer {
                             let old_event_count = Scale::new(combined_event.event_count as f32);
                             combined_event.event_count += 1;
                             let new_event_count = Scale::new(combined_event.event_count as f32);
-                            combined_event.scroll_location = ScrollLocation::Delta(
-                                (old_delta * old_event_count + new_delta) / new_event_count,
-                            );
+                            let delta = (old_delta * old_event_count + new_delta) / new_event_count;
+                            combined_event.scroll_location = ScrollLocation::Delta(delta);
                         },
                         (ScrollLocation::Start, _) | (ScrollLocation::End, _) => {
                             // Once we see Start or End, we shouldn't process any more events.
@@ -733,6 +685,13 @@ impl WebViewRenderer {
                     }
                 },
             }
+        }
+
+        // When zoomed in via pinch zoom, first try to move the center of the zoom and use the rest
+        // of the delta for scrolling. This allows moving the zoomed into viewport around in the
+        // unzoomed viewport before actually scrolling the underlying layers.
+        if let Some(combined_scroll_event) = combined_scroll_event.as_mut() {
+            new_pinch_zoom.pan(&mut combined_scroll_event.scroll_location)
         }
 
         let scroll_result = combined_scroll_event.and_then(|combined_event| {
@@ -751,10 +710,7 @@ impl WebViewRenderer {
             );
         }
 
-        let pinch_zoom_result =
-            self.set_pinch_zoom_level(current_pinch_zoom * combined_pinch_zoom_delta);
-
-        (pinch_zoom_result, scroll_result)
+        (self.set_pinch_zoom(new_pinch_zoom), scroll_result)
     }
 
     /// Perform a hit test at the given [`DevicePoint`] and apply the [`ScrollLocation`]
@@ -836,23 +792,17 @@ impl WebViewRenderer {
         }
     }
 
-    pub(crate) fn pinch_zoom_level(&self) -> Scale<f32, DevicePixel, DevicePixel> {
-        Scale::new(self.pinch_zoom.get())
+    pub(crate) fn pinch_zoom(&self) -> PinchZoom {
+        self.pinch_zoom
     }
 
-    fn set_pinch_zoom_level(&mut self, requested_pinch_zoom: f32) -> PinchZoomResult {
-        const MINIMUM_PINCH_ZOOM: f32 = 1.0;
-        const MAXIMUM_PINCH_ZOOM: f32 = 10.0;
-        let new_pinch_zoom = requested_pinch_zoom.clamp(MINIMUM_PINCH_ZOOM, MAXIMUM_PINCH_ZOOM);
-
-        let old_zoom =
-            std::mem::replace(&mut self.pinch_zoom, PinchZoomFactor::new(new_pinch_zoom));
-
-        if old_zoom != self.pinch_zoom {
-            PinchZoomResult::DidPinchZoom
-        } else {
-            PinchZoomResult::DidNotPinchZoom
+    fn set_pinch_zoom(&mut self, requested_pinch_zoom: PinchZoom) -> PinchZoomResult {
+        if requested_pinch_zoom == self.pinch_zoom {
+            return PinchZoomResult::DidNotPinchZoom;
         }
+
+        self.pinch_zoom = requested_pinch_zoom;
+        PinchZoomResult::DidPinchZoom
     }
 
     pub(crate) fn set_page_zoom(
@@ -877,7 +827,7 @@ impl WebViewRenderer {
             .and_then(|pipeline_id| self.pipelines.get(&pipeline_id))
             .and_then(|pipeline| pipeline.viewport_scale)
             .unwrap_or_else(|| self.page_zoom * self.hidpi_scale_factor);
-        viewport_scale * self.pinch_zoom_level()
+        viewport_scale * self.pinch_zoom.zoom_factor()
     }
 
     /// The current viewport scale (hidpi scale and page zoom and not pinch
@@ -891,14 +841,16 @@ impl WebViewRenderer {
     }
 
     /// Adjust the pinch zoom of the [`WebView`] by the given zoom delta.
-    pub(crate) fn pinch_zoom(&mut self, pinch_zoom_delta: f32) {
+    pub(crate) fn adjust_pinch_zoom(&mut self, magnification: f32, center: DevicePoint) {
         if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
+        if magnification == 1.0 {
+            return;
+        }
 
-        // TODO: Scroll to keep the center in view?
         self.pending_scroll_zoom_events
-            .push(ScrollZoomEvent::PinchZoom(pinch_zoom_delta));
+            .push(ScrollZoomEvent::PinchZoom(magnification, center));
     }
 
     fn send_window_size_message(&self) {

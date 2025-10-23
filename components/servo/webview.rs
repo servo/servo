@@ -24,7 +24,7 @@ use servo_geometry::DeviceIndependentPixel;
 use style_traits::CSSPixel;
 use url::Url;
 use webrender_api::ScrollLocation;
-use webrender_api::units::{DeviceIntPoint, DevicePixel, DeviceRect};
+use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint, DeviceRect};
 
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 use crate::javascript_evaluator::JavaScriptEvaluator;
@@ -547,11 +547,11 @@ impl WebView {
     ///
     /// The final pinch zoom values will be clamped to reasonable defaults (currently to
     /// the inclusive range [1.0, 10.0]).
-    pub fn pinch_zoom(&self, pinch_zoom_delta: f32) {
+    pub fn pinch_zoom(&self, pinch_zoom_delta: f32, center: DevicePoint) {
         self.inner()
             .compositor
             .borrow_mut()
-            .pinch_zoom(self.id(), pinch_zoom_delta);
+            .pinch_zoom(self.id(), pinch_zoom_delta, center);
     }
 
     pub fn device_pixels_per_css_pixel(&self) -> Scale<f32, CSSPixel, DevicePixel> {
