@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use servo::webrender_api::units::DeviceIntRect;
 use servo::{
-    InputMethodType, LoadStatus, MediaSessionPlaybackState, PermissionRequest, SimpleDialog,
+    InputMethodControl, LoadStatus, MediaSessionPlaybackState, PermissionRequest, SimpleDialog,
     WebView,
 };
 
@@ -59,13 +58,7 @@ pub trait HostTrait {
     /// Servo finished shutting down.
     fn on_shutdown_complete(&self);
     /// A text input is focused.
-    fn on_ime_show(
-        &self,
-        input_type: InputMethodType,
-        text: Option<(String, i32)>,
-        multiline: bool,
-        bounds: DeviceIntRect,
-    );
+    fn on_ime_show(&self, input_method_control: InputMethodControl);
     /// Input lost focus
     fn on_ime_hide(&self);
     /// Called when we get the media session metadata/

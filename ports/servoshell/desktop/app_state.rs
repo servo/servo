@@ -18,8 +18,8 @@ use servo::ipc_channel::ipc::IpcSender;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, EmbedderControl, EmbedderControlId,
-    GamepadHapticEffectType, InputEvent, InputEventId, InputEventResult, InputMethod, JSValue,
-    LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog, TraversalId,
+    GamepadHapticEffectType, InputEvent, InputEventId, InputEventResult, JSValue, LoadStatus,
+    PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog, TraversalId,
     WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus, WebDriverSenders,
     WebDriverUserPrompt, WebView, WebViewBuilder, WebViewDelegate,
 };
@@ -99,7 +99,7 @@ pub struct RunningAppStateInner {
     pending_webdriver_events: HashMap<InputEventId, Sender<()>>,
 
     /// A list of showing [`InputMethod`] interfaces.
-    visible_input_method: Vec<EmbedderControlId>,
+    visible_input_methods: Vec<EmbedderControlId>,
 }
 
 impl Drop for RunningAppState {
@@ -139,7 +139,7 @@ impl RunningAppState {
                 pending_favicon_loads: Default::default(),
                 achieved_stable_image: Default::default(),
                 pending_webdriver_events: Default::default(),
-                visible_input_method: Default::default(),
+                visible_input_methods: Default::default(),
             }),
         }
     }
@@ -395,32 +395,6 @@ impl RunningAppState {
             dialogs.drain(..).for_each(|dialog| {
                 dialog.dismiss();
             });
-        }
-    }
-
-    fn show_ime(&self, id: EmbedderControlId, input_method: InputMethod) {
-        self.inner_mut().visible_input_method.push(id);
-        self.inner().window.show_ime(input_method);
-    }
-
-    pub(crate) fn dismiss_control_with_control_id(
-        &self,
-        webview_id: WebViewId,
-        control_id: EmbedderControlId,
-    ) {
-        {
-            let mut inner_mut = self.inner_mut();
-            if let Some(index) = inner_mut
-                .visible_input_method
-                .iter()
-                .position(|visible_id| *visible_id == control_id)
-            {
-                inner_mut.visible_input_method.remove(index);
-                inner_mut.window.hide_ime();
-            }
-        }
-        if let Some(dialogs) = self.inner_mut().dialogs.get_mut(&webview_id) {
-            dialogs.retain(|dialog| dialog.embedder_control_id() != Some(control_id));
         }
     }
 
@@ -836,15 +810,32 @@ impl WebViewDelegate for RunningAppState {
                     Dialog::new_color_picker_dialog(color_picker, offset),
                 );
             },
-            EmbedderControl::InputMethod(input_method) => self.show_ime(control_id, input_method),
+            EmbedderControl::InputMethod(input_method_control) => {
+                self.inner_mut().visible_input_methods.push(control_id);
+                self.inner().window.show_ime(input_method_control);
+            },
             EmbedderControl::FilePicker(file_picker) => {
                 self.add_dialog(webview, Dialog::new_file_dialog(file_picker));
             },
         }
     }
 
-    fn hide_embedder_control(&self, webview: WebView, control_id: servo::EmbedderControlId) {
-        self.dismiss_control_with_control_id(webview.id(), control_id);
+    fn hide_embedder_control(&self, webview: WebView, control_id: EmbedderControlId) {
+        {
+            let mut inner_mut = self.inner_mut();
+            if let Some(index) = inner_mut
+                .visible_input_methods
+                .iter()
+                .position(|visible_id| *visible_id == control_id)
+            {
+                inner_mut.visible_input_methods.remove(index);
+                inner_mut.window.hide_ime();
+            }
+        }
+
+        if let Some(dialogs) = self.inner_mut().dialogs.get_mut(&webview.id()) {
+            dialogs.retain(|dialog| dialog.embedder_control_id() != Some(control_id));
+        }
     }
 
     fn notify_favicon_changed(&self, webview: WebView) {

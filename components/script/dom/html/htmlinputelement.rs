@@ -347,11 +347,11 @@ impl InputType {
     }
 }
 
-impl TryInto<InputMethodType> for InputType {
+impl TryFrom<InputType> for InputMethodType {
     type Error = &'static str;
 
-    fn try_into(self) -> Result<InputMethodType, Self::Error> {
-        match self {
+    fn try_from(input_type: InputType) -> Result<Self, Self::Error> {
+        match input_type {
             InputType::Color => Ok(InputMethodType::Color),
             InputType::Date => Ok(InputMethodType::Date),
             InputType::DatetimeLocal => Ok(InputMethodType::DatetimeLocal),
@@ -2883,7 +2883,7 @@ impl HTMLInputElement {
     }
 
     fn handle_focus(&self) {
-        let Ok(ime_type) = self.input_type().try_into() else {
+        let Ok(input_method_type) = self.input_type().try_into() else {
             return;
         };
 
@@ -2892,7 +2892,7 @@ impl HTMLInputElement {
             .show_embedder_control(
                 ControlElement::Ime(DomRoot::from_ref(self.upcast())),
                 EmbedderControlRequest::InputMethod(InputMethodRequest {
-                    ime_type,
+                    input_method_type,
                     text: self.Value().to_string(),
                     insertion_point: self.GetSelectionEnd(),
                     multiline: false,

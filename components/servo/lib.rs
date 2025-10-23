@@ -133,7 +133,7 @@ use crate::webview::MINIMUM_WEBVIEW_SIZE;
 pub use crate::webview::{WebView, WebViewBuilder};
 pub use crate::webview_delegate::{
     AllowOrDenyRequest, AuthenticationRequest, ColorPicker, EmbedderControl, FilePicker,
-    InputMethod, NavigationRequest, PermissionRequest, SelectElement, WebResourceLoad,
+    InputMethodControl, NavigationRequest, PermissionRequest, SelectElement, WebResourceLoad,
     WebViewDelegate,
 };
 
@@ -895,9 +895,9 @@ impl Servo {
                             })
                         },
                         EmbedderControlRequest::InputMethod(input_method_request) => {
-                            EmbedderControl::InputMethod(InputMethod {
+                            EmbedderControl::InputMethod(InputMethodControl {
                                 id: control_id,
-                                ime_type: input_method_request.ime_type,
+                                input_method_type: input_method_request.input_method_type,
                                 text: input_method_request.text,
                                 insertion_point: input_method_request.insertion_point,
                                 position,

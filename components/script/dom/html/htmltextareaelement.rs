@@ -218,7 +218,7 @@ impl HTMLTextAreaElement {
             .show_embedder_control(
                 ControlElement::Ime(DomRoot::from_ref(self.upcast())),
                 EmbedderControlRequest::InputMethod(InputMethodRequest {
-                    ime_type: InputMethodType::Text,
+                    input_method_type: InputMethodType::Text,
                     text: self.Value().to_string(),
                     insertion_point: self.GetSelectionEnd(),
                     multiline: false,

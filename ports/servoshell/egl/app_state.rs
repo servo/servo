@@ -19,13 +19,13 @@ use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint};
 use servo::{
-    AllowOrDenyRequest, ContextMenuResult, ImeEvent, InputEvent, InputMethodType, KeyboardEvent,
-    LoadStatus, MediaSessionActionType, MediaSessionEvent, MouseButton, MouseButtonAction,
-    MouseButtonEvent, MouseMoveEvent, NavigationRequest, PermissionRequest, RefreshDriver,
-    RenderingContext, ScreenGeometry, Servo, ServoDelegate, ServoError, SimpleDialog, TouchEvent,
-    TouchEventType, TouchId, TraversalId, WebDriverCommandMsg, WebDriverJSResult,
-    WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView, WebViewBuilder,
-    WebViewDelegate, WindowRenderingContext,
+    AllowOrDenyRequest, ContextMenuResult, EmbedderControl, EmbedderControlId, ImeEvent,
+    InputEvent, KeyboardEvent, LoadStatus, MediaSessionActionType, MediaSessionEvent, MouseButton,
+    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, NavigationRequest, PermissionRequest,
+    RefreshDriver, RenderingContext, ScreenGeometry, Servo, ServoDelegate, ServoError,
+    SimpleDialog, TouchEvent, TouchEventType, TouchId, TraversalId, WebDriverCommandMsg,
+    WebDriverJSResult, WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView,
+    WebViewBuilder, WebViewDelegate, WindowRenderingContext,
 };
 use url::Url;
 
@@ -110,6 +110,9 @@ struct RunningAppStateInner {
     /// Whether or not the application has achieved stable image output. This is used
     /// for the `exit_after_stable_image` option.
     achieved_stable_image: Rc<Cell<bool>>,
+
+    /// A list of showing [`InputMethod`] interfaces.
+    visible_input_methods: Vec<EmbedderControlId>,
 }
 
 struct ServoShellServoDelegate {
@@ -315,21 +318,29 @@ impl WebViewDelegate for RunningAppState {
             .show_simple_dialog(webview, dialog);
     }
 
-    fn show_ime(
-        &self,
-        _webview: WebView,
-        input_method_type: InputMethodType,
-        text: Option<(String, i32)>,
-        multiline: bool,
-        position: DeviceIntRect,
-    ) {
-        self.callbacks
-            .host_callbacks
-            .on_ime_show(input_method_type, text, multiline, position);
+    fn show_embedder_control(&self, _webview: WebView, embedder_control: EmbedderControl) {
+        let control_id = embedder_control.id();
+        match embedder_control {
+            EmbedderControl::InputMethod(input_method_control) => {
+                self.inner_mut().visible_input_methods.push(control_id);
+                self.callbacks
+                    .host_callbacks
+                    .on_ime_show(input_method_control);
+            },
+            _ => {},
+        }
     }
 
-    fn hide_ime(&self, _webview: WebView) {
-        self.callbacks.host_callbacks.on_ime_hide();
+    fn hide_embedder_control(&self, _webview: WebView, control_id: servo::EmbedderControlId) {
+        let mut inner_mut = self.inner_mut();
+        if let Some(index) = inner_mut
+            .visible_input_methods
+            .iter()
+            .position(|visible_id| *visible_id == control_id)
+        {
+            inner_mut.visible_input_methods.remove(index);
+            self.callbacks.host_callbacks.on_ime_hide();
+        }
     }
 }
 
@@ -397,6 +408,7 @@ impl RunningAppState {
                 animating_state_changed,
                 hidpi_scale_factor: Scale::new(hidpi_scale_factor),
                 achieved_stable_image: Default::default(),
+                visible_input_methods: Default::default(),
             }),
         });
 

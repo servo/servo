@@ -306,7 +306,7 @@ pub enum EmbedderControl {
     /// The picker of a `<input type=file>` element.
     FilePicker(FilePicker),
     /// The input method interface.
-    InputMethod(InputMethod),
+    InputMethod(InputMethodControl),
 }
 
 impl EmbedderControl {
@@ -494,19 +494,19 @@ impl Drop for FilePicker {
 }
 
 /// Represents a request to enable the system input method interface.
-pub struct InputMethod {
+pub struct InputMethodControl {
     pub(crate) id: EmbedderControlId,
-    pub(crate) ime_type: InputMethodType,
+    pub(crate) input_method_type: InputMethodType,
     pub(crate) text: String,
     pub(crate) insertion_point: Option<u32>,
     pub(crate) position: DeviceIntRect,
     pub(crate) multiline: bool,
 }
 
-impl InputMethod {
+impl InputMethodControl {
     /// Return the type of input method that initated this request.
-    pub fn ime_type(self) -> InputMethodType {
-        self.ime_type
+    pub fn input_method_type(&self) -> InputMethodType {
+        self.input_method_type
     }
 
     /// Return the current string value of the input field.

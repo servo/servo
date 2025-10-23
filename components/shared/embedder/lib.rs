@@ -556,7 +556,7 @@ pub enum EmbedderControlRequest {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct InputMethodRequest {
-    pub ime_type: InputMethodType,
+    pub input_method_type: InputMethodType,
     pub text: String,
     pub insertion_point: Option<u32>,
     pub multiline: bool,
@@ -675,7 +675,7 @@ pub enum PermissionFeature {
 /// Used to specify the kind of input method editor appropriate to edit a field.
 /// This is a subset of htmlinputelement::InputType because some variants of InputType
 /// don't make sense in this context.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum InputMethodType {
     Color,
     Date,

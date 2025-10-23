@@ -9,9 +9,8 @@ use std::rc::Rc;
 use crossbeam_channel::unbounded;
 use dpi::PhysicalSize;
 use raw_window_handle::{DisplayHandle, RawDisplayHandle, RawWindowHandle, WindowHandle};
-pub use servo::webrender_api::units::DeviceIntRect;
 use servo::{self, EventLoopWaker, ServoBuilder, resources};
-pub use servo::{InputMethodType, MediaSessionPlaybackState, WindowRenderingContext};
+pub use servo::{MediaSessionPlaybackState, WindowRenderingContext};
 
 use crate::egl::android::resources::ResourceReaderInstance;
 #[cfg(feature = "webxr")]
