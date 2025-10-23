@@ -83,22 +83,23 @@ impl PinchZoom {
         // in DevicePixels! This should reflect reality.
         match scroll_location {
             ScrollLocation::Delta(delta) => {
-                let remaining =
-                    self.pan_with_delta(DeviceScroll::Delta(DeviceVector2D::new(delta.x, delta.y)));
+                let remaining = self.pan_with_device_scroll(DeviceScroll::Delta(
+                    DeviceVector2D::new(delta.x, delta.y),
+                ));
                 *delta = Vector2D::new(remaining.x, remaining.y)
             },
             ScrollLocation::Start => {
-                self.pan_with_delta(DeviceScroll::Start);
+                self.pan_with_device_scroll(DeviceScroll::Start);
             },
             ScrollLocation::End => {
-                self.pan_with_delta(DeviceScroll::End);
+                self.pan_with_device_scroll(DeviceScroll::End);
             },
         }
     }
 
     /// Pan the pinch zoom viewport by the given delta and return the remaining device
     /// pixel value that was unused.
-    fn pan_with_delta(&mut self, scroll: DeviceScroll) -> DeviceVector2D {
+    pub(crate) fn pan_with_device_scroll(&mut self, scroll: DeviceScroll) -> DeviceVector2D {
         let current_viewport = Rect::new(
             Point2D::origin(),
             self.unscaled_viewport_size.to_vector().to_size(),
@@ -140,7 +141,7 @@ impl PinchZoom {
     }
 }
 
-enum DeviceScroll {
+pub(crate) enum DeviceScroll {
     Delta(DeviceVector2D),
     Start,
     End,
