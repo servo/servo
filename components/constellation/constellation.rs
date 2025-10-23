@@ -177,9 +177,8 @@ use style::global_style_data::StyleThreadPool;
 use webgpu::canvas_context::WGPUImageMap;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPU, WebGPURequest};
-use webrender::RenderApiSender;
 use webrender_api::units::LayoutVector2D;
-use webrender_api::{DocumentId, ExternalScrollId, ImageKey};
+use webrender_api::{ExternalScrollId, ImageKey};
 
 use crate::broadcastchannel::BroadcastChannels;
 use crate::browsingcontext::{
@@ -550,12 +549,6 @@ pub struct InitialConstellationState {
 
     /// A channel to the memory profiler thread.
     pub mem_profiler_chan: mem::ProfilerChan,
-
-    /// Webrender document ID.
-    pub webrender_document: DocumentId,
-
-    /// Webrender API.
-    pub webrender_api_sender: RenderApiSender,
 
     /// Webrender external images
     pub webrender_external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,

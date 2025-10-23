@@ -61,7 +61,7 @@ pub struct Opts {
     pub random_pipeline_closure_seed: Option<usize>,
 
     /// Load shaders from disk.
-    pub shaders_dir: Option<PathBuf>,
+    pub shaders_path: Option<PathBuf>,
 
     /// Directory for a default config directory
     pub config_dir: Option<PathBuf>,
@@ -175,7 +175,7 @@ impl Default for Opts {
             sandbox: false,
             debug: Default::default(),
             config_dir: None,
-            shaders_dir: None,
+            shaders_path: None,
             certificate_path: None,
             ignore_certificate_errors: false,
             unminify_js: false,

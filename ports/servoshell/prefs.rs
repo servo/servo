@@ -720,7 +720,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         random_pipeline_closure_probability: cmd_args.random_pipeline_closure_probability,
         random_pipeline_closure_seed: cmd_args.random_pipeline_closure_seed,
         config_dir: config_dir.clone(),
-        shaders_dir: cmd_args.shaders,
+        shaders_path: cmd_args.shaders,
         certificate_path: cmd_args
             .certificate_path
             .map(|p| p.to_string_lossy().into_owned()),

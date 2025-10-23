@@ -38,6 +38,7 @@ log = { workspace = true }
 malloc_size_of = { workspace = true }
 pixels = { path = "../pixels" }
 profile_traits = { workspace = true }
+rayon = { workspace = true }
 rustc-hash = { workspace = true }
 servo-tracing = { workspace = true }
 servo_allocator = { path = "../allocator" }

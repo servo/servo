@@ -1484,6 +1484,7 @@ dependencies = [
  "log",
  "pixels",
  "profile_traits",
+ "rayon",
  "rustc-hash 2.1.1",
  "servo-tracing",
  "servo_allocator",

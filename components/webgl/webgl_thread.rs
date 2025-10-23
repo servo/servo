@@ -45,7 +45,6 @@ use surfman::{
     self, Adapter, Connection, Context, ContextAttributeFlags, ContextAttributes, Device,
     GLVersion, SurfaceAccess, SurfaceInfo, SurfaceType,
 };
-use webrender::{RenderApi, RenderApiSender};
 use webrender_api::units::DeviceIntSize;
 use webrender_api::{
     ExternalImageData, ExternalImageId, ExternalImageType, ImageBufferKind, ImageDescriptor,
@@ -208,7 +207,6 @@ pub(crate) struct WebGLThread {
     device: Device,
     /// Channel used to generate/update or delete `ImageKey`s.
     compositor_api: CrossProcessCompositorApi,
-    webrender_api: RenderApi,
     /// Map of live WebGLContexts.
     contexts: FxHashMap<WebGLContextId, GLContextData>,
     /// Cached information for WebGLContexts.
@@ -234,7 +232,6 @@ pub(crate) struct WebGLThread {
 /// The data required to initialize an instance of the WebGLThread type.
 pub(crate) struct WebGLThreadInit {
     pub compositor_api: CrossProcessCompositorApi,
-    pub webrender_api_sender: RenderApiSender,
     pub external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     pub sender: WebGLSender<WebGLMsg>,
     pub receiver: WebGLReceiver<WebGLMsg>,
@@ -254,7 +251,6 @@ impl WebGLThread {
     pub(crate) fn new(
         WebGLThreadInit {
             compositor_api,
-            webrender_api_sender,
             external_images,
             sender,
             receiver,
@@ -271,7 +267,6 @@ impl WebGLThread {
                 .create_device(&adapter)
                 .expect("Couldn't open WebGL device!"),
             compositor_api,
-            webrender_api: webrender_api_sender.create_api(),
             contexts: Default::default(),
             cached_context_info: Default::default(),
             bound_context_id: None,
@@ -392,8 +387,6 @@ impl WebGLThread {
                     self.remove_webgl_context(id);
                 }
 
-                // Block on shutting-down WebRender.
-                self.webrender_api.shut_down(true);
                 if let Err(e) = sender.send(()) {
                     warn!("Failed to send response to WebGLMsg::Exit ({e})");
                 }

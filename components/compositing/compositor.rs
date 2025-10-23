@@ -30,6 +30,7 @@ use embedder_traits::{
     ScreenshotCaptureError, ShutdownState, ViewportDetails,
 };
 use euclid::{Point2D, Scale, Size2D, Transform3D};
+use gleam::gl::RENDERER;
 use image::RgbaImage;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use log::{debug, info, trace, warn};
@@ -42,21 +43,24 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use servo_config::pref;
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::CSSPixel;
-use webrender::{CaptureBits, RenderApi, Transaction};
+use webrender::{
+    CaptureBits, ONE_TIME_USAGE_HINT, RenderApi, ShaderPrecacheFlags, Transaction, UploadMethod,
+};
 use webrender_api::units::{
     DeviceIntPoint, DeviceIntRect, DevicePixel, DevicePoint, DeviceRect, LayoutPoint, LayoutRect,
     LayoutSize, WorldPoint,
 };
 use webrender_api::{
-    self, BuiltDisplayList, DirtyRect, DisplayListPayload, DocumentId, Epoch as WebRenderEpoch,
-    ExternalScrollId, FontInstanceFlags, FontInstanceKey, FontInstanceOptions, FontKey,
-    FontVariation, ImageKey, PipelineId as WebRenderPipelineId, PropertyBinding,
-    ReferenceFrameKind, RenderReasons, SampledScrollOffset, ScrollLocation, SpaceAndClipInfo,
-    SpatialId, SpatialTreeItemKey, TransformStyle,
+    self, BuiltDisplayList, ColorF, DirtyRect, DisplayListPayload, DocumentId,
+    Epoch as WebRenderEpoch, ExternalScrollId, FontInstanceFlags, FontInstanceKey,
+    FontInstanceOptions, FontKey, FontVariation, ImageKey, PipelineId as WebRenderPipelineId,
+    PropertyBinding, ReferenceFrameKind, RenderReasons, SampledScrollOffset, ScrollLocation,
+    SpaceAndClipInfo, SpatialId, SpatialTreeItemKey, TransformStyle,
 };
 
 use crate::InitialCompositorState;
 use crate::refresh_driver::{AnimationRefreshDriverObserver, BaseRefreshDriver};
+use crate::render_notifier::RenderNotifier;
 use crate::screenshot::ScreenshotTaker;
 use crate::webview_manager::WebViewManager;
 use crate::webview_renderer::{PinchZoomResult, UnknownWebView, WebViewRenderer};
@@ -247,6 +251,12 @@ impl PipelineDetails {
     }
 }
 
+impl Drop for ServoRenderer {
+    fn drop(&mut self) {
+        self.webrender_api.shut_down(true);
+    }
+}
+
 impl ServoRenderer {
     pub fn shutdown_state(&self) -> ShutdownState {
         self.shutdown_state.get()
@@ -296,6 +306,70 @@ impl IOCompositor {
             state.constellation_chan.clone(),
         ));
 
+        let rendering_context = state.rendering_context;
+        let webrender_gl = rendering_context.gleam_gl_api();
+        rendering_context.prepare_for_rendering();
+        let clear_color = servo_config::pref!(shell_background_color_rgba);
+        let clear_color = ColorF::new(
+            clear_color[0] as f32,
+            clear_color[1] as f32,
+            clear_color[2] as f32,
+            clear_color[3] as f32,
+        );
+
+        // Use same texture upload method as Gecko with ANGLE:
+        // https://searchfox.org/mozilla-central/source/gfx/webrender_bindings/src/bindings.rs#1215-1219
+        let upload_method = if webrender_gl.get_string(RENDERER).starts_with("ANGLE") {
+            UploadMethod::Immediate
+        } else {
+            UploadMethod::PixelBuffer(ONE_TIME_USAGE_HINT)
+        };
+        let worker_threads = std::thread::available_parallelism()
+            .map(|i| i.get())
+            .unwrap_or(pref!(threadpools_fallback_worker_num) as usize)
+            .min(pref!(threadpools_webrender_workers_max).max(1) as usize);
+        let workers = Some(Arc::new(
+            rayon::ThreadPoolBuilder::new()
+                .num_threads(worker_threads)
+                .thread_name(|idx| format!("WRWorker#{}", idx))
+                .build()
+                .expect("Unable to initialize WebRender worker pool."),
+        ));
+
+        let (mut webrender, webrender_api_sender) = webrender::create_webrender_instance(
+            webrender_gl.clone(),
+            Box::new(RenderNotifier::new(state.sender.clone())),
+            webrender::WebRenderOptions {
+                // We force the use of optimized shaders here because rendering is broken
+                // on Android emulators with unoptimized shaders. This is due to a known
+                // issue in the emulator's OpenGL emulation layer.
+                // See: https://github.com/servo/servo/issues/31726
+                use_optimized_shaders: true,
+                resource_override_path: state.shaders_path,
+                debug_flags: webrender::DebugFlags::empty(),
+                precache_flags: if pref!(gfx_precache_shaders) {
+                    ShaderPrecacheFlags::FULL_COMPILE
+                } else {
+                    ShaderPrecacheFlags::empty()
+                },
+                enable_aa: pref!(gfx_text_antialiasing_enabled),
+                enable_subpixel_aa: pref!(gfx_subpixel_text_antialiasing_enabled),
+                allow_texture_swizzling: pref!(gfx_texture_swizzling_enabled),
+                clear_color,
+                upload_method,
+                workers,
+                size_of_op: Some(servo_allocator::usable_size),
+                ..Default::default()
+            },
+            None,
+        )
+        .expect("Unable to initialize WebRender.");
+
+        webrender.set_external_image_handler(state.external_image_handlers);
+
+        let webrender_api = webrender_api_sender.create_api();
+        let webrender_document = webrender_api.add_document(rendering_context.size2d().to_i32());
+
         let compositor = IOCompositor {
             global: Rc::new(RefCell::new(ServoRenderer {
                 refresh_driver,
@@ -304,9 +378,9 @@ impl IOCompositor {
                 compositor_receiver: state.receiver,
                 constellation_sender: state.constellation_chan,
                 time_profiler_chan: state.time_profiler_chan,
-                webrender_api: state.webrender_api,
-                webrender_document: state.webrender_document,
-                webrender_gl: state.webrender_gl,
+                webrender_api,
+                webrender_document,
+                webrender_gl,
                 #[cfg(feature = "webxr")]
                 webxr_main_thread: state.webxr_main_thread,
                 last_mouse_move_position: None,
@@ -314,8 +388,8 @@ impl IOCompositor {
             })),
             webview_renderers: WebViewManager::default(),
             needs_repaint: Cell::default(),
-            webrender: Some(state.webrender),
-            rendering_context: state.rendering_context,
+            webrender: Some(webrender),
+            rendering_context,
             pending_frames: Default::default(),
             screenshot_taker: Default::default(),
             _mem_profiler_registration: registration,
