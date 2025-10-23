@@ -9,11 +9,7 @@ interface WorkerGlobalScope : GlobalScope {
   readonly attribute WorkerLocation location;
   readonly attribute WorkerNavigator navigator;
   [Throws] undefined importScripts((TrustedScriptURL or USVString)... urls);
-};
 
-// This is an interface internal to Servo to simplify adding
-// event handlers to objects that implement WorkerGlobalScope
-interface mixin WorkerGlobalScopeEvents {
   attribute OnErrorEventHandler onerror;
   attribute EventHandler onlanguagechange;
   attribute EventHandler onoffline;
@@ -21,8 +17,3 @@ interface mixin WorkerGlobalScopeEvents {
   attribute EventHandler onrejectionhandled;
   attribute EventHandler onunhandledrejection;
 };
-
-WorkerGlobalScope includes WorkerGlobalScopeEvents;
-DedicatedWorkerGlobalScope includes WorkerGlobalScopeEvents;
-// ServiceWorkerGlobalScope includes WorkerGlobalScopeEvents;
-// SharedWorkerGlobalScope includes WorkerGlobalScopeEvents;

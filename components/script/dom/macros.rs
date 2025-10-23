@@ -716,7 +716,7 @@ macro_rules! window_event_handlers(
     );
 );
 
-// Event handlers that must be supported by objects that extends WorkerGlobalScope.
+// Event handlers that must be supported by WorkerGlobalScope.
 macro_rules! worker_event_handlers (
     () => (
         error_event_handler!(error, GetOnerror, SetOnerror);
