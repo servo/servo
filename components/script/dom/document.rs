@@ -2179,29 +2179,30 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#the-end
     pub(crate) fn maybe_queue_document_completion(&self) {
-        let should_fire_page_show = if let Some(window_proxy) = self.window().undiscarded_window_proxy() {
-            if let Some(frame) = window_proxy
-                .frame_element()
-                .and_then(|e| e.downcast::<HTMLIFrameElement>())
-            {
-                // Both the initial about:blank document,
-                // and the initial inserted iframe that matches about:blank,
-                // should not fire load or pageshow events.
-                if frame.is_initial_blank_document() ||
-                    (frame.is_initial_navigated_document_that_matches_about_blank() &&
-                        self.url().matches_about_blank())
+        let should_fire_events =
+            if let Some(window_proxy) = self.window().undiscarded_window_proxy() {
+                if let Some(frame) = window_proxy
+                    .frame_element()
+                    .and_then(|e| e.downcast::<HTMLIFrameElement>())
                 {
-                    false
+                    // Both the initial about:blank document,
+                    // and the initial inserted iframe that matches about:blank,
+                    // should not fire load or pageshow events.
+                    if frame.is_initial_blank_document() ||
+                        (frame.is_initial_navigated_document_that_matches_about_blank() &&
+                            self.url().matches_about_blank())
+                    {
+                        false
+                    } else {
+                        true
+                    }
                 } else {
                     true
                 }
             } else {
+                // Note: unclear if this is reachable.
                 true
-            }
-        } else {
-            // Note: unclear if this is reachable.
-            true
-        };
+            };
         // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
         let is_in_delaying_load_events_mode = match self.window.undiscarded_window_proxy() {
             Some(window_proxy) => window_proxy.is_delaying_load_events_mode(),
@@ -2245,23 +2246,26 @@ impl Document {
                 if document.browsing_context().is_none() {
                     return;
                 }
-                let event = Event::new(
-                    window.upcast(),
-                    atom!("load"),
-                    EventBubbles::DoesNotBubble,
-                    EventCancelable::NotCancelable,
-                    CanGc::note(),
-                );
-                event.set_trusted(true);
 
-                // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventStart
-                update_with_current_instant(&document.load_event_start);
+                if should_fire_events {
+                    let event = Event::new(
+                        window.upcast(),
+                        atom!("load"),
+                        EventBubbles::DoesNotBubble,
+                        EventCancelable::NotCancelable,
+                        CanGc::note(),
+                    );
+                    event.set_trusted(true);
 
-                debug!("About to dispatch load for {:?}", document.url());
-                window.dispatch_event_with_target_override(&event, CanGc::note());
+                    // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventStart
+                    update_with_current_instant(&document.load_event_start);
 
-                // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
-                update_with_current_instant(&document.load_event_end);
+                    debug!("About to dispatch load for {:?}", document.url());
+                    window.dispatch_event_with_target_override(&event, CanGc::note());
+
+                    // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
+                    update_with_current_instant(&document.load_event_end);
+                }
 
                 if let Some(fragment) = document.url().fragment() {
                     document.check_and_scroll_fragment(fragment);
@@ -2269,7 +2273,7 @@ impl Document {
             }));
 
         // Step 8.
-        if should_fire_page_show {
+        if should_fire_events {
             let document = Trusted::new(self);
             if document.root().browsing_context().is_some() {
                 self.owner_global()
