@@ -22,10 +22,10 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::idbdatabase::IDBDatabase;
-use crate::dom::idbrequest::IDBRequest;
-use crate::dom::idbtransaction::IDBTransaction;
-use crate::dom::idbversionchangeevent::IDBVersionChangeEvent;
+use crate::dom::indexeddb::idbdatabase::IDBDatabase;
+use crate::dom::indexeddb::idbrequest::IDBRequest;
+use crate::dom::indexeddb::idbtransaction::IDBTransaction;
+use crate::dom::indexeddb::idbversionchangeevent::IDBVersionChangeEvent;
 use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
 

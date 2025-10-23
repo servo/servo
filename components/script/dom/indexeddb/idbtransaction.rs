@@ -30,9 +30,9 @@ use crate::dom::domstringlist::DOMStringList;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::idbdatabase::IDBDatabase;
-use crate::dom::idbobjectstore::IDBObjectStore;
-use crate::dom::idbrequest::IDBRequest;
+use crate::dom::indexeddb::idbdatabase::IDBDatabase;
+use crate::dom::indexeddb::idbobjectstore::IDBObjectStore;
+use crate::dom::indexeddb::idbrequest::IDBRequest;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]

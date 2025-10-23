@@ -8,7 +8,7 @@ use script_bindings::str::DOMString;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::idbobjectstore::IDBObjectStore;
+use crate::dom::indexeddb::idbobjectstore::IDBObjectStore;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]

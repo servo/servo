@@ -70,7 +70,7 @@ use crate::dom::dedicatedworkerglobalscope::{
 };
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlscriptelement::{SCRIPT_JS_MIMES, ScriptOrigin, ScriptType};
-use crate::dom::idbfactory::IDBFactory;
+use crate::dom::indexeddb::idbfactory::IDBFactory;
 use crate::dom::performance::Performance;
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
