@@ -527,12 +527,6 @@ impl HTMLIFrameElement {
 
     /// <https://html.spec.whatwg.org/multipage/#iframe-load-event-steps> steps 1-4
     pub(crate) fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId, can_gc: CanGc) {
-        println!(
-            "Iframe load event steps: {:?} {:?} {:?}",
-            self.pending_pipeline_id.get(),
-            self.about_blank_pipeline_id.get(),
-            self.pipeline_id.get()
-        );
         // TODO(#9592): assert that the load blocker is present at all times when we
         //              can guarantee that it's created for the case of iframe.reload().
         if Some(loaded_pipeline) != self.pending_pipeline_id.get() {
@@ -554,8 +548,6 @@ impl HTMLIFrameElement {
             // Step 4
             self.upcast::<EventTarget>()
                 .fire_event(atom!("load"), can_gc);
-        } else {
-            println!("Not firing load for {:?}", self.pipeline_id.get());
         }
 
         // TODO A cross-origin child document would not be easily accessible
