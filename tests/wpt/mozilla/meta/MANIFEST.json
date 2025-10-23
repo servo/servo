@@ -12672,6 +12672,15 @@
        {}
       ]
      ],
+     "pseudo-element-transition-continues-on-box-tree-re-construction.html": [
+      "131c49a9780ec215a8cf8964d148473f85207dd0",
+      [
+       null,
+       {
+        "testdriver": true
+       }
+      ]
+     ],
      "transition-events.html": [
       "b561fc8353276e6bdd13a9d1b965f57733ecd19b",
       [

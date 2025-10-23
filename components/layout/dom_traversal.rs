@@ -162,10 +162,12 @@ fn traverse_element<'dom>(
     context: &LayoutContext,
     handler: &mut impl TraversalHandler<'dom>,
 ) {
-    element.unset_all_pseudo_boxes();
+    let damage = element.take_restyle_damage();
+    if damage.has_box_damage() {
+        element.unset_all_pseudo_boxes();
+    }
 
     let style = element.style(&context.style_context);
-    let damage = element.take_restyle_damage();
     let info = NodeAndStyleInfo::new(element, style, damage);
 
     match Display::from(info.style.get_box().display) {
