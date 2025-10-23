@@ -21,7 +21,7 @@ use style::Atom;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::XPathNSResolverBinding::XPathNSResolver;
-use crate::dom::bindings::error::Error;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::comment::Comment;
@@ -256,6 +256,15 @@ impl xpath::Attribute for XPathWrapper<DomRoot<Attr>> {
     fn local_name(&self) -> LocalName {
         self.0.local_name().clone()
     }
+}
+
+pub(crate) fn parse_expression(expression: &str) -> Fallible<xpath::Expression> {
+    xpath::parse::<Error>(expression).map_err(|error| match error {
+        xpath::Error::JsException(Error::JSFailed) => Error::JSFailed,
+        _ => Error::Syntax(Some(format!(
+            "Failed to parse {expression:?} as an XPath expression: {error:?}"
+        ))),
+    })
 }
 
 impl xpath::NamespaceResolver<Error> for XPathWrapper<Rc<XPathNSResolver>> {
