@@ -146,6 +146,7 @@ impl KeyboardEvent {
         ev.is_composing.set(is_composing);
         ev.char_code.set(char_code);
         ev.key_code.set(key_code);
+        ev.uievent.set_which(key_code);
         ev
     }
 

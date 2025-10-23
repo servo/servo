@@ -11,7 +11,6 @@ use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_traits::ConstellationInputEvent;
-use servo_config::pref;
 use style_traits::CSSPixel;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
@@ -247,6 +246,9 @@ impl MouseEvent {
         self.buttons.set(buttons);
         self.related_target.set(related_target);
         self.point_in_target.set(point_in_target);
+        // Legacy mapping per spec: left/middle/right => 1/2/3 (button + 1), else 0.
+        let w = if button >= 0 { (button as u32) + 1 } else { 0 };
+        self.uievent.set_which(w);
     }
 
     pub(crate) fn point_in_target(&self) -> Option<Point2D<f32, CSSPixel>> {
@@ -476,19 +478,6 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
         self.related_target.get()
     }
 
-    // See discussion at:
-    //  - https://github.com/servo/servo/issues/6643
-    //  - https://bugzilla.mozilla.org/show_bug.cgi?id=1186125
-    // This returns the same result as current gecko.
-    // https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/which
-    fn Which(&self) -> i32 {
-        if pref!(dom_mouse_event_which_enabled) {
-            (self.button.get() + 1) as i32
-        } else {
-            0
-        }
-    }
-
     /// <https://w3c.github.io/uievents/#widl-MouseEvent-initMouseEvent>
     fn InitMouseEvent(
         &self,
@@ -548,6 +537,14 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
 
         self.button.set(button_arg);
         self.related_target.set(related_target_arg);
+
+        // Keep UIEvent.which in sync for legacy init path too.
+        let w = if button_arg >= 0 {
+            (button_arg as u32) + 1
+        } else {
+            0
+        };
+        self.uievent.set_which(w);
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>

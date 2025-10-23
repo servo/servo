@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use servo_config::pref;
 use std::cell::Cell;
 use std::default::Default;
 
@@ -31,6 +32,7 @@ pub(crate) struct UIEvent {
     event: Event,
     view: MutNullableDom<Window>,
     detail: Cell<i32>,
+    which: Cell<u32>,
 }
 
 impl UIEvent {
@@ -39,7 +41,12 @@ impl UIEvent {
             event: Event::new_inherited(),
             view: Default::default(),
             detail: Cell::new(0),
+            which: Cell::new(0),
         }
+    }
+
+    pub(crate) fn set_which(&self, v: u32) {
+        self.which.set(v);
     }
 
     pub(crate) fn new_uninitialized(window: &Window, can_gc: CanGc) -> DomRoot<UIEvent> {
@@ -61,10 +68,11 @@ impl UIEvent {
         cancelable: EventCancelable,
         view: Option<&Window>,
         detail: i32,
+        which: u32,
         can_gc: CanGc,
     ) -> DomRoot<UIEvent> {
         Self::new_with_proto(
-            window, None, type_, can_bubble, cancelable, view, detail, can_gc,
+            window, None, type_, can_bubble, cancelable, view, detail, which, can_gc,
         )
     }
 
@@ -77,6 +85,7 @@ impl UIEvent {
         cancelable: EventCancelable,
         view: Option<&Window>,
         detail: i32,
+        which: u32,
         can_gc: CanGc,
     ) -> DomRoot<UIEvent> {
         let ev = UIEvent::new_uninitialized_with_proto(window, proto, can_gc);
@@ -87,6 +96,7 @@ impl UIEvent {
             cancelable,
         );
         ev.detail.set(detail);
+        ev.which.set(which);
         ev
     }
 
@@ -138,6 +148,7 @@ impl UIEventMethods<crate::DomTypeHolder> for UIEvent {
             cancelable,
             init.view.as_deref(),
             init.detail,
+            init.which,
             can_gc,
         );
         Ok(event)
@@ -175,5 +186,14 @@ impl UIEventMethods<crate::DomTypeHolder> for UIEvent {
     // https://dom.spec.whatwg.org/#dom-event-istrusted
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
+    }
+
+    /// <https://w3c.github.io/uievents/#dom-uievent-which>
+    fn Which(&self) -> u32 {
+        if pref!(dom_uievent_which_enabled) {
+            self.which.get()
+        } else {
+            0
+        }
     }
 }
