@@ -3176,6 +3176,7 @@ impl Window {
                 EventCancelable::NotCancelable,
                 Some(self),
                 0i32,
+                0u32,
                 can_gc,
             );
             uievent.upcast::<Event>().fire(self.upcast(), can_gc);

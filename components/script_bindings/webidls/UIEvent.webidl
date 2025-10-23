@@ -16,6 +16,9 @@ dictionary UIEventInit : EventInit {
   //  WindowProxy? view = null;
   Window? view = null;
     long         detail = 0;
+
+  // https://w3c.github.io/uievents/#legacy-interface-UIEvent
+  unsigned long which = 0;
 };
 
 // https://w3c.github.io/uievents/#idl-interface-UIEvent-initializers
@@ -28,4 +31,7 @@ partial interface UIEvent {
       Window? viewArg,
       long detailArg
     );
+
+    [Pref="dom_uievent_which_enabled"]
+    readonly attribute unsigned long which;
 };

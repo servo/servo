@@ -146,6 +146,7 @@ impl KeyboardEvent {
         ev.is_composing.set(is_composing);
         ev.char_code.set(char_code);
         ev.key_code.set(key_code);
+        ev.uievent.set_which(key_code);
         ev
     }
 
@@ -290,15 +291,6 @@ impl KeyboardEventMethods<crate::DomTypeHolder> for KeyboardEvent {
     /// <https://w3c.github.io/uievents/#dom-keyboardevent-keycode>
     fn KeyCode(&self) -> u32 {
         self.key_code.get()
-    }
-
-    /// <https://w3c.github.io/uievents/#dom-uievent-which>
-    fn Which(&self) -> u32 {
-        if self.char_code.get() != 0 {
-            self.char_code.get()
-        } else {
-            self.key_code.get()
-        }
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>

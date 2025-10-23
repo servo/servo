@@ -25,9 +25,6 @@ interface MouseEvent : UIEvent {
     // Introduced in DOM Level 3
     readonly    attribute unsigned short buttons;
     boolean getModifierState (DOMString keyArg);
-
-    [Pref="dom_mouse_event_which_enabled"]
-    readonly    attribute long           which;
 };
 
 // https://w3c.github.io/uievents/#dictdef-eventmodifierinit
