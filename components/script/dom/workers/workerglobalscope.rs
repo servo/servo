@@ -628,9 +628,6 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             .or_init(|| WorkerLocation::new(self, self.worker_url.borrow().clone(), CanGc::note()))
     }
 
-    // https://html.spec.whatwg.org/multipage/#handler-workerglobalscope-onerror
-    error_event_handler!(error, GetOnerror, SetOnerror);
-
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-importscripts
     fn ImportScripts(
         &self,
@@ -749,6 +746,9 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
 
         Ok(())
     }
+
+    // https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface:event-handlers
+    worker_event_handlers!();
 
     // https://html.spec.whatwg.org/multipage/#dom-worker-navigator
     fn Navigator(&self) -> DomRoot<WorkerNavigator> {

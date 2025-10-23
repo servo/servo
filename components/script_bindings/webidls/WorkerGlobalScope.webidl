@@ -7,18 +7,22 @@
 interface WorkerGlobalScope : GlobalScope {
   [BinaryName="Self_"] readonly attribute WorkerGlobalScope self;
   readonly attribute WorkerLocation location;
-
-  //void close();
-  attribute OnErrorEventHandler onerror;
-  //         attribute EventHandler onlanguagechange;
-  //         attribute EventHandler onoffline;
-  //         attribute EventHandler ononline;
-};
-
-// https://html.spec.whatwg.org/multipage/#WorkerGlobalScope-partial
-[Exposed=Worker]
-partial interface WorkerGlobalScope { // not obsolete
-  [Throws]
-  undefined importScripts((TrustedScriptURL or USVString)... urls);
   readonly attribute WorkerNavigator navigator;
+  [Throws] undefined importScripts((TrustedScriptURL or USVString)... urls);
 };
+
+// This is an interface internal to Servo to simplify adding
+// event handlers to objects that implement WorkerGlobalScope
+interface mixin WorkerGlobalScopeEvents {
+  attribute OnErrorEventHandler onerror;
+  attribute EventHandler onlanguagechange;
+  attribute EventHandler onoffline;
+  attribute EventHandler ononline;
+  attribute EventHandler onrejectionhandled;
+  attribute EventHandler onunhandledrejection;
+};
+
+WorkerGlobalScope includes WorkerGlobalScopeEvents;
+DedicatedWorkerGlobalScope includes WorkerGlobalScopeEvents;
+// ServiceWorkerGlobalScope includes WorkerGlobalScopeEvents;
+// SharedWorkerGlobalScope includes WorkerGlobalScopeEvents;
