@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::sync::Arc;
 
-use objc2::runtime::Object;
+use objc2::runtime::AnyObject;
 
 use crate::adapter::BluetoothAdapter;
 use crate::delegate::{bm, bmx};
@@ -19,7 +19,7 @@ use crate::utils::{NO_PERIPHERAL_FOUND, NOT_SUPPORTED_ERROR, cbx, nsx, wait};
 #[derive(Clone, Debug)]
 pub struct BluetoothDevice {
     pub(crate) adapter: Arc<BluetoothAdapter>,
-    pub(crate) peripheral: *mut Object,
+    pub(crate) peripheral: *mut AnyObject,
 }
 // TODO: implement std::fmt::Debug and/or std::fmt::Display instead of derive?
 
@@ -41,7 +41,7 @@ impl BluetoothDevice {
         }
     }
 
-    fn peripheral_by_uuid(delegate: *mut Object, uuid: &String) -> *mut Object {
+    fn peripheral_by_uuid(delegate: *mut AnyObject, uuid: &String) -> *mut AnyObject {
         let peripherals = bm::delegate_peripherals(delegate);
         let keys = ns::dictionary_allkeys(peripherals);
         for i in 0..ns::array_count(keys) {
