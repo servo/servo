@@ -716,18 +716,6 @@ macro_rules! window_event_handlers(
     );
 );
 
-// Event handlers that must be supported by WorkerGlobalScope.
-macro_rules! worker_event_handlers (
-    () => (
-        error_event_handler!(error, GetOnerror, SetOnerror);
-        event_handler!(languagechange, GetOnlanguagechange, SetOnlanguagechange);
-        event_handler!(offline, GetOnoffline, SetOnoffline);
-        event_handler!(online, GetOnonline, SetOnonline);
-        event_handler!(rejectionhandled, GetOnrejectionhandled, SetOnrejectionhandled);
-        event_handler!(unhandledrejection, GetOnunhandledrejection, SetOnunhandledrejection);
-    )
-);
-
 /// DOM struct implementation for simple interfaces inheriting from PerformanceEntry.
 macro_rules! impl_performance_entry_struct(
     ($binding:ident, $struct:ident, $type:expr) => (
