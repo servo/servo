@@ -387,7 +387,7 @@ impl HTMLIFrameElement {
 
     /// <https://html.spec.whatwg.org/multipage/#create-a-new-child-navigable>
     /// Synchronously create a new browsing context(This is not a navigation).
-    /// The pipeline started here should remain unnoticable to script, but this is not easy 
+    /// The pipeline started here should remain unnoticable to script, but this is not easy
     /// to refactor because it appears other features have come to rely on the current behavior.
     /// For now only the iframe load event steps are skipped for this initial document,
     /// and we still fire load and pageshow events as part of `maybe_queue_document_completion`.
@@ -526,14 +526,13 @@ impl HTMLIFrameElement {
     pub(crate) fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId, can_gc: CanGc) {
         // TODO(#9592): assert that the load blocker is present at all times when we
         //              can guarantee that it's created for the case of iframe.reload().
-        if Some(loaded_pipeline) != self.pending_pipeline_id.get()
-        {
+        if Some(loaded_pipeline) != self.pending_pipeline_id.get() {
             return;
         }
 
         // The initial about:blank document, created as part of
         // https://html.spec.whatwg.org/multipage/#create-a-new-child-navigable
-        // which is step 1 of 
+        // which is step 1 of
         // https://html.spec.whatwg.org/multipage/#the-iframe-element:html-element-post-connection-steps
         // should not result in the running of the iframe load event steps.
         //
