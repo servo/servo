@@ -298,9 +298,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
             return Err(Error::InvalidState(None));
         }
 
-        match_domstring_ascii!(id, Err(Error::Type(String::from(
-            "Unrecognized OffscreenCanvas context type",
-        ))),
+        match_domstring_ascii!(id,
         "2d" => Ok(self
             .get_or_init_2d_context(can_gc)
             .map(RootedOffscreenRenderingContext::OffscreenCanvasRenderingContext2D)),
@@ -313,6 +311,9 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         "webgl2" | "experimental-webgl2" => self
             .get_or_init_webgl2_context(cx, options)
             .map(OffscreenRenderingContext::WebGL2RenderingContext),*/
+            _ => Err(Error::Type(String::from(
+                "Unrecognized OffscreenCanvas context type",
+            ))),
         )
     }
 

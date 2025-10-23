@@ -560,19 +560,20 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
     fn GetModifierState(&self, key_arg: DOMString) -> bool {
         self.modifiers
             .get()
-            .contains(match_domstring_ascii!(key_arg, { return false; },
-            "Alt" => Modifiers::ALT,
-            "AltGraph" => Modifiers::ALT_GRAPH,
-            "CapsLock" => Modifiers::CAPS_LOCK,
-            "Control" => Modifiers::CONTROL,
-            "Fn" => Modifiers::FN,
-            "FnLock" => Modifiers::FN_LOCK,
-            "Meta" => Modifiers::META,
-            "NumLock" => Modifiers::NUM_LOCK,
-            "ScrollLock" => Modifiers::SCROLL_LOCK,
-            "Shift" => Modifiers::SHIFT,
-            "Symbol" => Modifiers::SYMBOL,
-            "SymbolLock" => Modifiers::SYMBOL_LOCK,
+            .contains(match_domstring_ascii!(key_arg,
+                "Alt" => Modifiers::ALT,
+                "AltGraph" => Modifiers::ALT_GRAPH,
+                "CapsLock" => Modifiers::CAPS_LOCK,
+                "Control" => Modifiers::CONTROL,
+                "Fn" => Modifiers::FN,
+                "FnLock" => Modifiers::FN_LOCK,
+                "Meta" => Modifiers::META,
+                "NumLock" => Modifiers::NUM_LOCK,
+                "ScrollLock" => Modifiers::SCROLL_LOCK,
+                "Shift" => Modifiers::SHIFT,
+                "Symbol" => Modifiers::SYMBOL,
+                "SymbolLock" => Modifiers::SYMBOL_LOCK,
+                    _ => { return false; },
             ))
     }
 }

@@ -207,7 +207,7 @@ impl RTCDataChannel {
             },
             DataChannelMessage::Binary(data) => {
                 let binary_type = self.binary_type.borrow();
-                match_domstring_ascii!(binary_type, unreachable!(),
+                match_domstring_ascii!(binary_type,
                     "blob" => {
                         let blob = Blob::new(
                             &global,
@@ -229,7 +229,8 @@ impl RTCDataChannel {
                             )
                         };
                         (*array_buffer).safe_to_jsval(cx, message.handle_mut());
-                },)
+                },
+            _ => unreachable!(),)
             },
         }
 

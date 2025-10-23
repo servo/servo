@@ -1498,9 +1498,10 @@ impl FormSubmitterElement<'_> {
         };
         // https://html.spec.whatwg.org/multipage/#attr-fs-enctype
         // urlencoded is the default
-        match_domstring_ascii!(attr, FormEncType::UrlEncoded,
+        match_domstring_ascii!(attr,
             "multipart/form-data" => FormEncType::MultipartFormData,
             "text/plain" => FormEncType::TextPlain,
+            _ => FormEncType::UrlEncoded,
         )
     }
 
@@ -1518,9 +1519,10 @@ impl FormSubmitterElement<'_> {
                 |f| f.Method(),
             ),
         };
-        match_domstring_ascii!(attr, FormMethod::Get,
+        match_domstring_ascii!(attr,
             "dialog" => FormMethod::Dialog,
             "post" => FormMethod::Post,
+            _ => FormMethod::Get,
         )
     }
 

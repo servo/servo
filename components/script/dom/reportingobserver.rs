@@ -68,9 +68,10 @@ impl ReportingObserver {
     }
 
     fn report_is_visible_to_reporting_observers(report: &Report) -> bool {
-        match_domstring_ascii!(report.type_, false,
+        match_domstring_ascii!(report.type_,
                 // https://w3c.github.io/webappsec-csp/#reporting
                 "csp-violation" => true,
+                _ =>  false,
         )
     }
 

@@ -62,7 +62,7 @@ pub(crate) enum DOMErrorName {
 
 impl DOMErrorName {
     pub(crate) fn from(s: &DOMString) -> Option<DOMErrorName> {
-        match_domstring_ascii!(s, None,
+        match_domstring_ascii!(s,
             "IndexSizeError" => Some(DOMErrorName::IndexSizeError),
             "HierarchyRequestError" => Some(DOMErrorName::HierarchyRequestError),
             "WrongDocumentError" => Some(DOMErrorName::WrongDocumentError),
@@ -94,6 +94,7 @@ impl DOMErrorName {
             "OperationError" => Some(DOMErrorName::OperationError),
             "NotAllowedError" => Some(DOMErrorName::NotAllowedError),
             "ConstraintError" => Some(DOMErrorName::ConstraintError),
+            _ => None,
         )
     }
 }

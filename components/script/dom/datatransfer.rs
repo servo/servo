@@ -188,14 +188,15 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
         // Step 4 Let convert-to-URL be false.
         let mut convert_to_url = false;
 
-        let type_ = match_domstring_ascii!(format, format.clone(),
+        let type_ = match_domstring_ascii!(format,
             // Step 5 If format equals "text", change it to "text/plain".
             "text" => DOMString::from("text/plain"),
             // Step 6 If format equals "url", change it to "text/uri-list" and set convert-to-URL to true.
             "url" => {
                 convert_to_url = true;
                 DOMString::from("text/uri-list")
-            },);
+            },
+            _ => format.clone(),);
 
         let data = data_store.find_matching_text(&type_);
 

@@ -1344,7 +1344,7 @@ impl DocumentEventHandler {
         // Step 4 If the event was canceled, then
         if event.DefaultPrevented() {
             let event_type = event.Type();
-            match_domstring_ascii!(event_type, (),
+            match_domstring_ascii!(event_type,
 
                 "copy" => {
                     // Step 4.1 Call the write content to the clipboard algorithm,
@@ -1371,6 +1371,7 @@ impl DocumentEventHandler {
                 // Note: This function deviates from the specification a bit by returning
                 // the `InputEventResult` below.
                 "paste" => (),
+                _ => (),
             )
         }
 

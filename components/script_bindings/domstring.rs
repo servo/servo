@@ -32,7 +32,7 @@ pub enum EncodedBytes<'a> {
     /// These bytes are Latin1 encoded.
     Latin1Bytes(&'a [u8]),
     /// This is a normal utf8 string.
-    Utf8Bytes(&'a str),
+    Utf8Bytes(&'a [u8]),
 }
 
 enum DOMStringType {
@@ -185,7 +185,7 @@ impl EncodedBytesView<'_> {
     /// Get the bytes of the string in either latin1 or utf8 without costly conversion.
     pub fn encoded_bytes(&self) -> EncodedBytes<'_> {
         match *self.0 {
-            DOMStringType::Rust(ref s) => EncodedBytes::Utf8Bytes(s.as_str()),
+            DOMStringType::Rust(ref s) => EncodedBytes::Utf8Bytes(s.as_bytes()),
             DOMStringType::JSString(ref rooted_traceable_box) => {
                 let mut length = 0;
                 unsafe {
@@ -701,45 +701,52 @@ impl From<Cow<'_, str>> for DOMString {
     }
 }
 
+#[macro_export]
+macro_rules! match_domstring_ascii_inner {
+    ($variant: expr, $input: expr, $p: literal => $then: expr, $($rest:tt)*) => {
+        if {
+            debug_assert!(($p).is_ascii());
+            $variant($p.as_bytes())
+        } == $input {
+          $then
+        } else {
+            match_domstring_ascii_inner!($variant, $input, $($rest)*)
+        }
+
+    };
+    ($variant: expr, $input: expr, $p: pat => $then: expr,) => {
+        match $input {
+            $p => $then
+        }
+    }
+}
+
 /// Use this to match &str against lazydomstring efficiently.
 /// You are only allowed to match ascii strings otherwise this macro will
 /// lead to wrong results.
 /// ```ignore
 /// let s = DOMString::from_string(String::from("test"));
-/// let value = match_domstring!(s, 0,
+/// let value = match_domstring!(s,
 /// "test1" => 1,
 /// "test2" => 2,
-/// "test" => 3,);
+/// "test" => 3,
+/// _ => 4,
+/// );
 /// assert_eq!(value, 3);
 /// ```
 #[macro_export]
 macro_rules! match_domstring_ascii {
-    ( $input:expr, $default:expr,
-        $(
-            $p: expr  => $then: expr
-        ),+
-        $(,)?
-    ) => {
+    ($input:expr, $($tail:tt)*) => {
         {
+            use $crate::match_domstring_ascii_inner;
             use $crate::domstring::EncodedBytes;
-            $(
-                debug_assert!(($p).is_ascii());
-            )+
 
             let view = $input.view();
             let s = view.encoded_bytes();
-            $(
-                if EncodedBytes::Latin1Bytes($p.as_bytes()) == s {
-                    $then
-                } else
-            )+
-            $(
-                if EncodedBytes::Utf8Bytes($p) == s {
-                    $then
-                } else
-            )+
-            {
-                $default
+            if matches!(s, EncodedBytes::Latin1Bytes(_)) {
+                match_domstring_ascii_inner!(EncodedBytes::Latin1Bytes, s, $($tail)*)
+            } else {
+                match_domstring_ascii_inner!(EncodedBytes::Utf8Bytes, s, $($tail)*)
             }
         }
     };
@@ -914,47 +921,53 @@ mod tests {
         // executing
         {
             let s = from_latin1(vec![b'a', b'b', b'c']);
-            match_domstring_ascii!( s, (),
+            match_domstring_ascii!( s,
                 "abc" => assert!(true),
                 "bcd" => assert!(false),
+                _ =>  (),
             );
         }
 
         {
             let s = from_latin1(vec![b'a', b'b', b'c', b'/']);
-            match_domstring_ascii!( s, (),
+            match_domstring_ascii!( s,
                 "abc/" => assert!(true),
                 "bcd" => assert!(false),
+                _ =>  (),
             );
         }
 
         {
             let s = from_latin1(vec![b'a', b'b', b'c', b'%', b'$']);
-            match_domstring_ascii!( s, (),
+            match_domstring_ascii!( s,
                 "bcd" => assert!(false),
                 "abc%$" => assert!(true),
+                _ => (),
             );
         }
 
         {
             let s = DOMString::from_string(String::from("abcde"));
-            match_domstring_ascii!( s, assert!(true),
+            match_domstring_ascii!( s,
                 "abc" => assert!(false),
                 "bcd" => assert!(false),
+                _ => assert!(true),
             );
         }
         {
             let s = DOMString::from_string(String::from("abc%$"));
-            match_domstring_ascii!( s, (),
+            match_domstring_ascii!( s,
                 "bcd" => assert!(false),
                 "abc%$" => assert!(true),
+                _ =>  (),
             );
         }
         {
             let s = from_latin1(vec![b'a', b'b', b'c']);
-            match_domstring_ascii!( s, (),
+            match_domstring_ascii!( s,
                 "abcdd" => assert!(false),
                 "bcd" => assert!(false),
+                _ => (),
             );
         }
     }
@@ -964,50 +977,56 @@ mod tests {
     fn test_match_returning_result() {
         {
             let s = from_latin1(vec![b'a', b'b', b'c']);
-            let res = match_domstring_ascii!( s, false,
+            let res = match_domstring_ascii!( s,
                 "abc" => true,
                 "bcd" => false,
+                _ => false,
             );
             assert_eq!(res, true);
         }
         {
             let s = from_latin1(vec![b'a', b'b', b'c', b'/']);
-            let res = match_domstring_ascii!( s, false,
+            let res = match_domstring_ascii!( s,
                 "abc/" => true,
                 "bcd" => false,
+                _ => false,
             );
             assert_eq!(res, true);
         }
         {
             let s = from_latin1(vec![b'a', b'b', b'c', b'%', b'$']);
-            let res = match_domstring_ascii!( s, false,
+            let res = match_domstring_ascii!( s,
                 "bcd" => false,
                 "abc%$" => true,
+                _ => false,
             );
             assert_eq!(res, true);
         }
 
         {
             let s = DOMString::from_string(String::from("abcde"));
-            let res = match_domstring_ascii!( s, true,
+            let res = match_domstring_ascii!( s,
                 "abc" => false,
                 "bcd" => false,
+                _ => true,
             );
             assert_eq!(res, true);
         }
         {
             let s = DOMString::from_string(String::from("abc%$"));
-            let res = match_domstring_ascii!( s, false,
+            let res = match_domstring_ascii!( s,
                 "bcd" => false,
                 "abc%$" => true,
+                _ => false,
             );
             assert_eq!(res, true);
         }
         {
             let s = from_latin1(vec![b'a', b'b', b'c']);
-            let res = match_domstring_ascii!( s, true,
+            let res = match_domstring_ascii!( s,
                 "abcdd" => false,
                 "bcd" => false,
+                _ => true,
             );
             assert_eq!(res, true);
         }
@@ -1017,17 +1036,20 @@ mod tests {
     #[should_panic]
     fn test_match_panic() {
         let s = DOMString::from_string(String::from("abcd"));
-        let _res = match_domstring_ascii!(s, false,
-        "❤" => true);
+        let _res = match_domstring_ascii!(s,
+            "❤" => true,
+            _ => false,);
     }
 
     #[test]
     #[should_panic]
     fn test_match_panic2() {
         let s = DOMString::from_string(String::from("abcd"));
-        let _res = match_domstring_ascii!(s, false,
+        let _res = match_domstring_ascii!(s,
             "abc" => false,
-        "❤" => true);
+            "❤" => true,
+            _ => false,
+        );
     }
 
     #[test]

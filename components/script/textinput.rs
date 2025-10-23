@@ -128,9 +128,10 @@ impl AddAssign for UTF16CodeUnits {
 
 impl From<DOMString> for SelectionDirection {
     fn from(direction: DOMString) -> SelectionDirection {
-        match_domstring_ascii!(direction, SelectionDirection::None,
+        match_domstring_ascii!(direction,
             "forward" => SelectionDirection::Forward,
             "backward" => SelectionDirection::Backward,
+            _ => SelectionDirection::None,
         )
     }
 }
@@ -1250,7 +1251,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         }
 
         let event_type = event.Type();
-        match_domstring_ascii!(event_type, ClipboardEventReaction::empty(),
+        match_domstring_ascii!(event_type,
             "copy" => {
                 // These steps are from <https://www.w3.org/TR/clipboard-apis/#copy-action>:
                 let selection = self.get_selection_text();
@@ -1321,6 +1322,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                 // Step 3.1.2: Queue tasks to fire any events that should fire due to the
                 // modification, see § 5.3 Integration with other scripts and events for details.
                 ClipboardEventReaction::QueueInputEvent
-            },)
+            },
+        _ => ClipboardEventReaction::empty(),)
     }
 }
