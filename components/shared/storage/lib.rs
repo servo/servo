@@ -16,17 +16,17 @@ pub mod webstorage_thread;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct StorageThreads {
-    storage_thread: GenericSender<WebStorageThreadMsg>,
+    web_storage_thread: GenericSender<WebStorageThreadMsg>,
     idb_thread: IpcSender<IndexedDBThreadMsg>,
 }
 
 impl StorageThreads {
     pub fn new(
-        storage_thread: GenericSender<WebStorageThreadMsg>,
+        web_storage_thread: GenericSender<WebStorageThreadMsg>,
         idb_thread: IpcSender<IndexedDBThreadMsg>,
     ) -> StorageThreads {
         StorageThreads {
-            storage_thread,
+            web_storage_thread,
             idb_thread,
         }
     }
@@ -44,11 +44,11 @@ impl IpcSend<IndexedDBThreadMsg> for StorageThreads {
 
 impl GenericSend<WebStorageThreadMsg> for StorageThreads {
     fn send(&self, msg: WebStorageThreadMsg) -> SendResult {
-        self.storage_thread.send(msg)
+        self.web_storage_thread.send(msg)
     }
 
     fn sender(&self) -> GenericSender<WebStorageThreadMsg> {
-        self.storage_thread.clone()
+        self.web_storage_thread.clone()
     }
 }
 
