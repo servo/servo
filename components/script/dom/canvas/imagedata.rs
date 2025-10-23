@@ -249,16 +249,14 @@ impl Serializable for ImageData {
         // Step 3 Initialize value's height attribute to serialized.[[Height]].
         // Step 4 Initialize value's colorSpace attribute to serialized.[[ColorSpace]].
         // Step 5 Initialize value's pixelFormat attribute to serialized.[[PixelFormat]].
-        let image_data = ImageData::new(
+        ImageData::new(
             owner,
             serialized.width,
             serialized.height,
             Some(serialized.data),
             can_gc,
         )
-        .unwrap();
-
-        Ok(image_data)
+        .map_err(|_| ())
     }
 
     fn serialized_storage<'a>(
