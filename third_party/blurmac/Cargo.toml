@@ -7,7 +7,7 @@ keywords = ["bluetooth", "ble", "macOS", "CoreBluetooth"]
 repository = "https://github.com/akosthekiss/blurmac"
 authors = ["Akos Kiss <akiss@inf.u-szeged.hu>"]
 license = "BSD-3-Clause"
-edition = "2018"
+edition = "2024"
 
 [lib]
 name = "blurmac"
@@ -16,4 +16,8 @@ crate-type = ["rlib"]
 
 [dependencies]
 log = "0.4"
-objc = "0.2"
+objc2 = "0.2"
+
+# Remove this when updating objc2 to a more recent version
+[lints.rust]
+unexpected_cfgs = { level = "allow" }

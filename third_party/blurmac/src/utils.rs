@@ -10,7 +10,7 @@ use std::ffi::{CStr, CString};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::{thread, time};
 
-use objc::runtime::Object;
+use objc2::runtime::Object;
 
 use crate::framework::{cb, nil, ns};
 

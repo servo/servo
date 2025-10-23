@@ -9,7 +9,7 @@
 #[macro_use]
 extern crate log;
 #[macro_use]
-extern crate objc;
+extern crate objc2;
 
 mod adapter;
 mod delegate;

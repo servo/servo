@@ -10,7 +10,7 @@ use std::os::raw::c_uint;
 use std::slice;
 use std::sync::Arc;
 
-use objc::runtime::{NO, Object, YES};
+use objc2::runtime::{NO, Object, YES};
 
 use crate::delegate::bmx;
 use crate::framework::{cb, nil, ns};

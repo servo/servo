@@ -8,8 +8,8 @@
 use std::error::Error;
 use std::sync::Once;
 
-use objc::declare::ClassDecl;
-use objc::runtime::{Class, Object, Protocol, Sel};
+use objc2::declare::ClassDecl;
+use objc2::runtime::{Class, Object, Protocol, Sel};
 
 use crate::framework::{cb, nil, ns};
 use crate::utils::{NO_PERIPHERAL_FOUND, cbx, nsx, wait};
@@ -32,20 +32,20 @@ pub mod bm {
             decl.add_ivar::<*mut Object>(DELEGATE_PERIPHERALS_IVAR); /* NSMutableDictionary<NSString*, BlurMacPeripheralData*>* */
 
             unsafe {
-                decl.add_method(sel!(init), delegate_init as extern fn(&mut Object, Sel) -> *mut Object);
-                decl.add_method(sel!(centralManagerDidUpdateState:), delegate_centralmanagerdidupdatestate as extern fn(&mut Object, Sel, *mut Object));
-                // decl.add_method(sel!(centralManager:willRestoreState:), delegate_centralmanager_willrestorestate as extern fn(&mut Object, Sel, *mut Object, *mut Object));
-                decl.add_method(sel!(centralManager:didConnectPeripheral:), delegate_centralmanager_didconnectperipheral as extern fn(&mut Object, Sel, *mut Object, *mut Object));
-                decl.add_method(sel!(centralManager:didDisconnectPeripheral:error:), delegate_centralmanager_diddisconnectperipheral_error as extern fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object));
-                // decl.add_method(sel!(centralManager:didFailToConnectPeripheral:error:), delegate_centralmanager_didfailtoconnectperipheral_error as extern fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object));
-                decl.add_method(sel!(centralManager:didDiscoverPeripheral:advertisementData:RSSI:), delegate_centralmanager_diddiscoverperipheral_advertisementdata_rssi as extern fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object, *mut Object));
+                decl.add_method(sel!(init), delegate_init as extern "C" fn(&mut Object, Sel) -> *mut Object);
+                decl.add_method(sel!(centralManagerDidUpdateState:), delegate_centralmanagerdidupdatestate as extern "C" fn(&mut Object, Sel, *mut Object));
+                // decl.add_method(sel!(centralManager:willRestoreState:), delegate_centralmanager_willrestorestate as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object));
+                decl.add_method(sel!(centralManager:didConnectPeripheral:), delegate_centralmanager_didconnectperipheral as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object));
+                decl.add_method(sel!(centralManager:didDisconnectPeripheral:error:), delegate_centralmanager_diddisconnectperipheral_error as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object));
+                // decl.add_method(sel!(centralManager:didFailToConnectPeripheral:error:), delegate_centralmanager_didfailtoconnectperipheral_error as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object));
+                decl.add_method(sel!(centralManager:didDiscoverPeripheral:advertisementData:RSSI:), delegate_centralmanager_diddiscoverperipheral_advertisementdata_rssi as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object, *mut Object));
 
-                decl.add_method(sel!(peripheral:didDiscoverServices:), delegate_peripheral_diddiscoverservices as extern fn(&mut Object, Sel, *mut Object, *mut Object));
-                decl.add_method(sel!(peripheral:didDiscoverIncludedServicesForService:error:), delegate_peripheral_diddiscoverincludedservicesforservice_error as extern fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object));
-                decl.add_method(sel!(peripheral:didDiscoverCharacteristicsForService:error:), delegate_peripheral_diddiscovercharacteristicsforservice_error as extern fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object));
-                decl.add_method(sel!(peripheral:didUpdateValueForCharacteristic:error:), delegate_peripheral_didupdatevalueforcharacteristic_error as extern fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object));
-                decl.add_method(sel!(peripheral:didWriteValueForCharacteristic:error:), delegate_peripheral_didwritevalueforcharacteristic_error as extern fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object));
-                decl.add_method(sel!(peripheral:didReadRSSI:error:), delegate_peripheral_didreadrssi_error as extern fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object));
+                decl.add_method(sel!(peripheral:didDiscoverServices:), delegate_peripheral_diddiscoverservices as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object));
+                decl.add_method(sel!(peripheral:didDiscoverIncludedServicesForService:error:), delegate_peripheral_diddiscoverincludedservicesforservice_error as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object));
+                decl.add_method(sel!(peripheral:didDiscoverCharacteristicsForService:error:), delegate_peripheral_diddiscovercharacteristicsforservice_error as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object));
+                decl.add_method(sel!(peripheral:didUpdateValueForCharacteristic:error:), delegate_peripheral_didupdatevalueforcharacteristic_error as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object));
+                decl.add_method(sel!(peripheral:didWriteValueForCharacteristic:error:), delegate_peripheral_didwritevalueforcharacteristic_error as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object));
+                decl.add_method(sel!(peripheral:didReadRSSI:error:), delegate_peripheral_didreadrssi_error as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object));
             }
 
             decl.register();

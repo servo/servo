@@ -8,7 +8,7 @@
 use std::error::Error;
 use std::os::raw::c_int;
 
-use objc::runtime::{Object, YES};
+use objc2::runtime::{Object, YES};
 
 use crate::delegate::bm;
 use crate::framework::{cb, io, ns};

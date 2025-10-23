@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::sync::Arc;
 
-use objc::runtime::Object;
+use objc2::runtime::Object;
 
 use crate::adapter::BluetoothAdapter;
 use crate::delegate::{bm, bmx};
