@@ -313,7 +313,7 @@ impl BoxFragment {
     }
 
     pub(crate) fn cumulative_content_box_rect(&self) -> PhysicalRect<Au> {
-        self.offset_by_containing_block(&self.margin_rect())
+        self.offset_by_containing_block(&self.content_rect)
     }
 
     pub(crate) fn cumulative_padding_box_rect(&self) -> PhysicalRect<Au> {
