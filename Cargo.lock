@@ -2713,6 +2713,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "font-types"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "511e2c18a516c666d27867d2f9821f76e7d591f762e9fc41dd6cc5c90fe54b0b"
+dependencies = [
+ "bytemuck",
+]
+
+[[package]]
 name = "fontconfig-parser"
 version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2764,7 +2773,7 @@ dependencies = [
  "parking_lot",
  "profile_traits",
  "range",
- "read-fonts",
+ "read-fonts 0.33.1",
  "rustc-hash 2.1.1",
  "serde",
  "servo-tracing",
@@ -2773,7 +2782,7 @@ dependencies = [
  "servo_config",
  "servo_malloc_size_of",
  "servo_url",
- "skrifa",
+ "skrifa 0.37.0",
  "smallvec",
  "stylo",
  "stylo_atoms",
@@ -2801,7 +2810,7 @@ dependencies = [
  "parking_lot",
  "profile_traits",
  "range",
- "read-fonts",
+ "read-fonts 0.33.1",
  "serde",
  "servo_malloc_size_of",
  "servo_url",
@@ -6970,7 +6979,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "50ea612a55c08586a1d15134be8a776186c440c312ebda3b9e8efbfe4255b7f4"
 dependencies = [
  "bytemuck",
- "font-types",
+ "font-types 0.9.0",
+]
+
+[[package]]
+name = "read-fonts"
+version = "0.35.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6717cf23b488adf64b9d711329542ba34de147df262370221940dfabc2c91358"
+dependencies = [
+ "bytemuck",
+ "font-types 0.10.0",
 ]
 
 [[package]]
@@ -8098,7 +8117,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "576e60c7de4bb6a803a0312f9bef17e78cf1e8d25a80e1ade76770d7a0237955"
 dependencies = [
  "bytemuck",
- "read-fonts",
+ "read-fonts 0.33.1",
+]
+
+[[package]]
+name = "skrifa"
+version = "0.37.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8c31071dedf532758ecf3fed987cdb4bd9509f900e026ab684b4ecb81ea49841"
+dependencies = [
+ "bytemuck",
+ "read-fonts 0.35.0",
 ]
 
 [[package]]
@@ -9450,7 +9479,7 @@ dependencies = [
  "log",
  "peniko",
  "png",
- "skrifa",
+ "skrifa 0.35.0",
  "static_assertions",
  "thiserror 2.0.17",
  "vello_encoding",
@@ -9468,7 +9497,7 @@ dependencies = [
  "log",
  "peniko",
  "png",
- "skrifa",
+ "skrifa 0.35.0",
  "smallvec",
 ]
 
@@ -9489,7 +9518,7 @@ dependencies = [
  "bytemuck",
  "guillotiere",
  "peniko",
- "skrifa",
+ "skrifa 0.35.0",
  "smallvec",
 ]
 
