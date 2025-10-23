@@ -32,6 +32,7 @@ use super::app_state::RunningAppState;
 use super::events_loop::EventLoopProxy;
 use super::geometry::winit_position_to_euclid_point;
 use super::headed_window::Window as ServoWindow;
+use crate::desktop::headed_window::INITIAL_WINDOW_TITLE;
 use crate::desktop::window_trait::WindowPortsMethods;
 use crate::prefs::{EXPERIMENTAL_PREFS, ServoShellPreferences};
 
@@ -557,16 +558,40 @@ impl Minibrowser {
         old_status != self.status_text
     }
 
+    fn update_title(
+        &mut self,
+        state: &RunningAppState,
+        window: Rc<dyn WindowPortsMethods>,
+    ) -> bool {
+        if let Some(webview) = state.focused_webview() {
+            let title = webview
+                .page_title()
+                .filter(|title| !title.is_empty())
+                .map(|title| title.to_string())
+                .or_else(|| webview.url().map(|url| url.to_string()))
+                .unwrap_or_else(|| INITIAL_WINDOW_TITLE.to_string());
+
+            window.set_title_if_changed(&title)
+        } else {
+            false
+        }
+    }
+
     /// Updates all fields taken from the given [WebViewManager], such as the location field.
     /// Returns true iff the egui needs an update.
-    pub fn update_webview_data(&mut self, state: &RunningAppState) -> bool {
+    pub fn update_webview_data(
+        &mut self,
+        state: &RunningAppState,
+        window: Rc<dyn WindowPortsMethods>,
+    ) -> bool {
         // Note: We must use the "bitwise OR" (|) operator here instead of "logical OR" (||)
         //       because logical OR would short-circuit if any of the functions return true.
         //       We want to ensure that all functions are called. The "bitwise OR" operator
         //       does not short-circuit.
         self.update_location_in_toolbar(state) |
             self.update_load_status(state) |
-            self.update_status_text(state)
+            self.update_status_text(state) |
+            self.update_title(state, window)
     }
 
     /// Returns true if a redraw is required after handling the provided event.
