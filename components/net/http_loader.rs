@@ -846,6 +846,7 @@ async fn obtain_response(
                 )))
             })
             .map_err(move |error| {
+                warn!("network error: {error:?}");
                 NetworkError::from_hyper_error(
                     &error,
                     override_manager.remove_certificate_failing_verification(host.as_str()),
