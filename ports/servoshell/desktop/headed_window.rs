@@ -675,6 +675,18 @@ impl WindowPortsMethods for Window {
     }
 
     fn handle_winit_event(&self, state: Rc<RunningAppState>, event: WindowEvent) {
+        // Make sure to handle early resize events even when there are no webviews yet
+        if let WindowEvent::Resized(new_inner_size) = event {
+            if self.inner_size.get() != new_inner_size {
+                self.inner_size.set(new_inner_size);
+                // This should always be set to inner size
+                // because we are resizing `SurfmanRenderingContext`.
+                // See https://github.com/servo/servo/issues/38369#issuecomment-3138378527
+                self.window_rendering_context.resize(new_inner_size);
+            }
+            return;
+        }
+
         let Some(webview) = state.focused_webview() else {
             return;
         };
@@ -756,15 +768,6 @@ impl WindowPortsMethods for Window {
                     winit::window::Theme::Light => Theme::Light,
                     winit::window::Theme::Dark => Theme::Dark,
                 });
-            },
-            WindowEvent::Resized(new_inner_size) => {
-                if self.inner_size.get() != new_inner_size {
-                    self.inner_size.set(new_inner_size);
-                    // This should always be set to inner size
-                    // because we are resizing `SurfmanRenderingContext`.
-                    // See https://github.com/servo/servo/issues/38369#issuecomment-3138378527
-                    self.window_rendering_context.resize(new_inner_size);
-                }
             },
             WindowEvent::Ime(ime) => match ime {
                 Ime::Enabled => {
