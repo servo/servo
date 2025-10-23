@@ -246,8 +246,11 @@ impl HTMLIFrameElement {
     /// an "about:blank" document is created,
     /// and synchronously processed by the script thread.
     /// This initial synchronous load should have no noticeable effect in script.
+    /// The exception is if it does not have an src,
+    /// because then no subsequent document will be created.
     pub(crate) fn is_initial_blank_document(&self) -> bool {
-        self.about_blank_pipeline_id.get() == self.pipeline_id.get()
+        self.pending_pipeline_id.get() == self.about_blank_pipeline_id.get() &&
+            self.upcast::<Element>().has_attribute(&local_name!("src"))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
@@ -524,6 +527,12 @@ impl HTMLIFrameElement {
 
     /// <https://html.spec.whatwg.org/multipage/#iframe-load-event-steps> steps 1-4
     pub(crate) fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId, can_gc: CanGc) {
+        println!(
+            "Iframe load event steps: {:?} {:?} {:?}",
+            self.pending_pipeline_id.get(),
+            self.about_blank_pipeline_id.get(),
+            self.pipeline_id.get()
+        );
         // TODO(#9592): assert that the load blocker is present at all times when we
         //              can guarantee that it's created for the case of iframe.reload().
         if Some(loaded_pipeline) != self.pending_pipeline_id.get() {
@@ -545,6 +554,8 @@ impl HTMLIFrameElement {
             // Step 4
             self.upcast::<EventTarget>()
                 .fire_event(atom!("load"), can_gc);
+        } else {
+            println!("Not firing load for {:?}", self.pipeline_id.get());
         }
 
         // TODO A cross-origin child document would not be easily accessible
