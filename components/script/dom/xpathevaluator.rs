@@ -6,9 +6,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use script_bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
 
-use super::bindings::error::Error;
 use crate::dom::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluatorMethods;
 use crate::dom::bindings::codegen::Bindings::XPathNSResolverBinding::XPathNSResolver;
 use crate::dom::bindings::error::Fallible;
@@ -94,21 +92,6 @@ impl XPathEvaluatorMethods<crate::DomTypeHolder> for XPathEvaluator {
         result: Option<&XPathResult>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<XPathResult>> {
-        let is_allowed_context_node_type = matches!(
-            context_node.type_id(),
-            NodeTypeId::Attr |
-                NodeTypeId::CharacterData(
-                    CharacterDataTypeId::Comment |
-                        CharacterDataTypeId::Text(_) |
-                        CharacterDataTypeId::ProcessingInstruction
-                ) |
-                NodeTypeId::Document(_) |
-                NodeTypeId::Element(_)
-        );
-        if !is_allowed_context_node_type {
-            return Err(Error::NotSupported);
-        }
-
         let global = self.global();
         let window = global.as_window();
 
