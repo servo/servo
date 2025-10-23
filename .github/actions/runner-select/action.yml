@@ -1,106 +1,45 @@
-name: Select Self-hosted Runner
-inputs:
-  monitor-api-token:
-    required: true
-    type: string
-  github-hosted-runner-label:
-    required: true
-    type: string
-  self-hosted-image-name:
-    required: true
-    type: string
-  self-hosted-runner-scope:
-    required: false
-    type: string
-    default: /orgs/${{ github.repository_owner }}/actions/runners
-  force-github-hosted-runner:
-    required: false
-    type: boolean
-    default: false
-  NO_SELF_HOSTED_RUNNERS:
-    required: false
-    type: string
-    default: ""
+name: 'Runner Select'
+description: 'Select a runner based on the event type'
 outputs:
-  unique-id:
-    value: ${{ steps.select.outputs.unique_id }}
-  selected-runner-label:
-    value: ${{ steps.select.outputs.selected_runner_label }}
-  runner-type-label:
-    value: ${{ steps.select.outputs.runner_type_label }}
-  is-self-hosted:
-    value: ${{ steps.select.outputs.is_self_hosted }}
-
+  runner:
+    description: 'The runner to use'
+    value: ${{ steps.select.outputs.runner }}
 runs:
-  using: "composite"
-  # Selects a self-hosted runner if available, or else a GitHub-hosted runner.
-  # We generate a unique id for the workload, then ask our monitor API to
-  # reserve a self-hosted runner for us.
+  using: composite
   steps:
-    - name: Select and reserve best available runner
+    - name: Select runner
       id: select
       shell: bash
+      env:
+        GITHUB_EVENT_NAME: ${{ github.event_name }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_REF: ${{ github.ref }}
+        GITHUB_HEAD_REF: ${{ github.head_ref }}
+        GITHUB_BASE_REF: ${{ github.base_ref }}
+        PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
       run: |
-        github_hosted_runner_label='${{ inputs.github-hosted-runner-label }}'
-        self_hosted_image_name='${{ inputs.self-hosted-image-name }}'
-        self_hosted_runner_scope='${{ inputs.self-hosted-runner-scope }}'
-
-        set -euo pipefail
-
-        fall_back_to_github_hosted() {
-          echo 'Falling back to GitHub-hosted runner'
-          echo "selected_runner_label=$github_hosted_runner_label" | tee -a $GITHUB_OUTPUT
-          echo "runner_type_label=$github_hosted_runner_label" | tee -a $GITHUB_OUTPUT
-          echo 'is_self_hosted=false' | tee -a $GITHUB_OUTPUT
-          exit 0
-        }
-
-        # Generate a unique id that allows the workload job to find the runner
-        # we are reserving for it (via runner labels), and allows the timeout
-        # job to find the workload job run (via the job’s friendly name), even
-        # if there are multiple instances in the workflow call tree.
-        unique_id=$(uuidgen)
-        echo "unique_id=$unique_id" | tee -a $GITHUB_OUTPUT
-
-        # Disable self-hosted runners by creating a repository variable named
-        # NO_SELF_HOSTED_RUNNERS with any non-empty value.
-        # <https://github.com/servo/servo/settings/variables/actions>
-        if [ -n '${{ inputs.NO_SELF_HOSTED_RUNNERS }}' ]; then
-          echo 'NO_SELF_HOSTED_RUNNERS is set!'
-          fall_back_to_github_hosted
-        fi
-
-        if [ '${{ inputs.force-github-hosted-runner }}' = true ]; then
-          echo 'inputs.force-github-hosted-runner is set!'
-          fall_back_to_github_hosted
-        fi
-
-        for monitor_api_base_url in $(printf \%s\\n \
-          https://ci0.servo.org \
-          https://ci1.servo.org \
-          https://ci2.servo.org \
-          https://ci3.servo.org \
-          https://ci4.servo.org \
-        | shuf); do
-          # Use the monitor API to reserve a runner. If we get an object with
-          # runner details, we succeeded. If we get null, we failed.
-          take_runner_url=$monitor_api_base_url/profile/$self_hosted_image_name/take\?unique_id=$unique_id\&qualified_repo=${{ github.repository }}\&run_id=${{ github.run_id }}
-          result=$(mktemp)
-          echo
-          echo POST "$take_runner_url"
-          if curl -sS --fail-with-body --connect-timeout 5 --max-time 30 -X POST "$take_runner_url" \
-              -H 'Authorization: Bearer ${{ inputs.monitor-api-token }}' > $result \
-              && jq -e . $result > /dev/null; then
-            echo
-            echo "selected_runner_label=reserved-for:$unique_id" | tee -a $GITHUB_OUTPUT
-            echo "runner_type_label=self-hosted-image:$self_hosted_image_name" | tee -a $GITHUB_OUTPUT
-            echo 'is_self_hosted=true' | tee -a $GITHUB_OUTPUT
-            exit 0
+        # Default to GitHub-hosted runners
+        RUNNER="ubuntu-latest"
+        
+        # Check if this is a pull request
+        if [ "$GITHUB_EVENT_NAME" = "pull_request" ] || [ "$GITHUB_EVENT_NAME" = "pull_request_target" ]; then
+          # Check if PR has the 'performance' label
+          if echo "$PR_LABELS" | grep -q "performance"; then
+            RUNNER="self-hosted"
           fi
-        done
-
-        cat $result
-        echo
-        echo
-        echo 'No self-hosted runners available!'
-        fall_back_to_github_hosted
+        fi
+        
+        # Check if this is a push to main/master
+        if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+          if [ "$GITHUB_REF" = "refs/heads/main" ] || [ "$GITHUB_REF" = "refs/heads/master" ]; then
+            RUNNER="self-hosted"
+          fi
+        fi
+        
+        # Check if this is a workflow_dispatch event
+        if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+          RUNNER="self-hosted"
+        fi
+        
+        echo "runner=$RUNNER" >> $GITHUB_OUTPUT
+        echo "Selected runner: $RUNNER"
