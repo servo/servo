@@ -8,6 +8,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::rust::{HandleObject, MutableHandleValue};
 use net_traits::image_cache::Image;
+use script_bindings::match_domstring_ascii;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DataTransferBinding::DataTransferMethods;
@@ -187,7 +188,7 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
         // Step 4 Let convert-to-URL be false.
         let mut convert_to_url = false;
 
-        let type_ = match &*format.str() {
+        let type_ = match_domstring_ascii!(format,
             // Step 5 If format equals "text", change it to "text/plain".
             "text" => DOMString::from("text/plain"),
             // Step 6 If format equals "url", change it to "text/uri-list" and set convert-to-URL to true.
@@ -195,8 +196,7 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
                 convert_to_url = true;
                 DOMString::from("text/uri-list")
             },
-            _ => format.clone(),
-        };
+            _ => format.clone(),);
 
         let data = data_store.find_matching_text(&type_);
 

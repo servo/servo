@@ -12,6 +12,7 @@ use euclid::default::Size2D;
 use js::rust::{HandleObject, HandleValue};
 use pixels::{EncodedImageType, Snapshot};
 use rustc_hash::FxHashMap;
+use script_bindings::match_domstring_ascii;
 use script_bindings::weakref::WeakRef;
 
 use crate::canvas_context::{CanvasContext, OffscreenRenderingContext};
@@ -297,23 +298,23 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
             return Err(Error::InvalidState(None));
         }
 
-        match &*id.str() {
-            "2d" => Ok(self
-                .get_or_init_2d_context(can_gc)
-                .map(RootedOffscreenRenderingContext::OffscreenCanvasRenderingContext2D)),
-            "bitmaprenderer" => Ok(self
-                .get_or_init_bitmaprenderer_context(can_gc)
-                .map(RootedOffscreenRenderingContext::ImageBitmapRenderingContext)),
-            /*"webgl" | "experimental-webgl" => self
-                .get_or_init_webgl_context(cx, options)
-                .map(OffscreenRenderingContext::WebGLRenderingContext),
-            "webgl2" | "experimental-webgl2" => self
-                .get_or_init_webgl2_context(cx, options)
-                .map(OffscreenRenderingContext::WebGL2RenderingContext),*/
+        match_domstring_ascii!(id,
+        "2d" => Ok(self
+            .get_or_init_2d_context(can_gc)
+            .map(RootedOffscreenRenderingContext::OffscreenCanvasRenderingContext2D)),
+        "bitmaprenderer" => Ok(self
+            .get_or_init_bitmaprenderer_context(can_gc)
+            .map(RootedOffscreenRenderingContext::ImageBitmapRenderingContext)),
+        /*"webgl" | "experimental-webgl" => self
+            .get_or_init_webgl_context(cx, options)
+            .map(OffscreenRenderingContext::WebGLRenderingContext),
+        "webgl2" | "experimental-webgl2" => self
+            .get_or_init_webgl2_context(cx, options)
+            .map(OffscreenRenderingContext::WebGL2RenderingContext),*/
             _ => Err(Error::Type(String::from(
                 "Unrecognized OffscreenCanvas context type",
             ))),
-        }
+        )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-width>

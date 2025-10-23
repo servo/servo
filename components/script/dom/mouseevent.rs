@@ -10,6 +10,7 @@ use euclid::Point2D;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
+use script_bindings::match_domstring_ascii;
 use script_traits::ConstellationInputEvent;
 use servo_config::pref;
 use style_traits::CSSPixel;
@@ -557,20 +558,22 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
 
     /// <https://w3c.github.io/uievents/#dom-mouseevent-getmodifierstate>
     fn GetModifierState(&self, key_arg: DOMString) -> bool {
-        self.modifiers.get().contains(match &*key_arg.str() {
-            "Alt" => Modifiers::ALT,
-            "AltGraph" => Modifiers::ALT_GRAPH,
-            "CapsLock" => Modifiers::CAPS_LOCK,
-            "Control" => Modifiers::CONTROL,
-            "Fn" => Modifiers::FN,
-            "FnLock" => Modifiers::FN_LOCK,
-            "Meta" => Modifiers::META,
-            "NumLock" => Modifiers::NUM_LOCK,
-            "ScrollLock" => Modifiers::SCROLL_LOCK,
-            "Shift" => Modifiers::SHIFT,
-            "Symbol" => Modifiers::SYMBOL,
-            "SymbolLock" => Modifiers::SYMBOL_LOCK,
-            _ => return false,
-        })
+        self.modifiers
+            .get()
+            .contains(match_domstring_ascii!(key_arg,
+                "Alt" => Modifiers::ALT,
+                "AltGraph" => Modifiers::ALT_GRAPH,
+                "CapsLock" => Modifiers::CAPS_LOCK,
+                "Control" => Modifiers::CONTROL,
+                "Fn" => Modifiers::FN,
+                "FnLock" => Modifiers::FN_LOCK,
+                "Meta" => Modifiers::META,
+                "NumLock" => Modifiers::NUM_LOCK,
+                "ScrollLock" => Modifiers::SCROLL_LOCK,
+                "Shift" => Modifiers::SHIFT,
+                "Symbol" => Modifiers::SYMBOL,
+                "SymbolLock" => Modifiers::SYMBOL_LOCK,
+                    _ => { return false; },
+            ))
     }
 }
