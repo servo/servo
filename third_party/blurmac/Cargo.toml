@@ -16,8 +16,4 @@ crate-type = ["rlib"]
 
 [dependencies]
 log = "0.4"
-objc2 = "0.2"
-
-# Remove this when updating objc2 to a more recent version
-[lints.rust]
-unexpected_cfgs = { level = "allow" }
+objc2 = "0.4"
