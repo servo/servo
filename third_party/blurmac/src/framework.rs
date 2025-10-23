@@ -7,7 +7,7 @@
 
 use std::os::raw::{c_char, c_int, c_uint};
 
-use objc::runtime::{BOOL, Class, Object};
+use objc2::runtime::{BOOL, Class, Object};
 
 #[allow(non_upper_case_globals)]
 pub const nil: *mut Object = 0 as *mut Object;
@@ -166,7 +166,7 @@ pub mod io {
     use super::*;
 
     #[link(name = "IOBluetooth", kind = "framework")]
-    extern "C" {
+    unsafe extern "C" {
         pub fn IOBluetoothPreferenceGetControllerPowerState() -> c_int;
         pub fn IOBluetoothPreferenceSetControllerPowerState(state: c_int);
 
@@ -240,7 +240,7 @@ pub mod cb {
         use super::*;
 
         #[link(name = "CoreBluetooth", kind = "framework")]
-        extern "C" {
+        unsafe extern "C" {
             pub static CBAdvertisementDataServiceUUIDsKey: *mut Object;
 
             pub static CBCentralManagerScanOptionAllowDuplicatesKey: *mut Object;

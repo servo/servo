@@ -963,7 +963,7 @@ name = "blurmac"
 version = "0.1.0"
 dependencies = [
  "log",
- "objc",
+ "objc2 0.2.7",
 ]
 
 [[package]]
@@ -5785,6 +5785,15 @@ name = "objc-sys"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cdb91bdd390c7ce1a8607f35f3ca7151b65afc0ff5ff3b34fa350f7d7c7e4310"
+
+[[package]]
+name = "objc2"
+version = "0.2.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "612c08b52f6d8b11d8c199d0798bc38ab35c0a95da3be548a60808a4ae56d1f4"
+dependencies = [
+ "malloc_buf",
+]
 
 [[package]]
 name = "objc2"
