@@ -541,8 +541,10 @@ impl HTMLIFrameElement {
         // is run through the document completion steps
         // like any other document(and this is hard to refactor).
         // this flag is necessary to prevent the load event steps from running.
-        if self.is_initial_blank_document() {
-            return;
+        if !self.is_initial_blank_document() {
+            // Step 4
+            self.upcast::<EventTarget>()
+                .fire_event(atom!("load"), can_gc);
         }
 
         // TODO A cross-origin child document would not be easily accessible
@@ -550,10 +552,6 @@ impl HTMLIFrameElement {
         //      steps 2, 3, and 5 efficiently in this case.
         // TODO Step 2 - check child document `mute iframe load` flag
         // TODO Step 3 - set child document  `mut iframe load` flag
-
-        // Step 4
-        self.upcast::<EventTarget>()
-            .fire_event(atom!("load"), can_gc);
 
         let blocker = &self.load_blocker;
         LoadBlocker::terminate(blocker, can_gc);
