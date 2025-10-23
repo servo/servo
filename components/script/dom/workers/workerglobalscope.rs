@@ -628,9 +628,6 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             .or_init(|| WorkerLocation::new(self, self.worker_url.borrow().clone(), CanGc::note()))
     }
 
-    // https://html.spec.whatwg.org/multipage/#handler-workerglobalscope-onerror
-    error_event_handler!(error, GetOnerror, SetOnerror);
-
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-importscripts
     fn ImportScripts(
         &self,
@@ -749,6 +746,32 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
 
         Ok(())
     }
+
+    // https://html.spec.whatwg.org/multipage/#handler-workerglobalscope-onerror
+    error_event_handler!(error, GetOnerror, SetOnerror);
+
+    // https://html.spec.whatwg.org/multipage/#handler-workerglobalscope-onlanguagechange
+    event_handler!(languagechange, GetOnlanguagechange, SetOnlanguagechange);
+
+    // https://html.spec.whatwg.org/multipage/#handler-workerglobalscope-onoffline
+    event_handler!(offline, GetOnoffline, SetOnoffline);
+
+    // https://html.spec.whatwg.org/multipage/#handler-workerglobalscope-ononline
+    event_handler!(online, GetOnonline, SetOnonline);
+
+    // https://html.spec.whatwg.org/multipage/#handler-workerglobalscope-onrejectionhandled
+    event_handler!(
+        rejectionhandled,
+        GetOnrejectionhandled,
+        SetOnrejectionhandled
+    );
+
+    // https://html.spec.whatwg.org/multipage/#handler-workerglobalscope-onunhandledrejection
+    event_handler!(
+        unhandledrejection,
+        GetOnunhandledrejection,
+        SetOnunhandledrejection
+    );
 
     // https://html.spec.whatwg.org/multipage/#dom-worker-navigator
     fn Navigator(&self) -> DomRoot<WorkerNavigator> {

@@ -7,18 +7,13 @@
 interface WorkerGlobalScope : GlobalScope {
   [BinaryName="Self_"] readonly attribute WorkerGlobalScope self;
   readonly attribute WorkerLocation location;
-
-  //void close();
-  attribute OnErrorEventHandler onerror;
-  //         attribute EventHandler onlanguagechange;
-  //         attribute EventHandler onoffline;
-  //         attribute EventHandler ononline;
-};
-
-// https://html.spec.whatwg.org/multipage/#WorkerGlobalScope-partial
-[Exposed=Worker]
-partial interface WorkerGlobalScope { // not obsolete
-  [Throws]
-  undefined importScripts((TrustedScriptURL or USVString)... urls);
   readonly attribute WorkerNavigator navigator;
+  [Throws] undefined importScripts((TrustedScriptURL or USVString)... urls);
+
+  attribute OnErrorEventHandler onerror;
+  attribute EventHandler onlanguagechange;
+  attribute EventHandler onoffline;
+  attribute EventHandler ononline;
+  attribute EventHandler onrejectionhandled;
+  attribute EventHandler onunhandledrejection;
 };
