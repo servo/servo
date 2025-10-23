@@ -16,6 +16,7 @@ base = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
+compositing_traits = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 profile_traits = { workspace = true }
 script_traits = { workspace = true }
