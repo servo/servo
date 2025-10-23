@@ -139,7 +139,7 @@ servo_arc = { git = "https://github.com/servo/stylo", branch = "2025-10-01" }
 skrifa = "0.35.0"
 smallvec = { version = "1.15", features = ["serde", "union"] }
 storage_traits = { path = "components/shared/storage" }
-string_cache = "0.8"
+string_cache = "0.9"
 strum = "0.27"
 strum_macros = "0.27"
 stylo = { git = "https://github.com/servo/stylo", branch = "2025-10-01" }
