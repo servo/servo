@@ -16,7 +16,6 @@ use log::debug;
 use rustc_hash::FxHashMap;
 use surfman::chains::{SwapChainAPI, SwapChains, SwapChainsAPI};
 use surfman::{Device, SurfaceTexture};
-use webrender::RenderApiSender;
 #[cfg(feature = "webxr")]
 use webxr::SurfmanGL as WebXRSurfman;
 #[cfg(feature = "webxr")]
@@ -36,7 +35,6 @@ impl WebGLComm {
     pub fn new(
         rendering_context: Rc<dyn RenderingContext>,
         compositor_api: CrossProcessCompositorApi,
-        webrender_api_sender: RenderApiSender,
         external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
         api_type: GlType,
     ) -> WebGLComm {
@@ -57,7 +55,6 @@ impl WebGLComm {
         // This implementation creates a single `WebGLThread` for all the pipelines.
         let init = WebGLThreadInit {
             compositor_api,
-            webrender_api_sender,
             external_images,
             sender: sender.clone(),
             receiver,

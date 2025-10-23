@@ -5,17 +5,16 @@
 #![deny(unsafe_code)]
 
 use std::cell::Cell;
+use std::path::PathBuf;
 use std::rc::Rc;
 
 use base::generic_channel::RoutedReceiver;
 use compositing_traits::rendering_context::RenderingContext;
-use compositing_traits::{CompositorMsg, CompositorProxy};
+use compositing_traits::{CompositorMsg, CompositorProxy, WebrenderExternalImageHandlers};
 use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::Sender;
 use embedder_traits::{EventLoopWaker, RefreshDriver, ShutdownState};
 use profile_traits::{mem, time};
-use webrender::RenderApi;
-use webrender_api::DocumentId;
 
 pub use crate::compositor::{IOCompositor, WebRenderDebugOption};
 
@@ -24,6 +23,7 @@ mod tracing;
 
 mod compositor;
 mod refresh_driver;
+mod render_notifier;
 mod screenshot;
 mod touch;
 mod webview_manager;
@@ -44,12 +44,8 @@ pub struct InitialCompositorState {
     /// A shared state which tracks whether Servo has started or has finished
     /// shutting down.
     pub shutdown_state: Rc<Cell<ShutdownState>>,
-    /// Instance of webrender API
-    pub webrender: webrender::Renderer,
-    pub webrender_document: DocumentId,
-    pub webrender_api: RenderApi,
+    /// The target [`RenderingContext`] of this renderer.
     pub rendering_context: Rc<dyn RenderingContext>,
-    pub webrender_gl: Rc<dyn gleam::gl::Gl>,
     #[cfg(feature = "webxr")]
     pub webxr_main_thread: webxr::MainThreadRegistry,
     /// An [`EventLoopWaker`] used in order to wake up the embedder when it is
@@ -57,4 +53,9 @@ pub struct InitialCompositorState {
     pub event_loop_waker: Box<dyn EventLoopWaker>,
     /// An optional [`RefreshDriver`] provided by the embedder.
     pub refresh_driver: Option<Rc<dyn RefreshDriver>>,
+    /// A [`PathBuf`] which can be used to override WebRender shaders.
+    pub shaders_path: Option<PathBuf>,
+    /// [`WebrenderExternalImageHandlers`] for the renderer.
+    /// TODO: This should be managed from inside the renderer.
+    pub external_image_handlers: Box<WebrenderExternalImageHandlers>,
 }
