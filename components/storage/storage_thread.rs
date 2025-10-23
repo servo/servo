@@ -19,10 +19,10 @@ pub fn new_storage_threads(
     config_dir: Option<PathBuf>,
 ) -> (StorageThreads, StorageThreads) {
     let idb: IpcSender<IndexedDBThreadMsg> = IndexedDBThreadFactory::new(config_dir.clone());
-    let storage: GenericSender<WebStorageThreadMsg> =
+    let web_storage: GenericSender<WebStorageThreadMsg> =
         WebStorageThreadFactory::new(config_dir, mem_profiler_chan);
     (
-        StorageThreads::new(storage.clone(), idb.clone()),
-        StorageThreads::new(storage, idb),
+        StorageThreads::new(web_storage.clone(), idb.clone()),
+        StorageThreads::new(web_storage, idb),
     )
 }
