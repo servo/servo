@@ -38,6 +38,7 @@ impl StereoPannerNode {
         window: &Window,
         context: &BaseAudioContext,
         options: &StereoPannerOptions,
+        can_gc: CanGc,
     ) -> Fallible<StereoPannerNode> {
         let node_options = options.parent.unwrap_or(
             2,
@@ -69,7 +70,7 @@ impl StereoPannerNode {
             pan,
             -1.,
             1.,
-            CanGc::note(),
+            can_gc,
         );
 
         Ok(StereoPannerNode {
@@ -95,7 +96,7 @@ impl StereoPannerNode {
         options: &StereoPannerOptions,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<StereoPannerNode>> {
-        let node = StereoPannerNode::new_inherited(window, context, options)?;
+        let node = StereoPannerNode::new_inherited(window, context, options, can_gc)?;
         Ok(reflect_dom_object_with_proto(
             Box::new(node),
             window,
