@@ -166,7 +166,8 @@ impl Callback for TransferBackPressurePromiseReaction {
     fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
         let global = self.result_promise.global();
         // Set backpressurePromise to a new promise.
-        *self.backpressure_promise.borrow_mut() = Some(Promise::new(&global, can_gc));
+        let promise = Promise::new(&global, can_gc);
+        *self.backpressure_promise.borrow_mut() = Some(promise);
 
         // Let result be PackAndPostMessageHandlingError(port, "chunk", chunk).
         rooted!(in(*cx) let mut chunk = UndefinedValue());
@@ -215,11 +216,10 @@ impl Callback for WriteAlgorithmFulfillmentHandler {
         assert!(stream.is_erroring() || stream.is_writable());
 
         // Perform ! DequeueValue(controller).
-        {
-            rooted!(in(*cx) let mut rval = UndefinedValue());
-            let mut queue = controller.queue.borrow_mut();
-            queue.dequeue_value(cx, Some(rval.handle_mut()), can_gc);
-        }
+        rooted!(in(*cx) let mut rval = UndefinedValue());
+        controller
+            .queue
+            .dequeue_value(cx, Some(rval.handle_mut()), can_gc);
 
         let global = GlobalScope::from_safe_context(cx, realm);
 
@@ -326,7 +326,7 @@ pub struct WritableStreamDefaultController {
     underlying_sink_obj: Heap<*mut JSObject>,
 
     /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-queue>
-    queue: RefCell<QueueWithSizes>,
+    queue: QueueWithSizes,
 
     /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-started>
     started: Cell<bool>,
@@ -519,12 +519,9 @@ impl WritableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-close>
     pub(crate) fn close(&self, cx: SafeJSContext, global: &GlobalScope, can_gc: CanGc) {
         // Perform ! EnqueueValueWithSize(controller, close sentinel, 0).
-        {
-            let mut queue = self.queue.borrow_mut();
-            queue
-                .enqueue_value_with_size(EnqueuedValue::CloseSentinel)
-                .expect("Enqueuing the close sentinel should not fail.");
-        }
+        self.queue
+            .enqueue_value_with_size(EnqueuedValue::CloseSentinel)
+            .expect("Enqueuing the close sentinel should not fail.");
         // Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
         self.advance_queue_if_needed(cx, global, can_gc);
     }
@@ -696,13 +693,11 @@ impl WritableStreamDefaultController {
                 // The steps from the `writeAlgorithm` at
                 // <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
 
-                {
-                    // If backpressurePromise is undefined,
-                    // set backpressurePromise to a promise resolved with undefined.
-                    let mut backpressure_promise = backpressure_promise.borrow_mut();
-                    if backpressure_promise.is_none() {
-                        *backpressure_promise = Some(Promise::new_resolved(global, cx, (), can_gc));
-                    }
+                // If backpressurePromise is undefined,
+                // set backpressurePromise to a promise resolved with undefined.
+                if backpressure_promise.borrow().is_none() {
+                    let promise = Promise::new_resolved(global, cx, (), can_gc);
+                    *backpressure_promise.borrow_mut() = Some(promise);
                 }
 
                 // Return the result of reacting to backpressurePromise with the following fulfillment steps:
@@ -800,13 +795,10 @@ impl WritableStreamDefaultController {
         stream.mark_close_request_in_flight();
 
         // Perform ! DequeueValue(controller).
-        {
-            let mut queue = self.queue.borrow_mut();
-            queue.dequeue_value(cx, None, can_gc);
-        }
+        self.queue.dequeue_value(cx, None, can_gc);
 
         // Assert: controller.[[queue]] is empty.
-        assert!(self.queue.borrow().is_empty());
+        assert!(self.queue.is_empty());
 
         // Let sinkClosePromise be the result of performing controller.[[closeAlgorithm]].
         let sink_close_promise = self.call_close_algorithm(cx, global, can_gc);
@@ -870,13 +862,11 @@ impl WritableStreamDefaultController {
         // Let value be ! PeekQueueValue(controller).
         rooted!(in(*cx) let mut value = UndefinedValue());
         let is_closed = {
-            let queue = self.queue.borrow_mut();
-
             // If controller.[[queue]] is empty, return.
-            if queue.is_empty() {
+            if self.queue.is_empty() {
                 return;
             }
-            queue.peek_queue_value(cx, value.handle_mut(), can_gc)
+            self.queue.peek_queue_value(cx, value.handle_mut(), can_gc)
         };
 
         if is_closed {
@@ -891,7 +881,7 @@ impl WritableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#ws-default-controller-private-error>
     pub(crate) fn perform_error_steps(&self) {
         // Perform ! ResetQueue(this).
-        self.queue.borrow_mut().reset();
+        self.queue.reset();
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-process-write>
@@ -938,8 +928,7 @@ impl WritableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-get-desired-size>
     pub(crate) fn get_desired_size(&self) -> f64 {
         // Return controller.[[strategyHWM]] − controller.[[queueTotalSize]].
-        let queue = self.queue.borrow();
-        let desired_size = self.strategy_hwm - queue.total_size.clamp(0.0, f64::MAX);
+        let desired_size = self.strategy_hwm - self.queue.total_size.get().clamp(0.0, f64::MAX);
         desired_size.clamp(desired_size, self.strategy_hwm)
     }
 
@@ -1004,13 +993,12 @@ impl WritableStreamDefaultController {
         can_gc: CanGc,
     ) {
         // Let enqueueResult be EnqueueValueWithSize(controller, chunk, chunkSize).
-        let enqueue_result = {
-            let mut queue = self.queue.borrow_mut();
-            queue.enqueue_value_with_size(EnqueuedValue::Js(ValueWithSize {
+        let enqueue_result = self
+            .queue
+            .enqueue_value_with_size(EnqueuedValue::Js(ValueWithSize {
                 value: Heap::boxed(chunk.get()),
                 size: chunk_size,
-            }))
-        };
+            }));
 
         // If enqueueResult is an abrupt completion,
         if let Err(error) = enqueue_result {
