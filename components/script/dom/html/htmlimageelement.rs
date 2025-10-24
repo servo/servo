@@ -11,7 +11,7 @@ use std::{char, mem};
 use app_units::Au;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
-use euclid::default::{Point2D, Size2D};
+use euclid::default::Point2D;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::jsapi::JSAutoRealm;
 use js::rust::HandleObject;
@@ -27,9 +27,7 @@ use net_traits::{
     ResourceFetchTiming, ResourceTimingType,
 };
 use num_traits::ToPrimitive;
-use pixels::{
-    CorsStatus, ImageMetadata, PixelFormat, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat,
-};
+use pixels::{CorsStatus, ImageMetadata, Snapshot};
 use regex::Regex;
 use rustc_hash::FxHashSet;
 use servo_url::ServoUrl;
@@ -216,32 +214,11 @@ impl HTMLImageElement {
 
     /// Gets the copy of the raster image data.
     pub(crate) fn get_raster_image_data(&self) -> Option<Snapshot> {
-        let Some(img) = self.image_data()?.as_raster_image() else {
+        let Some(raster_image) = self.image_data()?.as_raster_image() else {
             warn!("Vector image is not supported as raster image source");
             return None;
         };
-
-        let size = Size2D::new(img.metadata.width, img.metadata.height);
-        let format = match img.format {
-            PixelFormat::BGRA8 => SnapshotPixelFormat::BGRA,
-            PixelFormat::RGBA8 => SnapshotPixelFormat::RGBA,
-            pixel_format => {
-                unimplemented!("unsupported pixel format ({:?})", pixel_format)
-            },
-        };
-
-        let alpha_mode = SnapshotAlphaMode::Transparent {
-            premultiplied: false,
-        };
-
-        let snapshot = Snapshot::from_vec(
-            size.cast(),
-            format,
-            alpha_mode,
-            img.first_frame().bytes.to_vec(),
-        );
-
-        Some(snapshot)
+        Some(raster_image.as_snapshot())
     }
 }
 

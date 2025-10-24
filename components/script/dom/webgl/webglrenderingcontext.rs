@@ -618,7 +618,7 @@ impl WebGLRenderingContext {
                     return Ok(None);
                 };
 
-                let snapshot = snapshot.as_ipc();
+                let snapshot = snapshot.to_shared();
                 let size = snapshot.size().cast();
                 let format = match snapshot.format() {
                     SnapshotPixelFormat::RGBA => PixelFormat::RGBA8,
@@ -632,7 +632,7 @@ impl WebGLRenderingContext {
                 // conversions will be made.
                 // <https://registry.khronos.org/webgl/specs/latest/1.0/#6.10>
                 TexPixels::new(
-                    snapshot.to_ipc_shared_memory(),
+                    snapshot.shared_memory(),
                     size,
                     format,
                     None,
@@ -672,7 +672,7 @@ impl WebGLRenderingContext {
                     return Ok(None);
                 };
 
-                let snapshot = snapshot.as_ipc();
+                let snapshot = snapshot.to_shared();
                 let size = snapshot.size().cast();
                 let format: PixelFormat = match snapshot.format() {
                     SnapshotPixelFormat::RGBA => PixelFormat::RGBA8,
@@ -683,7 +683,7 @@ impl WebGLRenderingContext {
                     self.get_current_unpack_state(Alpha::NotPremultiplied);
 
                 TexPixels::new(
-                    snapshot.to_ipc_shared_memory(),
+                    snapshot.shared_memory(),
                     size,
                     format,
                     alpha_treatment,
@@ -702,7 +702,7 @@ impl WebGLRenderingContext {
                     return Ok(None);
                 };
 
-                let snapshot = snapshot.as_ipc();
+                let snapshot = snapshot.to_shared();
                 let size = snapshot.size().cast();
                 let format = match snapshot.format() {
                     SnapshotPixelFormat::RGBA => PixelFormat::RGBA8,
@@ -713,7 +713,7 @@ impl WebGLRenderingContext {
                     self.get_current_unpack_state(snapshot.alpha_mode().alpha());
 
                 TexPixels::new(
-                    snapshot.to_ipc_shared_memory(),
+                    snapshot.shared_memory(),
                     size,
                     format,
                     alpha_treatment,
@@ -729,7 +729,7 @@ impl WebGLRenderingContext {
                     return Ok(None);
                 };
 
-                let snapshot = snapshot.as_ipc();
+                let snapshot = snapshot.to_shared();
                 let size = snapshot.size().cast();
                 let format: PixelFormat = match snapshot.format() {
                     SnapshotPixelFormat::RGBA => PixelFormat::RGBA8,
@@ -740,7 +740,7 @@ impl WebGLRenderingContext {
                     self.get_current_unpack_state(snapshot.alpha_mode().alpha());
 
                 TexPixels::new(
-                    snapshot.to_ipc_shared_memory(),
+                    snapshot.shared_memory(),
                     size,
                     format,
                     alpha_treatment,

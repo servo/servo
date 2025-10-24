@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::canvas::*;
-use pixels::{SnapshotAlphaMode, SnapshotPixelFormat};
+use peniko::ImageAlphaType;
+use pixels::{Alpha, SnapshotPixelFormat};
 use style::color::AbsoluteColor;
 
 use crate::backend::Convert;
@@ -131,6 +132,16 @@ impl Convert<peniko::ImageFormat> for SnapshotPixelFormat {
     }
 }
 
+impl Convert<ImageAlphaType> for Alpha {
+    fn convert(self) -> ImageAlphaType {
+        match self {
+            Alpha::Premultiplied => ImageAlphaType::AlphaPremultiplied,
+            Alpha::NotPremultiplied => ImageAlphaType::Alpha,
+            Alpha::DontCare => ImageAlphaType::Alpha,
+        }
+    }
+}
+
 impl Convert<peniko::Brush> for FillOrStrokeStyle {
     fn convert(self) -> peniko::Brush {
         use canvas_traits::canvas::FillOrStrokeStyle::*;
@@ -156,19 +167,14 @@ impl Convert<peniko::Brush> for FillOrStrokeStyle {
                 peniko::Brush::Gradient(gradient)
             },
             Surface(surface_style) => {
-                let (data, _, format) = surface_style.surface_data.to_owned().to_vec(
-                    Some(SnapshotAlphaMode::Transparent {
-                        premultiplied: false,
-                    }),
-                    None,
-                );
+                let snapshot = &surface_style.surface_data;
                 peniko::Brush::Image(peniko::ImageBrush {
                     image: peniko::ImageData {
-                        data: peniko::Blob::from(data),
-                        format: format.convert(),
+                        data: peniko::Blob::from(Vec::from(snapshot.data())),
+                        format: snapshot.format().convert(),
                         width: surface_style.surface_size.width,
                         height: surface_style.surface_size.height,
-                        alpha_type: peniko::ImageAlphaType::Alpha, // TODO: support more
+                        alpha_type: snapshot.alpha_mode().alpha().convert(),
                     },
                     sampler: peniko::ImageSampler {
                         x_extend: if surface_style.repeat_x {
