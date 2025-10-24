@@ -88,6 +88,7 @@ gstreamer = { workspace = true, optional = true }
 image = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
+keyring = { version = "3.6", features = ["apple-native", "linux-native-sync-persistent", "windows-native"] }
 layout = { path = "../layout" }
 layout_api = { workspace = true }
 log = { workspace = true }
