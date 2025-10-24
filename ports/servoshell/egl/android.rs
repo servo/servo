@@ -556,6 +556,7 @@ impl HostTrait for HostCallbacks {
             SimpleDialog::Alert {
                 message,
                 response_sender,
+                ..
             } => {
                 debug!("SimpleDialog::Alert");
                 // TODO: Indicate that this message is untrusted, and what origin it came from.
@@ -565,6 +566,7 @@ impl HostTrait for HostCallbacks {
             SimpleDialog::Confirm {
                 message,
                 response_sender,
+                ..
             } => {
                 warn!("Confirm dialog not implemented. Cancelled. {}", message);
                 response_sender.send(Default::default())

@@ -972,6 +972,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         let (sender, receiver) =
             ProfiledGenericChannel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let dialog = SimpleDialog::Alert {
+            id: self.Document().embedder_controls().next_control_id(),
             message: message.to_string(),
             response_sender: sender,
         };
@@ -1004,6 +1005,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         let (sender, receiver) =
             ProfiledGenericChannel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let dialog = SimpleDialog::Confirm {
+            id: self.Document().embedder_controls().next_control_id(),
             message: message.to_string(),
             response_sender: sender,
         };
@@ -1054,6 +1056,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         let (sender, receiver) =
             ProfiledGenericChannel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let dialog = SimpleDialog::Prompt {
+            id: self.Document().embedder_controls().next_control_id(),
             message: message.to_string(),
             default: default.to_string(),
             response_sender: sender,

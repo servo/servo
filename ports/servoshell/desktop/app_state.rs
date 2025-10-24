@@ -414,6 +414,42 @@ impl RunningAppState {
         }
     }
 
+    fn show_simple_dialog(&self, webview: servo::WebView, dialog: SimpleDialog) {
+        self.interrupt_webdriver_script_evaluation();
+
+        // Dialogs block the page load, so need need to notify WebDriver
+        let webview_id = webview.id();
+        if let Some(sender) = self
+            .webdriver_senders
+            .borrow_mut()
+            .load_status_senders
+            .get(&webview_id)
+        {
+            let _ = sender.send(WebDriverLoadStatus::Blocked);
+        };
+
+        if self.servoshell_preferences.headless &&
+            self.servoshell_preferences.webdriver_port.is_none()
+        {
+            // TODO: Avoid copying this from the default trait impl?
+            // Return the DOM-specified default value for when we **cannot show simple dialogs**.
+            let _ = match dialog {
+                SimpleDialog::Alert {
+                    response_sender, ..
+                } => response_sender.send(Default::default()),
+                SimpleDialog::Confirm {
+                    response_sender, ..
+                } => response_sender.send(Default::default()),
+                SimpleDialog::Prompt {
+                    response_sender, ..
+                } => response_sender.send(Default::default()),
+            };
+            return;
+        }
+        let dialog = Dialog::new_simple_dialog(dialog);
+        self.add_dialog(webview, dialog);
+    }
+
     pub(crate) fn get_focused_webview_index(&self) -> Option<usize> {
         let focused_id = self.inner().focused_webview_id?;
         self.webviews()
@@ -601,42 +637,6 @@ impl WebViewDelegate for RunningAppState {
             .request_resize(&webview, requested_outer_size);
     }
 
-    fn show_simple_dialog(&self, webview: servo::WebView, dialog: SimpleDialog) {
-        self.interrupt_webdriver_script_evaluation();
-
-        // Dialogs block the page load, so need need to notify WebDriver
-        let webview_id = webview.id();
-        if let Some(sender) = self
-            .webdriver_senders
-            .borrow_mut()
-            .load_status_senders
-            .get(&webview_id)
-        {
-            let _ = sender.send(WebDriverLoadStatus::Blocked);
-        };
-
-        if self.servoshell_preferences.headless &&
-            self.servoshell_preferences.webdriver_port.is_none()
-        {
-            // TODO: Avoid copying this from the default trait impl?
-            // Return the DOM-specified default value for when we **cannot show simple dialogs**.
-            let _ = match dialog {
-                SimpleDialog::Alert {
-                    response_sender, ..
-                } => response_sender.send(Default::default()),
-                SimpleDialog::Confirm {
-                    response_sender, ..
-                } => response_sender.send(Default::default()),
-                SimpleDialog::Prompt {
-                    response_sender, ..
-                } => response_sender.send(Default::default()),
-            };
-            return;
-        }
-        let dialog = Dialog::new_simple_dialog(dialog);
-        self.add_dialog(webview, dialog);
-    }
-
     fn request_authentication(
         &self,
         webview: WebView,
@@ -816,6 +816,9 @@ impl WebViewDelegate for RunningAppState {
             },
             EmbedderControl::FilePicker(file_picker) => {
                 self.add_dialog(webview, Dialog::new_file_dialog(file_picker));
+            },
+            EmbedderControl::SimpleDialog(simple_dialog) => {
+                self.show_simple_dialog(webview, simple_dialog);
             },
         }
     }

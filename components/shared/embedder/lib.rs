@@ -160,18 +160,21 @@ pub enum SimpleDialog {
     /// [`alert()`](https://html.spec.whatwg.org/multipage/#dom-alert).
     /// TODO: Include details about the document origin.
     Alert {
+        id: EmbedderControlId,
         message: String,
         response_sender: GenericSender<AlertResponse>,
     },
     /// [`confirm()`](https://html.spec.whatwg.org/multipage/#dom-confirm).
     /// TODO: Include details about the document origin.
     Confirm {
+        id: EmbedderControlId,
         message: String,
         response_sender: GenericSender<ConfirmResponse>,
     },
     /// [`prompt()`](https://html.spec.whatwg.org/multipage/#dom-prompt).
     /// TODO: Include details about the document origin.
     Prompt {
+        id: EmbedderControlId,
         message: String,
         default: String,
         response_sender: GenericSender<PromptResponse>,
@@ -235,6 +238,14 @@ impl SimpleDialog {
             } => {
                 let _ = response_sender.send(PromptResponse::Ok(default.clone()));
             },
+        }
+    }
+
+    pub fn id(&self) -> EmbedderControlId {
+        match self {
+            SimpleDialog::Alert { id, .. } |
+            SimpleDialog::Confirm { id, .. } |
+            SimpleDialog::Prompt { id, .. } => *id,
         }
     }
 }
