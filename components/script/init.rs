@@ -142,7 +142,7 @@ fn jit_forbidden() -> bool {
                 .inspect_err(|_e| {
                     debug!("Failed to determine if JIT is allowed. Conservatively assuming it is forbidden.");
                 })
-                .unwrap_or(false); // writable ==false -> JIT is forbidden.
+                .unwrap_or(false); // writable == false -> JIT is forbidden.
             jit_forbidden = !is_writable;
         }
     }
