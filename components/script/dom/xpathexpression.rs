@@ -6,6 +6,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
 use xpath::{Error as XPathError, Expression, evaluate_parsed_xpath};
 
 use crate::dom::bindings::codegen::Bindings::XPathExpressionBinding::XPathExpressionMethods;
@@ -58,6 +59,21 @@ impl XPathExpression {
         resolver: Option<Rc<XPathNSResolver>>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<XPathResult>> {
+        let is_allowed_context_node_type = matches!(
+            context_node.type_id(),
+            NodeTypeId::Attr |
+                NodeTypeId::CharacterData(
+                    CharacterDataTypeId::Comment |
+                        CharacterDataTypeId::Text(_) |
+                        CharacterDataTypeId::ProcessingInstruction
+                ) |
+                NodeTypeId::Document(_) |
+                NodeTypeId::Element(_)
+        );
+        if !is_allowed_context_node_type {
+            return Err(Error::NotSupported);
+        }
+
         let result_type = XPathResultType::try_from(result_type_num)
             .map_err(|()| Error::Type("Invalid XPath result type".to_string()))?;
 

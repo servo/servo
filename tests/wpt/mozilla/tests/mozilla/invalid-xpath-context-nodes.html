@@ -16,6 +16,10 @@
         assert_throws_dom("NotSupportedError", () => {
           document.evaluate(".", root, null, XPathResult.ANY_TYPE, null);
         });
+        assert_throws_dom("NotSupportedError", () => {
+          let expression = (new XPathEvaluator).createExpression(".", null)
+          expression.evaluate(root, XPathResult.ANY_TYPE, null);
+        });
       }, "Using a ShadowRoot as a context node should throw a NotSupported Error");
     </script>
 </body>
