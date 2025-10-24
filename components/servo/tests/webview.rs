@@ -11,15 +11,29 @@ use std::rc::Rc;
 use dpi::PhysicalSize;
 use euclid::{Point2D, Size2D};
 use servo::{
-    Cursor, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus, MouseButton,
-    MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, Servo, Theme,
-    WebView, WebViewBuilder, WebViewDelegate,
+    Cursor, EmbedderControl, InputEvent, InputMethodType, JSValue, JavaScriptEvaluationError,
+    LoadStatus, MouseButton, MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent,
+    MouseMoveEvent, Servo, Theme, WebView, WebViewBuilder, WebViewDelegate,
 };
 use servo_config::prefs::Preferences;
 use url::Url;
-use webrender_api::units::DeviceIntSize;
+use webrender_api::units::{DeviceIntSize, DevicePoint};
 
 use crate::common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
+
+fn click_at_point(webview: &WebView, point: DevicePoint) {
+    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
+    webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+        MouseButtonAction::Down,
+        MouseButton::Left,
+        point,
+    )));
+    webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+        MouseButtonAction::Up,
+        MouseButton::Left,
+        point,
+    )));
+}
 
 #[test]
 fn test_create_webview() {
@@ -330,18 +344,7 @@ fn test_control_show_and_hide() {
     let captured_delegate = delegate.clone();
     servo_test.spin(move || !captured_delegate.new_frame_ready.get());
 
-    let point = Point2D::new(50., 50.);
-    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
-    webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
-        MouseButtonAction::Down,
-        MouseButton::Left,
-        point,
-    )));
-    webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
-        MouseButtonAction::Up,
-        MouseButton::Left,
-        point,
-    )));
+    click_at_point(&webview, Point2D::new(50., 50.));
 
     // The form control should be shown and then immediately hidden.
     let captured_delegate = delegate.clone();
@@ -407,4 +410,57 @@ fn test_viewport_meta_tag_initial_zoom() {
     // Wait for at least one frame after the load completes.
     delegate.reset();
     servo_test.spin(move || webview.page_zoom() != 5.0);
+}
+
+#[test]
+fn test_show_and_hide_ime() {
+    let servo_test = ServoTest::new();
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                "data:text/html,<!DOCTYPE html> \
+                <input type=\"text\" value=\"servo\" style=\"width: 200px; height: 200px;\">",
+            )
+            .unwrap(),
+        )
+        .build();
+
+    webview.focus();
+    webview.show(true);
+    webview.move_resize(servo_test.rendering_context.size2d().to_f32().into());
+
+    let load_webview = webview.clone();
+    servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+
+    // Wait for at least one frame after the load completes.
+    delegate.reset();
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || !captured_delegate.new_frame_ready.get());
+
+    click_at_point(&webview, Point2D::new(50., 50.));
+
+    // The form control should be shown.
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || captured_delegate.number_of_controls_shown.get() != 1);
+
+    {
+        let controls = delegate.controls_shown.borrow();
+        assert_eq!(controls.len(), 1);
+        let EmbedderControl::InputMethod(ime) = &controls[0] else {
+            unreachable!("Expected embedder control to be an IME");
+        };
+
+        assert_eq!(ime.input_method_type(), InputMethodType::Text);
+        assert_eq!(ime.text(), "servo");
+        assert_eq!(ime.insertion_point(), Some(0));
+    }
+
+    click_at_point(&webview, Point2D::new(300., 300.));
+
+    // The form control should be hidden when the field no longer has focus.
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || captured_delegate.number_of_controls_hidden.get() != 1);
 }

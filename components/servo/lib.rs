@@ -133,7 +133,8 @@ use crate::webview::MINIMUM_WEBVIEW_SIZE;
 pub use crate::webview::{WebView, WebViewBuilder};
 pub use crate::webview_delegate::{
     AllowOrDenyRequest, AuthenticationRequest, ColorPicker, EmbedderControl, FilePicker,
-    NavigationRequest, PermissionRequest, SelectElement, WebResourceLoad, WebViewDelegate,
+    InputMethodControl, NavigationRequest, PermissionRequest, SelectElement, WebResourceLoad,
+    WebViewDelegate,
 };
 
 #[cfg(feature = "media-gstreamer")]
@@ -814,22 +815,6 @@ impl Servo {
                         .request_permission(webview, permission_request);
                 }
             },
-            EmbedderMsg::ShowIME(webview_id, input_method_type, text, multiline, position) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.delegate().show_ime(
-                        webview,
-                        input_method_type,
-                        text,
-                        multiline,
-                        position,
-                    );
-                }
-            },
-            EmbedderMsg::HideIME(webview_id) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.delegate().hide_ime(webview);
-                }
-            },
             EmbedderMsg::ReportProfile(_items) => {},
             EmbedderMsg::MediaSessionEvent(webview_id, media_session_event) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
@@ -907,6 +892,16 @@ impl Servo {
                                 position,
                                 constellation_proxy,
                                 response_sent: false,
+                            })
+                        },
+                        EmbedderControlRequest::InputMethod(input_method_request) => {
+                            EmbedderControl::InputMethod(InputMethodControl {
+                                id: control_id,
+                                input_method_type: input_method_request.input_method_type,
+                                text: input_method_request.text,
+                                insertion_point: input_method_request.insertion_point,
+                                position,
+                                multiline: input_method_request.multiline,
                             })
                         },
                         EmbedderControlRequest::FilePicker { .. } => unreachable!(

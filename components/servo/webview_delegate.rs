@@ -305,6 +305,9 @@ pub enum EmbedderControl {
     ColorPicker(ColorPicker),
     /// The picker of a `<input type=file>` element.
     FilePicker(FilePicker),
+    /// Request to present an input method (IME) interface to the user when an
+    /// editable element is focused.
+    InputMethod(InputMethodControl),
 }
 
 impl EmbedderControl {
@@ -313,10 +316,10 @@ impl EmbedderControl {
             EmbedderControl::SelectElement(select_element) => select_element.id,
             EmbedderControl::ColorPicker(color_picker) => color_picker.id,
             EmbedderControl::FilePicker(file_picker) => file_picker.id,
+            EmbedderControl::InputMethod(input_method) => input_method.id,
         }
     }
 }
-
 /// Represents a dialog triggered by clicking a `<select>` element.
 pub struct SelectElement {
     pub(crate) id: EmbedderControlId,
@@ -491,6 +494,47 @@ impl Drop for FilePicker {
     }
 }
 
+/// Represents a request to enable the system input method interface.
+pub struct InputMethodControl {
+    pub(crate) id: EmbedderControlId,
+    pub(crate) input_method_type: InputMethodType,
+    pub(crate) text: String,
+    pub(crate) insertion_point: Option<u32>,
+    pub(crate) position: DeviceIntRect,
+    pub(crate) multiline: bool,
+}
+
+impl InputMethodControl {
+    /// Return the type of input method that initated this request.
+    pub fn input_method_type(&self) -> InputMethodType {
+        self.input_method_type
+    }
+
+    /// Return the current string value of the input field.
+    pub fn text(&self) -> String {
+        self.text.clone()
+    }
+
+    /// The current zero-based insertion point / cursor position if it is within the field or `None`
+    /// if it is not.
+    pub fn insertion_point(&self) -> Option<u32> {
+        self.insertion_point
+    }
+
+    /// Get the area occupied by the `<input>` element that triggered the input method.
+    ///
+    /// The embedder should use this value to position the input method interface that is
+    /// shown to the user.
+    pub fn position(&self) -> DeviceIntRect {
+        self.position
+    }
+
+    /// Whether or not this field is a multiline field.
+    pub fn multiline(&self) -> bool {
+        self.multiline
+    }
+}
+
 pub trait WebViewDelegate {
     /// Get the [`ScreenGeometry`] for this [`WebView`]. If this is unimplemented or returns `None`
     /// the screen will have the size of the [`WebView`]'s `RenderingContext` and `WebView` will be
@@ -625,23 +669,6 @@ pub trait WebViewDelegate {
     ) {
         let _ = response_sender.send(None);
     }
-
-    /// Request to present an IME to the user when an editable element is focused.
-    /// If `type` is [`InputMethodType::Text`], then the `text` parameter specifies
-    /// the pre-existing text content and the zero-based index into the string
-    /// of the insertion point.
-    fn show_ime(
-        &self,
-        _webview: WebView,
-        _type: InputMethodType,
-        _text: Option<(String, i32)>,
-        _multiline: bool,
-        _position: DeviceIntRect,
-    ) {
-    }
-
-    /// Request to hide the IME when the editable element is blurred.
-    fn hide_ime(&self, _webview: WebView) {}
 
     /// Request that the embedder show UI elements for form controls that are not integrated
     /// into page content, such as dropdowns for `<select>` elements.

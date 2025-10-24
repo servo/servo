@@ -26,8 +26,8 @@ use ohos_ime::{
 use ohos_ime_sys::types::InputMethod_EnterKeyType;
 use servo::style::Zero;
 use servo::{
-    AlertResponse, EventLoopWaker, InputMethodType, LoadStatus, MediaSessionPlaybackState,
-    PermissionRequest, SimpleDialog, WebView, WebViewId,
+    AlertResponse, EventLoopWaker, InputMethodControl, InputMethodType, LoadStatus,
+    MediaSessionPlaybackState, PermissionRequest, SimpleDialog, WebView, WebViewId,
 };
 use xcomponent_sys::{
     OH_NativeXComponent, OH_NativeXComponent_Callback, OH_NativeXComponent_GetKeyEvent,
@@ -999,23 +999,18 @@ impl HostTrait for HostCallbacks {
     /// and shows the soft keyboard with default settings.
     /// When the keyboard cannot be shown (because the application is not in focus)
     /// we just continue and try next time.
-    fn on_ime_show(
-        &self,
-        input_type: InputMethodType,
-        _text: Option<(String, i32)>,
-        multiline: bool,
-        _bounds: servo::webrender_api::units::DeviceIntRect,
-    ) {
+    fn on_ime_show(&self, control: InputMethodControl) {
         debug!("IME show!");
         let mut ime_proxy = self.ime_proxy.borrow_mut();
         if ime_proxy.is_none() {
-            *ime_proxy = match self.try_create_ime_proxy(input_type, multiline) {
-                Err(ref e) => {
-                    error!("Could not show keyboard because of {e:?}");
-                    None
-                },
-                Ok(proxy) => Some(proxy),
-            };
+            *ime_proxy =
+                match self.try_create_ime_proxy(control.input_method_type(), control.multiline()) {
+                    Err(ref e) => {
+                        error!("Could not show keyboard because of {e:?}");
+                        None
+                    },
+                    Ok(proxy) => Some(proxy),
+                };
         }
 
         if let Some(ref ime) = *ime_proxy {

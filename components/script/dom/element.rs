@@ -16,7 +16,6 @@ use app_units::Au;
 use cssparser::match_ignore_ascii_case;
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
-use embedder_traits::InputMethodType;
 use euclid::default::{Rect, Size2D};
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
@@ -1700,22 +1699,6 @@ impl Element {
             }
         }
         None
-    }
-
-    // Returns the kind of IME control needed for a focusable element, if any.
-    pub(crate) fn input_method_type(&self) -> Option<InputMethodType> {
-        if !self.is_focusable_area() {
-            return None;
-        }
-
-        if let Some(input) = self.downcast::<HTMLInputElement>() {
-            input.input_type().as_ime_type()
-        } else if self.is::<HTMLTextAreaElement>() {
-            Some(InputMethodType::Text)
-        } else {
-            // Other focusable elements that are not input fields.
-            None
-        }
     }
 
     /// <https://dom.spec.whatwg.org/#document-element>

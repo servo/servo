@@ -493,19 +493,6 @@ pub enum EmbedderMsg {
     ),
     /// Open interface to request permission specified by prompt.
     PromptPermission(WebViewId, PermissionFeature, GenericSender<AllowOrDeny>),
-    /// Request to present an IME to the user when an editable element is focused.
-    /// If the input is text, the second parameter defines the pre-existing string
-    /// text content and the zero-based index into the string locating the insertion point.
-    /// bool is true for multi-line and false otherwise.
-    ShowIME(
-        WebViewId,
-        InputMethodType,
-        Option<(String, i32)>,
-        bool,
-        DeviceIntRect,
-    ),
-    /// Request to hide the IME when the editable element is blurred.
-    HideIME(WebViewId),
     /// Report a complete sampled profile
     ReportProfile(Vec<u8>),
     /// Notifies the embedder about media session events
@@ -562,6 +549,20 @@ pub enum EmbedderControlRequest {
     ColorPicker(RgbColor),
     /// Indicates that the user has activated a `<input type=file>` element.
     FilePicker(FilePickerRequest),
+    /// Indicates that the the user has activated a text or input control that should show
+    /// an IME.
+    InputMethod(InputMethodRequest),
+}
+
+/// Request to present an IME to the user when an editable element is focused. If `type` is
+/// [`InputMethodType::Text`], then the `text` parameter specifies the pre-existing text content and
+/// `insertion_point` the zero-based index into the string of the insertion point.
+#[derive(Debug, Deserialize, Serialize)]
+pub struct InputMethodRequest {
+    pub input_method_type: InputMethodType,
+    pub text: String,
+    pub insertion_point: Option<u32>,
+    pub multiline: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -677,7 +678,7 @@ pub enum PermissionFeature {
 /// Used to specify the kind of input method editor appropriate to edit a field.
 /// This is a subset of htmlinputelement::InputType because some variants of InputType
 /// don't make sense in this context.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum InputMethodType {
     Color,
     Date,

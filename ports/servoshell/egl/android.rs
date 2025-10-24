@@ -21,10 +21,10 @@ use raw_window_handle::{
     AndroidDisplayHandle, AndroidNdkWindowHandle, RawDisplayHandle, RawWindowHandle,
 };
 use servo::{
-    AlertResponse, EventLoopWaker, LoadStatus, MediaSessionActionType, MouseButton,
-    PermissionRequest, PrefValue, SimpleDialog, WebView,
+    AlertResponse, EventLoopWaker, InputMethodControl, LoadStatus, MediaSessionActionType,
+    MouseButton, PermissionRequest, PrefValue, SimpleDialog, WebView,
 };
-use simpleservo::{APP, DeviceIntRect, InitOptions, InputMethodType, MediaSessionPlaybackState};
+use simpleservo::{APP, InitOptions, MediaSessionPlaybackState};
 
 use super::app_state::{Coordinates, RunningAppState};
 use super::host_trait::HostTrait;
@@ -679,13 +679,7 @@ impl HostTrait for HostCallbacks {
         .unwrap();
     }
 
-    fn on_ime_show(
-        &self,
-        _input_type: InputMethodType,
-        _text: Option<(String, i32)>,
-        _multiline: bool,
-        _rect: DeviceIntRect,
-    ) {
+    fn on_ime_show(&self, _: InputMethodControl) {
         let mut env = self.jvm.get_env().unwrap();
         env.call_method(self.callbacks.as_obj(), "onImeShow", "()V", &[])
             .unwrap();

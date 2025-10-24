@@ -7,6 +7,7 @@ use std::default::Default;
 use std::ops::Range;
 
 use dom_struct::dom_struct;
+use embedder_traits::{EmbedderControlRequest, InputMethodRequest, InputMethodType};
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use style::attr::AttrValue;
@@ -26,6 +27,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::clipboardevent::ClipboardEvent;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
+use crate::dom::document_embedder_controls::ControlElement;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::html::htmlelement::HTMLElement;
@@ -38,6 +40,7 @@ use crate::dom::node::{
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
+use crate::dom::types::FocusEvent;
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
@@ -207,6 +210,20 @@ impl HTMLTextAreaElement {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element%3Aconcept-fe-mutable
         // https://html.spec.whatwg.org/multipage/#the-readonly-attribute:concept-fe-mutable
         !(self.upcast::<Element>().disabled_state() || self.ReadOnly())
+    }
+
+    fn handle_focus(&self) {
+        self.owner_document()
+            .embedder_controls()
+            .show_embedder_control(
+                ControlElement::Ime(DomRoot::from_ref(self.upcast())),
+                EmbedderControlRequest::InputMethod(InputMethodRequest {
+                    input_method_type: InputMethodType::Text,
+                    text: self.Value().to_string(),
+                    insertion_point: self.GetSelectionEnd(),
+                    multiline: false,
+                }),
+            );
     }
 }
 
@@ -720,6 +737,15 @@ impl VirtualMethods for HTMLTextAreaElement {
             }
             if !reaction.is_empty() {
                 self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
+            }
+        } else if let Some(event) = event.downcast::<FocusEvent>() {
+            if *event.upcast::<Event>().type_() == *"blur" {
+                self.owner_document()
+                    .embedder_controls()
+                    .hide_embedder_control(self.upcast());
+            }
+            if *event.upcast::<Event>().type_() == *"focus" {
+                self.handle_focus();
             }
         }
 
