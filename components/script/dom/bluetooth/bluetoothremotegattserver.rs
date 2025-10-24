@@ -109,7 +109,7 @@ impl BluetoothRemoteGATTServerMethods<crate::DomTypeHolder> for BluetoothRemoteG
         self.Device().clean_up_disconnected_device(can_gc);
 
         // Step 4 - 5:
-        self.Device().garbage_collect_the_connection()
+        self.Device().garbage_collect_the_connection(can_gc)
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservice
@@ -121,7 +121,7 @@ impl BluetoothRemoteGATTServerMethods<crate::DomTypeHolder> for BluetoothRemoteG
             BluetoothUUID::service,
             Some(service),
             String::from(self.Device().Id()),
-            self.Device().get_gatt().Connected(),
+            self.Device().get_gatt(can_gc).Connected(),
             GATTType::PrimaryService,
             can_gc,
         )
@@ -154,7 +154,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
             BluetoothResponse::GATTServerConnect(connected) => {
                 // Step 5.2.3
                 if self.Device().is_represented_device_null() {
-                    if let Err(e) = self.Device().garbage_collect_the_connection() {
+                    if let Err(e) = self.Device().garbage_collect_the_connection(can_gc) {
                         return promise.reject_error(e, can_gc);
                     }
                     return promise.reject_error(Error::Network, can_gc);
