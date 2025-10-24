@@ -8,8 +8,8 @@
 use std::error::Error;
 use std::sync::Once;
 
-use objc2::declare::ClassBuilder;
-use objc2::runtime::{AnyClass, AnyObject, AnyProtocol, Sel};
+use objc2::declare::ClassDecl;
+use objc2::runtime::{Class, Object, Protocol, Sel};
 
 use crate::framework::{cb, nil, ns};
 use crate::utils::{NO_PERIPHERAL_FOUND, cbx, nsx, wait};
@@ -21,65 +21,65 @@ pub mod bm {
 
     const DELEGATE_PERIPHERALS_IVAR: &str = "_peripherals";
 
-    fn delegate_class() -> &'static AnyClass {
+    fn delegate_class() -> &'static Class {
         trace!("delegate_class");
         static REGISTER_DELEGATE_CLASS: Once = Once::new();
 
         REGISTER_DELEGATE_CLASS.call_once(|| {
-            let mut decl = ClassBuilder::new("BlurMacDelegate", AnyClass::get("NSAnyObject").unwrap()).unwrap();
-            decl.add_protocol(AnyProtocol::get("CBCentralManagerDelegate").unwrap());
+            let mut decl = ClassDecl::new("BlurMacDelegate", Class::get("NSObject").unwrap()).unwrap();
+            decl.add_protocol(Protocol::get("CBCentralManagerDelegate").unwrap());
 
-            decl.add_ivar::<*mut AnyObject>(DELEGATE_PERIPHERALS_IVAR); /* NSMutableDictionary<NSString*, BlurMacPeripheralData*>* */
+            decl.add_ivar::<*mut Object>(DELEGATE_PERIPHERALS_IVAR); /* NSMutableDictionary<NSString*, BlurMacPeripheralData*>* */
 
             unsafe {
-                decl.add_method(sel!(init), delegate_init as extern "C" fn(_, _) -> _);
-                decl.add_method(sel!(centralManagerDidUpdateState:), delegate_centralmanagerdidupdatestate as extern "C" fn(_, _, _));
-                // decl.add_method(sel!(centralManager:willRestoreState:), delegate_centralmanager_willrestorestate as extern "C" fn(_, _, _));
-                decl.add_method(sel!(centralManager:didConnectPeripheral:), delegate_centralmanager_didconnectperipheral as extern "C" fn(_, _ , _, _));
-                decl.add_method(sel!(centralManager:didDisconnectPeripheral:error:), delegate_centralmanager_diddisconnectperipheral_error as extern "C" fn(_, _, _, _, _));
-                // decl.add_method(sel!(centralManager:didFailToConnectPeripheral:error:), delegate_centralmanager_didfailtoconnectperipheral_error as extern "C" fn(_, Sel, _, _, _));
-                decl.add_method(sel!(centralManager:didDiscoverPeripheral:advertisementData:RSSI:), delegate_centralmanager_diddiscoverperipheral_advertisementdata_rssi as extern "C" fn(_, Sel, _, _, _, _));
+                decl.add_method(sel!(init), delegate_init as extern "C" fn(&mut Object, Sel) -> *mut Object);
+                decl.add_method(sel!(centralManagerDidUpdateState:), delegate_centralmanagerdidupdatestate as extern "C" fn(&mut Object, Sel, *mut Object));
+                // decl.add_method(sel!(centralManager:willRestoreState:), delegate_centralmanager_willrestorestate as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object));
+                decl.add_method(sel!(centralManager:didConnectPeripheral:), delegate_centralmanager_didconnectperipheral as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object));
+                decl.add_method(sel!(centralManager:didDisconnectPeripheral:error:), delegate_centralmanager_diddisconnectperipheral_error as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object));
+                // decl.add_method(sel!(centralManager:didFailToConnectPeripheral:error:), delegate_centralmanager_didfailtoconnectperipheral_error as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object));
+                decl.add_method(sel!(centralManager:didDiscoverPeripheral:advertisementData:RSSI:), delegate_centralmanager_diddiscoverperipheral_advertisementdata_rssi as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object, *mut Object));
 
-                decl.add_method(sel!(peripheral:didDiscoverServices:), delegate_peripheral_diddiscoverservices as extern "C" fn(_, _, _, _));
-                decl.add_method(sel!(peripheral:didDiscoverIncludedServicesForService:error:), delegate_peripheral_diddiscoverincludedservicesforservice_error as extern "C" fn(_, _, _, _, _));
-                decl.add_method(sel!(peripheral:didDiscoverCharacteristicsForService:error:), delegate_peripheral_diddiscovercharacteristicsforservice_error as extern "C" fn(_, _, _, _, _));
-                decl.add_method(sel!(peripheral:didUpdateValueForCharacteristic:error:), delegate_peripheral_didupdatevalueforcharacteristic_error as extern "C" fn(_, _, _, _, _));
-                decl.add_method(sel!(peripheral:didWriteValueForCharacteristic:error:), delegate_peripheral_didwritevalueforcharacteristic_error as extern "C" fn(_, _, _, _, _));
-                decl.add_method(sel!(peripheral:didReadRSSI:error:), delegate_peripheral_didreadrssi_error as extern "C" fn(_, _, _, _, _));
+                decl.add_method(sel!(peripheral:didDiscoverServices:), delegate_peripheral_diddiscoverservices as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object));
+                decl.add_method(sel!(peripheral:didDiscoverIncludedServicesForService:error:), delegate_peripheral_diddiscoverincludedservicesforservice_error as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object));
+                decl.add_method(sel!(peripheral:didDiscoverCharacteristicsForService:error:), delegate_peripheral_diddiscovercharacteristicsforservice_error as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object));
+                decl.add_method(sel!(peripheral:didUpdateValueForCharacteristic:error:), delegate_peripheral_didupdatevalueforcharacteristic_error as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object));
+                decl.add_method(sel!(peripheral:didWriteValueForCharacteristic:error:), delegate_peripheral_didwritevalueforcharacteristic_error as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object));
+                decl.add_method(sel!(peripheral:didReadRSSI:error:), delegate_peripheral_didreadrssi_error as extern "C" fn(&mut Object, Sel, *mut Object, *mut Object, *mut Object));
             }
 
             decl.register();
         });
 
-        AnyClass::get("BlurMacDelegate").unwrap()
+        Class::get("BlurMacDelegate").unwrap()
     }
 
-    extern "C" fn delegate_init(delegate: &mut AnyObject, _cmd: Sel) -> *mut AnyObject {
+    extern "C" fn delegate_init(delegate: &mut Object, _cmd: Sel) -> *mut Object {
         trace!("delegate_init");
         unsafe {
-            delegate.set_ivar::<*mut AnyObject>(DELEGATE_PERIPHERALS_IVAR, ns::mutabledictionary());
+            delegate.set_ivar::<*mut Object>(DELEGATE_PERIPHERALS_IVAR, ns::mutabledictionary());
         }
         delegate
     }
 
     extern "C" fn delegate_centralmanagerdidupdatestate(
-        _delegate: &mut AnyObject,
+        _delegate: &mut Object,
         _cmd: Sel,
-        _central: *mut AnyObject,
+        _central: *mut Object,
     ) {
         trace!("delegate_centralmanagerdidupdatestate");
         // NOTE: this is a no-op but kept because it is a required method of the protocol
     }
 
-    // extern fn delegate_centralmanager_willrestorestate(_delegate: &mut AnyObject, _cmd: Sel, _central: *mut AnyObject, _dict: *mut AnyObject) {
+    // extern fn delegate_centralmanager_willrestorestate(_delegate: &mut Object, _cmd: Sel, _central: *mut Object, _dict: *mut Object) {
     //     trace!("delegate_centralmanager_willrestorestate");
     // }
 
     extern "C" fn delegate_centralmanager_didconnectperipheral(
-        delegate: &mut AnyObject,
+        delegate: &mut Object,
         _cmd: Sel,
-        _central: *mut AnyObject,
-        peripheral: *mut AnyObject,
+        _central: *mut Object,
+        peripheral: *mut Object,
     ) {
         trace!(
             "delegate_centralmanager_didconnectperipheral {}",
@@ -90,11 +90,11 @@ pub mod bm {
     }
 
     extern "C" fn delegate_centralmanager_diddisconnectperipheral_error(
-        delegate: &mut AnyObject,
+        delegate: &mut Object,
         _cmd: Sel,
-        _central: *mut AnyObject,
-        peripheral: *mut AnyObject,
-        _error: *mut AnyObject,
+        _central: *mut Object,
+        peripheral: *mut Object,
+        _error: *mut Object,
     ) {
         trace!(
             "delegate_centralmanager_diddisconnectperipheral_error {}",
@@ -106,17 +106,17 @@ pub mod bm {
         );
     }
 
-    // extern fn delegate_centralmanager_didfailtoconnectperipheral_error(_delegate: &mut AnyObject, _cmd: Sel, _central: *mut AnyObject, _peripheral: *mut AnyObject, _error: *mut AnyObject) {
+    // extern fn delegate_centralmanager_didfailtoconnectperipheral_error(_delegate: &mut Object, _cmd: Sel, _central: *mut Object, _peripheral: *mut Object, _error: *mut Object) {
     //     trace!("delegate_centralmanager_didfailtoconnectperipheral_error");
     // }
 
     extern "C" fn delegate_centralmanager_diddiscoverperipheral_advertisementdata_rssi(
-        delegate: &mut AnyObject,
+        delegate: &mut Object,
         _cmd: Sel,
-        _central: *mut AnyObject,
-        peripheral: *mut AnyObject,
-        adv_data: *mut AnyObject,
-        rssi: *mut AnyObject,
+        _central: *mut Object,
+        peripheral: *mut Object,
+        adv_data: *mut Object,
+        rssi: *mut Object,
     ) {
         trace!(
             "delegate_centralmanager_diddiscoverperipheral_advertisementdata_rssi {}",
@@ -163,10 +163,10 @@ pub mod bm {
     }
 
     extern "C" fn delegate_peripheral_diddiscoverservices(
-        delegate: &mut AnyObject,
+        delegate: &mut Object,
         _cmd: Sel,
-        peripheral: *mut AnyObject,
-        error: *mut AnyObject,
+        peripheral: *mut Object,
+        error: *mut Object,
     ) {
         trace!(
             "delegate_peripheral_diddiscoverservices {} {}",
@@ -193,11 +193,11 @@ pub mod bm {
     }
 
     extern "C" fn delegate_peripheral_diddiscoverincludedservicesforservice_error(
-        delegate: &mut AnyObject,
+        delegate: &mut Object,
         _cmd: Sel,
-        peripheral: *mut AnyObject,
-        service: *mut AnyObject,
-        error: *mut AnyObject,
+        peripheral: *mut Object,
+        service: *mut Object,
+        error: *mut Object,
     ) {
         trace!(
             "delegate_peripheral_diddiscoverincludedservicesforservice_error {} {} {}",
@@ -224,11 +224,11 @@ pub mod bm {
     }
 
     extern "C" fn delegate_peripheral_diddiscovercharacteristicsforservice_error(
-        delegate: &mut AnyObject,
+        delegate: &mut Object,
         _cmd: Sel,
-        peripheral: *mut AnyObject,
-        service: *mut AnyObject,
-        error: *mut AnyObject,
+        peripheral: *mut Object,
+        service: *mut Object,
+        error: *mut Object,
     ) {
         trace!(
             "delegate_peripheral_diddiscovercharacteristicsforservice_error {} {} {}",
@@ -255,11 +255,11 @@ pub mod bm {
     }
 
     extern "C" fn delegate_peripheral_didupdatevalueforcharacteristic_error(
-        delegate: &mut AnyObject,
+        delegate: &mut Object,
         _cmd: Sel,
-        peripheral: *mut AnyObject,
-        characteristic: *mut AnyObject,
-        error: *mut AnyObject,
+        peripheral: *mut Object,
+        characteristic: *mut Object,
+        error: *mut Object,
     ) {
         trace!(
             "delegate_peripheral_didupdatevalueforcharacteristic_error {} {} {}",
@@ -280,11 +280,11 @@ pub mod bm {
     }
 
     extern "C" fn delegate_peripheral_didwritevalueforcharacteristic_error(
-        delegate: &mut AnyObject,
+        delegate: &mut Object,
         _cmd: Sel,
-        peripheral: *mut AnyObject,
-        characteristic: *mut AnyObject,
-        error: *mut AnyObject,
+        peripheral: *mut Object,
+        characteristic: *mut Object,
+        error: *mut Object,
     ) {
         trace!(
             "delegate_peripheral_didwritevalueforcharacteristic_error {} {} {}",
@@ -304,29 +304,29 @@ pub mod bm {
         }
     }
 
-    // extern fn delegate_peripheral_didupdatenotificationstateforcharacteristic_error(_delegate: &mut AnyObject, _cmd: Sel, _peripheral: *mut AnyObject, _characteristic: *mut AnyObject, _error: *mut AnyObject) {
+    // extern fn delegate_peripheral_didupdatenotificationstateforcharacteristic_error(_delegate: &mut Object, _cmd: Sel, _peripheral: *mut Object, _characteristic: *mut Object, _error: *mut Object) {
     //     trace!("delegate_peripheral_didupdatenotificationstateforcharacteristic_error");
     //     // TODO: this is where notifications should be handled...
     // }
 
-    // extern fn delegate_peripheral_diddiscoverdescriptorsforcharacteristic_error(_delegate: &mut AnyObject, _cmd: Sel, _peripheral: *mut AnyObject, _characteristic: *mut AnyObject, _error: *mut AnyObject) {
+    // extern fn delegate_peripheral_diddiscoverdescriptorsforcharacteristic_error(_delegate: &mut Object, _cmd: Sel, _peripheral: *mut Object, _characteristic: *mut Object, _error: *mut Object) {
     //     trace!("delegate_peripheral_diddiscoverdescriptorsforcharacteristic_error");
     // }
 
-    // extern fn delegate_peripheral_didupdatevaluefordescriptor(_delegate: &mut AnyObject, _cmd: Sel, _peripheral: *mut AnyObject, _descriptor: *mut AnyObject, _error: *mut AnyObject) {
+    // extern fn delegate_peripheral_didupdatevaluefordescriptor(_delegate: &mut Object, _cmd: Sel, _peripheral: *mut Object, _descriptor: *mut Object, _error: *mut Object) {
     //     trace!("delegate_peripheral_didupdatevaluefordescriptor");
     // }
 
-    // extern fn delegate_peripheral_didwritevaluefordescriptor_error(_delegate: &mut AnyObject, _cmd: Sel, _peripheral: *mut AnyObject, _descriptor: *mut AnyObject, _error: *mut AnyObject) {
+    // extern fn delegate_peripheral_didwritevaluefordescriptor_error(_delegate: &mut Object, _cmd: Sel, _peripheral: *mut Object, _descriptor: *mut Object, _error: *mut Object) {
     //     trace!("delegate_peripheral_didwritevaluefordescriptor_error");
     // }
 
     extern "C" fn delegate_peripheral_didreadrssi_error(
-        delegate: &mut AnyObject,
+        delegate: &mut Object,
         _cmd: Sel,
-        peripheral: *mut AnyObject,
-        rssi: *mut AnyObject,
-        error: *mut AnyObject,
+        peripheral: *mut Object,
+        rssi: *mut Object,
+        error: *mut Object,
     ) {
         trace!(
             "delegate_peripheral_didreadrssi_error {}",
@@ -346,19 +346,18 @@ pub mod bm {
         }
     }
 
-    pub fn delegate() -> *mut AnyObject {
+    pub fn delegate() -> *mut Object {
         unsafe {
-            let mut delegate: *mut AnyObject = msg_send![delegate_class(), alloc];
+            let mut delegate: *mut Object = msg_send![delegate_class(), alloc];
             delegate = msg_send![delegate, init];
             delegate
         }
     }
 
-    pub fn delegate_peripherals(delegate: *mut AnyObject) -> *mut AnyObject {
+    pub fn delegate_peripherals(delegate: *mut Object) -> *mut Object {
         unsafe {
-            #[expect(deprecated)]
-            let peripherals: *mut AnyObject =
-                *(*delegate).get_ivar::<*mut AnyObject>(DELEGATE_PERIPHERALS_IVAR);
+            let peripherals: *mut Object =
+                *(*delegate).get_ivar::<*mut Object>(DELEGATE_PERIPHERALS_IVAR);
             peripherals
         }
     }
@@ -381,9 +380,9 @@ pub mod bmx {
     use super::*;
 
     pub fn peripheraldata(
-        delegate: *mut AnyObject,
-        peripheral: *mut AnyObject,
-    ) -> Result<*mut AnyObject, Box<dyn Error>> {
+        delegate: *mut Object,
+        peripheral: *mut Object,
+    ) -> Result<*mut Object, Box<dyn Error>> {
         let peripherals = bm::delegate_peripherals(delegate);
         let data = ns::dictionary_objectforkey(
             peripherals,
@@ -397,9 +396,9 @@ pub mod bmx {
     }
 
     pub fn peripheralevents(
-        delegate: *mut AnyObject,
-        peripheral: *mut AnyObject,
-    ) -> Result<*mut AnyObject, Box<dyn Error>> {
+        delegate: *mut Object,
+        peripheral: *mut Object,
+    ) -> Result<*mut Object, Box<dyn Error>> {
         let data = peripheraldata(delegate, peripheral)?;
         Ok(ns::dictionary_objectforkey(
             data,
@@ -407,29 +406,29 @@ pub mod bmx {
         ))
     }
 
-    pub fn includedservicesdiscoveredkey(service: *mut AnyObject) -> *mut AnyObject {
+    pub fn includedservicesdiscoveredkey(service: *mut Object) -> *mut Object {
         suffixedkey(
             service,
             bm::PERIPHERALEVENT_INCLUDEDSERVICESDISCOVEREDKEYSUFFIX,
         )
     }
 
-    pub fn characteristicsdiscoveredkey(service: *mut AnyObject) -> *mut AnyObject {
+    pub fn characteristicsdiscoveredkey(service: *mut Object) -> *mut Object {
         suffixedkey(
             service,
             bm::PERIPHERALEVENT_CHARACTERISTICSDISCOVEREDKEYSUFFIX,
         )
     }
 
-    pub fn valueupdatedkey(characteristic: *mut AnyObject) -> *mut AnyObject {
+    pub fn valueupdatedkey(characteristic: *mut Object) -> *mut Object {
         suffixedkey(characteristic, bm::PERIPHERALEVENT_VALUEUPDATEDKEYSUFFIX)
     }
 
-    pub fn valuewrittenkey(characteristic: *mut AnyObject) -> *mut AnyObject {
+    pub fn valuewrittenkey(characteristic: *mut Object) -> *mut Object {
         suffixedkey(characteristic, bm::PERIPHERALEVENT_VALUEWRITTENKEYSUFFIX)
     }
 
-    fn suffixedkey(attribute: *mut AnyObject, suffix: &str) -> *mut AnyObject {
+    fn suffixedkey(attribute: *mut Object, suffix: &str) -> *mut Object {
         let key = format!(
             "{}{}",
             cbx::uuid_to_canonical_uuid_string(cb::attribute_uuid(attribute)),

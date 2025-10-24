@@ -10,7 +10,7 @@ use std::ffi::{CStr, CString};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::{thread, time};
 
-use objc2::runtime::AnyObject;
+use objc2::runtime::Object;
 
 use crate::framework::{cb, nil, ns};
 
@@ -22,7 +22,7 @@ pub const NO_CHARACTERISTIC_FOUND: &str = "Error! No characteristic found!";
 pub mod nsx {
     use super::*;
 
-    pub fn string_to_string(nsstring: *mut AnyObject) -> String {
+    pub fn string_to_string(nsstring: *mut Object) -> String {
         if nsstring == nil {
             return String::from("nil");
         }
@@ -35,7 +35,7 @@ pub mod nsx {
         }
     }
 
-    pub fn string_from_str(string: &str) -> *mut AnyObject {
+    pub fn string_from_str(string: &str) -> *mut Object {
         let cstring = CString::new(string).unwrap();
         ns::string(cstring.as_ptr())
     }
@@ -44,7 +44,7 @@ pub mod nsx {
 pub mod cbx {
     use super::*;
 
-    pub fn uuid_to_canonical_uuid_string(cbuuid: *mut AnyObject) -> String {
+    pub fn uuid_to_canonical_uuid_string(cbuuid: *mut Object) -> String {
         // NOTE: CoreBluetooth tends to return uppercase UUID strings, and only 4 character long if the
         // UUID is short (16 bits). However, WebBluetooth mandates lowercase UUID strings. And Servo
         // seems to compare strings, not the binary representation.
@@ -57,7 +57,7 @@ pub mod cbx {
         long.to_lowercase()
     }
 
-    pub fn peripheral_debug(peripheral: *mut AnyObject) -> String {
+    pub fn peripheral_debug(peripheral: *mut Object) -> String {
         if peripheral == nil {
             return String::from("nil");
         }
@@ -74,7 +74,7 @@ pub mod cbx {
         }
     }
 
-    pub fn service_debug(service: *mut AnyObject) -> String {
+    pub fn service_debug(service: *mut Object) -> String {
         if service == nil {
             return String::from("nil");
         }
@@ -82,7 +82,7 @@ pub mod cbx {
         format!("CBService({})", nsx::string_to_string(uuid))
     }
 
-    pub fn characteristic_debug(characteristic: *mut AnyObject) -> String {
+    pub fn characteristic_debug(characteristic: *mut Object) -> String {
         if characteristic == nil {
             return String::from("nil");
         }
@@ -102,7 +102,7 @@ pub mod wait {
         TIMESTAMP.fetch_add(1, Ordering::SeqCst) as u64
     }
 
-    pub fn now() -> *mut AnyObject {
+    pub fn now() -> *mut Object {
         ns::number_withunsignedlonglong(get_timestamp())
     }
 

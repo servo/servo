@@ -193,9 +193,6 @@ skip = [
     # really just a build dep, so not a large problem.
     "toml_datetime",
     "toml_edit",
-
-    # blurmac
-    "objc2-encode",
 ]
 
 # github.com organizations to allow git sources for
