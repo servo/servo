@@ -503,12 +503,11 @@ impl DOMString {
             self.str().starts_with(c)
         } else {
             match self.view().encoded_bytes() {
-                EncodedBytes::Latin1Bytes(items) => items.starts_with(&[c as u8]), // We checked for ascii so this is safe
-                EncodedBytes::Utf8Bytes(s) => unsafe {
-                    // Safe because we know it was a utf8 string
-                    str::from_utf8_unchecked(s).starts_with(c)
-                },
+                EncodedBytes::Latin1Bytes(items) => items,
+                EncodedBytes::Utf8Bytes(s) => s,
             }
+            // For both cases as we tested the char being ascii we can safely convert to a single u8.
+            .starts_with(&[c as u8])
         }
     }
 
