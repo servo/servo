@@ -117,6 +117,10 @@ impl<'a> Tokenizer<'a> {
         Ok(ncname)
     }
 
+    /// Parses a single token from the beginning and updates the remaining input accordingly.
+    ///
+    /// ## Panics
+    /// Panics when the remaining input is empty.
     fn consume_single_token(&mut self, expect_operator_token: bool) -> Result<Token<'a>, Error> {
         if self.remaining.starts_with('$') {
             self.remaining = &self.remaining[1..];
@@ -162,7 +166,12 @@ impl<'a> Tokenizer<'a> {
             }
         }
 
-        match self.remaining.chars().next().unwrap() {
+        match self
+            .remaining
+            .chars()
+            .next()
+            .expect("consume_single_token called with empty input")
+        {
             '0'..='9' => {
                 let number = self.consume_numeric_literal();
                 Ok(Token::Literal(number))
@@ -263,7 +272,7 @@ impl<'a> Tokenizer<'a> {
                 Ok(Token::Operator(OperatorToken::Add))
             },
             other => {
-                println!("Illegal character: {other:?}");
+                log::debug!("Illegal character: {other:?}");
                 Err(Error::IllegalCharacter)
             },
         }

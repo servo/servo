@@ -359,11 +359,7 @@ where
             } else {
                 let namespace = name_token
                     .prefix
-                    .map(|prefix| {
-                        self.resolve_qualified_name(prefix)
-                            .inspect_err(|e| println!("{e:?}"))
-                            .map_err(Error::JsError)
-                    })
+                    .map(|prefix| self.resolve_qualified_name(prefix).map_err(Error::JsError))
                     .transpose()?
                     .flatten();
 
