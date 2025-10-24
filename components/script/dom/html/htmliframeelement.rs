@@ -84,6 +84,7 @@ pub(crate) struct HTMLIFrameElement {
     throttled: Cell<bool>,
     #[conditional_malloc_size_of]
     script_window_proxies: Rc<ScriptWindowProxies>,
+    pending_navigation: Cell<bool>,
 }
 
 impl HTMLIFrameElement {
@@ -441,6 +442,9 @@ impl HTMLIFrameElement {
         reason: UpdatePipelineIdReason,
         can_gc: CanGc,
     ) {
+        if self.pending_pipeline_id.get() != self.about_blank_pipeline_id.get() {
+            self.pending_navigation.set(false);
+        }
         if self.pending_pipeline_id.get() != Some(new_pipeline_id) &&
             reason == UpdatePipelineIdReason::Navigation
         {
@@ -476,6 +480,7 @@ impl HTMLIFrameElement {
             load_blocker: DomRefCell::new(None),
             throttled: Cell::new(false),
             script_window_proxies: ScriptThread::window_proxies(),
+            pending_navigation: Default::default(),
         }
     }
 
@@ -525,6 +530,10 @@ impl HTMLIFrameElement {
         }
     }
 
+    pub(crate) fn note_pending_navigation(&self) {
+        self.pending_navigation.set(true);
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#iframe-load-event-steps> steps 1-4
     pub(crate) fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId, can_gc: CanGc) {
         // TODO(#9592): assert that the load blocker is present at all times when we
@@ -544,7 +553,7 @@ impl HTMLIFrameElement {
         // is run through the document completion steps
         // like any other document(and this is hard to refactor).
         // this flag is necessary to prevent the load event steps from running.
-        if !self.is_initial_blank_document() {
+        if !self.is_initial_blank_document() && !self.pending_navigation.get() {
             // Step 4
             self.upcast::<EventTarget>()
                 .fire_event(atom!("load"), can_gc);

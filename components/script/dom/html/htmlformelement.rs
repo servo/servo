@@ -1060,6 +1060,14 @@ impl HTMLFormElement {
         load_data.referrer = referrer;
         load_data.referrer_policy = referrer_policy;
 
+        use crate::dom::types::HTMLIFrameElement;
+        if let Some(window_proxy) = target.undiscarded_window_proxy() {
+            if let Some(frame) = window_proxy
+                .frame_element()
+                .and_then(|e| e.downcast::<HTMLIFrameElement>())
+            {frame.note_pending_navigation()}
+        }
+
         // 4. Queue an element task on the DOM manipulation task source
         // given the form element and the following steps:
         let form = Trusted::new(self);
