@@ -14,7 +14,8 @@ path = "lib.rs"
 [features]
 default = []
 tracing = ["dep:tracing"]
-webxr = ["dep:webxr"]
+webgpu = ["dep:webgpu"]
+webxr = ["dep:webxr", "dep:webxr-api"]
 
 [lints.clippy]
 unwrap_used = "deny"
@@ -24,6 +25,7 @@ panic = "deny"
 base = { workspace = true }
 bincode = { workspace = true }
 bitflags = { workspace = true }
+canvas_traits = { workspace = true }
 compositing_traits = { workspace = true }
 constellation_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
@@ -35,6 +37,7 @@ image = { workspace = true }
 ipc-channel = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
+media = { path = "../media" }
 malloc_size_of = { workspace = true }
 pixels = { path = "../pixels" }
 profile_traits = { workspace = true }
@@ -47,9 +50,12 @@ servo_geometry = { path = "../geometry" }
 stylo_traits = { workspace = true }
 timers = { path = "../timers" }
 tracing = { workspace = true, optional = true }
+webgl = { path = "../webgl" }
+webgpu = { path = "../webgpu", optional = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webxr = { path = "../webxr", optional = true }
+webxr-api = { workspace = true, optional = true }
 wr_malloc_size_of = { workspace = true }
 
 [dev-dependencies]

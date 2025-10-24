@@ -8,8 +8,8 @@ use std::sync::{Arc, Mutex};
 use canvas_traits::webgl::{GlType, WebGLContextId, WebGLMsg, WebGLThreads, webgl_channel};
 use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::{
-    CrossProcessCompositorApi, ExternalImageSource, WebrenderExternalImageApi,
-    WebrenderExternalImageRegistry,
+    CrossProcessCompositorApi, ExternalImageSource, WebRenderExternalImageApi,
+    WebRenderExternalImageRegistry,
 };
 use euclid::default::Size2D;
 use log::debug;
@@ -25,7 +25,7 @@ use crate::webgl_thread::{WebGLThread, WebGLThreadInit};
 
 pub struct WebGLComm {
     pub webgl_threads: WebGLThreads,
-    pub image_handler: Box<dyn WebrenderExternalImageApi>,
+    pub image_handler: Box<dyn WebRenderExternalImageApi>,
     #[cfg(feature = "webxr")]
     pub webxr_layer_grand_manager: WebXRLayerGrandManager<WebXRSurfman>,
 }
@@ -35,7 +35,7 @@ impl WebGLComm {
     pub fn new(
         rendering_context: Rc<dyn RenderingContext>,
         compositor_api: CrossProcessCompositorApi,
-        external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+        external_images: Arc<Mutex<WebRenderExternalImageRegistry>>,
         api_type: GlType,
     ) -> WebGLComm {
         debug!("WebGLThreads::new()");
@@ -129,7 +129,7 @@ impl WebGLExternalImages {
     }
 }
 
-impl WebrenderExternalImageApi for WebGLExternalImages {
+impl WebRenderExternalImageApi for WebGLExternalImages {
     fn lock(&mut self, id: u64) -> (ExternalImageSource<'_>, Size2D<i32>) {
         let id = WebGLContextId(id);
         let (texture_id, size) = self.lock_swap_chain(id).unwrap_or_default();

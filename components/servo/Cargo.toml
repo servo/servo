@@ -53,6 +53,7 @@ webgl_backtrace = [
 ]
 webgpu = [
     "script/webgpu",
+    "compositing/webgpu",
     "constellation/webgpu",
     "constellation_traits/webgpu",
 ]

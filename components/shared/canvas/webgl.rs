@@ -67,6 +67,7 @@ pub struct WebGLCommandBacktrace {
 }
 
 /// WebGL Threading API entry point that lives in the constellation.
+#[derive(Clone)]
 pub struct WebGLThreads(pub WebGLSender<WebGLMsg>);
 
 impl WebGLThreads {

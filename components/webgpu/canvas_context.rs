@@ -11,7 +11,7 @@ use arrayvec::ArrayVec;
 use base::Epoch;
 use compositing_traits::{
     CrossProcessCompositorApi, ExternalImageSource, SerializableImageData,
-    WebrenderExternalImageApi,
+    WebRenderExternalImageApi,
 };
 use euclid::default::Size2D;
 use ipc_channel::ipc::IpcSender;
@@ -314,7 +314,7 @@ pub struct WGPUExternalImages {
     pub locked_ids: FxHashMap<WebGPUContextId, PresentationStagingBuffer>,
 }
 
-impl WebrenderExternalImageApi for WGPUExternalImages {
+impl WebRenderExternalImageApi for WGPUExternalImages {
     fn lock(&mut self, id: u64) -> (ExternalImageSource<'_>, Size2D<i32>) {
         let id = WebGPUContextId(id);
         let presentation = {

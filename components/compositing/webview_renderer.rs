@@ -198,7 +198,7 @@ impl WebViewRenderer {
             return;
         }
 
-        let _ = self.global.borrow().constellation_sender.send(
+        let _ = self.global.borrow().embedder_to_constellation_sender.send(
             EmbedderToConstellationMessage::SetScrollStates(pipeline_id, scroll_offsets),
         );
     }
@@ -322,7 +322,7 @@ impl WebViewRenderer {
             _ => unreachable!("Unexpected input event type: {event:?}"),
         }
 
-        if let Err(error) = self.global.borrow().constellation_sender.send(
+        if let Err(error) = self.global.borrow().embedder_to_constellation_sender.send(
             EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, hit_test_result),
         ) {
             warn!("Sending event to constellation failed ({error:?}).");
@@ -787,7 +787,12 @@ impl WebViewRenderer {
             event,
             Some(hit_test_result),
         );
-        if let Err(e) = self.global.borrow().constellation_sender.send(msg) {
+        if let Err(e) = self
+            .global
+            .borrow()
+            .embedder_to_constellation_sender
+            .send(msg)
+        {
             warn!("Sending scroll event to constellation failed ({:?}).", e);
         }
     }
@@ -866,7 +871,12 @@ impl WebViewRenderer {
             },
             WindowSizeType::Resize,
         );
-        if let Err(e) = self.global.borrow().constellation_sender.send(msg) {
+        if let Err(e) = self
+            .global
+            .borrow()
+            .embedder_to_constellation_sender
+            .send(msg)
+        {
             warn!("Sending window resize to constellation failed ({:?}).", e);
         }
     }

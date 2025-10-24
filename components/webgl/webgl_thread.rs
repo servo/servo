@@ -25,8 +25,8 @@ use canvas_traits::webgl::{
     WebGLVersion, WebGLVertexArrayId, YAxisTreatment,
 };
 use compositing_traits::{
-    CrossProcessCompositorApi, SerializableImageData, WebrenderExternalImageRegistry,
-    WebrenderImageHandlerType,
+    CrossProcessCompositorApi, SerializableImageData, WebRenderExternalImageRegistry,
+    WebRenderImageHandlerType,
 };
 use euclid::default::Size2D;
 use glow::{
@@ -215,7 +215,7 @@ pub(crate) struct WebGLThread {
     bound_context_id: Option<WebGLContextId>,
     /// List of registered webrender external images.
     /// We use it to get an unique ID for new WebGLContexts.
-    external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+    external_images: Arc<Mutex<WebRenderExternalImageRegistry>>,
     /// The receiver that will be used for processing WebGL messages.
     receiver: RoutedReceiver<WebGLMsg>,
     /// The receiver that should be used to send WebGL messages for processing.
@@ -232,7 +232,7 @@ pub(crate) struct WebGLThread {
 /// The data required to initialize an instance of the WebGLThread type.
 pub(crate) struct WebGLThreadInit {
     pub compositor_api: CrossProcessCompositorApi,
-    pub external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+    pub external_images: Arc<Mutex<WebRenderExternalImageRegistry>>,
     pub sender: WebGLSender<WebGLMsg>,
     pub receiver: WebGLReceiver<WebGLMsg>,
     pub webrender_swap_chains: SwapChains<WebGLContextId, Device>,
@@ -550,7 +550,7 @@ impl WebGLThread {
             self.external_images
                 .lock()
                 .expect("Lock poisoned?")
-                .next_id(WebrenderImageHandlerType::WebGL)
+                .next_id(WebRenderImageHandlerType::WebGl)
                 .0,
         );
 

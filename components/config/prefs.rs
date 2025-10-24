@@ -11,11 +11,11 @@ pub use crate::pref_util::PrefValue;
 
 static PREFERENCES: RwLock<Preferences> = RwLock::new(Preferences::const_default());
 
-pub trait Observer: Send + Sync {
+pub trait PreferencesObserver: Send + Sync {
     fn prefs_changed(&self, _changes: &[(&'static str, PrefValue)]) {}
 }
 
-static OBSERVERS: RwLock<Vec<Box<dyn Observer>>> = RwLock::new(Vec::new());
+static OBSERVERS: RwLock<Vec<Box<dyn PreferencesObserver>>> = RwLock::new(Vec::new());
 
 #[inline]
 /// Get the current set of global preferences for Servo.
@@ -23,7 +23,7 @@ pub fn get() -> RwLockReadGuard<'static, Preferences> {
     PREFERENCES.read().unwrap()
 }
 
-pub fn add_observer(observer: Box<dyn Observer>) {
+pub fn add_observer(observer: Box<dyn PreferencesObserver>) {
     OBSERVERS.write().unwrap().push(observer);
 }
 
