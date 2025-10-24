@@ -750,6 +750,10 @@ impl RunningAppState {
                             webview_id, text
                         );
                     },
+                    WebDriverCommandMsg::GetViewportSize(webview_id, response_sender) => {
+                        info!("Handling GetViewportSize for webview {}", webview_id);
+                        let _ = response_sender.send(self.rendering_context.size2d());
+                    },
                     _ => {
                         info!("Received WebDriver command: {:?}", msg);
                     },
