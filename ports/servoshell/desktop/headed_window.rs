@@ -15,7 +15,7 @@ use std::time::Duration;
 
 use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D, Vector3D};
 use keyboard_types::ShortcutMatcher;
-use log::{debug, info};
+use log::debug;
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
 use servo::servo_geometry::{
     DeviceIndependentIntRect, DeviceIndependentPixel, convert_rect_to_css_pixel,
@@ -62,13 +62,9 @@ pub struct Window {
     toolbar_height: Cell<Length<f32, DeviceIndependentPixel>>,
     monitor: winit::monitor::MonitorHandle,
     webview_relative_mouse_point: Cell<Point2D<f32, DevicePixel>>,
-    last_pressed: Cell<Option<(KeyboardEvent, Option<LogicalKey>)>>,
     /// The inner size of the window in physical pixels which excludes OS decorations.
     /// It equals viewport size + (0, toolbar height).
     inner_size: Cell<PhysicalSize<u32>>,
-    /// A map of winit's key codes to key values that are interpreted from
-    /// winit's ReceivedChar events.
-    keys_down: RefCell<HashMap<LogicalKey, Key>>,
     fullscreen: Cell<bool>,
     device_pixel_ratio_override: Option<f32>,
     xr_window_poses: RefCell<Vec<Rc<XRWindowPose>>>,
@@ -182,8 +178,6 @@ impl Window {
         Window {
             winit_window,
             webview_relative_mouse_point: Cell::new(Point2D::zero()),
-            last_pressed: Cell::new(None),
-            keys_down: RefCell::new(HashMap::new()),
             fullscreen: Cell::new(false),
             inner_size: Cell::new(inner_size),
             monitor,
@@ -202,54 +196,9 @@ impl Window {
         }
     }
 
-    fn handle_received_character(&self, webview: &WebView, mut character: char) {
-        info!("winit received character: {:?}", character);
-        if character.is_control() {
-            if character as u8 >= 32 {
-                return;
-            }
-            // shift ASCII control characters to lowercase
-            character = (character as u8 + 96) as char;
-        }
-        let (mut event, key_code) = if let Some((event, key_code)) = self.last_pressed.replace(None)
-        {
-            (event, key_code)
-        } else if character.is_ascii() {
-            // Some keys like Backspace emit a control character in winit
-            // but they are already dealt with in handle_keyboard_input
-            // so just ignore the character.
-            return;
-        } else {
-            // For combined characters like the letter e with an acute accent
-            // no keyboard event is emitted. A dummy event is created in this case.
-            (KeyboardEvent::default(), None)
-        };
-        event.event.key = Key::Character(character.to_string());
-
-        if event.event.state == KeyState::Down {
-            // Ensure that when we receive a keyup event from winit, we are able
-            // to infer that it's related to this character and set the event
-            // properties appropriately.
-            if let Some(key_code) = key_code {
-                self.keys_down
-                    .borrow_mut()
-                    .insert(key_code, event.event.key.clone());
-            }
-        }
-
-        let xr_poses = self.xr_window_poses.borrow();
-        for xr_window_pose in &*xr_poses {
-            xr_window_pose.handle_xr_translation(&event);
-        }
-
-        let id = webview.notify_input_event(InputEvent::Keyboard(event.clone()));
-        self.pending_keyboard_events.borrow_mut().insert(id, event);
-    }
-
     fn handle_keyboard_input(&self, state: Rc<RunningAppState>, winit_event: KeyEvent) {
         // First, handle servoshell key bindings that are not overridable by, or visible to, the page.
-        let mut keyboard_event =
-            keyboard_event_from_winit(&winit_event, self.modifiers_state.get());
+        let keyboard_event = keyboard_event_from_winit(&winit_event, self.modifiers_state.get());
         if self.handle_intercepted_key_bindings(state.clone(), &keyboard_event) {
             return;
         }
@@ -259,44 +208,15 @@ impl Window {
             return;
         };
 
-        if let Some(input_text) = &winit_event.text {
-            for character in input_text.chars() {
-                self.handle_received_character(&webview, character);
-            }
+        for xr_window_pose in self.xr_window_poses.borrow().iter() {
+            xr_window_pose.handle_xr_rotation(&winit_event, self.modifiers_state.get());
+            xr_window_pose.handle_xr_translation(&keyboard_event);
         }
 
-        if keyboard_event.event.state == KeyState::Down &&
-            keyboard_event.event.key == Key::Named(NamedKey::Unidentified)
-        {
-            // If pressed and probably printable, we expect a ReceivedCharacter event.
-            // Wait for that to be received and don't queue any event right now.
-            self.last_pressed
-                .set(Some((keyboard_event, Some(winit_event.logical_key))));
-            return;
-        } else if keyboard_event.event.state == KeyState::Up &&
-            keyboard_event.event.key == Key::Named(NamedKey::Unidentified)
-        {
-            // If release and probably printable, this is following a ReceiverCharacter event.
-            if let Some(key) = self.keys_down.borrow_mut().remove(&winit_event.logical_key) {
-                keyboard_event.event.key = key;
-            }
-        }
-
-        if keyboard_event.event.key != Key::Named(NamedKey::Unidentified) {
-            self.last_pressed.set(None);
-            let xr_poses = self.xr_window_poses.borrow();
-            for xr_window_pose in &*xr_poses {
-                xr_window_pose.handle_xr_rotation(&winit_event, self.modifiers_state.get());
-            }
-
-            let id = webview.notify_input_event(InputEvent::Keyboard(keyboard_event.clone()));
-            self.pending_keyboard_events
-                .borrow_mut()
-                .insert(id, keyboard_event);
-        }
-
-        // servoshell also has key bindings that are visible to, and overridable by, the page.
-        // See the handler for EmbedderMsg::Keyboard in webview.rs for those.
+        let id = webview.notify_input_event(InputEvent::Keyboard(keyboard_event.clone()));
+        self.pending_keyboard_events
+            .borrow_mut()
+            .insert(id, keyboard_event);
     }
 
     /// Helper function to handle a click
