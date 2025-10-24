@@ -7,8 +7,6 @@
 interface HTMLMapElement : HTMLElement {
   [HTMLConstructor] constructor();
 
-  // [CEReactions]
-  //          attribute DOMString name;
-  // readonly attribute HTMLCollection areas;
-  // readonly attribute HTMLCollection images;
+  [CEReactions] attribute DOMString name;
+  [SameObject] readonly attribute HTMLCollection areas;
 };
