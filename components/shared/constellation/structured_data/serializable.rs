@@ -17,7 +17,7 @@ use base::id::{
 use euclid::default::Transform3D;
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::filemanager_thread::RelativePos;
-use pixels::Snapshot;
+use pixels::SharedSnapshot;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_url::ImmutableOrigin;
@@ -451,7 +451,7 @@ impl BroadcastClone for SerializableQuotaExceededError {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 /// A serializable version of the ImageBitmap interface.
 pub struct SerializableImageBitmap {
-    pub bitmap_data: Snapshot,
+    pub bitmap_data: SharedSnapshot,
 }
 
 impl BroadcastClone for SerializableImageBitmap {

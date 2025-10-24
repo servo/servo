@@ -14,7 +14,7 @@ use ipc_channel::ipc::IpcSender;
 use kurbo::{BezPath, ParamCurveNearest as _, PathEl, Point, Shape, Triangle};
 use malloc_size_of::MallocSizeOf;
 use malloc_size_of_derive::MallocSizeOf;
-use pixels::IpcSnapshot;
+use pixels::SharedSnapshot;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 use style::color::AbsoluteColor;
@@ -448,7 +448,7 @@ pub enum CanvasMsg {
 #[derive(Debug, Deserialize, Serialize, strum::Display)]
 pub enum Canvas2dMsg {
     DrawImage(
-        IpcSnapshot,
+        SharedSnapshot,
         Rect<f64>,
         Rect<f64>,
         bool,
@@ -508,8 +508,8 @@ pub enum Canvas2dMsg {
         CompositionOptions,
         Transform2D<f64>,
     ),
-    GetImageData(Option<Rect<u32>>, IpcSender<IpcSnapshot>),
-    PutImageData(Rect<u32>, IpcSnapshot),
+    GetImageData(Option<Rect<u32>>, IpcSender<SharedSnapshot>),
+    PutImageData(Rect<u32>, SharedSnapshot),
     StrokeRect(
         Rect<f32>,
         FillOrStrokeStyle,
@@ -597,7 +597,7 @@ impl RadialGradientStyle {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SurfaceStyle {
-    pub surface_data: IpcSnapshot,
+    pub surface_data: SharedSnapshot,
     pub surface_size: Size2D<u32>,
     pub repeat_x: bool,
     pub repeat_y: bool,
@@ -606,7 +606,7 @@ pub struct SurfaceStyle {
 
 impl SurfaceStyle {
     pub fn new(
-        surface_data: IpcSnapshot,
+        surface_data: SharedSnapshot,
         surface_size: Size2D<u32>,
         repeat_x: bool,
         repeat_y: bool,

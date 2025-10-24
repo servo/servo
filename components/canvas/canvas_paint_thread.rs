@@ -270,7 +270,7 @@ impl CanvasPaintThread {
             },
             Canvas2dMsg::GetImageData(dest_rect, sender) => {
                 let snapshot = self.canvas(canvas_id).read_pixels(dest_rect);
-                sender.send(snapshot.as_ipc()).unwrap();
+                sender.send(snapshot.to_shared()).unwrap();
             },
             Canvas2dMsg::PutImageData(rect, snapshot) => {
                 self.canvas(canvas_id)

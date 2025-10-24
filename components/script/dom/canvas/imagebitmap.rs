@@ -643,9 +643,13 @@ impl Serializable for ImageBitmap {
             return Err(());
         }
 
+        let Some(bitmap_data) = &*self.bitmap_data.borrow() else {
+            return Err(());
+        };
+
         // Step 2. Set serialized.[[BitmapData]] to a copy of value's bitmap data.
         let serialized = SerializableImageBitmap {
-            bitmap_data: self.bitmap_data.borrow().clone().unwrap(),
+            bitmap_data: bitmap_data.to_shared(),
         };
 
         Ok((ImageBitmapId::new(), serialized))
@@ -658,7 +662,11 @@ impl Serializable for ImageBitmap {
         can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()> {
         // Step 1. Set value's bitmap data to serialized.[[BitmapData]].
-        Ok(ImageBitmap::new(owner, serialized.bitmap_data, can_gc))
+        Ok(ImageBitmap::new(
+            owner,
+            serialized.bitmap_data.to_owned(),
+            can_gc,
+        ))
     }
 
     fn serialized_storage<'a>(
@@ -691,10 +699,14 @@ impl Transferable for ImageBitmap {
             return Err(Error::DataClone(None));
         }
 
+        let Some(bitmap_data) = self.bitmap_data.borrow_mut().take() else {
+            return Err(Error::DataClone(None));
+        };
+
         // Step 2. Set dataHolder.[[BitmapData]] to value's bitmap data.
         // Step 3. Unset value's bitmap data.
         let transferred = SerializableImageBitmap {
-            bitmap_data: self.bitmap_data.borrow_mut().take().unwrap(),
+            bitmap_data: bitmap_data.to_shared(),
         };
 
         Ok((ImageBitmapId::new(), transferred))
@@ -709,7 +721,7 @@ impl Transferable for ImageBitmap {
         // Step 1. Set value's bitmap data to serialized.[[BitmapData]].
         Ok(ImageBitmap::new(
             owner,
-            transferred.bitmap_data,
+            transferred.bitmap_data.to_owned(),
             CanGc::note(),
         ))
     }

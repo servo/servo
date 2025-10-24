@@ -147,16 +147,14 @@ impl Convert<peniko::Brush> for FillOrStrokeStyle {
                 peniko::Brush::Gradient(gradient)
             },
             Surface(surface_style) => {
-                let data = surface_style
-                    .surface_data
-                    .to_owned()
-                    .to_vec(
-                        Some(SnapshotAlphaMode::Transparent {
-                            premultiplied: false,
-                        }),
-                        Some(SnapshotPixelFormat::RGBA),
-                    )
-                    .0;
+                let mut snapshot = surface_style.surface_data.to_owned();
+                snapshot.transform(
+                    SnapshotAlphaMode::Transparent {
+                        premultiplied: false,
+                    },
+                    SnapshotPixelFormat::RGBA,
+                );
+                let data: Vec<u8> = snapshot.into();
                 peniko::Brush::Image(peniko::Image {
                     data: peniko::Blob::from(data),
                     format: peniko::ImageFormat::Rgba8,
