@@ -14,19 +14,24 @@ mod common;
 
 use std::rc::Rc;
 
-use anyhow::ensure;
-use common::{ServoTest, WebViewDelegateImpl, evaluate_javascript, run_api_tests};
+use common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
 use servo::{JSValue, WebViewBuilder, run_content_process};
 use servo_config::{opts, prefs};
 
-fn test_multiprocess_preference_observer(servo_test: &ServoTest) -> Result<(), anyhow::Error> {
+fn test_multiprocess_preference_observer() {
+    let servo_test = ServoTest::new_with_builder(|builder| {
+        let mut opts = opts::Opts::default();
+        opts.multiprocess = true;
+        builder.opts(opts)
+    });
+
     let delegate = Rc::new(WebViewDelegateImpl::default());
     let webview = WebViewBuilder::new(servo_test.servo())
         .delegate(delegate.clone())
         .build();
 
-    let result = evaluate_javascript(servo_test, webview.clone(), "window.gc");
-    ensure!(matches!(result, Ok(JSValue::Undefined)));
+    let result = evaluate_javascript(&servo_test, webview.clone(), "window.gc");
+    assert_eq!(result, Ok(JSValue::Undefined));
 
     let mut prefs = prefs::get().clone();
     prefs.dom_servo_helpers_enabled = true;
@@ -34,12 +39,10 @@ fn test_multiprocess_preference_observer(servo_test: &ServoTest) -> Result<(), a
 
     delegate.load_status_changed.set(false);
     webview.reload();
-    let _ = servo_test.spin(move || Ok(!delegate.load_status_changed.get()));
+    servo_test.spin(move || !delegate.load_status_changed.get());
 
-    let result = evaluate_javascript(servo_test, webview.clone(), "window.gc");
-    ensure!(matches!(result, Ok(JSValue::Object(..))));
-
-    Ok(())
+    let result = evaluate_javascript(&servo_test, webview.clone(), "window.gc");
+    assert!(matches!(result, Ok(JSValue::Object(..))));
 }
 
 fn main() {
@@ -59,12 +62,25 @@ fn main() {
         return run_content_process(token);
     }
 
-    run_api_tests!(
-        setup: |builder| {
-            let mut opts = opts::Opts::default();
-            opts.multiprocess = true;
-            builder.opts(opts)
-        },
-        test_multiprocess_preference_observer
-    );
+    // See nextest custom test harness requirements:
+    // <https://nexte.st/docs/design/custom-test-harnesses/>
+    let args = std::env::args().collect::<Vec<_>>();
+
+    // If there are no ignored tests or if the test harness doesn't support ignored tests,
+    // the output MUST be empty
+    if args.contains(&String::from("--ignored")) {
+        return;
+    }
+
+    // Expected output:
+    // ```
+    // my-test-1: test
+    // my-test-2: test
+    // ```
+    if args.contains(&String::from("--list")) {
+        println!("test_multiprocess_preference_observer: test");
+        return;
+    }
+
+    test_multiprocess_preference_observer();
 }

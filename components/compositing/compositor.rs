@@ -1243,7 +1243,7 @@ impl IOCompositor {
         self.set_needs_repaint(RepaintReason::Resize);
     }
 
-    pub fn on_zoom_window_event(&mut self, webview_id: WebViewId, new_zoom: f32) {
+    pub fn set_page_zoom(&mut self, webview_id: WebViewId, new_zoom: f32) {
         if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
@@ -1251,6 +1251,13 @@ impl IOCompositor {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
             webview_renderer.set_page_zoom(Scale::new(new_zoom));
         }
+    }
+
+    pub fn page_zoom(&mut self, webview_id: WebViewId) -> f32 {
+        self.webview_renderers
+            .get(webview_id)
+            .map(|webview_renderer| webview_renderer.page_zoom.get())
+            .unwrap_or_default()
     }
 
     /// Returns true if any animation callbacks (ie `requestAnimationFrame`) are waiting for a response.

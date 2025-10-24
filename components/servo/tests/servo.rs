@@ -12,16 +12,10 @@
 #[allow(dead_code)]
 mod common;
 
-use anyhow::ensure;
-use common::{ServoTest, run_api_tests};
+use common::ServoTest;
 
-fn test_simple_servo_is_not_animating_by_default(
-    servo_test: &ServoTest,
-) -> Result<(), anyhow::Error> {
-    ensure!(!servo_test.servo().animating());
-    Ok(())
-}
-
-fn main() {
-    run_api_tests!(test_simple_servo_is_not_animating_by_default);
+#[test]
+fn test_simple_servo_is_not_animating_by_default() {
+    let servo_test = ServoTest::new();
+    assert!(!servo_test.servo().animating());
 }

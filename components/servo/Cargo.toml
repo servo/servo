@@ -138,7 +138,6 @@ gaol = "0.2.1"
 webxr = { path = "../webxr", features = ["ipc", "glwindow", "headless", "openxr-api"] }
 
 [dev-dependencies]
-anyhow = "1.0.97"
 http = { workspace = true }
 libservo = { path = ".", features = ["tracing"] }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs"] }
@@ -147,11 +146,9 @@ winit = { workspace = true }
 
 [[test]]
 name = "webview"
-harness = false
 
 [[test]]
 name = "servo"
-harness = false
 
 [[test]]
 name = "multiprocess"

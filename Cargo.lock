@@ -4961,7 +4961,6 @@ dependencies = [
 name = "libservo"
 version = "0.0.1"
 dependencies = [
- "anyhow",
  "arboard",
  "background_hang_monitor",
  "base",
