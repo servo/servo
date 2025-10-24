@@ -63,7 +63,7 @@ use crate::refresh_driver::{AnimationRefreshDriverObserver, BaseRefreshDriver};
 use crate::render_notifier::RenderNotifier;
 use crate::screenshot::ScreenshotTaker;
 use crate::webview_manager::WebViewManager;
-use crate::webview_renderer::{PinchZoomResult, UnknownWebView, WebViewRenderer};
+use crate::webview_renderer::{PinchZoomResult, ScrollResult, UnknownWebView, WebViewRenderer};
 
 /// An option to control what kind of WebRender debugging is enabled while Servo is running.
 #[derive(Clone)]
@@ -611,7 +611,12 @@ impl IOCompositor {
                 self.global.borrow_mut().send_transaction(txn);
             },
 
-            CompositorMsg::SendScrollNode(webview_id, pipeline_id, offset, external_scroll_id) => {
+            CompositorMsg::ScrollNodeByDelta(
+                webview_id,
+                pipeline_id,
+                offset,
+                external_scroll_id,
+            ) => {
                 let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     return;
                 };
@@ -646,6 +651,18 @@ impl IOCompositor {
                 );
                 self.generate_frame(&mut txn, RenderReasons::APZ);
                 self.global.borrow_mut().send_transaction(txn);
+            },
+
+            CompositorMsg::ScrollViewportByDelta(webview_id, delta) => {
+                let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
+                    return;
+                };
+                let (pinch_zoom_result, scroll_results) =
+                    webview_renderer.scroll_viewport_by_delta(delta);
+                self.send_zoom_and_scroll_offset_updates(
+                    pinch_zoom_result == PinchZoomResult::DidPinchZoom,
+                    scroll_results,
+                );
             },
 
             CompositorMsg::UpdateEpoch {
@@ -1507,27 +1524,36 @@ impl IOCompositor {
                 scroll_result
             })
             .collect();
-
-        if need_zoom || !scroll_offset_updates.is_empty() {
-            let mut transaction = Transaction::new();
-            if need_zoom {
-                self.send_root_pipeline_display_list_in_transaction(&mut transaction);
-            }
-            for update in scroll_offset_updates {
-                transaction.set_scroll_offsets(
-                    update.external_scroll_id,
-                    vec![SampledScrollOffset {
-                        offset: update.offset,
-                        generation: 0,
-                    }],
-                );
-            }
-
-            self.generate_frame(&mut transaction, RenderReasons::APZ);
-            self.global.borrow_mut().send_transaction(transaction);
-        }
+        self.send_zoom_and_scroll_offset_updates(need_zoom, scroll_offset_updates);
 
         self.global.borrow().shutdown_state() != ShutdownState::FinishedShuttingDown
+    }
+
+    pub(crate) fn send_zoom_and_scroll_offset_updates(
+        &self,
+        need_zoom: bool,
+        scroll_offset_updates: Vec<ScrollResult>,
+    ) {
+        if !need_zoom && scroll_offset_updates.is_empty() {
+            return;
+        }
+
+        let mut transaction = Transaction::new();
+        if need_zoom {
+            self.send_root_pipeline_display_list_in_transaction(&mut transaction);
+        }
+        for update in scroll_offset_updates {
+            transaction.set_scroll_offsets(
+                update.external_scroll_id,
+                vec![SampledScrollOffset {
+                    offset: update.offset,
+                    generation: 0,
+                }],
+            );
+        }
+
+        self.generate_frame(&mut transaction, RenderReasons::APZ);
+        self.global.borrow_mut().send_transaction(transaction);
     }
 
     pub fn toggle_webrender_debug(&mut self, option: WebRenderDebugOption) {

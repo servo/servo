@@ -28,7 +28,7 @@ use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint, DeviceRect,
 use webrender_api::{ExternalScrollId, ScrollLocation};
 
 use crate::compositor::{PipelineDetails, ServoRenderer};
-use crate::pinch_zoom::PinchZoom;
+use crate::pinch_zoom::{DeviceScroll, PinchZoom};
 use crate::touch::{
     FlingRefreshDriverObserver, PendingTouchInputEvent, TouchHandler, TouchMoveAllowed,
     TouchSequenceState,
@@ -774,6 +774,63 @@ impl WebViewRenderer {
             }
         }
         None
+    }
+
+    /// Scroll the viewport (root pipeline, root scroll node) of this WebView, but first
+    /// attempting to pan the pinch zoom viewport. This is called when processing
+    /// key-based scrolling from script.
+    pub(crate) fn scroll_viewport_by_delta(
+        &mut self,
+        delta: LayoutVector2D,
+    ) -> (PinchZoomResult, Vec<ScrollResult>) {
+        let device_pixels_per_page_pixel = self.device_pixels_per_page_pixel();
+        let delta_in_device_pixels = delta.cast_unit() * device_pixels_per_page_pixel;
+        let remaining = self
+            .pinch_zoom
+            .pan_with_device_scroll(DeviceScroll::Delta(delta_in_device_pixels));
+
+        let pinch_zoom_result = match remaining == delta_in_device_pixels {
+            true => PinchZoomResult::DidNotPinchZoom,
+            false => PinchZoomResult::DidPinchZoom,
+        };
+        if remaining == Vector2D::zero() {
+            return (pinch_zoom_result, vec![]);
+        }
+
+        let Some(root_pipeline_id) = self.root_pipeline_id else {
+            return (pinch_zoom_result, vec![]);
+        };
+        let Some(root_pipeline) = self.pipelines.get_mut(&root_pipeline_id) else {
+            return (pinch_zoom_result, vec![]);
+        };
+
+        let remaining = remaining / device_pixels_per_page_pixel;
+        let Some((external_scroll_id, offset)) = root_pipeline.scroll_tree.scroll_node_or_ancestor(
+            ExternalScrollId(0, root_pipeline_id.into()),
+            ScrollLocation::Delta(remaining.cast_unit()),
+            // These are initiated only by keyboard events currently.
+            ScrollType::InputEvents,
+        ) else {
+            return (pinch_zoom_result, vec![]);
+        };
+
+        let hit_test_result = CompositorHitTestResult {
+            pipeline_id: root_pipeline_id,
+            // It's difficult to get a good value for this as it needs to be piped
+            // all the way through script and back here.
+            point_in_viewport: Default::default(),
+            external_scroll_id,
+        };
+
+        self.send_scroll_positions_to_layout_for_pipeline(root_pipeline_id);
+        self.dispatch_scroll_event(external_scroll_id, hit_test_result.clone());
+
+        let scroll_result = ScrollResult {
+            hit_test_result,
+            external_scroll_id,
+            offset,
+        };
+        (pinch_zoom_result, vec![scroll_result])
     }
 
     fn dispatch_scroll_event(

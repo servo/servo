@@ -1272,7 +1272,7 @@ impl LayoutThread {
                 ScrollType::Script,
             )
         {
-            self.compositor_api.send_scroll_node(
+            self.compositor_api.scroll_node_by_delta(
                 self.webview_id,
                 self.id.into(),
                 offset,

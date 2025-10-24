@@ -98,13 +98,19 @@ pub enum CompositorMsg {
     PipelineExited(WebViewId, PipelineId, PipelineExitSource),
     /// Inform WebRender of the existence of this pipeline.
     SendInitialTransaction(WebViewId, WebRenderPipelineId),
-    /// Perform a scroll operation.
-    SendScrollNode(
+    /// Scroll the given node ([`ExternalScrollId`]) by the provided delta. This
+    /// will only adjust the node's scroll position and will *not* do panning in
+    /// the pinch zoom viewport.
+    ScrollNodeByDelta(
         WebViewId,
         WebRenderPipelineId,
         LayoutVector2D,
         ExternalScrollId,
     ),
+    /// Scroll the WebView's viewport by the given delta. This will also do panning
+    /// in the pinch zoom viewport if possible and the remaining delta will be used
+    /// to scroll the root layer.
+    ScrollViewportByDelta(WebViewId, LayoutVector2D),
     /// Update the rendering epoch of the given `Pipeline`.
     UpdateEpoch {
         /// The [`WebViewId`] that this display list belongs to.
@@ -219,21 +225,38 @@ impl CrossProcessCompositorApi {
         }
     }
 
-    /// Perform a scroll operation.
-    pub fn send_scroll_node(
+    /// Scroll the given node ([`ExternalScrollId`]) by the provided delta. This
+    /// will only adjust the node's scroll position and will *not* do panning in
+    /// the pinch zoom viewport.
+    pub fn scroll_node_by_delta(
         &self,
         webview_id: WebViewId,
         pipeline_id: WebRenderPipelineId,
-        point: LayoutVector2D,
+        delta: LayoutVector2D,
         scroll_id: ExternalScrollId,
     ) {
-        if let Err(e) = self.0.send(CompositorMsg::SendScrollNode(
+        if let Err(error) = self.0.send(CompositorMsg::ScrollNodeByDelta(
             webview_id,
             pipeline_id,
-            point,
+            delta,
             scroll_id,
         )) {
-            warn!("Error sending scroll node: {}", e);
+            warn!("Error scrolling node: {error}");
+        }
+    }
+
+    /// Scroll the WebView's viewport by the given delta. This will also do panning
+    /// in the pinch zoom viewport if possible and the remaining delta will be used
+    /// to scroll the root layer.
+    ///
+    /// Note the value provided here is in `DeviceIndependentPixels` and will first be
+    /// converted to `DevicePixels` by the renderer.
+    pub fn scroll_viewport_by_delta(&self, webview_id: WebViewId, delta: LayoutVector2D) {
+        if let Err(error) = self
+            .0
+            .send(CompositorMsg::ScrollViewportByDelta(webview_id, delta))
+        {
+            warn!("Error scroll viewport: {error}");
         }
     }
 

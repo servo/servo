@@ -1590,6 +1590,45 @@ impl DocumentEventHandler {
             scrolling_box = parent;
         }
 
+        let calculate_current_scroll_offset_and_delta = || {
+            const LINE_HEIGHT: f32 = 76.0;
+            const LINE_WIDTH: f32 = 76.0;
+
+            let current_scroll_offset = scrolling_box.scroll_position();
+            (
+                current_scroll_offset,
+                match scroll {
+                    KeyboardScroll::Home => Vector2D::new(0.0, -current_scroll_offset.y),
+                    KeyboardScroll::End => Vector2D::new(
+                        0.0,
+                        -current_scroll_offset.y + scrolling_box.content_size().height -
+                            scrolling_box.size().height,
+                    ),
+                    KeyboardScroll::PageDown => {
+                        Vector2D::new(0.0, scrolling_box.size().height - 2.0 * LINE_HEIGHT)
+                    },
+                    KeyboardScroll::PageUp => {
+                        Vector2D::new(0.0, 2.0 * LINE_HEIGHT - scrolling_box.size().height)
+                    },
+                    KeyboardScroll::Up => Vector2D::new(0.0, -LINE_HEIGHT),
+                    KeyboardScroll::Down => Vector2D::new(0.0, LINE_HEIGHT),
+                    KeyboardScroll::Left => Vector2D::new(-LINE_WIDTH, 0.0),
+                    KeyboardScroll::Right => Vector2D::new(LINE_WIDTH, 0.0),
+                },
+            )
+        };
+
+        // If trying to scroll the viewport of this `Window` and this is the root `Document`
+        // of the `WebView`, then send the srolling operation to the renderer, so that it
+        // can properly pan any pinch zoom viewport.
+        let parent_pipeline = self.window.parent_info();
+        if scrolling_box.is_viewport() && parent_pipeline.is_none() {
+            let (_, delta) = calculate_current_scroll_offset_and_delta();
+            self.window
+                .compositor_api()
+                .scroll_viewport_by_delta(self.window.webview_id(), delta);
+        }
+
         // If this is the viewport and we cannot scroll, try to ask a parent viewport to scroll,
         // if we are inside an `<iframe>`.
         if !scrolling_box.can_keyboard_scroll_in_axis(scroll_axis) {
@@ -1606,7 +1645,7 @@ impl DocumentEventHandler {
                     .Document()
                     .event_handler()
                     .do_keyboard_scroll(scroll);
-            } else if let Some(parent_pipeline) = self.window.parent_info() {
+            } else if let Some(parent_pipeline) = parent_pipeline {
                 // Otherwise, if we have a parent (presumably from a different origin)
                 // asynchronously ask the Constellation to forward the event to the parent
                 // pipeline, if we have one.
@@ -1617,29 +1656,7 @@ impl DocumentEventHandler {
             return;
         }
 
-        const LINE_HEIGHT: f32 = 76.0;
-        const LINE_WIDTH: f32 = 76.0;
-
-        let current_scroll_offset = scrolling_box.scroll_position();
-        let delta = match scroll {
-            KeyboardScroll::Home => Vector2D::new(0.0, -current_scroll_offset.y),
-            KeyboardScroll::End => Vector2D::new(
-                0.0,
-                -current_scroll_offset.y + scrolling_box.content_size().height -
-                    scrolling_box.size().height,
-            ),
-            KeyboardScroll::PageDown => {
-                Vector2D::new(0.0, scrolling_box.size().height - 2.0 * LINE_HEIGHT)
-            },
-            KeyboardScroll::PageUp => {
-                Vector2D::new(0.0, 2.0 * LINE_HEIGHT - scrolling_box.size().height)
-            },
-            KeyboardScroll::Up => Vector2D::new(0.0, -LINE_HEIGHT),
-            KeyboardScroll::Down => Vector2D::new(0.0, LINE_HEIGHT),
-            KeyboardScroll::Left => Vector2D::new(-LINE_WIDTH, 0.0),
-            KeyboardScroll::Right => Vector2D::new(LINE_WIDTH, 0.0),
-        };
-
+        let (current_scroll_offset, delta) = calculate_current_scroll_offset_and_delta();
         scrolling_box.scroll_to(delta + current_scroll_offset, ScrollBehavior::Auto);
     }
 }
