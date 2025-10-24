@@ -27,6 +27,7 @@ use webrender_api::ScrollLocation;
 use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint, DeviceRect};
 
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
+use crate::credential_management_delegate::{CredentialManagementDelegate, DefaultCredentialManagementDelegate};
 use crate::javascript_evaluator::JavaScriptEvaluator;
 use crate::webview_delegate::{DefaultWebViewDelegate, WebViewDelegate};
 use crate::{ConstellationProxy, Servo, WebRenderDebugOption};
@@ -82,6 +83,7 @@ pub(crate) struct WebViewInner {
     pub(crate) compositor: Rc<RefCell<IOCompositor>>,
     pub(crate) delegate: Rc<dyn WebViewDelegate>,
     pub(crate) clipboard_delegate: Rc<dyn ClipboardDelegate>,
+    pub(crate) credential_management_delegate: Rc<dyn CredentialManagementDelegate>,
     javascript_evaluator: Rc<RefCell<JavaScriptEvaluator>>,
     /// The rectangle of the [`WebView`] in device pixels, which is the viewport.
     rect: DeviceRect,
@@ -128,6 +130,7 @@ impl WebView {
             compositor: servo.compositor.clone(),
             delegate: builder.delegate,
             clipboard_delegate: Rc::new(DefaultClipboardDelegate),
+            credential_management_delegate: Rc::new(DefaultCredentialManagementDelegate::new("Servo".to_string())),
             javascript_evaluator: servo.javascript_evaluator.clone(),
             rect: DeviceRect::from_origin_and_size(Point2D::origin(), size),
             hidpi_scale_factor: builder.hidpi_scale_factor,
@@ -217,6 +220,14 @@ impl WebView {
 
     pub fn set_clipboard_delegate(&self, delegate: Rc<dyn ClipboardDelegate>) {
         self.inner_mut().clipboard_delegate = delegate;
+    }
+
+    pub fn credential_management_delegate(&self) -> Rc<dyn CredentialManagementDelegate> {
+        self.inner().credential_management_delegate.clone()
+    }
+
+    pub fn set_credential_management_delegate(&self, delegate: Rc<dyn CredentialManagementDelegate>) {
+        self.inner_mut().credential_management_delegate = delegate;
     }
 
     pub fn id(&self) -> WebViewId {
