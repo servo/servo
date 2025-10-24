@@ -215,8 +215,8 @@ jobs:
           # The main reason however, is that we can use the application traces to determine if servo
           # successfully reaches certain locations in the code, in particular if a page is successfully loaded.
           hdc shell hitrace -b "${TRACE_BUFFER_SZ_KB}" app graphic ohos freq idle memory --trace_begin
-          # We start servo, tell it to load a website (servo.org). JIT is not allowed on HarmonyOS 5.
-          hdc shell aa start -a EntryAbility -b org.servo.servo -U https://servo.org --ps=--pref js_disable_jit=true
+          # We start servo, tell it to load a website (servo.org).
+          hdc shell aa start -a EntryAbility -b org.servo.servo -U https://servo.org
           servo_pid=$(hdc shell pidof org.servo.servo)
           # We don't really know how long servo needs to load a webpage, so we just wait 10s.
           sleep 10
