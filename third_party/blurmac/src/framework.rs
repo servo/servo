@@ -7,45 +7,44 @@
 
 use std::os::raw::{c_char, c_int, c_uint};
 
-use objc2::ffi::BOOL;
-use objc2::runtime::{AnyClass, AnyObject};
+use objc2::runtime::{BOOL, Class, Object};
 
 #[allow(non_upper_case_globals)]
-pub const nil: *mut AnyObject = 0 as *mut AnyObject;
+pub const nil: *mut Object = 0 as *mut Object;
 
 pub mod ns {
     use super::*;
 
-    // NSAnyObject
+    // NSObject
 
-    pub fn object_copy(nsobject: *mut AnyObject) -> *mut AnyObject {
+    pub fn object_copy(nsobject: *mut Object) -> *mut Object {
         unsafe {
-            let copy: *mut AnyObject = msg_send![nsobject, copy];
+            let copy: *mut Object = msg_send![nsobject, copy];
             copy
         }
     }
 
     // NSNumber
 
-    pub fn number_withbool(value: BOOL) -> *mut AnyObject {
+    pub fn number_withbool(value: BOOL) -> *mut Object {
         unsafe {
-            let nsnumber: *mut AnyObject =
-                msg_send![AnyClass::get("NSNumber").unwrap(), numberWithBool: value];
+            let nsnumber: *mut Object =
+                msg_send![Class::get("NSNumber").unwrap(), numberWithBool: value];
             nsnumber
         }
     }
 
-    pub fn number_withunsignedlonglong(value: u64) -> *mut AnyObject {
+    pub fn number_withunsignedlonglong(value: u64) -> *mut Object {
         unsafe {
-            let nsnumber: *mut AnyObject = msg_send![
-                AnyClass::get("NSNumber").unwrap(),
+            let nsnumber: *mut Object = msg_send![
+                Class::get("NSNumber").unwrap(),
                 numberWithUnsignedLongLong: value
             ];
             nsnumber
         }
     }
 
-    pub fn number_unsignedlonglongvalue(nsnumber: *mut AnyObject) -> u64 {
+    pub fn number_unsignedlonglongvalue(nsnumber: *mut Object) -> u64 {
         unsafe {
             let value: u64 = msg_send![nsnumber, unsignedLongLongValue];
             value
@@ -54,17 +53,17 @@ pub mod ns {
 
     // NSString
 
-    pub fn string(cstring: *const c_char) -> *mut AnyObject /* NSString* */ {
+    pub fn string(cstring: *const c_char) -> *mut Object /* NSString* */ {
         unsafe {
-            let nsstring: *mut AnyObject = msg_send![
-                AnyClass::get("NSString").unwrap(),
+            let nsstring: *mut Object = msg_send![
+                Class::get("NSString").unwrap(),
                 stringWithUTF8String: cstring
             ];
             nsstring
         }
     }
 
-    pub fn string_utf8string(nsstring: *mut AnyObject) -> *const c_char {
+    pub fn string_utf8string(nsstring: *mut Object) -> *const c_char {
         unsafe {
             let utf8string: *const c_char = msg_send![nsstring, UTF8String];
             utf8string
@@ -73,80 +72,80 @@ pub mod ns {
 
     // NSArray
 
-    pub fn array_count(nsarray: *mut AnyObject) -> c_uint {
+    pub fn array_count(nsarray: *mut Object) -> c_uint {
         unsafe {
             let count: c_uint = msg_send![nsarray, count];
             count
         }
     }
 
-    pub fn array_objectatindex(nsarray: *mut AnyObject, index: c_uint) -> *mut AnyObject {
+    pub fn array_objectatindex(nsarray: *mut Object, index: c_uint) -> *mut Object {
         unsafe {
-            let object: *mut AnyObject = msg_send![nsarray, objectAtIndex: index];
+            let object: *mut Object = msg_send![nsarray, objectAtIndex: index];
             object
         }
     }
 
     // NSDictionary
 
-    pub fn dictionary_allkeys(nsdict: *mut AnyObject) -> *mut AnyObject /* NSArray* */ {
+    pub fn dictionary_allkeys(nsdict: *mut Object) -> *mut Object /* NSArray* */ {
         unsafe {
-            let keys: *mut AnyObject = msg_send![nsdict, allKeys];
+            let keys: *mut Object = msg_send![nsdict, allKeys];
             keys
         }
     }
 
-    pub fn dictionary_objectforkey(nsdict: *mut AnyObject, key: *mut AnyObject) -> *mut AnyObject {
+    pub fn dictionary_objectforkey(nsdict: *mut Object, key: *mut Object) -> *mut Object {
         unsafe {
-            let object: *mut AnyObject = msg_send![nsdict, objectForKey: key];
+            let object: *mut Object = msg_send![nsdict, objectForKey: key];
             object
         }
     }
 
     // NSMutableDictionary : NSDictionary
 
-    pub fn mutabledictionary() -> *mut AnyObject {
+    pub fn mutabledictionary() -> *mut Object {
         unsafe {
-            let nsmutdict: *mut AnyObject =
-                msg_send![AnyClass::get("NSMutableDictionary").unwrap(), dictionaryWithCapacity:0];
+            let nsmutdict: *mut Object =
+                msg_send![Class::get("NSMutableDictionary").unwrap(), dictionaryWithCapacity:0];
             nsmutdict
         }
     }
 
-    pub fn mutabledictionary_removeobjectforkey(nsmutdict: *mut AnyObject, key: *mut AnyObject) {
+    pub fn mutabledictionary_removeobjectforkey(nsmutdict: *mut Object, key: *mut Object) {
         unsafe {
-            let () = msg_send![nsmutdict, removeAnyObjectForKey: key];
+            let () = msg_send![nsmutdict, removeObjectForKey: key];
         }
     }
 
     pub fn mutabledictionary_setobject_forkey(
-        nsmutdict: *mut AnyObject,
-        object: *mut AnyObject,
-        key: *mut AnyObject,
+        nsmutdict: *mut Object,
+        object: *mut Object,
+        key: *mut Object,
     ) {
         unsafe {
-            let () = msg_send![nsmutdict, setAnyObject:object forKey:key];
+            let () = msg_send![nsmutdict, setObject:object forKey:key];
         }
     }
 
     // NSData
 
-    pub fn data(bytes: *const u8, length: c_uint) -> *mut AnyObject /* NSData* */ {
+    pub fn data(bytes: *const u8, length: c_uint) -> *mut Object /* NSData* */ {
         unsafe {
-            let data: *mut AnyObject =
-                msg_send![AnyClass::get("NSData").unwrap(), dataWithBytes:bytes length:length];
+            let data: *mut Object =
+                msg_send![Class::get("NSData").unwrap(), dataWithBytes:bytes length:length];
             data
         }
     }
 
-    pub fn data_length(nsdata: *mut AnyObject) -> c_uint {
+    pub fn data_length(nsdata: *mut Object) -> c_uint {
         unsafe {
             let length: c_uint = msg_send![nsdata, length];
             length
         }
     }
 
-    pub fn data_bytes(nsdata: *mut AnyObject) -> *const u8 {
+    pub fn data_bytes(nsdata: *mut Object) -> *const u8 {
         unsafe {
             let bytes: *const u8 = msg_send![nsdata, bytes];
             bytes
@@ -155,9 +154,9 @@ pub mod ns {
 
     // NSUUID
 
-    pub fn uuid_uuidstring(nsuuid: *mut AnyObject) -> *mut AnyObject /* NSString* */ {
+    pub fn uuid_uuidstring(nsuuid: *mut Object) -> *mut Object /* NSString* */ {
         unsafe {
-            let uuidstring: *mut AnyObject = msg_send![nsuuid, UUIDString];
+            let uuidstring: *mut Object = msg_send![nsuuid, UUIDString];
             uuidstring
         }
     }
@@ -177,34 +176,34 @@ pub mod io {
 
     // IOBluetoothHostController
 
-    pub fn bluetoothhostcontroller_defaultcontroller() -> *mut AnyObject /* IOBluetoothHostController* */
+    pub fn bluetoothhostcontroller_defaultcontroller() -> *mut Object /* IOBluetoothHostController* */
     {
         unsafe {
-            let defaultcontroller: *mut AnyObject = msg_send![
-                AnyClass::get("IOBluetoothHostController").unwrap(),
+            let defaultcontroller: *mut Object = msg_send![
+                Class::get("IOBluetoothHostController").unwrap(),
                 defaultController
             ];
             defaultcontroller
         }
     }
 
-    pub fn bluetoothhostcontroller_nameasstring(iobthc: *mut AnyObject) -> *mut AnyObject /* NSString* */
+    pub fn bluetoothhostcontroller_nameasstring(iobthc: *mut Object) -> *mut Object /* NSString* */
     {
         unsafe {
-            let name: *mut AnyObject = msg_send![iobthc, nameAsString];
+            let name: *mut Object = msg_send![iobthc, nameAsString];
             name
         }
     }
 
-    pub fn bluetoothhostcontroller_addressasstring(iobthc: *mut AnyObject) -> *mut AnyObject /* NSString* */
+    pub fn bluetoothhostcontroller_addressasstring(iobthc: *mut Object) -> *mut Object /* NSString* */
     {
         unsafe {
-            let address: *mut AnyObject = msg_send![iobthc, addressAsString];
+            let address: *mut Object = msg_send![iobthc, addressAsString];
             address
         }
     }
 
-    pub fn bluetoothhostcontroller_classofdevice(iobthc: *mut AnyObject) -> u32 {
+    pub fn bluetoothhostcontroller_classofdevice(iobthc: *mut Object) -> u32 {
         unsafe {
             let classofdevice: u32 = msg_send![iobthc, classOfDevice];
             classofdevice
@@ -242,28 +241,27 @@ pub mod cb {
 
         #[link(name = "CoreBluetooth", kind = "framework")]
         unsafe extern "C" {
-            pub static CBAdvertisementDataServiceUUIDsKey: *mut AnyObject;
+            pub static CBAdvertisementDataServiceUUIDsKey: *mut Object;
 
-            pub static CBCentralManagerScanOptionAllowDuplicatesKey: *mut AnyObject;
+            pub static CBCentralManagerScanOptionAllowDuplicatesKey: *mut Object;
         }
     }
 
     // CBCentralManager
 
-    pub fn centralmanager(
-        delegate: *mut AnyObject, /*CBCentralManagerDelegate* */
-    ) -> *mut AnyObject /*CBCentralManager* */ {
+    pub fn centralmanager(delegate: *mut Object, /*CBCentralManagerDelegate* */) -> *mut Object /*CBCentralManager* */
+    {
         unsafe {
-            let cbcentralmanager: *mut AnyObject =
-                msg_send![AnyClass::get("CBCentralManager").unwrap(), alloc];
+            let cbcentralmanager: *mut Object =
+                msg_send![Class::get("CBCentralManager").unwrap(), alloc];
             let () = msg_send![cbcentralmanager, initWithDelegate:delegate queue:nil];
             cbcentralmanager
         }
     }
 
     pub fn centralmanager_scanforperipherals_options(
-        cbcentralmanager: *mut AnyObject,
-        options: *mut AnyObject, /* NSDictionary<NSString*,id> */
+        cbcentralmanager: *mut Object,
+        options: *mut Object, /* NSDictionary<NSString*,id> */
     ) {
         unsafe {
             let () =
@@ -271,15 +269,15 @@ pub mod cb {
         }
     }
 
-    pub fn centralmanager_stopscan(cbcentralmanager: *mut AnyObject) {
+    pub fn centralmanager_stopscan(cbcentralmanager: *mut Object) {
         unsafe {
             let () = msg_send![cbcentralmanager, stopScan];
         }
     }
 
     pub fn centralmanager_connectperipheral(
-        cbcentralmanager: *mut AnyObject,
-        peripheral: *mut AnyObject, /* CBPeripheral* */
+        cbcentralmanager: *mut Object,
+        peripheral: *mut Object, /* CBPeripheral* */
     ) {
         unsafe {
             let () = msg_send![cbcentralmanager, connectPeripheral:peripheral options:nil];
@@ -287,8 +285,8 @@ pub mod cb {
     }
 
     pub fn centralmanager_cancelperipheralconnection(
-        cbcentralmanager: *mut AnyObject,
-        peripheral: *mut AnyObject, /* CBPeripheral* */
+        cbcentralmanager: *mut Object,
+        peripheral: *mut Object, /* CBPeripheral* */
     ) {
         unsafe {
             let () = msg_send![cbcentralmanager, cancelPeripheralConnection: peripheral];
@@ -297,23 +295,23 @@ pub mod cb {
 
     // CBPeer
 
-    pub fn peer_identifier(cbpeer: *mut AnyObject) -> *mut AnyObject /* NSUUID* */ {
+    pub fn peer_identifier(cbpeer: *mut Object) -> *mut Object /* NSUUID* */ {
         unsafe {
-            let identifier: *mut AnyObject = msg_send![cbpeer, identifier];
+            let identifier: *mut Object = msg_send![cbpeer, identifier];
             identifier
         }
     }
 
     // CBPeripheral : CBPeer
 
-    pub fn peripheral_name(cbperipheral: *mut AnyObject) -> *mut AnyObject /* NSString* */ {
+    pub fn peripheral_name(cbperipheral: *mut Object) -> *mut Object /* NSString* */ {
         unsafe {
-            let name: *mut AnyObject = msg_send![cbperipheral, name];
+            let name: *mut Object = msg_send![cbperipheral, name];
             name
         }
     }
 
-    pub fn peripheral_state(cbperipheral: *mut AnyObject) -> c_int {
+    pub fn peripheral_state(cbperipheral: *mut Object) -> c_int {
         unsafe {
             let state: c_int = msg_send![cbperipheral, state];
             state
@@ -321,40 +319,40 @@ pub mod cb {
     }
 
     pub fn peripheral_setdelegate(
-        cbperipheral: *mut AnyObject,
-        delegate: *mut AnyObject, /* CBPeripheralDelegate* */
+        cbperipheral: *mut Object,
+        delegate: *mut Object, /* CBPeripheralDelegate* */
     ) {
         unsafe {
             let () = msg_send![cbperipheral, setDelegate: delegate];
         }
     }
 
-    pub fn peripheral_discoverservices(cbperipheral: *mut AnyObject) {
+    pub fn peripheral_discoverservices(cbperipheral: *mut Object) {
         unsafe {
             let () = msg_send![cbperipheral, discoverServices: nil];
         }
     }
 
     pub fn peripheral_discoverincludedservicesforservice(
-        cbperipheral: *mut AnyObject,
-        service: *mut AnyObject, /* CBService* */
+        cbperipheral: *mut Object,
+        service: *mut Object, /* CBService* */
     ) {
         unsafe {
             let () = msg_send![cbperipheral, discoverIncludedServices:nil forService:service];
         }
     }
 
-    pub fn peripheral_services(cbperipheral: *mut AnyObject) -> *mut AnyObject /* NSArray<CBService*>* */
+    pub fn peripheral_services(cbperipheral: *mut Object) -> *mut Object /* NSArray<CBService*>* */
     {
         unsafe {
-            let services: *mut AnyObject = msg_send![cbperipheral, services];
+            let services: *mut Object = msg_send![cbperipheral, services];
             services
         }
     }
 
     pub fn peripheral_discovercharacteristicsforservice(
-        cbperipheral: *mut AnyObject,
-        service: *mut AnyObject, /* CBService* */
+        cbperipheral: *mut Object,
+        service: *mut Object, /* CBService* */
     ) {
         unsafe {
             let () = msg_send![cbperipheral, discoverCharacteristics:nil forService:service];
@@ -362,8 +360,8 @@ pub mod cb {
     }
 
     pub fn peripheral_readvalueforcharacteristic(
-        cbperipheral: *mut AnyObject,
-        characteristic: *mut AnyObject, /* CBCharacteristic* */
+        cbperipheral: *mut Object,
+        characteristic: *mut Object, /* CBCharacteristic* */
     ) {
         unsafe {
             let () = msg_send![cbperipheral, readValueForCharacteristic: characteristic];
@@ -371,9 +369,9 @@ pub mod cb {
     }
 
     pub fn peripheral_writevalue_forcharacteristic(
-        cbperipheral: *mut AnyObject,
-        value: *mut AnyObject,          /* NSData* */
-        characteristic: *mut AnyObject, /* CBCharacteristic* */
+        cbperipheral: *mut Object,
+        value: *mut Object,          /* NSData* */
+        characteristic: *mut Object, /* CBCharacteristic* */
     ) {
         unsafe {
             let () =
@@ -383,9 +381,9 @@ pub mod cb {
     }
 
     pub fn peripheral_setnotifyvalue_forcharacteristic(
-        cbperipheral: *mut AnyObject,
+        cbperipheral: *mut Object,
         value: BOOL,
-        characteristic: *mut AnyObject, /* CBCharacteristic* */
+        characteristic: *mut Object, /* CBCharacteristic* */
     ) {
         unsafe {
             let () = msg_send![cbperipheral, setNotifyValue:value forCharacteristic:characteristic];
@@ -393,8 +391,8 @@ pub mod cb {
     }
 
     pub fn peripheral_discoverdescriptorsforcharacteristic(
-        cbperipheral: *mut AnyObject,
-        characteristic: *mut AnyObject, /* CBCharacteristic* */
+        cbperipheral: *mut Object,
+        characteristic: *mut Object, /* CBCharacteristic* */
     ) {
         unsafe {
             let () = msg_send![
@@ -410,55 +408,55 @@ pub mod cb {
 
     // CBAttribute
 
-    pub fn attribute_uuid(cbattribute: *mut AnyObject) -> *mut AnyObject /* CBUUID* */ {
+    pub fn attribute_uuid(cbattribute: *mut Object) -> *mut Object /* CBUUID* */ {
         unsafe {
-            let uuid: *mut AnyObject = msg_send![cbattribute, UUID];
+            let uuid: *mut Object = msg_send![cbattribute, UUID];
             uuid
         }
     }
 
     // CBService : CBAttribute
 
-    // pub fn service_isprimary(cbservice: *mut AnyObject) -> BOOL {
+    // pub fn service_isprimary(cbservice: *mut Object) -> BOOL {
     //     unsafe {
     //         let isprimary: BOOL = msg_send![cbservice, isPrimary];
     //         isprimary
     //     }
     // }
 
-    pub fn service_includedservices(cbservice: *mut AnyObject) -> *mut AnyObject /* NSArray<CBService*>* */
+    pub fn service_includedservices(cbservice: *mut Object) -> *mut Object /* NSArray<CBService*>* */
     {
         unsafe {
-            let includedservices: *mut AnyObject = msg_send![cbservice, includedServices];
+            let includedservices: *mut Object = msg_send![cbservice, includedServices];
             includedservices
         }
     }
 
-    pub fn service_characteristics(cbservice: *mut AnyObject) -> *mut AnyObject /* NSArray<CBCharacteristic*>* */
+    pub fn service_characteristics(cbservice: *mut Object) -> *mut Object /* NSArray<CBCharacteristic*>* */
     {
         unsafe {
-            let characteristics: *mut AnyObject = msg_send![cbservice, characteristics];
+            let characteristics: *mut Object = msg_send![cbservice, characteristics];
             characteristics
         }
     }
 
     // CBCharacteristic : CBAttribute
 
-    pub fn characteristic_isnotifying(cbcharacteristic: *mut AnyObject) -> BOOL {
+    pub fn characteristic_isnotifying(cbcharacteristic: *mut Object) -> BOOL {
         unsafe {
             let isnotifying: BOOL = msg_send![cbcharacteristic, isNotifying];
             isnotifying
         }
     }
 
-    pub fn characteristic_value(cbcharacteristic: *mut AnyObject) -> *mut AnyObject /* NSData* */ {
+    pub fn characteristic_value(cbcharacteristic: *mut Object) -> *mut Object /* NSData* */ {
         unsafe {
-            let value: *mut AnyObject = msg_send![cbcharacteristic, value];
+            let value: *mut Object = msg_send![cbcharacteristic, value];
             value
         }
     }
 
-    pub fn characteristic_properties(cbcharacteristic: *mut AnyObject) -> c_uint {
+    pub fn characteristic_properties(cbcharacteristic: *mut Object) -> c_uint {
         unsafe {
             let properties: c_uint = msg_send![cbcharacteristic, properties];
             properties
@@ -477,9 +475,9 @@ pub mod cb {
 
     // CBUUID
 
-    pub fn uuid_uuidstring(cbuuid: *mut AnyObject) -> *mut AnyObject /* NSString* */ {
+    pub fn uuid_uuidstring(cbuuid: *mut Object) -> *mut Object /* NSString* */ {
         unsafe {
-            let uuidstring: *mut AnyObject = msg_send![cbuuid, UUIDString];
+            let uuidstring: *mut Object = msg_send![cbuuid, UUIDString];
             uuidstring
         }
     }

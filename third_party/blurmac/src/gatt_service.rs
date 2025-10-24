@@ -8,7 +8,7 @@
 use std::error::Error;
 use std::sync::Arc;
 
-use objc2::runtime::AnyObject;
+use objc2::runtime::Object;
 
 use crate::delegate::bmx;
 use crate::device::BluetoothDevice;
@@ -18,7 +18,7 @@ use crate::utils::{NO_SERVICE_FOUND, cbx, wait};
 #[derive(Clone, Debug)]
 pub struct BluetoothGATTService {
     pub(crate) device: Arc<BluetoothDevice>,
-    pub(crate) service: *mut AnyObject,
+    pub(crate) service: *mut Object,
 }
 // TODO: implement std::fmt::Debug and/or std::fmt::Display instead of derive?
 
@@ -43,7 +43,7 @@ impl BluetoothGATTService {
         }
     }
 
-    fn service_by_uuid(peripheral: *mut AnyObject, uuid: &String) -> *mut AnyObject {
+    fn service_by_uuid(peripheral: *mut Object, uuid: &String) -> *mut Object {
         if peripheral != nil {
             // TODO: This function will most probably not find included services. Make it recursively
             // descend into included services if first loop did not find what it was looking for.

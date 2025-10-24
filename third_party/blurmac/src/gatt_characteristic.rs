@@ -10,8 +10,7 @@ use std::os::raw::c_uint;
 use std::slice;
 use std::sync::Arc;
 
-use objc2::ffi::{NO, YES};
-use objc2::runtime::AnyObject;
+use objc2::runtime::{NO, Object, YES};
 
 use crate::delegate::bmx;
 use crate::framework::{cb, nil, ns};
@@ -21,7 +20,7 @@ use crate::utils::{NO_CHARACTERISTIC_FOUND, NOT_SUPPORTED_ERROR, cbx, wait};
 #[derive(Clone, Debug)]
 pub struct BluetoothGATTCharacteristic {
     pub(crate) service: Arc<BluetoothGATTService>,
-    pub(crate) characteristic: *mut AnyObject,
+    pub(crate) characteristic: *mut Object,
 }
 // TODO: implement std::fmt::Debug and/or std::fmt::Display instead of derive?
 
@@ -45,7 +44,7 @@ impl BluetoothGATTCharacteristic {
         }
     }
 
-    fn characteristic_by_uuid(service: *mut AnyObject, uuid: &String) -> *mut AnyObject {
+    fn characteristic_by_uuid(service: *mut Object, uuid: &String) -> *mut Object {
         if service != nil {
             let chars = cb::service_characteristics(service);
             for i in 0..ns::array_count(chars) {

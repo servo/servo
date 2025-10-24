@@ -8,8 +8,7 @@
 use std::error::Error;
 use std::os::raw::c_int;
 
-use objc2::ffi::YES;
-use objc2::runtime::AnyObject;
+use objc2::runtime::{Object, YES};
 
 use crate::delegate::bm;
 use crate::framework::{cb, io, ns};
@@ -17,8 +16,8 @@ use crate::utils::{NOT_SUPPORTED_ERROR, nsx};
 
 #[derive(Clone, Debug)]
 pub struct BluetoothAdapter {
-    pub(crate) manager: *mut AnyObject,
-    pub(crate) delegate: *mut AnyObject,
+    pub(crate) manager: *mut Object,
+    pub(crate) delegate: *mut Object,
 }
 // TODO: implement std::fmt::Debug and/or std::fmt::Display instead of derive?
 

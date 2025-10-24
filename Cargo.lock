@@ -963,7 +963,7 @@ name = "blurmac"
 version = "0.1.0"
 dependencies = [
  "log",
- "objc2 0.4.1",
+ "objc2 0.2.7",
 ]
 
 [[package]]
@@ -5789,12 +5789,11 @@ checksum = "cdb91bdd390c7ce1a8607f35f3ca7151b65afc0ff5ff3b34fa350f7d7c7e4310"
 
 [[package]]
 name = "objc2"
-version = "0.4.1"
+version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "559c5a40fdd30eb5e344fbceacf7595a81e242529fb4e21cf5f43fb4f11ff98d"
+checksum = "612c08b52f6d8b11d8c199d0798bc38ab35c0a95da3be548a60808a4ae56d1f4"
 dependencies = [
- "objc-sys",
- "objc2-encode 3.0.0",
+ "malloc_buf",
 ]
 
 [[package]]
@@ -5804,7 +5803,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "46a785d4eeff09c14c487497c162e92766fbb3e4059a71840cecc03d9a50b804"
 dependencies = [
  "objc-sys",
- "objc2-encode 4.1.0",
+ "objc2-encode",
 ]
 
 [[package]]
@@ -5813,7 +5812,7 @@ version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b7c2599ce0ec54857b29ce62166b0ed9b4f6f1a70ccc9a71165b6154caca8c05"
 dependencies = [
- "objc2-encode 4.1.0",
+ "objc2-encode",
 ]
 
 [[package]]
@@ -5940,12 +5939,6 @@ dependencies = [
  "objc2-core-foundation",
  "objc2-core-graphics",
 ]
-
-[[package]]
-name = "objc2-encode"
-version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d079845b37af429bfe5dfa76e6d087d788031045b25cfc6fd898486fd9847666"
 
 [[package]]
 name = "objc2-encode"
