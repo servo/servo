@@ -5539,7 +5539,6 @@ where
     }
 
     // Randomly close a pipeline -if --random-pipeline-closure-probability is set
-    #[servo_tracing::instrument(skip_all)]
     fn maybe_close_random_pipeline(&mut self) {
         match self.random_pipeline_closure {
             Some((ref mut rng, probability)) => {
