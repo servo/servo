@@ -140,9 +140,6 @@ impl Minibrowser {
         std::mem::take(&mut self.event_queue)
     }
 
-    /// Preprocess the given [winit::event::WindowEvent], returning unconsumed for mouse events in
-    /// the Servo browser rect. This is needed because the CentralPanel we create for our webview
-    /// would otherwise make egui report events in that area as consumed.
     pub fn on_window_event(
         &mut self,
         window: &Window,
@@ -283,8 +280,6 @@ impl Minibrowser {
     }
 
     /// Update the minibrowser, but don’t paint.
-    /// If `servo_framebuffer_id` is given, set up a paint callback to blit its contents to our
-    /// CentralPanel when [`Minibrowser::paint`] is called.
     pub fn update(
         &mut self,
         window: &dyn WindowPortsMethods,
