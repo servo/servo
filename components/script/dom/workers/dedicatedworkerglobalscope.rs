@@ -23,7 +23,6 @@ use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer, RequestBuilder,
     RequestMode,
 };
-use rand::random;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
 
@@ -478,8 +477,6 @@ impl DedicatedWorkerGlobalScope {
                     pipeline_id,
                     Some(worker_id),
                 );
-                // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
-                // registration (#6631), so we instead use a random number and cross our fingers.
                 let scope = global.upcast::<WorkerGlobalScope>();
                 let global_scope = global.upcast::<GlobalScope>();
 
@@ -503,7 +500,7 @@ impl DedicatedWorkerGlobalScope {
                 )));
                 global_scope.fetch(request, context, task_source);
 
-                let reporter_name = format!("dedicated-worker-reporter-{}", random::<u64>());
+                let reporter_name = format!("dedicated-worker-reporter-{}", worker_id);
                 scope
                     .upcast::<GlobalScope>()
                     .mem_profiler_chan()
