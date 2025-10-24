@@ -59,15 +59,15 @@ impl CredentialMethods<DomTypeHolder> for Credential {
     }
 
     // https://www.w3.org/TR/credential-management-1/#dom-credential-isconditionalmediationavailable
-    fn IsConditionalMediationAvailable(_global: &Window) -> Rc<Promise> {
+    fn IsConditionalMediationAvailable(_global: &Window, can_gc: CanGc) -> Rc<Promise> {
         let in_realm_proof = AlreadyInRealm::assert::<DomTypeHolder>();
         // FIXME:(arihant2math) return false
-        Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), CanGc::note())
+        Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc)
     }
 
     // https://www.w3.org/TR/credential-management-1/#dom-credential-willrequestconditionalcreation
-    fn WillRequestConditionalCreation(_global: &Window) -> Rc<Promise> {
+    fn WillRequestConditionalCreation(_global: &Window, can_gc: CanGc) -> Rc<Promise> {
         let in_realm_proof = AlreadyInRealm::assert::<DomTypeHolder>();
-        Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), CanGc::note())
+        Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc)
     }
 }
