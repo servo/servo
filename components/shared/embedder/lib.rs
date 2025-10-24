@@ -554,6 +554,9 @@ pub enum EmbedderControlRequest {
     InputMethod(InputMethodRequest),
 }
 
+/// Request to present an IME to the user when an editable element is focused. If `type` is
+/// [`InputMethodType::Text`], then the `text` parameter specifies the pre-existing text content and
+/// `insertion_point` the zero-based index into the string of the insertion point.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct InputMethodRequest {
     pub input_method_type: InputMethodType,
@@ -675,7 +678,7 @@ pub enum PermissionFeature {
 /// Used to specify the kind of input method editor appropriate to edit a field.
 /// This is a subset of htmlinputelement::InputType because some variants of InputType
 /// don't make sense in this context.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum InputMethodType {
     Color,
     Date,

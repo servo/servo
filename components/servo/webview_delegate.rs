@@ -305,7 +305,8 @@ pub enum EmbedderControl {
     ColorPicker(ColorPicker),
     /// The picker of a `<input type=file>` element.
     FilePicker(FilePicker),
-    /// The input method interface.
+    /// Request to present an input method (IME) interface to the user when an
+    /// editable element is focused.
     InputMethod(InputMethodControl),
 }
 
@@ -514,8 +515,8 @@ impl InputMethodControl {
         self.text.clone()
     }
 
-    /// The current insertion point / cursor position if it is within the field or
-    /// `None` if it is not.
+    /// The current zero-based insertion point / cursor position if it is within the field or `None`
+    /// if it is not.
     pub fn insertion_point(&self) -> Option<u32> {
         self.insertion_point
     }
