@@ -260,7 +260,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-objectstore
-    fn ObjectStore(&self, name: DOMString) -> Fallible<DomRoot<IDBObjectStore>> {
+    fn ObjectStore(&self, name: DOMString, can_gc: CanGc) -> Fallible<DomRoot<IDBObjectStore>> {
         // Step 1: If transaction has finished, throw an "InvalidStateError" DOMException.
         if self.finished.get() {
             return Err(Error::InvalidState(None));
@@ -274,21 +274,23 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         // Step 3: Each call to this method on the same
         // IDBTransaction instance with the same name
         // returns the same IDBObjectStore instance.
-        let mut store_handles = self.store_handles.borrow_mut();
-        let store = store_handles.entry(name.to_string()).or_insert_with(|| {
-            let parameters = self.object_store_parameters(&name);
-            let store = IDBObjectStore::new(
-                &self.global(),
-                self.db.get_name(),
-                name,
-                parameters.as_ref(),
-                CanGc::note(),
-                self,
-            );
-            Dom::from_ref(&*store)
-        });
+        if let Some(store) = self.store_handles.borrow().get(&*name.str()) {
+            return Ok(DomRoot::from_ref(store));
+        }
 
-        Ok(DomRoot::from_ref(&*store))
+        let parameters = self.object_store_parameters(&name);
+        let store = IDBObjectStore::new(
+            &self.global(),
+            self.db.get_name(),
+            name.clone(),
+            parameters.as_ref(),
+            can_gc,
+            self,
+        );
+        self.store_handles
+            .borrow_mut()
+            .insert(name.to_string(), Dom::from_ref(&*store));
+        Ok(store)
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#commit-transaction
