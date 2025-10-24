@@ -396,12 +396,14 @@ impl DedicatedWorkerGlobalScope {
                     .policy_container(policy_container.clone())
                     .origin(origin);
 
+                let event_loop_sender = ScriptEventLoopSender::DedicatedWorker {
+                    sender: own_sender.clone(),
+                    main_thread_worker: worker.clone(),
+                };
+
                 let runtime = unsafe {
                     let task_source = SendableTaskSource {
-                        sender: ScriptEventLoopSender::DedicatedWorker {
-                            sender: own_sender.clone(),
-                            main_thread_worker: worker.clone(),
-                        },
+                        sender: event_loop_sender.clone(),
                         pipeline_id,
                         name: TaskSourceName::Networking,
                         canceller: Default::default(),
@@ -459,8 +461,8 @@ impl DedicatedWorkerGlobalScope {
                     worker_url,
                     devtools_mpsc_port,
                     runtime,
-                    parent_event_loop_sender.clone(),
-                    own_sender.clone(),
+                    parent_event_loop_sender,
+                    own_sender,
                     receiver,
                     closing,
                     image_cache,
@@ -484,10 +486,7 @@ impl DedicatedWorkerGlobalScope {
                 let request = request.https_state(global_scope.get_https_state());
 
                 let task_source = SendableTaskSource {
-                    sender: ScriptEventLoopSender::DedicatedWorker {
-                        sender: own_sender,
-                        main_thread_worker: worker.clone(),
-                    },
+                    sender: event_loop_sender.clone(),
                     pipeline_id,
                     name: TaskSourceName::Networking,
                     canceller: Default::default(),
@@ -516,7 +515,7 @@ impl DedicatedWorkerGlobalScope {
                             }
                         },
                         reporter_name,
-                        parent_event_loop_sender,
+                        event_loop_sender,
                         CommonScriptMsg::CollectReports,
                     );
                 scope.clear_js_runtime();
