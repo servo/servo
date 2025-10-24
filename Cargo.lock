@@ -1159,6 +1159,7 @@ dependencies = [
  "peniko",
  "pixels",
  "pollster",
+ "profile_traits",
  "range",
  "rustc-hash 2.1.1",
  "servo-tracing",
