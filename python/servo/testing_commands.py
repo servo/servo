@@ -761,8 +761,6 @@ class MachCommands(CommandBase):
                 "org.servo.servo",
                 "-U",
                 "https://servospeedometer.netlify.app?headless=1",
-                "--ps=--pref",
-                "js_disable_jit=true",
                 "--ps",
                 "--log-filter",
                 "script::dom::console",
