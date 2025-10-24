@@ -8,7 +8,6 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use anyhow::Error;
 use compositing_traits::rendering_context::{RenderingContext, SoftwareRenderingContext};
 use dpi::PhysicalSize;
 use embedder_traits::EventLoopWaker;
@@ -16,72 +15,6 @@ use servo::{
     EmbedderControl, JSValue, JavaScriptEvaluationError, LoadStatus, Servo, ServoBuilder, WebView,
     WebViewDelegate,
 };
-
-macro_rules! run_api_tests {
-    ($($test_function:ident), +) => {
-        run_api_tests!(setup: |builder| builder, $($test_function),+)
-    };
-    (setup: $builder:expr, $($test_function:ident), +) => {
-
-        {
-            // We expect the number of tests to be low, so we just use a vec for the lookup.
-            let test_map: Vec<(&'static str, fn(&ServoTest) -> Result<(), anyhow::Error>)> = vec![
-                $((stringify!($test_function), $test_function)),+
-            ];
-            // See nextest custom test harness requirements:
-            // <https://nexte.st/docs/design/custom-test-harnesses/>
-            let args =  std::env::args().collect::<Vec<_>>();
-            if args.iter().any(|arg| arg == "--list") {
-                if args.iter().any(|arg| arg == "--ignored") {
-                    // If there are no ignored tests or if the test harness doesn't support ignored tests,
-                    // the output MUST be empty
-                    return;
-                } else {
-                    // Expected output:
-                    // ```
-                    // my-test-1: test
-                    // my-test-2: test
-                    // ```
-                    for (test_name, _test_fn) in test_map.iter() {
-                        println!("{test_name}: test")
-                    }
-                    return;
-                }
-            } else if args.len() == 4 && args[2] == "--nocapture" && args[3] == "--exact" {
-                // <test-name> --nocapture --exact
-                let exact_test_name = &args[1];
-                let servo_test = ServoTest::new($builder);
-                let Some((test_name, test_fn)) =  test_map.iter().find(|(test_name, _test_fn)| test_name == exact_test_name) else {
-                    eprintln!("Failed to find test '{exact_test_name}'");
-                    std::process::exit(127);
-                };
-                let mut failed = false;
-                common::run_test(*test_fn, test_name, &servo_test, &mut failed);
-                if failed {
-                    std::process::exit(1);
-                }
-            }
-        }
-    };
-}
-
-pub(crate) use run_api_tests;
-
-pub(crate) fn run_test(
-    test_function: fn(&ServoTest) -> Result<(), Error>,
-    test_name: &str,
-    servo_test: &ServoTest,
-    failed: &mut bool,
-) {
-    match test_function(servo_test) {
-        Ok(_) => eprintln!("    ✅ {test_name}"),
-        Err(error) => {
-            *failed = true;
-            eprintln!("    ❌ {test_name}");
-            eprintln!("{}", format!("\n{error:?}").replace("\n", "\n        "));
-        },
-    }
-}
 
 pub struct ServoTest {
     pub servo: Rc<Servo>,
@@ -100,7 +33,11 @@ impl Drop for ServoTest {
 }
 
 impl ServoTest {
-    pub(crate) fn new<F>(customize: F) -> Self
+    pub(crate) fn new() -> Self {
+        Self::new_with_builder(|builder| builder)
+    }
+
+    pub(crate) fn new_with_builder<F>(customize: F) -> Self
     where
         F: FnOnce(ServoBuilder) -> ServoBuilder,
     {
@@ -148,21 +85,13 @@ impl ServoTest {
     // The dead code exception here is because not all test suites that use `common` also
     // use `spin()`.
     #[allow(dead_code)]
-    pub fn spin(&self, callback: impl Fn() -> Result<bool, Error> + 'static) -> Result<(), Error> {
-        let mut keep_going = true;
-        while keep_going {
+    pub fn spin(&self, callback: impl Fn() -> bool + 'static) {
+        while callback() {
             std::thread::sleep(Duration::from_millis(1));
             if !self.servo.spin_event_loop() {
-                return Ok(());
-            }
-            let result = callback();
-            match result {
-                Ok(result) => keep_going = result,
-                Err(error) => return Err(error),
+                return;
             }
         }
-
-        Ok(())
     }
 }
 
@@ -229,7 +158,7 @@ pub(crate) fn evaluate_javascript(
     script: impl ToString,
 ) -> Result<JSValue, JavaScriptEvaluationError> {
     let load_webview = webview.clone();
-    let _ = servo_test.spin(move || Ok(load_webview.load_status() != LoadStatus::Complete));
+    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
 
     let saved_result = Rc::new(RefCell::new(None));
     let callback_result = saved_result.clone();
@@ -238,7 +167,7 @@ pub(crate) fn evaluate_javascript(
     });
 
     let spin_result = saved_result.clone();
-    let _ = servo_test.spin(move || Ok(spin_result.borrow().is_none()));
+    let _ = servo_test.spin(move || spin_result.borrow().is_none());
 
     (*saved_result.borrow())
         .clone()
