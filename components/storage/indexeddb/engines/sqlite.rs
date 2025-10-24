@@ -18,8 +18,8 @@ use storage_traits::indexeddb_thread::{
 };
 use tokio::sync::oneshot;
 
+use crate::indexeddb::IndexedDBDescription;
 use crate::indexeddb::engines::{KvsEngine, KvsTransaction};
-use crate::indexeddb::idb_thread::IndexedDBDescription;
 use crate::shared::{DB_INIT_PRAGMAS, DB_PRAGMAS};
 
 mod create;

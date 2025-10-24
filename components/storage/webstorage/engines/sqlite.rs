@@ -10,8 +10,8 @@ use log::error;
 use rusqlite::Connection;
 
 use crate::shared::{DB_INIT_PRAGMAS, DB_PRAGMAS};
+use crate::webstorage::OriginEntry;
 use crate::webstorage::engines::WebStorageEngine;
-use crate::webstorage::webstorage_thread::OriginEntry;
 
 pub struct SqliteEngine {
     connection: Connection,
