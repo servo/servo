@@ -117,7 +117,7 @@ pub fn parse<D: Dom>(
 pub fn evaluate_parsed_xpath<D: Dom>(
     expr: &Expression,
     context_node: D::Node,
-) -> Result<Value<D::Node>, Error<D::JsError>> {
+) -> Result<Value<D::Node>, Error> {
     let context = EvaluationCtx::<D>::new(context_node);
     match expr.evaluate(&context) {
         Ok(value) => {
@@ -132,7 +132,7 @@ pub fn evaluate_parsed_xpath<D: Dom>(
 }
 
 #[derive(Clone, Debug)]
-pub enum Error<JsError> {
+pub enum Error {
     NotANodeset,
     /// It is not clear where variables used in XPath expression should come from.
     /// Firefox throws "NS_ERROR_ILLEGAL_VALUE" when using them, chrome seems to return
@@ -146,7 +146,6 @@ pub enum Error<JsError> {
     Internal {
         msg: String,
     },
-    Parsing(ParserError<JsError>),
 }
 
 /// <https://www.w3.org/TR/xml/#NT-NameStartChar>

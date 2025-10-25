@@ -11,7 +11,7 @@ use crate::ast::{
 use crate::context::PredicateCtx;
 use crate::{Attribute, Dom, Element, Error, EvaluationCtx, Node, ProcessingInstruction, Value};
 
-pub(crate) fn try_extract_nodeset<E, N: Node>(v: Value<N>) -> Result<Vec<N>, Error<E>> {
+pub(crate) fn try_extract_nodeset<N: Node>(v: Value<N>) -> Result<Vec<N>, Error> {
     match v {
         Value::Nodeset(ns) => Ok(ns),
         _ => Err(Error::NotANodeset),
@@ -22,7 +22,7 @@ impl Expression {
     pub(crate) fn evaluate<D: Dom>(
         &self,
         context: &EvaluationCtx<D>,
-    ) -> Result<Value<D::Node>, Error<D::JsError>> {
+    ) -> Result<Value<D::Node>, Error> {
         match self {
             // And/Or expression are seperated because they can sometimes be evaluated
             // without evaluating both operands.
@@ -102,10 +102,7 @@ impl Expression {
 }
 
 impl PathExpression {
-    fn evaluate<D: Dom>(
-        &self,
-        context: &EvaluationCtx<D>,
-    ) -> Result<Value<D::Node>, Error<D::JsError>> {
+    fn evaluate<D: Dom>(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error> {
         // Use root node for absolute paths, context_node otherwise
         let mut current_nodes = if self.is_absolute {
             vec![context.context_node.get_root_node()]
@@ -189,7 +186,7 @@ pub(crate) fn element_name_test(
     expected_name.local == element_qualname.local
 }
 
-fn apply_node_test<D: Dom>(test: &NodeTest, node: &D::Node) -> Result<bool, Error<D::JsError>> {
+fn apply_node_test<D: Dom>(test: &NodeTest, node: &D::Node) -> Result<bool, Error> {
     let result = match test {
         NodeTest::Name(qname) => {
             if let Some(element) = node.as_element() {
@@ -243,10 +240,7 @@ fn apply_node_test<D: Dom>(test: &NodeTest, node: &D::Node) -> Result<bool, Erro
 }
 
 impl LocationStepExpression {
-    fn evaluate<D: Dom>(
-        &self,
-        context: &EvaluationCtx<D>,
-    ) -> Result<Value<D::Node>, Error<D::JsError>> {
+    fn evaluate<D: Dom>(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error> {
         let nodes: Vec<D::Node> = match self.axis {
             Axis::Child => context.context_node.children().collect(),
             Axis::Descendant => context.context_node.traverse_preorder().skip(1).collect(),
@@ -313,10 +307,7 @@ impl LocationStepExpression {
 }
 
 impl PredicateListExpression {
-    fn evaluate<D: Dom>(
-        &self,
-        mut matched_nodes: Vec<D::Node>,
-    ) -> Result<Value<D::Node>, Error<D::JsError>> {
+    fn evaluate<D: Dom>(&self, mut matched_nodes: Vec<D::Node>) -> Result<Value<D::Node>, Error> {
         for predicate_expr in &self.predicates {
             let size = matched_nodes.len();
             let mut new_matched = Vec::new();
@@ -354,10 +345,7 @@ impl PredicateListExpression {
 }
 
 impl FilterExpression {
-    fn evaluate<D: Dom>(
-        &self,
-        context: &EvaluationCtx<D>,
-    ) -> Result<Value<D::Node>, Error<D::JsError>> {
+    fn evaluate<D: Dom>(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error> {
         debug_assert!(!self.predicates.predicates.is_empty());
 
         let Value::Nodeset(node_set) = self.expression.evaluate(context)? else {
