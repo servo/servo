@@ -9,7 +9,7 @@ use base::id::{ImageBitmapId, ImageBitmapIndex};
 use constellation_traits::SerializableImageBitmap;
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
-use pixels::{CorsStatus, PixelFormat, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
+use pixels::{CorsStatus, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
 use script_bindings::error::{Error, Fallible};
 use script_bindings::realms::{AlreadyInRealm, InRealm};
@@ -538,32 +538,14 @@ impl ImageBitmap {
                 // (e.g., a vector graphic with no natural size), then queue
                 // a global task, using the bitmap task source, to reject promise
                 // with an "InvalidStateError" DOMException and abort these steps.
-                let Some(img) = pixels::load_from_memory(&bytes, CorsStatus::Safe) else {
+                let Some(raster_image) = pixels::load_from_memory(&bytes, CorsStatus::Safe) else {
                     reject_promise_on_bitmap_task_source(&p);
                     return p;
                 };
 
-                let size = Size2D::new(img.metadata.width, img.metadata.height);
-                let format = match img.format {
-                    PixelFormat::BGRA8 => SnapshotPixelFormat::BGRA,
-                    PixelFormat::RGBA8 => SnapshotPixelFormat::RGBA,
-                    pixel_format => {
-                        unimplemented!("unsupported pixel format ({:?})", pixel_format)
-                    },
-                };
-                let alpha_mode = SnapshotAlphaMode::Transparent {
-                    premultiplied: false,
-                };
-
-                let snapshot = Snapshot::from_vec(
-                    size.cast(),
-                    format,
-                    alpha_mode,
-                    img.first_frame().bytes.to_vec(),
-                );
-
                 // Step 6.4. Set imageBitmap's bitmap data to imageData, cropped
                 // to the source rectangle with formatting.
+                let snapshot = raster_image.as_snapshot();
                 let Some(bitmap_data) =
                     ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
                 else {
@@ -643,9 +625,13 @@ impl Serializable for ImageBitmap {
             return Err(());
         }
 
+        let Some(bitmap_data) = &*self.bitmap_data.borrow() else {
+            return Err(());
+        };
+
         // Step 2. Set serialized.[[BitmapData]] to a copy of value's bitmap data.
         let serialized = SerializableImageBitmap {
-            bitmap_data: self.bitmap_data.borrow().clone().unwrap(),
+            bitmap_data: bitmap_data.to_shared(),
         };
 
         Ok((ImageBitmapId::new(), serialized))
@@ -658,7 +644,11 @@ impl Serializable for ImageBitmap {
         can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()> {
         // Step 1. Set value's bitmap data to serialized.[[BitmapData]].
-        Ok(ImageBitmap::new(owner, serialized.bitmap_data, can_gc))
+        Ok(ImageBitmap::new(
+            owner,
+            serialized.bitmap_data.to_owned(),
+            can_gc,
+        ))
     }
 
     fn serialized_storage<'a>(
@@ -691,10 +681,14 @@ impl Transferable for ImageBitmap {
             return Err(Error::DataClone(None));
         }
 
+        let Some(bitmap_data) = self.bitmap_data.borrow_mut().take() else {
+            return Err(Error::DataClone(None));
+        };
+
         // Step 2. Set dataHolder.[[BitmapData]] to value's bitmap data.
         // Step 3. Unset value's bitmap data.
         let transferred = SerializableImageBitmap {
-            bitmap_data: self.bitmap_data.borrow_mut().take().unwrap(),
+            bitmap_data: bitmap_data.to_shared(),
         };
 
         Ok((ImageBitmapId::new(), transferred))
@@ -709,7 +703,7 @@ impl Transferable for ImageBitmap {
         // Step 1. Set value's bitmap data to serialized.[[BitmapData]].
         Ok(ImageBitmap::new(
             owner,
-            transferred.bitmap_data,
+            transferred.bitmap_data.to_owned(),
             CanGc::note(),
         ))
     }

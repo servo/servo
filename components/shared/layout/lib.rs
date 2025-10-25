@@ -820,7 +820,7 @@ mod test {
             },
             format: PixelFormat::BGRA8,
             id: None,
-            bytes: IpcSharedMemory::from_byte(1, 1),
+            bytes: Arc::new(IpcSharedMemory::from_byte(1, 1)),
             frames: image_frames,
             cors_status: CorsStatus::Unsafe,
         };
