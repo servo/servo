@@ -9,10 +9,10 @@ use style::color::AbsoluteColor;
 use crate::backend::Convert;
 use crate::canvas_data::Filter;
 
-impl Convert<peniko::Font> for fonts::FontDataAndIndex {
-    fn convert(self) -> peniko::Font {
+impl Convert<peniko::FontData> for fonts::FontDataAndIndex {
+    fn convert(self) -> peniko::FontData {
         use std::sync::Arc;
-        peniko::Font::new(peniko::Blob::new(Arc::new(self.data)), self.index)
+        peniko::FontData::new(peniko::Blob::new(Arc::new(self.data)), self.index)
     }
 }
 
@@ -122,6 +122,15 @@ impl Convert<kurbo::Stroke> for LineOptions {
     }
 }
 
+impl Convert<peniko::ImageFormat> for SnapshotPixelFormat {
+    fn convert(self) -> peniko::ImageFormat {
+        match self {
+            SnapshotPixelFormat::RGBA => peniko::ImageFormat::Rgba8,
+            SnapshotPixelFormat::BGRA => peniko::ImageFormat::Bgra8,
+        }
+    }
+}
+
 impl Convert<peniko::Brush> for FillOrStrokeStyle {
     fn convert(self) -> peniko::Brush {
         use canvas_traits::canvas::FillOrStrokeStyle::*;
@@ -147,33 +156,34 @@ impl Convert<peniko::Brush> for FillOrStrokeStyle {
                 peniko::Brush::Gradient(gradient)
             },
             Surface(surface_style) => {
-                let data = surface_style
-                    .surface_data
-                    .to_owned()
-                    .to_vec(
-                        Some(SnapshotAlphaMode::Transparent {
-                            premultiplied: false,
-                        }),
-                        Some(SnapshotPixelFormat::RGBA),
-                    )
-                    .0;
-                peniko::Brush::Image(peniko::Image {
-                    data: peniko::Blob::from(data),
-                    format: peniko::ImageFormat::Rgba8,
-                    width: surface_style.surface_size.width,
-                    height: surface_style.surface_size.height,
-                    x_extend: if surface_style.repeat_x {
-                        peniko::Extend::Repeat
-                    } else {
-                        peniko::Extend::Pad
+                let (data, _, format) = surface_style.surface_data.to_owned().to_vec(
+                    Some(SnapshotAlphaMode::Transparent {
+                        premultiplied: false,
+                    }),
+                    None,
+                );
+                peniko::Brush::Image(peniko::ImageBrush {
+                    image: peniko::ImageData {
+                        data: peniko::Blob::from(data),
+                        format: format.convert(),
+                        width: surface_style.surface_size.width,
+                        height: surface_style.surface_size.height,
+                        alpha_type: peniko::ImageAlphaType::Alpha, // TODO: support more
                     },
-                    y_extend: if surface_style.repeat_y {
-                        peniko::Extend::Repeat
-                    } else {
-                        peniko::Extend::Pad
+                    sampler: peniko::ImageSampler {
+                        x_extend: if surface_style.repeat_x {
+                            peniko::Extend::Repeat
+                        } else {
+                            peniko::Extend::Pad
+                        },
+                        y_extend: if surface_style.repeat_y {
+                            peniko::Extend::Repeat
+                        } else {
+                            peniko::Extend::Pad
+                        },
+                        quality: peniko::ImageQuality::Low,
+                        alpha: 1.0,
                     },
-                    quality: peniko::ImageQuality::Low,
-                    alpha: 1.0,
                 })
             },
         }
