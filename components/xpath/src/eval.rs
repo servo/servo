@@ -165,8 +165,8 @@ pub(crate) enum NameTestComparisonMode {
 }
 
 pub(crate) fn element_name_test(
-    expected_name: QualName,
-    element_qualname: QualName,
+    expected_name: &QualName,
+    actual_name: QualName,
     comparison_mode: NameTestComparisonMode,
 ) -> bool {
     if expected_name.prefix.is_none() && expected_name.local == local_name!("*") {
@@ -175,7 +175,7 @@ pub(crate) fn element_name_test(
 
     let should_compare_namespaces =
         comparison_mode == NameTestComparisonMode::XHtml || expected_name.ns != ns!();
-    if should_compare_namespaces && expected_name.ns != element_qualname.ns {
+    if should_compare_namespaces && expected_name.ns != actual_name.ns {
         return false;
     }
 
@@ -183,33 +183,33 @@ pub(crate) fn element_name_test(
         return true;
     }
 
-    expected_name.local == element_qualname.local
+    expected_name.local == actual_name.local
 }
 
 fn apply_node_test<D: Dom>(test: &NodeTest, node: &D::Node) -> Result<bool, Error> {
     let result = match test {
-        NodeTest::Name(qname) => {
+        NodeTest::Name(expected_name) => {
             if let Some(element) = node.as_element() {
                 let comparison_mode = if element.is_html_element_in_html_document() {
                     NameTestComparisonMode::Html
                 } else {
                     NameTestComparisonMode::XHtml
                 };
-                let element_qualname = QualName::new(
+                let actual_name = QualName::new(
                     element.prefix(),
                     element.namespace().clone(),
                     element.local_name().clone(),
                 );
-                element_name_test(qname.clone(), element_qualname, comparison_mode)
+                element_name_test(expected_name, actual_name, comparison_mode)
             } else if let Some(attribute) = node.as_attribute() {
-                let attr_qualname = QualName::new(
+                let actual_name = QualName::new(
                     attribute.prefix(),
                     attribute.namespace().clone(),
                     attribute.local_name().clone(),
                 );
                 // attributes are always compared with strict namespace matching
                 let comparison_mode = NameTestComparisonMode::XHtml;
-                element_name_test(qname.clone(), attr_qualname, comparison_mode)
+                element_name_test(expected_name, actual_name, comparison_mode)
             } else {
                 false
             }

@@ -10,26 +10,25 @@ mod parser;
 mod tokenizer;
 mod value;
 
-use std::fmt::Debug;
+use std::fmt;
 use std::hash::Hash;
 
 pub use ast::Expression;
 use ast::QName;
 use context::EvaluationCtx;
 use markup5ever::{LocalName, Namespace, Prefix};
-pub use parser::Error as ParserError;
-use parser::parse as parse_impl;
+pub use parser::{Error as ParserError, parse};
 pub use value::{NodesetHelpers, Value};
 
 pub trait Dom {
     type Node: Node;
     /// An exception that can occur during JS evaluation.
-    type JsError: Debug;
+    type JsError: fmt::Debug;
     type NamespaceResolver: NamespaceResolver<Self::JsError>;
 }
 
 /// A handle to a DOM node exposing all functionality needed by xpath.
-pub trait Node: Eq + Clone + Debug {
+pub trait Node: Eq + Clone + fmt::Debug {
     type ProcessingInstruction: ProcessingInstruction;
     type Document: Document<Node = Self>;
     type Attribute: Attribute<Node = Self>;
@@ -94,23 +93,6 @@ pub trait Attribute {
     fn prefix(&self) -> Option<Prefix>;
     fn namespace(&self) -> Namespace;
     fn local_name(&self) -> LocalName;
-}
-
-/// Parse an XPath expression from a string
-pub fn parse<D: Dom>(
-    xpath: &str,
-    resolver: Option<D::NamespaceResolver>,
-) -> Result<Expression, ParserError<D::JsError>> {
-    match parse_impl(xpath, resolver) {
-        Ok(expression) => {
-            log::debug!("Parsed XPath: {expression:?}");
-            Ok(expression)
-        },
-        Err(error) => {
-            log::debug!("Unable to parse XPath: {error:?}");
-            Err(error)
-        },
-    }
 }
 
 /// Evaluate an already-parsed XPath expression
