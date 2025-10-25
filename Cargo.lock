@@ -10849,7 +10849,6 @@ dependencies = [
  "log",
  "malloc_size_of_derive",
  "markup5ever",
- "nom 8.0.0",
  "servo_malloc_size_of",
 ]
 

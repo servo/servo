@@ -62,12 +62,12 @@ impl XPathEvaluatorMethods<crate::DomTypeHolder> for XPathEvaluator {
     fn CreateExpression(
         &self,
         expression: DOMString,
-        _resolver: Option<Rc<XPathNSResolver>>,
+        resolver: Option<Rc<XPathNSResolver>>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<XPathExpression>> {
         let global = self.global();
         let window = global.as_window();
-        let parsed_expression = parse_expression(&expression.str())?;
+        let parsed_expression = parse_expression(&expression.str(), resolver)?;
         Ok(XPathExpression::new(
             window,
             None,
@@ -85,7 +85,7 @@ impl XPathEvaluatorMethods<crate::DomTypeHolder> for XPathEvaluator {
     /// <https://dom.spec.whatwg.org/#dom-xpathevaluatorbase-evaluate>
     fn Evaluate(
         &self,
-        expression_str: DOMString,
+        expression: DOMString,
         context_node: &Node,
         resolver: Option<Rc<XPathNSResolver>>,
         result_type: u16,
@@ -95,8 +95,8 @@ impl XPathEvaluatorMethods<crate::DomTypeHolder> for XPathEvaluator {
         let global = self.global();
         let window = global.as_window();
 
-        let parsed_expression = parse_expression(&expression_str.str())?;
+        let parsed_expression = parse_expression(&expression.str(), resolver)?;
         let expression = XPathExpression::new(window, None, can_gc, parsed_expression);
-        expression.evaluate_internal(context_node, result_type, result, resolver, can_gc)
+        expression.evaluate_internal(context_node, result_type, result, can_gc)
     }
 }

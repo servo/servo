@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use malloc_size_of_derive::MallocSizeOf;
+use markup5ever::QualName;
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub enum Expression {
@@ -98,7 +99,7 @@ pub(crate) enum Axis {
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub(crate) enum NodeTest {
-    Name(QName),
+    Name(QualName),
     Wildcard,
     Kind(KindTest),
 }
