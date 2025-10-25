@@ -207,9 +207,7 @@ impl FetchResponseListener for StylesheetContext {
             let loader = ElementStylesheetLoader::new(&element);
             let shared_lock = document.style_shared_lock();
             let stylesheet = |media| {
-                #[cfg(feature = "tracing")]
-                let _span =
-                    tracing::trace_span!("ParseStylesheet", servo_profiling = true).entered();
+                let _span = profile_traits::trace_span!("ParseStylesheet").entered();
                 Arc::new(Stylesheet::from_bytes(
                     &data,
                     UrlExtraData(final_url.get_arc()),

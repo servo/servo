@@ -138,8 +138,7 @@ impl HTMLStyleElement {
         let loader = ElementStylesheetLoader::new(self.upcast());
 
         let stylesheetcontents_create_callback = || {
-            #[cfg(feature = "tracing")]
-            let _span = tracing::trace_span!("ParseStylesheet", servo_profiling = true).entered();
+            let _span = profile_traits::trace_span!("ParseStylesheet").entered();
             StylesheetContents::from_str(
                 &data.str(),
                 UrlExtraData(window.get_url().get_arc()),
