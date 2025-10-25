@@ -314,9 +314,19 @@ impl LinkProcessingOptions {
             document: Trusted::new(document),
             global: Trusted::new(&document.global()),
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
-            type_: LinkFetchContextType::Preload(key, Box::new(entry)),
+            type_: LinkFetchContextType::Preload(key.clone()),
             response_body: vec![],
         };
+        // Step 12. Let commit be the following steps given a Document document:
+        // Step 12.1. If entry's response is not null, then call reportTiming given document.
+        // Step 12.2. Set document's map of preloaded resources[key] to entry.
+        // Step 13. If options's document is null, then set options's on document ready to commit. Otherwise, call commit with options's document.
+        let preloaded_resources = document.preloaded_resources();
+        let mut preloaded_resources_lock = preloaded_resources.lock();
+        preloaded_resources_lock
+            .as_mut()
+            .unwrap()
+            .insert(key, entry);
         document.fetch_background(request, fetch_context);
     }
 }
@@ -431,7 +441,7 @@ pub(crate) fn process_link_headers(
 #[strum(serialize_all = "lowercase")]
 pub(crate) enum LinkFetchContextType {
     Prefetch,
-    Preload(PreloadKey, Box<PreloadEntry>),
+    Preload(PreloadKey),
 }
 
 impl From<LinkFetchContextType> for InitiatorType {
@@ -486,7 +496,7 @@ impl FetchResponseListener for LinkFetchContext {
         response_result: Result<ResourceFetchTiming, NetworkError>,
     ) {
         // Steps for https://html.spec.whatwg.org/multipage/#preload
-        if let LinkFetchContextType::Preload(key, entry) = &self.type_ {
+        if let LinkFetchContextType::Preload(key) = &self.type_ {
             let response = if let Ok(resource_timing) = &response_result {
                 // Step 11.1. If bodyBytes is a byte sequence, then set response's body to bodyBytes as a body.
                 let response = Response::new(self.url.clone(), resource_timing.clone());
@@ -499,18 +509,12 @@ impl FetchResponseListener for LinkFetchContext {
             };
             // Step 11.5. If entry's on response available is null, then set entry's response to response;
             // otherwise call entry's on response available given response.
-            let entry = entry.with_response(response);
-
-            // Step 12. Let commit be the following steps given a Document document:
-            // Step 12.1. If entry's response is not null, then call reportTiming given document.
-            // Step 12.2. Set document's map of preloaded resources[key] to entry.
-            // Step 13. If options's document is null, then set options's on document ready to commit. Otherwise, call commit with options's document.
             let document_preloaded_resources = self.document.root().preloaded_resources();
             let mut preloaded_resources_lock = document_preloaded_resources.lock();
-            preloaded_resources_lock
-                .as_mut()
-                .unwrap()
-                .insert(key.clone(), entry);
+            let preloads = preloaded_resources_lock.as_mut().unwrap();
+            if let Some(entry) = preloads.get_mut(&key) {
+                entry.with_response(response);
+            }
         }
 
         // Step 11.6. If processResponse is given, then call processResponse with response.

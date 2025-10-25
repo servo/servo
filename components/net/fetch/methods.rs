@@ -165,21 +165,15 @@ pub async fn fetch_with_cors_cache(
                 fetch_params.preload_response_candidate =
                     PreloadResponseCandidate::Response(Box::new(response))
             };
+            // Step 10.4. If foundPreloadedResource is true and fetchParams’s preloaded response candidate is null,
+            // then set fetchParams’s preloaded response candidate to "pending".
+            let on_pending_response = |receiver| {
+                fetch_params.preload_response_candidate = PreloadResponseCandidate::Pending(receiver)
+            };
             // Step 10.3. Let foundPreloadedResource be the result of invoking consume a preloaded resource
             // for request’s client, given request’s URL, request’s destination, request’s mode,
             // request’s credentials mode, request’s integrity metadata, and onPreloadedResponseAvailable.
-            let found_preloaded_resource =
-                client.consume_preloaded_resource(request, on_preloaded_response_available);
-            // Step 10.4. If foundPreloadedResource is true and fetchParams’s preloaded response candidate is null,
-            // then set fetchParams’s preloaded response candidate to "pending".
-            if found_preloaded_resource &&
-                matches!(
-                    fetch_params.preload_response_candidate,
-                    PreloadResponseCandidate::None
-                )
-            {
-                fetch_params.preload_response_candidate = PreloadResponseCandidate::Pending;
-            }
+            client.consume_preloaded_resource(request, on_preloaded_response_available, on_pending_response);
         }
     }
 
@@ -471,15 +465,9 @@ pub async fn main_fetch(
             };
 
             // fetchParams’s preloaded response candidate is non-null
-            if let PreloadResponseCandidate::Response(response) =
-                &fetch_params.preload_response_candidate
+            if let Some(response) = fetch_params.preload_response_candidate.response().await
             {
-                // Step 1. Wait until fetchParams’s preloaded response candidate is not "pending".
-                // TODO
-                // Step 2. Assert: fetchParams’s preloaded response candidate is a response.
-                // TODO
-                // Step 3. Return fetchParams’s preloaded response candidate.
-                *response.clone()
+                response
             }
             // request's current URL's origin is same origin with request's origin, and request's
             // response tainting is "basic"
