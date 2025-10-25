@@ -170,17 +170,17 @@ impl IDBCursorMethods<crate::DomTypeHolder> for IDBCursor {
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbcursor-key>
-    fn Key(&self, cx: SafeJSContext, mut value: MutableHandleValue) {
+    fn Key(&self, cx: SafeJSContext, can_gc: CanGc, mut value: MutableHandleValue) {
         match self.key.borrow().as_ref() {
-            Some(key) => key_type_to_jsval(cx, key, value),
+            Some(key) => key_type_to_jsval(cx, key, value, can_gc),
             None => value.set(UndefinedValue()),
         }
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbcursor-primarykey>
-    fn PrimaryKey(&self, cx: SafeJSContext, mut value: MutableHandleValue) {
+    fn PrimaryKey(&self, cx: SafeJSContext, can_gc: CanGc, mut value: MutableHandleValue) {
         match self.effective_key() {
-            Some(effective_key) => key_type_to_jsval(cx, &effective_key, value),
+            Some(effective_key) => key_type_to_jsval(cx, &effective_key, value, can_gc),
             None => value.set(UndefinedValue()),
         }
     }

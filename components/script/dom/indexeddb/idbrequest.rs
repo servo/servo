@@ -124,7 +124,7 @@ impl From<u64> for IdbResult {
 impl RequestListener {
     // https://www.w3.org/TR/IndexedDB-2/#async-execute-request
     // Implements Step 5.4
-    fn handle_async_request_finished(&self, result: BackendResult<IdbResult>) {
+    fn handle_async_request_finished(&self, result: BackendResult<IdbResult>, can_gc: CanGc) {
         let request = self.request.root();
         let global = request.global();
         let cx = GlobalScope::get_cx();
@@ -138,13 +138,13 @@ impl RequestListener {
         if let Ok(data) = result {
             match data {
                 IdbResult::Key(key) => {
-                    key_type_to_jsval(GlobalScope::get_cx(), &key, answer.handle_mut())
+                    key_type_to_jsval(GlobalScope::get_cx(), &key, answer.handle_mut(), can_gc)
                 },
                 IdbResult::Keys(keys) => {
                     rooted_vec!(let mut array);
                     for key in keys.into_iter() {
                         rooted!(in(*cx) let mut val = UndefinedValue());
-                        key_type_to_jsval(GlobalScope::get_cx(), &key, val.handle_mut());
+                        key_type_to_jsval(GlobalScope::get_cx(), &key, val.handle_mut(), can_gc);
                         array.push(Heap::boxed(val.get()));
                     }
                     array.safe_to_jsval(cx, answer.handle_mut());
@@ -418,7 +418,7 @@ impl IDBRequest {
                             if let BackendError::DbErr(e) = e {
                                 error!("Error in IndexedDB operation: {}", e);
                             }
-                        }).map(|t| t.into()));
+                        }).map(|t| t.into()), CanGc::note());
                 }));
             }),
         );
