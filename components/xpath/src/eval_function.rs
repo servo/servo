@@ -111,7 +111,7 @@ impl CoreFunction {
     pub(crate) fn evaluate<D: Dom>(
         &self,
         context: &EvaluationCtx<D>,
-    ) -> Result<Value<D::Node>, Error<D::JsError>> {
+    ) -> Result<Value<D::Node>, Error> {
         match self {
             CoreFunction::Last => {
                 let predicate_ctx = context.predicate_ctx.ok_or_else(|| Error::Internal {
