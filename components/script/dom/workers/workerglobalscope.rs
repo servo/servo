@@ -448,6 +448,10 @@ impl WorkerGlobalScope {
         *self.worker_url.borrow_mut() = url;
     }
 
+    pub(crate) fn worker_name(&self) -> DOMString {
+        self.worker_name.clone()
+    }
+
     pub(crate) fn get_worker_id(&self) -> WorkerId {
         self.worker_id
     }
