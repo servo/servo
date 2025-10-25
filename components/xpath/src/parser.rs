@@ -39,15 +39,17 @@ impl<E> From<TokenizerError> for Error<E> {
     }
 }
 
-pub(crate) fn parse<E, N>(
+/// Parse an XPath expression from a string.
+pub fn parse<N, E>(
     input: &str,
     namespace_resolver: Option<N>,
+    is_in_html_document: bool,
 ) -> Result<Expression, Error<E>>
 where
-    E: fmt::Debug,
     N: NamespaceResolver<E>,
+    E: fmt::Debug,
 {
-    let mut parser = Parser::new(input, namespace_resolver)?;
+    let mut parser = Parser::new(input, namespace_resolver, is_in_html_document)?;
     let root_expression = parser.parse_expression()?;
     if !parser.remaining().is_empty() {
         log::debug!(
@@ -57,16 +59,18 @@ where
         return Err(Error::TrailingInput);
     }
 
+    log::debug!("Parsed XPath expression: {root_expression:?}");
     Ok(root_expression)
 }
 
-struct Parser<'a, E, N>
+pub(crate) struct Parser<'a, E, N>
 where
     N: NamespaceResolver<E>,
 {
     tokens: Vec<Token<'a>>,
     position: usize,
     namespace_resolver: Option<N>,
+    is_in_html_document: bool,
     marker: PhantomData<E>,
 }
 
@@ -75,14 +79,19 @@ where
     E: fmt::Debug,
     N: NamespaceResolver<E>,
 {
-    fn new(input: &'a str, namespace_resolver: Option<N>) -> Result<Self, TokenizerError> {
-        let tokens = tokenize(input)?;
-        Ok(Self {
-            tokens,
+    pub(crate) fn new(
+        input: &'a str,
+        namespace_resolver: Option<N>,
+        is_in_html_document: bool,
+    ) -> Result<Self, TokenizerError> {
+        let parser = Self {
+            tokens: tokenize(input)?,
             position: 0,
             namespace_resolver,
+            is_in_html_document,
             marker: PhantomData,
-        })
+        };
+        Ok(parser)
     }
 
     fn expect_current_token(&self) -> Result<Token<'a>, Error<E>> {
@@ -100,7 +109,7 @@ where
         self.position += advance_by;
     }
 
-    fn remaining(&self) -> &[Token<'a>] {
+    pub(crate) fn remaining(&self) -> &[Token<'a>] {
         &self.tokens[self.position..]
     }
 
@@ -124,7 +133,7 @@ where
         }
     }
 
-    fn parse_expression(&mut self) -> Result<Expression, Error<E>> {
+    pub(crate) fn parse_expression(&mut self) -> Result<Expression, Error<E>> {
         let mut result;
 
         let mut expression_stack: Vec<(Expression, OperatorToken)> = vec![];
@@ -363,10 +372,16 @@ where
                     .transpose()?
                     .flatten();
 
+                let local_name = if self.is_in_html_document && name_token.prefix.is_none() {
+                    LocalName::from(name_token.local_name.to_ascii_lowercase().as_str())
+                } else {
+                    LocalName::from(name_token.local_name)
+                };
+
                 let qualified_name = QualName {
                     prefix: name_token.prefix.map(Prefix::from),
                     ns: namespace.unwrap_or_default(),
-                    local: LocalName::from(name_token.local_name),
+                    local: local_name,
                 };
 
                 NodeTest::Name(qualified_name)
@@ -627,7 +642,7 @@ mod tests {
         ];
 
         for (input, expected) in cases {
-            match parse(input, Some(DummyNamespaceResolver)) {
+            match parse(input, Some(DummyNamespaceResolver), true) {
                 Ok(result) => {
                     assert_eq!(result, expected, "{:?} was parsed incorrectly", input);
                 },
@@ -781,7 +796,7 @@ mod tests {
         ];
 
         for (input, expected) in cases {
-            match parse(input, Some(DummyNamespaceResolver)) {
+            match parse(input, Some(DummyNamespaceResolver), true) {
                 Ok(result) => {
                     assert_eq!(result, expected, "{:?} was parsed incorrectly", input);
                 },
@@ -813,7 +828,7 @@ mod tests {
                 }),
             ],
         });
-        match parse(test_case, Some(DummyNamespaceResolver)) {
+        match parse(test_case, Some(DummyNamespaceResolver), true) {
             Ok(result) => {
                 assert_eq!(result, expected, "{:?} was parsed incorrectly", test_case);
             },
