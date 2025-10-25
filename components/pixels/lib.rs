@@ -24,7 +24,10 @@ use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 pub use snapshot::*;
-use webrender_api::ImageKey;
+use webrender_api::units::DeviceIntSize;
+use webrender_api::{
+    ImageDescriptor, ImageDescriptorFlags, ImageFormat as WebRenderImageFormat, ImageKey,
+};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum FilterQuality {
@@ -287,6 +290,8 @@ pub struct RasterImage {
     #[conditional_malloc_size_of]
     pub bytes: Arc<IpcSharedMemory>,
     pub frames: Vec<ImageFrame>,
+    /// Whether or not all of the frames of this image are opaque.
+    pub is_opaque: bool,
 }
 
 fn sensible_delay(delay: Duration) -> Duration {
@@ -366,7 +371,7 @@ impl RasterImage {
         };
 
         let alpha_mode = SnapshotAlphaMode::Transparent {
-            premultiplied: false,
+            premultiplied: true,
         };
 
         Snapshot::from_shared_memory(
@@ -376,6 +381,47 @@ impl RasterImage {
             self.bytes.clone(),
             self.frames[0].byte_range.clone(),
         )
+    }
+
+    pub fn webrender_image_descriptor_and_data_for_frame(
+        &self,
+        frame_index: usize,
+    ) -> (ImageDescriptor, IpcSharedMemory) {
+        let frame = self
+            .frames
+            .get(frame_index)
+            .expect("Asked for a frame that did not exist: {frame_index:?}");
+
+        let (format, ipc_shared_memory) = match self.format {
+            PixelFormat::BGRA8 => (WebRenderImageFormat::BGRA8, (*self.bytes).clone()),
+            PixelFormat::RGBA8 => (WebRenderImageFormat::RGBA8, (*self.bytes).clone()),
+            PixelFormat::RGB8 => {
+                let frame_bytes = &self.bytes[frame.byte_range.clone()];
+                let mut bytes = Vec::with_capacity(frame_bytes.len() / 3 * 4);
+                for rgb in frame_bytes.chunks(3) {
+                    bytes.extend_from_slice(&[rgb[2], rgb[1], rgb[0], 0xff]);
+                }
+                (
+                    WebRenderImageFormat::BGRA8,
+                    IpcSharedMemory::from_bytes(&bytes),
+                )
+            },
+            PixelFormat::K8 | PixelFormat::KA8 => {
+                panic!("Not support by webrender yet");
+            },
+        };
+        let mut flags = ImageDescriptorFlags::ALLOW_MIPMAPS;
+        flags.set(ImageDescriptorFlags::IS_OPAQUE, self.is_opaque);
+
+        let size = DeviceIntSize::new(self.metadata.width as i32, self.metadata.height as i32);
+        let descriptor = ImageDescriptor {
+            size,
+            stride: None,
+            format,
+            offset: frame.byte_range.start as i32,
+            flags,
+        };
+        (descriptor, ipc_shared_memory)
     }
 }
 
@@ -632,7 +678,12 @@ fn decode_static_image(
         return None;
     };
     let mut rgba = dynamic_image.into_rgba8();
-    rgba8_byte_swap_colors_inplace(&mut rgba);
+
+    // Store pre-multiplied data as that prevents having to do conversions of the data at later
+    // times. This does cause an issue with some canvas APIs. See:
+    // https://github.com/servo/servo/issues/40257
+    let is_opaque = rgba8_premultiply_inplace(&mut rgba);
+
     let frame = ImageFrame {
         delay: None,
         byte_range: 0..rgba.len(),
@@ -644,11 +695,12 @@ fn decode_static_image(
             width: rgba.width(),
             height: rgba.height(),
         },
-        format: PixelFormat::BGRA8,
+        format: PixelFormat::RGBA8,
         frames: vec![frame],
         bytes: Arc::new(IpcSharedMemory::from_bytes(&rgba)),
         id: None,
         cors_status,
+        is_opaque,
     })
 }
 
@@ -667,6 +719,7 @@ where
     // <https://github.com/image-rs/image/issues/2442>.
     let mut frame_data = vec![];
     let mut total_number_of_bytes = 0;
+    let mut is_opaque = true;
     let frames: Vec<ImageFrame> = animated_image_decoder
         .into_frames()
         .map_while(|decoded_frame| {
@@ -677,7 +730,12 @@ where
                     return None;
                 },
             };
-            rgba8_byte_swap_colors_inplace(animated_frame.buffer_mut());
+
+            // Store pre-multiplied data as that prevents having to do conversions of the data at later
+            // times. This does cause an issue with some canvas APIs. See:
+            // https://github.com/servo/servo/issues/40257
+            is_opaque = rgba8_premultiply_inplace(animated_frame.buffer_mut()) && is_opaque;
+
             let frame_start = total_number_of_bytes;
             total_number_of_bytes += animated_frame.buffer().len();
 
@@ -716,8 +774,9 @@ where
         cors_status,
         frames,
         id: None,
-        format: PixelFormat::BGRA8,
+        format: PixelFormat::RGBA8,
         bytes: Arc::new(IpcSharedMemory::from_bytes(&bytes)),
+        is_opaque,
     })
 }
 

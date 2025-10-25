@@ -7,14 +7,11 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use compositing_traits::{ImageUpdate, SerializableImageData};
-use ipc_channel::ipc::IpcSharedMemory;
 use layout_api::AnimatingImages;
 use malloc_size_of::MallocSizeOf;
 use parking_lot::RwLock;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use timers::{TimerEventRequest, TimerId};
-use webrender_api::units::DeviceIntSize;
-use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat};
 
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::node::Node;
@@ -70,23 +67,13 @@ impl ImageAnimationManager {
                 }
 
                 let image = &state.image;
-                let frame = image
-                    .frame(state.active_frame)
-                    .expect("active_frame should within range of frames");
+                let (descriptor, ipc_shared_memory) =
+                    image.webrender_image_descriptor_and_data_for_frame(state.active_frame);
 
                 Some(ImageUpdate::UpdateImage(
                     image.id.unwrap(),
-                    ImageDescriptor {
-                        format: ImageFormat::BGRA8,
-                        size: DeviceIntSize::new(
-                            image.metadata.width as i32,
-                            image.metadata.height as i32,
-                        ),
-                        stride: None,
-                        offset: 0,
-                        flags: ImageDescriptorFlags::ALLOW_MIPMAPS,
-                    },
-                    SerializableImageData::Raw(IpcSharedMemory::from_bytes(frame.bytes)),
+                    descriptor,
+                    SerializableImageData::Raw(ipc_shared_memory),
                     None,
                 ))
             })

@@ -32,10 +32,8 @@ use resvg::usvg::{self, fontdb};
 use rustc_hash::FxHashMap;
 use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use webrender_api::ImageKey as WebRenderImageKey;
 use webrender_api::units::DeviceIntSize;
-use webrender_api::{
-    ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey as WebRenderImageKey,
-};
 
 // We bake in rippy.png as a fallback, in case the embedder does not provide
 // a rippy resource. this version is 253 bytes large, don't exchange it against
@@ -137,43 +135,10 @@ fn set_webrender_image_key(
     if image.id.is_some() {
         return;
     }
-    let mut bytes = Vec::new();
-    let frame_bytes = image.first_frame().bytes;
-    let is_opaque = match image.format {
-        PixelFormat::BGRA8 | PixelFormat::RGBA8 => {
-            bytes.extend_from_slice(frame_bytes);
-            pixels::rgba8_premultiply_inplace(bytes.as_mut_slice())
-        },
-        PixelFormat::RGB8 => {
-            bytes.reserve(frame_bytes.len() / 3 * 4);
-            for bgr in frame_bytes.chunks(3) {
-                bytes.extend_from_slice(&[bgr[2], bgr[1], bgr[0], 0xff]);
-            }
 
-            true
-        },
-        PixelFormat::K8 | PixelFormat::KA8 => {
-            panic!("Not support by webrender yet");
-        },
-    };
-    let format = if matches!(image.format, PixelFormat::RGBA8) {
-        ImageFormat::RGBA8
-    } else {
-        ImageFormat::BGRA8
-    };
+    let (descriptor, ipc_shared_memory) = image.webrender_image_descriptor_and_data_for_frame(0);
+    let data = SerializableImageData::Raw(ipc_shared_memory);
 
-    let mut flags = ImageDescriptorFlags::ALLOW_MIPMAPS;
-    flags.set(ImageDescriptorFlags::IS_OPAQUE, is_opaque);
-
-    let size = DeviceIntSize::new(image.metadata.width as i32, image.metadata.height as i32);
-    let descriptor = ImageDescriptor {
-        size,
-        stride: None,
-        format,
-        offset: 0,
-        flags,
-    };
-    let data = SerializableImageData::Raw(IpcSharedMemory::from_bytes(&bytes));
     compositor_api.add_image(image_key, descriptor, data);
     image.id = Some(image_key);
 }
@@ -967,6 +932,7 @@ impl ImageCache for ImageCacheImpl {
                 bytes: Arc::new(IpcSharedMemory::from_bytes(&bytes)),
                 id: None,
                 cors_status: vector_image.cors_status,
+                is_opaque: false,
             };
 
             let mut store = store.lock().unwrap();
