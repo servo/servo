@@ -73,6 +73,8 @@ pub(crate) struct HTMLIFrameElement {
     browsing_context_id: Cell<Option<BrowsingContextId>>,
     #[no_trace]
     pipeline_id: Cell<Option<PipelineId>>,
+    /// <https://html.spec.whatwg.org/multipage/#process-iframe-initial-insertion>
+    initial_insertion: Cell<bool>,
     #[no_trace]
     pending_pipeline_id: Cell<Option<PipelineId>>,
     #[no_trace]
@@ -102,6 +104,24 @@ impl HTMLIFrameElement {
                 }
             })
             .unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap())
+    }
+
+    fn src_matches_about_blank(&self) -> bool {
+        let element = self.upcast::<Element>();
+        if let Some(url) = element
+            .get_attribute(&ns!(), &local_name!("src"))
+            .and_then(|src| {
+                let url = src.value();
+                if url.is_empty() {
+                    None
+                } else {
+                    self.owner_document().base_url().join(&url).ok()
+                }
+            }) {
+                url.matches_about_blank()
+            } else {
+                false
+            }
     }
 
     pub(crate) fn navigate_or_reload_child_browsing_context(
@@ -242,6 +262,23 @@ impl HTMLIFrameElement {
         }
     }
 
+    /// When an iframe is first inserted into the document,
+    /// an "about:blank" document is created,
+    /// and synchronously processed by the script thread.
+    /// This initial synchronous load should have no noticeable effect in script.
+    pub(crate) fn is_initial_blank_document(&self) -> bool {
+        self.about_blank_pipeline_id.get() == self.pipeline_id.get()
+    }
+
+    /// When an iframe is first inserted into the document,
+    /// after an "about:blank" document has been created,
+    /// the iframe attributes are processed.
+    /// If the iframe's url matches about:blank, and we are in the first processing phace,
+    /// there should be no events fired on the window, and only the iframe load event steps should run(on the element).
+    pub(crate) fn is_initial_navigated_document_that_matches_about_blank(&self) -> bool {
+        self.src_matches_about_blank() && self.initial_insertion.get() && !self.is_initial_blank_document()
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
     fn process_the_iframe_attributes(&self, mode: ProcessingMode, can_gc: CanGc) {
         // > 1. If `element`'s `srcdoc` attribute is specified, then:
@@ -297,6 +334,13 @@ impl HTMLIFrameElement {
         {
             return;
         }
+
+        // Note: We need to keep track of this because step 2.3 
+        // "If url matches about:blank and initialInsertion is true",
+        // will be run asynchronously.
+        // TODO: run synchronously.
+         self.initial_insertion
+            .set(mode == ProcessingMode::FirstTime);
 
         // > 2. Otherwise, if `element` has a `src` attribute specified, or
         // >    `initialInsertion` is false, then run the shared attribute
@@ -377,22 +421,12 @@ impl HTMLIFrameElement {
         self.navigate_or_reload_child_browsing_context(load_data, history_handling, can_gc);
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#create-a-new-child-navigable>
+    /// Synchronously create a new browsing context(This is not a navigation.).
+    /// The pipeline started here will synchronously load,
+    /// but remain unnoticable to script(no load on the window, not iframe load event steps).
+    /// Some controversy spec-wise remains: https://github.com/whatwg/html/issues/4965
     fn create_nested_browsing_context(&self, can_gc: CanGc) {
-        // Synchronously create a new browsing context, which will present
-        // `about:blank`. (This is not a navigation.)
-        //
-        // The pipeline started here will synchronously "completely finish
-        // loading", which will then asynchronously call
-        // `iframe_load_event_steps`.
-        //
-        // The precise event timing differs between implementations and
-        // remains controversial:
-        //
-        //  - [Unclear "iframe load event steps" for initial load of about:blank
-        //    in an iframe #490](https://github.com/whatwg/html/issues/490)
-        //  - [load event handling for iframes with no src may not be web
-        //    compatible #4965](https://github.com/whatwg/html/issues/4965)
-        //
         let url = ServoUrl::parse("about:blank").unwrap();
         let document = self.owner_document();
         let window = self.owner_window();
@@ -473,6 +507,7 @@ impl HTMLIFrameElement {
             load_blocker: DomRefCell::new(None),
             throttled: Cell::new(false),
             script_window_proxies: ScriptThread::window_proxies(),
+            initial_insertion: Default::default(),
         }
     }
 
@@ -539,7 +574,7 @@ impl HTMLIFrameElement {
         // Step 4
         self.upcast::<EventTarget>()
             .fire_event(atom!("load"), can_gc);
-
+        
         let blocker = &self.load_blocker;
         LoadBlocker::terminate(blocker, can_gc);
 
