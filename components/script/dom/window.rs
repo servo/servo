@@ -920,7 +920,9 @@ pub(crate) fn base64_atob(input: DOMString) -> Fallible<DOMString> {
         .with_decode_allow_trailing_bits(true);
     let engine = base64::engine::GeneralPurpose::new(&base64::alphabet::STANDARD, config);
 
-    let data = engine.decode(input).map_err(|_| Error::InvalidCharacter(None))?;
+    let data = engine
+        .decode(input)
+        .map_err(|_| Error::InvalidCharacter(None))?;
     Ok(data.iter().map(|&b| b as char).collect::<String>().into())
 }
 

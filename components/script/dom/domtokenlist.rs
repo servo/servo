@@ -66,7 +66,9 @@ impl DOMTokenList {
         let token = token.str();
         match &*token {
             "" => Err(Error::Syntax(None)),
-            slice if slice.find(HTML_SPACE_CHARACTERS).is_some() => Err(Error::InvalidCharacter(None)),
+            slice if slice.find(HTML_SPACE_CHARACTERS).is_some() => {
+                Err(Error::InvalidCharacter(None))
+            },
             slice => Ok(Atom::from(slice)),
         }
     }
