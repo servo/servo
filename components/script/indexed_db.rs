@@ -18,6 +18,7 @@ use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasOwnProperty, JS_Is
 use js::rust::{HandleValue, IntoHandle, IntoMutableHandle, MutableHandleValue};
 use profile_traits::ipc;
 use profile_traits::ipc::IpcReceiver;
+use script_bindings::script_runtime::CanGc;
 use serde::{Deserialize, Serialize};
 use storage_traits::indexeddb_thread::{BackendResult, IndexedDBKeyRange, IndexedDBKeyType};
 
@@ -54,6 +55,7 @@ pub fn key_type_to_jsval(
     cx: SafeJSContext,
     key: &IndexedDBKeyType,
     mut result: MutableHandleValue,
+    _can_gc: CanGc,
 ) {
     match key {
         IndexedDBKeyType::Number(n) => result.set(DoubleValue(*n)),
@@ -68,7 +70,7 @@ pub fn key_type_to_jsval(
             rooted_vec!(let mut values);
             for key in a {
                 rooted!(in(*cx) let mut value: JSVal);
-                key_type_to_jsval(cx, key, value.handle_mut());
+                key_type_to_jsval(cx, key, value.handle_mut(), _can_gc);
                 values.push(Heap::boxed(value.get()));
             }
             values.safe_to_jsval(cx, result);
