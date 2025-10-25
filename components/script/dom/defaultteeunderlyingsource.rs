@@ -6,7 +6,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::jsapi::{HandleValueArray, Heap, NewArrayObject, Value};
+use js::jsapi::{Heap, NewArrayObject, Value};
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::HandleValue as SafeHandleValue;
 
@@ -196,11 +196,11 @@ impl DefaultTeeUnderlyingSource {
     #[allow(unsafe_code)]
     fn resolve_cancel_promise(&self, cx: SafeJSContext, global: &GlobalScope, can_gc: CanGc) {
         // Let compositeReason be ! CreateArrayFromList(« reason_1, reason_2 »).
-        rooted_vec!(let mut reasons_values);
+        rooted_fixed_array!(let mut reasons_values: 2);
         reasons_values.push(self.reason_1.get());
         reasons_values.push(self.reason_2.get());
+        let reasons_values_array = reasons_values.as_handle_value_array();
 
-        let reasons_values_array = HandleValueArray::from(&reasons_values);
         rooted!(in(*cx) let reasons = unsafe { NewArrayObject(*cx, &reasons_values_array) });
         rooted!(in(*cx) let reasons_value = ObjectValue(reasons.get()));
 

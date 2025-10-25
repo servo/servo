@@ -312,22 +312,26 @@ impl PaintWorkletGlobalScope {
         // TODO: Step 10
         // Steps 11-12
         debug!("Invoking paint function {}.", name);
-        rooted_vec!(let mut arguments_values);
+        let size = arguments.len();
+        rooted_dynamic_array!(let mut arguments_values: size);
         for argument in arguments {
             let style_value = CSSStyleValue::new(self.upcast(), argument.clone(), can_gc);
             arguments_values.push(ObjectValue(style_value.reflector().get_jsobject().get()));
         }
-        let arguments_value_array = HandleValueArray::from(&arguments_values);
-        rooted!(in(*cx) let argument_object = unsafe { NewArrayObject(*cx, &arguments_value_array) });
+        let arguments_value_array = arguments_values.as_handle_value_array();
+        rooted!(in(*cx) let argument_object = unsafe {
+            NewArrayObject(*cx, &arguments_value_array)
+        });
 
-        rooted_vec!(let mut callback_args);
+        rooted_fixed_array!(let mut callback_args: 4);
         callback_args.push(ObjectValue(
             rendering_context.reflector().get_jsobject().get(),
         ));
         callback_args.push(ObjectValue(paint_size.reflector().get_jsobject().get()));
         callback_args.push(ObjectValue(properties.reflector().get_jsobject().get()));
         callback_args.push(ObjectValue(argument_object.get()));
-        let args = HandleValueArray::from(&callback_args);
+
+        let args = callback_args.as_handle_value_array();
 
         rooted!(in(*cx) let mut result = UndefinedValue());
         unsafe {
