@@ -6,11 +6,12 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 
 use crate::dom::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluatorMethods;
 use crate::dom::bindings::codegen::Bindings::XPathNSResolverBinding::XPathNSResolver;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::node::Node;
@@ -65,11 +66,13 @@ impl XPathEvaluatorMethods<crate::DomTypeHolder> for XPathEvaluator {
         resolver: Option<Rc<XPathNSResolver>>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<XPathExpression>> {
-        let global = self.global();
-        let window = global.as_window();
-        let parsed_expression = parse_expression(&expression.str(), resolver)?;
+        let parsed_expression = parse_expression(
+            &expression.str(),
+            resolver,
+            self.window.Document().is_html_document(),
+        )?;
         Ok(XPathExpression::new(
-            window,
+            &self.window,
             None,
             can_gc,
             parsed_expression,
@@ -92,11 +95,12 @@ impl XPathEvaluatorMethods<crate::DomTypeHolder> for XPathEvaluator {
         result: Option<&XPathResult>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<XPathResult>> {
-        let global = self.global();
-        let window = global.as_window();
-
-        let parsed_expression = parse_expression(&expression.str(), resolver)?;
-        let expression = XPathExpression::new(window, None, can_gc, parsed_expression);
+        let parsed_expression = parse_expression(
+            &expression.str(),
+            resolver,
+            self.window.Document().is_html_document(),
+        )?;
+        let expression = XPathExpression::new(&self.window, None, can_gc, parsed_expression);
         expression.evaluate_internal(context_node, result_type, result, can_gc)
     }
 }
