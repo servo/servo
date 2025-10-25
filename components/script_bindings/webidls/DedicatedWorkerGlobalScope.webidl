@@ -5,6 +5,8 @@
 // https://html.spec.whatwg.org/multipage/#dedicatedworkerglobalscope
 [Global=(Worker,DedicatedWorker), Exposed=DedicatedWorker]
 interface DedicatedWorkerGlobalScope : WorkerGlobalScope {
+  [Replaceable] readonly attribute DOMString name;
+
   [Throws] undefined postMessage(any message, sequence<object> transfer);
   [Throws] undefined postMessage(any message, optional StructuredSerializeOptions options = {});
   attribute EventHandler onmessage;
