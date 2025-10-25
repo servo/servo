@@ -6,6 +6,10 @@ mod aes_operation;
 mod hkdf_operation;
 mod hmac_operation;
 mod pbkdf2_operation;
+mod rsa_common;
+mod rsa_oaep_operation;
+mod rsa_pss_operation;
+mod rsassa_pkcs1_v1_5_operation;
 mod sha_operation;
 
 use std::ptr;
@@ -28,13 +32,14 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesGcmParams, AesKeyAlgorithm,
     AesKeyGenParams, Algorithm, AlgorithmIdentifier, HkdfParams, HmacImportParams,
     HmacKeyAlgorithm, HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params,
-    RsaOtherPrimesInfo, SubtleCryptoMethods,
+    RsaHashedImportParams, RsaHashedKeyAlgorithm, RsaKeyAlgorithm, RsaOtherPrimesInfo,
+    SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey, ObjectOrString,
 };
 use crate::dom::bindings::conversions::{SafeFromJSValConvertible, SafeToJSValConvertible};
-use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
@@ -1585,12 +1590,95 @@ impl From<NormalizedAlgorithm> for SubtleKeyAlgorithm {
     }
 }
 
+impl<'a> TryFrom<&'a ObjectOrString> for SubtleKeyAlgorithm {
+    type Error = Error;
+
+    fn try_from(value: &'a ObjectOrString) -> Result<Self, Self::Error> {
+        let name = match value {
+            ObjectOrString::Object(object) => {
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let value = ObjectValue(object.get()));
+                let key_algorithm = dictionary_from_jsval::<KeyAlgorithm>(cx, value.handle())?;
+                key_algorithm.name
+            },
+            ObjectOrString::String(domstring) => domstring.clone(),
+        };
+        Ok(SubtleKeyAlgorithm { name: name.into() })
+    }
+}
+
 impl SafeToJSValConvertible for SubtleKeyAlgorithm {
     fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue) {
         let dictionary = KeyAlgorithm {
             name: self.name.clone().into(),
         };
         dictionary.safe_to_jsval(cx, rval);
+    }
+}
+
+/// <https://w3c.github.io/webcrypto/#dfn-RsaHashedKeyAlgorithm>
+#[derive(Clone, Debug, MallocSizeOf)]
+pub(crate) struct SubtleRsaHashedKeyAlgorithm {
+    /// <https://w3c.github.io/webcrypto/#dom-keyalgorithm-name>
+    name: String,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-RsaKeyAlgorithm-modulusLength>
+    modulus_length: u32,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-RsaKeyAlgorithm-publicExponent>
+    public_exponent: Vec<u8>,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-RsaHashedKeyAlgorithm-hash>
+    hash: SubtleKeyAlgorithm,
+}
+
+impl SafeToJSValConvertible for SubtleRsaHashedKeyAlgorithm {
+    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue) {
+        rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
+        let public_exponent = create_buffer_source(
+            cx,
+            &self.public_exponent,
+            js_object.handle_mut(),
+            CanGc::note(),
+        )
+        .expect("Fail to convert publicExponent to uint8 array");
+
+        let key_algorithm = KeyAlgorithm {
+            name: self.name.clone().into(),
+        };
+        let rsa_key_algorithm = RootedTraceableBox::new(RsaKeyAlgorithm {
+            parent: key_algorithm,
+            modulusLength: self.modulus_length,
+            publicExponent: public_exponent,
+        });
+        let rsa_hashed_key_algorithm = RootedTraceableBox::new(RsaHashedKeyAlgorithm {
+            parent: rsa_key_algorithm,
+            hash: KeyAlgorithm {
+                name: self.hash.name.clone().into(),
+            },
+        });
+        rsa_hashed_key_algorithm.safe_to_jsval(cx, rval);
+    }
+}
+
+/// <https://w3c.github.io/webcrypto/#dfn-RsaHashedImportParams>
+#[derive(Clone, Debug, MallocSizeOf)]
+struct SubtleRsaHashedImportParams {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: String,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-RsaHashedImportParams-hash>
+    hash: SubtleKeyAlgorithm,
+}
+
+impl TryFrom<RootedTraceableBox<RsaHashedImportParams>> for SubtleRsaHashedImportParams {
+    type Error = Error;
+
+    fn try_from(params: RootedTraceableBox<RsaHashedImportParams>) -> Result<Self, Self::Error> {
+        Ok(SubtleRsaHashedImportParams {
+            name: params.parent.name.to_string(),
+            hash: (&params.hash).try_into()?,
+        })
     }
 }
 
@@ -1882,7 +1970,7 @@ impl TryFrom<RootedTraceableBox<Pbkdf2Params>> for SubtlePbkdf2Params {
 }
 
 /// Helper to abstract the conversion process of a JS value into many different WebIDL dictionaries.
-fn dictionary_from_jsval<T>(cx: JSContext, value: HandleValue) -> Fallible<T>
+fn dictionary_from_jsval<T>(cx: JSContext, value: HandleValue) -> Result<T, Error>
 where
     T: SafeFromJSValConvertible<Config = ()>,
 {
@@ -1905,6 +1993,7 @@ pub(crate) enum ExportedKey {
 #[allow(clippy::enum_variant_names)]
 pub(crate) enum KeyAlgorithmAndDerivatives {
     KeyAlgorithm(SubtleKeyAlgorithm),
+    RsaHashedKeyAlgorithm(SubtleRsaHashedKeyAlgorithm),
     AesKeyAlgorithm(SubtleAesKeyAlgorithm),
     HmacKeyAlgorithm(SubtleHmacKeyAlgorithm),
 }
@@ -1913,8 +2002,18 @@ impl KeyAlgorithmAndDerivatives {
     fn name(&self) -> &str {
         match self {
             KeyAlgorithmAndDerivatives::KeyAlgorithm(algo) => &algo.name,
+            KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algo) => &algo.name,
             KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algo) => &algo.name,
             KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => &algo.name,
+        }
+    }
+
+    fn hash(&self) -> Result<&SubtleKeyAlgorithm, Error> {
+        match self {
+            KeyAlgorithmAndDerivatives::KeyAlgorithm(_algo) => Err(Error::Operation),
+            KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algo) => Ok(&algo.hash),
+            KeyAlgorithmAndDerivatives::AesKeyAlgorithm(_algo) => Err(Error::Operation),
+            KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => Ok(&algo.hash),
         }
     }
 }
@@ -1931,6 +2030,7 @@ impl SafeToJSValConvertible for KeyAlgorithmAndDerivatives {
     fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue) {
         match self {
             KeyAlgorithmAndDerivatives::KeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
+            KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
             KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
             KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
         }
@@ -2094,6 +2194,7 @@ impl JsonWebKeyExt for JsonWebKey {
 #[derive(Clone, Debug, MallocSizeOf)]
 enum NormalizedAlgorithm {
     Algorithm(SubtleAlgorithm),
+    RsaHashedImportParams(SubtleRsaHashedImportParams),
     AesCtrParams(SubtleAesCtrParams),
     AesKeyGenParams(SubtleAesKeyGenParams),
     AesDerivedKeyParams(SubtleAesDerivedKeyParams),
@@ -2188,6 +2289,48 @@ fn normalize_algorithm(
             // NOTE: Step 10.1.3 is done by the `From` and `TryFrom` trait implementation of
             // "subtle" binding structs.
             let normalized_algorithm = match (alg_name, op) {
+                // <https://w3c.github.io/webcrypto/#rsassa-pkcs1-registration>
+                (ALG_RSASSA_PKCS1, Operation::ImportKey) => {
+                    let mut params = dictionary_from_jsval::<
+                        RootedTraceableBox<RsaHashedImportParams>,
+                    >(cx, value.handle())?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::RsaHashedImportParams(params.try_into()?)
+                },
+                (ALG_RSASSA_PKCS1, Operation::ExportKey) => {
+                    let mut params = dictionary_from_jsval::<Algorithm>(cx, value.handle())?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+
+                // <https://w3c.github.io/webcrypto/#rsa-pss-registration>
+                (ALG_RSA_PSS, Operation::ImportKey) => {
+                    let mut params = dictionary_from_jsval::<
+                        RootedTraceableBox<RsaHashedImportParams>,
+                    >(cx, value.handle())?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::RsaHashedImportParams(params.try_into()?)
+                },
+                (ALG_RSA_PSS, Operation::ExportKey) => {
+                    let mut params = dictionary_from_jsval::<Algorithm>(cx, value.handle())?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+
+                // <https://w3c.github.io/webcrypto/#rsa-oaep-registration>
+                (ALG_RSA_OAEP, Operation::ImportKey) => {
+                    let mut params = dictionary_from_jsval::<
+                        RootedTraceableBox<RsaHashedImportParams>,
+                    >(cx, value.handle())?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::RsaHashedImportParams(params.try_into()?)
+                },
+                (ALG_RSA_OAEP, Operation::ExportKey) => {
+                    let mut params = dictionary_from_jsval::<Algorithm>(cx, value.handle())?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+
                 // <https://w3c.github.io/webcrypto/#aes-ctr-registration>
                 (ALG_AES_CTR, Operation::Encrypt) => {
                     let mut params = dictionary_from_jsval::<RootedTraceableBox<AesCtrParams>>(
@@ -2455,6 +2598,7 @@ impl NormalizedAlgorithm {
     fn name(&self) -> &str {
         match self {
             NormalizedAlgorithm::Algorithm(algo) => &algo.name,
+            NormalizedAlgorithm::RsaHashedImportParams(algo) => &algo.name,
             NormalizedAlgorithm::AesCtrParams(algo) => &algo.name,
             NormalizedAlgorithm::AesKeyGenParams(algo) => &algo.name,
             NormalizedAlgorithm::AesDerivedKeyParams(algo) => &algo.name,
@@ -2625,6 +2769,36 @@ impl NormalizedAlgorithm {
                 },
                 _ => Err(Error::NotSupported),
             },
+            NormalizedAlgorithm::RsaHashedImportParams(algo) => match algo.name.as_str() {
+                ALG_RSASSA_PKCS1 => rsassa_pkcs1_v1_5_operation::import_key(
+                    global,
+                    algo,
+                    format,
+                    key_data,
+                    extractable,
+                    usages,
+                    can_gc,
+                ),
+                ALG_RSA_PSS => rsa_pss_operation::import_key(
+                    global,
+                    algo,
+                    format,
+                    key_data,
+                    extractable,
+                    usages,
+                    can_gc,
+                ),
+                ALG_RSA_OAEP => rsa_oaep_operation::import_key(
+                    global,
+                    algo,
+                    format,
+                    key_data,
+                    extractable,
+                    usages,
+                    can_gc,
+                ),
+                _ => Err(Error::NotSupported),
+            },
             NormalizedAlgorithm::HmacImportParams(algo) => hmac_operation::import_key(
                 global,
                 algo,
@@ -2683,6 +2857,9 @@ impl NormalizedAlgorithm {
 /// for export key operation.
 fn perform_export_key_operation(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
     match key.algorithm().name() {
+        ALG_RSASSA_PKCS1 => rsassa_pkcs1_v1_5_operation::export_key(format, key),
+        ALG_RSA_PSS => rsa_pss_operation::export_key(format, key),
+        ALG_RSA_OAEP => rsa_oaep_operation::export_key(format, key),
         ALG_AES_CTR => aes_operation::export_key_aes_ctr(format, key),
         ALG_AES_CBC => aes_operation::export_key_aes_cbc(format, key),
         ALG_AES_GCM => aes_operation::export_key_aes_gcm(format, key),
