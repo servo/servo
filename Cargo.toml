@@ -61,7 +61,7 @@ embedder_traits = { path = "components/shared/embedder" }
 encoding_rs = "0.8"
 env_logger = "0.11"
 euclid = "0.22"
-flate2 = "1.1.2"
+flate2 = "1.1"
 fonts_traits = { path = "components/shared/fonts" }
 freetype-sys = "0.20"
 gleam = "0.15"
