@@ -1257,7 +1257,7 @@ fn handle_send_keys_non_typeable(
 
     // Step 4. If element is suffering from bad input, return ErrorStatus::InvalidArgument.
     if input_element
-        .Validity()
+        .Validity(can_gc)
         .invalid_flags()
         .contains(ValidationFlags::BAD_INPUT)
     {

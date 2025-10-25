@@ -263,8 +263,8 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
 
         // Step 4: For each entry `flag` → `value` of `flags`, set element's validity flag with the name
         // `flag` to `value`.
-        self.validity_state().update_invalid_flags(bits);
-        self.validity_state().update_pseudo_classes(can_gc);
+        self.validity_state(can_gc).update_invalid_flags(bits);
+        self.validity_state(can_gc).update_pseudo_classes(can_gc);
 
         // Step 5: Set element's validation message to the empty string if message is not given
         // or all of element's validity flags are false, or to message otherwise.
@@ -317,11 +317,11 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-validity>
-    fn GetValidity(&self) -> Fallible<DomRoot<ValidityState>> {
+    fn GetValidity(&self, can_gc: CanGc) -> Fallible<DomRoot<ValidityState>> {
         if !self.is_target_form_associated() {
             return Err(Error::NotSupported);
         }
-        Ok(self.validity_state())
+        Ok(self.validity_state(can_gc))
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-labels>
@@ -389,13 +389,13 @@ impl Validatable for ElementInternals {
         self.target_element.upcast::<Element>()
     }
 
-    fn validity_state(&self) -> DomRoot<ValidityState> {
+    fn validity_state(&self, can_gc: CanGc) -> DomRoot<ValidityState> {
         debug_assert!(self.is_target_form_associated());
         self.validity_state.or_init(|| {
             ValidityState::new(
                 &self.target_element.owner_window(),
                 self.target_element.upcast(),
-                CanGc::note(),
+                can_gc,
             )
         })
     }

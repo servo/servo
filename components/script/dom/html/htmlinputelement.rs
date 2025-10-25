@@ -2088,8 +2088,8 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
-    fn Validity(&self) -> DomRoot<ValidityState> {
-        self.validity_state()
+    fn Validity(&self, can_gc: CanGc) -> DomRoot<ValidityState> {
+        self.validity_state(can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity
@@ -2108,8 +2108,8 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity
-    fn SetCustomValidity(&self, error: DOMString) {
-        self.validity_state().set_custom_error_message(error);
+    fn SetCustomValidity(&self, error: DOMString, can_gc: CanGc) {
+        self.validity_state(can_gc).set_custom_error_message(error);
     }
 }
 
@@ -2142,7 +2142,7 @@ fn perform_radio_group_validation(elem: &HTMLInputElement, group: Option<&Atom>,
         .GetRootNode(&GetRootNodeOptions::empty());
     let form = elem.form_owner();
     for r in radio_group_iter(elem, group, form.as_deref(), &root) {
-        r.validity_state()
+        r.validity_state(can_gc)
             .perform_validation_and_update(ValidationFlags::all(), can_gc);
     }
 }
@@ -2781,7 +2781,7 @@ impl HTMLInputElement {
                 perform_radio_group_validation(self, self.radio_group_name().as_ref(), can_gc)
             },
             _ => {
-                self.validity_state()
+                self.validity_state(can_gc)
                     .perform_validation_and_update(ValidationFlags::all(), can_gc);
             },
         }
@@ -3179,12 +3179,12 @@ impl VirtualMethods for HTMLInputElement {
                 form_owner.as_deref(),
                 &root,
             ) {
-                r.validity_state()
+                r.validity_state(can_gc)
                     .perform_validation_and_update(ValidationFlags::all(), can_gc);
             }
         }
 
-        self.validity_state()
+        self.validity_state(can_gc)
             .perform_validation_and_update(ValidationFlags::all(), can_gc);
 
         if self.input_type() == InputType::Color {
@@ -3386,9 +3386,9 @@ impl Validatable for HTMLInputElement {
         self.upcast()
     }
 
-    fn validity_state(&self) -> DomRoot<ValidityState> {
+    fn validity_state(&self, can_gc: CanGc) -> DomRoot<ValidityState> {
         self.validity_state
-            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast(), CanGc::note()))
+            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast(), can_gc))
     }
 
     fn is_instance_validatable(&self) -> bool {

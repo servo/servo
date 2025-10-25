@@ -344,7 +344,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-value
-    fn SetValue(&self, value: DOMString) {
+    fn SetValue(&self, value: DOMString, can_gc: CanGc) {
         {
             let mut textinput = self.textinput.borrow_mut();
 
@@ -363,8 +363,8 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
             }
         }
 
-        self.validity_state()
-            .perform_validation_and_update(ValidationFlags::all(), CanGc::note());
+        self.validity_state(can_gc)
+            .perform_validation_and_update(ValidationFlags::all(), can_gc);
         self.upcast::<Node>().dirty(NodeDamage::Other);
     }
 
@@ -441,8 +441,8 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
-    fn Validity(&self) -> DomRoot<ValidityState> {
-        self.validity_state()
+    fn Validity(&self, can_gc: CanGc) -> DomRoot<ValidityState> {
+        self.validity_state(can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity
@@ -461,8 +461,8 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity
-    fn SetCustomValidity(&self, error: DOMString) {
-        self.validity_state().set_custom_error_message(error);
+    fn SetCustomValidity(&self, error: DOMString, can_gc: CanGc) {
+        self.validity_state(can_gc).set_custom_error_message(error);
     }
 }
 
@@ -569,7 +569,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             _ => {},
         }
 
-        self.validity_state()
+        self.validity_state(can_gc)
             .perform_validation_and_update(ValidationFlags::all(), can_gc);
     }
 
@@ -581,7 +581,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         self.upcast::<Element>()
             .check_ancestors_disabled_state_for_form_control();
 
-        self.validity_state()
+        self.validity_state(can_gc)
             .perform_validation_and_update(ValidationFlags::all(), can_gc);
     }
 
@@ -616,7 +616,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             el.check_disabled_attribute();
         }
 
-        self.validity_state()
+        self.validity_state(can_gc)
             .perform_validation_and_update(ValidationFlags::all(), can_gc);
     }
 
@@ -638,7 +638,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             let mut textinput = el.textinput.borrow_mut();
             textinput.set_content(self.textinput.borrow().get_content());
         }
-        el.validity_state()
+        el.validity_state(can_gc)
             .perform_validation_and_update(ValidationFlags::all(), can_gc);
     }
 
@@ -749,7 +749,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             }
         }
 
-        self.validity_state()
+        self.validity_state(can_gc)
             .perform_validation_and_update(ValidationFlags::all(), can_gc);
     }
 
@@ -780,9 +780,9 @@ impl Validatable for HTMLTextAreaElement {
         self.upcast()
     }
 
-    fn validity_state(&self) -> DomRoot<ValidityState> {
+    fn validity_state(&self, can_gc: CanGc) -> DomRoot<ValidityState> {
         self.validity_state
-            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast(), CanGc::note()))
+            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast(), can_gc))
     }
 
     fn is_instance_validatable(&self) -> bool {

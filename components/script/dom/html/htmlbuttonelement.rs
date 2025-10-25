@@ -179,8 +179,8 @@ impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
-    fn Validity(&self) -> DomRoot<ValidityState> {
-        self.validity_state()
+    fn Validity(&self, can_gc: CanGc) -> DomRoot<ValidityState> {
+        self.validity_state(can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity
@@ -199,8 +199,8 @@ impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity
-    fn SetCustomValidity(&self, error: DOMString) {
-        self.validity_state().set_custom_error_message(error);
+    fn SetCustomValidity(&self, error: DOMString, can_gc: CanGc) {
+        self.validity_state(can_gc).set_custom_error_message(error);
     }
 }
 
@@ -262,7 +262,7 @@ impl VirtualMethods for HTMLButtonElement {
                     },
                 }
                 el.update_sequentially_focusable_status(can_gc);
-                self.validity_state()
+                self.validity_state(can_gc)
                     .perform_validation_and_update(ValidationFlags::all(), can_gc);
             },
             local_name!("type") => match mutation {
@@ -273,7 +273,7 @@ impl VirtualMethods for HTMLButtonElement {
                         _ => ButtonType::Submit,
                     };
                     self.button_type.set(value);
-                    self.validity_state()
+                    self.validity_state(can_gc)
                         .perform_validation_and_update(ValidationFlags::all(), can_gc);
                 },
                 AttributeMutation::Removed => {
@@ -282,7 +282,7 @@ impl VirtualMethods for HTMLButtonElement {
             },
             local_name!("form") => {
                 self.form_attribute_mutated(mutation, can_gc);
-                self.validity_state()
+                self.validity_state(can_gc)
                     .perform_validation_and_update(ValidationFlags::empty(), can_gc);
             },
             _ => {},
@@ -333,9 +333,9 @@ impl Validatable for HTMLButtonElement {
         self.upcast()
     }
 
-    fn validity_state(&self) -> DomRoot<ValidityState> {
+    fn validity_state(&self, can_gc: CanGc) -> DomRoot<ValidityState> {
         self.validity_state
-            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast(), CanGc::note()))
+            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast(), can_gc))
     }
 
     fn is_instance_validatable(&self) -> bool {

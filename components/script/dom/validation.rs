@@ -19,7 +19,7 @@ pub(crate) trait Validatable {
     fn as_element(&self) -> &Element;
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validity>
-    fn validity_state(&self) -> DomRoot<ValidityState>;
+    fn validity_state(&self, can_gc: CanGc) -> DomRoot<ValidityState>;
 
     /// <https://html.spec.whatwg.org/multipage/#candidate-for-constraint-validation>
     fn is_instance_validatable(&self) -> bool;
@@ -35,7 +35,9 @@ pub(crate) trait Validatable {
 
     /// <https://html.spec.whatwg.org/multipage/#concept-fv-valid>
     fn satisfies_constraints(&self) -> bool {
-        self.validity_state().invalid_flags().is_empty()
+        self.validity_state(CanGc::note())
+            .invalid_flags()
+            .is_empty()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#check-validity-steps>
@@ -71,10 +73,10 @@ pub(crate) trait Validatable {
         // Step 1.2. If `report` is true, for the element,
         // report the problem, run focusing steps, scroll into view.
         if report {
-            let flags = self.validity_state().invalid_flags();
+            let flags = self.validity_state(can_gc).invalid_flags();
             println!(
                 "Validation error: {}",
-                validation_message_for_flags(&self.validity_state(), flags)
+                validation_message_for_flags(&self.validity_state(can_gc), flags)
             );
             if let Some(html_elem) = self.as_element().downcast::<HTMLElement>() {
                 // Run focusing steps and scroll into view.
@@ -89,8 +91,8 @@ pub(crate) trait Validatable {
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
     fn validation_message(&self) -> DOMString {
         if self.is_instance_validatable() {
-            let flags = self.validity_state().invalid_flags();
-            validation_message_for_flags(&self.validity_state(), flags)
+            let flags = self.validity_state(CanGc::note()).invalid_flags();
+            validation_message_for_flags(&self.validity_state(CanGc::note()), flags)
         } else {
             DOMString::new()
         }
