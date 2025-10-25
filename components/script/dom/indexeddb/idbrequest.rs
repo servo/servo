@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::iter::repeat_n;
 
 use base::IpcSend;
 use dom_struct::dom_struct;
@@ -142,11 +141,11 @@ impl RequestListener {
                     key_type_to_jsval(GlobalScope::get_cx(), &key, answer.handle_mut())
                 },
                 IdbResult::Keys(keys) => {
-                    rooted_vec!(let mut array <- repeat_n(UndefinedValue(), keys.len()));
-                    for (count, key) in keys.into_iter().enumerate() {
+                    rooted_vec!(let mut array);
+                    for key in keys.into_iter() {
                         rooted!(in(*cx) let mut val = UndefinedValue());
                         key_type_to_jsval(GlobalScope::get_cx(), &key, val.handle_mut());
-                        array[count] = val.get();
+                        array.push(Heap::boxed(val.get()));
                     }
                     array.safe_to_jsval(cx, answer.handle_mut());
                 },
@@ -161,8 +160,8 @@ impl RequestListener {
                     };
                 },
                 IdbResult::Values(serialized_values) => {
-                    rooted_vec!(let mut values <- repeat_n(UndefinedValue(), serialized_values.len()));
-                    for (count, serialized_data) in serialized_values.into_iter().enumerate() {
+                    rooted_vec!(let mut values);
+                    for serialized_data in serialized_values.into_iter() {
                         rooted!(in(*cx) let mut val = UndefinedValue());
                         let result = bincode::deserialize(&serialized_data)
                             .map_err(|_| Error::Data)
@@ -174,7 +173,7 @@ impl RequestListener {
                             Self::handle_async_request_error(&global, cx, request, e);
                             return;
                         };
-                        values[count] = val.get();
+                        values.push(Heap::boxed(val.get()));
                     }
                     values.safe_to_jsval(cx, answer.handle_mut());
                 },

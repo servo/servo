@@ -3,19 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::ffi::CString;
-use std::iter::repeat_n;
 use std::ptr;
 
 use ipc_channel::ipc::IpcSender;
 use itertools::Itertools;
 use js::conversions::jsstr_to_string;
-use js::gc::MutableHandle;
 use js::jsapi::{
-    ClippedTime, ESClass, GetArrayLength, GetBuiltinClass, IsArrayBufferObject, JS_GetStringLength,
-    JS_HasOwnPropertyById, JS_IndexToId, JS_IsArrayBufferViewObject, JS_NewObject, NewDateObject,
-    PropertyKey,
+    ClippedTime, ESClass, GetArrayLength, GetBuiltinClass, Heap, IsArrayBufferObject,
+    JS_GetStringLength, JS_HasOwnPropertyById, JS_IndexToId, JS_IsArrayBufferViewObject,
+    JS_NewObject, NewDateObject, PropertyKey,
 };
-use js::jsval::{DoubleValue, UndefinedValue};
+use js::jsval::{DoubleValue, JSVal, UndefinedValue};
 use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasOwnProperty, JS_IsIdentifier};
 use js::rust::{HandleValue, IntoHandle, IntoMutableHandle, MutableHandleValue};
 use profile_traits::ipc;
@@ -67,13 +65,11 @@ pub fn key_type_to_jsval(
             date.safe_to_jsval(cx, result);
         },
         IndexedDBKeyType::Array(a) => {
-            rooted_vec!(let mut values <- repeat_n(UndefinedValue(), a.len()));
-            for (key, value) in a.iter().zip(unsafe {
-                values
-                    .iter_mut()
-                    .map(|v| MutableHandle::from_marked_location(v))
-            }) {
-                key_type_to_jsval(cx, key, value);
+            rooted_vec!(let mut values);
+            for key in a {
+                rooted!(in(*cx) let mut value: JSVal);
+                key_type_to_jsval(cx, key, value.handle_mut());
+                values.push(Heap::boxed(value.get()));
             }
             values.safe_to_jsval(cx, result);
         },
