@@ -192,9 +192,9 @@ fn is_non_negative_number(value: &EnqueuedValue) -> bool {
 #[derive(Default, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct QueueWithSizes {
-    queue: VecDeque<EnqueuedValue>,
+    queue: RefCell<VecDeque<EnqueuedValue>>,
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-queuetotalsize>
-    pub(crate) total_size: f64,
+    pub(crate) total_size: Cell<f64>,
 }
 
 impl QueueWithSizes {
@@ -202,26 +202,29 @@ impl QueueWithSizes {
     /// A none `rval` means we're dequeing the close sentinel,
     /// which should never be made available to script.
     pub(crate) fn dequeue_value(
-        &mut self,
+        &self,
         cx: SafeJSContext,
         rval: Option<MutableHandleValue>,
         can_gc: CanGc,
     ) {
-        let Some(value) = self.queue.front() else {
-            unreachable!("Buffer cannot be empty when dequeue value is called into.");
-        };
-        self.total_size -= value.size();
-        if let Some(rval) = rval {
-            value.to_jsval(cx, rval, can_gc);
-        } else {
-            assert_eq!(value, &EnqueuedValue::CloseSentinel);
+        {
+            let queue = self.queue.borrow();
+            let Some(value) = queue.front() else {
+                unreachable!("Buffer cannot be empty when dequeue value is called into.");
+            };
+            self.total_size.set(self.total_size.get() - value.size());
+            if let Some(rval) = rval {
+                value.to_jsval(cx, rval, can_gc);
+            } else {
+                assert_eq!(value, &EnqueuedValue::CloseSentinel);
+            }
         }
-        self.queue.pop_front();
+        self.queue.borrow_mut().pop_front();
     }
 
     /// <https://streams.spec.whatwg.org/#enqueue-value-with-size>
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn enqueue_value_with_size(&mut self, value: EnqueuedValue) -> Result<(), Error> {
+    pub(crate) fn enqueue_value_with_size(&self, value: EnqueuedValue) -> Result<(), Error> {
         // If ! IsNonNegativeNumber(size) is false, throw a RangeError exception.
         if !is_non_negative_number(&value) {
             return Err(Error::Range(
@@ -236,14 +239,14 @@ impl QueueWithSizes {
             ));
         }
 
-        self.total_size += value.size();
-        self.queue.push_back(value);
+        self.total_size.set(self.total_size.get() + value.size());
+        self.queue.borrow_mut().push_back(value);
 
         Ok(())
     }
 
     pub(crate) fn is_empty(&self) -> bool {
-        self.queue.is_empty()
+        self.queue.borrow().is_empty()
     }
 
     /// <https://streams.spec.whatwg.org/#peek-queue-value>
@@ -261,7 +264,8 @@ impl QueueWithSizes {
         assert!(!self.is_empty());
 
         // Let valueWithSize be container.[[queue]][0].
-        let value_with_size = self.queue.front().expect("Queue is not empty.");
+        let queue = self.queue.borrow();
+        let value_with_size = queue.front().expect("Queue is not empty.");
         if let EnqueuedValue::CloseSentinel = value_with_size {
             return true;
         }
@@ -274,6 +278,7 @@ impl QueueWithSizes {
     /// Only used with native sources.
     fn get_in_memory_bytes(&self) -> Option<Vec<u8>> {
         self.queue
+            .borrow()
             .iter()
             .try_fold(Vec::new(), |mut acc, value| match value {
                 EnqueuedValue::Native(chunk) => {
@@ -288,9 +293,9 @@ impl QueueWithSizes {
     }
 
     /// <https://streams.spec.whatwg.org/#reset-queue>
-    pub(crate) fn reset(&mut self) {
-        self.queue.clear();
-        self.total_size = Default::default();
+    pub(crate) fn reset(&self) {
+        self.queue.borrow_mut().clear();
+        self.total_size.set(Default::default());
     }
 }
 
@@ -300,7 +305,7 @@ pub(crate) struct ReadableStreamDefaultController {
     reflector_: Reflector,
 
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-queue>
-    queue: RefCell<QueueWithSizes>,
+    queue: QueueWithSizes,
 
     /// A mutable reference to the underlying source is used to implement these two
     /// internal slots:
@@ -342,7 +347,7 @@ impl ReadableStreamDefaultController {
     ) -> ReadableStreamDefaultController {
         ReadableStreamDefaultController {
             reflector_: Reflector::new(),
-            queue: RefCell::new(Default::default()),
+            queue: Default::default(),
             stream: MutNullableDom::new(None),
             underlying_source: MutNullableDom::new(Some(&*UnderlyingSourceContainer::new(
                 global,
@@ -452,8 +457,7 @@ impl ReadableStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#dequeue-value>
     fn dequeue_value(&self, cx: SafeJSContext, rval: MutableHandleValue, can_gc: CanGc) {
-        let mut queue = self.queue.borrow_mut();
-        queue.dequeue_value(cx, Some(rval), can_gc);
+        self.queue.dequeue_value(cx, Some(rval), can_gc);
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-should-call-pull>
@@ -565,7 +569,7 @@ impl ReadableStreamDefaultController {
         can_gc: CanGc,
     ) -> Rc<Promise> {
         // Perform ! ResetQueue(this).
-        self.queue.borrow_mut().reset();
+        self.queue.reset();
 
         let underlying_source = self
             .underlying_source
@@ -606,7 +610,7 @@ impl ReadableStreamDefaultController {
         };
 
         // if queue contains bytes, perform chunk steps.
-        if !self.queue.borrow().is_empty() {
+        if !self.queue.is_empty() {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
             let result = RootedTraceableBox::new(Heap::default());
@@ -614,7 +618,7 @@ impl ReadableStreamDefaultController {
             result.set(*rval);
 
             // If this.[[closeRequested]] is true and this.[[queue]] is empty
-            if self.close_requested.get() && self.queue.borrow().is_empty() {
+            if self.close_requested.get() && self.queue.is_empty() {
                 // Perform ! ReadableStreamDefaultControllerClearAlgorithms(controller).
                 self.clear_algorithms();
 
@@ -699,13 +703,12 @@ impl ReadableStreamDefaultController {
 
             {
                 // Let enqueueResult be EnqueueValueWithSize(controller, chunk, chunkSize).
-                let res = {
-                    let mut queue = self.queue.borrow_mut();
-                    queue.enqueue_value_with_size(EnqueuedValue::Js(ValueWithSize {
+                let res = self
+                    .queue
+                    .enqueue_value_with_size(EnqueuedValue::Js(ValueWithSize {
                         value: Heap::boxed(chunk.get()),
                         size,
-                    }))
-                };
+                    }));
                 if let Err(error) = res {
                     // If enqueueResult is an abrupt completion,
 
@@ -749,8 +752,7 @@ impl ReadableStreamDefaultController {
             EnqueuedValue::Native(chunk.into_boxed_slice()).to_jsval(cx, rval.handle_mut(), can_gc);
             stream.fulfill_read_request(rval.handle(), false, can_gc);
         } else {
-            let mut queue = self.queue.borrow_mut();
-            queue
+            self.queue
                 .enqueue_value_with_size(EnqueuedValue::Native(chunk.into_boxed_slice()))
                 .expect("Enqueuing a chunk from Rust should not fail.");
         }
@@ -768,7 +770,7 @@ impl ReadableStreamDefaultController {
     pub(crate) fn get_in_memory_bytes(&self) -> Option<Vec<u8>> {
         let underlying_source = self.underlying_source.get()?;
         if underlying_source.in_memory() {
-            return self.queue.borrow().get_in_memory_bytes();
+            return self.queue.get_in_memory_bytes();
         }
         None
     }
@@ -797,7 +799,7 @@ impl ReadableStreamDefaultController {
         // Set controller.[[closeRequested]] to true.
         self.close_requested.set(true);
 
-        if self.queue.borrow().is_empty() {
+        if self.queue.is_empty() {
             // Perform ! ReadableStreamDefaultControllerClearAlgorithms(controller).
             self.clear_algorithms();
 
@@ -821,8 +823,7 @@ impl ReadableStreamDefaultController {
         }
 
         // Return controller.[[strategyHWM]] − controller.[[queueTotalSize]].
-        let queue = self.queue.borrow();
-        let desired_size = self.strategy_hwm - queue.total_size.clamp(0.0, f64::MAX);
+        let desired_size = self.strategy_hwm - self.queue.total_size.get().clamp(0.0, f64::MAX);
         Some(desired_size.clamp(desired_size, self.strategy_hwm))
     }
 
@@ -853,7 +854,7 @@ impl ReadableStreamDefaultController {
         }
 
         // Perform ! ResetQueue(controller).
-        self.queue.borrow_mut().reset();
+        self.queue.reset();
 
         // Perform ! ReadableStreamDefaultControllerClearAlgorithms(controller).
         self.clear_algorithms();
