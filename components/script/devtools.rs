@@ -11,11 +11,11 @@ use devtools_traits::{
     AttrModification, AutoMargins, ComputedNodeLayout, CssDatabaseProperty, EvaluateJSReply,
     NodeInfo, NodeStyle, RuleModification, TimelineMarker, TimelineMarkerType,
 };
-use html5ever::LocalName;
 use ipc_channel::ipc::IpcSender;
 use js::conversions::jsstr_to_string;
 use js::jsval::UndefinedValue;
 use js::rust::ToString;
+use markup5ever::{LocalName, ns};
 use servo_config::pref;
 use style::attr::AttrValue;
 use uuid::Uuid;
@@ -395,6 +395,65 @@ pub(crate) fn handle_get_layout(
             height,
         }))
         .unwrap();
+}
+
+pub(crate) fn handle_get_xpath(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    node_id: String,
+    reply: IpcSender<String>,
+) {
+    let Some(node) = find_node_by_unique_id(documents, pipeline, &node_id) else {
+        return reply.send(Default::default()).unwrap();
+    };
+
+    let selector = node
+        .inclusive_ancestors(ShadowIncluding::Yes)
+        .filter_map(|ancestor| {
+            let Some(element) = ancestor.downcast::<Element>() else {
+                // TODO: figure out how to handle shadow roots here
+                return None;
+            };
+
+            let mut result = "/".to_owned();
+            if *element.namespace() != ns!(html) {
+                result.push_str(element.namespace());
+                result.push(':');
+            }
+
+            result.push_str(element.local_name());
+
+            let would_node_also_match_selector = |sibling: &Node| {
+                let Some(sibling) = sibling.downcast::<Element>() else {
+                    return false;
+                };
+                sibling.namespace() == element.namespace() &&
+                    sibling.local_name() == element.local_name()
+            };
+
+            let matching_elements_before = ancestor
+                .preceding_siblings()
+                .filter(|node| would_node_also_match_selector(node))
+                .count();
+            let matching_elements_after = ancestor
+                .following_siblings()
+                .filter(|node| would_node_also_match_selector(node))
+                .count();
+
+            if matching_elements_before + matching_elements_after != 0 {
+                // Need to add an index (note that XPath uses 1-based indexing)
+                result.push_str(&format!("[{}]", matching_elements_before + 1));
+            }
+
+            Some(result)
+        })
+        .collect::<Vec<_>>()
+        .into_iter()
+        .rev()
+        .collect::<Vec<_>>()
+        .join("");
+
+    reply.send(selector).unwrap();
 }
 
 fn determine_auto_margins(node: &Node) -> AutoMargins {
