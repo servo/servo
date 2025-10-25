@@ -28,6 +28,8 @@ webdriver = None
 
 
 class ServoExecutor(ProcessTestExecutor):
+    supports_testdriver = True
+
     def __init__(self, logger, browser, server_config, timeout_multiplier, debug_info,
                  pause_after_test, reftest_screenshot="unexpected"):
         ProcessTestExecutor.__init__(self, logger, browser, server_config,
