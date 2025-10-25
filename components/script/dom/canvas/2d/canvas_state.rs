@@ -27,7 +27,7 @@ use fonts::{
 use ipc_channel::ipc;
 use net_traits::image_cache::{ImageCache, ImageResponse};
 use net_traits::request::CorsSettings;
-use pixels::{PixelFormat, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
+use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use profile_traits::ipc as profiled_ipc;
 use range::Range;
 use servo_arc::Arc as ServoArc;
@@ -404,7 +404,7 @@ impl CanvasState {
         url: ServoUrl,
         cors_setting: Option<CorsSettings>,
     ) -> Option<Snapshot> {
-        let img = match self.request_image_from_cache(url, cors_setting) {
+        let raster_image = match self.request_image_from_cache(url, cors_setting) {
             ImageResponse::Loaded(image, _) => {
                 if let Some(image) = image.as_raster_image() {
                     image
@@ -421,22 +421,7 @@ impl CanvasState {
             },
         };
 
-        let size = Size2D::new(img.metadata.width, img.metadata.height);
-        let format = match img.format {
-            PixelFormat::BGRA8 => SnapshotPixelFormat::BGRA,
-            PixelFormat::RGBA8 => SnapshotPixelFormat::RGBA,
-            pixel_format => unimplemented!("unsupported pixel format ({:?})", pixel_format),
-        };
-        let alpha_mode = SnapshotAlphaMode::Transparent {
-            premultiplied: false,
-        };
-
-        Some(Snapshot::from_vec(
-            size.cast(),
-            format,
-            alpha_mode,
-            img.first_frame().bytes.to_vec(),
-        ))
+        Some(raster_image.as_snapshot())
     }
 
     fn request_image_from_cache(
@@ -599,7 +584,7 @@ impl CanvasState {
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
 
         self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
-            snapshot.as_ipc(),
+            snapshot.to_shared(),
             dest_rect,
             source_rect,
             smoothing_enabled,
@@ -648,7 +633,7 @@ impl CanvasState {
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
 
         self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
-            snapshot.as_ipc(),
+            snapshot.to_shared(),
             dest_rect,
             source_rect,
             smoothing_enabled,
@@ -713,7 +698,7 @@ impl CanvasState {
                     };
 
                     self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
-                        snapshot.as_ipc(),
+                        snapshot.to_shared(),
                         dest_rect,
                         source_rect,
                         smoothing_enabled,
@@ -792,7 +777,7 @@ impl CanvasState {
                     };
 
                     self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
-                        snapshot.as_ipc(),
+                        snapshot.to_shared(),
                         dest_rect,
                         source_rect,
                         smoothing_enabled,
@@ -822,7 +807,7 @@ impl CanvasState {
                             };
 
                             self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
-                                snapshot.as_ipc(),
+                                snapshot.to_shared(),
                                 dest_rect,
                                 source_rect,
                                 smoothing_enabled,
@@ -889,7 +874,7 @@ impl CanvasState {
 
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
         self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
-            snapshot.as_ipc(),
+            snapshot.to_shared(),
             dest_rect,
             source_rect,
             smoothing_enabled,
@@ -938,7 +923,7 @@ impl CanvasState {
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
 
         self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
-            snapshot.as_ipc(),
+            snapshot.to_shared(),
             dest_rect,
             source_rect,
             smoothing_enabled,
@@ -1820,17 +1805,15 @@ impl CanvasState {
         let data = if self.is_paintable() {
             let (sender, receiver) = ipc::channel().unwrap();
             self.send_canvas_2d_msg(Canvas2dMsg::GetImageData(Some(read_rect), sender));
-            let snapshot = receiver.recv().unwrap().to_owned();
-            Some(
-                snapshot
-                    .to_vec(
-                        Some(SnapshotAlphaMode::Transparent {
-                            premultiplied: false,
-                        }),
-                        Some(SnapshotPixelFormat::RGBA),
-                    )
-                    .0,
-            )
+
+            let mut snapshot = receiver.recv().unwrap().to_owned();
+            snapshot.transform(
+                SnapshotAlphaMode::Transparent {
+                    premultiplied: false,
+                },
+                SnapshotPixelFormat::RGBA,
+            );
+            Some(snapshot.into())
         } else {
             None
         };
@@ -1911,7 +1894,7 @@ impl CanvasState {
 
         // Step 7.
         let snapshot = imagedata.get_snapshot_rect(Rect::new(src_rect.origin, dst_rect.size));
-        self.send_canvas_2d_msg(Canvas2dMsg::PutImageData(dst_rect, snapshot.as_ipc()));
+        self.send_canvas_2d_msg(Canvas2dMsg::PutImageData(dst_rect, snapshot.to_shared()));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage

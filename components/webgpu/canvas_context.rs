@@ -16,7 +16,7 @@ use compositing_traits::{
 use euclid::default::Size2D;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
-use pixels::{IpcSnapshot, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
+use pixels::{SharedSnapshot, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
 use webgpu_traits::{
     ContextConfiguration, PRESENTATION_BUFFER_COUNT, PendingTexture, WebGPUContextId, WebGPUMsg,
@@ -543,7 +543,7 @@ impl crate::WGPU {
         &self,
         context_id: WebGPUContextId,
         pending_texture: Option<PendingTexture>,
-        sender: IpcSender<IpcSnapshot>,
+        sender: IpcSender<SharedSnapshot>,
     ) {
         let mut webgpu_contexts = self.wgpu_image_map.lock().unwrap();
         let context_data = webgpu_contexts.get_mut(&context_id).unwrap();
@@ -557,7 +557,7 @@ impl crate::WGPU {
             else {
                 warn!("Failure obtaining available staging buffer");
                 sender
-                    .send(Snapshot::cleared(configuration.size).as_ipc())
+                    .send(Snapshot::cleared(configuration.size).to_shared())
                     .unwrap();
                 return;
             };
@@ -579,7 +579,7 @@ impl crate::WGPU {
                             staging_buffer
                                 .snapshot()
                                 .unwrap_or_else(|| Snapshot::cleared(configuration.size))
-                                .as_ipc(),
+                                .to_shared(),
                         )
                         .unwrap();
                     if staging_buffer.is_mapped() {
@@ -603,7 +603,7 @@ impl crate::WGPU {
                             presentation_staging_buffer.staging_buffer.snapshot()
                         })
                         .unwrap_or_else(Snapshot::empty)
-                        .as_ipc(),
+                        .to_shared(),
                 )
                 .unwrap();
         }

@@ -7,6 +7,7 @@ mod snapshot;
 use std::borrow::Cow;
 use std::io::Cursor;
 use std::ops::Range;
+use std::sync::Arc;
 use std::time::Duration;
 use std::{cmp, fmt, vec};
 
@@ -283,7 +284,8 @@ pub struct RasterImage {
     pub format: PixelFormat,
     pub id: Option<ImageKey>,
     pub cors_status: CorsStatus,
-    pub bytes: IpcSharedMemory,
+    #[conditional_malloc_size_of]
+    pub bytes: Arc<IpcSharedMemory>,
     pub frames: Vec<ImageFrame>,
 }
 
@@ -351,6 +353,29 @@ impl RasterImage {
     pub fn first_frame(&self) -> ImageFrameView<'_> {
         self.frame(0)
             .expect("All images should have at least one frame")
+    }
+
+    pub fn as_snapshot(&self) -> Snapshot {
+        let size = Size2D::new(self.metadata.width, self.metadata.height);
+        let format = match self.format {
+            PixelFormat::BGRA8 => SnapshotPixelFormat::BGRA,
+            PixelFormat::RGBA8 => SnapshotPixelFormat::RGBA,
+            pixel_format => {
+                unimplemented!("unsupported pixel format ({pixel_format:?})");
+            },
+        };
+
+        let alpha_mode = SnapshotAlphaMode::Transparent {
+            premultiplied: false,
+        };
+
+        Snapshot::from_shared_memory(
+            size.cast(),
+            format,
+            alpha_mode,
+            self.bytes.clone(),
+            self.frames[0].byte_range.clone(),
+        )
     }
 }
 
@@ -621,7 +646,7 @@ fn decode_static_image(
         },
         format: PixelFormat::BGRA8,
         frames: vec![frame],
-        bytes: IpcSharedMemory::from_bytes(&rgba),
+        bytes: Arc::new(IpcSharedMemory::from_bytes(&rgba)),
         id: None,
         cors_status,
     })
@@ -692,7 +717,7 @@ where
         frames,
         id: None,
         format: PixelFormat::BGRA8,
-        bytes: IpcSharedMemory::from_bytes(&bytes),
+        bytes: Arc::new(IpcSharedMemory::from_bytes(&bytes)),
     })
 }
 
