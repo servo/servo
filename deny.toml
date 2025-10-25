@@ -24,6 +24,8 @@ ignore = [
     "RUSTSEC-2025-0098",
     # The crate `unic-ucd-ident` is unmaintained.
     "RUSTSEC-2025-0100",
+    # The crate `rsa` has a vulnerability. The upstream project is working on it.
+    "RUSTSEC-2023-0071",
 ]
 
 # This section is considered when running `cargo deny check licenses`
