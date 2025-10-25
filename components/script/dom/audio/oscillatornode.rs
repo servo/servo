@@ -46,6 +46,7 @@ impl OscillatorNode {
         window: &Window,
         context: &BaseAudioContext,
         options: &OscillatorOptions,
+        can_gc: CanGc,
     ) -> Fallible<OscillatorNode> {
         let node_options =
             options
@@ -69,7 +70,7 @@ impl OscillatorNode {
             440.,
             f32::MIN,
             f32::MAX,
-            CanGc::note(),
+            can_gc,
         );
         let detune = AudioParam::new(
             window,
@@ -81,7 +82,7 @@ impl OscillatorNode {
             0.,
             -440. / 2.,
             440. / 2.,
-            CanGc::note(),
+            can_gc,
         );
         Ok(OscillatorNode {
             source_node,
@@ -108,7 +109,7 @@ impl OscillatorNode {
         options: &OscillatorOptions,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<OscillatorNode>> {
-        let node = OscillatorNode::new_inherited(window, context, options)?;
+        let node = OscillatorNode::new_inherited(window, context, options, can_gc)?;
         Ok(reflect_dom_object_with_proto(
             Box::new(node),
             window,
