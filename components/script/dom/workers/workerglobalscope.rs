@@ -939,10 +939,11 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         cx: JSContext,
         value: HandleValue,
         options: RootedTraceableBox<StructuredSerializeOptions>,
+        can_gc: CanGc,
         retval: MutableHandleValue,
     ) -> Fallible<()> {
         self.upcast::<GlobalScope>()
-            .structured_clone(cx, value, options, retval)
+            .structured_clone(cx, value, options, retval, can_gc)
     }
 
     /// <https://www.w3.org/TR/trusted-types/#dom-windoworworkerglobalscope-trustedtypes>

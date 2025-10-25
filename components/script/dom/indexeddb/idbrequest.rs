@@ -124,7 +124,7 @@ impl From<u64> for IdbResult {
 impl RequestListener {
     // https://www.w3.org/TR/IndexedDB-2/#async-execute-request
     // Implements Step 5.4
-    fn handle_async_request_finished(&self, result: BackendResult<IdbResult>) {
+    fn handle_async_request_finished(&self, result: BackendResult<IdbResult>, can_gc: CanGc) {
         let request = self.request.root();
         let global = request.global();
         let cx = GlobalScope::get_cx();
@@ -152,7 +152,9 @@ impl RequestListener {
                 IdbResult::Value(serialized_data) => {
                     let result = bincode::deserialize(&serialized_data)
                         .map_err(|_| Error::Data)
-                        .and_then(|data| structuredclone::read(&global, data, answer.handle_mut()));
+                        .and_then(|data| {
+                            structuredclone::read(&global, data, answer.handle_mut(), can_gc)
+                        });
                     if let Err(e) = result {
                         warn!("Error reading structuredclone data");
                         Self::handle_async_request_error(&global, cx, request, e);
@@ -166,7 +168,7 @@ impl RequestListener {
                         let result = bincode::deserialize(&serialized_data)
                             .map_err(|_| Error::Data)
                             .and_then(|data| {
-                                structuredclone::read(&global, data, val.handle_mut())
+                                structuredclone::read(&global, data, val.handle_mut(), can_gc)
                             });
                         if let Err(e) = result {
                             warn!("Error reading structuredclone data");
@@ -184,7 +186,7 @@ impl RequestListener {
                     let param = self.iteration_param.as_ref().expect(
                         "iteration_param must be provided by IDBRequest::execute_async for Iterate",
                     );
-                    let cursor = match iterate_cursor(&global, cx, param, records) {
+                    let cursor = match iterate_cursor(&global, cx, param, records, can_gc) {
                         Ok(cursor) => cursor,
                         Err(e) => {
                             warn!("Error reading structuredclone data");
@@ -418,7 +420,7 @@ impl IDBRequest {
                             if let BackendError::DbErr(e) = e {
                                 error!("Error in IndexedDB operation: {}", e);
                             }
-                        }).map(|t| t.into()));
+                        }).map(|t| t.into()), CanGc::note());
                 }));
             }),
         );

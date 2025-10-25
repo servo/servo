@@ -127,8 +127,13 @@ impl History {
                     ..Default::default()
                 };
                 rooted!(in(*GlobalScope::get_cx()) let mut state = UndefinedValue());
-                if structuredclone::read(self.window.as_global_scope(), data, state.handle_mut())
-                    .is_err()
+                if structuredclone::read(
+                    self.window.as_global_scope(),
+                    data,
+                    state.handle_mut(),
+                    can_gc,
+                )
+                .is_err()
                 {
                     warn!("Error reading structuredclone data");
                 }
@@ -184,6 +189,7 @@ impl History {
         _title: DOMString,
         url: Option<USVString>,
         push_or_replace: PushOrReplace,
+        can_gc: CanGc,
     ) -> ErrorResult {
         // Step 1
         let document = self.window.Document();
@@ -272,6 +278,7 @@ impl History {
             self.window.as_global_scope(),
             serialized_data,
             state.handle_mut(),
+            can_gc,
         )
         .is_err()
         {
@@ -378,8 +385,9 @@ impl HistoryMethods<crate::DomTypeHolder> for History {
         data: HandleValue,
         title: DOMString,
         url: Option<USVString>,
+        can_gc: CanGc,
     ) -> ErrorResult {
-        self.push_or_replace_state(cx, data, title, url, PushOrReplace::Push)
+        self.push_or_replace_state(cx, data, title, url, PushOrReplace::Push, can_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-history-replacestate>
@@ -389,7 +397,8 @@ impl HistoryMethods<crate::DomTypeHolder> for History {
         data: HandleValue,
         title: DOMString,
         url: Option<USVString>,
+        can_gc: CanGc,
     ) -> ErrorResult {
-        self.push_or_replace_state(cx, data, title, url, PushOrReplace::Replace)
+        self.push_or_replace_state(cx, data, title, url, PushOrReplace::Replace, can_gc)
     }
 }

@@ -2156,10 +2156,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         cx: JSContext,
         value: HandleValue,
         options: RootedTraceableBox<StructuredSerializeOptions>,
+        can_gc: CanGc,
         retval: MutableHandleValue,
     ) -> Fallible<()> {
         self.as_global_scope()
-            .structured_clone(cx, value, options, retval)
+            .structured_clone(cx, value, options, retval, can_gc)
     }
 
     fn TrustedTypes(&self, can_gc: CanGc) -> DomRoot<TrustedTypePolicyFactory> {
@@ -3573,7 +3574,7 @@ impl Window {
             let obj = this.reflector().get_jsobject();
             let _ac = JSAutoRealm::new(*cx, obj.get());
             rooted!(in(*cx) let mut message_clone = UndefinedValue());
-            if let Ok(ports) = structuredclone::read(this.upcast(), data, message_clone.handle_mut()) {
+            if let Ok(ports) = structuredclone::read(this.upcast(), data, message_clone.handle_mut(), CanGc::note()) {
                 // Step 7.6, 7.7
                 MessageEvent::dispatch_jsval(
                     this.upcast(),
