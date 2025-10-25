@@ -144,7 +144,7 @@ pub(crate) fn validate_and_extract(
         // then throw an "InvalidCharacterError" DOMException.
         if !is_valid_namespace_prefix(p) {
             debug!("Not a valid namespace prefix");
-            return Err(Error::InvalidCharacter);
+            return Err(Error::InvalidCharacter(None));
         }
 
         //     Step 4.2. Set prefix to splitResult[0].
@@ -163,7 +163,7 @@ pub(crate) fn validate_and_extract(
         // then throw an "InvalidCharacterError" DOMException.
         if !is_valid_namespace_prefix(p) {
             debug!("Not a valid namespace prefix");
-            return Err(Error::InvalidCharacter);
+            return Err(Error::InvalidCharacter(None));
         }
     }
 
@@ -174,7 +174,7 @@ pub(crate) fn validate_and_extract(
         Context::Attribute => {
             if !is_valid_attribute_local_name(local_name) {
                 debug!("Not a valid attribute name");
-                return Err(Error::InvalidCharacter);
+                return Err(Error::InvalidCharacter(None));
             }
         },
         // Step 7. If context is "element" and localName
@@ -183,7 +183,7 @@ pub(crate) fn validate_and_extract(
         Context::Element => {
             if !is_valid_element_local_name(local_name) {
                 debug!("Not a valid element name");
-                return Err(Error::InvalidCharacter);
+                return Err(Error::InvalidCharacter(None));
             }
         },
     }

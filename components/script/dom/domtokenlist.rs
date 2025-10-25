@@ -66,7 +66,7 @@ impl DOMTokenList {
         let token = token.str();
         match &*token {
             "" => Err(Error::Syntax(None)),
-            slice if slice.find(HTML_SPACE_CHARACTERS).is_some() => Err(Error::InvalidCharacter),
+            slice if slice.find(HTML_SPACE_CHARACTERS).is_some() => Err(Error::InvalidCharacter(None)),
             slice => Ok(Atom::from(slice)),
         }
     }
@@ -195,7 +195,7 @@ impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
         }
         if token.contains_html_space_characters() || new_token.contains_html_space_characters() {
             // Step 2.
-            return Err(Error::InvalidCharacter);
+            return Err(Error::InvalidCharacter(None));
         }
         // Steps 3-4.
         let token = Atom::from(token);
