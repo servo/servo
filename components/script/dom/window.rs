@@ -850,7 +850,7 @@ pub(crate) fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
     //  the method's first argument contains any character whose code point
     //  is greater than U+00FF."
     if input.str().chars().any(|c: char| c > '\u{FF}') {
-        Err(Error::InvalidCharacter)
+        Err(Error::InvalidCharacter(None))
     } else {
         // "Otherwise, the user agent must convert that argument to a
         //  sequence of octets whose nth octet is the eight-bit
@@ -898,7 +898,7 @@ pub(crate) fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     // "If the length of input divides by 4 leaving a remainder of 1,
     //  throw an InvalidCharacterError exception and abort these steps."
     if input.len() % 4 == 1 {
-        return Err(Error::InvalidCharacter);
+        return Err(Error::InvalidCharacter(None));
     }
 
     // "If input contains a character that is not in the following list of
@@ -912,7 +912,7 @@ pub(crate) fn base64_atob(input: DOMString) -> Fallible<DOMString> {
         .chars()
         .any(|c| c != '+' && c != '/' && !c.is_alphanumeric())
     {
-        return Err(Error::InvalidCharacter);
+        return Err(Error::InvalidCharacter(None));
     }
 
     let config = base64::engine::general_purpose::GeneralPurposeConfig::new()
@@ -920,7 +920,9 @@ pub(crate) fn base64_atob(input: DOMString) -> Fallible<DOMString> {
         .with_decode_allow_trailing_bits(true);
     let engine = base64::engine::GeneralPurpose::new(&base64::alphabet::STANDARD, config);
 
-    let data = engine.decode(input).map_err(|_| Error::InvalidCharacter)?;
+    let data = engine
+        .decode(input)
+        .map_err(|_| Error::InvalidCharacter(None))?;
     Ok(data.iter().map(|&b| b as char).collect::<String>().into())
 }
 

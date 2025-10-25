@@ -172,7 +172,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
             None => Vec::new(),
             Some(blobparts) => match blob_parts_to_bytes(blobparts) {
                 Ok(bytes) => bytes,
-                Err(_) => return Err(Error::InvalidCharacter),
+                Err(_) => return Err(Error::InvalidCharacter(None)),
             },
         };
 

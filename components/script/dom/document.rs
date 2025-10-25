@@ -4906,7 +4906,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         //      then throw an "InvalidCharacterError" DOMException.
         if !is_valid_element_local_name(&local_name.str()) {
             debug!("Not a valid element name");
-            return Err(Error::InvalidCharacter);
+            return Err(Error::InvalidCharacter(None));
         }
 
         if self.is_html_document {
@@ -4979,7 +4979,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         //      then throw an "InvalidCharacterError" DOMException
         if !is_valid_attribute_local_name(&local_name.str()) {
             debug!("Not a valid attribute name");
-            return Err(Error::InvalidCharacter);
+            return Err(Error::InvalidCharacter(None));
         }
         if self.is_html_document {
             local_name.make_ascii_lowercase();
@@ -5048,7 +5048,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
         // Step 2
         if data.contains("]]>") {
-            return Err(Error::InvalidCharacter);
+            return Err(Error::InvalidCharacter(None));
         }
 
         // Step 3
@@ -5069,12 +5069,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     ) -> Fallible<DomRoot<ProcessingInstruction>> {
         // Step 1. If target does not match the Name production, then throw an "InvalidCharacterError" DOMException.
         if !matches_name_production(&target.str()) {
-            return Err(Error::InvalidCharacter);
+            return Err(Error::InvalidCharacter(None));
         }
 
         // Step 2.
         if data.contains("?>") {
-            return Err(Error::InvalidCharacter);
+            return Err(Error::InvalidCharacter(None));
         }
 
         // Step 3.

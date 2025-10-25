@@ -127,7 +127,7 @@ impl FileMethods<crate::DomTypeHolder> for File {
     ) -> Fallible<DomRoot<File>> {
         let bytes: Vec<u8> = match blob_parts_to_bytes(fileBits) {
             Ok(bytes) => bytes,
-            Err(_) => return Err(Error::InvalidCharacter),
+            Err(_) => return Err(Error::InvalidCharacter(None)),
         };
 
         let blobPropertyBag = &filePropertyBag.parent;
