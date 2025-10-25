@@ -111,7 +111,7 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
             .Characteristic()
             .Service()
             .Device()
-            .get_gatt()
+            .get_gatt(can_gc)
             .Connected()
         {
             p.reject_error(Network, can_gc);
@@ -158,7 +158,7 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
             .Characteristic()
             .Service()
             .Device()
-            .get_gatt()
+            .get_gatt(can_gc)
             .Connected()
         {
             p.reject_error(Network, can_gc);

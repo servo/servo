@@ -119,7 +119,7 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
             BluetoothUUID::descriptor,
             Some(descriptor),
             self.get_instance_id(),
-            self.Service().Device().get_gatt().Connected(),
+            self.Service().Device().get_gatt(can_gc).Connected(),
             GATTType::Descriptor,
             can_gc,
         )
@@ -137,7 +137,7 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
             BluetoothUUID::descriptor,
             descriptor,
             self.get_instance_id(),
-            self.Service().Device().get_gatt().Connected(),
+            self.Service().Device().get_gatt(can_gc).Connected(),
             GATTType::Descriptor,
             can_gc,
         )
@@ -159,7 +159,7 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
         }
 
         // Step 2.
-        if !self.Service().Device().get_gatt().Connected() {
+        if !self.Service().Device().get_gatt(can_gc).Connected() {
             p.reject_error(Network, can_gc);
             return p;
         }
@@ -208,7 +208,7 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
         }
 
         // Step 4.
-        if !self.Service().Device().get_gatt().Connected() {
+        if !self.Service().Device().get_gatt(can_gc).Connected() {
             p.reject_error(Network, can_gc);
             return p;
         }
@@ -248,7 +248,7 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
         }
 
         // Step 2.
-        if !self.Service().Device().get_gatt().Connected() {
+        if !self.Service().Device().get_gatt(can_gc).Connected() {
             p.reject_error(Network, can_gc);
             return p;
         }

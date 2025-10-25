@@ -791,7 +791,7 @@ impl PermissionAlgorithm for Bluetooth {
                 continue;
             }
             // Step 2.2 - 2.4
-            let _ = device.get_gatt().Disconnect(can_gc);
+            let _ = device.get_gatt(can_gc).Disconnect(can_gc);
         }
     }
 }
