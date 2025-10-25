@@ -67,7 +67,7 @@ impl HTMLOptGroupElement {
     fn update_select_validity(&self, can_gc: CanGc) {
         if let Some(select) = self.owner_select_element() {
             select
-                .validity_state()
+                .validity_state(can_gc)
                 .perform_validation_and_update(ValidationFlags::all(), can_gc);
         }
     }
@@ -147,7 +147,7 @@ impl VirtualMethods for HTMLOptGroupElement {
 
         if let Some(select) = context.parent.downcast::<HTMLSelectElement>() {
             select
-                .validity_state()
+                .validity_state(can_gc)
                 .perform_validation_and_update(ValidationFlags::all(), can_gc);
         }
     }

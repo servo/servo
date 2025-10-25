@@ -5035,7 +5035,7 @@ impl Element {
         if let Some(validatable) = self.as_maybe_validatable() {
             if needs_update {
                 validatable
-                    .validity_state()
+                    .validity_state(can_gc)
                     .perform_validation_and_update(ValidationFlags::all(), can_gc);
             }
             return validatable.is_instance_validatable() && !validatable.satisfies_constraints();
