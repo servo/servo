@@ -33,6 +33,7 @@ mod lock;
 mod mem;
 mod namespace;
 pub mod num;
+pub mod observablearray;
 pub mod principals;
 pub mod proxyhandler;
 pub mod realms;
