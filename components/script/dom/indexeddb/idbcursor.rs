@@ -215,6 +215,7 @@ pub(crate) fn iterate_cursor(
     cx: SafeJSContext,
     param: &IterationParam,
     records: Vec<IndexedDBRecord>,
+    can_gc: CanGc,
 ) -> Result<Option<DomRoot<IDBCursor>>, Error> {
     // Unpack IterationParam
     let cursor = param.cursor.root();
@@ -485,7 +486,9 @@ pub(crate) fn iterate_cursor(
         rooted!(in(*cx) let mut new_cursor_value = UndefinedValue());
         bincode::deserialize(&found_record.value)
             .map_err(|_| Error::Data)
-            .and_then(|data| structuredclone::read(global, data, new_cursor_value.handle_mut()))?;
+            .and_then(|data| {
+                structuredclone::read(global, data, new_cursor_value.handle_mut(), can_gc)
+            })?;
         cursor.value.set(new_cursor_value.get());
     }
 

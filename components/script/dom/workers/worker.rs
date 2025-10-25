@@ -112,7 +112,7 @@ impl Worker {
         let target = worker.upcast();
         let _ac = enter_realm(target);
         rooted!(in(*GlobalScope::get_cx()) let mut message = UndefinedValue());
-        if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut()) {
+        if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut(), can_gc) {
             MessageEvent::dispatch_jsval(
                 target,
                 &global,

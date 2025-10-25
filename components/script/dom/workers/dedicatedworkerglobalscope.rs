@@ -589,7 +589,9 @@ impl DedicatedWorkerGlobalScope {
         let target = self.upcast();
         let _ac = enter_realm(self);
         rooted!(in(*scope.get_cx()) let mut message = UndefinedValue());
-        if let Ok(ports) = structuredclone::read(scope.upcast(), *msg.data, message.handle_mut()) {
+        if let Ok(ports) =
+            structuredclone::read(scope.upcast(), *msg.data, message.handle_mut(), can_gc)
+        {
             MessageEvent::dispatch_jsval(
                 target,
                 scope.upcast(),
