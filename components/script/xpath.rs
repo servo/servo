@@ -261,8 +261,9 @@ impl xpath::Attribute for XPathWrapper<DomRoot<Attr>> {
 pub(crate) fn parse_expression(
     expression: &str,
     resolver: Option<Rc<XPathNSResolver>>,
+    is_in_html_document: bool,
 ) -> Fallible<xpath::Expression> {
-    xpath::parse::<XPathImplementation>(expression, resolver.map(XPathWrapper)).map_err(|error| {
+    xpath::parse(expression, resolver.map(XPathWrapper), is_in_html_document).map_err(|error| {
         match error {
             xpath::ParserError::JsError(Error::JSFailed) => Error::JSFailed,
             _ => Error::Syntax(Some(format!("Failed to parse XPath expression: {error:?}"))),
