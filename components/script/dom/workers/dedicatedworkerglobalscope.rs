@@ -793,4 +793,7 @@ impl DedicatedWorkerGlobalScopeMethods<crate::DomTypeHolder> for DedicatedWorker
 
     // https://html.spec.whatwg.org/multipage/#handler-dedicatedworkerglobalscope-onmessage
     event_handler!(message, GetOnmessage, SetOnmessage);
+
+    // https://html.spec.whatwg.org/multipage/#handler-dedicatedworkerglobalscope-onmessageerror
+    event_handler!(messageerror, GetOnmessageerror, SetOnmessageerror);
 }

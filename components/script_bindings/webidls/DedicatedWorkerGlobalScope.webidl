@@ -10,6 +10,7 @@ interface DedicatedWorkerGlobalScope : WorkerGlobalScope {
   [Throws] undefined postMessage(any message, sequence<object> transfer);
   [Throws] undefined postMessage(any message, optional StructuredSerializeOptions options = {});
   attribute EventHandler onmessage;
+  attribute EventHandler onmessageerror;
 
   undefined close();
 };
