@@ -462,6 +462,25 @@ pub enum EmbedderMsg {
     SetClipboardText(WebViewId, String),
     /// Changes the cursor.
     SetCursor(WebViewId, Cursor),
+    /// Get a credential from the credential manager.
+    GetCredential(
+        WebViewId,
+        String, // Key
+        IpcSender<Result<Option<Vec<u8>>, String>>, // Secret
+    ),
+    /// Store a credential in the credential manager.
+    StoreCredential(
+        WebViewId,
+        String,   // Key
+        Vec<u8>,  // Secret
+        IpcSender<Result<(), String>>, // Success
+    ),
+    /// Delete a credential from the credential manager.
+    DeleteCredential(
+        WebViewId,
+        String, // Key
+        IpcSender<Result<(), String>>, // Success
+    ),
     /// A favicon was detected
     NewFavicon(WebViewId, Image),
     /// The history state has changed.

@@ -34,7 +34,6 @@ impl PasswordCredential {
         }
     }
 
-    #[expect(dead_code)]
     pub(crate) fn new(
         global: &GlobalScope,
         id: USVString,
