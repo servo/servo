@@ -5,7 +5,7 @@
 use std::ptr::NonNull;
 
 use dom_struct::dom_struct;
-use js::jsapi::{JSObject, Value};
+use js::jsapi::{Heap, JSObject, Value};
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::DomObject;
 use script_bindings::str::DOMString;
@@ -22,7 +22,8 @@ use crate::script_runtime::CanGc;
 /// Event for Rust → JS calls in [`crate::dom::DebuggerGlobalScope`].
 pub(crate) struct DebuggerAddDebuggeeEvent {
     event: Event,
-    global: Dom<GlobalScope>,
+    #[ignore_malloc_size_of = "Measured by the JS engine"]
+    global: Heap<*mut JSObject>,
     pipeline_id: Dom<PipelineId>,
     worker_id: Option<DOMString>,
 }
@@ -37,12 +38,21 @@ impl DebuggerAddDebuggeeEvent {
     ) -> DomRoot<Self> {
         let result = Box::new(Self {
             event: Event::new_inherited(),
-            global: Dom::from_ref(global),
+            global: Heap::default(),
             pipeline_id: Dom::from_ref(pipeline_id),
             worker_id,
         });
         let result = reflect_dom_object(result, debugger_global, can_gc);
         result.event.init_event("addDebuggee".into(), false, false);
+
+        // Convert the debuggee global’s reflector to a Value, wrapping it from its originating realm (debuggee realm)
+        // into the active realm (debugger realm) so that it can be passed across compartments.
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut wrapped_global: Value);
+        global
+            .reflector()
+            .safe_to_jsval(cx, wrapped_global.handle_mut());
+        result.global.set(wrapped_global.to_object());
 
         result
     }
@@ -50,14 +60,8 @@ impl DebuggerAddDebuggeeEvent {
 
 impl DebuggerAddDebuggeeEventMethods<crate::DomTypeHolder> for DebuggerAddDebuggeeEvent {
     // check-tidy: no specs after this line
-    fn Global(&self, cx: script_bindings::script_runtime::JSContext) -> NonNull<JSObject> {
-        // Convert the debuggee global’s reflector to a Value, wrapping it from its originating realm (debuggee realm)
-        // into the active realm (debugger realm) so that it can be passed across compartments.
-        rooted!(in(*cx) let mut result: Value);
-        self.global
-            .reflector()
-            .safe_to_jsval(cx, result.handle_mut());
-        NonNull::new(result.to_object()).unwrap()
+    fn Global(&self, _cx: script_bindings::script_runtime::JSContext) -> NonNull<JSObject> {
+        NonNull::new(self.global.get()).unwrap()
     }
 
     fn PipelineId(
