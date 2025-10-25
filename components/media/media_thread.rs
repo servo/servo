@@ -5,7 +5,7 @@
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use compositing_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
+use compositing_traits::{WebRenderExternalImageRegistry, WebRenderImageHandlerType};
 use ipc_channel::ipc::{IpcSender, channel};
 use log::{trace, warn};
 use rustc_hash::FxHashMap;
@@ -22,11 +22,11 @@ pub struct GLPlayerThread {
     players: FxHashMap<u64, IpcSender<GLPlayerMsgForward>>,
     /// List of registered webrender external images.
     /// We use it to get an unique ID for new players.
-    external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+    external_images: Arc<Mutex<WebRenderExternalImageRegistry>>,
 }
 
 impl GLPlayerThread {
-    pub fn new(external_images: Arc<Mutex<WebrenderExternalImageRegistry>>) -> Self {
+    pub fn new(external_images: Arc<Mutex<WebRenderExternalImageRegistry>>) -> Self {
         GLPlayerThread {
             players: Default::default(),
             external_images,
@@ -34,7 +34,7 @@ impl GLPlayerThread {
     }
 
     pub fn start(
-        external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+        external_images: Arc<Mutex<WebRenderExternalImageRegistry>>,
     ) -> IpcSender<GLPlayerMsg> {
         let (sender, receiver) = channel().unwrap();
         thread::Builder::new()
@@ -64,7 +64,7 @@ impl GLPlayerThread {
                     .external_images
                     .lock()
                     .unwrap()
-                    .next_id(WebrenderImageHandlerType::Media)
+                    .next_id(WebRenderImageHandlerType::Media)
                     .0;
                 self.players.insert(id, sender.clone());
                 sender.send(GLPlayerMsgForward::PlayerId(id)).unwrap();

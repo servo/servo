@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex};
 
 use base::id::PipelineId;
 use compositing_traits::{
-    CrossProcessCompositorApi, WebrenderExternalImageRegistry, WebrenderImageHandlerType,
+    CrossProcessCompositorApi, WebRenderExternalImageRegistry, WebRenderImageHandlerType,
 };
 use ipc_channel::ipc::{IpcReceiver, IpcSender, IpcSharedMemory};
 use log::{info, warn};
@@ -105,7 +105,7 @@ pub(crate) struct WGPU {
     /// (this is also reused for invalidation of command buffers)
     error_command_encoders: FxHashMap<id::CommandEncoderId, String>,
     pub(crate) compositor_api: CrossProcessCompositorApi,
-    pub(crate) external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+    pub(crate) external_images: Arc<Mutex<WebRenderExternalImageRegistry>>,
     pub(crate) wgpu_image_map: WGPUImageMap,
     /// Provides access to poller thread
     pub(crate) poller: Poller,
@@ -121,7 +121,7 @@ impl WGPU {
         sender: IpcSender<WebGPURequest>,
         script_sender: IpcSender<WebGPUMsg>,
         compositor_api: CrossProcessCompositorApi,
-        external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+        external_images: Arc<Mutex<WebRenderExternalImageRegistry>>,
         wgpu_image_map: WGPUImageMap,
     ) -> Self {
         let backend_pref = pref!(dom_webgpu_wgpu_backend);
@@ -497,7 +497,7 @@ impl WGPU {
                             .external_images
                             .lock()
                             .expect("Lock poisoned?")
-                            .next_id(WebrenderImageHandlerType::WebGPU);
+                            .next_id(WebRenderImageHandlerType::WebGpu);
                         let image_key = self.compositor_api.generate_image_key_blocking().unwrap();
                         let context_id = WebGPUContextId(id.0);
                         if let Err(e) = sender.send((context_id, image_key)) {

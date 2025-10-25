@@ -455,31 +455,31 @@ impl CrossProcessCompositorApi {
 //
 /// This trait is used to notify lock/unlock messages and get the
 /// required info that WR needs.
-pub trait WebrenderExternalImageApi {
+pub trait WebRenderExternalImageApi {
     fn lock(&mut self, id: u64) -> (ExternalImageSource<'_>, UntypedSize2D<i32>);
     fn unlock(&mut self, id: u64);
 }
 
-/// Type of Webrender External Image Handler.
-pub enum WebrenderImageHandlerType {
-    WebGL,
+/// Type of WebRender External Image Handler.
+pub enum WebRenderImageHandlerType {
+    WebGl,
     Media,
-    WebGPU,
+    WebGpu,
 }
 
-/// List of Webrender external images to be shared among all external image
+/// List of WebRender external images to be shared among all external image
 /// consumers (WebGL, Media, WebGPU).
 /// It ensures that external image identifiers are unique.
 #[derive(Default)]
-pub struct WebrenderExternalImageRegistry {
+pub struct WebRenderExternalImageRegistry {
     /// Map of all generated external images.
-    external_images: FxHashMap<ExternalImageId, WebrenderImageHandlerType>,
+    external_images: FxHashMap<ExternalImageId, WebRenderImageHandlerType>,
     /// Id generator for the next external image identifier.
     next_image_id: u64,
 }
 
-impl WebrenderExternalImageRegistry {
-    pub fn next_id(&mut self, handler_type: WebrenderImageHandlerType) -> ExternalImageId {
+impl WebRenderExternalImageRegistry {
+    pub fn next_id(&mut self, handler_type: WebRenderImageHandlerType) -> ExternalImageId {
         self.next_image_id += 1;
         let key = ExternalImageId(self.next_image_id);
         self.external_images.insert(key, handler_type);
@@ -490,26 +490,26 @@ impl WebrenderExternalImageRegistry {
         self.external_images.remove(key);
     }
 
-    pub fn get(&self, key: &ExternalImageId) -> Option<&WebrenderImageHandlerType> {
+    pub fn get(&self, key: &ExternalImageId) -> Option<&WebRenderImageHandlerType> {
         self.external_images.get(key)
     }
 }
 
 /// WebRender External Image Handler implementation.
-pub struct WebrenderExternalImageHandlers {
+pub struct WebRenderExternalImageHandlers {
     /// WebGL handler.
-    webgl_handler: Option<Box<dyn WebrenderExternalImageApi>>,
+    webgl_handler: Option<Box<dyn WebRenderExternalImageApi>>,
     /// Media player handler.
-    media_handler: Option<Box<dyn WebrenderExternalImageApi>>,
+    media_handler: Option<Box<dyn WebRenderExternalImageApi>>,
     /// WebGPU handler.
-    webgpu_handler: Option<Box<dyn WebrenderExternalImageApi>>,
-    /// Webrender external images.
-    external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+    webgpu_handler: Option<Box<dyn WebRenderExternalImageApi>>,
+    /// WebRender external images.
+    external_images: Arc<Mutex<WebRenderExternalImageRegistry>>,
 }
 
-impl WebrenderExternalImageHandlers {
-    pub fn new() -> (Self, Arc<Mutex<WebrenderExternalImageRegistry>>) {
-        let external_images = Arc::new(Mutex::new(WebrenderExternalImageRegistry::default()));
+impl WebRenderExternalImageHandlers {
+    pub fn new() -> (Self, Arc<Mutex<WebRenderExternalImageRegistry>>) {
+        let external_images = Arc::new(Mutex::new(WebRenderExternalImageRegistry::default()));
         (
             Self {
                 webgl_handler: None,
@@ -523,18 +523,18 @@ impl WebrenderExternalImageHandlers {
 
     pub fn set_handler(
         &mut self,
-        handler: Box<dyn WebrenderExternalImageApi>,
-        handler_type: WebrenderImageHandlerType,
+        handler: Box<dyn WebRenderExternalImageApi>,
+        handler_type: WebRenderImageHandlerType,
     ) {
         match handler_type {
-            WebrenderImageHandlerType::WebGL => self.webgl_handler = Some(handler),
-            WebrenderImageHandlerType::Media => self.media_handler = Some(handler),
-            WebrenderImageHandlerType::WebGPU => self.webgpu_handler = Some(handler),
+            WebRenderImageHandlerType::WebGl => self.webgl_handler = Some(handler),
+            WebRenderImageHandlerType::Media => self.media_handler = Some(handler),
+            WebRenderImageHandlerType::WebGpu => self.webgpu_handler = Some(handler),
         }
     }
 }
 
-impl ExternalImageHandler for WebrenderExternalImageHandlers {
+impl ExternalImageHandler for WebRenderExternalImageHandlers {
     /// Lock the external image. Then, WR could start to read the
     /// image content.
     /// The WR client should not change the image content until the
@@ -550,7 +550,7 @@ impl ExternalImageHandler for WebrenderExternalImageHandlers {
             .get(&key)
             .expect("Tried to get unknown external image");
         match handler_type {
-            WebrenderImageHandlerType::WebGL => {
+            WebRenderImageHandlerType::WebGl => {
                 let (source, size) = self.webgl_handler.as_mut().unwrap().lock(key.0);
                 let texture_id = match source {
                     ExternalImageSource::NativeTexture(b) => b,
@@ -561,7 +561,7 @@ impl ExternalImageHandler for WebrenderExternalImageHandlers {
                     source: ExternalImageSource::NativeTexture(texture_id),
                 }
             },
-            WebrenderImageHandlerType::Media => {
+            WebRenderImageHandlerType::Media => {
                 let (source, size) = self.media_handler.as_mut().unwrap().lock(key.0);
                 let texture_id = match source {
                     ExternalImageSource::NativeTexture(b) => b,
@@ -572,7 +572,7 @@ impl ExternalImageHandler for WebrenderExternalImageHandlers {
                     source: ExternalImageSource::NativeTexture(texture_id),
                 }
             },
-            WebrenderImageHandlerType::WebGPU => {
+            WebRenderImageHandlerType::WebGpu => {
                 let (source, size) = self.webgpu_handler.as_mut().unwrap().lock(key.0);
                 ExternalImage {
                     uv: TexelRect::new(0.0, size.height as f32, size.width as f32, 0.0),
@@ -590,9 +590,9 @@ impl ExternalImageHandler for WebrenderExternalImageHandlers {
             .get(&key)
             .expect("Tried to get unknown external image");
         match handler_type {
-            WebrenderImageHandlerType::WebGL => self.webgl_handler.as_mut().unwrap().unlock(key.0),
-            WebrenderImageHandlerType::Media => self.media_handler.as_mut().unwrap().unlock(key.0),
-            WebrenderImageHandlerType::WebGPU => {
+            WebRenderImageHandlerType::WebGl => self.webgl_handler.as_mut().unwrap().unlock(key.0),
+            WebRenderImageHandlerType::Media => self.media_handler.as_mut().unwrap().unlock(key.0),
+            WebRenderImageHandlerType::WebGpu => {
                 self.webgpu_handler.as_mut().unwrap().unlock(key.0)
             },
         };

@@ -1471,6 +1471,7 @@ dependencies = [
  "base",
  "bincode",
  "bitflags 2.10.0",
+ "canvas_traits",
  "compositing_traits",
  "constellation_traits",
  "crossbeam-channel",
@@ -1482,6 +1483,7 @@ dependencies = [
  "ipc-channel",
  "libc",
  "log",
+ "media",
  "pixels",
  "profile_traits",
  "rayon",
@@ -1495,9 +1497,12 @@ dependencies = [
  "surfman",
  "timers",
  "tracing",
+ "webgl",
+ "webgpu",
  "webrender",
  "webrender_api",
  "webxr",
+ "webxr-api",
  "wr_malloc_size_of",
 ]
 

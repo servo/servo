@@ -29,7 +29,7 @@ use std::cell::{Cell, RefCell};
 use std::cmp::max;
 use std::path::PathBuf;
 use std::rc::{Rc, Weak};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use base::generic_channel::{GenericCallback, RoutedReceiver};
 pub use base::id::WebViewId;
@@ -38,17 +38,13 @@ use base::id::{PipelineNamespace, PipelineNamespaceId};
 use bluetooth::BluetoothThreadFactory;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
-use canvas_traits::webgl::{GlType, WebGLThreads};
 use clipboard_delegate::StringRequest;
 pub use compositing::WebRenderDebugOption;
 use compositing::{IOCompositor, InitialCompositorState};
 pub use compositing_traits::rendering_context::{
     OffscreenRenderingContext, RenderingContext, SoftwareRenderingContext, WindowRenderingContext,
 };
-use compositing_traits::{
-    CompositorMsg, CompositorProxy, CrossProcessCompositorApi, WebrenderExternalImageHandlers,
-    WebrenderExternalImageRegistry, WebrenderImageHandlerType,
-};
+use compositing_traits::{CompositorMsg, CompositorProxy, CrossProcessCompositorApi};
 #[cfg(all(
     not(target_os = "windows"),
     not(target_os = "ios"),
@@ -109,11 +105,6 @@ use servo_media::player::context::GlContext;
 use servo_url::ServoUrl;
 use storage::new_storage_threads;
 use style::global_style_data::StyleThreadPool;
-use webgl::WebGLComm;
-#[cfg(feature = "webgpu")]
-pub use webgpu;
-#[cfg(feature = "webgpu")]
-use webgpu::canvas_context::WGPUImageMap;
 use webview::WebViewInner;
 #[cfg(feature = "webxr")]
 pub use webxr;
@@ -254,6 +245,7 @@ impl Servo {
         let event_loop_waker = builder.event_loop_waker;
         let (compositor_proxy, compositor_receiver) =
             create_compositor_channel(event_loop_waker.clone());
+        let (constellation_proxy, embedder_to_constellation_receiver) = ConstellationProxy::new();
         let (embedder_proxy, embedder_receiver) = create_embedder_channel(event_loop_waker.clone());
         let time_profiler_chan = profile_time::Profiler::create(
             &opts.time_profiling,
@@ -278,107 +270,46 @@ impl Servo {
             None
         };
 
-        // Get GL bindings
-        let rendering_context = builder.rendering_context;
-        let webrender_gl = rendering_context.gleam_gl_api();
-
-        // Make sure the gl context is made current.
-        if let Err(err) = rendering_context.make_current() {
-            warn!("Failed to make the rendering context current: {:?}", err);
-        }
-        debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR,);
-
-        // Create the webgl thread
-        let gl_type = match webrender_gl.get_type() {
-            gleam::gl::GlType::Gl => GlType::Gl,
-            gleam::gl::GlType::Gles => GlType::Gles,
-        };
-
-        let (external_image_handlers, external_images) = WebrenderExternalImageHandlers::new();
-        let mut external_image_handlers = Box::new(external_image_handlers);
-
-        let WebGLComm {
-            webgl_threads,
-            #[cfg(feature = "webxr")]
-            webxr_layer_grand_manager,
-            image_handler,
-        } = WebGLComm::new(
-            rendering_context.clone(),
-            compositor_proxy.cross_process_compositor_api.clone(),
-            external_images.clone(),
-            gl_type,
-        );
-
-        // Set webrender external image handler for WebGL textures
-        external_image_handlers.set_handler(image_handler, WebrenderImageHandlerType::WebGL);
-
-        // Create the WebXR main thread
-        #[cfg(feature = "webxr")]
-        let mut webxr_main_thread =
-            webxr::MainThreadRegistry::new(event_loop_waker.clone(), webxr_layer_grand_manager)
-                .expect("Failed to create WebXR device registry");
-        #[cfg(feature = "webxr")]
-        if pref!(dom_webxr_enabled) {
-            builder.webxr_registry.register(&mut webxr_main_thread);
-        }
-
-        #[cfg(feature = "webgpu")]
-        let wgpu_image_handler = webgpu::WGPUExternalImages::default();
-        #[cfg(feature = "webgpu")]
-        let wgpu_image_map = wgpu_image_handler.images.clone();
-        #[cfg(feature = "webgpu")]
-        external_image_handlers.set_handler(
-            Box::new(wgpu_image_handler),
-            WebrenderImageHandlerType::WebGPU,
-        );
-
-        WindowGLContext::initialize_image_handler(
-            &mut external_image_handlers,
-            external_images.clone(),
-        );
-
         // Create the constellation, which maintains the engine pipelines, including script and
         // layout, as well as the navigation context.
         let mut protocols = ProtocolRegistry::with_internal_protocols();
         protocols.merge(builder.protocol_registry);
 
-        let constellation_chan = create_constellation(
-            opts.config_dir.clone(),
-            embedder_proxy,
-            compositor_proxy.clone(),
-            time_profiler_chan.clone(),
-            mem_profiler_chan.clone(),
-            devtools_sender,
-            #[cfg(feature = "webxr")]
-            webxr_main_thread.registry(),
-            Some(webgl_threads),
-            external_images,
-            #[cfg(feature = "webgpu")]
-            wgpu_image_map,
-            protocols,
-            builder.user_content_manager,
-        );
-
         // The compositor coordinates with the client window to create the final
         // rendered page and display it somewhere.
         let shutdown_state = Rc::new(Cell::new(ShutdownState::NotShuttingDown));
         let compositor = IOCompositor::new(InitialCompositorState {
-            sender: compositor_proxy.clone(),
+            compositor_proxy: compositor_proxy.clone(),
             receiver: compositor_receiver,
-            constellation_chan: constellation_chan.clone(),
-            time_profiler_chan,
-            mem_profiler_chan,
-            rendering_context,
-            #[cfg(feature = "webxr")]
-            webxr_main_thread,
+            embedder_to_constellation_sender: constellation_proxy.sender().clone(),
+            time_profiler_chan: time_profiler_chan.clone(),
+            mem_profiler_chan: mem_profiler_chan.clone(),
+            rendering_context: builder.rendering_context,
             shutdown_state: shutdown_state.clone(),
             event_loop_waker,
             refresh_driver: builder.refresh_driver,
             shaders_path: opts.shaders_path.clone(),
-            external_image_handlers,
+            #[cfg(feature = "webxr")]
+            webxr_registry: builder.webxr_registry,
         });
 
-        let constellation_proxy = ConstellationProxy::new(constellation_chan);
+        create_constellation(
+            embedder_to_constellation_receiver,
+            &compositor,
+            opts.config_dir.clone(),
+            embedder_proxy,
+            compositor_proxy.clone(),
+            time_profiler_chan,
+            mem_profiler_chan,
+            devtools_sender,
+            protocols,
+            builder.user_content_manager,
+        );
+
+        if opts::get().multiprocess {
+            prefs::add_observer(Box::new(constellation_proxy.clone()));
+        }
+
         Self {
             delegate: RefCell::new(Rc::new(DefaultServoDelegate)),
             compositor: Rc::new(RefCell::new(compositor)),
@@ -1023,19 +954,17 @@ fn create_compositor_channel(
 
 #[allow(clippy::too_many_arguments)]
 fn create_constellation(
+    embedder_to_constellation_receiver: Receiver<EmbedderToConstellationMessage>,
+    compositor: &IOCompositor,
     config_dir: Option<PathBuf>,
     embedder_proxy: EmbedderProxy,
     compositor_proxy: CompositorProxy,
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: mem::ProfilerChan,
     devtools_sender: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
-    #[cfg(feature = "webxr")] webxr_registry: webxr_api::Registry,
-    webgl_threads: Option<WebGLThreads>,
-    external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
-    #[cfg(feature = "webgpu")] wgpu_image_map: WGPUImageMap,
     protocols: ProtocolRegistry,
     user_content_manager: UserContentManager,
-) -> Sender<EmbedderToConstellationMessage> {
+) {
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
 
@@ -1081,13 +1010,13 @@ fn create_constellation(
         time_profiler_chan,
         mem_profiler_chan,
         #[cfg(feature = "webxr")]
-        webxr_registry: Some(webxr_registry),
+        webxr_registry: Some(compositor.webxr_main_thread_registry()),
         #[cfg(not(feature = "webxr"))]
         webxr_registry: None,
-        webgl_threads,
-        webrender_external_images: external_images,
+        webgl_threads: Some(compositor.webgl_threads()),
+        webrender_external_images: compositor.webrender_external_images(),
         #[cfg(feature = "webgpu")]
-        wgpu_image_map,
+        wgpu_image_map: compositor.webgpu_image_map(),
         user_content_manager,
         async_runtime,
         privileged_urls,
@@ -1096,12 +1025,13 @@ fn create_constellation(
     let layout_factory = Arc::new(LayoutFactoryImpl());
 
     Constellation::<script::ScriptThread, script::ServiceWorkerManager>::start(
+        embedder_to_constellation_receiver,
         initial_state,
         layout_factory,
         opts.random_pipeline_closure_probability,
         opts.random_pipeline_closure_seed,
         opts.hard_fail,
-    )
+    );
 }
 
 // A logger that logs to two downstream loggers.

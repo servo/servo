@@ -62,7 +62,7 @@ impl XrDiscoveryWebXrRegistry {
 
 struct XrPrefObserver(Arc<AtomicBool>);
 
-impl prefs::Observer for XrPrefObserver {
+impl prefs::PreferencesObserver for XrPrefObserver {
     fn prefs_changed(&self, changes: &[(&'static str, prefs::PrefValue)]) {
         if let Some((_, value)) = changes.iter().find(|(name, _)| *name == "dom_webxr_test") {
             let prefs::PrefValue::Bool(value) = value else {

@@ -113,7 +113,7 @@ use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use canvas_traits::webgl::WebGLThreads;
 use compositing_traits::{
     CompositorMsg, CompositorProxy, PipelineExitSource, SendableFrameTree,
-    WebrenderExternalImageRegistry,
+    WebRenderExternalImageRegistry,
 };
 use constellation_traits::{
     AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, DocumentState,
@@ -167,7 +167,6 @@ use script_traits::{
     ScriptThreadMessage, UpdatePipelineIdReason,
 };
 use serde::{Deserialize, Serialize};
-use servo_config::prefs::{self, PrefValue};
 use servo_config::{opts, pref};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
@@ -231,10 +230,10 @@ struct MessagePortInfo {
 }
 
 #[cfg(feature = "webgpu")]
-/// Webrender related objects required by WebGPU threads
-struct WebrenderWGPU {
+/// WebRender related objects required by WebGPU threads
+struct WebRenderWGPU {
     /// List of Webrender external images
-    webrender_external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+    webrender_external_images: Arc<Mutex<WebRenderExternalImageRegistry>>,
 
     /// WebGPU data that supplied to Webrender for rendering
     wgpu_image_map: WGPUImageMap,
@@ -260,18 +259,6 @@ struct BrowsingContextGroup {
     /// The set of all WebGPU channels in this BrowsingContextGroup.
     #[cfg(feature = "webgpu")]
     webgpus: HashMap<Host, WebGPU>,
-}
-
-struct PreferenceForwarder(Sender<EmbedderToConstellationMessage>);
-
-impl prefs::Observer for PreferenceForwarder {
-    fn prefs_changed(&self, changes: &[(&'static str, PrefValue)]) {
-        let _ = self
-            .0
-            .send(EmbedderToConstellationMessage::PreferencesUpdated(
-                changes.to_owned(),
-            ));
-    }
 }
 
 /// The `Constellation` itself. In the servo browser, there is one
@@ -328,8 +315,8 @@ pub struct Constellation<STF, SWF> {
     /// dependency between script and layout.
     layout_factory: Arc<dyn LayoutFactory>,
 
-    /// A channel for the constellation to receive messages from the compositor thread.
-    compositor_receiver: Receiver<EmbedderToConstellationMessage>,
+    /// A channel for the embedder (renderer and libservo) to send messages to the [`Constellation`].
+    embedder_to_constellation_receiver: Receiver<EmbedderToConstellationMessage>,
 
     /// A channel through which messages can be sent to the embedder.
     embedder_proxy: EmbedderProxy,
@@ -397,9 +384,9 @@ pub struct Constellation<STF, SWF> {
     /// memory profiler thread.
     mem_profiler_chan: mem::ProfilerChan,
 
-    /// Webrender related objects required by WebGPU threads
+    /// WebRender related objects required by WebGPU threads
     #[cfg(feature = "webgpu")]
-    webrender_wgpu: WebrenderWGPU,
+    webrender_wgpu: WebRenderWGPU,
 
     /// A map of message-port Id to info.
     message_ports: FxHashMap<MessagePortId, MessagePortInfo>,
@@ -550,8 +537,8 @@ pub struct InitialConstellationState {
     /// A channel to the memory profiler thread.
     pub mem_profiler_chan: mem::ProfilerChan,
 
-    /// Webrender external images
-    pub webrender_external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+    /// WebRender external images
+    pub webrender_external_images: Arc<Mutex<WebRenderExternalImageRegistry>>,
 
     /// Entry point to create and get channels to a WebGLThread.
     pub webgl_threads: Option<WebGLThreads>,
@@ -608,18 +595,15 @@ where
     SWF: ServiceWorkerManagerFactory,
 {
     /// Create a new constellation thread.
-    #[allow(clippy::too_many_arguments)]
     #[servo_tracing::instrument(skip(state, layout_factory))]
     pub fn start(
+        embedder_to_constellation_receiver: Receiver<EmbedderToConstellationMessage>,
         state: InitialConstellationState,
         layout_factory: Arc<dyn LayoutFactory>,
         random_pipeline_closure_probability: Option<f32>,
         random_pipeline_closure_seed: Option<usize>,
         hard_fail: bool,
-    ) -> Sender<EmbedderToConstellationMessage> {
-        let (compositor_sender, compositor_receiver) = unbounded();
-        let compositor_sender_self = compositor_sender.clone();
-
+    ) {
         // service worker manager to communicate with constellation
         let (swmanager_ipc_sender, swmanager_ipc_receiver) =
             generic_channel::channel().expect("ipc channel failure");
@@ -672,16 +656,12 @@ where
                 PipelineNamespace::install(PipelineNamespaceId(1));
 
                 #[cfg(feature = "webgpu")]
-                let webrender_wgpu = WebrenderWGPU {
+                let webrender_wgpu = WebRenderWGPU {
                     webrender_external_images: state.webrender_external_images,
                     wgpu_image_map: state.wgpu_image_map,
                 };
 
                 let rippy_data = resources::read_bytes(Resource::RippyPNG);
-
-                if opts::get().multiprocess {
-                    prefs::add_observer(Box::new(PreferenceForwarder(compositor_sender_self)));
-                }
 
                 let mut constellation: Constellation<STF, SWF> = Constellation {
                     namespace_receiver,
@@ -693,7 +673,7 @@ where
                     background_monitor_register_join_handle,
                     background_monitor_control_senders: background_hang_monitor_control_ipc_senders,
                     script_receiver,
-                    compositor_receiver,
+                    embedder_to_constellation_receiver,
                     layout_factory,
                     embedder_proxy: state.embedder_proxy,
                     compositor_proxy: state.compositor_proxy.clone(),
@@ -761,8 +741,6 @@ where
                 constellation.run();
             })
             .expect("Thread spawning failed");
-
-        compositor_sender
     }
 
     /// The main event loop for the constellation.
@@ -1251,7 +1229,7 @@ where
         sel.recv(&self.namespace_receiver);
         sel.recv(&self.script_receiver);
         sel.recv(&self.background_hang_monitor_receiver);
-        sel.recv(&self.compositor_receiver);
+        sel.recv(&self.embedder_to_constellation_receiver);
         sel.recv(&self.swmanager_receiver);
 
         self.process_manager.register(&mut sel);
@@ -1277,7 +1255,7 @@ where
                     .expect("Unexpected BHM channel panic in constellation")
                     .map(Request::BackgroundHangMonitor),
                 3 => Ok(Request::Compositor(
-                    oper.recv(&self.compositor_receiver)
+                    oper.recv(&self.embedder_to_constellation_receiver)
                         .expect("Unexpected compositor channel panic in constellation"),
                 )),
                 4 => oper

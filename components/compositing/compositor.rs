@@ -8,7 +8,7 @@ use std::env;
 use std::fs::create_dir_all;
 use std::iter::once;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use base::Epoch;
@@ -16,10 +16,12 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::generic_channel::{GenericSender, RoutedReceiver};
 use base::id::{PipelineId, RenderingGroupId, WebViewId};
 use bitflags::bitflags;
+use canvas_traits::webgl::{GlType, WebGLThreads};
 use compositing_traits::display_list::{CompositorDisplayListInfo, ScrollTree, ScrollType};
 use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::{
     CompositionPipeline, CompositorMsg, ImageUpdate, PipelineExitSource, SendableFrameTree,
+    WebRenderExternalImageHandlers, WebRenderExternalImageRegistry, WebRenderImageHandlerType,
     WebViewTrait,
 };
 use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
@@ -34,6 +36,7 @@ use gleam::gl::RENDERER;
 use image::RgbaImage;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use log::{debug, info, trace, warn};
+use media::WindowGLContext;
 use profile_traits::mem::{
     ProcessReports, ProfilerRegistration, Report, ReportKind, perform_memory_report,
 };
@@ -43,6 +46,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use servo_config::pref;
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::CSSPixel;
+use webgl::WebGLComm;
 use webrender::{
     CaptureBits, ONE_TIME_USAGE_HINT, RenderApi, ShaderPrecacheFlags, Transaction, UploadMethod,
 };
@@ -89,7 +93,7 @@ pub struct ServoRenderer {
     compositor_receiver: RoutedReceiver<CompositorMsg>,
 
     /// The channel on which messages can be sent to the constellation.
-    pub(crate) constellation_sender: Sender<EmbedderToConstellationMessage>,
+    pub(crate) embedder_to_constellation_sender: Sender<EmbedderToConstellationMessage>,
 
     /// The channel on which messages can be sent to the time profiler.
     time_profiler_chan: profile_time::ProfilerChan,
@@ -103,10 +107,6 @@ pub struct ServoRenderer {
     /// The GL bindings for webrender
     webrender_gl: Rc<dyn gleam::gl::Gl>,
 
-    #[cfg(feature = "webxr")]
-    /// Some XR devices want to run on the main thread.
-    webxr_main_thread: webxr::MainThreadRegistry,
-
     /// The last position in the rendered view that the mouse moved over. This becomes `None`
     /// when the mouse leaves the rendered view.
     pub(crate) last_mouse_move_position: Option<DevicePoint>,
@@ -115,6 +115,20 @@ pub struct ServoRenderer {
     /// arrive before requesting a new frame, as these happen asynchronously with
     /// `ScriptThread` display list construction.
     frame_delayer: FrameDelayer,
+
+    /// The WebRender image registry from this renderer.
+    webrender_external_images: Arc<Mutex<WebRenderExternalImageRegistry>>,
+
+    #[cfg(feature = "webxr")]
+    /// Some XR devices want to run on the main thread.
+    webxr_main_thread: webxr::MainThreadRegistry,
+
+    /// The [`WebGLThreads`] for this renderer.
+    webgl_threads: WebGLThreads,
+
+    #[cfg(feature = "webgpu")]
+    /// The WebGPU image map for this renderer.
+    webgpu_image_map: webgpu::canvas_context::WGPUImageMap,
 }
 
 /// NB: Never block on the constellation, because sometimes the constellation blocks on us.
@@ -292,9 +306,71 @@ impl ServoRenderer {
 
 impl IOCompositor {
     pub fn new(state: InitialCompositorState) -> Self {
+        let rendering_context = state.rendering_context;
+        let webrender_gl = rendering_context.gleam_gl_api();
+
+        // Make sure the gl context is made current.
+        if let Err(err) = rendering_context.make_current() {
+            warn!("Failed to make the rendering context current: {:?}", err);
+        }
+        debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR,);
+
+        // Create the webgl thread
+        let gl_type = match webrender_gl.get_type() {
+            gleam::gl::GlType::Gl => GlType::Gl,
+            gleam::gl::GlType::Gles => GlType::Gles,
+        };
+
+        let (external_image_handlers, webrender_external_images) =
+            WebRenderExternalImageHandlers::new();
+        let mut external_image_handlers = Box::new(external_image_handlers);
+
+        let WebGLComm {
+            webgl_threads,
+            #[cfg(feature = "webxr")]
+            webxr_layer_grand_manager,
+            image_handler,
+        } = WebGLComm::new(
+            rendering_context.clone(),
+            state.compositor_proxy.cross_process_compositor_api.clone(),
+            webrender_external_images.clone(),
+            gl_type,
+        );
+
+        // Set webrender external image handler for WebGL textures
+        external_image_handlers.set_handler(image_handler, WebRenderImageHandlerType::WebGl);
+
+        // Create the WebXR main thread
+        #[cfg(feature = "webxr")]
+        let mut webxr_main_thread = webxr::MainThreadRegistry::new(
+            state.event_loop_waker.clone(),
+            webxr_layer_grand_manager,
+        )
+        .expect("Failed to create WebXR device registry");
+        #[cfg(feature = "webxr")]
+        if pref!(dom_webxr_enabled) {
+            state.webxr_registry.register(&mut webxr_main_thread);
+        }
+
+        #[cfg(feature = "webgpu")]
+        let webgpu_image_map = {
+            let webgpu_image_handler = webgpu::WGPUExternalImages::default();
+            let webgpu_image_map = webgpu_image_handler.images.clone();
+            external_image_handlers.set_handler(
+                Box::new(webgpu_image_handler),
+                WebRenderImageHandlerType::WebGpu,
+            );
+            webgpu_image_map
+        };
+
+        WindowGLContext::initialize_image_handler(
+            &mut external_image_handlers,
+            webrender_external_images.clone(),
+        );
+
         let registration = state.mem_profiler_chan.prepare_memory_reporting(
             "compositor".into(),
-            state.sender.clone(),
+            state.compositor_proxy.clone(),
             CompositorMsg::CollectMemoryReport,
         );
 
@@ -303,11 +379,9 @@ impl IOCompositor {
             state.refresh_driver,
         ));
         let animation_refresh_driver_observer = Rc::new(AnimationRefreshDriverObserver::new(
-            state.constellation_chan.clone(),
+            state.embedder_to_constellation_sender.clone(),
         ));
 
-        let rendering_context = state.rendering_context;
-        let webrender_gl = rendering_context.gleam_gl_api();
         rendering_context.prepare_for_rendering();
         let clear_color = servo_config::pref!(shell_background_color_rgba);
         let clear_color = ColorF::new(
@@ -338,7 +412,7 @@ impl IOCompositor {
 
         let (mut webrender, webrender_api_sender) = webrender::create_webrender_instance(
             webrender_gl.clone(),
-            Box::new(RenderNotifier::new(state.sender.clone())),
+            Box::new(RenderNotifier::new(state.compositor_proxy.clone())),
             webrender::WebRenderOptions {
                 // We force the use of optimized shaders here because rendering is broken
                 // on Android emulators with unoptimized shaders. This is due to a known
@@ -365,7 +439,7 @@ impl IOCompositor {
         )
         .expect("Unable to initialize WebRender.");
 
-        webrender.set_external_image_handler(state.external_image_handlers);
+        webrender.set_external_image_handler(external_image_handlers);
 
         let webrender_api = webrender_api_sender.create_api();
         let webrender_document = webrender_api.add_document(rendering_context.size2d().to_i32());
@@ -376,15 +450,19 @@ impl IOCompositor {
                 animation_refresh_driver_observer,
                 shutdown_state: state.shutdown_state,
                 compositor_receiver: state.receiver,
-                constellation_sender: state.constellation_chan,
+                embedder_to_constellation_sender: state.embedder_to_constellation_sender,
                 time_profiler_chan: state.time_profiler_chan,
                 webrender_api,
                 webrender_document,
                 webrender_gl,
-                #[cfg(feature = "webxr")]
-                webxr_main_thread: state.webxr_main_thread,
                 last_mouse_move_position: None,
                 frame_delayer: Default::default(),
+                webrender_external_images,
+                webgl_threads,
+                #[cfg(feature = "webxr")]
+                webxr_main_thread,
+                #[cfg(feature = "webgpu")]
+                webgpu_image_map,
             })),
             webview_renderers: WebViewManager::default(),
             needs_repaint: Cell::default(),
@@ -421,6 +499,14 @@ impl IOCompositor {
         self.rendering_context.size2d()
     }
 
+    pub fn webgl_threads(&self) -> WebGLThreads {
+        self.global.borrow().webgl_threads.clone()
+    }
+
+    pub fn webrender_external_images(&self) -> Arc<Mutex<WebRenderExternalImageRegistry>> {
+        self.global.borrow().webrender_external_images.clone()
+    }
+
     pub fn webxr_running(&self) -> bool {
         #[cfg(feature = "webxr")]
         {
@@ -430,6 +516,16 @@ impl IOCompositor {
         {
             false
         }
+    }
+
+    #[cfg(feature = "webxr")]
+    pub fn webxr_main_thread_registry(&self) -> webxr_api::Registry {
+        self.global.borrow().webxr_main_thread.registry()
+    }
+
+    #[cfg(feature = "webgpu")]
+    pub fn webgpu_image_map(&self) -> webgpu::canvas_context::WGPUImageMap {
+        self.global.borrow().webgpu_image_map.clone()
     }
 
     pub(crate) fn webview_renderer(&self, webview_id: WebViewId) -> Option<&WebViewRenderer> {
@@ -787,7 +883,7 @@ impl IOCompositor {
                 global.send_transaction(transaction);
 
                 let waiting_pipelines = global.frame_delayer.take_waiting_pipelines();
-                let _ = global.constellation_sender.send(
+                let _ = global.embedder_to_constellation_sender.send(
                     EmbedderToConstellationMessage::NoLongerWaitingOnAsynchronousImageUpdates(
                         waiting_pipelines,
                     ),
@@ -805,7 +901,7 @@ impl IOCompositor {
                 let image_keys = (0..pref!(image_key_batch_size))
                     .map(|_| self.global.borrow().webrender_api.generate_image_key())
                     .collect();
-                if let Err(error) = self.global.borrow().constellation_sender.send(
+                if let Err(error) = self.global.borrow().embedder_to_constellation_sender.send(
                     EmbedderToConstellationMessage::SendImageKeysForPipeline(
                         pipeline_id,
                         image_keys,
@@ -839,7 +935,7 @@ impl IOCompositor {
                     global.frame_delayer.set_pending_frame(false);
                     self.generate_frame(&mut txn, RenderReasons::SCENE);
                     let waiting_pipelines = global.frame_delayer.take_waiting_pipelines();
-                    let _ = global.constellation_sender.send(
+                    let _ = global.embedder_to_constellation_sender.send(
                         EmbedderToConstellationMessage::NoLongerWaitingOnAsynchronousImageUpdates(
                             waiting_pipelines,
                         ),
@@ -1379,12 +1475,14 @@ impl IOCompositor {
                             paint_time = ?paint_time,
                             pipeline_id = ?pipeline_id,
                         );
-                        if let Err(error) = self.global.borrow().constellation_sender.send(
-                            EmbedderToConstellationMessage::PaintMetric(
-                                *pipeline_id,
-                                PaintMetricEvent::FirstPaint(paint_time, first_reflow),
-                            ),
-                        ) {
+                        if let Err(error) =
+                            self.global.borrow().embedder_to_constellation_sender.send(
+                                EmbedderToConstellationMessage::PaintMetric(
+                                    *pipeline_id,
+                                    PaintMetricEvent::FirstPaint(paint_time, first_reflow),
+                                ),
+                            )
+                        {
                             warn!(
                                 "Sending paint metric event to constellation failed ({error:?})."
                             );
@@ -1404,12 +1502,15 @@ impl IOCompositor {
                             paint_time = ?paint_time,
                             pipeline_id = ?pipeline_id,
                         );
-                        if let Err(error) = self.global.borrow().constellation_sender.send(
-                            EmbedderToConstellationMessage::PaintMetric(
+                        if let Err(error) = self
+                            .global
+                            .borrow()
+                            .embedder_to_constellation_sender
+                            .send(EmbedderToConstellationMessage::PaintMetric(
                                 *pipeline_id,
                                 PaintMetricEvent::FirstContentfulPaint(paint_time, first_reflow),
-                            ),
-                        ) {
+                            ))
+                        {
                             warn!(
                                 "Sending paint metric event to constellation failed ({error:?})."
                             );
@@ -1703,13 +1804,9 @@ impl IOCompositor {
             return;
         };
 
-        if let Err(error) =
-            global
-                .constellation_sender
-                .send(EmbedderToConstellationMessage::RefreshCursor(
-                    hit_test_result.pipeline_id,
-                ))
-        {
+        if let Err(error) = global.embedder_to_constellation_sender.send(
+            EmbedderToConstellationMessage::RefreshCursor(hit_test_result.pipeline_id),
+        ) {
             warn!("Sending event to constellation failed ({:?}).", error);
         }
     }
@@ -1746,7 +1843,7 @@ impl IOCompositor {
     ) {
         self.screenshot_taker
             .request_screenshot(webview_id, rect, callback);
-        let _ = self.global.borrow().constellation_sender.send(
+        let _ = self.global.borrow().embedder_to_constellation_sender.send(
             EmbedderToConstellationMessage::RequestScreenshotReadiness(webview_id),
         );
     }

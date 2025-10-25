@@ -10,8 +10,8 @@ mod media_thread;
 use std::sync::{Arc, Mutex};
 
 use compositing_traits::{
-    ExternalImageSource, WebrenderExternalImageApi, WebrenderExternalImageHandlers,
-    WebrenderExternalImageRegistry, WebrenderImageHandlerType,
+    ExternalImageSource, WebRenderExternalImageApi, WebRenderExternalImageHandlers,
+    WebRenderExternalImageRegistry, WebRenderImageHandlerType,
 };
 use euclid::default::Size2D;
 use ipc_channel::ipc::{IpcReceiver, IpcSender, channel};
@@ -143,8 +143,8 @@ impl WindowGLContext {
     }
 
     pub fn initialize_image_handler(
-        external_image_handlers: &mut WebrenderExternalImageHandlers,
-        external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+        external_image_handlers: &mut WebRenderExternalImageHandlers,
+        external_images: Arc<Mutex<WebRenderExternalImageRegistry>>,
     ) {
         if !pref!(media_glvideo_enabled) {
             return;
@@ -164,7 +164,7 @@ impl WindowGLContext {
 
         let thread_sender = GLPlayerThread::start(external_images);
         let image_handler = Box::new(GLPlayerExternalImages::new(thread_sender.clone()));
-        external_image_handlers.set_handler(image_handler, WebrenderImageHandlerType::Media);
+        external_image_handlers.set_handler(image_handler, WebRenderImageHandlerType::Media);
         window_gl_context.glplayer_thread_sender = Some(thread_sender);
     }
 }
@@ -213,7 +213,7 @@ impl GLPlayerExternalImages {
     }
 }
 
-impl WebrenderExternalImageApi for GLPlayerExternalImages {
+impl WebRenderExternalImageApi for GLPlayerExternalImages {
     fn lock(&mut self, id: u64) -> (ExternalImageSource<'_>, Size2D<i32>) {
         // The GLPlayerMsgForward::Lock message inserts a fence in the
         // GLPlayer command queue.
