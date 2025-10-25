@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use compositing_traits::viewport_description::ViewportDescription;
 use euclid::{Point2D, Rect, Scale, Transform2D, Vector2D};
 use webrender_api::ScrollLocation;
 use webrender_api::units::{DevicePixel, DevicePoint, DeviceRect, DeviceSize, DeviceVector2D};
@@ -14,6 +15,9 @@ pub(crate) struct PinchZoom {
     zoom_factor: f32,
     transform: Transform2D<f32, DevicePixel, DevicePixel>,
     unscaled_viewport_size: DeviceSize,
+    /// A [`ViewportDescription`] for this [`WebViewRenderer`], which contains the limitations
+    /// and initial values for zoom derived from the `viewport` meta tag in web content.
+    viewport_description: Option<ViewportDescription>,
 }
 
 impl PinchZoom {
@@ -22,6 +26,7 @@ impl PinchZoom {
             zoom_factor: 1.0,
             unscaled_viewport_size: webview_rect.size(),
             transform: Transform2D::identity(),
+            viewport_description: None,
         }
     }
 
@@ -31,6 +36,10 @@ impl PinchZoom {
 
     pub(crate) fn zoom_factor(&self) -> Scale<f32, DevicePixel, DevicePixel> {
         Scale::new(self.zoom_factor)
+    }
+
+    pub(crate) fn set_viewport_description(&mut self, desc: Option<ViewportDescription>) {
+        self.viewport_description = desc;
     }
 
     fn set_transform(&mut self, transform: Transform2D<f32, DevicePixel, DevicePixel>) {
@@ -56,10 +65,11 @@ impl PinchZoom {
     }
 
     pub(crate) fn zoom(&mut self, magnification: f32, new_center: DevicePoint) {
-        const MINIMUM_PINCH_ZOOM: f32 = 1.0;
-        const MAXIMUM_PINCH_ZOOM: f32 = 10.0;
-        let new_factor =
-            (self.zoom_factor * magnification).clamp(MINIMUM_PINCH_ZOOM, MAXIMUM_PINCH_ZOOM);
+        let new_factor = self.zoom_factor * magnification;
+        let new_factor = self
+            .viewport_description
+            .unwrap_or_default()
+            .clamp_page_zoom(new_factor);
         let old_factor = std::mem::replace(&mut self.zoom_factor, new_factor);
 
         if self.zoom_factor <= 1.0 {
