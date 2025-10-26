@@ -31,7 +31,7 @@ pub struct GenericAutoEntryScript<D: DomTypes> {
     global: DomRoot<D::GlobalScope>,
     #[cfg(feature = "tracing")]
     #[allow(dead_code)]
-    span: tracing::span::EnteredSpan,
+    span: profile_traits::servo_tracing::span::EnteredSpan,
 }
 
 impl<D: DomTypes> GenericAutoEntryScript<D> {
@@ -48,9 +48,8 @@ impl<D: DomTypes> GenericAutoEntryScript<D> {
             Self {
                 global: DomRoot::from_ref(global),
                 #[cfg(feature = "tracing")]
-                span: tracing::info_span!(
+                span: profile_traits::info_span!(
                     "ScriptEvaluate",
-                    servo_profiling = true,
                     url = global.get_url().to_string(),
                 )
                 .entered(),

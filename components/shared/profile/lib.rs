@@ -143,5 +143,36 @@ macro_rules! trace_span {
     };
 }
 
+#[macro_export]
+macro_rules! info_span {
+    ($span_name:literal, $($field:tt)*) => {
+        {
+        #[cfg(feature = "tracing")]
+        {
+            $crate::servo_tracing::info_span!(
+                $span_name,
+                servo_profiling = true,
+                $($field)*
+            )
+        }
+        #[cfg(not(feature = "tracing"))]
+        { $crate::dummy_tracing::Span() }
+        }
+    };
+    ($span_name:literal) => {
+        {
+         #[cfg(feature = "tracing")]
+         {
+             $crate::servo_tracing::trace_span!(
+                $span_name,
+                servo_profiling = true,
+             )
+         }
+        #[cfg(not(feature = "tracing"))]
+        { $crate::dummy_tracing::Span() }
+        }
+    };
+}
+
 #[cfg(feature = "tracing")]
 pub use tracing as servo_tracing;
