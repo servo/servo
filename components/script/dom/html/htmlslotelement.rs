@@ -322,10 +322,12 @@ impl HTMLSlotElement {
 
         // Step 2. If slottables and slot’s assigned nodes are not identical,
         // then run signal a slot change for slot.
-        let slots_are_identical = self.assigned_nodes.borrow().iter().eq(slottables.iter());
-        if !slots_are_identical {
-            self.signal_a_slot_change();
+        // NOTE: If the slottables *are* identical then the rest of this algorithm
+        // won't have any effect, so we return early.
+        if self.assigned_nodes.borrow().iter().eq(slottables.iter()) {
+            return;
         }
+        self.signal_a_slot_change();
 
         // NOTE: This is not written in the spec, which is likely a bug (https://github.com/whatwg/dom/issues/1352)
         // If we don't disconnect the old slottables from this slot then they'll stay implictly
