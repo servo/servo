@@ -114,11 +114,46 @@ test_justify_flip(
   'justify-self:start;align-self:start',
   'justify-self:end;align-self:end');
 
+test_justify_flip(
+  'flip-x',
+  'justify-self:start;align-self:start',
+  'justify-self:end;align-self:start');
+
+test_justify_flip(
+  'flip-y',
+  'justify-self:start;align-self:start',
+  'justify-self:start;align-self:end');
+
+test_justify_flip(
+  'flip-y flip-x',
+  'justify-self:start;align-self:start',
+  'justify-self:end;align-self:end');
+
+test_justify_flip(
+  'flip-y flip-start',
+  'justify-self:start;align-self:start',
+  'justify-self:end;align-self:start');
+
+test_justify_flip(
+  'flip-x flip-start',
+  'justify-self:start;align-self:start',
+  'justify-self:start;align-self:end');
+
+test_justify_flip(
+  'flip-y flip-x flip-start',
+  'justify-self:start;align-self:start',
+  'justify-self:end;align-self:end');
+
 // left/right are special cases, because they're supported by
 // justify-self, but not align-self:
 
 test_justify_flip(
   'flip-inline',
+  'justify-self:left;align-self:start',
+  'justify-self:right;align-self:start');
+
+test_justify_flip(
+  'flip-x',
   'justify-self:left;align-self:start',
   'justify-self:right;align-self:start');
 
@@ -172,12 +207,28 @@ test_computed_value('flip-inline', 'justify-self', 'flex-end', 'flex-start');
 test_computed_value('flip-inline', 'justify-self', 'left', 'right');
 test_computed_value('flip-inline', 'justify-self', 'right', 'left');
 
+test_computed_value('flip-x', 'justify-self', 'start', 'end');
+test_computed_value('flip-x', 'justify-self', 'end', 'start');
+test_computed_value('flip-x', 'justify-self', 'self-start', 'self-end');
+test_computed_value('flip-x', 'justify-self', 'self-end', 'self-start');
+test_computed_value('flip-x', 'justify-self', 'flex-start', 'flex-end');
+test_computed_value('flip-x', 'justify-self', 'flex-end', 'flex-start');
+test_computed_value('flip-x', 'justify-self', 'left', 'right');
+test_computed_value('flip-x', 'justify-self', 'right', 'left');
+
 test_computed_value('flip-block', 'align-self', 'start', 'end');
 test_computed_value('flip-block', 'align-self', 'end', 'start');
 test_computed_value('flip-block', 'align-self', 'self-start', 'self-end');
 test_computed_value('flip-block', 'align-self', 'self-end', 'self-start');
 test_computed_value('flip-block', 'align-self', 'flex-start', 'flex-end');
 test_computed_value('flip-block', 'align-self', 'flex-end', 'flex-start');
+
+test_computed_value('flip-y', 'align-self', 'start', 'end');
+test_computed_value('flip-y', 'align-self', 'end', 'start');
+test_computed_value('flip-y', 'align-self', 'self-start', 'self-end');
+test_computed_value('flip-y', 'align-self', 'self-end', 'self-start');
+test_computed_value('flip-y', 'align-self', 'flex-start', 'flex-end');
+test_computed_value('flip-y', 'align-self', 'flex-end', 'flex-start');
 
 test_justify_flip(
   'flip-start',

@@ -1,5 +1,6 @@
 // META: title=Worker Termination Aborts a Pending Upgrade
 // META: script=resources/support-promises.js
+'use strict';
 
 // This test verifies that if a Worker's shutdown races an IndexedDB
 // versionchange transaction that is creating a database that the next attempt

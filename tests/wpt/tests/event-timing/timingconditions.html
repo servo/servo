@@ -4,8 +4,7 @@
 <title>Event Timing only times certain types of trusted event.
 </title>
 <meta name="timeout" content="long">
-<button id='button' onmousedown='mainThreadBusy(60)'
-  onfocus='mainThreadBusy(60)'>Generate a 'click' event</button>
+<button id='button' tabindex="0">Generate a 'click' event</button>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src=/resources/testdriver.js></script>
@@ -23,38 +22,46 @@
   function untrustedClickAndBlockMain(id) {
     const target = document.getElementById(id);
     // Block mainthread in the callback, as dispatchEvent() is a sync call.
-    target.dispatchEvent(new MouseEvent('mousedown'));
+    target.addEventListener('pointerdown', () => mainThreadBusy(120), true);
+    const eventDispatchStart = performance.now();
+    target.dispatchEvent(new PointerEvent('pointerdown'));
+    assert_greater_than(performance.now() - eventDispatchStart, 119, "dispatchEvent() should run the event handler synchronously.");
   }
 
   function trustedFocusAndBlockMain(id) {
     const target = document.getElementById(id);
+    // Guarantees target isn't focused to ensure the focus event is fired:
+    target.blur()
     trustedFocusStart = performance.now();
     // Block mainthread in the callback,  as focus() is a sync call.
+    target.addEventListener('focus', () => mainThreadBusy(120), true);
     target.focus();
+    assert_greater_than(performance.now() - trustedFocusStart, 119, "focus() should run the event handler synchronously.");
   }
 
   promise_test(function(t) {
     assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
-    let observedMouseDown = false;
+    let observedPointerDown = false;
     const observerPromise = new Promise(resolve => {
       new PerformanceObserver(t.step_func(entryList => {
         const observerCallbackTime = performance.now();
-        const mouseDowns = entryList.getEntriesByName('mousedown');
-        // Ignore cases in which there is no mousedown.
-        if (mouseDowns.length === 0)
+        const pointerDowns = entryList.getEntriesByName('pointerdown');
+        assert_equals(entryList.getEntriesByName('focus').length, 0);
+        // Ignore cases in which there is no pointerdown.
+        if (pointerDowns.length === 0)
           return;
 
-        assert_false(observedMouseDown, 'Got more than one callback with mousedown.');
-        assert_equals(mouseDowns.length, 1,
-            "Should only observe one mousedown entry. Instead, got these: " +
-            JSON.stringify(mouseDowns) + ".");
-        assert_equals(mouseDowns[0].name, 'mousedown',
-            "The observed entry should be a mousedown");
-        assert_less_than(mouseDowns[0].startTime, observerCallbackTime,
+        assert_false(observedPointerDown, 'Got more than one callback with pointerdown.');
+        assert_equals(pointerDowns.length, 1,
+            "Should only observe one pointerdown entry. Instead, got these: " +
+            JSON.stringify(pointerDowns) + ".");
+        assert_equals(pointerDowns[0].name, 'pointerdown',
+            "The observed entry should be a pointerdown");
+        assert_less_than(pointerDowns[0].startTime, observerCallbackTime,
             "The startTime should be before observerCallbackTime");
-        assert_greater_than(mouseDowns[0].startTime, trustedClickStart,
+        assert_greater_than(pointerDowns[0].startTime, trustedClickStart,
             "The startTime should be after trustedClickStart");
-        observedMouseDown = true;
+        observedPointerDown = true;
         resolve();
       })).observe({ entryTypes: ['event'] });
     });

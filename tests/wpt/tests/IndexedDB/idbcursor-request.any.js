@@ -1,4 +1,5 @@
 // META: script=resources/support.js
+'use strict';
 
 function cursorRequestTest({ useIndex, useKeyCursor }) {
   indexeddb_test(

@@ -1,4 +1,5 @@
 // META: script=resources/support-promises.js
+'use strict';
 
 promise_test(async testCase => {
   let result = indexedDB.databases();
@@ -55,7 +56,7 @@ promise_test(async testCase => {
       expected_result.length,
       "The result of databases() should contain one result per database.");
   for ( let i = 0; i < expected_result.length; i += 1 ) {
-    result = expected_result[i];
+    const result = expected_result[i];
     assert_true(
         databases_result.some(
             e => e.name === result.name && e.version === result.version),

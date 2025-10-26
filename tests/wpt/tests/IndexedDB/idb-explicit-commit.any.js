@@ -1,4 +1,5 @@
 // META: script=resources/support-promises.js
+'use strict';
 
 promise_test(async testCase => {
   const db = await createDatabase(testCase, db => {

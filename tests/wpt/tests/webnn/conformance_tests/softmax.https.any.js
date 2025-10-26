@@ -35,7 +35,7 @@ const softmaxTests = [
       },
       'operators': [{
         'name': 'softmax',
-        'arguments': [{'input': 'softmaxInput'}],
+        'arguments': [{'input': 'softmaxInput'}, {'axis': 1}],
         'outputs': 'softmaxOutput'
       }],
       'expectedOutputs': {
@@ -79,7 +79,7 @@ const softmaxTests = [
       },
       'operators': [{
         'name': 'softmax',
-        'arguments': [{'input': 'softmaxInput'}],
+        'arguments': [{'input': 'softmaxInput'}, {'axis': 1}],
         'outputs': 'softmaxOutput'
       }],
       'expectedOutputs': {
@@ -123,7 +123,7 @@ const softmaxTests = [
       },
       'operators': [{
         'name': 'softmax',
-        'arguments': [{'input': 'softmaxInput'}],
+        'arguments': [{'input': 'softmaxInput'}, {'axis': 1}],
         'outputs': 'softmaxOutput'
       }],
       'expectedOutputs': {
@@ -229,7 +229,7 @@ const softmaxTests = [
       },
       'operators': [{
         'name': 'softmax',
-        'arguments': [{'input': 'softmaxInput'}],
+        'arguments': [{'input': 'softmaxInput'}, {'axis': 1}],
         'outputs': 'softmaxOutput'
       }],
       'expectedOutputs': {
@@ -271,7 +271,7 @@ const softmaxTests = [
       },
       'operators': [{
         'name': 'softmax',
-        'arguments': [{'input': 'softmaxInput'}],
+        'arguments': [{'input': 'softmaxInput'}, {'axis': 1}],
         'outputs': 'softmaxOutput'
       }],
       'expectedOutputs': {
@@ -312,7 +312,7 @@ const softmaxTests = [
       },
       'operators': [{
         'name': 'softmax',
-        'arguments': [{'input': 'softmaxInput'}],
+        'arguments': [{'input': 'softmaxInput'}, {'axis': 1}],
         'outputs': 'softmaxOutput'
       }],
       'expectedOutputs': {

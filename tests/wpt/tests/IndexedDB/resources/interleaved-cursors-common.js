@@ -1,4 +1,5 @@
 // Infrastructure shared by interleaved-cursors-{small,large}.html
+'use strict';
 
 // Number of objects that each iterator goes over.
 const itemCount = 10;

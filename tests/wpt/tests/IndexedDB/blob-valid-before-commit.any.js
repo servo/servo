@@ -1,5 +1,6 @@
 // META: title=Blob Valid Before Commit
 // META: script=resources/support.js
+'use strict';
 
 let key = "key";
 

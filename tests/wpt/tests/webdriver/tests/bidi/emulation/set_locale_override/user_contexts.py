@@ -100,7 +100,6 @@ async def test_set_to_multiple_user_contexts(
 async def test_set_to_user_context_and_then_to_context(
         bidi_session,
         create_user_context,
-        new_tab,
         get_current_locale,
         default_locale,
         some_locale,
@@ -138,10 +137,74 @@ async def test_set_to_user_context_and_then_to_context(
     # Make sure that the locale override for the user context is applied.
     assert await get_current_locale(context_in_user_context_2) == some_locale
 
+    # Reset the override for context.
     await bidi_session.emulation.set_locale_override(
         contexts=[context_in_user_context_1["context"]],
         locale=None,
     )
 
-    # Make sure that the locale override was reset.
+    # Make sure that the locale override is set to user context value.
+    assert await get_current_locale(context_in_user_context_1) == some_locale
+
+    # Reset the override for user context.
+    await bidi_session.emulation.set_locale_override(
+        user_contexts=[user_context],
+        locale=None,
+    )
+
+    # Make sure that the locale override is reset.
     assert await get_current_locale(context_in_user_context_1) == default_locale
+
+
+async def test_set_to_context_and_then_to_user_context(
+    bidi_session,
+    create_user_context,
+    get_current_locale,
+    default_locale,
+    some_locale,
+    another_locale
+):
+    user_context = await create_user_context()
+    context_in_user_context_1 = await bidi_session.browsing_context.create(
+        user_context=user_context, type_hint="tab"
+    )
+
+    # Apply locale override to the context.
+    await bidi_session.emulation.set_locale_override(
+        contexts=[context_in_user_context_1["context"]], locale=some_locale
+    )
+
+    assert await get_current_locale(context_in_user_context_1) == some_locale
+
+    # Apply locale override to the user context.
+    await bidi_session.emulation.set_locale_override(
+        user_contexts=[user_context], locale=another_locale
+    )
+
+    # Make sure that context has still the context locale override.
+    assert await get_current_locale(context_in_user_context_1) == some_locale
+
+    await bidi_session.browsing_context.reload(
+        context=context_in_user_context_1["context"], wait="complete"
+    )
+
+    # Make sure that after reload the locale still has the context locale override.
+    assert await get_current_locale(context_in_user_context_1) == some_locale
+
+    # Create a new context in the user context.
+    context_in_user_context_2 = await bidi_session.browsing_context.create(
+        user_context=user_context, type_hint="tab"
+    )
+    # Make sure that the locale override for the user context is applied.
+    assert await get_current_locale(context_in_user_context_2) == another_locale
+
+    # Reset override for user context.
+    await bidi_session.emulation.set_locale_override(
+        user_contexts=[user_context],
+        locale=None,
+    )
+
+    # Make sure that the locale override for the first context is still set.
+    assert await get_current_locale(context_in_user_context_1) == some_locale
+    # Make sure that the locale override for the second context is reset.
+    assert await get_current_locale(context_in_user_context_2) == default_locale

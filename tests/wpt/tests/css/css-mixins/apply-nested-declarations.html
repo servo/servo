@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Mixins: @apply rules become nested declarations</title>
+    <link rel="help" href="https://drafts.csswg.org/css-mixins-1/#using-mixins">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+
+  <style>
+    @mixin --m1() {
+      color: green;
+    }
+    #e1::after {
+      content: "AFTER";
+      @apply --m1;
+    }
+  </style>
+  <div id="e1"></div>
+  <script>
+    test(() => {
+      assert_equals(getComputedStyle(e1, '::after').color, 'rgb(0, 128, 0)');
+    }, 'Can mix declarations into pseudo-elements');
+  </script>
+
+
+  <style>
+    @mixin --m2() {
+      color: red;
+    }
+    /* Should match <div id=e2> with the specificity of :where(#e2) (zero),
+       not with the specificity of :is(:where(#e2), #u1). */
+    :where(#e2), #u1 {
+      @apply --m2;
+    }
+    :where(#e2) {
+      color: green; /* Wins. */
+    }
+  </style>
+  <div id="e2"></div>
+  <script>
+    test(() => {
+      assert_equals(getComputedStyle(e2).color, 'rgb(0, 128, 0)');
+    }, 'Nested declarations have top-level specificity behavior');
+  </script>
+
+  </body>
+</html>

@@ -30,4 +30,4 @@ async def test_classic_switch_to_parent_no_browsing_context(bidi_session, curren
     await wait.until(is_frame_removed)
 
     with pytest.raises(NoSuchWindowException):
-        current_session.switch_frame("parent")
+        current_session.switch_to_parent_frame()

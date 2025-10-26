@@ -1,8 +1,8 @@
 // META: global=window,worker
 // META: title=IDBIndex.openCursor()
 // META: script=resources/support.js
+'use strict';
 
-'use_strict';
 
 async_test(t => {
   const open_rq = createdb(t);

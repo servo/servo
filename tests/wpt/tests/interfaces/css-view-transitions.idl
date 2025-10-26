@@ -38,6 +38,7 @@ interface ViewTransition {
   undefined skipTransition();
   attribute ViewTransitionTypeSet types;
   readonly attribute Element transitionRoot;
+  undefined waitUntil(Promise<any> promise);
 };
 
 [Exposed=Window]

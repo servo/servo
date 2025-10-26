@@ -51,6 +51,14 @@ function assert_config_is_valid(config) {
   // If config[attributes] exists:
   if (config.attributes) {
   } else {
+    if (config.elements) {
+      for (let element of config.elements) {
+        // Not both element[attributes] and element[removeAttributes] exist.
+        assert_false("attributes" in element && "removeAttributes" in element,
+                     `Element ${element.name} can't have both 'attributes' and 'removeAttributes'`);
+      }
+    }
+
     // config[dataAttributes] does not exist.
     assert_false("dataAttributes" in config, "dataAttributes does not exist");
   }

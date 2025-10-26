@@ -1,8 +1,8 @@
 // META: global=window,worker
 // META: title=IDBObjectStore.indexNames
 // META: script=resources/support.js
+'use strict';
 
-'use_strict';
 
 async_test(t => {
   let db;

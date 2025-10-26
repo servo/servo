@@ -1,0 +1,31 @@
+<!doctype HTML>
+<title>Test that `DOMContentLoaded` triggers resizing.</title>
+<link rel="author" href="mailto:kojii@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+iframe {
+  contain-intrinsic-size: from-element;
+}
+</style>
+<iframe id="target" frameborder=0 src="resources/iframe-contents-dom-content-loaded.html"></iframe>
+<script>
+async_test(t => {
+  window.addEventListener('message', t.step_func(e => {
+    const type = e.data.type;
+    if (type === 'DOMContentLoaded') {
+      // The resize may not be synchronous, so wait for an animation frame.
+      requestAnimationFrame(t.step_func(() => {
+        assert_equals(target.offsetHeight, 200);
+      }));
+    } else if (type === 'load') {
+      requestAnimationFrame(t.step_func(() => {
+        assert_equals(target.offsetHeight, 400);
+        t.done();
+      }));
+    }
+  }));
+}, "`DOMContentLoaded` triggers resizing");
+</script>
+</body>

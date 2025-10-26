@@ -264,7 +264,7 @@ async def test_dedicated_worker(
         REALM_DESTROYED_EVENT, on_realm_destroyed_event
     )
 
-    worker_url = inline("while(true){}", doctype="js")
+    worker_url = inline("setInterval(()=>{}, 1)", doctype="js")
     url = inline(
         f"""<script>
         const worker = new Worker('{worker_url}');

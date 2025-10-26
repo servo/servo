@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/11825">
+<link rel=help href="https://issues.chromium.org/issues/444330901">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<select>
+  <option>one</option>
+  <option selected>two</option>
+  <option>three</option>
+</select>
+
+<script>
+test(() => {
+  const select = document.querySelector('select');
+  assert_equals(select.value, 'two',
+    'two should be selected at the start of the test.');
+
+  const options = document.querySelectorAll('option');
+  select.innerHTML = '';
+  options.forEach(option => {
+    select.appendChild(option);
+  });
+
+  assert_equals(select.value, 'two',
+    'two should still be selected after clearing and re-appending.');
+}, 'select.value should stay the same after clearing and re-appending options.');
+</script>

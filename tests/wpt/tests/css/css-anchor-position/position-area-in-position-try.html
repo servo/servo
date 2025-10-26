@@ -177,12 +177,17 @@ test_position_area_placement('--bottom, --left, --top, --right', 'left');
 test_position_area_placement('--right flip-inline', 'left');
 test_position_area_placement('--bottom flip-block', 'top');
 test_position_area_placement('--left flip-start', 'top');
+test_position_area_placement('--right flip-x', 'left');
+test_position_area_placement('--bottom flip-y', 'top');
 
 // left + flip-inline => right (no space).
 test_position_area_placement('--left flip-inline, --top', 'top');
+test_position_area_placement('--left flip-x, --top', 'top');
 // top + flip-block => bottom (no space).
 test_position_area_placement('--top flip-block, --left', 'left');
+test_position_area_placement('--top flip-y, --left', 'left');
 // left + flip-start flip-block => bottom (no space).
 test_position_area_placement('--left flip-start flip-block, --left', 'left');
+test_position_area_placement('--left flip-start flip-y, --left', 'left');
 
 </script>

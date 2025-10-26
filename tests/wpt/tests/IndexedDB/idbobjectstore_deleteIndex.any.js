@@ -2,8 +2,8 @@
 // META: title=IDBObjectStore.deleteIndex()
 // META: script=resources/support.js
 // @author Microsoft <https://www.microsoft.com>
+'use strict';
 
-'use_strict';
 
 async_test(t => {
     let db;

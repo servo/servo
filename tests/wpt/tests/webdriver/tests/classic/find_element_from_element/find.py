@@ -71,7 +71,7 @@ def test_no_such_element_with_startnode_from_other_frame(session, iframe, inline
 
     session.switch_frame(0)
     from_element = session.find.css("#parent", all=False)
-    session.switch_frame("parent")
+    session.switch_to_parent_frame()
 
     response = find_element(session, from_element.id, "css selector", "p")
     assert_error(response, "no such element")

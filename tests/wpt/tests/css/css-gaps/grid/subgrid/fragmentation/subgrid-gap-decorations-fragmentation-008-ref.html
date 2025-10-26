@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+  .multicol {
+    position: relative;
+    columns: 2;
+    column-fill: auto;
+    width: 280px;
+    height: 72px;
+    background: yellow;
+    column-gap: 0px;
+  }
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(4, 20px 10px) 20px;
+    background: lightgray;
+    column-gap: 10px;
+  }
+  .subgrid {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-template-rows: subgrid;
+    background: teal;
+    grid-column: 2 / -2;
+    grid-row: 3 / -3;
+    background: orange;
+  }
+  .item {
+    background: purple;
+  }
+  .col-gap-group {
+    position: absolute;
+    top: 0px;
+    left: 20px;
+    display: flex;
+    gap: 20px;
+    height: 72px;
+  }
+  .col-gap {
+    width: 10px;
+    background: skyblue;
+  }
+  .row-gap-group {
+    position: absolute;
+    top: 20px;
+    left: 0px;
+    display: flex;
+    flex-direction: column;
+    row-gap: 20px;
+    width: 140px;
+  }
+  .row-gap {
+    background: cornflowerblue;
+    height: 10px;
+  }
+</style>
+<div class="multicol">
+  <div class="grid-container">
+    <div class="subgrid">
+      <div class="item" style="grid-row:1;"></div>
+      <div class="item" style="grid-row:-2; grid-column: -2;"></div>
+    </div>
+  </div>
+
+  <div class="col-gap-group">
+    <div class="col-gap"></div>
+    <div class="col-gap"></div>
+    <div class="col-gap"></div>
+    <div class="col-gap"></div>
+  </div>
+
+  <div class="col-gap-group" style="height: 50px; top: 30px; left: 50px;">
+    <div class="col-gap" style="background: white;"></div>
+    <div class="col-gap" style="background: white;"></div>
+  </div>
+
+  <div class="col-gap-group" style="left: 160px; height: 68px;">
+    <div class="col-gap"></div>
+    <div class="col-gap"></div>
+    <div class="col-gap"></div>
+    <div class="col-gap"></div>
+  </div>
+
+  <div class="col-gap-group" style="height: 38px; top: 0px; left: 190px;">
+    <div class="col-gap" style="background: white;"></div>
+    <div class="col-gap" style="background: white;"></div>
+  </div>
+
+  <div class="row-gap-group">
+    <div class="row-gap"></div>
+    <div class="row-gap"></div>
+  </div>
+
+  <div class="row-gap-group" style="top: 50px; left: 30px; width: 80px;">
+    <div class="row-gap" style="background: blue;"> </div>
+  </div>
+
+  <div class="row-gap-group" style="flex-direction: row; width: 140px;  left:140px; top: 8px;">
+    <div class="row-gap" style="width: 30px;"> </div>
+    <div class="row-gap" style="background: blue; width: 80px;"> </div>
+    <div class="row-gap" style="width: 30px;"> </div>
+  </div>
+
+  <div class="row-gap-group" style="left: 140px; top: 38px;">
+    <div class="row-gap"></div>
+  </div>
+</div>

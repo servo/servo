@@ -99,7 +99,11 @@ test(() => {
   range.setFormControlRange(textarea, 1, 5);
   assert_equals(range.toString(), "rigi");
 
+  // Full .value= replacement collapses the range to the start (0,0).
   textarea.value = "Modified";
-  assert_equals(range.toString(), "odif");
-}, "FormControlRange reflects value changes on same element.");
+  assert_true(range.collapsed, "range collapses on full-value replacement");
+  assert_equals(range.startOffset, 0);
+  assert_equals(range.endOffset, 0);
+  assert_equals(range.toString(), "");
+}, "FormControlRange collapses on full .value= replacement.");
 </script>

@@ -9,11 +9,13 @@ test(() => {
   const range = new FormControlRange();
 
   range.setFormControlRange(input, 0, 4);
-  assert_equals(range.toString(), "Test");
-
+  // Full replacement collapses to start.
   input.value = "New";
-  assert_equals(range.toString(), "New");
-}, "FormControlRange toString() reflects current value.");
+  assert_true(range.collapsed, "range collapses on full replacement");
+  assert_equals(range.startOffset, 0);
+  assert_equals(range.endOffset, 0);
+  assert_equals(range.toString(), "");
+}, "FormControlRange collapses on full .value= replacement.");
 
 test(() => {
   document.body.innerHTML = '<input type="text" value="Hello">';
@@ -21,9 +23,13 @@ test(() => {
   const range = new FormControlRange();
 
   range.setFormControlRange(input, 1, 4);
+  // Full replacement (shorter) also collapses to start.
   input.value = "Hi";
-  assert_equals(range.toString(), "i");
-}, "FormControlRange toString() clamps to available length.");
+  assert_true(range.collapsed, "range collapses on full replacement (shorter)");
+  assert_equals(range.startOffset, 0);
+  assert_equals(range.endOffset, 0);
+  assert_equals(range.toString(), "");
+}, "FormControlRange collapses on full .value= replacement (shorter).");
 
 test(() => {
   document.body.innerHTML = '<textarea>LongText</textarea>';

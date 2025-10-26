@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Mixins: @contents rules become nested declarations</title>
+    <link rel="help" href="https://drafts.csswg.org/css-mixins-1/#contents-rule">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+
+  <style>
+    @mixin --m1(@contents) {
+      @contents;
+    }
+    #e1::after {
+      content: "AFTER";
+      @apply --m1 {
+        color: green;
+      }
+    }
+  </style>
+  <div id="e1"></div>
+  <script>
+    test(() => {
+      assert_equals(getComputedStyle(e1, '::after').color, 'rgb(0, 128, 0)');
+    }, 'Can mix declarations into pseudo-elements via @contents');
+  </script>
+
+
+  <style>
+    @mixin --m2(@contents) {
+      @contents;
+    }
+    /* Should match <div id=e2> with the specificity of :where(#e2) (zero),
+       not with the specificity of :is(:where(#e2), #u1). */
+    :where(#e2), #u1 {
+      @apply --m2 {
+        color: red;
+      }
+    }
+    :where(#e2) {
+      color: green; /* Wins. */
+    }
+  </style>
+  <div id="e2"></div>
+  <script>
+    test(() => {
+      assert_equals(getComputedStyle(e2).color, 'rgb(0, 128, 0)');
+    }, 'Nested declarations from @contents have top-level specificity behavior');
+  </script>
+
+  </body>
+</html>

@@ -89,7 +89,7 @@ def test_no_such_element_from_other_frame(session, get_test_page, closed):
 
     element = session.find.css("input#text", all=False)
 
-    session.switch_frame("parent")
+    session.switch_to_parent_frame()
 
     if closed:
         session.execute_script("arguments[0].remove();", args=[frame])

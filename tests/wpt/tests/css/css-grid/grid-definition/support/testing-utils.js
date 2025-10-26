@@ -22,6 +22,22 @@ var TestingUtils = (function() {
         }, (label ? label + " " : "") + "'" + gridId + "' with: grid-template-columns: " + columnsStyle  + "; and grid-template-rows: " + rowsStyle + ";");
     }
 
+    function testGridTemplateColumns(gridId, columnsStyle, columnsComputedValue, label) {
+        test(function() {
+            var grid = document.getElementById(gridId);
+            grid.style.gridTemplateColumns = columnsStyle;
+            checkGridTemplateColumns(grid, columnsComputedValue);
+        }, (label ? label + " " : "") + "'" + gridId + "' with: grid-template-columns: " + columnsStyle  + ";");
+    }
+
+    function testGridTemplateRows(gridId, rowsStyle, rowsComputedValue, label) {
+        test(function() {
+            var grid = document.getElementById(gridId);
+            grid.style.gridTemplateRows = rowsStyle;
+            checkGridTemplateRows(grid, rowsComputedValue);
+        }, (label ? label + " " : "") + "'" + gridId +"' with: grid-template-rows: " + rowsStyle + ";");
+    }
+
     function checkGridTemplateAreas(element, value) {
         if (!Array.isArray(value))
             value = new Array(value);
@@ -38,6 +54,8 @@ var TestingUtils = (function() {
 
     return {
         testGridTemplateColumnsRows: testGridTemplateColumnsRows,
+        testGridTemplateColumns: testGridTemplateColumns,
+        testGridTemplateRows: testGridTemplateRows,
         testGridTemplateAreas: testGridTemplateAreas
     }
 })();

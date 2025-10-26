@@ -2,6 +2,7 @@
 // META: global=window,worker
 // META: script=resources/support-promises.js
 // META: script=/storage/buckets/resources/util.js
+'use strict';
 
 promise_test(async testCase => {
   await prepareForBucketTest(testCase);

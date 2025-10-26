@@ -1,6 +1,7 @@
 // META: global=window,dedicatedworker,sharedworker,serviceworker
 // META: script=resources/support-promises.js
 // META: script=resources/reading-autoincrement-common.js
+'use strict';
 
 promise_test(async testCase => {
   const database = await setupAutoincrementDatabase(testCase);

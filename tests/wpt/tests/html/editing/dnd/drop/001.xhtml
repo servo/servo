@@ -5,6 +5,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
+<script src="support/dropEffect-test-helper.js"></script>
 <script src="../resources/test-helper.js"></script>
 <head>
   <title>dropEffect is correctly set when it matches effectAllowed</title>
@@ -59,17 +60,11 @@
   async function test() {
     await new Promise(loaded => window.addEventListener("load", loaded));
 
-    function onDropCallBack(event) {
-      assert_equals(event.target.textContent, event.dataTransfer.dropEffect);
-      assert_equals(event.target.textContent, event.dataTransfer
-        .effectAllowed);
-      return true;
-    }
     for (const effect of ['copy', 'move', 'link']) {
       const dragDiv = document.getElementById(effect + '-drag');
       const dropDiv = document.getElementById(effect + '-drop');
       dragDropTest(
-        dragDiv, dropDiv, onDropCallBack,
+        dragDiv, dropDiv, dropEffectOnDropCallBack,
         'dropEffect should match effectAllowed on drop for ' + effect);
     }
   }

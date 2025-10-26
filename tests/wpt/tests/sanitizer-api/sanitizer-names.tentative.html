@@ -6,55 +6,6 @@
 </head>
 <body>
 <script>
-  // Like assert_array_equals, but disregard element order.
-  function assert_array_same(actual, expected) {
-    assert_array_equals(actual.sort(), expected.sort());
-  }
-
-  // Element names:
-  const elems_valid = [
-    "p", "template", "span", "custom-elements", "potato",
-    // Arguments will be stringified, so anything that stringifies to a valid
-    // name is also valid.
-    123
-  ];
-  const elems_invalid = [
-    "", {name: ""},
-  ];
-
-  // Attribute names:
-  const attrs_valid = [
-    "href", "span",
-  ];
-  const attrs_invalid = [
-    "", {name: ""},
-  ];
-
-  for (const item of ["elements", "removeElements", "replaceWithChildrenElements"]) {
-    test(t => {
-      const sanitizer = new Sanitizer({[item]: elems_valid});
-      assert_array_same(sanitizer.get()[item].map(x => x.name),
-                        elems_valid.map(x => "" + x));
-    }, `Element names in config item: ${item}`);
-    test(t => {
-      assert_throws_js(TypeError, _ => {
-        new Sanitizer({[item]: elems_valid.concat(elems_invalid)});
-      });
-    }, `Invalid element names in config item: ${item}`);
-  }
-  for (const item of ["attributes", "removeAttributes"]) {
-    test(t => {
-      const sanitizer = new Sanitizer({[item]: attrs_valid});
-      assert_array_same(sanitizer.get()[item].map(x => x.name),
-                        attrs_valid.map(x => "" + x));
-    }, `Attribute names in config item: ${item}`);
-    test(t => {
-      assert_throws_js(TypeError, _ => {
-        new Sanitizer({[item]: attrs_valid.concat(attrs_invalid)});
-      });
-    }, `Invalid attribute names in config item: ${item}`);
-  }
-
   // Quick sanity tests for namespaced elements.
   // Each test case is a duo or triplet:
   // - a Sanitizer config string for an element.

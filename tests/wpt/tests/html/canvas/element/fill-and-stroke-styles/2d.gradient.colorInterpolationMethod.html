@@ -82,12 +82,30 @@
 </span>
 
 <span>
-  <div>display-p3</div>
+  <div>display-p3-linear</div>
   <canvas class="grid-cell-content" id="canvas4" width="100" height="50">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
     const canvas = document.getElementById("canvas4");
+    const ctx = canvas.getContext('2d');
+
+    var g = ctx.createLinearGradient(0, 0, 100, 0);
+    g.addColorStop(0, 'color(srgb 1 0 0)');
+    g.addColorStop(1, 'color(srgb 0 1 0)');
+    g.colorInterpolationMethod = 'display-p3-linear';
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+  </script>
+</span>
+
+<span>
+  <div>display-p3</div>
+  <canvas class="grid-cell-content" id="canvas5" width="100" height="50">
+    <p class="fallback">FAIL (fallback content)</p>
+  </canvas>
+  <script type="module">
+    const canvas = document.getElementById("canvas5");
     const ctx = canvas.getContext('2d');
 
     var g = ctx.createLinearGradient(0, 0, 100, 0);
@@ -101,11 +119,11 @@
 
 <span>
   <div>a98-rgb</div>
-  <canvas class="grid-cell-content" id="canvas5" width="100" height="50">
+  <canvas class="grid-cell-content" id="canvas6" width="100" height="50">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas5");
+    const canvas = document.getElementById("canvas6");
     const ctx = canvas.getContext('2d');
 
     var g = ctx.createLinearGradient(0, 0, 100, 0);
@@ -119,11 +137,11 @@
 
 <span>
   <div>prophoto-rgb</div>
-  <canvas class="grid-cell-content" id="canvas6" width="100" height="50">
+  <canvas class="grid-cell-content" id="canvas7" width="100" height="50">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas6");
+    const canvas = document.getElementById("canvas7");
     const ctx = canvas.getContext('2d');
 
     var g = ctx.createLinearGradient(0, 0, 100, 0);
@@ -137,11 +155,11 @@
 
 <span>
   <div>rec2020</div>
-  <canvas class="grid-cell-content" id="canvas7" width="100" height="50">
+  <canvas class="grid-cell-content" id="canvas8" width="100" height="50">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas7");
+    const canvas = document.getElementById("canvas8");
     const ctx = canvas.getContext('2d');
 
     var g = ctx.createLinearGradient(0, 0, 100, 0);
@@ -155,11 +173,11 @@
 
 <span>
   <div>lab</div>
-  <canvas class="grid-cell-content" id="canvas8" width="100" height="50">
+  <canvas class="grid-cell-content" id="canvas9" width="100" height="50">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas8");
+    const canvas = document.getElementById("canvas9");
     const ctx = canvas.getContext('2d');
 
     var g = ctx.createLinearGradient(0, 0, 100, 0);
@@ -173,11 +191,11 @@
 
 <span>
   <div>oklab</div>
-  <canvas class="grid-cell-content" id="canvas9" width="100" height="50">
+  <canvas class="grid-cell-content" id="canvas10" width="100" height="50">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas9");
+    const canvas = document.getElementById("canvas10");
     const ctx = canvas.getContext('2d');
 
     var g = ctx.createLinearGradient(0, 0, 100, 0);
@@ -191,11 +209,11 @@
 
 <span>
   <div>lch</div>
-  <canvas class="grid-cell-content" id="canvas10" width="100" height="50">
+  <canvas class="grid-cell-content" id="canvas11" width="100" height="50">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas10");
+    const canvas = document.getElementById("canvas11");
     const ctx = canvas.getContext('2d');
 
     var g = ctx.createLinearGradient(0, 0, 100, 0);
@@ -209,11 +227,11 @@
 
 <span>
   <div>oklch</div>
-  <canvas class="grid-cell-content" id="canvas11" width="100" height="50">
+  <canvas class="grid-cell-content" id="canvas12" width="100" height="50">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas11");
+    const canvas = document.getElementById("canvas12");
     const ctx = canvas.getContext('2d');
 
     var g = ctx.createLinearGradient(0, 0, 100, 0);
@@ -227,11 +245,11 @@
 
 <span>
   <div>xyz</div>
-  <canvas class="grid-cell-content" id="canvas12" width="100" height="50">
+  <canvas class="grid-cell-content" id="canvas13" width="100" height="50">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas12");
+    const canvas = document.getElementById("canvas13");
     const ctx = canvas.getContext('2d');
 
     var g = ctx.createLinearGradient(0, 0, 100, 0);
@@ -245,11 +263,11 @@
 
 <span>
   <div>xyz-d50</div>
-  <canvas class="grid-cell-content" id="canvas13" width="100" height="50">
+  <canvas class="grid-cell-content" id="canvas14" width="100" height="50">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas13");
+    const canvas = document.getElementById("canvas14");
     const ctx = canvas.getContext('2d');
 
     var g = ctx.createLinearGradient(0, 0, 100, 0);
@@ -263,11 +281,11 @@
 
 <span>
   <div>xyz-d65</div>
-  <canvas class="grid-cell-content" id="canvas14" width="100" height="50">
+  <canvas class="grid-cell-content" id="canvas15" width="100" height="50">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas14");
+    const canvas = document.getElementById("canvas15");
     const ctx = canvas.getContext('2d');
 
     var g = ctx.createLinearGradient(0, 0, 100, 0);

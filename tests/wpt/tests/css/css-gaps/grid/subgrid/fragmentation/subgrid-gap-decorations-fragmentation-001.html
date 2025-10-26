@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>
+  Suppress row grid gaps: row gaps should be suppressed if it's split across
+  fragmentainer breaks or is the last content before a break. Tests a grid subgridded
+  on both axes and has a row gap that is split across a fragmentainer break.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="../../../../reference/ref-filled-green-100px-square.xht">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  .multi-col {
+    position: relative;
+    columns: 3;
+    column-fill: auto;
+    width: 100px;
+    height: 100px;
+    background: green;
+    column-gap: 0px;
+  }
+  .grid-container {
+    display: grid;
+    grid-template-rows: repeat(3, 80px);
+    gap: 30px;
+  }
+  .subgrid {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-template-rows: subgrid;
+    background: red;
+    grid-column: 1 / -1;
+    grid-row: 1 / -1;
+    row-rule: solid 10px;
+  }
+  .subgrid-item {
+    background: green;
+  }
+  .abspos {
+    background: green;
+    position: absolute;
+    width: 100px;
+    height: 20px;
+    left: 0;
+    top: 80px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multi-col">
+  <div class="grid-container">
+    <div class="subgrid">
+      <div class="subgrid-item"></div>
+      <div class="subgrid-item"></div>
+      <div class="subgrid-item"></div>
+    </div>
+  </div>
+  <!-- Abspos element to cover 20px empty space left by split gaps at the bottom of the three fragmentainers -->
+  <div class="abspos"></div>
+</div>

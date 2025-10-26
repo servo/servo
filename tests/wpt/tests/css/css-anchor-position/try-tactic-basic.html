@@ -40,30 +40,44 @@
 
   // bottom:20px
   test_try_tactic('flip-block', {left:10, top:340, width:30, height:40});
+  test_try_tactic('flip-y', {left:10, top:340, width:30, height:40});
 
   // right:10px
   test_try_tactic('flip-inline', {left:360, top:20, width:30, height:40});
+  test_try_tactic('flip-x', {left:360, top:20, width:30, height:40});
 
   // right:10px; bottom:20px
   test_try_tactic('flip-block flip-inline', {left:360, top:340, width:30, height:40});
   test_try_tactic('flip-inline flip-block', {left:360, top:340, width:30, height:40});
+  test_try_tactic('flip-y flip-x', {left:360, top:340, width:30, height:40});
+  test_try_tactic('flip-x flip-y', {left:360, top:340, width:30, height:40});
 
   // left:20px; top:10px; width:40px; height:30px
   test_try_tactic('flip-start', {left:20, top:10, width:40, height:30});
   test_try_tactic('flip-block flip-start flip-inline', {left:20, top:10, width:40, height:30});
   test_try_tactic('flip-inline flip-start flip-block', {left:20, top:10, width:40, height:30});
+  test_try_tactic('flip-y flip-start flip-x', {left:20, top:10, width:40, height:30});
+  test_try_tactic('flip-x flip-start flip-y', {left:20, top:10, width:40, height:30});
 
   // left:20px; bottom:10px; width:40px; height:30px
   test_try_tactic('flip-start flip-block', {left:20, top:360, width:40, height:30});
   test_try_tactic('flip-inline flip-start', {left:20, top:360, width:40, height:30});
+  test_try_tactic('flip-start flip-y', {left:20, top:360, width:40, height:30});
+  test_try_tactic('flip-x flip-start', {left:20, top:360, width:40, height:30});
 
   // right:20px; top:10px; width:40px; height:30px
   test_try_tactic('flip-start flip-inline', {left:340, top:10, width:40, height:30});
   test_try_tactic('flip-block flip-start', {left:340, top:10, width:40, height:30});
+  test_try_tactic('flip-start flip-x', {left:340, top:10, width:40, height:30});
+  test_try_tactic('flip-y flip-start', {left:340, top:10, width:40, height:30});
 
   // right:20px; bottom:10px; width:40px; height:30px
   test_try_tactic('flip-start flip-block flip-inline', {left:340, top:360, width:40, height:30});
   test_try_tactic('flip-start flip-inline flip-block', {left:340, top:360, width:40, height:30});
   test_try_tactic('flip-inline flip-block flip-start', {left:340, top:360, width:40, height:30});
   test_try_tactic('flip-block flip-inline flip-start', {left:340, top:360, width:40, height:30});
+  test_try_tactic('flip-start flip-y flip-x', {left:340, top:360, width:40, height:30});
+  test_try_tactic('flip-start flip-x flip-y', {left:340, top:360, width:40, height:30});
+  test_try_tactic('flip-x flip-y flip-start', {left:340, top:360, width:40, height:30});
+  test_try_tactic('flip-y flip-x flip-start', {left:340, top:360, width:40, height:30});
 </script>

@@ -16,7 +16,7 @@ runBfcacheTest({
     // When `funcAfterAssertion` is called, we've already navigated to pageB,
     // then gone back to pageA with bfcache. Now go forward to pageB so we can
     // observe whether the navigate event fired.
-    await pageA.execute_script(() => history.forward());
+    await pageA.execute_script(() => { prepareNavigation(() => history.forward()); }, []);
     await pageB.execute_script(waitForPageShow);
     assert_true(await pageB.execute_script(() => window.did_navigate));
   }

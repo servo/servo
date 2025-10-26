@@ -1,4 +1,5 @@
 // Returns the "name" property written to the object with the given ID.
+'use strict';
 function nameForId(id) {
   return `Object ${id}`;
 }

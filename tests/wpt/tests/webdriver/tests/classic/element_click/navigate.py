@@ -147,7 +147,7 @@ def test_link_from_nested_context_with_target(session, inline, iframe, target):
     # not timeout. Switch to the target context, and wait until the expected
     # element is available.
     if target == "_parent":
-        session.switch_frame("parent")
+        session.switch_to_parent_frame()
     elif target == "_top":
         session.switch_frame(None)
 

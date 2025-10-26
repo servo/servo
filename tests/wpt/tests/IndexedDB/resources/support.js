@@ -1,3 +1,4 @@
+'use strict';
 /* Delete created databases
  *
  * Go through each finished test, see if it has an associated database. Close

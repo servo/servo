@@ -27,7 +27,7 @@ async def test_params_data_types_entry_invalid_type(bidi_session, value):
         )
 
 
-@pytest.mark.parametrize("value", ["foo", "request", "invalid"])
+@pytest.mark.parametrize("value", ["foo", "invalid"])
 async def test_params_data_types_entry_invalid_value(bidi_session, value):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.network.add_data_collector(

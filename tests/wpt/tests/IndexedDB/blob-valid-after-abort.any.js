@@ -1,6 +1,7 @@
 // META: title=Blob Valid After Abort
 // META: global=window,worker
 // META: script=resources/support.js
+'use strict';
 
 let key = "key";
 
