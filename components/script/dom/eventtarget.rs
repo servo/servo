@@ -1069,6 +1069,7 @@ impl EventTarget {
             // * A is not a node
             // * A’s root is not a shadow root
             // * B is a node and A’s root is a shadow-including inclusive ancestor of B
+            // then return A.
             let Some(a_node) = a.downcast::<Node>() else {
                 return a;
             };
