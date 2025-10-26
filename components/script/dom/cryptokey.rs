@@ -7,6 +7,7 @@ use std::ptr::NonNull;
 
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject, Value};
+use rsa::{RsaPrivateKey, RsaPublicKey};
 use script_bindings::conversions::SafeToJSValConvertible;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -25,9 +26,10 @@ pub(crate) enum CryptoKeyOrCryptoKeyPair {
 }
 
 /// The underlying cryptographic data this key represents
-#[allow(dead_code)]
-#[derive(MallocSizeOf)]
+#[allow(clippy::large_enum_variant)]
 pub(crate) enum Handle {
+    RsaPrivateKey(RsaPrivateKey),
+    RsaPublicKey(RsaPublicKey),
     Aes128(Vec<u8>),
     Aes192(Vec<u8>),
     Aes256(Vec<u8>),
@@ -68,6 +70,7 @@ pub(crate) struct CryptoKey {
     usages_cached: Heap<*mut JSObject>,
 
     /// <https://w3c.github.io/webcrypto/#dfn-CryptoKey-slot-handle>
+    #[ignore_malloc_size_of = "Defined in RustCrypto"]
     #[no_trace]
     handle: Handle,
 }
@@ -191,6 +194,8 @@ impl CryptoKeyMethods<crate::DomTypeHolder> for CryptoKey {
 impl Handle {
     pub(crate) fn as_bytes(&self) -> &[u8] {
         match self {
+            Self::RsaPrivateKey(_) => unreachable!(),
+            Self::RsaPublicKey(_) => unreachable!(),
             Self::Aes128(bytes) => bytes,
             Self::Aes192(bytes) => bytes,
             Self::Aes256(bytes) => bytes,

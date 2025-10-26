@@ -103,6 +103,7 @@ profile_traits = { workspace = true }
 rand = { workspace = true }
 range = { path = "../range" }
 regex = { workspace = true }
+rsa = { workspace = true }
 rustc-hash = { workspace = true }
 script_bindings = { path = "../script_bindings" }
 script_traits = { workspace = true }

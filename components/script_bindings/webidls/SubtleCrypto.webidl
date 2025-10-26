@@ -68,6 +68,33 @@ interface SubtleCrypto {
                          sequence<KeyUsage> keyUsages );
 };
 
+// https://w3c.github.io/webcrypto/#dfn-RsaKeyGenParams
+dictionary RsaKeyGenParams : Algorithm {
+  required [EnforceRange] unsigned long modulusLength;
+  required BigInteger publicExponent;
+};
+
+// https://w3c.github.io/webcrypto/#dfn-RsaHashedKeyGenParams
+dictionary RsaHashedKeyGenParams : RsaKeyGenParams {
+  required HashAlgorithmIdentifier hash;
+};
+
+// https://w3c.github.io/webcrypto/#dfn-RsaKeyAlgorithm
+dictionary RsaKeyAlgorithm : KeyAlgorithm {
+  required unsigned long modulusLength;
+  required BigInteger publicExponent;
+};
+
+// https://w3c.github.io/webcrypto/#dfn-RsaHashedKeyAlgorithm
+dictionary RsaHashedKeyAlgorithm : RsaKeyAlgorithm {
+  required KeyAlgorithm hash;
+};
+
+// https://w3c.github.io/webcrypto/#dfn-RsaHashedImportParams
+dictionary RsaHashedImportParams : Algorithm {
+  required HashAlgorithmIdentifier hash;
+};
+
 // AES shared
 dictionary AesKeyAlgorithm : KeyAlgorithm {
   required unsigned short length;
@@ -164,3 +191,6 @@ dictionary JsonWebKey {
   sequence<RsaOtherPrimesInfo> oth;
   DOMString k;
 };
+
+// https://w3c.github.io/webcrypto/#dfn-BigInteger
+typedef Uint8Array BigInteger;
