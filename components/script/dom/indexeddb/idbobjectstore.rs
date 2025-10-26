@@ -650,8 +650,8 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-keypath
     fn KeyPath(&self, cx: SafeJSContext, mut ret_val: MutableHandleValue) {
         match &self.key_path {
-            Some(KeyPath::String(path)) => path.safe_to_jsval(cx, ret_val),
-            Some(KeyPath::StringSequence(paths)) => paths.safe_to_jsval(cx, ret_val),
+            Some(KeyPath::String(path)) => path.safe_to_jsval(cx, ret_val, CanGc::note()),
+            Some(KeyPath::StringSequence(paths)) => paths.safe_to_jsval(cx, ret_val, CanGc::note()),
             None => ret_val.set(NullValue()),
         }
     }

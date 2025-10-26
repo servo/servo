@@ -55,25 +55,25 @@ pub fn key_type_to_jsval(
     cx: SafeJSContext,
     key: &IndexedDBKeyType,
     mut result: MutableHandleValue,
-    _can_gc: CanGc,
+    can_gc: CanGc,
 ) {
     match key {
         IndexedDBKeyType::Number(n) => result.set(DoubleValue(*n)),
-        IndexedDBKeyType::String(s) => s.safe_to_jsval(cx, result),
-        IndexedDBKeyType::Binary(b) => b.safe_to_jsval(cx, result),
+        IndexedDBKeyType::String(s) => s.safe_to_jsval(cx, result, can_gc),
+        IndexedDBKeyType::Binary(b) => b.safe_to_jsval(cx, result, can_gc),
         IndexedDBKeyType::Date(d) => {
             let time = js::jsapi::ClippedTime { t: *d };
             let date = unsafe { js::jsapi::NewDateObject(*cx, time) };
-            date.safe_to_jsval(cx, result);
+            date.safe_to_jsval(cx, result, can_gc);
         },
         IndexedDBKeyType::Array(a) => {
             rooted_vec!(let mut values);
             for key in a {
                 rooted!(in(*cx) let mut value: JSVal);
-                key_type_to_jsval(cx, key, value.handle_mut(), _can_gc);
+                key_type_to_jsval(cx, key, value.handle_mut(), can_gc);
                 values.push(Heap::boxed(value.get()));
             }
-            values.safe_to_jsval(cx, result);
+            values.safe_to_jsval(cx, result, can_gc);
         },
     }
 }
@@ -85,7 +85,7 @@ pub(crate) fn is_valid_key_path(key_path: &StrOrStringSequence) -> Result<bool, 
     let is_identifier_name = |name: &str| -> Result<bool, Error> {
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut value = UndefinedValue());
-        name.safe_to_jsval(cx, value.handle_mut());
+        name.safe_to_jsval(cx, value.handle_mut(), CanGc::note());
         rooted!(in(*cx) let string = value.to_string());
 
         unsafe {
@@ -351,7 +351,7 @@ pub(crate) fn evaluate_key_path_on_value(
             }
 
             // Step 1.4. Return result.
-            result.safe_to_jsval(cx, return_val);
+            result.safe_to_jsval(cx, return_val, CanGc::note());
         },
         KeyPath::String(key_path) => {
             // Step 2. If keyPath is the empty string, return value and skip the remaining steps.
@@ -373,7 +373,7 @@ pub(crate) fn evaluate_key_path_on_value(
                     rooted!(in(*cx) let string_value = current_value.to_string());
                     unsafe {
                         let string_length = JS_GetStringLength(*string_value) as u64;
-                        string_length.safe_to_jsval(cx, current_value.handle_mut());
+                        string_length.safe_to_jsval(cx, current_value.handle_mut(), CanGc::note());
                     }
                     continue;
                 }
@@ -404,7 +404,8 @@ pub(crate) fn evaluate_key_path_on_value(
                 if identifier == "size" {
                     if let Ok(blob) = root_from_handlevalue::<Blob>(current_value.handle(), cx) {
                         // Let value be a Number equal to value’s size.
-                        blob.Size().safe_to_jsval(cx, current_value.handle_mut());
+                        blob.Size()
+                            .safe_to_jsval(cx, current_value.handle_mut(), CanGc::note());
 
                         continue;
                     }
@@ -414,7 +415,8 @@ pub(crate) fn evaluate_key_path_on_value(
                 if identifier == "type" {
                     if let Ok(blob) = root_from_handlevalue::<Blob>(current_value.handle(), cx) {
                         // Let value be a String equal to value’s type.
-                        blob.Type().safe_to_jsval(cx, current_value.handle_mut());
+                        blob.Type()
+                            .safe_to_jsval(cx, current_value.handle_mut(), CanGc::note());
 
                         continue;
                     }
@@ -424,7 +426,8 @@ pub(crate) fn evaluate_key_path_on_value(
                 if identifier == "name" {
                     if let Ok(file) = root_from_handlevalue::<File>(current_value.handle(), cx) {
                         // Let value be a String equal to value’s name.
-                        file.name().safe_to_jsval(cx, current_value.handle_mut());
+                        file.name()
+                            .safe_to_jsval(cx, current_value.handle_mut(), CanGc::note());
 
                         continue;
                     }
@@ -434,8 +437,11 @@ pub(crate) fn evaluate_key_path_on_value(
                 if identifier == "lastModified" {
                     if let Ok(file) = root_from_handlevalue::<File>(current_value.handle(), cx) {
                         // Let value be a Number equal to value’s lastModified.
-                        file.LastModified()
-                            .safe_to_jsval(cx, current_value.handle_mut());
+                        file.LastModified().safe_to_jsval(
+                            cx,
+                            current_value.handle_mut(),
+                            CanGc::note(),
+                        );
 
                         continue;
                     }
@@ -449,7 +455,11 @@ pub(crate) fn evaluate_key_path_on_value(
                             t: file.LastModified() as f64,
                         };
                         unsafe {
-                            NewDateObject(*cx, time).safe_to_jsval(cx, current_value.handle_mut());
+                            NewDateObject(*cx, time).safe_to_jsval(
+                                cx,
+                                current_value.handle_mut(),
+                                CanGc::note(),
+                            );
                         }
 
                         continue;

@@ -77,7 +77,7 @@ pub(crate) fn throw_dom_exception(
         Ok(exception) => unsafe {
             assert!(!JS_IsExceptionPending(*cx));
             rooted!(in(*cx) let mut thrown = UndefinedValue());
-            exception.safe_to_jsval(cx, thrown.handle_mut());
+            exception.safe_to_jsval(cx, thrown.handle_mut(), can_gc);
             JS_SetPendingException(*cx, thrown.handle(), ExceptionStackBehavior::Capture);
         },
 

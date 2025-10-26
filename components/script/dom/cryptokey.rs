@@ -118,14 +118,14 @@ impl CryptoKey {
 
         // Create and store a cached object of algorithm
         rooted!(in(*cx) let mut algorithm_object_value: Value);
-        algorithm.safe_to_jsval(cx, algorithm_object_value.handle_mut());
+        algorithm.safe_to_jsval(cx, algorithm_object_value.handle_mut(), can_gc);
         crypto_key
             .algorithm_cached
             .set(algorithm_object_value.to_object());
 
         // Create and store a cached object of usages
         rooted!(in(*cx) let mut usages_object_value: Value);
-        usages.safe_to_jsval(cx, usages_object_value.handle_mut());
+        usages.safe_to_jsval(cx, usages_object_value.handle_mut(), can_gc);
         crypto_key
             .usages_cached
             .set(usages_object_value.to_object());
@@ -155,7 +155,7 @@ impl CryptoKey {
         // Create and store a cached object of usages
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut usages_object_value: Value);
-        usages.safe_to_jsval(cx, usages_object_value.handle_mut());
+        usages.safe_to_jsval(cx, usages_object_value.handle_mut(), CanGc::note());
         self.usages_cached.set(usages_object_value.to_object());
     }
 }

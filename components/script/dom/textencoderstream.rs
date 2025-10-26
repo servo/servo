@@ -278,7 +278,7 @@ pub(crate) fn encode_and_enqueue_a_chunk(
     let chunk: Uint8Array = create_buffer_source(cx, output, js_object.handle_mut(), can_gc)
         .map_err(|_| Error::Type("Cannot convert byte sequence to Uint8Array".to_owned()))?;
     rooted!(in(*cx) let mut rval = UndefinedValue());
-    chunk.safe_to_jsval(cx, rval.handle_mut());
+    chunk.safe_to_jsval(cx, rval.handle_mut(), can_gc);
     // Step 4.2.2.2 Enqueue chunk into encoder’s transform.
     controller.enqueue(cx, global, rval.handle(), can_gc)?;
     Ok(())
@@ -304,7 +304,7 @@ pub(crate) fn encode_and_flush(
                     Error::Type("Cannot convert byte sequence to Uint8Array".to_owned())
                 })?;
         rooted!(in(*cx) let mut rval = UndefinedValue());
-        chunk.safe_to_jsval(cx, rval.handle_mut());
+        chunk.safe_to_jsval(cx, rval.handle_mut(), can_gc);
         // Step 1.2 Enqueue chunk into encoder’s transform.
         return controller.enqueue(cx, global, rval.handle(), can_gc);
     }

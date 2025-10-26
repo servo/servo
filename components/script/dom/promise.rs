@@ -160,11 +160,11 @@ impl Promise {
         global: &GlobalScope,
         cx: SafeJSContext,
         value: impl SafeToJSValConvertible,
-        _can_gc: CanGc,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
         let _ac = JSAutoRealm::new(*cx, global.reflector().get_jsobject().get());
         rooted!(in(*cx) let mut rval = UndefinedValue());
-        value.safe_to_jsval(cx, rval.handle_mut());
+        value.safe_to_jsval(cx, rval.handle_mut(), can_gc);
         unsafe {
             rooted!(in(*cx) let p = CallOriginalPromiseResolve(*cx, rval.handle()));
             assert!(!p.handle().is_null());
@@ -178,11 +178,11 @@ impl Promise {
         global: &GlobalScope,
         cx: SafeJSContext,
         value: impl SafeToJSValConvertible,
-        _can_gc: CanGc,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
         let _ac = JSAutoRealm::new(*cx, global.reflector().get_jsobject().get());
         rooted!(in(*cx) let mut rval = UndefinedValue());
-        value.safe_to_jsval(cx, rval.handle_mut());
+        value.safe_to_jsval(cx, rval.handle_mut(), can_gc);
         unsafe {
             rooted!(in(*cx) let p = CallOriginalPromiseReject(*cx, rval.handle()));
             assert!(!p.handle().is_null());
@@ -197,7 +197,7 @@ impl Promise {
         let cx = GlobalScope::get_cx();
         let _ac = enter_realm(self);
         rooted!(in(*cx) let mut v = UndefinedValue());
-        val.safe_to_jsval(cx, v.handle_mut());
+        val.safe_to_jsval(cx, v.handle_mut(), can_gc);
         self.resolve(cx, v.handle(), can_gc);
     }
 
@@ -218,7 +218,7 @@ impl Promise {
         let cx = GlobalScope::get_cx();
         let _ac = enter_realm(self);
         rooted!(in(*cx) let mut v = UndefinedValue());
-        val.safe_to_jsval(cx, v.handle_mut());
+        val.safe_to_jsval(cx, v.handle_mut(), can_gc);
         self.reject(cx, v.handle(), can_gc);
     }
 

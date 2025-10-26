@@ -258,7 +258,7 @@ impl EventSourceContext {
             let _ac = enter_realm(&*event_source);
             rooted!(in(*GlobalScope::get_cx()) let mut data = UndefinedValue());
             self.data
-                .safe_to_jsval(GlobalScope::get_cx(), data.handle_mut());
+                .safe_to_jsval(GlobalScope::get_cx(), data.handle_mut(), can_gc);
             MessageEvent::new(
                 &event_source.global(),
                 type_,

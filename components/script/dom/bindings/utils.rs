@@ -57,9 +57,9 @@ pub(crate) fn to_frozen_array<T: ToJSValConvertible>(
     convertibles: &[T],
     cx: SafeJSContext,
     mut rval: MutableHandleValue,
-    _can_gc: CanGc,
+    can_gc: CanGc,
 ) {
-    convertibles.safe_to_jsval(cx, rval.reborrow());
+    convertibles.safe_to_jsval(cx, rval.reborrow(), can_gc);
 
     rooted!(in(*cx) let obj = rval.to_object());
     unsafe { JS_FreezeObject(*cx, RawHandleObject::from(obj.handle())) };

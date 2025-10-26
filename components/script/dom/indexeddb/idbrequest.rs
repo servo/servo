@@ -147,7 +147,7 @@ impl RequestListener {
                         key_type_to_jsval(GlobalScope::get_cx(), &key, val.handle_mut(), can_gc);
                         array.push(Heap::boxed(val.get()));
                     }
-                    array.safe_to_jsval(cx, answer.handle_mut());
+                    array.safe_to_jsval(cx, answer.handle_mut(), can_gc);
                 },
                 IdbResult::Value(serialized_data) => {
                     let result = bincode::deserialize(&serialized_data)
@@ -177,7 +177,7 @@ impl RequestListener {
                         };
                         values.push(Heap::boxed(val.get()));
                     }
-                    values.safe_to_jsval(cx, answer.handle_mut());
+                    values.safe_to_jsval(cx, answer.handle_mut(), can_gc);
                 },
                 IdbResult::Count(count) => {
                     answer.handle_mut().set(DoubleValue(count as f64));

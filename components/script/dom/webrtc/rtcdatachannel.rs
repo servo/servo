@@ -203,7 +203,7 @@ impl RTCDataChannel {
 
         match channel_message {
             DataChannelMessage::Text(text) => {
-                text.safe_to_jsval(cx, message.handle_mut());
+                text.safe_to_jsval(cx, message.handle_mut(), can_gc);
             },
             DataChannelMessage::Binary(data) => {
                 let binary_type = self.binary_type.borrow();
@@ -214,7 +214,7 @@ impl RTCDataChannel {
                             BlobImpl::new_from_bytes(data, "".to_owned()),
                             can_gc,
                         );
-                        blob.safe_to_jsval(cx, message.handle_mut());
+                        blob.safe_to_jsval(cx, message.handle_mut(), can_gc);
                     },
                     "arraybuffer" => {
                         rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
@@ -228,7 +228,7 @@ impl RTCDataChannel {
                                 .is_ok()
                             )
                         };
-                        (*array_buffer).safe_to_jsval(cx, message.handle_mut());
+                        (*array_buffer).safe_to_jsval(cx, message.handle_mut(), can_gc);
                 },
             _ => unreachable!(),)
             },

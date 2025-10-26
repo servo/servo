@@ -241,7 +241,7 @@ fn html_constructor(
 
         JS_SetPrototype(*cx, element.handle(), prototype.handle());
 
-        result.safe_to_jsval(cx, MutableHandleValue::from_raw(call_args.rval()));
+        result.safe_to_jsval(cx, MutableHandleValue::from_raw(call_args.rval()), can_gc);
     }
     Ok(())
 }

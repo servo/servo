@@ -170,7 +170,7 @@ impl SubtleCrypto {
                 match JsonWebKey::parse(cx, stringified_jwk.as_bytes()) {
                     Ok(jwk) => {
                         rooted!(in(*cx) let mut rval = UndefinedValue());
-                        jwk.safe_to_jsval(cx, rval.handle_mut());
+                        jwk.safe_to_jsval(cx, rval.handle_mut(), CanGc::note());
                         rooted!(in(*cx) let mut object = rval.to_object());
                         promise.resolve_native(&*object, CanGc::note());
                     },
@@ -1586,11 +1586,11 @@ impl From<NormalizedAlgorithm> for SubtleKeyAlgorithm {
 }
 
 impl SafeToJSValConvertible for SubtleKeyAlgorithm {
-    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue) {
+    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
         let dictionary = KeyAlgorithm {
             name: self.name.clone().into(),
         };
-        dictionary.safe_to_jsval(cx, rval);
+        dictionary.safe_to_jsval(cx, rval, can_gc);
     }
 }
 
@@ -1673,7 +1673,7 @@ pub(crate) struct SubtleAesKeyAlgorithm {
 }
 
 impl SafeToJSValConvertible for SubtleAesKeyAlgorithm {
-    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue) {
+    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
         let parent = KeyAlgorithm {
             name: self.name.clone().into(),
         };
@@ -1681,7 +1681,7 @@ impl SafeToJSValConvertible for SubtleAesKeyAlgorithm {
             parent,
             length: self.length,
         };
-        dictionary.safe_to_jsval(cx, rval);
+        dictionary.safe_to_jsval(cx, rval, can_gc);
     }
 }
 
@@ -1764,7 +1764,7 @@ pub(crate) struct SubtleHmacKeyAlgorithm {
 }
 
 impl SafeToJSValConvertible for SubtleHmacKeyAlgorithm {
-    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue) {
+    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
         let parent = KeyAlgorithm {
             name: self.name.clone().into(),
         };
@@ -1776,7 +1776,7 @@ impl SafeToJSValConvertible for SubtleHmacKeyAlgorithm {
             hash,
             length: self.length,
         };
-        dictionary.safe_to_jsval(cx, rval);
+        dictionary.safe_to_jsval(cx, rval, can_gc);
     }
 }
 
@@ -1928,11 +1928,15 @@ impl From<NormalizedAlgorithm> for KeyAlgorithmAndDerivatives {
 }
 
 impl SafeToJSValConvertible for KeyAlgorithmAndDerivatives {
-    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue) {
+    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
         match self {
-            KeyAlgorithmAndDerivatives::KeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
-            KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
-            KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
+            KeyAlgorithmAndDerivatives::KeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval, can_gc),
+            KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algo) => {
+                algo.safe_to_jsval(cx, rval, can_gc)
+            },
+            KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => {
+                algo.safe_to_jsval(cx, rval, can_gc)
+            },
         }
     }
 }
@@ -2033,7 +2037,7 @@ impl JsonWebKeyExt for JsonWebKey {
     /// bytes.
     fn stringify(&self, cx: JSContext) -> Result<DOMString, Error> {
         rooted!(in(*cx) let mut data = UndefinedValue());
-        self.safe_to_jsval(cx, data.handle_mut());
+        self.safe_to_jsval(cx, data.handle_mut(), CanGc::note());
         serialize_jsval_to_json_utf8(cx, data.handle())
     }
 
@@ -2121,7 +2125,7 @@ fn normalize_algorithm(
                 name: name.to_owned(),
             };
             rooted!(in(*cx) let mut alg_value = UndefinedValue());
-            alg.safe_to_jsval(cx, alg_value.handle_mut());
+            alg.safe_to_jsval(cx, alg_value.handle_mut(), CanGc::note());
             let alg_obj = RootedTraceableBox::new(Heap::default());
             alg_obj.set(alg_value.to_object());
             normalize_algorithm(cx, op, &ObjectOrString::Object(alg_obj))
