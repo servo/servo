@@ -752,6 +752,11 @@ pub(crate) unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> bool {
 }
 
 impl DedicatedWorkerGlobalScopeMethods<crate::DomTypeHolder> for DedicatedWorkerGlobalScope {
+    /// <https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-name>
+    fn Name(&self) -> DOMString {
+        self.workerglobalscope.worker_name()
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage>
     fn PostMessage(
         &self,
@@ -788,4 +793,7 @@ impl DedicatedWorkerGlobalScopeMethods<crate::DomTypeHolder> for DedicatedWorker
 
     // https://html.spec.whatwg.org/multipage/#handler-dedicatedworkerglobalscope-onmessage
     event_handler!(message, GetOnmessage, SetOnmessage);
+
+    // https://html.spec.whatwg.org/multipage/#handler-dedicatedworkerglobalscope-onmessageerror
+    event_handler!(messageerror, GetOnmessageerror, SetOnmessageerror);
 }
