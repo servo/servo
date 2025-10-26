@@ -186,10 +186,10 @@ impl ElementInternals {
         }
     }
 
-    pub(crate) fn is_invalid(&self) -> bool {
+    pub(crate) fn is_invalid(&self, can_gc: CanGc) -> bool {
         self.is_target_form_associated() &&
             self.is_instance_validatable() &&
-            !self.satisfies_constraints()
+            !self.satisfies_constraints(can_gc)
     }
 
     pub(crate) fn custom_states(&self) -> Option<DomRoot<CustomStateSet>> {

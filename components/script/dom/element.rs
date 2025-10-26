@@ -5038,11 +5038,12 @@ impl Element {
                     .validity_state(can_gc)
                     .perform_validation_and_update(ValidationFlags::all(), can_gc);
             }
-            return validatable.is_instance_validatable() && !validatable.satisfies_constraints();
+            return validatable.is_instance_validatable() &&
+                !validatable.satisfies_constraints(can_gc);
         }
 
         if let Some(internals) = self.get_element_internals() {
-            return internals.is_invalid();
+            return internals.is_invalid(can_gc);
         }
         false
     }

@@ -34,15 +34,13 @@ pub(crate) trait Validatable {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-fv-valid>
-    fn satisfies_constraints(&self) -> bool {
-        self.validity_state(CanGc::note())
-            .invalid_flags()
-            .is_empty()
+    fn satisfies_constraints(&self, can_gc: CanGc) -> bool {
+        self.validity_state(can_gc).invalid_flags().is_empty()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#check-validity-steps>
     fn check_validity(&self, can_gc: CanGc) -> bool {
-        if self.is_instance_validatable() && !self.satisfies_constraints() {
+        if self.is_instance_validatable() && !self.satisfies_constraints(can_gc) {
             self.as_element()
                 .upcast::<EventTarget>()
                 .fire_cancelable_event(atom!("invalid"), can_gc);
@@ -59,7 +57,7 @@ pub(crate) trait Validatable {
             return true;
         }
 
-        if self.satisfies_constraints() {
+        if self.satisfies_constraints(can_gc) {
             return true;
         }
 
