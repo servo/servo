@@ -2909,11 +2909,11 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-played
-    fn Played(&self) -> DomRoot<TimeRanges> {
+    fn Played(&self, can_gc: CanGc) -> DomRoot<TimeRanges> {
         TimeRanges::new(
             self.global().as_window(),
             self.played.borrow().clone(),
-            CanGc::note(),
+            can_gc,
         )
     }
 
