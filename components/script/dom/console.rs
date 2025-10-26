@@ -92,7 +92,7 @@ impl Console {
         if let Some(chan) = global.devtools_chan() {
             let worker_id = global
                 .downcast::<WorkerGlobalScope>()
-                .map(|worker| worker.get_worker_id());
+                .map(|worker| worker.worker_id());
             let devtools_message =
                 ScriptToDevtoolsControlMsg::ConsoleAPI(global.pipeline_id(), message, worker_id);
             chan.send(devtools_message).unwrap();
