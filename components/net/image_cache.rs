@@ -964,7 +964,7 @@ impl ImageCache for ImageCacheImpl {
                 },
                 format: PixelFormat::RGBA8,
                 frames: vec![frame],
-                bytes: IpcSharedMemory::from_bytes(&bytes),
+                bytes: Arc::new(IpcSharedMemory::from_bytes(&bytes)),
                 id: None,
                 cors_status: vector_image.cors_status,
             };

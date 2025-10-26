@@ -383,7 +383,7 @@ pub struct Image {
     pub height: u32,
     pub format: PixelFormat,
     /// A shared memory block containing the data of one or more image frames.
-    data: IpcSharedMemory,
+    data: Arc<IpcSharedMemory>,
     range: Range<usize>,
 }
 
@@ -391,7 +391,7 @@ impl Image {
     pub fn new(
         width: u32,
         height: u32,
-        data: IpcSharedMemory,
+        data: Arc<IpcSharedMemory>,
         range: Range<usize>,
         format: PixelFormat,
     ) -> Self {

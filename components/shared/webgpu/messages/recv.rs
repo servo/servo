@@ -9,7 +9,7 @@ use arrayvec::ArrayVec;
 use base::Epoch;
 use base::id::PipelineId;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
-use pixels::IpcSnapshot;
+use pixels::SharedSnapshot;
 use serde::{Deserialize, Serialize};
 use webrender_api::ImageKey;
 use webrender_api::euclid::default::Size2D;
@@ -172,7 +172,7 @@ pub enum WebGPURequest {
     GetImage {
         context_id: WebGPUContextId,
         pending_texture: Option<PendingTexture>,
-        sender: IpcSender<IpcSnapshot>,
+        sender: IpcSender<SharedSnapshot>,
     },
     ValidateTextureDescriptor {
         device_id: DeviceId,

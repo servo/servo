@@ -493,16 +493,17 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
     }
 }
 
-fn snapshot_as_pixmap(data: Snapshot) -> Arc<vello_cpu::Pixmap> {
-    let size = data.size().cast();
-    let (data, _, _) = data.to_vec(
-        Some(SnapshotAlphaMode::Transparent {
+fn snapshot_as_pixmap(mut snapshot: Snapshot) -> Arc<vello_cpu::Pixmap> {
+    let size = snapshot.size().cast();
+    snapshot.transform(
+        SnapshotAlphaMode::Transparent {
             premultiplied: true,
-        }),
-        Some(SnapshotPixelFormat::RGBA),
+        },
+        SnapshotPixelFormat::RGBA,
     );
+
     Arc::new(vello_cpu::Pixmap::from_parts(
-        bytemuck::cast_vec(data),
+        bytemuck::cast_vec(snapshot.into()),
         size.width,
         size.height,
     ))
