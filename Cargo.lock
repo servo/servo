@@ -2818,8 +2818,8 @@ dependencies = [
 
 [[package]]
 name = "fontsan"
-version = "0.6.0"
-source = "git+https://github.com/servo/fontsan#212f15c9e36f701597847de94e1dafc9636bdf07"
+version = "0.6.1"
+source = "git+https://github.com/servo/fontsan#ec58e75f566648a256a4fe7264ea6ffa2b83f201"
 dependencies = [
  "cc",
  "fontsan-woff2",
@@ -2830,8 +2830,8 @@ dependencies = [
 
 [[package]]
 name = "fontsan-woff2"
-version = "0.1.0"
-source = "git+https://github.com/servo/fontsan#212f15c9e36f701597847de94e1dafc9636bdf07"
+version = "0.1.1"
+source = "git+https://github.com/servo/fontsan#ec58e75f566648a256a4fe7264ea6ffa2b83f201"
 dependencies = [
  "brotli-decompressor",
  "cc",
