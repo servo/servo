@@ -21,7 +21,7 @@ use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::FireMouseEventType;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -74,8 +74,6 @@ pub(crate) struct MouseEvent {
     /// <https://w3c.github.io/uievents/#dom-mouseevent-buttons>
     buttons: Cell<u16>,
 
-    /// <https://w3c.github.io/uievents/#dom-mouseevent-relatedtarget>
-    related_target: MutNullableDom<EventTarget>,
     #[no_trace]
     point_in_target: Cell<Option<Point2D<f32, CSSPixel>>>,
 }
@@ -90,7 +88,6 @@ impl MouseEvent {
             modifiers: Cell::new(Modifiers::empty()),
             button: Cell::new(0),
             buttons: Cell::new(0),
-            related_target: Default::default(),
             point_in_target: Cell::new(None),
         }
     }
@@ -245,7 +242,7 @@ impl MouseEvent {
         self.modifiers.set(modifiers);
         self.button.set(button);
         self.buttons.set(buttons);
-        self.related_target.set(related_target);
+        self.upcast::<Event>().set_related_target(related_target);
         self.point_in_target.set(point_in_target);
         // Legacy mapping per spec: left/middle/right => 1/2/3 (button + 1), else 0.
         let w = if button >= 0 { (button as u32) + 1 } else { 0 };
@@ -476,7 +473,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
 
     /// <https://w3c.github.io/uievents/#widl-MouseEvent-relatedTarget>
     fn GetRelatedTarget(&self) -> Option<DomRoot<EventTarget>> {
-        self.related_target.get()
+        self.upcast::<Event>().related_target()
     }
 
     /// <https://w3c.github.io/uievents/#widl-MouseEvent-initMouseEvent>
@@ -537,7 +534,8 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
         self.modifiers.set(modifiers);
 
         self.button.set(button_arg);
-        self.related_target.set(related_target_arg);
+        self.upcast::<Event>()
+            .set_related_target(related_target_arg);
 
         // Keep UIEvent.which in sync for legacy init path too.
         let w = if button_arg >= 0 {

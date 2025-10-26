@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::default::Default;
-
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 
@@ -13,7 +11,7 @@ use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -24,14 +22,12 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct FocusEvent {
     uievent: UIEvent,
-    related_target: MutNullableDom<EventTarget>,
 }
 
 impl FocusEvent {
     fn new_inherited() -> FocusEvent {
         FocusEvent {
             uievent: UIEvent::new_inherited(),
-            related_target: Default::default(),
         }
     }
 
@@ -91,7 +87,7 @@ impl FocusEvent {
             view,
             detail,
         );
-        ev.related_target.set(related_target);
+        ev.upcast::<Event>().set_related_target(related_target);
         ev
     }
 }
@@ -126,7 +122,7 @@ impl FocusEventMethods<crate::DomTypeHolder> for FocusEvent {
 
     // https://w3c.github.io/uievents/#widl-FocusEvent-relatedTarget
     fn GetRelatedTarget(&self) -> Option<DomRoot<EventTarget>> {
-        self.related_target.get()
+        self.upcast::<Event>().related_target()
     }
 
     // https://dom.spec.whatwg.org/#dom-event-istrusted

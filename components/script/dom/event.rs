@@ -216,6 +216,14 @@ impl Event {
         self.target.set(target_);
     }
 
+    pub(crate) fn set_related_target(&self, related_target: Option<&EventTarget>) {
+        self.related_target.set(related_target);
+    }
+
+    pub(crate) fn related_target(&self) -> Option<DomRoot<EventTarget>> {
+        self.related_target.get()
+    }
+
     fn set_in_passive_listener(&self, value: bool) {
         if value {
             self.set_flags(EventFlags::InPassiveListener);
@@ -306,19 +314,23 @@ impl Event {
             .get()
             .map(|related_target| related_target.retarget(&target));
 
-        // Step 5. If target is not relatedTarget or target is event’s relatedTarget:
-        // Variables declared by the spec inside Step 5 but used later:
-        // TODO: https://github.com/whatwg/dom/issues/1344
+        // Step 5. Let clearTargets be false.
         let mut clear_targets = false;
+
+        // Step 6. If target is not relatedTarget or target is event’s relatedTarget:
         let mut pre_activation_result: Option<InputActivationState> = None;
         if related_target.as_ref() != Some(&target) ||
             self.related_target.get().as_ref() == Some(&target)
         {
-            // TODO Step 5.1 Let touchTargets be a new list.
-            // TODO Step 5.2 For each touchTarget of event’s touch target list, append the result of retargeting
+            // Step 6.1. Let touchTargets be a new list.
+            // TODO
+
+            // Step 6.2. For each touchTarget of event’s touch target list, append the result of retargeting
+            // TODO
+
             // touchTarget against target to touchTargets.
 
-            // Step 5.3 Append to an event path with event, target, targetOverride, relatedTarget,
+            // Step 6.3. Append to an event path with event, target, targetOverride, relatedTarget,
             // touchTargets, and false.
             self.append_to_path(
                 &target,
@@ -327,11 +339,11 @@ impl Event {
                 false,
             );
 
-            // Step 5.4 Let isActivationEvent be true, if event is a MouseEvent object and
+            // Step 6.4. Let isActivationEvent be true, if event is a MouseEvent object and
             // event’s type attribute is "click"; otherwise false.
             let is_activation_event = self.is::<MouseEvent>() && self.type_() == atom!("click");
 
-            // Step 5.5 If isActivationEvent is true and target has activation behavior,
+            // Step 6.5. If isActivationEvent is true and target has activation behavior,
             // then set activationTarget to target.
             if is_activation_event {
                 if let Some(element) = target.downcast::<Element>() {
@@ -341,7 +353,7 @@ impl Event {
                 }
             }
 
-            // Step 5.6 Let slottable be target, if target is a slottable and is assigned, and null otherwise.
+            // Step 6.6. Let slottable be target, if target is a slottable and is assigned, and null otherwise.
             let mut slottable = if target
                 .downcast::<Node>()
                 .and_then(Node::assigned_slot)
@@ -352,26 +364,26 @@ impl Event {
                 None
             };
 
-            // Step 5.7 Let slot-in-closed-tree be false
+            // Step 6.7. Let slot-in-closed-tree be false
             let mut slot_in_closed_tree = false;
 
-            // Step 5.8 Let parent be the result of invoking target’s get the parent with event.
+            // Step 6.8. Let parent be the result of invoking target’s get the parent with event.
             let mut parent_or_none = target.get_the_parent(self);
             let mut done = false;
 
-            // Step 5.9 While parent is non-null:
+            // Step 6.9. While parent is non-null:
             while let Some(parent) = parent_or_none.clone() {
-                // Step 5.9.1 If slottable is non-null:
+                // Step 6.9.1. If slottable is non-null:
                 if slottable.is_some() {
-                    // Step 5.9.1.1 Assert: parent is a slot.
+                    // Step 6.9.1.1. Assert: parent is a slot.
                     let slot = parent
                         .downcast::<HTMLSlotElement>()
                         .expect("parent of slottable is not a slot");
 
-                    // Step 5.9.1.2 Set slottable to null.
+                    // Step 6.9.1.2. Set slottable to null.
                     slottable = None;
 
-                    // Step 5.9.1.3 If parent’s root is a shadow root whose mode is "closed",
+                    // Step 6.9.1.3. If parent’s root is a shadow root whose mode is "closed",
                     // then set slot-in-closed-tree to true.
                     if slot
                         .containing_shadow_root()
@@ -381,7 +393,7 @@ impl Event {
                     }
                 }
 
-                // Step 5.9.2 If parent is a slottable and is assigned, then set slottable to parent.
+                // Step 6.9.2. If parent is a slottable and is assigned, then set slottable to parent.
                 if parent
                     .downcast::<Node>()
                     .and_then(Node::assigned_slot)
@@ -390,17 +402,20 @@ impl Event {
                     slottable = Some(parent.clone());
                 }
 
-                // Step 5.9.3 Let relatedTarget be the result of retargeting event’s relatedTarget against parent.
+                // Step 6.9.3. Let relatedTarget be the result of retargeting event’s relatedTarget against parent.
                 let related_target = self
                     .related_target
                     .get()
-                    .map(|related_target| related_target.retarget(&target));
+                    .map(|related_target| related_target.retarget(&parent));
 
-                // TODO: Step 5.9.4 Let touchTargets be a new list.
-                // Step 5.9.5 For each touchTarget of event’s touch target list, append the result of retargeting
+                // Step 6.9.4. Let touchTargets be a new list.
+                // TODO
+
+                // Step 6.9.5. For each touchTarget of event’s touch target list, append the result of retargeting
                 // touchTarget against parent to touchTargets.
+                // TODO
 
-                // Step 5.9.6 If parent is a Window object, or parent is a node and target’s root is a
+                // Step 6.9.6. If parent is a Window object, or parent is a node and target’s root is a
                 // shadow-including inclusive ancestor of parent:
                 let root_is_shadow_inclusive_ancestor = parent
                     .downcast::<Node>()
@@ -411,7 +426,7 @@ impl Event {
                             .is_shadow_including_inclusive_ancestor_of(parent)
                     });
                 if parent.is::<Window>() || root_is_shadow_inclusive_ancestor {
-                    // Step 5.9.6.1 If isActivationEvent is true, event’s bubbles attribute is true, activationTarget
+                    // Step 6.9.6.1. If isActivationEvent is true, event’s bubbles attribute is true, activationTarget
                     // is null, and parent has activation behavior, then set activationTarget to parent.
                     if is_activation_event && activation_target.is_none() && self.bubbles.get() {
                         if let Some(element) = parent.downcast::<Element>() {
@@ -421,7 +436,7 @@ impl Event {
                         }
                     }
 
-                    // Step 5.9.6.2 Append to an event path with event, parent, null, relatedTarget, touchTargets,
+                    // Step 6.9.6.2. Append to an event path with event, parent, null, relatedTarget, touchTargets,
                     // and slot-in-closed-tree.
                     self.append_to_path(
                         &parent,
@@ -430,18 +445,18 @@ impl Event {
                         slot_in_closed_tree,
                     );
                 }
-                // Step 5.9.7 Otherwise, if parent is relatedTarget, then set parent to null.
+                // Step 6.9.7. Otherwise, if parent is relatedTarget, then set parent to null.
                 else if Some(&parent) == related_target.as_ref() {
                     // NOTE: This causes some lifetime shenanigans. Instead of making things complicated,
                     // we just remember to treat parent as null later
                     done = true;
                 }
-                // Step 5.9.8 Otherwise:
+                // Step 6.9.8. Otherwise:
                 else {
-                    // Step 5.9.8.1 Set target to parent.
+                    // Step 6.9.8.1. Set target to parent.
                     target = parent.clone();
 
-                    // Step 5.9.8.2 If isActivationEvent is true, activationTarget is null, and target has
+                    // Step 6.9.8.2. If isActivationEvent is true, activationTarget is null, and target has
                     // activation behavior, then set activationTarget to target.
                     if is_activation_event && activation_target.is_none() {
                         if let Some(element) = parent.downcast::<Element>() {
@@ -451,7 +466,7 @@ impl Event {
                         }
                     }
 
-                    // Step 5.9.8.3 Append to an event path with event, parent, target, relatedTarget,
+                    // Step 6.9.8.3. Append to an event path with event, parent, target, relatedTarget,
                     // touchTargets, and slot-in-closed-tree.
                     self.append_to_path(
                         &parent,
@@ -461,19 +476,21 @@ impl Event {
                     );
                 }
 
-                // Step 5.9.9 If parent is non-null, then set parent to the result of invoking parent’s
+                // Step 6.9.9. If parent is non-null, then set parent to the result of invoking parent’s
                 // get the parent with event
                 if !done {
                     parent_or_none = parent.get_the_parent(self);
+                } else {
+                    parent_or_none = None;
                 }
 
-                // Step 5.9.10 Set slot-in-closed-tree to false.
+                // Step 6.9.10. Set slot-in-closed-tree to false.
                 slot_in_closed_tree = false;
             }
 
-            // Step 5.10 Let clearTargetsStruct be the last struct in event’s path whose shadow-adjusted target
+            // Step 6.10. Let clearTargetsStruct be the last struct in event’s path whose shadow-adjusted target
             // is non-null.
-            // Step 5.11 Let clearTargets be true if clearTargetsStruct’s shadow-adjusted target,
+            // Step 6.11. Let clearTargets be true if clearTargetsStruct’s shadow-adjusted target,
             // clearTargetsStruct’s relatedTarget, or an EventTarget object in clearTargetsStruct’s
             // touch target list is a node and its root is a shadow root; otherwise false.
             // TODO: Handle touch target list
@@ -497,7 +514,7 @@ impl Event {
                             .is_some_and(Node::is_in_a_shadow_tree)
                 });
 
-            // Step 5.12 If activationTarget is non-null and activationTarget has legacy-pre-activation behavior,
+            // Step 6.12. If activationTarget is non-null and activationTarget has legacy-pre-activation behavior,
             // then run activationTarget’s legacy-pre-activation behavior.
             if let Some(activation_target) = activation_target.as_ref() {
                 // Not specified in dispatch spec overtly; this is because
@@ -512,19 +529,19 @@ impl Event {
             let timeline_window = DomRoot::downcast::<Window>(target.global())
                 .filter(|window| window.need_emit_timeline_marker(TimelineMarkerType::DOMEvent));
 
-            // Step 5.13 For each struct in event’s path, in reverse order:
+            // Step 6.13. For each struct in event’s path, in reverse order:
             for (index, segment) in self.path.borrow().iter().enumerate().rev() {
-                // Step 5.13.1 If struct’s shadow-adjusted target is non-null, then set event’s
+                // Step 6.13.1. If struct’s shadow-adjusted target is non-null, then set event’s
                 // eventPhase attribute to AT_TARGET.
                 if segment.shadow_adjusted_target.is_some() {
                     self.phase.set(EventPhase::AtTarget);
                 }
-                // Step 5.13.2 Otherwise, set event’s eventPhase attribute to CAPTURING_PHASE.
+                // Step 6.13.2. Otherwise, set event’s eventPhase attribute to CAPTURING_PHASE.
                 else {
                     self.phase.set(EventPhase::Capturing);
                 }
 
-                // Step 5.13.3 Invoke with struct, event, "capturing", and legacyOutputDidListenersThrowFlag if given.
+                // Step 6.13.3. Invoke with struct, event, "capturing", and legacyOutputDidListenersThrowFlag if given.
                 invoke(
                     segment,
                     index,
@@ -535,25 +552,25 @@ impl Event {
                 )
             }
 
-            // Step 5.14 For each struct in event’s path:
+            // Step 6.14. For each struct in event’s path:
             for (index, segment) in self.path.borrow().iter().enumerate() {
-                // Step 5.14.1 If struct’s shadow-adjusted target is non-null, then set event’s
+                // Step 6.14.1. If struct’s shadow-adjusted target is non-null, then set event’s
                 // eventPhase attribute to AT_TARGET.
                 if segment.shadow_adjusted_target.is_some() {
                     self.phase.set(EventPhase::AtTarget);
                 }
-                // Step 5.14.2 Otherwise:
+                // Step 6.14.2. Otherwise:
                 else {
-                    // Step 5.14.2.1 If event’s bubbles attribute is false, then continue.
+                    // Step 6.14.2.1. If event’s bubbles attribute is false, then continue.
                     if !self.bubbles.get() {
                         continue;
                     }
 
-                    // Step 5.14.2.2 Set event’s eventPhase attribute to BUBBLING_PHASE.
+                    // Step 6.14.2.2. Set event’s eventPhase attribute to BUBBLING_PHASE.
                     self.phase.set(EventPhase::Bubbling);
                 }
 
-                // Step 5.14.3 Invoke with struct, event, "bubbling", and legacyOutputDidListenersThrowFlag if given.
+                // Step 6.14.3. Invoke with struct, event, "bubbling", and legacyOutputDidListenersThrowFlag if given.
                 invoke(
                     segment,
                     index,
@@ -565,7 +582,7 @@ impl Event {
             }
         }
 
-        // Step 6. Set event’s eventPhase attribute to NONE.
+        // Step 7. Set event’s eventPhase attribute to NONE.
         self.phase.set(EventPhase::None);
 
         // FIXME: The UIEvents spec still expects firing an event
@@ -588,38 +605,39 @@ impl Event {
             }
         }
 
-        // Step 7. Set event’s currentTarget attribute to null.
+        // Step 8. Set event’s currentTarget attribute to null.
         self.current_target.set(None);
 
-        // Step 8. Set event’s path to the empty list.
+        // Step 9. Set event’s path to the empty list.
         self.path.borrow_mut().clear();
 
-        // Step 9. Unset event’s dispatch flag, stop propagation flag, and stop immediate propagation flag.
+        // Step 10. Unset event’s dispatch flag, stop propagation flag, and stop immediate propagation flag.
         self.unset_flags(EventFlags::Dispatch);
         self.unset_flags(EventFlags::StopPropagation);
         self.unset_flags(EventFlags::StopImmediatePropagation);
 
-        // Step 10. If clearTargets is true:
+        // Step 11. If clearTargets is true:
         if clear_targets {
-            // Step 10.1 Set event’s target to null.
+            // Step 11.1. Set event’s target to null.
             self.target.set(None);
 
-            // Step 10.2 Set event’s relatedTarget to null.
+            // Step 11.2. Set event’s relatedTarget to null.
             self.related_target.set(None);
 
-            // TODO Step 10.3 Set event’s touch target list to the empty list.
+            // Step 11.3. Set event’s touch target list to the empty list.
+            // TODO
         }
 
-        // Step 11. If activationTarget is non-null:
+        // Step 12. If activationTarget is non-null:
         if let Some(activation_target) = activation_target {
             // NOTE: The activation target may have been disabled by an event handler
             if let Some(activatable) = activation_target.as_maybe_activatable() {
-                // Step 11.1 If event’s canceled flag is unset, then run activationTarget’s
+                // Step 12.1. If event’s canceled flag is unset, then run activationTarget’s
                 // activation behavior with event.
                 if !self.DefaultPrevented() {
                     activatable.activation_behavior(self, &target, can_gc);
                 }
-                // Step 11.2 Otherwise, if activationTarget has legacy-canceled-activation behavior, then run
+                // Step 12.2. Otherwise, if activationTarget has legacy-canceled-activation behavior, then run
                 // activationTarget’s legacy-canceled-activation behavior.
                 else {
                     activatable.legacy_canceled_activation_behavior(pre_activation_result, can_gc);
@@ -627,7 +645,7 @@ impl Event {
             }
         }
 
-        // Step 12 Return false if event’s canceled flag is set; otherwise true.
+        // Step 13. Return false if event’s canceled flag is set; otherwise true.
         !self.DefaultPrevented()
     }
 
