@@ -34,10 +34,10 @@ async function testWorker(worker) {
       resolve();
     };
 
-    if (worker instanceof SharedWorker) {
-      worker.port.postMessage("", [channel.port2]);
-    } else {
+    if ('onmessage' in worker) { // dedicated worker
       worker.postMessage("", [channel.port2]);
+    } else { // shared worker
+      worker.port.postMessage("", [channel.port2]);
     }
   });
 }
