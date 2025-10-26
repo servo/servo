@@ -146,11 +146,9 @@ jobs:
         run: ./mach test-scripts
       - name: Unit tests
         if: ${{ inputs.unit-tests }}
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 40 # https://github.com/servo/servo/issues/30275
-          max_attempts: 3 # https://github.com/servo/servo/issues/30683
-          command: ./mach test-unit --${{ inputs.profile }}
+        env:
+          NEXTEST_RETRIES: 3 # https://github.com/servo/servo/issues/30683
+        run: ./mach test-unit --${{ inputs.profile }}
       - name: Devtools tests
         if: ${{ false && inputs.unit-tests }} # FIXME #39273
         run: ./mach test-devtools --${{ inputs.profile }}
