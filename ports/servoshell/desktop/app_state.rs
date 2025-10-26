@@ -20,8 +20,8 @@ use servo::{
     AllowOrDenyRequest, AuthenticationRequest, EmbedderControl, EmbedderControlId,
     GamepadHapticEffectType, InputEvent, InputEventId, InputEventResult, JSValue, LoadStatus,
     PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog, TraversalId,
-    WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus, WebDriverSenders,
-    WebDriverUserPrompt, WebView, WebViewBuilder, WebViewDelegate,
+    WebDriverCommandMsg, WebDriverLoadStatus, WebDriverSenders, WebDriverUserPrompt, WebView,
+    WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
 
@@ -29,6 +29,7 @@ use super::app::PumpResult;
 use super::dialog::Dialog;
 use super::gamepad::GamepadSupport;
 use super::window_trait::WindowPortsMethods;
+use crate::common::webdriver::WebDriverSupport;
 use crate::prefs::ServoShellPreferences;
 
 pub(crate) enum AppState {
@@ -105,6 +106,12 @@ pub struct RunningAppStateInner {
 impl Drop for RunningAppState {
     fn drop(&mut self) {
         self.servo.deinit();
+    }
+}
+
+impl WebDriverSupport for RunningAppState {
+    fn webdriver_senders(&self) -> &RefCell<WebDriverSenders> {
+        &self.webdriver_senders
     }
 }
 
@@ -457,37 +464,6 @@ impl RunningAppState {
             .position(|webview| webview.0 == focused_id)
     }
 
-    pub(crate) fn set_pending_traversal(
-        &self,
-        traversal_id: TraversalId,
-        sender: GenericSender<WebDriverLoadStatus>,
-    ) {
-        self.webdriver_senders
-            .borrow_mut()
-            .pending_traversals
-            .insert(traversal_id, sender);
-    }
-
-    pub(crate) fn set_load_status_sender(
-        &self,
-        webview_id: WebViewId,
-        sender: GenericSender<WebDriverLoadStatus>,
-    ) {
-        self.webdriver_senders
-            .borrow_mut()
-            .load_status_senders
-            .insert(webview_id, sender);
-    }
-
-    pub(crate) fn set_script_command_interrupt_sender(
-        &self,
-        sender: Option<IpcSender<WebDriverJSResult>>,
-    ) {
-        self.webdriver_senders
-            .borrow_mut()
-            .script_evaluation_interrupt_sender = sender;
-    }
-
     /// Interrupt any ongoing WebDriver-based script evaluation.
     ///
     /// From <https://w3c.github.io/webdriver/#dfn-execute-a-function-body>:
@@ -509,13 +485,6 @@ impl RunningAppState {
                 );
             });
         }
-    }
-
-    pub(crate) fn remove_load_status_sender(&self, webview_id: WebViewId) {
-        self.webdriver_senders
-            .borrow_mut()
-            .load_status_senders
-            .remove(&webview_id);
     }
 
     /// Return a list of all webviews that have favicons that have not yet been loaded by egui.

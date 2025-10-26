@@ -29,6 +29,7 @@ use servo::{
 };
 use url::Url;
 
+use crate::common::webdriver::WebDriverSupport;
 use crate::egl::host_trait::HostTrait;
 use crate::prefs::ServoShellPreferences;
 
@@ -366,6 +367,12 @@ impl RefreshDriver for VsyncRefreshDriver {
     }
 }
 
+impl WebDriverSupport for RunningAppState {
+    fn webdriver_senders(&self) -> &RefCell<WebDriverSenders> {
+        &self.webdriver_senders
+    }
+}
+
 #[allow(unused)]
 impl RunningAppState {
     pub(super) fn new(
@@ -412,26 +419,6 @@ impl RunningAppState {
 
         app_state.create_and_focus_toplevel_webview(initial_url);
         app_state
-    }
-
-    pub(crate) fn set_script_command_interrupt_sender(
-        &self,
-        sender: Option<IpcSender<WebDriverJSResult>>,
-    ) {
-        self.webdriver_senders
-            .borrow_mut()
-            .script_evaluation_interrupt_sender = sender;
-    }
-
-    pub(crate) fn set_pending_traversal(
-        &self,
-        traversal_id: TraversalId,
-        sender: GenericSender<WebDriverLoadStatus>,
-    ) {
-        self.webdriver_senders
-            .borrow_mut()
-            .pending_traversals
-            .insert(traversal_id, sender);
     }
 
     pub fn webviews(&self) -> Vec<(WebViewId, WebView)> {
@@ -772,23 +759,6 @@ impl RunningAppState {
         }
     }
 
-    pub(crate) fn set_load_status_sender(
-        &self,
-        webview_id: WebViewId,
-        sender: GenericSender<WebDriverLoadStatus>,
-    ) {
-        self.webdriver_senders
-            .borrow_mut()
-            .load_status_senders
-            .insert(webview_id, sender);
-    }
-
-    pub(crate) fn remove_load_status_sender(&self, webview_id: WebViewId) {
-        self.webdriver_senders
-            .borrow_mut()
-            .load_status_senders
-            .remove(&webview_id);
-    }
     /// Touch event: press down
     pub fn touch_down(&self, x: f32, y: f32, pointer_id: i32) {
         self.active_webview()
