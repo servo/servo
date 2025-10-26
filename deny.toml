@@ -194,9 +194,6 @@ skip = [
     "toml_datetime",
     "toml_edit",
 
-    # blurmac
-    "objc2-encode",
-
     # usvg depends on svgtypes, which depends on old version of kurbo
     "kurbo",
 ]
