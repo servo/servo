@@ -177,7 +177,7 @@ impl IDBOpenDBRequest {
                 // Step 8.1
                 let _ac = enter_realm(&*conn);
                 rooted!(in(*cx) let mut connection_val = UndefinedValue());
-                conn.safe_to_jsval(cx, connection_val.handle_mut());
+                conn.safe_to_jsval(cx, connection_val.handle_mut(), CanGc::note());
                 this.idbrequest.set_result(connection_val.handle());
 
                 // Step 8.2
@@ -346,7 +346,7 @@ impl IDBOpenDBRequest {
 
                 let _ac = enter_realm(&*result);
                 rooted!(in(*cx) let mut result_val = UndefinedValue());
-                result.safe_to_jsval(cx, result_val.handle_mut());
+                result.safe_to_jsval(cx, result_val.handle_mut(), CanGc::note());
                 this.set_result(result_val.handle());
 
                 let event = Event::new(

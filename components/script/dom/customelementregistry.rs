@@ -548,7 +548,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             rooted!(in(*cx) let mut constructor = UndefinedValue());
             definition
                 .constructor
-                .safe_to_jsval(cx, constructor.handle_mut());
+                .safe_to_jsval(cx, constructor.handle_mut(), can_gc);
             promise.resolve_native(&constructor.get(), can_gc);
         }
         Ok(())
@@ -557,7 +557,9 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-get>
     fn Get(&self, cx: JSContext, name: DOMString, mut retval: MutableHandleValue) {
         match self.definitions.borrow().get(&LocalName::from(name)) {
-            Some(definition) => definition.constructor.safe_to_jsval(cx, retval),
+            Some(definition) => definition
+                .constructor
+                .safe_to_jsval(cx, retval, CanGc::note()),
             None => retval.set(UndefinedValue()),
         }
     }
@@ -596,7 +598,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             rooted!(in(*cx) let mut constructor = UndefinedValue());
             definition
                 .constructor
-                .safe_to_jsval(cx, constructor.handle_mut());
+                .safe_to_jsval(cx, constructor.handle_mut(), can_gc);
             let promise = Promise::new_in_current_realm(comp, can_gc);
             promise.resolve_native(&constructor.get(), can_gc);
             return promise;
@@ -913,14 +915,14 @@ fn run_upgrade_constructor(
     definition: &CustomElementDefinition,
     element: &Element,
     // This function can cause GC through AutoEntryScript::Drop, but we can't pass a CanGc there
-    _can_gc: CanGc,
+    can_gc: CanGc,
 ) -> ErrorResult {
     let constructor = &definition.constructor;
     let window = element.owner_window();
     let cx = GlobalScope::get_cx();
     rooted!(in(*cx) let constructor_val = ObjectValue(constructor.callback()));
     rooted!(in(*cx) let mut element_val = UndefinedValue());
-    element.safe_to_jsval(cx, element_val.handle_mut());
+    element.safe_to_jsval(cx, element_val.handle_mut(), can_gc);
     rooted!(in(*cx) let mut construct_result = ptr::null_mut::<JSObject>());
     {
         // Step 9.1. If definition's disable shadow is true and element's shadow root is non-null,
@@ -1163,22 +1165,22 @@ impl CustomElementReactionStack {
 
                 let local_name = DOMString::from(&*local_name);
                 rooted!(in(*cx) let mut name_value = UndefinedValue());
-                local_name.safe_to_jsval(cx, name_value.handle_mut());
+                local_name.safe_to_jsval(cx, name_value.handle_mut(), CanGc::note());
 
                 rooted!(in(*cx) let mut old_value = NullValue());
                 if let Some(old_val) = old_val {
-                    old_val.safe_to_jsval(cx, old_value.handle_mut());
+                    old_val.safe_to_jsval(cx, old_value.handle_mut(), CanGc::note());
                 }
 
                 rooted!(in(*cx) let mut value = NullValue());
                 if let Some(val) = val {
-                    val.safe_to_jsval(cx, value.handle_mut());
+                    val.safe_to_jsval(cx, value.handle_mut(), CanGc::note());
                 }
 
                 rooted!(in(*cx) let mut namespace_value = NullValue());
                 if namespace != ns!() {
                     let namespace = DOMString::from(&*namespace);
-                    namespace.safe_to_jsval(cx, namespace_value.handle_mut());
+                    namespace.safe_to_jsval(cx, namespace_value.handle_mut(), CanGc::note());
                 }
 
                 let args = vec![

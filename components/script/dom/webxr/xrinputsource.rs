@@ -91,7 +91,7 @@ impl XRInputSource {
         source
             .info
             .profiles
-            .safe_to_jsval(cx, profiles.handle_mut());
+            .safe_to_jsval(cx, profiles.handle_mut(), can_gc);
         source.profiles.set(profiles.get());
         source
     }

@@ -1571,7 +1571,8 @@ impl ReadableStream {
         if self.is_errored() {
             let promise = Promise::new(global, can_gc);
             rooted!(in(*cx) let mut rval = UndefinedValue());
-            self.stored_error.safe_to_jsval(cx, rval.handle_mut());
+            self.stored_error
+                .safe_to_jsval(cx, rval.handle_mut(), can_gc);
             promise.reject_native(&rval.handle(), can_gc);
             return promise;
         }
@@ -2286,7 +2287,7 @@ impl CrossRealmTransformReadable {
         // Let error be a new "DataCloneError" DOMException.
         let error = DOMException::new(global, DOMErrorName::DataCloneError, can_gc);
         rooted!(in(*cx) let mut rooted_error = UndefinedValue());
-        error.safe_to_jsval(cx, rooted_error.handle_mut());
+        error.safe_to_jsval(cx, rooted_error.handle_mut(), can_gc);
 
         // Perform ! CrossRealmTransformSendError(port, error).
         port.cross_realm_transform_send_error(rooted_error.handle(), can_gc);

@@ -620,7 +620,7 @@ impl TaskOnce for MessageReceivedTask {
         let _ac = JSAutoRealm::new(*cx, ws.reflector().get_jsobject().get());
         rooted!(in(*cx) let mut message = UndefinedValue());
         match self.message {
-            MessageData::Text(text) => text.safe_to_jsval(cx, message.handle_mut()),
+            MessageData::Text(text) => text.safe_to_jsval(cx, message.handle_mut(), CanGc::note()),
             MessageData::Binary(data) => match ws.binary_type.get() {
                 BinaryType::Blob => {
                     let blob = Blob::new(
@@ -628,7 +628,7 @@ impl TaskOnce for MessageReceivedTask {
                         BlobImpl::new_from_bytes(data, "".to_owned()),
                         CanGc::note(),
                     );
-                    blob.safe_to_jsval(cx, message.handle_mut());
+                    blob.safe_to_jsval(cx, message.handle_mut(), CanGc::note());
                 },
                 BinaryType::Arraybuffer => {
                     rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
@@ -644,7 +644,7 @@ impl TaskOnce for MessageReceivedTask {
                         )
                     };
 
-                    (*array_buffer).safe_to_jsval(cx, message.handle_mut());
+                    (*array_buffer).safe_to_jsval(cx, message.handle_mut(), CanGc::note());
                 },
             },
         }

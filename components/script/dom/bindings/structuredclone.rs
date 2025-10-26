@@ -669,7 +669,7 @@ pub(crate) fn write(
     unsafe {
         rooted!(in(*cx) let mut val = UndefinedValue());
         if let Some(transfer) = transfer {
-            transfer.safe_to_jsval(cx, val.handle_mut());
+            transfer.safe_to_jsval(cx, val.handle_mut(), CanGc::note());
         }
         let mut sc_writer = StructuredDataWriter::default();
         let sc_writer_ptr = &mut sc_writer as *mut _;

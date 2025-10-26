@@ -51,7 +51,7 @@ impl DebuggerAddDebuggeeEvent {
         rooted!(in(*cx) let mut wrapped_global: Value);
         global
             .reflector()
-            .safe_to_jsval(cx, wrapped_global.handle_mut());
+            .safe_to_jsval(cx, wrapped_global.handle_mut(), can_gc);
         result.global.set(wrapped_global.to_object());
 
         result
