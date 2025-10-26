@@ -29,9 +29,9 @@ use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use vello::wgpu::{
     BackendOptions, Backends, Buffer, BufferDescriptor, BufferUsages, COPY_BYTES_PER_ROW_ALIGNMENT,
     CommandEncoderDescriptor, Device, Extent3d, Instance, InstanceDescriptor, InstanceFlags,
-    MapMode, Origin3d, Queue, TexelCopyBufferInfo, TexelCopyBufferLayout, TexelCopyTextureInfoBase,
-    Texture, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, TextureView,
-    TextureViewDescriptor,
+    MapMode, MemoryBudgetThresholds, Origin3d, Queue, TexelCopyBufferInfo, TexelCopyBufferLayout,
+    TexelCopyTextureInfoBase, Texture, TextureDescriptor, TextureDimension, TextureFormat,
+    TextureUsages, TextureView, TextureViewDescriptor,
 };
 use vello::{kurbo, peniko};
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags};
@@ -41,7 +41,7 @@ use crate::canvas_data::Filter;
 
 thread_local! {
     /// The shared font cache used by all canvases that render on a thread.
-    static SHARED_FONT_CACHE: RefCell<HashMap<FontIdentifier, peniko::Font>> = RefCell::default();
+    static SHARED_FONT_CACHE: RefCell<HashMap<FontIdentifier, peniko::FontData>> = RefCell::default();
 }
 
 pub(crate) struct VelloDrawTarget {
@@ -54,7 +54,7 @@ pub(crate) struct VelloDrawTarget {
     state: State,
     render_texture: Texture,
     render_texture_view: TextureView,
-    render_image: peniko::Image,
+    render_image: peniko::ImageBrush,
     padded_byte_width: u32,
     rendered_buffer: Buffer,
 }
@@ -88,18 +88,18 @@ impl VelloDrawTarget {
             view_formats: &[],
         });
         let render_texture_view = render_texture.create_view(&TextureViewDescriptor::default());
-        let render_image = peniko::Image {
-            data: vec![].into(),
-            format: peniko::ImageFormat::Rgba8,
-            width: size.width,
-            height: size.height,
-            x_extend: peniko::Extend::Pad,
-            y_extend: peniko::Extend::Pad,
-            quality: peniko::ImageQuality::Low,
-            alpha: 1.0,
+        let render_image = peniko::ImageBrush {
+            image: peniko::ImageData {
+                data: vec![].into(),
+                format: peniko::ImageFormat::Rgba8,
+                width: size.width,
+                height: size.height,
+                alpha_type: peniko::ImageAlphaType::Alpha,
+            },
+            sampler: peniko::ImageSampler::default(),
         };
         renderer.borrow_mut().override_image(
-            &render_image,
+            &render_image.image,
             Some(TexelCopyTextureInfoBase {
                 texture: render_texture.clone(),
                 mip_level: 0,
@@ -160,8 +160,7 @@ impl VelloDrawTarget {
         f(self);
         // push all clip layers back
         for path in &self.clips {
-            self.scene
-                .push_layer(peniko::Mix::Clip, 1.0, kurbo::Affine::IDENTITY, &path.0);
+            self.scene.push_clip_layer(kurbo::Affine::IDENTITY, &path.0);
         }
     }
 
@@ -210,6 +209,7 @@ impl GenericDrawTarget for VelloDrawTarget {
             backends,
             flags,
             backend_options,
+            memory_budget_thresholds: MemoryBudgetThresholds::default(),
         });
         let mut context = vello::util::RenderContext {
             instance,
@@ -272,15 +272,20 @@ impl GenericDrawTarget for VelloDrawTarget {
             self_.scene.fill(
                 peniko::Fill::NonZero,
                 kurbo::Affine::IDENTITY,
-                &peniko::Image {
-                    data: peniko::Blob::from(surface),
-                    format: peniko::ImageFormat::Rgba8,
-                    width: source.size.width as u32,
-                    height: source.size.height as u32,
-                    x_extend: peniko::Extend::Pad,
-                    y_extend: peniko::Extend::Pad,
-                    quality: peniko::ImageQuality::Low,
-                    alpha: 1.0,
+                &peniko::ImageBrush {
+                    image: peniko::ImageData {
+                        data: peniko::Blob::from(surface),
+                        format: peniko::ImageFormat::Rgba8,
+                        width: source.size.width as u32,
+                        height: source.size.height as u32,
+                        alpha_type: peniko::ImageAlphaType::Alpha,
+                    },
+                    sampler: peniko::ImageSampler {
+                        x_extend: peniko::Extend::Pad,
+                        y_extend: peniko::Extend::Pad,
+                        quality: peniko::ImageQuality::Low,
+                        alpha: 1.0,
+                    },
                 },
                 Some(kurbo::Affine::translate(destination.to_vec2())),
                 &rect,
@@ -315,20 +320,25 @@ impl GenericDrawTarget for VelloDrawTarget {
             self_.scene.fill(
                 peniko::Fill::NonZero,
                 transform.cast().into(),
-                &peniko::Image {
-                    data: peniko::Blob::from(surface),
-                    format: peniko::ImageFormat::Rgba8,
-                    width: source.size.width as u32,
-                    height: source.size.height as u32,
-                    x_extend: peniko::Extend::Pad,
-                    y_extend: peniko::Extend::Pad,
-                    // we should only do bicubic when scaling up
-                    quality: if scale_up {
-                        filter.convert()
-                    } else {
-                        peniko::ImageQuality::Low
+                &peniko::ImageBrush {
+                    image: peniko::ImageData {
+                        data: peniko::Blob::from(surface),
+                        format: peniko::ImageFormat::Rgba8,
+                        width: source.size.width as u32,
+                        height: source.size.height as u32,
+                        alpha_type: peniko::ImageAlphaType::Alpha,
                     },
-                    alpha: composition_options.alpha as f32,
+                    sampler: peniko::ImageSampler {
+                        x_extend: peniko::Extend::Pad,
+                        y_extend: peniko::Extend::Pad,
+                        // we should only do bicubic when scaling up
+                        quality: if scale_up {
+                            filter.convert()
+                        } else {
+                            peniko::ImageQuality::Low
+                        },
+                        alpha: composition_options.alpha as f32,
+                    },
                 },
                 Some(
                     kurbo::Affine::translate((dest.origin.x, dest.origin.y)).pre_scale_non_uniform(
@@ -455,8 +465,7 @@ impl GenericDrawTarget for VelloDrawTarget {
     }
 
     fn push_clip(&mut self, path: &Path, _fill_rule: FillRule, transform: Transform2D<f64>) {
-        self.scene
-            .push_layer(peniko::Mix::Clip, 1.0, transform.cast().into(), &path.0);
+        self.scene.push_clip_layer(transform.cast().into(), &path.0);
         let mut path = path.clone();
         path.transform(transform.cast());
         self.clips.push(path);
@@ -637,7 +646,7 @@ impl Drop for VelloDrawTarget {
     fn drop(&mut self) {
         self.renderer
             .borrow_mut()
-            .override_image(&self.render_image, None);
+            .override_image(&self.render_image.image, None);
     }
 }
 
@@ -678,8 +687,7 @@ impl VelloDrawTarget {
         self.scene.reset();
         // push all clip layers back
         for path in &self.clips {
-            self.scene
-                .push_layer(peniko::Mix::Clip, 1.0, kurbo::Affine::IDENTITY, &path.0);
+            self.scene.push_clip_layer(kurbo::Affine::IDENTITY, &path.0);
         }
     }
 

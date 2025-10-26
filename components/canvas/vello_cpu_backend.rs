@@ -24,7 +24,7 @@ use crate::canvas_data::Filter;
 
 thread_local! {
     /// The shared font cache used by all canvases that render on a thread.
-    static SHARED_FONT_CACHE: RefCell<HashMap<FontIdentifier, peniko::Font>> = RefCell::default();
+    static SHARED_FONT_CACHE: RefCell<HashMap<FontIdentifier, peniko::FontData>> = RefCell::default();
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
@@ -88,10 +88,13 @@ impl VelloCPUDrawTarget {
                 self.ignore_clips(|self_| {
                     self_.ctx.set_transform(kurbo::Affine::IDENTITY);
                     self_.ctx.set_paint(vello_cpu::Image {
-                        source: vello_cpu::ImageSource::Pixmap(Arc::new(self_.pixmap.clone())),
-                        x_extend: peniko::Extend::Pad,
-                        y_extend: peniko::Extend::Pad,
-                        quality: peniko::ImageQuality::Low,
+                        image: vello_cpu::ImageSource::Pixmap(Arc::new(self_.pixmap.clone())),
+                        sampler: peniko::ImageSampler {
+                            x_extend: peniko::Extend::Pad,
+                            y_extend: peniko::Extend::Pad,
+                            quality: peniko::ImageQuality::Low,
+                            alpha: 1.0,
+                        },
                     });
                     self_.ctx.fill_rect(&kurbo::Rect::from_origin_size(
                         (0., 0.),
@@ -189,10 +192,13 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
             // self_.push_layer(Some(rect.to_path(0.1)), Some(peniko::Compose::Copy.into()), None, None);
 
             self_.ctx.set_paint(vello_cpu::Image {
-                source: vello_cpu::ImageSource::Pixmap(surface),
-                x_extend: peniko::Extend::Pad,
-                y_extend: peniko::Extend::Pad,
-                quality: peniko::ImageQuality::Low,
+                image: vello_cpu::ImageSource::Pixmap(surface),
+                sampler: peniko::ImageSampler {
+                    x_extend: peniko::Extend::Pad,
+                    y_extend: peniko::Extend::Pad,
+                    quality: peniko::ImageQuality::Low,
+                    alpha: 1.0,
+                },
             });
             self_.ctx.fill_rect(&rect);
 
@@ -223,14 +229,17 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         self.with_composition(composition_options.composition_operation, move |self_| {
             self_.ctx.set_transform(transform.cast().into());
             self_.ctx.set_paint(vello_cpu::Image {
-                source: vello_cpu::ImageSource::Pixmap(surface),
-                x_extend: peniko::Extend::Pad,
-                y_extend: peniko::Extend::Pad,
-                // we should only do bicubic when scaling up
-                quality: if scale_up {
-                    filter.convert()
-                } else {
-                    peniko::ImageQuality::Low
+                image: vello_cpu::ImageSource::Pixmap(surface),
+                sampler: peniko::ImageSampler {
+                    x_extend: peniko::Extend::Pad,
+                    y_extend: peniko::Extend::Pad,
+                    // we should only do bicubic when scaling up
+                    quality: if scale_up {
+                        filter.convert()
+                    } else {
+                        peniko::ImageQuality::Low
+                    },
+                    alpha: 1.0,
                 },
             });
             self_.ctx.set_paint_transform(
@@ -526,18 +535,21 @@ impl Convert<vello_cpu::PaintType> for FillOrStrokeStyle {
             Surface(surface_style) => {
                 let pixmap = snapshot_as_pixmap(surface_style.surface_data.to_owned());
                 vello_cpu::PaintType::Image(vello_cpu::Image {
-                    source: vello_cpu::ImageSource::Pixmap(pixmap),
-                    x_extend: if surface_style.repeat_x {
-                        peniko::Extend::Repeat
-                    } else {
-                        peniko::Extend::Pad
+                    image: vello_cpu::ImageSource::Pixmap(pixmap),
+                    sampler: peniko::ImageSampler {
+                        x_extend: if surface_style.repeat_x {
+                            peniko::Extend::Repeat
+                        } else {
+                            peniko::Extend::Pad
+                        },
+                        y_extend: if surface_style.repeat_y {
+                            peniko::Extend::Repeat
+                        } else {
+                            peniko::Extend::Pad
+                        },
+                        quality: peniko::ImageQuality::Low,
+                        alpha: 1.0,
                     },
-                    y_extend: if surface_style.repeat_y {
-                        peniko::Extend::Repeat
-                    } else {
-                        peniko::Extend::Pad
-                    },
-                    quality: peniko::ImageQuality::Low,
                 })
             },
         }
@@ -558,7 +570,7 @@ fn paint(style: FillOrStrokeStyle, alpha: f64) -> vello_cpu::PaintType {
                 vello_cpu::PaintType::Gradient(gradient.multiply_alpha(alpha as f32))
             },
             vello_cpu::PaintType::Image(mut image) => {
-                match &mut image.source {
+                match &mut image.image {
                     vello_cpu::ImageSource::Pixmap(pixmap) => Arc::get_mut(pixmap)
                         .expect("pixmap should not be shared with anyone at this point")
                         .multiply_alpha((alpha * 255.0) as u8),

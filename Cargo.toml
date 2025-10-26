@@ -90,7 +90,7 @@ ipc-channel = "0.20.2"
 itertools = "0.14"
 js = { package = "mozjs", git = "https://github.com/servo/mozjs" }
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
-kurbo = { version = "0.11.3", features = ["euclid"] }
+kurbo = { version = "0.12", features = ["euclid"] }
 layout_api = { path = "components/shared/layout" }
 libc = "0.2"
 log = "0.4.27"
@@ -110,7 +110,7 @@ num-traits = "0.2"
 num_cpus = "1.17.0"
 openxr = "0.19"
 parking_lot = "0.12"
-peniko = "0.4"
+peniko = "0.5"
 percent-encoding = "2.3"
 proc-macro2 = "1"
 profile_traits = { path = "components/shared/profile" }
@@ -118,7 +118,7 @@ quote = "1"
 rand = "0.9"
 raw-window-handle = "0.6"
 rayon = "1"
-read-fonts = "0.33.1"
+read-fonts = "0.35.0"
 regex = "1.12"
 resvg = "0.45.0"
 rustc-hash = "2.1.1"
@@ -136,7 +136,7 @@ servo-media-dummy = { git = "https://github.com/servo/media" }
 servo-media-gstreamer = { git = "https://github.com/servo/media" }
 servo-tracing = { path = "components/servo_tracing" }
 servo_arc = { git = "https://github.com/servo/stylo", branch = "2025-10-01" }
-skrifa = "0.35.0"
+skrifa = "0.37.0"
 smallvec = { version = "1.15", features = ["serde", "union"] }
 storage_traits = { path = "components/shared/storage" }
 string_cache = "0.8"
@@ -169,8 +169,8 @@ unicode-segmentation = "1.12.0"
 url = "2.5"
 urlpattern = "0.3"
 uuid = { version = "1.18.1", features = ["v4", "v5"] }
-vello = { git = "https://github.com/linebender/vello", rev = "fdf025a88dd00c546c8fc534697cbf21dac7e12d" }
-vello_cpu = { git = "https://github.com/linebender/vello", rev = "fdf025a88dd00c546c8fc534697cbf21dac7e12d" }
+vello = "0.6"
+vello_cpu = "0.0.4"
 webdriver = "0.53.0"
 webgpu_traits = { path = "components/shared/webgpu" }
 webpki-roots = "1.0"
