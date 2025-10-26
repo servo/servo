@@ -3007,10 +3007,70 @@ impl ColspanToDistribute {
     fn comparison_for_sort(a: &Self, b: &Self) -> Ordering {
         a.span
             .cmp(&b.span)
-            .then_with(|| b.starting_column.cmp(&b.starting_column))
+            .then_with(|| a.starting_column.cmp(&b.starting_column))
     }
 
     fn range(&self) -> Range<usize> {
         self.starting_column..self.starting_column + self.span
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use app_units::MIN_AU;
+
+    use super::*;
+    use crate::sizing::ContentSizes;
+
+    #[test]
+    fn test_colspan_to_distribute_first_sort_by_span() {
+        let a = ColspanToDistribute {
+            starting_column: 0,
+            span: 0,
+            content_sizes: ContentSizes {
+                min_content: MIN_AU,
+                max_content: MIN_AU,
+            },
+            percentage: None,
+        };
+
+        let b = ColspanToDistribute {
+            starting_column: 0,
+            span: 1,
+            content_sizes: ContentSizes {
+                min_content: MIN_AU,
+                max_content: MIN_AU,
+            },
+            percentage: None,
+        };
+
+        let ordering = ColspanToDistribute::comparison_for_sort(&a, &b);
+        assert_eq!(ordering, Ordering::Less);
+    }
+
+    #[test]
+    fn test_colspan_to_distribute_if_spans_are_equal_sort_by_starting_column() {
+        let a = ColspanToDistribute {
+            starting_column: 0,
+            span: 0,
+            content_sizes: ContentSizes {
+                min_content: MIN_AU,
+                max_content: MIN_AU,
+            },
+            percentage: None,
+        };
+
+        let b = ColspanToDistribute {
+            starting_column: 1,
+            span: 0,
+            content_sizes: ContentSizes {
+                min_content: MIN_AU,
+                max_content: MIN_AU,
+            },
+            percentage: None,
+        };
+
+        let ordering = ColspanToDistribute::comparison_for_sort(&a, &b);
+        assert_eq!(ordering, Ordering::Less);
     }
 }
