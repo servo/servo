@@ -814,15 +814,16 @@ impl HTMLLinkElement {
     pub(crate) fn fire_event_after_response(
         &self,
         response: Result<ResourceFetchTiming, NetworkError>,
+        can_gc: CanGc,
     ) {
         // Step 3.1 If response is a network error, fire an event named error at el.
         // Otherwise, fire an event named load at el.
         if response.is_err() {
             self.upcast::<EventTarget>()
-                .fire_event(atom!("error"), CanGc::note());
+                .fire_event(atom!("error"), can_gc);
         } else {
             self.upcast::<EventTarget>()
-                .fire_event(atom!("load"), CanGc::note());
+                .fire_event(atom!("load"), can_gc);
         }
     }
 }
