@@ -4,21 +4,6 @@
 
 'use strict';
 
-// Call with a test object and array of expected values. Returns a
-// function to call with each actual value. Once the expected number
-// of values is seen, asserts that the value orders match and completes
-// the test.
-function expect(t, expected) {
-  let results = [];
-  return result => {
-    results.push(result);
-    if (results.length === expected.length) {
-      assert_array_equals(results, expected);
-      t.done();
-    }
-  };
-}
-
 indexeddb_test(
     (t, db) => {
       db.createObjectStore('store');

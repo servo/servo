@@ -43,13 +43,17 @@
 
   // Effectively flips left:10px to right:10px:
   test_try_tactic_wm('flip-inline', 'horizontal-tb', 'ltr', {left:360, top:20, width:30, height:40});
+  test_try_tactic_wm('flip-x', 'horizontal-tb', 'ltr', {left:360, top:20, width:30, height:40});
 
   // Effectively flips top:20px to bottom:20px:
   test_try_tactic_wm('flip-inline', 'vertical-lr', 'ltr', {left:10, top:340, width:30, height:40});
   test_try_tactic_wm('flip-inline', 'sideways-lr', 'ltr', {left:10, top:340, width:30, height:40});
+  test_try_tactic_wm('flip-y', 'vertical-lr', 'ltr', {left:10, top:340, width:30, height:40});
+  test_try_tactic_wm('flip-y', 'sideways-lr', 'ltr', {left:10, top:340, width:30, height:40});
 
   // Effectively flips left:10px to right:10px:
   test_try_tactic_wm('flip-block', 'sideways-rl', 'ltr', {left:360, top:20, width:30, height:40});
+  test_try_tactic_wm('flip-x', 'sideways-rl', 'ltr', {left:360, top:20, width:30, height:40});
 
   // Mirror across the [left,top]=>[bottom,right] diagonal:
   test_try_tactic_wm('flip-start', 'horizontal-tb', 'ltr', {left:20, top:10, width:40, height:30});

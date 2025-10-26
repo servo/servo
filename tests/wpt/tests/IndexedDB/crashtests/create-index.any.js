@@ -2,8 +2,8 @@
 // META: title=IndexedDB: assure no crash when populating index
 // META: script=../resources/support.js
 // See https://crbug.com/434115938 for additional context and credits.
+'use strict';
 
-'use_strict';
 
 indexeddb_test(
   (t, db, tx) => {

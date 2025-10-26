@@ -3,8 +3,8 @@
 // META: script=resources/support.js
 // @author Microsoft <https://www.microsoft.com>
 // @author Intel <http://www.intel.com>
+'use strict';
 
-'use_strict';
 
 async_test(t => {
     let db;
@@ -256,7 +256,7 @@ async_test(t => {
     const open_rq = createdb(t);
     open_rq.onupgradeneeded = function(e) {
       let rq;
-      db = e.target.result;
+      const db = e.target.result;
       const objStore = db.createObjectStore("store", { keyPath: "key" });
 
       assert_throws_dom("DataError", function() {

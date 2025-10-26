@@ -75,7 +75,7 @@ def test_no_such_shadow_root_with_shadow_root_from_other_frame(
     host = session.find.css("custom-element", all=False)
     shadow_root = host.shadow_root
 
-    session.switch_frame("parent")
+    session.switch_to_parent_frame()
 
     response = find_elements(session, shadow_root.id, "css selector", "div")
     assert_error(response, "no such shadow root")

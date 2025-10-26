@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-autospace-property">
+<link rel="author" title="Vitor Roriz" href="https://github.com/vitorroriz">
+<style>
+.test {
+  font-size: 40px;
+  border: solid 3px salmon;
+  width: fit-content;
+  margin-bottom: 2px;
+  text-autospace: no-autospace;
+}
+.manual-spacing {
+  margin-right: 0.125em;
+}
+</style>
+<div class="test"><span class="manual-spacing">国&#x301;</span>X</div>
+<div class="test"><span>国&#x301;</span>国</div>
+<div class="test"><span class="manual-spacing">国&#x301;</span>X&#x301;</div>
+<div class="test"><span>国&#x301;</span>国&#x301;</div>
+<br>
+<div class="test"><span>X&#x301;</span>X</div>
+<div class="test"><span class="manual-spacing">X&#x301;</span>国</div>
+<div class="test"><span>X&#x301;</span>X&#x301;</div>
+<div class="test"><span class="manual-spacing">X&#x301;</span>国&#x301;</div>
+<br>
+<div class="test"><span>X</span>X</div>
+<div class="test"><span class="manual-spacing">X</span>国</div>
+<div class="test"><span>X</span>X&#x301;</div>
+<div class="test"><span class="manual-spacing">X</span>国&#x301;</div>
+<br>
+<div class="test"><span class="manual-spacing">国</span>X</div>
+<div class="test"><span>国</span>国</div>
+<div class="test"><span class="manual-spacing">国</span>X&#x301;</div>
+<div class="test"><span>国</span>国&#x301;</div>

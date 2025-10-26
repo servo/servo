@@ -105,7 +105,6 @@ async def test_set_to_multiple_user_contexts(
 async def test_set_to_user_context_and_then_to_context(
         bidi_session,
         create_user_context,
-        new_tab,
         get_current_timezone,
         default_timezone,
         some_timezone,
@@ -146,11 +145,74 @@ async def test_set_to_user_context_and_then_to_context(
     assert await get_current_timezone(
         context_in_user_context_2) == some_timezone
 
+    # Reset the override for context.
     await bidi_session.emulation.set_timezone_override(
         contexts=[context_in_user_context_1["context"]],
         timezone=None,
     )
 
-    # Make sure that the timezone override was reset.
-    assert await get_current_timezone(
-        context_in_user_context_1) == default_timezone
+    # Make sure that the timezone override is set to user context value.
+    assert await get_current_timezone(context_in_user_context_1) == some_timezone
+
+    # Reset the override for user context.
+    await bidi_session.emulation.set_timezone_override(
+        user_contexts=[user_context],
+        timezone=None,
+    )
+
+    # Make sure that the timezone override is reset.
+    assert await get_current_timezone(context_in_user_context_1) == default_timezone
+
+
+async def test_set_to_context_and_then_to_user_context(
+    bidi_session,
+    create_user_context,
+    get_current_timezone,
+    default_timezone,
+    some_timezone,
+    another_timezone,
+):
+    user_context = await create_user_context()
+    context_in_user_context_1 = await bidi_session.browsing_context.create(
+        user_context=user_context, type_hint="tab"
+    )
+
+    # Apply timezone override to the context.
+    await bidi_session.emulation.set_timezone_override(
+        contexts=[context_in_user_context_1["context"]], timezone=some_timezone
+    )
+
+    assert await get_current_timezone(context_in_user_context_1) == some_timezone
+
+    # Apply timezone override to the user context.
+    await bidi_session.emulation.set_timezone_override(
+        user_contexts=[user_context], timezone=another_timezone
+    )
+
+    # Make sure that context has still the context timezone override.
+    assert await get_current_timezone(context_in_user_context_1) == some_timezone
+
+    await bidi_session.browsing_context.reload(
+        context=context_in_user_context_1["context"], wait="complete"
+    )
+
+    # Make sure that after reload the timezone still has the context locale override.
+    assert await get_current_timezone(context_in_user_context_1) == some_timezone
+
+    # Create a new context in the user context.
+    context_in_user_context_2 = await bidi_session.browsing_context.create(
+        user_context=user_context, type_hint="tab"
+    )
+    # Make sure that the timezone override for the user context is applied.
+    assert await get_current_timezone(context_in_user_context_2) == another_timezone
+
+    # Reset override for user context.
+    await bidi_session.emulation.set_timezone_override(
+        user_contexts=[user_context],
+        timezone=None,
+    )
+
+    # Make sure that the timezone override for the first context is still set.
+    assert await get_current_timezone(context_in_user_context_1) == some_timezone
+    # Make sure that the timezone override for the second context is reset.
+    assert await get_current_timezone(context_in_user_context_2) == default_timezone

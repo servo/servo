@@ -3,8 +3,8 @@
 // META: script=resources/support.js
 // @author Microsoft <https://www.microsoft.com>
 // @author Odin Hørthe Omdal <mailto:odinho@opera.com>
+'use strict';
 
-'use_strict';
 
 async_test(t => {
     let db;

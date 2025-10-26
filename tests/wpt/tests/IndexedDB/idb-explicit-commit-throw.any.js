@@ -1,4 +1,5 @@
 // META: script=resources/support-promises.js
+'use strict';
 
 setup({allow_uncaught_exception:true});
 

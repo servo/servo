@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<title>CSS Overflow Test: getComputedStyle for ::scroll-* pseudo elements inside size container</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-property">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-queries">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  html {
+    container-type: inline-size;
+    width: 500px;
+    @container (width = 500px) {
+      /* None of these pseudo elements are rendered, but getComputedStyle()
+         should still work. If rendered, they would become child boxes of the
+         root element, thus they can query their originating element for size
+         container queries. */
+      &::scroll-marker-group { --test: pass; }
+      &::scroll-button(left) { --test: pass; }
+    }
+  }
+  #container {
+    container-type: inline-size;
+    width: 400px;
+  }
+  #scroller {
+    container-type: inline-size;
+    width: 200px;
+    height: 200px;
+    @container (width = 400px) {
+      /* None of these pseudo elements are rendered, but getComputedStyle()
+         should still work and skip the originating element as an eligible
+         size container. */
+      &::scroll-marker-group { --test: pass; }
+      &::scroll-button(left) { --test: pass; }
+    }
+  }
+</style>
+<div id="container">
+  <div id="scroller"></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(document.documentElement, "::scroll-marker-group").getPropertyValue("--test"), "pass");
+  }, "::scroll-marker-group queries root originating element for size queries");
+  test(() => {
+    assert_equals(getComputedStyle(document.documentElement, "::scroll-button(left)").getPropertyValue("--test"), "pass");
+  }, "::scroll-button skips queries root originating element for size queries");
+  test(() => {
+    assert_equals(getComputedStyle(scroller, "::scroll-marker-group").getPropertyValue("--test"), "pass");
+  }, "::scroll-marker-group skips originating element for size queries");
+  test(() => {
+    assert_equals(getComputedStyle(scroller, "::scroll-button(left)").getPropertyValue("--test"), "pass");
+  }, "::scroll-button skips originating element for size queries");
+</script>

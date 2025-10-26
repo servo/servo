@@ -1,0 +1,24 @@
+<!doctype HTML>
+<head>
+<style>
+* { margin: 0 }
+</style>
+<meta name="responsive-embedded-sizing">
+</head>
+<div id="target" style="width: 100px">
+  <img src="slow-image.py?name=1x1-navy.png" width="1" height="1">
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  target.style.height = '200px';
+  window.parent.postMessage({
+    type: 'DOMContentLoaded',
+  }, '*');
+});
+window.addEventListener('load', () => {
+  target.style.height = '400px';
+  window.parent.postMessage({
+    type: 'load',
+  }, '*');
+});
+</script>

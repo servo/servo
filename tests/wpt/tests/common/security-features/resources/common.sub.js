@@ -166,7 +166,7 @@ function setAttributes(el, attrs) {
   attrs = attrs || {}
   for (var attr in attrs) {
     if (attr !== 'src')
-      el.setAttribute(attr, attrs[attr]);
+      el.setAttribute(attr.toLowerCase(), attrs[attr]);
   }
   // Workaround for Chromium: set <img>'s src attribute after all other
   // attributes to ensure the policy is applied.
@@ -827,6 +827,54 @@ function requestViaWebSocket(url) {
 }
 
 /**
+ * Creates a svg anchor element and the corresponding svg setup, appends the
+ * setup to {@code document.body} and performs the navigation.
+ * @param {string} url The URL to navigate to.
+ * @return {Promise} The promise for success/error events.
+ */
+function requestViaSVGAnchor(url, additionalAttributes) {
+  const name = guid();
+
+  const iframe =
+    createElement("iframe", { "name": name, "id": name }, document.body, false);
+
+  // Create SVG container
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+
+  // Create SVG anchor element
+  const svgAnchor = document.createElementNS("http://www.w3.org/2000/svg", "a");
+  const link_attributes = Object.assign({ "href": url, "target": name }, additionalAttributes);
+  setAttributes(svgAnchor, link_attributes);
+
+  // Add some text content for the anchor
+  const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  text.setAttribute("y", "50");
+  text.textContent = "SVG Link to resource";
+
+  svgAnchor.appendChild(text);
+  svg.appendChild(svgAnchor);
+  document.body.appendChild(svg);
+
+  const promise =
+    bindEvents2(window, "message", iframe, "error", window, "error")
+      .then(event => {
+        if (event.source !== iframe.contentWindow)
+          return Promise.reject(new Error('Unexpected event.source'));
+        return event.data;
+      });
+
+  // Simulate a click event on the SVG anchor
+  const event = new MouseEvent('click', {
+    view: window,
+    bubbles: true,
+    cancelable: true
+  });
+  svgAnchor.dispatchEvent(event);
+
+  return promise;
+}
+
+/**
   @typedef SubresourceType
   @type {string}
 
@@ -891,6 +939,10 @@ const subresourceMap = {
   "script-tag-dynamic-import": {
     path: "/common/security-features/subresource/script.py",
     invoker: requestViaDynamicImport,
+  },
+  "svg-a-tag": {
+    path: "/common/security-features/subresource/document.py",
+    invoker: requestViaSVGAnchor,
   },
   "video-tag": {
     path: "/common/security-features/subresource/video.py",

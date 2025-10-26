@@ -256,3 +256,24 @@ test((t) => {
   assert_equals(getComputedStyle(inner).zIndex, '1');
 }, 'Implicit @scope sandwiched between non-implicit scopes');
 </script>
+
+<template id=test_implicit_in_explicit>
+  <div id=outer>
+    <style>
+      @scope (#outer) {
+        @scope {
+          :scope {
+            z-index: 1;
+          }
+        }
+      }
+    </style>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_implicit_in_explicit.content.cloneNode(true));
+  assert_equals(getComputedStyle(outer).zIndex, '1');
+}, 'Implicit @scope sandwiched right under an explicit scope');
+</script>

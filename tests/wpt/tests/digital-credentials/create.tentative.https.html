@@ -9,7 +9,7 @@
 
 <body>
   <iframe id="same-origin"></iframe>
-  <iframe id="cross-origin"></iframe>
+  <iframe id="cross-origin" allow="digital-credentials-create"></iframe>
 </body>
 
 <script type="module">
@@ -88,8 +88,12 @@
   }, "Calling navigator.credentials.create() without a digital member same origin.");
 
   promise_test(async (t) => {
-    for (const request of [undefined, []]) {
-      const options = makeCreateOptions(request);
+    for (const r of [undefined, []]) {
+      const options = {
+        digital: {
+          requests: r
+        },
+      };
       await test_driver.bless("user activation");
       await promise_rejects_js(t, TypeError, navigator.credentials.create(options));
     }
@@ -98,8 +102,12 @@
   promise_test(async (t) => {
     iframeSameOrigin.focus();
     const { contentWindow: iframeWindow } = iframeSameOrigin;
-    for (const request of [undefined, []]) {
-      const options = makeCreateOptions(request);
+    for (const r of [undefined, []]) {
+      const options = {
+        digital: {
+          requests: r
+        },
+      };
       await test_driver.bless("user activation");
       await promise_rejects_js(
         t,
@@ -111,8 +119,12 @@
 
   promise_test(async (t) => {
     iframeCrossOrigin.focus();
-    for (const request of [undefined, []]) {
-      const options = makeCreateOptions(request);
+    for (const r of [undefined, []]) {
+      const options = {
+        digital: {
+          requests: r
+        },
+      };
       const result = await sendMessage(iframeCrossOrigin, {
         action: "create",
         options,

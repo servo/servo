@@ -4,11 +4,16 @@
 <link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-visibility">
 <link rel="match" href="position-visibility-no-overflow-scroll-ref.html">
 <style>
-  #scroll-container {
+  #container {
     position: relative;
-    overflow: hidden scroll;
     width: 400px;
     height: 150px;
+    overflow: hidden;
+  }
+  #scroll-container {
+    overflow: hidden scroll;
+    width: 100%;
+    height: 100%;
   }
 
   .anchor {
@@ -26,6 +31,7 @@
   }
 </style>
 
+<div id="container">
 <div id="scroll-container">
   <div class="anchor" style="anchor-name: --a1;">anchor1</div>
   <div class="anchor" style="anchor-name: --a2; position: relative; top: 100px">anchor2</div>
@@ -33,6 +39,8 @@
   <div id="target2" class="target" style="position-anchor: --a2; left: anchor(left); bottom: anchor(top); background: red">target2</div>
   <div style="height: 300px"></div>
 </div>
+</div>
+
 <script>
 requestAnimationFrame(() => {
   requestAnimationFrame(() => {

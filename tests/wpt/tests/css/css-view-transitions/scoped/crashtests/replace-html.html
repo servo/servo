@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<script>
+
+onload = async () => {
+  const doc = document,
+        old_html = doc.documentElement,
+        new_html = doc.createElement("html");
+  new_html.className = "test-wait";
+  const transition = doc.startViewTransition(() => {});
+  doc.replaceChild(new_html, old_html);
+  await transition.finished;
+  new_html.classList.remove('test-wait');
+  old_html.classList.remove('test-wait');
+}
+
+</script>
+</html>

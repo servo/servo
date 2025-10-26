@@ -3255,4 +3255,11 @@ var browserTests = [
     "<div>abc</div><div style=\"display:inline-grid\"><span><br></span></div>",
     [true],
     {}],
+// XXX I'm not sure which result is better.
+["<div><div>abc</div>{}<br></div><div>def</div>",
+    [["delete",""]],
+    ["<div><div>abc</div>def</div>",
+     "<div><div>abc</div></div><div>def</div>"],
+    [true],
+    {}],
 ]

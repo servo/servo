@@ -2,6 +2,7 @@
 // META: global=window,worker
 // META: script=resources/support.js
 // Spec: "https://w3c.github.io/IndexedDB/#dom-idbindex-objectstore"
+'use strict';
 
 indexeddb_test(
     (t, db) => {

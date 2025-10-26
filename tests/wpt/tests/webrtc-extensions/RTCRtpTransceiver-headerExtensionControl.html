@@ -195,26 +195,27 @@ promise_test(async t => {
   const transceiver = pc1.addTransceiver('video');
   const capabilities = transceiver.getHeaderExtensionsToNegotiate();
   const selected_capability = capabilities.find((capability) => {
-      return capability.direction === 'sendrecv' &&
-             capability.uri !== 'urn:ietf:params:rtp-hdrext:sdes:mid';
+    return capability.direction === 'sendrecv' &&
+           capability.uri !== 'urn:ietf:params:rtp-hdrext:sdes:mid';
   });
   selected_capability.direction = 'stopped';
   transceiver.setHeaderExtensionsToNegotiate(capabilities);
 
   await negotiate(pc1, pc2);
-  const negotiated_capabilites = transceiver.getNegotiatedHeaderExtensions();
+  const negotiated_capabilities = transceiver.getNegotiatedHeaderExtensions();
 
   // Attempt enabling the extension.
-  selected_capability.direction = 'sendrecv';
-
+  const selected_capability_2 = negotiated_capabilities.find((capability) => {
+    return capability.uri === selected_capability.uri;
+  });
+  selected_capability_2.direction = 'sendrecv';
   // The enabled extension should not be part of the negotiated set.
-  transceiver.setHeaderExtensionsToNegotiate(capabilities);
+  transceiver.setHeaderExtensionsToNegotiate(negotiated_capabilities);
   await negotiate(pc1, pc2);
-  assert_not_equals(
+  assert_equals(
       transceiver.getNegotiatedHeaderExtensions().find(capability => {
-        return capability.uri === selected_capability.uri &&
-               capability.direction === 'sendrecv';
-      }), undefined);
+        return capability.uri === selected_capability.uri
+      }).direction, 'sendrecv');
 }, `Header extensions can be reactivated in subsequent offers`);
 
 promise_test(async t => {
@@ -272,11 +273,12 @@ promise_test(async t => {
   const t1_negotiated = t1.getNegotiatedHeaderExtensions()
     .find(extension => extension.uri === t2_capability_to_stop.uri);
   assert_not_equals(undefined, t1_negotiated);
-  assert_equals(t1_negotiated.direction, 'stopped');
+  assert_equals(t1_negotiated.direction, 'stopped', 'in negotiated');
+  // The negotiated extension is reflected into HeaderExtensionsToNegotiate
   const t1_capability = t1.getHeaderExtensionsToNegotiate()
     .find(extension => extension.uri === t2_capability_to_stop.uri);
   assert_not_equals(undefined, t1_capability);
-  assert_equals(t1_capability.direction, 'sendrecv');
+  assert_equals(t1_capability.direction, 'stopped', 'in ToNegotiate');
 }, 'Extensions not negotiated by the peer are `stopped` in getNegotiatedHeaderExtensions');
 
 promise_test(async t => {
@@ -341,17 +343,16 @@ promise_test(async t => {
   // Negotiate, switching sides.
   await negotiate(pc2, pc1);
 
-  // PC2 will re-offer the extension.
+  // PC2 will NOT re-offer the extension.
   const remote_reoffered = pc2.getTransceivers()[0].getHeaderExtensionsToNegotiate().find(ext => {
     return ext.uri === selected_capability.uri;
   });
-  assert_equals(remote_reoffered.direction, 'sendrecv');
+  assert_equals(remote_reoffered.direction, 'stopped', 'in pc2 ToNegotiate');
 
-  // But PC1 will still reject the extension.
   const negotiated_capabilites = transceiver.getNegotiatedHeaderExtensions();
   const local_negotiated = transceiver.getNegotiatedHeaderExtensions().find(ext => {
     return ext.uri === selected_capability.uri;
   });
-  assert_equals(local_negotiated.direction, 'stopped');
-}, 'A subsequent offer from the other side will reoffer extensions not negotiated by the initial offerer');
+  assert_equals(local_negotiated.direction, 'stopped', 'in t1 Negotiated');
+}, 'A subsequent offer from the other side will not reoffer extensions not negotiated by the initial offerer');
 </script>

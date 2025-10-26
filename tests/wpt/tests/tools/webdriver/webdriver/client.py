@@ -599,14 +599,11 @@ class Session:
         return self.send_session_command("POST", "window", body=body)
 
     def switch_frame(self, frame):
-        if frame == "parent":
-            url = "frame/parent"
-            body = None
-        else:
-            url = "frame"
-            body = {"id": frame}
+        body = {"id": frame}
+        return self.send_session_command("POST", "frame", body=body)
 
-        return self.send_session_command("POST", url, body)
+    def switch_to_parent_frame(self):
+        return self.send_session_command("POST", "frame/parent")
 
     @property
     def handles(self):

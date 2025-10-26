@@ -27,6 +27,11 @@ async_test(t => {
     assert_equals(e.target.error.name, 'AbortError');
     assert_equals(db.version, 0);
     assert_equals(open_rq.transaction, null);
-    t.done();
+
+    indexedDB.databases().then(dbs => {
+      // The database should be deleted.
+      assert_equals(dbs.length, 0);
+      t.done();
+    });
   };
 }, 'An abort() in the initial onupgradeneeded sets version back to 0');

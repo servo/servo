@@ -4,8 +4,8 @@
 // @author Microsoft <https://www.microsoft.com>
 // @author Odin Hørthe Omdal <mailto:odinho@opera.com>
 // @author Intel <http://www.intel.com>
+'use strict';
 
-'use_strict';
 
 async_test(t => {
     let db;

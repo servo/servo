@@ -3,12 +3,7 @@
 <script src="../resources/js-test.js"></script>
 <script>
 function onLoad() {
-    const x1 = document.getElementById('x1');
-    x1.addEventListener('DOMSubtreeModified', () => {
-        const x2 = document.getElementById('x2');
-        x2.contentDocument;
-    });
-    x1.setAttribute('inputmode', 'url');
+    document.getElementById('x1').setAttribute('inputmode', 'url');
 }
 function insertAdjacent() {
     const x2 = document.getElementById('x2');

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>
+  Gap Decorations are shown in a grid that's fragmented. Suppressed row gaps do not have decorations.
+  Tests a grid that is subgridded in both directions and has all row gaps suppressed.
+</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11520">
+<link rel="match" href="../../fragmentation/grid-gap-decorations-fragmentation-009-ref.html">
+
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+  .multi-col {
+    height: 100px;
+    width: 320px;
+    columns: 3;
+    column-fill: auto;
+    column-gap: 10px;
+    background: lightgray;
+  }
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(4, 90px);
+    column-gap: 10px;
+    row-gap: 20px;
+    row-rule: solid 10px red;
+    column-rule: solid 6px blue;
+  }
+  .subgrid {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-row: 1 / -1;
+    grid-template-columns: subgrid;
+    grid-template-rows: subgrid;
+    column-rule: blue solid 6px;
+    row-rule: red solid 5px;
+  }
+  .subgrid > div {
+    background-color: skyblue;
+  }
+</style>
+<div class="multi-col">
+  <div class="grid-container">
+    <div class="subgrid">
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+    </div>
+  </div>
+</div>

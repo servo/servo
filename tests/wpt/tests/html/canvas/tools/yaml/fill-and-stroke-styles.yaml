@@ -2430,6 +2430,7 @@
     hsl:
     hwb:
     srgb-linear:
+    display-p3-linear:
     display-p3:
     a98-rgb:
     prophoto-rgb:

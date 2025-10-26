@@ -168,7 +168,7 @@ promise_test(async t => {
   }
   // `data.buffer` didn't get detached
   assert_equals(data.length, 16, 'data.length');
-}, 'Test transfering same array buffer twice');
+}, 'Test transfering same array buffer twice to VideoFrame');
 
 promise_test(async t => {
   const bytes = [ 0xBA, 0xDF, 0x00, 0xD0, 0xBA, 0xDF, 0x01, 0xD0, 0xBA, 0xDF ];
@@ -317,3 +317,18 @@ promise_test(async t => {
   assert_equals(result.image.displayWidth, 320);
   assert_equals(result.image.displayHeight, 240);
 }, 'Test transfering ArrayBuffer to ImageDecoder.');
+
+promise_test(async t => {
+  // Not a valid PNG but that shouldn't matter.
+  let arraybuffer = new ArrayBuffer(16);
+  let data = new Uint8Array(arraybuffer);
+  let init = {
+    type: 'image/png',
+    data: data,
+    transfer: [arraybuffer, arraybuffer]
+  };
+
+  assert_throws_dom('DataCloneError', () => new ImageDecoder(init));
+  // `data.buffer` didn't get detached
+  assert_equals(data.length, 16, 'data.length');
+}, 'Test transfering same array buffer twice to ImageDecoder');

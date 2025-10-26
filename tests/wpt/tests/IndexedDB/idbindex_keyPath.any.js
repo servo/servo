@@ -1,5 +1,6 @@
 // META: title=IndexedDB: IDBIndex keyPath attribute
 // META: script=resources/support.js
+'use strict';
 
 indexeddb_test(
   (t, db) => {

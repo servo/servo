@@ -70,7 +70,7 @@ test(() => {
 }, "sanitizer.allowAttribute() with global attributes and elements");
 
 test(() => {
-  const ELEMENTS = [{ name: "div", attributes: ["href"], removeAttributes: ["title"] }];
+  const ELEMENTS = [{ name: "div", attributes: ["href"] }];
 
   let s = new Sanitizer({
     removeAttributes: ["id"],
@@ -100,7 +100,41 @@ test(() => {
     removeAttributes: [],
     elements: ELEMENTS,
   });
-}, "sanitizer.allowAttribute() with global removeAttributes and elements");
+}, "sanitizer.allowAttribute() with global removeAttributes and element's attributes");
+
+test(() => {
+  const ELEMENTS = [{ name: "div", removeAttributes: ["href"] }];
+
+  let s = new Sanitizer({
+    removeAttributes: ["id"],
+    elements: ELEMENTS,
+  });
+
+  assert_false(s.allowAttribute("class"));
+  assert_config(s.get(), {
+    removeAttributes: ["id"],
+    elements: ELEMENTS,
+  });
+
+  assert_true(s.allowAttribute("id"));
+  assert_config(s.get(), {
+    removeAttributes: [],
+    elements: ELEMENTS,
+  });
+
+  assert_false(s.allowAttribute("href"));
+  assert_config(s.get(), {
+    removeAttributes: [],
+    elements: ELEMENTS,
+  });
+
+  assert_false(s.allowAttribute("title"));
+  assert_config(s.get(), {
+    removeAttributes: [],
+    elements: ELEMENTS,
+  });
+}, "sanitizer.allowAttribute() with global removeAttributes and element's removeAttributes");
+
 
 test(() => {
   let s = new Sanitizer({
@@ -166,33 +200,52 @@ test(() => {
 test(() => {
   let s = new Sanitizer({
     removeAttributes: ["title"],
-    elements: [{ name: "div", attributes: ["class"], removeAttributes: ["id"] }],
+    elements: [{ name: "div", attributes: ["class"] }],
   });
 
   assert_false(s.removeAttribute({ name: "title", namespace: null }));
   assert_config(s.get(), {
     removeAttributes: ["title"],
-    elements: [{ name: "div", attributes: ["class"], removeAttributes: ["id"] }],
+    elements: [{ name: "div", attributes: ["class"] }],
   });
 
   assert_true(s.removeAttribute("dir"));
   assert_config(s.get(), {
     removeAttributes: ["dir", "title"],
-    elements: [{ name: "div", attributes: ["class"], removeAttributes: ["id"] }],
+    elements: [{ name: "div", attributes: ["class"] }],
+  });
+
+  assert_true(s.removeAttribute("class"));
+  assert_config(s.get(), {
+    removeAttributes: ["class", "dir", "title"],
+    elements: [{ name: "div", attributes: [] }],
+  });
+}, "sanitizer.removeAttribute() with global removeAttributes and element's attributes");
+
+test(() => {
+  let s = new Sanitizer({
+    removeAttributes: ["title"],
+    elements: [{ name: "div", removeAttributes: ["id"] }],
+  });
+
+  assert_false(s.removeAttribute({ name: "title", namespace: null }));
+  assert_config(s.get(), {
+    removeAttributes: ["title"],
+    elements: [{ name: "div", removeAttributes: ["id"] }],
+  });
+
+  assert_true(s.removeAttribute("dir"));
+  assert_config(s.get(), {
+    removeAttributes: ["dir", "title"],
+    elements: [{ name: "div", removeAttributes: ["id"] }],
   });
 
   assert_true(s.removeAttribute("id"));
   assert_config(s.get(), {
     removeAttributes: ["dir", "id", "title"],
-    elements: [{ name: "div", attributes: ["class"], removeAttributes: [] }],
+    elements: [{ name: "div", removeAttributes: [] }],
   });
-
-  assert_true(s.removeAttribute("class"));
-  assert_config(s.get(), {
-    removeAttributes: ["class", "dir", "id", "title"],
-    elements: [{ name: "div", attributes: [], removeAttributes: [] }],
-  });
-}, "sanitizer.removeAttribute() with global removeAttributes and elements");
+}, "sanitizer.removeAttribute() with global removeAttributes and element's removeAttributes");
 
 test(() => {
   let s = new Sanitizer({
@@ -473,15 +526,14 @@ test(() => {
     elements: [{name: "p", attributes: undefined, removeAttributes: ["class"]}]
   });
 
-  // XXX https://github.com/WICG/sanitizer-api/issues/305
-  assert_true(s.allowElement({ name: "p", attributes: ["id", "dir"], removeAttributes: ["id", "lang"] }))
+  assert_true(s.allowElement({ name: "p", attributes: ["id", "dir", "lang"], removeAttributes: ["id", "lang"] }))
   assert_config(s.get(), {
-    elements: [{name: "p", attributes: ["dir"], removeAttributes: ["lang"]}]
+    elements: [{name: "p", attributes: ["dir"], removeAttributes: undefined}]
   });
   // Duplicate
-  assert_false(s.allowElement({ name: "p", attributes: ["id", "dir"], removeAttributes: ["id", "lang"] }))
+  assert_false(s.allowElement({ name: "p", attributes: ["id", "dir", "lang"], removeAttributes: ["id", "lang"] }))
   assert_config(s.get(), {
-    elements: [{name: "p", attributes: ["dir"], removeAttributes: ["lang"]}]
+    elements: [{name: "p", attributes: ["dir"], removeAttributes: undefined}]
   });
 
   assert_true(s.allowElement({name: "p"}));

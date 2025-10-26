@@ -1,3 +1,4 @@
+'use strict';
 
 // Should be large enough to trigger large value handling in the IndexedDB
 // engines that have special code paths for large values.

@@ -860,7 +860,8 @@
       "origin": "*",
       "subresource": [
         "a-tag",
-        "area-tag"
+        "area-tag",
+        "svg-a-tag"
       ],
       "expectation": "*"
     },
@@ -1086,6 +1087,9 @@
       "sharedworker-import": [],
       "sharedworker-import-data": [],
       "sharedworker-module": [],
+      "svg-a-tag": [
+        "attr"
+      ],
       "video-tag": [],
       "websocket": [],
       "worker-classic": [],

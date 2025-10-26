@@ -2,8 +2,8 @@
 // META: title=IndexedDB: keys and values
 // META: script=resources/support.js
 // @author Odin Hørthe Omdal <mailto:odinho@opera.com>
+'use strict';
 
-'use_strict';
 
 function setOnUpgradeNeeded(t, predicate, _instanceof, value) {
   createdb(t).onupgradeneeded = t.step_func(e => {

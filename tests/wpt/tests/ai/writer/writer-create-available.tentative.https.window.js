@@ -26,7 +26,7 @@ promise_test(async () => {
 
   assert_equals(writer.tone, 'neutral');
   assert_equals(writer.format, 'plain-text');
-  assert_equals(writer.length, 'medium');
+  assert_equals(writer.length, 'short');
 }, 'Writer.create() returns a valid object with default options');
 
 promise_test(async () => {
@@ -59,9 +59,9 @@ promise_test(async () => {
 }, 'Creating a Writer with "markdown" format');
 
 promise_test(async () => {
-  const writer = await createWriter({length: 'short'});
-  assert_equals(writer.length, 'short');
-}, 'Creating a Writer with "short" length');
+  const writer = await createWriter({length: 'medium'});
+  assert_equals(writer.length, 'medium');
+}, 'Creating a Writer with "medium" length');
 
 promise_test(async () => {
   const writer = await createWriter({length: 'long'});

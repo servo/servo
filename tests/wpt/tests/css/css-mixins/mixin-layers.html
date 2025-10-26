@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Mixins: @layer</title>
+    <link rel="help" href="https://drafts.csswg.org/css-mixins-1/#mixin-preamble">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+
+  <!-- Note that the layer order is fixed across all sub-tests: -->
+  <style>
+    @layer one, two;
+  </style>
+
+
+  <style>
+    @layer one {
+      @mixin --m1() {
+        color: green;
+      }
+    }
+
+    #e1 {
+      @apply --m1();
+    }
+  </style>
+  <div id="e1">This text should be green.</div>
+  <script>
+    test(() => {
+      assert_equals(getComputedStyle(e1).color, 'rgb(0, 128, 0)');
+    }, 'Mixins work inside layers');
+  </script>
+
+
+  <style>
+    @layer {
+      @mixin --m2() {
+        color: green;
+      }
+    }
+
+    #e2 {
+      @apply --m2();
+    }
+  </style>
+  <div id="e2">This text should be green.</div>
+  <script>
+    test(() => {
+      assert_equals(getComputedStyle(e2).color, 'rgb(0, 128, 0)');
+    }, 'Mixins work inside layers (anonymous)');
+  </script>
+
+
+  <style>
+    @layer two {
+      @mixin --m3() {
+        color: green;
+      }
+    }
+
+    @layer one {
+      @mixin --m3() {
+        color: red;
+      }
+    }
+
+    #e3 {
+      @apply --m3();
+    }
+  </style>
+  <div id="e3">This text should be green.</div>
+  <script>
+    test(() => {
+      assert_equals(getComputedStyle(e3).color, 'rgb(0, 128, 0)');
+    }, 'Mixins in stronger layer wins');
+  </script>
+
+
+  <style>
+    @layer one {
+      @mixin --m4() {
+        color: red;
+      }
+    }
+
+    @layer two {
+      @mixin --m4() {
+        color: green;
+      }
+    }
+
+    #e4 {
+      @apply --m4();
+    }
+  </style>
+  <div id="e4">This text should be green.</div>
+  <script>
+    test(() => {
+      assert_equals(getComputedStyle(e4).color, 'rgb(0, 128, 0)');
+    }, 'Mixins in stronger layer wins (source order matching layer order)');
+  </script>
+
+  </body>
+</html>

@@ -7,68 +7,40 @@
     }
 
     .outer {
+        position: relative;
         border: 2px solid rgb(96 139 168);
         width: 200px;
         height: 200px;
     }
 
-    .container1 {
+    .container {
         position: absolute;
-        top: 2px;
         column-gap: 10px;
         display: flex;
     }
 
-    .items1 {
+    .item {
         background: rgb(96 139 168 / 0.2);
-        height: 40px;
-        margin: 0px;
-        width: 60px;
-    }
-
-    .container2 {
-        position: absolute;
-        top: 60px;
-        column-gap: 10px;
-        display: flex;
-    }
-
-    .items2 {
-        background: rgb(96 139 168 / 0.2);
-        height: 130px;
-        margin: 0px;
+        height: 100%;
         width: 60px;
     }
 
     .row-gap {
         position: absolute;
         height: 10px;
-        width: 204px;
-        left: 0px;
+        left: -2px;
+        right: -2px;
         top: 120px;
-        display: flex;
-        column-gap: 6px;
     }
-
-    .row-gap-items {
-        width: 204px;
+    .row-gap > div {
+        width: 100%;
+        height: 100%;
         background: gold;
     }
-
-    .column-gap1 {
+    .column-gap {
         position: absolute;
-        height: 44px;
         width: 10px;
         background: blue;
-        top: 0px;
-    }
-
-    .column-gap2 {
-        position: absolute;
-        height: 64px;
-        width: 10px;
-        background: blue;
-        top: 58px;
     }
 
     .spanner {
@@ -76,39 +48,42 @@
         background: cyan;
         width: 200px;
         height: 18px;
-        top: 42px;
-        left: 2px;
+        top: 40px;
+        left: 0;
         opacity: 0.5;
-    }
-
-    .column-gap3 {
-        position: absolute;
-        height: 76px;
-        width: 10px;
-        background: blue;
-        top: 128px;
     }
 </style>
 
 <div class="outer">
-    <div class="container1">
-        <div class="items1"></div>
-        <div class="items1"></div>
-        <div class="items1"></div>
+    <div class="container" style="top:0; height:40px;">
+        <div class="item"></div>
+        <div class="item"></div>
+        <div class="item"></div>
     </div>
-    <div class="container2">
-        <div class="items2"></div>
-        <div class="items2"></div>
-        <div class="items2"></div>
+    <div class="container" style="top:58px; height:2px;">
+        <div class="item"></div>
+        <div class="item"></div>
+        <div class="item"></div>
     </div>
-    <div class="row-gap">
-        <div class="row-gap-items"></div>
+    <div class="container" style="top:70px; height:130px;">
+        <div class="item"></div>
+        <div class="item"></div>
+        <!-- Remove the 6px consumed after the spanner in the first row: -->
+        <div class="item" style="height:124px;"></div>
     </div>
-    <div class="column-gap1" style="left:62px;"></div>
-    <div class="column-gap1" style="left:132px;"></div>
-    <div class="column-gap2" style="left:62px;"></div>
-    <div class="column-gap2" style="left:132px;"></div>
+    <div class="row-gap" style="top:60px;">
+      <div></div>
+    </div>
+    <div class="row-gap" style="top:130px;">
+      <div></div>
+    </div>
+    <div class="column-gap" style="top:-2px; left:60px; height:44px;"></div>
+    <div class="column-gap" style="top:-2px; left:130px; height:44px;"></div>
+    <div class="column-gap" style="top:56px; left:60px; height:6px;"></div>
+    <div class="column-gap" style="top:56px; left:130px; height:6px;"></div>
+    <div class="column-gap" style="top:68px; left:60px; height:64px;"></div>
+    <div class="column-gap" style="top:68px; left:130px; height:64px;"></div>
+    <div class="column-gap" style="top:138px; left:60px; height:64px;"></div>
+    <div class="column-gap" style="top:138px; left:130px; height:64px;"></div>
     <div class="spanner"></div>
-    <div class="column-gap3" style="left:62px;"></div>
-    <div class="column-gap3" style="left:132px;"></div>
 </div>

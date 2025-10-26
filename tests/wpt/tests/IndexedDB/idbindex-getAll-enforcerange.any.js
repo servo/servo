@@ -2,6 +2,7 @@
 // META: global=window,worker
 // META: script=resources/support.js
 // Spec: "https://w3c.github.io/IndexedDB/#index-interface"
+'use strict';
 
 indexeddb_test(
     (t, db) => {

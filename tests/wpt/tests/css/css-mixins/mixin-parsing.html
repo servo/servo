@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Mixins: Parsing</title>
+    <link rel="help" href="https://drafts.csswg.org/css-mixins-1/#defining-mixins">
+    <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12417">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+
+  <script>
+    function test_child(css, is_valid, description) {
+      test(() => {
+        let sheet = new CSSStyleSheet();
+        sheet.replaceSync(css);
+        assert_equals(sheet.cssRules.length, 1, 'mixin is present'); // @mixin
+        assert_equals(sheet.cssRules[0].cssRules.length, (is_valid ? 1 : 0), 'child count');
+      }, `${description} is ${is_valid ? 'valid' : 'invalid'} in @mixin`);
+    }
+    function test_valid_child(css, description) {
+      return test_child(css, /*is_valid=*/true, description);
+    }
+    function test_invalid_child(css, description) {
+      return test_child(css, /*is_valid=*/false, description);
+    }
+
+    test_invalid_child('@mixin --m() { @layer bar; }', '@layer (statement)');
+    test_invalid_child('@mixin --m() { @layer bar {} }', '@layer (block)');
+    test_invalid_child('@mixin --m() { @layer {} }', '@layer (anonymous)');
+    test_valid_child('@mixin --m() { div {} }', 'style rule');
+    test_valid_child('@mixin --m() { > div {} }', 'style rule (relative)');
+    test_valid_child('@mixin --m() { @media (width) {} }', '@media');
+    test_valid_child('@mixin --m() { @supports (width:0) {} }', '@supports');
+    test_valid_child('@mixin --m() { @container (width) {} }', '@container');
+    test_valid_child('@mixin --m() { @starting-style {} }', '@starting-style');
+    test_valid_child('@mixin --m() { @scope (.foo) {} }', '@scope');
+    test_valid_child('@mixin --m() { @scope {} }', '@scope (implicit)');
+  </script>
+
+  </body>
+</html>

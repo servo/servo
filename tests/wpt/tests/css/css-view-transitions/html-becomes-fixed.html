@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html id=r class=reftest-wait>
+<head>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="html-becomes-fixed-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+
+html { view-transition-name: none }
+.f { position: fixed; background: #eee }
+::view-transition-group(*) { animation-duration: 0s }
+#part { position: absolute; left: 50px; top: 50px; width: 50px; height: 50px;
+        padding: 5px; view-transition-name: p; background: #acf; }
+
+</style>
+</head>
+<body>
+<div id=part>A</div>
+<script>
+
+raf = () => new Promise(r => { requestAnimationFrame(r); });
+async function runTest() {
+  await waitForCompositorReady();
+
+  const t = document.startViewTransition(() => { part.innerText = "B"; })
+  await raf();
+  await raf();
+  r.classList.add("f");
+  await t.finished;
+
+  const t2 = document.startViewTransition(() => { part.innerText = "A"; });
+  await t2.finished;
+
+  await raf();
+  takeScreenshot();
+}
+onload = () => runTest();
+
+</script>
+</body>
+</html>

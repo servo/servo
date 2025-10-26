@@ -1,5 +1,6 @@
 // META: script=resources/support-promises.js
 // META: timeout=long
+'use strict';
 
 /**
  * This file contains the webplatform smoke tests for the optional
