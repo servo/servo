@@ -69,7 +69,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
         //      "InvalidCharacterError" DOMException.
         if !is_valid_doctype_name(&qualified_name) {
             debug!("Not a valid doctype name");
-            return Err(Error::InvalidCharacter);
+            return Err(Error::InvalidCharacter(None));
         }
 
         Ok(DocumentType::new(

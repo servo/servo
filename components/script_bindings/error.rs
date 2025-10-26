@@ -22,7 +22,7 @@ pub enum Error {
     /// WrongDocumentError DOMException
     WrongDocument(Option<String>),
     /// InvalidCharacterError DOMException
-    InvalidCharacter,
+    InvalidCharacter(Option<String>),
     /// NotSupportedError DOMException
     NotSupported,
     /// InUseAttributeError DOMException

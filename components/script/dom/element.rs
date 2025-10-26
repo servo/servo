@@ -1989,7 +1989,7 @@ impl Element {
     ) -> ErrorResult {
         // Step 1.
         if !matches_name_production(&name.str()) {
-            return Err(Error::InvalidCharacter);
+            return Err(Error::InvalidCharacter(None));
         }
 
         // Steps 2-5.
@@ -2937,7 +2937,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 1. If qualifiedName is not a valid attribute local name,
         //      then throw an "InvalidCharacterError" DOMException.
         if !is_valid_attribute_local_name(&name.str()) {
-            return Err(Error::InvalidCharacter);
+            return Err(Error::InvalidCharacter(None));
         }
 
         // Step 3.
@@ -2986,7 +2986,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 1. If qualifiedName does not match the Name production in XML,
         // then throw an "InvalidCharacterError" DOMException.
         if !is_valid_attribute_local_name(&name.str()) {
-            return Err(Error::InvalidCharacter);
+            return Err(Error::InvalidCharacter(None));
         }
 
         // Step 2. If this is in the HTML namespace and its node document is an HTML document,
