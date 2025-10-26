@@ -521,7 +521,8 @@ impl FetchResponseListener for LinkFetchContext {
         //
         // Part of Prefetch
         if let Some(link) = self.link.as_ref() {
-            link.root().fire_event_after_response(response_result);
+            link.root()
+                .fire_event_after_response(response_result, CanGc::note());
         }
     }
 
