@@ -8,7 +8,7 @@ use stylo_dom::ElementState;
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::document::Document;
-use crate::dom::svgelement::SVGElement;
+use crate::dom::svg::svgelement::SVGElement;
 use crate::dom::virtualmethods::VirtualMethods;
 
 #[dom_struct]

@@ -60,9 +60,9 @@ use crate::dom::html::htmltitleelement::HTMLTitleElement;
 use crate::dom::html::htmlvideoelement::HTMLVideoElement;
 use crate::dom::node::{BindContext, ChildrenMutation, CloneChildrenFlag, Node, UnbindContext};
 use crate::dom::shadowroot::ShadowRoot;
-use crate::dom::svgelement::SVGElement;
-use crate::dom::svgimageelement::SVGImageElement;
-use crate::dom::svgsvgelement::SVGSVGElement;
+use crate::dom::svg::svgelement::SVGElement;
+use crate::dom::svg::svgimageelement::SVGImageElement;
+use crate::dom::svg::svgsvgelement::SVGSVGElement;
 
 /// Trait to allow DOM nodes to opt-in to overriding (or adding to) common
 /// behaviours. Replicates the effect of C++ virtual methods.

@@ -21,7 +21,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::node::{Node, NodeDamage};
-use crate::dom::svggraphicselement::SVGGraphicsElement;
+use crate::dom::svg::svggraphicselement::SVGGraphicsElement;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
@@ -173,7 +173,7 @@ impl VirtualMethods for SVGSVGElement {
         }
     }
 
-    fn children_changed(&self, mutation: &super::node::ChildrenMutation) {
+    fn children_changed(&self, mutation: &crate::dom::node::ChildrenMutation) {
         if let Some(super_type) = self.super_type() {
             super_type.children_changed(mutation);
         }
