@@ -1,6 +1,8 @@
-# NOTE: requires `GITHUB_TOKEN: ${{ github.token }}` in `env`
 name: Select Self-hosted Runner
 inputs:
+  GITHUB_TOKEN:
+    required: true
+    type: string
   github-hosted-runner-label:
     required: true
     type: string
@@ -139,6 +141,7 @@ runs:
       shell: bash
       run: |
         artifact_id='${{ steps.artifact.outputs.artifact-id }}'
-        gh api -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' \
+        GITHUB_TOKEN='${{ inputs.GITHUB_TOKEN }}' gh api \
+          -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' \
           -X DELETE '/repos/${{ github.repository }}/actions/artifacts/'"$artifact_id" \
         || :  # Don’t fail the build if this fails
