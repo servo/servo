@@ -109,7 +109,7 @@ impl RadioNodeListMethods<crate::DomTypeHolder> for RadioNodeList {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-radionodelist-value
-    fn SetValue(&self, value: DOMString) {
+    fn SetValue(&self, value: DOMString, can_gc: CanGc) {
         for node in self.upcast::<NodeList>().iter() {
             // Step 1
             if let Some(input) = node.downcast::<HTMLInputElement>() {
@@ -118,14 +118,14 @@ impl RadioNodeListMethods<crate::DomTypeHolder> for RadioNodeList {
                         // Step 2
                         let val = input.Value();
                         if val.is_empty() || val == value {
-                            input.SetChecked(true);
+                            input.SetChecked(true, can_gc);
                             return;
                         }
                     },
                     InputType::Radio => {
                         // Step 2
                         if input.Value() == value {
-                            input.SetChecked(true);
+                            input.SetChecked(true, can_gc);
                             return;
                         }
                     },

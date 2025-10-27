@@ -1673,9 +1673,9 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-checked
-    fn SetChecked(&self, checked: bool) {
-        self.update_checked_state(checked, true);
-        self.value_changed(CanGc::note());
+    fn SetChecked(&self, checked: bool, can_gc: CanGc) {
+        self.update_checked_state(checked, true, can_gc);
+        self.value_changed(can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-readonly
@@ -2124,14 +2124,14 @@ fn radio_group_iter<'a>(
         .filter(move |r| &**r == elem || in_same_group(r, form, group, Some(root)))
 }
 
-fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>) {
+fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>, can_gc: CanGc) {
     let root = broadcaster
         .upcast::<Node>()
         .GetRootNode(&GetRootNodeOptions::empty());
     let form = broadcaster.form_owner();
     for r in radio_group_iter(broadcaster, group, form.as_deref(), &root) {
         if broadcaster != &*r && r.Checked() {
-            r.SetChecked(false);
+            r.SetChecked(false, can_gc);
         }
     }
 }
@@ -2181,9 +2181,9 @@ fn in_same_group(
 }
 
 impl HTMLInputElement {
-    fn radio_group_updated(&self, group: Option<&Atom>) {
+    fn radio_group_updated(&self, group: Option<&Atom>, can_gc: CanGc) {
         if self.Checked() {
-            broadcast_radio_checked(self, group);
+            broadcast_radio_checked(self, group, can_gc);
         }
     }
 
@@ -2288,7 +2288,7 @@ impl HTMLInputElement {
             .filter(|name| !name.is_empty())
     }
 
-    fn update_checked_state(&self, checked: bool, dirty: bool) {
+    fn update_checked_state(&self, checked: bool, dirty: bool, can_gc: CanGc) {
         self.upcast::<Element>()
             .set_state(ElementState::CHECKED, checked);
 
@@ -2297,7 +2297,7 @@ impl HTMLInputElement {
         }
 
         if self.input_type() == InputType::Radio && checked {
-            broadcast_radio_checked(self, self.radio_group_name().as_ref());
+            broadcast_radio_checked(self, self.radio_group_name().as_ref(), can_gc);
         }
 
         self.upcast::<Node>().dirty(NodeDamage::Other);
@@ -2314,7 +2314,7 @@ impl HTMLInputElement {
     pub(crate) fn reset(&self, can_gc: CanGc) {
         match self.input_type() {
             InputType::Radio | InputType::Checkbox => {
-                self.update_checked_state(self.DefaultChecked(), false);
+                self.update_checked_state(self.DefaultChecked(), false, can_gc);
                 self.checked_changed.set(false);
                 self.value_changed(can_gc);
             },
@@ -2335,7 +2335,7 @@ impl HTMLInputElement {
         // Step 2. Set value to empty string.
         self.textinput.borrow_mut().set_content(DOMString::from(""));
         // Step 3. Set checkedness based on presence of content attribute.
-        self.update_checked_state(self.DefaultChecked(), false);
+        self.update_checked_state(self.DefaultChecked(), false, can_gc);
         self.value_changed(can_gc);
         // Step 4. Empty selected files
         if self.filelist.get().is_some() {
@@ -2944,7 +2944,7 @@ impl VirtualMethods for HTMLInputElement {
                     },
                     AttributeMutation::Removed => false,
                 };
-                self.update_checked_state(checked_state, false);
+                self.update_checked_state(checked_state, false, can_gc);
             },
             local_name!("size") => {
                 let size = mutation.new_value(attr).map(|value| value.as_uint());
@@ -3012,7 +3012,7 @@ impl VirtualMethods for HTMLInputElement {
 
                         // Step 5
                         if new_type == InputType::Radio {
-                            self.radio_group_updated(self.radio_group_name().as_ref());
+                            self.radio_group_updated(self.radio_group_name().as_ref(), can_gc);
                         }
 
                         // Step 6
@@ -3029,7 +3029,7 @@ impl VirtualMethods for HTMLInputElement {
                     },
                     AttributeMutation::Removed => {
                         if self.input_type() == InputType::Radio {
-                            broadcast_radio_checked(self, self.radio_group_name().as_ref());
+                            broadcast_radio_checked(self, self.radio_group_name().as_ref(), can_gc);
                         }
                         self.input_type.set(InputType::default());
                         let el = self.upcast::<Element>();
@@ -3057,6 +3057,7 @@ impl VirtualMethods for HTMLInputElement {
             local_name!("name") if self.input_type() == InputType::Radio => {
                 self.radio_group_updated(
                     mutation.new_value(attr).as_ref().map(|name| name.as_atom()),
+                    can_gc,
                 );
             },
             local_name!("maxlength") => match *attr.value() {
@@ -3149,7 +3150,7 @@ impl VirtualMethods for HTMLInputElement {
             .check_ancestors_disabled_state_for_form_control();
 
         if self.input_type() == InputType::Radio {
-            self.radio_group_updated(self.radio_group_name().as_ref());
+            self.radio_group_updated(self.radio_group_name().as_ref(), can_gc);
         }
 
         self.value_changed(can_gc);
@@ -3486,7 +3487,7 @@ impl Activatable for HTMLInputElement {
                 let was_checked = self.Checked();
                 let was_indeterminate = self.Indeterminate();
                 self.SetIndeterminate(false);
-                self.SetChecked(!was_checked);
+                self.SetChecked(!was_checked, can_gc);
                 Some(InputActivationState {
                     checked: was_checked,
                     indeterminate: was_indeterminate,
@@ -3507,7 +3508,7 @@ impl Activatable for HTMLInputElement {
                 )
                 .find(|r| r.Checked());
                 let was_checked = self.Checked();
-                self.SetChecked(true);
+                self.SetChecked(true, can_gc);
                 Some(InputActivationState {
                     checked: was_checked,
                     indeterminate: false,
@@ -3551,7 +3552,7 @@ impl Activatable for HTMLInputElement {
             // Step 2
             InputType::Checkbox => {
                 self.SetIndeterminate(cache.indeterminate);
-                self.SetChecked(cache.checked);
+                self.SetChecked(cache.checked, can_gc);
             },
             // Step 3
             InputType::Radio => {
@@ -3567,12 +3568,12 @@ impl Activatable for HTMLInputElement {
                         self.radio_group_name().as_ref(),
                         Some(&*tree_root),
                     ) {
-                        o.SetChecked(true);
+                        o.SetChecked(true, can_gc);
                     } else {
-                        self.SetChecked(false);
+                        self.SetChecked(false, can_gc);
                     }
                 } else {
-                    self.SetChecked(false);
+                    self.SetChecked(false, can_gc);
                 }
             },
             _ => (),
