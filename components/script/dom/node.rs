@@ -1493,13 +1493,12 @@ impl Node {
     /// <https://dom.spec.whatwg.org/#assign-slotables-for-a-tree>
     pub(crate) fn assign_slottables_for_a_tree(&self) {
         // NOTE: This method traverses all descendants of the node and is potentially very
-        // expensive. If the node is not a shadow root then assigning slottables to it won't
-        // have any effect, so we take a fast path out.
-        let Some(shadow_root) = self.downcast::<ShadowRoot>() else {
-            return;
-        };
-
-        if !shadow_root.has_slot_descendants() {
+        // expensive. If the node is neither a shadowroot nor a slot then assigning slottables
+        // for it won't have any effect, so we take a fast path out.
+        let is_shadow_root_with_slots = self
+            .downcast::<ShadowRoot>()
+            .is_some_and(|shadow_root| shadow_root.has_slot_descendants());
+        if !is_shadow_root_with_slots && !self.is::<HTMLSlotElement>() {
             return;
         }
 
