@@ -130,20 +130,25 @@ impl From<PrefValue> for [f64; 4] {
     }
 }
 
-#[test]
-fn test_pref_value_from_str() {
-    let value = PrefValue::from_booleanish_str("21");
-    assert_eq!(value, PrefValue::Int(21));
+#[cfg(test)]
+mod test {
+    use super::*;
 
-    let value = PrefValue::from_booleanish_str("12.5");
-    assert_eq!(value, PrefValue::Float(12.5));
+    #[test]
+    fn test_pref_value_from_str() {
+        let value = PrefValue::from_booleanish_str("21");
+        assert_eq!(value, PrefValue::Int(21));
 
-    let value = PrefValue::from_booleanish_str("a string");
-    assert_eq!(value, PrefValue::Str("a string".into()));
+        let value = PrefValue::from_booleanish_str("12.5");
+        assert_eq!(value, PrefValue::Float(12.5));
 
-    let value = PrefValue::from_booleanish_str("false");
-    assert_eq!(value, PrefValue::Bool(false));
+        let value = PrefValue::from_booleanish_str("a string");
+        assert_eq!(value, PrefValue::Str("a string".into()));
 
-    let value = PrefValue::from_booleanish_str("true");
-    assert_eq!(value, PrefValue::Bool(true));
+        let value = PrefValue::from_booleanish_str("false");
+        assert_eq!(value, PrefValue::Bool(false));
+
+        let value = PrefValue::from_booleanish_str("true");
+        assert_eq!(value, PrefValue::Bool(true));
+    }
 }
