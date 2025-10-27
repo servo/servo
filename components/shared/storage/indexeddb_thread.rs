@@ -428,7 +428,8 @@ pub enum SyncOperation {
         /// The unique identifier of the transaction
         IpcSender<u64>,
         ImmutableOrigin,
-        String, // Database
+        String,           // Database
+        IndexedDBTxnMode, // Mode
     ),
 
     /// Starts executing the requests of a transaction
@@ -459,7 +460,6 @@ pub enum IndexedDBThreadMsg {
         String, // Database
         String, // ObjectStore
         u64,    // Serial number of the transaction that requests this operation
-        IndexedDBTxnMode,
         AsyncOperation,
     ),
 }
