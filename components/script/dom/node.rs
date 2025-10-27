@@ -119,7 +119,7 @@ use crate::dom::raredata::NodeRareData;
 use crate::dom::servoparser::{ServoParser, serialize_html_fragment};
 use crate::dom::shadowroot::{IsUserAgentWidget, LayoutShadowRootHelpers, ShadowRoot};
 use crate::dom::stylesheetlist::StyleSheetListOwner;
-use crate::dom::svgsvgelement::{LayoutSVGSVGElementHelpers, SVGSVGElement};
+use crate::dom::svg::svgsvgelement::{LayoutSVGSVGElementHelpers, SVGSVGElement};
 use crate::dom::text::Text;
 use crate::dom::types::KeyboardEvent;
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};

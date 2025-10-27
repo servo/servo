@@ -436,10 +436,8 @@ pub(crate) mod stylesheetcontentscache;
 pub(crate) mod stylesheetlist;
 pub(crate) mod submitevent;
 pub(crate) mod subtlecrypto;
-pub(crate) mod svgelement;
-pub(crate) mod svggraphicselement;
-pub(crate) mod svgimageelement;
-pub(crate) mod svgsvgelement;
+pub(crate) mod svg;
+pub(crate) use self::svg::*;
 #[cfg(feature = "testbinding")]
 mod testing;
 #[cfg(feature = "testbinding")]
