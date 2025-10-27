@@ -31,7 +31,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29f73a9b855b6f4af4962a94553ef0c092b80cf5e17038724d5e30945d036f69"
 dependencies = [
  "accesskit",
- "accesskit_consumer",
+ "accesskit_consumer 0.30.1",
  "atspi-common",
  "serde",
  "thiserror 1.0.69",
@@ -49,13 +49,23 @@ dependencies = [
 ]
 
 [[package]]
-name = "accesskit_macos"
-version = "0.22.1"
+name = "accesskit_consumer"
+version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93fbaf15815f39084e0cb24950c232f0e3634702c2dfbf182ae3b4919a4a1d45"
+checksum = "db81010a6895d8707f9072e6ce98070579b43b717193d2614014abd5cb17dd43"
 dependencies = [
  "accesskit",
- "accesskit_consumer",
+ "hashbrown",
+]
+
+[[package]]
+name = "accesskit_macos"
+version = "0.22.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a0089e5c0ac0ca281e13ea374773898d9354cc28d15af9f0f7394d44a495b575"
+dependencies = [
+ "accesskit",
+ "accesskit_consumer 0.31.0",
  "hashbrown",
  "objc2 0.5.2",
  "objc2-app-kit 0.2.2",
@@ -87,7 +97,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "792991159fa9ba57459de59e12e918bb90c5346fea7d40ac1a11f8632b41e63a"
 dependencies = [
  "accesskit",
- "accesskit_consumer",
+ "accesskit_consumer 0.30.1",
  "hashbrown",
  "static_assertions",
  "windows 0.61.3",
