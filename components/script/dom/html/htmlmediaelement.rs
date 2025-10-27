@@ -3006,7 +3006,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
         if *value != self.volume.get() {
             self.volume.set(*value);
-            if let Some(player) = &*self.player.borrow_mut() {
+            if let Some(player) = self.player.borrow().as_ref() {
                 let _ = player.lock().unwrap().set_volume(*value);
             }
             self.owner_global()
