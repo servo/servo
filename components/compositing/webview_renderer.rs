@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
 use std::collections::hash_map::Entry;
 use std::rc::Rc;
 
@@ -13,11 +12,11 @@ use compositing_traits::viewport_description::{
 };
 use compositing_traits::{PipelineExitSource, SendableFrameTree, WebViewTrait};
 use constellation_traits::{EmbedderToConstellationMessage, WindowSizeType};
+use crossbeam_channel::Sender;
 use embedder_traits::{
     AnimationState, CompositorHitTestResult, InputEvent, InputEventAndId, InputEventId,
     InputEventResult, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent, Scroll,
-    ScrollEvent as EmbedderScrollEvent, ShutdownState, TouchEvent, TouchEventType, ViewportDetails,
-    WebViewPoint,
+    ScrollEvent as EmbedderScrollEvent, TouchEvent, TouchEventType, ViewportDetails, WebViewPoint,
 };
 use euclid::{Scale, Vector2D};
 use log::{debug, warn};
@@ -25,11 +24,14 @@ use malloc_size_of::MallocSizeOf;
 use rustc_hash::FxHashMap;
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::CSSPixel;
+use webrender::RenderApi;
 use webrender_api::units::{DevicePixel, DevicePoint, DeviceRect, LayoutVector2D};
-use webrender_api::{ExternalScrollId, ScrollLocation};
+use webrender_api::{DocumentId, ExternalScrollId, ScrollLocation};
 
-use crate::compositor::{PipelineDetails, ServoRenderer};
+use crate::painter::Painter;
 use crate::pinch_zoom::PinchZoom;
+use crate::pipeline_details::PipelineDetails;
+use crate::refresh_driver::BaseRefreshDriver;
 use crate::touch::{
     FlingRefreshDriverObserver, PendingTouchInputEvent, TouchHandler, TouchMoveAllowed,
     TouchSequenceState,
@@ -84,8 +86,6 @@ pub(crate) struct WebViewRenderer {
     pub rect: DeviceRect,
     /// Tracks details about each active pipeline that the compositor knows about.
     pub pipelines: FxHashMap<PipelineId, PipelineDetails>,
-    /// Data that is shared by all WebView renderers.
-    pub(crate) global: Rc<RefCell<ServoRenderer>>,
     /// Pending scroll/zoom events.
     pending_scroll_zoom_events: Vec<ScrollZoomEvent>,
     /// Touch input state machine
@@ -104,13 +104,25 @@ pub(crate) struct WebViewRenderer {
     /// A [`ViewportDescription`] for this [`WebViewRenderer`], which contains the limitations
     /// and initial values for zoom derived from the `viewport` meta tag in web content.
     viewport_description: Option<ViewportDescription>,
+
+    //
+    // Data that is shared with the parent renderer.
+    //
+    /// The channel on which messages can be sent to the constellation.
+    embedder_to_constellation_sender: Sender<EmbedderToConstellationMessage>,
+    /// The [`BaseRefreshDriver`] which manages the painting of `WebView`s during animations.
+    refresh_driver: Rc<BaseRefreshDriver>,
+    /// The active webrender document.
+    webrender_document: DocumentId,
 }
 
 impl WebViewRenderer {
     pub(crate) fn new(
-        global: Rc<RefCell<ServoRenderer>>,
         renderer_webview: Box<dyn WebViewTrait>,
         viewport_details: ViewportDetails,
+        embedder_to_constellation_sender: Sender<EmbedderToConstellationMessage>,
+        refresh_driver: Rc<BaseRefreshDriver>,
+        webrender_document: DocumentId,
     ) -> Self {
         let hidpi_scale_factor = viewport_details.hidpi_scale_factor;
         let size = viewport_details.size * viewport_details.hidpi_scale_factor;
@@ -122,14 +134,28 @@ impl WebViewRenderer {
             rect,
             pipelines: Default::default(),
             touch_handler: TouchHandler::new(),
-            global,
             pending_scroll_zoom_events: Default::default(),
             page_zoom: DEFAULT_PAGE_ZOOM,
             pinch_zoom: PinchZoom::new(rect),
             hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
             animating: false,
             viewport_description: None,
+            embedder_to_constellation_sender,
+            refresh_driver,
+            webrender_document,
         }
+    }
+
+    fn hit_test(
+        &self,
+        webrender_api: &RenderApi,
+        point: DevicePoint,
+    ) -> Vec<CompositorHitTestResult> {
+        Painter::hit_test_at_point_with_api_and_document(
+            webrender_api,
+            self.webrender_document,
+            point,
+        )
     }
 
     pub(crate) fn animation_callbacks_running(&self) -> bool {
@@ -199,7 +225,7 @@ impl WebViewRenderer {
             return;
         }
 
-        let _ = self.global.borrow().embedder_to_constellation_sender.send(
+        let _ = self.embedder_to_constellation_sender.send(
             EmbedderToConstellationMessage::SetScrollStates(pipeline_id, scroll_offsets),
         );
     }
@@ -288,25 +314,22 @@ impl WebViewRenderer {
         self.touch_handler.currently_in_touch_sequence()
     }
 
-    pub(crate) fn dispatch_input_event_with_hit_testing(&mut self, event: InputEventAndId) -> bool {
+    fn dispatch_input_event_with_hit_testing(
+        &mut self,
+        render_api: &RenderApi,
+        event: InputEventAndId,
+    ) -> bool {
         let event_point = event
             .event
             .point()
             .map(|point| point.as_device_point(self.device_pixels_per_page_pixel()));
-
         let hit_test_result = match event_point {
             Some(point) => {
                 let hit_test_result = match event.event {
                     InputEvent::Touch(_) => self.touch_handler.get_hit_test_result_cache_value(),
                     _ => None,
                 }
-                .or_else(|| {
-                    self.global
-                        .borrow()
-                        .hit_test_at_point(point)
-                        .into_iter()
-                        .nth(0)
-                });
+                .or_else(|| self.hit_test(render_api, point).into_iter().nth(0));
                 if hit_test_result.is_none() {
                     warn!("Empty hit test result for input event, ignoring.");
                     return false;
@@ -316,18 +339,7 @@ impl WebViewRenderer {
             None => None,
         };
 
-        match event.event {
-            InputEvent::MouseMove(_) => {
-                self.global.borrow_mut().last_mouse_move_position = event_point;
-            },
-            InputEvent::MouseLeftViewport(_) => {
-                self.global.borrow_mut().last_mouse_move_position = None;
-            },
-            InputEvent::MouseButton(_) | InputEvent::Wheel(_) | InputEvent::Touch(_) => {},
-            _ => unreachable!("Unexpected input event type: {event:?}"),
-        }
-
-        if let Err(error) = self.global.borrow().embedder_to_constellation_sender.send(
+        if let Err(error) = self.embedder_to_constellation_sender.send(
             EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, hit_test_result),
         ) {
             warn!("Sending event to constellation failed ({error:?}).");
@@ -337,20 +349,25 @@ impl WebViewRenderer {
         }
     }
 
-    pub(crate) fn notify_input_event(&mut self, event_and_id: InputEventAndId) {
-        if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
-            return;
-        }
-
+    pub(crate) fn notify_input_event(
+        &mut self,
+        render_api: &RenderApi,
+        event_and_id: InputEventAndId,
+    ) {
         if let InputEvent::Touch(touch_event) = event_and_id.event {
-            self.on_touch_event(touch_event, event_and_id.id);
+            self.on_touch_event(render_api, touch_event, event_and_id.id);
             return;
         }
 
-        self.dispatch_input_event_with_hit_testing(event_and_id);
+        self.dispatch_input_event_with_hit_testing(render_api, event_and_id);
     }
 
-    fn send_touch_event(&mut self, event: TouchEvent, id: InputEventId) -> bool {
+    fn send_touch_event(
+        &mut self,
+        render_api: &RenderApi,
+        event: TouchEvent,
+        id: InputEventId,
+    ) -> bool {
         let cancelable = event.is_cancelable();
         let event_type = event.event_type;
 
@@ -359,7 +376,7 @@ impl WebViewRenderer {
             id,
         };
 
-        let result = self.dispatch_input_event_with_hit_testing(input_event_and_id);
+        let result = self.dispatch_input_event_with_hit_testing(render_api, input_event_and_id);
 
         // We only post-process events that are actually cancelable. Uncancelable ones
         // are processed immediately and can be ignored once they have been sent to the
@@ -372,32 +389,33 @@ impl WebViewRenderer {
         result
     }
 
-    pub(crate) fn on_touch_event(&mut self, event: TouchEvent, id: InputEventId) {
-        if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
-            return;
-        }
-
+    pub(crate) fn on_touch_event(
+        &mut self,
+        render_api: &RenderApi,
+        event: TouchEvent,
+        id: InputEventId,
+    ) {
         let had_touch_sequence = self.touch_handler.currently_in_touch_sequence();
         match event.event_type {
-            TouchEventType::Down => self.on_touch_down(event, id),
-            TouchEventType::Move => self.on_touch_move(event, id),
-            TouchEventType::Up => self.on_touch_up(event, id),
-            TouchEventType::Cancel => self.on_touch_cancel(event, id),
+            TouchEventType::Down => self.on_touch_down(render_api, event, id),
+            TouchEventType::Move => self.on_touch_move(render_api, event, id),
+            TouchEventType::Up => self.on_touch_up(render_api, event, id),
+            TouchEventType::Cancel => self.on_touch_cancel(render_api, event, id),
         }
         if !had_touch_sequence && self.touch_handler.currently_in_touch_sequence() {
             self.add_touch_move_refresh_obsever();
         }
     }
 
-    fn on_touch_down(&mut self, event: TouchEvent, id: InputEventId) {
+    fn on_touch_down(&mut self, render_api: &RenderApi, event: TouchEvent, id: InputEventId) {
         let point = event
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
         self.touch_handler.on_touch_down(event.id, point);
-        self.send_touch_event(event, id);
+        self.send_touch_event(render_api, event, id);
     }
 
-    fn on_touch_move(&mut self, mut event: TouchEvent, id: InputEventId) {
+    fn on_touch_move(&mut self, render_api: &RenderApi, mut event: TouchEvent, id: InputEventId) {
         let point = event
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
@@ -419,7 +437,7 @@ impl WebViewRenderer {
             if !self
                 .touch_handler
                 .is_handling_touch_move(self.touch_handler.current_sequence_id) &&
-                self.send_touch_event(event, id) &&
+                self.send_touch_event(render_api, event, id) &&
                 event.is_cancelable()
             {
                 self.touch_handler
@@ -428,24 +446,25 @@ impl WebViewRenderer {
         }
     }
 
-    fn on_touch_up(&mut self, event: TouchEvent, id: InputEventId) {
+    fn on_touch_up(&mut self, render_api: &RenderApi, event: TouchEvent, id: InputEventId) {
         let point = event
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
         self.touch_handler.on_touch_up(event.id, point);
-        self.send_touch_event(event, id);
+        self.send_touch_event(render_api, event, id);
     }
 
-    fn on_touch_cancel(&mut self, event: TouchEvent, id: InputEventId) {
+    fn on_touch_cancel(&mut self, render_api: &RenderApi, event: TouchEvent, id: InputEventId) {
         let point = event
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
         self.touch_handler.on_touch_cancel(event.id, point);
-        self.send_touch_event(event, id);
+        self.send_touch_event(render_api, event, id);
     }
 
-    pub(crate) fn on_touch_event_processed(
+    fn on_touch_event_processed(
         &mut self,
+        render_api: &RenderApi,
         pending_touch_input_event: PendingTouchInputEvent,
         result: InputEventResult,
     ) {
@@ -558,7 +577,7 @@ impl WebViewRenderer {
                             // PreventDefault from touch_down may have been processed after
                             // touch_up already occurred.
                             if !info.prevent_click {
-                                self.simulate_mouse_click(point);
+                                self.simulate_mouse_click(render_api, point);
                             }
                             self.touch_handler.remove_touch_sequence(sequence_id);
                         },
@@ -592,21 +611,21 @@ impl WebViewRenderer {
 
     fn add_touch_move_refresh_obsever(&self) {
         debug_assert!(self.touch_handler.currently_in_touch_sequence());
-        self.global
-            .borrow()
-            .refresh_driver
+        self.refresh_driver
             .add_observer(Rc::new(FlingRefreshDriverObserver {
                 webview_id: self.id,
             }));
     }
 
     /// <http://w3c.github.io/touch-events/#mouse-events>
-    fn simulate_mouse_click(&mut self, point: DevicePoint) {
+    fn simulate_mouse_click(&mut self, render_api: &RenderApi, point: DevicePoint) {
         let button = MouseButton::Left;
         self.dispatch_input_event_with_hit_testing(
+            render_api,
             InputEvent::MouseMove(MouseMoveEvent::new(point.into())).into(),
         );
         self.dispatch_input_event_with_hit_testing(
+            render_api,
             InputEvent::MouseButton(MouseButtonEvent::new(
                 MouseButtonAction::Down,
                 button,
@@ -615,6 +634,7 @@ impl WebViewRenderer {
             .into(),
         );
         self.dispatch_input_event_with_hit_testing(
+            render_api,
             InputEvent::MouseButton(MouseButtonEvent::new(
                 MouseButtonAction::Up,
                 button,
@@ -625,9 +645,6 @@ impl WebViewRenderer {
     }
 
     pub(crate) fn notify_scroll_event(&mut self, scroll: Scroll, point: WebViewPoint) {
-        if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
-            return;
-        }
         let point = point.as_device_point(self.device_pixels_per_page_pixel());
         self.on_scroll_window_event(scroll, point);
     }
@@ -649,6 +666,7 @@ impl WebViewRenderer {
     /// It is up to the caller to ensure that these events update the rendering appropriately.
     pub(crate) fn process_pending_scroll_and_pinch_zoom_events(
         &mut self,
+        render_api: &RenderApi,
     ) -> (PinchZoomResult, Option<ScrollResult>) {
         if self.pending_scroll_zoom_events.is_empty() {
             return (PinchZoomResult::DidNotPinchZoom, None);
@@ -716,7 +734,11 @@ impl WebViewRenderer {
         }
 
         let scroll_result = combined_scroll_event.and_then(|combined_event| {
-            self.scroll_node_at_device_point(combined_event.point.to_f32(), combined_event.scroll)
+            self.scroll_node_at_device_point(
+                render_api,
+                combined_event.point.to_f32(),
+                combined_event.scroll,
+            )
         });
         if let Some(scroll_result) = scroll_result.clone() {
             self.send_scroll_positions_to_layout_for_pipeline(
@@ -737,6 +759,7 @@ impl WebViewRenderer {
     /// scrolled, the id, and the final scroll delta.
     fn scroll_node_at_device_point(
         &mut self,
+        render_api: &RenderApi,
         cursor: DevicePoint,
         scroll: Scroll,
     ) -> Option<ScrollResult> {
@@ -755,7 +778,7 @@ impl WebViewRenderer {
             .touch_handler
             .get_hit_test_result_cache_value()
             .map(|result| vec![result])
-            .unwrap_or_else(|| self.global.borrow().hit_test_at_point(cursor));
+            .unwrap_or_else(|| self.hit_test(render_api, cursor));
 
         // Iterate through all hit test results, processing only the first node of each pipeline.
         // This is needed to propagate the scroll events from a pipeline representing an iframe to
@@ -861,12 +884,7 @@ impl WebViewRenderer {
             event,
             Some(hit_test_result),
         );
-        if let Err(e) = self
-            .global
-            .borrow()
-            .embedder_to_constellation_sender
-            .send(msg)
-        {
+        if let Err(e) = self.embedder_to_constellation_sender.send(msg) {
             warn!("Sending scroll event to constellation failed ({:?}).", e);
         }
     }
@@ -921,9 +939,6 @@ impl WebViewRenderer {
 
     /// Adjust the pinch zoom of the [`WebView`] by the given zoom delta.
     pub(crate) fn adjust_pinch_zoom(&mut self, magnification: f32, center: DevicePoint) {
-        if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
-            return;
-        }
         if magnification == 1.0 {
             return;
         }
@@ -937,22 +952,16 @@ impl WebViewRenderer {
         // to device pixels, but not including any pinch zoom.
         let device_pixel_ratio = self.device_pixels_per_page_pixel_not_including_pinch_zoom();
         let initial_viewport = self.rect.size().to_f32() / device_pixel_ratio;
-        let msg = EmbedderToConstellationMessage::ChangeViewportDetails(
-            self.id,
-            ViewportDetails {
-                hidpi_scale_factor: device_pixel_ratio,
-                size: initial_viewport,
-            },
-            WindowSizeType::Resize,
+        let _ = self.embedder_to_constellation_sender.send(
+            EmbedderToConstellationMessage::ChangeViewportDetails(
+                self.id,
+                ViewportDetails {
+                    hidpi_scale_factor: device_pixel_ratio,
+                    size: initial_viewport,
+                },
+                WindowSizeType::Resize,
+            ),
         );
-        if let Err(e) = self
-            .global
-            .borrow()
-            .embedder_to_constellation_sender
-            .send(msg)
-        {
-            warn!("Sending window resize to constellation failed ({:?}).", e);
-        }
     }
 
     /// Set the `hidpi_scale_factor` for this renderer, returning `true` if the value actually changed.
@@ -997,13 +1006,14 @@ impl WebViewRenderer {
 
     pub(crate) fn notify_input_event_handled(
         &mut self,
+        render_api: &RenderApi,
         id: InputEventId,
         result: InputEventResult,
     ) {
         if let Some(pending_touch_input_event) =
             self.touch_handler.take_pending_touch_input_event(id)
         {
-            self.on_touch_event_processed(pending_touch_input_event, result);
+            self.on_touch_event_processed(render_api, pending_touch_input_event, result);
         }
     }
 }

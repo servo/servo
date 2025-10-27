@@ -13,8 +13,8 @@ use image::RgbaImage;
 use rustc_hash::FxHashMap;
 use webrender_api::units::{DeviceIntRect, DeviceRect};
 
-use crate::IOCompositor;
 use crate::compositor::RepaintReason;
+use crate::painter::Painter;
 
 pub(crate) struct ScreenshotRequest {
     webview_id: WebViewId,
@@ -81,7 +81,7 @@ impl ScreenshotTaker {
         &self,
         webview_id: WebViewId,
         expected_epochs: FxHashMap<PipelineId, Epoch>,
-        renderer: &IOCompositor,
+        renderer: &Painter,
     ) {
         let expected_epochs = Rc::new(expected_epochs);
 
@@ -101,7 +101,7 @@ impl ScreenshotTaker {
         self.prepare_screenshot_requests_for_render(renderer);
     }
 
-    pub(crate) fn prepare_screenshot_requests_for_render(&self, renderer: &IOCompositor) {
+    pub(crate) fn prepare_screenshot_requests_for_render(&self, renderer: &Painter) {
         let mut any_became_ready = false;
 
         for screenshot_request in self.requests.borrow_mut().iter_mut() {
@@ -135,7 +135,7 @@ impl ScreenshotTaker {
         }
     }
 
-    pub(crate) fn maybe_trigger_paint_for_screenshot(&self, renderer: &IOCompositor) {
+    pub(crate) fn maybe_trigger_paint_for_screenshot(&self, renderer: &Painter) {
         if renderer.has_pending_frames() {
             return;
         }
@@ -150,7 +150,7 @@ impl ScreenshotTaker {
         }
     }
 
-    pub(crate) fn maybe_take_screenshots(&self, renderer: &IOCompositor) {
+    pub(crate) fn maybe_take_screenshots(&self, renderer: &Painter) {
         if renderer.has_pending_frames() {
             return;
         }
@@ -197,7 +197,7 @@ impl ScreenshotTaker {
                     DeviceIntRect::from_origin_and_size(Point2D::new(x, y), Size2D::new(w, h))
                 });
                 let result = renderer
-                    .rendering_context()
+                    .rendering_context
                     .read_to_image(rect)
                     .ok_or(ScreenshotCaptureError::CouldNotReadImage);
                 callback(result);

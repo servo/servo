@@ -15,8 +15,8 @@ use embedder_traits::{EventLoopWaker, RefreshDriver};
 use log::warn;
 use timers::{BoxedTimerCallback, TimerEventRequest, TimerScheduler};
 
-use crate::IOCompositor;
 use crate::compositor::RepaintReason;
+use crate::painter::Painter;
 use crate::webview_renderer::WebViewRenderer;
 
 /// The [`BaseRefreshDriver`] is a "base class" for [`RefreshDriver`] trait
@@ -62,7 +62,7 @@ impl BaseRefreshDriver {
         }
     }
 
-    pub(crate) fn notify_will_paint(&self, compositor: &mut IOCompositor) {
+    pub(crate) fn notify_will_paint(&self, renderer: &mut Painter) {
         // If we are still waiting for the frame to timeout this paint was caused for some
         // non-animation related reason and we should wait until the frame timeout to trigger
         // the next one.
@@ -73,7 +73,7 @@ impl BaseRefreshDriver {
         // Limit the borrow of `self.observers` to the minimum here.
         let still_has_observers = {
             let mut observers = self.observers.borrow_mut();
-            observers.retain(|observer| observer.frame_started(compositor));
+            observers.retain(|observer| observer.frame_started(renderer));
             !observers.is_empty()
         };
 
@@ -115,7 +115,7 @@ pub(crate) trait RefreshDriverObserver {
     /// Informs the observer that a new frame has started. The observer should return
     /// `true` to keep observing or `false` if wants to stop observing and should be
     /// removed by the [`BaseRefreshDriver`].
-    fn frame_started(&self, compositor: &mut IOCompositor) -> bool;
+    fn frame_started(&self, compositor: &mut Painter) -> bool;
 }
 
 /// The [`AnimationRefreshDriverObserver`] is the default implementation of a
@@ -167,7 +167,7 @@ impl AnimationRefreshDriverObserver {
 }
 
 impl RefreshDriverObserver for AnimationRefreshDriverObserver {
-    fn frame_started(&self, compositor: &mut IOCompositor) -> bool {
+    fn frame_started(&self, compositor: &mut Painter) -> bool {
         // If any WebViews are animating ask them to paint again for another animation tick.
         let animating_webviews = compositor.animating_webviews();
 
