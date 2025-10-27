@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::fmt;
-use std::marker::PhantomData;
-
 use markup5ever::{LocalName, Namespace, Prefix, QualName};
 
 use crate::NamespaceResolver;
@@ -15,7 +12,7 @@ use crate::ast::{
 use crate::tokenizer::{Error as TokenizerError, LiteralToken, OperatorToken, Token, tokenize};
 
 #[derive(Clone, Debug)]
-pub enum Error<E> {
+pub enum Error {
     Tokenization(TokenizerError),
     UnknownFunction,
     ExpectedSeperatorBetweenFunctionArguments,
@@ -29,25 +26,23 @@ pub enum Error<E> {
     UnknownNodeTest,
     ExpectedNodeTest,
     UnexpectedEndOfInput,
-    /// A JS exception that needs to be propagated to the caller.
-    JsError(E),
+    FailedToResolveNamespacePrefix,
 }
 
-impl<E> From<TokenizerError> for Error<E> {
+impl From<TokenizerError> for Error {
     fn from(value: TokenizerError) -> Self {
         Self::Tokenization(value)
     }
 }
 
 /// Parse an XPath expression from a string.
-pub fn parse<N, E>(
+pub fn parse<N>(
     input: &str,
     namespace_resolver: Option<N>,
     is_in_html_document: bool,
-) -> Result<Expression, Error<E>>
+) -> Result<Expression, Error>
 where
-    N: NamespaceResolver<E>,
-    E: fmt::Debug,
+    N: NamespaceResolver,
 {
     let mut parser = Parser::new(input, namespace_resolver, is_in_html_document)?;
     let root_expression = parser.parse_expression()?;
@@ -63,21 +58,19 @@ where
     Ok(root_expression)
 }
 
-pub(crate) struct Parser<'a, E, N>
+pub(crate) struct Parser<'a, N>
 where
-    N: NamespaceResolver<E>,
+    N: NamespaceResolver,
 {
     tokens: Vec<Token<'a>>,
     position: usize,
     namespace_resolver: Option<N>,
     is_in_html_document: bool,
-    marker: PhantomData<E>,
 }
 
-impl<'a, E, N> Parser<'a, E, N>
+impl<'a, N> Parser<'a, N>
 where
-    E: fmt::Debug,
-    N: NamespaceResolver<E>,
+    N: NamespaceResolver,
 {
     pub(crate) fn new(
         input: &'a str,
@@ -89,12 +82,11 @@ where
             position: 0,
             namespace_resolver,
             is_in_html_document,
-            marker: PhantomData,
         };
         Ok(parser)
     }
 
-    fn expect_current_token(&self) -> Result<Token<'a>, Error<E>> {
+    fn expect_current_token(&self) -> Result<Token<'a>, Error> {
         self.tokens
             .get(self.position)
             .copied()
@@ -113,15 +105,16 @@ where
         &self.tokens[self.position..]
     }
 
-    fn resolve_qualified_name(&self, prefix: &str) -> Result<Option<Namespace>, E> {
+    fn resolve_qualified_name(&self, prefix: &str) -> Result<Namespace, Error> {
         let Some(namespace_resolver) = self.namespace_resolver.as_ref() else {
-            return Ok(None);
+            return Err(Error::FailedToResolveNamespacePrefix);
         };
 
         log::debug!("Resolving namespace prefix: {:?}", prefix);
         namespace_resolver
-            .resolve_namespace_prefix(Some(prefix))
-            .map(|value| value.map(Namespace::from))
+            .resolve_namespace_prefix(prefix)
+            .map(Namespace::from)
+            .ok_or(Error::FailedToResolveNamespacePrefix)
     }
 
     fn advance_if_current_token_equals(&mut self, wanted: Token<'a>) -> bool {
@@ -133,7 +126,7 @@ where
         }
     }
 
-    pub(crate) fn parse_expression(&mut self) -> Result<Expression, Error<E>> {
+    pub(crate) fn parse_expression(&mut self) -> Result<Expression, Error> {
         let mut result;
 
         let mut expression_stack: Vec<(Expression, OperatorToken)> = vec![];
@@ -181,7 +174,7 @@ where
     }
 
     /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-UnionExpr>
-    fn parse_union_expression(&mut self) -> Result<Expression, Error<E>> {
+    fn parse_union_expression(&mut self) -> Result<Expression, Error> {
         let mut result = self.parse_path_expression()?;
 
         while self.advance_if_current_token_equals(Token::Union) {
@@ -193,7 +186,7 @@ where
     }
 
     /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-PathExpr>
-    fn parse_path_expression(&mut self) -> Result<Expression, Error<E>> {
+    fn parse_path_expression(&mut self) -> Result<Expression, Error> {
         let current_token = self.expect_current_token()?;
 
         let is_absolute = matches!(current_token, Token::Parent | Token::Ancestor);
@@ -271,7 +264,7 @@ where
     /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-FilterExpr>
     ///
     /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-Step>
-    fn parse_filter_or_step_expression(&mut self) -> Result<Expression, Error<E>> {
+    fn parse_filter_or_step_expression(&mut self) -> Result<Expression, Error> {
         let mut expression = match self.expect_current_token()? {
             Token::FunctionCall(name) => {
                 self.advance(1);
@@ -311,7 +304,7 @@ where
     }
 
     /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#section-Location-Steps>
-    fn parse_step_expression(&mut self) -> Result<Expression, Error<E>> {
+    fn parse_step_expression(&mut self) -> Result<Expression, Error> {
         let axis;
         let mut node_test = None;
 
@@ -368,9 +361,8 @@ where
             } else {
                 let namespace = name_token
                     .prefix
-                    .map(|prefix| self.resolve_qualified_name(prefix).map_err(Error::JsError))
-                    .transpose()?
-                    .flatten();
+                    .map(|prefix| self.resolve_qualified_name(prefix))
+                    .transpose()?;
 
                 let local_name = if self.is_in_html_document && name_token.prefix.is_none() {
                     LocalName::from(name_token.local_name.to_ascii_lowercase().as_str())
@@ -398,7 +390,7 @@ where
         }))
     }
 
-    fn parse_node_test(&mut self) -> Result<NodeTest, Error<E>> {
+    fn parse_node_test(&mut self) -> Result<NodeTest, Error> {
         let kind_test = match self.expect_current_token()? {
             Token::CommentTest => {
                 self.advance(1);
@@ -437,7 +429,7 @@ where
     }
 
     /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#predicates>
-    fn parse_predicates(&mut self) -> Result<PredicateListExpression, Error<E>> {
+    fn parse_predicates(&mut self) -> Result<PredicateListExpression, Error> {
         let mut predicates = vec![];
         while self.advance_if_current_token_equals(Token::OpeningBracket) {
             let expression = self.parse_expression()?;
@@ -449,21 +441,20 @@ where
         Ok(PredicateListExpression { predicates })
     }
 
-    fn parse_function_call(&mut self, function_name: &str) -> Result<Expression, Error<E>> {
-        struct ArgumentIterator<'a, 'b, E, N>
+    fn parse_function_call(&mut self, function_name: &str) -> Result<Expression, Error> {
+        struct ArgumentIterator<'a, 'b, N>
         where
-            N: NamespaceResolver<E>,
+            N: NamespaceResolver,
         {
-            parser: &'b mut Parser<'a, E, N>,
+            parser: &'b mut Parser<'a, N>,
             done: bool,
         }
 
-        impl<'a, 'b, E, N> ArgumentIterator<'a, 'b, E, N>
+        impl<'a, 'b, N> ArgumentIterator<'a, 'b, N>
         where
-            E: fmt::Debug,
-            N: NamespaceResolver<E>,
+            N: NamespaceResolver,
         {
-            fn maybe_next(&mut self) -> Result<Option<Expression>, Error<E>> {
+            fn maybe_next(&mut self) -> Result<Option<Expression>, Error> {
                 if self.done {
                     return Ok(None);
                 }
@@ -481,7 +472,7 @@ where
                 Ok(Some(expression))
             }
 
-            fn next(&mut self) -> Result<Expression, Error<E>> {
+            fn next(&mut self) -> Result<Expression, Error> {
                 self.maybe_next()
                     .and_then(|maybe_argument| maybe_argument.ok_or(Error::TooFewFunctionArguments))
             }
@@ -612,9 +603,9 @@ mod tests {
     #[derive(Clone)]
     struct DummyNamespaceResolver;
 
-    impl NamespaceResolver<()> for DummyNamespaceResolver {
-        fn resolve_namespace_prefix(&self, _: Option<&str>) -> Result<Option<String>, ()> {
-            Ok(Some("http://www.w3.org/1999/xhtml".to_owned()))
+    impl NamespaceResolver for DummyNamespaceResolver {
+        fn resolve_namespace_prefix(&self, _: &str) -> Option<String> {
+            Some("http://www.w3.org/1999/xhtml".to_owned())
         }
     }
 

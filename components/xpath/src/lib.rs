@@ -22,9 +22,7 @@ pub use value::{NodesetHelpers, Value};
 
 pub trait Dom {
     type Node: Node;
-    /// An exception that can occur during JS evaluation.
-    type JsError: fmt::Debug;
-    type NamespaceResolver: NamespaceResolver<Self::JsError>;
+    type NamespaceResolver: NamespaceResolver;
 }
 
 /// A handle to a DOM node exposing all functionality needed by xpath.
@@ -59,8 +57,8 @@ pub trait Node: Eq + Clone + fmt::Debug {
     fn get_root_node(&self) -> Self;
 }
 
-pub trait NamespaceResolver<E>: Clone {
-    fn resolve_namespace_prefix(&self, prefix: Option<&str>) -> Result<Option<String>, E>;
+pub trait NamespaceResolver: Clone {
+    fn resolve_namespace_prefix(&self, prefix: &str) -> Option<String>;
 }
 
 pub trait ProcessingInstruction {
