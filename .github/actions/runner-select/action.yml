@@ -1,3 +1,4 @@
+# NOTE: requires `GITHUB_TOKEN: ${{ github.token }}` in `env`
 name: Select Self-hosted Runner
 inputs:
   github-hosted-runner-label:
@@ -72,7 +73,8 @@ runs:
         echo "qualified_repo=${{ github.repository }}" | tee -a "$artifact_path"
         echo "run_id=${{ github.run_id }}" | tee -a "$artifact_path"
 
-    - name: Publish artifact with args
+    - id: artifact
+      name: Publish artifact with args
       if: ${{ !fromJSON(steps.init.outputs.disabled) }}
       uses: actions/upload-artifact@v4
       with:
@@ -131,3 +133,12 @@ runs:
         echo
         echo 'No self-hosted runners available!'
         fall_back_to_github_hosted
+
+    - name: Delete args artifact
+      if: ${{ always() }}
+      shell: bash
+      run: |
+        artifact_id='${{ steps.artifact.outputs.artifact-id }}'
+        gh api -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' \
+          -X DELETE '/repos/${{ github.repository }}/actions/artifacts/'"$artifact_id" \
+        || :  # Don’t fail the build if this fails
