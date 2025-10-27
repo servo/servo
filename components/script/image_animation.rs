@@ -67,8 +67,10 @@ impl ImageAnimationManager {
                 }
 
                 let image = &state.image;
-                let (descriptor, ipc_shared_memory) =
-                    image.webrender_image_descriptor_and_data_for_frame(state.active_frame);
+                let reader = window.image_cache().byte_store();
+                let reader = reader.reader();
+                let (descriptor, ipc_shared_memory) = image
+                    .webrender_image_descriptor_and_data_for_frame(state.active_frame, &reader);
 
                 Some(ImageUpdate::UpdateImage(
                     image.id.unwrap(),

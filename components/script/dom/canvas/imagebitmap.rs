@@ -538,14 +538,16 @@ impl ImageBitmap {
                 // (e.g., a vector graphic with no natural size), then queue
                 // a global task, using the bitmap task source, to reject promise
                 // with an "InvalidStateError" DOMException and abort these steps.
-                let Some(raster_image) = pixels::load_from_memory(&bytes, CorsStatus::Safe) else {
+
+                let image_cache = global_scope.image_cache();
+                let Some(img) = image_cache.load_from_memory(&bytes, CorsStatus::Safe) else {
                     reject_promise_on_bitmap_task_source(&p);
                     return p;
                 };
 
                 // Step 6.4. Set imageBitmap's bitmap data to imageData, cropped
                 // to the source rectangle with formatting.
-                let snapshot = raster_image.as_snapshot();
+                let snapshot = img.as_snapshot(&image_cache.byte_store().reader());
                 let Some(bitmap_data) =
                     ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
                 else {

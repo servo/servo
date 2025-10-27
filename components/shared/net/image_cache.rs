@@ -10,7 +10,7 @@ use ipc_channel::ipc::IpcSender;
 use log::debug;
 use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
-use pixels::{CorsStatus, ImageMetadata, RasterImage};
+use pixels::{CorsStatus, ImageByteStorage, ImageMetadata, RasterImage};
 use profile_traits::mem::Report;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -240,4 +240,10 @@ pub trait ImageCache: Sync + Send {
 
     /// Fills the image cache with a batch of keys.
     fn fill_key_cache_with_batch_of_keys(&self, image_keys: Vec<ImageKey>);
+
+    /// Get a reference to the ImageByteStore.
+    fn byte_store(&self) -> Arc<ImageByteStorage>;
+
+    /// Load an image from memory, storing it in the cache.
+    fn load_from_memory(&self, buffer: &[u8], cors_status: CorsStatus) -> Option<RasterImage>;
 }

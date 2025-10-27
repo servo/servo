@@ -12,7 +12,7 @@ use base::id::{PipelineId, WebViewId};
 use base::threadpool::ThreadPool;
 use compositing_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
 use imsz::imsz_from_reader;
-use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::IpcSender;
 use log::{debug, warn};
 use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
@@ -24,7 +24,10 @@ use net_traits::image_cache::{
 };
 use net_traits::request::CorsSettings;
 use net_traits::{FetchMetadata, FetchResponseMsg, FilteredMetadata, NetworkError};
-use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, load_from_memory};
+use pixels::{
+    CorsStatus, ImageByteStorage, ImageByteStorageRead, ImageByteStorageWriter, ImageFrame,
+    ImageMetadata, PixelFormat, RasterImage, load_from_memory,
+};
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
 use resvg::tiny_skia;
@@ -94,6 +97,7 @@ fn decode_bytes_sync(
     cors: CorsStatus,
     content_type: Option<Mime>,
     fontdb: Arc<fontdb::Database>,
+    storage: &mut ImageByteStorageWriter,
 ) -> DecoderMsg {
     let image = if content_type == Some(mime::IMAGE_SVG) {
         parse_svg_document_in_memory(bytes, fontdb)
@@ -105,7 +109,7 @@ fn decode_bytes_sync(
                 })
             })
     } else {
-        load_from_memory(bytes, cors).map(DecodedImage::Raster)
+        load_from_memory(bytes, cors, storage).map(DecodedImage::Raster)
     };
 
     DecoderMsg { key, image }
@@ -116,14 +120,15 @@ fn decode_bytes_sync(
 fn get_placeholder_image(
     compositor_api: &CrossProcessCompositorApi,
     data: &[u8],
+    storage: &mut ImageByteStorageWriter,
 ) -> Arc<RasterImage> {
-    let mut image = load_from_memory(data, CorsStatus::Unsafe)
-        .or_else(|| load_from_memory(FALLBACK_RIPPY, CorsStatus::Unsafe))
+    let mut image = load_from_memory(data, CorsStatus::Unsafe, storage)
+        .or_else(|| load_from_memory(FALLBACK_RIPPY, CorsStatus::Unsafe, storage))
         .expect("load fallback image failed");
     let image_key = compositor_api
         .generate_image_key_blocking()
         .expect("Could not generate image key");
-    set_webrender_image_key(compositor_api, &mut image, image_key);
+    set_webrender_image_key(compositor_api, &mut image, image_key, storage);
     Arc::new(image)
 }
 
@@ -131,12 +136,14 @@ fn set_webrender_image_key(
     compositor_api: &CrossProcessCompositorApi,
     image: &mut RasterImage,
     image_key: WebRenderImageKey,
+    storage_reader: &impl ImageByteStorageRead,
 ) {
     if image.id.is_some() {
         return;
     }
 
-    let (descriptor, ipc_shared_memory) = image.webrender_image_descriptor_and_data_for_frame(0);
+    let (descriptor, ipc_shared_memory) =
+        image.webrender_image_descriptor_and_data_for_frame(0, storage_reader);
     let data = SerializableImageData::Raw(ipc_shared_memory);
 
     compositor_api.add_image(image_key, descriptor, data);
@@ -454,6 +461,11 @@ struct ImageCacheStore {
     /// Images that have finished loading (successful or not)
     completed_loads: HashMap<ImageKey, CompletedLoad>,
 
+    /// The storage for the bytes of the images
+    // TODO: Ideally this should be outside the cache store to not have double locking.
+    #[conditional_malloc_size_of]
+    bytes_store: Arc<ImageByteStorage>,
+
     /// Vector (e.g. SVG) images that have been sucessfully loaded and parsed
     /// but are yet to be rasterized. Since the same SVG data can be used for
     /// rasterizing at different sizes, we use this hasmap to share the data.
@@ -491,11 +503,22 @@ impl ImageCacheStore {
     fn set_key_and_finish_load(&mut self, pending_image: PendingKey, image_key: WebRenderImageKey) {
         match pending_image {
             PendingKey::RasterImage((pending_id, mut raster_image)) => {
-                set_webrender_image_key(&self.compositor_api, &mut raster_image, image_key);
+                set_webrender_image_key(
+                    &self.compositor_api,
+                    &mut raster_image,
+                    image_key,
+                    &self.bytes_store.reader(),
+                );
+
                 self.complete_load(pending_id, LoadResult::LoadedRasterImage(raster_image));
             },
             PendingKey::Svg((pending_id, mut raster_image, requested_size)) => {
-                set_webrender_image_key(&self.compositor_api, &mut raster_image, image_key);
+                set_webrender_image_key(
+                    &self.compositor_api,
+                    &mut raster_image,
+                    image_key,
+                    &self.bytes_store.reader(),
+                );
                 self.complete_load_svg(raster_image, pending_id, requested_size);
             },
         }
@@ -611,7 +634,8 @@ impl ImageCacheStore {
                 ImageResponse::Loaded(Image::Vector(vector_image), url.unwrap())
             },
             LoadResult::PlaceholderLoaded(image) => {
-                ImageResponse::PlaceholderLoaded(image, self.placeholder_url.clone())
+                let image = Arc::unwrap_or_clone(image);
+                ImageResponse::PlaceholderLoaded(Arc::new(image), self.placeholder_url.clone())
             },
             LoadResult::None => ImageResponse::None,
         };
@@ -712,13 +736,17 @@ impl ImageCacheFactory for ImageCacheFactoryImpl {
         pipeline_id: PipelineId,
         compositor_api: &CrossProcessCompositorApi,
     ) -> Arc<dyn ImageCache> {
+        let bytes_store = Arc::new(ImageByteStorage::default());
+        let placeholder_image =
+            get_placeholder_image(compositor_api, &self.rippy_data, &mut bytes_store.writer());
         Arc::new(ImageCacheImpl {
             store: Arc::new(Mutex::new(ImageCacheStore {
                 pending_loads: AllPendingLoads::new(),
                 completed_loads: HashMap::new(),
                 vector_images: FxHashMap::default(),
+                bytes_store,
                 rasterized_vector_images: FxHashMap::default(),
-                placeholder_image: get_placeholder_image(compositor_api, &self.rippy_data),
+                placeholder_image,
                 placeholder_url: ServoUrl::parse("chrome://resources/rippy.png").unwrap(),
                 compositor_api: compositor_api.clone(),
                 pipeline_id,
@@ -787,6 +815,7 @@ impl ImageCache for ImageCacheImpl {
         cors_setting: Option<CorsSettings>,
         use_placeholder: UsePlaceholder,
     ) -> ImageCacheResult {
+        let bytes_store = self.store.lock().unwrap().bytes_store.clone();
         let mut store = self.store.lock().unwrap();
         if let Some(result) = store.get_completed_image_if_available(
             url.clone(),
@@ -827,6 +856,7 @@ impl ImageCache for ImageCacheImpl {
                                 pl.cors_status,
                                 pl.content_type.clone(),
                                 self.fontdb.clone(),
+                                &mut bytes_store.writer(),
                             ),
                         )
                     },
@@ -967,7 +997,8 @@ impl ImageCache for ImageCacheImpl {
                 width: tinyskia_requested_size.width(),
                 height: tinyskia_requested_size.height(),
             };
-
+            let mut store = store.lock().unwrap();
+            let index = store.bytes_store.writer().insert(bytes.to_vec());
             let rasterized_image = RasterImage {
                 metadata: ImageMetadata {
                     width: tinyskia_requested_size.width(),
@@ -975,13 +1006,12 @@ impl ImageCache for ImageCacheImpl {
                 },
                 format: PixelFormat::RGBA8,
                 frames: vec![frame],
-                bytes: Arc::new(IpcSharedMemory::from_bytes(&bytes)),
+                index: index.clone(),
                 id: None,
                 cors_status: vector_image.cors_status,
                 is_opaque: false,
             };
 
-            let mut store = store.lock().unwrap();
             store.load_image_with_keycache(PendingKey::Svg((
                 image_id,
                 rasterized_image,
@@ -1074,8 +1104,14 @@ impl ImageCache for ImageCacheImpl {
                         let local_store = self.store.clone();
                         let fontdb = self.fontdb.clone();
                         self.thread_pool.spawn(move || {
-                            let msg =
-                                decode_bytes_sync(key, &bytes, cors_status, content_type, fontdb);
+                            let msg = decode_bytes_sync(
+                                key,
+                                &bytes,
+                                cors_status,
+                                content_type,
+                                fontdb,
+                                &mut local_store.lock().unwrap().bytes_store.writer(),
+                            );
                             debug!("Image decoded");
                             local_store.lock().unwrap().handle_decoder(msg);
                         });
@@ -1094,6 +1130,16 @@ impl ImageCache for ImageCacheImpl {
     fn fill_key_cache_with_batch_of_keys(&self, image_keys: Vec<WebRenderImageKey>) {
         let mut store = self.store.lock().unwrap();
         store.insert_keys_and_load_images(image_keys);
+    }
+
+    fn byte_store(&self) -> Arc<ImageByteStorage> {
+        self.store.lock().unwrap().bytes_store.clone()
+    }
+
+    fn load_from_memory(&self, buffer: &[u8], cors_status: CorsStatus) -> Option<RasterImage> {
+        let store = self.store.lock().unwrap();
+        let mut bytes_store = store.bytes_store.writer();
+        pixels::load_from_memory(buffer, cors_status, &mut bytes_store)
     }
 }
 

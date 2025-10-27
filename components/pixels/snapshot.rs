@@ -199,7 +199,7 @@ impl Snapshot {
         size: Size2D<u32>,
         format: SnapshotPixelFormat,
         alpha_mode: SnapshotAlphaMode,
-        data: Arc<IpcSharedMemory>,
+        data: Vec<u8>,
         byte_range_bounds: impl RangeBounds<usize>,
     ) -> Self {
         let range_start = match byte_range_bounds.start_bound() {
@@ -214,7 +214,7 @@ impl Snapshot {
         };
         Self {
             size,
-            data: SnapshotData::SharedMemory(data, range_start..range_end),
+            data: SnapshotData::Owned(data[range_start..range_end].to_vec()),
             format,
             alpha_mode,
         }

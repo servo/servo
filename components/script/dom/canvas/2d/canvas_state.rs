@@ -24,7 +24,7 @@ use fonts::{
     ByteIndex, FontBaseline, FontContext, FontGroup, FontIdentifier, FontMetrics, FontRef,
     LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
 };
-use ipc_channel::ipc;
+use ipc_channel::ipc::{self};
 use net_traits::image_cache::{ImageCache, ImageResponse};
 use net_traits::request::CorsSettings;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
@@ -418,7 +418,8 @@ impl CanvasState {
             },
         };
 
-        Some(raster_image.as_snapshot())
+        let byte_store = self.image_cache.byte_store();
+        Some(raster_image.as_snapshot(&byte_store.reader()))
     }
 
     fn request_image_from_cache(

@@ -7,7 +7,7 @@ mod snapshot;
 use std::borrow::Cow;
 use std::io::Cursor;
 use std::ops::Range;
-use std::sync::Arc;
+use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::time::Duration;
 use std::{cmp, fmt, vec};
 
@@ -21,6 +21,7 @@ use image::{
 };
 use ipc_channel::ipc::IpcSharedMemory;
 use log::debug;
+use malloc_size_of::MallocSizeOf;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 pub use snapshot::*;
@@ -287,8 +288,7 @@ pub struct RasterImage {
     pub format: PixelFormat,
     pub id: Option<ImageKey>,
     pub cors_status: CorsStatus,
-    #[conditional_malloc_size_of]
-    pub bytes: Arc<IpcSharedMemory>,
+    pub index: ImageByteStorageIndex,
     pub frames: Vec<ImageFrame>,
     /// Whether or not all of the frames of this image are opaque.
     pub is_opaque: bool,
@@ -342,25 +342,41 @@ impl RasterImage {
         self.frames.len() > 1
     }
 
-    fn frame_view<'image>(&'image self, frame: &ImageFrame) -> ImageFrameView<'image> {
-        ImageFrameView {
-            delay: frame.delay,
-            bytes: self.bytes.get(frame.byte_range.clone()).unwrap(),
-            width: frame.width,
-            height: frame.height,
-        }
+    fn frame_view<'image>(
+        &'image self,
+        frame: &ImageFrame,
+        storage: &'image impl ImageByteStorageRead,
+    ) -> Option<ImageFrameView<'image>> {
+        storage
+            .get(&self.index)
+            .and_then(|o| o.get(frame.byte_range.clone()))
+            .map(|bytes| ImageFrameView {
+                delay: frame.delay,
+                bytes,
+                width: frame.width,
+                height: frame.height,
+            })
     }
 
-    pub fn frame(&self, index: usize) -> Option<ImageFrameView<'_>> {
-        self.frames.get(index).map(|frame| self.frame_view(frame))
+    pub fn frame<'image>(
+        &'image self,
+        index: usize,
+        storage: &'image impl ImageByteStorageRead,
+    ) -> Option<ImageFrameView<'image>> {
+        self.frames
+            .get(index)
+            .and_then(|frame| self.frame_view(frame, storage))
     }
 
-    pub fn first_frame(&self) -> ImageFrameView<'_> {
-        self.frame(0)
+    pub fn first_frame<'image>(
+        &'image self,
+        storage: &'image impl ImageByteStorageRead,
+    ) -> ImageFrameView<'image> {
+        self.frame(0, storage)
             .expect("All images should have at least one frame")
     }
 
-    pub fn as_snapshot(&self) -> Snapshot {
+    pub fn as_snapshot(&self, reader: &ImageByteStorageReader) -> Snapshot {
         let size = Size2D::new(self.metadata.width, self.metadata.height);
         let format = match self.format {
             PixelFormat::BGRA8 => SnapshotPixelFormat::BGRA,
@@ -378,7 +394,7 @@ impl RasterImage {
             size.cast(),
             format,
             alpha_mode,
-            self.bytes.clone(),
+            reader.get(&self.index).unwrap().clone(),
             self.frames[0].byte_range.clone(),
         )
     }
@@ -386,6 +402,7 @@ impl RasterImage {
     pub fn webrender_image_descriptor_and_data_for_frame(
         &self,
         frame_index: usize,
+        reader: &impl ImageByteStorageRead,
     ) -> (ImageDescriptor, IpcSharedMemory) {
         let frame = self
             .frames
@@ -393,10 +410,17 @@ impl RasterImage {
             .expect("Asked for a frame that did not exist: {frame_index:?}");
 
         let (format, ipc_shared_memory) = match self.format {
-            PixelFormat::BGRA8 => (WebRenderImageFormat::BGRA8, (*self.bytes).clone()),
-            PixelFormat::RGBA8 => (WebRenderImageFormat::RGBA8, (*self.bytes).clone()),
+            PixelFormat::BGRA8 => (
+                WebRenderImageFormat::BGRA8,
+                IpcSharedMemory::from_bytes(reader.get(&self.index).expect("Could not find bytes")),
+            ),
+            PixelFormat::RGBA8 => (
+                WebRenderImageFormat::RGBA8,
+                IpcSharedMemory::from_bytes(reader.get(&self.index).expect("Could not find bytes")),
+            ),
             PixelFormat::RGB8 => {
-                let frame_bytes = &self.bytes[frame.byte_range.clone()];
+                let bytes = reader.get(&self.index).expect("Could not find bytes");
+                let frame_bytes = &bytes[frame.byte_range.clone()];
                 let mut bytes = Vec::with_capacity(frame_bytes.len() / 3 * 4);
                 for rgb in frame_bytes.chunks(3) {
                     bytes.extend_from_slice(&[rgb[2], rgb[1], rgb[0], 0xff]);
@@ -441,10 +465,90 @@ pub struct ImageMetadata {
     pub height: u32,
 }
 
+/// The images store their bytes in this storage.
+#[derive(Debug, Default)]
+pub struct ImageByteStorage {
+    storage: RwLock<Vec<Vec<u8>>>,
+}
+
+/// Image cache depends on clone being a deep clone.
+impl Clone for ImageByteStorage {
+    fn clone(&self) -> Self {
+        let vector = self.storage.read().unwrap().to_owned();
+        Self {
+            storage: RwLock::new(vector),
+        }
+    }
+}
+
+impl MallocSizeOf for ImageByteStorage {
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        self.storage
+            .read()
+            .unwrap()
+            .iter()
+            .map(|s| s.size_of(ops))
+            .sum()
+    }
+}
+
+impl<'a> ImageByteStorage {
+    pub fn reader(&'a self) -> ImageByteStorageReader<'a> {
+        ImageByteStorageReader(self.storage.read().unwrap())
+    }
+
+    pub fn writer(&'a self) -> ImageByteStorageWriter<'a> {
+        ImageByteStorageWriter(self.storage.write().unwrap())
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, MallocSizeOf)]
+pub struct ImageByteStorageIndex(usize);
+
+impl ImageByteStorageIndex {
+    #[allow(unused)]
+    pub fn mock_for_testing() -> Self {
+        ImageByteStorageIndex(0)
+    }
+}
+
+pub trait ImageByteStorageRead {
+    fn get(&self, index: &ImageByteStorageIndex) -> Option<&Vec<u8>>;
+}
+
+#[derive(Debug)]
+pub struct ImageByteStorageReader<'a>(RwLockReadGuard<'a, Vec<Vec<u8>>>);
+
+impl<'a> ImageByteStorageRead for ImageByteStorageReader<'a> {
+    fn get(&self, index: &ImageByteStorageIndex) -> Option<&Vec<u8>> {
+        self.0.get(index.0)
+    }
+}
+
+#[derive(Debug)]
+pub struct ImageByteStorageWriter<'a>(RwLockWriteGuard<'a, Vec<Vec<u8>>>);
+
+impl<'a> ImageByteStorageWriter<'a> {
+    pub fn insert(&mut self, data: Vec<u8>) -> ImageByteStorageIndex {
+        let index = self.0.len();
+        self.0.push(data);
+        ImageByteStorageIndex(index)
+    }
+}
+
+impl<'a> ImageByteStorageRead for ImageByteStorageWriter<'a> {
+    fn get(&self, index: &ImageByteStorageIndex) -> Option<&Vec<u8>> {
+        self.0.get(index.0)
+    }
+}
+
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
-
-pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<RasterImage> {
+pub fn load_from_memory(
+    buffer: &[u8],
+    cors_status: CorsStatus,
+    storage: &mut ImageByteStorageWriter,
+) -> Option<RasterImage> {
     if buffer.is_empty() {
         return None;
     }
@@ -465,29 +569,29 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Raster
                         let Ok(apng_decoder) = png_decoder.apng() else {
                             return None;
                         };
-                        decode_animated_image(cors_status, apng_decoder)
+                        decode_animated_image(cors_status, apng_decoder, storage)
                     } else {
-                        decode_static_image(cors_status, *png_decoder)
+                        decode_static_image(cors_status, *png_decoder, storage)
                     }
                 },
                 GenericImageDecoder::Gif(animation_decoder) => {
-                    decode_animated_image(cors_status, *animation_decoder)
+                    decode_animated_image(cors_status, *animation_decoder, storage)
                 },
                 GenericImageDecoder::Webp(webp_decoder) => {
                     if webp_decoder.has_animation() {
-                        decode_animated_image(cors_status, *webp_decoder)
+                        decode_animated_image(cors_status, *webp_decoder, storage)
                     } else {
-                        decode_static_image(cors_status, *webp_decoder)
+                        decode_static_image(cors_status, *webp_decoder, storage)
                     }
                 },
                 GenericImageDecoder::Bmp(image_decoder) => {
-                    decode_static_image(cors_status, *image_decoder)
+                    decode_static_image(cors_status, *image_decoder, storage)
                 },
                 GenericImageDecoder::Jpeg(image_decoder) => {
-                    decode_static_image(cors_status, *image_decoder)
+                    decode_static_image(cors_status, *image_decoder, storage)
                 },
                 GenericImageDecoder::Ico(image_decoder) => {
-                    decode_static_image(cors_status, *image_decoder)
+                    decode_static_image(cors_status, *image_decoder, storage)
                 },
             }
         },
@@ -672,6 +776,7 @@ fn make_decoder(
 fn decode_static_image(
     cors_status: CorsStatus,
     image_decoder: impl ImageDecoder,
+    storage: &mut ImageByteStorageWriter,
 ) -> Option<RasterImage> {
     let Ok(dynamic_image) = DynamicImage::from_decoder(image_decoder) else {
         debug!("Image decoding error");
@@ -690,6 +795,7 @@ fn decode_static_image(
         width: rgba.width(),
         height: rgba.height(),
     };
+    let index = storage.insert(rgba.to_vec());
     Some(RasterImage {
         metadata: ImageMetadata {
             width: rgba.width(),
@@ -697,7 +803,7 @@ fn decode_static_image(
         },
         format: PixelFormat::RGBA8,
         frames: vec![frame],
-        bytes: Arc::new(IpcSharedMemory::from_bytes(&rgba)),
+        index,
         id: None,
         cors_status,
         is_opaque,
@@ -707,6 +813,7 @@ fn decode_static_image(
 fn decode_animated_image<'a, T>(
     cors_status: CorsStatus,
     animated_image_decoder: T,
+    storage: &mut ImageByteStorageWriter,
 ) -> Option<RasterImage>
 where
     T: AnimationDecoder<'a>,
@@ -768,14 +875,14 @@ where
     for frame in frame_data {
         bytes.extend_from_slice(frame.buffer());
     }
-
+    let index = storage.insert(bytes.to_vec());
     Some(RasterImage {
         metadata: ImageMetadata { width, height },
         cors_status,
         frames,
         id: None,
         format: PixelFormat::RGBA8,
-        bytes: Arc::new(IpcSharedMemory::from_bytes(&bytes)),
+        index,
         is_opaque,
     })
 }
