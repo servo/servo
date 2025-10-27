@@ -1065,7 +1065,9 @@ impl HTMLFormElement {
             if let Some(frame) = window_proxy
                 .frame_element()
                 .and_then(|e| e.downcast::<HTMLIFrameElement>())
-            {frame.note_pending_navigation()}
+            {
+                frame.note_pending_navigation()
+            }
         }
 
         // 4. Queue an element task on the DOM manipulation task source

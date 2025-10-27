@@ -250,8 +250,7 @@ impl HTMLIFrameElement {
     /// The exception is if it does not have an src,
     /// because then no subsequent document will be created.
     pub(crate) fn is_initial_blank_document(&self) -> bool {
-        self.pending_pipeline_id.get() == self.about_blank_pipeline_id.get() &&
-            self.upcast::<Element>().has_attribute(&local_name!("src"))
+        self.pending_pipeline_id.get() == self.about_blank_pipeline_id.get()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
@@ -553,7 +552,13 @@ impl HTMLIFrameElement {
         // is run through the document completion steps
         // like any other document(and this is hard to refactor).
         // this flag is necessary to prevent the load event steps from running.
-        if !self.is_initial_blank_document() && !self.pending_navigation.get() {
+        let should_fire_event = if self.is_initial_blank_document() {
+            !self.pending_navigation.get() &&
+                !self.upcast::<Element>().has_attribute(&local_name!("src"))
+        } else {
+            true
+        };
+        if should_fire_event {
             // Step 4
             self.upcast::<EventTarget>()
                 .fire_event(atom!("load"), can_gc);
