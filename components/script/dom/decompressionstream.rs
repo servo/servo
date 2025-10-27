@@ -220,7 +220,7 @@ pub(crate) fn decompress_and_enqueue_a_chunk(
     let array: Uint8Array = create_buffer_source(cx, buffer, js_object.handle_mut(), can_gc)
         .map_err(|_| Error::Type("Cannot convert byte sequence to Uint8Array".to_owned()))?;
     rooted!(in(*cx) let mut rval = UndefinedValue());
-    array.safe_to_jsval(cx, rval.handle_mut());
+    array.safe_to_jsval(cx, rval.handle_mut(), can_gc);
     controller.enqueue(cx, global, rval.handle(), can_gc)?;
 
     // NOTE: We don't need to keep result that has been copied to Uint8Array. Clear the inner
@@ -270,7 +270,7 @@ pub(crate) fn decompress_flush_and_enqueue(
         let array: Uint8Array = create_buffer_source(cx, buffer, js_object.handle_mut(), can_gc)
             .map_err(|_| Error::Type("Cannot convert byte sequence to Uint8Array".to_owned()))?;
         rooted!(in(*cx) let mut rval = UndefinedValue());
-        array.safe_to_jsval(cx, rval.handle_mut());
+        array.safe_to_jsval(cx, rval.handle_mut(), can_gc);
         controller.enqueue(cx, global, rval.handle(), can_gc)?;
     }
 
