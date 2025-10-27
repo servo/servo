@@ -130,18 +130,3 @@ runs:
         echo
         echo 'No self-hosted runners available!'
         fall_back_to_github_hosted
-
-    - id: empty-file
-      name: Create an empty file
-      shell: bash
-      run: |
-        # For the “done” artifact in the step below
-        empty_file_path=$(mktemp)
-        echo "empty_file_path=$empty_file_path" | tee -a $GITHUB_OUTPUT
-
-    - name: Publish artifact marking this job as done
-      if: ${{ always() }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: servo-ci-runners_${{ steps.init.outputs.unique_id }}_done
-        path: ${{ steps.empty-file.outputs.empty_file_path }}
