@@ -78,6 +78,7 @@ runs:
       with:
         name: servo-ci-runners_${{ steps.init.outputs.unique_id }}
         path: ${{ steps.init.outputs.artifact_path }}
+        retention-days: 1
 
     - id: decision
       name: Find a server and reserve a runner
