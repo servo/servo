@@ -122,7 +122,7 @@ impl DOMException {
             DOMErrorName::InvalidStateError => "The object is in an invalid state.",
             DOMErrorName::SyntaxError => "The string did not match the expected pattern.",
             DOMErrorName::InvalidModificationError => "The object can not be modified in this way.",
-            DOMErrorName::NamespaceError => "The operation is not allowed by Namespaces in XML.",
+            DOMErrorName::NamespaceError => "The operation is incorrect with regard to namespaces.",
             DOMErrorName::InvalidAccessError => {
                 "The object does not support the operation or argument."
             },
