@@ -8,7 +8,7 @@ use std::default::Default;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use js::rust::HandleObject;
 use net_traits::image_cache::{
     Image, ImageCache, ImageCacheResponseMessage, ImageCacheResult, ImageLoadListener,
@@ -19,7 +19,7 @@ use net_traits::{
     FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError, ReferrerPolicy,
     ResourceFetchTiming, ResourceTimingType,
 };
-use pixels::PixelFormat;
+use pixels::{ImageByteStorageRead, PixelFormat};
 use script_bindings::root::Dom;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
@@ -730,8 +730,10 @@ impl HTMLLinkElement {
         let document = self.owner_document();
 
         let send_rasterized_favicon_to_embedder = |raster_image: &pixels::RasterImage| {
+            let byte_store = self.owner_window().image_cache().byte_store();
+            let reader = byte_store.reader();
             // Let's not worry about animated favicons...
-            let frame = raster_image.first_frame();
+            let frame = raster_image.first_frame(&reader);
 
             let format = match raster_image.format {
                 PixelFormat::K8 => embedder_traits::PixelFormat::K8,
@@ -741,10 +743,11 @@ impl HTMLLinkElement {
                 PixelFormat::BGRA8 => embedder_traits::PixelFormat::BGRA8,
             };
 
+            let bytes = reader.get(&raster_image.index).unwrap();
             let embedder_image = embedder_traits::Image::new(
                 frame.width,
                 frame.height,
-                raster_image.bytes.clone(),
+                std::sync::Arc::new(IpcSharedMemory::from_bytes(bytes)),
                 raster_image.frames[0].byte_range.clone(),
                 format,
             );

@@ -70,8 +70,10 @@ impl ImageAnimationManager {
                 }
 
                 let image = &state.image;
+                let reader = window.image_cache().byte_store();
+                let reader = reader.reader();
                 let frame = image
-                    .frame(state.active_frame)
+                    .frame(state.active_frame, &reader)
                     .expect("active_frame should within range of frames");
 
                 Some(ImageUpdate::UpdateImage(
