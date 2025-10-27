@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://dom.spec.whatwg.org/#interface-xpathexpression
-[Exposed=Window, Pref="dom_xpath_enabled"]
+[Exposed=Window]
 interface XPathExpression {
   // XPathResult.ANY_TYPE = 0
   [Throws] XPathResult evaluate(
