@@ -11,7 +11,7 @@ interface AbortSignal : EventTarget {
   [NewObject] static AbortSignal _any(sequence<AbortSignal> signals);
   readonly attribute boolean aborted;
   readonly attribute any reason;
-  undefined throwIfAborted();
+  [Throws] undefined throwIfAborted();
 
   attribute EventHandler onabort;
 };

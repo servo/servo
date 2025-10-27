@@ -18,7 +18,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AbortSignalBinding::AbortSignalMethods;
 use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventListenerOptions;
-use crate::dom::bindings::error::{Error, ErrorToJsval};
+use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -401,7 +401,7 @@ impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
 
     /// <https://dom.spec.whatwg.org/#dom-abortsignal-throwifaborted>
     #[allow(unsafe_code)]
-    fn ThrowIfAborted(&self) {
+    fn ThrowIfAborted(&self) -> Fallible<()> {
         // The throwIfAborted() method steps are to throw this’s abort reason, if this is aborted.
         if self.aborted() {
             let cx = GlobalScope::get_cx();
@@ -412,7 +412,9 @@ impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
                     ExceptionStackBehavior::Capture,
                 )
             };
+            return Err(Error::JSFailed);
         }
+        Ok(())
     }
 
     // <https://dom.spec.whatwg.org/#dom-abortsignal-onabort>
