@@ -452,7 +452,7 @@ impl WorkerGlobalScope {
         self.worker_name.clone()
     }
 
-    pub(crate) fn get_worker_id(&self) -> WorkerId {
+    pub(crate) fn worker_id(&self) -> WorkerId {
         self.worker_id
     }
 
