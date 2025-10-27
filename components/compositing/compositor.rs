@@ -267,6 +267,7 @@ impl PipelineDetails {
 
 impl Drop for ServoRenderer {
     fn drop(&mut self) {
+        self.webrender_api.stop_render_backend();
         self.webrender_api.shut_down(true);
     }
 }
