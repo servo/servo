@@ -36,6 +36,10 @@ impl DOMStringList {
             can_gc,
         )
     }
+
+    pub(crate) fn strings(&self) -> &Vec<DOMString> {
+        &self.strings
+    }
 }
 
 // https://html.spec.whatwg.org/multipage/#domstringlist

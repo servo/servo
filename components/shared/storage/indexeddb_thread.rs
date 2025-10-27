@@ -5,6 +5,7 @@
 use std::cmp::{Ordering, PartialEq, PartialOrd};
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
+use std::sync::{Arc, Mutex};
 
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
@@ -248,7 +249,7 @@ pub enum PutItemResult {
     CannotOverwrite,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum AsyncReadOnlyOperation {
     /// Gets the value associated with the given key in the associated idb data
     GetKey {
@@ -281,7 +282,7 @@ pub enum AsyncReadOnlyOperation {
     },
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum AsyncReadWriteOperation {
     /// Sets the value of the given key in the associated idb data
     PutItem {
@@ -302,7 +303,7 @@ pub enum AsyncReadWriteOperation {
 
 /// Operations that are not executed instantly, but rather added to a
 /// queue that is eventually run.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum AsyncOperation {
     ReadOnly(AsyncReadOnlyOperation),
     ReadWrite(AsyncReadWriteOperation),
@@ -339,14 +340,6 @@ pub enum SyncOperation {
         ImmutableOrigin,
         String, // Database
         String, // Store
-    ),
-
-    /// Commits changes of a transaction to the database
-    Commit(
-        IpcSender<BackendResult<()>>,
-        ImmutableOrigin,
-        String, // Database
-        u64,    // Transaction serial number
     ),
 
     /// Creates a new index for the database
@@ -410,18 +403,10 @@ pub enum SyncOperation {
     /// commit/abort transactions.
     RegisterNewTxn(
         /// The unique identifier of the transaction
-        IpcSender<u64>,
+        IpcSender<(u64, IpcSender<KvsOperation>)>,
         ImmutableOrigin,
-        String, // Database
-    ),
-
-    /// Starts executing the requests of a transaction
-    /// <https://www.w3.org/TR/IndexedDB-2/#transaction-start>
-    StartTransaction(
-        IpcSender<BackendResult<()>>,
-        ImmutableOrigin,
-        String, // Database
-        u64,    // The serial number of the mutating transaction
+        String,
+        Arc<IndexedDBTransaction>,
     ),
 
     /// Returns the version of the database
@@ -438,14 +423,52 @@ pub enum SyncOperation {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum IndexedDBThreadMsg {
     Sync(SyncOperation),
-    Async(
-        ImmutableOrigin,
-        String, // Database
-        String, // ObjectStore
-        u64,    // Serial number of the transaction that requests this operation
-        IndexedDBTxnMode,
-        AsyncOperation,
-    ),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum KvsOperation {
+    StoreOperation {
+        store_name: String,
+        operation: AsyncOperation,
+    },
+    Wait(IpcSender<()>),
+    Commit(IpcSender<()>),
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum TransactionState {
+    /// The transaction either active or inactive but not yet committed
+    /// It is up to the DOM to choose when to commit, and to store whether the transaction
+    /// is active or not.
+    InProgress,
+    /// The backend is in the process of committing the transaction, no new operations will be accepted
+    Committing,
+    /// The transaction has been committed or aborted, the backend will clean up resources
+    Finished,
+}
+
+/// Shared state between the IndexedDB thread, the executing thread (in the threadpool)
+/// and the transaction in the script thread.
+#[derive(Deserialize, Serialize)]
+pub struct IndexedDBTransaction {
+    // Mode could be used by a more optimal implementation of transactions
+    // that has different allocated threadpools for reading and writing
+    pub mode: IndexedDBTxnMode,
+    /// Names of object stores involved in this transaction
+    pub object_stores: Vec<String>,
+    /// Current state of the transaction
+    pub state: Mutex<TransactionState>,
+}
+
+// IpcReceiver does not implement Debug, so we implement Debug manually
+impl Debug for IndexedDBTransaction {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("IndexedDBTransaction")
+            .field("mode", &self.mode)
+            .field("object_stores", &self.object_stores)
+            .field("state", &self.state)
+            .finish()
+    }
 }
 
 #[cfg(test)]

@@ -4,7 +4,6 @@
 
 use std::cell::Cell;
 
-use base::IpcSend;
 use dom_struct::dom_struct;
 use ipc_channel::router::ROUTER;
 use js::jsapi::Heap;
@@ -15,14 +14,13 @@ use script_bindings::conversions::SafeToJSValConvertible;
 use serde::{Deserialize, Serialize};
 use storage_traits::indexeddb_thread::{
     AsyncOperation, AsyncReadOnlyOperation, BackendError, BackendResult, IndexedDBKeyType,
-    IndexedDBRecord, IndexedDBThreadMsg, IndexedDBTxnMode, PutItemResult,
+    IndexedDBRecord, KvsOperation, PutItemResult,
 };
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::IDBRequestBinding::{
     IDBRequestMethods, IDBRequestReadyState,
 };
-use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransactionMode;
 use crate::dom::bindings::error::{Error, Fallible, create_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -383,12 +381,6 @@ impl IDBRequest {
 
         // Step 5: Run the operation, and queue a returning task in parallel
         // the result will be put into `receiver`
-        let transaction_mode = match transaction.get_mode() {
-            IDBTransactionMode::Readonly => IndexedDBTxnMode::Readonly,
-            IDBTransactionMode::Readwrite => IndexedDBTxnMode::Readwrite,
-            IDBTransactionMode::Versionchange => IndexedDBTxnMode::Versionchange,
-        };
-
         if matches!(
             operation,
             AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Iterate { .. })
@@ -429,18 +421,10 @@ impl IDBRequest {
             }),
         );
 
-        transaction
-            .global()
-            .storage_threads()
-            .send(IndexedDBThreadMsg::Async(
-                global.origin().immutable().clone(),
-                transaction.get_db_name().to_string(),
-                source.get_name().to_string(),
-                transaction.get_serial_number(),
-                transaction_mode,
-                operation,
-            ))
-            .unwrap();
+        transaction.queue_operation(KvsOperation::StoreOperation {
+            store_name: source.get_name().to_string(),
+            operation,
+        });
 
         // Step 6
         Ok(request)
