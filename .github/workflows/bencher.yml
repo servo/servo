@@ -64,7 +64,7 @@ jobs:
         id: select
         uses: ./.github/actions/runner-select
         with:
-          monitor-api-token: ${{ secrets.SERVO_CI_MONITOR_API_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
           github-hosted-runner-label: ubuntu-22.04
           self-hosted-image-name: servo-ubuntu2204-bench
           # You can disable self-hosted runners globally by creating a repository variable named

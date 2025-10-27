@@ -91,7 +91,7 @@ jobs:
         id: select
         uses: ./.github/actions/runner-select
         with:
-          monitor-api-token: ${{ secrets.SERVO_CI_MONITOR_API_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
           github-hosted-runner-label: windows-2022
           self-hosted-image-name: servo-windows10
           # You can disable self-hosted runners globally by creating a repository variable named
