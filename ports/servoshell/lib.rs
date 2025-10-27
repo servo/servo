@@ -9,7 +9,6 @@ mod test;
 
 #[cfg(not(target_os = "android"))]
 mod backtrace;
-mod common;
 #[cfg(not(target_env = "ohos"))]
 mod crash_handler;
 #[cfg(not(any(target_os = "android", target_env = "ohos")))]
@@ -22,6 +21,7 @@ mod parser;
 mod prefs;
 #[cfg(not(any(target_os = "android", target_env = "ohos")))]
 mod resources;
+mod running_app_state;
 
 pub mod platform {
     #[cfg(target_os = "macos")]

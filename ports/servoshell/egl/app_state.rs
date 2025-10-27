@@ -29,9 +29,9 @@ use servo::{
 };
 use url::Url;
 
-use crate::common::webdriver::WebDriverSupport;
 use crate::egl::host_trait::HostTrait;
 use crate::prefs::ServoShellPreferences;
+use crate::running_app_state::{RunningAppStateBase, RunningAppStateTrait};
 
 #[derive(Clone, Debug)]
 pub struct Coordinates {
@@ -72,6 +72,7 @@ impl ServoWindowCallbacks {
 }
 
 pub struct RunningAppState {
+    base: RunningAppStateBase,
     servo: Servo,
     rendering_context: Rc<WindowRenderingContext>,
     callbacks: Rc<ServoWindowCallbacks>,
@@ -82,7 +83,6 @@ pub struct RunningAppState {
     /// A [`Receiver`] for receiving commands from a running WebDriver server, if WebDriver
     /// was enabled.
     webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
-    webdriver_senders: RefCell<WebDriverSenders>,
 }
 
 struct RunningAppStateInner {
@@ -172,6 +172,7 @@ impl WebViewDelegate for RunningAppState {
 
         if load_status == LoadStatus::Complete {
             if let Some(sender) = self
+                .base()
                 .webdriver_senders
                 .borrow_mut()
                 .load_status_senders
@@ -226,7 +227,7 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn notify_traversal_complete(&self, _webview: servo::WebView, traversal_id: TraversalId) {
-        let mut webdriver_state = self.webdriver_senders.borrow_mut();
+        let mut webdriver_state = self.base().webdriver_senders.borrow_mut();
         if let std::collections::hash_map::Entry::Occupied(entry) =
             webdriver_state.pending_traversals.entry(traversal_id)
         {
@@ -367,9 +368,13 @@ impl RefreshDriver for VsyncRefreshDriver {
     }
 }
 
-impl WebDriverSupport for RunningAppState {
-    fn webdriver_senders(&self) -> &RefCell<WebDriverSenders> {
-        &self.webdriver_senders
+impl RunningAppStateTrait for RunningAppState {
+    fn base(&self) -> &RunningAppStateBase {
+        &self.base
+    }
+
+    fn base_mut(&mut self) -> &mut RunningAppStateBase {
+        &mut self.base
     }
 }
 
@@ -397,13 +402,13 @@ impl RunningAppState {
         }));
 
         let app_state = Rc::new(Self {
+            base: RunningAppStateBase::new(),
             rendering_context,
             servo,
             callbacks,
             refresh_driver,
             servoshell_preferences,
             webdriver_receiver,
-            webdriver_senders: RefCell::default(),
             inner: RefCell::new(RunningAppStateInner {
                 need_present: false,
                 context_menu_sender: None,

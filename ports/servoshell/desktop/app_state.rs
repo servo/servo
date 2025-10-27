@@ -20,8 +20,8 @@ use servo::{
     AllowOrDenyRequest, AuthenticationRequest, EmbedderControl, EmbedderControlId,
     GamepadHapticEffectType, InputEvent, InputEventId, InputEventResult, JSValue, LoadStatus,
     PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog, TraversalId,
-    WebDriverCommandMsg, WebDriverLoadStatus, WebDriverSenders, WebDriverUserPrompt, WebView,
-    WebViewBuilder, WebViewDelegate,
+    WebDriverCommandMsg, WebDriverLoadStatus, WebDriverUserPrompt, WebView, WebViewBuilder,
+    WebViewDelegate,
 };
 use url::Url;
 
@@ -29,8 +29,8 @@ use super::app::PumpResult;
 use super::dialog::Dialog;
 use super::gamepad::GamepadSupport;
 use super::window_trait::WindowPortsMethods;
-use crate::common::webdriver::WebDriverSupport;
 use crate::prefs::ServoShellPreferences;
+use crate::running_app_state::{RunningAppStateBase, RunningAppStateTrait};
 
 pub(crate) enum AppState {
     Initializing,
@@ -39,6 +39,7 @@ pub(crate) enum AppState {
 }
 
 pub(crate) struct RunningAppState {
+    base: RunningAppStateBase,
     /// A handle to the Servo instance of the [`RunningAppState`]. This is not stored inside
     /// `inner` so that we can keep a reference to Servo in order to spin the event loop,
     /// which will in turn call delegates doing a mutable borrow on `inner`.
@@ -49,7 +50,6 @@ pub(crate) struct RunningAppState {
     /// A [`Receiver`] for receiving commands from a running WebDriver server, if WebDriver
     /// was enabled.
     webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
-    webdriver_senders: RefCell<WebDriverSenders>,
     inner: RefCell<RunningAppStateInner>,
 }
 
@@ -109,9 +109,13 @@ impl Drop for RunningAppState {
     }
 }
 
-impl WebDriverSupport for RunningAppState {
-    fn webdriver_senders(&self) -> &RefCell<WebDriverSenders> {
-        &self.webdriver_senders
+impl RunningAppStateTrait for RunningAppState {
+    fn base(&self) -> &RunningAppStateBase {
+        &self.base
+    }
+
+    fn base_mut(&mut self) -> &mut RunningAppStateBase {
+        &mut self.base
     }
 }
 
@@ -129,10 +133,10 @@ impl RunningAppState {
             None
         };
         RunningAppState {
+            base: RunningAppStateBase::new(),
             servo,
             servoshell_preferences,
             webdriver_receiver,
-            webdriver_senders: RefCell::default(),
             inner: RefCell::new(RunningAppStateInner {
                 webviews: HashMap::default(),
                 creation_order: Default::default(),
@@ -427,6 +431,7 @@ impl RunningAppState {
         // Dialogs block the page load, so need need to notify WebDriver
         let webview_id = webview.id();
         if let Some(sender) = self
+            .base()
             .webdriver_senders
             .borrow_mut()
             .load_status_senders
@@ -475,6 +480,7 @@ impl RunningAppState {
     /// >  other steps of this algorithm in parallel.
     fn interrupt_webdriver_script_evaluation(&self) {
         if let Some(sender) = &self
+            .base()
             .webdriver_senders
             .borrow()
             .script_evaluation_interrupt_sender
@@ -588,7 +594,7 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn notify_traversal_complete(&self, _webview: servo::WebView, traversal_id: TraversalId) {
-        let mut webdriver_state = self.webdriver_senders.borrow_mut();
+        let mut webdriver_state = self.base().webdriver_senders.borrow_mut();
         if let Entry::Occupied(entry) = webdriver_state.pending_traversals.entry(traversal_id) {
             let sender = entry.remove();
             let _ = sender.send(WebDriverLoadStatus::Complete);
@@ -682,6 +688,7 @@ impl WebViewDelegate for RunningAppState {
 
         if status == LoadStatus::Complete {
             if let Some(sender) = self
+                .base()
                 .webdriver_senders
                 .borrow_mut()
                 .load_status_senders

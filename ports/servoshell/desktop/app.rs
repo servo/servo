@@ -35,13 +35,13 @@ use super::app_state::AppState;
 use super::events_loop::{AppEvent, EventLoopProxy, EventsLoop};
 use super::minibrowser::{Minibrowser, MinibrowserEvent};
 use super::{headed_window, headless_window};
-use crate::common::webdriver::WebDriverSupport;
 use crate::desktop::app_state::RunningAppState;
 use crate::desktop::protocols;
 use crate::desktop::tracing::trace_winit_event;
 use crate::desktop::window_trait::WindowPortsMethods;
 use crate::parser::{get_default_url, location_bar_input_to_url};
 use crate::prefs::ServoShellPreferences;
+use crate::running_app_state::RunningAppStateTrait;
 
 pub struct App {
     opts: Opts,
