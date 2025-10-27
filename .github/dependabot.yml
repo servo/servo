@@ -15,6 +15,9 @@ updates:
   - dependency-type: direct
   - dependency-type: indirect
   groups:
+    accesskit-related:
+      patterns:
+        - "accesskit_*"
     egui-related:
       patterns:
         - "ecolor"
