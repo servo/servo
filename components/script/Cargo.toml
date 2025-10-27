@@ -65,6 +65,7 @@ domobject_derive = { path = "../domobject_derive" }
 embedder_traits = { workspace = true }
 encoding_rs = { workspace = true }
 euclid = { workspace = true }
+flate2 = { workspace = true }
 fonts = { path = "../fonts" }
 fonts_traits = { workspace = true }
 glow = { workspace = true }
