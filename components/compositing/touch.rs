@@ -11,7 +11,7 @@ use log::{debug, error, warn};
 use rustc_hash::FxHashMap;
 use style_traits::CSSPixel;
 use webrender_api::ScrollLocation;
-use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint, LayoutVector2D};
+use webrender_api::units::{DevicePixel, DevicePoint, LayoutVector2D};
 
 use self::TouchSequenceState::*;
 use crate::IOCompositor;
@@ -184,12 +184,12 @@ pub(crate) enum TouchSequenceState {
     /// for the result in order to transition to fling.
     PendingFling {
         velocity: Vector2D<f32, DevicePixel>,
-        cursor: DeviceIntPoint,
+        point: DevicePoint,
     },
     /// No active touch points, but there is still scrolling velocity
     Flinging {
         velocity: Vector2D<f32, DevicePixel>,
-        cursor: DeviceIntPoint,
+        point: DevicePoint,
     },
     /// The touch sequence is finished, but a click is still pending, waiting on script.
     PendingClick(DevicePoint),
@@ -199,7 +199,7 @@ pub(crate) enum TouchSequenceState {
 
 pub(crate) struct FlingAction {
     pub delta: LayoutVector2D,
-    pub cursor: DeviceIntPoint,
+    pub cursor: DevicePoint,
 }
 
 impl TouchHandler {
@@ -368,7 +368,11 @@ impl TouchHandler {
     pub fn notify_new_frame_start(&mut self) -> Option<FlingAction> {
         let touch_sequence = self.touch_sequence_map.get_mut(&self.current_sequence_id)?;
 
-        let Flinging { velocity, cursor } = &mut touch_sequence.state else {
+        let Flinging {
+            velocity,
+            point: cursor,
+        } = &mut touch_sequence.state
+        else {
             return None;
         };
         if velocity.length().abs() < FLING_MIN_SCREEN_PX {
@@ -425,7 +429,7 @@ impl TouchHandler {
                     // Scroll offsets are opposite to the direction of finger motion.
                     Some(ScrollZoomEvent::Scroll(ScrollEvent {
                         scroll_location: ScrollLocation::Delta(-delta.cast_unit()),
-                        cursor: point.to_i32(),
+                        point,
                         event_count: 1,
                     }))
                 } else if delta.x.abs() > TOUCH_PAN_MIN_SCREEN_PX ||
@@ -442,7 +446,7 @@ impl TouchHandler {
                     // Scroll offsets are opposite to the direction of finger motion.
                     Some(ScrollZoomEvent::Scroll(ScrollEvent {
                         scroll_location: ScrollLocation::Delta(-delta.cast_unit()),
-                        cursor: point.to_i32(),
+                        point,
                         event_count: 1,
                     }))
                 } else {
@@ -515,20 +519,18 @@ impl TouchHandler {
                         "Transitioning to Fling. Cursor is {point:?}. Old cursor was {old:?}. \
                             Raw velocity is {velocity:?}."
                     );
-                    debug_assert!((point.x as i64) < (i32::MAX as i64));
-                    debug_assert!((point.y as i64) < (i32::MAX as i64));
-                    let cursor = DeviceIntPoint::new(point.x as i32, point.y as i32);
+
                     // Multiplying the initial velocity gives the fling a much more snappy feel
                     // and serves well as a poor-mans acceleration algorithm.
                     let velocity = (velocity * 2.0).with_max_length(FLING_MAX_SCREEN_PX);
                     match touch_sequence.prevent_move {
                         TouchMoveAllowed::Allowed => {
-                            touch_sequence.state = Flinging { velocity, cursor }
+                            touch_sequence.state = Flinging { velocity, point }
                             // todo: return Touchaction here, or is it sufficient to just
                             // wait for the next vsync?
                         },
                         TouchMoveAllowed::Pending => {
-                            touch_sequence.state = PendingFling { velocity, cursor }
+                            touch_sequence.state = PendingFling { velocity, point }
                         },
                         TouchMoveAllowed::Prevented => touch_sequence.state = Finished,
                     }

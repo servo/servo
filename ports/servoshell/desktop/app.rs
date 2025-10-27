@@ -482,7 +482,7 @@ impl App {
                                     -delta.x as f32,
                                     -delta.y as f32,
                                 ));
-                                Some((scroll_location, point.to_i32()))
+                                Some((scroll_location, *point))
                             },
                             _ => None,
                         };
@@ -557,8 +557,7 @@ impl App {
                         }
                         continue;
                     };
-                    let rect =
-                        rect.map(|rect| rect.to_box2d() * webview.device_pixels_per_css_pixel());
+                    let rect = rect.map(|rect| rect.to_box2d().into());
                     webview.take_screenshot(rect, move |result| {
                         if let Err(error) = result_sender.send(result) {
                             warn!("Failed to send response to TakeScreenshot: {error}");

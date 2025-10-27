@@ -15,7 +15,7 @@ use dpi::PhysicalSize;
 use embedder_traits::{
     Cursor, Image, InputEvent, InputEventAndId, InputEventId, JSValue, JavaScriptEvaluationError,
     LoadStatus, MediaSessionActionType, ScreenGeometry, ScreenshotCaptureError, Theme, TraversalId,
-    ViewportDetails,
+    ViewportDetails, WebViewPoint, WebViewRect,
 };
 use euclid::{Point2D, Scale, Size2D};
 use image::RgbaImage;
@@ -23,7 +23,7 @@ use servo_geometry::DeviceIndependentPixel;
 use style_traits::CSSPixel;
 use url::Url;
 use webrender_api::ScrollLocation;
-use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint, DeviceRect};
+use webrender_api::units::{DevicePixel, DevicePoint, DeviceRect};
 
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 use crate::javascript_evaluator::JavaScriptEvaluator;
@@ -470,7 +470,7 @@ impl WebView {
 
     /// Ask the [`WebView`] to scroll web content. Note that positive scroll offsets reveal more
     /// content on the bottom and right of the page.
-    pub fn notify_scroll_event(&self, location: ScrollLocation, point: DeviceIntPoint) {
+    pub fn notify_scroll_event(&self, location: ScrollLocation, point: WebViewPoint) {
         self.inner()
             .compositor
             .borrow_mut()
@@ -634,7 +634,7 @@ impl WebView {
     /// operation.
     pub fn take_screenshot(
         &self,
-        rect: Option<DeviceRect>,
+        rect: Option<WebViewRect>,
         callback: impl FnOnce(Result<RgbaImage, ScreenshotCaptureError>) + 'static,
     ) {
         self.inner()

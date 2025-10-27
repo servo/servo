@@ -21,7 +21,9 @@ use servo::servo_geometry::{
     DeviceIndependentIntRect, DeviceIndependentPixel, convert_rect_to_css_pixel,
 };
 use servo::webrender_api::ScrollLocation;
-use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
+use servo::webrender_api::units::{
+    DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint,
+};
 use servo::{
     Cursor, ImeEvent, InputEvent, InputEventId, InputEventResult, InputMethodControl, Key,
     KeyState, KeyboardEvent, Modifiers, MouseButton as ServoMouseButton, MouseButtonAction,
@@ -260,7 +262,7 @@ impl Window {
         webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
             action,
             mouse_button,
-            point,
+            point.into(),
         )));
     }
 
@@ -291,7 +293,7 @@ impl Window {
             return;
         }
 
-        webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
+        webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point.into())));
     }
 
     /// Handle key events before sending them to Servo.
@@ -684,15 +686,15 @@ impl WindowPortsMethods for Window {
                 }
 
                 // Send events
-                webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(delta, point)));
+                webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(delta, point.into())));
                 let scroll_location = ScrollLocation::Delta(-Vector2D::new(dx as f32, dy as f32));
-                webview.notify_scroll_event(scroll_location, point.to_i32());
+                webview.notify_scroll_event(scroll_location, point.into());
             },
             WindowEvent::Touch(touch) => {
                 webview.notify_input_event(InputEvent::Touch(TouchEvent::new(
                     winit_phase_to_touch_event_type(touch.phase),
                     TouchId(touch.id as i32),
-                    Point2D::new(touch.location.x as f32, touch.location.y as f32),
+                    DevicePoint::new(touch.location.x as f32, touch.location.y as f32).into(),
                 )));
             },
             WindowEvent::PinchGesture { delta, .. } => {
@@ -992,7 +994,7 @@ impl TouchEventSimulator {
         webview: &WebView,
         button: MouseButton,
         action: ElementState,
-        point: Point2D<f32, DevicePixel>,
+        point: DevicePoint,
     ) -> bool {
         if button != MouseButton::Left {
             return false;
@@ -1002,14 +1004,14 @@ impl TouchEventSimulator {
             webview.notify_input_event(InputEvent::Touch(TouchEvent::new(
                 TouchEventType::Down,
                 TouchId(0),
-                point,
+                point.into(),
             )));
             self.left_mouse_button_down.set(true);
         } else if action == ElementState::Released {
             webview.notify_input_event(InputEvent::Touch(TouchEvent::new(
                 TouchEventType::Up,
                 TouchId(0),
-                point,
+                point.into(),
             )));
             self.left_mouse_button_down.set(false);
         }
@@ -1029,7 +1031,7 @@ impl TouchEventSimulator {
         webview.notify_input_event(InputEvent::Touch(TouchEvent::new(
             TouchEventType::Move,
             TouchId(0),
-            point,
+            point.into(),
         )));
         true
     }

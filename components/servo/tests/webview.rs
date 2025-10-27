@@ -22,6 +22,7 @@ use webrender_api::units::{DeviceIntSize, DevicePoint};
 use crate::common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
 
 fn click_at_point(webview: &WebView, point: DevicePoint) {
+    let point = point.into();
     webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
     webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
         MouseButtonAction::Down,
@@ -197,9 +198,9 @@ fn test_cursor_change() {
     let captured_delegate = delegate.clone();
     servo_test.spin(move || !captured_delegate.new_frame_ready.get());
 
-    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(Point2D::new(
-        10., 10.,
-    ))));
+    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
+        DevicePoint::new(10., 10.).into(),
+    )));
 
     let captured_delegate = delegate.clone();
     servo_test.spin(move || !captured_delegate.cursor_changed.get());

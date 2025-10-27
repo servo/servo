@@ -270,7 +270,9 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_scroll<'local>(
     y: jint,
 ) {
     debug!("scroll");
-    call(&mut env, |s| s.scroll(dx as f32, dy as f32, x, y));
+    call(&mut env, |s| {
+        s.scroll(dx as f32, dy as f32, x as f32, y as f32)
+    });
 }
 
 enum KeyCode {

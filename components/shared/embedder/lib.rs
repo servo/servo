@@ -26,7 +26,7 @@ use base::Epoch;
 use base::generic_channel::{GenericCallback, GenericSender, SendResult};
 use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
-use euclid::{Point2D, Scale, Size2D};
+use euclid::{Box2D, Point2D, Scale, Size2D};
 use http::{HeaderMap, Method, StatusCode};
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use log::warn;
@@ -42,10 +42,88 @@ use style_traits::CSSPixel;
 use url::Url;
 use uuid::Uuid;
 use webrender_api::ExternalScrollId;
-use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, LayoutSize};
+use webrender_api::units::{
+    DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, DeviceRect,
+    LayoutPoint, LayoutRect, LayoutSize,
+};
 
 pub use crate::input_events::*;
 pub use crate::webdriver::*;
+
+/// A point in a `WebView`, either expressed in device pixels or page pixels.
+/// Page pixels are CSS pixels, which take into account device pixel scale,
+/// page zoom, and pinch zoom.
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub enum WebViewPoint {
+    Device(DevicePoint),
+    Page(Point2D<f32, CSSPixel>),
+}
+
+impl WebViewPoint {
+    pub fn as_device_point(&self, scale: Scale<f32, CSSPixel, DevicePixel>) -> DevicePoint {
+        match self {
+            Self::Device(point) => *point,
+            Self::Page(point) => *point * scale,
+        }
+    }
+}
+
+impl From<DevicePoint> for WebViewPoint {
+    fn from(point: DevicePoint) -> Self {
+        Self::Device(point)
+    }
+}
+
+impl From<LayoutPoint> for WebViewPoint {
+    fn from(point: LayoutPoint) -> Self {
+        Self::Page(Point2D::new(point.x, point.y))
+    }
+}
+
+impl From<Point2D<f32, CSSPixel>> for WebViewPoint {
+    fn from(point: Point2D<f32, CSSPixel>) -> Self {
+        Self::Page(point)
+    }
+}
+
+/// A rectangle in a `WebView`, either expressed in device pixels or page pixels.
+/// Page pixels are CSS pixels, which take into account device pixel scale,
+/// page zoom, and pinch zoom.
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub enum WebViewRect {
+    Device(DeviceRect),
+    Page(Box2D<f32, CSSPixel>),
+}
+
+impl WebViewRect {
+    pub fn as_device_rect(&self, scale: Scale<f32, CSSPixel, DevicePixel>) -> DeviceRect {
+        match self {
+            Self::Device(rect) => *rect,
+            Self::Page(rect) => *rect * scale,
+        }
+    }
+}
+
+impl From<DeviceRect> for WebViewRect {
+    fn from(rect: DeviceRect) -> Self {
+        Self::Device(rect)
+    }
+}
+
+impl From<LayoutRect> for WebViewRect {
+    fn from(rect: LayoutRect) -> Self {
+        Self::Page(Box2D::new(
+            Point2D::new(rect.min.x, rect.min.y),
+            Point2D::new(rect.max.x, rect.max.y),
+        ))
+    }
+}
+
+impl From<Box2D<f32, CSSPixel>> for WebViewRect {
+    fn from(rect: Box2D<f32, CSSPixel>) -> Self {
+        Self::Page(rect)
+    }
+}
 
 /// Tracks whether Servo isn't shutting down, is in the process of shutting down,
 /// or has finished shutting down.

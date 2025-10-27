@@ -618,11 +618,11 @@ impl RunningAppState {
     /// Scroll.
     /// x/y are scroll coordinates.
     /// dx/dy are scroll deltas.
-    pub fn scroll(&self, dx: f32, dy: f32, x: i32, y: i32) {
-        let delta = Vector2D::new(dx, dy);
-        let scroll_location = ScrollLocation::Delta(delta);
+    pub fn scroll(&self, dx: f32, dy: f32, x: f32, y: f32) {
+        let scroll_location = ScrollLocation::Delta(Vector2D::new(dx, dy));
+        let point = DevicePoint::new(x, y).into();
         self.active_webview()
-            .notify_scroll_event(scroll_location, Point2D::new(x, y));
+            .notify_scroll_event(scroll_location, point);
         self.perform_updates();
     }
 
@@ -797,7 +797,7 @@ impl RunningAppState {
             .notify_input_event(InputEvent::Touch(TouchEvent::new(
                 TouchEventType::Down,
                 TouchId(pointer_id),
-                Point2D::new(x, y),
+                DevicePoint::new(x, y).into(),
             )));
         self.perform_updates();
     }
@@ -808,7 +808,7 @@ impl RunningAppState {
             .notify_input_event(InputEvent::Touch(TouchEvent::new(
                 TouchEventType::Move,
                 TouchId(pointer_id),
-                Point2D::new(x, y),
+                DevicePoint::new(x, y).into(),
             )));
         self.perform_updates();
     }
@@ -819,7 +819,7 @@ impl RunningAppState {
             .notify_input_event(InputEvent::Touch(TouchEvent::new(
                 TouchEventType::Up,
                 TouchId(pointer_id),
-                Point2D::new(x, y),
+                DevicePoint::new(x, y).into(),
             )));
         self.perform_updates();
     }
@@ -830,7 +830,7 @@ impl RunningAppState {
             .notify_input_event(InputEvent::Touch(TouchEvent::new(
                 TouchEventType::Cancel,
                 TouchId(pointer_id),
-                Point2D::new(x, y),
+                DevicePoint::new(x, y).into(),
             )));
         self.perform_updates();
     }
@@ -838,9 +838,9 @@ impl RunningAppState {
     /// Register a mouse movement.
     pub fn mouse_move(&self, x: f32, y: f32) {
         self.active_webview()
-            .notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(Point2D::new(
-                x, y,
-            ))));
+            .notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
+                DevicePoint::new(x, y).into(),
+            )));
         self.perform_updates();
     }
 
@@ -850,7 +850,7 @@ impl RunningAppState {
             .notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
                 MouseButtonAction::Down,
                 button,
-                Point2D::new(x, y),
+                DevicePoint::new(x, y).into(),
             )));
         self.perform_updates();
     }
@@ -861,7 +861,7 @@ impl RunningAppState {
             .notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
                 MouseButtonAction::Up,
                 button,
-                Point2D::new(x, y),
+                DevicePoint::new(x, y).into(),
             )));
         self.perform_updates();
     }
