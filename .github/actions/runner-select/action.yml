@@ -50,17 +50,19 @@ runs:
         # <https://github.com/servo/servo/settings/variables/actions>
         if [ -n '${{ inputs.NO_SELF_HOSTED_RUNNERS }}' ]; then
           echo 'NO_SELF_HOSTED_RUNNERS is set!'
-          echo "fall_back_to_github_hosted=true" | tee -a $GITHUB_OUTPUT
+          echo "disabled=true" | tee -a $GITHUB_OUTPUT
           exit 0
         fi
 
+        # Disable self-hosted runners by calling this action with
+        # `force-github-hosted-runner` set to true.
         if [ '${{ inputs.force-github-hosted-runner }}' = true ]; then
           echo 'inputs.force-github-hosted-runner is set!'
-          echo "fall_back_to_github_hosted=true" | tee -a $GITHUB_OUTPUT
+          echo "disabled=true" | tee -a $GITHUB_OUTPUT
           exit 0
         fi
 
-        echo "fall_back_to_github_hosted=false" | tee -a $GITHUB_OUTPUT
+        echo "disabled=false" | tee -a $GITHUB_OUTPUT
 
         artifact_path=$(mktemp)
         echo "artifact_path=$artifact_path" | tee -a $GITHUB_OUTPUT
@@ -71,7 +73,7 @@ runs:
         echo "run_id=${{ github.run_id }}" | tee -a "$artifact_path"
 
     - name: Publish artifact with args
-      if: ${{ !fromJSON(steps.init.outputs.fall_back_to_github_hosted) }}
+      if: ${{ !fromJSON(steps.init.outputs.disabled) }}
       uses: actions/upload-artifact@v4
       with:
         name: servo-ci-runners_${{ steps.init.outputs.unique_id }}
@@ -83,21 +85,20 @@ runs:
       run: |
         github_hosted_runner_label='${{ inputs.github-hosted-runner-label }}'
         self_hosted_image_name='${{ inputs.self-hosted-image-name }}'
-        fall_back_to_github_hosted='${{ steps.init.outputs.fall_back_to_github_hosted }}'
+        disabled='${{ steps.init.outputs.disabled }}'
         unique_id='${{ steps.init.outputs.unique_id }}'
 
         set -euo pipefail
 
         fall_back_to_github_hosted() {
           echo 'Falling back to GitHub-hosted runner'
-          echo "fall_back_to_github_hosted=true" | tee -a $GITHUB_OUTPUT
           echo "selected_runner_label=$github_hosted_runner_label" | tee -a $GITHUB_OUTPUT
           echo "runner_type_label=$github_hosted_runner_label" | tee -a $GITHUB_OUTPUT
           echo 'is_self_hosted=false' | tee -a $GITHUB_OUTPUT
           exit 0
         }
 
-        if [ "$fall_back_to_github_hosted" = true ]; then
+        if [ "$disabled" = true ]; then
           fall_back_to_github_hosted
         fi
 
