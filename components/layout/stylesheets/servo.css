@@ -156,6 +156,10 @@ input:not([type=radio i]):not([type=checkbox i]):not([type=reset i]):not([type=b
   white-space: pre;
 }
 
+input:is([type=submit i], [type=reset i], [type=button i], [type=checkbox i], [type=radio i]) {
+  cursor: default;
+}
+
 textarea {
   cursor: text;
   overflow: auto;
