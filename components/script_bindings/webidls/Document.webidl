@@ -87,6 +87,9 @@ dictionary ElementCreationOptions {
 // https://html.spec.whatwg.org/multipage/#the-document-object
 // [LegacyOverrideBuiltIns]
 partial /*sealed*/ interface Document {
+  [NewObject, Throws]
+  static Document parseHTMLUnsafe((TrustedHTML or DOMString) html);
+
   // resource metadata management
   [PutForwards=href, LegacyUnforgeable]
   readonly attribute Location? location;
