@@ -36,10 +36,7 @@ import java.util.ArrayList;
 public class ServoView extends SurfaceView
                         implements
                         GfxCallbacks,
-                        RunCallback,
-                        Choreographer.FrameCallback,
-                        GestureDetector.OnGestureListener,
-                        ScaleGestureDetector.OnScaleGestureListener {
+                        RunCallback {
     private static final String LOGTAG = "ServoView";
     private GLThread mGLThread;
     private Handler mGLLooperHandler;
@@ -50,22 +47,8 @@ public class ServoView extends SurfaceView
     private String mServoLog;
     private String mInitialUri;
     private Activity mActivity;
-    private GestureDetector mGestureDetector;
-    private int mLastX = 0;
-    private int mCurX = 0;
-    private int mLastY = 0;
-    private int mCurY = 0;
-    private float mFocusX = 0;
-    private float mFocusY = 0;
-    private boolean mFlinging;
-    private ScaleGestureDetector mScaleGestureDetector;
-    private OverScroller mScroller;
 
     private boolean mExperimentalMode;
-    private boolean mZooming;
-    private float mZoomFactor = 1;
-    private boolean mRedrawing;
-    private boolean mAnimating;
     private boolean mPaused = false;
 
     public ServoView(Context context) {
@@ -87,7 +70,6 @@ public class ServoView extends SurfaceView
         view.add(this);
         addTouchables(view);
         setWillNotCacheDrawing(false);
-        initGestures(context);
 
         mGLThread = new GLThread(mActivity, this);
         getHolder().addCallback(mGLThread);
@@ -105,96 +87,74 @@ public class ServoView extends SurfaceView
     }
 
     // RunCallback
+    @Override
     public void inGLThread(Runnable r) {
         mGLLooperHandler.post(r);
     }
 
+    @Override
     public void inUIThread(Runnable r) {
         post(r);
     }
 
 
     // GfxCallbacks
+    @Override
     public void flushGLBuffers() {
     }
 
 
-    // Scroll and click
+    @Override
     public void animationStateChanged(boolean animating) {
-        if (!mAnimating && animating) {
-            post(() -> startLooping());
-        }
-        mAnimating = animating;
     }
 
+    @Override
     public void makeCurrent() {
     }
 
-
-    private void startLooping() {
-      // In case we were already drawing.
-      Choreographer.getInstance().removeFrameCallback(this);
-
-      Choreographer.getInstance().postFrameCallback(this);
+    // View
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        mServo.onKeyDown(keyCode, event);
+        return true;
     }
 
-    public void doFrame(long frameTimeNanos) {
-        if (!mRedrawing) {
-            mRedrawing = true;
-            mClient.onRedrawing(mRedrawing);
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        mServo.onKeyUp(keyCode, event);
+        return true;
+    }
+
+    @Override
+    public boolean onTouchEvent(final MotionEvent motionEvent) {
+        requestFocus();
+
+        int action = motionEvent.getActionMasked();
+        int pointerIndex = motionEvent.getActionIndex();
+        int pointerId = motionEvent.getPointerId(pointerIndex);
+        float x = motionEvent.getX(pointerIndex);
+        float y = motionEvent.getY(pointerIndex);
+
+
+        switch (action) {
+            case (MotionEvent.ACTION_DOWN):
+            case (MotionEvent.ACTION_POINTER_DOWN):
+                mServo.touchDown(x, y, pointerId);
+                break;
+            case (MotionEvent.ACTION_MOVE):
+                mServo.touchMove(x, y, pointerId);
+                break;
+            case (MotionEvent.ACTION_UP):
+            case (MotionEvent.ACTION_POINTER_UP):
+                mServo.touchUp(x, y, pointerId);
+                break;
+            case (MotionEvent.ACTION_CANCEL):
+                mServo.touchCancel(x, y, pointerId);
+                break;
+            default:
         }
 
-        // 3 reasons to be here: animating or scrolling/flinging or pinching
-
-        if (mFlinging && mScroller.isFinished()) {
-            mFlinging = false;
-            mServo.scroll(0, 0, -mCurX, -mCurY);
-        }
-
-        if (mFlinging) {
-            mScroller.computeScrollOffset();
-            mCurX = mScroller.getCurrX();
-            mCurY = mScroller.getCurrY();
-        }
-
-        int dx = mCurX - mLastX;
-        int dy = mCurY - mLastY;
-
-        mLastX = mCurX;
-        mLastY = mCurY;
-
-        boolean scrollNecessary = mFlinging && (dx != 0 || dy != 0);
-        boolean zoomNecessary = mZooming && mZoomFactor != 1;
-
-        if (scrollNecessary) {
-            // We need to ensure x and y are inside the window, otherwise servo will not scroll!
-            // Our fling implementation will set `mCurX` and `mCurY` to a very high initial value
-            // when flinging with a negative velocity, since we don't know the size of our
-            // content page, because the android `OverScroller` needs to know the size of the page.
-            // Setting the page size to a ridiculously high value ensures that flinging will
-            // not be cut of short, even if we fling farther then the edge of the screen,
-            // starting from the touch up point.
-            int x = Math.min(mCurX, this.getHeight());
-            int y = Math.min(mCurY, this.getWidth());
-
-            mServo.scroll(-dx, -dy, x, y);
-        }
-
-        if (zoomNecessary) {
-            mServo.pinchZoom(mZoomFactor, mFocusX, mFocusY);
-            mZoomFactor = 1;
-        }
-
-        if (!zoomNecessary && !scrollNecessary && mAnimating) {
-            mServo.performUpdates();
-        }
-
-        if (mZooming || mFlinging || mAnimating) {
-            Choreographer.getInstance().postFrameCallback(this);
-        } else {
-            mRedrawing = false;
-            mClient.onRedrawing(mRedrawing);
-        }
+        return true;
     }
 
     // Calls from Activity
@@ -232,140 +192,6 @@ public class ServoView extends SurfaceView
         } else {
             mInitialUri = uri;
         }
-    }
-
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        mServo.onKeyDown(keyCode, event);
-        return true;
-    }
-
-    public boolean onKeyUp(int keyCode, KeyEvent event) {
-        mServo.onKeyUp(keyCode, event);
-        return true;
-    }
-
-    public void scroll(int dx, int dy, int x, int y) {
-        mServo.scroll(dx, dy, x, y);
-    }
-
-    public void click(float x, float y) {
-        mServo.click(x, y);
-    }
-
-    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-        mFlinging = true;
-
-        // FIXME: magic values
-        // https://github.com/servo/servo/issues/20361
-        int mPageWidth = 80000;
-        int mPageHeight = 80000;
-        mCurX = velocityX < 0 ? mPageWidth : 0;
-        mLastX = mCurX;
-        mCurY = velocityY < 0 ? mPageHeight : 0;
-        mLastY = mCurY;
-        mScroller.fling(mCurX, mCurY, (int) velocityX, (int) velocityY, 0, mPageWidth, 0, mPageHeight);
-        mServo.scroll(0, 0, mCurX, mCurY);
-        startLooping();
-        return true;
-    }
-
-    public boolean onDown(MotionEvent e) {
-        mScroller.forceFinished(true);
-        return true;
-    }
-
-    @Override
-    public boolean onTouchEvent(final MotionEvent e) {
-        requestFocus();
-        mGestureDetector.onTouchEvent(e);
-        mScaleGestureDetector.onTouchEvent(e);
-
-        int action = e.getActionMasked();
-
-        float x = e.getX();
-        float y = e.getY();
-
-        int pointerIndex = e.getActionIndex();
-        int pointerId = e.getPointerId(pointerIndex);
-
-        switch (action) {
-            case (MotionEvent.ACTION_DOWN):
-            case (MotionEvent.ACTION_POINTER_DOWN):
-                mFlinging = false;
-                mScroller.forceFinished(true);
-                mCurX = (int) x;
-                mLastX = mCurX;
-                mCurY = (int) y;
-                mLastY = mCurY;
-                return true;
-            case (MotionEvent.ACTION_MOVE):
-                mCurX = (int) x;
-                mCurY = (int) y;
-                return true;
-            case (MotionEvent.ACTION_UP):
-            case (MotionEvent.ACTION_POINTER_UP):
-                return true;
-            case (MotionEvent.ACTION_CANCEL):
-                return true;
-            default:
-                return true;
-        }
-    }
-
-    // OnGestureListener
-    public void onLongPress(MotionEvent e) {
-    }
-
-    public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-        mServo.scroll((int) distanceX, (int) distanceY, (int) e2.getX(), (int) e2.getY());
-        return true;
-    }
-
-    public boolean onSingleTapUp(MotionEvent e) {
-        click(e.getX(), e.getY());
-        return false;
-    }
-
-    public void onShowPress(MotionEvent e) {
-    }
-
-    // OnScaleGestureListener
-    @Override
-    public boolean onScaleBegin(ScaleGestureDetector detector) {
-        if (mScroller.isFinished()) {
-            mZoomFactor = detector.getScaleFactor();
-            mFocusX = detector.getFocusX();
-            mFocusY = detector.getFocusY();
-            mZooming = true;
-            mServo.pinchZoomStart(mZoomFactor, mFocusX, mFocusY);
-            startLooping();
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    @Override
-    public boolean onScale(ScaleGestureDetector detector) {
-        mZoomFactor *= detector.getScaleFactor();
-        mFocusX = detector.getFocusX();
-        mFocusY = detector.getFocusY();
-        return true;
-    }
-
-    @Override
-    public void onScaleEnd(ScaleGestureDetector detector) {
-        mZoomFactor = detector.getScaleFactor();
-        mFocusX = detector.getFocusX();
-        mFocusY = detector.getFocusY();
-        mZooming = false;
-        mServo.pinchZoomEnd(mZoomFactor, mFocusX, mFocusY);
-    }
-
-    private void initGestures(Context context) {
-        mGestureDetector = new GestureDetector(context, this);
-        mScaleGestureDetector = new ScaleGestureDetector(context, this);
-        mScroller = new OverScroller(context);
     }
 
     public void mediaSessionAction(int action) {
