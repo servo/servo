@@ -313,12 +313,8 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
     /// Update image in WebRender
     pub(crate) fn update_image_rendering(&mut self, canvas_epoch: Option<Epoch>) {
         let (descriptor, data) = {
-            #[cfg(feature = "tracing")]
-            let _span = tracing::trace_span!(
-                "image_descriptor_and_serializable_data",
-                servo_profiling = true,
-            )
-            .entered();
+            let _span =
+                profile_traits::trace_span!("image_descriptor_and_serializable_data",).entered();
             self.drawtarget.image_descriptor_and_serializable_data()
         };
 
