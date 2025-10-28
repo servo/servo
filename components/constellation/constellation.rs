@@ -1355,8 +1355,7 @@ where
                             let pipeline_is_top_level_pipeline = self
                                 .browsing_contexts
                                 .get(&BrowsingContextId::from(webview_id))
-                                .map(|ctx| ctx.pipeline_id == pipeline_id)
-                                .unwrap_or(false);
+                                .is_some_and(|ctx| ctx.pipeline_id == pipeline_id);
                             // If the navigation is refused, and this concerns an iframe,
                             // we need to take it out of it's "delaying-load-events-mode".
                             // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
@@ -3731,8 +3730,7 @@ where
         let pipeline_is_top_level_pipeline = self
             .browsing_contexts
             .get(&BrowsingContextId::from(webview_id))
-            .map(|ctx| ctx.pipeline_id == pipeline_id)
-            .unwrap_or(false);
+            .is_some_and(|ctx| ctx.pipeline_id == pipeline_id);
         if !pipeline_is_top_level_pipeline {
             self.handle_subframe_loaded(pipeline_id);
         }

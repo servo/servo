@@ -633,7 +633,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
 
     fn DictMatchesPassedValues(&self, arg: RootedTraceableBox<TestDictionary>) -> bool {
-        arg.type_.as_ref().map(|s| s == "success").unwrap_or(false) &&
+        arg.type_.as_ref().is_some_and(|s| s == "success") &&
             arg.nonRequiredNullable.is_none() &&
             arg.nonRequiredNullable2 == Some(None) &&
             arg.noCallbackImport.is_none() &&

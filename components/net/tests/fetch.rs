@@ -1491,8 +1491,7 @@ fn test_fetch_request_intercepted() {
         response
             .headers
             .get(HEADERNAME)
-            .map(|v| v == HEADERVALUE)
-            .unwrap_or(false),
+            .is_some_and(|value| value == HEADERVALUE),
         "The custom header does not exist or has an incorrect value!"
     );
 

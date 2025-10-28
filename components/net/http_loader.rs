@@ -2046,8 +2046,7 @@ async fn http_network_fetch(
                 request
                     .body
                     .as_ref()
-                    .map(|body| body.source_is_null())
-                    .unwrap_or(false),
+                    .is_some_and(|body| body.source_is_null()),
                 &request.pipeline_id,
                 Some(&request_id),
                 request.destination,

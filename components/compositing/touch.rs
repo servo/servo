@@ -651,7 +651,6 @@ impl RefreshDriverObserver for FlingRefreshDriverObserver {
     fn frame_started(&self, compositor: &mut IOCompositor) -> bool {
         compositor
             .webview_renderer_mut(self.webview_id)
-            .map(WebViewRenderer::update_touch_handling_at_new_frame_start)
-            .unwrap_or(false)
+            .is_some_and(WebViewRenderer::update_touch_handling_at_new_frame_start)
     }
 }

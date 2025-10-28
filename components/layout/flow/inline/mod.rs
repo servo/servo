@@ -774,15 +774,12 @@ impl InlineFormattingContextLayout<'_> {
     }
 
     fn processing_br_element(&self) -> bool {
-        self.inline_box_state_stack
-            .last()
-            .map(|state| {
-                state
-                    .base_fragment_info
-                    .flags
-                    .contains(FragmentFlags::IS_BR_ELEMENT)
-            })
-            .unwrap_or(false)
+        self.inline_box_state_stack.last().is_some_and(|state| {
+            state
+                .base_fragment_info
+                .flags
+                .contains(FragmentFlags::IS_BR_ELEMENT)
+        })
     }
 
     /// Start laying out a particular [`InlineBox`] into line items. This will push
@@ -2326,8 +2323,7 @@ fn inline_container_needs_strut(
         return true;
     }
 
-    pbm.map(|pbm| !pbm.padding_border_sums.inline.is_zero())
-        .unwrap_or(false)
+    pbm.is_some_and(|pbm| !pbm.padding_border_sums.inline.is_zero())
 }
 
 impl ComputeInlineContentSizes for InlineFormattingContext {
