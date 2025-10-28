@@ -13,8 +13,6 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
-
-use script_bindings::codegen::GenericBindings::ClientBinding::ClientMethods;
 use js::realm::CurrentRealm;
 
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{
@@ -203,8 +201,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             },
         };
         // Step 3. Let clientURL be the result of parsing clientURL with this’s relevant settings object’s API base URL.
-        // FIXME(arihant2math): This should be the API base of the settings object, but that's not implemented yet.
-        let mut client_url = match global.creation_url().join(client_url.0.as_str()) {
+        let mut client_url = match global.api_base_url().join(client_url.0.as_str()) {
             Ok(url) => url,
             Err(_) => {
                 // Step 4. If clientURL is failure, return a promise rejected with a TypeError.
