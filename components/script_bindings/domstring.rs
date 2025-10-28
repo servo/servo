@@ -18,7 +18,7 @@ use js::gc::MutableHandleValue;
 use js::jsapi::{Heap, JS_GetLatin1StringCharsAndLength, JSContext, JSString};
 use js::rust::{Runtime, Trace};
 use malloc_size_of::MallocSizeOfOps;
-use num_traits::Zero;
+use num_traits::{ToPrimitive, Zero};
 use regex::Regex;
 use style::Atom;
 use style::str::HTML_SPACE_CHARACTERS;
@@ -43,7 +43,6 @@ pub enum EncodedBytes<'a> {
     /// These bytes are Latin1 encoded.
     Latin1Bytes(&'a [u8]),
     /// This is a normal utf8 string given in bytes.
-    /// `str::from_utf8_unchecked` should be safe.
     Utf8Bytes(&'a [u8]),
 }
 
@@ -587,12 +586,11 @@ impl DOMString {
         match self.view().encoded_bytes() {
             EncodedBytes::Latin1Bytes(items) => items
                 .iter()
-                .all(|c| ASCII_LOWERCASE_A <= *c && *c <= ASCII_LOWERCASE_Z),
-            EncodedBytes::Utf8Bytes(s) => {
-                // Save because we know it was a utf8 string
-                let s = unsafe { str::from_utf8_unchecked(s) };
-                s.is_ascii() && s.chars().all(|c| c.is_lowercase())
-            },
+                .all(|c| (ASCII_LOWERCASE_A..=ASCII_LOWERCASE_Z).contains(c)),
+            EncodedBytes::Utf8Bytes(s) => s
+                .iter()
+                .map(|c| c.to_u8().unwrap_or(ASCII_LOWERCASE_A - 1))
+                .all(|c| (ASCII_LOWERCASE_A..=ASCII_LOWERCASE_Z).contains(&c)),
         }
     }
 }
@@ -678,10 +676,11 @@ impl Default for DOMString {
 impl std::cmp::PartialEq<str> for DOMString {
     fn eq(&self, other: &str) -> bool {
         if other.is_ascii() {
-            match self.view().encoded_bytes() {
-                EncodedBytes::Latin1Bytes(items) => items == other.as_bytes(),
-                EncodedBytes::Utf8Bytes(s) => unsafe { str::from_utf8_unchecked(s) == other },
-            }
+            other.as_bytes() ==
+                match self.view().encoded_bytes() {
+                    EncodedBytes::Latin1Bytes(items) => items,
+                    EncodedBytes::Utf8Bytes(s) => s,
+                }
         } else {
             self.make_rust();
             self.str().deref() == other
@@ -692,10 +691,11 @@ impl std::cmp::PartialEq<str> for DOMString {
 impl std::cmp::PartialEq<&str> for DOMString {
     fn eq(&self, other: &&str) -> bool {
         if other.is_ascii() {
-            match self.view().encoded_bytes() {
-                EncodedBytes::Latin1Bytes(items) => items == other.as_bytes(),
-                EncodedBytes::Utf8Bytes(s) => unsafe { str::from_utf8_unchecked(s) == *other },
-            }
+            other.as_bytes() ==
+                match self.view().encoded_bytes() {
+                    EncodedBytes::Latin1Bytes(items) => items,
+                    EncodedBytes::Utf8Bytes(s) => s,
+                }
         } else {
             self.make_rust();
             self.str().deref() == *other
@@ -706,10 +706,11 @@ impl std::cmp::PartialEq<&str> for DOMString {
 impl std::cmp::PartialEq<String> for DOMString {
     fn eq(&self, other: &String) -> bool {
         if other.is_ascii() {
-            match self.view().encoded_bytes() {
-                EncodedBytes::Latin1Bytes(items) => items == other.as_bytes(),
-                EncodedBytes::Utf8Bytes(s) => unsafe { str::from_utf8_unchecked(s) == other },
-            }
+            other.as_bytes() ==
+                match self.view().encoded_bytes() {
+                    EncodedBytes::Latin1Bytes(items) => items,
+                    EncodedBytes::Utf8Bytes(s) => s,
+                }
         } else {
             self.make_rust();
             self.str().deref() == other
@@ -735,21 +736,18 @@ impl std::cmp::PartialEq for DOMString {
             (EncodedBytes::Latin1Bytes(items), EncodedBytes::Latin1Bytes(other_items)) => {
                 Some(items == other_items)
             },
-            (EncodedBytes::Latin1Bytes(items), EncodedBytes::Utf8Bytes(other_s)) => {
-                if other_s.is_ascii() {
-                    Some(items == other_s)
-                } else {
-                    None
-                }
+            (EncodedBytes::Latin1Bytes(items), EncodedBytes::Utf8Bytes(other_s))
+                if other_s.is_ascii() =>
+            {
+                Some(items == other_s)
             },
-            (EncodedBytes::Utf8Bytes(s), EncodedBytes::Latin1Bytes(other_items)) => {
-                if s.is_ascii() {
-                    Some(s == other_items)
-                } else {
-                    None
-                }
+            (EncodedBytes::Utf8Bytes(s), EncodedBytes::Latin1Bytes(other_items))
+                if s.is_ascii() =>
+            {
+                Some(s == other_items)
             },
             (EncodedBytes::Utf8Bytes(s), EncodedBytes::Utf8Bytes(other_s)) => Some(s == other_s),
+            _ => None,
         };
 
         if let Some(eq_result) = result {
@@ -802,6 +800,7 @@ impl From<&DOMString> for LocalName {
             let str = match bytes {
                 EncodedBytes::Latin1Bytes(items) => {
                     if items.iter().all(|c| c.is_ascii()) {
+                        // This is safe as the string is ascii and it comes from a DOMString
                         unsafe { Some(str::from_utf8_unchecked(items)) }
                     } else {
                         None
@@ -826,6 +825,7 @@ impl From<DOMString> for Namespace {
             let str = match bytes {
                 EncodedBytes::Latin1Bytes(items) => {
                     if items.iter().all(|c| c.is_ascii()) {
+                        // This is safe as the string is ascii and it comes from a DOMString
                         unsafe { Some(str::from_utf8_unchecked(items)) }
                     } else {
                         None
@@ -1342,5 +1342,9 @@ mod tests {
         assert!(s.is_ascii_lowercase());
         let s = from_latin1(vec![b'`', b'a', b'a', b'a', b'z']);
         assert!(!s.is_ascii_lowercase());
+        let s = DOMString::from_string(String::from("`aaaz"));
+        assert!(!s.is_ascii_lowercase());
+        let s = DOMString::from_string(String::from("aaaz"));
+        assert!(s.is_ascii_lowercase());
     }
 }
