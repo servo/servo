@@ -301,7 +301,7 @@ impl Node {
         let parent_is_connected = self.is_connected();
         let parent_is_in_ua_widget = self.is_in_ua_widget();
 
-        let context = BindContext::new(self);
+        let context = BindContext::new(self, IsShadowTree::No);
 
         for node in new_child.traverse_preorder(ShadowIncluding::No) {
             if parent_in_shadow_tree {
@@ -4305,16 +4305,29 @@ pub(crate) struct BindContext<'a> {
 
     /// Whether the tree's root is a shadow root
     pub(crate) tree_is_in_a_shadow_tree: bool,
+
+    /// Whether the root of the subtree that is being bound to the parent is a shadow root.
+    ///
+    /// This implies that all elements whose "bind_to_tree" method are called were already
+    /// in a shadow tree beforehand.
+    pub(crate) is_shadow_tree: IsShadowTree,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub(crate) enum IsShadowTree {
+    Yes,
+    No,
 }
 
 impl<'a> BindContext<'a> {
     /// Create a new `BindContext` value.
-    pub(crate) fn new(parent: &'a Node) -> Self {
+    pub(crate) fn new(parent: &'a Node, is_shadow_tree: IsShadowTree) -> Self {
         BindContext {
             parent,
             tree_connected: parent.is_connected(),
             tree_is_in_a_document_tree: parent.is_in_a_document_tree(),
             tree_is_in_a_shadow_tree: parent.is_in_a_shadow_tree(),
+            is_shadow_tree,
         }
     }
 

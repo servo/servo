@@ -47,8 +47,8 @@ use crate::dom::documentorshadowroot::{
 use crate::dom::element::Element;
 use crate::dom::html::htmlslotelement::HTMLSlotElement;
 use crate::dom::node::{
-    BindContext, Node, NodeDamage, NodeFlags, NodeTraits, ShadowIncluding, UnbindContext,
-    VecPreOrderInsertionHelper,
+    BindContext, IsShadowTree, Node, NodeDamage, NodeFlags, NodeTraits, ShadowIncluding,
+    UnbindContext, VecPreOrderInsertionHelper,
 };
 use crate::dom::trustedhtml::TrustedHTML;
 use crate::dom::types::EventTarget;
@@ -575,7 +575,7 @@ impl VirtualMethods for ShadowRoot {
 
         shadow_root.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
 
-        let context = BindContext::new(shadow_root);
+        let context = BindContext::new(shadow_root, IsShadowTree::Yes);
 
         // avoid iterate over the shadow root itself
         for node in shadow_root.traverse_preorder(ShadowIncluding::Yes).skip(1) {
