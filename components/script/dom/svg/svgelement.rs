@@ -13,7 +13,9 @@ use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptio
 use crate::dom::bindings::codegen::Bindings::SVGElementBinding::SVGElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
+use crate::dom::css::cssstyledeclaration::{
+    CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner,
+};
 use crate::dom::document::{Document, FocusInitiator};
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::node::{Node, NodeTraits};

@@ -10,12 +10,12 @@ use rustc_hash::FxBuildHasher;
 use style::custom_properties;
 use stylo_atoms::Atom;
 
-use super::bindings::trace::HashMapTracedValues;
+use super::cssstylevalue::CSSStyleValue;
 use crate::dom::bindings::codegen::Bindings::StylePropertyMapReadOnlyBinding::StylePropertyMapReadOnlyMethods;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cssstylevalue::CSSStyleValue;
+use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 

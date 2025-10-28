@@ -6,15 +6,15 @@ use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::stylesheets::Stylesheet;
 
+use super::cssstylesheet::CSSStyleSheet;
+use super::stylesheet::StyleSheet;
 use crate::dom::bindings::codegen::Bindings::StyleSheetListBinding::StyleSheetListMethods;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
 use crate::dom::documentorshadowroot::StylesheetSource;
 use crate::dom::element::Element;
 use crate::dom::shadowroot::ShadowRoot;
-use crate::dom::stylesheet::StyleSheet;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 

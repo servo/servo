@@ -10,12 +10,12 @@ use style::shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use style::stylesheets::{CssRuleType, SupportsRule};
 use style_traits::ToCss;
 
+use super::cssconditionrule::CSSConditionRule;
+use super::cssrule::SpecificCSSRule;
+use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cssconditionrule::CSSConditionRule;
-use crate::dom::cssrule::SpecificCSSRule;
-use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 

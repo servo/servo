@@ -10,13 +10,13 @@ use style::shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use style::stylesheets::{CssRuleType, MediaRule};
 use style_traits::ToCss;
 
+use super::cssconditionrule::CSSConditionRule;
+use super::cssrule::SpecificCSSRule;
+use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::codegen::Bindings::CSSMediaRuleBinding::CSSMediaRuleMethods;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cssconditionrule::CSSConditionRule;
-use crate::dom::cssrule::SpecificCSSRule;
-use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::medialist::MediaList;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;

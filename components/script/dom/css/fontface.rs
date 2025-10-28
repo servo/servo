@@ -15,21 +15,19 @@ use style::parser::ParserContext;
 use style::stylesheets::{CssRuleType, FontFaceRule, Origin, UrlExtraData};
 use style_traits::{ParsingMode, ToCss};
 
-use super::bindings::cell::DomRefCell;
-use super::bindings::codegen::UnionTypes::StringOrArrayBufferViewOrArrayBuffer;
-use super::bindings::error::{Error, ErrorResult, Fallible};
-use super::bindings::refcounted::Trusted;
-use super::bindings::reflector::DomGlobal;
-use super::bindings::root::MutNullableDom;
-use super::types::FontFaceSet;
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FontFaceBinding::{
     FontFaceDescriptors, FontFaceLoadStatus, FontFaceMethods,
 };
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::codegen::UnionTypes::StringOrArrayBufferViewOrArrayBuffer;
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
+use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::css::fontfaceset::FontFaceSet;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;

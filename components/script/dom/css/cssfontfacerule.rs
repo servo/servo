@@ -9,11 +9,11 @@ use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylesheets::{CssRuleType, FontFaceRule};
 
+use super::cssrule::{CSSRule, SpecificCSSRule};
+use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cssrule::{CSSRule, SpecificCSSRule};
-use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
