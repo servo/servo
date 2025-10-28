@@ -125,7 +125,7 @@ resvg = "0.45.0"
 rustc-hash = "2.1.1"
 rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12"] }
 rustls-pemfile = "2.0"
-rustls-pki-types = "1.12"
+rustls-pki-types = "1.13"
 script_traits = { path = "components/shared/script" }
 selectors = { git = "https://github.com/servo/stylo", branch = "2025-10-01" }
 serde = "1.0.228"
