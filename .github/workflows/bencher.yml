@@ -96,7 +96,7 @@ jobs:
     name: Bencher (${{ inputs.target }}) [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     steps:
-      - uses: servo/actions/fast-checkout@fast-checkout
+      - uses: servo/ci-runners/actions/checkout@main
       - uses: actions/download-artifact@v4
         with:
           name: ${{ inputs.profile }}-binary-${{ inputs.target }}
