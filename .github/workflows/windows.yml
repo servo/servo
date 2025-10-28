@@ -85,7 +85,7 @@ jobs:
     steps:
       - name: Runner select
         id: select
-        uses: servo/ci-runners/actions/runner-select@main
+        uses: servo/ci-runners/actions/runner-select@b2f07879432ab250f9deb180361a291e44fe91e1
         with:
           GITHUB_TOKEN: ${{ github.token }}
           github-hosted-runner-label: windows-2022
@@ -103,7 +103,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Runner timeout
-        uses: servo/ci-runners/actions/runner-timeout@main
+        uses: servo/ci-runners/actions/runner-timeout@b2f07879432ab250f9deb180361a291e44fe91e1
         with:
           github_token: '${{ secrets.GITHUB_TOKEN }}'
           unique-id: '${{ needs.runner-select.outputs.unique-id }}'
@@ -114,7 +114,7 @@ jobs:
     name: Windows Build [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     steps:
-      - uses: servo/ci-runners/actions/checkout@59aba6fdaa43f0336329918e18b9f6fd1996b487
+      - uses: servo/ci-runners/actions/checkout@b2f07879432ab250f9deb180361a291e44fe91e1
 
       - name: ccache
         # FIXME: “Error: Restoring cache failed: Error: Unable to locate executable file: sh.”
