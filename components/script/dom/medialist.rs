@@ -18,7 +18,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::Wind
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cssstylesheet::CSSStyleSheet;
+use crate::dom::css::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;

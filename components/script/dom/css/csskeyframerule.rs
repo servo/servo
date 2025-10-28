@@ -10,14 +10,14 @@ use style::shared_lock::{Locked, SharedRwLockReadGuard, ToCssWithGuard};
 use style::stylesheets::CssRuleType;
 use style::stylesheets::keyframes_rule::Keyframe;
 
+use super::cssrule::{CSSRule, SpecificCSSRule};
+use super::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
+use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::codegen::Bindings::CSSKeyframeRuleBinding::CSSKeyframeRuleMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cssrule::{CSSRule, SpecificCSSRule};
-use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
-use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 

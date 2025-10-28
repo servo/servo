@@ -4,12 +4,12 @@
 
 use dom_struct::dom_struct;
 
+use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::codegen::Bindings::StyleSheetBinding::StyleSheetMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::element::Element;
 use crate::dom::medialist::MediaList;
 use crate::script_runtime::CanGc;

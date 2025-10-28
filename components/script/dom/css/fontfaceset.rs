@@ -8,18 +8,17 @@ use dom_struct::dom_struct;
 use fonts::FontContextWebFontMethods;
 use js::rust::HandleObject;
 
-use super::bindings::reflector::DomGlobal;
-use super::types::Window;
+use super::fontface::FontFace;
 use crate::dom::bindings::codegen::Bindings::FontFaceSetBinding::FontFaceSetMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::fontface::FontFace;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 /// <https://drafts.csswg.org/css-font-loading/#FontFaceSet-interface>

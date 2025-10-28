@@ -31,7 +31,9 @@ use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementType
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
-use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
+use crate::dom::css::cssstyledeclaration::{
+    CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner,
+};
 use crate::dom::customelementregistry::{CallbackReaction, CustomElementState};
 use crate::dom::document::{Document, FocusInitiator};
 use crate::dom::documentfragment::DocumentFragment;

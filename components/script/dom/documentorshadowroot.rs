@@ -29,11 +29,11 @@ use crate::dom::bindings::conversions::{ConversionResult, SafeFromJSValConvertib
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::css::stylesheetlist::StyleSheetListOwner;
 use crate::dom::element::Element;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::{self, Node, VecPreOrderInsertionHelper};
 use crate::dom::shadowroot::ShadowRoot;
-use crate::dom::stylesheetlist::StyleSheetListOwner;
 use crate::dom::types::CSSStyleSheet;
 use crate::dom::window::Window;
 use crate::stylesheet_set::StylesheetSetRef;

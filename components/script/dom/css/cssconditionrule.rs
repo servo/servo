@@ -9,13 +9,13 @@ use servo_arc::Arc;
 use style::shared_lock::{Locked, SharedRwLock, SharedRwLockReadGuard};
 use style::stylesheets::CssRules as StyleCssRules;
 
+use super::cssgroupingrule::CSSGroupingRule;
+use super::cssmediarule::CSSMediaRule;
+use super::cssstylesheet::CSSStyleSheet;
+use super::csssupportsrule::CSSSupportsRule;
 use crate::dom::bindings::codegen::Bindings::CSSConditionRuleBinding::CSSConditionRuleMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cssgroupingrule::CSSGroupingRule;
-use crate::dom::cssmediarule::CSSMediaRule;
-use crate::dom::cssstylesheet::CSSStyleSheet;
-use crate::dom::csssupportsrule::CSSSupportsRule;
 
 #[dom_struct]
 pub(crate) struct CSSConditionRule {

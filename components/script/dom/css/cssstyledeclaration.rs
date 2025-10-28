@@ -20,6 +20,7 @@ use style::shared_lock::Locked;
 use style::stylesheets::{CssRuleType, Origin, StylesheetInDocument, UrlExtraData};
 use style_traits::ParsingMode;
 
+use super::cssrule::CSSRule;
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -27,7 +28,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cssrule::CSSRule;
 use crate::dom::element::Element;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;

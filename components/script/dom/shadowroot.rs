@@ -37,7 +37,8 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cssstylesheet::CSSStyleSheet;
+use crate::dom::css::cssstylesheet::CSSStyleSheet;
+use crate::dom::css::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documentorshadowroot::{
@@ -49,7 +50,6 @@ use crate::dom::node::{
     BindContext, Node, NodeDamage, NodeFlags, NodeTraits, ShadowIncluding, UnbindContext,
     VecPreOrderInsertionHelper,
 };
-use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::trustedhtml::TrustedHTML;
 use crate::dom::types::EventTarget;
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};

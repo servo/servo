@@ -138,7 +138,9 @@ use crate::dom::bindings::weakref::DOMTracker;
 use crate::dom::bluetooth::BluetoothExtraPermissionData;
 use crate::dom::cookiestore::CookieStore;
 use crate::dom::crypto::Crypto;
-use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
+use crate::dom::css::cssstyledeclaration::{
+    CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner,
+};
 use crate::dom::customelementregistry::CustomElementRegistry;
 use crate::dom::document::{AnimationFrameCallback, Document};
 use crate::dom::element::Element;

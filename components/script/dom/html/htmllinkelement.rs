@@ -38,7 +38,8 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::csp::{GlobalCspReporting, Violation};
-use crate::dom::cssstylesheet::CSSStyleSheet;
+use crate::dom::css::cssstylesheet::CSSStyleSheet;
+use crate::dom::css::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::document::Document;
 use crate::dom::documentorshadowroot::StylesheetSource;
 use crate::dom::domtokenlist::DOMTokenList;
@@ -54,7 +55,6 @@ use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::processingoptions::{
     LinkFetchContext, LinkFetchContextType, LinkProcessingOptions,
 };
-use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::types::{EventTarget, GlobalScope};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::links::LinkRelations;
