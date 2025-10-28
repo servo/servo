@@ -2557,8 +2557,8 @@ impl Node {
             if let Some(shadow_root) = parent.downcast::<Element>().and_then(Element::shadow_root) {
                 if shadow_root.SlotAssignment() == SlotAssignmentMode::Named {
                     let cx = GlobalScope::get_cx();
-                    if node.is::<Element>() || node.is::<Text>() {
-                        rooted!(in(*cx) let slottable = Slottable(Dom::from_ref(node)));
+                    if kid.is::<Element>() || kid.is::<Text>() {
+                        rooted!(in(*cx) let slottable = Slottable(Dom::from_ref(kid)));
                         slottable.assign_a_slot();
                     }
                 }
