@@ -4655,6 +4655,60 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         ))
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-parsehtmlunsafe>
+    fn ParseHTMLUnsafe(
+        window: &Window,
+        s: TrustedHTMLOrString,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<Self>> {
+        // Step 1. Let compliantHTML be the result of invoking the
+        // Get Trusted Type compliant string algorithm with TrustedHTML, the current global object,
+        // html, "Document parseHTMLUnsafe", and "script".
+        let compliant_html = TrustedHTML::get_trusted_script_compliant_string(
+            window.as_global_scope(),
+            s,
+            "Document parseHTMLUnsafe",
+            can_gc,
+        )?;
+
+        let url = window.get_url();
+        let doc = window.Document();
+        let loader = DocumentLoader::new(&doc.loader());
+
+        let content_type = "text/html"
+            .parse()
+            .expect("Supported type is not a MIME type");
+        // Step 2. Let document be a new Document, whose content type is "text/html".
+        // Step 3. Set document's allow declarative shadow roots to true.
+        let document = Document::new(
+            window,
+            HasBrowsingContext::No,
+            Some(ServoUrl::parse("about:blank").unwrap()),
+            doc.origin().clone(),
+            IsHTMLDocument::HTMLDocument,
+            Some(content_type),
+            None,
+            DocumentActivity::Inactive,
+            DocumentSource::FromParser,
+            loader,
+            None,
+            None,
+            Default::default(),
+            false,
+            true,
+            Some(doc.insecure_requests_policy()),
+            doc.has_trustworthy_ancestor_or_current_origin(),
+            doc.custom_element_reaction_stack(),
+            doc.creation_sandboxing_flag_set(),
+            can_gc,
+        );
+        // Step 4. Parse HTML from string given document and compliantHTML.
+        ServoParser::parse_html_document(&document, Some(compliant_html), url, can_gc);
+        // Step 5. Return document.
+        document.set_ready_state(DocumentReadyState::Complete, can_gc);
+        Ok(document)
+    }
+
     // https://w3c.github.io/editing/ActiveDocuments/execCommand.html#querycommandsupported()
     fn QueryCommandSupported(&self, _command: DOMString) -> bool {
         false
