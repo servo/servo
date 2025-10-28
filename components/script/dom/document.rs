@@ -4681,7 +4681,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // Step 2. Let document be a new Document, whose content type is "text/html".
         // Step 3. Set document's allow declarative shadow roots to true.
         let document = Document::new(
-            &window,
+            window,
             HasBrowsingContext::No,
             Some(ServoUrl::parse("about:blank").unwrap()),
             doc.origin().clone(),
