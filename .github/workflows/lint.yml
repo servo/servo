@@ -61,28 +61,9 @@ jobs:
     name: Lint [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     steps:
-      - uses: actions/checkout@v4
-        if: ${{ runner.environment != 'self-hosted' && github.event_name != 'pull_request_target' }}
+      - uses: servo/actions/fast-checkout@fast-checkout
         with:
-          fetch-depth: 2 # This is necessary for `test-tidy`.
-      # This is necessary to checkout the pull request if this run was triggered via a
-      # `pull_request_target` event.
-      - uses: actions/checkout@v4
-        if: ${{ runner.environment != 'self-hosted' && github.event_name == 'pull_request_target' }}
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 2 # This is necessary for `test-tidy`.
-      # Faster checkout for self-hosted runner that uses prebaked repo.
-      - if: ${{ runner.environment == 'self-hosted' && github.event_name != 'pull_request_target' }}
-        run: git fetch --depth=2 origin $GITHUB_SHA  # The depth is necessary for `test-tidy`.
-      - if: ${{ runner.environment == 'self-hosted' && github.event_name == 'pull_request_target' }}
-        run: git fetch --depth=2 origin ${{ github.event.pull_request.head.sha }}  # The depth is necessary for `test-tidy`.
-      - if: ${{ runner.environment == 'self-hosted' }}
-        # Same as `git switch --detach FETCH_HEAD`, but fixes up dirty working
-        # trees, in case the runner image was baked with a dirty working tree.
-        run: |
-          git switch --detach
-          git reset --hard FETCH_HEAD
+          fetch-depth: 2
 
       - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
         if: ${{ runner.environment != 'self-hosted' }}
