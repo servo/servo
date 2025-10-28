@@ -84,6 +84,8 @@ pub(crate) struct HTMLIFrameElement {
     throttled: Cell<bool>,
     #[conditional_malloc_size_of]
     script_window_proxies: Rc<ScriptWindowProxies>,
+    /// Keeping track of whether the iframe will be navigated;
+    /// see the note in `iframe_load_event_steps`.
     pending_navigation: Cell<bool>,
 }
 
@@ -247,8 +249,7 @@ impl HTMLIFrameElement {
     /// an "about:blank" document is created,
     /// and synchronously processed by the script thread.
     /// This initial synchronous load should have no noticeable effect in script.
-    /// The exception is if it does not have an src,
-    /// because then no subsequent document will be created.
+    /// See the note in `iframe_load_event_steps`.
     pub(crate) fn is_initial_blank_document(&self) -> bool {
         self.pending_pipeline_id.get() == self.about_blank_pipeline_id.get()
     }
@@ -392,7 +393,7 @@ impl HTMLIFrameElement {
     /// Synchronously create a new browsing context(This is not a navigation).
     /// The pipeline started here should remain unnoticable to script, but this is not easy
     /// to refactor because it appears other features have come to rely on the current behavior.
-    /// For now only the iframe load event steps are skipped for this initial document,
+    /// For now only the iframe load event steps are skipped in some cases for this initial document,
     /// and we still fire load and pageshow events as part of `maybe_queue_document_completion`.
     /// Also, some controversy spec-wise remains: https://github.com/whatwg/html/issues/4965
     fn create_nested_browsing_context(&self, can_gc: CanGc) {
@@ -441,7 +442,9 @@ impl HTMLIFrameElement {
         reason: UpdatePipelineIdReason,
         can_gc: CanGc,
     ) {
-        if self.pending_pipeline_id.get() != self.about_blank_pipeline_id.get() {
+        // For all updates except the one for the initial blank document,
+        // we need to set the flag back to false because the navigation is complete.
+        if !self.is_initial_blank_document() {
             self.pending_navigation.set(false);
         }
         if self.pending_pipeline_id.get() != Some(new_pipeline_id) &&
@@ -529,11 +532,13 @@ impl HTMLIFrameElement {
         }
     }
 
+    /// Note a pending navigation,
+    /// used as part of `iframe_load_event_steps`.
     pub(crate) fn note_pending_navigation(&self) {
         self.pending_navigation.set(true);
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#iframe-load-event-steps> steps 1-4
+    /// <https://html.spec.whatwg.org/multipage/#iframe-load-event-steps>
     pub(crate) fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId, can_gc: CanGc) {
         // TODO(#9592): assert that the load blocker is present at all times when we
         //              can guarantee that it's created for the case of iframe.reload().
@@ -541,17 +546,29 @@ impl HTMLIFrameElement {
             return;
         }
 
-        // The initial about:blank document, created as part of
-        // https://html.spec.whatwg.org/multipage/#create-a-new-child-navigable
-        // which is step 1 of
-        // https://html.spec.whatwg.org/multipage/#the-iframe-element:html-element-post-connection-steps
-        // should not result in the running of the iframe load event steps.
+        // TODO 1. Assert: element's content navigable is not null.
+
+        // TODO 2-4 Mark resource timing.
+
+        // TODO 5 Set childDocument's iframe load in progress flag.
+
+        // Note: in the spec, these steps are either run synchronously as part of
+        // "If url matches about:blank and initialInsertion is true, then:"
+        // in `process the iframe attributes`,
+        // or asynchronously when navigation completes.
         //
-        // In Servo, this initial document,
-        // although created and loaded synchronously by the script-thread,
-        // is run through the document completion steps
-        // like any other document(and this is hard to refactor).
-        // this flag is necessary to prevent the load event steps from running.
+        // In our current implementation,
+        // we arrive here always asynchronously in the following two cases:
+        // 1. as part of loading the initial blank document
+        //    created in `create_nested_browsing_context`
+        // 2. optionally, as part of loading a second document created as
+        //    as part of the first processing of the iframe attributes.
+        //
+        // To preserve the logic of the spec--firing the load event once--in the context of
+        // our current implementation, we must:
+        // - Not fire the load event for the initial blank document
+        // if there is either a pending navigation or the src has been processed.
+        // - Fire the load event in the other case(initial blank document without src).
         let should_fire_event = if self.is_initial_blank_document() {
             !self.pending_navigation.get() &&
                 !self.upcast::<Element>().has_attribute(&local_name!("src"))
@@ -559,21 +576,15 @@ impl HTMLIFrameElement {
             true
         };
         if should_fire_event {
-            // Step 4
+            // Step 6. Fire an event named load at element.
             self.upcast::<EventTarget>()
                 .fire_event(atom!("load"), can_gc);
         }
 
-        // TODO A cross-origin child document would not be easily accessible
-        //      from this script thread. It's unclear how to implement
-        //      steps 2, 3, and 5 efficiently in this case.
-        // TODO Step 2 - check child document `mute iframe load` flag
-        // TODO Step 3 - set child document  `mut iframe load` flag
-
         let blocker = &self.load_blocker;
         LoadBlocker::terminate(blocker, can_gc);
 
-        // TODO Step 5 - unset child document `mut iframe load` flag
+        // TODO Step 7 - unset child document `mut iframe load` flag
     }
 
     /// Parse the `sandbox` attribute value given the [`Attr`]. This sets the `sandboxing_flag_set`
