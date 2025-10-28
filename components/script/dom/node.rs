@@ -386,14 +386,17 @@ impl Node {
         // Step 12.
         let is_parent_connected = context.parent.is_connected();
         let custom_element_reaction_stack = ScriptThread::custom_element_reaction_stack();
-        for node in root.traverse_preorder(ShadowIncluding::Yes) {
+
+        // Since both the initial traversal in light dom and the inner traversal
+        // in shadow DOM share the same code, we define a closure to prevent omissions.
+        let cleanup_node = |node: &Node| {
             node.clean_up_style_and_layout_data();
 
             // Step 11 & 14.1. Run the removing steps.
             // This needs to be in its own loop, because unbind_from_tree may
             // rely on the state of IS_IN_DOC of the context node's descendants,
             // e.g. when removing a <form>.
-            vtable_for(&node).unbind_from_tree(context, can_gc);
+            vtable_for(node).unbind_from_tree(context, can_gc);
 
             // Step 12 & 14.2. Enqueue disconnected custom element reactions.
             if is_parent_connected {
@@ -403,6 +406,29 @@ impl Node {
                         CallbackReaction::Disconnected,
                         None,
                     );
+                }
+            }
+        };
+
+        for node in root.traverse_preorder(ShadowIncluding::No) {
+            cleanup_node(&node);
+
+            // Make sure that we don't accidentally initialize the rare data for this node
+            // by setting it to None
+            if node.containing_shadow_root().is_some() {
+                // Reset the containing shadowRoot after we unbind the node, since some elements
+                // require the containing shadowRoot for cleanup logic (e.g. <style>).
+                node.set_containing_shadow_root(None);
+            }
+
+            // If the element has a shadow root attached to it then we traverse that as well,
+            // but without resetting the contained shadow root
+            if let Some(shadow_root) = node.downcast::<Element>().and_then(Element::shadow_root) {
+                for node in shadow_root
+                    .upcast::<Node>()
+                    .traverse_preorder(ShadowIncluding::Yes)
+                {
+                    cleanup_node(&node);
                 }
             }
         }
