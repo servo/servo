@@ -107,16 +107,14 @@ pub(crate) trait VirtualMethods {
         }
     }
 
-    /// Called when a Node is appended to a tree, where 'tree_connected' indicates
-    /// whether the tree is part of a Document.
+    /// Called when a Node is appended to a tree.
     fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
             s.bind_to_tree(context, can_gc);
         }
     }
 
-    /// Called when a Node is removed from a tree, where 'tree_connected'
-    /// indicates whether the tree is part of a Document.
+    /// Called when a Node is removed from a tree.
     /// Implements removing steps:
     /// <https://dom.spec.whatwg.org/#concept-node-remove-ext>
     fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
