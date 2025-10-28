@@ -126,11 +126,9 @@ impl<'dom> ServoLayoutElement<'dom> {
             return false;
         }
 
-        self.parent_element()
-            .map(|element| {
-                element.is_root() && element.element.local_name() == &local_name!("html")
-            })
-            .unwrap_or(false)
+        self.parent_element().is_some_and(|element| {
+            element.is_root() && element.element.local_name() == &local_name!("html")
+        })
     }
 
     /// Returns the parent element of this element, if it has one.

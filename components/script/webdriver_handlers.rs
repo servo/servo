@@ -1506,7 +1506,7 @@ pub(crate) fn handle_add_cookie(
     reply
         .send(match (document.is_cookie_averse(), domain) {
             (true, _) => Err(ErrorStatus::InvalidCookieDomain),
-            (false, Some(ref domain)) if url.host_str().map(|x| x == domain).unwrap_or(false) => {
+            (false, Some(ref domain)) if url.host_str().is_some_and(|host| host == domain) => {
                 let _ = document
                     .window()
                     .as_global_scope()
