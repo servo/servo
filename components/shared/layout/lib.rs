@@ -298,6 +298,7 @@ pub trait Layout {
     /// Marks that this layout needs to produce a new display list for rendering updates.
     fn set_needs_new_display_list(&self);
 
+    fn query_padding_top_and_left(&self, node: TrustedNodeAddress) -> Option<(Au, Au)>;
     fn query_box_area(&self, node: TrustedNodeAddress, area: BoxAreaType) -> Option<Rect<Au>>;
     fn query_box_areas(&self, node: TrustedNodeAddress, area: BoxAreaType) -> Vec<Rect<Au>>;
     fn query_client_rect(&self, node: TrustedNodeAddress) -> Rect<i32>;
@@ -431,6 +432,7 @@ pub enum QueryMsg {
     ScrollingAreaOrOffsetQuery,
     StyleQuery,
     TextIndexQuery,
+    PaddingTopAndLeftQuery,
 }
 
 /// The goal of a reflow request.

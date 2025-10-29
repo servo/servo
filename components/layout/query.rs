@@ -8,6 +8,7 @@ use std::rc::Rc;
 use app_units::Au;
 use compositing_traits::display_list::ScrollTree;
 use euclid::default::{Point2D, Rect};
+use euclid::num::Zero;
 use euclid::{SideOffsets2D, Size2D};
 use itertools::Itertools;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
@@ -66,6 +67,22 @@ fn root_transform_for_layout_node(
         .borrow();
     let scroll_tree_node_id = box_fragment.spatial_tree_node()?;
     Some(scroll_tree.cumulative_node_to_root_transform(scroll_tree_node_id))
+}
+
+pub(crate) fn process_padding_top_and_left_request(
+    node: ServoThreadSafeLayoutNode<'_>,
+) -> Option<(Au, Au)> {
+    let fragments = node.fragments_for_pseudo(None);
+    let Some(fragment) = fragments.first() else {
+        return None;
+    };
+    match fragment {
+        Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
+            let padding = box_fragment.borrow().padding;
+            Some((padding.top, padding.left))
+        },
+        _ => Some((Au::zero(), Au::zero())),
+    }
 }
 
 pub(crate) fn process_box_area_request(

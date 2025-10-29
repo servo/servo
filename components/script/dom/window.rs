@@ -2631,6 +2631,23 @@ impl Window {
         )
     }
 
+    /// Do the same kind of query as `Self::padding_top_and_left_query`, but do not force a reflow.
+    /// This is used for things like `IntersectionObserver` which should observe the value
+    /// from the most recent reflow, but do not need it to reflect the current state of
+    /// the DOM / style.
+    pub(crate) fn padding_top_and_left_query_without_reflow(
+        &self,
+        node: &Node,
+    ) -> Option<(Au, Au)> {
+        let layout = self.layout.borrow();
+        layout.query_padding_top_and_left(node.to_trusted_node_address())
+    }
+
+    pub(crate) fn padding_top_and_left_query(&self, node: &Node) -> Option<(Au, Au)> {
+        self.layout_reflow(QueryMsg::PaddingTopAndLeftQuery);
+        self.padding_top_and_left_query_without_reflow(node)
+    }
+
     /// Do the same kind of query as `Self::box_area_query`, but do not force a reflow.
     /// This is used for things like `IntersectionObserver` which should observe the value
     /// from the most recent reflow, but do not need it to reflect the current state of

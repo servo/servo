@@ -173,6 +173,11 @@ fn create_and_populate_a_resizeobserverentry(
 ) -> DomRoot<ResizeObserverEntry> {
     let border_box_size = calculate_box_size(target, &ResizeObserverBoxOptions::Border_box);
     let content_box_size = calculate_box_size(target, &ResizeObserverBoxOptions::Content_box);
+    let (padding_top, padding_left) = target
+        .upcast::<Node>()
+        .padding_top_and_left()
+        .unwrap_or_default();
+
     let device_pixel_content_box =
         calculate_box_size(target, &ResizeObserverBoxOptions::Device_pixel_content_box);
 
@@ -191,8 +196,8 @@ fn create_and_populate_a_resizeobserverentry(
     let content_rect = DOMRectReadOnly::new(
         window.upcast(),
         None,
-        content_box_size.origin.x,
-        content_box_size.origin.y,
+        padding_left.to_f64_px(),
+        padding_top.to_f64_px(),
         content_box_size.width(),
         content_box_size.height(),
         can_gc,

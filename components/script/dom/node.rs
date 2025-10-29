@@ -968,6 +968,10 @@ impl Node {
         TrustedNodeAddress(self as *const Node as *const libc::c_void)
     }
 
+    pub(crate) fn padding_top_and_left(&self) -> Option<(Au, Au)> {
+        self.owner_window().padding_top_and_left_query(self)
+    }
+
     pub(crate) fn content_box(&self) -> Option<Rect<Au>> {
         self.owner_window()
             .box_area_query(self, BoxAreaType::Content)
