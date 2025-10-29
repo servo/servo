@@ -185,8 +185,13 @@ fn create_and_populate_a_resizeobserverentry(
     // initialized with one reported size (zero).
     // The spec plans to store multiple reported sizes,
     // but for now there can be only one.
+    let last_size = match observation.observed_box {
+        ResizeObserverBoxOptions::Content_box => content_box_size,
+        ResizeObserverBoxOptions::Border_box => border_box_size,
+        ResizeObserverBoxOptions::Device_pixel_content_box => device_pixel_content_box,
+    };
     let last_reported_size =
-        ResizeObserverSizeImpl::new(content_box_size.width(), content_box_size.height());
+        ResizeObserverSizeImpl::new(last_size.width(), last_size.height());
     if observation.last_reported_sizes.is_empty() {
         observation.last_reported_sizes.push(last_reported_size);
     } else {
