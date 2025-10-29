@@ -26,7 +26,7 @@ use base::Epoch;
 use base::generic_channel::{GenericCallback, GenericSender, SendResult};
 use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
-use euclid::{Box2D, Point2D, Scale, Size2D};
+use euclid::{Box2D, Point2D, Scale, Size2D, Vector2D};
 use http::{HeaderMap, Method, StatusCode};
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use log::warn;
@@ -44,7 +44,7 @@ use uuid::Uuid;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::{
     DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, DeviceRect,
-    LayoutPoint, LayoutRect, LayoutSize,
+    DeviceVector2D, LayoutPoint, LayoutRect, LayoutSize, LayoutVector2D,
 };
 
 pub use crate::input_events::*;
@@ -123,6 +123,46 @@ impl From<Box2D<f32, CSSPixel>> for WebViewRect {
     fn from(rect: Box2D<f32, CSSPixel>) -> Self {
         Self::Page(rect)
     }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub enum WebViewVector {
+    Device(DeviceVector2D),
+    Page(Vector2D<f32, CSSPixel>),
+}
+
+impl WebViewVector {
+    pub fn as_device_vector(&self, scale: Scale<f32, CSSPixel, DevicePixel>) -> DeviceVector2D {
+        match self {
+            Self::Device(vector) => *vector,
+            Self::Page(vector) => *vector * scale,
+        }
+    }
+}
+
+impl From<DeviceVector2D> for WebViewVector {
+    fn from(vector: DeviceVector2D) -> Self {
+        Self::Device(vector)
+    }
+}
+
+impl From<LayoutVector2D> for WebViewVector {
+    fn from(vector: LayoutVector2D) -> Self {
+        Self::Page(Vector2D::new(vector.x, vector.y))
+    }
+}
+
+impl From<Vector2D<f32, CSSPixel>> for WebViewVector {
+    fn from(vector: Vector2D<f32, CSSPixel>) -> Self {
+        Self::Page(vector)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub enum Scroll {
+    Delta(WebViewVector),
+    Start,
+    End,
 }
 
 /// Tracks whether Servo isn't shutting down, is in the process of shutting down,

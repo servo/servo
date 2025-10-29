@@ -16,13 +16,14 @@ use servo::base::generic_channel::GenericSender;
 use servo::base::id::WebViewId;
 use servo::ipc_channel::ipc::IpcSender;
 use servo::servo_geometry::DeviceIndependentPixel;
-use servo::webrender_api::ScrollLocation;
-use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint};
+use servo::webrender_api::units::{
+    DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, DeviceVector2D,
+};
 use servo::{
     AllowOrDenyRequest, ContextMenuResult, EmbedderControl, EmbedderControlId, ImeEvent,
     InputEvent, KeyboardEvent, LoadStatus, MediaSessionActionType, MediaSessionEvent, MouseButton,
     MouseButtonAction, MouseButtonEvent, MouseMoveEvent, NavigationRequest, PermissionRequest,
-    RefreshDriver, RenderingContext, ScreenGeometry, Servo, ServoDelegate, ServoError,
+    RefreshDriver, RenderingContext, ScreenGeometry, Scroll, Servo, ServoDelegate, ServoError,
     SimpleDialog, TouchEvent, TouchEventType, TouchId, TraversalId, WebDriverCommandMsg,
     WebDriverJSResult, WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView,
     WebViewBuilder, WebViewDelegate, WindowRenderingContext,
@@ -617,10 +618,9 @@ impl RunningAppState {
     /// x/y are scroll coordinates.
     /// dx/dy are scroll deltas.
     pub fn scroll(&self, dx: f32, dy: f32, x: f32, y: f32) {
-        let scroll_location = ScrollLocation::Delta(Vector2D::new(dx, dy));
+        let scroll = Scroll::Delta(DeviceVector2D::new(dx, dy).into());
         let point = DevicePoint::new(x, y).into();
-        self.active_webview()
-            .notify_scroll_event(scroll_location, point);
+        self.active_webview().notify_scroll_event(scroll, point);
         self.perform_updates();
     }
 

@@ -8,11 +8,10 @@ use std::rc::Rc;
 
 use euclid::{Scale, Size2D};
 use servo::{
-    RenderingContext, Servo, ServoBuilder, WebView, WebViewBuilder, WindowRenderingContext,
+    RenderingContext, Scroll, Servo, ServoBuilder, WebView, WebViewBuilder, WindowRenderingContext,
 };
 use tracing::warn;
 use url::Url;
-use webrender_api::ScrollLocation;
 use webrender_api::units::{DevicePixel, DevicePoint, LayoutVector2D};
 use winit::application::ApplicationHandler;
 use winit::dpi::PhysicalSize;
@@ -161,7 +160,7 @@ impl ApplicationHandler<WakerEvent> for App {
                             },
                         };
                         webview.notify_scroll_event(
-                            ScrollLocation::Delta(moved_by),
+                            Scroll::Delta(moved_by.into()),
                             DevicePoint::new(10.0, 10.0).into(),
                         );
                     }
