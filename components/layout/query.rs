@@ -73,9 +73,7 @@ pub(crate) fn process_padding_top_and_left_request(
     node: ServoThreadSafeLayoutNode<'_>,
 ) -> Option<(Au, Au)> {
     let fragments = node.fragments_for_pseudo(None);
-    let Some(fragment) = fragments.first() else {
-        return None;
-    };
+    let fragment = fragments.first()?;
     match fragment {
         Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
             let padding = box_fragment.borrow().padding;
