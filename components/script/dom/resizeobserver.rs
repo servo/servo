@@ -180,8 +180,13 @@ fn create_and_populate_a_resizeobserverentry(
     // initialized with one reported size (zero).
     // The spec plans to store multiple reported sizes,
     // but for now there can be only one.
-    observation.last_reported_sizes[0] =
+    let last_reported_size =
         ResizeObserverSizeImpl::new(content_box_size.width(), content_box_size.height());
+    if observation.last_reported_sizes.is_empty() {
+        observation.last_reported_sizes.push(last_reported_size);
+    } else {
+        observation.last_reported_sizes[0] = last_reported_size;
+    }
 
     let content_rect = DOMRectReadOnly::new(
         window.upcast(),
@@ -307,17 +312,18 @@ struct ResizeObservation {
 impl ResizeObservation {
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobservation-resizeobservation>
     pub(crate) fn new(observed_box: ResizeObserverBoxOptions) -> ResizeObservation {
-        let size_impl = ResizeObserverSizeImpl::new(0.0, 0.0);
         ResizeObservation {
             observed_box,
-            last_reported_sizes: vec![size_impl],
+            last_reported_sizes: vec![],
             state: Default::default(),
         }
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobservation-isactive>
     fn is_active(&self, target: &Element) -> bool {
-        let last_reported_size = self.last_reported_sizes[0];
+        let Some(last_reported_size) = self.last_reported_sizes.first() else {
+            return true;
+        };
         let box_size = calculate_box_size(target, &self.observed_box);
         box_size.width() != last_reported_size.inline_size() ||
             box_size.height() != last_reported_size.block_size()
