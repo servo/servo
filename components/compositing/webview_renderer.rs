@@ -15,7 +15,7 @@ use compositing_traits::{PipelineExitSource, SendableFrameTree, WebViewTrait};
 use constellation_traits::{EmbedderToConstellationMessage, WindowSizeType};
 use embedder_traits::{
     AnimationState, CompositorHitTestResult, InputEvent, InputEventAndId, InputEventId,
-    InputEventResult, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
+    InputEventResult, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent, Scroll,
     ScrollEvent as EmbedderScrollEvent, ShutdownState, TouchEvent, TouchEventType, ViewportDetails,
     WebViewPoint,
 };
@@ -29,7 +29,7 @@ use webrender_api::units::{DevicePixel, DevicePoint, DeviceRect, LayoutVector2D}
 use webrender_api::{ExternalScrollId, ScrollLocation};
 
 use crate::compositor::{PipelineDetails, ServoRenderer};
-use crate::pinch_zoom::{DeviceScroll, PinchZoom};
+use crate::pinch_zoom::PinchZoom;
 use crate::touch::{
     FlingRefreshDriverObserver, PendingTouchInputEvent, TouchHandler, TouchMoveAllowed,
     TouchSequenceState,
@@ -38,7 +38,7 @@ use crate::touch::{
 #[derive(Clone, Copy)]
 pub(crate) struct ScrollEvent {
     /// Scroll by this offset, or to Start or End
-    pub scroll_location: ScrollLocation,
+    pub scroll: Scroll,
     /// Scroll the scroll node that is found at this point.
     pub point: DevicePoint,
     /// The number of OS events that have been coalesced together into this one event.
@@ -282,7 +282,7 @@ impl WebViewRenderer {
         };
 
         self.on_scroll_window_event(
-            ScrollLocation::Delta(-fling_action.delta),
+            Scroll::Delta((-fling_action.delta).into()),
             fling_action.cursor,
         );
         self.touch_handler.currently_in_touch_sequence()
@@ -624,22 +624,18 @@ impl WebViewRenderer {
         );
     }
 
-    pub(crate) fn notify_scroll_event(
-        &mut self,
-        scroll_location: ScrollLocation,
-        point: WebViewPoint,
-    ) {
+    pub(crate) fn notify_scroll_event(&mut self, scroll: Scroll, point: WebViewPoint) {
         if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
         let point = point.as_device_point(self.device_pixels_per_page_pixel());
-        self.on_scroll_window_event(scroll_location, point);
+        self.on_scroll_window_event(scroll, point);
     }
 
-    fn on_scroll_window_event(&mut self, scroll_location: ScrollLocation, cursor: DevicePoint) {
+    fn on_scroll_window_event(&mut self, scroll: Scroll, cursor: DevicePoint) {
         self.pending_scroll_zoom_events
             .push(ScrollZoomEvent::Scroll(ScrollEvent {
-                scroll_location,
+                scroll,
                 point: cursor,
                 event_count: 1,
             }));
@@ -662,6 +658,7 @@ impl WebViewRenderer {
         // else we'll do way too much painting.
         let mut combined_scroll_event: Option<ScrollEvent> = None;
         let mut new_pinch_zoom = self.pinch_zoom;
+        let device_pixels_per_page_pixel = self.device_pixels_per_page_pixel();
 
         for scroll_event in self.pending_scroll_zoom_events.drain(..) {
             match scroll_event {
@@ -677,26 +674,27 @@ impl WebViewRenderer {
                         Some(combined_event) => combined_event,
                     };
 
-                    match (
-                        combined_event.scroll_location,
-                        scroll_event_info.scroll_location,
-                    ) {
-                        (ScrollLocation::Delta(old_delta), ScrollLocation::Delta(new_delta)) => {
+                    match (combined_event.scroll, scroll_event_info.scroll) {
+                        (Scroll::Delta(old_delta), Scroll::Delta(new_delta)) => {
                             // Mac OS X sometimes delivers scroll events out of vsync during a
                             // fling. This causes events to get bunched up occasionally, causing
                             // nasty-looking "pops". To mitigate this, during a fling we average
                             // deltas instead of summing them.
-                            let old_event_count = Scale::new(combined_event.event_count as f32);
+                            let old_event_count = combined_event.event_count as f32;
                             combined_event.event_count += 1;
-                            let new_event_count = Scale::new(combined_event.event_count as f32);
+                            let new_event_count = combined_event.event_count as f32;
+                            let old_delta =
+                                old_delta.as_device_vector(device_pixels_per_page_pixel);
+                            let new_delta =
+                                new_delta.as_device_vector(device_pixels_per_page_pixel);
                             let delta = (old_delta * old_event_count + new_delta) / new_event_count;
-                            combined_event.scroll_location = ScrollLocation::Delta(delta);
+                            combined_event.scroll = Scroll::Delta(delta.into());
                         },
-                        (ScrollLocation::Start, _) | (ScrollLocation::End, _) => {
+                        (Scroll::Start, _) | (Scroll::End, _) => {
                             // Once we see Start or End, we shouldn't process any more events.
                             break;
                         },
-                        (_, ScrollLocation::Start) | (_, ScrollLocation::End) => {
+                        (_, Scroll::Start) | (_, Scroll::End) => {
                             // If this is an event which is scrolling to the start or end of the page,
                             // disregard other pending events and exit the loop.
                             *combined_event = scroll_event_info;
@@ -711,14 +709,14 @@ impl WebViewRenderer {
         // of the delta for scrolling. This allows moving the zoomed into viewport around in the
         // unzoomed viewport before actually scrolling the underlying layers.
         if let Some(combined_scroll_event) = combined_scroll_event.as_mut() {
-            new_pinch_zoom.pan(&mut combined_scroll_event.scroll_location)
+            new_pinch_zoom.pan(
+                &mut combined_scroll_event.scroll,
+                self.device_pixels_per_page_pixel(),
+            )
         }
 
         let scroll_result = combined_scroll_event.and_then(|combined_event| {
-            self.scroll_node_at_device_point(
-                combined_event.point.to_f32(),
-                combined_event.scroll_location,
-            )
+            self.scroll_node_at_device_point(combined_event.point.to_f32(), combined_event.scroll)
         });
         if let Some(scroll_result) = scroll_result.clone() {
             self.send_scroll_positions_to_layout_for_pipeline(
@@ -733,26 +731,24 @@ impl WebViewRenderer {
         (self.set_pinch_zoom(new_pinch_zoom), scroll_result)
     }
 
-    /// Perform a hit test at the given [`DevicePoint`] and apply the [`ScrollLocation`]
+    /// Perform a hit test at the given [`DevicePoint`] and apply the [`Scroll`]
     /// scrolling to the applicable scroll node under that point. If a scroll was
     /// performed, returns the hit test result contains [`PipelineId`] of the node
     /// scrolled, the id, and the final scroll delta.
     fn scroll_node_at_device_point(
         &mut self,
         cursor: DevicePoint,
-        scroll_location: ScrollLocation,
+        scroll: Scroll,
     ) -> Option<ScrollResult> {
-        let scroll_location = match scroll_location {
-            ScrollLocation::Delta(delta) => {
+        let scroll_location = match scroll {
+            Scroll::Delta(delta) => {
                 let device_pixels_per_page = self.device_pixels_per_page_pixel();
-                let scaled_delta = (Vector2D::from_untyped(delta.to_untyped()) /
-                    device_pixels_per_page)
-                    .to_untyped();
-                let calculated_delta = LayoutVector2D::from_untyped(scaled_delta);
-                ScrollLocation::Delta(calculated_delta)
+                let calculate_delta =
+                    delta.as_device_vector(device_pixels_per_page) / device_pixels_per_page;
+                ScrollLocation::Delta(calculate_delta.cast_unit())
             },
-            // Leave ScrollLocation unchanged if it is Start or End location.
-            ScrollLocation::Start | ScrollLocation::End => scroll_location,
+            Scroll::Start => ScrollLocation::Start,
+            Scroll::End => ScrollLocation::End,
         };
 
         let hit_test_results: Vec<_> = self
@@ -805,9 +801,10 @@ impl WebViewRenderer {
     ) -> (PinchZoomResult, Vec<ScrollResult>) {
         let device_pixels_per_page_pixel = self.device_pixels_per_page_pixel();
         let delta_in_device_pixels = delta.cast_unit() * device_pixels_per_page_pixel;
-        let remaining = self
-            .pinch_zoom
-            .pan_with_device_scroll(DeviceScroll::Delta(delta_in_device_pixels));
+        let remaining = self.pinch_zoom.pan_with_device_scroll(
+            Scroll::Delta(delta_in_device_pixels.into()),
+            device_pixels_per_page_pixel,
+        );
 
         let pinch_zoom_result = match remaining == delta_in_device_pixels {
             true => PinchZoomResult::DidNotPinchZoom,

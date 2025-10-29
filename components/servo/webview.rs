@@ -14,15 +14,14 @@ use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
     Cursor, Image, InputEvent, InputEventAndId, InputEventId, JSValue, JavaScriptEvaluationError,
-    LoadStatus, MediaSessionActionType, ScreenGeometry, ScreenshotCaptureError, Theme, TraversalId,
-    ViewportDetails, WebViewPoint, WebViewRect,
+    LoadStatus, MediaSessionActionType, ScreenGeometry, ScreenshotCaptureError, Scroll, Theme,
+    TraversalId, ViewportDetails, WebViewPoint, WebViewRect,
 };
 use euclid::{Point2D, Scale, Size2D};
 use image::RgbaImage;
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::CSSPixel;
 use url::Url;
-use webrender_api::ScrollLocation;
 use webrender_api::units::{DevicePixel, DevicePoint, DeviceRect};
 
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
@@ -470,11 +469,11 @@ impl WebView {
 
     /// Ask the [`WebView`] to scroll web content. Note that positive scroll offsets reveal more
     /// content on the bottom and right of the page.
-    pub fn notify_scroll_event(&self, location: ScrollLocation, point: WebViewPoint) {
+    pub fn notify_scroll_event(&self, scroll: Scroll, point: WebViewPoint) {
         self.inner()
             .compositor
             .borrow_mut()
-            .notify_scroll_event(self.id(), location, point);
+            .notify_scroll_event(self.id(), scroll, point);
     }
 
     pub fn notify_input_event(&self, event: InputEvent) -> InputEventId {

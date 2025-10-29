@@ -13,16 +13,15 @@ use std::{env, fs};
 
 use ::servo::ServoBuilder;
 use crossbeam_channel::unbounded;
-use euclid::Vector2D;
 use log::{info, trace, warn};
 use net::protocols::ProtocolRegistry;
 use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
 use servo::servo_url::ServoUrl;
 use servo::user_content_manager::{UserContentManager, UserScript};
-use servo::webrender_api::ScrollLocation;
+use servo::webrender_api::units::DeviceVector2D;
 use servo::{
-    EventLoopWaker, InputEvent, ScreenshotCaptureError, WebDriverCommandMsg,
+    EventLoopWaker, InputEvent, ScreenshotCaptureError, Scroll, WebDriverCommandMsg,
     WebDriverScriptCommand, WebDriverUserPromptAction, WheelEvent,
 };
 use url::Url;
@@ -478,11 +477,10 @@ impl App {
                         // a default event action in the compositor.
                         let scroll_event = match &input_event {
                             InputEvent::Wheel(WheelEvent { delta, point }) => {
-                                let scroll_location = ScrollLocation::Delta(Vector2D::new(
-                                    -delta.x as f32,
-                                    -delta.y as f32,
-                                ));
-                                Some((scroll_location, *point))
+                                let scroll = Scroll::Delta(
+                                    DeviceVector2D::new(-delta.x as f32, -delta.y as f32).into(),
+                                );
+                                Some((scroll, *point))
                             },
                             _ => None,
                         };
@@ -493,8 +491,8 @@ impl App {
                             response_sender,
                         );
 
-                        if let Some((scroll_location, scroll_point)) = scroll_event {
-                            webview.notify_scroll_event(scroll_location, scroll_point);
+                        if let Some((scroll, scroll_point)) = scroll_event {
+                            webview.notify_scroll_event(scroll, scroll_point);
                         }
                     }
                 },

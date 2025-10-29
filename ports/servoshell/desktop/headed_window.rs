@@ -13,22 +13,21 @@ use std::env;
 use std::rc::Rc;
 use std::time::Duration;
 
-use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D, Vector3D};
+use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
 use keyboard_types::ShortcutMatcher;
 use log::debug;
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
 use servo::servo_geometry::{
     DeviceIndependentIntRect, DeviceIndependentPixel, convert_rect_to_css_pixel,
 };
-use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{
-    DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint,
+    DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, DeviceVector2D,
 };
 use servo::{
     Cursor, ImeEvent, InputEvent, InputEventId, InputEventResult, InputMethodControl, Key,
     KeyState, KeyboardEvent, Modifiers, MouseButton as ServoMouseButton, MouseButtonAction,
     MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, NamedKey, OffscreenRenderingContext,
-    RenderingContext, ScreenGeometry, Theme, TouchEvent, TouchEventType, TouchId,
+    RenderingContext, ScreenGeometry, Scroll, Theme, TouchEvent, TouchEventType, TouchId,
     WebRenderDebugOption, WebView, WheelDelta, WheelEvent, WheelMode, WindowRenderingContext,
 };
 use url::Url;
@@ -687,8 +686,8 @@ impl WindowPortsMethods for Window {
 
                 // Send events
                 webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(delta, point.into())));
-                let scroll_location = ScrollLocation::Delta(-Vector2D::new(dx as f32, dy as f32));
-                webview.notify_scroll_event(scroll_location, point.into());
+                let scroll = Scroll::Delta((-DeviceVector2D::new(dx as f32, dy as f32)).into());
+                webview.notify_scroll_event(scroll, point.into());
             },
             WindowEvent::Touch(touch) => {
                 webview.notify_input_event(InputEvent::Touch(TouchEvent::new(

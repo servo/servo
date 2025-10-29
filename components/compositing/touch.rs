@@ -5,13 +5,12 @@
 use std::cell::RefCell;
 
 use base::id::WebViewId;
-use embedder_traits::{CompositorHitTestResult, InputEventId, TouchEventType, TouchId};
+use embedder_traits::{CompositorHitTestResult, InputEventId, Scroll, TouchEventType, TouchId};
 use euclid::{Point2D, Scale, Vector2D};
 use log::{debug, error, warn};
 use rustc_hash::FxHashMap;
 use style_traits::CSSPixel;
-use webrender_api::ScrollLocation;
-use webrender_api::units::{DevicePixel, DevicePoint, LayoutVector2D};
+use webrender_api::units::{DevicePixel, DevicePoint, DeviceVector2D};
 
 use self::TouchSequenceState::*;
 use crate::IOCompositor;
@@ -198,7 +197,7 @@ pub(crate) enum TouchSequenceState {
 }
 
 pub(crate) struct FlingAction {
-    pub delta: LayoutVector2D,
+    pub delta: DeviceVector2D,
     pub cursor: DevicePoint,
 }
 
@@ -387,7 +386,7 @@ impl TouchHandler {
             *velocity *= FLING_SCALING_FACTOR;
             debug_assert!(velocity.length() <= FLING_MAX_SCREEN_PX);
             Some(FlingAction {
-                delta: LayoutVector2D::new(velocity.x, velocity.y),
+                delta: DeviceVector2D::new(velocity.x, velocity.y),
                 cursor: *cursor,
             })
         }
@@ -428,7 +427,7 @@ impl TouchHandler {
 
                     // Scroll offsets are opposite to the direction of finger motion.
                     Some(ScrollZoomEvent::Scroll(ScrollEvent {
-                        scroll_location: ScrollLocation::Delta(-delta.cast_unit()),
+                        scroll: Scroll::Delta((-delta).into()),
                         point,
                         event_count: 1,
                     }))
@@ -445,7 +444,7 @@ impl TouchHandler {
 
                     // Scroll offsets are opposite to the direction of finger motion.
                     Some(ScrollZoomEvent::Scroll(ScrollEvent {
-                        scroll_location: ScrollLocation::Delta(-delta.cast_unit()),
+                        scroll: Scroll::Delta((-delta).into()),
                         point,
                         event_count: 1,
                     }))

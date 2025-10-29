@@ -29,7 +29,7 @@ use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{
     CompositorHitTestResult, InputEventAndId, InputEventId, InputEventResult,
-    ScreenshotCaptureError, ShutdownState, ViewportDetails, WebViewPoint, WebViewRect,
+    ScreenshotCaptureError, Scroll, ShutdownState, ViewportDetails, WebViewPoint, WebViewRect,
 };
 use euclid::{Point2D, Scale, Size2D};
 use gleam::gl::RENDERER;
@@ -58,8 +58,8 @@ use webrender_api::{
     self, BuiltDisplayList, ColorF, DirtyRect, DisplayListPayload, DocumentId,
     Epoch as WebRenderEpoch, ExternalScrollId, FontInstanceFlags, FontInstanceKey,
     FontInstanceOptions, FontKey, FontVariation, ImageKey, PipelineId as WebRenderPipelineId,
-    PropertyBinding, ReferenceFrameKind, RenderReasons, SampledScrollOffset, ScrollLocation,
-    SpaceAndClipInfo, SpatialId, SpatialTreeItemKey, TransformStyle,
+    PropertyBinding, ReferenceFrameKind, RenderReasons, SampledScrollOffset, SpaceAndClipInfo,
+    SpatialId, SpatialTreeItemKey, TransformStyle,
 };
 
 use crate::InitialCompositorState;
@@ -1754,11 +1754,11 @@ impl IOCompositor {
     pub fn notify_scroll_event(
         &mut self,
         webview_id: WebViewId,
-        scroll_location: ScrollLocation,
+        scroll: Scroll,
         point: WebViewPoint,
     ) {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
-            webview_renderer.notify_scroll_event(scroll_location, point);
+            webview_renderer.notify_scroll_event(scroll, point);
         }
     }
 
