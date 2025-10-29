@@ -11,10 +11,9 @@ use crossbeam_channel::Sender;
 use servo::base::generic_channel::GenericSender;
 use servo::base::id::WebViewId;
 use servo::ipc_channel::ipc::IpcSender;
-use servo::webrender_api::units::DeviceVector2D;
 use servo::{
-    InputEvent, InputEventId, Scroll, TraversalId, WebDriverJSResult, WebDriverLoadStatus,
-    WebDriverSenders, WebView, WheelEvent,
+    InputEvent, InputEventId, TraversalId, WebDriverJSResult, WebDriverLoadStatus,
+    WebDriverSenders, WebView,
 };
 
 pub struct RunningAppStateBase {
@@ -86,27 +85,12 @@ pub trait RunningAppStateTrait {
         input_event: InputEvent,
         response_sender: Option<Sender<()>>,
     ) {
-        // TODO: Scroll events triggered by wheel events should happen as
-        // a default event action in the compositor.
-        let scroll_event = match &input_event {
-            InputEvent::Wheel(WheelEvent { delta, point }) => {
-                let scroll =
-                    Scroll::Delta(DeviceVector2D::new(-delta.x as f32, -delta.y as f32).into());
-                Some((scroll, *point))
-            },
-            _ => None,
-        };
-
         let event_id = webview.notify_input_event(input_event);
         if let Some(response_sender) = response_sender {
             self.base()
                 .pending_webdriver_events
                 .borrow_mut()
                 .insert(event_id, response_sender);
-        }
-
-        if let Some((scroll, scroll_point)) = scroll_event {
-            webview.notify_scroll_event(scroll, scroll_point);
         }
     }
 }

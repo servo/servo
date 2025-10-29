@@ -8,11 +8,12 @@ use std::rc::Rc;
 
 use euclid::{Scale, Size2D};
 use servo::{
-    RenderingContext, Scroll, Servo, ServoBuilder, WebView, WebViewBuilder, WindowRenderingContext,
+    InputEvent, RenderingContext, Servo, ServoBuilder, WebView, WebViewBuilder, WheelDelta,
+    WheelEvent, WheelMode, WindowRenderingContext,
 };
 use tracing::warn;
 use url::Url;
-use webrender_api::units::{DevicePixel, DevicePoint, LayoutVector2D};
+use webrender_api::units::{DevicePixel, DevicePoint};
 use winit::application::ApplicationHandler;
 use winit::dpi::PhysicalSize;
 use winit::event::{MouseScrollDelta, WindowEvent};
@@ -151,18 +152,24 @@ impl ApplicationHandler<WakerEvent> for App {
             WindowEvent::MouseWheel { delta, .. } => {
                 if let Self::Running(state) = self {
                     if let Some(webview) = state.webviews.borrow().last() {
-                        let moved_by = match delta {
-                            MouseScrollDelta::LineDelta(horizontal, vertical) => {
-                                LayoutVector2D::new(20. * horizontal, 20. * vertical)
+                        let (delta_x, delta_y, mode) = match delta {
+                            MouseScrollDelta::LineDelta(dx, dy) => {
+                                ((dx * 76.0) as f64, (dy * 76.0) as f64, WheelMode::DeltaLine)
                             },
-                            MouseScrollDelta::PixelDelta(pos) => {
-                                LayoutVector2D::new(pos.x as f32, pos.y as f32)
+                            MouseScrollDelta::PixelDelta(delta) => {
+                                (delta.x, delta.y, WheelMode::DeltaPixel)
                             },
                         };
-                        webview.notify_scroll_event(
-                            Scroll::Delta(moved_by.into()),
-                            DevicePoint::new(10.0, 10.0).into(),
-                        );
+
+                        webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(
+                            WheelDelta {
+                                x: delta_x,
+                                y: delta_y,
+                                z: 0.0,
+                                mode,
+                            },
+                            DevicePoint::default().into(),
+                        )));
                     }
                 }
             },

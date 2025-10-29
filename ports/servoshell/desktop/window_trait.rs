@@ -21,11 +21,6 @@ use super::app_state::RunningAppState;
 pub(crate) const LINE_HEIGHT: f32 = 76.0;
 pub(crate) const LINE_WIDTH: f32 = 76.0;
 
-// MouseScrollDelta::PixelDelta is default for MacOS, which is high precision and very slow
-// in winit. Therefore we use a factor of 4.0 to make it more usable.
-// See https://github.com/servo/servo/pull/34063#discussion_r2197729507
-pub(crate) const PIXEL_DELTA_FACTOR: f64 = 4.0;
-
 /// <https://github.com/web-platform-tests/wpt/blob/9320b1f724632c52929a3fdb11bdaf65eafc7611/webdriver/tests/classic/set_window_rect/set.py#L287-L290>
 /// "A window size of 10x10px shouldn't be supported by any browser."
 pub(crate) const MIN_WINDOW_INNER_SIZE: DeviceIntSize = DeviceIntSize::new(100, 100);
