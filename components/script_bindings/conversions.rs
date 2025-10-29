@@ -107,14 +107,9 @@ impl FromJSValConvertible for DOMString {
         if null_behavior == StringificationBehavior::Empty && value.get().is_null() {
             Ok(ConversionResult::Success(DOMString::new()))
         } else {
-            match ptr::NonNull::new(ToString(cx, value)) {
-                Some(jsstr) => Ok(ConversionResult::Success(DOMString::from_string(
-                    jsstr_to_string(cx, jsstr),
-                ))),
-                None => {
-                    debug!("ToString failed");
-                    Err(())
-                },
+            match DOMString::from_js_string(unsafe { SafeJSContext::from_ptr(cx) }, value) {
+                Ok(domstring) => Ok(ConversionResult::Success(domstring)),
+                Err(_) => Err(()),
             }
         }
     }

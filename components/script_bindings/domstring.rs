@@ -283,6 +283,10 @@ impl Clone for DOMString {
     }
 }
 
+pub enum DOMStringErrorType {
+    JSConversionError,
+}
+
 impl DOMString {
     /// Creates a new `DOMString`.
     pub fn new() -> DOMString {
@@ -291,13 +295,17 @@ impl DOMString {
 
     /// Creates the string from js. If the string can be encoded in latin1, just take the reference
     /// to the JSString. Otherwise do the conversion to utf8 now.
-    pub fn from_js_string(cx: SafeJSContext, value: js::gc::HandleValue) -> DOMString {
+    pub fn from_js_string(
+        cx: SafeJSContext,
+        value: js::gc::HandleValue,
+    ) -> Result<DOMString, DOMStringErrorType> {
         let string_ptr = unsafe { js::rust::ToString(*cx, value) };
-        let inner = if string_ptr.is_null() {
-            DOMStringType::Rust(String::new())
+        if string_ptr.is_null() {
+            debug!("ToString failed");
+            Err(DOMStringErrorType::JSConversionError)
         } else {
             let latin1 = unsafe { js::jsapi::JS_DeprecatedStringHasLatin1Chars(string_ptr) };
-            if latin1 {
+            let inner = if latin1 {
                 let h = RootedTraceableBox::from_box(Heap::boxed(string_ptr));
                 DOMStringType::JSString(h)
             } else {
@@ -305,9 +313,9 @@ impl DOMString {
                 DOMStringType::Rust(unsafe {
                     jsstr_to_string(*cx, ptr::NonNull::new(string_ptr).unwrap())
                 })
-            }
-        };
-        DOMString(RefCell::new(inner))
+            };
+            Ok(DOMString(RefCell::new(inner)))
+        }
     }
 
     pub fn from_string(s: String) -> DOMString {
