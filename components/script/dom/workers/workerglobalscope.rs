@@ -702,7 +702,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             )
             .pipeline_id(Some(self.upcast::<GlobalScope>().pipeline_id()));
 
-            let (url, bytes) = match load_whole_resource(
+            let (url, bytes, muted_errors) = match load_whole_resource(
                 request,
                 &global_scope.resource_threads().sender(),
                 global_scope,
@@ -712,7 +712,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                 can_gc,
             ) {
                 Err(_) => return Err(Error::Network(None)),
-                Ok((metadata, bytes)) => {
+                Ok((metadata, bytes, muted_errors)) => {
                     // https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-imported-script
                     // Step 7: Check if response status is not an ok status
                     if !metadata.status.is_success() {
@@ -729,7 +729,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                         return Err(Error::Network(None));
                     }
 
-                    (metadata.final_url, bytes)
+                    (metadata.final_url, bytes, muted_errors)
                 },
             };
 
@@ -738,7 +738,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             let script = self.globalscope.create_a_classic_script(
                 source,
                 url,
-                false,
+                muted_errors,
                 Some(IntroductionType::WORKER),
             );
             let result = self.globalscope.run_a_classic_script_(script, can_gc);
