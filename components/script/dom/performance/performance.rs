@@ -10,7 +10,12 @@ use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
 use time::Duration;
 
-use super::bindings::refcounted::Trusted;
+use super::performanceentry::PerformanceEntry;
+use super::performancemark::PerformanceMark;
+use super::performancemeasure::PerformanceMeasure;
+use super::performancenavigation::PerformanceNavigation;
+use super::performancenavigationtiming::PerformanceNavigationTiming;
+use super::performanceobserver::PerformanceObserver as DOMPerformanceObserver;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::{
     DOMHighResTimeStamp, PerformanceEntryList as DOMPerformanceEntryList, PerformanceMethods,
@@ -18,17 +23,12 @@ use crate::dom::bindings::codegen::Bindings::PerformanceBinding::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::performanceentry::PerformanceEntry;
-use crate::dom::performancemark::PerformanceMark;
-use crate::dom::performancemeasure::PerformanceMeasure;
-use crate::dom::performancenavigation::PerformanceNavigation;
-use crate::dom::performancenavigationtiming::PerformanceNavigationTiming;
-use crate::dom::performanceobserver::PerformanceObserver as DOMPerformanceObserver;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 

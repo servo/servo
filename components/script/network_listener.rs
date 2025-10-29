@@ -13,8 +13,10 @@ use servo_url::ServoUrl;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::performanceentry::PerformanceEntry;
-use crate::dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
+use crate::dom::performance::performanceentry::PerformanceEntry;
+use crate::dom::performance::performanceresourcetiming::{
+    InitiatorType, PerformanceResourceTiming,
+};
 use crate::script_runtime::CanGc;
 use crate::task::TaskOnce;
 use crate::task_source::SendableTaskSource;

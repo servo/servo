@@ -5,6 +5,7 @@
 use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
 
+use super::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceNavigationTimingBinding::{
     NavigationTimingType, PerformanceNavigationTimingMethods,
@@ -14,7 +15,6 @@ use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]

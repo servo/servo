@@ -47,7 +47,7 @@ use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::fetchlaterresult::FetchLaterResult;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::Guard;
-use crate::dom::performanceresourcetiming::InitiatorType;
+use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::request::Request;
 use crate::dom::response::Response;

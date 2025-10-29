@@ -8,6 +8,9 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::rust::{HandleObject, MutableHandleValue};
 
+use super::performance::PerformanceEntryList;
+use super::performanceentry::PerformanceEntry;
+use super::performanceobserverentrylist::PerformanceObserverEntryList;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceEntryList as DOMPerformanceEntryList;
@@ -20,9 +23,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::console::Console;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::performance::PerformanceEntryList;
-use crate::dom::performanceentry::PerformanceEntry;
-use crate::dom::performanceobserverentrylist::PerformanceObserverEntryList;
 use crate::script_runtime::{CanGc, JSContext};
 
 /// List of allowed performance entry types, in alphabetical order.

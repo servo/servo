@@ -36,7 +36,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmllinkelement::{HTMLLinkElement, RequestGenerationId};
 use crate::dom::node::NodeTraits;
-use crate::dom::performanceresourcetiming::InitiatorType;
+use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::fetch::create_a_potential_cors_request;
 use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
