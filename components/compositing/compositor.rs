@@ -29,7 +29,7 @@ use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{
     CompositorHitTestResult, InputEventAndId, InputEventId, InputEventResult,
-    ScreenshotCaptureError, ShutdownState, ViewportDetails,
+    ScreenshotCaptureError, ShutdownState, ViewportDetails, WebViewPoint, WebViewRect,
 };
 use euclid::{Point2D, Scale, Size2D};
 use gleam::gl::RENDERER;
@@ -51,8 +51,8 @@ use webrender::{
     CaptureBits, ONE_TIME_USAGE_HINT, RenderApi, ShaderPrecacheFlags, Transaction, UploadMethod,
 };
 use webrender_api::units::{
-    DeviceIntPoint, DeviceIntRect, DevicePixel, DevicePoint, DeviceRect, LayoutPoint, LayoutRect,
-    LayoutSize, LayoutTransform, WorldPoint,
+    DeviceIntRect, DevicePixel, DevicePoint, DeviceRect, LayoutPoint, LayoutRect, LayoutSize,
+    LayoutTransform, WorldPoint,
 };
 use webrender_api::{
     self, BuiltDisplayList, ColorF, DirtyRect, DisplayListPayload, DocumentId,
@@ -1755,10 +1755,10 @@ impl IOCompositor {
         &mut self,
         webview_id: WebViewId,
         scroll_location: ScrollLocation,
-        cursor: DeviceIntPoint,
+        point: WebViewPoint,
     ) {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
-            webview_renderer.notify_scroll_event(scroll_location, cursor);
+            webview_renderer.notify_scroll_event(scroll_location, point);
         }
     }
 
@@ -1839,9 +1839,14 @@ impl IOCompositor {
     pub fn request_screenshot(
         &self,
         webview_id: WebViewId,
-        rect: Option<DeviceRect>,
+        rect: Option<WebViewRect>,
         callback: Box<dyn FnOnce(Result<RgbaImage, ScreenshotCaptureError>) + 'static>,
     ) {
+        let Some(webview) = self.webview_renderers.get(webview_id) else {
+            return;
+        };
+
+        let rect = rect.map(|rect| rect.as_device_rect(webview.device_pixels_per_page_pixel()));
         self.screenshot_taker
             .request_screenshot(webview_id, rect, callback);
         let _ = self.global.borrow().embedder_to_constellation_sender.send(

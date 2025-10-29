@@ -13,7 +13,7 @@ use servo::{
 use tracing::warn;
 use url::Url;
 use webrender_api::ScrollLocation;
-use webrender_api::units::{DeviceIntPoint, DevicePixel, LayoutVector2D};
+use webrender_api::units::{DevicePixel, DevicePoint, LayoutVector2D};
 use winit::application::ApplicationHandler;
 use winit::dpi::PhysicalSize;
 use winit::event::{MouseScrollDelta, WindowEvent};
@@ -162,7 +162,7 @@ impl ApplicationHandler<WakerEvent> for App {
                         };
                         webview.notify_scroll_event(
                             ScrollLocation::Delta(moved_by),
-                            DeviceIntPoint::new(10, 10),
+                            DevicePoint::new(10.0, 10.0).into(),
                         );
                     }
                 }

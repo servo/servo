@@ -10,8 +10,9 @@ use base::id::BrowsingContextId;
 use crossbeam_channel::Select;
 use embedder_traits::{
     InputEvent, KeyboardEvent, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
-    WebDriverCommandMsg, WebDriverScriptCommand, WheelDelta, WheelEvent, WheelMode,
+    WebDriverCommandMsg, WebDriverScriptCommand, WebViewPoint, WheelDelta, WheelEvent, WheelMode,
 };
+use euclid::Point2D;
 use ipc_channel::ipc;
 use keyboard_types::webdriver::KeyInputState;
 use log::info;
@@ -24,7 +25,6 @@ use webdriver::actions::{
 };
 use webdriver::command::ActionsParameters;
 use webdriver::error::{ErrorStatus, WebDriverError};
-use webrender_api::units::DevicePoint;
 
 use crate::{Handler, VerifyBrowsingContextIsOpen, WebElement, wait_for_ipc_response};
 
@@ -369,7 +369,7 @@ impl Handler {
         self.send_blocking_input_event_to_embedder(InputEvent::MouseButton(MouseButtonEvent::new(
             MouseButtonAction::Down,
             action.button.into(),
-            DevicePoint::new(x as f32, y as f32),
+            WebViewPoint::Page(Point2D::new(x as f32, y as f32)),
         )));
 
         // Step 17. Return success with data null.
@@ -405,7 +405,7 @@ impl Handler {
         self.send_blocking_input_event_to_embedder(InputEvent::MouseButton(MouseButtonEvent::new(
             MouseButtonAction::Up,
             action.button.into(),
-            DevicePoint::new(x as f32, y as f32),
+            WebViewPoint::Page(Point2D::new(x as f32, y as f32)),
         )));
 
         // Step 8. Return success with data null.
@@ -522,9 +522,8 @@ impl Handler {
             if x != current_x || y != current_y || last {
                 // Step 7.1. Let buttons be equal to input state's buttons property.
                 // Step 7.2. Perform implementation-specific action dispatch steps
-                let input_event = InputEvent::MouseMove(MouseMoveEvent::new(DevicePoint::new(
-                    x as f32, y as f32,
-                )));
+                let point = WebViewPoint::Page(Point2D::new(x as f32, y as f32));
+                let input_event = InputEvent::MouseMove(MouseMoveEvent::new(point));
                 if last {
                     self.send_blocking_input_event_to_embedder(input_event);
                 } else {
@@ -690,7 +689,7 @@ impl Handler {
                     z: 0.0,
                     mode: WheelMode::DeltaPixel,
                 };
-                let point = DevicePoint::new(x as f32, y as f32);
+                let point = WebViewPoint::Page(Point2D::new(x as f32, y as f32));
                 let input_event = InputEvent::Wheel(WheelEvent::new(delta, point));
                 if last {
                     self.send_blocking_input_event_to_embedder(input_event);

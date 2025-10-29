@@ -9,7 +9,8 @@ use keyboard_types::{Code, CompositionEvent, Key, KeyState, Location, Modifiers}
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use webrender_api::ExternalScrollId;
-use webrender_api::units::DevicePoint;
+
+use crate::WebViewPoint;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct InputEventId(usize);
@@ -75,7 +76,7 @@ pub enum EditingActionEvent {
 }
 
 impl InputEvent {
-    pub fn point(&self) -> Option<DevicePoint> {
+    pub fn point(&self) -> Option<WebViewPoint> {
         match self {
             InputEvent::EditingAction(..) => None,
             InputEvent::Gamepad(..) => None,
@@ -136,11 +137,11 @@ impl KeyboardEvent {
 pub struct MouseButtonEvent {
     pub action: MouseButtonAction,
     pub button: MouseButton,
-    pub point: DevicePoint,
+    pub point: WebViewPoint,
 }
 
 impl MouseButtonEvent {
-    pub fn new(action: MouseButtonAction, button: MouseButton, point: DevicePoint) -> Self {
+    pub fn new(action: MouseButtonAction, button: MouseButton, point: WebViewPoint) -> Self {
         Self {
             action,
             button,
@@ -197,11 +198,11 @@ pub enum MouseButtonAction {
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct MouseMoveEvent {
-    pub point: DevicePoint,
+    pub point: WebViewPoint,
 }
 
 impl MouseMoveEvent {
-    pub fn new(point: DevicePoint) -> Self {
+    pub fn new(point: WebViewPoint) -> Self {
         Self { point }
     }
 }
@@ -234,13 +235,13 @@ pub struct TouchId(pub i32);
 pub struct TouchEvent {
     pub event_type: TouchEventType,
     pub id: TouchId,
-    pub point: DevicePoint,
+    pub point: WebViewPoint,
     /// cancelable default value is true, once the first move has been processed by script disable it.
     cancelable: bool,
 }
 
 impl TouchEvent {
-    pub fn new(event_type: TouchEventType, id: TouchId, point: DevicePoint) -> Self {
+    pub fn new(event_type: TouchEventType, id: TouchId, point: WebViewPoint) -> Self {
         TouchEvent {
             event_type,
             id,
@@ -287,11 +288,11 @@ pub struct WheelDelta {
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct WheelEvent {
     pub delta: WheelDelta,
-    pub point: DevicePoint,
+    pub point: WebViewPoint,
 }
 
 impl WheelEvent {
-    pub fn new(delta: WheelDelta, point: DevicePoint) -> Self {
+    pub fn new(delta: WheelDelta, point: WebViewPoint) -> Self {
         WheelEvent { delta, point }
     }
 }

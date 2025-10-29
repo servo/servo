@@ -17,6 +17,7 @@ use embedder_traits::{
     AnimationState, CompositorHitTestResult, InputEvent, InputEventAndId, InputEventId,
     InputEventResult, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
     ScrollEvent as EmbedderScrollEvent, ShutdownState, TouchEvent, TouchEventType, ViewportDetails,
+    WebViewPoint,
 };
 use euclid::{Scale, Vector2D};
 use log::{debug, warn};
@@ -24,7 +25,7 @@ use malloc_size_of::MallocSizeOf;
 use rustc_hash::FxHashMap;
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::CSSPixel;
-use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint, DeviceRect, LayoutVector2D};
+use webrender_api::units::{DevicePixel, DevicePoint, DeviceRect, LayoutVector2D};
 use webrender_api::{ExternalScrollId, ScrollLocation};
 
 use crate::compositor::{PipelineDetails, ServoRenderer};
@@ -38,8 +39,8 @@ use crate::touch::{
 pub(crate) struct ScrollEvent {
     /// Scroll by this offset, or to Start or End
     pub scroll_location: ScrollLocation,
-    /// Apply changes to the frame at this location
-    pub cursor: DeviceIntPoint,
+    /// Scroll the scroll node that is found at this point.
+    pub point: DevicePoint,
     /// The number of OS events that have been coalesced together into this one event.
     pub event_count: u32,
 }
@@ -288,7 +289,11 @@ impl WebViewRenderer {
     }
 
     pub(crate) fn dispatch_input_event_with_hit_testing(&mut self, event: InputEventAndId) -> bool {
-        let event_point = event.event.point();
+        let event_point = event
+            .event
+            .point()
+            .map(|point| point.as_device_point(self.device_pixels_per_page_pixel()));
+
         let hit_test_result = match event_point {
             Some(point) => {
                 let hit_test_result = match event.event {
@@ -385,12 +390,18 @@ impl WebViewRenderer {
     }
 
     fn on_touch_down(&mut self, event: TouchEvent, id: InputEventId) {
-        self.touch_handler.on_touch_down(event.id, event.point);
+        let point = event
+            .point
+            .as_device_point(self.device_pixels_per_page_pixel());
+        self.touch_handler.on_touch_down(event.id, point);
         self.send_touch_event(event, id);
     }
 
     fn on_touch_move(&mut self, mut event: TouchEvent, id: InputEventId) {
-        let action = self.touch_handler.on_touch_move(event.id, event.point);
+        let point = event
+            .point
+            .as_device_point(self.device_pixels_per_page_pixel());
+        let action = self.touch_handler.on_touch_move(event.id, point);
         if let Some(action) = action {
             // if first move processed and allowed, we directly process the move event,
             // without waiting for the script handler.
@@ -418,13 +429,18 @@ impl WebViewRenderer {
     }
 
     fn on_touch_up(&mut self, event: TouchEvent, id: InputEventId) {
-        self.touch_handler.on_touch_up(event.id, event.point);
+        let point = event
+            .point
+            .as_device_point(self.device_pixels_per_page_pixel());
+        self.touch_handler.on_touch_up(event.id, point);
         self.send_touch_event(event, id);
     }
 
     fn on_touch_cancel(&mut self, event: TouchEvent, id: InputEventId) {
-        // Send the event to script.
-        self.touch_handler.on_touch_cancel(event.id, event.point);
+        let point = event
+            .point
+            .as_device_point(self.device_pixels_per_page_pixel());
+        self.touch_handler.on_touch_cancel(event.id, point);
         self.send_touch_event(event, id);
     }
 
@@ -524,10 +540,9 @@ impl WebViewRenderer {
                     if let Some(info) = self.touch_handler.get_touch_sequence_mut(sequence_id) {
                         if info.prevent_move == TouchMoveAllowed::Pending {
                             info.prevent_move = TouchMoveAllowed::Allowed;
-                            if let TouchSequenceState::PendingFling { velocity, cursor } =
-                                info.state
+                            if let TouchSequenceState::PendingFling { velocity, point } = info.state
                             {
-                                info.state = TouchSequenceState::Flinging { velocity, cursor }
+                                info.state = TouchSequenceState::Flinging { velocity, point }
                             }
                         }
                     }
@@ -589,38 +604,43 @@ impl WebViewRenderer {
     fn simulate_mouse_click(&mut self, point: DevicePoint) {
         let button = MouseButton::Left;
         self.dispatch_input_event_with_hit_testing(
-            InputEvent::MouseMove(MouseMoveEvent::new(point)).into(),
+            InputEvent::MouseMove(MouseMoveEvent::new(point.into())).into(),
         );
         self.dispatch_input_event_with_hit_testing(
             InputEvent::MouseButton(MouseButtonEvent::new(
                 MouseButtonAction::Down,
                 button,
-                point,
+                point.into(),
             ))
             .into(),
         );
         self.dispatch_input_event_with_hit_testing(
-            InputEvent::MouseButton(MouseButtonEvent::new(MouseButtonAction::Up, button, point))
-                .into(),
+            InputEvent::MouseButton(MouseButtonEvent::new(
+                MouseButtonAction::Up,
+                button,
+                point.into(),
+            ))
+            .into(),
         );
     }
 
     pub(crate) fn notify_scroll_event(
         &mut self,
         scroll_location: ScrollLocation,
-        cursor: DeviceIntPoint,
+        point: WebViewPoint,
     ) {
         if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
-        self.on_scroll_window_event(scroll_location, cursor);
+        let point = point.as_device_point(self.device_pixels_per_page_pixel());
+        self.on_scroll_window_event(scroll_location, point);
     }
 
-    fn on_scroll_window_event(&mut self, scroll_location: ScrollLocation, cursor: DeviceIntPoint) {
+    fn on_scroll_window_event(&mut self, scroll_location: ScrollLocation, cursor: DevicePoint) {
         self.pending_scroll_zoom_events
             .push(ScrollZoomEvent::Scroll(ScrollEvent {
                 scroll_location,
-                cursor,
+                point: cursor,
                 event_count: 1,
             }));
     }
@@ -696,7 +716,7 @@ impl WebViewRenderer {
 
         let scroll_result = combined_scroll_event.and_then(|combined_event| {
             self.scroll_node_at_device_point(
-                combined_event.cursor.to_f32(),
+                combined_event.point.to_f32(),
                 combined_event.scroll_location,
             )
         });
