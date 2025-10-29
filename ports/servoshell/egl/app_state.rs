@@ -312,13 +312,7 @@ impl WebViewDelegate for RunningAppState {
         }
     }
 
-    fn show_simple_dialog(&self, webview: WebView, dialog: SimpleDialog) {
-        self.callbacks
-            .host_callbacks
-            .show_simple_dialog(webview, dialog);
-    }
-
-    fn show_embedder_control(&self, _webview: WebView, embedder_control: EmbedderControl) {
+    fn show_embedder_control(&self, webview: WebView, embedder_control: EmbedderControl) {
         let control_id = embedder_control.id();
         match embedder_control {
             EmbedderControl::InputMethod(input_method_control) => {
@@ -327,6 +321,10 @@ impl WebViewDelegate for RunningAppState {
                     .host_callbacks
                     .on_ime_show(input_method_control);
             },
+            EmbedderControl::SimpleDialog(simple_dialog) => self
+                .callbacks
+                .host_callbacks
+                .show_simple_dialog(webview, simple_dialog),
             _ => {},
         }
     }

@@ -308,6 +308,11 @@ pub enum EmbedderControl {
     /// Request to present an input method (IME) interface to the user when an
     /// editable element is focused.
     InputMethod(InputMethodControl),
+    /// A [simple dialog](https://html.spec.whatwg.org/multipage/#simple-dialogs) initiated by
+    /// script (`alert()`, `confirm()`, or `prompt()`). Since their messages are controlled by web
+    /// content, they should be presented to the user in a way that makes them impossible to
+    /// mistake for browser UI.
+    SimpleDialog(SimpleDialog),
 }
 
 impl EmbedderControl {
@@ -317,6 +322,7 @@ impl EmbedderControl {
             EmbedderControl::ColorPicker(color_picker) => color_picker.id,
             EmbedderControl::FilePicker(file_picker) => file_picker.id,
             EmbedderControl::InputMethod(input_method) => input_method.id,
+            EmbedderControl::SimpleDialog(simple_dialog) => simple_dialog.id(),
         }
     }
 }
@@ -629,25 +635,6 @@ pub trait WebViewDelegate {
     ) {
     }
 
-    /// Show the user a [simple dialog](https://html.spec.whatwg.org/multipage/#simple-dialogs) (`alert()`, `confirm()`,
-    /// or `prompt()`). Since their messages are controlled by web content, they should be presented to the user in a
-    /// way that makes them impossible to mistake for browser UI.
-    /// TODO: This API needs to be reworked to match the new model of how responses are sent.
-    fn show_simple_dialog(&self, _webview: WebView, dialog: SimpleDialog) {
-        // Return the DOM-specified default value for when we **cannot show simple dialogs**.
-        let _ = match dialog {
-            SimpleDialog::Alert {
-                response_sender, ..
-            } => response_sender.send(Default::default()),
-            SimpleDialog::Confirm {
-                response_sender, ..
-            } => response_sender.send(Default::default()),
-            SimpleDialog::Prompt {
-                response_sender, ..
-            } => response_sender.send(Default::default()),
-        };
-    }
-
     /// Show a context menu to the user
     fn show_context_menu(
         &self,
@@ -672,7 +659,23 @@ pub trait WebViewDelegate {
 
     /// Request that the embedder show UI elements for form controls that are not integrated
     /// into page content, such as dropdowns for `<select>` elements.
-    fn show_embedder_control(&self, _webview: WebView, _embedder_control: EmbedderControl) {}
+    fn show_embedder_control(&self, _webview: WebView, embedder_control: EmbedderControl) {
+        let EmbedderControl::SimpleDialog(simple_dialog) = embedder_control else {
+            return;
+        };
+        // Return the DOM-specified default value for when we **cannot show simple dialogs**.
+        let _ = match simple_dialog {
+            SimpleDialog::Alert {
+                response_sender, ..
+            } => response_sender.send(Default::default()),
+            SimpleDialog::Confirm {
+                response_sender, ..
+            } => response_sender.send(Default::default()),
+            SimpleDialog::Prompt {
+                response_sender, ..
+            } => response_sender.send(Default::default()),
+        };
+    }
 
     /// Request that the embedder hide and ignore a previous [`EmbedderControl`] request, if it hasn’t
     /// already responded to it.

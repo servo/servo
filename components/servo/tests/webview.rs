@@ -13,7 +13,7 @@ use euclid::{Point2D, Size2D};
 use servo::{
     Cursor, EmbedderControl, InputEvent, InputMethodType, JSValue, JavaScriptEvaluationError,
     LoadStatus, MouseButton, MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent,
-    MouseMoveEvent, Servo, Theme, WebView, WebViewBuilder, WebViewDelegate,
+    MouseMoveEvent, Servo, SimpleDialog, Theme, WebView, WebViewBuilder, WebViewDelegate,
 };
 use servo_config::prefs::Preferences;
 use url::Url;
@@ -464,4 +464,83 @@ fn test_show_and_hide_ime() {
     // The form control should be hidden when the field no longer has focus.
     let captured_delegate = delegate.clone();
     servo_test.spin(move || captured_delegate.number_of_controls_hidden.get() != 1);
+}
+
+#[test]
+fn test_alert_dialog() {
+    test_simple_dialog("window.alert('Alert');", |dialog| {
+        let SimpleDialog::Alert { .. } = dialog else {
+            unreachable!("Expected dialog to be a SimpleDialog::Alert");
+        };
+        assert_eq!(dialog.message(), "Alert");
+    });
+}
+
+#[test]
+fn test_prompt_dialog() {
+    test_simple_dialog("window.prompt('Prompt');", |dialog| {
+        let SimpleDialog::Prompt { .. } = dialog else {
+            unreachable!("Expected dialog to be a SimpleDialog::Prompt");
+        };
+        assert_eq!(dialog.message(), "Prompt");
+    });
+}
+
+#[test]
+fn test_confirm_dialog() {
+    test_simple_dialog("window.confirm('Confirm');", |dialog| {
+        let SimpleDialog::Confirm { .. } = dialog else {
+            unreachable!("Expected dialog to be a SimpleDialog::Confirm");
+        };
+        assert_eq!(dialog.message(), "Confirm");
+    });
+}
+
+// A helper function to share code among the dialog tests.
+//
+// `prompt` must be a string that can be used in the `onclick` attribute and therefore must
+// be escaped correctly. Use single quotes instead of double quotes for string literals.
+fn test_simple_dialog(prompt: &str, validate: impl Fn(&SimpleDialog)) {
+    let make_test_html = |prompt: &str| {
+        let html = format!(
+            "data:text/html,<!DOCTYPE html>\
+            <input type=\"button\" value=\"click\" style=\"width: 200px; height: 200px;\"\
+            onclick=\"{}\">",
+            prompt
+        );
+        Url::parse(&html).unwrap()
+    };
+
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo())
+        .delegate(delegate.clone())
+        .url(make_test_html(prompt))
+        .build();
+
+    webview.focus();
+    webview.show(true);
+    webview.move_resize(servo_test.rendering_context.size2d().to_f32().into());
+
+    let load_webview = webview.clone();
+    servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+
+    // Wait for at least one frame after the load completes.
+    delegate.reset();
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || !captured_delegate.new_frame_ready.get());
+
+    // The dialog should NOT be shown.
+    assert!(delegate.active_dialog.borrow().is_none());
+
+    click_at_point(&webview, Point2D::new(100., 100.));
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || captured_delegate.active_dialog.borrow().is_none());
+
+    let active_dialog = delegate.active_dialog.borrow();
+    validate(
+        active_dialog
+            .as_ref()
+            .expect("the spin call above ensures this is not None"),
+    );
 }

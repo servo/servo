@@ -900,6 +900,7 @@ impl HostTrait for HostCallbacks {
             SimpleDialog::Alert {
                 message,
                 response_sender,
+                ..
             } => {
                 debug!("SimpleDialog::Alert");
 
@@ -920,6 +921,7 @@ impl HostTrait for HostCallbacks {
             SimpleDialog::Confirm {
                 message,
                 response_sender,
+                ..
             } => {
                 warn!("Confirm dialog not implemented. Cancelled. {}", message);
                 response_sender.send(Default::default())

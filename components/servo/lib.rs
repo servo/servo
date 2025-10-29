@@ -519,11 +519,12 @@ impl Servo {
                         .request_resize_to(webview, size.max(MINIMUM_WEBVIEW_SIZE));
                 }
             },
-            EmbedderMsg::ShowSimpleDialog(webview_id, prompt_definition) => {
+            EmbedderMsg::ShowSimpleDialog(webview_id, simple_dialog) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview
-                        .delegate()
-                        .show_simple_dialog(webview, prompt_definition);
+                    webview.delegate().show_embedder_control(
+                        webview,
+                        EmbedderControl::SimpleDialog(simple_dialog),
+                    );
                 }
             },
             EmbedderMsg::ShowContextMenu(webview_id, ipc_sender, title, items) => {

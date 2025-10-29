@@ -230,6 +230,7 @@ impl Dialog {
             Dialog::SimpleDialog(SimpleDialog::Alert {
                 message,
                 response_sender,
+                ..
             }) => {
                 let mut is_open = true;
                 let modal = Modal::new("Alert".into());
@@ -255,6 +256,7 @@ impl Dialog {
             Dialog::SimpleDialog(SimpleDialog::Confirm {
                 message,
                 response_sender,
+                ..
             }) => {
                 let mut is_open = true;
                 let modal = Modal::new("Confirm".into());
@@ -290,6 +292,7 @@ impl Dialog {
                 // The `default` field gets reused as the input buffer.
                 default: input,
                 response_sender,
+                ..
             }) => {
                 let mut is_open = true;
                 Modal::new("Prompt".into()).show(ctx, |ui| {
