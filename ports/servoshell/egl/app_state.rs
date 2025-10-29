@@ -32,6 +32,7 @@ use url::Url;
 
 use crate::egl::host_trait::HostTrait;
 use crate::prefs::ServoShellPreferences;
+use crate::running_app_state::{RunningAppStateBase, RunningAppStateTrait};
 
 #[derive(Clone, Debug)]
 pub struct Coordinates {
@@ -72,6 +73,7 @@ impl ServoWindowCallbacks {
 }
 
 pub struct RunningAppState {
+    base: RunningAppStateBase,
     servo: Servo,
     rendering_context: Rc<WindowRenderingContext>,
     callbacks: Rc<ServoWindowCallbacks>,
@@ -82,7 +84,6 @@ pub struct RunningAppState {
     /// A [`Receiver`] for receiving commands from a running WebDriver server, if WebDriver
     /// was enabled.
     webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
-    webdriver_senders: RefCell<WebDriverSenders>,
 }
 
 struct RunningAppStateInner {
@@ -172,6 +173,7 @@ impl WebViewDelegate for RunningAppState {
 
         if load_status == LoadStatus::Complete {
             if let Some(sender) = self
+                .base()
                 .webdriver_senders
                 .borrow_mut()
                 .load_status_senders
@@ -226,7 +228,7 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn notify_traversal_complete(&self, _webview: servo::WebView, traversal_id: TraversalId) {
-        let mut webdriver_state = self.webdriver_senders.borrow_mut();
+        let mut webdriver_state = self.base().webdriver_senders.borrow_mut();
         if let std::collections::hash_map::Entry::Occupied(entry) =
             webdriver_state.pending_traversals.entry(traversal_id)
         {
@@ -367,6 +369,16 @@ impl RefreshDriver for VsyncRefreshDriver {
     }
 }
 
+impl RunningAppStateTrait for RunningAppState {
+    fn base(&self) -> &RunningAppStateBase {
+        &self.base
+    }
+
+    fn base_mut(&mut self) -> &mut RunningAppStateBase {
+        &mut self.base
+    }
+}
+
 #[allow(unused)]
 impl RunningAppState {
     pub(super) fn new(
@@ -391,13 +403,13 @@ impl RunningAppState {
         }));
 
         let app_state = Rc::new(Self {
+            base: RunningAppStateBase::new(),
             rendering_context,
             servo,
             callbacks,
             refresh_driver,
             servoshell_preferences,
             webdriver_receiver,
-            webdriver_senders: RefCell::default(),
             inner: RefCell::new(RunningAppStateInner {
                 need_present: false,
                 context_menu_sender: None,
@@ -413,26 +425,6 @@ impl RunningAppState {
 
         app_state.create_and_focus_toplevel_webview(initial_url);
         app_state
-    }
-
-    pub(crate) fn set_script_command_interrupt_sender(
-        &self,
-        sender: Option<IpcSender<WebDriverJSResult>>,
-    ) {
-        self.webdriver_senders
-            .borrow_mut()
-            .script_evaluation_interrupt_sender = sender;
-    }
-
-    pub(crate) fn set_pending_traversal(
-        &self,
-        traversal_id: TraversalId,
-        sender: GenericSender<WebDriverLoadStatus>,
-    ) {
-        self.webdriver_senders
-            .borrow_mut()
-            .pending_traversals
-            .insert(traversal_id, sender);
     }
 
     pub fn webviews(&self) -> Vec<(WebViewId, WebView)> {
@@ -772,23 +764,6 @@ impl RunningAppState {
         }
     }
 
-    pub(crate) fn set_load_status_sender(
-        &self,
-        webview_id: WebViewId,
-        sender: GenericSender<WebDriverLoadStatus>,
-    ) {
-        self.webdriver_senders
-            .borrow_mut()
-            .load_status_senders
-            .insert(webview_id, sender);
-    }
-
-    pub(crate) fn remove_load_status_sender(&self, webview_id: WebViewId) {
-        self.webdriver_senders
-            .borrow_mut()
-            .load_status_senders
-            .remove(&webview_id);
-    }
     /// Touch event: press down
     pub fn touch_down(&self, x: f32, y: f32, pointer_id: i32) {
         self.active_webview()
