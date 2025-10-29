@@ -19,7 +19,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -27,8 +27,8 @@ use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performancemark::PerformanceMark;
 use crate::dom::performancemeasure::PerformanceMeasure;
 use crate::dom::performancenavigation::PerformanceNavigation;
-use crate::dom::performancenavigationtiming::PerformanceNavigationTiming;
 use crate::dom::performanceobserver::PerformanceObserver as DOMPerformanceObserver;
+use crate::dom::performancetiming::PerformanceTiming;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
@@ -148,10 +148,23 @@ pub(crate) struct Performance {
     resource_timing_buffer_current_size: Cell<usize>,
     resource_timing_buffer_pending_full_event: Cell<bool>,
     resource_timing_secondary_entries: DomRefCell<VecDeque<DomRoot<PerformanceEntry>>>,
+    timing: Dom<PerformanceTiming>,
+    navigation: Dom<PerformanceNavigation>,
 }
 
 impl Performance {
-    fn new_inherited(time_origin: CrossProcessInstant) -> Performance {
+    fn time_origin_to_millis(time_origin: CrossProcessInstant) -> u64 {
+        (time_origin - CrossProcessInstant::epoch()).whole_milliseconds() as u64
+    }
+
+    fn new_inherited(
+        global: &GlobalScope,
+        time_origin: CrossProcessInstant,
+        can_gc: CanGc,
+    ) -> Performance {
+        let nav_start = Self::time_origin_to_millis(time_origin);
+        let timing = PerformanceTiming::new(global, nav_start, can_gc);
+        let navigation = PerformanceNavigation::new(global, can_gc);
         Performance {
             eventtarget: EventTarget::new_inherited(),
             buffer: DomRefCell::new(PerformanceEntryList::new(Vec::new())),
@@ -162,6 +175,8 @@ impl Performance {
             resource_timing_buffer_current_size: Cell::new(0),
             resource_timing_buffer_pending_full_event: Cell::new(false),
             resource_timing_secondary_entries: DomRefCell::new(VecDeque::new()),
+            timing: Dom::from_ref(&*timing),
+            navigation: Dom::from_ref(&*navigation),
         }
     }
 
@@ -171,7 +186,7 @@ impl Performance {
         can_gc: CanGc,
     ) -> DomRoot<Performance> {
         reflect_dom_object(
-            Box::new(Performance::new_inherited(navigation_start)),
+            Box::new(Performance::new_inherited(global, navigation_start, can_gc)),
             global,
             can_gc,
         )
@@ -433,21 +448,13 @@ impl Performance {
 impl PerformanceMethods<crate::DomTypeHolder> for Performance {
     // FIXME(avada): this should be deprecated in the future, but some sites still use it
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html#performance-timing-attribute
-    fn Timing(&self) -> DomRoot<PerformanceNavigationTiming> {
-        let entries = self.GetEntriesByType(DOMString::from("navigation"));
-        if !entries.is_empty() {
-            return DomRoot::from_ref(
-                entries[0]
-                    .downcast::<PerformanceNavigationTiming>()
-                    .unwrap(),
-            );
-        }
-        unreachable!("Are we trying to expose Performance.timing in workers?");
+    fn Timing(&self) -> DomRoot<PerformanceTiming> {
+        DomRoot::from_ref(&*self.timing)
     }
 
     // https://w3c.github.io/navigation-timing/#dom-performance-navigation
     fn Navigation(&self) -> DomRoot<PerformanceNavigation> {
-        PerformanceNavigation::new(&self.global(), CanGc::note())
+        DomRoot::from_ref(&*self.navigation)
     }
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now

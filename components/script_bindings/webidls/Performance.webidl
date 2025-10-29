@@ -47,7 +47,7 @@ partial interface Performance {
 [Exposed=Window]
 partial interface Performance {
   [SameObject]
-  readonly attribute PerformanceNavigationTiming timing;
+  readonly attribute PerformanceTiming timing;
   [SameObject]
   readonly attribute PerformanceNavigation navigation;
 };
