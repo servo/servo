@@ -295,7 +295,7 @@ impl Servo {
 
         create_constellation(
             embedder_to_constellation_receiver,
-            &compositor,
+            &compositor.borrow(),
             opts.config_dir.clone(),
             embedder_proxy,
             compositor_proxy.clone(),
@@ -312,7 +312,7 @@ impl Servo {
 
         Self {
             delegate: RefCell::new(Rc::new(DefaultServoDelegate)),
-            compositor: Rc::new(RefCell::new(compositor)),
+            compositor,
             javascript_evaluator: Rc::new(RefCell::new(JavaScriptEvaluator::new(
                 constellation_proxy.clone(),
             ))),

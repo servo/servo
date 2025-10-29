@@ -13,7 +13,7 @@ use style_traits::CSSPixel;
 use webrender_api::units::{DevicePixel, DevicePoint, DeviceVector2D};
 
 use self::TouchSequenceState::*;
-use crate::IOCompositor;
+use crate::painter::Painter;
 use crate::refresh_driver::RefreshDriverObserver;
 use crate::webview_renderer::{ScrollEvent, ScrollZoomEvent, WebViewRenderer};
 
@@ -649,7 +649,7 @@ pub(crate) struct FlingRefreshDriverObserver {
 }
 
 impl RefreshDriverObserver for FlingRefreshDriverObserver {
-    fn frame_started(&self, compositor: &mut IOCompositor) -> bool {
+    fn frame_started(&self, compositor: &mut Painter) -> bool {
         compositor
             .webview_renderer_mut(self.webview_id)
             .is_some_and(WebViewRenderer::update_touch_handling_at_new_frame_start)

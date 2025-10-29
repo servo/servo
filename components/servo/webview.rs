@@ -144,10 +144,7 @@ impl WebView {
             weak_handle: webview.weak_handle(),
             id,
         });
-        servo
-            .compositor
-            .borrow_mut()
-            .add_webview(wv, viewport_details);
+        servo.compositor.borrow().add_webview(wv, viewport_details);
 
         servo
             .webviews
@@ -352,7 +349,7 @@ impl WebView {
         self.inner_mut().rect = rect;
         self.inner()
             .compositor
-            .borrow_mut()
+            .borrow()
             .move_resize_webview(self.id(), rect);
     }
 
@@ -367,7 +364,7 @@ impl WebView {
 
         self.inner()
             .compositor
-            .borrow_mut()
+            .borrow()
             .resize_rendering_context(new_size);
     }
 
@@ -386,14 +383,14 @@ impl WebView {
         self.inner_mut().hidpi_scale_factor = new_scale_factor;
         self.inner()
             .compositor
-            .borrow_mut()
+            .borrow()
             .set_hidpi_scale_factor(self.id(), new_scale_factor);
     }
 
     pub fn show(&self, hide_others: bool) {
         self.inner()
             .compositor
-            .borrow_mut()
+            .borrow()
             .show_webview(self.id(), hide_others)
             .expect("BUG: invalid WebView instance");
     }
@@ -401,7 +398,7 @@ impl WebView {
     pub fn hide(&self) {
         self.inner()
             .compositor
-            .borrow_mut()
+            .borrow()
             .hide_webview(self.id())
             .expect("BUG: invalid WebView instance");
     }
@@ -409,7 +406,7 @@ impl WebView {
     pub fn raise_to_top(&self, hide_others: bool) {
         self.inner()
             .compositor
-            .borrow_mut()
+            .borrow()
             .raise_webview_to_top(self.id(), hide_others)
             .expect("BUG: invalid WebView instance");
     }
@@ -472,7 +469,7 @@ impl WebView {
     pub fn notify_scroll_event(&self, scroll: Scroll, point: WebViewPoint) {
         self.inner()
             .compositor
-            .borrow_mut()
+            .borrow()
             .notify_scroll_event(self.id(), scroll, point);
     }
 
@@ -484,7 +481,7 @@ impl WebView {
         if event.event.point().is_some() {
             self.inner()
                 .compositor
-                .borrow_mut()
+                .borrow()
                 .notify_input_event(self.id(), event);
         } else {
             self.inner().constellation_proxy.send(
@@ -519,13 +516,13 @@ impl WebView {
     pub fn set_page_zoom(&self, new_zoom: f32) {
         self.inner()
             .compositor
-            .borrow_mut()
+            .borrow()
             .set_page_zoom(self.id(), new_zoom);
     }
 
     /// Get the page zoom of the [`WebView`].
     pub fn page_zoom(&self) -> f32 {
-        self.inner().compositor.borrow_mut().page_zoom(self.id())
+        self.inner().compositor.borrow().page_zoom(self.id())
     }
 
     /// Adjust the pinch zoom on this [`WebView`] multiplying the current pinch zoom
@@ -540,7 +537,7 @@ impl WebView {
     pub fn pinch_zoom(&self, pinch_zoom_delta: f32, center: DevicePoint) {
         self.inner()
             .compositor
-            .borrow_mut()
+            .borrow()
             .pinch_zoom(self.id(), pinch_zoom_delta, center);
     }
 
@@ -569,12 +566,12 @@ impl WebView {
     pub fn toggle_webrender_debugging(&self, debugging: WebRenderDebugOption) {
         self.inner()
             .compositor
-            .borrow_mut()
+            .borrow()
             .toggle_webrender_debug(debugging);
     }
 
     pub fn capture_webrender(&self) {
-        self.inner().compositor.borrow_mut().capture_webrender();
+        self.inner().compositor.borrow().capture_webrender();
     }
 
     pub fn toggle_sampling_profiler(&self, rate: Duration, max_duration: Duration) {
@@ -597,7 +594,7 @@ impl WebView {
 
     /// Paint the contents of this [`WebView`] into its `RenderingContext`.
     pub fn paint(&self) {
-        self.inner().compositor.borrow_mut().render();
+        self.inner().compositor.borrow().render();
     }
 
     /// Evaluate the specified string of JavaScript code. Once execution is complete or an error

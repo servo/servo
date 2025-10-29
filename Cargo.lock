@@ -1493,6 +1493,7 @@ dependencies = [
  "servo_config",
  "servo_geometry",
  "servo_malloc_size_of",
+ "smallvec",
  "stylo_traits",
  "surfman",
  "timers",
