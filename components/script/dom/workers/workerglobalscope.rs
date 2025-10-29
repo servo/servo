@@ -692,7 +692,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             .pipeline_id(Some(self.upcast::<GlobalScope>().pipeline_id()));
 
             // https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-imported-script
-            let (url, bytes) = match load_whole_resource(
+            let (url, bytes, muted_errors) = match load_whole_resource(
                 request,
                 &global_scope.resource_threads().sender(),
                 global_scope,
@@ -702,7 +702,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                 can_gc,
             ) {
                 Err(_) => return Err(Error::Network(None)),
-                Ok((metadata, bytes)) => {
+                Ok((metadata, bytes, muted_errors)) => {
                     // Step 7: Check if response status is not an ok status
                     if !metadata.status.is_success() {
                         return Err(Error::Network(None));
@@ -718,14 +718,15 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                         return Err(Error::Network(None));
                     }
 
-                    (metadata.final_url, bytes)
+                    (metadata.final_url, bytes, muted_errors)
                 },
             };
 
             // Step 8. Let sourceText be the result of UTF-8 decoding bodyBytes.
             let (source, _, _) = UTF_8.decode(&bytes);
 
-            // TODO Step 9. Let mutedErrors be true if response was CORS-cross-origin, and false otherwise.
+            // Step 9. Let mutedErrors be true if response was CORS-cross-origin, and false otherwise.
+            // Note: done inside load_whole_resource
 
             // Step 10. Let script be the result of creating a classic script
             // given sourceText, settingsObject, response's URL, the default script fetch options, and mutedErrors.
@@ -733,7 +734,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                 source,
                 url,
                 ScriptFetchOptions::default_classic_script(&self.globalscope),
-                false,
+                muted_errors,
                 Some(IntroductionType::WORKER),
                 1,
                 true,

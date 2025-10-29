@@ -382,7 +382,7 @@ impl ServiceWorkerGlobalScope {
                         worker_scope.clear_js_runtime();
                         return;
                     },
-                    Ok((metadata, bytes)) => (metadata.final_url, bytes),
+                    Ok((metadata, bytes, _)) => (metadata.final_url, bytes),
                 };
 
                 unsafe {
