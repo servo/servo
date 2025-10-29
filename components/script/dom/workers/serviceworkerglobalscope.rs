@@ -382,7 +382,7 @@ impl ServiceWorkerGlobalScope {
                         worker_scope.clear_js_runtime();
                         return;
                     },
-                    Ok((metadata, bytes)) => {
+                    Ok((metadata, bytes, _)) => {
                         (metadata.final_url, String::from_utf8(bytes).unwrap())
                     },
                 };

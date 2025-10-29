@@ -335,6 +335,18 @@ impl FetchMetadata {
             Self::Filtered { unsafe_, .. } => unsafe_,
         }
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#cors-cross-origin>
+    pub fn is_cors_cross_origin(&self) -> bool {
+        if let Self::Filtered { filtered, .. } = self {
+            match filtered {
+                FilteredMetadata::Basic(_) | FilteredMetadata::Cors(_) => false,
+                FilteredMetadata::Opaque | FilteredMetadata::OpaqueRedirect(_) => true,
+            }
+        } else {
+            false
+        }
+    }
 }
 
 impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
