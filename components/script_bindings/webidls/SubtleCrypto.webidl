@@ -68,6 +68,19 @@ interface SubtleCrypto {
                          sequence<KeyUsage> keyUsages );
 };
 
+// https://w3c.github.io/webcrypto/#dfn-NamedCurve
+typedef DOMString NamedCurve;
+
+// https://w3c.github.io/webcrypto/#dfn-EcKeyAlgorithm
+dictionary EcKeyAlgorithm : KeyAlgorithm {
+  required NamedCurve namedCurve;
+};
+
+// https://w3c.github.io/webcrypto/#dfn-EcKeyImportParams
+dictionary EcKeyImportParams : Algorithm {
+  required NamedCurve namedCurve;
+};
+
 // AES shared
 dictionary AesKeyAlgorithm : KeyAlgorithm {
   required unsigned short length;

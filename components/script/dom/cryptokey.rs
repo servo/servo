@@ -7,6 +7,7 @@ use std::ptr::NonNull;
 
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject, Value};
+use malloc_size_of::MallocSizeOf;
 use script_bindings::conversions::SafeToJSValConvertible;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -26,8 +27,13 @@ pub(crate) enum CryptoKeyOrCryptoKeyPair {
 
 /// The underlying cryptographic data this key represents
 #[allow(dead_code)]
-#[derive(MallocSizeOf)]
 pub(crate) enum Handle {
+    P256PrivateKey(p256::SecretKey),
+    P384PrivateKey(p384::SecretKey),
+    P521PrivateKey(p521::SecretKey),
+    P256PublicKey(p256::PublicKey),
+    P384PublicKey(p384::PublicKey),
+    P521PublicKey(p521::PublicKey),
     Aes128(Vec<u8>),
     Aes192(Vec<u8>),
     Aes256(Vec<u8>),
@@ -199,6 +205,27 @@ impl Handle {
             Self::Hkdf(bytes) => bytes,
             Self::Hmac(bytes) => bytes,
             Self::Ed25519(bytes) => bytes,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl MallocSizeOf for Handle {
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        match self {
+            Handle::P256PrivateKey(secret_key) => secret_key.size_of(ops),
+            Handle::P384PrivateKey(secret_key) => secret_key.size_of(ops),
+            Handle::P521PrivateKey(secret_key) => secret_key.size_of(ops),
+            Handle::P256PublicKey(public_key) => public_key.size_of(ops),
+            Handle::P384PublicKey(public_key) => public_key.size_of(ops),
+            Handle::P521PublicKey(public_key) => public_key.size_of(ops),
+            Handle::Aes128(bytes) => bytes.len(),
+            Handle::Aes192(bytes) => bytes.len(),
+            Handle::Aes256(bytes) => bytes.len(),
+            Handle::Pbkdf2(bytes) => bytes.len(),
+            Handle::Hkdf(bytes) => bytes.len(),
+            Handle::Hmac(bytes) => bytes.len(),
+            Handle::Ed25519(bytes) => bytes.len(),
         }
     }
 }
