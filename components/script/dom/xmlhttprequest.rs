@@ -62,7 +62,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::is_forbidden_request_header;
 use crate::dom::node::Node;
-use crate::dom::performanceresourcetiming::InitiatorType;
+use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::progressevent::ProgressEvent;
 use crate::dom::readablestream::ReadableStream;
 use crate::dom::servoparser::ServoParser;

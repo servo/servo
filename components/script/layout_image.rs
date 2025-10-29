@@ -23,7 +23,7 @@ use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::{Node, NodeTraits};
-use crate::dom::performanceresourcetiming::InitiatorType;
+use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
 use crate::script_runtime::CanGc;
 

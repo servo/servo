@@ -71,7 +71,7 @@ use crate::dom::html::htmlscriptelement::{
     HTMLScriptElement, SCRIPT_JS_MIMES, ScriptId, ScriptOrigin, ScriptType,
 };
 use crate::dom::node::NodeTraits;
-use crate::dom::performanceresourcetiming::InitiatorType;
+use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::types::Console;

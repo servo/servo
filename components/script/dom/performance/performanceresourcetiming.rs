@@ -8,13 +8,13 @@ use net_traits::ResourceFetchTiming;
 use servo_url::ServoUrl;
 use time::Duration;
 
+use super::performanceentry::PerformanceEntry;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceResourceTimingBinding::PerformanceResourceTimingMethods;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::performanceentry::PerformanceEntry;
 use crate::script_runtime::CanGc;
 // TODO UA may choose to limit how many resources are included as PerformanceResourceTiming objects
 // recommended minimum is 150, can be changed by setResourceTimingBufferSize in performance

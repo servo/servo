@@ -28,7 +28,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::csp::Violation;
 use crate::dom::csppolicyviolationreport::serialize_disposition;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::performanceresourcetiming::InitiatorType;
+use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::fetch::create_a_potential_cors_request;
 use crate::network_listener::{PreInvoke, ResourceTimingListener, submit_timing};
 use crate::script_runtime::CanGc;

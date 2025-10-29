@@ -25,7 +25,7 @@ use crate::dom::csppolicyviolationreport::{
 };
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::performanceresourcetiming::InitiatorType;
+use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::reportingobserver::ReportingObserver;
 use crate::dom::securitypolicyviolationevent::SecurityPolicyViolationEvent;
 use crate::dom::types::GlobalScope;

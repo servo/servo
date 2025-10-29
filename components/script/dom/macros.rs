@@ -726,7 +726,7 @@ macro_rules! impl_performance_entry_struct(
         use crate::dom::bindings::root::DomRoot;
         use crate::dom::bindings::str::DOMString;
         use crate::dom::globalscope::GlobalScope;
-        use crate::dom::performanceentry::PerformanceEntry;
+        use crate::dom::performance::performanceentry::PerformanceEntry;
         use crate::script_runtime::CanGc;
         use dom_struct::dom_struct;
 

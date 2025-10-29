@@ -4,14 +4,14 @@
 
 use dom_struct::dom_struct;
 
+use super::performance::PerformanceEntryList;
+use super::performanceentry::PerformanceEntry;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PerformanceObserverEntryListBinding::PerformanceObserverEntryListMethods;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::performance::PerformanceEntryList;
-use crate::dom::performanceentry::PerformanceEntry;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]

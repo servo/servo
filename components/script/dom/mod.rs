@@ -357,17 +357,7 @@ pub(crate) mod pagetransitionevent;
 pub(crate) mod paintsize;
 pub(crate) mod paintworkletglobalscope;
 pub(crate) mod performance;
-#[allow(dead_code)]
-pub(crate) mod performanceentry;
-pub(crate) mod performancemark;
-pub(crate) mod performancemeasure;
-pub(crate) mod performancenavigation;
-pub(crate) mod performancenavigationtiming;
-#[allow(dead_code)]
-pub(crate) mod performanceobserver;
-pub(crate) mod performanceobserverentrylist;
-pub(crate) mod performancepainttiming;
-pub(crate) mod performanceresourcetiming;
+pub(crate) use self::performance::*;
 pub(crate) mod permissions;
 pub(crate) mod permissionstatus;
 pub(crate) mod pipelineid;

@@ -45,7 +45,7 @@ use crate::dom::mediadevices::MediaDevices;
 use crate::dom::mediasession::MediaSession;
 use crate::dom::mimetypearray::MimeTypeArray;
 use crate::dom::navigatorinfo;
-use crate::dom::performanceresourcetiming::InitiatorType;
+use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::permissions::Permissions;
 use crate::dom::pluginarray::PluginArray;
 use crate::dom::serviceworkercontainer::ServiceWorkerContainer;

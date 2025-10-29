@@ -168,8 +168,8 @@ use crate::dom::node::{
 use crate::dom::nodeiterator::NodeIterator;
 use crate::dom::nodelist::NodeList;
 use crate::dom::pagetransitionevent::PageTransitionEvent;
-use crate::dom::performanceentry::PerformanceEntry;
-use crate::dom::performancepainttiming::PerformancePaintTiming;
+use crate::dom::performance::performanceentry::PerformanceEntry;
+use crate::dom::performance::performancepainttiming::PerformancePaintTiming;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::promise::Promise;
 use crate::dom::range::Range;

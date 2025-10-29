@@ -35,7 +35,7 @@ use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::medialist::MediaList;
-use crate::dom::performanceresourcetiming::InitiatorType;
+use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::types::HTMLLinkElement;
 use crate::fetch::create_a_potential_cors_request;
 use crate::network_listener::{PreInvoke, ResourceTimingListener, submit_timing};

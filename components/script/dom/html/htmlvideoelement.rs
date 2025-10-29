@@ -39,7 +39,7 @@ use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlmediaelement::{HTMLMediaElement, NetworkState, ReadyState};
 use crate::dom::node::{Node, NodeTraits};
-use crate::dom::performanceresourcetiming::InitiatorType;
+use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::FetchCanceller;
 use crate::network_listener::{self, PreInvoke, ResourceTimingListener};

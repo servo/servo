@@ -88,7 +88,7 @@ use crate::dom::mediafragmentparser::MediaFragmentParser;
 use crate::dom::medialist::MediaList;
 use crate::dom::mediastream::MediaStream;
 use crate::dom::node::{Node, NodeDamage, NodeTraits, UnbindContext};
-use crate::dom::performanceresourcetiming::InitiatorType;
+use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::texttrack::TextTrack;
 use crate::dom::texttracklist::TextTrackList;
