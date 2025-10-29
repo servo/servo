@@ -57,6 +57,7 @@ data-url = "0.3"
 devtools_traits = { path = "components/shared/devtools" }
 dpi = "0.1"
 dwrote = "0.11.5"
+elliptic-curve = "0.13"
 embedder_traits = { path = "components/shared/embedder" }
 encoding_rs = "0.8"
 env_logger = "0.11"
@@ -110,9 +111,13 @@ nom-rfc8288 = "0.4.0"
 num-traits = "0.2"
 num_cpus = "1.17.0"
 openxr = "0.19"
+p256 = "0.13"
+p384 = "0.13"
+p521 = "0.13"
 parking_lot = "0.12"
 peniko = "0.5"
 percent-encoding = "2.3"
+pkcs8 = "0.10"
 proc-macro2 = "1"
 profile_traits = { path = "components/shared/profile" }
 quote = "1"
@@ -127,6 +132,7 @@ rustls = { version = "0.23", default-features = false, features = ["logging", "s
 rustls-pemfile = "2.0"
 rustls-pki-types = "1.13"
 script_traits = { path = "components/shared/script" }
+sec1 = "0.7"
 selectors = { git = "https://github.com/servo/stylo", branch = "2025-10-01" }
 serde = "1.0.228"
 serde_bytes = "0.11"
