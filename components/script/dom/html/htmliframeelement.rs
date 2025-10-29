@@ -395,7 +395,7 @@ impl HTMLIFrameElement {
     /// to refactor because it appears other features have come to rely on the current behavior.
     /// For now only the iframe load event steps are skipped in some cases for this initial document,
     /// and we still fire load and pageshow events as part of `maybe_queue_document_completion`.
-    /// Also, some controversy spec-wise remains: https://github.com/whatwg/html/issues/4965
+    /// Also, some controversy spec-wise remains: <https://github.com/whatwg/html/issues/4965>
     fn create_nested_browsing_context(&self, can_gc: CanGc) {
         let url = ServoUrl::parse("about:blank").unwrap();
         let document = self.owner_document();
