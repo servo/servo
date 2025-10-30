@@ -19,6 +19,7 @@ publish = false
 # why we should consider increasing our minimum supported Rust version.
 # Please also note, that the **default** Rust version in rust-toolchain.toml may be
 # bumped freely.
+# Skip 1.90 which causes mis-compilation: https://github.com/rust-lang/rust/issues/147265
 rust-version = "1.86.0"
 
 [workspace.dependencies]

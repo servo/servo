@@ -376,53 +376,38 @@ pub struct AuthenticationResponse {
     pub password: String,
 }
 
-#[derive(Deserialize, PartialEq, Serialize)]
+#[derive(Default, Deserialize, PartialEq, Serialize)]
 pub enum AlertResponse {
+    // Per <https://html.spec.whatwg.org/multipage/#dom-alert>,
+    // if we **cannot show simple dialogs**, including cases where the user or user agent decides to ignore
+    // all modal dialogs, we need to return (which represents Ok).
+    #[default]
     /// The user chose Ok, or the dialog was otherwise dismissed or ignored.
     Ok,
 }
 
-impl Default for AlertResponse {
-    fn default() -> Self {
-        // Per <https://html.spec.whatwg.org/multipage/#dom-alert>,
-        // if we **cannot show simple dialogs**, including cases where the user or user agent decides to ignore
-        // all modal dialogs, we need to return (which represents Ok).
-        Self::Ok
-    }
-}
-
-#[derive(Deserialize, PartialEq, Serialize)]
+#[derive(Default, Deserialize, PartialEq, Serialize)]
 pub enum ConfirmResponse {
     /// The user chose Ok.
     Ok,
+    // Per <https://html.spec.whatwg.org/multipage/#dom-confirm>,
+    // if we **cannot show simple dialogs**, including cases where the user or user agent decides to ignore
+    // all modal dialogs, we need to return false (which represents Cancel), not true (Ok).
+    #[default]
     /// The user chose Cancel, or the dialog was otherwise dismissed or ignored.
     Cancel,
 }
 
-impl Default for ConfirmResponse {
-    fn default() -> Self {
-        // Per <https://html.spec.whatwg.org/multipage/#dom-confirm>,
-        // if we **cannot show simple dialogs**, including cases where the user or user agent decides to ignore
-        // all modal dialogs, we need to return false (which represents Cancel), not true (Ok).
-        Self::Cancel
-    }
-}
-
-#[derive(Deserialize, PartialEq, Serialize)]
+#[derive(Default, Deserialize, PartialEq, Serialize)]
 pub enum PromptResponse {
     /// The user chose Ok, with the given input.
     Ok(String),
+    // Per <https://html.spec.whatwg.org/multipage/#dom-prompt>,
+    // if we **cannot show simple dialogs**, including cases where the user or user agent decides to ignore
+    // all modal dialogs, we need to return null (which represents Cancel), not the default input.
+    #[default]
     /// The user chose Cancel, or the dialog was otherwise dismissed or ignored.
     Cancel,
-}
-
-impl Default for PromptResponse {
-    fn default() -> Self {
-        // Per <https://html.spec.whatwg.org/multipage/#dom-prompt>,
-        // if we **cannot show simple dialogs**, including cases where the user or user agent decides to ignore
-        // all modal dialogs, we need to return null (which represents Cancel), not the default input.
-        Self::Cancel
-    }
 }
 
 /// A response to a request to allow or deny an action.
