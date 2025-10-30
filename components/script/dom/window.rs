@@ -57,9 +57,9 @@ use js::rust::{
 };
 use layout_api::{
     BoxAreaType, ElementsFromPointFlags, ElementsFromPointResult, FragmentType, Layout,
-    LayoutImageDestination, PendingImage, PendingImageState, PendingRasterizationImage, QueryMsg,
-    ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, RestyleReason,
-    ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
+    LayoutImageDestination, PendingImage, PendingImageState, PendingRasterizationImage,
+    PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle,
+    RestyleReason, ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
     combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
@@ -2631,21 +2631,13 @@ impl Window {
         )
     }
 
-    /// Do the same kind of query as `Self::padding_top_and_left_query`, but do not force a reflow.
-    /// This is used for things like `IntersectionObserver` which should observe the value
+    /// Query the used padding values for the given node, but do not force a reflow.
+    /// This is used for things like `ResizeObserver` which should observe the value
     /// from the most recent reflow, but do not need it to reflect the current state of
     /// the DOM / style.
-    pub(crate) fn padding_top_and_left_query_without_reflow(
-        &self,
-        node: &Node,
-    ) -> Option<(Au, Au)> {
+    pub(crate) fn padding_query_without_reflow(&self, node: &Node) -> Option<PhysicalSides> {
         let layout = self.layout.borrow();
-        layout.query_padding_top_and_left(node.to_trusted_node_address())
-    }
-
-    pub(crate) fn padding_top_and_left_query(&self, node: &Node) -> Option<(Au, Au)> {
-        self.layout_reflow(QueryMsg::PaddingTopAndLeftQuery);
-        self.padding_top_and_left_query_without_reflow(node)
+        layout.query_padding(node.to_trusted_node_address())
     }
 
     /// Do the same kind of query as `Self::box_area_query`, but do not force a reflow.

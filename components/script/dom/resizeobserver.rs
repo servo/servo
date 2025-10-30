@@ -205,10 +205,8 @@ fn create_and_populate_a_resizeobserverentry(
     let (padding_top, padding_left) = if use_padding {
         // Step 7.1. Set this.contentRect.top to target.padding top.
         // Step 7.2. Set this.contentRect.left to target.padding left.
-        target
-            .upcast::<Node>()
-            .padding_top_and_left()
-            .unwrap_or_default()
+        let padding = target.upcast::<Node>().padding().unwrap_or_default();
+        (padding.top, padding.left)
     } else {
         // Step 8. If target is an SVG element without an associated CSS layout box do these steps:
         // Step 8.1. Set this.contentRect.top and this.contentRect.left to 0.
