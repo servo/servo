@@ -7535,8 +7535,13 @@ dependencies = [
 
 [[package]]
 name = "selectors"
+<<<<<<< HEAD
 version = "0.32.0"
 source = "git+https://github.com/servo/stylo?branch=2025-10-01#85ae0b1664c669a398a790a8ad73201ccd4d412a"
+=======
+version = "0.31.0"
+source = "git+https://github.com/servo/stylo?branch=2025-09-02#bb62b4e71c44fbb00f4657a1431282193e34d306"
+>>>>>>> d4b2b9d0b (Revert "phase 1: find the width of the containing block")
 dependencies = [
  "bitflags 2.10.0",
  "cssparser",
@@ -7868,8 +7873,13 @@ dependencies = [
 
 [[package]]
 name = "servo_arc"
+<<<<<<< HEAD
 version = "0.4.2"
 source = "git+https://github.com/servo/stylo?branch=2025-10-01#85ae0b1664c669a398a790a8ad73201ccd4d412a"
+=======
+version = "0.4.1"
+source = "git+https://github.com/servo/stylo?branch=2025-09-02#bb62b4e71c44fbb00f4657a1431282193e34d306"
+>>>>>>> d4b2b9d0b (Revert "phase 1: find the width of the containing block")
 dependencies = [
  "serde",
  "stable_deref_trait",
@@ -8376,8 +8386,13 @@ dependencies = [
 
 [[package]]
 name = "stylo"
+<<<<<<< HEAD
 version = "0.8.0"
 source = "git+https://github.com/servo/stylo?branch=2025-10-01#85ae0b1664c669a398a790a8ad73201ccd4d412a"
+=======
+version = "0.7.0"
+source = "git+https://github.com/servo/stylo?branch=2025-09-02#bb62b4e71c44fbb00f4657a1431282193e34d306"
+>>>>>>> d4b2b9d0b (Revert "phase 1: find the width of the containing block")
 dependencies = [
  "app_units",
  "arrayvec",
@@ -8433,8 +8448,13 @@ dependencies = [
 
 [[package]]
 name = "stylo_atoms"
+<<<<<<< HEAD
 version = "0.8.0"
 source = "git+https://github.com/servo/stylo?branch=2025-10-01#85ae0b1664c669a398a790a8ad73201ccd4d412a"
+=======
+version = "0.7.0"
+source = "git+https://github.com/servo/stylo?branch=2025-09-02#bb62b4e71c44fbb00f4657a1431282193e34d306"
+>>>>>>> d4b2b9d0b (Revert "phase 1: find the width of the containing block")
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -8442,6 +8462,7 @@ dependencies = [
 
 [[package]]
 name = "stylo_config"
+<<<<<<< HEAD
 version = "0.8.0"
 source = "git+https://github.com/servo/stylo?branch=2025-10-01#85ae0b1664c669a398a790a8ad73201ccd4d412a"
 
@@ -8449,6 +8470,15 @@ source = "git+https://github.com/servo/stylo?branch=2025-10-01#85ae0b1664c669a39
 name = "stylo_derive"
 version = "0.8.0"
 source = "git+https://github.com/servo/stylo?branch=2025-10-01#85ae0b1664c669a398a790a8ad73201ccd4d412a"
+=======
+version = "0.7.0"
+source = "git+https://github.com/servo/stylo?branch=2025-09-02#bb62b4e71c44fbb00f4657a1431282193e34d306"
+
+[[package]]
+name = "stylo_derive"
+version = "0.7.0"
+source = "git+https://github.com/servo/stylo?branch=2025-09-02#bb62b4e71c44fbb00f4657a1431282193e34d306"
+>>>>>>> d4b2b9d0b (Revert "phase 1: find the width of the containing block")
 dependencies = [
  "darling",
  "proc-macro2",
@@ -8459,8 +8489,13 @@ dependencies = [
 
 [[package]]
 name = "stylo_dom"
+<<<<<<< HEAD
 version = "0.8.0"
 source = "git+https://github.com/servo/stylo?branch=2025-10-01#85ae0b1664c669a398a790a8ad73201ccd4d412a"
+=======
+version = "0.7.0"
+source = "git+https://github.com/servo/stylo?branch=2025-09-02#bb62b4e71c44fbb00f4657a1431282193e34d306"
+>>>>>>> d4b2b9d0b (Revert "phase 1: find the width of the containing block")
 dependencies = [
  "bitflags 2.10.0",
  "stylo_malloc_size_of",
@@ -8468,8 +8503,13 @@ dependencies = [
 
 [[package]]
 name = "stylo_malloc_size_of"
+<<<<<<< HEAD
 version = "0.8.0"
 source = "git+https://github.com/servo/stylo?branch=2025-10-01#85ae0b1664c669a398a790a8ad73201ccd4d412a"
+=======
+version = "0.7.0"
+source = "git+https://github.com/servo/stylo?branch=2025-09-02#bb62b4e71c44fbb00f4657a1431282193e34d306"
+>>>>>>> d4b2b9d0b (Revert "phase 1: find the width of the containing block")
 dependencies = [
  "app_units",
  "cssparser",
@@ -8485,6 +8525,7 @@ dependencies = [
 
 [[package]]
 name = "stylo_static_prefs"
+<<<<<<< HEAD
 version = "0.8.0"
 source = "git+https://github.com/servo/stylo?branch=2025-10-01#85ae0b1664c669a398a790a8ad73201ccd4d412a"
 
@@ -8492,6 +8533,15 @@ source = "git+https://github.com/servo/stylo?branch=2025-10-01#85ae0b1664c669a39
 name = "stylo_traits"
 version = "0.8.0"
 source = "git+https://github.com/servo/stylo?branch=2025-10-01#85ae0b1664c669a398a790a8ad73201ccd4d412a"
+=======
+version = "0.7.0"
+source = "git+https://github.com/servo/stylo?branch=2025-09-02#bb62b4e71c44fbb00f4657a1431282193e34d306"
+
+[[package]]
+name = "stylo_traits"
+version = "0.7.0"
+source = "git+https://github.com/servo/stylo?branch=2025-09-02#bb62b4e71c44fbb00f4657a1431282193e34d306"
+>>>>>>> d4b2b9d0b (Revert "phase 1: find the width of the containing block")
 dependencies = [
  "app_units",
  "bitflags 2.10.0",
@@ -8906,7 +8956,11 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 [[package]]
 name = "to_shmem"
 version = "0.2.0"
+<<<<<<< HEAD
 source = "git+https://github.com/servo/stylo?branch=2025-10-01#85ae0b1664c669a398a790a8ad73201ccd4d412a"
+=======
+source = "git+https://github.com/servo/stylo?branch=2025-09-02#bb62b4e71c44fbb00f4657a1431282193e34d306"
+>>>>>>> d4b2b9d0b (Revert "phase 1: find the width of the containing block")
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -8919,7 +8973,11 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.1.0"
+<<<<<<< HEAD
 source = "git+https://github.com/servo/stylo?branch=2025-10-01#85ae0b1664c669a398a790a8ad73201ccd4d412a"
+=======
+source = "git+https://github.com/servo/stylo?branch=2025-09-02#bb62b4e71c44fbb00f4657a1431282193e34d306"
+>>>>>>> d4b2b9d0b (Revert "phase 1: find the width of the containing block")
 dependencies = [
  "darling",
  "proc-macro2",

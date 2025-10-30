@@ -33,7 +33,7 @@ use style::values::computed::{
 };
 use style::values::generics::NonNegative;
 use style::values::generics::rect::Rect;
-use style::values::specified::text::{TextDecorationLine, TextOverflowSide};
+use style::values::specified::text::TextDecorationLine;
 use style_traits::{CSSPixel as StyloCSSPixel, DevicePixel as StyloDevicePixel};
 use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutRect, LayoutSize};
 use webrender_api::{
@@ -655,16 +655,6 @@ impl Fragment {
             },
             Fragment::Text(text) => {
                 let text = &*text.borrow();
-
-                print!("current text width: {0}, parent containing block width: {1}; ",
-                text.rect.max_x().to_f32_px() - text.rect.min_x().to_f32_px(),
-                text.parent_width.to_f32_px() 
-                );
-                match text.inline_styles.style.borrow().get_text().text_overflow.second {
-                    TextOverflowSide::Ellipsis => println!("this TEXT fragment is ellipsis!"),
-                    TextOverflowSide::Clip => println!("this TEXT fragment is clip!"),
-                    _ => println!("this TEXT fragment is string!"),
-                }
                 match text
                     .inline_styles
                     .style
