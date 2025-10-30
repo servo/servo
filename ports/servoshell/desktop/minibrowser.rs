@@ -435,16 +435,14 @@ impl Minibrowser {
 
             state.for_each_active_dialog(|dialog| dialog.update(ctx));
 
-            let Some(webview) = state.focused_webview() else {
-                return;
-            };
-
             // If the top parts of the GUI changed size, then update the size of the WebView and also
             // the size of its RenderingContext.
             let rect = ctx.available_rect();
             let size = Size2D::new(rect.width(), rect.height()) * scale;
             let rect = Box2D::from_origin_and_size(Point2D::origin(), size);
-            if rect != webview.rect() {
+            if let Some(webview) = state.focused_webview() &&
+                rect != webview.rect()
+            {
                 webview.move_resize(rect);
                 // `rect` is sized to just the WebView viewport, which is required by
                 // `OffscreenRenderingContext` See:

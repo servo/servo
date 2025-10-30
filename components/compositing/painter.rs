@@ -306,6 +306,7 @@ impl Painter {
             webgpu_image_map,
         };
         painter.assert_gl_framebuffer_complete();
+        painter.clear_background();
         painter
     }
 
