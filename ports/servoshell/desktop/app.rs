@@ -13,16 +13,15 @@ use std::{env, fs};
 
 use ::servo::ServoBuilder;
 use crossbeam_channel::unbounded;
-use log::{info, trace, warn};
+use log::{error, info, trace, warn};
 use net::protocols::ProtocolRegistry;
 use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
 use servo::servo_url::ServoUrl;
 use servo::user_content_manager::{UserContentManager, UserScript};
-use servo::webrender_api::units::DeviceVector2D;
 use servo::{
-    EventLoopWaker, InputEvent, ScreenshotCaptureError, Scroll, WebDriverCommandMsg,
-    WebDriverScriptCommand, WebDriverUserPromptAction, WheelEvent,
+    EventLoopWaker, ScreenshotCaptureError, WebDriverCommandMsg, WebDriverScriptCommand,
+    WebDriverUserPromptAction,
 };
 use url::Url;
 use winit::application::ApplicationHandler;
@@ -474,28 +473,16 @@ impl App {
                 },
                 WebDriverCommandMsg::InputEvent(webview_id, input_event, response_sender) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        // TODO: Scroll events triggered by wheel events should happen as
-                        // a default event action in the compositor.
-                        let scroll_event = match &input_event {
-                            InputEvent::Wheel(WheelEvent { delta, point }) => {
-                                let scroll = Scroll::Delta(
-                                    DeviceVector2D::new(-delta.x as f32, -delta.y as f32).into(),
-                                );
-                                Some((scroll, *point))
-                            },
-                            _ => None,
-                        };
-
                         running_state.handle_webdriver_input_event(
-                            webview_id,
+                            webview,
                             input_event,
                             response_sender,
                         );
-
-                        if let Some((scroll, scroll_point)) = scroll_event {
-                            webview.notify_scroll_event(scroll, scroll_point);
-                        }
-                    }
+                    } else {
+                        error!(
+                            "Could not find WebView ({webview_id:?}) for WebDriver event: {input_event:?}"
+                        );
+                    };
                 },
                 WebDriverCommandMsg::ScriptCommand(_, ref webdriver_script_command) => {
                     self.handle_webdriver_script_command(webdriver_script_command, running_state);

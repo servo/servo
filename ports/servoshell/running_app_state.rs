@@ -5,20 +5,32 @@
 //! Shared state and methods for desktop and EGL implementations.
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 
+use crossbeam_channel::Sender;
 use servo::base::generic_channel::GenericSender;
 use servo::base::id::WebViewId;
 use servo::ipc_channel::ipc::IpcSender;
-use servo::{TraversalId, WebDriverJSResult, WebDriverLoadStatus, WebDriverSenders};
+use servo::webrender_api::units::DeviceVector2D;
+use servo::{
+    InputEvent, InputEventId, Scroll, TraversalId, WebDriverJSResult, WebDriverLoadStatus,
+    WebDriverSenders, WebView, WheelEvent,
+};
 
 pub struct RunningAppStateBase {
     pub(crate) webdriver_senders: RefCell<WebDriverSenders>,
+
+    /// A [`HashMap`] of pending WebDriver events. It is the WebDriver embedder's responsibility
+    /// to inform the WebDriver server when the event has been fully handled. This map is used
+    /// to report back to WebDriver when that happens.
+    pub(crate) pending_webdriver_events: RefCell<HashMap<InputEventId, Sender<()>>>,
 }
 
 impl RunningAppStateBase {
     pub fn new() -> Self {
         Self {
             webdriver_senders: RefCell::default(),
+            pending_webdriver_events: Default::default(),
         }
     }
 }
@@ -66,5 +78,35 @@ pub trait RunningAppStateTrait {
             .webdriver_senders
             .borrow_mut()
             .script_evaluation_interrupt_sender = sender;
+    }
+
+    fn handle_webdriver_input_event(
+        &self,
+        webview: WebView,
+        input_event: InputEvent,
+        response_sender: Option<Sender<()>>,
+    ) {
+        // TODO: Scroll events triggered by wheel events should happen as
+        // a default event action in the compositor.
+        let scroll_event = match &input_event {
+            InputEvent::Wheel(WheelEvent { delta, point }) => {
+                let scroll =
+                    Scroll::Delta(DeviceVector2D::new(-delta.x as f32, -delta.y as f32).into());
+                Some((scroll, *point))
+            },
+            _ => None,
+        };
+
+        let event_id = webview.notify_input_event(input_event);
+        if let Some(response_sender) = response_sender {
+            self.base()
+                .pending_webdriver_events
+                .borrow_mut()
+                .insert(event_id, response_sender);
+        }
+
+        if let Some((scroll, scroll_point)) = scroll_event {
+            webview.notify_scroll_event(scroll, scroll_point);
+        }
     }
 }
