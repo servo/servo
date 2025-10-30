@@ -110,6 +110,8 @@ def run_tests(default_binary_path: str, **kwargs: Any) -> int:
         file_ext = os.path.splitext(kwargs["test_list"][0])[1].lower()
         if file_ext in [".htm", ".html", ".js", ".xhtml", ".xht", ".py"]:
             use_mach_logging = True
+    else:
+        kwargs["headless"] = True
 
     if use_mach_logging:
         logger = wptrunner.setup_logging(kwargs, {"mach": sys.stdout})
