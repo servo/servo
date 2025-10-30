@@ -307,6 +307,7 @@ pub trait Layout {
     ) -> Option<Rect<Au>>;
     fn query_box_areas(&self, node: TrustedNodeAddress, area: BoxAreaType) -> Vec<Rect<Au>>;
     fn query_client_rect(&self, node: TrustedNodeAddress) -> Rect<i32>;
+    fn query_current_css_zoom(&self, node: TrustedNodeAddress) -> f32;
     fn query_element_inner_outer_text(&self, node: TrustedNodeAddress) -> String;
     fn query_offset_parent(&self, node: TrustedNodeAddress) -> OffsetParentResponse;
     /// Query the scroll container for the given node. If node is `None`, the scroll container for
@@ -434,6 +435,7 @@ pub enum QueryMsg {
     BoxArea,
     BoxAreas,
     ClientRectQuery,
+    CurrentCSSZoomQuery,
     ElementInnerOuterTextQuery,
     ElementsFromPoint,
     InnerWindowDimensionsQuery,

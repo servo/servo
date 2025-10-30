@@ -92,9 +92,9 @@ use crate::display_list::{
 };
 use crate::query::{
     get_the_text_steps, process_box_area_request, process_box_areas_request,
-    process_client_rect_request, process_node_scroll_area_request, process_offset_parent_query,
-    process_padding_request, process_resolved_font_style_query, process_resolved_style_request,
-    process_scroll_container_query, process_text_index_request,
+    process_client_rect_request, process_current_css_zoom_query, process_node_scroll_area_request,
+    process_offset_parent_query, process_padding_request, process_resolved_font_style_query,
+    process_resolved_style_request, process_scroll_container_query, process_text_index_request,
 };
 use crate::traversal::{RecalcStyle, compute_damage_and_repair_style};
 use crate::{BoxTree, FragmentTree};
@@ -332,6 +332,12 @@ impl Layout for LayoutThread {
     fn query_client_rect(&self, node: TrustedNodeAddress) -> UntypedRect<i32> {
         let node = unsafe { ServoLayoutNode::new(&node) };
         process_client_rect_request(node.to_threadsafe())
+    }
+
+    #[servo_tracing::instrument(skip_all)]
+    fn query_current_css_zoom(&self, node: TrustedNodeAddress) -> f32 {
+        let node = unsafe { ServoLayoutNode::new(&node) };
+        process_current_css_zoom_query(node)
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -1674,6 +1680,7 @@ impl ReflowPhases {
                 QueryMsg::ResolvedStyleQuery |
                 QueryMsg::ScrollingAreaOrOffsetQuery => Self::StackingContextTreeConstruction,
                 QueryMsg::ClientRectQuery |
+                QueryMsg::CurrentCSSZoomQuery |
                 QueryMsg::ElementInnerOuterTextQuery |
                 QueryMsg::InnerWindowDimensionsQuery |
                 QueryMsg::PaddingQuery |

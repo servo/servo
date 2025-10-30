@@ -2690,6 +2690,13 @@ impl Window {
             .query_client_rect(node.to_trusted_node_address())
     }
 
+    pub(crate) fn current_css_zoom_query(&self, node: &Node) -> f32 {
+        self.layout_reflow(QueryMsg::CurrentCSSZoomQuery);
+        self.layout
+            .borrow()
+            .query_current_css_zoom(node.to_trusted_node_address())
+    }
+
     /// Find the scroll area of the given node, if it is not None. If the node
     /// is None, find the scroll area of the viewport.
     pub(crate) fn scrolling_area_query(&self, node: Option<&Node>) -> UntypedRect<i32> {

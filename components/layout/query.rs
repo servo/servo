@@ -155,6 +155,25 @@ pub fn process_client_rect_request(node: ServoThreadSafeLayoutNode<'_>) -> Rect<
         .unwrap_or_default()
 }
 
+/// Process a query for the current CSS zoom of an element.
+/// <https://drafts.csswg.org/cssom-view/#dom-element-currentcsszoom>
+///
+/// Returns the effective zoom of the element, which is the product of all zoom
+/// values from the element up to the root. Returns 1.0 if the element is not
+/// being rendered (has no associated box).
+pub fn process_current_css_zoom_query(node: ServoLayoutNode<'_>) -> f32 {
+    let Some(layout_data) = node.to_threadsafe().inner_layout_data() else {
+        return 1.0;
+    };
+    let layout_box = layout_data.self_box.borrow();
+    let Some(layout_box) = layout_box.as_ref() else {
+        return 1.0;
+    };
+    layout_box
+        .with_first_base(|base| base.style.effective_zoom.value())
+        .unwrap_or(1.0)
+}
+
 /// <https://drafts.csswg.org/cssom-view/#scrolling-area>
 pub fn process_node_scroll_area_request(
     requested_node: Option<ServoThreadSafeLayoutNode<'_>>,
