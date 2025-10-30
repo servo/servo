@@ -94,11 +94,6 @@ pub struct RunningAppStateInner {
     /// for the `exit_after_stable_image` option.
     achieved_stable_image: Rc<Cell<bool>>,
 
-    /// A [`HashMap`] of pending WebDriver events. It is the WebDriver embedder's responsibility
-    /// to inform the WebDriver server when the event has been fully handled. This map is used
-    /// to report back to WebDriver when that happens.
-    pending_webdriver_events: HashMap<InputEventId, Sender<()>>,
-
     /// A list of showing [`InputMethod`] interfaces.
     visible_input_methods: Vec<EmbedderControlId>,
 }
@@ -149,7 +144,6 @@ impl RunningAppState {
                 dialog_amount_changed: false,
                 pending_favicon_loads: Default::default(),
                 achieved_stable_image: Default::default(),
-                pending_webdriver_events: Default::default(),
                 visible_input_methods: Default::default(),
             }),
         }
@@ -550,8 +544,9 @@ impl RunningAppState {
         let event_id = webview.notify_input_event(input_event);
 
         if let Some(response_sender) = response_sender {
-            self.inner_mut()
+            self.base()
                 .pending_webdriver_events
+                .borrow_mut()
                 .insert(event_id, response_sender);
         }
     }
@@ -674,7 +669,12 @@ impl WebViewDelegate for RunningAppState {
             .window
             .notify_input_event_handled(&webview, id, result);
 
-        if let Some(response_sender) = self.inner_mut().pending_webdriver_events.remove(&id) {
+        if let Some(response_sender) = self
+            .base()
+            .pending_webdriver_events
+            .borrow_mut()
+            .remove(&id)
+        {
             let _ = response_sender.send(());
         }
     }

@@ -5,20 +5,28 @@
 //! Shared state and methods for desktop and EGL implementations.
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 
+use crossbeam_channel::Sender;
 use servo::base::generic_channel::GenericSender;
 use servo::base::id::WebViewId;
 use servo::ipc_channel::ipc::IpcSender;
-use servo::{TraversalId, WebDriverJSResult, WebDriverLoadStatus, WebDriverSenders};
+use servo::{InputEventId, TraversalId, WebDriverJSResult, WebDriverLoadStatus, WebDriverSenders};
 
 pub struct RunningAppStateBase {
     pub(crate) webdriver_senders: RefCell<WebDriverSenders>,
+
+    /// A [`HashMap`] of pending WebDriver events. It is the WebDriver embedder's responsibility
+    /// to inform the WebDriver server when the event has been fully handled. This map is used
+    /// to report back to WebDriver when that happens.
+    pub(crate) pending_webdriver_events: RefCell<HashMap<InputEventId, Sender<()>>>,
 }
 
 impl RunningAppStateBase {
     pub fn new() -> Self {
         Self {
             webdriver_senders: RefCell::default(),
+            pending_webdriver_events: Default::default(),
         }
     }
 }

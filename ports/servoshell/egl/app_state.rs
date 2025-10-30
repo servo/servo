@@ -5,28 +5,27 @@ use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use crossbeam_channel::Receiver;
+use crossbeam_channel::{Receiver, Sender};
 use dpi::PhysicalSize;
-use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
+use euclid::{Point2D, Rect, Scale, Size2D};
 use image::{DynamicImage, ImageFormat};
 use keyboard_types::{CompositionEvent, CompositionState, Key, KeyState, NamedKey};
 use log::{debug, error, info, warn};
 use raw_window_handle::{RawWindowHandle, WindowHandle};
 use servo::base::generic_channel::GenericSender;
 use servo::base::id::WebViewId;
-use servo::ipc_channel::ipc::IpcSender;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{
     DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, DeviceVector2D,
 };
 use servo::{
     AllowOrDenyRequest, ContextMenuResult, EmbedderControl, EmbedderControlId, ImeEvent,
-    InputEvent, KeyboardEvent, LoadStatus, MediaSessionActionType, MediaSessionEvent, MouseButton,
-    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, NavigationRequest, PermissionRequest,
-    RefreshDriver, RenderingContext, ScreenGeometry, Scroll, Servo, ServoDelegate, ServoError,
-    SimpleDialog, TouchEvent, TouchEventType, TouchId, TraversalId, WebDriverCommandMsg,
-    WebDriverJSResult, WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView,
-    WebViewBuilder, WebViewDelegate, WindowRenderingContext,
+    InputEvent, InputEventId, InputEventResult, KeyboardEvent, LoadStatus, MediaSessionActionType,
+    MediaSessionEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
+    NavigationRequest, PermissionRequest, RefreshDriver, RenderingContext, ScreenGeometry, Scroll,
+    Servo, ServoDelegate, ServoError, TouchEvent, TouchEventType, TouchId, TraversalId,
+    WebDriverCommandMsg, WebDriverLoadStatus, WebDriverScriptCommand, WebView, WebViewBuilder,
+    WebViewDelegate, WheelEvent, WindowRenderingContext,
 };
 use url::Url;
 
@@ -264,6 +263,22 @@ impl WebViewDelegate for RunningAppState {
 
     fn notify_new_frame_ready(&self, _webview: WebView) {
         self.inner_mut().need_present = true;
+    }
+
+    fn notify_input_event_handled(
+        &self,
+        _webview: WebView,
+        id: InputEventId,
+        _result: InputEventResult,
+    ) {
+        if let Some(response_sender) = self
+            .base()
+            .pending_webdriver_events
+            .borrow_mut()
+            .remove(&id)
+        {
+            let _ = response_sender.send(());
+        }
     }
 
     fn request_navigation(&self, _webview: WebView, navigation_request: NavigationRequest) {
@@ -756,11 +771,58 @@ impl RunningAppState {
                         info!("Handling GetViewportSize for webview {}", webview_id);
                         let _ = response_sender.send(self.rendering_context.size2d());
                     },
+                    WebDriverCommandMsg::InputEvent(webview_id, input_event, response_sender) => {
+                        if let Some(webview) = self.webview_by_id(webview_id) {
+                            // TODO: Scroll events triggered by wheel events should happen as
+                            // a default event action in the compositor.
+                            let scroll_event = match &input_event {
+                                InputEvent::Wheel(WheelEvent { delta, point }) => {
+                                    let scroll = Scroll::Delta(
+                                        DeviceVector2D::new(-delta.x as f32, -delta.y as f32)
+                                            .into(),
+                                    );
+                                    Some((scroll, *point))
+                                },
+                                _ => None,
+                            };
+
+                            self.handle_webdriver_input_event(
+                                webview_id,
+                                input_event,
+                                response_sender,
+                            );
+
+                            if let Some((scroll, scroll_point)) = scroll_event {
+                                webview.notify_scroll_event(scroll, scroll_point);
+                            }
+                        }
+                    },
                     _ => {
                         info!("Received WebDriver command: {:?}", msg);
                     },
                 }
             }
+        }
+    }
+
+    fn handle_webdriver_input_event(
+        &self,
+        webview_id: WebViewId,
+        input_event: InputEvent,
+        response_sender: Option<Sender<()>>,
+    ) {
+        let Some(webview) = self.webview_by_id(webview_id) else {
+            error!("Could not find WebView ({webview_id:?}) for WebDriver event: {input_event:?}");
+            return;
+        };
+
+        let event_id = webview.notify_input_event(input_event);
+
+        if let Some(response_sender) = response_sender {
+            self.base()
+                .pending_webdriver_events
+                .borrow_mut()
+                .insert(event_id, response_sender);
         }
     }
 
