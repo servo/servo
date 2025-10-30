@@ -11,7 +11,10 @@ use crossbeam_channel::Sender;
 use servo::base::generic_channel::GenericSender;
 use servo::base::id::WebViewId;
 use servo::ipc_channel::ipc::IpcSender;
-use servo::{InputEventId, TraversalId, WebDriverJSResult, WebDriverLoadStatus, WebDriverSenders};
+use servo::{
+    InputEvent, InputEventId, TraversalId, WebDriverJSResult, WebDriverLoadStatus,
+    WebDriverSenders, WebView,
+};
 
 pub struct RunningAppStateBase {
     pub(crate) webdriver_senders: RefCell<WebDriverSenders>,
@@ -74,5 +77,20 @@ pub trait RunningAppStateTrait {
             .webdriver_senders
             .borrow_mut()
             .script_evaluation_interrupt_sender = sender;
+    }
+
+    fn handle_webdriver_input_event(
+        &self,
+        webview: WebView,
+        input_event: InputEvent,
+        response_sender: Option<Sender<()>>,
+    ) {
+        let event_id = webview.notify_input_event(input_event);
+        if let Some(response_sender) = response_sender {
+            self.base()
+                .pending_webdriver_events
+                .borrow_mut()
+                .insert(event_id, response_sender);
+        }
     }
 }

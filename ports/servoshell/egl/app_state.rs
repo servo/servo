@@ -5,7 +5,7 @@ use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use crossbeam_channel::{Receiver, Sender};
+use crossbeam_channel::Receiver;
 use dpi::PhysicalSize;
 use euclid::{Point2D, Rect, Scale, Size2D};
 use image::{DynamicImage, ImageFormat};
@@ -787,7 +787,7 @@ impl RunningAppState {
                             };
 
                             self.handle_webdriver_input_event(
-                                webview_id,
+                                webview.clone(),
                                 input_event,
                                 response_sender,
                             );
@@ -802,27 +802,6 @@ impl RunningAppState {
                     },
                 }
             }
-        }
-    }
-
-    fn handle_webdriver_input_event(
-        &self,
-        webview_id: WebViewId,
-        input_event: InputEvent,
-        response_sender: Option<Sender<()>>,
-    ) {
-        let Some(webview) = self.webview_by_id(webview_id) else {
-            error!("Could not find WebView ({webview_id:?}) for WebDriver event: {input_event:?}");
-            return;
-        };
-
-        let event_id = webview.notify_input_event(input_event);
-
-        if let Some(response_sender) = response_sender {
-            self.base()
-                .pending_webdriver_events
-                .borrow_mut()
-                .insert(event_id, response_sender);
         }
     }
 

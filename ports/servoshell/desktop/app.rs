@@ -487,7 +487,7 @@ impl App {
                         };
 
                         running_state.handle_webdriver_input_event(
-                            webview_id,
+                            webview.clone(),
                             input_event,
                             response_sender,
                         );
