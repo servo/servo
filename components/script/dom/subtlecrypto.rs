@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 mod aes_operation;
+mod ecdh_operation;
 mod ed25519_operation;
 mod hkdf_operation;
 mod hmac_operation;
@@ -27,9 +28,9 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesGcmParams, AesKeyAlgorithm,
-    AesKeyGenParams, Algorithm, AlgorithmIdentifier, HkdfParams, HmacImportParams,
-    HmacKeyAlgorithm, HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params,
-    RsaOtherPrimesInfo, SubtleCryptoMethods,
+    AesKeyGenParams, Algorithm, AlgorithmIdentifier, EcKeyAlgorithm, EcKeyImportParams, HkdfParams,
+    HmacImportParams, HmacKeyAlgorithm, HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat,
+    Pbkdf2Params, RsaOtherPrimesInfo, SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey, ObjectOrString,
@@ -89,7 +90,7 @@ static SUPPORTED_ALGORITHMS: &[&str] = &[
 const NAMED_CURVE_P256: &str = "P-256";
 const NAMED_CURVE_P384: &str = "P-384";
 const NAMED_CURVE_P521: &str = "P-521";
-#[allow(dead_code)]
+
 static SUPPORTED_CURVES: &[&str] = &[NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521];
 
 /// <https://w3c.github.io/webcrypto/#supported-operation>
@@ -1625,6 +1626,48 @@ impl SafeToJSValConvertible for SubtleKeyAlgorithm {
     }
 }
 
+/// <https://w3c.github.io/webcrypto/#dfn-EcKeyAlgorithm>
+#[derive(Clone, Debug, MallocSizeOf)]
+pub(crate) struct SubtleEcKeyAlgorithm {
+    /// <https://w3c.github.io/webcrypto/#dom-keyalgorithm-name>
+    name: String,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-EcKeyAlgorithm-namedCurve>
+    named_curve: String,
+}
+
+impl SafeToJSValConvertible for SubtleEcKeyAlgorithm {
+    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
+        let parent = KeyAlgorithm {
+            name: self.name.clone().into(),
+        };
+        let dictionary = EcKeyAlgorithm {
+            parent,
+            namedCurve: self.named_curve.clone().into(),
+        };
+        dictionary.safe_to_jsval(cx, rval, can_gc);
+    }
+}
+
+/// <https://w3c.github.io/webcrypto/#dfn-EcKeyImportParams>
+#[derive(Clone, Debug, MallocSizeOf)]
+struct SubtleEcKeyImportParams {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: String,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-EcKeyImportParams-namedCurve>
+    named_curve: String,
+}
+
+impl From<EcKeyImportParams> for SubtleEcKeyImportParams {
+    fn from(value: EcKeyImportParams) -> Self {
+        SubtleEcKeyImportParams {
+            name: value.parent.name.to_string(),
+            named_curve: value.namedCurve.to_string(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) struct SubtleAesCbcParams {
     pub(crate) name: String,
@@ -1936,6 +1979,7 @@ pub(crate) enum ExportedKey {
 #[allow(clippy::enum_variant_names)]
 pub(crate) enum KeyAlgorithmAndDerivatives {
     KeyAlgorithm(SubtleKeyAlgorithm),
+    EcKeyAlgorithm(SubtleEcKeyAlgorithm),
     AesKeyAlgorithm(SubtleAesKeyAlgorithm),
     HmacKeyAlgorithm(SubtleHmacKeyAlgorithm),
 }
@@ -1944,6 +1988,7 @@ impl KeyAlgorithmAndDerivatives {
     fn name(&self) -> &str {
         match self {
             KeyAlgorithmAndDerivatives::KeyAlgorithm(algo) => &algo.name,
+            KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algo) => &algo.name,
             KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algo) => &algo.name,
             KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => &algo.name,
         }
@@ -1962,6 +2007,9 @@ impl SafeToJSValConvertible for KeyAlgorithmAndDerivatives {
     fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
         match self {
             KeyAlgorithmAndDerivatives::KeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval, can_gc),
+            KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algo) => {
+                algo.safe_to_jsval(cx, rval, can_gc)
+            },
             KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algo) => {
                 algo.safe_to_jsval(cx, rval, can_gc)
             },
@@ -2129,6 +2177,7 @@ impl JsonWebKeyExt for JsonWebKey {
 #[derive(Clone, Debug, MallocSizeOf)]
 enum NormalizedAlgorithm {
     Algorithm(SubtleAlgorithm),
+    EcKeyImportParams(SubtleEcKeyImportParams),
     AesCtrParams(SubtleAesCtrParams),
     AesKeyGenParams(SubtleAesKeyGenParams),
     AesDerivedKeyParams(SubtleAesDerivedKeyParams),
@@ -2223,6 +2272,14 @@ fn normalize_algorithm(
             // NOTE: Step 10.1.3 is done by the `From` and `TryFrom` trait implementation of
             // "subtle" binding structs.
             let normalized_algorithm = match (alg_name, op) {
+                // <https://w3c.github.io/webcrypto/#ecdh-registration>
+                (ALG_ECDH, Operation::ImportKey) => {
+                    let mut params =
+                        dictionary_from_jsval::<EcKeyImportParams>(cx, value.handle())?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::EcKeyImportParams(params.into())
+                },
+
                 // <https://w3c.github.io/webcrypto/#ed25519-registration>
                 (ALG_ED25519, Operation::Sign) => {
                     let mut params = dictionary_from_jsval::<Algorithm>(cx, value.handle())?;
@@ -2517,6 +2574,7 @@ impl NormalizedAlgorithm {
     fn name(&self) -> &str {
         match self {
             NormalizedAlgorithm::Algorithm(algo) => &algo.name,
+            NormalizedAlgorithm::EcKeyImportParams(algo) => &algo.name,
             NormalizedAlgorithm::AesCtrParams(algo) => &algo.name,
             NormalizedAlgorithm::AesKeyGenParams(algo) => &algo.name,
             NormalizedAlgorithm::AesDerivedKeyParams(algo) => &algo.name,
@@ -2702,6 +2760,15 @@ impl NormalizedAlgorithm {
                 },
                 _ => Err(Error::NotSupported),
             },
+            NormalizedAlgorithm::EcKeyImportParams(algo) => ecdh_operation::import_key(
+                global,
+                algo,
+                format,
+                key_data,
+                extractable,
+                usages,
+                can_gc,
+            ),
             NormalizedAlgorithm::HmacImportParams(algo) => hmac_operation::import_key(
                 global,
                 algo,
