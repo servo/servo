@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::time::Duration;
+
 use serde_json::Value;
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 
@@ -16,6 +18,11 @@ pub(crate) const DEFAULT_PAGE_LOAD_TIMEOUT: u64 = 300_000;
 /// Initial initial wait timeout from
 /// <https://w3c.github.io/webdriver/#dfn-timeouts-configuration>.
 pub(crate) const DEFAULT_IMPLICIT_WAIT: u64 = 0;
+
+/// An amount of time to wait before considering that a screenshot has timed out.
+/// If after 10 seconds the screenshot cannot be taken, assume that the test has
+/// timed out.
+pub(crate) const SCREENSHOT_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub(crate) struct TimeoutsConfiguration {
     pub(crate) script: Option<u64>,

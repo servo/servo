@@ -27,7 +27,7 @@ use base::id::{BrowsingContextId, WebViewId};
 use base64::Engine;
 use capabilities::ServoCapabilities;
 use cookie::{CookieBuilder, Expiration, SameSite};
-use crossbeam_channel::{Receiver, Sender, after, select, unbounded};
+use crossbeam_channel::{Receiver, RecvTimeoutError, Sender, after, select, unbounded};
 use embedder_traits::{
     EventLoopWaker, ImeEvent, InputEvent, JSValue, JavaScriptEvaluationError,
     JavaScriptEvaluationResultSerializationError, MouseButton, WebDriverCommandMsg,
@@ -75,7 +75,7 @@ use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
 use crate::actions::{InputSourceState, PointerInputState};
 use crate::session::{PageLoadStrategy, WebDriverSession};
-use crate::timeout::DEFAULT_PAGE_LOAD_TIMEOUT;
+use crate::timeout::{DEFAULT_PAGE_LOAD_TIMEOUT, SCREENSHOT_TIMEOUT};
 
 fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
     vec![
@@ -2307,18 +2307,25 @@ impl Handler {
                 "The requested `rect` has zero width and/or height",
             ));
         }
+
         let webview_id = self.webview_id()?;
         let (sender, receiver) = crossbeam_channel::unbounded();
         self.send_message_to_embedder(WebDriverCommandMsg::TakeScreenshot(
             webview_id, rect, sender,
         ))?;
 
-        let Ok(result) = receiver.recv() else {
-            return Err(WebDriverError::new(
+        let result = match receiver.recv_timeout(SCREENSHOT_TIMEOUT) {
+            Ok(result) => Ok(result),
+            Err(RecvTimeoutError::Timeout) => Err(WebDriverError::new(
+                ErrorStatus::Timeout,
+                "Timed out waiting to take screenshot. Test likely didn't finish.",
+            )),
+            Err(RecvTimeoutError::Disconnected) => Err(WebDriverError::new(
                 ErrorStatus::UnknownError,
-                "Failed to receive TakeScreenshot response",
-            ));
-        };
+                "Could not take screenshot because channel disconnected.",
+            )),
+        }?;
+
         let image = result.map_err(|error| {
             WebDriverError::new(
                 ErrorStatus::UnknownError,
