@@ -772,33 +772,20 @@ impl RunningAppState {
                         let _ = response_sender.send(self.rendering_context.size2d());
                     },
                     WebDriverCommandMsg::InputEvent(webview_id, input_event, response_sender) => {
-                        if let Some(webview) = self.webview_by_id(webview_id) {
-                            // TODO: Scroll events triggered by wheel events should happen as
-                            // a default event action in the compositor.
-                            let scroll_event = match &input_event {
-                                InputEvent::Wheel(WheelEvent { delta, point }) => {
-                                    let scroll = Scroll::Delta(
-                                        DeviceVector2D::new(-delta.x as f32, -delta.y as f32)
-                                            .into(),
-                                    );
-                                    Some((scroll, *point))
-                                },
-                                _ => None,
-                            };
-
-                            self.handle_webdriver_input_event(
-                                webview.clone(),
+                        if let Some(webview) = running_state.webview_by_id(webview_id) {
+                            running_state.handle_webdriver_input_event(
+                                webview,
                                 input_event,
                                 response_sender,
                             );
-
-                            if let Some((scroll, scroll_point)) = scroll_event {
-                                webview.notify_scroll_event(scroll, scroll_point);
-                            }
-                        }
+                        } else {
+                            error!(
+                                "Could not find WebView ({webview_id:?}) for WebDriver event: {input_event:?}"
+                            );
+                        };
                     },
                     _ => {
-                        info!("Received WebDriver command: {:?}", msg);
+                        info!("Received unsupported WebDriver command: {:?}", msg);
                     },
                 }
             }
