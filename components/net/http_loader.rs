@@ -53,7 +53,7 @@ use net_traits::request::{
     is_cors_non_wildcard_request_header_name, is_cors_safelisted_method,
     is_cors_safelisted_request_header,
 };
-use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
+use net_traits::response::{CacheState, HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{
     CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, FetchMetadata, NetworkError, RedirectEndValue,
     RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
@@ -1573,6 +1573,9 @@ async fn http_network_or_cache_fetch(
                 } else {
                     // Substep 6
                     response = cached_response;
+                    if let Some(response) = &mut response {
+                        response.cache_state = CacheState::Local;
+                    }
                 }
                 if response.is_none() {
                     // Ensure the done chan is not set if we're not using the cached response,
@@ -1690,6 +1693,9 @@ async fn http_network_or_cache_fetch(
                 response = http_cache.refresh(http_request, forward_response.clone(), done_chan);
             }
             wait_for_cached_response(done_chan, &mut response).await;
+            if let Some(response) = &mut response {
+                response.cache_state = CacheState::Validated;
+            }
         }
 
         // Step 10.5 If response is null, then:

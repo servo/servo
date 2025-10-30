@@ -7,6 +7,7 @@
 use std::fs;
 use std::iter::FromIterator;
 use std::path::Path;
+use std::str::FromStr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, Weak};
 use std::time::{Duration, SystemTime};
@@ -18,8 +19,8 @@ use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse};
 use headers::{
     AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowMethods,
-    AccessControlAllowOrigin, AccessControlMaxAge, CacheControl, ContentLength, ContentType,
-    Expires, HeaderMapExt, LastModified, Pragma, StrictTransportSecurity, UserAgent,
+    AccessControlAllowOrigin, AccessControlMaxAge, CacheControl, ContentLength, ContentType, ETag,
+    Expires, HeaderMapExt, IfNoneMatch, LastModified, Pragma, StrictTransportSecurity, UserAgent,
 };
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use http::{Method, StatusCode};
@@ -1258,6 +1259,83 @@ fn test_fetch_async_returns_complete_response() {
 
     let _ = server.close();
     assert_eq!(response_is_done(&fetch_response), true);
+}
+
+#[test]
+fn test_response_cache_status_is_local() {
+    static MESSAGE: &'static [u8] = b"cacheable content";
+    let handler =
+        move |_: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            // Mark this response as cacheable.
+            response
+                .headers_mut()
+                .typed_insert(CacheControl::new().with_max_age(Duration::from_secs(604800)));
+            *response.body_mut() = make_body(MESSAGE.to_vec());
+        };
+    let (server, url) = make_server(handler);
+
+    let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
+        .origin(url.origin())
+        .policy_container(Default::default())
+        .build();
+
+    // Use the same HttpCache for both fetches.
+    let mut context = new_fetch_context(None, None, None);
+
+    // Cold request - response should come from the server.
+    let initial_response = fetch_with_context(request.clone(), &mut context);
+    assert!(matches!(initial_response.cache_state, CacheState::None));
+
+    // Warm request - response should come from the cache.
+    let cached_response = fetch_with_context(request.clone(), &mut context);
+    assert!(matches!(cached_response.cache_state, CacheState::Local));
+
+    let _ = server.close();
+}
+
+#[test]
+fn test_response_cache_status_is_validated() {
+    static MESSAGE: &'static [u8] = b"cacheable content";
+    let handler =
+        move |request: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            // Check for the revalidation request.
+            if let Some(_) = request.headers().typed_get::<IfNoneMatch>() {
+                *response.status_mut() = StatusCode::NOT_MODIFIED;
+                return;
+            }
+            // Mark this cacheable reponse as requiring revalidation upon refetch.
+            response
+                .headers_mut()
+                .typed_insert(CacheControl::new().with_no_cache());
+            response
+                .headers_mut()
+                .typed_insert(ETag::from_str("\"1234abcd\"").unwrap());
+            *response.body_mut() = make_body(MESSAGE.to_vec());
+        };
+    let (server, url) = make_server(handler);
+
+    let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
+        .origin(url.origin())
+        .policy_container(Default::default())
+        .build();
+
+    // Use the same HttpCache for both fetches.
+    let mut context = new_fetch_context(None, None, None);
+
+    // Cold request - response should come from the server.
+    let initial_response = fetch_with_context(request.clone(), &mut context);
+    assert!(matches!(initial_response.cache_state, CacheState::None));
+
+    // Warm request - response should come from the cache after revalidation with server.
+    let revalidated_response = fetch_with_context(request, &mut context);
+    assert!(matches!(
+        revalidated_response.cache_state,
+        CacheState::Validated
+    ));
+
+    let _ = server.close();
 }
 
 #[test]
