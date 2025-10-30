@@ -219,13 +219,13 @@ impl MallocSizeOf for Handle {
             Handle::P256PublicKey(public_key) => public_key.size_of(ops),
             Handle::P384PublicKey(public_key) => public_key.size_of(ops),
             Handle::P521PublicKey(public_key) => public_key.size_of(ops),
-            Handle::Aes128(bytes) => bytes.len(),
-            Handle::Aes192(bytes) => bytes.len(),
-            Handle::Aes256(bytes) => bytes.len(),
-            Handle::Pbkdf2(bytes) => bytes.len(),
-            Handle::Hkdf(bytes) => bytes.len(),
-            Handle::Hmac(bytes) => bytes.len(),
-            Handle::Ed25519(bytes) => bytes.len(),
+            Handle::Aes128(bytes) => bytes.size_of(ops),
+            Handle::Aes192(bytes) => bytes.size_of(ops),
+            Handle::Aes256(bytes) => bytes.size_of(ops),
+            Handle::Pbkdf2(bytes) => bytes.size_of(ops),
+            Handle::Hkdf(bytes) => bytes.size_of(ops),
+            Handle::Hmac(bytes) => bytes.size_of(ops),
+            Handle::Ed25519(bytes) => bytes.size_of(ops),
         }
     }
 }
