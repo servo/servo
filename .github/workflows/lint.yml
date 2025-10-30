@@ -61,7 +61,7 @@ jobs:
     name: Lint [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     steps:
-      - uses: servo/ci-runners/actions/checkout@59aba6fdaa43f0336329918e18b9f6fd1996b487
+      - uses: servo/ci-runners/actions/checkout@78f4b65e1be542d0e9d84c65a0fcc35529e7b29f
         with:
           fetch-depth: 2
 
