@@ -25,7 +25,7 @@ use servo::{
     NavigationRequest, PermissionRequest, RefreshDriver, RenderingContext, ScreenGeometry, Scroll,
     Servo, ServoDelegate, ServoError, TouchEvent, TouchEventType, TouchId, TraversalId,
     WebDriverCommandMsg, WebDriverLoadStatus, WebDriverScriptCommand, WebView, WebViewBuilder,
-    WebViewDelegate, WheelEvent, WindowRenderingContext,
+    WebViewDelegate, WindowRenderingContext,
 };
 use url::Url;
 
@@ -632,7 +632,7 @@ impl RunningAppState {
     }
 
     /// WebDriver message handling methods
-    pub fn webview_by_id(&self, id: WebViewId) -> Option<WebView> {
+    fn webview_by_id(&self, id: WebViewId) -> Option<WebView> {
         self.inner().webviews.get(&id).cloned()
     }
 
@@ -772,8 +772,8 @@ impl RunningAppState {
                         let _ = response_sender.send(self.rendering_context.size2d());
                     },
                     WebDriverCommandMsg::InputEvent(webview_id, input_event, response_sender) => {
-                        if let Some(webview) = running_state.webview_by_id(webview_id) {
-                            running_state.handle_webdriver_input_event(
+                        if let Some(webview) = self.webview_by_id(webview_id) {
+                            self.handle_webdriver_input_event(
                                 webview,
                                 input_event,
                                 response_sender,
