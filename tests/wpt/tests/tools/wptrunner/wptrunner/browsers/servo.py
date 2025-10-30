@@ -51,6 +51,7 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
                     **kwargs):
     rv = base_executor_kwargs(test_type, test_environment, run_info_data, **kwargs)
     rv["pause_after_test"] = kwargs["pause_after_test"]
+    rv["headless"] = kwargs.get("headless", False)
     if test_type == "wdspec":
         rv["capabilities"] = {}
     return rv
