@@ -84,8 +84,12 @@ pub(crate) struct HTMLIFrameElement {
     throttled: Cell<bool>,
     #[conditional_malloc_size_of]
     script_window_proxies: Rc<ScriptWindowProxies>,
-    /// Keeping track of whether the iframe will be navigated;
-    /// see the note in `iframe_load_event_steps`.
+    /// Keeping track of whether the iframe will be navigated
+    /// outside of the processing of it's attribute(for example: form navigation).
+    /// This is necessary to prevent the iframe load event steps 
+    /// from asynchronously running for the initial blank document
+    /// while script at this point(when the flag is set)
+    /// expects those to run only for the navigated documented. 
     pending_navigation: Cell<bool>,
 }
 
@@ -391,7 +395,7 @@ impl HTMLIFrameElement {
 
     /// <https://html.spec.whatwg.org/multipage/#create-a-new-child-navigable>
     /// Synchronously create a new browsing context(This is not a navigation).
-    /// The pipeline started here should remain unnoticable to script, but this is not easy
+    /// The pipeline started here should remain unnoticeable to script, but this is not easy
     /// to refactor because it appears other features have come to rely on the current behavior.
     /// For now only the iframe load event steps are skipped in some cases for this initial document,
     /// and we still fire load and pageshow events as part of `maybe_queue_document_completion`.
@@ -443,7 +447,9 @@ impl HTMLIFrameElement {
         can_gc: CanGc,
     ) {
         // For all updates except the one for the initial blank document,
-        // we need to set the flag back to false because the navigation is complete.
+        // we need to set the flag back to false because the navigation is complete,
+        // because the goal is to, when a navigation is pending, to skip the async load 
+        // steps of the initial blank document.
         if !self.is_initial_blank_document() {
             self.pending_navigation.set(false);
         }
@@ -532,8 +538,9 @@ impl HTMLIFrameElement {
         }
     }
 
-    /// Note a pending navigation,
-    /// used as part of `iframe_load_event_steps`.
+    /// Note a pending navigation.
+    /// This is used to ignore the async load event steps for
+    /// the initial blank document if those haven't run yet.
     pub(crate) fn note_pending_navigation(&self) {
         self.pending_navigation.set(true);
     }
@@ -565,10 +572,11 @@ impl HTMLIFrameElement {
         //    as part of the first processing of the iframe attributes.
         //
         // To preserve the logic of the spec--firing the load event once--in the context of
-        // our current implementation, we must:
-        // - Not fire the load event for the initial blank document
-        // if there is either a pending navigation or the src has been processed.
-        // - Fire the load event in the other case(initial blank document without src).
+        // our current implementation, we must not fire the load event 
+        // for the initial blank document if we know that a navigation is ongoing,
+        // which can be deducted from `pending_navigation` or the presence of an src.
+        //
+        // TODO: run these step synchronously as part of processing the iframe attributes.
         let should_fire_event = if self.is_initial_blank_document() {
             !self.pending_navigation.get() &&
                 !self.upcast::<Element>().has_attribute(&local_name!("src"))
@@ -584,7 +592,7 @@ impl HTMLIFrameElement {
         let blocker = &self.load_blocker;
         LoadBlocker::terminate(blocker, can_gc);
 
-        // TODO Step 7 - unset child document `mut iframe load` flag
+        // TODO Step 7 - unset child document `mute iframe load` flag
     }
 
     /// Parse the `sandbox` attribute value given the [`Attr`]. This sets the `sandboxing_flag_set`
