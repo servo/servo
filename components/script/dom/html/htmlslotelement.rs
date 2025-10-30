@@ -28,7 +28,9 @@ use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
-use crate::dom::node::{BindContext, Node, NodeDamage, NodeTraits, ShadowIncluding, UnbindContext};
+use crate::dom::node::{
+    BindContext, IsShadowTree, Node, NodeDamage, NodeTraits, ShadowIncluding, UnbindContext,
+};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
@@ -495,13 +497,12 @@ impl VirtualMethods for HTMLSlotElement {
             s.bind_to_tree(context, can_gc);
         }
 
-        if !context.tree_is_in_a_shadow_tree {
-            return;
+        let was_already_in_shadow_tree = context.is_shadow_tree == IsShadowTree::Yes;
+        if !was_already_in_shadow_tree {
+            if let Some(shadow_root) = self.containing_shadow_root() {
+                shadow_root.register_slot(self);
+            }
         }
-
-        self.containing_shadow_root()
-            .expect("not in a shadow tree")
-            .register_slot(self);
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
@@ -509,8 +510,11 @@ impl VirtualMethods for HTMLSlotElement {
             s.unbind_from_tree(context, can_gc);
         }
 
-        if let Some(shadow_root) = self.containing_shadow_root() {
-            shadow_root.unregister_slot(self.Name(), self);
+        if !self.upcast::<Node>().is_in_a_shadow_tree() {
+            if let Some(old_shadow_root) = self.containing_shadow_root() {
+                // If we used to be in a shadow root, but aren't anymore, then unregister this slot
+                old_shadow_root.unregister_slot(self.Name(), self);
+            }
         }
     }
 }
