@@ -113,11 +113,10 @@ impl AttrMethods<crate::DomTypeHolder> for Attr {
     fn SetValue(&self, value: DOMString, can_gc: CanGc) -> Fallible<()> {
         // Step 2. Otherwise:
         if let Some(owner) = self.owner() {
-            // Step 2.1. Let originalElement be attribute’s element.
-            let original_element = owner.clone();
+            // Step 2.1. Let element be attribute’s element.
             // Step 2.2. Let verifiedValue be the result of calling
-            // get Trusted Types-compliant attribute value with attribute’s local name,
-            // attribute’s namespace, this, and value. [TRUSTED-TYPES]
+            // get trusted type compliant attribute value with attribute’s local name,
+            // attribute’s namespace, element, and value. [TRUSTED-TYPES]
             let value = TrustedTypePolicyFactory::get_trusted_types_compliant_attribute_value(
                 owner.namespace(),
                 owner.local_name(),
@@ -128,11 +127,7 @@ impl AttrMethods<crate::DomTypeHolder> for Attr {
                 can_gc,
             )?;
             if let Some(owner) = self.owner() {
-                // Step 2.4. If attribute’s element is not originalElement, then return.
-                if owner != original_element {
-                    return Ok(());
-                }
-                // Step 2.5. Change attribute to verifiedValue.
+                // Step 2.4. Change attribute to verifiedValue.
                 let value = owner.parse_attribute(self.namespace(), self.local_name(), value);
                 owner.change_attribute(self, value, can_gc);
             } else {
