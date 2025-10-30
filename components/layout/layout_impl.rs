@@ -255,7 +255,7 @@ impl Layout for LayoutThread {
             .remove_all_web_fonts_from_stylesheet(&stylesheet);
     }
 
-    /// Return the resolved values of this node's top and left padding rect.
+    /// Return the resolved values of this node's padding rect.
     #[servo_tracing::instrument(skip_all)]
     fn query_padding(&self, node: TrustedNodeAddress) -> Option<PhysicalSides> {
         // If we have not built a fragment tree yet, there is no way we have layout information for
