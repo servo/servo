@@ -21,13 +21,13 @@ use servo::servo_geometry::{
     DeviceIndependentIntRect, DeviceIndependentPixel, convert_rect_to_css_pixel,
 };
 use servo::webrender_api::units::{
-    DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, DeviceVector2D,
+    DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint,
 };
 use servo::{
     Cursor, ImeEvent, InputEvent, InputEventId, InputEventResult, InputMethodControl, Key,
     KeyState, KeyboardEvent, Modifiers, MouseButton as ServoMouseButton, MouseButtonAction,
     MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, NamedKey, OffscreenRenderingContext,
-    RenderingContext, ScreenGeometry, Scroll, Theme, TouchEvent, TouchEventType, TouchId,
+    RenderingContext, ScreenGeometry, Theme, TouchEvent, TouchEventType, TouchId,
     WebRenderDebugOption, WebView, WheelDelta, WheelEvent, WheelMode, WindowRenderingContext,
 };
 use url::Url;
@@ -50,7 +50,7 @@ use {
 use super::app_state::RunningAppState;
 use super::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size};
 use super::keyutils::{CMD_OR_ALT, keyboard_event_from_winit};
-use super::window_trait::{LINE_HEIGHT, LINE_WIDTH, PIXEL_DELTA_FACTOR, WindowPortsMethods};
+use super::window_trait::{LINE_HEIGHT, LINE_WIDTH, WindowPortsMethods};
 use crate::desktop::accelerated_gl_media::setup_gl_accelerated_media;
 use crate::desktop::keyutils::CMD_OR_CONTROL;
 use crate::desktop::window_trait::MIN_WINDOW_INNER_SIZE;
@@ -650,44 +650,26 @@ impl WindowPortsMethods for Window {
                 }
             },
             WindowEvent::MouseWheel { delta, .. } => {
-                let (mut dx, mut dy, mode) = match delta {
-                    MouseScrollDelta::LineDelta(dx, dy) => (
-                        (dx * LINE_WIDTH) as f64,
-                        (dy * LINE_HEIGHT) as f64,
+                let (delta_x, delta_y, mode) = match delta {
+                    MouseScrollDelta::LineDelta(delta_x, delta_y) => (
+                        (delta_x * LINE_WIDTH) as f64,
+                        (delta_y * LINE_HEIGHT) as f64,
                         WheelMode::DeltaLine,
                     ),
-                    MouseScrollDelta::PixelDelta(position) => {
-                        let position: LogicalPosition<f64> =
-                            position.to_logical(self.device_hidpi_scale_factor().get() as f64);
-                        (
-                            position.x * PIXEL_DELTA_FACTOR,
-                            position.y * PIXEL_DELTA_FACTOR,
-                            WheelMode::DeltaPixel,
-                        )
+                    MouseScrollDelta::PixelDelta(delta) => {
+                        (delta.x, delta.y, WheelMode::DeltaPixel)
                     },
                 };
 
                 // Create wheel event before snapping to the major axis of movement
                 let delta = WheelDelta {
-                    x: dx,
-                    y: dy,
+                    x: delta_x,
+                    y: delta_y,
                     z: 0.0,
                     mode,
                 };
                 let point = self.webview_relative_mouse_point.get();
-
-                // Scroll events snap to the major axis of movement, with vertical
-                // preferred over horizontal.
-                if dy.abs() >= dx.abs() {
-                    dx = 0.0;
-                } else {
-                    dy = 0.0;
-                }
-
-                // Send events
                 webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(delta, point.into())));
-                let scroll = Scroll::Delta((-DeviceVector2D::new(dx as f32, dy as f32)).into());
-                webview.notify_scroll_event(scroll, point.into());
             },
             WindowEvent::Touch(touch) => {
                 webview.notify_input_event(InputEvent::Touch(TouchEvent::new(

@@ -17,6 +17,7 @@ use embedder_traits::{
     AnimationState, CompositorHitTestResult, InputEvent, InputEventAndId, InputEventId,
     InputEventResult, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent, Scroll,
     ScrollEvent as EmbedderScrollEvent, TouchEvent, TouchEventType, ViewportDetails, WebViewPoint,
+    WheelEvent,
 };
 use euclid::{Scale, Vector2D};
 use log::{debug, warn};
@@ -25,7 +26,7 @@ use rustc_hash::FxHashMap;
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::CSSPixel;
 use webrender::RenderApi;
-use webrender_api::units::{DevicePixel, DevicePoint, DeviceRect, LayoutVector2D};
+use webrender_api::units::{DevicePixel, DevicePoint, DeviceRect, DeviceVector2D, LayoutVector2D};
 use webrender_api::{DocumentId, ExternalScrollId, ScrollLocation};
 
 use crate::painter::Painter;
@@ -359,7 +360,26 @@ impl WebViewRenderer {
             return;
         }
 
+        if let InputEvent::Wheel(wheel_event) = event_and_id.event {
+            self.on_wheel_event(render_api, wheel_event, event_and_id);
+            return;
+        }
+
         self.dispatch_input_event_with_hit_testing(render_api, event_and_id);
+    }
+
+    fn on_wheel_event(
+        &mut self,
+        render_api: &RenderApi,
+        wheel_event: WheelEvent,
+        event_and_id: InputEventAndId,
+    ) {
+        self.dispatch_input_event_with_hit_testing(render_api, event_and_id);
+
+        // A scroll delta for a wheel event is the inverse of the wheel delta.
+        let scroll_delta =
+            DeviceVector2D::new(-wheel_event.delta.x as f32, -wheel_event.delta.y as f32);
+        self.notify_scroll_event(Scroll::Delta(scroll_delta.into()), wheel_event.point);
     }
 
     fn send_touch_event(
