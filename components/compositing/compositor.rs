@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, Ref, RefCell, RefMut};
+use std::collections::HashMap;
 use std::env;
 use std::fs::create_dir_all;
 use std::rc::Rc;
@@ -175,12 +176,11 @@ impl IOCompositor {
         self.painter().webgpu_image_map.clone()
     }
 
-    pub(crate) fn set_needs_repaint(&self, reason: RepaintReason) {
-        self.painter().set_needs_repaint(reason);
-    }
-
-    pub fn needs_repaint(&self) -> bool {
-        self.painter().needs_repaint()
+    pub fn webviews_needing_repaint(&self) -> Vec<WebViewId> {
+        self.painters
+            .iter()
+            .flat_map(|painter| painter.borrow().webviews_needing_repaint())
+            .collect()
     }
 
     pub fn finish_shutting_down(&self) {
@@ -509,19 +509,18 @@ impl IOCompositor {
     }
 
     #[servo_tracing::instrument(skip_all)]
-    pub fn handle_messages(&mut self, mut messages: Vec<CompositorMsg>) {
+    pub fn handle_messages(&self, mut messages: Vec<CompositorMsg>) {
         // Pull out the `NewWebRenderFrameReady` messages from the list of messages and handle them
         // at the end of this function. This prevents overdraw when more than a single message of
         // this type of received. In addition, if any of these frames need a repaint, that reflected
         // when calling `handle_new_webrender_frame_ready`.
-        let mut repaint_needed = false;
-        let mut saw_webrender_frame_ready = false;
-
+        let mut saw_webrender_frame_ready_for_painter = HashMap::new();
         messages.retain(|message| match message {
-            CompositorMsg::NewWebRenderFrameReady(_, need_repaint) => {
+            CompositorMsg::NewWebRenderFrameReady(painter_id, _document_id, need_repaint) => {
                 self.painter().decrement_pending_frames();
-                repaint_needed |= need_repaint;
-                saw_webrender_frame_ready = true;
+                *saw_webrender_frame_ready_for_painter
+                    .entry(*painter_id)
+                    .or_insert(*need_repaint) |= *need_repaint;
 
                 false
             },
@@ -535,8 +534,9 @@ impl IOCompositor {
             }
         }
 
-        if saw_webrender_frame_ready {
-            self.handle_new_webrender_frame_ready(repaint_needed);
+        for (_, repaint_needed) in saw_webrender_frame_ready_for_painter.iter() {
+            self.painter()
+                .handle_new_webrender_frame_ready(*repaint_needed);
         }
     }
 
@@ -617,26 +617,6 @@ impl IOCompositor {
 
     pub(crate) fn shutdown_state(&self) -> ShutdownState {
         self.shutdown_state.get()
-    }
-
-    fn handle_new_webrender_frame_ready(&mut self, repaint_needed: bool) {
-        let painter = self.painter();
-        if repaint_needed {
-            painter.refresh_cursor()
-        }
-
-        if repaint_needed || painter.animation_callbacks_running() {
-            self.set_needs_repaint(RepaintReason::NewWebRenderFrame);
-        }
-
-        // If we received a new frame and a repaint isn't necessary, it may be that this
-        // is the last frame that was pending. In that case, trigger a manual repaint so
-        // that the screenshot can be taken at the end of the repaint procedure.
-        if !repaint_needed {
-            painter
-                .screenshot_taker
-                .maybe_trigger_paint_for_screenshot(&painter);
-        }
     }
 
     pub fn request_screenshot(

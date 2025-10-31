@@ -253,9 +253,10 @@ impl Painter {
                 .expect("Unable to initialize WebRender worker pool."),
         ));
 
+        let painter_id = PainterId::next();
         let (mut webrender, webrender_api_sender) = webrender::create_webrender_instance(
             webrender_gl.clone(),
-            Box::new(RenderNotifier::new(compositor_proxy)),
+            Box::new(RenderNotifier::new(painter_id, compositor_proxy)),
             webrender::WebRenderOptions {
                 // We force the use of optimized shaders here because rendering is broken
                 // on Android emulators with unoptimized shaders. This is due to a known
@@ -292,7 +293,7 @@ impl Painter {
         info!("Running on {gl_renderer} with OpenGL version {gl_version}");
 
         let painter = Painter {
-            painter_id: PainterId::next(),
+            painter_id,
             embedder_to_constellation_sender,
             webview_renderers: Default::default(),
             rendering_context,
@@ -1477,6 +1478,36 @@ impl Painter {
             warn!("Sending event to constellation failed ({:?}).", error);
         }
     }
+
+    pub(crate) fn handle_new_webrender_frame_ready(&self, repaint_needed: bool) {
+        if repaint_needed {
+            self.refresh_cursor()
+        }
+
+        if repaint_needed || self.animation_callbacks_running() {
+            self.set_needs_repaint(RepaintReason::NewWebRenderFrame);
+        }
+
+        // If we received a new frame and a repaint isn't necessary, it may be that this
+        // is the last frame that was pending. In that case, trigger a manual repaint so
+        // that the screenshot can be taken at the end of the repaint procedure.
+        if !repaint_needed {
+            self.screenshot_taker
+                .maybe_trigger_paint_for_screenshot(self);
+        }
+    }
+
+    pub(crate) fn webviews_needing_repaint(&self) -> Vec<WebViewId> {
+        if self.needs_repaint() {
+            self.webview_renderers
+                .iter()
+                .map(|webview_renderer| webview_renderer.id)
+                .collect()
+        } else {
+            Vec::new()
+        }
+    }
+
     pub(crate) fn append_lcp_candidate(
         &mut self,
         lcp_candidate: LCPCandidate,

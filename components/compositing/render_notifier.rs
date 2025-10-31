@@ -2,23 +2,31 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::id::PainterId;
 use compositing_traits::{CompositorMsg, CompositorProxy};
 use webrender_api::{DocumentId, FramePublishId, FrameReadyParams};
 
 #[derive(Clone)]
 pub(crate) struct RenderNotifier {
+    painter_id: PainterId,
     compositor_proxy: CompositorProxy,
 }
 
 impl RenderNotifier {
-    pub(crate) fn new(compositor_proxy: CompositorProxy) -> RenderNotifier {
-        RenderNotifier { compositor_proxy }
+    pub(crate) fn new(painter_id: PainterId, compositor_proxy: CompositorProxy) -> RenderNotifier {
+        RenderNotifier {
+            painter_id,
+            compositor_proxy,
+        }
     }
 }
 
 impl webrender_api::RenderNotifier for RenderNotifier {
     fn clone(&self) -> Box<dyn webrender_api::RenderNotifier> {
-        Box::new(RenderNotifier::new(self.compositor_proxy.clone()))
+        Box::new(RenderNotifier::new(
+            self.painter_id,
+            self.compositor_proxy.clone(),
+        ))
     }
 
     fn wake_up(&self, _composite_needed: bool) {}
@@ -31,6 +39,7 @@ impl webrender_api::RenderNotifier for RenderNotifier {
     ) {
         self.compositor_proxy
             .send(CompositorMsg::NewWebRenderFrameReady(
+                self.painter_id,
                 document_id,
                 frame_ready_params.render,
             ));

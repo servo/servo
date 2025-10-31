@@ -90,9 +90,9 @@ pub enum CompositorMsg {
     /// Set whether to use less resources by stopping animations.
     SetThrottled(WebViewId, PipelineId, bool),
     /// WebRender has produced a new frame. This message informs the compositor that
-    /// the frame is ready. It contains a bool to indicate if it needs to composite and the
-    /// `DocumentId` of the new frame.
-    NewWebRenderFrameReady(DocumentId, bool),
+    /// the frame is ready. It contains a bool to indicate if it needs to composite, the
+    /// `DocumentId` of the new frame and the `PainterId` of the associated painter.
+    NewWebRenderFrameReady(PainterId, DocumentId, bool),
     /// Script or the Constellation is notifying the renderer that a Pipeline has finished
     /// shutting down. The renderer will not discard the Pipeline until both report that
     /// they have fully shut it down, to avoid recreating it due to any subsequent
