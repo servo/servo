@@ -1897,7 +1897,6 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         FormEnctype,
         "formenctype",
         "application/x-www-form-urlencoded" | "text/plain" | "multipart/form-data",
-        missing => "",
         invalid => "application/x-www-form-urlencoded"
     );
 
@@ -1909,7 +1908,6 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         FormMethod,
         "formmethod",
         "get" | "post" | "dialog",
-        missing => "get",
         invalid => "get"
     );
 
