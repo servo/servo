@@ -76,7 +76,7 @@ pub(crate) struct TextRunSegment {
 }
 
 impl TextRunSegment {
-    fn new(font_index: usize, script: Script, bidi_level: Level, start_offset: usize) -> Self {
+    pub(super) fn new(font_index: usize, script: Script, bidi_level: Level, start_offset: usize) -> Self {
         Self {
             font_index,
             script,
@@ -162,7 +162,7 @@ impl TextRunSegment {
         }
     }
 
-    fn shape_and_push_range(
+    pub(super) fn shape_and_push_range(
         &mut self,
         range: &Range<usize>,
         formatting_context_text: &str,
@@ -181,7 +181,7 @@ impl TextRunSegment {
     /// Shape the text of this [`TextRunSegment`], first finding "words" for the shaper by processing
     /// the linebreaks found in the owning [`super::InlineFormattingContext`]. Linebreaks are filtered,
     /// based on the style of the parent inline box.
-    fn shape_text(
+    pub(super) fn shape_text(
         &mut self,
         parent_style: &ComputedValues,
         formatting_context_text: &str,
@@ -210,7 +210,7 @@ impl TextRunSegment {
             if *break_index == self.range.start {
                 self.break_at_start = true;
                 continue;
-            }
+            }      
 
             let mut options = *shaping_options;
 
@@ -260,11 +260,11 @@ impl TextRunSegment {
                 !can_break_anywhere
             {
                 continue;
-            }
+            } 
 
             // Only advance the last slice if we are not going to try to expand the slice.
             last_slice = slice.start..*break_index;
-
+            
             // Push the non-whitespace part of the range.
             if !slice.is_empty() {
                 self.shape_and_push_range(&slice, formatting_context_text, &font, &options);
