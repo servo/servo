@@ -101,7 +101,7 @@ FILE_PATTERNS_TO_CHECK = [
 ]
 
 # File patterns that are ignored for all tidy and lint checks.
-FILE_PATTERNS_TO_IGNORE = ["*.#*", "*.pyc", "fake-ld.sh", "*.ogv", "*.webm"]
+FILE_PATTERNS_TO_IGNORE = ["*.#*", "*.pyc", "fake-ld.sh", "*.ogv", "*.webm", "license.html"]
 
 SPEC_BASE_PATH = "components/script/dom/"
 
