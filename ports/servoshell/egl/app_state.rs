@@ -10,7 +10,7 @@ use dpi::PhysicalSize;
 use euclid::{Point2D, Rect, Scale, Size2D};
 use image::{DynamicImage, ImageFormat};
 use keyboard_types::{CompositionEvent, CompositionState, Key, KeyState, NamedKey};
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use raw_window_handle::{RawWindowHandle, WindowHandle};
 use servo::base::generic_channel::GenericSender;
 use servo::base::id::WebViewId;
