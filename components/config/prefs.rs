@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::env::consts::ARCH;
 use std::sync::{RwLock, RwLockReadGuard};
 
 use serde::{Deserialize, Serialize};
@@ -481,13 +482,8 @@ impl UserAgentPlatform {
             UserAgentPlatform::Desktop
                 if cfg!(all(target_os = "windows", target_arch = "x86_64")) =>
             {
-                #[cfg(target_arch = "x86_64")]
-                const ARCHITECTURE: &str = "x86; ";
-                #[cfg(not(target_arch = "x86_64"))]
-                const ARCHITECTURE: &str = "";
-
                 format!(
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; {ARCHITECTURE}rv:140.0) Servo/{SERVO_VERSION} Firefox/140.0"
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; {ARCH}rv:140.0) Servo/{SERVO_VERSION} Firefox/140.0"
                 )
             },
             UserAgentPlatform::Desktop if cfg!(target_os = "macos") => {
@@ -496,14 +492,8 @@ impl UserAgentPlatform {
                 )
             },
             UserAgentPlatform::Desktop => {
-                #[cfg(target_arch = "x86_64")]
-                const ARCHITECTURE: &str = "x86_64";
-                // TODO: This is clearly wrong for other platforms.
-                #[cfg(not(target_arch = "x86_64"))]
-                const ARCHITECTURE: &str = "i686";
-
                 format!(
-                    "Mozilla/5.0 (X11; Linux {ARCHITECTURE}; rv:140.0) Servo/{SERVO_VERSION} Firefox/140.0"
+                    "Mozilla/5.0 (X11; Linux {ARCH}; rv:140.0) Servo/{SERVO_VERSION} Firefox/140.0"
                 )
             },
             UserAgentPlatform::Android => {
