@@ -192,8 +192,7 @@ fn create_and_populate_a_resizeobserverentry(
         ResizeObserverBoxOptions::Border_box => border_box_size,
         ResizeObserverBoxOptions::Device_pixel_content_box => device_pixel_content_box,
     };
-    let last_reported_size =
-        ResizeObserverSizeImpl::new(last_size.width(), last_size.height());
+    let last_reported_size = ResizeObserverSizeImpl::new(last_size.width(), last_size.height());
     if observation.last_reported_sizes.is_empty() {
         observation.last_reported_sizes.push(last_reported_size);
     } else {
