@@ -11,6 +11,7 @@ use euclid::default::Rect;
 use euclid::num::Zero;
 use html5ever::ns;
 use js::rust::HandleObject;
+use layout_api::BoxAreaType;
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
@@ -376,8 +377,8 @@ fn calculate_box_size(target: &Element, observed_box: &ResizeObserverBoxOptions)
             // Note: only taking first fragment,
             // but the spec will expand to cover all fragments.
             let content_box = target
-                .upcast::<Node>()
-                .content_box()
+                .owner_window()
+                .box_area_query(target.upcast(), BoxAreaType::Content, true)
                 .unwrap_or_else(Rect::zero);
 
             Rect::new(
@@ -392,8 +393,8 @@ fn calculate_box_size(target: &Element, observed_box: &ResizeObserverBoxOptions)
             // Note: only taking first fragment,
             // but the spec will expand to cover all fragments.
             let border_box = target
-                .upcast::<Node>()
-                .border_box()
+                .owner_window()
+                .box_area_query(target.upcast(), BoxAreaType::Border, true)
                 .unwrap_or_else(Rect::zero);
 
             Rect::new(
@@ -407,8 +408,8 @@ fn calculate_box_size(target: &Element, observed_box: &ResizeObserverBoxOptions)
         ResizeObserverBoxOptions::Device_pixel_content_box => {
             let device_pixel_ratio = target.owner_window().device_pixel_ratio();
             let content_box = target
-                .upcast::<Node>()
-                .content_box()
+                .owner_window()
+                .box_area_query(target.upcast(), BoxAreaType::Content, true)
                 .unwrap_or_else(Rect::zero);
 
             Rect::new(
