@@ -63,7 +63,7 @@ pub(crate) struct HTMLDetailsElement {
 }
 
 /// Tracks all [details name groups](https://html.spec.whatwg.org/multipage/#details-name-group)
-/// within a document.
+/// within a tree.
 #[derive(Clone, Default, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct DetailsNameGroups {
@@ -94,8 +94,11 @@ impl DetailsNameGroups {
         details_elements_with_the_same_name.push(Dom::from_ref(details_element));
     }
 
-    fn unregister_details_element(&mut self, details_element: &HTMLDetailsElement) {
-        let name = details_element.Name();
+    fn unregister_details_element(
+        &mut self,
+        name: DOMString,
+        details_element: &HTMLDetailsElement,
+    ) {
         if name.is_empty() {
             return;
         }
@@ -411,6 +414,34 @@ impl VirtualMethods for HTMLDetailsElement {
         // Step 2. If localName is name, then ensure details exclusivity by closing the given element if needed
         // given element.
         if attr.local_name() == &local_name!("name") {
+            let old_name: DOMString = match mutation {
+                AttributeMutation::Set(old) => old
+                    .map(|value| value.to_string().into())
+                    .unwrap_or_default(),
+                AttributeMutation::Removed => attr.value().to_string().into(),
+            };
+
+            if let Some(shadow_root) = self.containing_shadow_root() {
+                shadow_root
+                    .details_name_groups()
+                    .unregister_details_element(old_name, self);
+                if matches!(mutation, AttributeMutation::Set(_)) {
+                    shadow_root
+                        .details_name_groups()
+                        .register_details_element(self);
+                }
+            } else if self.upcast::<Node>().is_in_a_document_tree() {
+                let document = self.owner_document();
+                document
+                    .details_name_groups()
+                    .unregister_details_element(old_name, self);
+                if matches!(mutation, AttributeMutation::Set(_)) {
+                    document
+                        .details_name_groups()
+                        .register_details_element(self);
+                }
+            }
+
             self.ensure_details_exclusivity(ExclusivityConflictResolution::CloseThisElement);
         }
         // Step 3. If localName is open, then:
@@ -496,7 +527,7 @@ impl VirtualMethods for HTMLDetailsElement {
         if context.tree_is_in_a_document_tree && !self.upcast::<Node>().is_in_a_document_tree() {
             self.owner_document()
                 .details_name_groups()
-                .unregister_details_element(self);
+                .unregister_details_element(self.Name(), self);
         }
 
         if !self.upcast::<Node>().is_in_a_shadow_tree() {
@@ -505,7 +536,7 @@ impl VirtualMethods for HTMLDetailsElement {
                 // element.
                 old_shadow_root
                     .details_name_groups()
-                    .unregister_details_element(self);
+                    .unregister_details_element(self.Name(), self);
             }
         }
     }
