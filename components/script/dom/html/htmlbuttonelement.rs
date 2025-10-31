@@ -139,7 +139,6 @@ impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
         FormMethod,
         "formmethod",
         "get" | "post" | "dialog",
-        missing => "get",
         invalid => "get"
     );
 
