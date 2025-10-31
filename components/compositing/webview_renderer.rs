@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
 use std::collections::hash_map::Entry;
 use std::rc::Rc;
 
@@ -29,14 +30,12 @@ use webrender::RenderApi;
 use webrender_api::units::{DevicePixel, DevicePoint, DeviceRect, DeviceVector2D, LayoutVector2D};
 use webrender_api::{DocumentId, ExternalScrollId, ScrollLocation};
 
+use crate::compositor::RepaintReason;
 use crate::painter::Painter;
 use crate::pinch_zoom::PinchZoom;
 use crate::pipeline_details::PipelineDetails;
 use crate::refresh_driver::BaseRefreshDriver;
-use crate::touch::{
-    FlingRefreshDriverObserver, PendingTouchInputEvent, TouchHandler, TouchMoveAllowed,
-    TouchSequenceState,
-};
+use crate::touch::{PendingTouchInputEvent, TouchHandler, TouchMoveAllowed, TouchSequenceState};
 
 #[derive(Clone, Copy)]
 pub(crate) struct ScrollEvent {
@@ -128,13 +127,14 @@ impl WebViewRenderer {
         let hidpi_scale_factor = viewport_details.hidpi_scale_factor;
         let size = viewport_details.size * viewport_details.hidpi_scale_factor;
         let rect = DeviceRect::from_origin_and_size(DevicePoint::origin(), size);
+        let webview_id = renderer_webview.id();
         Self {
-            id: renderer_webview.id(),
+            id: webview_id,
             webview: renderer_webview,
             root_pipeline_id: None,
             rect,
             pipelines: Default::default(),
-            touch_handler: TouchHandler::new(),
+            touch_handler: TouchHandler::new(webview_id),
             pending_scroll_zoom_events: Default::default(),
             page_zoom: DEFAULT_PAGE_ZOOM,
             pinch_zoom: PinchZoom::new(rect),
@@ -303,16 +303,19 @@ impl WebViewRenderer {
         self.webview.set_animating(self.animating());
     }
 
+    /// Update touch-based animations (currently just fling) during a `RefreshDriver`-based
+    /// frame tick. Returns `true` if we should continue observing frames (the fling is ongoing)
+    /// or `false` if we should stop observing frames (the fling has finished).
     pub(crate) fn update_touch_handling_at_new_frame_start(&mut self) -> bool {
         let Some(fling_action) = self.touch_handler.notify_new_frame_start() else {
-            return self.touch_handler.currently_in_touch_sequence();
+            return false;
         };
 
         self.on_scroll_window_event(
             Scroll::Delta((-fling_action.delta).into()),
             fling_action.cursor,
         );
-        self.touch_handler.currently_in_touch_sequence()
+        true
     }
 
     fn dispatch_input_event_with_hit_testing(
@@ -353,10 +356,11 @@ impl WebViewRenderer {
     pub(crate) fn notify_input_event(
         &mut self,
         render_api: &RenderApi,
+        repaint_reason: &Cell<RepaintReason>,
         event_and_id: InputEventAndId,
     ) {
         if let InputEvent::Touch(touch_event) = event_and_id.event {
-            self.on_touch_event(render_api, touch_event, event_and_id.id);
+            self.on_touch_event(render_api, repaint_reason, touch_event, event_and_id.id);
             return;
         }
 
@@ -412,19 +416,22 @@ impl WebViewRenderer {
     pub(crate) fn on_touch_event(
         &mut self,
         render_api: &RenderApi,
+        repaint_reason: &Cell<RepaintReason>,
         event: TouchEvent,
         id: InputEventId,
     ) {
-        let had_touch_sequence = self.touch_handler.currently_in_touch_sequence();
         match event.event_type {
             TouchEventType::Down => self.on_touch_down(render_api, event, id),
             TouchEventType::Move => self.on_touch_move(render_api, event, id),
             TouchEventType::Up => self.on_touch_up(render_api, event, id),
             TouchEventType::Cancel => self.on_touch_cancel(render_api, event, id),
         }
-        if !had_touch_sequence && self.touch_handler.currently_in_touch_sequence() {
-            self.add_touch_move_refresh_obsever();
-        }
+
+        self.touch_handler
+            .add_touch_move_refresh_observer_if_necessary(
+                self.refresh_driver.clone(),
+                repaint_reason,
+            );
     }
 
     fn on_touch_down(&mut self, render_api: &RenderApi, event: TouchEvent, id: InputEventId) {
@@ -627,14 +634,6 @@ impl WebViewRenderer {
                 },
             }
         }
-    }
-
-    fn add_touch_move_refresh_obsever(&self) {
-        debug_assert!(self.touch_handler.currently_in_touch_sequence());
-        self.refresh_driver
-            .add_observer(Rc::new(FlingRefreshDriverObserver {
-                webview_id: self.id,
-            }));
     }
 
     /// <http://w3c.github.io/touch-events/#mouse-events>
@@ -1028,6 +1027,7 @@ impl WebViewRenderer {
     pub(crate) fn notify_input_event_handled(
         &mut self,
         render_api: &RenderApi,
+        repaint_reason: &Cell<RepaintReason>,
         id: InputEventId,
         result: InputEventResult,
     ) {
@@ -1035,6 +1035,11 @@ impl WebViewRenderer {
             self.touch_handler.take_pending_touch_input_event(id)
         {
             self.on_touch_event_processed(render_api, pending_touch_input_event, result);
+            self.touch_handler
+                .add_touch_move_refresh_observer_if_necessary(
+                    self.refresh_driver.clone(),
+                    repaint_reason,
+                );
         }
     }
 }

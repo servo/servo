@@ -15,7 +15,6 @@ use embedder_traits::{EventLoopWaker, RefreshDriver};
 use log::warn;
 use timers::{BoxedTimerCallback, TimerEventRequest, TimerScheduler};
 
-use crate::compositor::RepaintReason;
 use crate::painter::Painter;
 use crate::webview_renderer::WebViewRenderer;
 
@@ -63,13 +62,6 @@ impl BaseRefreshDriver {
     }
 
     pub(crate) fn notify_will_paint(&self, painter: &mut Painter) {
-        // If we are still waiting for the frame to timeout this paint was caused for some
-        // non-animation related reason and we should wait until the frame timeout to trigger
-        // the next one.
-        if self.waiting_for_frame.load(Ordering::Relaxed) {
-            return;
-        }
-
         // Limit the borrow of `self.observers` to the minimum here.
         let still_has_observers = {
             let mut observers = self.observers.borrow_mut();
@@ -94,16 +86,10 @@ impl BaseRefreshDriver {
     }
 
     /// Whether or not the renderer should trigger a message to the embedder to request a
-    /// repaint. This might be true if we are animating and the repaint reason is just
-    /// for a new frame. In that case, the renderer should wait until the frame timeout to
-    /// ask the embedder to repaint.
-    pub(crate) fn wait_to_paint(&self, repaint_reason: RepaintReason) -> bool {
-        if self.observers.borrow().is_empty() || repaint_reason != RepaintReason::NewWebRenderFrame
-        {
-            return false;
-        }
-
-        self.waiting_for_frame.load(Ordering::Relaxed)
+    /// repaint. This might be true if we are animating and we are still waiting for a new
+    /// frame from the `RefreshDriver`.
+    pub(crate) fn wait_to_paint(&self) -> bool {
+        !self.observers.borrow().is_empty() && self.waiting_for_frame.load(Ordering::Relaxed)
     }
 }
 

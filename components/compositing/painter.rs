@@ -354,7 +354,7 @@ impl Painter {
             return false;
         }
 
-        !self.refresh_driver.wait_to_paint(repaint_reason)
+        !self.refresh_driver.wait_to_paint()
     }
 
     /// Returns true if any animation callbacks (ie `requestAnimationFrame`) are waiting for a response.
@@ -1338,7 +1338,7 @@ impl Painter {
                 _ => {},
             }
 
-            webview_renderer.notify_input_event(&self.webrender_api, event);
+            webview_renderer.notify_input_event(&self.webrender_api, &self.needs_repaint, event);
         }
         self.disable_lcp_calculation_for_webview(webview_id);
     }
@@ -1404,7 +1404,12 @@ impl Painter {
             warn!("Handled input event for unknown webview: {webview_id}");
             return;
         };
-        webview_renderer.notify_input_event_handled(&self.webrender_api, input_event_id, result);
+        webview_renderer.notify_input_event_handled(
+            &self.webrender_api,
+            &self.needs_repaint,
+            input_event_id,
+            result,
+        );
     }
 
     pub(crate) fn refresh_cursor(&self) {
