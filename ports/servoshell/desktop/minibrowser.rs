@@ -10,9 +10,7 @@ use std::time::Instant;
 use dpi::PhysicalSize;
 use egui::text::{CCursor, CCursorRange};
 use egui::text_edit::TextEditState;
-use egui::{
-    Button, CentralPanel, Frame, Key, Label, Modifiers, PaintCallback, TopBottomPanel, Vec2, pos2,
-};
+use egui::{Button, Key, Label, LayerId, Modifiers, PaintCallback, TopBottomPanel, Vec2, pos2};
 use egui_glow::{CallbackFn, EguiGlow};
 use egui_winit::EventResponse;
 use euclid::{Box2D, Length, Point2D, Rect, Scale, Size2D};
@@ -142,9 +140,6 @@ impl Minibrowser {
         std::mem::take(&mut self.event_queue)
     }
 
-    /// Preprocess the given [winit::event::WindowEvent], returning unconsumed for mouse events in
-    /// the Servo browser rect. This is needed because the CentralPanel we create for our webview
-    /// would otherwise make egui report events in that area as consumed.
     pub fn on_window_event(
         &mut self,
         window: &Window,
@@ -152,16 +147,6 @@ impl Minibrowser {
         event: &WindowEvent,
     ) -> EventResponse {
         let mut result = self.context.on_window_event(window, event);
-
-        // For some reason, egui is eating all PinchGesture events, even when they happen
-        // on top of a WebView. Detect this situation and avoid sending those events to
-        // egui.
-        if matches!(event, WindowEvent::PinchGesture { .. }) &&
-            self.last_mouse_position
-                .is_some_and(|point| !self.is_in_egui_toolbar_rect(point))
-        {
-            return Default::default();
-        }
 
         if app_state.has_active_dialog() {
             result.consumed = true;
@@ -295,8 +280,6 @@ impl Minibrowser {
     }
 
     /// Update the minibrowser, but don’t paint.
-    /// If `servo_framebuffer_id` is given, set up a paint callback to blit its contents to our
-    /// CentralPanel when [`Minibrowser::paint`] is called.
     pub fn update(
         &mut self,
         window: &dyn WindowPortsMethods,
@@ -450,59 +433,48 @@ impl Minibrowser {
             let scale =
                 Scale::<_, DeviceIndependentPixel, DevicePixel>::new(ctx.pixels_per_point());
 
-            egui::CentralPanel::default().show(ctx, |_| {
-                state.for_each_active_dialog(|dialog| dialog.update(ctx));
-            });
+            state.for_each_active_dialog(|dialog| dialog.update(ctx));
 
-            let Some(webview) = state.focused_webview() else {
-                return;
-            };
-            CentralPanel::default().frame(Frame::NONE).show(ctx, |ui| {
-                // If the top parts of the GUI changed size, then update the size of the WebView and also
-                // the size of its RenderingContext.
-                let available_size = ui.available_size();
-                let size = Size2D::new(available_size.x, available_size.y) * scale;
-                let rect = Box2D::from_origin_and_size(Point2D::origin(), size);
-                if rect != webview.rect() {
-                    webview.move_resize(rect);
-                    // `rect` is sized to just the WebView viewport, which is required by
-                    // `OffscreenRenderingContext` See:
-                    // <https://github.com/servo/servo/issues/38369#issuecomment-3138378527>
-                    webview.resize(PhysicalSize::new(size.width as u32, size.height as u32))
-                }
+            // If the top parts of the GUI changed size, then update the size of the WebView and also
+            // the size of its RenderingContext.
+            let rect = ctx.available_rect();
+            let size = Size2D::new(rect.width(), rect.height()) * scale;
+            let rect = Box2D::from_origin_and_size(Point2D::origin(), size);
+            if let Some(webview) = state.focused_webview() &&
+                rect != webview.rect()
+            {
+                webview.move_resize(rect);
+                // `rect` is sized to just the WebView viewport, which is required by
+                // `OffscreenRenderingContext` See:
+                // <https://github.com/servo/servo/issues/38369#issuecomment-3138378527>
+                webview.resize(PhysicalSize::new(size.width as u32, size.height as u32))
+            }
 
-                let min = ui.cursor().min;
-                let size = ui.available_size();
-                let rect = egui::Rect::from_min_size(min, size);
-                ui.allocate_space(size);
+            if let Some(status_text) = &self.status_text {
+                egui::Tooltip::always_open(
+                    ctx.clone(),
+                    LayerId::background(),
+                    "tooltip layer".into(),
+                    pos2(0.0, ctx.available_rect().max.y),
+                )
+                .show(|ui| ui.add(Label::new(status_text.clone()).extend()));
+            }
 
-                if let Some(status_text) = &self.status_text {
-                    egui::Tooltip::always_open(
-                        ctx.clone(),
-                        ui.layer_id(),
-                        "tooltip layer".into(),
-                        pos2(0.0, ctx.available_rect().max.y),
-                    )
-                    .show(|ui| ui.add(Label::new(status_text.clone()).extend()))
-                    .map(|response| response.inner);
-                }
+            state.repaint_servo_if_necessary();
 
-                state.repaint_servo_if_necessary();
-
-                if let Some(render_to_parent) = rendering_context.render_to_parent_callback() {
-                    ui.painter().add(PaintCallback {
-                        rect,
-                        callback: Arc::new(CallbackFn::new(move |info, painter| {
-                            let clip = info.viewport_in_pixels();
-                            let rect_in_parent = Rect::new(
-                                Point2D::new(clip.left_px, clip.from_bottom_px),
-                                Size2D::new(clip.width_px, clip.height_px),
-                            );
-                            render_to_parent(painter.gl(), rect_in_parent)
-                        })),
-                    });
-                }
-            });
+            if let Some(render_to_parent) = rendering_context.render_to_parent_callback() {
+                ctx.layer_painter(LayerId::background()).add(PaintCallback {
+                    rect: ctx.available_rect(),
+                    callback: Arc::new(CallbackFn::new(move |info, painter| {
+                        let clip = info.viewport_in_pixels();
+                        let rect_in_parent = Rect::new(
+                            Point2D::new(clip.left_px, clip.from_bottom_px),
+                            Size2D::new(clip.width_px, clip.height_px),
+                        );
+                        render_to_parent(painter.gl(), rect_in_parent)
+                    })),
+                });
+            }
 
             *last_update = now;
         });
