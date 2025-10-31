@@ -218,7 +218,8 @@ impl HTMLImageElement {
             warn!("Vector image is not supported as raster image source");
             return None;
         };
-        Some(raster_image.as_snapshot())
+        let byte_store = self.owner_window().image_cache().byte_store();
+        Some(raster_image.as_snapshot(&byte_store.reader()))
     }
 }
 
