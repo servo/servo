@@ -5,12 +5,13 @@ import hashlib
 import io
 import json
 import os
+import socket
+import struct
+import sys
 import threading
 import traceback
-import socket
-import sys
 from abc import ABCMeta, abstractmethod
-from typing import Any, Callable, ClassVar, Tuple, Type
+from typing import Any, Callable, ClassVar, Optional, Union, Tuple, Type
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
 from . import pytestrunner
@@ -74,7 +75,7 @@ def server_url(server_config, protocol, subdomain=False):
         # The only supported subdomain filename flag is "www".
         host = "{subdomain}.{host}".format(subdomain="www", host=host)
     return "{scheme}://{host}:{port}".format(scheme=scheme, host=host,
-        port=server_config["ports"][protocol][0])
+                                             port=server_config["ports"][protocol][0])
 
 
 class TestharnessResultConverter:
@@ -92,8 +93,10 @@ class TestharnessResultConverter:
     def __call__(self, test, result, extra=None):
         """Convert a JSON result into a (TestResult, [SubtestResult]) tuple"""
         result_url, status, message, stack, subtest_results = result
-        assert result_url == test.url, (f"Got results from {result_url}, expected {test.url}")
-        harness_result = test.make_result(self.harness_codes[status], message, extra=extra, stack=stack)
+        assert result_url == test.url, (
+            f"Got results from {result_url}, expected {test.url}")
+        harness_result = test.make_result(
+            self.harness_codes[status], message, extra=extra, stack=stack)
         return (harness_result,
                 [test.make_subtest_result(st_name, self.test_codes[st_status], st_message, st_stack)
                  for st_name, st_status, st_message, st_stack in subtest_results])
@@ -169,7 +172,8 @@ def pytest_result_converter(self, test, data):
         subtest_data = []
 
     harness_result = test.make_result(*harness_data)
-    subtest_results = [test.make_subtest_result(*item) for item in subtest_data]
+    subtest_results = [test.make_subtest_result(
+        *item) for item in subtest_data]
 
     return (harness_result, subtest_results)
 
@@ -224,7 +228,8 @@ class TimedRunner:
                             sys._current_frames()[executor.ident]))
                     self.result = False, ("EXTERNAL-TIMEOUT", message)
                 else:
-                    self.logger.info("Browser not responding, setting status to CRASH")
+                    self.logger.info(
+                        "Browser not responding, setting status to CRASH")
                     self.result = False, ("CRASH", None)
         elif self.result[1] is None:
             # We didn't get any data back from the test, so check if the
@@ -232,7 +237,8 @@ class TimedRunner:
             if self.protocol.is_alive():
                 self.result = False, ("INTERNAL-ERROR", None)
             else:
-                self.logger.info("Browser not responding, setting status to CRASH")
+                self.logger.info(
+                    "Browser not responding, setting status to CRASH")
                 self.result = False, ("CRASH", None)
 
         return self.result
@@ -274,7 +280,6 @@ class TestExecutor:
     # Extra timeout to use after internal test timeout at which the harness
     # should force a timeout
     extra_timeout = 5  # seconds
-
 
     def __init__(self, logger, browser, server_config, timeout_multiplier=1,
                  debug_info=None, subsuite=None, **kwargs):
@@ -421,7 +426,8 @@ class RefTestImplementation:
         key = (test.url, viewport_size, dpi)
 
         if key not in self.screenshot_cache:
-            success, data = self.get_screenshot_list(test, viewport_size, dpi, page_ranges)
+            success, data = self.get_screenshot_list(
+                test, viewport_size, dpi, page_ranges)
 
             if not success:
                 return False, data
@@ -453,7 +459,8 @@ class RefTestImplementation:
             self.logger.info("Got different number of pages")
             return relation == "!=", -1
 
-        assert len(lhs_screenshots) == len(lhs_hashes) == len(rhs_screenshots) == len(rhs_hashes)
+        assert len(lhs_screenshots) == len(lhs_hashes) == len(
+            rhs_screenshots) == len(rhs_hashes)
 
         for (page_idx, (lhs_hash,
                         rhs_hash,
@@ -492,8 +499,10 @@ class RefTestImplementation:
     def get_differences(self, screenshots, urls, page_idx=None):
         from PIL import Image, ImageChops, ImageStat
 
-        lhs = Image.open(io.BytesIO(base64.b64decode(screenshots[0]))).convert("RGB")
-        rhs = Image.open(io.BytesIO(base64.b64decode(screenshots[1]))).convert("RGB")
+        lhs = Image.open(io.BytesIO(
+            base64.b64decode(screenshots[0]))).convert("RGB")
+        rhs = Image.open(io.BytesIO(
+            base64.b64decode(screenshots[1]))).convert("RGB")
         if lhs.size != rhs.size:
             self.logger.info(
                 f"Images differ in size; {urls[0]} is {lhs.size}, {urls[1]} is {rhs.size}" +
@@ -517,7 +526,8 @@ class RefTestImplementation:
         extrema = image.getextrema()
         if all(min == max for min, max in extrema):
             color = ''.join('%02X' % value for value, _ in extrema)
-            self.message.append(f"Screenshot is solid color 0x{color} for {url}\n")
+            self.message.append(
+                f"Screenshot is solid color 0x{color} for {url}\n")
 
     def run_test(self, test):
         viewport_size = test.viewport_size
@@ -525,11 +535,11 @@ class RefTestImplementation:
         page_ranges = test.page_ranges
         self.message = []
 
-
         # Depth-first search of reference tree, with the goal
         # of reachings a leaf node with only pass results
 
-        stack = list(((test, item[0]), item[1]) for item in reversed(test.references))
+        stack = list(((test, item[0]), item[1])
+                     for item in reversed(test.references))
 
         while stack:
             hashes = [None, None]
@@ -540,14 +550,16 @@ class RefTestImplementation:
             fuzzy = self.get_fuzzy(test, nodes, relation)
 
             for i, node in enumerate(nodes):
-                success, data = self.get_hash(node, viewport_size, dpi, page_ranges)
+                success, data = self.get_hash(
+                    node, viewport_size, dpi, page_ranges)
                 if success is False:
                     return {"status": data[0], "message": data[1]}
 
                 hashes[i], screenshots[i] = data
                 urls[i] = node.url
 
-            is_pass, page_idx = self.check_pass(hashes, screenshots, urls, relation, fuzzy)
+            is_pass, page_idx = self.check_pass(
+                hashes, screenshots, urls, relation, fuzzy)
             log_data = [
                 {"url": urls[0], "screenshot": screenshots[0][page_idx],
                  "hash": hashes[0][page_idx]},
@@ -565,8 +577,9 @@ class RefTestImplementation:
                     test_result = {"status": "PASS", "message": None}
                     if (self.reftest_screenshot == "always" or
                         self.reftest_screenshot == "unexpected" and
-                        test.expected() != "PASS"):
-                        test_result["extra"] = {"reftest_screenshots": log_data}
+                            test.expected() != "PASS"):
+                        test_result["extra"] = {
+                            "reftest_screenshots": log_data}
                     # We passed
                     return test_result
 
@@ -574,7 +587,8 @@ class RefTestImplementation:
 
         for i, (node, screenshot) in enumerate(zip(nodes, screenshots)):
             if screenshot is None:
-                success, screenshot = self.retake_screenshot(node, viewport_size, dpi, page_ranges)
+                success, screenshot = self.retake_screenshot(
+                    node, viewport_size, dpi, page_ranges)
                 if success:
                     screenshots[i] = screenshot
 
@@ -582,7 +596,7 @@ class RefTestImplementation:
                        "message": "\n".join(self.message)}
         if (self.reftest_screenshot in ("always", "fail") or
             self.reftest_screenshot == "unexpected" and
-            test.expected() != "FAIL"):
+                test.expected() != "FAIL"):
             test_result["extra"] = {"reftest_screenshots": log_data}
         return test_result
 
@@ -618,10 +632,51 @@ class RefTestImplementation:
         self.screenshot_cache[key] = hash_val, data
         return True, data
 
+    def get_png_dimensions(
+        self, base64_image_data: Union[bytes, str], png_name: str
+    ) -> Optional[Tuple[int, int]]:
+        needed_bytes = 32  # math.ceil(24 / 3) * 4
+        image_data = base64.b64decode(base64_image_data[:needed_bytes])
+
+        png_signature = b"\x89PNG\x0d\x0a\x1a\x0a"
+
+        if not image_data.startswith(png_signature):
+            self.logger.warning(f"Got data which wasn't a PNG for {png_name}")
+            return None
+
+        chunk_length, chunk_type = struct.unpack(">L4s", image_data[8:16])
+        if chunk_type != b"IHDR" or chunk_length < 8:
+            self.logger.warning(
+                f"Got PNG whose first chunk was {chunk_type.decode('ASCII')}, "
+                f"not IHDR, for {png_name}"
+            )
+            return None
+
+        return struct.unpack(">LL", image_data[16:24])
+
     def get_screenshot_list(self, node, viewport_size, dpi, page_ranges):
-        success, data = self.executor.screenshot(node, viewport_size, dpi, page_ranges)
-        if success and not isinstance(data, list):
-            return success, [data]
+        success, data = self.executor.screenshot(
+            node, viewport_size, dpi, page_ranges)
+        viewport_size = (800, 600) if viewport_size is None else viewport_size
+        dpi = 96 if dpi is None else dpi
+        dpcm = dpi / 2.54
+
+        if self.executor.is_print:
+            # In the print case, viewport_size is in cm.
+            vw, vh = viewport_size
+            viewport_size = (round(vw * dpcm), round(vh * dpcm))
+
+        if success:
+            if not isinstance(data, list):
+                data = [data]
+
+            for screenshot in data:
+                image_size = self.get_png_dimensions(screenshot, node.url)
+                if image_size is not None and image_size != viewport_size:
+                    self.logger.warning(
+                        f"Unexpected viewport size for {node.url}, "
+                        f"{image_size}, expected {viewport_size}"
+                    )
         return success, data
 
 
@@ -737,7 +792,8 @@ class CallbackHandler:
     WebDriver. Things that are more different to WebDriver may need to create a
     fully custom implementation."""
 
-    unimplemented_exc: ClassVar[Tuple[Type[Exception], ...]] = (NotImplementedError,)
+    unimplemented_exc: ClassVar[Tuple[Type[Exception], ...]] = (
+        NotImplementedError,)
     expected_exc: ClassVar[Tuple[Type[Exception], ...]] = ()
 
     def __init__(self, logger, protocol, test_window):
@@ -749,7 +805,8 @@ class CallbackHandler:
             "complete": self.process_complete
         }
 
-        self.actions = {cls.name: cls(self.logger, self.protocol) for cls in actions}
+        self.actions = {cls.name: cls(
+            self.logger, self.protocol) for cls in actions}
 
     def __call__(self, result):
         url, command, payload = result
@@ -783,29 +840,37 @@ class CallbackHandler:
                     # AttributeError got an obj property in Python 3.10, for older versions we
                     # fall back to looking at the error message.
                     if ((hasattr(e, "obj") and getattr(e, "obj") == self.protocol) or
-                        f"'{self.protocol.__class__.__name__}' object has no attribute" in str(e)):
+                            f"'{self.protocol.__class__.__name__}' object has no attribute" in str(e)):
                         raise NotImplementedError from e
                     raise
         except self.unimplemented_exc:
             self.logger.warning("Action %s not implemented" % action)
-            self._send_message(cmd_id, "complete", "error", f"Action {action} not implemented")
+            self._send_message(cmd_id, "complete", "error",
+                               f"Action {action} not implemented")
         except self.expected_exc as e:
-            self.logger.debug(f"Action {action} failed with an expected exception", exc_info=True)
-            self._send_message(cmd_id, "complete", "error", f"Action {action} failed: {e!s}")
+            self.logger.debug(
+                f"Action {action} failed with an expected exception", exc_info=True)
+            self._send_message(cmd_id, "complete", "error",
+                               f"Action {action} failed: {e!s}")
         except Exception:
-            self.logger.warning(f"Action {action} failed with an unexpected exception", exc_info=True)
+            self.logger.warning(
+                f"Action {action} failed with an unexpected exception", exc_info=True)
             exception_string = traceback.format_exc()
-            self._send_message(cmd_id, "complete", "error", f"Action {action} failed:\n{exception_string}")
+            self._send_message(cmd_id, "complete", "error",
+                               f"Action {action} failed:\n{exception_string}")
             raise
         else:
-            self.logger.debug(f"Action {action} completed with result {result}")
+            self.logger.debug(
+                f"Action {action} completed with result {result}")
             return_message = {"result": result}
-            self._send_message(cmd_id, "complete", "success", json.dumps(return_message))
+            self._send_message(cmd_id, "complete", "success",
+                               json.dumps(return_message))
 
         return False, None
 
     def _send_message(self, cmd_id, message_type, status, message=None):
-        self.protocol.testdriver.send_message(cmd_id, message_type, status, message=message)
+        self.protocol.testdriver.send_message(
+            cmd_id, message_type, status, message=message)
 
 
 class AsyncCallbackHandler(CallbackHandler):
@@ -816,18 +881,21 @@ class AsyncCallbackHandler(CallbackHandler):
     def __init__(self, logger, protocol, test_window, loop):
         super().__init__(logger, protocol, test_window)
         self.loop = loop
-        self.async_actions = {cls.name: cls(self.logger, self.protocol) for cls in async_actions}
+        self.async_actions = {cls.name: cls(
+            self.logger, self.protocol) for cls in async_actions}
 
     def process_action(self, url, payload):
         action = payload["action"]
         if action in self.async_actions:
             # Schedule async action to be processed in the event loop and return immediately.
-            self.logger.debug(f"Scheduling async action processing: {action}, {payload}")
+            self.logger.debug(
+                f"Scheduling async action processing: {action}, {payload}")
             self.loop.create_task(self._process_async_action(action, payload))
             return False, None
         else:
             # Fallback to the default action processing, which will fail if the action is not implemented.
-            self.logger.debug(f"Processing synchronous action: {action}, {payload}")
+            self.logger.debug(
+                f"Processing synchronous action: {action}, {payload}")
             return super().process_action(url, payload)
 
     async def _process_async_action(self, action, payload):
@@ -853,17 +921,24 @@ class AsyncCallbackHandler(CallbackHandler):
                 raise NotImplementedError from e
         except self.unimplemented_exc:
             self.logger.warning("Action %s not implemented" % action)
-            self._send_message(cmd_id, "complete", "error", f"Action {action} not implemented")
+            self._send_message(cmd_id, "complete", "error",
+                               f"Action {action} not implemented")
         except self.expected_exc as e:
-            self.logger.debug(f"Action {action} failed with an expected exception: {e}")
-            self._send_message(cmd_id, "complete", "error", f"Action {action} failed: {e}")
+            self.logger.debug(
+                f"Action {action} failed with an expected exception: {e}")
+            self._send_message(cmd_id, "complete", "error",
+                               f"Action {action} failed: {e}")
         except Exception as e:
-            self.logger.warning(f"Action {action} failed with an unexpected exception: {e}")
-            self._send_message(cmd_id, "complete", "error", f"Unexpected exception: {e}")
+            self.logger.warning(
+                f"Action {action} failed with an unexpected exception: {e}")
+            self._send_message(cmd_id, "complete", "error",
+                               f"Unexpected exception: {e}")
         else:
-            self.logger.debug(f"Action {action} completed with result {result}")
+            self.logger.debug(
+                f"Action {action} completed with result {result}")
             return_message = {"result": result}
-            self._send_message(cmd_id, "complete", "success", json.dumps(return_message))
+            self._send_message(cmd_id, "complete", "success",
+                               json.dumps(return_message))
 
 
 class ActionContext:
@@ -879,7 +954,8 @@ class ActionContext:
 
         self.initial_window = self.protocol.base.current_window
         self.logger.debug("Switching to window %s" % self.context)
-        self.protocol.testdriver.switch_to_window(self.context, self.initial_window)
+        self.protocol.testdriver.switch_to_window(
+            self.context, self.initial_window)
 
     def __exit__(self, *args):
         if self.context is None:
