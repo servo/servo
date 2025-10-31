@@ -363,7 +363,7 @@ impl Servo {
         }
 
         {
-            let mut compositor = self.compositor.borrow_mut();
+            let compositor = self.compositor.borrow();
             let mut messages = Vec::new();
             while let Ok(message) = compositor.receiver().try_recv() {
                 match message {
@@ -404,15 +404,11 @@ impl Servo {
     }
 
     fn send_new_frame_ready_messages(&self) {
-        if !self.compositor.borrow().needs_repaint() {
-            return;
-        }
+        let webviews_needing_repaint = self.compositor.borrow().webviews_needing_repaint();
 
-        for webview in self
-            .webviews
-            .borrow()
-            .values()
-            .filter_map(WebView::from_weak_handle)
+        for webview in webviews_needing_repaint
+            .iter()
+            .filter_map(|webview_id| self.get_webview_handle(*webview_id))
         {
             webview.delegate().notify_new_frame_ready(webview);
         }
