@@ -6,6 +6,7 @@
 //! Recognized shortcuts:
 //! - servo:default-user-agent
 //! - servo:experimental-preferences
+//! - servo:config
 //! - servo:newtab
 //! - servo:preferences
 
@@ -27,7 +28,7 @@ pub struct ServoProtocolHandler {}
 
 impl ProtocolHandler for ServoProtocolHandler {
     fn privileged_paths(&self) -> &'static [&'static str] {
-        &["preferences"]
+        &["config", "preferences"]
     }
 
     fn is_fetchable(&self) -> bool {
@@ -43,6 +44,12 @@ impl ProtocolHandler for ServoProtocolHandler {
         let url = request.current_url();
 
         match url.path() {
+            "config" => ResourceProtocolHandler::response_for_path(
+                request,
+                done_chan,
+                context,
+                "/config.html",
+            ),
             "newtab" => ResourceProtocolHandler::response_for_path(
                 request,
                 done_chan,

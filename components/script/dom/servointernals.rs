@@ -3,18 +3,21 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::rc::Rc;
-
+use js::gc::MutableHandleValue;
+use js::jsval::UndefinedValue;
 use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use profile_traits::mem::MemoryReportResult;
+use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::error::{Error, Fallible};
 use script_bindings::interfaces::ServoInternalsHelpers;
 use script_bindings::script_runtime::JSContext;
 use script_bindings::str::USVString;
-use servo_config::prefs::{self, PrefValue};
+use servo_config::prefs::{self, PrefValue, Preferences};
 
 use crate::dom::bindings::codegen::Bindings::ServoInternalsBinding::ServoInternalsMethods;
+use crate::dom::bindings::import::base::SafeJSContext;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
@@ -23,6 +26,24 @@ use crate::realms::{AlreadyInRealm, InRealm};
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
+
+fn pref_to_jsval(pref: &PrefValue, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
+    match pref {
+        PrefValue::Bool(b) => b.safe_to_jsval(cx, rval, can_gc),
+        PrefValue::Int(i) => i.safe_to_jsval(cx, rval, can_gc),
+        PrefValue::Str(s) => s.safe_to_jsval(cx, rval, can_gc),
+        PrefValue::Float(f) => f.safe_to_jsval(cx, rval, can_gc),
+        PrefValue::Array(arr) => {
+            rooted_vec!(let mut js_arr);
+            for item in arr {
+                rooted!(in(*cx) let mut js_val = UndefinedValue());
+                pref_to_jsval(item, cx, js_val.handle_mut(), can_gc);
+                js_arr.push(js_val.get());
+            }
+            js_arr.safe_to_jsval(cx , rval, can_gc);
+        }
+    }
+}
 
 #[dom_struct]
 pub(crate) struct ServoInternals {
@@ -60,7 +81,47 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
     }
 
     /// <https://servo.org/internal-no-spec>
+    fn PreferenceList(&self) -> Vec<USVString> {
+        Preferences::all_fields()
+            .into_iter()
+            .map(|s| USVString::from(s.to_string()))
+            .collect()
+    }
+
+    /// <https://servo.org/internal-no-spec>
+    fn PreferenceType(&self, name: USVString) -> Fallible<USVString> {
+        if !Preferences::exists(&name) {
+            return Err(Error::NotFound(None));
+        }
+        let type_name = Preferences::type_of(&name);
+        Ok(USVString::from(type_name.to_string()))
+    }
+
+    /// <https://servo.org/internal-no-spec>
+    fn DefaultValue(&self, cx: SafeJSContext, name: USVString, rval: MutableHandleValue) -> Fallible<()> {
+        if !Preferences::exists(&name) {
+            return Err(Error::NotFound(None));
+        }
+        let pref = Preferences::default().get_value(&name);
+        pref_to_jsval(&pref, cx, rval, CanGc::note());
+        Ok(())
+    }
+
+    fn GetPreference(&self, cx: JSContext, name: USVString, rval: MutableHandleValue) -> Fallible<()> {
+        if !Preferences::exists(&name) {
+            return Err(Error::NotFound(None));
+        }
+        let pref = prefs::get().get_value(&name);
+        pref_to_jsval(&pref, cx, rval, CanGc::note());
+        Ok(())
+    }
+
+
+    /// <https://servo.org/internal-no-spec>
     fn GetBoolPreference(&self, name: USVString) -> Fallible<bool> {
+        if !Preferences::exists(&name) {
+            return Err(Error::NotFound(None));
+        }
         if let PrefValue::Bool(b) = prefs::get().get_value(&name) {
             return Ok(b);
         }
@@ -69,6 +130,9 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
 
     /// <https://servo.org/internal-no-spec>
     fn GetIntPreference(&self, name: USVString) -> Fallible<i64> {
+        if !Preferences::exists(&name) {
+            return Err(Error::NotFound(None));
+        }
         if let PrefValue::Int(i) = prefs::get().get_value(&name) {
             return Ok(i);
         }
@@ -77,6 +141,9 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
 
     /// <https://servo.org/internal-no-spec>
     fn GetStringPreference(&self, name: USVString) -> Fallible<USVString> {
+        if !Preferences::exists(&name) {
+            return Err(Error::NotFound(None));
+        }
         if let PrefValue::Str(s) = prefs::get().get_value(&name) {
             return Ok(s.into());
         }

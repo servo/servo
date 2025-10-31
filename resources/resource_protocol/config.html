@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Advanced Config</title>
+    <style>
+        body {
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        input {
+            border-radius: 4px;
+        }
+
+        .search {
+            height: 24px;
+            width: calc(100% - 6px);
+            margin-top: 12px;
+            margin-bottom: 12px;
+            margin-right: 6px;
+            padding: 4px;
+        }
+
+        table {
+            border-collapse: collapse;
+        }
+
+        table, th, td {
+            border: 0;
+        }
+
+        .even {
+            background-color: #f0f0f0;
+        }
+
+        .value-editor {
+            margin: 2px;
+            padding: 2px;
+        }
+
+        .switch-button {
+            margin: 2px;
+            padding: 2px;
+            border-radius: 4px;
+            background: #cfcfcf;
+            border: 0;
+        }
+
+        .icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <input class="search" type="text" placeholder="Search for a preference ..." oninput="populate(this.value)">
+    <table></table>
+    <template id="boolRow">
+        <tr>
+            <td class="pref-name"></td>
+            <td class="value"></td>
+            <td class="switcher">
+                <button class="switch-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                    </svg>
+                </button>
+            </td>
+        </tr>
+    </template>
+    <template id="intRow">
+        <tr>
+            <td class="pref-name"></td>
+            <td class="value"><span class="value-entry"></span><input class="value-editor hidden" type="number"></td>
+            <td class="switcher">
+                <button class="switch-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                    </svg>
+                </button>
+                <button class="switch-button hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>
+                </button>
+            </td>
+        </tr>
+    </template>
+    <template id="stringRow">
+        <tr>
+            <td class="pref-name"></td>
+            <td class="value"><span class="value-entry"></span><input class="value-editor hidden" type="text"></td>
+            <td class="switcher">
+                <button class="switch-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                    </svg>
+                </button>
+                <button class="switch-button hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>
+                </button>
+            </td>
+        </tr>
+    </template>
+    <template id="unknownRow">
+        <tr>
+            <td class="pref-name"></td>
+            <td class="value"></td>
+        </tr>
+    </template>
+    <script>
+        let all = navigator.servo.preferenceList();
+        all.sort()
+        const ALL = all;
+
+        function createBoolPref(pref, boolValue, defaultValue, even) {
+            const template = document.querySelector("#boolRow");
+            const clone = template.content.cloneNode(true);
+            clone.querySelector(".pref-name").textContent = pref;
+            clone.querySelector(".value").textContent = boolValue;
+            clone.querySelector(".value").id = "value-" + pref;
+            if (boolValue !== defaultValue) {
+                clone.querySelector(".value").classList.add("bold");
+            }
+            clone.querySelector(".switcher button").onclick = (ev) => {
+                boolValue = !boolValue;
+                if (boolValue === defaultValue) {
+                    document.getElementById("value-" + pref).classList.remove("bold");
+                } else {
+                    document.getElementById("value-" + pref).classList.add("bold");
+                }
+                navigator.servo.setBoolPreference(pref, boolValue);
+                document.getElementById("value-" + pref).textContent = boolValue;
+            };
+            if (even) {
+                clone.querySelector("tr").classList.add("even");
+            }
+            document.querySelector("table").appendChild(clone);
+        }
+
+        function createIntPref(pref, intValue, defaultValue, even) {
+            const template = document.querySelector("#intRow");
+            const clone = template.content.cloneNode(true);
+            clone.querySelector(".pref-name").textContent = pref;
+            clone.querySelector(".value-entry").textContent = intValue;
+            clone.querySelector(".value-entry").id = "value-" + pref;
+            clone.querySelector(".value-editor").id = "input-" + pref;
+            if (intValue !== defaultValue) {
+                clone.querySelector(".value-entry").classList.add("bold");
+            }
+            const editButton = clone.querySelectorAll(".switcher button")[0];
+            const saveButton = clone.querySelectorAll(".switcher button")[1];
+            editButton.onclick = (ev) => {
+                document.getElementById("value-" + pref).classList.add("hidden");
+                const input = document.getElementById("input-" + pref);
+                input.classList.remove("hidden");
+                input.value = intValue;
+                editButton.classList.add("hidden");
+                saveButton.classList.remove("hidden");
+            };
+            saveButton.onclick = (ev) => {
+                const input = document.getElementById("input-" + pref);
+                const newValue = parseInt(input.value);
+                navigator.servo.setIntPreference(pref, newValue);
+                intValue = newValue;
+                document.getElementById("value-" + pref).textContent = intValue;
+                if (intValue === defaultValue) {
+                    document.getElementById("value-" + pref).classList.remove("bold");
+                } else {
+                    document.getElementById("value-" + pref).classList.add("bold");
+                }
+                document.getElementById("value-" + pref).classList.remove("hidden");
+                input.classList.add("hidden");
+                editButton.classList.remove("hidden");
+                saveButton.classList.add("hidden");
+            };
+            if (even) {
+                clone.querySelector("tr").classList.add("even");
+            }
+            document.querySelector("table").appendChild(clone);
+        }
+
+
+        function createStringPref(pref, stringValue, defaultValue, even) {
+            const template = document.querySelector("#stringRow");
+            const clone = template.content.cloneNode(true);
+            clone.querySelector(".pref-name").textContent = pref;
+            clone.querySelector(".value-entry").textContent = stringValue;
+            clone.querySelector(".value-entry").id = "value-" + pref;
+            clone.querySelector(".value-editor").id = "input-" + pref;
+            if (stringValue !== defaultValue) {
+                clone.querySelector(".value-entry").classList.add("bold");
+            }
+            const editButton = clone.querySelectorAll(".switcher button")[0];
+            const saveButton = clone.querySelectorAll(".switcher button")[1];
+            editButton.onclick = (ev) => {
+                document.getElementById("value-" + pref).classList.add("hidden");
+                const input = document.getElementById("input-" + pref);
+                input.classList.remove("hidden");
+                input.value = stringValue;
+                editButton.classList.add("hidden");
+                saveButton.classList.remove("hidden");
+            };
+            saveButton.onclick = (ev) => {
+                const input = document.getElementById("input-" + pref);
+                const newValue = input.value;
+                navigator.servo.setStringPreference(pref, newValue);
+                stringValue = newValue;
+                document.getElementById("value-" + pref).textContent = stringValue;
+                if (stringValue === defaultValue) {
+                    document.getElementById("value-" + pref).classList.remove("bold");
+                } else {
+                    document.getElementById("value-" + pref).classList.add("bold");
+                }
+                document.getElementById("value-" + pref).classList.remove("hidden");
+                input.classList.add("hidden");
+                editButton.classList.remove("hidden");
+                saveButton.classList.add("hidden");
+            };
+            if (even) {
+                clone.querySelector("tr").classList.add("even");
+            }
+            document.querySelector("table").appendChild(clone);
+        }
+
+
+        function populate(filter) {
+            document.querySelector("table").innerHTML = "";
+            let prefs = [];
+            if (filter === "" || filter === null || filter === undefined) {
+                prefs = ALL;
+            } else {
+                // TODO: improve filtering
+                for (let pref of ALL) {
+                    let stripped_pref = pref.replaceAll("_", "");
+                    let stripped_filter = filter.replaceAll("_", "").replaceAll(" ", "").toLowerCase();
+                    if (stripped_pref.includes(stripped_filter)) {
+                        prefs.push(pref);
+                    }
+                }
+            }
+            let counter = 0;
+            for (let pref of prefs) {
+                counter++;
+                let ty = navigator.servo.preferenceType(pref);
+                let value = navigator.servo.getPreference(pref);
+                let defaultValue = navigator.servo.defaultValue(pref);
+                if (ty === "bool") {
+                    createBoolPref(pref, value, defaultValue, counter % 2 === 0);
+                } else if (ty === "i64") {
+                    createIntPref(pref, value, defaultValue, counter % 2 === 0);
+                } else if (ty === "alloc::string::String") {
+                    createStringPref(pref, value, defaultValue, counter % 2 === 0);
+                } else {
+                    const template = document.querySelector("#unknownRow");
+                    const clone = template.content.cloneNode(true);
+                    clone.querySelector(".pref-name").textContent = pref;
+                    clone.querySelector(".value").textContent = value;
+                    if (counter % 2 === 0) {
+                        clone.querySelector("tr").classList.add("even");
+                    }
+                    document.querySelector("table").appendChild(clone);
+                }
+            }
+        }
+        populate();
+    </script>
+</body>
+</html>
