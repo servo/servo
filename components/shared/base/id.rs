@@ -10,7 +10,8 @@ use std::cell::Cell;
 use std::fmt;
 use std::marker::PhantomData;
 use std::num::NonZeroU32;
-use std::sync::{Arc, LazyLock, RwLock};
+use std::sync::atomic::AtomicU32;
+use std::sync::{Arc, LazyLock};
 
 use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
@@ -319,7 +320,7 @@ thread_local!(pub static WEBVIEW_ID: Cell<Option<WebViewId>> =
 #[derive(
     Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
 )]
-pub struct WebViewId(RenderingGroupId, BrowsingContextId);
+pub struct WebViewId(PainterId, BrowsingContextId);
 
 size_of_test!(WebViewId, 12);
 size_of_test!(Option<WebViewId>, 12);
@@ -331,12 +332,8 @@ impl fmt::Display for WebViewId {
 }
 
 impl WebViewId {
-    pub fn new() -> WebViewId {
-        WebViewId(RenderingGroupId::default(), BrowsingContextId::new())
-    }
-
-    pub fn new_with_rendering_group(rendering_group_id: RenderingGroupId) -> WebViewId {
-        WebViewId(rendering_group_id, BrowsingContextId::new())
+    pub fn new(painter_id: PainterId) -> WebViewId {
+        WebViewId(painter_id, BrowsingContextId::new())
     }
 
     /// Each script and layout thread should have the top-level browsing context id installed,
@@ -350,7 +347,7 @@ impl WebViewId {
     }
 
     pub fn mock_for_testing(browsing_context_id: BrowsingContextId) -> WebViewId {
-        WebViewId(RenderingGroupId::default(), browsing_context_id)
+        WebViewId(PainterId(0), browsing_context_id)
     }
 }
 
@@ -360,8 +357,8 @@ impl From<WebViewId> for BrowsingContextId {
     }
 }
 
-impl From<WebViewId> for RenderingGroupId {
-    fn from(id: WebViewId) -> RenderingGroupId {
+impl From<WebViewId> for PainterId {
+    fn from(id: WebViewId) -> PainterId {
         id.0
     }
 }
@@ -427,10 +424,8 @@ pub const TEST_BROWSING_CONTEXT_ID: BrowsingContextId = BrowsingContextId {
     index: TEST_BROWSING_CONTEXT_INDEX,
 };
 
-pub const TEST_WEBVIEW_ID: WebViewId = WebViewId(
-    RenderingGroupId::mock_rendering_id(),
-    TEST_BROWSING_CONTEXT_ID,
-);
+pub const TEST_PAINTER_ID: PainterId = PainterId(0);
+pub const TEST_WEBVIEW_ID: WebViewId = WebViewId(TEST_PAINTER_ID, TEST_BROWSING_CONTEXT_ID);
 
 /// An id for a ScrollTreeNode in the ScrollTree. This contains both the index
 /// to the node in the tree's array of nodes as well as the corresponding SpatialId
@@ -444,32 +439,23 @@ pub struct ScrollTreeNodeId {
 #[derive(
     Clone, Copy, Debug, PartialEq, PartialOrd, Ord, Hash, Eq, Serialize, Deserialize, MallocSizeOf,
 )]
-pub struct RenderingGroupId(u32);
+pub struct PainterId(u32);
 
-impl fmt::Display for RenderingGroupId {
+impl fmt::Display for PainterId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "RenderingGroup: {}", self.0)
+        write!(f, "PainterId: {}", self.0)
     }
 }
 
-static RENDER_GROUP_COUNTER: RwLock<RenderingGroupId> = RwLock::new(RenderingGroupId(1));
+static PAINTER_ID: AtomicU32 = AtomicU32::new(0);
 
-impl Default for RenderingGroupId {
-    fn default() -> Self {
-        Self(RENDER_GROUP_COUNTER.read().unwrap().0)
-    }
-}
-
-impl RenderingGroupId {
-    const fn mock_rendering_id() -> RenderingGroupId {
-        RenderingGroupId(0)
+impl PainterId {
+    pub fn next() -> Self {
+        Self(PAINTER_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
     }
 
-    /// the new rendering group id. The first returned id will be 1.
-    pub fn new() -> RenderingGroupId {
-        let mut cur = RENDER_GROUP_COUNTER.write().unwrap();
-        let n = RenderingGroupId(cur.0 + 1);
-        *cur = n;
-        n
+    /// TODO: This should be removed once font keys are generated per-Painter.
+    pub fn first_for_system_font_service() -> Self {
+        Self(0)
     }
 }

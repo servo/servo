@@ -7,7 +7,7 @@
 use std::fmt::{Debug, Error, Formatter};
 
 use base::Epoch;
-use base::id::{PipelineId, RenderingGroupId, WebViewId};
+use base::id::{PainterId, PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use embedder_traits::{AnimationState, EventLoopWaker};
 use log::warn;
@@ -154,7 +154,7 @@ pub enum CompositorMsg {
         usize,
         usize,
         GenericSender<(Vec<FontKey>, Vec<FontInstanceKey>)>,
-        RenderingGroupId,
+        PainterId,
     ),
     /// Add a font with the given data and font key.
     AddFont(FontKey, Arc<IpcSharedMemory>, u32),
@@ -439,14 +439,14 @@ impl CrossProcessCompositorApi {
         &self,
         number_of_font_keys: usize,
         number_of_font_instance_keys: usize,
-        rendering_group_id: RenderingGroupId,
+        painter_id: PainterId,
     ) -> (Vec<FontKey>, Vec<FontInstanceKey>) {
         let (sender, receiver) = generic_channel::channel().expect("Could not create IPC channel");
         let _ = self.0.send(CompositorMsg::GenerateFontKeys(
             number_of_font_keys,
             number_of_font_instance_keys,
             sender,
-            rendering_group_id,
+            painter_id,
         ));
         receiver.recv().unwrap()
     }
@@ -682,7 +682,6 @@ impl From<SerializableImageData> for ImageData {
 /// layer.
 pub trait WebViewTrait {
     fn id(&self) -> WebViewId;
-    fn rendering_group_id(&self) -> Option<RenderingGroupId>;
     fn screen_geometry(&self) -> Option<ScreenGeometry>;
     fn set_animating(&self, new_value: bool);
 }

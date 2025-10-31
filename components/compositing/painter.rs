@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex};
 
 use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::{PipelineId, WebViewId};
+use base::id::{PainterId, PipelineId, WebViewId};
 use canvas_traits::webgl::{GlType, WebGLThreads};
 use compositing_traits::display_list::{CompositorDisplayListInfo, ScrollType};
 use compositing_traits::largest_contentful_paint_candidate::LCPCandidate;
@@ -80,6 +80,9 @@ use crate::webview_renderer::{PinchZoomResult, ScrollResult, UnknownWebView, Web
 pub(crate) struct Painter {
     /// The [`RenderingContext`] instance that webrender targets, which is the viewport.
     pub(crate) rendering_context: Rc<dyn RenderingContext>,
+
+    /// The ID of this painter.
+    pub(crate) painter_id: PainterId,
 
     /// Our [`WebViewRenderer`]s, one for every `WebView`.
     pub(crate) webview_renderers: WebViewManager<WebViewRenderer>,
@@ -289,6 +292,7 @@ impl Painter {
         info!("Running on {gl_renderer} with OpenGL version {gl_version}");
 
         let painter = Painter {
+            painter_id: PainterId::next(),
             embedder_to_constellation_sender,
             webview_renderers: Default::default(),
             rendering_context,

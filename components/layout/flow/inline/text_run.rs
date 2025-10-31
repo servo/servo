@@ -6,7 +6,6 @@ use std::mem;
 use std::ops::Range;
 
 use app_units::Au;
-use base::id::RenderingGroupId;
 use base::text::is_bidi_control;
 use fonts::{
     FontContext, FontRef, GlyphRun, LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
@@ -28,6 +27,7 @@ use xi_unicode::linebreak_property;
 
 use super::line_breaker::LineBreaker;
 use super::{FontKeyAndMetrics, InlineFormattingContextLayout, SharedInlineStyles};
+use crate::context::LayoutContext;
 use crate::fragment_tree::BaseFragmentInfo;
 
 // These constants are the xi-unicode line breaking classes that are defined in
@@ -92,12 +92,11 @@ impl TextRunSegment {
     /// compatible with this segment or false otherwise.
     fn update_if_compatible(
         &mut self,
+        layout_context: &LayoutContext,
         new_font: &FontRef,
         script: Script,
         bidi_level: Level,
         fonts: &[FontKeyAndMetrics],
-        font_context: &FontContext,
-        rendering_group_id: RenderingGroupId,
     ) -> bool {
         fn is_specific(script: Script) -> bool {
             script != Script::Common && script != Script::Inherited
@@ -108,7 +107,9 @@ impl TextRunSegment {
         }
 
         let current_font_key_and_metrics = &fonts[self.font_index];
-        if new_font.key(rendering_group_id, font_context) != current_font_key_and_metrics.key ||
+        let painter_id = layout_context.painter_id;
+        let font_context = &layout_context.font_context;
+        if new_font.key(painter_id, font_context) != current_font_key_and_metrics.key ||
             new_font.descriptor.pt_size != current_font_key_and_metrics.pt_size
         {
             return false;
@@ -369,11 +370,10 @@ impl TextRun {
     pub(super) fn segment_and_shape(
         &mut self,
         formatting_context_text: &str,
-        font_context: &FontContext,
+        layout_context: &LayoutContext,
         linebreaker: &mut LineBreaker,
         font_cache: &mut Vec<FontKeyAndMetrics>,
         bidi_info: &BidiInfo,
-        rendering_group_id: RenderingGroupId,
     ) {
         let parent_style = self.inline_styles.style.borrow().clone();
         let inherited_text_style = parent_style.get_inherited_text().clone();
@@ -401,12 +401,11 @@ impl TextRun {
 
         let segments = self
             .segment_text_by_font(
+                layout_context,
                 formatting_context_text,
-                font_context,
                 font_cache,
                 bidi_info,
                 &parent_style,
-                rendering_group_id,
             )
             .into_iter()
             .map(|(mut segment, font)| {
@@ -450,14 +449,15 @@ impl TextRun {
     /// [`super::InlineFormattingContext`].
     fn segment_text_by_font(
         &mut self,
+        layout_context: &LayoutContext,
         formatting_context_text: &str,
-        font_context: &FontContext,
         font_cache: &mut Vec<FontKeyAndMetrics>,
         bidi_info: &BidiInfo,
         parent_style: &Arc<ComputedValues>,
-        rendering_group_id: RenderingGroupId,
     ) -> Vec<(TextRunSegment, FontRef)> {
-        let font_group = font_context.font_group(parent_style.clone_font());
+        let font_group = layout_context
+            .font_context
+            .font_group(parent_style.clone_font());
         let mut current: Option<(TextRunSegment, FontRef)> = None;
         let mut results = Vec::new();
 
@@ -488,7 +488,7 @@ impl TextRun {
             let lang = parent_style.get_font()._x_lang.clone();
 
             let Some(font) = font_group.write().find_by_codepoint(
-                font_context,
+                &layout_context.font_context,
                 character,
                 next_character,
                 current_font,
@@ -500,18 +500,17 @@ impl TextRun {
             // If the existing segment is compatible with the character, keep going.
             if let Some(current) = current.as_mut() {
                 if current.0.update_if_compatible(
+                    layout_context,
                     &font,
                     script,
                     bidi_level,
                     font_cache,
-                    font_context,
-                    rendering_group_id,
                 ) {
                     continue;
                 }
             }
 
-            let font_index = add_or_get_font(&font, font_cache, font_context, rendering_group_id);
+            let font_index = add_or_get_font(layout_context, &font, font_cache);
 
             // Add the new segment and finish the existing one, if we had one. If the first
             // characters in the run were control characters we may be creating the first
@@ -535,19 +534,21 @@ impl TextRun {
         // Either we have a current segment or we only had control character and whitespace. In both
         // of those cases, just use the first font.
         if current.is_none() {
-            current = font_group.write().first(font_context).map(|font| {
-                let font_index =
-                    add_or_get_font(&font, font_cache, font_context, rendering_group_id);
-                (
-                    TextRunSegment::new(
-                        font_index,
-                        Script::Common,
-                        Level::ltr(),
-                        self.text_range.start,
-                    ),
-                    font,
-                )
-            })
+            current = font_group
+                .write()
+                .first(&layout_context.font_context)
+                .map(|font| {
+                    let font_index = add_or_get_font(layout_context, &font, font_cache);
+                    (
+                        TextRunSegment::new(
+                            font_index,
+                            Script::Common,
+                            Level::ltr(),
+                            self.text_range.start,
+                        ),
+                        font,
+                    )
+                })
         }
 
         // Extend the last segment to the end of the string and add it to the results.
@@ -604,12 +605,11 @@ fn char_does_not_change_font(character: char) -> bool {
 }
 
 pub(super) fn add_or_get_font(
+    layout_context: &LayoutContext,
     font: &FontRef,
     ifc_fonts: &mut Vec<FontKeyAndMetrics>,
-    font_context: &FontContext,
-    rendering_group_id: RenderingGroupId,
 ) -> usize {
-    let font_instance_key = font.key(rendering_group_id, font_context);
+    let font_instance_key = font.key(layout_context.painter_id, &layout_context.font_context);
     for (index, ifc_font_info) in ifc_fonts.iter().enumerate() {
         if ifc_font_info.key == font_instance_key &&
             ifc_font_info.pt_size == font.descriptor.pt_size

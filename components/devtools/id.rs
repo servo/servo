@@ -158,7 +158,7 @@ pub(crate) fn test_id_map() {
 
     test_sequential_id_assignment!(
         DevtoolsBrowserId,
-        || WebViewId::new(),
+        || WebViewId::new(base::id::TEST_PAINTER_ID),
         |id_map: &mut IdMap, id| id_map.browser_id(id)
     );
     test_sequential_id_assignment!(
