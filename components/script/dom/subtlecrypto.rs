@@ -28,9 +28,9 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesGcmParams, AesKeyAlgorithm,
-    AesKeyGenParams, Algorithm, AlgorithmIdentifier, EcKeyAlgorithm, EcKeyImportParams, HkdfParams,
-    HmacImportParams, HmacKeyAlgorithm, HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat,
-    Pbkdf2Params, RsaOtherPrimesInfo, SubtleCryptoMethods,
+    AesKeyGenParams, Algorithm, AlgorithmIdentifier, EcKeyAlgorithm, EcKeyGenParams,
+    EcKeyImportParams, HkdfParams, HmacImportParams, HmacKeyAlgorithm, HmacKeyGenParams,
+    JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params, RsaOtherPrimesInfo, SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey, ObjectOrString,
@@ -1626,6 +1626,25 @@ impl SafeToJSValConvertible for SubtleKeyAlgorithm {
     }
 }
 
+/// <https://w3c.github.io/webcrypto/#dfn-EcKeyGenParams>
+#[derive(Clone, Debug, MallocSizeOf)]
+struct SubtleEcKeyGenParams {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: String,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-EcKeyGenParams-namedCurve>
+    named_curve: String,
+}
+
+impl From<EcKeyGenParams> for SubtleEcKeyGenParams {
+    fn from(value: EcKeyGenParams) -> Self {
+        SubtleEcKeyGenParams {
+            name: value.parent.name.to_string(),
+            named_curve: value.namedCurve.to_string(),
+        }
+    }
+}
+
 /// <https://w3c.github.io/webcrypto/#dfn-EcKeyAlgorithm>
 #[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) struct SubtleEcKeyAlgorithm {
@@ -2177,6 +2196,7 @@ impl JsonWebKeyExt for JsonWebKey {
 #[derive(Clone, Debug, MallocSizeOf)]
 enum NormalizedAlgorithm {
     Algorithm(SubtleAlgorithm),
+    EcKeyGenParams(SubtleEcKeyGenParams),
     EcKeyImportParams(SubtleEcKeyImportParams),
     AesCtrParams(SubtleAesCtrParams),
     AesKeyGenParams(SubtleAesKeyGenParams),
@@ -2273,6 +2293,11 @@ fn normalize_algorithm(
             // "subtle" binding structs.
             let normalized_algorithm = match (alg_name, op) {
                 // <https://w3c.github.io/webcrypto/#ecdh-registration>
+                (ALG_ECDH, Operation::GenerateKey) => {
+                    let mut params = dictionary_from_jsval::<EcKeyGenParams>(cx, value.handle())?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::EcKeyGenParams(params.into())
+                },
                 (ALG_ECDH, Operation::ImportKey) => {
                     let mut params =
                         dictionary_from_jsval::<EcKeyImportParams>(cx, value.handle())?;
@@ -2579,6 +2604,7 @@ impl NormalizedAlgorithm {
     fn name(&self) -> &str {
         match self {
             NormalizedAlgorithm::Algorithm(algo) => &algo.name,
+            NormalizedAlgorithm::EcKeyGenParams(algo) => &algo.name,
             NormalizedAlgorithm::EcKeyImportParams(algo) => &algo.name,
             NormalizedAlgorithm::AesCtrParams(algo) => &algo.name,
             NormalizedAlgorithm::AesKeyGenParams(algo) => &algo.name,
@@ -2666,6 +2692,11 @@ impl NormalizedAlgorithm {
         match self {
             NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
                 ALG_ED25519 => ed25519_operation::generate_key(global, extractable, usages, can_gc)
+                    .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair),
+                _ => Err(Error::NotSupported),
+            },
+            NormalizedAlgorithm::EcKeyGenParams(algo) => match algo.name.as_str() {
+                ALG_ECDH => ecdh_operation::generate_key(global, algo, extractable, usages, can_gc)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair),
                 _ => Err(Error::NotSupported),
             },
