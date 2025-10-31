@@ -117,9 +117,10 @@ pub enum ProfilerCategory {
     TimeToFirstPaint = 0x90,
     TimeToFirstContentfulPaint = 0x91,
     TimeToInteractive = 0x92,
+    TimeToLargestContentfulPaint = 0x93,
 
-    IpcReceiver = 0x93,
-    IpcBytesReceiver = 0x94,
+    IpcReceiver = 0x94,
+    IpcBytesReceiver = 0x95,
 }
 
 impl ProfilerCategory {
@@ -163,6 +164,7 @@ impl ProfilerCategory {
             ProfilerCategory::ScriptWebGPUMsg => "ScriptWebGPUMsg",
             ProfilerCategory::TimeToFirstPaint => "TimeToFirstPaint",
             ProfilerCategory::TimeToFirstContentfulPaint => "TimeToFirstContentfulPaint",
+            ProfilerCategory::TimeToLargestContentfulPaint => "TimeToLargestContentfulPaint",
             ProfilerCategory::TimeToInteractive => "TimeToInteractive",
             ProfilerCategory::IpcReceiver => "IpcReceiver",
             ProfilerCategory::IpcBytesReceiver => "IpcBytesReceiver",

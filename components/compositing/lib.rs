@@ -24,6 +24,7 @@ pub use crate::compositor::{IOCompositor, WebRenderDebugOption};
 mod tracing;
 
 mod compositor;
+mod largest_contentful_paint_calculator;
 mod painter;
 mod pinch_zoom;
 mod pipeline_details;

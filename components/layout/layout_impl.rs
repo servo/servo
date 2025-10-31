@@ -87,7 +87,9 @@ use webrender_api::ExternalScrollId;
 use webrender_api::units::{DevicePixel, LayoutVector2D};
 
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
-use crate::display_list::{DisplayListBuilder, HitTest, StackingContextTree};
+use crate::display_list::{
+    DisplayListBuilder, HitTest, LargestContentfulPaintCandidateCollector, StackingContextTree,
+};
 use crate::query::{
     get_the_text_steps, process_box_area_request, process_box_areas_request,
     process_client_rect_request, process_node_scroll_area_request, process_offset_parent_query,
@@ -193,6 +195,9 @@ pub struct LayoutThread {
     ///
     /// If this changed, then we need to create a new display list.
     previously_highlighted_dom_node: Cell<Option<OpaqueNode>>,
+
+    /// The collector for calculating Largest Contentful Paint
+    lcp_candidate_collector: RefCell<Option<LargestContentfulPaintCandidateCollector>>,
 }
 
 pub struct LayoutFactoryImpl();
@@ -682,6 +687,7 @@ impl LayoutThread {
             resolved_images_cache: Default::default(),
             debug: opts::get().debug.clone(),
             previously_highlighted_dom_node: Cell::new(None),
+            lcp_candidate_collector: Default::default(),
         }
     }
 
@@ -1226,6 +1232,21 @@ impl LayoutThread {
         // ensuring that the Epoch is passed to any method that can creates `StackingContextTree`.
         stacking_context_tree.compositor_info.epoch = reflow_request.epoch;
 
+        let mut lcp_candidate_collector = self.lcp_candidate_collector.borrow_mut();
+        if pref!(largest_contentful_paint_enabled) {
+            // This ensures that we only create the LCP collector once per layout thread.
+            if lcp_candidate_collector.is_none() {
+                *lcp_candidate_collector = Some(LargestContentfulPaintCandidateCollector::new(
+                    stacking_context_tree
+                        .compositor_info
+                        .viewport_details
+                        .layout_size(),
+                ));
+            }
+        } else {
+            *lcp_candidate_collector = None;
+        }
+
         let built_display_list = DisplayListBuilder::build(
             stacking_context_tree,
             fragment_tree,
@@ -1233,12 +1254,26 @@ impl LayoutThread {
             self.device().device_pixel_ratio(),
             reflow_request.highlighted_dom_node,
             &self.debug,
+            lcp_candidate_collector.as_mut(),
         );
         self.compositor_api.send_display_list(
             self.webview_id,
             &stacking_context_tree.compositor_info,
             built_display_list,
         );
+        if let Some(lcp_candidate_collector) = lcp_candidate_collector.as_mut() {
+            if lcp_candidate_collector.did_lcp_candidate_update {
+                if let Some(lcp_candidate) = lcp_candidate_collector.largest_contentful_paint() {
+                    self.compositor_api.send_lcp_candidate(
+                        lcp_candidate,
+                        self.webview_id,
+                        self.id,
+                        stacking_context_tree.compositor_info.epoch,
+                    );
+                    lcp_candidate_collector.did_lcp_candidate_update = false;
+                }
+            }
+        }
 
         let (keys, instance_keys) = self
             .font_context

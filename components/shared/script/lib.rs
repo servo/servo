@@ -20,6 +20,7 @@ use base::id::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceI
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use compositing_traits::CrossProcessCompositorApi;
+use compositing_traits::largest_contentful_paint_candidate::LargestContentfulPaintType;
 use constellation_traits::{
     KeyboardScroll, LoadData, NavigationHistoryBehavior, ScriptToConstellationChan,
     StructuredSerializedData, WindowSizeType,
@@ -110,6 +111,13 @@ pub enum ProgressiveWebMetricType {
     FirstPaint,
     /// Time to first contentful paint
     FirstContentfulPaint,
+    /// Time for the largest contentful paint
+    LargestContentfulPaint {
+        /// The pixel area of the largest contentful element.
+        area: usize,
+        /// The type of the largest contentful paint element.
+        lcp_type: LargestContentfulPaintType,
+    },
     /// Time to interactive
     TimeToInteractive,
 }

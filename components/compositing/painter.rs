@@ -14,6 +14,7 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PipelineId, WebViewId};
 use canvas_traits::webgl::{GlType, WebGLThreads};
 use compositing_traits::display_list::{CompositorDisplayListInfo, ScrollType};
+use compositing_traits::largest_contentful_paint_candidate::LCPCandidate;
 use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::viewport_description::ViewportDescription;
 use compositing_traits::{
@@ -60,6 +61,7 @@ use webrender_api::{
 use wr_malloc_size_of::MallocSizeOfOps;
 
 use crate::compositor::{RepaintReason, WebRenderDebugOption};
+use crate::largest_contentful_paint_calculator::LargestContentfulPaintCalculator;
 use crate::refresh_driver::{AnimationRefreshDriverObserver, BaseRefreshDriver};
 use crate::render_notifier::RenderNotifier;
 use crate::screenshot::ScreenshotTaker;
@@ -134,6 +136,9 @@ pub(crate) struct Painter {
 
     /// The channel on which messages can be sent to the constellation.
     embedder_to_constellation_sender: Sender<EmbedderToConstellationMessage>,
+
+    /// Calculater for largest-contentful-paint.
+    lcp_calculator: LargestContentfulPaintCalculator,
 }
 
 impl Drop for Painter {
@@ -304,6 +309,7 @@ impl Painter {
             webxr_main_thread,
             #[cfg(feature = "webgpu")]
             webgpu_image_map,
+            lcp_calculator: LargestContentfulPaintCalculator::new(),
         };
         painter.assert_gl_framebuffer_complete();
         painter.clear_background();
@@ -342,6 +348,7 @@ impl Painter {
         if let Some(webrender) = self.webrender.take() {
             webrender.deinit();
         }
+        self.lcp_calculator.clear();
     }
 
     #[track_caller]
@@ -536,6 +543,39 @@ impl Painter {
                         ));
                         pipeline
                             .first_contentful_paint_metric
+                            .set(PaintMetricState::Sent);
+                    },
+                    _ => {},
+                }
+
+                match pipeline.largest_contentful_paint_metric.get() {
+                    PaintMetricState::Seen(epoch, _) if epoch <= current_epoch => {
+                        if let Some(lcp) = self
+                            .lcp_calculator
+                            .calculate_largest_contentful_paint(paint_time, pipeline_id.into())
+                        {
+                            #[cfg(feature = "tracing")]
+                            tracing::info!(
+                                name: "LargestContentfulPaint",
+                                servo_profiling = true,
+                                paint_time = ?paint_time,
+                                area = ?lcp.area,
+                                lcp_type = ?lcp.lcp_type,
+                                pipeline_id = ?pipeline_id,
+                            );
+                            self.send_to_constellation(
+                                EmbedderToConstellationMessage::PaintMetric(
+                                    *pipeline_id,
+                                    PaintMetricEvent::LargestContentfulPaint(
+                                        lcp.paint_time,
+                                        lcp.area,
+                                        lcp.lcp_type,
+                                    ),
+                                ),
+                            );
+                        }
+                        pipeline
+                            .largest_contentful_paint_metric
                             .set(PaintMetricState::Sent);
                     },
                     _ => {},
@@ -835,6 +875,8 @@ impl Painter {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
             webview_renderer.pipeline_exited(pipeline_id, pipeline_exit_source);
         }
+        self.lcp_calculator
+            .remove_lcp_candidates_for_pipeline(pipeline_id.into());
     }
 
     pub(crate) fn send_initial_pipeline_transaction(
@@ -1343,6 +1385,7 @@ impl Painter {
 
             webview_renderer.notify_input_event(&self.webrender_api, event);
         }
+        self.disable_lcp_calculation_for_webview(webview_id);
     }
 
     pub(crate) fn notify_scroll_event(
@@ -1354,6 +1397,7 @@ impl Painter {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
             webview_renderer.notify_scroll_event(scroll, point);
         }
+        self.disable_lcp_calculation_for_webview(webview_id);
     }
 
     pub(crate) fn pinch_zoom(
@@ -1428,6 +1472,30 @@ impl Painter {
         ) {
             warn!("Sending event to constellation failed ({:?}).", error);
         }
+    }
+    pub(crate) fn append_lcp_candidate(
+        &mut self,
+        lcp_candidate: LCPCandidate,
+        webview_id: WebViewId,
+        pipeline_id: PipelineId,
+        epoch: Epoch,
+    ) {
+        if self
+            .lcp_calculator
+            .append_lcp_candidate(webview_id, pipeline_id.into(), lcp_candidate)
+        {
+            if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+                webview_renderer
+                    .ensure_pipeline_details(pipeline_id)
+                    .largest_contentful_paint_metric
+                    .set(PaintMetricState::Seen(epoch.into(), false));
+            }
+        };
+    }
+
+    /// Disable LCP feature when the user interacts with the page.
+    fn disable_lcp_calculation_for_webview(&mut self, webview_id: WebViewId) {
+        self.lcp_calculator.add_to_disabled_lcp_webviews(webview_id);
     }
 }
 

@@ -9,6 +9,9 @@ use app_units::{AU_PER_PX, Au};
 use base::id::ScrollTreeNodeId;
 use clip::{Clip, ClipId};
 use compositing_traits::display_list::{CompositorDisplayListInfo, SpatialTreeNodeInfo};
+use compositing_traits::largest_contentful_paint_candidate::{
+    LCPCandidateID, LargestContentfulPaintType,
+};
 use euclid::{Point2D, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
 use fonts::GlyphStore;
 use gradient::WebRenderGradient;
@@ -62,10 +65,12 @@ mod clip;
 mod conversions;
 mod gradient;
 mod hit_test;
+mod largest_contenful_paint_candidate_collector;
 mod stacking_context;
 
 use background::BackgroundPainter;
 pub(crate) use hit_test::HitTest;
+pub(crate) use largest_contenful_paint_candidate_collector::LargestContentfulPaintCandidateCollector;
 pub(crate) use stacking_context::*;
 
 const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(AU_PER_PX);
@@ -114,6 +119,9 @@ pub(crate) struct DisplayListBuilder<'a> {
 
     /// The device pixel ratio used for this `Document`'s display list.
     device_pixel_ratio: Scale<f32, StyloCSSPixel, StyloDevicePixel>,
+
+    /// The collector for calculating Largest Contentful Paint
+    lcp_candidate_collector: Option<&'a mut LargestContentfulPaintCandidateCollector>,
 }
 
 struct InspectorHighlight {
@@ -162,6 +170,7 @@ impl DisplayListBuilder<'_> {
         device_pixel_ratio: Scale<f32, StyloCSSPixel, StyloDevicePixel>,
         highlighted_dom_node: Option<OpaqueNode>,
         debug: &DebugOptions,
+        lcp_candidate_collector: Option<&mut LargestContentfulPaintCandidateCollector>,
     ) -> BuiltDisplayList {
         // Build the rest of the display list which inclues all of the WebRender primitives.
         let compositor_info = &mut stacking_context_tree.compositor_info;
@@ -192,6 +201,7 @@ impl DisplayListBuilder<'_> {
             clip_map: Default::default(),
             image_resolver,
             device_pixel_ratio,
+            lcp_candidate_collector,
         };
 
         builder.add_all_spatial_nodes();
@@ -510,6 +520,29 @@ impl DisplayListBuilder<'_> {
             );
         }
     }
+
+    #[inline]
+    fn collect_lcp_candidate(
+        &mut self,
+        lcp_type: LargestContentfulPaintType,
+        lcp_candidate_id: LCPCandidateID,
+        clip_rect: LayoutRect,
+        bounds: LayoutRect,
+    ) {
+        if let Some(lcp_collector) = &mut self.lcp_candidate_collector {
+            let transform = self
+                .compositor_info
+                .scroll_tree
+                .cumulative_node_to_root_transform(self.current_scroll_node_id);
+            lcp_collector.add_or_update_candidate(
+                lcp_type,
+                lcp_candidate_id,
+                clip_rect,
+                bounds,
+                transform,
+            );
+        }
+    }
 }
 
 impl InspectorHighlight {
@@ -625,6 +658,18 @@ impl Fragment {
                                 wr::ColorF::WHITE,
                             );
                         }
+
+                        let lcp_candidate_id = image
+                            .base
+                            .tag
+                            .map(|tag| LCPCandidateID(tag.node.id()))
+                            .unwrap_or(LCPCandidateID(0));
+                        builder.collect_lcp_candidate(
+                            LargestContentfulPaintType::Image,
+                            lcp_candidate_id,
+                            common.clip_rect,
+                            rect,
+                        );
                     },
                     Visibility::Hidden => (),
                     Visibility::Collapse => (),
@@ -1249,6 +1294,19 @@ impl<'a> BuilderForBoxFragment<'a> {
                                 wr::ColorF::WHITE,
                             )
                         }
+
+                        let lcp_candidate_id = self
+                            .fragment
+                            .base
+                            .tag
+                            .map(|tag| LCPCandidateID(tag.node.id()))
+                            .unwrap_or(LCPCandidateID(0));
+                        builder.collect_lcp_candidate(
+                            LargestContentfulPaintType::BackgroundImage,
+                            lcp_candidate_id,
+                            layer.common.clip_rect,
+                            layer.bounds,
+                        );
                     }
                 },
             }

@@ -345,6 +345,14 @@ impl IOCompositor {
                 self.painter()
                     .handle_screenshot_readiness_reply(webview_id, pipelines_and_epochs);
             },
+            CompositorMsg::SendLCPCandidate(lcp_candidate, webview_id, pipeline_id, epoch) => {
+                self.painter_mut().append_lcp_candidate(
+                    lcp_candidate,
+                    webview_id,
+                    pipeline_id,
+                    epoch,
+                );
+            },
         }
     }
 
