@@ -425,11 +425,6 @@ jobs:
         run: sudo apt-get install -y lld
       - name: Run unit-tests with coverage
         shell: bash
-        env:
-          RUSTC_BOOTSTRAP: "1"
-          # lld seems to use less memory and prevents OOM errors during linking.
-          # We can remove this after upgrading to Rust 1.90, where lld will be the default.
-          RUSTFLAGS: "-Z linker-features=+lld"
         run: |
           ./mach test-unit --code-coverage \
               --profile=${{ steps.options.outputs.cargo_profile }} \
