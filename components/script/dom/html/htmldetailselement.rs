@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, Ref};
+use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
@@ -13,6 +15,7 @@ use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLDetailsElementBinding::HTMLDetailsElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLSlotElementBinding::HTMLSlotElement_Binding::HTMLSlotElementMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::UnionTypes::ElementOrText;
 use crate::dom::bindings::inheritance::Castable;
@@ -25,7 +28,10 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlslotelement::HTMLSlotElement;
-use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeDamage, NodeTraits};
+use crate::dom::node::{
+    BindContext, ChildrenMutation, IsShadowTree, Node, NodeDamage, NodeTraits, ShadowIncluding,
+    UnbindContext, VecPreOrderInsertionHelper,
+};
 use crate::dom::text::Text;
 use crate::dom::toggleevent::ToggleEvent;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -54,6 +60,73 @@ pub(crate) struct HTMLDetailsElement {
 
     /// Represents the UA widget for the details element
     shadow_tree: DomRefCell<Option<ShadowTree>>,
+}
+
+/// Tracks all [details name groups](https://html.spec.whatwg.org/multipage/#details-name-group)
+/// within a document.
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) struct DetailsNameGroups {
+    /// The root of the tree that detail groups are scoped to.
+    ///
+    /// This should always be either a shadow root or a document.
+    pub(crate) root: Dom<Node>,
+
+    /// Map from `name` attribute to a list of details elements in tree order.
+    pub(crate) groups: HashMap<DOMString, Vec<Dom<HTMLDetailsElement>>>,
+}
+
+/// Describes how to proceed in case two details elements in the same
+/// [details name groups](https://html.spec.whatwg.org/multipage/#details-name-group) are
+/// open at the same time
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ExclusivityConflictResolution {
+    CloseThisElement,
+    CloseExistingOpenElement,
+}
+
+impl DetailsNameGroups {
+    fn register_details_element(&mut self, details_element: &HTMLDetailsElement) {
+        let name = details_element.Name();
+        if name.is_empty() {
+            return;
+        }
+
+        debug!("Registering details element with name={name:?}");
+        let details_elements_with_the_same_name = self.groups.entry(name).or_default();
+
+        // Insert the slot before the first element that comes after it in tree order
+        details_elements_with_the_same_name.insert_pre_order(details_element, &self.root);
+    }
+
+    fn unregister_details_element(&mut self, details_element: &HTMLDetailsElement) {
+        let name = details_element.Name();
+        if name.is_empty() {
+            return;
+        }
+
+        debug!("Unregistering details element with name={name:?}");
+        let Entry::Occupied(mut entry) = self.groups.entry(name) else {
+            panic!("details element is not registered");
+        };
+        entry
+            .get_mut()
+            .retain(|group_member| details_element != &**group_member);
+    }
+
+    /// Returns an iterator over all members with the given name, except for `details`.
+    fn group_members_for(
+        &self,
+        name: &DOMString,
+        details: &HTMLDetailsElement,
+    ) -> impl Iterator<Item = DomRoot<HTMLDetailsElement>> {
+        self.groups
+            .get(name)
+            .map(|members| members.iter())
+            .expect("No details element with the given name was registered for the tree")
+            .filter(move |member| **member != details)
+            .map(|member| member.as_rooted())
+    }
 }
 
 impl HTMLDetailsElement {
@@ -232,9 +305,92 @@ impl HTMLDetailsElement {
             .upcast::<Element>()
             .set_string_attribute(&local_name!("style"), implicit_summary_style.into(), can_gc);
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#ensure-details-exclusivity-by-closing-the-given-element-if-needed>
+    /// <https://html.spec.whatwg.org/multipage/#ensure-details-exclusivity-by-closing-other-elements-if-needed>
+    fn ensure_details_exclusivity(
+        &self,
+        conflict_resolution_behaviour: ExclusivityConflictResolution,
+    ) {
+        // NOTE: This method implements two spec algorithms that are very similar to each other, distinguished by the
+        // `conflict_resolution_behaviour` argument. Steps that are different between the two are annotated with two
+        // spec comments.
+
+        // Step 1. Assert: element has an open attribute.
+        // Step 1. If element does not have an open attribute, then return.
+        if !self.Open() {
+            if conflict_resolution_behaviour ==
+                ExclusivityConflictResolution::CloseExistingOpenElement
+            {
+                unreachable!()
+            } else {
+                return;
+            }
+        }
+
+        // Step 2. If element does not have a name attribute, or its name attribute
+        // is the empty string, then return.
+        let name = self.Name();
+        if name.is_empty() {
+            return;
+        }
+
+        // Step 3. Let groupMembers be a list of elements, containing all elements in element's
+        // details name group except for element, in tree order.
+        // Step 4. For each element otherElement of groupMembers:
+        //     Step 4.1 If the open attribute is set on otherElement, then:
+        //         Step 4.1.1 Assert: otherElement is the only element in groupMembers that has the open attribute set.
+        //         Step 4.1.2 Remove the open attribute on otherElement.
+        //         Step 4.1.3 Break.
+        //
+        //         Step 4.1.1 Remove the open attribute on element.
+        //         Step 4.1.2 Break.
+        // NOTE: We implement an optimization that allows us to easily find details group members when the
+        // root of the tree is a document or shadow root, which is why this looks a bit more complicated.
+        let other_open_member = if let Some(shadow_root) = self.containing_shadow_root() {
+            shadow_root
+                .details_name_groups()
+                .group_members_for(&name, self)
+                .find(|group_member| group_member.Open())
+        } else if self.upcast::<Node>().is_in_a_document_tree() {
+            self.owner_document()
+                .details_name_groups()
+                .group_members_for(&name, self)
+                .find(|group_member| group_member.Open())
+        } else {
+            // This is the slow case, which is hopefully not too common.
+            self.upcast::<Node>()
+                .GetRootNode(&GetRootNodeOptions::empty())
+                .traverse_preorder(ShadowIncluding::No)
+                .flat_map(DomRoot::downcast::<HTMLDetailsElement>)
+                .filter(|details_element| {
+                    details_element
+                        .upcast::<Element>()
+                        .get_string_attribute(&local_name!("name")) ==
+                        name
+                })
+                .filter(|group_member| &**group_member != self)
+                .find(|group_member| group_member.Open())
+        };
+
+        if let Some(other_open_member) = other_open_member {
+            match conflict_resolution_behaviour {
+                ExclusivityConflictResolution::CloseThisElement => self.SetOpen(false),
+                ExclusivityConflictResolution::CloseExistingOpenElement => {
+                    other_open_member.SetOpen(false)
+                },
+            }
+        }
+    }
 }
 
 impl HTMLDetailsElementMethods<crate::DomTypeHolder> for HTMLDetailsElement {
+    // https://html.spec.whatwg.org/multipage/interactive-elements.html#dom-details-name
+    make_getter!(Name, "name");
+
+    // https://html.spec.whatwg.org/multipage/interactive-elements.html#dom-details-name
+    make_atomic_setter!(SetName, "name");
+
     // https://html.spec.whatwg.org/multipage/#dom-details-open
     make_bool_getter!(Open, "open");
 
@@ -252,10 +408,21 @@ impl VirtualMethods for HTMLDetailsElement {
             .unwrap()
             .attribute_mutated(attr, mutation, can_gc);
 
-        if attr.local_name() == &local_name!("open") {
+        // Step 1. If namespace is not null, then return.
+        if *attr.namespace() != ns!() {
+            return;
+        }
+
+        // Step 2. If localName is name, then ensure details exclusivity by closing the given element if needed
+        // given element.
+        if attr.local_name() == &local_name!("name") {
+            self.ensure_details_exclusivity(ExclusivityConflictResolution::CloseThisElement);
+        }
+        // Step 3. If localName is open, then:
+        else if attr.local_name() == &local_name!("open") {
             self.update_shadow_tree_styles(can_gc);
 
-            let counter = self.toggle_counter.get() + 1;
+            let counter = self.toggle_counter.get().wrapping_add(1);
             self.toggle_counter.set(counter);
             let (old_state, new_state) = if self.Open() {
                 ("closed", "open")
@@ -285,6 +452,12 @@ impl VirtualMethods for HTMLDetailsElement {
                     }
                 }));
             self.upcast::<Node>().dirty(NodeDamage::Other);
+
+            if self.Open() {
+                self.ensure_details_exclusivity(
+                    ExclusivityConflictResolution::CloseExistingOpenElement,
+                );
+            }
         }
     }
 
@@ -301,5 +474,44 @@ impl VirtualMethods for HTMLDetailsElement {
 
         self.update_shadow_tree_contents(can_gc);
         self.update_shadow_tree_styles(can_gc);
+
+        if context.tree_is_in_a_document_tree {
+            // If this is true then we can't have been in a document tree previously, so
+            // we register ourselves.
+            self.owner_document()
+                .details_name_groups()
+                .register_details_element(self);
+        }
+
+        let was_already_in_shadow_tree = context.is_shadow_tree == IsShadowTree::Yes;
+        if !was_already_in_shadow_tree {
+            if let Some(shadow_root) = self.containing_shadow_root() {
+                shadow_root
+                    .details_name_groups()
+                    .register_details_element(self);
+            }
+        }
+
+        self.ensure_details_exclusivity(ExclusivityConflictResolution::CloseThisElement);
+    }
+
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        self.super_type().unwrap().unbind_from_tree(context, can_gc);
+
+        if context.tree_is_in_a_document_tree && !self.upcast::<Node>().is_in_a_document_tree() {
+            self.owner_document()
+                .details_name_groups()
+                .unregister_details_element(self);
+        }
+
+        if !self.upcast::<Node>().is_in_a_shadow_tree() {
+            if let Some(old_shadow_root) = self.containing_shadow_root() {
+                // If we used to be in a shadow root, but aren't anymore, then unregister this details
+                // element.
+                old_shadow_root
+                    .details_name_groups()
+                    .unregister_details_element(self);
+            }
+        }
     }
 }

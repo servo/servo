@@ -7,6 +7,6 @@
 interface HTMLDetailsElement : HTMLElement {
     [HTMLConstructor] constructor();
 
-    [CEReactions]
-    attribute boolean open;
+    [CEReactions] attribute DOMString name;
+    [CEReactions] attribute boolean open;
 };
