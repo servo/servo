@@ -699,7 +699,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
     for debug_string in cmd_args.debug {
         let result = debug_options.extend(debug_string);
         if let Err(error) = result {
-            println!("error: urnecognized debug option: {}", error);
+            println!("error: unrecognized debug option: {}", error);
             return ArgumentParsingResult::ErrorParsing;
         }
     }
