@@ -3199,12 +3199,7 @@ impl Document {
     pub(crate) fn details_name_groups(&self) -> RefMut<'_, DetailsNameGroups> {
         RefMut::map(
             self.details_name_groups.borrow_mut(),
-            |details_name_groups| {
-                details_name_groups.get_or_insert_with(|| DetailsNameGroups {
-                    root: Dom::from_ref(self.upcast()),
-                    groups: Default::default(),
-                })
-            },
+            |details_name_groups| details_name_groups.get_or_insert_default(),
         )
     }
 }

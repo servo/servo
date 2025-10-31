@@ -30,7 +30,7 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlslotelement::HTMLSlotElement;
 use crate::dom::node::{
     BindContext, ChildrenMutation, IsShadowTree, Node, NodeDamage, NodeTraits, ShadowIncluding,
-    UnbindContext, VecPreOrderInsertionHelper,
+    UnbindContext,
 };
 use crate::dom::text::Text;
 use crate::dom::toggleevent::ToggleEvent;
@@ -64,15 +64,10 @@ pub(crate) struct HTMLDetailsElement {
 
 /// Tracks all [details name groups](https://html.spec.whatwg.org/multipage/#details-name-group)
 /// within a document.
-#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[derive(Clone, Default, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct DetailsNameGroups {
-    /// The root of the tree that detail groups are scoped to.
-    ///
-    /// This should always be either a shadow root or a document.
-    pub(crate) root: Dom<Node>,
-
-    /// Map from `name` attribute to a list of details elements in tree order.
+    /// Map from `name` attribute to a list of details elements.
     pub(crate) groups: HashMap<DOMString, Vec<Dom<HTMLDetailsElement>>>,
 }
 
@@ -95,8 +90,8 @@ impl DetailsNameGroups {
         debug!("Registering details element with name={name:?}");
         let details_elements_with_the_same_name = self.groups.entry(name).or_default();
 
-        // Insert the slot before the first element that comes after it in tree order
-        details_elements_with_the_same_name.insert_pre_order(details_element, &self.root);
+        // The spec tells us to keep the list in tree order, but that's not actually necessary.
+        details_elements_with_the_same_name.push(Dom::from_ref(details_element));
     }
 
     fn unregister_details_element(&mut self, details_element: &HTMLDetailsElement) {
@@ -385,10 +380,10 @@ impl HTMLDetailsElement {
 }
 
 impl HTMLDetailsElementMethods<crate::DomTypeHolder> for HTMLDetailsElement {
-    // https://html.spec.whatwg.org/multipage/interactive-elements.html#dom-details-name
+    // https://html.spec.whatwg.org/multipage/#dom-details-name
     make_getter!(Name, "name");
 
-    // https://html.spec.whatwg.org/multipage/interactive-elements.html#dom-details-name
+    // https://html.spec.whatwg.org/multipage/#dom-details-name
     make_atomic_setter!(SetName, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-details-open
