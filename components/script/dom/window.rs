@@ -845,13 +845,12 @@ impl Window {
     }
 
     pub(crate) fn web_font_context(&self) -> WebFontDocumentContext {
+        let global = self.as_global_scope();
         WebFontDocumentContext {
-            policy_container: self.as_global_scope().policy_container(),
-            document_url: self.as_global_scope().api_base_url(),
-            has_trustworthy_ancestor_origin: self
-                .as_global_scope()
-                .has_trustworthy_ancestor_origin(),
-            insecure_requests_policy: self.as_global_scope().insecure_requests_policy(),
+            policy_container: global.policy_container(),
+            document_url: global.api_base_url(),
+            has_trustworthy_ancestor_origin: global.has_trustworthy_ancestor_origin(),
+            insecure_requests_policy: global.insecure_requests_policy(),
         }
     }
 }
