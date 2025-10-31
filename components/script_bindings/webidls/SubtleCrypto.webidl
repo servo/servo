@@ -71,6 +71,11 @@ interface SubtleCrypto {
 // https://w3c.github.io/webcrypto/#dfn-NamedCurve
 typedef DOMString NamedCurve;
 
+// https://w3c.github.io/webcrypto/#dfn-EcKeyGenParams
+dictionary EcKeyGenParams : Algorithm {
+  required NamedCurve namedCurve;
+};
+
 // https://w3c.github.io/webcrypto/#dfn-EcKeyAlgorithm
 dictionary EcKeyAlgorithm : KeyAlgorithm {
   required NamedCurve namedCurve;
