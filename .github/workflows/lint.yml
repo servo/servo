@@ -103,6 +103,12 @@ jobs:
           crate: cargo-deny
           version: 0.18.3
           locked: true
+      - name: Install cargo-about
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: cargo-about
+          version: 0.8.2
+          locked: true
       - name: Bootstrap dependencies
         if: ${{ runner.environment != 'self-hosted' }}
         run: |
@@ -113,3 +119,5 @@ jobs:
           ./mach clippy --use-crown --locked --github-annotations -- -- --deny warnings
       - name: Tidy
         run: ./mach test-tidy --no-progress --all --github-annotations
+      - name: Check license.html is up to date
+        run: cargo about generate etc/about.hbs > resources/resource_protocol/license.html && git diff --exit-code resources/resource_protocol/license.html
