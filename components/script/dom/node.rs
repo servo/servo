@@ -974,17 +974,17 @@ impl Node {
 
     pub(crate) fn content_box(&self) -> Option<Rect<Au>> {
         self.owner_window()
-            .box_area_query(self, BoxAreaType::Content)
+            .box_area_query(self, BoxAreaType::Content, false)
     }
 
     pub(crate) fn border_box(&self) -> Option<Rect<Au>> {
         self.owner_window()
-            .box_area_query(self, BoxAreaType::Border)
+            .box_area_query(self, BoxAreaType::Border, false)
     }
 
     pub(crate) fn padding_box(&self) -> Option<Rect<Au>> {
         self.owner_window()
-            .box_area_query(self, BoxAreaType::Padding)
+            .box_area_query(self, BoxAreaType::Padding, false)
     }
 
     pub(crate) fn border_boxes(&self) -> Vec<Rect<Au>> {

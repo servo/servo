@@ -430,12 +430,14 @@ impl IntersectionObserver {
                     window.box_area_query_without_reflow(
                         &DomRoot::upcast::<Node>(element.clone()),
                         BoxAreaType::Padding,
+                        false,
                     )
                 } else {
                     // > Otherwise, it’s the result of getting the bounding box for the intersection root.
                     window.box_area_query_without_reflow(
                         &DomRoot::upcast::<Node>(element.clone()),
                         BoxAreaType::Border,
+                        false,
                     )
                 }
             },
@@ -515,9 +517,11 @@ impl IntersectionObserver {
 
         // Step 7
         // > Set targetRect to the DOMRectReadOnly obtained by getting the bounding box for target.
-        let maybe_target_rect = document
-            .window()
-            .box_area_query_without_reflow(target.upcast::<Node>(), BoxAreaType::Border);
+        let maybe_target_rect = document.window().box_area_query_without_reflow(
+            target.upcast::<Node>(),
+            BoxAreaType::Border,
+            false,
+        );
 
         // Following the implementation of Gecko, we will skip further processing if these
         // information not available. This would also handle display none element.
