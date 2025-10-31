@@ -27,7 +27,7 @@ use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use layout_api::{
     BoxAreaType, GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType,
-    LayoutNodeType, QueryMsg, SVGElementData, StyleData, TrustedNodeAddress,
+    LayoutNodeType, PhysicalSides, QueryMsg, SVGElementData, StyleData, TrustedNodeAddress,
 };
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -966,6 +966,10 @@ impl Node {
 
     pub(crate) fn to_trusted_node_address(&self) -> TrustedNodeAddress {
         TrustedNodeAddress(self as *const Node as *const libc::c_void)
+    }
+
+    pub(crate) fn padding(&self) -> Option<PhysicalSides> {
+        self.owner_window().padding_query_without_reflow(self)
     }
 
     pub(crate) fn content_box(&self) -> Option<Rect<Au>> {

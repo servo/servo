@@ -57,9 +57,9 @@ use js::rust::{
 };
 use layout_api::{
     BoxAreaType, ElementsFromPointFlags, ElementsFromPointResult, FragmentType, Layout,
-    LayoutImageDestination, PendingImage, PendingImageState, PendingRasterizationImage, QueryMsg,
-    ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, RestyleReason,
-    ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
+    LayoutImageDestination, PendingImage, PendingImageState, PendingRasterizationImage,
+    PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle,
+    RestyleReason, ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
     combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
@@ -2629,6 +2629,15 @@ impl Window {
             animations,
             document.current_animation_timeline_value(),
         )
+    }
+
+    /// Query the used padding values for the given node, but do not force a reflow.
+    /// This is used for things like `ResizeObserver` which should observe the value
+    /// from the most recent reflow, but do not need it to reflect the current state of
+    /// the DOM / style.
+    pub(crate) fn padding_query_without_reflow(&self, node: &Node) -> Option<PhysicalSides> {
+        let layout = self.layout.borrow();
+        layout.query_padding(node.to_trusted_node_address())
     }
 
     /// Do the same kind of query as `Self::box_area_query`, but do not force a reflow.

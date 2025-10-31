@@ -4,9 +4,12 @@
 
 use std::rc::Rc;
 
+use app_units::Au;
 use dom_struct::dom_struct;
 use euclid::Size2D;
 use euclid::default::Rect;
+use euclid::num::Zero;
+use html5ever::ns;
 use js::rust::HandleObject;
 
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -171,8 +174,12 @@ fn create_and_populate_a_resizeobserverentry(
     observation: &mut ResizeObservation,
     can_gc: CanGc,
 ) -> DomRoot<ResizeObserverEntry> {
+    // Step 3. Set this.borderBoxSize slot to result of calculating box size given target and observedBox of "border-box".
     let border_box_size = calculate_box_size(target, &ResizeObserverBoxOptions::Border_box);
+    // Step 4. Set this.contentBoxSize slot to result of calculating box size given target and observedBox of "content-box".
     let content_box_size = calculate_box_size(target, &ResizeObserverBoxOptions::Content_box);
+
+    // Step 5. Set this.devicePixelContentBoxSize slot to result of calculating box size given target and observedBox of "device-pixel-content-box".
     let device_pixel_content_box =
         calculate_box_size(target, &ResizeObserverBoxOptions::Device_pixel_content_box);
 
@@ -180,19 +187,37 @@ fn create_and_populate_a_resizeobserverentry(
     // initialized with one reported size (zero).
     // The spec plans to store multiple reported sizes,
     // but for now there can be only one.
-    let last_reported_size =
-        ResizeObserverSizeImpl::new(content_box_size.width(), content_box_size.height());
+    let last_size = match observation.observed_box {
+        ResizeObserverBoxOptions::Content_box => content_box_size,
+        ResizeObserverBoxOptions::Border_box => border_box_size,
+        ResizeObserverBoxOptions::Device_pixel_content_box => device_pixel_content_box,
+    };
+    let last_reported_size = ResizeObserverSizeImpl::new(last_size.width(), last_size.height());
     if observation.last_reported_sizes.is_empty() {
         observation.last_reported_sizes.push(last_reported_size);
     } else {
         observation.last_reported_sizes[0] = last_reported_size;
     }
 
+    // Step 7. If target is not an SVG element or target is an SVG element with an associated CSS layout box do these steps:
+    let use_padding = *target.namespace() != ns!(svg) || target.has_css_layout_box();
+    let (padding_top, padding_left) = if use_padding {
+        // Step 7.1. Set this.contentRect.top to target.padding top.
+        // Step 7.2. Set this.contentRect.left to target.padding left.
+        let padding = target.upcast::<Node>().padding().unwrap_or_default();
+        (padding.top, padding.left)
+    } else {
+        // Step 8. If target is an SVG element without an associated CSS layout box do these steps:
+        // Step 8.1. Set this.contentRect.top and this.contentRect.left to 0.
+        (Au::zero(), Au::zero())
+    };
+
+    // Step 6. Set this.contentRect to logical this.contentBoxSize given target and observedBox of "content-box".
     let content_rect = DOMRectReadOnly::new(
         window.upcast(),
         None,
-        content_box_size.origin.x,
-        content_box_size.origin.y,
+        padding_left.to_f64_px(),
+        padding_top.to_f64_px(),
         content_box_size.width(),
         content_box_size.height(),
         can_gc,
@@ -217,6 +242,8 @@ fn create_and_populate_a_resizeobserverentry(
         can_gc,
     );
 
+    // Step 1. Let this be a new ResizeObserverEntry.
+    // Step 2. Set this.target slot to target.
     ResizeObserverEntry::new(
         window,
         target,

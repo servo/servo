@@ -13,7 +13,7 @@ use itertools::Itertools;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use layout_api::{
     AxesOverflow, BoxAreaType, LayoutElementType, LayoutNodeType, OffsetParentResponse,
-    ScrollContainerQueryFlags, ScrollContainerResponse,
+    PhysicalSides, ScrollContainerQueryFlags, ScrollContainerResponse,
 };
 use script::layout_dom::{ServoLayoutNode, ServoThreadSafeLayoutNode};
 use servo_arc::Arc as ServoArc;
@@ -66,6 +66,25 @@ fn root_transform_for_layout_node(
         .borrow();
     let scroll_tree_node_id = box_fragment.spatial_tree_node()?;
     Some(scroll_tree.cumulative_node_to_root_transform(scroll_tree_node_id))
+}
+
+pub(crate) fn process_padding_request(
+    node: ServoThreadSafeLayoutNode<'_>,
+) -> Option<PhysicalSides> {
+    let fragments = node.fragments_for_pseudo(None);
+    let fragment = fragments.first()?;
+    Some(match fragment {
+        Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
+            let padding = box_fragment.borrow().padding;
+            PhysicalSides {
+                top: padding.top,
+                left: padding.left,
+                bottom: padding.bottom,
+                right: padding.right,
+            }
+        },
+        _ => Default::default(),
+    })
 }
 
 pub(crate) fn process_box_area_request(

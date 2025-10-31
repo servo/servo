@@ -26,8 +26,8 @@ use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use layout_api::wrapper_traits::LayoutNode;
 use layout_api::{
     BoxAreaType, IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutFactory,
-    OffsetParentResponse, PropertyRegistration, QueryMsg, ReflowGoal, ReflowPhasesRun,
-    ReflowRequest, ReflowRequestRestyle, ReflowResult, RegisterPropertyError,
+    OffsetParentResponse, PhysicalSides, PropertyRegistration, QueryMsg, ReflowGoal,
+    ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, ReflowResult, RegisterPropertyError,
     ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
 };
 use log::{debug, error, warn};
@@ -93,7 +93,7 @@ use crate::display_list::{
 use crate::query::{
     get_the_text_steps, process_box_area_request, process_box_areas_request,
     process_client_rect_request, process_node_scroll_area_request, process_offset_parent_query,
-    process_resolved_font_style_query, process_resolved_style_request,
+    process_padding_request, process_resolved_font_style_query, process_resolved_style_request,
     process_scroll_container_query, process_text_index_request,
 };
 use crate::traversal::{RecalcStyle, compute_damage_and_repair_style};
@@ -258,6 +258,19 @@ impl Layout for LayoutThread {
         self.stylist.remove_stylesheet(stylesheet.clone(), &guard);
         self.font_context
             .remove_all_web_fonts_from_stylesheet(&stylesheet);
+    }
+
+    /// Return the resolved values of this node's padding rect.
+    #[servo_tracing::instrument(skip_all)]
+    fn query_padding(&self, node: TrustedNodeAddress) -> Option<PhysicalSides> {
+        // If we have not built a fragment tree yet, there is no way we have layout information for
+        // this query, which can be run without forcing a layout (for IntersectionObserver).
+        if self.fragment_tree.borrow().is_none() {
+            return None;
+        }
+
+        let node = unsafe { ServoLayoutNode::new(&node) };
+        process_padding_request(node.to_threadsafe())
     }
 
     /// Return the union of this node's areas in the coordinate space of the Document. This is used
@@ -1657,6 +1670,7 @@ impl ReflowPhases {
                 QueryMsg::ClientRectQuery |
                 QueryMsg::ElementInnerOuterTextQuery |
                 QueryMsg::InnerWindowDimensionsQuery |
+                QueryMsg::PaddingQuery |
                 QueryMsg::ResolvedFontStyleQuery |
                 QueryMsg::ScrollParentQuery |
                 QueryMsg::StyleQuery |
