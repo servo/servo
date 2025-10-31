@@ -421,7 +421,7 @@ impl Painter {
 
     #[servo_tracing::instrument(skip_all)]
     pub(crate) fn render(&mut self, time_profiler_channel: &ProfilerChan) {
-        let refresh_driver = &self.refresh_driver.clone();
+        let refresh_driver = self.refresh_driver.clone();
         refresh_driver.notify_will_paint(self);
 
         if let Err(err) = self.rendering_context.make_current() {

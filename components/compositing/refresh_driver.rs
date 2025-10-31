@@ -62,7 +62,7 @@ impl BaseRefreshDriver {
         }
     }
 
-    pub(crate) fn notify_will_paint(&self, renderer: &mut Painter) {
+    pub(crate) fn notify_will_paint(&self, painter: &mut Painter) {
         // If we are still waiting for the frame to timeout this paint was caused for some
         // non-animation related reason and we should wait until the frame timeout to trigger
         // the next one.
@@ -73,7 +73,7 @@ impl BaseRefreshDriver {
         // Limit the borrow of `self.observers` to the minimum here.
         let still_has_observers = {
             let mut observers = self.observers.borrow_mut();
-            observers.retain(|observer| observer.frame_started(renderer));
+            observers.retain(|observer| observer.frame_started(painter));
             !observers.is_empty()
         };
 
@@ -115,7 +115,7 @@ pub(crate) trait RefreshDriverObserver {
     /// Informs the observer that a new frame has started. The observer should return
     /// `true` to keep observing or `false` if wants to stop observing and should be
     /// removed by the [`BaseRefreshDriver`].
-    fn frame_started(&self, compositor: &mut Painter) -> bool;
+    fn frame_started(&self, painter: &mut Painter) -> bool;
 }
 
 /// The [`AnimationRefreshDriverObserver`] is the default implementation of a
@@ -167,9 +167,9 @@ impl AnimationRefreshDriverObserver {
 }
 
 impl RefreshDriverObserver for AnimationRefreshDriverObserver {
-    fn frame_started(&self, compositor: &mut Painter) -> bool {
+    fn frame_started(&self, painter: &mut Painter) -> bool {
         // If any WebViews are animating ask them to paint again for another animation tick.
-        let animating_webviews = compositor.animating_webviews();
+        let animating_webviews = painter.animating_webviews();
 
         // If nothing is animating any longer, update our state and exit early without requesting
         // any new frames.
