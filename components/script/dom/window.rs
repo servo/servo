@@ -844,12 +844,14 @@ impl Window {
         with_script_thread(|script_thread| script_thread.perform_a_microtask_checkpoint(can_gc));
     }
 
-    pub fn new_document_context(&self) -> WebFontDocumentContext {
+    pub(crate) fn web_font_context(&self) -> WebFontDocumentContext {
         WebFontDocumentContext {
-            policy_container: self.global().policy_container(),
-            document_url: self.global().api_base_url(),
-            has_trustworthy_ancestor_origin: self.global().has_trustworthy_ancestor_origin(),
-            insecure_requests_policy: self.global().insecure_requests_policy(),
+            policy_container: self.as_global_scope().policy_container(),
+            document_url: self.as_global_scope().api_base_url(),
+            has_trustworthy_ancestor_origin: self
+                .as_global_scope()
+                .has_trustworthy_ancestor_origin(),
+            insecure_requests_policy: self.as_global_scope().insecure_requests_policy(),
         }
     }
 }
@@ -2460,8 +2462,7 @@ impl Window {
             None
         };
 
-        //Construct a new document context for the reflow.
-        let document_context = self.new_document_context();
+        let document_context = self.web_font_context();
 
         // Send new document and relevant styles to layout.
         let reflow = ReflowRequest {

@@ -411,8 +411,7 @@ impl FetchResponseListener for StylesheetContext {
                 StylesheetContextSource::Import { import_rule, media } => {
                     let stylesheet = stylesheet(media.clone());
 
-                    // Construct a new WebFontDocumentContext for the stylesheet
-                    let document_context = win.new_document_context();
+                    let document_context = win.web_font_context();
 
                     // Layout knows about this stylesheet, because Stylo added it to the Stylist,
                     // but Layout doesn't know about any new web fonts that it contains.

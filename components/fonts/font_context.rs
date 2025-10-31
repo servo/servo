@@ -109,6 +109,7 @@ pub struct FontContext {
     have_removed_web_fonts: AtomicBool,
 }
 
+/// Document-specific data required to fetch a web font.
 #[derive(Clone, Debug)]
 pub struct WebFontDocumentContext {
     pub policy_container: PolicyContainer,

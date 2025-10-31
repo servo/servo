@@ -4196,8 +4196,7 @@ impl Document {
             .cloned();
 
         if self.has_browsing_context() {
-            // Construct WebFontDocumentContext for font fetching
-            let document_context = self.window.new_document_context();
+            let document_context = self.window.web_font_context();
 
             self.window.layout_mut().add_stylesheet(
                 sheet.clone(),
@@ -4236,7 +4235,7 @@ impl Document {
             self.window.layout_mut().add_stylesheet(
                 sheet.clone(),
                 insertion_point.as_ref().map(|s| s.sheet.clone()),
-                &self.window.new_document_context(),
+                &self.window.web_font_context(),
             );
         }
 
