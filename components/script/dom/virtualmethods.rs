@@ -124,9 +124,9 @@ pub(crate) trait VirtualMethods {
     }
 
     /// Called on the parent when its children are changed.
-    fn children_changed(&self, mutation: &ChildrenMutation) {
+    fn children_changed(&self, mutation: &ChildrenMutation, _can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.children_changed(mutation);
+            s.children_changed(mutation, _can_gc);
         }
     }
 

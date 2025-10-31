@@ -299,8 +299,10 @@ impl VirtualMethods for HTMLStyleElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation) {
-        self.super_type().unwrap().children_changed(mutation);
+    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .children_changed(mutation, can_gc);
 
         // https://html.spec.whatwg.org/multipage/#update-a-style-block
         // Handles the case when:

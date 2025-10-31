@@ -1292,9 +1292,9 @@ impl VirtualMethods for HTMLScriptElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#script-processing-model:the-script-element-26>
-    fn children_changed(&self, mutation: &ChildrenMutation) {
+    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.children_changed(mutation);
+            s.children_changed(mutation, can_gc);
         }
 
         if self.upcast::<Node>().is_connected() && !self.parser_inserted.get() {

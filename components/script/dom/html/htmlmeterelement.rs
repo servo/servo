@@ -337,19 +337,21 @@ impl VirtualMethods for HTMLMeterElement {
                 &local_name!("value")
         );
         if is_important_attribute {
-            self.update_state(CanGc::note());
+            self.update_state(can_gc);
         }
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation) {
-        self.super_type().unwrap().children_changed(mutation);
+    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .children_changed(mutation, can_gc);
 
-        self.update_state(CanGc::note());
+        self.update_state(can_gc);
     }
 
     fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         self.super_type().unwrap().bind_to_tree(context, can_gc);
 
-        self.update_state(CanGc::note());
+        self.update_state(can_gc);
     }
 }

@@ -4517,9 +4517,9 @@ impl VirtualMethods for Element {
         doc.decrement_dom_count();
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation) {
+    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.children_changed(mutation);
+            s.children_changed(mutation, can_gc);
         }
 
         let flags = self.selector_flags.get();

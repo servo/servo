@@ -2538,7 +2538,8 @@ impl Node {
             for kid in new_nodes {
                 Node::remove(kid, node, SuppressObserver::Suppressed, can_gc);
             }
-            vtable_for(node).children_changed(&ChildrenMutation::replace_all(new_nodes, &[]));
+            vtable_for(node)
+                .children_changed(&ChildrenMutation::replace_all(new_nodes, &[]), can_gc);
 
             // Step 4.2. Queue a tree mutation record for node with « », nodes, null, and null.
             let mutation = LazyCell::new(|| Mutation::ChildList {
@@ -2636,11 +2637,10 @@ impl Node {
         if let SuppressObserver::Unsuppressed = suppress_observers {
             // Step 9. Run the children changed steps for parent.
             // TODO(xiaochengh): If we follow the spec and move it out of the if block, some WPT fail. Investigate.
-            vtable_for(parent).children_changed(&ChildrenMutation::insert(
-                previous_sibling.as_deref(),
-                new_nodes,
-                child,
-            ));
+            vtable_for(parent).children_changed(
+                &ChildrenMutation::insert(previous_sibling.as_deref(), new_nodes, child),
+                can_gc,
+            );
 
             // Step 8. If suppress observers flag is unset, then queue a tree mutation record for parent
             // with nodes, « », previousSibling, and child.
@@ -2717,10 +2717,10 @@ impl Node {
             Node::insert(node, parent, None, SuppressObserver::Suppressed, can_gc);
         }
         // Step 6.
-        vtable_for(parent).children_changed(&ChildrenMutation::replace_all(
-            removed_nodes.r(),
-            added_nodes,
-        ));
+        vtable_for(parent).children_changed(
+            &ChildrenMutation::replace_all(removed_nodes.r(), added_nodes),
+            can_gc,
+        );
 
         if !removed_nodes.is_empty() || !added_nodes.is_empty() {
             let mutation = LazyCell::new(|| Mutation::ChildList {
@@ -2845,12 +2845,15 @@ impl Node {
 
         // Step 16.
         if let SuppressObserver::Unsuppressed = suppress_observers {
-            vtable_for(parent).children_changed(&ChildrenMutation::replace(
-                old_previous_sibling.as_deref(),
-                &Some(node),
-                &[],
-                old_next_sibling.as_deref(),
-            ));
+            vtable_for(parent).children_changed(
+                &ChildrenMutation::replace(
+                    old_previous_sibling.as_deref(),
+                    &Some(node),
+                    &[],
+                    old_next_sibling.as_deref(),
+                ),
+                can_gc,
+            );
 
             let removed = [node];
             let mutation = LazyCell::new(|| Mutation::ChildList {
@@ -3640,12 +3643,15 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             can_gc,
         );
 
-        vtable_for(self).children_changed(&ChildrenMutation::replace(
-            previous_sibling.as_deref(),
-            &removed_child,
-            nodes,
-            reference_child,
-        ));
+        vtable_for(self).children_changed(
+            &ChildrenMutation::replace(
+                previous_sibling.as_deref(),
+                &removed_child,
+                nodes,
+                reference_child,
+            ),
+            can_gc,
+        );
 
         // Step 14. Queue a tree mutation record for parent with nodes, removedNodes,
         // previousSibling, and referenceChild.
@@ -4088,9 +4094,9 @@ impl VirtualMethods for Node {
         Some(self.upcast::<EventTarget>() as &dyn VirtualMethods)
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation) {
+    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.children_changed(mutation);
+            s.children_changed(mutation, can_gc);
         }
 
         if let Some(data) = self.rare_data().as_ref() {
