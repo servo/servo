@@ -14,7 +14,9 @@ mod stylo {
     pub(crate) use style::properties::generated::longhands::box_sizing::computed_value::T as BoxSizing;
     pub(crate) use style::properties::longhands::aspect_ratio::computed_value::T as AspectRatio;
     pub(crate) use style::properties::longhands::position::computed_value::T as Position;
-    pub(crate) use style::values::computed::length_percentage::Unpacked as UnpackedLengthPercentage;
+    pub(crate) use style::values::computed::length_percentage::{
+        CalcLengthPercentage, Unpacked as UnpackedLengthPercentage,
+    };
     pub(crate) use style::values::computed::{LengthPercentage, Percentage};
     pub(crate) use style::values::generics::NonNegative;
     pub(crate) use style::values::generics::length::{
