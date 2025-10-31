@@ -22,10 +22,10 @@ use servo::{
     AllowOrDenyRequest, ContextMenuResult, EmbedderControl, EmbedderControlId, ImeEvent,
     InputEvent, InputEventId, InputEventResult, KeyboardEvent, LoadStatus, MediaSessionActionType,
     MediaSessionEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
-    NavigationRequest, PermissionRequest, RefreshDriver, RenderingContext, ScreenGeometry, Scroll,
-    Servo, ServoDelegate, ServoError, TouchEvent, TouchEventType, TouchId, TraversalId,
-    WebDriverCommandMsg, WebDriverLoadStatus, WebDriverScriptCommand, WebView, WebViewBuilder,
-    WebViewDelegate, WindowRenderingContext,
+    NavigationRequest, PermissionRequest, RefreshDriver, RenderingContext, ScreenGeometry,
+    ScreenshotCaptureError, Scroll, Servo, ServoDelegate, ServoError, TouchEvent, TouchEventType,
+    TouchId, TraversalId, WebDriverCommandMsg, WebDriverLoadStatus, WebDriverScriptCommand,
+    WebView, WebViewBuilder, WebViewDelegate, WindowRenderingContext,
 };
 use url::Url;
 
@@ -781,6 +781,15 @@ impl RunningAppState {
                                 "Could not find WebView ({webview_id:?}) for WebDriver event: {input_event:?}"
                             );
                         };
+                    },
+                    WebDriverCommandMsg::TakeScreenshot(webview_id, rect, result_sender) => {
+                        if let Some(webview) = self.webview_by_id(webview_id) {
+                            self.handle_webdriver_screenshot(webview, rect, result_sender);
+                        } else if let Err(error) =
+                            result_sender.send(Err(ScreenshotCaptureError::WebViewDoesNotExist))
+                        {
+                            error!("Failed to send response to TakeScreenshot: {error}");
+                        }
                     },
                     _ => {
                         info!("Received unsupported WebDriver command: {:?}", msg);
