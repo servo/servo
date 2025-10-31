@@ -69,6 +69,8 @@ public class JNIServo {
 
     public native void setExperimentalMode(boolean enable);
 
+    public native void doFrame();
+
     public static class ServoOptions {
       public String args;
       public String url;

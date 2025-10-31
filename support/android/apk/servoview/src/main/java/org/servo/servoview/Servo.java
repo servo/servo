@@ -171,6 +171,10 @@ public class Servo {
         mRunCallback.inGLThread(() -> mJNI.setExperimentalMode(enable));
     }
 
+    public void onDoFrame() {
+        mRunCallback.inGLThread(() -> mJNI.doFrame());
+    }
+
     public interface Client {
         void onAlert(String message);
 
