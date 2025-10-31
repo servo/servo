@@ -680,7 +680,7 @@ impl WebGLRenderingContext {
                 };
 
                 let (alpha_treatment, y_axis_treatment) =
-                    self.get_current_unpack_state(Alpha::NotPremultiplied);
+                    self.get_current_unpack_state(snapshot.alpha_mode().alpha());
 
                 TexPixels::new(
                     snapshot.shared_memory(),
