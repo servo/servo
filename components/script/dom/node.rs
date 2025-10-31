@@ -27,7 +27,7 @@ use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use layout_api::{
     BoxAreaType, GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType,
-    LayoutNodeType, QueryMsg, SVGElementData, StyleData, TrustedNodeAddress,
+    LayoutNodeType, PhysicalSides, QueryMsg, SVGElementData, StyleData, TrustedNodeAddress,
 };
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -968,19 +968,23 @@ impl Node {
         TrustedNodeAddress(self as *const Node as *const libc::c_void)
     }
 
+    pub(crate) fn padding(&self) -> Option<PhysicalSides> {
+        self.owner_window().padding_query_without_reflow(self)
+    }
+
     pub(crate) fn content_box(&self) -> Option<Rect<Au>> {
         self.owner_window()
-            .box_area_query(self, BoxAreaType::Content)
+            .box_area_query(self, BoxAreaType::Content, false)
     }
 
     pub(crate) fn border_box(&self) -> Option<Rect<Au>> {
         self.owner_window()
-            .box_area_query(self, BoxAreaType::Border)
+            .box_area_query(self, BoxAreaType::Border, false)
     }
 
     pub(crate) fn padding_box(&self) -> Option<Rect<Au>> {
         self.owner_window()
-            .box_area_query(self, BoxAreaType::Padding)
+            .box_area_query(self, BoxAreaType::Padding, false)
     }
 
     pub(crate) fn border_boxes(&self) -> Vec<Rect<Au>> {

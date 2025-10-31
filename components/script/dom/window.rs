@@ -57,9 +57,9 @@ use js::rust::{
 };
 use layout_api::{
     BoxAreaType, ElementsFromPointFlags, ElementsFromPointResult, FragmentType, Layout,
-    LayoutImageDestination, PendingImage, PendingImageState, PendingRasterizationImage, QueryMsg,
-    ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, RestyleReason,
-    ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
+    LayoutImageDestination, PendingImage, PendingImageState, PendingRasterizationImage,
+    PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle,
+    RestyleReason, ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
     combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
@@ -2631,6 +2631,15 @@ impl Window {
         )
     }
 
+    /// Query the used padding values for the given node, but do not force a reflow.
+    /// This is used for things like `ResizeObserver` which should observe the value
+    /// from the most recent reflow, but do not need it to reflect the current state of
+    /// the DOM / style.
+    pub(crate) fn padding_query_without_reflow(&self, node: &Node) -> Option<PhysicalSides> {
+        let layout = self.layout.borrow();
+        layout.query_padding(node.to_trusted_node_address())
+    }
+
     /// Do the same kind of query as `Self::box_area_query`, but do not force a reflow.
     /// This is used for things like `IntersectionObserver` which should observe the value
     /// from the most recent reflow, but do not need it to reflect the current state of
@@ -2639,15 +2648,25 @@ impl Window {
         &self,
         node: &Node,
         area: BoxAreaType,
+        exclude_transform_and_inline: bool,
     ) -> Option<UntypedRect<Au>> {
         let layout = self.layout.borrow();
         layout.ensure_stacking_context_tree(self.viewport_details.get());
-        layout.query_box_area(node.to_trusted_node_address(), area)
+        layout.query_box_area(
+            node.to_trusted_node_address(),
+            area,
+            exclude_transform_and_inline,
+        )
     }
 
-    pub(crate) fn box_area_query(&self, node: &Node, area: BoxAreaType) -> Option<UntypedRect<Au>> {
+    pub(crate) fn box_area_query(
+        &self,
+        node: &Node,
+        area: BoxAreaType,
+        exclude_transform_and_inline: bool,
+    ) -> Option<UntypedRect<Au>> {
         self.layout_reflow(QueryMsg::BoxArea);
-        self.box_area_query_without_reflow(node, area)
+        self.box_area_query_without_reflow(node, area, exclude_transform_and_inline)
     }
 
     pub(crate) fn box_areas_query(&self, node: &Node, area: BoxAreaType) -> Vec<UntypedRect<Au>> {

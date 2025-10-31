@@ -13,7 +13,7 @@ use itertools::Itertools;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use layout_api::{
     AxesOverflow, BoxAreaType, LayoutElementType, LayoutNodeType, OffsetParentResponse,
-    ScrollContainerQueryFlags, ScrollContainerResponse,
+    PhysicalSides, ScrollContainerQueryFlags, ScrollContainerResponse,
 };
 use script::layout_dom::{ServoLayoutNode, ServoThreadSafeLayoutNode};
 use servo_arc::Arc as ServoArc;
@@ -68,14 +68,40 @@ fn root_transform_for_layout_node(
     Some(scroll_tree.cumulative_node_to_root_transform(scroll_tree_node_id))
 }
 
+pub(crate) fn process_padding_request(
+    node: ServoThreadSafeLayoutNode<'_>,
+) -> Option<PhysicalSides> {
+    let fragments = node.fragments_for_pseudo(None);
+    let fragment = fragments.first()?;
+    Some(match fragment {
+        Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
+            let padding = box_fragment.borrow().padding;
+            PhysicalSides {
+                top: padding.top,
+                left: padding.left,
+                bottom: padding.bottom,
+                right: padding.right,
+            }
+        },
+        _ => Default::default(),
+    })
+}
+
 pub(crate) fn process_box_area_request(
     stacking_context_tree: &StackingContextTree,
     node: ServoThreadSafeLayoutNode<'_>,
     area: BoxAreaType,
+    exclude_transform_and_inline: bool,
 ) -> Option<Rect<Au>> {
     let rects: Vec<_> = node
         .fragments_for_pseudo(None)
         .iter()
+        .filter(|fragment| {
+            !exclude_transform_and_inline ||
+                fragment
+                    .retrieve_box_fragment()
+                    .is_none_or(|fragment| !fragment.borrow().is_inline_box())
+        })
         .filter_map(|node| node.cumulative_box_area_rect(area))
         .collect();
     if rects.is_empty() {
@@ -84,6 +110,10 @@ pub(crate) fn process_box_area_request(
     let rect_union = rects.iter().fold(Rect::zero(), |unioned_rect, rect| {
         rect.to_untyped().union(&unioned_rect)
     });
+
+    if exclude_transform_and_inline {
+        return Some(rect_union);
+    }
 
     let Some(transform) =
         root_transform_for_layout_node(&stacking_context_tree.compositor_info.scroll_tree, node)
