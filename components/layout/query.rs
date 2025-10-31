@@ -91,10 +91,17 @@ pub(crate) fn process_box_area_request(
     stacking_context_tree: &StackingContextTree,
     node: ServoThreadSafeLayoutNode<'_>,
     area: BoxAreaType,
+    exclude_transform_and_inline: bool,
 ) -> Option<Rect<Au>> {
     let rects: Vec<_> = node
         .fragments_for_pseudo(None)
         .iter()
+        .filter(|fragment| {
+            !exclude_transform_and_inline ||
+                fragment
+                    .retrieve_box_fragment()
+                    .is_none_or(|fragment| !fragment.borrow().is_inline_box())
+        })
         .filter_map(|node| node.cumulative_box_area_rect(area))
         .collect();
     if rects.is_empty() {
@@ -103,6 +110,10 @@ pub(crate) fn process_box_area_request(
     let rect_union = rects.iter().fold(Rect::zero(), |unioned_rect, rect| {
         rect.to_untyped().union(&unioned_rect)
     });
+
+    if exclude_transform_and_inline {
+        return Some(rect_union);
+    }
 
     let Some(transform) =
         root_transform_for_layout_node(&stacking_context_tree.compositor_info.scroll_tree, node)
