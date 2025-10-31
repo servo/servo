@@ -16,6 +16,8 @@ use servo::{
     WebDriverSenders, WebView,
 };
 
+use crate::prefs::ServoShellPreferences;
+
 pub struct RunningAppStateBase {
     pub(crate) webdriver_senders: RefCell<WebDriverSenders>,
 
@@ -23,13 +25,17 @@ pub struct RunningAppStateBase {
     /// to inform the WebDriver server when the event has been fully handled. This map is used
     /// to report back to WebDriver when that happens.
     pub(crate) pending_webdriver_events: RefCell<HashMap<InputEventId, Sender<()>>>,
+
+    /// servoshell specific preferences created during startup of the application.
+    pub(crate) servoshell_preferences: ServoShellPreferences,
 }
 
 impl RunningAppStateBase {
-    pub fn new() -> Self {
+    pub fn new(servoshell_preferences: ServoShellPreferences) -> Self {
         Self {
             webdriver_senders: RefCell::default(),
             pending_webdriver_events: Default::default(),
+            servoshell_preferences,
         }
     }
 }
@@ -39,6 +45,10 @@ pub trait RunningAppStateTrait {
 
     #[allow(dead_code)]
     fn base_mut(&mut self) -> &mut RunningAppStateBase;
+
+    fn servoshell_preferences(&self) -> &ServoShellPreferences {
+        &self.base().servoshell_preferences
+    }
 
     fn set_pending_traversal(
         &self,
