@@ -69,7 +69,6 @@ pub(crate) fn verify(key: &CryptoKey, message: &[u8], signature: &[u8]) -> Resul
 }
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-generate-key>
-#[allow(unsafe_code)]
 pub(crate) fn generate_key(
     global: &GlobalScope,
     normalized_algorithm: &SubtleHmacKeyGenParams,
@@ -148,7 +147,6 @@ pub(crate) fn generate_key(
 }
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-import-key>
-#[allow(unsafe_code)]
 pub(crate) fn import_key(
     global: &GlobalScope,
     normalized_algorithm: &SubtleHmacImportParams,
