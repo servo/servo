@@ -17,7 +17,7 @@ updates:
   groups:
     accesskit-related:
       patterns:
-        - "accesskit_*"
+        - "accesskit*"
     egui-related:
       patterns:
         - "ecolor"
