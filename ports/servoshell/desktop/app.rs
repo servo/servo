@@ -535,20 +535,13 @@ impl App {
                     running_state.set_alert_text_of_newest_dialog(webview_id, text);
                 },
                 WebDriverCommandMsg::TakeScreenshot(webview_id, rect, result_sender) => {
-                    let Some(webview) = running_state.webview_by_id(webview_id) else {
-                        if let Err(error) =
-                            result_sender.send(Err(ScreenshotCaptureError::WebViewDoesNotExist))
-                        {
-                            warn!("Failed to send response to TakeScreenshot: {error}");
-                        }
-                        continue;
-                    };
-                    let rect = rect.map(|rect| rect.to_box2d().into());
-                    webview.take_screenshot(rect, move |result| {
-                        if let Err(error) = result_sender.send(result) {
-                            warn!("Failed to send response to TakeScreenshot: {error}");
-                        }
-                    });
+                    if let Some(webview) = running_state.webview_by_id(webview_id) {
+                        running_state.handle_webdriver_screenshot(webview, rect, result_sender);
+                    } else if let Err(error) =
+                        result_sender.send(Err(ScreenshotCaptureError::WebViewDoesNotExist))
+                    {
+                        error!("Failed to send response to TakeScreenshot: {error}");
+                    }
                 },
             };
         }

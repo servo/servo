@@ -8,12 +8,16 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 use crossbeam_channel::Sender;
+use euclid::Rect;
+use image::RgbaImage;
+use log::warn;
 use servo::base::generic_channel::GenericSender;
 use servo::base::id::WebViewId;
 use servo::ipc_channel::ipc::IpcSender;
+use servo::style_traits::CSSPixel;
 use servo::{
-    InputEvent, InputEventId, TraversalId, WebDriverJSResult, WebDriverLoadStatus,
-    WebDriverSenders, WebView,
+    InputEvent, InputEventId, ScreenshotCaptureError, TraversalId, WebDriverJSResult,
+    WebDriverLoadStatus, WebDriverSenders, WebView,
 };
 
 pub struct RunningAppStateBase {
@@ -92,5 +96,19 @@ pub trait RunningAppStateTrait {
                 .borrow_mut()
                 .insert(event_id, response_sender);
         }
+    }
+
+    fn handle_webdriver_screenshot(
+        &self,
+        webview: WebView,
+        rect: Option<Rect<f32, CSSPixel>>,
+        result_sender: Sender<Result<RgbaImage, ScreenshotCaptureError>>,
+    ) {
+        let rect = rect.map(|rect| rect.to_box2d().into());
+        webview.take_screenshot(rect, move |result| {
+            if let Err(error) = result_sender.send(result) {
+                warn!("Failed to send response to TakeScreenshot: {error}");
+            }
+        });
     }
 }
