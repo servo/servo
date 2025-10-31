@@ -2194,7 +2194,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -2639,7 +2639,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3249,7 +3249,7 @@ dependencies = [
  "gobject-sys",
  "libc",
  "system-deps 7.0.5",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3274,9 +3274,9 @@ dependencies = [
 
 [[package]]
 name = "glib"
-version = "0.21.3"
+version = "0.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1f2cbc4577536c849335878552f42086bfd25a8dcd6f54a18655cf818b20c8f"
+checksum = "5b9dbecb1c33e483a98be4acfea2ab369e1c28f517c6eadb674537409c25c4b2"
 dependencies = [
  "bitflags 2.10.0",
  "futures-channel",
@@ -3295,9 +3295,9 @@ dependencies = [
 
 [[package]]
 name = "glib-macros"
-version = "0.21.2"
+version = "0.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "55eda916eecdae426d78d274a17b48137acdca6fba89621bd3705f2835bc719f"
+checksum = "880e524e0085f3546cfb38532b2c202c0d64741d9977a6e4aa24704bfc9f19fb"
 dependencies = [
  "heck 0.5.0",
  "proc-macro-crate",
@@ -4763,7 +4763,7 @@ checksum = "3640c1c38b8e4e43584d8df18be5fc6b0aa314ce6ebf51b53313d4306cca8e46"
 dependencies = [
  "hermit-abi",
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -5798,7 +5798,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -7374,7 +7374,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.11.0",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -8914,7 +8914,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix 1.1.2",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -10436,7 +10436,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
