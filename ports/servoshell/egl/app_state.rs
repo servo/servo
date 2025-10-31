@@ -78,8 +78,6 @@ pub struct RunningAppState {
     callbacks: Rc<ServoWindowCallbacks>,
     refresh_driver: Option<Rc<VsyncRefreshDriver>>,
     inner: RefCell<RunningAppStateInner>,
-    /// servoshell specific preferences created during startup of the application.
-    servoshell_preferences: ServoShellPreferences,
     /// A [`Receiver`] for receiving commands from a running WebDriver server, if WebDriver
     /// was enabled.
     webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
@@ -418,12 +416,11 @@ impl RunningAppState {
         }));
 
         let app_state = Rc::new(Self {
-            base: RunningAppStateBase::new(),
+            base: RunningAppStateBase::new(servoshell_preferences),
             rendering_context,
             servo,
             callbacks,
             refresh_driver,
-            servoshell_preferences,
             webdriver_receiver,
             inner: RefCell::new(RunningAppStateInner {
                 need_present: false,
@@ -574,9 +571,10 @@ impl RunningAppState {
     pub fn load_uri(&self, url: &str) {
         info!("load_uri: {}", url);
 
-        let Some(url) =
-            crate::parser::location_bar_input_to_url(url, &self.servoshell_preferences.searchpage)
-        else {
+        let Some(url) = crate::parser::location_bar_input_to_url(
+            url,
+            &self.servoshell_preferences().searchpage,
+        ) else {
             warn!("Cannot parse URL");
             return;
         };
@@ -992,7 +990,7 @@ impl RunningAppState {
         self.active_webview().paint();
         self.rendering_context.present();
 
-        if self.servoshell_preferences.exit_after_stable_image &&
+        if self.servoshell_preferences().exit_after_stable_image &&
             self.inner().achieved_stable_image.get()
         {
             self.request_shutdown();
@@ -1002,8 +1000,8 @@ impl RunningAppState {
     /// If we are exiting after achieving a stable image or we want to save the display of the
     /// [`WebView`] to an image file, request a screenshot of the [`WebView`].
     fn maybe_request_screenshot(&self, webview: WebView) {
-        let output_path = self.servoshell_preferences.output_image_path.clone();
-        if !self.servoshell_preferences.exit_after_stable_image && output_path.is_none() {
+        let output_path = self.servoshell_preferences().output_image_path.clone();
+        if !self.servoshell_preferences().exit_after_stable_image && output_path.is_none() {
             return;
         }
 

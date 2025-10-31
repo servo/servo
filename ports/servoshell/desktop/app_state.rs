@@ -44,9 +44,6 @@ pub(crate) struct RunningAppState {
     /// `inner` so that we can keep a reference to Servo in order to spin the event loop,
     /// which will in turn call delegates doing a mutable borrow on `inner`.
     servo: Servo,
-    /// The preferences for this run of servoshell. This is not mutable, so doesn't need to
-    /// be stored inside the [`RunningAppStateInner`].
-    servoshell_preferences: ServoShellPreferences,
     /// A [`Receiver`] for receiving commands from a running WebDriver server, if WebDriver
     /// was enabled.
     webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
@@ -128,9 +125,8 @@ impl RunningAppState {
             None
         };
         RunningAppState {
-            base: RunningAppStateBase::new(),
+            base: RunningAppStateBase::new(servoshell_preferences),
             servo,
-            servoshell_preferences,
             webdriver_receiver,
             inner: RefCell::new(RunningAppStateInner {
                 webviews: HashMap::default(),
@@ -230,7 +226,7 @@ impl RunningAppState {
 
         self.inner_mut().dialog_amount_changed = false;
 
-        if self.servoshell_preferences.exit_after_stable_image &&
+        if self.servoshell_preferences().exit_after_stable_image &&
             self.inner().achieved_stable_image.get()
         {
             self.servo.start_shutting_down();
@@ -296,7 +292,7 @@ impl RunningAppState {
             Some(last_created_webview) => {
                 last_created_webview.focus();
             },
-            None if self.servoshell_preferences.webdriver_port.is_none() => {
+            None if self.servoshell_preferences().webdriver_port.is_none() => {
                 self.servo.start_shutting_down()
             },
             None => {
@@ -434,8 +430,8 @@ impl RunningAppState {
             let _ = sender.send(WebDriverLoadStatus::Blocked);
         };
 
-        if self.servoshell_preferences.headless &&
-            self.servoshell_preferences.webdriver_port.is_none()
+        if self.servoshell_preferences().headless &&
+            self.servoshell_preferences().webdriver_port.is_none()
         {
             // TODO: Avoid copying this from the default trait impl?
             // Return the DOM-specified default value for when we **cannot show simple dialogs**.
@@ -495,8 +491,8 @@ impl RunningAppState {
     /// If we are exiting after achieving a stable image or we want to save the display of the
     /// [`WebView`] to an image file, request a screenshot of the [`WebView`].
     fn maybe_request_screenshot(&self, webview: WebView) {
-        let output_path = self.servoshell_preferences.output_image_path.clone();
-        if !self.servoshell_preferences.exit_after_stable_image && output_path.is_none() {
+        let output_path = self.servoshell_preferences().output_image_path.clone();
+        if !self.servoshell_preferences().exit_after_stable_image && output_path.is_none() {
             return;
         }
 
@@ -591,8 +587,8 @@ impl WebViewDelegate for RunningAppState {
         webview: WebView,
         authentication_request: AuthenticationRequest,
     ) {
-        if self.servoshell_preferences.headless &&
-            self.servoshell_preferences.webdriver_port.is_none()
+        if self.servoshell_preferences().headless &&
+            self.servoshell_preferences().webdriver_port.is_none()
         {
             return;
         }
@@ -616,7 +612,7 @@ impl WebViewDelegate for RunningAppState {
         // When WebDriver is enabled, do not focus and raise the WebView to the top,
         // as that is what the specification expects. Otherwise, we would like `window.open()`
         // to create a new foreground tab
-        if self.servoshell_preferences.webdriver_port.is_none() {
+        if self.servoshell_preferences().webdriver_port.is_none() {
             webview.focus_and_raise_to_top(true);
         }
         self.add(webview.clone());
@@ -696,8 +692,8 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn request_permission(&self, webview: servo::WebView, permission_request: PermissionRequest) {
-        if self.servoshell_preferences.headless &&
-            self.servoshell_preferences.webdriver_port.is_none()
+        if self.servoshell_preferences().headless &&
+            self.servoshell_preferences().webdriver_port.is_none()
         {
             permission_request.deny();
             return;
@@ -742,8 +738,8 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn show_embedder_control(&self, webview: WebView, embedder_control: EmbedderControl) {
-        if self.servoshell_preferences.headless &&
-            self.servoshell_preferences.webdriver_port.is_none()
+        if self.servoshell_preferences().headless &&
+            self.servoshell_preferences().webdriver_port.is_none()
         {
             return;
         }
