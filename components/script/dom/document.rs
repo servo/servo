@@ -157,6 +157,7 @@ use crate::dom::html::htmliframeelement::HTMLIFrameElement;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::html::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use crate::dom::html::htmltitleelement::HTMLTitleElement;
+use crate::dom::htmldetailselement::DetailsNameGroups;
 use crate::dom::intersectionobserver::IntersectionObserver;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::location::{Location, NavigationType};
@@ -611,6 +612,9 @@ pub(crate) struct Document {
 
     /// All websockets created that are associated with this document.
     websockets: DOMTracker<WebSocket>,
+
+    /// <https://html.spec.whatwg.org/multipage/#details-name-group>
+    details_name_groups: DomRefCell<Option<DetailsNameGroups>>,
 }
 
 #[allow(non_snake_case)]
@@ -3265,6 +3269,18 @@ impl Document {
 
         Ok(())
     }
+
+    pub(crate) fn details_name_groups(&self) -> RefMut<'_, DetailsNameGroups> {
+        RefMut::map(
+            self.details_name_groups.borrow_mut(),
+            |details_name_groups| {
+                details_name_groups.get_or_insert_with(|| DetailsNameGroups {
+                    root: Dom::from_ref(self.upcast()),
+                    groups: Default::default(),
+                })
+            },
+        )
+    }
 }
 
 #[derive(MallocSizeOf, PartialEq)]
@@ -3591,6 +3607,7 @@ impl Document {
             creation_sandboxing_flag_set: Cell::new(creation_sandboxing_flag_set),
             favicon: RefCell::new(None),
             websockets: DOMTracker::new(),
+            details_name_groups: Default::default(),
         }
     }
 
