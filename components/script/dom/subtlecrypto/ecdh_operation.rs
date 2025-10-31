@@ -3,24 +3,31 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use base64::prelude::*;
-use elliptic_curve::sec1::{FromEncodedPoint, ValidatePublicKey};
+use elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint, ValidatePublicKey};
 use p256::NistP256;
 use p384::NistP384;
 use p521::NistP521;
 use pkcs8::der::Decode;
-use pkcs8::{AssociatedOid, ObjectIdentifier, PrivateKeyInfo, SubjectPublicKeyInfo};
+use pkcs8::spki::EncodePublicKey;
+use pkcs8::{
+    AssociatedOid, EncodePrivateKey, ObjectIdentifier, PrivateKeyInfo, SubjectPublicKeyInfo,
+};
 use sec1::der::asn1::BitString;
 use sec1::{EcPrivateKey, EncodedPoint};
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsage};
+use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
+    CryptoKeyMethods, KeyType, KeyUsage,
+};
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_ECDH, JsonWebKeyExt, KeyAlgorithmAndDerivatives, NAMED_CURVE_P256, NAMED_CURVE_P384,
-    NAMED_CURVE_P521, SUPPORTED_CURVES, SubtleEcKeyAlgorithm, SubtleEcKeyImportParams,
+    ALG_ECDH, ExportedKey, JsonWebKeyExt, KeyAlgorithmAndDerivatives, NAMED_CURVE_P256,
+    NAMED_CURVE_P384, NAMED_CURVE_P521, SUPPORTED_CURVES, SubtleEcKeyAlgorithm,
+    SubtleEcKeyImportParams,
 };
 use crate::script_runtime::CanGc;
 
@@ -618,4 +625,306 @@ pub(crate) fn import_key(
 
     // Step 3. Return key.
     Ok(key)
+}
+
+/// <https://w3c.github.io/webcrypto/#ecdh-operations-export-key>
+pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+    // Step 1. Let key be the CryptoKey to be exported.
+
+    // Step 2. If the underlying cryptographic key material represented by the [[handle]] internal
+    // slot of key cannot be accessed, then throw an OperationError.
+    // NOTE: Done in Step 3.
+
+    // Step 3.
+    let result = match format {
+        KeyFormat::Spki => {
+            // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
+            // InvalidAccessError.
+            if key.Type() != KeyType::Public {
+                return Err(Error::InvalidAccess);
+            }
+
+            // Step 3.2.
+            // Let data be an instance of the SubjectPublicKeyInfo ASN.1 structure defined in
+            // [RFC5280] with the following properties:
+            //     * Set the algorithm field to an AlgorithmIdentifier ASN.1 type with the
+            //     following properties:
+            //         * Set the algorithm field to the OID id-ecPublicKey defined in [RFC5480].
+            //         * Set the parameters field to an instance of the ECParameters ASN.1 type
+            //         defined in [RFC5480] as follows:
+            //             If the namedCurve attribute of the [[algorithm]] internal slot of key is
+            //             "P-256", "P-384" or "P-521":
+            //                 Let keyData be the byte sequence that represents the Elliptic Curve
+            //                 public key represented by the [[handle]] internal slot of key
+            //                 according to the encoding rules specified in Section 2.3.3 of [SEC1]
+            //                 and using the uncompressed form.
+            //                     If the namedCurve attribute of the [[algorithm]] internal slot
+            //                     of key is "P-256":
+            //                         Set parameters to the namedCurve choice with value equal to
+            //                         the object identifier secp256r1 defined in [RFC5480]
+            //                     If the namedCurve attribute of the [[algorithm]] internal slot
+            //                     of key is "P-384":
+            //                         Set parameters to the namedCurve choice with value equal to
+            //                         the object identifier secp384r1 defined in [RFC5480]
+            //                     If the namedCurve attribute of the [[algorithm]] internal slot
+            //                     of key is "P-521":
+            //                         Set parameters to the namedCurve choice with value equal to
+            //                         the object identifier secp521r1 defined in [RFC5480]
+            //             Otherwise:
+            //                 1. Perform any key export steps defined by other applicable
+            //                    specifications, passing format and the namedCurve attribute of
+            //                    the [[algorithm]] internal slot of key and obtaining
+            //                    namedCurveOid and keyData.
+            //                 2. Set parameters to the namedCurve choice with value equal to the
+            //                    object identifier namedCurveOid.
+            //     * Set the subjectPublicKey field to keyData
+            let data = match key.handle() {
+                Handle::P256PublicKey(public_key) => public_key.to_public_key_der(),
+                Handle::P384PublicKey(public_key) => public_key.to_public_key_der(),
+                Handle::P521PublicKey(public_key) => public_key.to_public_key_der(),
+                _ => return Err(Error::Operation),
+            }
+            .map_err(|_| Error::Operation)?;
+
+            ExportedKey::Raw(data.to_vec())
+        },
+        KeyFormat::Pkcs8 => {
+            // Step 3.1. If the [[type]] internal slot of key is not "private", then throw an
+            // InvalidAccessError.
+            if key.Type() != KeyType::Private {
+                return Err(Error::InvalidAccess);
+            }
+
+            // Step 3.2.
+            // Let data be an instance of the PrivateKeyInfo ASN.1 structure defined in [RFC5208]
+            // with the following properties:
+            //     * Set the version field to 0.
+            //     * Set the privateKeyAlgorithm field to a PrivateKeyAlgorithmIdentifier ASN.1
+            //     type with the following properties:
+            //         * Set the algorithm field to the OID id-ecPublicKey defined in [RFC5480].
+            //         * Set the parameters field to an instance of the ECParameters ASN.1 type
+            //         defined in [RFC5480] as follows:
+            //             If the namedCurve attribute of the [[algorithm]] internal slot of key is
+            //             "P-256", "P-384" or "P-521":
+            //                 Let keyData be the result of DER-encoding an instance of the
+            //                 ECPrivateKey structure defined in Section 3 of [RFC5915] for the
+            //                 Elliptic Curve private key represented by the [[handle]] internal
+            //                 slot of key and that conforms to the following:
+            //                     * The parameters field is present, and is equivalent to the
+            //                     parameters field of the privateKeyAlgorithm field of this
+            //                     PrivateKeyInfo ASN.1 structure.
+            //                     * The publicKey field is present and represents the Elliptic
+            //                     Curve public key associated with the Elliptic Curve private key
+            //                     represented by the [[handle]] internal slot of key.
+            //                     * If the namedCurve attribute of the [[algorithm]] internal slot
+            //                     of key is "P-256":
+            //                         Set parameters to the namedCurve choice with value equal to
+            //                         the object identifier secp256r1 defined in [RFC5480]
+            //                     * If the namedCurve attribute of the [[algorithm]] internal slot
+            //                     of key is "P-384":
+            //                         Set parameters to the namedCurve choice with value equal to
+            //                         the object identifier secp384r1 defined in [RFC5480]
+            //                     * If the namedCurve attribute of the [[algorithm]] internal slot
+            //                     of key is "P-521":
+            //                         Set parameters to the namedCurve choice with value equal to
+            //                         the object identifier secp521r1 defined in [RFC5480]
+            //             Otherwise:
+            //                 1. Perform any key export steps defined by other applicable
+            //                    specifications, passing format and the namedCurve attribute of
+            //                    the [[algorithm]] internal slot of key and obtaining
+            //                    namedCurveOid and keyData.
+            //                 2. Set parameters to the namedCurve choice with value equal to the
+            //                    object identifier namedCurveOid.
+            //     * Set the privateKey field to keyData.
+            let data = match key.handle() {
+                Handle::P256PrivateKey(private_key) => private_key.to_pkcs8_der(),
+                Handle::P384PrivateKey(private_key) => private_key.to_pkcs8_der(),
+                Handle::P521PrivateKey(private_key) => private_key.to_pkcs8_der(),
+                _ => return Err(Error::Operation),
+            }
+            .map_err(|_| Error::Operation)?;
+
+            ExportedKey::Raw(data.as_bytes().to_vec())
+        },
+        KeyFormat::Jwk => {
+            // Step 3.1. Let jwk be a new JsonWebKey dictionary.
+            // Step 3.2. Set the kty attribute of jwk to "EC".
+            let mut jwk = JsonWebKey {
+                kty: Some(DOMString::from("EC")),
+                ..Default::default()
+            };
+
+            // Step 3.3.
+            let named_curve =
+                if let KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm) = key.algorithm() {
+                    algorithm.named_curve.as_str()
+                } else {
+                    return Err(Error::Operation);
+                };
+            // If the namedCurve attribute of the [[algorithm]] internal slot of key is "P-256",
+            // "P-384" or "P-521":
+            if matches!(
+                named_curve,
+                NAMED_CURVE_P256 | NAMED_CURVE_P384 | NAMED_CURVE_P521
+            ) {
+                // Step 3.3.1.
+                // If the namedCurve attribute of the [[algorithm]] internal slot of key is
+                // "P-256":
+                //     Set the crv attribute of jwk to "P-256"
+                // If the namedCurve attribute of the [[algorithm]] internal slot of key is
+                // "P-384":
+                //     Set the crv attribute of jwk to "P-384"
+                // If the namedCurve attribute of the [[algorithm]] internal slot of key is
+                // "P-521":
+                //     Set the crv attribute of jwk to "P-521"
+                jwk.crv = Some(DOMString::from(named_curve));
+
+                // Step 3.3.2. Set the x attribute of jwk according to the definition in Section
+                // 6.2.1.2 of JSON Web Algorithms [JWA].
+                // Step 3.3.3. Set the y attribute of jwk according to the definition in Section
+                // 6.2.1.3 of JSON Web Algorithms [JWA].
+                let (x, y) = match key.handle() {
+                    Handle::P256PublicKey(public_key) => {
+                        let encoded_point = public_key.to_encoded_point(false);
+                        (
+                            encoded_point.x().ok_or(Error::Operation)?.to_vec(),
+                            encoded_point.y().ok_or(Error::Operation)?.to_vec(),
+                        )
+                    },
+                    Handle::P384PublicKey(public_key) => {
+                        let encoded_point = public_key.to_encoded_point(false);
+                        (
+                            encoded_point.x().ok_or(Error::Operation)?.to_vec(),
+                            encoded_point.y().ok_or(Error::Operation)?.to_vec(),
+                        )
+                    },
+                    Handle::P521PublicKey(public_key) => {
+                        let encoded_point = public_key.to_encoded_point(false);
+                        (
+                            encoded_point.x().ok_or(Error::Operation)?.to_vec(),
+                            encoded_point.y().ok_or(Error::Operation)?.to_vec(),
+                        )
+                    },
+                    Handle::P256PrivateKey(private_key) => {
+                        let public_key = private_key.public_key();
+                        let encoded_point = public_key.to_encoded_point(false);
+                        (
+                            encoded_point.x().ok_or(Error::Operation)?.to_vec(),
+                            encoded_point.y().ok_or(Error::Operation)?.to_vec(),
+                        )
+                    },
+                    Handle::P384PrivateKey(private_key) => {
+                        let public_key = private_key.public_key();
+                        let encoded_point = public_key.to_encoded_point(false);
+                        (
+                            encoded_point.x().ok_or(Error::Operation)?.to_vec(),
+                            encoded_point.y().ok_or(Error::Operation)?.to_vec(),
+                        )
+                    },
+                    Handle::P521PrivateKey(private_key) => {
+                        let public_key = private_key.public_key();
+                        let encoded_point = public_key.to_encoded_point(false);
+                        (
+                            encoded_point.x().ok_or(Error::Operation)?.to_vec(),
+                            encoded_point.y().ok_or(Error::Operation)?.to_vec(),
+                        )
+                    },
+                    _ => return Err(Error::Operation),
+                };
+                jwk.x = Some(
+                    base64::engine::general_purpose::URL_SAFE_NO_PAD
+                        .encode(&x)
+                        .into(),
+                );
+                jwk.y = Some(
+                    base64::engine::general_purpose::URL_SAFE_NO_PAD
+                        .encode(&y)
+                        .into(),
+                );
+
+                // Step 3.3.4.
+                // If the [[type]] internal slot of key is "private"
+                //     Set the d attribute of jwk according to the definition in Section 6.2.2.1 of
+                //     JSON Web Algorithms [JWA].
+                if key.Type() == KeyType::Private {
+                    let d = match key.handle() {
+                        Handle::P256PrivateKey(private_key) => private_key.to_bytes().to_vec(),
+                        Handle::P384PrivateKey(private_key) => private_key.to_bytes().to_vec(),
+                        Handle::P521PrivateKey(private_key) => private_key.to_bytes().to_vec(),
+                        _ => return Err(Error::NotSupported),
+                    };
+                    jwk.d = Some(
+                        base64::engine::general_purpose::URL_SAFE_NO_PAD
+                            .encode(&d)
+                            .into(),
+                    );
+                }
+            }
+            // Otherwise:
+            else {
+                // Step 3.3.1. Perform any key export steps defined by other applicable
+                // specifications, passing format and the namedCurve attribute of the [[algorithm]]
+                // internal slot of key and obtaining namedCurve and a new value of jwk.
+                // Step 3.3.2. Set the crv attribute of jwk to namedCurve.
+                // NOTE: We currently do not support applicable specifications.
+            }
+
+            // Step 3.4. Set the key_ops attribute of jwk to the usages attribute of key.
+            jwk.key_ops = Some(
+                key.usages()
+                    .iter()
+                    .map(|usage| DOMString::from(usage.as_str()))
+                    .collect::<Vec<DOMString>>(),
+            );
+
+            // Step 3.4. Set the ext attribute of jwk to the [[extractable]] internal slot of key.
+            jwk.ext = Some(key.Extractable());
+
+            // Step 3.4. Let result be jwk.
+            ExportedKey::Jwk(Box::new(jwk))
+        },
+        KeyFormat::Raw => {
+            // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
+            // InvalidAccessError.
+            if key.Type() != KeyType::Public {
+                return Err(Error::InvalidAccess);
+            }
+
+            // Step 3.2.
+            // If the namedCurve attribute of the [[algorithm]] internal slot of key is "P-256",
+            // "P-384" or "P-521":
+            //     Let data be the byte sequence that represents the Elliptic Curve public key
+            //     represented by the [[handle]] internal slot of key according to the encoding
+            //     rules specified in Section 2.3.3 of [SEC1] and using the uncompressed form.
+            // Otherwise:
+            //     Perform any key export steps defined by other applicable specifications, passing
+            //     format and the namedCurve attribute of the [[algorithm]] internal slot of key
+            //     and obtaining namedCurve and data.
+            //     NOTE: We currently do not support applicable specifications.
+            let named_curve =
+                if let KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm) = key.algorithm() {
+                    algorithm.named_curve.as_str()
+                } else {
+                    return Err(Error::Operation);
+                };
+            let data = if matches!(
+                named_curve,
+                NAMED_CURVE_P256 | NAMED_CURVE_P384 | NAMED_CURVE_P521
+            ) {
+                match key.handle() {
+                    Handle::P256PublicKey(public_key) => public_key.to_sec1_bytes().to_vec(),
+                    Handle::P384PublicKey(public_key) => public_key.to_sec1_bytes().to_vec(),
+                    Handle::P521PublicKey(public_key) => public_key.to_sec1_bytes().to_vec(),
+                    _ => return Err(Error::Operation),
+                }
+            } else {
+                return Err(Error::NotSupported);
+            };
+
+            // Step 3.3. Let result be data.
+            ExportedKey::Raw(data)
+        },
+    };
+
+    Ok(result)
 }
