@@ -12,7 +12,7 @@ use std::time::Instant;
 use std::{iter, str};
 
 use app_units::Au;
-use base::id::RenderingGroupId;
+use base::id::PainterId;
 use bitflags::bitflags;
 use euclid::default::{Point2D, Rect};
 use euclid::num::Zero;
@@ -232,7 +232,7 @@ pub struct Font {
 
     shaper: OnceLock<Shaper>,
     cached_shape_data: RwLock<CachedShapeData>,
-    font_instance_key: RwLock<FxHashMap<RenderingGroupId, FontInstanceKey>>,
+    font_instance_key: RwLock<FxHashMap<PainterId, FontInstanceKey>>,
 
     /// If this is a synthesized small caps font, then this font reference is for
     /// the version of the font used to replace lowercase ASCII letters. It's up
@@ -326,16 +326,12 @@ impl Font {
         })
     }
 
-    pub fn key(
-        &self,
-        rendering_group_id: RenderingGroupId,
-        font_context: &FontContext,
-    ) -> FontInstanceKey {
+    pub fn key(&self, painter_id: PainterId, font_context: &FontContext) -> FontInstanceKey {
         *self
             .font_instance_key
             .write()
-            .entry(rendering_group_id)
-            .or_insert_with(|| font_context.create_font_instance_key(self, rendering_group_id))
+            .entry(painter_id)
+            .or_insert_with(|| font_context.create_font_instance_key(self, painter_id))
     }
 
     /// Return the data for this `Font`. Note that this is currently highly inefficient for system

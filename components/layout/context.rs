@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use base::id::RenderingGroupId;
+use base::id::PainterId;
 use embedder_traits::UntrustedNodeAddress;
 use euclid::Size2D;
 use fonts::FontContext;
@@ -45,7 +45,8 @@ pub(crate) struct LayoutContext<'a> {
     /// tree construction. Later passed to display list construction.
     pub image_resolver: Arc<ImageResolver>,
 
-    pub rendering_group_id: RenderingGroupId,
+    /// The [`PainterId`] that identifies which `RenderingContext` that this layout targets.
+    pub painter_id: PainterId,
 }
 
 pub enum ResolvedImage<'a> {

@@ -7,7 +7,7 @@ use std::hash::Hash;
 use std::rc::{Rc, Weak};
 use std::time::Duration;
 
-use base::id::{RenderingGroupId, WebViewId};
+use base::id::WebViewId;
 use compositing::IOCompositor;
 use compositing_traits::WebViewTrait;
 use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
@@ -81,6 +81,7 @@ pub(crate) struct WebViewInner {
     pub(crate) delegate: Rc<dyn WebViewDelegate>,
     pub(crate) clipboard_delegate: Rc<dyn ClipboardDelegate>,
     javascript_evaluator: Rc<RefCell<JavaScriptEvaluator>>,
+
     /// The rectangle of the [`WebView`] in device pixels, which is the viewport.
     rect: DeviceRect,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
@@ -92,8 +93,6 @@ pub(crate) struct WebViewInner {
     focused: bool,
     animating: bool,
     cursor: Cursor,
-
-    rendering_group_id: RenderingGroupId,
 }
 
 impl Drop for WebViewInner {
@@ -105,7 +104,9 @@ impl Drop for WebViewInner {
 
 impl WebView {
     pub(crate) fn new(builder: WebViewBuilder) -> Self {
-        let id = WebViewId::new();
+        let compositor = builder.servo.compositor.clone();
+        let painter_id = compositor.borrow().painter_id();
+        let id = WebViewId::new(painter_id);
         let servo = builder.servo;
         let size = builder.size.map_or_else(
             || {
@@ -122,7 +123,7 @@ impl WebView {
         let webview = Self(Rc::new(RefCell::new(WebViewInner {
             id,
             constellation_proxy: servo.constellation_proxy.clone(),
-            compositor: servo.compositor.clone(),
+            compositor,
             delegate: builder.delegate,
             clipboard_delegate: Rc::new(DefaultClipboardDelegate),
             javascript_evaluator: servo.javascript_evaluator.clone(),
@@ -136,7 +137,6 @@ impl WebView {
             focused: false,
             animating: false,
             cursor: Cursor::Pointer,
-            rendering_group_id: builder.group_id.unwrap_or_default(),
         })));
 
         let viewport_details = webview.viewport_details();
@@ -214,10 +214,6 @@ impl WebView {
 
     pub fn id(&self) -> WebViewId {
         self.inner().id
-    }
-
-    pub fn rendering_group_id(&self) -> RenderingGroupId {
-        self.inner().rendering_group_id
     }
 
     pub fn load_status(&self) -> LoadStatus {
@@ -662,10 +658,6 @@ impl WebViewTrait for ServoRendererWebView {
             webview.set_animating(new_value);
         }
     }
-
-    fn rendering_group_id(&self) -> Option<RenderingGroupId> {
-        WebView::from_weak_handle(&self.weak_handle).map(|webview| webview.rendering_group_id())
-    }
 }
 
 pub struct WebViewBuilder<'servo> {
@@ -675,7 +667,6 @@ pub struct WebViewBuilder<'servo> {
     url: Option<Url>,
     size: Option<PhysicalSize<u32>>,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
-    group_id: Option<RenderingGroupId>,
 }
 
 impl<'servo> WebViewBuilder<'servo> {
@@ -687,7 +678,6 @@ impl<'servo> WebViewBuilder<'servo> {
             size: None,
             hidpi_scale_factor: Scale::new(1.0),
             delegate: Rc::new(DefaultWebViewDelegate),
-            group_id: None,
         }
     }
 

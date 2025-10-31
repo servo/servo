@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use base::id::RenderingGroupId;
+use base::id::PainterId;
 use ipc_channel::ipc::{self, IpcSender};
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
@@ -26,15 +26,15 @@ pub enum SystemFontServiceMessage {
         IpcSender<Vec<FontTemplate>>,
     ),
     GetFontInstance(
-        RenderingGroupId,
+        PainterId,
         FontIdentifier,
         Au,
         FontInstanceFlags,
         Vec<FontVariation>,
         IpcSender<FontInstanceKey>,
     ),
-    GetFontKey(RenderingGroupId, IpcSender<FontKey>),
-    GetFontInstanceKey(RenderingGroupId, IpcSender<FontInstanceKey>),
+    GetFontKey(PainterId, IpcSender<FontKey>),
+    GetFontInstanceKey(PainterId, IpcSender<FontInstanceKey>),
     CollectMemoryReport(ReportsChan),
     Exit(IpcSender<()>),
     Ping,
@@ -87,12 +87,12 @@ impl SystemFontServiceProxy {
         size: Au,
         flags: FontInstanceFlags,
         variations: Vec<FontVariation>,
-        rendering_group_id: RenderingGroupId,
+        painter_id: PainterId,
     ) -> FontInstanceKey {
         let (response_chan, response_port) = ipc::channel().expect("failed to create IPC channel");
         self.sender
             .send(SystemFontServiceMessage::GetFontInstance(
-                rendering_group_id,
+                painter_id,
                 identifier,
                 size,
                 flags,
@@ -155,12 +155,12 @@ impl SystemFontServiceProxy {
         templates
     }
 
-    pub fn generate_font_key(&self, rendering_group_id: RenderingGroupId) -> FontKey {
+    pub fn generate_font_key(&self, painter_id: PainterId) -> FontKey {
         let (result_sender, result_receiver) =
             ipc::channel().expect("failed to create IPC channel");
         self.sender
             .send(SystemFontServiceMessage::GetFontKey(
-                rendering_group_id,
+                painter_id,
                 result_sender,
             ))
             .expect("failed to send message to system font service");
@@ -169,15 +169,12 @@ impl SystemFontServiceProxy {
             .expect("Failed to communicate with system font service.")
     }
 
-    pub fn generate_font_instance_key(
-        &self,
-        rendering_group_id: RenderingGroupId,
-    ) -> FontInstanceKey {
+    pub fn generate_font_instance_key(&self, painter_id: PainterId) -> FontInstanceKey {
         let (result_sender, result_receiver) =
             ipc::channel().expect("failed to create IPC channel");
         self.sender
             .send(SystemFontServiceMessage::GetFontInstanceKey(
-                rendering_group_id,
+                painter_id,
                 result_sender,
             ))
             .expect("failed to send message to system font service");

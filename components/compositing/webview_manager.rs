@@ -122,7 +122,10 @@ impl WebViewManager<WebViewRenderer> {
 
 #[cfg(test)]
 mod test {
-    use base::id::{BrowsingContextId, Index, PipelineNamespace, PipelineNamespaceId, WebViewId};
+    use base::id::{
+        BrowsingContextId, Index, PipelineNamespace, PipelineNamespaceId, TEST_PAINTER_ID,
+        WebViewId,
+    };
 
     use crate::webview_manager::WebViewManager;
     use crate::webview_renderer::UnknownWebView;
@@ -150,9 +153,10 @@ mod test {
         let mut webviews = WebViewManager::default();
 
         // entry() adds the webview to the map, but not the painting order.
-        webviews.entry(WebViewId::new()).or_insert('a');
-        webviews.entry(WebViewId::new()).or_insert('b');
-        webviews.entry(WebViewId::new()).or_insert('c');
+        let painter_id = TEST_PAINTER_ID;
+        webviews.entry(WebViewId::new(painter_id)).or_insert('a');
+        webviews.entry(WebViewId::new(painter_id)).or_insert('b');
+        webviews.entry(WebViewId::new(painter_id)).or_insert('c');
         assert!(webviews.get(webview_id(0, 1)).is_some());
         assert!(webviews.get(webview_id(0, 2)).is_some());
         assert!(webviews.get(webview_id(0, 3)).is_some());

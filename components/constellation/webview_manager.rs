@@ -83,7 +83,10 @@ impl<WebView> WebViewManager<WebView> {
 
 #[cfg(test)]
 mod test {
-    use base::id::{BrowsingContextId, Index, PipelineNamespace, PipelineNamespaceId, WebViewId};
+    use base::id::{
+        BrowsingContextId, Index, PipelineNamespace, PipelineNamespaceId, TEST_PAINTER_ID,
+        WebViewId,
+    };
 
     use crate::webview_manager::WebViewManager;
 
@@ -119,9 +122,9 @@ mod test {
         let mut webviews = WebViewManager::default();
 
         // add() adds the webview to the map, but does not focus it.
-        webviews.add(WebViewId::new(), 'a');
-        webviews.add(WebViewId::new(), 'b');
-        webviews.add(WebViewId::new(), 'c');
+        webviews.add(WebViewId::new(TEST_PAINTER_ID), 'a');
+        webviews.add(WebViewId::new(TEST_PAINTER_ID), 'b');
+        webviews.add(WebViewId::new(TEST_PAINTER_ID), 'c');
         assert_eq!(
             webviews_sorted(&webviews),
             vec![(id(0, 1), 'a'), (id(0, 2), 'b'), (id(0, 3), 'c'),]

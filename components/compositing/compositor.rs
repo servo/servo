@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use base::generic_channel::RoutedReceiver;
-use base::id::WebViewId;
+use base::id::{PainterId, WebViewId};
 use bitflags::bitflags;
 use canvas_traits::webgl::WebGLThreads;
 use compositing_traits::{CompositorMsg, WebRenderExternalImageRegistry, WebViewTrait};
@@ -130,6 +130,10 @@ impl IOCompositor {
 
     pub(crate) fn painter_mut<'a>(&'a self) -> RefMut<'a, Painter> {
         self.painters[0].borrow_mut()
+    }
+
+    pub fn painter_id(&self) -> PainterId {
+        self.painters[0].borrow().painter_id
     }
 
     pub fn deinit(&mut self) {
@@ -330,7 +334,7 @@ impl IOCompositor {
                 number_of_font_keys,
                 number_of_font_instance_keys,
                 result_sender,
-                _rendering_group_id,
+                _painter_id,
             ) => {
                 let _ = result_sender.send(
                     self.painter_mut()
@@ -411,7 +415,7 @@ impl IOCompositor {
                 number_of_font_keys,
                 number_of_font_instance_keys,
                 result_sender,
-                _rendering_group_id,
+                _painter_id,
             ) => {
                 let _ = result_sender.send(
                     self.painter_mut()
