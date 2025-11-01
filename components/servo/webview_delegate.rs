@@ -711,199 +711,212 @@ pub trait WebViewDelegate {
 pub(crate) struct DefaultWebViewDelegate;
 impl WebViewDelegate for DefaultWebViewDelegate {}
 
-#[test]
-fn test_allow_deny_request() {
-    use base::generic_channel;
+#[cfg(test)]
+mod test {
+    use super::*;
 
-    use crate::ServoErrorChannel;
+    #[test]
+    fn test_allow_deny_request() {
+        use base::generic_channel;
 
-    for default_response in [AllowOrDeny::Allow, AllowOrDeny::Deny] {
-        // Explicit allow yields allow and nothing else
+        use crate::ServoErrorChannel;
+
+        for default_response in [AllowOrDeny::Allow, AllowOrDeny::Deny] {
+            // Explicit allow yields allow and nothing else
+            let errors = ServoErrorChannel::default();
+            let (sender, receiver) =
+                generic_channel::channel().expect("Failed to create IPC channel");
+            let request = AllowOrDenyRequest::new(sender, default_response, errors.sender());
+            request.allow();
+            assert_eq!(receiver.try_recv().ok(), Some(AllowOrDeny::Allow));
+            assert_eq!(receiver.try_recv().ok(), None);
+            assert!(errors.try_recv().is_none());
+
+            // Explicit deny yields deny and nothing else
+            let errors = ServoErrorChannel::default();
+            let (sender, receiver) =
+                generic_channel::channel().expect("Failed to create IPC channel");
+            let request = AllowOrDenyRequest::new(sender, default_response, errors.sender());
+            request.deny();
+            assert_eq!(receiver.try_recv().ok(), Some(AllowOrDeny::Deny));
+            assert_eq!(receiver.try_recv().ok(), None);
+            assert!(errors.try_recv().is_none());
+
+            // No response yields default response and nothing else
+            let errors = ServoErrorChannel::default();
+            let (sender, receiver) =
+                generic_channel::channel().expect("Failed to create IPC channel");
+            let request = AllowOrDenyRequest::new(sender, default_response, errors.sender());
+            drop(request);
+            assert_eq!(receiver.try_recv().ok(), Some(default_response));
+            assert_eq!(receiver.try_recv().ok(), None);
+            assert!(errors.try_recv().is_none());
+
+            // Explicit allow when receiver disconnected yields error
+            let errors = ServoErrorChannel::default();
+            let (sender, receiver) =
+                generic_channel::channel().expect("Failed to create IPC channel");
+            let request = AllowOrDenyRequest::new(sender, default_response, errors.sender());
+            drop(receiver);
+            request.allow();
+            assert!(errors.try_recv().is_some());
+
+            // Explicit deny when receiver disconnected yields error
+            let errors = ServoErrorChannel::default();
+            let (sender, receiver) =
+                generic_channel::channel().expect("Failed to create IPC channel");
+            let request = AllowOrDenyRequest::new(sender, default_response, errors.sender());
+            drop(receiver);
+            request.deny();
+            assert!(errors.try_recv().is_some());
+
+            // No response when receiver disconnected yields no error
+            let errors = ServoErrorChannel::default();
+            let (sender, receiver) =
+                generic_channel::channel().expect("Failed to create IPC channel");
+            let request = AllowOrDenyRequest::new(sender, default_response, errors.sender());
+            drop(receiver);
+            drop(request);
+            assert!(errors.try_recv().is_none());
+        }
+    }
+
+    #[test]
+    fn test_authentication_request() {
+        use base::generic_channel;
+
+        use crate::ServoErrorChannel;
+
+        let url = Url::parse("https://example.com").expect("Guaranteed by argument");
+
+        // Explicit response yields that response and nothing else
         let errors = ServoErrorChannel::default();
         let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
-        let request = AllowOrDenyRequest::new(sender, default_response, errors.sender());
-        request.allow();
-        assert_eq!(receiver.try_recv().ok(), Some(AllowOrDeny::Allow));
+        let request = AuthenticationRequest::new(url.clone(), false, sender, errors.sender());
+        request.authenticate("diffie".to_owned(), "hunter2".to_owned());
+        assert_eq!(
+            receiver.try_recv().ok(),
+            Some(Some(AuthenticationResponse {
+                username: "diffie".to_owned(),
+                password: "hunter2".to_owned(),
+            }))
+        );
         assert_eq!(receiver.try_recv().ok(), None);
         assert!(errors.try_recv().is_none());
 
-        // Explicit deny yields deny and nothing else
+        // No response yields None response and nothing else
         let errors = ServoErrorChannel::default();
         let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
-        let request = AllowOrDenyRequest::new(sender, default_response, errors.sender());
-        request.deny();
-        assert_eq!(receiver.try_recv().ok(), Some(AllowOrDeny::Deny));
-        assert_eq!(receiver.try_recv().ok(), None);
-        assert!(errors.try_recv().is_none());
-
-        // No response yields default response and nothing else
-        let errors = ServoErrorChannel::default();
-        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
-        let request = AllowOrDenyRequest::new(sender, default_response, errors.sender());
+        let request = AuthenticationRequest::new(url.clone(), false, sender, errors.sender());
         drop(request);
-        assert_eq!(receiver.try_recv().ok(), Some(default_response));
+        assert_eq!(receiver.try_recv().ok(), Some(None));
         assert_eq!(receiver.try_recv().ok(), None);
         assert!(errors.try_recv().is_none());
 
-        // Explicit allow when receiver disconnected yields error
+        // Explicit response when receiver disconnected yields error
         let errors = ServoErrorChannel::default();
         let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
-        let request = AllowOrDenyRequest::new(sender, default_response, errors.sender());
+        let request = AuthenticationRequest::new(url.clone(), false, sender, errors.sender());
         drop(receiver);
-        request.allow();
-        assert!(errors.try_recv().is_some());
-
-        // Explicit deny when receiver disconnected yields error
-        let errors = ServoErrorChannel::default();
-        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
-        let request = AllowOrDenyRequest::new(sender, default_response, errors.sender());
-        drop(receiver);
-        request.deny();
+        request.authenticate("diffie".to_owned(), "hunter2".to_owned());
         assert!(errors.try_recv().is_some());
 
         // No response when receiver disconnected yields no error
         let errors = ServoErrorChannel::default();
         let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
-        let request = AllowOrDenyRequest::new(sender, default_response, errors.sender());
+        let request = AuthenticationRequest::new(url.clone(), false, sender, errors.sender());
         drop(receiver);
         drop(request);
         assert!(errors.try_recv().is_none());
     }
-}
 
-#[test]
-fn test_authentication_request() {
-    use base::generic_channel;
+    #[test]
+    fn test_web_resource_load() {
+        use base::generic_channel;
+        use http::{HeaderMap, Method, StatusCode};
 
-    use crate::ServoErrorChannel;
+        use crate::ServoErrorChannel;
 
-    let url = Url::parse("https://example.com").expect("Guaranteed by argument");
-
-    // Explicit response yields that response and nothing else
-    let errors = ServoErrorChannel::default();
-    let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
-    let request = AuthenticationRequest::new(url.clone(), false, sender, errors.sender());
-    request.authenticate("diffie".to_owned(), "hunter2".to_owned());
-    assert_eq!(
-        receiver.try_recv().ok(),
-        Some(Some(AuthenticationResponse {
-            username: "diffie".to_owned(),
-            password: "hunter2".to_owned(),
-        }))
-    );
-    assert_eq!(receiver.try_recv().ok(), None);
-    assert!(errors.try_recv().is_none());
-
-    // No response yields None response and nothing else
-    let errors = ServoErrorChannel::default();
-    let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
-    let request = AuthenticationRequest::new(url.clone(), false, sender, errors.sender());
-    drop(request);
-    assert_eq!(receiver.try_recv().ok(), Some(None));
-    assert_eq!(receiver.try_recv().ok(), None);
-    assert!(errors.try_recv().is_none());
-
-    // Explicit response when receiver disconnected yields error
-    let errors = ServoErrorChannel::default();
-    let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
-    let request = AuthenticationRequest::new(url.clone(), false, sender, errors.sender());
-    drop(receiver);
-    request.authenticate("diffie".to_owned(), "hunter2".to_owned());
-    assert!(errors.try_recv().is_some());
-
-    // No response when receiver disconnected yields no error
-    let errors = ServoErrorChannel::default();
-    let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
-    let request = AuthenticationRequest::new(url.clone(), false, sender, errors.sender());
-    drop(receiver);
-    drop(request);
-    assert!(errors.try_recv().is_none());
-}
-
-#[test]
-fn test_web_resource_load() {
-    use base::generic_channel;
-    use http::{HeaderMap, Method, StatusCode};
-
-    use crate::ServoErrorChannel;
-
-    let web_resource_request = || WebResourceRequest {
-        method: Method::GET,
-        headers: HeaderMap::default(),
-        url: Url::parse("https://example.com").expect("Guaranteed by argument"),
-        is_for_main_frame: false,
-        is_redirect: false,
-    };
-    let web_resource_response = || {
-        WebResourceResponse::new(Url::parse("https://diffie.test").expect("Guaranteed by argument"))
+        let web_resource_request = || WebResourceRequest {
+            method: Method::GET,
+            headers: HeaderMap::default(),
+            url: Url::parse("https://example.com").expect("Guaranteed by argument"),
+            is_for_main_frame: false,
+            is_redirect: false,
+        };
+        let web_resource_response = || {
+            WebResourceResponse::new(
+                Url::parse("https://diffie.test").expect("Guaranteed by argument"),
+            )
             .status_code(StatusCode::IM_A_TEAPOT)
-    };
+        };
 
-    // Explicit intercept with explicit cancel yields Start and Cancel and nothing else
-    let errors = ServoErrorChannel::default();
-    let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
-    let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
-    request.intercept(web_resource_response()).cancel();
-    assert!(matches!(
-        receiver.try_recv(),
-        Ok(WebResourceResponseMsg::Start(_))
-    ));
-    assert!(matches!(
-        receiver.try_recv(),
-        Ok(WebResourceResponseMsg::CancelLoad)
-    ));
-    assert!(matches!(receiver.try_recv(), Err(_)));
-    assert!(errors.try_recv().is_none());
+        // Explicit intercept with explicit cancel yields Start and Cancel and nothing else
+        let errors = ServoErrorChannel::default();
+        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
+        request.intercept(web_resource_response()).cancel();
+        assert!(matches!(
+            receiver.try_recv(),
+            Ok(WebResourceResponseMsg::Start(_))
+        ));
+        assert!(matches!(
+            receiver.try_recv(),
+            Ok(WebResourceResponseMsg::CancelLoad)
+        ));
+        assert!(matches!(receiver.try_recv(), Err(_)));
+        assert!(errors.try_recv().is_none());
 
-    // Explicit intercept with no further action yields Start and FinishLoad and nothing else
-    let errors = ServoErrorChannel::default();
-    let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
-    let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
-    drop(request.intercept(web_resource_response()));
-    assert!(matches!(
-        receiver.try_recv(),
-        Ok(WebResourceResponseMsg::Start(_))
-    ));
-    assert!(matches!(
-        receiver.try_recv(),
-        Ok(WebResourceResponseMsg::FinishLoad)
-    ));
-    assert!(matches!(receiver.try_recv(), Err(_)));
-    assert!(errors.try_recv().is_none());
+        // Explicit intercept with no further action yields Start and FinishLoad and nothing else
+        let errors = ServoErrorChannel::default();
+        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
+        drop(request.intercept(web_resource_response()));
+        assert!(matches!(
+            receiver.try_recv(),
+            Ok(WebResourceResponseMsg::Start(_))
+        ));
+        assert!(matches!(
+            receiver.try_recv(),
+            Ok(WebResourceResponseMsg::FinishLoad)
+        ));
+        assert!(matches!(receiver.try_recv(), Err(_)));
+        assert!(errors.try_recv().is_none());
 
-    // No response yields DoNotIntercept and nothing else
-    let errors = ServoErrorChannel::default();
-    let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
-    let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
-    drop(request);
-    assert!(matches!(
-        receiver.try_recv(),
-        Ok(WebResourceResponseMsg::DoNotIntercept)
-    ));
-    assert!(matches!(receiver.try_recv(), Err(_)));
-    assert!(errors.try_recv().is_none());
+        // No response yields DoNotIntercept and nothing else
+        let errors = ServoErrorChannel::default();
+        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
+        drop(request);
+        assert!(matches!(
+            receiver.try_recv(),
+            Ok(WebResourceResponseMsg::DoNotIntercept)
+        ));
+        assert!(matches!(receiver.try_recv(), Err(_)));
+        assert!(errors.try_recv().is_none());
 
-    // Explicit intercept with explicit cancel when receiver disconnected yields error
-    let errors = ServoErrorChannel::default();
-    let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
-    let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
-    drop(receiver);
-    request.intercept(web_resource_response()).cancel();
-    assert!(errors.try_recv().is_some());
+        // Explicit intercept with explicit cancel when receiver disconnected yields error
+        let errors = ServoErrorChannel::default();
+        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
+        drop(receiver);
+        request.intercept(web_resource_response()).cancel();
+        assert!(errors.try_recv().is_some());
 
-    // Explicit intercept with no further action when receiver disconnected yields error
-    let errors = ServoErrorChannel::default();
-    let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
-    let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
-    drop(receiver);
-    drop(request.intercept(web_resource_response()));
-    assert!(errors.try_recv().is_some());
+        // Explicit intercept with no further action when receiver disconnected yields error
+        let errors = ServoErrorChannel::default();
+        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
+        drop(receiver);
+        drop(request.intercept(web_resource_response()));
+        assert!(errors.try_recv().is_some());
 
-    // No response when receiver disconnected yields no error
-    let errors = ServoErrorChannel::default();
-    let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
-    let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
-    drop(receiver);
-    drop(request);
-    assert!(errors.try_recv().is_none());
+        // No response when receiver disconnected yields no error
+        let errors = ServoErrorChannel::default();
+        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
+        drop(receiver);
+        drop(request);
+        assert!(errors.try_recv().is_none());
+    }
 }

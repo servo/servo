@@ -44,21 +44,26 @@ pub fn is_cjk(codepoint: char) -> bool {
     unicode_plane(codepoint) == 2 || unicode_plane(codepoint) == 3
 }
 
-#[test]
-fn test_is_cjk() {
-    // Test characters from different CJK blocks
-    assert_eq!(is_cjk('〇'), true);
-    assert_eq!(is_cjk('㐀'), true);
-    assert_eq!(is_cjk('あ'), true);
-    assert_eq!(is_cjk('ア'), true);
-    assert_eq!(is_cjk('㆒'), true);
-    assert_eq!(is_cjk('ㆣ'), true);
-    assert_eq!(is_cjk('龥'), true);
-    assert_eq!(is_cjk('𰾑'), true);
-    assert_eq!(is_cjk('𰻝'), true);
+#[cfg(test)]
+mod test {
+    use super::*;
 
-    // Test characters from outside CJK blocks
-    assert_eq!(is_cjk('a'), false);
-    assert_eq!(is_cjk('🙂'), false);
-    assert_eq!(is_cjk('©'), false);
+    #[test]
+    fn test_is_cjk() {
+        // Test characters from different CJK blocks
+        assert_eq!(is_cjk('〇'), true);
+        assert_eq!(is_cjk('㐀'), true);
+        assert_eq!(is_cjk('あ'), true);
+        assert_eq!(is_cjk('ア'), true);
+        assert_eq!(is_cjk('㆒'), true);
+        assert_eq!(is_cjk('ㆣ'), true);
+        assert_eq!(is_cjk('龥'), true);
+        assert_eq!(is_cjk('𰾑'), true);
+        assert_eq!(is_cjk('𰻝'), true);
+
+        // Test characters from outside CJK blocks
+        assert_eq!(is_cjk('a'), false);
+        assert_eq!(is_cjk('🙂'), false);
+        assert_eq!(is_cjk('©'), false);
+    }
 }
