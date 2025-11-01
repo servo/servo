@@ -22,10 +22,10 @@ use servo::{
     AllowOrDenyRequest, ContextMenuResult, EmbedderControl, EmbedderControlId, ImeEvent,
     InputEvent, InputEventId, InputEventResult, KeyboardEvent, LoadStatus, MediaSessionActionType,
     MediaSessionEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
-    NavigationRequest, PermissionRequest, RefreshDriver, RenderingContext, ScreenGeometry,
-    ScreenshotCaptureError, Scroll, Servo, ServoDelegate, ServoError, TouchEvent, TouchEventType,
-    TouchId, TraversalId, WebDriverCommandMsg, WebDriverLoadStatus, WebDriverScriptCommand,
-    WebView, WebViewBuilder, WebViewDelegate, WindowRenderingContext,
+    NavigationRequest, PermissionRequest, RefreshDriver, RenderingContext, ScreenGeometry, Scroll,
+    Servo, ServoDelegate, ServoError, TouchEvent, TouchEventType, TouchId, TraversalId,
+    WebDriverCommandMsg, WebDriverLoadStatus, WebDriverScriptCommand, WebView, WebViewBuilder,
+    WebViewDelegate, WindowRenderingContext,
 };
 use url::Url;
 
@@ -390,6 +390,10 @@ impl RunningAppStateTrait for RunningAppState {
     fn base_mut(&mut self) -> &mut RunningAppStateBase {
         &mut self.base
     }
+
+    fn webview_by_id(&self, id: WebViewId) -> Option<WebView> {
+        self.inner().webviews.get(&id).cloned()
+    }
 }
 
 #[allow(unused)]
@@ -630,10 +634,6 @@ impl RunningAppState {
     }
 
     /// WebDriver message handling methods
-    fn webview_by_id(&self, id: WebViewId) -> Option<WebView> {
-        self.inner().webviews.get(&id).cloned()
-    }
-
     pub fn handle_webdriver_messages(self: &Rc<Self>) {
         if let Some(webdriver_receiver) = &self.webdriver_receiver {
             while let Ok(msg) = webdriver_receiver.try_recv() {
@@ -770,26 +770,10 @@ impl RunningAppState {
                         let _ = response_sender.send(self.rendering_context.size2d());
                     },
                     WebDriverCommandMsg::InputEvent(webview_id, input_event, response_sender) => {
-                        if let Some(webview) = self.webview_by_id(webview_id) {
-                            self.handle_webdriver_input_event(
-                                webview,
-                                input_event,
-                                response_sender,
-                            );
-                        } else {
-                            error!(
-                                "Could not find WebView ({webview_id:?}) for WebDriver event: {input_event:?}"
-                            );
-                        };
+                        self.handle_webdriver_input_event(webview_id, input_event, response_sender);
                     },
                     WebDriverCommandMsg::TakeScreenshot(webview_id, rect, result_sender) => {
-                        if let Some(webview) = self.webview_by_id(webview_id) {
-                            self.handle_webdriver_screenshot(webview, rect, result_sender);
-                        } else if let Err(error) =
-                            result_sender.send(Err(ScreenshotCaptureError::WebViewDoesNotExist))
-                        {
-                            error!("Failed to send response to TakeScreenshot: {error}");
-                        }
+                        self.handle_webdriver_screenshot(webview_id, rect, result_sender);
                     },
                     _ => {
                         info!("Received unsupported WebDriver command: {:?}", msg);
