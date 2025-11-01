@@ -175,11 +175,6 @@ skip = [
     # and bindgen updates the cexpr version
     "nom",
 
-    # duplicated by `cargo metadata` as a build-dependency of mozjs-sys.
-    # Can be removed if `icu_capi` exposes the C include dir via the `DEP_`
-    # variable in the future.
-    "ordered-float",
-
     # duplicated by image 0.25
     "cfg-expr",
     "system-deps",
