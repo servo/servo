@@ -19,7 +19,7 @@ use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::indexeddb_thread::{
     AsyncOperation, BackendError, BackendResult, CreateObjectResult, DbResult, IndexedDBThreadMsg,
-    IndexedDBTxnMode, KeyPath, SyncOperation,
+    KeyPath, SyncOperation,
 };
 use uuid::Uuid;
 
@@ -95,24 +95,14 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         }
     }
 
-    fn queue_operation(
-        &mut self,
-        store_name: &str,
-        serial_number: u64,
-        mode: IndexedDBTxnMode,
-        operation: AsyncOperation,
-    ) {
-        self.transactions
-            .entry(serial_number)
-            .or_insert_with(|| KvsTransaction {
-                requests: VecDeque::new(),
-                mode,
-            })
-            .requests
-            .push_back(KvsOperation {
-                operation,
-                store_name: String::from(store_name),
-            });
+    fn queue_operation(&mut self, store_name: &str, serial_number: u64, operation: AsyncOperation) {
+        let Some(transaction) = self.transactions.get_mut(&serial_number) else {
+            return;
+        };
+        transaction.requests.push_back(KvsOperation {
+            operation,
+            store_name: String::from(store_name),
+        });
     }
 
     // Executes all requests for a transaction (without committing)
@@ -244,10 +234,10 @@ impl IndexedDBManager {
                 IndexedDBThreadMsg::Sync(operation) => {
                     self.handle_sync_operation(operation);
                 },
-                IndexedDBThreadMsg::Async(origin, db_name, store_name, txn, mode, operation) => {
+                IndexedDBThreadMsg::Async(origin, db_name, store_name, txn, operation) => {
                     if let Some(db) = self.get_database_mut(origin, db_name) {
                         // Queues an operation for a transaction without starting it
-                        db.queue_operation(&store_name, txn, mode, operation);
+                        db.queue_operation(&store_name, txn, operation);
                         // FIXME:(arihant2math) Schedule transactions properly
                         // while db.transactions.iter().any(|s| s.1.mode == IndexedDBTxnMode::Readwrite) {
                         //     std::hint::spin_loop();
@@ -429,9 +419,16 @@ impl IndexedDBManager {
                     let _ = sender.send(Err(BackendError::DbNotFound));
                 }
             },
-            SyncOperation::RegisterNewTxn(sender, origin, db_name) => {
+            SyncOperation::RegisterNewTxn(sender, origin, db_name, mode) => {
                 if let Some(db) = self.get_database_mut(origin, db_name) {
                     db.serial_number_counter += 1;
+                    db.transactions.insert(
+                        db.serial_number_counter,
+                        KvsTransaction {
+                            requests: VecDeque::new(),
+                            mode,
+                        },
+                    );
                     let _ = sender.send(db.serial_number_counter);
                 }
             },
