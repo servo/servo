@@ -29,8 +29,9 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesGcmParams, AesKeyAlgorithm,
     AesKeyGenParams, Algorithm, AlgorithmIdentifier, EcKeyAlgorithm, EcKeyGenParams,
-    EcKeyImportParams, HkdfParams, HmacImportParams, HmacKeyAlgorithm, HmacKeyGenParams,
-    JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params, RsaOtherPrimesInfo, SubtleCryptoMethods,
+    EcKeyImportParams, EcdhKeyDeriveParams, HkdfParams, HmacImportParams, HmacKeyAlgorithm,
+    HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params, RsaOtherPrimesInfo,
+    SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey, ObjectOrString,
@@ -1687,6 +1688,25 @@ impl From<EcKeyImportParams> for SubtleEcKeyImportParams {
     }
 }
 
+/// <https://w3c.github.io/webcrypto/#dfn-EcdhKeyDeriveParams>
+#[derive(Clone, MallocSizeOf)]
+struct SubtleEcdhKeyDeriveParams {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: String,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-EcdhKeyDeriveParams-public>
+    public: Trusted<CryptoKey>,
+}
+
+impl From<EcdhKeyDeriveParams> for SubtleEcdhKeyDeriveParams {
+    fn from(value: EcdhKeyDeriveParams) -> Self {
+        SubtleEcdhKeyDeriveParams {
+            name: value.parent.name.to_string(),
+            public: Trusted::new(&value.public),
+        }
+    }
+}
+
 #[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) struct SubtleAesCbcParams {
     pub(crate) name: String,
@@ -2193,11 +2213,12 @@ impl JsonWebKeyExt for JsonWebKey {
 /// binding of) IDL dictionary types.
 ///
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm>
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 enum NormalizedAlgorithm {
     Algorithm(SubtleAlgorithm),
     EcKeyGenParams(SubtleEcKeyGenParams),
     EcKeyImportParams(SubtleEcKeyImportParams),
+    EcdhKeyDeriveParams(SubtleEcdhKeyDeriveParams),
     AesCtrParams(SubtleAesCtrParams),
     AesKeyGenParams(SubtleAesKeyGenParams),
     AesDerivedKeyParams(SubtleAesDerivedKeyParams),
@@ -2297,6 +2318,12 @@ fn normalize_algorithm(
                     let mut params = dictionary_from_jsval::<EcKeyGenParams>(cx, value.handle())?;
                     params.parent.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::EcKeyGenParams(params.into())
+                },
+                (ALG_ECDH, Operation::DeriveBits) => {
+                    let mut params =
+                        dictionary_from_jsval::<EcdhKeyDeriveParams>(cx, value.handle())?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::EcdhKeyDeriveParams(params.into())
                 },
                 (ALG_ECDH, Operation::ImportKey) => {
                     let mut params =
@@ -2606,6 +2633,7 @@ impl NormalizedAlgorithm {
             NormalizedAlgorithm::Algorithm(algo) => &algo.name,
             NormalizedAlgorithm::EcKeyGenParams(algo) => &algo.name,
             NormalizedAlgorithm::EcKeyImportParams(algo) => &algo.name,
+            NormalizedAlgorithm::EcdhKeyDeriveParams(algo) => &algo.name,
             NormalizedAlgorithm::AesCtrParams(algo) => &algo.name,
             NormalizedAlgorithm::AesKeyGenParams(algo) => &algo.name,
             NormalizedAlgorithm::AesDerivedKeyParams(algo) => &algo.name,
@@ -2729,6 +2757,10 @@ impl NormalizedAlgorithm {
 
     fn derive_bits(&self, key: &CryptoKey, length: Option<u32>) -> Result<Vec<u8>, Error> {
         match self {
+            NormalizedAlgorithm::EcdhKeyDeriveParams(algo) => match algo.name.as_str() {
+                ALG_ECDH => ecdh_operation::derive_bits(algo, key, length),
+                _ => Err(Error::NotSupported),
+            },
             NormalizedAlgorithm::HkdfParams(algo) => hkdf_operation::derive_bits(algo, key, length),
             NormalizedAlgorithm::Pbkdf2Params(algo) => {
                 pbkdf2_operation::derive_bits(algo, key, length)
