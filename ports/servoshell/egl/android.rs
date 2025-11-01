@@ -29,6 +29,7 @@ use simpleservo::{APP, InitOptions, MediaSessionPlaybackState};
 use super::app_state::{Coordinates, RunningAppState};
 use super::host_trait::HostTrait;
 use crate::prefs::EXPERIMENTAL_PREFS;
+use crate::running_app_state::RunningAppStateTrait;
 
 struct HostCallbacks {
     callbacks: GlobalRef,
