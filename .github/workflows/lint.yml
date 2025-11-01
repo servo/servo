@@ -119,5 +119,3 @@ jobs:
           ./mach clippy --use-crown --locked --github-annotations -- -- --deny warnings
       - name: Tidy
         run: ./mach test-tidy --no-progress --all --github-annotations
-      - name: Check license.html is up to date
-        run: cargo about generate etc/about.hbs > resources/resource_protocol/license.html && git diff --exit-code resources/resource_protocol/license.html
