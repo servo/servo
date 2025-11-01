@@ -112,17 +112,17 @@ impl AudioTrackList {
 }
 
 impl AudioTrackListMethods<crate::DomTypeHolder> for AudioTrackList {
-    // https://html.spec.whatwg.org/multipage/#dom-audiotracklist-length
+    /// <https://html.spec.whatwg.org/multipage/#dom-audiotracklist-length>
     fn Length(&self) -> u32 {
         self.len() as u32
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-tracklist-item
+    /// <https://html.spec.whatwg.org/multipage/#dom-tracklist-item>
     fn IndexedGetter(&self, idx: u32) -> Option<DomRoot<AudioTrack>> {
         self.item(idx as usize)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-audiotracklist-gettrackbyid
+    /// <https://html.spec.whatwg.org/multipage/#dom-audiotracklist-gettrackbyid>
     fn GetTrackById(&self, id: DOMString) -> Option<DomRoot<AudioTrack>> {
         self.tracks
             .borrow()

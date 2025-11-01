@@ -422,7 +422,7 @@ impl HTMLCollectionMethods<crate::DomTypeHolder> for HTMLCollection {
         })
     }
 
-    // https://dom.spec.whatwg.org/#dom-htmlcollection-item
+    /// <https://dom.spec.whatwg.org/#dom-htmlcollection-item>
     fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Element>> {
         self.Item(index)
     }
@@ -432,7 +432,7 @@ impl HTMLCollectionMethods<crate::DomTypeHolder> for HTMLCollection {
         self.NamedItem(name)
     }
 
-    // https://dom.spec.whatwg.org/#interface-htmlcollection
+    /// <https://dom.spec.whatwg.org/#interface-htmlcollection>
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         // Step 1
         let mut result = vec![];

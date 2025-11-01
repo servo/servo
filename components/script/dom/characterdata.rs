@@ -109,12 +109,12 @@ impl CharacterData {
 }
 
 impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
-    // https://dom.spec.whatwg.org/#dom-characterdata-data
+    /// <https://dom.spec.whatwg.org/#dom-characterdata-data>
     fn Data(&self) -> DOMString {
         DOMString::from(self.data.borrow().clone())
     }
 
-    // https://dom.spec.whatwg.org/#dom-characterdata-data
+    /// <https://dom.spec.whatwg.org/#dom-characterdata-data>
     fn SetData(&self, data: DOMString) {
         self.queue_mutation_record();
         let old_length = self.Length();
@@ -126,12 +126,12 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
             .replace_code_units(node, 0, old_length, new_length);
     }
 
-    // https://dom.spec.whatwg.org/#dom-characterdata-length
+    /// <https://dom.spec.whatwg.org/#dom-characterdata-length>
     fn Length(&self) -> u32 {
         self.data.borrow().encode_utf16().count() as u32
     }
 
-    // https://dom.spec.whatwg.org/#dom-characterdata-substringdata
+    /// <https://dom.spec.whatwg.org/#dom-characterdata-substringdata>
     fn SubstringData(&self, offset: u32, count: u32) -> Fallible<DOMString> {
         let data = self.data.borrow();
         // Step 1.
@@ -166,23 +166,23 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
         Ok(DOMString::from(substring))
     }
 
-    // https://dom.spec.whatwg.org/#dom-characterdata-appenddatadata
+    /// <https://dom.spec.whatwg.org/#dom-characterdata-appenddatadata>
     fn AppendData(&self, data: DOMString) {
         // FIXME(ajeffrey): Efficient append on DOMStrings?
         self.append_data(&data.str());
     }
 
-    // https://dom.spec.whatwg.org/#dom-characterdata-insertdataoffset-data
+    /// <https://dom.spec.whatwg.org/#dom-characterdata-insertdataoffset-data>
     fn InsertData(&self, offset: u32, arg: DOMString) -> ErrorResult {
         self.ReplaceData(offset, 0, arg)
     }
 
-    // https://dom.spec.whatwg.org/#dom-characterdata-deletedataoffset-count
+    /// <https://dom.spec.whatwg.org/#dom-characterdata-deletedataoffset-count>
     fn DeleteData(&self, offset: u32, count: u32) -> ErrorResult {
         self.ReplaceData(offset, count, DOMString::new())
     }
 
-    // https://dom.spec.whatwg.org/#dom-characterdata-replacedata
+    /// <https://dom.spec.whatwg.org/#dom-characterdata-replacedata>
     fn ReplaceData(&self, offset: u32, count: u32, arg: DOMString) -> ErrorResult {
         let mut new_data;
         {
@@ -248,28 +248,28 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
         Ok(())
     }
 
-    // https://dom.spec.whatwg.org/#dom-childnode-before
+    /// <https://dom.spec.whatwg.org/#dom-childnode-before>
     fn Before(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         self.upcast::<Node>().before(nodes, can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-childnode-after
+    /// <https://dom.spec.whatwg.org/#dom-childnode-after>
     fn After(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         self.upcast::<Node>().after(nodes, can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-childnode-replacewith
+    /// <https://dom.spec.whatwg.org/#dom-childnode-replacewith>
     fn ReplaceWith(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         self.upcast::<Node>().replace_with(nodes, can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-childnode-remove
+    /// <https://dom.spec.whatwg.org/#dom-childnode-remove>
     fn Remove(&self, can_gc: CanGc) {
         let node = self.upcast::<Node>();
         node.remove_self(can_gc);
     }
 
-    // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-previouselementsibling
+    /// <https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-previouselementsibling>
     fn GetPreviousElementSibling(&self) -> Option<DomRoot<Element>> {
         self.upcast::<Node>()
             .preceding_siblings()
@@ -277,7 +277,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
             .next()
     }
 
-    // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-nextelementsibling
+    /// <https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-nextelementsibling>
     fn GetNextElementSibling(&self) -> Option<DomRoot<Element>> {
         self.upcast::<Node>()
             .following_siblings()

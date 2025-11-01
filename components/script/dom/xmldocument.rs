@@ -120,17 +120,17 @@ impl XMLDocument {
 }
 
 impl XMLDocumentMethods<crate::DomTypeHolder> for XMLDocument {
-    // https://html.spec.whatwg.org/multipage/#dom-document-location
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-location>
     fn GetLocation(&self) -> Option<DomRoot<Location>> {
         self.upcast::<Document>().GetLocation()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
+    /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names>
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         self.upcast::<Document>().SupportedPropertyNames()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
+    /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter>
     fn NamedGetter(&self, name: DOMString, can_gc: CanGc) -> Option<NamedPropertyValue> {
         self.upcast::<Document>().NamedGetter(name, can_gc)
     }

@@ -103,7 +103,7 @@ impl ErrorEvent {
 }
 
 impl ErrorEventMethods<crate::DomTypeHolder> for ErrorEvent {
-    // https://html.spec.whatwg.org/multipage/#errorevent
+    /// <https://html.spec.whatwg.org/multipage/#errorevent>
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -146,32 +146,32 @@ impl ErrorEventMethods<crate::DomTypeHolder> for ErrorEvent {
         Ok(event)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-errorevent-lineno
+    /// <https://html.spec.whatwg.org/multipage/#dom-errorevent-lineno>
     fn Lineno(&self) -> u32 {
         self.lineno.get()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-errorevent-colno
+    /// <https://html.spec.whatwg.org/multipage/#dom-errorevent-colno>
     fn Colno(&self) -> u32 {
         self.colno.get()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-errorevent-message
+    /// <https://html.spec.whatwg.org/multipage/#dom-errorevent-message>
     fn Message(&self) -> DOMString {
         self.message.borrow().clone()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-errorevent-filename
+    /// <https://html.spec.whatwg.org/multipage/#dom-errorevent-filename>
     fn Filename(&self) -> DOMString {
         self.filename.borrow().clone()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-errorevent-error
+    /// <https://html.spec.whatwg.org/multipage/#dom-errorevent-error>
     fn Error(&self, _cx: JSContext, mut retval: MutableHandleValue) {
         retval.set(self.error.get());
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

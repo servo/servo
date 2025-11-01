@@ -82,7 +82,7 @@ impl PopStateEvent {
 }
 
 impl PopStateEventMethods<crate::DomTypeHolder> for PopStateEvent {
-    // https://html.spec.whatwg.org/multipage/#popstateevent
+    /// <https://html.spec.whatwg.org/multipage/#popstateevent>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -101,12 +101,12 @@ impl PopStateEventMethods<crate::DomTypeHolder> for PopStateEvent {
         ))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-popstateevent-state
+    /// <https://html.spec.whatwg.org/multipage/#dom-popstateevent-state>
     fn State(&self, _cx: JSContext, mut retval: MutableHandleValue) {
         retval.set(self.state.get())
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

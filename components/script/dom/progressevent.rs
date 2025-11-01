@@ -96,7 +96,7 @@ impl ProgressEvent {
 }
 
 impl ProgressEventMethods<crate::DomTypeHolder> for ProgressEvent {
-    // https://xhr.spec.whatwg.org/#dom-progressevent-progressevent
+    /// <https://xhr.spec.whatwg.org/#dom-progressevent-progressevent>
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -120,22 +120,22 @@ impl ProgressEventMethods<crate::DomTypeHolder> for ProgressEvent {
         Ok(ev)
     }
 
-    // https://xhr.spec.whatwg.org/#dom-progressevent-lengthcomputable
+    /// <https://xhr.spec.whatwg.org/#dom-progressevent-lengthcomputable>
     fn LengthComputable(&self) -> bool {
         self.length_computable
     }
 
-    // https://xhr.spec.whatwg.org/#dom-progressevent-loaded
+    /// <https://xhr.spec.whatwg.org/#dom-progressevent-loaded>
     fn Loaded(&self) -> Finite<f64> {
         self.loaded
     }
 
-    // https://xhr.spec.whatwg.org/#dom-progressevent-total
+    /// <https://xhr.spec.whatwg.org/#dom-progressevent-total>
     fn Total(&self) -> Finite<f64> {
         self.total
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

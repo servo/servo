@@ -40,21 +40,21 @@ impl PerformanceObserverEntryList {
 }
 
 impl PerformanceObserverEntryListMethods<crate::DomTypeHolder> for PerformanceObserverEntryList {
-    // https://w3c.github.io/performance-timeline/#dom-performanceobserver
+    /// <https://w3c.github.io/performance-timeline/#dom-performanceobserver>
     fn GetEntries(&self) -> Vec<DomRoot<PerformanceEntry>> {
         self.entries
             .borrow()
             .get_entries_by_name_and_type(None, None)
     }
 
-    // https://w3c.github.io/performance-timeline/#dom-performanceobserver
+    /// <https://w3c.github.io/performance-timeline/#dom-performanceobserver>
     fn GetEntriesByType(&self, entry_type: DOMString) -> Vec<DomRoot<PerformanceEntry>> {
         self.entries
             .borrow()
             .get_entries_by_name_and_type(None, Some(entry_type))
     }
 
-    // https://w3c.github.io/performance-timeline/#dom-performanceobserver
+    /// <https://w3c.github.io/performance-timeline/#dom-performanceobserver>
     fn GetEntriesByName(
         &self,
         name: DOMString,

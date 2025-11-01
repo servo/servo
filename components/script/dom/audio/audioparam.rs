@@ -115,12 +115,12 @@ impl AudioParam {
 }
 
 impl AudioParamMethods<crate::DomTypeHolder> for AudioParam {
-    // https://webaudio.github.io/web-audio-api/#dom-audioparam-automationrate
+    /// <https://webaudio.github.io/web-audio-api/#dom-audioparam-automationrate>
     fn AutomationRate(&self) -> AutomationRate {
         self.automation_rate.get()
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audioparam-automationrate
+    /// <https://webaudio.github.io/web-audio-api/#dom-audioparam-automationrate>
     fn SetAutomationRate(&self, automation_rate: AutomationRate) -> Fallible<()> {
         // > AudioBufferSourceNode
         // > The AudioParams playbackRate and detune MUST be "k-rate". An InvalidStateError must be
@@ -141,14 +141,14 @@ impl AudioParamMethods<crate::DomTypeHolder> for AudioParam {
         Ok(())
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audioparam-value
+    /// <https://webaudio.github.io/web-audio-api/#dom-audioparam-value>
     fn Value(&self) -> Finite<f32> {
         let (tx, rx) = mpsc::channel();
         self.message_node(AudioNodeMessage::GetParamValue(self.param, tx));
         Finite::wrap(rx.recv().unwrap())
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audioparam-value
+    /// <https://webaudio.github.io/web-audio-api/#dom-audioparam-value>
     fn SetValue(&self, value: Finite<f32>) {
         self.message_node(AudioNodeMessage::SetParam(
             self.param,
@@ -156,22 +156,22 @@ impl AudioParamMethods<crate::DomTypeHolder> for AudioParam {
         ));
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audioparam-defaultvalue
+    /// <https://webaudio.github.io/web-audio-api/#dom-audioparam-defaultvalue>
     fn DefaultValue(&self) -> Finite<f32> {
         Finite::wrap(self.default_value)
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audioparam-minvalue
+    /// <https://webaudio.github.io/web-audio-api/#dom-audioparam-minvalue>
     fn MinValue(&self) -> Finite<f32> {
         Finite::wrap(self.min_value)
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audioparam-maxvalue
+    /// <https://webaudio.github.io/web-audio-api/#dom-audioparam-maxvalue>
     fn MaxValue(&self) -> Finite<f32> {
         Finite::wrap(self.max_value)
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audioparam-setvalueattime
+    /// <https://webaudio.github.io/web-audio-api/#dom-audioparam-setvalueattime>
     fn SetValueAtTime(
         &self,
         value: Finite<f32>,
@@ -190,7 +190,7 @@ impl AudioParamMethods<crate::DomTypeHolder> for AudioParam {
         Ok(DomRoot::from_ref(self))
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audioparam-linearramptovalueattime
+    /// <https://webaudio.github.io/web-audio-api/#dom-audioparam-linearramptovalueattime>
     fn LinearRampToValueAtTime(
         &self,
         value: Finite<f32>,
@@ -209,7 +209,7 @@ impl AudioParamMethods<crate::DomTypeHolder> for AudioParam {
         Ok(DomRoot::from_ref(self))
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audioparam-exponentialramptovalueattime
+    /// <https://webaudio.github.io/web-audio-api/#dom-audioparam-exponentialramptovalueattime>
     fn ExponentialRampToValueAtTime(
         &self,
         value: Finite<f32>,
@@ -234,7 +234,7 @@ impl AudioParamMethods<crate::DomTypeHolder> for AudioParam {
         Ok(DomRoot::from_ref(self))
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audioparam-settargetattime
+    /// <https://webaudio.github.io/web-audio-api/#dom-audioparam-settargetattime>
     fn SetTargetAtTime(
         &self,
         target: Finite<f32>,
@@ -260,7 +260,7 @@ impl AudioParamMethods<crate::DomTypeHolder> for AudioParam {
         Ok(DomRoot::from_ref(self))
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audioparam-setvaluecurveattime
+    /// <https://webaudio.github.io/web-audio-api/#dom-audioparam-setvaluecurveattime>
     fn SetValueCurveAtTime(
         &self,
         values: Vec<Finite<f32>>,
@@ -294,7 +294,7 @@ impl AudioParamMethods<crate::DomTypeHolder> for AudioParam {
         Ok(DomRoot::from_ref(self))
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audioparam-cancelscheduledvalues
+    /// <https://webaudio.github.io/web-audio-api/#dom-audioparam-cancelscheduledvalues>
     fn CancelScheduledValues(&self, cancel_time: Finite<f64>) -> Fallible<DomRoot<AudioParam>> {
         if *cancel_time < 0. {
             return Err(Error::Range(format!(
@@ -309,7 +309,7 @@ impl AudioParamMethods<crate::DomTypeHolder> for AudioParam {
         Ok(DomRoot::from_ref(self))
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audioparam-cancelandholdattime
+    /// <https://webaudio.github.io/web-audio-api/#dom-audioparam-cancelandholdattime>
     fn CancelAndHoldAtTime(&self, cancel_time: Finite<f64>) -> Fallible<DomRoot<AudioParam>> {
         if *cancel_time < 0. {
             return Err(Error::Range(format!(

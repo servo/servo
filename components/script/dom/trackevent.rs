@@ -94,7 +94,7 @@ impl TrackEvent {
 }
 
 impl TrackEventMethods<crate::DomTypeHolder> for TrackEvent {
-    // https://html.spec.whatwg.org/multipage/#trackevent
+    /// <https://html.spec.whatwg.org/multipage/#trackevent>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -130,7 +130,7 @@ impl TrackEventMethods<crate::DomTypeHolder> for TrackEvent {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

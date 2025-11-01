@@ -1254,7 +1254,7 @@ impl Handler {
         Ok(WebDriverResponse::Void)
     }
 
-    // https://w3c.github.io/webdriver/#switch-to-window
+    /// <https://w3c.github.io/webdriver/#switch-to-window>
     fn handle_switch_to_window(
         &mut self,
         parameters: &SwitchToWindowParameters,

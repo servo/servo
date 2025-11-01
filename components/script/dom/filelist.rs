@@ -51,12 +51,12 @@ impl FileList {
 }
 
 impl FileListMethods<crate::DomTypeHolder> for FileList {
-    // https://w3c.github.io/FileAPI/#dfn-length
+    /// <https://w3c.github.io/FileAPI/#dfn-length>
     fn Length(&self) -> u32 {
         self.list.len() as u32
     }
 
-    // https://w3c.github.io/FileAPI/#dfn-item
+    /// <https://w3c.github.io/FileAPI/#dfn-item>
     fn Item(&self, index: u32) -> Option<DomRoot<File>> {
         if (index as usize) < self.list.len() {
             Some(DomRoot::from_ref(&*(self.list[index as usize])))

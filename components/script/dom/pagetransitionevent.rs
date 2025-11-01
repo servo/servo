@@ -79,7 +79,7 @@ impl PageTransitionEvent {
 }
 
 impl PageTransitionEventMethods<crate::DomTypeHolder> for PageTransitionEvent {
-    // https://html.spec.whatwg.org/multipage/#pagetransitionevent
+    /// <https://html.spec.whatwg.org/multipage/#pagetransitionevent>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -98,12 +98,12 @@ impl PageTransitionEventMethods<crate::DomTypeHolder> for PageTransitionEvent {
         ))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-pagetransitionevent-persisted
+    /// <https://html.spec.whatwg.org/multipage/#dom-pagetransitionevent-persisted>
     fn Persisted(&self) -> bool {
         self.persisted.get()
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

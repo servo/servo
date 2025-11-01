@@ -100,7 +100,7 @@ impl HTMLTableCellElementMethods<crate::DomTypeHolder> for HTMLTableCellElement 
     // <https://html.spec.whatwg.org/multipage/#dom-tdth-width>
     make_nonzero_dimension_setter!(SetWidth, "width");
 
-    // https://html.spec.whatwg.org/multipage/#dom-tdth-cellindex
+    /// <https://html.spec.whatwg.org/multipage/#dom-tdth-cellindex>
     fn CellIndex(&self) -> i32 {
         let self_node = self.upcast::<Node>();
 

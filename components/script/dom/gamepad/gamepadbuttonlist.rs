@@ -41,19 +41,19 @@ impl GamepadButtonList {
 }
 
 impl GamepadButtonListMethods<crate::DomTypeHolder> for GamepadButtonList {
-    // https://w3c.github.io/gamepad/#dom-gamepad-buttons
+    /// <https://w3c.github.io/gamepad/#dom-gamepad-buttons>
     fn Length(&self) -> u32 {
         self.list.len() as u32
     }
 
-    // https://w3c.github.io/gamepad/#dom-gamepad-buttons
+    /// <https://w3c.github.io/gamepad/#dom-gamepad-buttons>
     fn Item(&self, index: u32) -> Option<DomRoot<GamepadButton>> {
         self.list
             .get(index as usize)
             .map(|button| DomRoot::from_ref(&**button))
     }
 
-    // https://w3c.github.io/gamepad/#dom-gamepad-buttons
+    /// <https://w3c.github.io/gamepad/#dom-gamepad-buttons>
     fn IndexedGetter(&self, index: u32) -> Option<DomRoot<GamepadButton>> {
         self.Item(index)
     }

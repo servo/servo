@@ -120,7 +120,7 @@ impl OscillatorNode {
 }
 
 impl OscillatorNodeMethods<crate::DomTypeHolder> for OscillatorNode {
-    // https://webaudio.github.io/web-audio-api/#dom-oscillatornode-oscillatornode
+    /// <https://webaudio.github.io/web-audio-api/#dom-oscillatornode-oscillatornode>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -131,22 +131,22 @@ impl OscillatorNodeMethods<crate::DomTypeHolder> for OscillatorNode {
         OscillatorNode::new_with_proto(window, proto, context, options, can_gc)
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-oscillatornode-frequency
+    /// <https://webaudio.github.io/web-audio-api/#dom-oscillatornode-frequency>
     fn Frequency(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.frequency)
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-oscillatornode-detune
+    /// <https://webaudio.github.io/web-audio-api/#dom-oscillatornode-detune>
     fn Detune(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.detune)
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-oscillatornode-type
+    /// <https://webaudio.github.io/web-audio-api/#dom-oscillatornode-type>
     fn Type(&self) -> OscillatorType {
         self.oscillator_type.get()
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-oscillatornode-type
+    /// <https://webaudio.github.io/web-audio-api/#dom-oscillatornode-type>
     fn SetType(&self, type_: OscillatorType) -> ErrorResult {
         if type_ == OscillatorType::Custom {
             return Err(Error::InvalidState(None));

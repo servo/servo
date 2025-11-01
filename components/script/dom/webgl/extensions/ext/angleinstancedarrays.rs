@@ -65,7 +65,7 @@ impl WebGLExtension for ANGLEInstancedArrays {
 }
 
 impl ANGLEInstancedArraysMethods<crate::DomTypeHolder> for ANGLEInstancedArrays {
-    // https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/
+    /// <https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/>
     fn DrawArraysInstancedANGLE(&self, mode: u32, first: i32, count: i32, primcount: i32) {
         handle_potential_webgl_error!(
             self.ctx,
@@ -74,7 +74,7 @@ impl ANGLEInstancedArraysMethods<crate::DomTypeHolder> for ANGLEInstancedArrays 
         )
     }
 
-    // https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/
+    /// <https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/>
     fn DrawElementsInstancedANGLE(
         &self,
         mode: u32,

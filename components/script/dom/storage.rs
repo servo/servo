@@ -62,7 +62,7 @@ impl Storage {
 }
 
 impl StorageMethods<crate::DomTypeHolder> for Storage {
-    // https://html.spec.whatwg.org/multipage/#dom-storage-length
+    /// <https://html.spec.whatwg.org/multipage/#dom-storage-length>
     fn Length(&self) -> u32 {
         let (sender, receiver) =
             generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
@@ -77,7 +77,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
         receiver.recv().unwrap() as u32
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-storage-key
+    /// <https://html.spec.whatwg.org/multipage/#dom-storage-key>
     fn Key(&self, index: u32) -> Option<DOMString> {
         let (sender, receiver) =
             generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
@@ -93,7 +93,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
         receiver.recv().unwrap().map(DOMString::from)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-storage-getitem
+    /// <https://html.spec.whatwg.org/multipage/#dom-storage-getitem>
     fn GetItem(&self, name: DOMString) -> Option<DOMString> {
         let (sender, receiver) =
             generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
@@ -110,7 +110,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
         receiver.recv().unwrap().map(DOMString::from)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-storage-setitem
+    /// <https://html.spec.whatwg.org/multipage/#dom-storage-setitem>
     fn SetItem(&self, name: DOMString, value: DOMString) -> ErrorResult {
         let (sender, receiver) =
             generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
@@ -140,7 +140,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-storage-removeitem
+    /// <https://html.spec.whatwg.org/multipage/#dom-storage-removeitem>
     fn RemoveItem(&self, name: DOMString) {
         let (sender, receiver) =
             generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
@@ -159,7 +159,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-storage-clear
+    /// <https://html.spec.whatwg.org/multipage/#dom-storage-clear>
     fn Clear(&self) {
         let (sender, receiver) =
             generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
@@ -176,7 +176,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-storage-interface:supported-property-names
+    /// <https://html.spec.whatwg.org/multipage/#the-storage-interface:supported-property-names>
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         let time_profiler = self.global().time_profiler_chan().clone();
         let (sender, receiver) = generic_channel::channel(time_profiler).unwrap();

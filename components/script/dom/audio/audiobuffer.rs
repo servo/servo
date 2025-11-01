@@ -158,7 +158,7 @@ impl AudioBuffer {
         true
     }
 
-    // https://webaudio.github.io/web-audio-api/#acquire-the-content
+    /// <https://webaudio.github.io/web-audio-api/#acquire-the-content>
     fn acquire_contents(&self) -> Option<ServoMediaAudioBuffer> {
         let mut result = ServoMediaAudioBuffer::new(
             self.number_of_channels as u8,
@@ -191,7 +191,7 @@ impl AudioBuffer {
 }
 
 impl AudioBufferMethods<crate::DomTypeHolder> for AudioBuffer {
-    // https://webaudio.github.io/web-audio-api/#dom-audiobuffer-audiobuffer
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffer-audiobuffer>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -217,27 +217,27 @@ impl AudioBufferMethods<crate::DomTypeHolder> for AudioBuffer {
         ))
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audiobuffer-samplerate
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffer-samplerate>
     fn SampleRate(&self) -> Finite<f32> {
         Finite::wrap(self.sample_rate)
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audiobuffer-length
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffer-length>
     fn Length(&self) -> u32 {
         self.length
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audiobuffer-duration
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffer-duration>
     fn Duration(&self) -> Finite<f64> {
         Finite::wrap(self.duration)
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audiobuffer-numberofchannels
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffer-numberofchannels>
     fn NumberOfChannels(&self) -> u32 {
         self.number_of_channels
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audiobuffer-getchanneldata
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffer-getchanneldata>
     fn GetChannelData(&self, cx: JSContext, channel: u32, can_gc: CanGc) -> Fallible<Float32Array> {
         if channel >= self.number_of_channels {
             return Err(Error::IndexSize);
@@ -294,7 +294,7 @@ impl AudioBufferMethods<crate::DomTypeHolder> for AudioBuffer {
         Ok(())
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audiobuffer-copytochannel
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffer-copytochannel>
     fn CopyToChannel(
         &self,
         source: CustomAutoRooterGuard<Float32Array>,

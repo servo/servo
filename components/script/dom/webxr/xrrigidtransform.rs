@@ -72,7 +72,7 @@ impl XRRigidTransform {
 }
 
 impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
-    // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-xrrigidtransform
+    /// <https://immersive-web.github.io/webxr/#dom-xrrigidtransform-xrrigidtransform>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -126,7 +126,7 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
         ))
     }
 
-    // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-position
+    /// <https://immersive-web.github.io/webxr/#dom-xrrigidtransform-position>
     fn Position(&self, can_gc: CanGc) -> DomRoot<DOMPointReadOnly> {
         self.position.or_init(|| {
             let t = &self.transform.translation;
@@ -140,7 +140,7 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
             )
         })
     }
-    // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-orientation
+    /// <https://immersive-web.github.io/webxr/#dom-xrrigidtransform-orientation>
     fn Orientation(&self, can_gc: CanGc) -> DomRoot<DOMPointReadOnly> {
         self.orientation.or_init(|| {
             let r = &self.transform.rotation;
@@ -154,7 +154,7 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
             )
         })
     }
-    // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-inverse
+    /// <https://immersive-web.github.io/webxr/#dom-xrrigidtransform-inverse>
     fn Inverse(&self, can_gc: CanGc) -> DomRoot<XRRigidTransform> {
         self.inverse.or_init(|| {
             let transform =
@@ -163,7 +163,7 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
             transform
         })
     }
-    // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-matrix
+    /// <https://immersive-web.github.io/webxr/#dom-xrrigidtransform-matrix>
     fn Matrix(&self, _cx: JSContext, can_gc: CanGc) -> Float32Array {
         if !self.matrix.is_initialized() {
             self.matrix

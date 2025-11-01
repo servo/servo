@@ -1342,7 +1342,7 @@ impl VirtualMethods for HTMLScriptElement {
 }
 
 impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
-    // https://html.spec.whatwg.org/multipage/#dom-script-src
+    /// <https://html.spec.whatwg.org/multipage/#dom-script-src>
     fn Src(&self) -> TrustedScriptURLOrUSVString {
         let element = self.upcast::<Element>();
         element.get_trusted_type_url_attribute(&local_name!("src"))
@@ -1377,14 +1377,14 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     // https://html.spec.whatwg.org/multipage/#dom-script-charset
     make_setter!(SetCharset, "charset");
 
-    // https://html.spec.whatwg.org/multipage/#dom-script-async
+    /// <https://html.spec.whatwg.org/multipage/#dom-script-async>
     fn Async(&self) -> bool {
         self.non_blocking.get() ||
             self.upcast::<Element>()
                 .has_attribute(&local_name!("async"))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-script-async
+    /// <https://html.spec.whatwg.org/multipage/#dom-script-async>
     fn SetAsync(&self, value: bool, can_gc: CanGc) {
         self.non_blocking.set(false);
         self.upcast::<Element>()
@@ -1416,17 +1416,17 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     // https://html.spec.whatwg.org/multipage/#dom-script-htmlfor
     make_setter!(SetHtmlFor, "for");
 
-    // https://html.spec.whatwg.org/multipage/#dom-script-crossorigin
+    /// <https://html.spec.whatwg.org/multipage/#dom-script-crossorigin>
     fn GetCrossOrigin(&self) -> Option<DOMString> {
         reflect_cross_origin_attribute(self.upcast::<Element>())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-script-crossorigin
+    /// <https://html.spec.whatwg.org/multipage/#dom-script-crossorigin>
     fn SetCrossOrigin(&self, value: Option<DOMString>, can_gc: CanGc) {
         set_cross_origin_attribute(self.upcast::<Element>(), value, can_gc);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-script-referrerpolicy
+    /// <https://html.spec.whatwg.org/multipage/#dom-script-referrerpolicy>
     fn ReferrerPolicy(&self) -> DOMString {
         reflect_referrer_policy_attribute(self.upcast::<Element>())
     }

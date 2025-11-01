@@ -49,7 +49,7 @@ impl XRHitTestSource {
 }
 
 impl XRHitTestSourceMethods<crate::DomTypeHolder> for XRHitTestSource {
-    // https://immersive-web.github.io/hit-test/#dom-xrhittestsource-cancel
+    /// <https://immersive-web.github.io/hit-test/#dom-xrhittestsource-cancel>
     fn Cancel(&self) {
         self.session.with_session(|s| s.cancel_hit_test(self.id));
     }

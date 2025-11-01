@@ -164,7 +164,7 @@ impl HTMLSelectElement {
         })
     }
 
-    // https://html.spec.whatwg.org/multipage/#placeholder-label-option
+    /// <https://html.spec.whatwg.org/multipage/#placeholder-label-option>
     fn get_placeholder_label_option(&self) -> Option<DomRoot<HTMLOptionElement>> {
         if self.Required() && !self.Multiple() && self.display_size() == 1 {
             self.list_of_options().next().filter(|node| {
@@ -242,7 +242,7 @@ impl HTMLSelectElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#concept-select-size
+    /// <https://html.spec.whatwg.org/multipage/#concept-select-size>
     fn display_size(&self) -> u32 {
         if self.Size() == 0 {
             if self.Multiple() { 4 } else { 1 }

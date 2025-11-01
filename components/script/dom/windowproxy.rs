@@ -293,7 +293,7 @@ impl WindowProxy {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#auxiliary-browsing-context
+    /// <https://html.spec.whatwg.org/multipage/#auxiliary-browsing-context>
     fn create_auxiliary_browsing_context(
         &self,
         name: DOMString,
@@ -840,7 +840,7 @@ impl CreatorBrowsingContextInfo {
     }
 }
 
-// https://html.spec.whatwg.org/multipage/#concept-window-open-features-tokenize
+/// <https://html.spec.whatwg.org/multipage/#concept-window-open-features-tokenize>
 fn tokenize_open_features(features: DOMString) -> IndexMap<String, String> {
     let is_feature_sep = |c: char| c.is_ascii_whitespace() || ['=', ','].contains(&c);
     // Step 1
@@ -912,7 +912,7 @@ fn tokenize_open_features(features: DOMString) -> IndexMap<String, String> {
     tokenized_features
 }
 
-// https://html.spec.whatwg.org/multipage/#concept-window-open-features-parse-boolean
+/// <https://html.spec.whatwg.org/multipage/#concept-window-open-features-parse-boolean>
 fn parse_open_feature_boolean(tokenized_features: &IndexMap<String, String>, name: &str) -> bool {
     if let Some(value) = tokenized_features.get(name) {
         // Step 1 & 2

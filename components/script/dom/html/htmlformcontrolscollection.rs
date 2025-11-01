@@ -58,12 +58,12 @@ impl HTMLFormControlsCollection {
 impl HTMLFormControlsCollectionMethods<crate::DomTypeHolder> for HTMLFormControlsCollection {
     // FIXME: This shouldn't need to be implemented here since HTMLCollection (the parent of
     // HTMLFormControlsCollection) implements Length
-    // https://dom.spec.whatwg.org/#dom-htmlcollection-length
+    /// <https://dom.spec.whatwg.org/#dom-htmlcollection-length>
     fn Length(&self) -> u32 {
         self.collection.Length()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-htmlformcontrolscollection-nameditem
+    /// <https://html.spec.whatwg.org/multipage/#dom-htmlformcontrolscollection-nameditem>
     fn NamedItem(&self, name: DOMString, can_gc: CanGc) -> Option<RadioNodeListOrElement> {
         // Step 1
         if name.is_empty() {
@@ -106,12 +106,12 @@ impl HTMLFormControlsCollectionMethods<crate::DomTypeHolder> for HTMLFormControl
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-htmlformcontrolscollection-nameditem
+    /// <https://html.spec.whatwg.org/multipage/#dom-htmlformcontrolscollection-nameditem>
     fn NamedGetter(&self, name: DOMString, can_gc: CanGc) -> Option<RadioNodeListOrElement> {
         self.NamedItem(name, can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-htmlformcontrolscollection-interface:supported-property-names
+    /// <https://html.spec.whatwg.org/multipage/#the-htmlformcontrolscollection-interface:supported-property-names>
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         self.collection.SupportedPropertyNames()
     }
@@ -120,7 +120,7 @@ impl HTMLFormControlsCollectionMethods<crate::DomTypeHolder> for HTMLFormControl
     // HTMLFormControlsCollection) implements IndexedGetter.
     // https://github.com/servo/servo/issues/5875
     //
-    // https://dom.spec.whatwg.org/#dom-htmlcollection-item
+    /// <https://dom.spec.whatwg.org/#dom-htmlcollection-item>
     fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Element>> {
         self.collection.IndexedGetter(index)
     }

@@ -314,7 +314,7 @@ impl InputType {
         self.is_textual() || *self == InputType::Password
     }
 
-    // https://html.spec.whatwg.org/multipage/#has-a-periodic-domain
+    /// <https://html.spec.whatwg.org/multipage/#has-a-periodic-domain>
     fn has_periodic_domain(&self) -> bool {
         *self == InputType::Time
     }
@@ -560,7 +560,7 @@ impl HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
-    // https://html.spec.whatwg.org/multipage/#concept-input-apply
+    /// <https://html.spec.whatwg.org/multipage/#concept-input-apply>
     fn value_mode(&self) -> ValueMode {
         match self.input_type() {
             InputType::Submit |
@@ -851,7 +851,7 @@ impl HTMLInputElement {
         0.0
     }
 
-    // https://html.spec.whatwg.org/multipage#concept-input-step-default-base
+    /// <https://html.spec.whatwg.org/multipage#concept-input-step-default-base>
     fn default_step_base(&self) -> Option<f64> {
         match self.input_type() {
             InputType::Week => Some(-259200000.0),
@@ -976,7 +976,7 @@ impl HTMLInputElement {
         self.SetValueAsNumber(value, can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#concept-input-list
+    /// <https://html.spec.whatwg.org/multipage/#concept-input-list>
     fn suggestions_source_element(&self) -> Option<DomRoot<HTMLDataListElement>> {
         let list_string = self
             .upcast::<Element>()
@@ -1040,7 +1040,7 @@ impl HTMLInputElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#suffering-from-a-type-mismatch
+    /// <https://html.spec.whatwg.org/multipage/#suffering-from-a-type-mismatch>
     fn suffers_from_type_mismatch(&self, value: &DOMString) -> bool {
         if value.is_empty() {
             return false;
@@ -1090,7 +1090,7 @@ impl HTMLInputElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#suffering-from-bad-input
+    /// <https://html.spec.whatwg.org/multipage/#suffering-from-bad-input>
     fn suffers_from_bad_input(&self, value: &DOMString) -> bool {
         if value.is_empty() {
             return false;
@@ -1126,7 +1126,7 @@ impl HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#suffering-from-being-too-long
-    // https://html.spec.whatwg.org/multipage/#suffering-from-being-too-short
+    /// <https://html.spec.whatwg.org/multipage/#suffering-from-being-too-short>
     fn suffers_from_length_issues(&self, value: &DOMString) -> ValidationFlags {
         // https://html.spec.whatwg.org/multipage/#limiting-user-input-length%3A-the-maxlength-attribute%3Asuffering-from-being-too-long
         // https://html.spec.whatwg.org/multipage/#setting-minimum-input-length-requirements%3A-the-minlength-attribute%3Asuffering-from-being-too-short
@@ -1564,7 +1564,7 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
 }
 
 impl TextControlElement for HTMLInputElement {
-    // https://html.spec.whatwg.org/multipage/#concept-input-apply
+    /// <https://html.spec.whatwg.org/multipage/#concept-input-apply>
     fn selection_api_applies(&self) -> bool {
         matches!(
             self.input_type(),
@@ -1642,12 +1642,12 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled");
 
-    // https://html.spec.whatwg.org/multipage/#dom-fae-form
+    /// <https://html.spec.whatwg.org/multipage/#dom-fae-form>
     fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-files
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-files>
     fn GetFiles(&self) -> Option<DomRoot<FileList>> {
         self.filelist.get().as_ref().cloned()
     }
@@ -1665,14 +1665,14 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-defaultchecked
     make_bool_setter!(SetDefaultChecked, "checked");
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-checked
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-checked>
     fn Checked(&self) -> bool {
         self.upcast::<Element>()
             .state()
             .contains(ElementState::CHECKED)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-checked
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-checked>
     fn SetChecked(&self, checked: bool, can_gc: CanGc) {
         self.update_checked_state(checked, true, can_gc);
         self.value_changed(can_gc);
@@ -1690,7 +1690,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-size
     make_limited_uint_setter!(SetSize, "size", DEFAULT_INPUT_SIZE);
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-type
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-type>
     fn Type(&self) -> DOMString {
         DOMString::from(self.input_type().as_str())
     }
@@ -1698,7 +1698,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-type
     make_atomic_setter!(SetType, "type");
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-value
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-value>
     fn Value(&self) -> DOMString {
         match self.value_mode() {
             ValueMode::Value => self.textinput.borrow().get_content(),
@@ -1731,7 +1731,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-value
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-value>
     fn SetValue(&self, mut value: DOMString, can_gc: CanGc) -> ErrorResult {
         match self.value_mode() {
             ValueMode::Value => {
@@ -1791,7 +1791,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-min
     make_setter!(SetMin, "min");
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-list
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-list>
     fn GetList(&self) -> Option<DomRoot<HTMLDataListElement>> {
         self.suggestions_source_element()
     }
@@ -1849,7 +1849,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         self.SetValue(self.convert_datetime_to_dom_string(date_time), can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-valueasnumber
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-valueasnumber>
     fn ValueAsNumber(&self) -> f64 {
         self.convert_string_to_number(&self.Value().str())
             .unwrap_or(f64::NAN)
@@ -1974,14 +1974,14 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-step
     make_setter!(SetStep, "step");
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-indeterminate>
     fn Indeterminate(&self) -> bool {
         self.upcast::<Element>()
             .state()
             .contains(ElementState::INDETERMINATE)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-indeterminate>
     fn SetIndeterminate(&self, val: bool) {
         self.upcast::<Element>()
             .set_state(ElementState::INDETERMINATE, val)
@@ -2004,53 +2004,53 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-select
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-select>
     fn Select(&self) {
         self.selection().dom_select();
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     fn GetSelectionStart(&self) -> Option<u32> {
         self.selection().dom_start()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     fn SetSelectionStart(&self, start: Option<u32>) -> ErrorResult {
         self.selection().set_dom_start(start)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     fn GetSelectionEnd(&self) -> Option<u32> {
         self.selection().dom_end()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     fn SetSelectionEnd(&self, end: Option<u32>) -> ErrorResult {
         self.selection().set_dom_end(end)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
     fn GetSelectionDirection(&self) -> Option<DOMString> {
         self.selection().dom_direction()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
     fn SetSelectionDirection(&self, direction: Option<DOMString>) -> ErrorResult {
         self.selection().set_dom_direction(direction)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange>
     fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) -> ErrorResult {
         self.selection().set_dom_range(start, end, direction)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
     fn SetRangeText(&self, replacement: DOMString) -> ErrorResult {
         self.selection()
             .set_dom_range_text(replacement, None, None, Default::default())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
     fn SetRangeText_(
         &self,
         replacement: DOMString,
@@ -2080,32 +2080,32 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         self.step_up_or_down(n, StepDirection::Down, can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate>
     fn WillValidate(&self) -> bool {
         self.is_instance_validatable()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-validity
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-validity>
     fn Validity(&self, can_gc: CanGc) -> DomRoot<ValidityState> {
         self.validity_state(can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity>
     fn CheckValidity(&self, can_gc: CanGc) -> bool {
         self.check_validity(can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity>
     fn ReportValidity(&self, can_gc: CanGc) -> bool {
         self.report_validity(can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
     fn ValidationMessage(&self) -> DOMString {
         self.validation_message()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity>
     fn SetCustomValidity(&self, error: DOMString, can_gc: CanGc) {
         self.validity_state(can_gc).set_custom_error_message(error);
     }
@@ -2145,7 +2145,7 @@ fn perform_radio_group_validation(elem: &HTMLInputElement, group: Option<&Atom>,
     }
 }
 
-// https://html.spec.whatwg.org/multipage/#radio-button-group
+/// <https://html.spec.whatwg.org/multipage/#radio-button-group>
 fn in_same_group(
     other: &HTMLInputElement,
     owner: Option<&HTMLFormElement>,
@@ -2279,7 +2279,7 @@ impl HTMLInputElement {
         }]
     }
 
-    // https://html.spec.whatwg.org/multipage/#radio-button-group
+    /// <https://html.spec.whatwg.org/multipage/#radio-button-group>
     fn radio_group_name(&self) -> Option<Atom> {
         self.upcast::<Element>()
             .get_name()
@@ -3197,7 +3197,7 @@ impl VirtualMethods for HTMLInputElement {
     // DOM/HTML specs are out of sync.
     // Compare:
     // https://w3c.github.io/uievents/#default-action
-    // https://dom.spec.whatwg.org/#action-versus-occurance
+    /// <https://dom.spec.whatwg.org/#action-versus-occurance>
     fn handle_event(&self, event: &Event, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
             s.handle_event(event, can_gc);
@@ -3343,7 +3343,7 @@ impl VirtualMethods for HTMLInputElement {
         self.value_changed(can_gc);
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-input-element%3Aconcept-node-clone-ext
+    /// <https://html.spec.whatwg.org/multipage/#the-input-element%3Aconcept-node-clone-ext>
     fn cloning_steps(
         &self,
         copy: &Node,
@@ -3477,7 +3477,7 @@ impl Activatable for HTMLInputElement {
         }
     }
 
-    // https://dom.spec.whatwg.org/#eventtarget-legacy-pre-activation-behavior
+    /// <https://dom.spec.whatwg.org/#eventtarget-legacy-pre-activation-behavior>
     fn legacy_pre_activation_behavior(&self, can_gc: CanGc) -> Option<InputActivationState> {
         let ty = self.input_type();
         let activation_state = match ty {
@@ -3524,7 +3524,7 @@ impl Activatable for HTMLInputElement {
         activation_state
     }
 
-    // https://dom.spec.whatwg.org/#eventtarget-legacy-canceled-activation-behavior
+    /// <https://dom.spec.whatwg.org/#eventtarget-legacy-canceled-activation-behavior>
     fn legacy_canceled_activation_behavior(
         &self,
         cache: Option<InputActivationState>,
@@ -3650,7 +3650,7 @@ impl Activatable for HTMLInputElement {
     }
 }
 
-// https://html.spec.whatwg.org/multipage/#attr-input-accept
+/// <https://html.spec.whatwg.org/multipage/#attr-input-accept>
 fn filter_from_accept(s: &DOMString) -> Vec<FilterPattern> {
     let mut filter = vec![];
     for p in split_commas(&s.str()) {
@@ -3678,9 +3678,9 @@ fn round_halves_positive(n: f64) -> f64 {
     }
 }
 
-// This is used to compile JS-compatible regex provided in pattern attribute
-// that matches only the entirety of string.
-// https://html.spec.whatwg.org/multipage/#compiled-pattern-regular-expression
+/// This is used to compile JS-compatible regex provided in pattern attribute
+/// that matches only the entirety of string.
+/// <https://html.spec.whatwg.org/multipage/#compiled-pattern-regular-expression>
 fn compile_pattern(
     cx: SafeJSContext,
     pattern_str: &str,

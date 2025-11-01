@@ -121,17 +121,17 @@ impl VideoTrackList {
 }
 
 impl VideoTrackListMethods<crate::DomTypeHolder> for VideoTrackList {
-    // https://html.spec.whatwg.org/multipage/#dom-videotracklist-length
+    /// <https://html.spec.whatwg.org/multipage/#dom-videotracklist-length>
     fn Length(&self) -> u32 {
         self.len() as u32
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-tracklist-item
+    /// <https://html.spec.whatwg.org/multipage/#dom-tracklist-item>
     fn IndexedGetter(&self, idx: u32) -> Option<DomRoot<VideoTrack>> {
         self.item(idx as usize)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-videotracklist-gettrackbyid
+    /// <https://html.spec.whatwg.org/multipage/#dom-videotracklist-gettrackbyid>
     fn GetTrackById(&self, id: DOMString) -> Option<DomRoot<VideoTrack>> {
         self.tracks
             .borrow()
@@ -140,7 +140,7 @@ impl VideoTrackListMethods<crate::DomTypeHolder> for VideoTrackList {
             .map(|track| DomRoot::from_ref(&**track))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-videotrack-selected
+    /// <https://html.spec.whatwg.org/multipage/#dom-videotrack-selected>
     fn SelectedIndex(&self) -> i32 {
         if let Some(idx) = self.selected_index() {
             return idx as i32;

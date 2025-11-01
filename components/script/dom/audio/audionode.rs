@@ -108,7 +108,7 @@ impl AudioNode {
 }
 
 impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
-    // https://webaudio.github.io/web-audio-api/#dom-audionode-connect
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-connect>
     fn Connect(
         &self,
         destination: &AudioNode,
@@ -137,7 +137,7 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         Ok(DomRoot::from_ref(destination))
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audionode-connect-destinationparam-output
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-connect-destinationparam-output>
     fn Connect_(&self, dest: &AudioParam, output: u32) -> Fallible<()> {
         if self.context != dest.context() {
             return Err(Error::InvalidAccess);
@@ -161,7 +161,7 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         Ok(())
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect>
     fn Disconnect(&self) -> ErrorResult {
         self.context
             .audio_context_impl()
@@ -171,7 +171,7 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         Ok(())
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-output
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-output>
     fn Disconnect_(&self, out: u32) -> ErrorResult {
         self.context
             .audio_context_impl()
@@ -181,7 +181,7 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         Ok(())
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode>
     fn Disconnect__(&self, to: &AudioNode) -> ErrorResult {
         self.context
             .audio_context_impl()
@@ -191,7 +191,7 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         Ok(())
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode-output
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode-output>
     fn Disconnect___(&self, to: &AudioNode, out: u32) -> ErrorResult {
         self.context
             .audio_context_impl()
@@ -201,7 +201,7 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         Ok(())
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode-output-input
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode-output-input>
     fn Disconnect____(&self, to: &AudioNode, out: u32, inp: u32) -> ErrorResult {
         self.context
             .audio_context_impl()
@@ -211,7 +211,7 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         Ok(())
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect>
     fn Disconnect_____(&self, param: &AudioParam) -> ErrorResult {
         self.context
             .audio_context_impl()
@@ -221,7 +221,7 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         Ok(())
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect>
     fn Disconnect______(&self, param: &AudioParam, out: u32) -> ErrorResult {
         self.context
             .audio_context_impl()
@@ -234,27 +234,27 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         Ok(())
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audionode-context
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-context>
     fn Context(&self) -> DomRoot<BaseAudioContext> {
         DomRoot::from_ref(&self.context)
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audionode-numberofinputs
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-numberofinputs>
     fn NumberOfInputs(&self) -> u32 {
         self.number_of_inputs
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audionode-numberofoutputs
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-numberofoutputs>
     fn NumberOfOutputs(&self) -> u32 {
         self.number_of_outputs
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audionode-channelcount
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-channelcount>
     fn ChannelCount(&self) -> u32 {
         self.channel_count.get()
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audionode-channelcount
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-channelcount>
     fn SetChannelCount(&self, value: u32) -> ErrorResult {
         match self.upcast::<EventTarget>().type_id() {
             EventTargetTypeId::AudioNode(AudioNodeTypeId::AudioDestinationNode) => {
@@ -297,12 +297,12 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         Ok(())
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audionode-channelcountmode
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-channelcountmode>
     fn ChannelCountMode(&self) -> ChannelCountMode {
         self.channel_count_mode.get()
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audionode-channelcountmode
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-channelcountmode>
     fn SetChannelCountMode(&self, value: ChannelCountMode) -> ErrorResult {
         // Channel count mode has no effect for nodes with no inputs.
         if self.number_of_inputs == 0 {
@@ -344,12 +344,12 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         Ok(())
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audionode-channelinterpretation
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-channelinterpretation>
     fn ChannelInterpretation(&self) -> ChannelInterpretation {
         self.channel_interpretation.get()
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audionode-channelinterpretation
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-channelinterpretation>
     fn SetChannelInterpretation(&self, value: ChannelInterpretation) -> ErrorResult {
         // Channel interpretation mode has no effect for nodes with no inputs.
         if self.number_of_inputs == 0 {

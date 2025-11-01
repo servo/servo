@@ -69,7 +69,7 @@ impl AnimationEvent {
 }
 
 impl AnimationEventMethods<crate::DomTypeHolder> for AnimationEvent {
-    // https://drafts.csswg.org/css-animations/#dom-animationevent-animationevent
+    /// <https://drafts.csswg.org/css-animations/#dom-animationevent-animationevent>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -80,22 +80,22 @@ impl AnimationEventMethods<crate::DomTypeHolder> for AnimationEvent {
         AnimationEvent::new_with_proto(window, proto, Atom::from(type_), init, can_gc)
     }
 
-    // https://drafts.csswg.org/css-animations/#interface-animationevent-attributes
+    /// <https://drafts.csswg.org/css-animations/#interface-animationevent-attributes>
     fn AnimationName(&self) -> DOMString {
         DOMString::from(&*self.animation_name)
     }
 
-    // https://drafts.csswg.org/css-animations/#interface-animationevent-attributes
+    /// <https://drafts.csswg.org/css-animations/#interface-animationevent-attributes>
     fn ElapsedTime(&self) -> Finite<f32> {
         self.elapsed_time
     }
 
-    // https://drafts.csswg.org/css-animations/#interface-animationevent-attributes
+    /// <https://drafts.csswg.org/css-animations/#interface-animationevent-attributes>
     fn PseudoElement(&self) -> DOMString {
         self.pseudo_element.clone()
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.upcast::<Event>().IsTrusted()
     }

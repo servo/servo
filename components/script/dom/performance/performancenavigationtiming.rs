@@ -64,60 +64,60 @@ impl PerformanceNavigationTiming {
 
 // https://w3c.github.io/navigation-timing/
 impl PerformanceNavigationTimingMethods<crate::DomTypeHolder> for PerformanceNavigationTiming {
-    // https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-unloadeventstart
+    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-unloadeventstart>
     fn UnloadEventStart(&self) -> DOMHighResTimeStamp {
         self.upcast::<PerformanceResourceTiming>()
             .to_dom_high_res_time_stamp(self.document.get_unload_event_start())
     }
 
-    // https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-unloadeventend
+    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-unloadeventend>
     fn UnloadEventEnd(&self) -> DOMHighResTimeStamp {
         self.upcast::<PerformanceResourceTiming>()
             .to_dom_high_res_time_stamp(self.document.get_unload_event_end())
     }
 
-    // https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-dominteractive
+    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-dominteractive>
     fn DomInteractive(&self) -> DOMHighResTimeStamp {
         self.upcast::<PerformanceResourceTiming>()
             .to_dom_high_res_time_stamp(self.document.get_dom_interactive())
     }
 
-    // https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-domcontentloadedeventstart
+    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-domcontentloadedeventstart>
     fn DomContentLoadedEventStart(&self) -> DOMHighResTimeStamp {
         self.upcast::<PerformanceResourceTiming>()
             .to_dom_high_res_time_stamp(self.document.get_dom_content_loaded_event_start())
     }
 
-    // https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-domcontentloadedeventstart
+    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-domcontentloadedeventstart>
     fn DomContentLoadedEventEnd(&self) -> DOMHighResTimeStamp {
         self.upcast::<PerformanceResourceTiming>()
             .to_dom_high_res_time_stamp(self.document.get_dom_content_loaded_event_end())
     }
 
-    // https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-domcomplete
+    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-domcomplete>
     fn DomComplete(&self) -> DOMHighResTimeStamp {
         self.upcast::<PerformanceResourceTiming>()
             .to_dom_high_res_time_stamp(self.document.get_dom_complete())
     }
 
-    // https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-loadeventstart
+    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-loadeventstart>
     fn LoadEventStart(&self) -> DOMHighResTimeStamp {
         self.upcast::<PerformanceResourceTiming>()
             .to_dom_high_res_time_stamp(self.document.get_load_event_start())
     }
 
-    // https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-loadeventend
+    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-loadeventend>
     fn LoadEventEnd(&self) -> DOMHighResTimeStamp {
         self.upcast::<PerformanceResourceTiming>()
             .to_dom_high_res_time_stamp(self.document.get_load_event_end())
     }
 
-    // https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-type
+    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-type>
     fn Type(&self) -> NavigationTimingType {
         self.nav_type
     }
 
-    // https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-redirectcount
+    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-redirectcount>
     fn RedirectCount(&self) -> u16 {
         self.document.get_redirect_count()
     }

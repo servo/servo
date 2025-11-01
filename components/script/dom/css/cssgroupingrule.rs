@@ -76,13 +76,13 @@ impl CSSGroupingRule {
 }
 
 impl CSSGroupingRuleMethods<crate::DomTypeHolder> for CSSGroupingRule {
-    // https://drafts.csswg.org/cssom/#dom-cssgroupingrule-cssrules
+    /// <https://drafts.csswg.org/cssom/#dom-cssgroupingrule-cssrules>
     fn CssRules(&self, can_gc: CanGc) -> DomRoot<CSSRuleList> {
         // XXXManishearth check origin clean flag
         self.rulelist(can_gc)
     }
 
-    // https://drafts.csswg.org/cssom/#dom-cssgroupingrule-insertrule
+    /// <https://drafts.csswg.org/cssom/#dom-cssgroupingrule-insertrule>
     fn InsertRule(&self, rule: DOMString, index: u32, can_gc: CanGc) -> Fallible<u32> {
         // TODO: this should accumulate the rule types of all ancestors.
         let rule_type = self.cssrule.as_specific().ty();
@@ -100,7 +100,7 @@ impl CSSGroupingRuleMethods<crate::DomTypeHolder> for CSSGroupingRule {
         )
     }
 
-    // https://drafts.csswg.org/cssom/#dom-cssgroupingrule-deleterule
+    /// <https://drafts.csswg.org/cssom/#dom-cssgroupingrule-deleterule>
     fn DeleteRule(&self, index: u32, can_gc: CanGc) -> ErrorResult {
         self.rulelist(can_gc).remove_rule(index)
     }

@@ -30,22 +30,22 @@ impl MimeTypeArray {
 }
 
 impl MimeTypeArrayMethods<crate::DomTypeHolder> for MimeTypeArray {
-    // https://html.spec.whatwg.org/multipage/#dom-mimetypearray-length
+    /// <https://html.spec.whatwg.org/multipage/#dom-mimetypearray-length>
     fn Length(&self) -> u32 {
         0
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-mimetypearray-item
+    /// <https://html.spec.whatwg.org/multipage/#dom-mimetypearray-item>
     fn Item(&self, _index: u32) -> Option<DomRoot<MimeType>> {
         None
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-mimetypearray-nameditem
+    /// <https://html.spec.whatwg.org/multipage/#dom-mimetypearray-nameditem>
     fn NamedItem(&self, _name: DOMString) -> Option<DomRoot<MimeType>> {
         None
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-mimetypearray-item
+    /// <https://html.spec.whatwg.org/multipage/#dom-mimetypearray-item>
     fn IndexedGetter(&self, _index: u32) -> Option<DomRoot<MimeType>> {
         None
     }
@@ -55,7 +55,7 @@ impl MimeTypeArrayMethods<crate::DomTypeHolder> for MimeTypeArray {
         None
     }
 
-    // https://heycam.github.io/webidl/#dfn-supported-property-names
+    /// <https://heycam.github.io/webidl/#dfn-supported-property-names>
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         vec![]
     }

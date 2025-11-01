@@ -162,7 +162,7 @@ impl Bluetooth {
         &self.device_instance_map
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices>
     fn request_bluetooth_devices(
         &self,
         p: &Rc<Promise>,
@@ -347,7 +347,7 @@ where
     p
 }
 
-// https://webbluetoothcg.github.io/web-bluetooth/#bluetoothlescanfilterinit-canonicalizing
+/// <https://webbluetoothcg.github.io/web-bluetooth/#bluetoothlescanfilterinit-canonicalizing>
 fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<BluetoothScanfilter> {
     // Step 1.
     if filter.services.is_none() &&
@@ -495,7 +495,7 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
     ))
 }
 
-// https://webbluetoothcg.github.io/web-bluetooth/#bluetoothdatafilterinit-canonicalizing
+/// <https://webbluetoothcg.github.io/web-bluetooth/#bluetoothdatafilterinit-canonicalizing>
 fn canonicalize_bluetooth_data_filter_init(
     bdfi: &BluetoothDataFilterInit,
 ) -> Fallible<(Vec<u8>, Vec<u8>)> {
@@ -538,7 +538,7 @@ impl Convert<Error> for BluetoothError {
 }
 
 impl BluetoothMethods<crate::DomTypeHolder> for Bluetooth {
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice>
     fn RequestDevice(
         &self,
         option: &RequestDeviceOptions,
@@ -567,7 +567,7 @@ impl BluetoothMethods<crate::DomTypeHolder> for Bluetooth {
         p
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-getavailability
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-getavailability>
     fn GetAvailability(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let p = Promise::new_in_current_realm(comp, can_gc);
         // Step 1. We did not override the method
@@ -647,7 +647,7 @@ impl PermissionAlgorithm for Bluetooth {
         }
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#query-the-bluetooth-permission
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#query-the-bluetooth-permission>
     fn permission_query(
         _cx: JSContext,
         promise: &Rc<Promise>,
@@ -737,7 +737,7 @@ impl PermissionAlgorithm for Bluetooth {
         promise.resolve_native(status, CanGc::note());
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#request-the-bluetooth-permission
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#request-the-bluetooth-permission>
     fn permission_request(
         _cx: JSContext,
         promise: &Rc<Promise>,
@@ -764,7 +764,7 @@ impl PermissionAlgorithm for Bluetooth {
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    // https://webbluetoothcg.github.io/web-bluetooth/#revoke-bluetooth-access
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#revoke-bluetooth-access>
     fn permission_revoke(
         _descriptor: &BluetoothPermissionDescriptor,
         status: &BluetoothPermissionResult,

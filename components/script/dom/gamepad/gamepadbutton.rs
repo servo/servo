@@ -46,17 +46,17 @@ impl GamepadButton {
 }
 
 impl GamepadButtonMethods<crate::DomTypeHolder> for GamepadButton {
-    // https://www.w3.org/TR/gamepad/#widl-GamepadButton-pressed
+    /// <https://www.w3.org/TR/gamepad/#widl-GamepadButton-pressed>
     fn Pressed(&self) -> bool {
         self.pressed.get()
     }
 
-    // https://www.w3.org/TR/gamepad/#widl-GamepadButton-touched
+    /// <https://www.w3.org/TR/gamepad/#widl-GamepadButton-touched>
     fn Touched(&self) -> bool {
         self.touched.get()
     }
 
-    // https://www.w3.org/TR/gamepad/#widl-GamepadButton-value
+    /// <https://www.w3.org/TR/gamepad/#widl-GamepadButton-value>
     fn Value(&self) -> Finite<f64> {
         Finite::wrap(self.value.get())
     }

@@ -112,32 +112,32 @@ impl BluetoothAdvertisingEventMethods<crate::DomTypeHolder> for BluetoothAdverti
         ))
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothadvertisingevent-device
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothadvertisingevent-device>
     fn Device(&self) -> DomRoot<BluetoothDevice> {
         DomRoot::from_ref(&*self.device)
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothadvertisingevent-name
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothadvertisingevent-name>
     fn GetName(&self) -> Option<DOMString> {
         self.name.clone()
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothadvertisingevent-appearance
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothadvertisingevent-appearance>
     fn GetAppearance(&self) -> Option<u16> {
         self.appearance
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothadvertisingevent-txpower
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothadvertisingevent-txpower>
     fn GetTxPower(&self) -> Option<i8> {
         self.tx_power
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothadvertisingevent-rssi
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothadvertisingevent-rssi>
     fn GetRssi(&self) -> Option<i8> {
         self.rssi
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

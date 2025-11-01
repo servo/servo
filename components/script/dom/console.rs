@@ -364,33 +364,33 @@ enum IncludeStackTrace {
 }
 
 impl consoleMethods<crate::DomTypeHolder> for Console {
-    // https://developer.mozilla.org/en-US/docs/Web/API/Console/log
+    /// <https://developer.mozilla.org/en-US/docs/Web/API/Console/log>
     fn Log(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
         Console::method(global, LogLevel::Log, messages, IncludeStackTrace::No);
     }
 
-    // https://developer.mozilla.org/en-US/docs/Web/API/Console/clear
+    /// <https://developer.mozilla.org/en-US/docs/Web/API/Console/clear>
     fn Clear(global: &GlobalScope) {
         let message = Console::build_message(LogLevel::Clear).finish();
         Console::send_to_devtools(global, message);
     }
 
-    // https://developer.mozilla.org/en-US/docs/Web/API/Console
+    /// <https://developer.mozilla.org/en-US/docs/Web/API/Console>
     fn Debug(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
         Console::method(global, LogLevel::Debug, messages, IncludeStackTrace::No);
     }
 
-    // https://developer.mozilla.org/en-US/docs/Web/API/Console/info
+    /// <https://developer.mozilla.org/en-US/docs/Web/API/Console/info>
     fn Info(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
         Console::method(global, LogLevel::Info, messages, IncludeStackTrace::No);
     }
 
-    // https://developer.mozilla.org/en-US/docs/Web/API/Console/warn
+    /// <https://developer.mozilla.org/en-US/docs/Web/API/Console/warn>
     fn Warn(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
         Console::method(global, LogLevel::Warn, messages, IncludeStackTrace::No);
     }
 
-    // https://developer.mozilla.org/en-US/docs/Web/API/Console/error
+    /// <https://developer.mozilla.org/en-US/docs/Web/API/Console/error>
     fn Error(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
         Console::method(global, LogLevel::Error, messages, IncludeStackTrace::No);
     }
@@ -400,7 +400,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         Console::method(global, LogLevel::Trace, messages, IncludeStackTrace::Yes);
     }
 
-    // https://developer.mozilla.org/en-US/docs/Web/API/Console/assert
+    /// <https://developer.mozilla.org/en-US/docs/Web/API/Console/assert>
     fn Assert(_cx: JSContext, global: &GlobalScope, condition: bool, messages: Vec<HandleValue>) {
         if !condition {
             let message = format!("Assertion failed: {}", stringify_handle_values(&messages));
@@ -409,7 +409,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         }
     }
 
-    // https://console.spec.whatwg.org/#time
+    /// <https://console.spec.whatwg.org/#time>
     fn Time(global: &GlobalScope, label: DOMString) {
         if let Ok(()) = global.time(label.clone()) {
             let message = format!("{label}: timer started");
@@ -417,7 +417,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         }
     }
 
-    // https://console.spec.whatwg.org/#timelog
+    /// <https://console.spec.whatwg.org/#timelog>
     fn TimeLog(_cx: JSContext, global: &GlobalScope, label: DOMString, data: Vec<HandleValue>) {
         if let Ok(delta) = global.time_log(&label) {
             let message = format!("{label}: {delta}ms {}", stringify_handle_values(&data));
@@ -426,7 +426,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         }
     }
 
-    // https://console.spec.whatwg.org/#timeend
+    /// <https://console.spec.whatwg.org/#timeend>
     fn TimeEnd(global: &GlobalScope, label: DOMString) {
         if let Ok(delta) = global.time_end(&label) {
             let message = format!("{label}: {delta}ms");
@@ -435,17 +435,17 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         }
     }
 
-    // https://console.spec.whatwg.org/#group
+    /// <https://console.spec.whatwg.org/#group>
     fn Group(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
         global.push_console_group(stringify_handle_values(&messages));
     }
 
-    // https://console.spec.whatwg.org/#groupcollapsed
+    /// <https://console.spec.whatwg.org/#groupcollapsed>
     fn GroupCollapsed(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
         global.push_console_group(stringify_handle_values(&messages));
     }
 
-    // https://console.spec.whatwg.org/#groupend
+    /// <https://console.spec.whatwg.org/#groupend>
     fn GroupEnd(global: &GlobalScope) {
         global.pop_console_group();
     }

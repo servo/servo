@@ -34,7 +34,7 @@ impl IDBFactory {
 }
 
 impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-open
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-open>
     fn Open(&self, name: DOMString, version: Option<u64>) -> Fallible<DomRoot<IDBOpenDBRequest>> {
         // Step 1: If version is 0 (zero), throw a TypeError.
         if version == Some(0) {
@@ -66,7 +66,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         Ok(request)
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-deletedatabase
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-deletedatabase>
     fn DeleteDatabase(&self, name: DOMString) -> Fallible<DomRoot<IDBOpenDBRequest>> {
         // Step 1: Let origin be the origin of the global scope used to
         // access this IDBFactory.
@@ -96,7 +96,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
     //     unimplemented!();
     // }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-cmp
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-cmp>
     fn Cmp(&self, cx: SafeJSContext, first: HandleValue, second: HandleValue) -> Fallible<i16> {
         let first_key = convert_value_to_key(cx, first, None)?.into_result()?;
         let second_key = convert_value_to_key(cx, second, None)?.into_result()?;

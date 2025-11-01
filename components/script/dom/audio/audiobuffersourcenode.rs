@@ -128,7 +128,7 @@ impl AudioBufferSourceNode {
 }
 
 impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNode {
-    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-audiobuffersourcenode
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-audiobuffersourcenode>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -139,12 +139,12 @@ impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNod
         AudioBufferSourceNode::new_with_proto(window, proto, context, options, can_gc)
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-buffer
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-buffer>
     fn GetBuffer(&self) -> Fallible<Option<DomRoot<AudioBuffer>>> {
         Ok(self.buffer.get())
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-buffer
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-buffer>
     fn SetBuffer(&self, new_buffer: Option<&AudioBuffer>) -> Fallible<()> {
         if new_buffer.is_some() {
             if self.buffer_set.get() {
@@ -175,22 +175,22 @@ impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNod
         Ok(())
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-playbackrate
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-playbackrate>
     fn PlaybackRate(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.playback_rate)
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-detune
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-detune>
     fn Detune(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.detune)
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loop
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loop>
     fn Loop(&self) -> bool {
         self.loop_enabled.get()
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loop
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loop>
     fn SetLoop(&self, should_loop: bool) {
         self.loop_enabled.set(should_loop);
         let msg = AudioNodeMessage::AudioBufferSourceNode(
@@ -199,12 +199,12 @@ impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNod
         self.source_node.node().message(msg);
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loopstart
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loopstart>
     fn LoopStart(&self) -> Finite<f64> {
         Finite::wrap(self.loop_start.get())
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loopstart
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loopstart>
     fn SetLoopStart(&self, loop_start: Finite<f64>) {
         self.loop_start.set(*loop_start);
         let msg = AudioNodeMessage::AudioBufferSourceNode(
@@ -213,12 +213,12 @@ impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNod
         self.source_node.node().message(msg);
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loopend
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loopend>
     fn LoopEnd(&self) -> Finite<f64> {
         Finite::wrap(self.loop_end.get())
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loopend
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loopend>
     fn SetLoopEnd(&self, loop_end: Finite<f64>) {
         self.loop_end.set(*loop_end);
         let msg = AudioNodeMessage::AudioBufferSourceNode(
@@ -227,7 +227,7 @@ impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNod
         self.source_node.node().message(msg);
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-start
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-start>
     fn Start(
         &self,
         when: Finite<f64>,

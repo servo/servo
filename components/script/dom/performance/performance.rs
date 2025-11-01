@@ -380,7 +380,7 @@ impl Performance {
         }
     }
     // `fire a buffer full event` paragraph of
-    // https://w3c.github.io/resource-timing/#sec-extensions-performance-interface
+    /// <https://w3c.github.io/resource-timing/#sec-extensions-performance-interface>
     fn fire_buffer_full_event(&self, can_gc: CanGc) {
         while !self.resource_timing_secondary_entries.borrow().is_empty() {
             let no_of_excess_entries_before = self.resource_timing_secondary_entries.borrow().len();
@@ -432,7 +432,7 @@ impl Performance {
 
 impl PerformanceMethods<crate::DomTypeHolder> for Performance {
     // FIXME(avada): this should be deprecated in the future, but some sites still use it
-    // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html#performance-timing-attribute
+    /// <https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html#performance-timing-attribute>
     fn Timing(&self) -> DomRoot<PerformanceNavigationTiming> {
         let entries = self.GetEntriesByType(DOMString::from("navigation"));
         if !entries.is_empty() {
@@ -445,36 +445,36 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         unreachable!("Are we trying to expose Performance.timing in workers?");
     }
 
-    // https://w3c.github.io/navigation-timing/#dom-performance-navigation
+    /// <https://w3c.github.io/navigation-timing/#dom-performance-navigation>
     fn Navigation(&self) -> DomRoot<PerformanceNavigation> {
         PerformanceNavigation::new(&self.global(), CanGc::note())
     }
 
-    // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now
+    /// <https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now>
     fn Now(&self) -> DOMHighResTimeStamp {
         self.to_dom_high_res_time_stamp(CrossProcessInstant::now())
     }
 
-    // https://www.w3.org/TR/hr-time-2/#dom-performance-timeorigin
+    /// <https://www.w3.org/TR/hr-time-2/#dom-performance-timeorigin>
     fn TimeOrigin(&self) -> DOMHighResTimeStamp {
         (self.time_origin - CrossProcessInstant::epoch()).to_dom_high_res_time_stamp()
     }
 
-    // https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentries
+    /// <https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentries>
     fn GetEntries(&self) -> Vec<DomRoot<PerformanceEntry>> {
         self.buffer
             .borrow()
             .get_entries_by_name_and_type(None, None)
     }
 
-    // https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentriesbytype
+    /// <https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentriesbytype>
     fn GetEntriesByType(&self, entry_type: DOMString) -> Vec<DomRoot<PerformanceEntry>> {
         self.buffer
             .borrow()
             .get_entries_by_name_and_type(None, Some(entry_type))
     }
 
-    // https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentriesbyname
+    /// <https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentriesbyname>
     fn GetEntriesByName(
         &self,
         name: DOMString,
@@ -485,7 +485,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
             .get_entries_by_name_and_type(Some(name), entry_type)
     }
 
-    // https://w3c.github.io/user-timing/#dom-performance-mark
+    /// <https://w3c.github.io/user-timing/#dom-performance-mark>
     fn Mark(&self, mark_name: DOMString, can_gc: CanGc) -> Fallible<()> {
         let global = self.global();
         // Step 1.
@@ -507,14 +507,14 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         Ok(())
     }
 
-    // https://w3c.github.io/user-timing/#dom-performance-clearmarks
+    /// <https://w3c.github.io/user-timing/#dom-performance-clearmarks>
     fn ClearMarks(&self, mark_name: Option<DOMString>) {
         self.buffer
             .borrow_mut()
             .clear_entries_by_name_and_type(mark_name, DOMString::from("mark"));
     }
 
-    // https://w3c.github.io/user-timing/#dom-performance-measure
+    /// <https://w3c.github.io/user-timing/#dom-performance-measure>
     fn Measure(
         &self,
         measure_name: DOMString,
@@ -556,13 +556,13 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         Ok(())
     }
 
-    // https://w3c.github.io/user-timing/#dom-performance-clearmeasures
+    /// <https://w3c.github.io/user-timing/#dom-performance-clearmeasures>
     fn ClearMeasures(&self, measure_name: Option<DOMString>) {
         self.buffer
             .borrow_mut()
             .clear_entries_by_name_and_type(measure_name, DOMString::from("measure"));
     }
-    // https://w3c.github.io/resource-timing/#dom-performance-clearresourcetimings
+    /// <https://w3c.github.io/resource-timing/#dom-performance-clearresourcetimings>
     fn ClearResourceTimings(&self) {
         self.buffer
             .borrow_mut()
@@ -570,7 +570,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         self.resource_timing_buffer_current_size.set(0);
     }
 
-    // https://w3c.github.io/resource-timing/#dom-performance-setresourcetimingbuffersize
+    /// <https://w3c.github.io/resource-timing/#dom-performance-setresourcetimingbuffersize>
     fn SetResourceTimingBufferSize(&self, max_size: u32) {
         self.resource_timing_buffer_size_limit
             .set(max_size as usize);

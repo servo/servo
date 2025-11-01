@@ -61,12 +61,12 @@ impl BluetoothRemoteGATTServer {
 }
 
 impl BluetoothRemoteGATTServerMethods<crate::DomTypeHolder> for BluetoothRemoteGATTServer {
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-device
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-device>
     fn Device(&self) -> DomRoot<BluetoothDevice> {
         DomRoot::from_ref(&self.device)
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connected
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connected>
     fn Connected(&self) -> bool {
         self.connected.get()
     }
@@ -96,7 +96,7 @@ impl BluetoothRemoteGATTServerMethods<crate::DomTypeHolder> for BluetoothRemoteG
         p
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-disconnect
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-disconnect>
     fn Disconnect(&self, can_gc: CanGc) -> ErrorResult {
         // TODO: Step 1: Implement activeAlgorithms internal slot for BluetoothRemoteGATTServer.
 
@@ -112,7 +112,7 @@ impl BluetoothRemoteGATTServerMethods<crate::DomTypeHolder> for BluetoothRemoteG
         self.Device().garbage_collect_the_connection(can_gc)
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservice
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservice>
     fn GetPrimaryService(&self, service: BluetoothServiceUUID, can_gc: CanGc) -> Rc<Promise> {
         // Step 1 - 2.
         get_gatt_children(
@@ -127,7 +127,7 @@ impl BluetoothRemoteGATTServerMethods<crate::DomTypeHolder> for BluetoothRemoteG
         )
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservices
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservices>
     fn GetPrimaryServices(
         &self,
         service: Option<BluetoothServiceUUID>,

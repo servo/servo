@@ -49,7 +49,7 @@ impl XRLayerEvent {
 }
 
 impl XRLayerEventMethods<crate::DomTypeHolder> for XRLayerEvent {
-    // https://immersive-web.github.io/layers/#dom-xrlayerevent-xrlayerevent
+    /// <https://immersive-web.github.io/layers/#dom-xrlayerevent-xrlayerevent>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -65,12 +65,12 @@ impl XRLayerEventMethods<crate::DomTypeHolder> for XRLayerEvent {
         event
     }
 
-    // https://immersive-web.github.io/layers/#dom-xrlayerevent-layer
+    /// <https://immersive-web.github.io/layers/#dom-xrlayerevent-layer>
     fn Layer(&self) -> DomRoot<XRLayer> {
         DomRoot::from_ref(&self.layer)
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

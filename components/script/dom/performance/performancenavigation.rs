@@ -35,12 +35,12 @@ impl PerformanceNavigation {
 }
 
 impl PerformanceNavigationMethods<crate::DomTypeHolder> for PerformanceNavigation {
-    // https://w3c.github.io/navigation-timing/#dom-performancenavigation-type
+    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigation-type>
     fn Type(&self) -> u16 {
         PerformanceNavigationConstants::TYPE_NAVIGATE
     }
 
-    // https://w3c.github.io/navigation-timing/#dom-performancenavigation-redirectcount
+    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigation-redirectcount>
     fn RedirectCount(&self) -> u16 {
         self.global().as_window().Document().get_redirect_count()
     }

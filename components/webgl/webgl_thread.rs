@@ -2610,7 +2610,7 @@ impl WebGLImpl {
         let _ = result_sender.send(gl.supported_extensions().iter().join(" "));
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6>
     fn get_framebuffer_attachment_parameter(
         gl: &Gl,
         target: u32,
@@ -2623,7 +2623,7 @@ impl WebGLImpl {
         chan.send(parameter).unwrap();
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7>
     fn get_renderbuffer_parameter(gl: &Gl, target: u32, pname: u32, chan: &WebGLSender<i32>) {
         let parameter = unsafe { gl.get_renderbuffer_parameter_i32(target, pname) };
         chan.send(parameter).unwrap();

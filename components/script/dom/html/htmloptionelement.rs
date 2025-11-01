@@ -101,7 +101,7 @@ impl HTMLOptionElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#concept-option-index
+    /// <https://html.spec.whatwg.org/multipage/#concept-option-index>
     fn index(&self) -> i32 {
         let Some(owner_select) = self.owner_select_element() else {
             return 0;

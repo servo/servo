@@ -109,7 +109,7 @@ fn check_node_ordering(node: &FloatBandNode) {
     }
 }
 
-// https://en.wikipedia.org/wiki/AA_tree#Balancing_rotations
+/// <https://en.wikipedia.org/wiki/AA_tree#Balancing_rotations>
 fn check_node_balance(node: &FloatBandNode) {
     // 1. The level of every leaf node is one.
     if node.left.0.is_none() && node.right.0.is_none() {

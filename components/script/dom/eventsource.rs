@@ -160,7 +160,7 @@ impl EventSourceContext {
         event_source.fail_the_connection();
     }
 
-    // https://html.spec.whatwg.org/multipage/#reestablish-the-connection
+    /// <https://html.spec.whatwg.org/multipage/#reestablish-the-connection>
     fn reestablish_the_connection(&self) {
         let event_source = self.event_source.root();
 
@@ -204,7 +204,7 @@ impl EventSourceContext {
         );
     }
 
-    // https://html.spec.whatwg.org/multipage/#processField
+    /// <https://html.spec.whatwg.org/multipage/#processField>
     fn process_field(&mut self) {
         match &*self.field {
             "event" => mem::swap(&mut self.event_type, &mut self.value),
@@ -230,7 +230,7 @@ impl EventSourceContext {
         self.value.clear();
     }
 
-    // https://html.spec.whatwg.org/multipage/#dispatchMessage
+    /// <https://html.spec.whatwg.org/multipage/#dispatchMessage>
     fn dispatch_event(&mut self, can_gc: CanGc) {
         let event_source = self.event_source.root();
         // Step 1
@@ -290,7 +290,7 @@ impl EventSourceContext {
         );
     }
 
-    // https://html.spec.whatwg.org/multipage/#event-stream-interpretation
+    /// <https://html.spec.whatwg.org/multipage/#event-stream-interpretation>
     fn parse(&mut self, stream: Chars, can_gc: CanGc) {
         let mut stream = stream.peekable();
 
@@ -555,7 +555,7 @@ impl EventSource {
 }
 
 impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
-    // https://html.spec.whatwg.org/multipage/#dom-eventsource
+    /// <https://html.spec.whatwg.org/multipage/#dom-eventsource>
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -672,22 +672,22 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
     // https://html.spec.whatwg.org/multipage/#handler-eventsource-onerror
     event_handler!(error, GetOnerror, SetOnerror);
 
-    // https://html.spec.whatwg.org/multipage/#dom-eventsource-url
+    /// <https://html.spec.whatwg.org/multipage/#dom-eventsource-url>
     fn Url(&self) -> DOMString {
         DOMString::from(self.url.as_str())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-eventsource-withcredentials
+    /// <https://html.spec.whatwg.org/multipage/#dom-eventsource-withcredentials>
     fn WithCredentials(&self) -> bool {
         self.with_credentials
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-eventsource-readystate
+    /// <https://html.spec.whatwg.org/multipage/#dom-eventsource-readystate>
     fn ReadyState(&self) -> u16 {
         self.ready_state.get() as u16
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-eventsource-close
+    /// <https://html.spec.whatwg.org/multipage/#dom-eventsource-close>
     fn Close(&self) {
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));

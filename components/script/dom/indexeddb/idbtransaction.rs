@@ -254,12 +254,12 @@ impl IDBTransaction {
 }
 
 impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-db
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-db>
     fn Db(&self) -> DomRoot<IDBDatabase> {
         DomRoot::from_ref(&*self.db)
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-objectstore
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-objectstore>
     fn ObjectStore(&self, name: DOMString, can_gc: CanGc) -> Fallible<DomRoot<IDBObjectStore>> {
         // Step 1: If transaction has finished, throw an "InvalidStateError" DOMException.
         if self.finished.get() {
@@ -293,7 +293,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         Ok(store)
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#commit-transaction
+    /// <https://www.w3.org/TR/IndexedDB-2/#commit-transaction>
     fn Commit(&self) -> Fallible<()> {
         // Step 1
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
@@ -328,7 +328,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         Ok(())
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-abort
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-abort>
     fn Abort(&self) -> Fallible<()> {
         // FIXME:(rasviitanen)
         // This only sets the flags, and does not abort the transaction
@@ -342,12 +342,12 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         Ok(())
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-objectstorenames
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-objectstorenames>
     fn ObjectStoreNames(&self) -> DomRoot<DOMStringList> {
         self.object_store_names.as_rooted()
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-mode
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-mode>
     fn Mode(&self) -> IDBTransactionMode {
         self.mode
     }
@@ -358,7 +358,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
     //     unimplemented!();
     // }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-error
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-error>
     fn GetError(&self) -> Option<DomRoot<DOMException>> {
         self.error.get()
     }

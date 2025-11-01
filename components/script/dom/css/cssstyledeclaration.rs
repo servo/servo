@@ -460,7 +460,7 @@ enum PotentiallyParsedPropertyId {
 }
 
 impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
-    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length
+    /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length>
     fn Length(&self) -> u32 {
         if matches!(self.owner, CSSStyleOwner::Null) {
             return 0;
@@ -474,12 +474,12 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
         self.owner.with_block(|pdb| pdb.declarations().len() as u32)
     }
 
-    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-item
+    /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-item>
     fn Item(&self, index: u32) -> DOMString {
         self.IndexedGetter(index).unwrap_or_default()
     }
 
-    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
+    /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue>
     fn GetPropertyValue(&self, property: DOMString) -> DOMString {
         let id = match PropertyId::parse_enabled_for_all_content(&property.str()) {
             Ok(id) => id,
@@ -488,7 +488,7 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
         self.get_property_value(id)
     }
 
-    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
+    /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority>
     fn GetPropertyPriority(&self, property: DOMString) -> DOMString {
         if self.readonly {
             // Readonly style declarations are used for getComputedStyle.
@@ -525,7 +525,7 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
         )
     }
 
-    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty
+    /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty>
     fn RemoveProperty(&self, property: DOMString, can_gc: CanGc) -> Fallible<DOMString> {
         // Step 1
         if self.readonly {
@@ -565,7 +565,7 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
         )
     }
 
-    // https://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
+    /// <https://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface>
     fn IndexedGetter(&self, index: u32) -> Option<DOMString> {
         if matches!(self.owner, CSSStyleOwner::Null) {
             return None;
@@ -582,7 +582,7 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
         })
     }
 
-    // https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext
+    /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext>
     fn CssText(&self) -> DOMString {
         if self.readonly {
             // Readonly style declarations are used for getComputedStyle.
@@ -595,7 +595,7 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
         })
     }
 
-    // https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext
+    /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext>
     fn SetCssText(&self, value: DOMString, can_gc: CanGc) -> ErrorResult {
         let window = self.owner.window();
 

@@ -40,17 +40,17 @@ impl DOMStringList {
 
 // https://html.spec.whatwg.org/multipage/#domstringlist
 impl DOMStringListMethods<crate::DomTypeHolder> for DOMStringList {
-    // https://html.spec.whatwg.org/multipage/#dom-domstringlist-length
+    /// <https://html.spec.whatwg.org/multipage/#dom-domstringlist-length>
     fn Length(&self) -> u32 {
         self.strings.len() as u32
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-domstringlist-item
+    /// <https://html.spec.whatwg.org/multipage/#dom-domstringlist-item>
     fn Item(&self, index: u32) -> Option<DOMString> {
         self.strings.get(index as usize).cloned()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-domstringlist-contains
+    /// <https://html.spec.whatwg.org/multipage/#dom-domstringlist-contains>
     fn Contains(&self, string: DOMString) -> bool {
         self.strings.contains(&string)
     }

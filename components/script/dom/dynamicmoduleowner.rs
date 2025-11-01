@@ -56,7 +56,7 @@ impl DynamicModuleOwner {
 }
 
 impl DynamicModuleOwnerMethods<crate::DomTypeHolder> for DynamicModuleOwner {
-    // https://html.spec.whatwg.org/multipage/#integration-with-the-javascript-module-system:import()
+    /// <https://html.spec.whatwg.org/multipage/#integration-with-the-javascript-module-system:import()>
     fn Promise(&self) -> Rc<Promise> {
         self.promise.clone()
     }

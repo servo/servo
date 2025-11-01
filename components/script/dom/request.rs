@@ -571,7 +571,7 @@ fn net_request_from_global(global: &GlobalScope, url: ServoUrl) -> NetTraitsRequ
         .build()
 }
 
-// https://fetch.spec.whatwg.org/#concept-method-normalize
+/// <https://fetch.spec.whatwg.org/#concept-method-normalize>
 fn normalize_method(m: &str) -> Result<HttpMethod, InvalidMethod> {
     match_ignore_ascii_case! { m,
         "delete" => return Ok(HttpMethod::DELETE),
@@ -586,23 +586,23 @@ fn normalize_method(m: &str) -> Result<HttpMethod, InvalidMethod> {
     HttpMethod::from_str(m)
 }
 
-// https://fetch.spec.whatwg.org/#concept-method
+/// <https://fetch.spec.whatwg.org/#concept-method>
 fn is_method(m: &ByteString) -> bool {
     m.as_str().is_some()
 }
 
-// https://fetch.spec.whatwg.org/#cors-safelisted-method
+/// <https://fetch.spec.whatwg.org/#cors-safelisted-method>
 fn is_cors_safelisted_method(m: &HttpMethod) -> bool {
     m == HttpMethod::GET || m == HttpMethod::HEAD || m == HttpMethod::POST
 }
 
-// https://url.spec.whatwg.org/#include-credentials
+/// <https://url.spec.whatwg.org/#include-credentials>
 fn includes_credentials(input: &ServoUrl) -> bool {
     !input.username().is_empty() || input.password().is_some()
 }
 
 impl RequestMethods<crate::DomTypeHolder> for Request {
-    // https://fetch.spec.whatwg.org/#dom-request
+    /// <https://fetch.spec.whatwg.org/#dom-request>
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -613,30 +613,30 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
         Self::constructor(global, proto, can_gc, input, &init)
     }
 
-    // https://fetch.spec.whatwg.org/#dom-request-method
+    /// <https://fetch.spec.whatwg.org/#dom-request-method>
     fn Method(&self) -> ByteString {
         let r = self.request.borrow();
         ByteString::new(r.method.as_ref().as_bytes().into())
     }
 
-    // https://fetch.spec.whatwg.org/#dom-request-url
+    /// <https://fetch.spec.whatwg.org/#dom-request-url>
     fn Url(&self) -> USVString {
         let r = self.request.borrow();
         USVString(r.url_list.first().map_or("", |u| u.as_str()).into())
     }
 
-    // https://fetch.spec.whatwg.org/#dom-request-headers
+    /// <https://fetch.spec.whatwg.org/#dom-request-headers>
     fn Headers(&self, can_gc: CanGc) -> DomRoot<Headers> {
         self.headers
             .or_init(|| Headers::new(&self.global(), can_gc))
     }
 
-    // https://fetch.spec.whatwg.org/#dom-request-destination
+    /// <https://fetch.spec.whatwg.org/#dom-request-destination>
     fn Destination(&self) -> RequestDestination {
         self.request.borrow().destination.convert()
     }
 
-    // https://fetch.spec.whatwg.org/#dom-request-referrer
+    /// <https://fetch.spec.whatwg.org/#dom-request-referrer>
     fn Referrer(&self) -> USVString {
         let r = self.request.borrow();
         USVString(match r.referrer {
@@ -649,35 +649,35 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
         })
     }
 
-    // https://fetch.spec.whatwg.org/#dom-request-referrerpolicy
+    /// <https://fetch.spec.whatwg.org/#dom-request-referrerpolicy>
     fn ReferrerPolicy(&self) -> ReferrerPolicy {
         self.request.borrow().referrer_policy.convert()
     }
 
-    // https://fetch.spec.whatwg.org/#dom-request-mode
+    /// <https://fetch.spec.whatwg.org/#dom-request-mode>
     fn Mode(&self) -> RequestMode {
         self.request.borrow().mode.clone().convert()
     }
 
-    // https://fetch.spec.whatwg.org/#dom-request-credentials
+    /// <https://fetch.spec.whatwg.org/#dom-request-credentials>
     fn Credentials(&self) -> RequestCredentials {
         let r = self.request.borrow().clone();
         r.credentials_mode.convert()
     }
 
-    // https://fetch.spec.whatwg.org/#dom-request-cache
+    /// <https://fetch.spec.whatwg.org/#dom-request-cache>
     fn Cache(&self) -> RequestCache {
         let r = self.request.borrow().clone();
         r.cache_mode.convert()
     }
 
-    // https://fetch.spec.whatwg.org/#dom-request-redirect
+    /// <https://fetch.spec.whatwg.org/#dom-request-redirect>
     fn Redirect(&self) -> RequestRedirect {
         let r = self.request.borrow().clone();
         r.redirect_mode.convert()
     }
 
-    // https://fetch.spec.whatwg.org/#dom-request-integrity
+    /// <https://fetch.spec.whatwg.org/#dom-request-integrity>
     fn Integrity(&self) -> DOMString {
         let r = self.request.borrow();
         DOMString::from_string(r.integrity_metadata.clone())
@@ -688,7 +688,7 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
         self.body()
     }
 
-    // https://fetch.spec.whatwg.org/#dom-body-bodyused
+    /// <https://fetch.spec.whatwg.org/#dom-body-bodyused>
     fn BodyUsed(&self) -> bool {
         self.is_body_used()
     }
@@ -700,7 +700,7 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
             .expect("Should always be initialized in constructor and clone")
     }
 
-    // https://fetch.spec.whatwg.org/#dom-request-clone
+    /// <https://fetch.spec.whatwg.org/#dom-request-clone>
     fn Clone(&self, can_gc: CanGc) -> Fallible<DomRoot<Request>> {
         // Step 1. If this is unusable, then throw a TypeError.
         if self.is_unusable() {
@@ -724,27 +724,27 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
         Ok(cloned_request)
     }
 
-    // https://fetch.spec.whatwg.org/#dom-body-text
+    /// <https://fetch.spec.whatwg.org/#dom-body-text>
     fn Text(&self, can_gc: CanGc) -> Rc<Promise> {
         consume_body(self, BodyType::Text, can_gc)
     }
 
-    // https://fetch.spec.whatwg.org/#dom-body-blob
+    /// <https://fetch.spec.whatwg.org/#dom-body-blob>
     fn Blob(&self, can_gc: CanGc) -> Rc<Promise> {
         consume_body(self, BodyType::Blob, can_gc)
     }
 
-    // https://fetch.spec.whatwg.org/#dom-body-formdata
+    /// <https://fetch.spec.whatwg.org/#dom-body-formdata>
     fn FormData(&self, can_gc: CanGc) -> Rc<Promise> {
         consume_body(self, BodyType::FormData, can_gc)
     }
 
-    // https://fetch.spec.whatwg.org/#dom-body-json
+    /// <https://fetch.spec.whatwg.org/#dom-body-json>
     fn Json(&self, can_gc: CanGc) -> Rc<Promise> {
         consume_body(self, BodyType::Json, can_gc)
     }
 
-    // https://fetch.spec.whatwg.org/#dom-body-arraybuffer
+    /// <https://fetch.spec.whatwg.org/#dom-body-arraybuffer>
     fn ArrayBuffer(&self, can_gc: CanGc) -> Rc<Promise> {
         consume_body(self, BodyType::ArrayBuffer, can_gc)
     }

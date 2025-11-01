@@ -266,7 +266,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
         promise
     }
 
-    // https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md
+    /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
     fn Test(&self) -> DomRoot<XRTest> {
         self.test
             .or_init(|| XRTest::new(&self.global(), CanGc::note()))

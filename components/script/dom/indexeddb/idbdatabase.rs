@@ -189,7 +189,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         })
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-createobjectstore
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-createobjectstore>
     fn CreateObjectStore(
         &self,
         name: DOMString,
@@ -283,7 +283,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         Ok(object_store)
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-deleteobjectstore
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-deleteobjectstore>
     fn DeleteObjectStore(&self, name: DOMString) -> Fallible<()> {
         // Steps 1 & 2
         let transaction = self.upgrade_transaction.get();
@@ -335,17 +335,17 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         Ok(())
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-name
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-name>
     fn Name(&self) -> DOMString {
         self.name.clone()
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-version
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-version>
     fn Version(&self) -> u64 {
         self.version()
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-objectstorenames
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-objectstorenames>
     fn ObjectStoreNames(&self) -> DomRoot<DOMStringList> {
         // FIXME: (arihant2math) Sort the list of names, as per spec
         DOMStringList::new(
@@ -355,7 +355,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         )
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-close
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-close>
     fn Close(&self) {
         // Step 1: Set the close pending flag of connection.
         self.closing.set(true);

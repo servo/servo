@@ -228,7 +228,7 @@ impl CSSRule {
 }
 
 impl CSSRuleMethods<crate::DomTypeHolder> for CSSRule {
-    // https://drafts.csswg.org/cssom/#dom-cssrule-type
+    /// <https://drafts.csswg.org/cssom/#dom-cssrule-type>
     fn Type(&self) -> u16 {
         let rule_type = self.as_specific().ty() as u16;
         // Per https://drafts.csswg.org/cssom/#dom-cssrule-type for constants > 15
@@ -236,7 +236,7 @@ impl CSSRuleMethods<crate::DomTypeHolder> for CSSRule {
         if rule_type > 15 { 0 } else { rule_type }
     }
 
-    // https://drafts.csswg.org/cssom/#dom-cssrule-parentstylesheet
+    /// <https://drafts.csswg.org/cssom/#dom-cssrule-parentstylesheet>
     fn GetParentStyleSheet(&self) -> Option<DomRoot<CSSStyleSheet>> {
         if self.parent_stylesheet_removed.get() {
             None
@@ -245,12 +245,12 @@ impl CSSRuleMethods<crate::DomTypeHolder> for CSSRule {
         }
     }
 
-    // https://drafts.csswg.org/cssom/#dom-cssrule-csstext
+    /// <https://drafts.csswg.org/cssom/#dom-cssrule-csstext>
     fn CssText(&self) -> DOMString {
         self.as_specific().get_css()
     }
 
-    // https://drafts.csswg.org/cssom/#dom-cssrule-csstext
+    /// <https://drafts.csswg.org/cssom/#dom-cssrule-csstext>
     fn SetCssText(&self, _: DOMString) {
         // do nothing
     }

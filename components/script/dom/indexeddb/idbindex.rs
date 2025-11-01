@@ -59,17 +59,17 @@ impl IDBIndex {
 }
 
 impl IDBIndexMethods<crate::DomTypeHolder> for IDBIndex {
-    // https://www.w3.org/TR/IndexedDB/#dom-idbindex-objectstore
+    /// <https://www.w3.org/TR/IndexedDB/#dom-idbindex-objectstore>
     fn ObjectStore(&self) -> DomRoot<IDBObjectStore> {
         self.object_store.clone()
     }
 
-    // https://www.w3.org/TR/IndexedDB/#dom-idbindex-multientry
+    /// <https://www.w3.org/TR/IndexedDB/#dom-idbindex-multientry>
     fn MultiEntry(&self) -> bool {
         self.multi_entry
     }
 
-    // https://www.w3.org/TR/IndexedDB/#dom-idbindex-unique
+    /// <https://www.w3.org/TR/IndexedDB/#dom-idbindex-unique>
     fn Unique(&self) -> bool {
         self.unique
     }

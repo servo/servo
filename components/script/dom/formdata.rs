@@ -74,7 +74,7 @@ impl FormData {
 }
 
 impl FormDataMethods<crate::DomTypeHolder> for FormData {
-    // https://xhr.spec.whatwg.org/#dom-formdata
+    /// <https://xhr.spec.whatwg.org/#dom-formdata>
     fn Constructor<'a>(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -136,7 +136,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
         Ok(FormData::new_with_proto(None, global, proto, can_gc))
     }
 
-    // https://xhr.spec.whatwg.org/#dom-formdata-append
+    /// <https://xhr.spec.whatwg.org/#dom-formdata-append>
     fn Append(&self, name: USVString, str_value: USVString) {
         let datum = FormDatum {
             ty: DOMString::from("string"),
@@ -150,7 +150,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    // https://xhr.spec.whatwg.org/#dom-formdata-append
+    /// <https://xhr.spec.whatwg.org/#dom-formdata-append>
     fn Append_(&self, name: USVString, blob: &Blob, filename: Option<USVString>) {
         let datum = FormDatum {
             ty: DOMString::from("file"),
@@ -167,14 +167,14 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
             .push((NoTrace(LocalName::from(name.0)), datum));
     }
 
-    // https://xhr.spec.whatwg.org/#dom-formdata-delete
+    /// <https://xhr.spec.whatwg.org/#dom-formdata-delete>
     fn Delete(&self, name: USVString) {
         self.data
             .borrow_mut()
             .retain(|(datum_name, _)| datum_name.0 != name.0);
     }
 
-    // https://xhr.spec.whatwg.org/#dom-formdata-get
+    /// <https://xhr.spec.whatwg.org/#dom-formdata-get>
     fn Get(&self, name: USVString) -> Option<FileOrUSVString> {
         self.data
             .borrow()
@@ -186,7 +186,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
             })
     }
 
-    // https://xhr.spec.whatwg.org/#dom-formdata-getall
+    /// <https://xhr.spec.whatwg.org/#dom-formdata-getall>
     fn GetAll(&self, name: USVString) -> Vec<FileOrUSVString> {
         self.data
             .borrow()
@@ -206,7 +206,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
             .collect()
     }
 
-    // https://xhr.spec.whatwg.org/#dom-formdata-has
+    /// <https://xhr.spec.whatwg.org/#dom-formdata-has>
     fn Has(&self, name: USVString) -> bool {
         self.data
             .borrow()
@@ -214,7 +214,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
             .any(|(datum_name, _0)| datum_name.0 == name.0)
     }
 
-    // https://xhr.spec.whatwg.org/#dom-formdata-set
+    /// <https://xhr.spec.whatwg.org/#dom-formdata-set>
     fn Set(&self, name: USVString, str_value: USVString) {
         let mut data = self.data.borrow_mut();
         let local_name = LocalName::from(name.0.clone());
@@ -232,7 +232,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    // https://xhr.spec.whatwg.org/#dom-formdata-set
+    /// <https://xhr.spec.whatwg.org/#dom-formdata-set>
     fn Set_(&self, name: USVString, blob: &Blob, filename: Option<USVString>) {
         let file = self.create_an_entry(blob, filename, CanGc::note());
 
@@ -253,7 +253,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
 }
 
 impl FormData {
-    // https://xhr.spec.whatwg.org/#create-an-entry
+    /// <https://xhr.spec.whatwg.org/#create-an-entry>
     fn create_an_entry(
         &self,
         blob: &Blob,

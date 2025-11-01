@@ -92,7 +92,7 @@ impl HashChangeEvent {
 }
 
 impl HashChangeEventMethods<crate::DomTypeHolder> for HashChangeEvent {
-    // https://html.spec.whatwg.org/multipage/#hashchangeevent
+    /// <https://html.spec.whatwg.org/multipage/#hashchangeevent>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -112,17 +112,17 @@ impl HashChangeEventMethods<crate::DomTypeHolder> for HashChangeEvent {
         ))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-hashchangeevent-oldurl
+    /// <https://html.spec.whatwg.org/multipage/#dom-hashchangeevent-oldurl>
     fn OldURL(&self) -> USVString {
         USVString(self.old_url.clone())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-hashchangeevent-newurl
+    /// <https://html.spec.whatwg.org/multipage/#dom-hashchangeevent-newurl>
     fn NewURL(&self) -> USVString {
         USVString(self.new_url.clone())
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

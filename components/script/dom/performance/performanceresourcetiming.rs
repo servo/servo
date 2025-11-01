@@ -189,7 +189,7 @@ impl PerformanceResourceTiming {
 
 // https://w3c.github.io/resource-timing/
 impl PerformanceResourceTimingMethods<crate::DomTypeHolder> for PerformanceResourceTiming {
-    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-initiatortype
+    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-initiatortype>
     fn InitiatorType(&self) -> DOMString {
         match self.initiator_type {
             InitiatorType::Beacon => DOMString::from("beacon"),
@@ -211,72 +211,72 @@ impl PerformanceResourceTimingMethods<crate::DomTypeHolder> for PerformanceResou
         }
     }
 
-    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-domainlookupstart
+    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-domainlookupstart>
     fn DomainLookupStart(&self) -> DOMHighResTimeStamp {
         self.to_dom_high_res_time_stamp(self.domain_lookup_start)
     }
 
-    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-domainlookupend
+    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-domainlookupend>
     fn DomainLookupEnd(&self) -> DOMHighResTimeStamp {
         self.to_dom_high_res_time_stamp(self.domain_lookup_end)
     }
 
-    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-secureconnectionstart
+    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-secureconnectionstart>
     fn SecureConnectionStart(&self) -> DOMHighResTimeStamp {
         self.to_dom_high_res_time_stamp(self.secure_connection_start)
     }
 
-    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-transfersize
+    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-transfersize>
     fn TransferSize(&self) -> u64 {
         self.transfer_size
     }
 
-    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-encodedbodysize
+    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-encodedbodysize>
     fn EncodedBodySize(&self) -> u64 {
         self.encoded_body_size
     }
 
-    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-decodedbodysize
+    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-decodedbodysize>
     fn DecodedBodySize(&self) -> u64 {
         self.decoded_body_size
     }
 
-    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-requeststart
+    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-requeststart>
     fn RequestStart(&self) -> DOMHighResTimeStamp {
         self.to_dom_high_res_time_stamp(self.request_start)
     }
 
-    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-redirectstart
+    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-redirectstart>
     fn RedirectStart(&self) -> DOMHighResTimeStamp {
         self.to_dom_high_res_time_stamp(self.redirect_start)
     }
 
-    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-redirectend
+    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-redirectend>
     fn RedirectEnd(&self) -> DOMHighResTimeStamp {
         self.to_dom_high_res_time_stamp(self.redirect_end)
     }
 
-    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-responsestart
+    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-responsestart>
     fn ResponseStart(&self) -> DOMHighResTimeStamp {
         self.to_dom_high_res_time_stamp(self.response_start)
     }
 
-    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-fetchstart
+    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-fetchstart>
     fn FetchStart(&self) -> DOMHighResTimeStamp {
         self.to_dom_high_res_time_stamp(self.fetch_start)
     }
 
-    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-connectstart
+    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-connectstart>
     fn ConnectStart(&self) -> DOMHighResTimeStamp {
         self.to_dom_high_res_time_stamp(self.connect_start)
     }
 
-    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-connectend
+    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-connectend>
     fn ConnectEnd(&self) -> DOMHighResTimeStamp {
         self.to_dom_high_res_time_stamp(self.connect_end)
     }
 
-    // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-responseend
+    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-responseend>
     fn ResponseEnd(&self) -> DOMHighResTimeStamp {
         self.to_dom_high_res_time_stamp(self.response_end)
     }

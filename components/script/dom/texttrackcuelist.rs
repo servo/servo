@@ -68,17 +68,17 @@ impl TextTrackCueList {
 }
 
 impl TextTrackCueListMethods<crate::DomTypeHolder> for TextTrackCueList {
-    // https://html.spec.whatwg.org/multipage/#dom-texttrackcuelist-length
+    /// <https://html.spec.whatwg.org/multipage/#dom-texttrackcuelist-length>
     fn Length(&self) -> u32 {
         self.dom_cues.borrow().len() as u32
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-texttrackcuelist-item
+    /// <https://html.spec.whatwg.org/multipage/#dom-texttrackcuelist-item>
     fn IndexedGetter(&self, idx: u32) -> Option<DomRoot<TextTrackCue>> {
         self.item(idx as usize)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-texttrackcuelist-getcuebyid
+    /// <https://html.spec.whatwg.org/multipage/#dom-texttrackcuelist-getcuebyid>
     fn GetCueById(&self, id: DOMString) -> Option<DomRoot<TextTrackCue>> {
         if id.is_empty() {
             None

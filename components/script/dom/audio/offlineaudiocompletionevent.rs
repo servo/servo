@@ -73,7 +73,7 @@ impl OfflineAudioCompletionEvent {
 }
 
 impl OfflineAudioCompletionEventMethods<crate::DomTypeHolder> for OfflineAudioCompletionEvent {
-    // https://webaudio.github.io/web-audio-api/#dom-offlineaudiocompletionevent-offlineaudiocompletionevent
+    /// <https://webaudio.github.io/web-audio-api/#dom-offlineaudiocompletionevent-offlineaudiocompletionevent>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -94,12 +94,12 @@ impl OfflineAudioCompletionEventMethods<crate::DomTypeHolder> for OfflineAudioCo
         ))
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-offlineaudiocompletionevent-renderedbuffer
+    /// <https://webaudio.github.io/web-audio-api/#dom-offlineaudiocompletionevent-renderedbuffer>
     fn RenderedBuffer(&self) -> DomRoot<AudioBuffer> {
         DomRoot::from_ref(&*self.rendered_buffer)
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

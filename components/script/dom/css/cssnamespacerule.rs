@@ -60,7 +60,7 @@ impl CSSNamespaceRule {
 }
 
 impl CSSNamespaceRuleMethods<crate::DomTypeHolder> for CSSNamespaceRule {
-    // https://drafts.csswg.org/cssom/#dom-cssnamespacerule-prefix
+    /// <https://drafts.csswg.org/cssom/#dom-cssnamespacerule-prefix>
     fn Prefix(&self) -> DOMString {
         self.namespacerule
             .borrow()
@@ -70,7 +70,7 @@ impl CSSNamespaceRuleMethods<crate::DomTypeHolder> for CSSNamespaceRule {
             .unwrap_or_default()
     }
 
-    // https://drafts.csswg.org/cssom/#dom-cssnamespacerule-namespaceuri
+    /// <https://drafts.csswg.org/cssom/#dom-cssnamespacerule-namespaceuri>
     fn NamespaceURI(&self) -> DOMString {
         (**self.namespacerule.borrow().url).into()
     }

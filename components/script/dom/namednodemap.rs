@@ -37,12 +37,12 @@ impl NamedNodeMap {
 }
 
 impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
-    // https://dom.spec.whatwg.org/#dom-namednodemap-length
+    /// <https://dom.spec.whatwg.org/#dom-namednodemap-length>
     fn Length(&self) -> u32 {
         self.owner.attrs().len() as u32
     }
 
-    // https://dom.spec.whatwg.org/#dom-namednodemap-item
+    /// <https://dom.spec.whatwg.org/#dom-namednodemap-item>
     fn Item(&self, index: u32) -> Option<DomRoot<Attr>> {
         self.owner
             .attrs()
@@ -50,12 +50,12 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
             .map(|js| DomRoot::from_ref(&**js))
     }
 
-    // https://dom.spec.whatwg.org/#dom-namednodemap-getnameditem
+    /// <https://dom.spec.whatwg.org/#dom-namednodemap-getnameditem>
     fn GetNamedItem(&self, name: DOMString) -> Option<DomRoot<Attr>> {
         self.owner.get_attribute_by_name(name)
     }
 
-    // https://dom.spec.whatwg.org/#dom-namednodemap-getnameditemns
+    /// <https://dom.spec.whatwg.org/#dom-namednodemap-getnameditemns>
     fn GetNamedItemNS(
         &self,
         namespace: Option<DOMString>,
@@ -65,17 +65,17 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
         self.owner.get_attribute(&ns, &LocalName::from(local_name))
     }
 
-    // https://dom.spec.whatwg.org/#dom-namednodemap-setnameditem
+    /// <https://dom.spec.whatwg.org/#dom-namednodemap-setnameditem>
     fn SetNamedItem(&self, attr: &Attr) -> Fallible<Option<DomRoot<Attr>>> {
         self.owner.SetAttributeNode(attr, CanGc::note())
     }
 
-    // https://dom.spec.whatwg.org/#dom-namednodemap-setnameditemns
+    /// <https://dom.spec.whatwg.org/#dom-namednodemap-setnameditemns>
     fn SetNamedItemNS(&self, attr: &Attr) -> Fallible<Option<DomRoot<Attr>>> {
         self.SetNamedItem(attr)
     }
 
-    // https://dom.spec.whatwg.org/#dom-namednodemap-removenameditem
+    /// <https://dom.spec.whatwg.org/#dom-namednodemap-removenameditem>
     fn RemoveNamedItem(&self, name: DOMString) -> Fallible<DomRoot<Attr>> {
         let name = self.owner.parsed_name(name);
         self.owner
@@ -83,7 +83,7 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
             .ok_or(Error::NotFound(None))
     }
 
-    // https://dom.spec.whatwg.org/#dom-namednodemap-removenameditemns
+    /// <https://dom.spec.whatwg.org/#dom-namednodemap-removenameditemns>
     fn RemoveNamedItemNS(
         &self,
         namespace: Option<DOMString>,
@@ -95,7 +95,7 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
             .ok_or(Error::NotFound(None))
     }
 
-    // https://dom.spec.whatwg.org/#dom-namednodemap-item
+    /// <https://dom.spec.whatwg.org/#dom-namednodemap-item>
     fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Attr>> {
         self.Item(index)
     }
@@ -105,7 +105,7 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
         self.GetNamedItem(name)
     }
 
-    // https://heycam.github.io/webidl/#dfn-supported-property-names
+    /// <https://heycam.github.io/webidl/#dfn-supported-property-names>
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         let mut names = vec![];
         let html_element_in_html_document = self.owner.html_element_in_html_document();

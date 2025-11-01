@@ -338,7 +338,7 @@ impl HTMLVideoElementMethods<crate::DomTypeHolder> for HTMLVideoElement {
     // <https://html.spec.whatwg.org/multipage/#dom-video-height>
     make_dimension_uint_setter!(SetHeight, "height");
 
-    // https://html.spec.whatwg.org/multipage/#dom-video-videowidth
+    /// <https://html.spec.whatwg.org/multipage/#dom-video-videowidth>
     fn VideoWidth(&self) -> u32 {
         if self.htmlmediaelement.get_ready_state() == ReadyState::HaveNothing {
             return 0;
@@ -346,7 +346,7 @@ impl HTMLVideoElementMethods<crate::DomTypeHolder> for HTMLVideoElement {
         self.video_width.get().unwrap_or(0)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-video-videoheight
+    /// <https://html.spec.whatwg.org/multipage/#dom-video-videoheight>
     fn VideoHeight(&self) -> u32 {
         if self.htmlmediaelement.get_ready_state() == ReadyState::HaveNothing {
             return 0;

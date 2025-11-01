@@ -81,7 +81,7 @@ impl MediaQueryListEvent {
 }
 
 impl MediaQueryListEventMethods<crate::DomTypeHolder> for MediaQueryListEvent {
-    // https://drafts.csswg.org/cssom-view/#dom-mediaquerylistevent-mediaquerylistevent
+    /// <https://drafts.csswg.org/cssom-view/#dom-mediaquerylistevent-mediaquerylistevent>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -101,17 +101,17 @@ impl MediaQueryListEventMethods<crate::DomTypeHolder> for MediaQueryListEvent {
         ))
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-mediaquerylistevent-media
+    /// <https://drafts.csswg.org/cssom-view/#dom-mediaquerylistevent-media>
     fn Media(&self) -> DOMString {
         self.media.clone()
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-mediaquerylistevent-matches
+    /// <https://drafts.csswg.org/cssom-view/#dom-mediaquerylistevent-matches>
     fn Matches(&self) -> bool {
         self.matches.get()
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.upcast::<Event>().IsTrusted()
     }

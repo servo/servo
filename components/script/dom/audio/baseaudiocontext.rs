@@ -458,7 +458,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
         ))
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffersource
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffersource>
     fn CreateBufferSource(&self, can_gc: CanGc) -> Fallible<DomRoot<AudioBufferSourceNode>> {
         AudioBufferSourceNode::new(
             self.global().as_window(),
@@ -468,7 +468,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
         )
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-decodeaudiodata
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-decodeaudiodata>
     fn DecodeAudioData(
         &self,
         audio_data: CustomAutoRooterGuard<ArrayBuffer>,

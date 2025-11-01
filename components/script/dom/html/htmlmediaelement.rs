@@ -654,12 +654,12 @@ impl HTMLMediaElement {
             // playback position.
         }
     }
-    // https://html.spec.whatwg.org/multipage/#allowed-to-play
+    /// <https://html.spec.whatwg.org/multipage/#allowed-to-play>
     fn is_allowed_to_play(&self) -> bool {
         true
     }
 
-    // https://html.spec.whatwg.org/multipage/#notify-about-playing
+    /// <https://html.spec.whatwg.org/multipage/#notify-about-playing>
     fn notify_about_playing(&self) {
         // Step 1.
         self.take_pending_play_promises(Ok(()));
@@ -689,7 +689,7 @@ impl HTMLMediaElement {
             }));
     }
 
-    // https://html.spec.whatwg.org/multipage/#ready-states
+    /// <https://html.spec.whatwg.org/multipage/#ready-states>
     fn change_ready_state(&self, ready_state: ReadyState) {
         let old_ready_state = self.ready_state.get();
         self.ready_state.set(ready_state);
@@ -1393,21 +1393,21 @@ impl HTMLMediaElement {
             !self.is_blocked_media_element()
     }
 
-    // https://html.spec.whatwg.org/multipage/#blocked-media-element
+    /// <https://html.spec.whatwg.org/multipage/#blocked-media-element>
     fn is_blocked_media_element(&self) -> bool {
         self.ready_state.get() <= ReadyState::HaveCurrentData ||
             self.is_paused_for_user_interaction() ||
             self.is_paused_for_in_band_content()
     }
 
-    // https://html.spec.whatwg.org/multipage/#paused-for-user-interaction
+    /// <https://html.spec.whatwg.org/multipage/#paused-for-user-interaction>
     fn is_paused_for_user_interaction(&self) -> bool {
         // FIXME: we will likely be able to fill this placeholder once (if) we
         //        implement the MediaSession API.
         false
     }
 
-    // https://html.spec.whatwg.org/multipage/#paused-for-in-band-content
+    /// <https://html.spec.whatwg.org/multipage/#paused-for-in-band-content>
     fn is_paused_for_in_band_content(&self) -> bool {
         // FIXME: we will likely be able to fill this placeholder once (if) we
         //        implement https://github.com/servo/servo/issues/22314
@@ -1682,7 +1682,7 @@ impl HTMLMediaElement {
         // Step 6. Abort the overall resource selection algorithm.
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-seek
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-seek>
     fn seek(&self, time: f64, _approximate_for_speed: bool, can_gc: CanGc) {
         // Step 1.
         self.show_poster.set(false);
@@ -1767,7 +1767,7 @@ impl HTMLMediaElement {
         // a position change.
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-seek
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-seek>
     fn seek_end(&self) {
         // Step 14.
         self.seeking.set(false);
@@ -2385,7 +2385,7 @@ impl HTMLMediaElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#earliest-possible-position
+    /// <https://html.spec.whatwg.org/multipage/#earliest-possible-position>
     fn earliest_possible_position(&self) -> f64 {
         self.played
             .borrow()
@@ -2577,19 +2577,19 @@ enum PlaybackDirection {
 //
 // - https://github.com/servo/servo/issues/22293
 impl HTMLMediaElement {
-    // https://github.com/servo/servo/issues/22293
+    /// <https://github.com/servo/servo/issues/22293>
     fn direction_of_playback(&self) -> PlaybackDirection {
         PlaybackDirection::Forwards
     }
 }
 
 impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
-    // https://html.spec.whatwg.org/multipage/#dom-media-networkstate
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
     fn NetworkState(&self) -> u16 {
         self.network_state.get() as u16
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-readystate
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-readystate>
     fn ReadyState(&self) -> u16 {
         self.ready_state.get() as u16
     }
@@ -2620,21 +2620,21 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-media-src
     make_url_setter!(SetSrc, "src");
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-crossOrigin
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-crossOrigin>
     fn GetCrossOrigin(&self) -> Option<DOMString> {
         reflect_cross_origin_attribute(self.upcast::<Element>())
     }
-    // https://html.spec.whatwg.org/multipage/#dom-media-crossOrigin
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-crossOrigin>
     fn SetCrossOrigin(&self, value: Option<DOMString>, can_gc: CanGc) {
         set_cross_origin_attribute(self.upcast::<Element>(), value, can_gc);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-muted
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-muted>
     fn Muted(&self) -> bool {
         self.muted.get()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-muted
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-muted>
     fn SetMuted(&self, value: bool) {
         if self.muted.get() == value {
             return;
@@ -2654,7 +2654,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-srcobject
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-srcobject>
     fn GetSrcObject(&self) -> Option<MediaStreamOrBlob> {
         (*self.src_object.borrow())
             .as_ref()
@@ -2666,7 +2666,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
             })
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-srcobject
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-srcobject>
     fn SetSrcObject(&self, value: Option<MediaStreamOrBlob>, can_gc: CanGc) {
         *self.src_object.borrow_mut() = value.map(|value| value.into());
         self.media_element_load_algorithm(can_gc);
@@ -2685,7 +2685,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#attr-media-preload
     make_setter!(SetPreload, "preload");
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-currentsrc
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-currentsrc>
     fn CurrentSrc(&self) -> USVString {
         USVString(self.current_src.borrow().clone())
     }
@@ -2695,7 +2695,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         self.media_element_load_algorithm(can_gc);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-canplaytype
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-canplaytype>
     fn CanPlayType(&self, type_: DOMString) -> CanPlayTypeResult {
         match ServoMedia::get().can_play_type(&type_.str()) {
             SupportsMediaType::No => CanPlayTypeResult::_empty,
@@ -2704,12 +2704,12 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-error
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-error>
     fn GetError(&self) -> Option<DomRoot<MediaError>> {
         self.error.get()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-play
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-play>
     fn Play(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);
         // Step 1.
@@ -2795,7 +2795,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         promise
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-pause
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-pause>
     fn Pause(&self, can_gc: CanGc) {
         // Step 1
         if self.network_state.get() == NetworkState::Empty {
@@ -2806,7 +2806,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         self.internal_pause_steps();
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-paused
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-paused>
     fn Paused(&self) -> bool {
         self.paused.get()
     }
@@ -2860,12 +2860,12 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-duration
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-duration>
     fn Duration(&self) -> f64 {
         self.duration.get()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-currenttime
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-currenttime>
     fn CurrentTime(&self) -> Finite<f64> {
         Finite::wrap(if self.default_playback_start_position.get() != 0. {
             self.default_playback_start_position.get()
@@ -2874,7 +2874,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         })
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-currenttime
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-currenttime>
     fn SetCurrentTime(&self, time: Finite<f64>, can_gc: CanGc) {
         if self.ready_state.get() == ReadyState::HaveNothing {
             self.default_playback_start_position.set(*time);
@@ -2884,12 +2884,12 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-seeking
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-seeking>
     fn Seeking(&self) -> bool {
         self.seeking.get()
     }
 
-    // https://html.spec.whatwg.org/multipage/#ended-playback
+    /// <https://html.spec.whatwg.org/multipage/#ended-playback>
     fn Ended(&self) -> bool {
         if self.ready_state.get() < ReadyState::HaveMetadata {
             return false;
@@ -2903,12 +2903,12 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-fastseek
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-fastseek>
     fn FastSeek(&self, time: Finite<f64>, can_gc: CanGc) {
         self.seek(*time, /* approximate_for_speed */ true, can_gc);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-played
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-played>
     fn Played(&self, can_gc: CanGc) -> DomRoot<TimeRanges> {
         TimeRanges::new(
             self.global().as_window(),
@@ -2917,7 +2917,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         )
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-seekable
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-seekable>
     fn Seekable(&self, can_gc: CanGc) -> DomRoot<TimeRanges> {
         let mut seekable = TimeRangesContainer::default();
         if let Some(ref player) = *self.player.borrow() {
@@ -2930,7 +2930,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         TimeRanges::new(self.global().as_window(), seekable, can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-buffered
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-buffered>
     fn Buffered(&self, can_gc: CanGc) -> DomRoot<TimeRanges> {
         let mut buffered = TimeRangesContainer::default();
         if let Some(ref player) = *self.player.borrow() {
@@ -2943,28 +2943,28 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         TimeRanges::new(self.global().as_window(), buffered, can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-audiotracks
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-audiotracks>
     fn AudioTracks(&self, can_gc: CanGc) -> DomRoot<AudioTrackList> {
         let window = self.owner_window();
         self.audio_tracks_list
             .or_init(|| AudioTrackList::new(&window, &[], Some(self), can_gc))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-videotracks
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-videotracks>
     fn VideoTracks(&self, can_gc: CanGc) -> DomRoot<VideoTrackList> {
         let window = self.owner_window();
         self.video_tracks_list
             .or_init(|| VideoTrackList::new(&window, &[], Some(self), can_gc))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-texttracks
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-texttracks>
     fn TextTracks(&self, can_gc: CanGc) -> DomRoot<TextTrackList> {
         let window = self.owner_window();
         self.text_tracks_list
             .or_init(|| TextTrackList::new(&window, &[], can_gc))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-addtexttrack
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-addtexttrack>
     fn AddTextTrack(
         &self,
         kind: TextTrackKind,
@@ -2991,12 +2991,12 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         DomRoot::from_ref(&track)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-volume
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-volume>
     fn GetVolume(&self) -> Fallible<Finite<f64>> {
         Ok(Finite::wrap(self.volume.get()))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-media-volume
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-volume>
     fn SetVolume(&self, value: Finite<f64>) -> ErrorResult {
         let minimum_volume = 0.0;
         let maximum_volume = 1.0;
@@ -3058,7 +3058,7 @@ impl VirtualMethods for HTMLMediaElement {
         };
     }
 
-    // https://html.spec.whatwg.org/multipage/#playing-the-media-resource:remove-an-element-from-a-document
+    /// <https://html.spec.whatwg.org/multipage/#playing-the-media-resource:remove-an-element-from-a-document>
     fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
         self.super_type().unwrap().unbind_from_tree(context, can_gc);
 

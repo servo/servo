@@ -168,7 +168,7 @@ pub(crate) fn longest_prefix_match(stored_scope: &ServoUrl, potential_match: &Se
 }
 
 impl ServiceWorkerRegistrationMethods<crate::DomTypeHolder> for ServiceWorkerRegistration {
-    // https://w3c.github.io/ServiceWorker/#service-worker-registration-installing-attribute
+    /// <https://w3c.github.io/ServiceWorker/#service-worker-registration-installing-attribute>
     fn GetInstalling(&self) -> Option<DomRoot<ServiceWorker>> {
         self.installing
             .borrow()
@@ -176,7 +176,7 @@ impl ServiceWorkerRegistrationMethods<crate::DomTypeHolder> for ServiceWorkerReg
             .map(|sw| DomRoot::from_ref(&**sw))
     }
 
-    // https://w3c.github.io/ServiceWorker/#service-worker-registration-active-attribute
+    /// <https://w3c.github.io/ServiceWorker/#service-worker-registration-active-attribute>
     fn GetActive(&self) -> Option<DomRoot<ServiceWorker>> {
         self.active
             .borrow()
@@ -184,7 +184,7 @@ impl ServiceWorkerRegistrationMethods<crate::DomTypeHolder> for ServiceWorkerReg
             .map(|sw| DomRoot::from_ref(&**sw))
     }
 
-    // https://w3c.github.io/ServiceWorker/#service-worker-registration-waiting-attribute
+    /// <https://w3c.github.io/ServiceWorker/#service-worker-registration-waiting-attribute>
     fn GetWaiting(&self) -> Option<DomRoot<ServiceWorker>> {
         self.waiting
             .borrow()
@@ -192,17 +192,17 @@ impl ServiceWorkerRegistrationMethods<crate::DomTypeHolder> for ServiceWorkerReg
             .map(|sw| DomRoot::from_ref(&**sw))
     }
 
-    // https://w3c.github.io/ServiceWorker/#service-worker-registration-scope-attribute
+    /// <https://w3c.github.io/ServiceWorker/#service-worker-registration-scope-attribute>
     fn Scope(&self) -> USVString {
         USVString(self.scope.as_str().to_owned())
     }
 
-    // https://w3c.github.io/ServiceWorker/#service-worker-registration-updateviacache
+    /// <https://w3c.github.io/ServiceWorker/#service-worker-registration-updateviacache>
     fn UpdateViaCache(&self) -> ServiceWorkerUpdateViaCache {
         self.update_via_cache
     }
 
-    // https://w3c.github.io/ServiceWorker/#service-worker-registration-navigationpreload
+    /// <https://w3c.github.io/ServiceWorker/#service-worker-registration-navigationpreload>
     fn NavigationPreload(&self) -> DomRoot<NavigationPreloadManager> {
         self.navigation_preload
             .or_init(|| NavigationPreloadManager::new(&self.global(), self, CanGc::note()))

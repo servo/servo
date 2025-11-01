@@ -878,7 +878,7 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
     // https://html.spec.whatwg.org/multipage/#dom-link-rel
     make_getter!(Rel, "rel");
 
-    // https://html.spec.whatwg.org/multipage/#dom-link-rel
+    /// <https://html.spec.whatwg.org/multipage/#dom-link-rel>
     fn SetRel(&self, rel: DOMString, can_gc: CanGc) {
         self.upcast::<Element>()
             .set_tokenlist_attribute(&local_name!("rel"), rel, can_gc);
@@ -929,7 +929,7 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
     // https://html.spec.whatwg.org/multipage/#dom-link-disabled
     make_bool_setter!(SetDisabled, "disabled");
 
-    // https://html.spec.whatwg.org/multipage/#dom-link-rellist
+    /// <https://html.spec.whatwg.org/multipage/#dom-link-rellist>
     fn RelList(&self, can_gc: CanGc) -> DomRoot<DOMTokenList> {
         self.rel_list.or_init(|| {
             DOMTokenList::new(
@@ -975,17 +975,17 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
     // https://html.spec.whatwg.org/multipage/#dom-link-target
     make_setter!(SetTarget, "target");
 
-    // https://html.spec.whatwg.org/multipage/#dom-link-crossorigin
+    /// <https://html.spec.whatwg.org/multipage/#dom-link-crossorigin>
     fn GetCrossOrigin(&self) -> Option<DOMString> {
         reflect_cross_origin_attribute(self.upcast::<Element>())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-link-crossorigin
+    /// <https://html.spec.whatwg.org/multipage/#dom-link-crossorigin>
     fn SetCrossOrigin(&self, value: Option<DOMString>, can_gc: CanGc) {
         set_cross_origin_attribute(self.upcast::<Element>(), value, can_gc);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-link-referrerpolicy
+    /// <https://html.spec.whatwg.org/multipage/#dom-link-referrerpolicy>
     fn ReferrerPolicy(&self) -> DOMString {
         reflect_referrer_policy_attribute(self.upcast::<Element>())
     }
@@ -993,7 +993,7 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
     // https://html.spec.whatwg.org/multipage/#dom-link-referrerpolicy
     make_setter!(SetReferrerPolicy, "referrerpolicy");
 
-    // https://drafts.csswg.org/cssom/#dom-linkstyle-sheet
+    /// <https://drafts.csswg.org/cssom/#dom-linkstyle-sheet>
     fn GetSheet(&self, can_gc: CanGc) -> Option<DomRoot<DOMStyleSheet>> {
         self.get_cssom_stylesheet(can_gc).map(DomRoot::upcast)
     }

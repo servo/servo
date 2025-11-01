@@ -81,7 +81,7 @@ impl HTMLBaseElement {
 }
 
 impl HTMLBaseElementMethods<crate::DomTypeHolder> for HTMLBaseElement {
-    // https://html.spec.whatwg.org/multipage/#dom-base-href
+    /// <https://html.spec.whatwg.org/multipage/#dom-base-href>
     fn Href(&self) -> DOMString {
         // Step 1.
         let document = self.owner_document();

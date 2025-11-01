@@ -300,12 +300,12 @@ impl CSSRuleList {
 }
 
 impl CSSRuleListMethods<crate::DomTypeHolder> for CSSRuleList {
-    // https://drafts.csswg.org/cssom/#ref-for-dom-cssrulelist-item-1
+    /// <https://drafts.csswg.org/cssom/#ref-for-dom-cssrulelist-item-1>
     fn Item(&self, idx: u32, can_gc: CanGc) -> Option<DomRoot<CSSRule>> {
         self.item(idx, can_gc)
     }
 
-    // https://drafts.csswg.org/cssom/#dom-cssrulelist-length
+    /// <https://drafts.csswg.org/cssom/#dom-cssrulelist-length>
     fn Length(&self) -> u32 {
         self.dom_rules.borrow().len() as u32
     }

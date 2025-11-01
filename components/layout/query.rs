@@ -378,7 +378,7 @@ fn resolve_grid_template(
     style: &ComputedValues,
     longhand_id: LonghandId,
 ) -> Option<String> {
-    // https://drafts.csswg.org/css-grid/#resolved-track-list-standalone
+    /// <https://drafts.csswg.org/css-grid/#resolved-track-list-standalone>
     fn serialize_standalone_non_subgrid_track_list(track_sizes: &[Au]) -> Option<String> {
         match track_sizes.is_empty() {
             // Standalone non subgrid grids with empty track lists should compute to `none`.

@@ -151,7 +151,7 @@ impl HTMLElement {
 }
 
 impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
-    // https://html.spec.whatwg.org/multipage/#the-style-attribute
+    /// <https://html.spec.whatwg.org/multipage/#the-style-attribute>
     fn Style(&self, can_gc: CanGc) -> DomRoot<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
             let global = self.owner_window();
@@ -195,12 +195,12 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#globaleventhandlers
     global_event_handlers!(NoOnload);
 
-    // https://html.spec.whatwg.org/multipage/#dom-dataset
+    /// <https://html.spec.whatwg.org/multipage/#dom-dataset>
     fn Dataset(&self, can_gc: CanGc) -> DomRoot<DOMStringMap> {
         self.dataset.or_init(|| DOMStringMap::new(self, can_gc))
     }
 
-    // https://html.spec.whatwg.org/multipage/#handler-onerror
+    /// <https://html.spec.whatwg.org/multipage/#handler-onerror>
     fn GetOnerror(&self, can_gc: CanGc) -> Option<Rc<OnErrorEventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
@@ -215,7 +215,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#handler-onerror
+    /// <https://html.spec.whatwg.org/multipage/#handler-onerror>
     fn SetOnerror(&self, listener: Option<Rc<OnErrorEventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
@@ -229,7 +229,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#handler-onload
+    /// <https://html.spec.whatwg.org/multipage/#handler-onload>
     fn GetOnload(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
@@ -244,7 +244,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#handler-onload
+    /// <https://html.spec.whatwg.org/multipage/#handler-onload>
     fn SetOnload(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
@@ -257,7 +257,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#handler-onblur
+    /// <https://html.spec.whatwg.org/multipage/#handler-onblur>
     fn GetOnblur(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
@@ -272,7 +272,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#handler-onblur
+    /// <https://html.spec.whatwg.org/multipage/#handler-onblur>
     fn SetOnblur(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
@@ -285,7 +285,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#handler-onfocus
+    /// <https://html.spec.whatwg.org/multipage/#handler-onfocus>
     fn GetOnfocus(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
@@ -300,7 +300,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#handler-onfocus
+    /// <https://html.spec.whatwg.org/multipage/#handler-onfocus>
     fn SetOnfocus(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
@@ -313,7 +313,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#handler-onresize
+    /// <https://html.spec.whatwg.org/multipage/#handler-onresize>
     fn GetOnresize(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
@@ -328,7 +328,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#handler-onresize
+    /// <https://html.spec.whatwg.org/multipage/#handler-onresize>
     fn SetOnresize(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
@@ -341,7 +341,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#handler-onscroll
+    /// <https://html.spec.whatwg.org/multipage/#handler-onscroll>
     fn GetOnscroll(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
@@ -356,7 +356,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#handler-onscroll
+    /// <https://html.spec.whatwg.org/multipage/#handler-onscroll>
     fn SetOnscroll(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
@@ -369,7 +369,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#attr-itemtype
+    /// <https://html.spec.whatwg.org/multipage/#attr-itemtype>
     fn Itemtypes(&self) -> Option<Vec<DOMString>> {
         let atoms = self
             .element
@@ -389,7 +389,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         Some(item_attr_values.into_iter().collect())
     }
 
-    // https://html.spec.whatwg.org/multipage/#names:-the-itemprop-attribute
+    /// <https://html.spec.whatwg.org/multipage/#names:-the-itemprop-attribute>
     fn PropertyNames(&self) -> Option<Vec<DOMString>> {
         let atoms = self
             .element
@@ -440,7 +440,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         );
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-blur
+    /// <https://html.spec.whatwg.org/multipage/#dom-blur>
     fn Blur(&self, can_gc: CanGc) {
         // TODO: Run the unfocusing steps. Focus the top-level document, not
         //       the current document.
@@ -482,7 +482,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         element
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsettop
+    /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsettop>
     fn OffsetTop(&self) -> i32 {
         if self.is_body_element() {
             return 0;
@@ -495,7 +495,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         rect.origin.y.to_nearest_px()
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetleft
+    /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetleft>
     fn OffsetLeft(&self) -> i32 {
         if self.is_body_element() {
             return 0;
@@ -508,7 +508,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         rect.origin.x.to_nearest_px()
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetwidth
+    /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetwidth>
     fn OffsetWidth(&self) -> i32 {
         let node = self.upcast::<Node>();
         let window = self.owner_window();
@@ -517,7 +517,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         rect.size.width.to_nearest_px()
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetheight
+    /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetheight>
     fn OffsetHeight(&self) -> i32 {
         let node = self.upcast::<Node>();
         let window = self.owner_window();
@@ -590,12 +590,12 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-translate
+    /// <https://html.spec.whatwg.org/multipage/#dom-translate>
     fn Translate(&self) -> bool {
         self.as_element().is_translate_enabled()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-translate
+    /// <https://html.spec.whatwg.org/multipage/#dom-translate>
     fn SetTranslate(&self, yesno: bool, can_gc: CanGc) {
         self.as_element().set_string_attribute(
             &html5ever::local_name!("translate"),
@@ -607,7 +607,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         );
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-contenteditable
+    /// <https://html.spec.whatwg.org/multipage/#dom-contenteditable>
     fn ContentEditable(&self) -> DOMString {
         // TODO: https://github.com/servo/servo/issues/12776
         self.as_element()
@@ -616,13 +616,13 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             .unwrap_or_else(|| DOMString::from("inherit"))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-contenteditable
+    /// <https://html.spec.whatwg.org/multipage/#dom-contenteditable>
     fn SetContentEditable(&self, _: DOMString) {
         // TODO: https://github.com/servo/servo/issues/12776
         warn!("The contentEditable attribute is not implemented yet");
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-contenteditable
+    /// <https://html.spec.whatwg.org/multipage/#dom-contenteditable>
     fn IsContentEditable(&self) -> bool {
         // TODO: https://github.com/servo/servo/issues/12776
         false
@@ -678,23 +678,23 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         Ok(internals)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce
+    /// <https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce>
     fn Nonce(&self) -> DOMString {
         self.as_element().nonce_value().into()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce
+    /// <https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce>
     fn SetNonce(&self, value: DOMString) {
         self.as_element()
             .update_nonce_internal_slot(value.to_string())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-fe-autofocus
+    /// <https://html.spec.whatwg.org/multipage/#dom-fe-autofocus>
     fn Autofocus(&self) -> bool {
         self.element.has_attribute(&local_name!("autofocus"))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-fe-autofocus
+    /// <https://html.spec.whatwg.org/multipage/#dom-fe-autofocus>
     fn SetAutofocus(&self, autofocus: bool, can_gc: CanGc) {
         self.element
             .set_bool_attribute(&local_name!("autofocus"), autofocus, can_gc);

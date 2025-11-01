@@ -1250,7 +1250,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         self.base.GetContextAttributes()
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.13
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.13>
     fn IsContextLost(&self) -> bool {
         self.base.IsContextLost()
     }
@@ -2398,7 +2398,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         self.base.uniform1iv(location, v, src_offset, src_length)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8>
     fn Uniform1ui(&self, location: Option<&WebGLUniformLocation>, val: u32) {
         self.base.with_location(location, |location| {
             match location.type_() {
@@ -2411,7 +2411,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         });
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8>
     fn Uniform1uiv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -2494,7 +2494,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         self.base.uniform2iv(location, v, src_offset, src_length)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8>
     fn Uniform2ui(&self, location: Option<&WebGLUniformLocation>, x: u32, y: u32) {
         self.base.with_location(location, |location| {
             match location.type_() {
@@ -2507,7 +2507,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         });
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8>
     fn Uniform2uiv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -2559,7 +2559,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         self.base.uniform3iv(location, v, src_offset, src_length)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8>
     fn Uniform3ui(&self, location: Option<&WebGLUniformLocation>, x: u32, y: u32, z: u32) {
         self.base.with_location(location, |location| {
             match location.type_() {
@@ -2572,7 +2572,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         });
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8>
     fn Uniform3uiv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -2608,7 +2608,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         self.base.uniform4iv(location, v, src_offset, src_length)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8>
     fn Uniform4ui(&self, location: Option<&WebGLUniformLocation>, x: u32, y: u32, z: u32, w: u32) {
         self.base.with_location(location, |location| {
             match location.type_() {
@@ -2621,7 +2621,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         });
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8>
     fn Uniform4uiv(
         &self,
         location: Option<&WebGLUniformLocation>,

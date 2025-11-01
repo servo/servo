@@ -84,7 +84,7 @@ impl Activatable for HTMLLabelElement {
 }
 
 impl HTMLLabelElementMethods<crate::DomTypeHolder> for HTMLLabelElement {
-    // https://html.spec.whatwg.org/multipage/#dom-fae-form
+    /// <https://html.spec.whatwg.org/multipage/#dom-fae-form>
     fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner()
     }
@@ -95,7 +95,7 @@ impl HTMLLabelElementMethods<crate::DomTypeHolder> for HTMLLabelElement {
     // https://html.spec.whatwg.org/multipage/#dom-label-htmlfor
     make_atomic_setter!(SetHtmlFor, "for");
 
-    // https://html.spec.whatwg.org/multipage/#dom-label-control
+    /// <https://html.spec.whatwg.org/multipage/#dom-label-control>
     fn GetControl(&self) -> Option<DomRoot<HTMLElement>> {
         let for_attr = match self
             .upcast::<Element>()

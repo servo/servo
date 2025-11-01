@@ -72,7 +72,7 @@ impl HTMLOutputElement {
 }
 
 impl HTMLOutputElementMethods<crate::DomTypeHolder> for HTMLOutputElement {
-    // https://html.spec.whatwg.org/multipage/#dom-fae-form
+    /// <https://html.spec.whatwg.org/multipage/#dom-fae-form>
     fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner()
     }
@@ -80,7 +80,7 @@ impl HTMLOutputElementMethods<crate::DomTypeHolder> for HTMLOutputElement {
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
     make_labels_getter!(Labels, labels_node_list);
 
-    // https://html.spec.whatwg.org/multipage/#dom-output-defaultvaleu
+    /// <https://html.spec.whatwg.org/multipage/#dom-output-defaultvaleu>
     fn DefaultValue(&self) -> DOMString {
         let dvo = self.default_value_override.borrow();
         if let Some(ref dv) = *dvo {
@@ -90,7 +90,7 @@ impl HTMLOutputElementMethods<crate::DomTypeHolder> for HTMLOutputElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-output-defaultvalue
+    /// <https://html.spec.whatwg.org/multipage/#dom-output-defaultvalue>
     fn SetDefaultValue(&self, value: DOMString, can_gc: CanGc) {
         if self.default_value_override.borrow().is_none() {
             // Step 1 ("and return")
@@ -101,18 +101,18 @@ impl HTMLOutputElementMethods<crate::DomTypeHolder> for HTMLOutputElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-output-value
+    /// <https://html.spec.whatwg.org/multipage/#dom-output-value>
     fn Value(&self) -> DOMString {
         self.upcast::<Node>().descendant_text_content()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-output-value
+    /// <https://html.spec.whatwg.org/multipage/#dom-output-value>
     fn SetValue(&self, value: DOMString, can_gc: CanGc) {
         *self.default_value_override.borrow_mut() = Some(self.DefaultValue());
         Node::string_replace_all(value, self.upcast::<Node>(), can_gc);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-output-type
+    /// <https://html.spec.whatwg.org/multipage/#dom-output-type>
     fn Type(&self) -> DOMString {
         DOMString::from("output")
     }
@@ -123,32 +123,32 @@ impl HTMLOutputElementMethods<crate::DomTypeHolder> for HTMLOutputElement {
     // https://html.spec.whatwg.org/multipage/#dom-fe-name
     make_getter!(Name, "name");
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate>
     fn WillValidate(&self) -> bool {
         self.is_instance_validatable()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-validity
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-validity>
     fn Validity(&self, can_gc: CanGc) -> DomRoot<ValidityState> {
         self.validity_state(can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity>
     fn CheckValidity(&self, can_gc: CanGc) -> bool {
         self.check_validity(can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity>
     fn ReportValidity(&self, can_gc: CanGc) -> bool {
         self.report_validity(can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
     fn ValidationMessage(&self) -> DOMString {
         self.validation_message()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity>
     fn SetCustomValidity(&self, error: DOMString, can_gc: CanGc) {
         self.validity_state(can_gc).set_custom_error_message(error);
     }

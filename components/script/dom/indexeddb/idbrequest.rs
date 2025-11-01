@@ -444,27 +444,27 @@ impl IDBRequest {
 }
 
 impl IDBRequestMethods<crate::DomTypeHolder> for IDBRequest {
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbrequest-result
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbrequest-result>
     fn Result(&self, _cx: SafeJSContext, mut val: js::rust::MutableHandle<'_, js::jsapi::Value>) {
         val.set(self.result.get());
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbrequest-error
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbrequest-error>
     fn GetError(&self) -> Option<DomRoot<DOMException>> {
         self.error.get()
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbrequest-source
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbrequest-source>
     fn GetSource(&self) -> Option<DomRoot<IDBObjectStore>> {
         self.source.get()
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbrequest-transaction
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbrequest-transaction>
     fn GetTransaction(&self) -> Option<DomRoot<IDBTransaction>> {
         self.transaction.get()
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbrequest-readystate
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbrequest-readystate>
     fn ReadyState(&self) -> IDBRequestReadyState {
         self.ready_state.get()
     }

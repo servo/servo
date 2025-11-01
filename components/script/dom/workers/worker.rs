@@ -296,7 +296,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
         self.post_message_impl(cx, message, guard)
     }
 
-    // https://html.spec.whatwg.org/multipage/#terminate-a-worker
+    /// <https://html.spec.whatwg.org/multipage/#terminate-a-worker>
     fn Terminate(&self) {
         // Step 1
         if self.closing.swap(true, Ordering::SeqCst) {

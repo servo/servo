@@ -63,7 +63,7 @@ impl DOMRect {
 }
 
 impl DOMRectMethods<crate::DomTypeHolder> for DOMRect {
-    // https://drafts.fxtf.org/geometry/#dom-domrect-domrect
+    /// <https://drafts.fxtf.org/geometry/#dom-domrect-domrect>
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -86,42 +86,42 @@ impl DOMRectMethods<crate::DomTypeHolder> for DOMRect {
         reflect_dom_object(Box::new(Self { rect }), global, can_gc)
     }
 
-    // https://drafts.fxtf.org/geometry/#dom-domrect-x
+    /// <https://drafts.fxtf.org/geometry/#dom-domrect-x>
     fn X(&self) -> f64 {
         self.rect.X()
     }
 
-    // https://drafts.fxtf.org/geometry/#dom-domrect-x
+    /// <https://drafts.fxtf.org/geometry/#dom-domrect-x>
     fn SetX(&self, value: f64) {
         self.rect.set_x(value);
     }
 
-    // https://drafts.fxtf.org/geometry/#dom-domrect-y
+    /// <https://drafts.fxtf.org/geometry/#dom-domrect-y>
     fn Y(&self) -> f64 {
         self.rect.Y()
     }
 
-    // https://drafts.fxtf.org/geometry/#dom-domrect-y
+    /// <https://drafts.fxtf.org/geometry/#dom-domrect-y>
     fn SetY(&self, value: f64) {
         self.rect.set_y(value);
     }
 
-    // https://drafts.fxtf.org/geometry/#dom-domrect-width
+    /// <https://drafts.fxtf.org/geometry/#dom-domrect-width>
     fn Width(&self) -> f64 {
         self.rect.Width()
     }
 
-    // https://drafts.fxtf.org/geometry/#dom-domrect-width
+    /// <https://drafts.fxtf.org/geometry/#dom-domrect-width>
     fn SetWidth(&self, value: f64) {
         self.rect.set_width(value);
     }
 
-    // https://drafts.fxtf.org/geometry/#dom-domrect-height
+    /// <https://drafts.fxtf.org/geometry/#dom-domrect-height>
     fn Height(&self) -> f64 {
         self.rect.Height()
     }
 
-    // https://drafts.fxtf.org/geometry/#dom-domrect-height
+    /// <https://drafts.fxtf.org/geometry/#dom-domrect-height>
     fn SetHeight(&self, value: f64) {
         self.rect.set_height(value);
     }

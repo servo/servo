@@ -110,17 +110,17 @@ impl TextTrackList {
 }
 
 impl TextTrackListMethods<crate::DomTypeHolder> for TextTrackList {
-    // https://html.spec.whatwg.org/multipage/#dom-texttracklist-length
+    /// <https://html.spec.whatwg.org/multipage/#dom-texttracklist-length>
     fn Length(&self) -> u32 {
         self.dom_tracks.borrow().len() as u32
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-texttracklist-item
+    /// <https://html.spec.whatwg.org/multipage/#dom-texttracklist-item>
     fn IndexedGetter(&self, idx: u32) -> Option<DomRoot<TextTrack>> {
         self.item(idx as usize)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-texttracklist-gettrackbyid
+    /// <https://html.spec.whatwg.org/multipage/#dom-texttracklist-gettrackbyid>
     fn GetTrackById(&self, id: DOMString) -> Option<DomRoot<TextTrack>> {
         let id_str = String::from(id.clone());
         self.dom_tracks

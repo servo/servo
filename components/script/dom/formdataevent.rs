@@ -67,7 +67,7 @@ impl FormDataEvent {
 }
 
 impl FormDataEventMethods<crate::DomTypeHolder> for FormDataEvent {
-    // https://html.spec.whatwg.org/multipage/#formdataevent
+    /// <https://html.spec.whatwg.org/multipage/#formdataevent>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -91,12 +91,12 @@ impl FormDataEventMethods<crate::DomTypeHolder> for FormDataEvent {
         Ok(event)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-formdataevent-formdata
+    /// <https://html.spec.whatwg.org/multipage/#dom-formdataevent-formdata>
     fn FormData(&self) -> DomRoot<FormData> {
         DomRoot::from_ref(&*self.form_data)
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

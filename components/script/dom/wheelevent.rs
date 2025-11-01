@@ -194,7 +194,7 @@ impl WheelEvent {
 }
 
 impl WheelEventMethods<crate::DomTypeHolder> for WheelEvent {
-    // https://w3c.github.io/uievents/#dom-wheelevent-wheelevent
+    /// <https://w3c.github.io/uievents/#dom-wheelevent-wheelevent>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -237,27 +237,27 @@ impl WheelEventMethods<crate::DomTypeHolder> for WheelEvent {
         Ok(event)
     }
 
-    // https://w3c.github.io/uievents/#widl-WheelEvent-deltaX
+    /// <https://w3c.github.io/uievents/#widl-WheelEvent-deltaX>
     fn DeltaX(&self) -> Finite<f64> {
         self.delta_x.get()
     }
 
-    // https://w3c.github.io/uievents/#widl-WheelEvent-deltaY
+    /// <https://w3c.github.io/uievents/#widl-WheelEvent-deltaY>
     fn DeltaY(&self) -> Finite<f64> {
         self.delta_y.get()
     }
 
-    // https://w3c.github.io/uievents/#widl-WheelEvent-deltaZ
+    /// <https://w3c.github.io/uievents/#widl-WheelEvent-deltaZ>
     fn DeltaZ(&self) -> Finite<f64> {
         self.delta_z.get()
     }
 
-    // https://w3c.github.io/uievents/#widl-WheelEvent-deltaMode
+    /// <https://w3c.github.io/uievents/#widl-WheelEvent-deltaMode>
     fn DeltaMode(&self) -> u32 {
         self.delta_mode.get()
     }
 
-    // https://w3c.github.io/uievents/#widl-WheelEvent-initWheelEvent
+    /// <https://w3c.github.io/uievents/#widl-WheelEvent-initWheelEvent>
     fn InitWheelEvent(
         &self,
         type_arg: DOMString,
@@ -297,7 +297,7 @@ impl WheelEventMethods<crate::DomTypeHolder> for WheelEvent {
         self.delta_mode.set(delta_mode_arg);
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.mouseevent.IsTrusted()
     }

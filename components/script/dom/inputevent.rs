@@ -57,7 +57,7 @@ impl InputEvent {
 }
 
 impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
-    // https://w3c.github.io/uievents/#dom-inputevent-inputevent
+    /// <https://w3c.github.io/uievents/#dom-inputevent-inputevent>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -80,17 +80,17 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
         Ok(event)
     }
 
-    // https://w3c.github.io/uievents/#dom-inputevent-data
+    /// <https://w3c.github.io/uievents/#dom-inputevent-data>
     fn GetData(&self) -> Option<DOMString> {
         self.data.clone()
     }
 
-    // https://w3c.github.io/uievents/#dom-inputevent-iscomposing
+    /// <https://w3c.github.io/uievents/#dom-inputevent-iscomposing>
     fn IsComposing(&self) -> bool {
         self.is_composing
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.uievent.IsTrusted()
     }

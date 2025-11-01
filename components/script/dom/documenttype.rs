@@ -72,37 +72,37 @@ impl DocumentType {
 }
 
 impl DocumentTypeMethods<crate::DomTypeHolder> for DocumentType {
-    // https://dom.spec.whatwg.org/#dom-documenttype-name
+    /// <https://dom.spec.whatwg.org/#dom-documenttype-name>
     fn Name(&self) -> DOMString {
         self.name.clone()
     }
 
-    // https://dom.spec.whatwg.org/#dom-documenttype-publicid
+    /// <https://dom.spec.whatwg.org/#dom-documenttype-publicid>
     fn PublicId(&self) -> DOMString {
         self.public_id.clone()
     }
 
-    // https://dom.spec.whatwg.org/#dom-documenttype-systemid
+    /// <https://dom.spec.whatwg.org/#dom-documenttype-systemid>
     fn SystemId(&self) -> DOMString {
         self.system_id.clone()
     }
 
-    // https://dom.spec.whatwg.org/#dom-childnode-before
+    /// <https://dom.spec.whatwg.org/#dom-childnode-before>
     fn Before(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         self.upcast::<Node>().before(nodes, can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-childnode-after
+    /// <https://dom.spec.whatwg.org/#dom-childnode-after>
     fn After(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         self.upcast::<Node>().after(nodes, can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-childnode-replacewith
+    /// <https://dom.spec.whatwg.org/#dom-childnode-replacewith>
     fn ReplaceWith(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         self.upcast::<Node>().replace_with(nodes, can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-childnode-remove
+    /// <https://dom.spec.whatwg.org/#dom-childnode-remove>
     fn Remove(&self, can_gc: CanGc) {
         self.upcast::<Node>().remove_self(can_gc);
     }

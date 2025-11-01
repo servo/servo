@@ -2600,7 +2600,7 @@ impl Document {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#fire-a-focus-event
+    /// <https://html.spec.whatwg.org/multipage/#fire-a-focus-event>
     fn fire_focus_event(
         &self,
         focus_event_type: FocusEventType,
@@ -4625,7 +4625,7 @@ impl Document {
 
 #[allow(non_snake_case)]
 impl DocumentMethods<crate::DomTypeHolder> for Document {
-    // https://dom.spec.whatwg.org/#dom-document-document
+    /// <https://dom.spec.whatwg.org/#dom-document-document>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -4712,12 +4712,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         Ok(document)
     }
 
-    // https://w3c.github.io/editing/ActiveDocuments/execCommand.html#querycommandsupported()
+    /// <https://w3c.github.io/editing/ActiveDocuments/execCommand.html#querycommandsupported()>
     fn QueryCommandSupported(&self, _command: DOMString) -> bool {
         false
     }
 
-    // https://drafts.csswg.org/cssom/#dom-document-stylesheets
+    /// <https://drafts.csswg.org/cssom/#dom-document-stylesheets>
     fn StyleSheets(&self, can_gc: CanGc) -> DomRoot<StyleSheetList> {
         self.stylesheet_list.or_init(|| {
             StyleSheetList::new(
@@ -4728,18 +4728,18 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         })
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-implementation
+    /// <https://dom.spec.whatwg.org/#dom-document-implementation>
     fn Implementation(&self, can_gc: CanGc) -> DomRoot<DOMImplementation> {
         self.implementation
             .or_init(|| DOMImplementation::new(self, can_gc))
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-url
+    /// <https://dom.spec.whatwg.org/#dom-document-url>
     fn URL(&self) -> USVString {
         USVString(String::from(self.url().as_str()))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-activeelement
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-activeelement>
     fn GetActiveElement(&self) -> Option<DomRoot<Element>> {
         self.document_or_shadow_root.get_active_element(
             self.get_focused_element(),
@@ -4748,7 +4748,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         )
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-hasfocus
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-hasfocus>
     fn HasFocus(&self) -> bool {
         // <https://html.spec.whatwg.org/multipage/#has-focus-steps>
         //
@@ -4780,7 +4780,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-domain
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-domain>
     fn Domain(&self) -> DOMString {
         // Step 1.
         if !self.has_browsing_context {
@@ -4830,7 +4830,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-referrer
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-referrer>
     fn Referrer(&self) -> DOMString {
         match self.referrer {
             Some(ref referrer) => DOMString::from(referrer.to_string()),
@@ -4838,12 +4838,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-documenturi
+    /// <https://dom.spec.whatwg.org/#dom-document-documenturi>
     fn DocumentURI(&self) -> USVString {
         self.URL()
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-compatmode
+    /// <https://dom.spec.whatwg.org/#dom-document-compatmode>
     fn CompatMode(&self) -> DOMString {
         DOMString::from(match self.quirks_mode.get() {
             QuirksMode::LimitedQuirks | QuirksMode::NoQuirks => "CSS1Compat",
@@ -4851,27 +4851,27 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         })
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-characterset
+    /// <https://dom.spec.whatwg.org/#dom-document-characterset>
     fn CharacterSet(&self) -> DOMString {
         DOMString::from(self.encoding.get().name())
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-charset
+    /// <https://dom.spec.whatwg.org/#dom-document-charset>
     fn Charset(&self) -> DOMString {
         self.CharacterSet()
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-inputencoding
+    /// <https://dom.spec.whatwg.org/#dom-document-inputencoding>
     fn InputEncoding(&self) -> DOMString {
         self.CharacterSet()
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-content_type
+    /// <https://dom.spec.whatwg.org/#dom-document-content_type>
     fn ContentType(&self) -> DOMString {
         DOMString::from(self.content_type.to_string())
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-doctype
+    /// <https://dom.spec.whatwg.org/#dom-document-doctype>
     fn GetDoctype(&self) -> Option<DomRoot<DocumentType>> {
         self.upcast::<Node>()
             .children()
@@ -4879,12 +4879,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             .next()
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-documentelement
+    /// <https://dom.spec.whatwg.org/#dom-document-documentelement>
     fn GetDocumentElement(&self) -> Option<DomRoot<Element>> {
         self.upcast::<Node>().child_elements().next()
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-getelementsbytagname
+    /// <https://dom.spec.whatwg.org/#dom-document-getelementsbytagname>
     fn GetElementsByTagName(
         &self,
         qualified_name: DOMString,
@@ -4906,7 +4906,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         result
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
+    /// <https://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens>
     fn GetElementsByTagNameNS(
         &self,
         maybe_ns: Option<DOMString>,
@@ -4927,7 +4927,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         result
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
+    /// <https://dom.spec.whatwg.org/#dom-document-getelementsbyclassname>
     fn GetElementsByClassName(&self, classes: DOMString, can_gc: CanGc) -> DomRoot<HTMLCollection> {
         let class_atoms: Vec<Atom> = split_html_space_chars(&classes.str())
             .map(Atom::from)
@@ -4947,7 +4947,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         result
     }
 
-    // https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
+    /// <https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid>
     fn GetElementById(&self, id: DOMString) -> Option<DomRoot<Element>> {
         self.get_element_by_id(&Atom::from(id))
     }
@@ -5056,7 +5056,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         ))
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-createattributens
+    /// <https://dom.spec.whatwg.org/#dom-document-createattributens>
     fn CreateAttributeNS(
         &self,
         namespace: Option<DOMString>,
@@ -5082,17 +5082,17 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         ))
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-createdocumentfragment
+    /// <https://dom.spec.whatwg.org/#dom-document-createdocumentfragment>
     fn CreateDocumentFragment(&self, can_gc: CanGc) -> DomRoot<DocumentFragment> {
         DocumentFragment::new(self, can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-createtextnode
+    /// <https://dom.spec.whatwg.org/#dom-document-createtextnode>
     fn CreateTextNode(&self, data: DOMString, can_gc: CanGc) -> DomRoot<Text> {
         Text::new(data, self, can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-createcdatasection
+    /// <https://dom.spec.whatwg.org/#dom-document-createcdatasection>
     fn CreateCDATASection(
         &self,
         data: DOMString,
@@ -5112,12 +5112,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         Ok(CDATASection::new(data, self, can_gc))
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-createcomment
+    /// <https://dom.spec.whatwg.org/#dom-document-createcomment>
     fn CreateComment(&self, data: DOMString, can_gc: CanGc) -> DomRoot<Comment> {
         Comment::new(data, self, None, can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-createprocessinginstruction
+    /// <https://dom.spec.whatwg.org/#dom-document-createprocessinginstruction>
     fn CreateProcessingInstruction(
         &self,
         target: DOMString,
@@ -5138,7 +5138,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         Ok(ProcessingInstruction::new(target, data, self, can_gc))
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-importnode
+    /// <https://dom.spec.whatwg.org/#dom-document-importnode>
     fn ImportNode(&self, node: &Node, deep: bool, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
         // Step 1.
         if node.is::<Document>() || node.is::<ShadowRoot>() {
@@ -5155,7 +5155,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         Ok(Node::clone(node, Some(self), clone_children, can_gc))
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-adoptnode
+    /// <https://dom.spec.whatwg.org/#dom-document-adoptnode>
     fn AdoptNode(&self, node: &Node, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
         // Step 1.
         if node.is::<Document>() {
@@ -5174,7 +5174,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         Ok(DomRoot::from_ref(node))
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-createevent
+    /// <https://dom.spec.whatwg.org/#dom-document-createevent>
     fn CreateEvent(&self, mut interface: DOMString, can_gc: CanGc) -> Fallible<DomRoot<Event>> {
         interface.make_ascii_lowercase();
         match &*interface.str() {
@@ -5234,7 +5234,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-lastmodified
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-lastmodified>
     fn LastModified(&self) -> DOMString {
         DOMString::from(self.last_modified.as_ref().cloned().unwrap_or_else(|| {
             // Ideally this would get the local time using `time`, but `time` always fails to get the local
@@ -5246,12 +5246,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }))
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-createrange
+    /// <https://dom.spec.whatwg.org/#dom-document-createrange>
     fn CreateRange(&self, can_gc: CanGc) -> DomRoot<Range> {
         Range::new_with_doc(self, None, can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-createnodeiteratorroot-whattoshow-filter
+    /// <https://dom.spec.whatwg.org/#dom-document-createnodeiteratorroot-whattoshow-filter>
     fn CreateNodeIterator(
         &self,
         root: &Node,
@@ -5262,7 +5262,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         NodeIterator::new(self, root, what_to_show, filter, can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-createtreewalker
+    /// <https://dom.spec.whatwg.org/#dom-document-createtreewalker>
     fn CreateTreeWalker(
         &self,
         root: &Node,
@@ -5272,12 +5272,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         TreeWalker::new(self, root, what_to_show, filter)
     }
 
-    // https://html.spec.whatwg.org/multipage/#document.title
+    /// <https://html.spec.whatwg.org/multipage/#document.title>
     fn Title(&self) -> DOMString {
         self.title().unwrap_or_else(|| DOMString::from(""))
     }
 
-    // https://html.spec.whatwg.org/multipage/#document.title
+    /// <https://html.spec.whatwg.org/multipage/#document.title>
     fn SetTitle(&self, title: DOMString, can_gc: CanGc) {
         let root = match self.GetDocumentElement() {
             Some(root) => root,
@@ -5341,7 +5341,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         node.set_text_content_for_element(Some(title), can_gc);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-head
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-head>
     fn GetHead(&self) -> Option<DomRoot<HTMLHeadElement>> {
         self.get_html_element().and_then(|root| {
             root.upcast::<Node>()
@@ -5351,12 +5351,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         })
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-currentscript
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-currentscript>
     fn GetCurrentScript(&self) -> Option<DomRoot<HTMLScriptElement>> {
         self.current_script.get()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-body
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-body>
     fn GetBody(&self) -> Option<DomRoot<HTMLElement>> {
         self.get_html_element().and_then(|root| {
             let node = root.upcast::<Node>();
@@ -5375,7 +5375,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         })
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-body
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-body>
     fn SetBody(&self, new_body: Option<&HTMLElement>, can_gc: CanGc) -> ErrorResult {
         // Step 1.
         let new_body = match new_body {
@@ -5418,12 +5418,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-getelementsbyname
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-getelementsbyname>
     fn GetElementsByName(&self, name: DOMString, can_gc: CanGc) -> DomRoot<NodeList> {
         NodeList::new_elements_by_name_list(self.window(), self, name, can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-images
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-images>
     fn Images(&self, can_gc: CanGc) -> DomRoot<HTMLCollection> {
         self.images.or_init(|| {
             HTMLCollection::new_with_filter_fn(
@@ -5435,7 +5435,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         })
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-embeds
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-embeds>
     fn Embeds(&self, can_gc: CanGc) -> DomRoot<HTMLCollection> {
         self.embeds.or_init(|| {
             HTMLCollection::new_with_filter_fn(
@@ -5447,12 +5447,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         })
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-plugins
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-plugins>
     fn Plugins(&self, can_gc: CanGc) -> DomRoot<HTMLCollection> {
         self.Embeds(can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-links
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-links>
     fn Links(&self, can_gc: CanGc) -> DomRoot<HTMLCollection> {
         self.links.or_init(|| {
             HTMLCollection::new_with_filter_fn(
@@ -5467,7 +5467,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         })
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-forms
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-forms>
     fn Forms(&self, can_gc: CanGc) -> DomRoot<HTMLCollection> {
         self.forms.or_init(|| {
             HTMLCollection::new_with_filter_fn(
@@ -5479,7 +5479,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         })
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-scripts
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-scripts>
     fn Scripts(&self, can_gc: CanGc) -> DomRoot<HTMLCollection> {
         self.scripts.or_init(|| {
             HTMLCollection::new_with_filter_fn(
@@ -5491,7 +5491,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         })
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-anchors
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-anchors>
     fn Anchors(&self, can_gc: CanGc) -> DomRoot<HTMLCollection> {
         self.anchors.or_init(|| {
             HTMLCollection::new_with_filter_fn(
@@ -5505,13 +5505,13 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         })
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-applets
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-applets>
     fn Applets(&self, can_gc: CanGc) -> DomRoot<HTMLCollection> {
         self.applets
             .or_init(|| HTMLCollection::always_empty(&self.window, self.upcast(), can_gc))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-location
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-location>
     fn GetLocation(&self) -> Option<DomRoot<Location>> {
         if self.is_fully_active() {
             Some(self.window.Location())
@@ -5520,17 +5520,17 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-parentnode-children
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-children>
     fn Children(&self, can_gc: CanGc) -> DomRoot<HTMLCollection> {
         HTMLCollection::children(&self.window, self.upcast(), can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild>
     fn GetFirstElementChild(&self) -> Option<DomRoot<Element>> {
         self.upcast::<Node>().child_elements().next()
     }
 
-    // https://dom.spec.whatwg.org/#dom-parentnode-lastelementchild
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-lastelementchild>
     fn GetLastElementChild(&self) -> Option<DomRoot<Element>> {
         self.upcast::<Node>()
             .rev_children()
@@ -5538,44 +5538,44 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             .next()
     }
 
-    // https://dom.spec.whatwg.org/#dom-parentnode-childelementcount
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-childelementcount>
     fn ChildElementCount(&self) -> u32 {
         self.upcast::<Node>().child_elements().count() as u32
     }
 
-    // https://dom.spec.whatwg.org/#dom-parentnode-prepend
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-prepend>
     fn Prepend(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         self.upcast::<Node>().prepend(nodes, can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-parentnode-append
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-append>
     fn Append(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         self.upcast::<Node>().append(nodes, can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-parentnode-replacechildren
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-replacechildren>
     fn ReplaceChildren(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         self.upcast::<Node>().replace_children(nodes, can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselector>
     fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
         let root = self.upcast::<Node>();
         root.query_selector(selectors)
     }
 
-    // https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall>
     fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<DomRoot<NodeList>> {
         let root = self.upcast::<Node>();
         root.query_selector_all(selectors)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-readystate
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-readystate>
     fn ReadyState(&self) -> DocumentReadyState {
         self.ready_state.get()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-defaultview
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-defaultview>
     fn GetDefaultView(&self) -> Option<DomRoot<Window>> {
         if self.has_browsing_context {
             Some(DomRoot::from_ref(&*self.window))
@@ -5584,7 +5584,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-cookie
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-cookie>
     fn GetCookie(&self) -> Fallible<DOMString> {
         if self.is_cookie_averse() {
             return Ok(DOMString::new());
@@ -5605,7 +5605,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         Ok(cookies.map_or(DOMString::new(), DOMString::from))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-cookie
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-cookie>
     fn SetCookie(&self, cookie: DOMString) -> ErrorResult {
         if self.is_cookie_averse() {
             return Ok(());
@@ -5629,22 +5629,22 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-bgcolor
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-bgcolor>
     fn BgColor(&self) -> DOMString {
         self.get_body_attribute(&local_name!("bgcolor"))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-bgcolor
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-bgcolor>
     fn SetBgColor(&self, value: DOMString, can_gc: CanGc) {
         self.set_body_attribute(&local_name!("bgcolor"), value, can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-fgcolor
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-fgcolor>
     fn FgColor(&self) -> DOMString {
         self.get_body_attribute(&local_name!("text"))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-fgcolor
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-fgcolor>
     fn SetFgColor(&self, value: DOMString, can_gc: CanGc) {
         self.set_body_attribute(&local_name!("text"), value, can_gc)
     }
@@ -5724,7 +5724,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         Some(NamedPropertyValue::HTMLCollection(collection))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
+    /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names>
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         let mut names_with_first_named_element_map: HashMap<&Atom, &Element> = HashMap::new();
 
@@ -5783,17 +5783,17 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             .collect()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-clear
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-clear>
     fn Clear(&self) {
         // This method intentionally does nothing
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-captureevents
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-captureevents>
     fn CaptureEvents(&self) {
         // This method intentionally does nothing
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-releaseevents
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-releaseevents>
     fn ReleaseEvents(&self) {
         // This method intentionally does nothing
     }
@@ -5808,7 +5808,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         SetOnreadystatechange
     );
 
-    // https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint
+    /// <https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint>
     fn ElementFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Option<DomRoot<Element>> {
         self.document_or_shadow_root.element_from_point(
             x,
@@ -5818,7 +5818,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         )
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-document-elementsfrompoint
+    /// <https://drafts.csswg.org/cssom-view/#dom-document-elementsfrompoint>
     fn ElementsFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Vec<DomRoot<Element>> {
         self.document_or_shadow_root.elements_from_point(
             x,
@@ -5852,7 +5852,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         self.GetDocumentElement()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-open
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-open>
     fn Open(
         &self,
         _unused1: Option<DOMString>,
@@ -5975,7 +5975,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         Ok(DomRoot::from_ref(self))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-open-window
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-open-window>
     fn Open_(
         &self,
         url: USVString,
@@ -5988,21 +5988,21 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             .open(url, target, features, can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-write
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-write>
     fn Write(&self, text: Vec<TrustedHTMLOrString>, can_gc: CanGc) -> ErrorResult {
         // The document.write(...text) method steps are to run the document write steps
         // with this, text, false, and "Document write".
         self.write(text, false, "Document", "write", can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-writeln
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-writeln>
     fn Writeln(&self, text: Vec<TrustedHTMLOrString>, can_gc: CanGc) -> ErrorResult {
         // The document.writeln(...text) method steps are to run the document write steps
         // with this, text, true, and "Document writeln".
         self.write(text, true, "Document", "writeln", can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-close
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-close>
     fn Close(&self, can_gc: CanGc) -> ErrorResult {
         if !self.is_html_document() {
             // Step 1.
@@ -6038,23 +6038,23 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         SetOnfullscreenchange
     );
 
-    // https://fullscreen.spec.whatwg.org/#dom-document-fullscreenenabled
+    /// <https://fullscreen.spec.whatwg.org/#dom-document-fullscreenenabled>
     fn FullscreenEnabled(&self) -> bool {
         self.get_allow_fullscreen()
     }
 
-    // https://fullscreen.spec.whatwg.org/#dom-document-fullscreen
+    /// <https://fullscreen.spec.whatwg.org/#dom-document-fullscreen>
     fn Fullscreen(&self) -> bool {
         self.fullscreen_element.get().is_some()
     }
 
-    // https://fullscreen.spec.whatwg.org/#dom-document-fullscreenelement
+    /// <https://fullscreen.spec.whatwg.org/#dom-document-fullscreenelement>
     fn GetFullscreenElement(&self) -> Option<DomRoot<Element>> {
         // TODO ShadowRoot
         self.fullscreen_element.get()
     }
 
-    // https://fullscreen.spec.whatwg.org/#dom-document-exitfullscreen
+    /// <https://fullscreen.spec.whatwg.org/#dom-document-exitfullscreen>
     fn ExitFullscreen(&self, can_gc: CanGc) -> Rc<Promise> {
         self.exit_fullscreen(can_gc)
     }
@@ -6069,7 +6069,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
     }
 
-    // https://w3c.github.io/selection-api/#dom-document-getselection
+    /// <https://w3c.github.io/selection-api/#dom-document-getselection>
     fn GetSelection(&self, can_gc: CanGc) -> Option<DomRoot<Selection>> {
         if self.has_browsing_context {
             Some(self.selection.or_init(|| Selection::new(self, can_gc)))
@@ -6078,7 +6078,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
     }
 
-    // https://drafts.csswg.org/css-font-loading/#font-face-source
+    /// <https://drafts.csswg.org/css-font-loading/#font-face-source>
     fn Fonts(&self, can_gc: CanGc) -> DomRoot<FontFaceSet> {
         self.fonts
             .or_init(|| FontFaceSet::new(&self.global(), None, can_gc))

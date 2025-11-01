@@ -145,7 +145,7 @@ impl WebSocket {
         websocket
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-websocket-send
+    /// <https://html.spec.whatwg.org/multipage/#dom-websocket-send>
     fn send_impl(&self, data_byte_len: u64) -> Fallible<bool> {
         let return_after_buffer = match self.ready_state.get() {
             WebSocketRequestState::Connecting => {
@@ -353,37 +353,37 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
     // https://html.spec.whatwg.org/multipage/#handler-websocket-onmessage
     event_handler!(message, GetOnmessage, SetOnmessage);
 
-    // https://html.spec.whatwg.org/multipage/#dom-websocket-url
+    /// <https://html.spec.whatwg.org/multipage/#dom-websocket-url>
     fn Url(&self) -> DOMString {
         DOMString::from(self.url.as_str())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-websocket-readystate
+    /// <https://html.spec.whatwg.org/multipage/#dom-websocket-readystate>
     fn ReadyState(&self) -> u16 {
         self.ready_state.get() as u16
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-websocket-bufferedamount
+    /// <https://html.spec.whatwg.org/multipage/#dom-websocket-bufferedamount>
     fn BufferedAmount(&self) -> u64 {
         self.buffered_amount.get()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-websocket-binarytype
+    /// <https://html.spec.whatwg.org/multipage/#dom-websocket-binarytype>
     fn BinaryType(&self) -> BinaryType {
         self.binary_type.get()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-websocket-binarytype
+    /// <https://html.spec.whatwg.org/multipage/#dom-websocket-binarytype>
     fn SetBinaryType(&self, btype: BinaryType) {
         self.binary_type.set(btype)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-websocket-protocol
+    /// <https://html.spec.whatwg.org/multipage/#dom-websocket-protocol>
     fn Protocol(&self) -> DOMString {
         DOMString::from(self.protocol.borrow().clone())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-websocket-send
+    /// <https://html.spec.whatwg.org/multipage/#dom-websocket-send>
     fn Send(&self, data: USVString) -> ErrorResult {
         let data_byte_len = data.0.len() as u64;
         let send_data = self.send_impl(data_byte_len)?;
@@ -397,7 +397,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-websocket-send
+    /// <https://html.spec.whatwg.org/multipage/#dom-websocket-send>
     fn Send_(&self, blob: &Blob) -> ErrorResult {
         /* As per https://html.spec.whatwg.org/multipage/#websocket
            the buffered amount needs to be clamped to u32, even though Blob.Size() is u64
@@ -416,7 +416,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-websocket-send
+    /// <https://html.spec.whatwg.org/multipage/#dom-websocket-send>
     fn Send__(&self, array: CustomAutoRooterGuard<ArrayBuffer>) -> ErrorResult {
         let bytes = array.to_vec();
         let data_byte_len = bytes.len();
@@ -430,7 +430,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-websocket-send
+    /// <https://html.spec.whatwg.org/multipage/#dom-websocket-send>
     fn Send___(&self, array: CustomAutoRooterGuard<ArrayBufferView>) -> ErrorResult {
         let bytes = array.to_vec();
         let data_byte_len = bytes.len();
@@ -444,7 +444,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-websocket-close
+    /// <https://html.spec.whatwg.org/multipage/#dom-websocket-close>
     fn Close(&self, code: Option<u16>, reason: Option<USVString>) -> ErrorResult {
         if let Some(code) = code {
             // Fail if the supplied code isn't normal and isn't reserved for libraries, frameworks, and applications

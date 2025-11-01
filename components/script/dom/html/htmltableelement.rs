@@ -98,7 +98,7 @@ impl HTMLTableElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-thead
-    // https://html.spec.whatwg.org/multipage/#dom-table-tfoot
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-tfoot>
     fn get_first_section_of_type(
         &self,
         atom: &LocalName,
@@ -110,7 +110,7 @@ impl HTMLTableElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-thead
-    // https://html.spec.whatwg.org/multipage/#dom-table-tfoot
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-tfoot>
     fn set_first_section_of_type<P>(
         &self,
         atom: &LocalName,
@@ -141,8 +141,8 @@ impl HTMLTableElement {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-table-createthead
-    // https://html.spec.whatwg.org/multipage/#dom-table-createtfoot
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-createthead>
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-createtfoot>
     fn create_section_of_type(
         &self,
         atom: &LocalName,
@@ -174,8 +174,8 @@ impl HTMLTableElement {
         section
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-table-deletethead
-    // https://html.spec.whatwg.org/multipage/#dom-table-deletetfoot
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-deletethead>
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-deletetfoot>
     fn delete_first_section_of_type(&self, atom: &LocalName, can_gc: CanGc) {
         if let Some(thead) = self.get_first_section_of_type(atom) {
             thead.upcast::<Node>().remove_self(can_gc);
@@ -197,7 +197,7 @@ impl HTMLTableElement {
 }
 
 impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
-    // https://html.spec.whatwg.org/multipage/#dom-table-rows
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-rows>
     fn Rows(&self) -> DomRoot<HTMLCollection> {
         let filter = self.get_rows();
         HTMLCollection::new(
@@ -208,7 +208,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
         )
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-table-caption
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-caption>
     fn GetCaption(&self) -> Option<DomRoot<HTMLTableCaptionElement>> {
         self.upcast::<Node>()
             .children()
@@ -216,7 +216,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
             .next()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-table-caption
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-caption>
     fn SetCaption(&self, new_caption: Option<&HTMLTableCaptionElement>) -> Fallible<()> {
         if let Some(ref caption) = self.GetCaption() {
             caption.upcast::<Node>().remove_self(CanGc::note());
@@ -234,7 +234,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-table-createcaption
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-createcaption>
     fn CreateCaption(&self, can_gc: CanGc) -> DomRoot<HTMLTableCaptionElement> {
         match self.GetCaption() {
             Some(caption) => caption,
@@ -257,19 +257,19 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-table-deletecaption
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-deletecaption>
     fn DeleteCaption(&self) {
         if let Some(caption) = self.GetCaption() {
             caption.upcast::<Node>().remove_self(CanGc::note());
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-table-thead
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-thead>
     fn GetTHead(&self) -> Option<DomRoot<HTMLTableSectionElement>> {
         self.get_first_section_of_type(&local_name!("thead"))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-table-thead
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-thead>
     fn SetTHead(&self, thead: Option<&HTMLTableSectionElement>) -> ErrorResult {
         self.set_first_section_of_type(
             &local_name!("thead"),
@@ -279,22 +279,22 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
         )
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-table-createthead
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-createthead>
     fn CreateTHead(&self, can_gc: CanGc) -> DomRoot<HTMLTableSectionElement> {
         self.create_section_of_type(&local_name!("thead"), can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-table-deletethead
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-deletethead>
     fn DeleteTHead(&self) {
         self.delete_first_section_of_type(&local_name!("thead"), CanGc::note())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-table-tfoot
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-tfoot>
     fn GetTFoot(&self) -> Option<DomRoot<HTMLTableSectionElement>> {
         self.get_first_section_of_type(&local_name!("tfoot"))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-table-tfoot
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-tfoot>
     fn SetTFoot(&self, tfoot: Option<&HTMLTableSectionElement>) -> ErrorResult {
         self.set_first_section_of_type(
             &local_name!("tfoot"),
@@ -317,17 +317,17 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
         )
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-table-createtfoot
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-createtfoot>
     fn CreateTFoot(&self, can_gc: CanGc) -> DomRoot<HTMLTableSectionElement> {
         self.create_section_of_type(&local_name!("tfoot"), can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-table-deletetfoot
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-deletetfoot>
     fn DeleteTFoot(&self) {
         self.delete_first_section_of_type(&local_name!("tfoot"), CanGc::note())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-table-tbodies
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-tbodies>
     fn TBodies(&self) -> DomRoot<HTMLCollection> {
         self.tbodies.or_init(|| {
             HTMLCollection::new_with_filter_fn(
@@ -343,7 +343,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
         })
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-table-createtbody
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-createtbody>
     fn CreateTBody(&self, can_gc: CanGc) -> DomRoot<HTMLTableSectionElement> {
         let tbody = Element::create(
             QualName::new(None, ns!(html), local_name!("tbody")),
@@ -367,7 +367,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
         tbody
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-table-insertrow
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-insertrow>
     fn InsertRow(&self, index: i32, can_gc: CanGc) -> Fallible<DomRoot<HTMLTableRowElement>> {
         let rows = self.Rows();
         let number_of_row_elements = rows.Length();

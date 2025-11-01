@@ -34,7 +34,7 @@ impl RTCRtpSender {
 }
 
 impl RTCRtpSenderMethods<crate::DomTypeHolder> for RTCRtpSender {
-    // https://w3c.github.io/webrtc-pc/#dom-rtcrtpsender-getparameters
+    /// <https://w3c.github.io/webrtc-pc/#dom-rtcrtpsender-getparameters>
     fn GetParameters(&self) -> RTCRtpSendParameters {
         RTCRtpSendParameters {
             parent: RTCRtpParameters {
@@ -50,7 +50,7 @@ impl RTCRtpSenderMethods<crate::DomTypeHolder> for RTCRtpSender {
         }
     }
 
-    // https://w3c.github.io/webrtc-pc/#dom-rtcrtpsender-setparameters
+    /// <https://w3c.github.io/webrtc-pc/#dom-rtcrtpsender-setparameters>
     fn SetParameters(&self, _parameters: &RTCRtpSendParameters, can_gc: CanGc) -> Rc<Promise> {
         let promise = Promise::new(&self.global(), can_gc);
         promise.resolve_native(&(), can_gc);

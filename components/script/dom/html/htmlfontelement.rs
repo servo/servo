@@ -106,7 +106,7 @@ impl HTMLFontElementMethods<crate::DomTypeHolder> for HTMLFontElement {
     // https://html.spec.whatwg.org/multipage/#dom-font-size
     make_getter!(Size, "size");
 
-    // https://html.spec.whatwg.org/multipage/#dom-font-size
+    /// <https://html.spec.whatwg.org/multipage/#dom-font-size>
     fn SetSize(&self, value: DOMString, can_gc: CanGc) {
         let element = self.upcast::<Element>();
         element.set_attribute(&local_name!("size"), parse_size(&value), can_gc);

@@ -195,7 +195,7 @@ impl KeyboardEventMethods<crate::DomTypeHolder> for KeyboardEvent {
         Ok(event)
     }
 
-    // https://w3c.github.io/uievents/#widl-KeyboardEvent-initKeyboardEvent
+    /// <https://w3c.github.io/uievents/#widl-KeyboardEvent-initKeyboardEvent>
     fn InitKeyboardEvent(
         &self,
         type_arg: DOMString,

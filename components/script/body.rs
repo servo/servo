@@ -448,7 +448,7 @@ pub(crate) trait Extractable {
 }
 
 impl Extractable for BodyInit {
-    // https://fetch.spec.whatwg.org/#concept-bodyinit-extract
+    /// <https://fetch.spec.whatwg.org/#concept-bodyinit-extract>
     fn extract(&self, global: &GlobalScope, can_gc: CanGc) -> Fallible<ExtractedBody> {
         match self {
             BodyInit::String(s) => s.extract(global, can_gc),
