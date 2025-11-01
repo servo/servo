@@ -2849,6 +2849,7 @@ dependencies = [
  "fontsan",
  "freetype-sys",
  "harfbuzz-sys",
+ "harfrust",
  "ipc-channel",
  "itertools 0.14.0",
  "libc",
@@ -3811,6 +3812,19 @@ dependencies = [
  "freetype-sys",
  "pkg-config",
  "winapi",
+]
+
+[[package]]
+name = "harfrust"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca4253de099ee464aea026833ee8f3968c08bfe0065bfb4f47c6ac590d533590"
+dependencies = [
+ "bitflags 2.9.4",
+ "bytemuck",
+ "core_maths",
+ "read-fonts",
+ "smallvec",
 ]
 
 [[package]]
@@ -7175,6 +7189,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6717cf23b488adf64b9d711329542ba34de147df262370221940dfabc2c91358"
 dependencies = [
  "bytemuck",
+ "core_maths",
  "font-types",
 ]
 
