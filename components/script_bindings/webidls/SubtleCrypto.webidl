@@ -86,6 +86,11 @@ dictionary EcKeyImportParams : Algorithm {
   required NamedCurve namedCurve;
 };
 
+// https://w3c.github.io/webcrypto/#dh-EcdhKeyDeriveParams
+dictionary EcdhKeyDeriveParams : Algorithm {
+  required CryptoKey public;
+};
+
 // AES shared
 dictionary AesKeyAlgorithm : KeyAlgorithm {
   required unsigned short length;

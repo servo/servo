@@ -113,9 +113,9 @@ nom-rfc8288 = "0.4.0"
 num-traits = "0.2"
 num_cpus = "1.17.0"
 openxr = "0.19"
-p256 = "0.13"
-p384 = "0.13"
-p521 = "0.13"
+p256 = { version = "0.13", features = ["ecdh"] }
+p384 = { version = "0.13", features = ["ecdh"] }
+p521 = { version = "0.13", features = ["ecdh"] }
 parking_lot = "0.12"
 peniko = "0.5"
 percent-encoding = "2.3"
