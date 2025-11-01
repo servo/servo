@@ -698,6 +698,8 @@ impl Fragment {
             baseline_origin,
             fragment.justification_adjustment,
             include_whitespace,
+            fragment.parent_width,
+            fragment.text_clip,
         );
         if glyphs.is_empty() {
             return;
@@ -1551,15 +1553,21 @@ fn glyphs(
     mut baseline_origin: PhysicalPoint<Au>,
     justification_adjustment: Au,
     include_whitespace: bool,
+    containing_block_width: Au,
+    text_clip_boundaries: (Au, Au), // TODO: handle left side ellipsis.
 ) -> Vec<wr::GlyphInstance> {
     use fonts_traits::ByteIndex;
     use range::Range;
 
     let mut glyphs = vec![];
+    let mut total_advance = Au(0);
+    let max_total_advance = containing_block_width - text_clip_boundaries.1;
+
     for run in glyph_runs {
         for glyph in run.iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), run.len())) {
             if !run.is_whitespace() || include_whitespace {
                 let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
+                total_advance += glyph.advance();
                 let point = units::LayoutPoint::new(
                     baseline_origin.x.to_f32_px() + glyph_offset.x.to_f32_px(),
                     baseline_origin.y.to_f32_px() + glyph_offset.y.to_f32_px(),
@@ -1568,13 +1576,16 @@ fn glyphs(
                     index: glyph.id(),
                     point,
                 };
-                glyphs.push(glyph);
+                if total_advance <= max_total_advance {
+                    glyphs.push(glyph);
+                }
             }
 
             if glyph.char_is_word_separator() {
                 baseline_origin.x += justification_adjustment;
             }
             baseline_origin.x += glyph.advance();
+            
         }
     }
     glyphs
