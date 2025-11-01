@@ -26,15 +26,6 @@ use crate::positioned::{
 };
 use crate::{ContainingBlock, ContainingBlockSize};
 
-use crate::flow::inline::text_run::TextRunSegment;
-use crate::flow::inline::add_or_get_font;
-use crate::flow::inline::FontKeyAndMetrics;
-use unicode_script::Script;
-use fonts::{
-    FontContext, FontRef, GlyphRun, LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
-};
-use super::line_breaker::LineBreaker;
-
 pub(super) struct LineMetrics {
     /// The block offset of the line start in the containing
     /// [`crate::flow::InlineFormattingContext`].
@@ -607,120 +598,6 @@ impl LineItemLayout<'_, '_> {
             })),
             content_rect,
         ));
-
-        // add a new text fragment at the end for ellipsis 
-        // create text run segment
-        println!("");
-        println!("creating ellipsis text");
-        let ellipsis_text = "\u{2026}";
-        let ellipsis_char = ellipsis_text.chars().next().unwrap();
-
-        let ellipsis_script = Script::from(ellipsis_char);
-        let ellipsis_bidi = BidiInfo::new(ellipsis_text, None);
-        let ellipsis_bidi_level = ellipsis_bidi.levels[0];
-        let ellipsis_start_byte_index: usize = 0;
-
-        let mut ellipsis_font_cache: Vec<FontKeyAndMetrics> = vec![];
-        let ellipsis_font_context = self.layout.layout_context.font_context.clone();
-        let ellipsis_rendering_group_id = self.layout.layout_context.rendering_group_id;
-
-        let ellipsis_font_group = ellipsis_font_context.font_group(self.layout.containing_block.style.clone().clone_font());
-        let Some(ellipsis_font) = ellipsis_font_group.write().find_by_codepoint(
-            &ellipsis_font_context,
-            ellipsis_char,
-            None,
-            None,
-            None,
-        ) else {todo!()};
-
-        let ellipsis_font_index = add_or_get_font(
-            &ellipsis_font,
-            &mut ellipsis_font_cache, 
-            &ellipsis_font_context, 
-            ellipsis_rendering_group_id
-            );
-
-
-        let mut ellipsis_textrun_segment = TextRunSegment::new(
-            ellipsis_font_index,
-            ellipsis_script,
-            ellipsis_bidi_level,
-            ellipsis_start_byte_index,
-        );
-
-        // shape text
-        let mut ellipsis_flags = ShapingFlags::empty();
-        let mut ellipsis_linebreaker = LineBreaker::new(ellipsis_text);
-
-        let ellipsis_letter_spacing = None;
-        let ellipsis_word_spacing = Au(0);
-
-        let ellipsis_shaping_options = ShapingOptions {
-            letter_spacing: ellipsis_letter_spacing,
-            word_spacing: ellipsis_word_spacing,
-            script: ellipsis_textrun_segment.script,
-            flags: ellipsis_flags,
-        };
-
-        /* 
-        ellipsis_textrun_segment.shape_text(
-            &self.layout.containing_block.style.clone(),
-            ellipsis_text,
-            &mut ellipsis_linebreaker,
-            &ellipsis_shaping_options,
-            ellipsis_font.clone(),
-        );
-        */
-
-        ellipsis_textrun_segment.shape_and_push_range(
-            //,
-            &(0..3),
-            ellipsis_text,
-            &ellipsis_font,
-            &ellipsis_shaping_options,
-        );
-
-        // create & insert text fragment to vector
-        println!("segment.range: {:?}", ellipsis_textrun_segment.range);
-        println!("runs len: {0}", ellipsis_textrun_segment.runs.len());
-
-        
-        println!("start_corner: {:?}", start_corner);
-        let start_corner = LogicalVec2 {
-            inline: Au(0),
-            block: self.current_state.baseline_offset -
-            self.layout.ifc.font_metrics[0].metrics.ascent -
-            self.current_state.parent_offset.block,
-        };
-        println!("NEW start_corner: {:?}", start_corner);
-        println!("baseline_offset: {:?}", self.current_state.baseline_offset);
-        let content_rect = LogicalRect {
-            start_corner,
-            size: LogicalVec2 {
-                block: Au(5400),
-                inline: inline_advance,
-            },
-        };
-
-        self.current_state.inline_advance += inline_advance;
-
-        self.current_state.fragments.push((
-            Fragment::Text(ArcRefCell::new(TextFragment {
-                base: text_item.base_fragment_info.into(),
-                inline_styles: self.layout.ifc.shared_inline_styles.clone(),
-                rect: PhysicalRect::zero(),
-                font_metrics: ellipsis_font.metrics.clone(),
-                font_key: self.layout.ifc.font_metrics[0].key,
-                //font_key: text_item.font_key,
-                glyphs: vec![ellipsis_textrun_segment.runs[0].glyph_store.clone()],
-                justification_adjustment: self.justification_adjustment,
-                selection_range: text_item.selection_range,
-            })),
-            content_rect,
-        ));
-        println!("finished creating ellipsis text");
-        println!("");
-        
     }
 
     fn layout_atomic(&mut self, atomic: AtomicLineItem) {
