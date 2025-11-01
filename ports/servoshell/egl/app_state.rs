@@ -73,7 +73,6 @@ impl ServoWindowCallbacks {
 
 pub struct RunningAppState {
     base: RunningAppStateBase,
-    servo: Servo,
     rendering_context: Rc<WindowRenderingContext>,
     callbacks: Rc<ServoWindowCallbacks>,
     refresh_driver: Option<Rc<VsyncRefreshDriver>>,
@@ -185,7 +184,7 @@ impl WebViewDelegate for RunningAppState {
         if load_status == LoadStatus::Complete {
             #[cfg(feature = "tracing-hitrace")]
             let (snd, recv) = ipc_channel::ipc::channel().expect("Could not create channel");
-            self.servo.create_memory_report(snd);
+            self.servo().create_memory_report(snd);
             std::thread::spawn(move || {
                 let result = recv.recv().expect("Could not get memory report");
                 let reports = result
@@ -211,7 +210,7 @@ impl WebViewDelegate for RunningAppState {
         if let Some(newest_webview) = self.newest_webview() {
             newest_webview.focus();
         } else {
-            self.servo.start_shutting_down();
+            self.servo().start_shutting_down();
         }
     }
 
@@ -292,7 +291,7 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn request_open_auxiliary_webview(&self, parent_webview: WebView) -> Option<WebView> {
-        let webview = WebViewBuilder::new_auxiliary(&self.servo)
+        let webview = WebViewBuilder::new_auxiliary(self.servo())
             .delegate(parent_webview.delegate())
             .hidpi_scale_factor(self.inner().hidpi_scale_factor)
             .build();
@@ -416,9 +415,8 @@ impl RunningAppState {
         }));
 
         let app_state = Rc::new(Self {
-            base: RunningAppStateBase::new(servoshell_preferences),
+            base: RunningAppStateBase::new(servoshell_preferences, servo),
             rendering_context,
-            servo,
             callbacks,
             refresh_driver,
             webdriver_receiver,
@@ -449,7 +447,7 @@ impl RunningAppState {
     }
 
     pub(crate) fn create_and_focus_toplevel_webview(self: &Rc<Self>, url: Url) -> WebView {
-        let webview = WebViewBuilder::new(&self.servo)
+        let webview = WebViewBuilder::new(self.servo())
             .url(url)
             .hidpi_scale_factor(self.inner().hidpi_scale_factor)
             .delegate(self.clone())
@@ -486,10 +484,6 @@ impl RunningAppState {
 
     fn inner_mut(&self) -> RefMut<'_, RunningAppStateInner> {
         self.inner.borrow_mut()
-    }
-
-    pub(crate) fn servo(&self) -> &Servo {
-        &self.servo
     }
 
     pub(crate) fn webdriver_receiver(&self) -> Option<&Receiver<WebDriverCommandMsg>> {
@@ -542,20 +536,20 @@ impl RunningAppState {
 
     /// Request shutdown. Will call on_shutdown_complete.
     pub fn request_shutdown(&self) {
-        self.servo.start_shutting_down();
+        self.servo().start_shutting_down();
         self.perform_updates();
     }
 
     /// Call after on_shutdown_complete
     pub fn deinit(self) {
-        self.servo.deinit();
+        self.servo().deinit();
     }
 
     /// This is the Servo heartbeat. This needs to be called
     /// everytime wakeup is called or when embedder wants Servo
     /// to act on its pending events.
     pub fn perform_updates(&self) {
-        let should_continue = self.servo.spin_event_loop();
+        let should_continue = self.servo().spin_event_loop();
         if !should_continue {
             self.callbacks.host_callbacks.on_shutdown_complete();
         }
@@ -563,7 +557,7 @@ impl RunningAppState {
             self.inner().animating_state_changed.set(false);
             self.callbacks
                 .host_callbacks
-                .on_animating_changed(self.servo.animating());
+                .on_animating_changed(self.servo().animating());
         }
     }
 

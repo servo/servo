@@ -55,6 +55,7 @@ use crate::desktop::accelerated_gl_media::setup_gl_accelerated_media;
 use crate::desktop::keyutils::CMD_OR_CONTROL;
 use crate::desktop::window_trait::MIN_WINDOW_INNER_SIZE;
 use crate::prefs::ServoShellPreferences;
+use crate::running_app_state::RunningAppStateTrait;
 
 pub(crate) const INITIAL_WINDOW_TITLE: &str = "Servo";
 

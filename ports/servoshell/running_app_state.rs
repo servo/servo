@@ -16,7 +16,7 @@ use servo::base::id::WebViewId;
 use servo::ipc_channel::ipc::IpcSender;
 use servo::style_traits::CSSPixel;
 use servo::{
-    InputEvent, InputEventId, ScreenshotCaptureError, TraversalId, WebDriverJSResult,
+    InputEvent, InputEventId, ScreenshotCaptureError, Servo, TraversalId, WebDriverJSResult,
     WebDriverLoadStatus, WebDriverSenders, WebView,
 };
 
@@ -32,14 +32,18 @@ pub struct RunningAppStateBase {
 
     /// servoshell specific preferences created during startup of the application.
     pub(crate) servoshell_preferences: ServoShellPreferences,
+
+    /// A handle to the Servo instance.
+    pub(crate) servo: Servo,
 }
 
 impl RunningAppStateBase {
-    pub fn new(servoshell_preferences: ServoShellPreferences) -> Self {
+    pub fn new(servoshell_preferences: ServoShellPreferences, servo: Servo) -> Self {
         Self {
             webdriver_senders: RefCell::default(),
             pending_webdriver_events: Default::default(),
             servoshell_preferences,
+            servo,
         }
     }
 }
@@ -52,6 +56,10 @@ pub trait RunningAppStateTrait {
 
     fn servoshell_preferences(&self) -> &ServoShellPreferences {
         &self.base().servoshell_preferences
+    }
+
+    fn servo(&self) -> &Servo {
+        &self.base().servo
     }
 
     fn set_pending_traversal(

@@ -40,10 +40,6 @@ pub(crate) enum AppState {
 
 pub(crate) struct RunningAppState {
     base: RunningAppStateBase,
-    /// A handle to the Servo instance of the [`RunningAppState`]. This is not stored inside
-    /// `inner` so that we can keep a reference to Servo in order to spin the event loop,
-    /// which will in turn call delegates doing a mutable borrow on `inner`.
-    servo: Servo,
     /// A [`Receiver`] for receiving commands from a running WebDriver server, if WebDriver
     /// was enabled.
     webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
@@ -97,7 +93,7 @@ pub struct RunningAppStateInner {
 
 impl Drop for RunningAppState {
     fn drop(&mut self) {
-        self.servo.deinit();
+        self.servo().deinit();
     }
 }
 
@@ -125,8 +121,7 @@ impl RunningAppState {
             None
         };
         RunningAppState {
-            base: RunningAppStateBase::new(servoshell_preferences),
-            servo,
+            base: RunningAppStateBase::new(servoshell_preferences, servo),
             webdriver_receiver,
             inner: RefCell::new(RunningAppStateInner {
                 webviews: HashMap::default(),
@@ -168,10 +163,6 @@ impl RunningAppState {
 
     pub(crate) fn inner_mut(&self) -> RefMut<'_, RunningAppStateInner> {
         self.inner.borrow_mut()
-    }
-
-    pub(crate) fn servo(&self) -> &Servo {
-        &self.servo
     }
 
     pub(crate) fn webdriver_receiver(&self) -> Option<&Receiver<WebDriverCommandMsg>> {
@@ -229,7 +220,7 @@ impl RunningAppState {
         if self.servoshell_preferences().exit_after_stable_image &&
             self.inner().achieved_stable_image.get()
         {
-            self.servo.start_shutting_down();
+            self.servo().start_shutting_down();
         }
 
         PumpResult::Continue {
@@ -293,7 +284,7 @@ impl RunningAppState {
                 last_created_webview.focus();
             },
             None if self.servoshell_preferences().webdriver_port.is_none() => {
-                self.servo.start_shutting_down()
+                self.servo().start_shutting_down()
             },
             None => {
                 // For WebDriver, don't shut down when last webview closed
@@ -603,7 +594,7 @@ impl WebViewDelegate for RunningAppState {
         &self,
         parent_webview: servo::WebView,
     ) -> Option<servo::WebView> {
-        let webview = WebViewBuilder::new_auxiliary(&self.servo)
+        let webview = WebViewBuilder::new_auxiliary(self.servo())
             .hidpi_scale_factor(self.inner().window.hidpi_scale_factor())
             .delegate(parent_webview.delegate())
             .build();
