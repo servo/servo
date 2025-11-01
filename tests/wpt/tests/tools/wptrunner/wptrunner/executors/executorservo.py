@@ -28,7 +28,7 @@ webdriver = None
 
 
 class ServoExecutor(ProcessTestExecutor):
-    def __init__(self, logger, browser, server_config, headless: bool,
+    def __init__(self, logger, browser, server_config, headless,
                 timeout_multiplier, debug_info,
                  pause_after_test, reftest_screenshot="unexpected"):
         ProcessTestExecutor.__init__(self, logger, browser, server_config,
