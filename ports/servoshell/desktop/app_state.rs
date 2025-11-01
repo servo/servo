@@ -109,6 +109,10 @@ impl RunningAppStateTrait for RunningAppState {
     fn base_mut(&mut self) -> &mut RunningAppStateBase {
         &mut self.base
     }
+
+    fn webview_by_id(&self, id: WebViewId) -> Option<WebView> {
+        self.inner().webviews.get(&id).cloned()
+    }
 }
 
 impl RunningAppState {
@@ -316,10 +320,6 @@ impl RunningAppState {
             .iter()
             .map(|id| (*id, inner.webviews.get(id).unwrap().clone()))
             .collect()
-    }
-
-    pub fn webview_by_id(&self, id: WebViewId) -> Option<WebView> {
-        self.inner().webviews.get(&id).cloned()
     }
 
     pub fn handle_gamepad_events(&self) {

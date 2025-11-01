@@ -20,8 +20,7 @@ use servo::config::prefs::Preferences;
 use servo::servo_url::ServoUrl;
 use servo::user_content_manager::{UserContentManager, UserScript};
 use servo::{
-    EventLoopWaker, ScreenshotCaptureError, WebDriverCommandMsg, WebDriverScriptCommand,
-    WebDriverUserPromptAction,
+    EventLoopWaker, WebDriverCommandMsg, WebDriverScriptCommand, WebDriverUserPromptAction,
 };
 use url::Url;
 use winit::application::ApplicationHandler;
@@ -535,13 +534,7 @@ impl App {
                     running_state.set_alert_text_of_newest_dialog(webview_id, text);
                 },
                 WebDriverCommandMsg::TakeScreenshot(webview_id, rect, result_sender) => {
-                    if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        running_state.handle_webdriver_screenshot(webview, rect, result_sender);
-                    } else if let Err(error) =
-                        result_sender.send(Err(ScreenshotCaptureError::WebViewDoesNotExist))
-                    {
-                        error!("Failed to send response to TakeScreenshot: {error}");
-                    }
+                    running_state.handle_webdriver_screenshot(webview_id, rect, result_sender);
                 },
             };
         }

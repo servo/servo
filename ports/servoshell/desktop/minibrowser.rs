@@ -33,6 +33,7 @@ use super::headed_window::Window as ServoWindow;
 use crate::desktop::headed_window::INITIAL_WINDOW_TITLE;
 use crate::desktop::window_trait::WindowPortsMethods;
 use crate::prefs::{EXPERIMENTAL_PREFS, ServoShellPreferences};
+use crate::running_app_state::RunningAppStateTrait;
 
 pub struct Minibrowser {
     rendering_context: Rc<OffscreenRenderingContext>,

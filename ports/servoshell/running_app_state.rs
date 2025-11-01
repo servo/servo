@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use crossbeam_channel::Sender;
 use euclid::Rect;
 use image::RgbaImage;
-use log::warn;
+use log::{error, warn};
 use servo::base::generic_channel::GenericSender;
 use servo::base::id::WebViewId;
 use servo::ipc_channel::ipc::IpcSender;
@@ -49,6 +49,8 @@ pub trait RunningAppStateTrait {
 
     #[allow(dead_code)]
     fn base_mut(&mut self) -> &mut RunningAppStateBase;
+
+    fn webview_by_id(&self, id: WebViewId) -> Option<WebView>;
 
     fn servoshell_preferences(&self) -> &ServoShellPreferences {
         &self.base().servoshell_preferences
@@ -110,15 +112,21 @@ pub trait RunningAppStateTrait {
 
     fn handle_webdriver_screenshot(
         &self,
-        webview: WebView,
+        webview_id: WebViewId,
         rect: Option<Rect<f32, CSSPixel>>,
         result_sender: Sender<Result<RgbaImage, ScreenshotCaptureError>>,
     ) {
-        let rect = rect.map(|rect| rect.to_box2d().into());
-        webview.take_screenshot(rect, move |result| {
-            if let Err(error) = result_sender.send(result) {
-                warn!("Failed to send response to TakeScreenshot: {error}");
-            }
-        });
+        if let Some(webview) = self.webview_by_id(webview_id) {
+            let rect = rect.map(|rect| rect.to_box2d().into());
+            webview.take_screenshot(rect, move |result| {
+                if let Err(error) = result_sender.send(result) {
+                    warn!("Failed to send response to TakeScreenshot: {error}");
+                }
+            });
+        } else if let Err(error) =
+            result_sender.send(Err(ScreenshotCaptureError::WebViewDoesNotExist))
+        {
+            error!("Failed to send response to TakeScreenshot: {error}");
+        }
     }
 }
