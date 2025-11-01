@@ -2224,7 +2224,6 @@ async fn http_network_fetch(
                     },
                     _ => {
                         let mut body = res_body2.lock().unwrap();
-                        *body = ResponseBody::Done(vec![]);
                         let completed_body = match *body {
                             ResponseBody::Receiving(ref mut body) => std::mem::take(body),
                             _ => vec![],
