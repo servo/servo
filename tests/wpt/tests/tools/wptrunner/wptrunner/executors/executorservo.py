@@ -13,12 +13,11 @@ from mozprocess import ProcessHandler
 
 from tools.serve.serve import make_hosts_file
 
-from .base import (RefTestImplementation,
+from .base import (RefTestExecutor, RefTestImplementation, TestExecutor,
                    crashtest_result_converter,
                    testharness_result_converter,
                    reftest_result_converter,
                    TimedRunner)
-from .process import ProcessTestExecutor
 from .protocol import ConnectionlessProtocol
 from ..browsers.base import browser_command
 
@@ -27,14 +26,22 @@ pytestrunner = None
 webdriver = None
 
 
-class ServoExecutor(ProcessTestExecutor):
+# A mixin class that includes functionality common to all Servo
+# executors that work by spawing a new process. This is intended to
+# be used along with either the `TestExecutor` class or its children
+# and must be the first in the inheritance list to allow `super`
+# to forward the calls to correct base class.
+class ServoExecutorMixin:
     def __init__(self, logger, browser, server_config, headless,
-                timeout_multiplier, debug_info,
+                 timeout_multiplier, debug_info,
                  pause_after_test, reftest_screenshot="unexpected"):
-        ProcessTestExecutor.__init__(self, logger, browser, server_config,
-                                     timeout_multiplier=timeout_multiplier,
-                                     debug_info=debug_info,
-                                     reftest_screenshot=reftest_screenshot)
+        super().__init__(logger, browser, server_config,
+                         timeout_multiplier=timeout_multiplier,
+                         debug_info=debug_info,
+                         reftest_screenshot=reftest_screenshot)
+        self.binary = self.browser.binary
+        self.interactive = (False if self.debug_info is None
+                            else self.debug_info.interactive)
         self.pause_after_test = pause_after_test
         self.environment = {}
         self.protocol = ConnectionlessProtocol(self, browser)
@@ -44,18 +51,23 @@ class ServoExecutor(ProcessTestExecutor):
 
         hosts_fd, self.hosts_path = tempfile.mkstemp()
         with os.fdopen(hosts_fd, "w") as f:
-            f.write(make_hosts_file(server_config, "127.0.0.1"))
+            f.write(make_hosts_file(self.server_config, "127.0.0.1"))
 
         self.env_for_tests = os.environ.copy()
         self.env_for_tests["HOST_FILE"] = self.hosts_path
         self.env_for_tests["RUST_BACKTRACE"] = "1"
+
+    def setup(self, runner, protocol=None):
+        self.runner = runner
+        self.runner.send_message("init_succeeded")
+        return True
 
     def teardown(self):
         try:
             os.unlink(self.hosts_path)
         except OSError:
             pass
-        ProcessTestExecutor.teardown(self)
+        super().teardown()
 
     def on_environment_change(self, new_environment):
         self.environment = new_environment
@@ -107,16 +119,17 @@ class ServoExecutor(ProcessTestExecutor):
         return debug_args + command
 
 
-class ServoTestharnessExecutor(ServoExecutor):
+class ServoTestharnessExecutor(ServoExecutorMixin, TestExecutor):
     convert_result = testharness_result_converter
 
     def __init__(self, logger, browser, server_config, headless,
                  timeout_multiplier=1, debug_info=None,
                  pause_after_test=False, **kwargs):
-        ServoExecutor.__init__(self, logger, browser, server_config, headless,
-                               timeout_multiplier=timeout_multiplier,
-                               debug_info=debug_info,
-                               pause_after_test=pause_after_test)
+        super().__init__(logger, browser, server_config,
+                         headless,
+                         timeout_multiplier=timeout_multiplier,
+                         debug_info=debug_info,
+                         pause_after_test=pause_after_test)
         self.result_data = None
         self.result_flag = None
 
@@ -182,7 +195,7 @@ class ServoTestharnessExecutor(ServoExecutor):
                 self.logger.error(f"Could not process test output JSON: {error}")
             self.result_flag.set()
         else:
-            ServoExecutor.on_output(self, line)
+            super().on_output(line)
 
     def on_finish(self):
         self.result_flag.set()
@@ -204,21 +217,20 @@ class TempFilename:
             pass
 
 
-class ServoRefTestExecutor(ServoExecutor):
+class ServoRefTestExecutor(ServoExecutorMixin, RefTestExecutor):
     convert_result = reftest_result_converter
 
     def __init__(self, logger, browser, server_config, binary=None, timeout_multiplier=1,
                  screenshot_cache=None, debug_info=None, pause_after_test=False,
                  reftest_screenshot="unexpected", **kwargs):
-        ServoExecutor.__init__(self,
-                               logger,
-                               browser,
-                               server_config,
-                               headless=True,
-                               timeout_multiplier=timeout_multiplier,
-                               debug_info=debug_info,
-                               reftest_screenshot=reftest_screenshot,
-                               pause_after_test=pause_after_test)
+        super().__init__(logger,
+                         browser,
+                         server_config,
+                         headless=True,
+                         timeout_multiplier=timeout_multiplier,
+                         debug_info=debug_info,
+                         reftest_screenshot=reftest_screenshot,
+                         pause_after_test=pause_after_test)
 
         self.screenshot_cache = screenshot_cache
         self.reftest_screenshot = reftest_screenshot
@@ -230,7 +242,7 @@ class ServoRefTestExecutor(ServoExecutor):
 
     def teardown(self):
         os.rmdir(self.tempdir)
-        ServoExecutor.teardown(self)
+        super().teardown()
 
     def screenshot(self, test, viewport_size, dpi, page_ranges):
         with TempFilename(self.tempdir) as output_path:
@@ -239,7 +251,7 @@ class ServoRefTestExecutor(ServoExecutor):
                           "--window-size", viewport_size or "800x600"]
 
             if dpi:
-                extra_args += ["--device-pixel-ratio", dpi]
+                extra_args += ["--device-pixel-ratio", str(dpi)]
 
             self.command = self.build_servo_command(test, extra_args)
 
@@ -278,6 +290,11 @@ class ServoRefTestExecutor(ServoExecutor):
                 return True, [base64.b64encode(data).decode()]
 
     def do_test(self, test):
+        # FIXME: This is a temporary fix until Servo syncs with upstream WPT.
+        # Once that happens, we can patch the `RefTestImplementation.get_screenshot_list`
+        # method to cast dpi to integer when using it in arithmetic expressions.
+        if test.dpi is not None:
+            test.dpi = int(test.dpi)
         self.test = test
         result = self.implementation.run_test(test)
 
@@ -301,23 +318,19 @@ class ServoTimedRunner(TimedRunner):
         pass
 
 
-class ServoCrashtestExecutor(ServoExecutor):
+class ServoCrashtestExecutor(ServoExecutorMixin, TestExecutor):
     convert_result = crashtest_result_converter
 
     def __init__(self, logger, browser, server_config, headless,
                  binary=None, timeout_multiplier=1, screenshot_cache=None,
-                 debug_info=None, pause_after_test=False):
-        ServoExecutor.__init__(self,
-                               logger,
-                               browser,
-                               server_config,
-                               headless,
-                               timeout_multiplier=timeout_multiplier,
-                               debug_info=debug_info,
-                               pause_after_test=pause_after_test)
-
-        self.pause_after_test = pause_after_test
-        self.protocol = ConnectionlessProtocol(self, browser)
+                 debug_info=None, pause_after_test=False, **kwargs):
+        super().__init__(logger,
+                         browser,
+                         server_config,
+                         headless,
+                         timeout_multiplier=timeout_multiplier,
+                         debug_info=debug_info,
+                         pause_after_test=pause_after_test)
 
     def do_test(self, test):
         timeout = (test.timeout * self.timeout_multiplier if self.debug_info is None
