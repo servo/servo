@@ -4552,9 +4552,9 @@ impl VirtualMethods for Element {
         }
     }
 
-    fn post_connection_steps(&self) {
+    fn post_connection_steps(&self, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.post_connection_steps();
+            s.post_connection_steps(can_gc);
         }
 
         self.update_nonce_post_connection();
