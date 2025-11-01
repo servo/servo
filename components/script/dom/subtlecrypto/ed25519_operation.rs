@@ -4,7 +4,7 @@
 
 use aws_lc_rs::encoding::{AsBigEndian, AsDer};
 use aws_lc_rs::signature::{ED25519, Ed25519KeyPair, KeyPair, ParsedPublicKey, UnparsedPublicKey};
-use base64::prelude::*;
+use base64ct::{Base64UrlUnpadded, Encoding};
 use rand::TryRngCore;
 use rand::rngs::OsRng;
 
@@ -330,12 +330,10 @@ pub(crate) fn import_key(
                     // private key identified by interpreting jwk according to Section
                     // 2 of [RFC8037]
                     // Step 2.9.3. Set the [[type]] internal slot of Key to "private".
-                    let public_key_bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
-                        .decode(x.str().as_bytes())
-                        .map_err(|_| Error::Data)?;
-                    let private_key_bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
-                        .decode(d.str().as_bytes())
-                        .map_err(|_| Error::Data)?;
+                    let public_key_bytes =
+                        Base64UrlUnpadded::decode_vec(&x.str()).map_err(|_| Error::Data)?;
+                    let private_key_bytes =
+                        Base64UrlUnpadded::decode_vec(&d.str()).map_err(|_| Error::Data)?;
                     let _ = Ed25519KeyPair::from_seed_and_public_key(
                         &private_key_bytes,
                         &public_key_bytes,
@@ -361,9 +359,8 @@ pub(crate) fn import_key(
                     // public key identified by interpreting jwk according to Section 2 of
                     // [RFC8037].
                     // Step 2.9.3. Set the [[type]] internal slot of Key to "public".
-                    let public_key_bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
-                        .decode(x.str().as_bytes())
-                        .map_err(|_| Error::Data)?;
+                    let public_key_bytes =
+                        Base64UrlUnpadded::decode_vec(&x.str()).map_err(|_| Error::Data)?;
                     CryptoKey::new(
                         global,
                         KeyType::Public,
@@ -488,17 +485,15 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             //     Set the d attribute of jwk according to the definition in Section 2 of [RFC8037].
             let (x, d) = match key.Type() {
                 KeyType::Public => {
-                    let public_key =
-                        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(key_data);
+                    let public_key = Base64UrlUnpadded::encode_string(key_data);
                     (Some(DOMString::from(public_key)), None)
                 },
                 KeyType::Private => {
                     let key_pair =
                         Ed25519KeyPair::from_seed_unchecked(key_data).map_err(|_| Error::Data)?;
-                    let public_key = base64::engine::general_purpose::URL_SAFE_NO_PAD
-                        .encode(key_pair.public_key().as_ref());
-                    let private_key =
-                        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(key_data);
+                    let public_key =
+                        Base64UrlUnpadded::encode_string(key_pair.public_key().as_ref());
+                    let private_key = Base64UrlUnpadded::encode_string(key_data);
                     (
                         Some(DOMString::from(public_key)),
                         Some(DOMString::from(private_key)),

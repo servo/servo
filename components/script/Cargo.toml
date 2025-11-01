@@ -43,6 +43,7 @@ background_hang_monitor_api = { workspace = true }
 backtrace = { workspace = true }
 base = { workspace = true }
 base64 = { workspace = true }
+base64ct = { workspace = true }
 bincode = { workspace = true }
 bitflags = { workspace = true }
 bluetooth_traits = { workspace = true, optional = true }
