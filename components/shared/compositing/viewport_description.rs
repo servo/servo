@@ -27,7 +27,7 @@ const SEPARATORS: [char; 2] = [',', ';']; // Comma (0x2c) and Semicolon (0x3b)
 /// A set of viewport descriptors:
 ///
 /// <https://www.w3.org/TR/css-viewport-1/#viewport-meta>
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct ViewportDescription {
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Viewport_meta_tag#width
     // the (minimum width) size of the viewport
@@ -60,7 +60,7 @@ pub enum ViewportDescriptionParseError {
 }
 
 /// A set of User Zoom values:
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum UserScalable {
     /// Zoom is not allowed
     No = 0,
