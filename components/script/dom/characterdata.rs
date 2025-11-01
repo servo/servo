@@ -94,7 +94,7 @@ impl CharacterData {
         if self.is::<Text>() {
             if let Some(parent_node) = node.GetParentNode() {
                 let mutation = ChildrenMutation::ChangeText;
-                vtable_for(&parent_node).children_changed(&mutation);
+                vtable_for(&parent_node).children_changed(&mutation, CanGc::note());
             }
         }
     }

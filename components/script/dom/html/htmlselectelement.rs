@@ -727,12 +727,12 @@ impl VirtualMethods for HTMLSelectElement {
             .hide_embedder_control(self.upcast());
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation) {
+    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.children_changed(mutation);
+            s.children_changed(mutation, can_gc);
         }
 
-        self.update_shadow_tree(CanGc::note());
+        self.update_shadow_tree(can_gc);
     }
 
     fn parse_plain_attribute(&self, local_name: &LocalName, value: DOMString) -> AttrValue {

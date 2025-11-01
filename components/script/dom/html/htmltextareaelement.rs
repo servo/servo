@@ -642,9 +642,9 @@ impl VirtualMethods for HTMLTextAreaElement {
             .perform_validation_and_update(ValidationFlags::all(), can_gc);
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation) {
+    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.children_changed(mutation);
+            s.children_changed(mutation, can_gc);
         }
         if !self.value_dirty.get() {
             self.reset();

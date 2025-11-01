@@ -385,9 +385,9 @@ impl VirtualMethods for HTMLOptionElement {
         }
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation) {
+    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
         if let Some(super_type) = self.super_type() {
-            super_type.children_changed(mutation);
+            super_type.children_changed(mutation, can_gc);
         }
 
         // Changing the descendants of a selected option can change it's displayed label
@@ -401,7 +401,7 @@ impl VirtualMethods for HTMLOptionElement {
                     .selected_option()
                     .is_some_and(|selected_option| self == &*selected_option)
                 {
-                    owner_select.update_shadow_tree(CanGc::note());
+                    owner_select.update_shadow_tree(can_gc);
                 }
             }
         }

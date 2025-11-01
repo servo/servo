@@ -268,16 +268,18 @@ impl VirtualMethods for HTMLDetailsElement {
         }
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation) {
-        self.super_type().unwrap().children_changed(mutation);
+    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .children_changed(mutation, can_gc);
 
-        self.update_shadow_tree_contents(CanGc::note());
+        self.update_shadow_tree_contents(can_gc);
     }
 
     fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         self.super_type().unwrap().bind_to_tree(context, can_gc);
 
-        self.update_shadow_tree_contents(CanGc::note());
-        self.update_shadow_tree_styles(CanGc::note());
+        self.update_shadow_tree_contents(can_gc);
+        self.update_shadow_tree_styles(can_gc);
     }
 }

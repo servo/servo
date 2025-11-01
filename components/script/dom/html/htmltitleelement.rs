@@ -80,9 +80,9 @@ impl VirtualMethods for HTMLTitleElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation) {
+    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.children_changed(mutation);
+            s.children_changed(mutation, can_gc);
         }
 
         // Notify of title changes only after the initial full parsing
