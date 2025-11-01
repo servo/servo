@@ -94,9 +94,7 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
             Some(worker) => worker_scope.handle_worker_post_event(worker),
             None => None,
         };
-        worker_scope
-            .upcast::<GlobalScope>()
-            .perform_a_microtask_checkpoint(can_gc);
+        scope.perform_a_microtask_checkpoint(can_gc);
     }
     worker_scope
         .upcast::<GlobalScope>()

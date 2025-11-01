@@ -700,7 +700,6 @@ impl ServoParser {
             if is_execution_stack_empty() {
                 self.document
                     .window()
-                    .as_global_scope()
                     .perform_a_microtask_checkpoint(can_gc);
             }
 
@@ -1767,10 +1766,7 @@ fn create_element_for_token(
         document.increment_throw_on_dynamic_markup_insertion_counter();
         // Step 6.2
         if is_execution_stack_empty() {
-            document
-                .window()
-                .as_global_scope()
-                .perform_a_microtask_checkpoint(can_gc);
+            document.window().perform_a_microtask_checkpoint(can_gc);
         }
         // Step 6.3
         custom_element_reaction_stack.push_new_element_queue()

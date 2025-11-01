@@ -85,7 +85,6 @@ use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
     PermissionName, PermissionState,
 };
 use crate::dom::bindings::codegen::Bindings::ReportingObserverBinding::Report;
-use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use crate::dom::bindings::conversions::{root_from_object, root_from_object_static};
@@ -136,7 +135,7 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::dom::writablestream::CrossRealmTransformWritable;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
-use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
+use crate::microtask::Microtask;
 use crate::network_listener::{NetworkListener, PreInvoke};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_module::{
@@ -306,15 +305,6 @@ pub(crate) struct GlobalScope {
 
     /// A map for storing the previous permission state read results.
     permission_state_invocation_results: DomRefCell<HashMap<PermissionName, PermissionState>>,
-
-    /// The microtask queue associated with this global.
-    ///
-    /// It is refcounted because windows in the same script thread share the
-    /// same microtask queue.
-    ///
-    /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
-    #[conditional_malloc_size_of]
-    microtask_queue: Rc<MicrotaskQueue>,
 
     /// Vector storing closing references of all workers
     list_auto_close_worker: DomRefCell<Vec<AutoCloseWorker>>,
@@ -772,7 +762,6 @@ impl GlobalScope {
         origin: MutableOrigin,
         creation_url: ServoUrl,
         top_level_creation_url: Option<ServoUrl>,
-        microtask_queue: Rc<MicrotaskQueue>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
         unminify_js: bool,
@@ -806,7 +795,6 @@ impl GlobalScope {
             creation_url,
             top_level_creation_url,
             permission_state_invocation_results: Default::default(),
-            microtask_queue,
             list_auto_close_worker: Default::default(),
             event_source_tracker: DOMTracker::new(),
             uncaught_rejections: Default::default(),
@@ -2989,13 +2977,6 @@ impl GlobalScope {
         self.timers().clear_timeout_or_interval(self, handle);
     }
 
-    pub(crate) fn queue_function_as_microtask(&self, callback: Rc<VoidFunction>) {
-        self.enqueue_microtask(Microtask::User(UserMicrotask {
-            callback,
-            pipeline: self.pipeline_id(),
-        }))
-    }
-
     pub(crate) fn fire_timer(&self, handle: TimerEventId, can_gc: CanGc) {
         self.timers().fire_timer(handle, self, can_gc);
     }
@@ -3042,20 +3023,20 @@ impl GlobalScope {
 
     /// Perform a microtask checkpoint.
     pub(crate) fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
-        // Only perform the checkpoint if we're not shutting down.
-        if self.can_continue_running() {
-            self.microtask_queue.checkpoint(
-                GlobalScope::get_cx(),
-                |_| Some(DomRoot::from_ref(self)),
-                vec![DomRoot::from_ref(self)],
-                can_gc,
-            );
+        if let Some(window) = self.downcast::<Window>() {
+            window.perform_a_microtask_checkpoint(can_gc);
+        } else if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            worker.perform_a_microtask_checkpoint(can_gc);
         }
     }
 
     /// Enqueue a microtask for subsequent execution.
     pub(crate) fn enqueue_microtask(&self, job: Microtask) {
-        self.microtask_queue.enqueue(job, GlobalScope::get_cx());
+        if self.is::<Window>() {
+            ScriptThread::enqueue_microtask(job);
+        } else if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            worker.enqueue_microtask(job);
+        }
     }
 
     /// Create a new sender/receiver pair that can be used to implement an on-demand
@@ -3069,11 +3050,6 @@ impl GlobalScope {
             return worker.new_script_pair();
         }
         unreachable!();
-    }
-
-    /// Returns the microtask queue of this global.
-    pub(crate) fn microtask_queue(&self) -> &Rc<MicrotaskQueue> {
-        &self.microtask_queue
     }
 
     /// Process a single event as if it were the next event

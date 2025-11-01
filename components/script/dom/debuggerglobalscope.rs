@@ -87,7 +87,6 @@ impl DebuggerGlobalScope {
                 ServoUrl::parse_with_base(None, "about:internal/debugger")
                     .expect("Guaranteed by argument"),
                 None,
-                Default::default(),
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,
                 None,

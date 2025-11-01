@@ -182,10 +182,10 @@ use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::layout_image::fetch_image_for_layout;
 use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
-use crate::microtask::MicrotaskQueue;
+use crate::microtask::{Microtask, UserMicrotask};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext, Runtime};
-use crate::script_thread::ScriptThread;
+use crate::script_thread::{ScriptThread, with_script_thread};
 use crate::script_window_proxies::ScriptWindowProxies;
 use crate::timers::{IsInterval, TimerCallback};
 use crate::unminify::unminified_path;
@@ -844,6 +844,10 @@ impl Window {
         // Step 5: Return false.
         false
     }
+
+    pub(crate) fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
+        with_script_thread(|script_thread| script_thread.perform_a_microtask_checkpoint(can_gc));
+    }
 }
 
 // https://html.spec.whatwg.org/multipage/#atob
@@ -1402,7 +1406,10 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-queuemicrotask>
     fn QueueMicrotask(&self, callback: Rc<VoidFunction>) {
-        self.as_global_scope().queue_function_as_microtask(callback);
+        ScriptThread::enqueue_microtask(Microtask::User(UserMicrotask {
+            callback,
+            pipeline: self.pipeline_id(),
+        }));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
@@ -3382,7 +3389,6 @@ impl Window {
         navigation_start: CrossProcessInstant,
         webgl_chan: Option<WebGLChan>,
         #[cfg(feature = "webxr")] webxr_registry: Option<webxr_api::Registry>,
-        microtask_queue: Rc<MicrotaskQueue>,
         compositor_api: CrossProcessCompositorApi,
         unminify_js: bool,
         unminify_css: bool,
@@ -3417,7 +3423,6 @@ impl Window {
                 origin,
                 creation_url,
                 Some(top_level_creation_url),
-                microtask_queue,
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,
                 inherited_secure_context,

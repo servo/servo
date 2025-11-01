@@ -87,6 +87,7 @@ use crate::dom::workerlocation::WorkerLocation;
 use crate::dom::workernavigator::WorkerNavigator;
 use crate::fetch::{CspViolationsProcessor, Fetch, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
+use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::network_listener::{PreInvoke, ResourceTimingListener, submit_timing};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_module::ScriptFetchOptions;
@@ -280,6 +281,10 @@ impl PreInvoke for ScriptFetchContext {}
 pub(crate) struct WorkerGlobalScope {
     globalscope: GlobalScope,
 
+    /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
+    #[conditional_malloc_size_of]
+    microtask_queue: Rc<MicrotaskQueue>,
+
     worker_name: DOMString,
     worker_type: WorkerType,
 
@@ -369,13 +374,13 @@ impl WorkerGlobalScope {
                 MutableOrigin::new(init.origin),
                 init.creation_url,
                 None,
-                runtime.microtask_queue.clone(),
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,
                 init.inherited_secure_context,
                 init.unminify_js,
                 font_context,
             ),
+            microtask_queue: runtime.microtask_queue.clone(),
             worker_id: init.worker_id,
             worker_name,
             worker_type,
@@ -397,6 +402,23 @@ impl WorkerGlobalScope {
             reporting_observer_list: Default::default(),
             report_list: Default::default(),
             endpoints_list: Default::default(),
+        }
+    }
+
+    pub(crate) fn enqueue_microtask(&self, job: Microtask) {
+        self.microtask_queue.enqueue(job, GlobalScope::get_cx());
+    }
+
+    /// Perform a microtask checkpoint.
+    pub(crate) fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
+        // Only perform the checkpoint if we're not shutting down.
+        if !self.is_closing() {
+            self.microtask_queue.checkpoint(
+                GlobalScope::get_cx(),
+                |_| Some(DomRoot::from_ref(&self.globalscope)),
+                vec![DomRoot::from_ref(&self.globalscope)],
+                can_gc,
+            );
         }
     }
 
@@ -865,8 +887,10 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-queuemicrotask>
     fn QueueMicrotask(&self, callback: Rc<VoidFunction>) {
-        self.upcast::<GlobalScope>()
-            .queue_function_as_microtask(callback);
+        self.enqueue_microtask(Microtask::User(UserMicrotask {
+            callback,
+            pipeline: self.pipeline_id(),
+        }));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>

@@ -112,7 +112,6 @@ impl WorkletGlobalScope {
                 MutableOrigin::new(ImmutableOrigin::new_opaque()),
                 base_url.clone(),
                 None,
-                Default::default(),
                 #[cfg(feature = "webgpu")]
                 init.gpu_id_hub.clone(),
                 init.inherited_secure_context,

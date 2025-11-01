@@ -4392,9 +4392,7 @@ impl Document {
         self.maybe_mark_animating_nodes_as_dirty();
 
         // > 3. Perform a microtask checkpoint.
-        self.window()
-            .as_global_scope()
-            .perform_a_microtask_checkpoint(can_gc);
+        self.window().perform_a_microtask_checkpoint(can_gc);
 
         // Steps 4 through 7 occur inside `send_pending_events().`
         let _realm = enter_realm(self);

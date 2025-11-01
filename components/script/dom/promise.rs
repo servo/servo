@@ -545,13 +545,12 @@ pub(crate) fn wait_for_all(
     // If total is 0, then:
     if promises.is_empty() {
         // Queue a microtask to perform successSteps given « ».
-        global.microtask_queue().enqueue(
-            Microtask::WaitForAllSuccessSteps(WaitForAllSuccessStepsMicrotask {
+        global.enqueue_microtask(Microtask::WaitForAllSuccessSteps(
+            WaitForAllSuccessStepsMicrotask {
                 global: DomRoot::from_ref(global),
                 success_steps,
-            }),
-            cx,
-        );
+            },
+        ));
 
         // Return.
         return;
