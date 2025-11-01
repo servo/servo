@@ -80,6 +80,7 @@ use crate::dom::node::{
 use crate::dom::nodelist::{NodeList, RadioListMode};
 use crate::dom::radionodelist::RadioNodeList;
 use crate::dom::submitevent::SubmitEvent;
+use crate::dom::types::HTMLIFrameElement;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::links::{LinkRelations, get_element_target};
@@ -1060,6 +1061,17 @@ impl HTMLFormElement {
         load_data.creator_pipeline_id = Some(target.pipeline_id());
         load_data.referrer = referrer;
         load_data.referrer_policy = referrer_policy;
+
+        // Note the pending form navigation if this is an iframe;
+        // necessary for deciding whether to run the iframe load event steps.
+        if let Some(window_proxy) = target.undiscarded_window_proxy() {
+            if let Some(frame) = window_proxy
+                .frame_element()
+                .and_then(|e| e.downcast::<HTMLIFrameElement>())
+            {
+                frame.note_pending_navigation()
+            }
+        }
 
         // 4. Queue an element task on the DOM manipulation task source
         // given the form element and the following steps:
