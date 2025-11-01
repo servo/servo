@@ -97,17 +97,21 @@ pub trait RunningAppStateTrait {
 
     fn handle_webdriver_input_event(
         &self,
-        webview: WebView,
+        webview_id: WebViewId,
         input_event: InputEvent,
         response_sender: Option<Sender<()>>,
     ) {
-        let event_id = webview.notify_input_event(input_event);
-        if let Some(response_sender) = response_sender {
-            self.base()
-                .pending_webdriver_events
-                .borrow_mut()
-                .insert(event_id, response_sender);
-        }
+        if let Some(webview) = self.webview_by_id(webview_id) {
+            let event_id = webview.notify_input_event(input_event);
+            if let Some(response_sender) = response_sender {
+                self.base()
+                    .pending_webdriver_events
+                    .borrow_mut()
+                    .insert(event_id, response_sender);
+            }
+        } else {
+            error!("Could not find WebView ({webview_id:?}) for WebDriver event: {input_event:?}");
+        };
     }
 
     fn handle_webdriver_screenshot(

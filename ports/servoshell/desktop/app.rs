@@ -13,7 +13,7 @@ use std::{env, fs};
 
 use ::servo::ServoBuilder;
 use crossbeam_channel::unbounded;
-use log::{error, info, trace, warn};
+use log::{info, trace, warn};
 use net::protocols::ProtocolRegistry;
 use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
@@ -471,17 +471,11 @@ impl App {
                     }
                 },
                 WebDriverCommandMsg::InputEvent(webview_id, input_event, response_sender) => {
-                    if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        running_state.handle_webdriver_input_event(
-                            webview,
-                            input_event,
-                            response_sender,
-                        );
-                    } else {
-                        error!(
-                            "Could not find WebView ({webview_id:?}) for WebDriver event: {input_event:?}"
-                        );
-                    };
+                    running_state.handle_webdriver_input_event(
+                        webview_id,
+                        input_event,
+                        response_sender,
+                    );
                 },
                 WebDriverCommandMsg::ScriptCommand(_, ref webdriver_script_command) => {
                     self.handle_webdriver_script_command(webdriver_script_command, running_state);

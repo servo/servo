@@ -770,17 +770,7 @@ impl RunningAppState {
                         let _ = response_sender.send(self.rendering_context.size2d());
                     },
                     WebDriverCommandMsg::InputEvent(webview_id, input_event, response_sender) => {
-                        if let Some(webview) = self.webview_by_id(webview_id) {
-                            self.handle_webdriver_input_event(
-                                webview,
-                                input_event,
-                                response_sender,
-                            );
-                        } else {
-                            error!(
-                                "Could not find WebView ({webview_id:?}) for WebDriver event: {input_event:?}"
-                            );
-                        };
+                        self.handle_webdriver_input_event(webview_id, input_event, response_sender);
                     },
                     WebDriverCommandMsg::TakeScreenshot(webview_id, rect, result_sender) => {
                         self.handle_webdriver_screenshot(webview_id, rect, result_sender);
