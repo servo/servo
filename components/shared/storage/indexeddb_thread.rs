@@ -243,21 +243,6 @@ pub struct IndexedDBRecord {
     pub value: Vec<u8>,
 }
 
-#[test]
-fn test_as_singleton() {
-    let key = IndexedDBKeyType::Number(1.0);
-    let key2 = IndexedDBKeyType::Number(2.0);
-    let range = IndexedDBKeyRange::only(key.clone());
-    assert!(range.is_singleton());
-    assert!(range.as_singleton().is_some());
-    let range = IndexedDBKeyRange::new(Some(key), Some(key2.clone()), false, false);
-    assert!(!range.is_singleton());
-    assert!(range.as_singleton().is_none());
-    let full_range = IndexedDBKeyRange::new(None, None, false, false);
-    assert!(!full_range.is_singleton());
-    assert!(full_range.as_singleton().is_none());
-}
-
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum PutItemResult {
     Success,
@@ -462,4 +447,24 @@ pub enum IndexedDBThreadMsg {
         IndexedDBTxnMode,
         AsyncOperation,
     ),
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_as_singleton() {
+        let key = IndexedDBKeyType::Number(1.0);
+        let key2 = IndexedDBKeyType::Number(2.0);
+        let range = IndexedDBKeyRange::only(key.clone());
+        assert!(range.is_singleton());
+        assert!(range.as_singleton().is_some());
+        let range = IndexedDBKeyRange::new(Some(key), Some(key2.clone()), false, false);
+        assert!(!range.is_singleton());
+        assert!(range.as_singleton().is_none());
+        let full_range = IndexedDBKeyRange::new(None, None, false, false);
+        assert!(!full_range.is_singleton());
+        assert!(full_range.as_singleton().is_none());
+    }
 }
