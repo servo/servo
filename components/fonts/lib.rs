@@ -20,7 +20,7 @@ pub use font::{
     FontBaseline, FontGroup, FontMetrics, FontRef, LAST_RESORT_GLYPH_ADVANCE, ShapingFlags,
     ShapingOptions,
 };
-pub use font_context::{FontContext, FontContextWebFontMethods};
+pub use font_context::{FontContext, FontContextWebFontMethods, WebFontDocumentContext};
 pub use font_store::FontTemplates;
 pub use fonts_traits::*;
 pub(crate) use glyph::*;
