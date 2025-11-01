@@ -55,7 +55,7 @@ def run_tests(default_binary_path: str, **kwargs: Any) -> int:
     # makes CI logs unreadable.
     github_context = os.environ.pop("GITHUB_CONTEXT", None)
 
-    set_if_none(kwargs, "product", "servo")
+    set_if_none(kwargs, "product", "servodriver")
     set_if_none(kwargs, "config", os.path.join(WPT_PATH, "config.ini"))
     set_if_none(kwargs, "include_manifest", os.path.join(WPT_PATH, "include.ini"))
     set_if_none(kwargs, "manifest_update", False)
