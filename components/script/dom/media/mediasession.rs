@@ -11,7 +11,6 @@ use embedder_traits::{
 };
 use rustc_hash::FxBuildHasher;
 
-use super::bindings::trace::HashMapTracedValues;
 use crate::conversions::Convert;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
@@ -28,8 +27,9 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::html::htmlmediaelement::HTMLMediaElement;
-use crate::dom::mediametadata::MediaMetadata;
+use crate::dom::media::mediametadata::MediaMetadata;
 use crate::dom::window::Window;
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::CanGc;

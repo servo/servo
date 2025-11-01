@@ -13,7 +13,7 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::mediasession::MediaSession;
+use crate::dom::media::mediasession::MediaSession;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 

@@ -15,7 +15,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::mediastreamtrack::MediaStreamTrack;
+use crate::dom::media::mediastreamtrack::MediaStreamTrack;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
