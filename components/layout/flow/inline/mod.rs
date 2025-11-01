@@ -741,6 +741,9 @@ pub(super) struct InlineFormattingContextLayout<'layout_data> {
     /// are laying out. This is used to propagate baselines to the ancestors of
     /// `display: inline-block` elements and table content.
     baselines: Baselines,
+
+    /// the number of lines an IFC-Layout has.
+    num_of_lines: i32,
 }
 
 impl InlineFormattingContextLayout<'_> {
@@ -981,7 +984,9 @@ impl InlineFormattingContextLayout<'_> {
             &effective_block_advance,
             justification_adjustment,
             is_phantom_line,
+            self.num_of_lines,
         );
+        self.num_of_lines += 1;
 
         if !is_phantom_line {
             let baseline = baseline_offset + block_start_position;
@@ -1798,6 +1803,7 @@ impl InlineFormattingContext {
             white_space_collapse: style_text.white_space_collapse,
             text_wrap_mode: style_text.text_wrap_mode,
             baselines: Baselines::default(),
+            num_of_lines: 0,
         };
 
         // FIXME(pcwalton): This assumes that margins never collapse through inline formatting

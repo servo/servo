@@ -75,6 +75,19 @@ pub(crate) struct TextFragment {
     /// Extra space to add for each justification opportunity.
     pub justification_adjustment: Au,
     pub selection_range: Option<ServoRange<ByteIndex>>,
+
+    /// experimental
+    pub is_ellipsis_text_fragment: bool,
+    pub line_number: i32,
+    pub parent_width: Au,
+    pub text_clip: (Au, Au), // left & right
+}
+
+impl TextFragment {
+    pub fn set_text_clip(&mut self, l: Au, r: Au){
+        self.text_clip.0 = l;
+        self.text_clip.1 = r;
+    }
 }
 
 #[derive(MallocSizeOf)]

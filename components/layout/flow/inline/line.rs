@@ -34,6 +34,7 @@ use fonts::{
     FontContext, FontRef, GlyphRun, LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
 };
 use super::line_breaker::LineBreaker;
+use euclid::Point2D;
 
 pub(super) struct LineMetrics {
     /// The block offset of the line start in the containing
@@ -169,6 +170,7 @@ impl LineItemLayout<'_, '_> {
         effective_block_advance: &LineBlockSizes,
         justification_adjustment: Au,
         is_phantom_line: bool,
+        line_number: i32,
     ) -> Vec<Fragment> {
         let baseline_offset = effective_block_advance.find_baseline_offset();
         LineItemLayout {
@@ -186,7 +188,7 @@ impl LineItemLayout<'_, '_> {
             justification_adjustment,
             is_phantom_line,
         }
-        .layout(line_items)
+        .layout(line_items, line_number)
     }
 
     /// Start and end inline boxes in tree order, so that it reflects the given inline box.
@@ -214,7 +216,7 @@ impl LineItemLayout<'_, '_> {
         }
     }
 
-    pub(super) fn layout(&mut self, mut line_items: Vec<LineItem>) -> Vec<Fragment> {
+    pub(super) fn layout(&mut self, mut line_items: Vec<LineItem>, line_number: i32) -> Vec<Fragment> {
         let mut last_level = Level::ltr();
         let levels: Vec<_> = line_items
             .iter()
@@ -282,7 +284,7 @@ impl LineItemLayout<'_, '_> {
                         .flags
                         .insert(LineLayoutInlineContainerFlags::HAD_INLINE_END_PBM);
                 },
-                LineItem::TextRun(_, text_run) => self.layout_text_run(text_run),
+                LineItem::TextRun(_, text_run) => self.layout_text_run(text_run, line_number),
                 LineItem::Atomic(_, atomic) => self.layout_atomic(atomic),
                 LineItem::AbsolutelyPositioned(_, absolute) => self.layout_absolute(absolute),
                 LineItem::Float(_, float) => self.layout_float(float),
@@ -555,11 +557,12 @@ impl LineItemLayout<'_, '_> {
         }
     }
 
-    fn layout_text_run(&mut self, text_item: TextRunLineItem) {
+    fn layout_text_run(&mut self, text_item: TextRunLineItem, line_number: i32) {
         if text_item.text.is_empty() {
             return;
         }
 
+        let mut can_be_ellided = true; // TODO: add more logic later on.
         let mut number_of_justification_opportunities = 0;
         let mut inline_advance = text_item
             .text
@@ -594,24 +597,9 @@ impl LineItemLayout<'_, '_> {
         };
 
         self.current_state.inline_advance += inline_advance;
-        self.current_state.fragments.push((
-            Fragment::Text(ArcRefCell::new(TextFragment {
-                base: text_item.base_fragment_info.into(),
-                inline_styles: text_item.inline_styles.clone(),
-                rect: PhysicalRect::zero(),
-                font_metrics: text_item.font_metrics,
-                font_key: text_item.font_key,
-                glyphs: text_item.text,
-                justification_adjustment: self.justification_adjustment,
-                selection_range: text_item.selection_range,
-            })),
-            content_rect,
-        ));
 
         // add a new text fragment at the end for ellipsis 
         // create text run segment
-        println!("");
-        println!("creating ellipsis text");
         let ellipsis_text = "\u{2026}";
         let ellipsis_char = ellipsis_text.chars().next().unwrap();
 
@@ -662,64 +650,119 @@ impl LineItemLayout<'_, '_> {
             flags: ellipsis_flags,
         };
 
-        /* 
-        ellipsis_textrun_segment.shape_text(
-            &self.layout.containing_block.style.clone(),
-            ellipsis_text,
-            &mut ellipsis_linebreaker,
-            &ellipsis_shaping_options,
-            ellipsis_font.clone(),
-        );
-        */
-
         ellipsis_textrun_segment.shape_and_push_range(
-            //,
             &(0..3),
             ellipsis_text,
             &ellipsis_font,
             &ellipsis_shaping_options,
         );
 
-        // create & insert text fragment to vector
-        println!("segment.range: {:?}", ellipsis_textrun_segment.range);
-        println!("runs len: {0}", ellipsis_textrun_segment.runs.len());
+        // finding the inline start corner (if horizontal, then starting x pos)
+        let inline_target = self.layout.containing_block.size.inline - ellipsis_textrun_segment.runs[0].glyph_store.total_advance();
+        let mut inline_start = self.layout.containing_block.size.inline;
+        let mut glyph_index = text_item.text.len() - 1;
+        let mut inline_start_found = false;
 
+        while glyph_index >= 0 && !inline_start_found {
+            if inline_start > text_item.text[glyph_index].total_advance() {
+                inline_start -= text_item.text[glyph_index].total_advance();
+            }
+            else {
+                inline_start = Au(0);
+            }
         
-        println!("start_corner: {:?}", start_corner);
-        let start_corner = LogicalVec2 {
-            inline: Au(0),
-            block: self.current_state.baseline_offset -
-            self.layout.ifc.font_metrics[0].metrics.ascent -
-            self.current_state.parent_offset.block,
-        };
-        println!("NEW start_corner: {:?}", start_corner);
-        println!("baseline_offset: {:?}", self.current_state.baseline_offset);
-        let content_rect = LogicalRect {
-            start_corner,
-            size: LogicalVec2 {
-                block: Au(5400),
-                inline: inline_advance,
-            },
-        };
+            if inline_start <= inline_target {
+                inline_start_found = true;
 
-        self.current_state.inline_advance += inline_advance;
+                // try to mini increment if possible
+                for glyph in text_item.text[glyph_index].iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), text_item.text[glyph_index].len())) {
+                    // TODO
+                    if inline_start + glyph.advance() < inline_target {
+                        inline_start += glyph.advance();
+                    }
+                }
+            }
+            if glyph_index > 0 {
+                glyph_index -= 1;
+            }
+        }
 
-        self.current_state.fragments.push((
-            Fragment::Text(ArcRefCell::new(TextFragment {
-                base: text_item.base_fragment_info.into(),
-                inline_styles: self.layout.ifc.shared_inline_styles.clone(),
-                rect: PhysicalRect::zero(),
-                font_metrics: ellipsis_font.metrics.clone(),
-                font_key: self.layout.ifc.font_metrics[0].key,
-                //font_key: text_item.font_key,
-                glyphs: vec![ellipsis_textrun_segment.runs[0].glyph_store.clone()],
-                justification_adjustment: self.justification_adjustment,
-                selection_range: text_item.selection_range,
-            })),
-            content_rect,
-        ));
-        println!("finished creating ellipsis text");
-        println!("");
+        // create & insert text fragment to vector
+        if can_be_ellided && self.current_state.inline_advance > self.layout.containing_block.size.inline {
+            // insert text fragment
+            let text_fragment_clip = (Au(0), ellipsis_textrun_segment.runs[0].glyph_store.total_advance());
+            self.current_state.fragments.push((
+                Fragment::Text(ArcRefCell::new(TextFragment {
+                    base: text_item.base_fragment_info.into(),
+                    inline_styles: text_item.inline_styles.clone(),
+                    rect: PhysicalRect::zero(),
+                    font_metrics: text_item.font_metrics,
+                    font_key: text_item.font_key,
+                    glyphs: text_item.text.clone(),
+                    justification_adjustment: self.justification_adjustment,
+                    selection_range: text_item.selection_range,
+                    is_ellipsis_text_fragment: false,
+                    line_number: line_number,
+                    parent_width: self.layout.containing_block.size.inline,
+                    text_clip: text_fragment_clip,
+                })),
+                content_rect,
+            ));
+
+            // create the bounding box of the ellipsis text fragment
+            let start_corner = LogicalVec2 {
+                inline: inline_start,
+                block: self.current_state.baseline_offset -
+                self.layout.ifc.font_metrics[0].metrics.ascent -
+                self.current_state.parent_offset.block,
+            };
+            let content_rect = LogicalRect {
+                start_corner,
+                size: LogicalVec2 {
+                    block: self.layout.ifc.font_metrics[0].metrics.line_gap,
+                    inline: ellipsis_textrun_segment.runs[0].glyph_store.total_advance(),
+                },
+            };
+
+            // insert ellipsis fragment
+            self.current_state.fragments.push((
+                Fragment::Text(ArcRefCell::new(TextFragment {
+                    base: text_item.base_fragment_info.into(),
+                    inline_styles: self.layout.ifc.shared_inline_styles.clone(),
+                    rect: PhysicalRect::zero(),
+                    font_metrics: ellipsis_font.metrics.clone(),
+                    font_key: self.layout.ifc.font_metrics[0].key,
+                    glyphs: vec![ellipsis_textrun_segment.runs[0].glyph_store.clone()],
+                    justification_adjustment: self.justification_adjustment,
+                    selection_range: text_item.selection_range,
+                    is_ellipsis_text_fragment: true,
+                    line_number: line_number,
+                    parent_width: self.layout.containing_block.size.inline,
+                    text_clip: (Au(0), Au(0)),
+                })),
+                content_rect,
+            ));
+        }
+        else {
+            // insert text fragment
+            self.current_state.fragments.push((
+                Fragment::Text(ArcRefCell::new(TextFragment {
+                    base: text_item.base_fragment_info.into(),
+                    inline_styles: text_item.inline_styles.clone(),
+                    rect: PhysicalRect::zero(),
+                    font_metrics: text_item.font_metrics,
+                    font_key: text_item.font_key,
+                    glyphs: text_item.text.clone(),
+                    justification_adjustment: self.justification_adjustment,
+                    selection_range: text_item.selection_range,
+                    is_ellipsis_text_fragment: false,
+                    line_number: line_number,
+                    parent_width: self.layout.containing_block.size.inline,
+                    text_clip: (Au(0), Au(0)),
+                })),
+                content_rect,
+            ));
+        }
         
     }
 
