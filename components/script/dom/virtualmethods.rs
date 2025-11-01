@@ -101,9 +101,9 @@ pub(crate) trait VirtualMethods {
     /// Invoked during a DOM tree mutation after a node becomes connected, once all
     /// related DOM tree mutations have been applied.
     /// <https://dom.spec.whatwg.org/#concept-node-post-connection-ext>
-    fn post_connection_steps(&self) {
+    fn post_connection_steps(&self, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.post_connection_steps();
+            s.post_connection_steps(can_gc);
         }
     }
 
@@ -124,9 +124,9 @@ pub(crate) trait VirtualMethods {
     }
 
     /// Called on the parent when its children are changed.
-    fn children_changed(&self, mutation: &ChildrenMutation, _can_gc: CanGc) {
+    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.children_changed(mutation, _can_gc);
+            s.children_changed(mutation, can_gc);
         }
     }
 

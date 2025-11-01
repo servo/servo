@@ -814,9 +814,9 @@ impl VirtualMethods for HTMLIFrameElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-iframe-element:html-element-post-connection-steps>
-    fn post_connection_steps(&self) {
+    fn post_connection_steps(&self, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.post_connection_steps();
+            s.post_connection_steps(can_gc);
         }
 
         // This isn't mentioned any longer in the specification, but still seems important. This is
@@ -829,14 +829,14 @@ impl VirtualMethods for HTMLIFrameElement {
         debug!("<iframe> running post connection steps");
 
         // Step 1. Create a new child navigable for insertedNode.
-        self.create_nested_browsing_context(CanGc::note());
+        self.create_nested_browsing_context(can_gc);
 
         // Step 2: If insertedNode has a sandbox attribute, then parse the sandboxing directive
         // given the attribute's value and insertedNode's iframe sandboxing flag set.
         self.parse_sandbox_attribute();
 
         // Step 3. Process the iframe attributes for insertedNode, with initialInsertion set to true.
-        self.process_the_iframe_attributes(ProcessingMode::FirstTime, CanGc::note());
+        self.process_the_iframe_attributes(ProcessingMode::FirstTime, can_gc);
     }
 
     fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {

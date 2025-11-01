@@ -1311,13 +1311,13 @@ impl VirtualMethods for HTMLScriptElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#script-processing-model:the-script-element-20>
-    fn post_connection_steps(&self) {
+    fn post_connection_steps(&self, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.post_connection_steps();
+            s.post_connection_steps(can_gc);
         }
 
         if self.upcast::<Node>().is_connected() && !self.parser_inserted.get() {
-            self.prepare(Some(IntroductionType::INJECTED_SCRIPT), CanGc::note());
+            self.prepare(Some(IntroductionType::INJECTED_SCRIPT), can_gc);
         }
     }
 
