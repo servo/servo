@@ -1487,6 +1487,7 @@ fn test_fetch_with_devtools() {
         headers: Some(response_headers),
         status: HttpStatus::default(),
         body: Some(content.as_bytes().to_vec()),
+        from_cache: false,
         pipeline_id: TEST_PIPELINE_ID,
         browsing_context_id: TEST_WEBVIEW_ID.into(),
     };

@@ -423,6 +423,7 @@ fn test_request_and_response_data_with_network_messages() {
         headers: Some(response_headers),
         status: HttpStatus::default(),
         body: Some(content.as_bytes().to_vec()),
+        from_cache: false,
         pipeline_id: TEST_PIPELINE_ID,
         browsing_context_id: TEST_WEBVIEW_ID.into(),
     };

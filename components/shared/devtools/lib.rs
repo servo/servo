@@ -464,6 +464,7 @@ pub struct HttpResponse {
     pub headers: Option<HeaderMap>,
     pub status: HttpStatus,
     pub body: Option<Vec<u8>>,
+    pub from_cache: bool,
     pub pipeline_id: PipelineId,
     pub browsing_context_id: BrowsingContextId,
 }

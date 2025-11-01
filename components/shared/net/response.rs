@@ -59,7 +59,7 @@ impl ResponseBody {
 }
 
 /// [Cache state](https://fetch.spec.whatwg.org/#concept-response-cache-state)
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum CacheState {
     None,
     Local,
