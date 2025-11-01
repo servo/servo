@@ -38,22 +38,22 @@ impl DOMStringMap {
 
 // https://html.spec.whatwg.org/multipage/#domstringmap
 impl DOMStringMapMethods<crate::DomTypeHolder> for DOMStringMap {
-    // https://html.spec.whatwg.org/multipage/#dom-domstringmap-removeitem
+    /// <https://html.spec.whatwg.org/multipage/#dom-domstringmap-removeitem>
     fn NamedDeleter(&self, name: DOMString, can_gc: CanGc) {
         self.element.delete_custom_attr(name, can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-domstringmap-setitem
+    /// <https://html.spec.whatwg.org/multipage/#dom-domstringmap-setitem>
     fn NamedSetter(&self, name: DOMString, value: DOMString, can_gc: CanGc) -> ErrorResult {
         self.element.set_custom_attr(name, value, can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-domstringmap-nameditem
+    /// <https://html.spec.whatwg.org/multipage/#dom-domstringmap-nameditem>
     fn NamedGetter(&self, name: DOMString) -> Option<DOMString> {
         self.element.get_custom_attr(name)
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-domstringmap-interface:supported-property-names
+    /// <https://html.spec.whatwg.org/multipage/#the-domstringmap-interface:supported-property-names>
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         self.element.supported_prop_names_custom_attr().to_vec()
     }

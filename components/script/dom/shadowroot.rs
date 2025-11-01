@@ -363,13 +363,13 @@ impl ShadowRoot {
 }
 
 impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
-    // https://html.spec.whatwg.org/multipage/#dom-document-activeelement
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-activeelement>
     fn GetActiveElement(&self) -> Option<DomRoot<Element>> {
         self.document_or_shadow_root
             .get_active_element(self.get_focused_element(), None, None)
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint
+    /// <https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint>
     fn ElementFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Option<DomRoot<Element>> {
         // Return the result of running the retargeting algorithm with context object
         // and the original result as input.
@@ -389,7 +389,7 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         }
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-document-elementsfrompoint
+    /// <https://drafts.csswg.org/cssom-view/#dom-document-elementsfrompoint>
     fn ElementsFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Vec<DomRoot<Element>> {
         // Return the result of running the retargeting algorithm with context object
         // and the original result as input
@@ -434,7 +434,7 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         self.host.as_rooted()
     }
 
-    // https://drafts.csswg.org/cssom/#dom-document-stylesheets
+    /// <https://drafts.csswg.org/cssom/#dom-document-stylesheets>
     fn StyleSheets(&self) -> DomRoot<StyleSheetList> {
         self.stylesheet_list.or_init(|| {
             StyleSheetList::new(

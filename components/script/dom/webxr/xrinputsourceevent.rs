@@ -78,7 +78,7 @@ impl XRInputSourceEvent {
 }
 
 impl XRInputSourceEventMethods<crate::DomTypeHolder> for XRInputSourceEvent {
-    // https://immersive-web.github.io/webxr/#dom-xrinputsourceevent-xrinputsourceevent
+    /// <https://immersive-web.github.io/webxr/#dom-xrinputsourceevent-xrinputsourceevent>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -98,17 +98,17 @@ impl XRInputSourceEventMethods<crate::DomTypeHolder> for XRInputSourceEvent {
         ))
     }
 
-    // https://immersive-web.github.io/webxr/#dom-xrinputsourceeventinit-frame
+    /// <https://immersive-web.github.io/webxr/#dom-xrinputsourceeventinit-frame>
     fn Frame(&self) -> DomRoot<XRFrame> {
         DomRoot::from_ref(&*self.frame)
     }
 
-    // https://immersive-web.github.io/webxr/#dom-xrinputsourceeventinit-inputsource
+    /// <https://immersive-web.github.io/webxr/#dom-xrinputsourceeventinit-inputsource>
     fn InputSource(&self) -> DomRoot<XRInputSource> {
         DomRoot::from_ref(&*self.source)
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

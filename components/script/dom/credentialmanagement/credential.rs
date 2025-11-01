@@ -48,24 +48,24 @@ impl Credential {
 }
 
 impl CredentialMethods<DomTypeHolder> for Credential {
-    // https://www.w3.org/TR/credential-management-1/#dom-credential-id
+    /// <https://www.w3.org/TR/credential-management-1/#dom-credential-id>
     fn Id(&self) -> USVString {
         self.id.clone()
     }
 
-    // https://www.w3.org/TR/credential-management-1/#dom-credential-type
+    /// <https://www.w3.org/TR/credential-management-1/#dom-credential-type>
     fn Type(&self) -> DOMString {
         self.credential_type.clone()
     }
 
-    // https://www.w3.org/TR/credential-management-1/#dom-credential-isconditionalmediationavailable
+    /// <https://www.w3.org/TR/credential-management-1/#dom-credential-isconditionalmediationavailable>
     fn IsConditionalMediationAvailable(_global: &Window, can_gc: CanGc) -> Rc<Promise> {
         let in_realm_proof = AlreadyInRealm::assert::<DomTypeHolder>();
         // FIXME:(arihant2math) return false
         Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc)
     }
 
-    // https://www.w3.org/TR/credential-management-1/#dom-credential-willrequestconditionalcreation
+    /// <https://www.w3.org/TR/credential-management-1/#dom-credential-willrequestconditionalcreation>
     fn WillRequestConditionalCreation(_global: &Window, can_gc: CanGc) -> Rc<Promise> {
         let in_realm_proof = AlreadyInRealm::assert::<DomTypeHolder>();
         Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc)

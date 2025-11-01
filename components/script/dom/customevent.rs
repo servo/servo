@@ -85,7 +85,7 @@ impl CustomEvent {
 }
 
 impl CustomEventMethods<crate::DomTypeHolder> for CustomEvent {
-    // https://dom.spec.whatwg.org/#dom-customevent-customevent
+    /// <https://dom.spec.whatwg.org/#dom-customevent-customevent>
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -106,12 +106,12 @@ impl CustomEventMethods<crate::DomTypeHolder> for CustomEvent {
         event
     }
 
-    // https://dom.spec.whatwg.org/#dom-customevent-detail
+    /// <https://dom.spec.whatwg.org/#dom-customevent-detail>
     fn Detail(&self, _cx: JSContext, mut retval: MutableHandleValue) {
         retval.set(self.detail.get())
     }
 
-    // https://dom.spec.whatwg.org/#dom-customevent-initcustomevent
+    /// <https://dom.spec.whatwg.org/#dom-customevent-initcustomevent>
     fn InitCustomEvent(
         &self,
         _cx: JSContext,
@@ -123,7 +123,7 @@ impl CustomEventMethods<crate::DomTypeHolder> for CustomEvent {
         self.init_custom_event(Atom::from(type_), can_bubble, cancelable, detail)
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

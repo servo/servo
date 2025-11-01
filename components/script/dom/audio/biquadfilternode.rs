@@ -147,7 +147,7 @@ impl BiquadFilterNode {
 }
 
 impl BiquadFilterNodeMethods<crate::DomTypeHolder> for BiquadFilterNode {
-    // https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-biquadfilternode-context-options
+    /// <https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-biquadfilternode-context-options>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -158,32 +158,32 @@ impl BiquadFilterNodeMethods<crate::DomTypeHolder> for BiquadFilterNode {
         BiquadFilterNode::new_with_proto(window, proto, context, options, can_gc)
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-gain
+    /// <https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-gain>
     fn Gain(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.gain)
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-q
+    /// <https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-q>
     fn Q(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.q)
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-detune
+    /// <https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-detune>
     fn Detune(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.detune)
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-frequency
+    /// <https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-frequency>
     fn Frequency(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.frequency)
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-type
+    /// <https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-type>
     fn Type(&self) -> BiquadFilterType {
         self.filter.get()
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-type
+    /// <https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-type>
     fn SetType(&self, filter: BiquadFilterType) {
         self.filter.set(filter);
         self.node.message(AudioNodeMessage::BiquadFilterNode(

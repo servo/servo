@@ -281,7 +281,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         self.textinput.borrow().selection_direction()
     }
 
-    // https://html.spec.whatwg.org/multipage/#set-the-selection-range
+    /// <https://html.spec.whatwg.org/multipage/#set-the-selection-range>
     fn set_range(
         &self,
         start: Option<u32>,

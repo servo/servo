@@ -47,7 +47,7 @@ impl GPU {
 }
 
 impl GPUMethods<crate::DomTypeHolder> for GPU {
-    // https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter>
     fn RequestAdapter(
         &self,
         options: &GPURequestAdapterOptions,

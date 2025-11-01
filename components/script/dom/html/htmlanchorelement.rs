@@ -125,12 +125,12 @@ impl VirtualMethods for HTMLAnchorElement {
 }
 
 impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
-    // https://html.spec.whatwg.org/multipage/#dom-a-text
+    /// <https://html.spec.whatwg.org/multipage/#dom-a-text>
     fn Text(&self) -> DOMString {
         self.upcast::<Node>().GetTextContent().unwrap()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-a-text
+    /// <https://html.spec.whatwg.org/multipage/#dom-a-text>
     fn SetText(&self, value: DOMString, can_gc: CanGc) {
         self.upcast::<Node>()
             .set_text_content_for_element(Some(value), can_gc)
@@ -139,13 +139,13 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     // https://html.spec.whatwg.org/multipage/#dom-a-rel
     make_getter!(Rel, "rel");
 
-    // https://html.spec.whatwg.org/multipage/#dom-a-rel
+    /// <https://html.spec.whatwg.org/multipage/#dom-a-rel>
     fn SetRel(&self, rel: DOMString, can_gc: CanGc) {
         self.upcast::<Element>()
             .set_tokenlist_attribute(&local_name!("rel"), rel, can_gc);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-a-rellist
+    /// <https://html.spec.whatwg.org/multipage/#dom-a-rellist>
     fn RelList(&self, can_gc: CanGc) -> DomRoot<DOMTokenList> {
         self.rel_list.or_init(|| {
             DOMTokenList::new(
@@ -296,7 +296,7 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
         self.set_username(value, can_gc);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-a-referrerpolicy
+    /// <https://html.spec.whatwg.org/multipage/#dom-a-referrerpolicy>
     fn ReferrerPolicy(&self) -> DOMString {
         reflect_referrer_policy_attribute(self.upcast::<Element>())
     }
@@ -319,7 +319,7 @@ impl Activatable for HTMLAnchorElement {
         self.as_element().has_attribute(&local_name!("href"))
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-a-element:activation-behaviour
+    /// <https://html.spec.whatwg.org/multipage/#the-a-element:activation-behaviour>
     fn activation_behavior(&self, event: &Event, target: &EventTarget, _: CanGc) {
         let element = self.as_element();
         let mouse_event = event.downcast::<MouseEvent>().unwrap();

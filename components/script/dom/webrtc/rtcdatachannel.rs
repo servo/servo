@@ -308,41 +308,41 @@ impl RTCDataChannelMethods<crate::DomTypeHolder> for RTCDataChannel {
     // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-onmessage
     event_handler!(message, GetOnmessage, SetOnmessage);
 
-    // https://www.w3.org/TR/webrtc/#dom-datachannel-label
+    /// <https://www.w3.org/TR/webrtc/#dom-datachannel-label>
     fn Label(&self) -> USVString {
         self.label.clone()
     }
-    // https://www.w3.org/TR/webrtc/#dom-datachannel-ordered
+    /// <https://www.w3.org/TR/webrtc/#dom-datachannel-ordered>
     fn Ordered(&self) -> bool {
         self.ordered
     }
 
-    // https://www.w3.org/TR/webrtc/#dom-datachannel-maxpacketlifetime
+    /// <https://www.w3.org/TR/webrtc/#dom-datachannel-maxpacketlifetime>
     fn GetMaxPacketLifeTime(&self) -> Option<u16> {
         self.max_packet_life_time
     }
 
-    // https://www.w3.org/TR/webrtc/#dom-datachannel-maxretransmits
+    /// <https://www.w3.org/TR/webrtc/#dom-datachannel-maxretransmits>
     fn GetMaxRetransmits(&self) -> Option<u16> {
         self.max_retransmits
     }
 
-    // https://www.w3.org/TR/webrtc/#dom-datachannel-protocol
+    /// <https://www.w3.org/TR/webrtc/#dom-datachannel-protocol>
     fn Protocol(&self) -> USVString {
         self.protocol.clone()
     }
 
-    // https://www.w3.org/TR/webrtc/#dom-datachannel-negotiated
+    /// <https://www.w3.org/TR/webrtc/#dom-datachannel-negotiated>
     fn Negotiated(&self) -> bool {
         self.negotiated
     }
 
-    // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-id
+    /// <https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-id>
     fn GetId(&self) -> Option<u16> {
         self.id
     }
 
-    // https://www.w3.org/TR/webrtc/#dom-datachannel-readystate
+    /// <https://www.w3.org/TR/webrtc/#dom-datachannel-readystate>
     fn ReadyState(&self) -> RTCDataChannelState {
         self.ready_state.get()
     }
@@ -354,7 +354,7 @@ impl RTCDataChannelMethods<crate::DomTypeHolder> for RTCDataChannel {
     //    fn BufferedAmountLowThreshold(&self) -> u32;
     //    fn SetBufferedAmountLowThreshold(&self, value: u32) -> ();
 
-    // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-close
+    /// <https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-close>
     fn Close(&self) {
         let controller = self.peer_connection.get_webrtc_controller().borrow();
         controller
@@ -363,12 +363,12 @@ impl RTCDataChannelMethods<crate::DomTypeHolder> for RTCDataChannel {
             .close_data_channel(&self.get_servo_media_id());
     }
 
-    // https://www.w3.org/TR/webrtc/#dom-datachannel-binarytype
+    /// <https://www.w3.org/TR/webrtc/#dom-datachannel-binarytype>
     fn BinaryType(&self) -> DOMString {
         self.binary_type.borrow().clone()
     }
 
-    // https://www.w3.org/TR/webrtc/#dom-datachannel-binarytype
+    /// <https://www.w3.org/TR/webrtc/#dom-datachannel-binarytype>
     fn SetBinaryType(&self, value: DOMString) -> Fallible<()> {
         if value != "blob" || value != "arraybuffer" {
             return Err(Error::Syntax(None));
@@ -377,22 +377,22 @@ impl RTCDataChannelMethods<crate::DomTypeHolder> for RTCDataChannel {
         Ok(())
     }
 
-    // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-send
+    /// <https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-send>
     fn Send(&self, data: USVString) -> Fallible<()> {
         self.send(&SendSource::String(&data))
     }
 
-    // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-send!overload-1
+    /// <https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-send!overload-1>
     fn Send_(&self, data: &Blob) -> Fallible<()> {
         self.send(&SendSource::Blob(data))
     }
 
-    // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-send!overload-2
+    /// <https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-send!overload-2>
     fn Send__(&self, data: CustomAutoRooterGuard<ArrayBuffer>) -> Fallible<()> {
         self.send(&SendSource::ArrayBuffer(data))
     }
 
-    // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-send!overload-3
+    /// <https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-send!overload-3>
     fn Send___(&self, data: CustomAutoRooterGuard<ArrayBufferView>) -> Fallible<()> {
         self.send(&SendSource::ArrayBufferView(data))
     }

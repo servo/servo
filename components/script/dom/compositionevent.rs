@@ -83,7 +83,7 @@ impl CompositionEvent {
 }
 
 impl CompositionEventMethods<crate::DomTypeHolder> for CompositionEvent {
-    // https://w3c.github.io/uievents/#dom-compositionevent-compositionevent
+    /// <https://w3c.github.io/uievents/#dom-compositionevent-compositionevent>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -105,12 +105,12 @@ impl CompositionEventMethods<crate::DomTypeHolder> for CompositionEvent {
         Ok(event)
     }
 
-    // https://w3c.github.io/uievents/#dom-compositionevent-data
+    /// <https://w3c.github.io/uievents/#dom-compositionevent-data>
     fn Data(&self) -> DOMString {
         self.data.clone()
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.uievent.IsTrusted()
     }

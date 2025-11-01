@@ -131,51 +131,51 @@ impl MutationRecord {
 }
 
 impl MutationRecordMethods<crate::DomTypeHolder> for MutationRecord {
-    // https://dom.spec.whatwg.org/#dom-mutationrecord-type
+    /// <https://dom.spec.whatwg.org/#dom-mutationrecord-type>
     fn Type(&self) -> DOMString {
         self.record_type.clone()
     }
 
-    // https://dom.spec.whatwg.org/#dom-mutationrecord-target
+    /// <https://dom.spec.whatwg.org/#dom-mutationrecord-target>
     fn Target(&self) -> DomRoot<Node> {
         DomRoot::from_ref(&*self.target)
     }
 
-    // https://dom.spec.whatwg.org/#dom-mutationrecord-attributename
+    /// <https://dom.spec.whatwg.org/#dom-mutationrecord-attributename>
     fn GetAttributeName(&self) -> Option<DOMString> {
         self.attribute_name.clone()
     }
 
-    // https://dom.spec.whatwg.org/#dom-mutationrecord-attributenamespace
+    /// <https://dom.spec.whatwg.org/#dom-mutationrecord-attributenamespace>
     fn GetAttributeNamespace(&self) -> Option<DOMString> {
         self.attribute_namespace.clone()
     }
 
-    // https://dom.spec.whatwg.org/#dom-mutationrecord-oldvalue
+    /// <https://dom.spec.whatwg.org/#dom-mutationrecord-oldvalue>
     fn GetOldValue(&self) -> Option<DOMString> {
         self.old_value.clone()
     }
 
-    // https://dom.spec.whatwg.org/#dom-mutationrecord-addednodes
+    /// <https://dom.spec.whatwg.org/#dom-mutationrecord-addednodes>
     fn AddedNodes(&self) -> DomRoot<NodeList> {
         self.added_nodes
             .or_init(|| NodeList::empty(&self.target.owner_window(), CanGc::note()))
     }
 
-    // https://dom.spec.whatwg.org/#dom-mutationrecord-removednodes
+    /// <https://dom.spec.whatwg.org/#dom-mutationrecord-removednodes>
     fn RemovedNodes(&self) -> DomRoot<NodeList> {
         self.removed_nodes
             .or_init(|| NodeList::empty(&self.target.owner_window(), CanGc::note()))
     }
 
-    // https://dom.spec.whatwg.org/#dom-mutationrecord-previoussibling
+    /// <https://dom.spec.whatwg.org/#dom-mutationrecord-previoussibling>
     fn GetPreviousSibling(&self) -> Option<DomRoot<Node>> {
         self.prev_sibling
             .as_ref()
             .map(|node| DomRoot::from_ref(&**node))
     }
 
-    // https://dom.spec.whatwg.org/#dom-mutationrecord-previoussibling
+    /// <https://dom.spec.whatwg.org/#dom-mutationrecord-previoussibling>
     fn GetNextSibling(&self) -> Option<DomRoot<Node>> {
         self.next_sibling
             .as_ref()

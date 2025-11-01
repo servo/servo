@@ -104,7 +104,7 @@ impl SpecificCSSRule for CSSStyleRule {
 }
 
 impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
-    // https://drafts.csswg.org/cssom/#dom-cssstylerule-style
+    /// <https://drafts.csswg.org/cssom/#dom-cssstylerule-style>
     fn Style(&self, can_gc: CanGc) -> DomRoot<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
             let guard = self.cssgroupingrule.shared_lock().read();
@@ -121,7 +121,7 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
         })
     }
 
-    // https://drafts.csswg.org/cssom/#dom-cssstylerule-selectortext
+    /// <https://drafts.csswg.org/cssom/#dom-cssstylerule-selectortext>
     fn SelectorText(&self) -> DOMString {
         let guard = self.cssgroupingrule.shared_lock().read();
         DOMString::from_string(
@@ -133,7 +133,7 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
         )
     }
 
-    // https://drafts.csswg.org/cssom/#dom-cssstylerule-selectortext
+    /// <https://drafts.csswg.org/cssom/#dom-cssstylerule-selectortext>
     fn SetSelectorText(&self, value: DOMString) {
         let value = value.str();
         let Ok(mut selector) = ({

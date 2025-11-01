@@ -71,22 +71,22 @@ impl BluetoothRemoteGATTService {
 }
 
 impl BluetoothRemoteGATTServiceMethods<crate::DomTypeHolder> for BluetoothRemoteGATTService {
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-device
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-device>
     fn Device(&self) -> DomRoot<BluetoothDevice> {
         DomRoot::from_ref(&self.device)
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-isprimary
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-isprimary>
     fn IsPrimary(&self) -> bool {
         self.is_primary
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-uuid
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-uuid>
     fn Uuid(&self) -> DOMString {
         self.uuid.clone()
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getcharacteristic
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getcharacteristic>
     fn GetCharacteristic(
         &self,
         characteristic: BluetoothCharacteristicUUID,
@@ -104,7 +104,7 @@ impl BluetoothRemoteGATTServiceMethods<crate::DomTypeHolder> for BluetoothRemote
         )
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getcharacteristics
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getcharacteristics>
     fn GetCharacteristics(
         &self,
         characteristic: Option<BluetoothCharacteristicUUID>,
@@ -122,7 +122,7 @@ impl BluetoothRemoteGATTServiceMethods<crate::DomTypeHolder> for BluetoothRemote
         )
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getincludedservice
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getincludedservice>
     fn GetIncludedService(&self, service: BluetoothServiceUUID, can_gc: CanGc) -> Rc<Promise> {
         get_gatt_children(
             self,
@@ -136,7 +136,7 @@ impl BluetoothRemoteGATTServiceMethods<crate::DomTypeHolder> for BluetoothRemote
         )
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getincludedservices
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getincludedservices>
     fn GetIncludedServices(
         &self,
         service: Option<BluetoothServiceUUID>,

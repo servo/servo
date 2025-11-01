@@ -68,7 +68,7 @@ impl ExtendableEvent {
 }
 
 impl ExtendableEventMethods<crate::DomTypeHolder> for ExtendableEvent {
-    // https://w3c.github.io/ServiceWorker/#dom-extendableevent-extendableevent
+    /// <https://w3c.github.io/ServiceWorker/#dom-extendableevent-extendableevent>
     fn Constructor(
         worker: &ServiceWorkerGlobalScope,
         proto: Option<HandleObject>,
@@ -86,7 +86,7 @@ impl ExtendableEventMethods<crate::DomTypeHolder> for ExtendableEvent {
         ))
     }
 
-    // https://w3c.github.io/ServiceWorker/#wait-until-method
+    /// <https://w3c.github.io/ServiceWorker/#wait-until-method>
     fn WaitUntil(&self, _cx: JSContext, _val: HandleValue) -> ErrorResult {
         // Step 1
         if !self.extensions_allowed {
@@ -97,7 +97,7 @@ impl ExtendableEventMethods<crate::DomTypeHolder> for ExtendableEvent {
         Ok(())
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

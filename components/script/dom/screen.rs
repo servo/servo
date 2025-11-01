@@ -45,32 +45,32 @@ impl Screen {
 }
 
 impl ScreenMethods<crate::DomTypeHolder> for Screen {
-    // https://drafts.csswg.org/cssom-view/#dom-screen-availwidth
+    /// <https://drafts.csswg.org/cssom-view/#dom-screen-availwidth>
     fn AvailWidth(&self) -> Finite<f64> {
         Finite::wrap(self.screen_metrics().available_size.width as f64)
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-screen-availheight
+    /// <https://drafts.csswg.org/cssom-view/#dom-screen-availheight>
     fn AvailHeight(&self) -> Finite<f64> {
         Finite::wrap(self.screen_metrics().available_size.height as f64)
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-screen-width
+    /// <https://drafts.csswg.org/cssom-view/#dom-screen-width>
     fn Width(&self) -> Finite<f64> {
         Finite::wrap(self.screen_metrics().screen_size.width as f64)
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-screen-height
+    /// <https://drafts.csswg.org/cssom-view/#dom-screen-height>
     fn Height(&self) -> Finite<f64> {
         Finite::wrap(self.screen_metrics().screen_size.height as f64)
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-screen-colordepth
+    /// <https://drafts.csswg.org/cssom-view/#dom-screen-colordepth>
     fn ColorDepth(&self) -> u32 {
         24
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-screen-pixeldepth
+    /// <https://drafts.csswg.org/cssom-view/#dom-screen-pixeldepth>
     fn PixelDepth(&self) -> u32 {
         24
     }

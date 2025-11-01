@@ -65,7 +65,7 @@ impl RTCError {
 }
 
 impl RTCErrorMethods<crate::DomTypeHolder> for RTCError {
-    // https://www.w3.org/TR/webrtc/#dom-rtcerror-constructor
+    /// <https://www.w3.org/TR/webrtc/#dom-rtcerror-constructor>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -76,32 +76,32 @@ impl RTCErrorMethods<crate::DomTypeHolder> for RTCError {
         RTCError::new_with_proto(window, proto, init, message, can_gc)
     }
 
-    // https://www.w3.org/TR/webrtc/#dom-rtcerror-errordetail
+    /// <https://www.w3.org/TR/webrtc/#dom-rtcerror-errordetail>
     fn ErrorDetail(&self) -> RTCErrorDetailType {
         self.error_detail
     }
 
-    // https://www.w3.org/TR/webrtc/#dom-rtcerror-sdplinenumber
+    /// <https://www.w3.org/TR/webrtc/#dom-rtcerror-sdplinenumber>
     fn GetSdpLineNumber(&self) -> Option<i32> {
         self.sdp_line_number
     }
 
-    // https://www.w3.org/TR/webrtc/#dom-rtcerror
+    /// <https://www.w3.org/TR/webrtc/#dom-rtcerror>
     fn GetHttpRequestStatusCode(&self) -> Option<i32> {
         self.http_request_status_code
     }
 
-    // https://www.w3.org/TR/webrtc/#dom-rtcerror-sctpcausecode
+    /// <https://www.w3.org/TR/webrtc/#dom-rtcerror-sctpcausecode>
     fn GetSctpCauseCode(&self) -> Option<i32> {
         self.sctp_cause_code
     }
 
-    // https://www.w3.org/TR/webrtc/#dom-rtcerror-receivedalert
+    /// <https://www.w3.org/TR/webrtc/#dom-rtcerror-receivedalert>
     fn GetReceivedAlert(&self) -> Option<u32> {
         self.received_alert
     }
 
-    // https://www.w3.org/TR/webrtc/#dom-rtcerror-sentalert
+    /// <https://www.w3.org/TR/webrtc/#dom-rtcerror-sentalert>
     fn GetSentAlert(&self) -> Option<u32> {
         self.sent_alert
     }

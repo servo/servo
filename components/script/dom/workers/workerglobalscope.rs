@@ -613,12 +613,12 @@ impl WorkerGlobalScope {
 }
 
 impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
-    // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-self
+    /// <https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-self>
     fn Self_(&self) -> DomRoot<WorkerGlobalScope> {
         DomRoot::from_ref(self)
     }
 
-    // https://w3c.github.io/IndexedDB/#factory-interface
+    /// <https://w3c.github.io/IndexedDB/#factory-interface>
     fn IndexedDB(&self) -> DomRoot<IDBFactory> {
         self.indexeddb.or_init(|| {
             let global_scope = self.upcast::<GlobalScope>();
@@ -626,13 +626,13 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         })
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-location
+    /// <https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-location>
     fn Location(&self) -> DomRoot<WorkerLocation> {
         self.location
             .or_init(|| WorkerLocation::new(self, self.worker_url.borrow().clone(), CanGc::note()))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-importscripts
+    /// <https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-importscripts>
     fn ImportScripts(
         &self,
         url_strings: Vec<TrustedScriptURLOrUSVString>,
@@ -777,28 +777,28 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         SetOnunhandledrejection
     );
 
-    // https://html.spec.whatwg.org/multipage/#dom-worker-navigator
+    /// <https://html.spec.whatwg.org/multipage/#dom-worker-navigator>
     fn Navigator(&self) -> DomRoot<WorkerNavigator> {
         self.navigator
             .or_init(|| WorkerNavigator::new(self, CanGc::note()))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dfn-Crypto
+    /// <https://html.spec.whatwg.org/multipage/#dfn-Crypto>
     fn Crypto(&self) -> DomRoot<Crypto> {
         self.upcast::<GlobalScope>().crypto(CanGc::note())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-windowbase64-btoa
+    /// <https://html.spec.whatwg.org/multipage/#dom-windowbase64-btoa>
     fn Btoa(&self, btoa: DOMString) -> Fallible<DOMString> {
         base64_btoa(btoa)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-windowbase64-atob
+    /// <https://html.spec.whatwg.org/multipage/#dom-windowbase64-atob>
     fn Atob(&self, atob: DOMString) -> Fallible<DOMString> {
         base64_atob(atob)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
+    /// <https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout>
     fn SetTimeout(
         &self,
         _cx: JSContext,
@@ -825,13 +825,13 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         )
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-cleartimeout
+    /// <https://html.spec.whatwg.org/multipage/#dom-windowtimers-cleartimeout>
     fn ClearTimeout(&self, handle: i32) {
         self.upcast::<GlobalScope>()
             .clear_timeout_or_interval(handle);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
+    /// <https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval>
     fn SetInterval(
         &self,
         _cx: JSContext,
@@ -858,12 +858,12 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         )
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
+    /// <https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval>
     fn ClearInterval(&self, handle: i32) {
         self.ClearTimeout(handle);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-queuemicrotask
+    /// <https://html.spec.whatwg.org/multipage/#dom-queuemicrotask>
     fn QueueMicrotask(&self, callback: Rc<VoidFunction>) {
         self.upcast::<GlobalScope>()
             .queue_function_as_microtask(callback);
@@ -914,7 +914,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         Fetch(self.upcast(), input, init, comp, can_gc)
     }
 
-    // https://w3c.github.io/hr-time/#the-performance-attribute
+    /// <https://w3c.github.io/hr-time/#the-performance-attribute>
     fn Performance(&self) -> DomRoot<Performance> {
         self.performance.or_init(|| {
             let global_scope = self.upcast::<GlobalScope>();
@@ -922,7 +922,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         })
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-origin
+    /// <https://html.spec.whatwg.org/multipage/#dom-origin>
     fn Origin(&self) -> USVString {
         USVString(
             self.upcast::<GlobalScope>()
@@ -932,7 +932,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         )
     }
 
-    // https://w3c.github.io/webappsec-secure-contexts/#dom-windoworworkerglobalscope-issecurecontext
+    /// <https://w3c.github.io/webappsec-secure-contexts/#dom-windoworworkerglobalscope-issecurecontext>
     fn IsSecureContext(&self) -> bool {
         self.upcast::<GlobalScope>().is_secure_context()
     }

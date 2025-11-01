@@ -41,31 +41,31 @@ impl IDBKeyRange {
 }
 
 impl IDBKeyRangeMethods<crate::DomTypeHolder> for IDBKeyRange {
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbkeyrange-lower
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbkeyrange-lower>
     fn Lower(&self, cx: SafeJSContext, can_gc: CanGc, answer: MutableHandleValue) {
         if let Some(lower) = self.inner.lower.as_ref() {
             key_type_to_jsval(cx, lower, answer, can_gc);
         }
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbkeyrange-upper
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbkeyrange-upper>
     fn Upper(&self, cx: SafeJSContext, can_gc: CanGc, answer: MutableHandleValue) {
         if let Some(upper) = self.inner.upper.as_ref() {
             key_type_to_jsval(cx, upper, answer, can_gc);
         }
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbkeyrange-loweropen
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbkeyrange-loweropen>
     fn LowerOpen(&self) -> bool {
         self.inner.lower_open
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbkeyrange-upperopen
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbkeyrange-upperopen>
     fn UpperOpen(&self) -> bool {
         self.inner.upper_open
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbkeyrange-only
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbkeyrange-only>
     fn Only(
         cx: SafeJSContext,
         global: &GlobalScope,
@@ -76,7 +76,7 @@ impl IDBKeyRangeMethods<crate::DomTypeHolder> for IDBKeyRange {
         Ok(IDBKeyRange::new(global, inner, CanGc::note()))
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbkeyrange-lowerbound
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbkeyrange-lowerbound>
     fn LowerBound(
         cx: SafeJSContext,
         global: &GlobalScope,
@@ -88,7 +88,7 @@ impl IDBKeyRangeMethods<crate::DomTypeHolder> for IDBKeyRange {
         Ok(IDBKeyRange::new(global, inner, CanGc::note()))
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbkeyrange-upperbound
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbkeyrange-upperbound>
     fn UpperBound(
         cx: SafeJSContext,
         global: &GlobalScope,
@@ -100,7 +100,7 @@ impl IDBKeyRangeMethods<crate::DomTypeHolder> for IDBKeyRange {
         Ok(IDBKeyRange::new(global, inner, CanGc::note()))
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbkeyrange-bound
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbkeyrange-bound>
     fn Bound(
         cx: SafeJSContext,
         global: &GlobalScope,
@@ -132,7 +132,7 @@ impl IDBKeyRangeMethods<crate::DomTypeHolder> for IDBKeyRange {
         Ok(IDBKeyRange::new(global, inner, CanGc::note()))
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbkeyrange-_includes
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbkeyrange-_includes>
     fn Includes(&self, cx: SafeJSContext, value: HandleValue) -> Fallible<bool> {
         let key = convert_value_to_key(cx, value, None)?.into_result()?;
         if self.inner.contains(&key) {

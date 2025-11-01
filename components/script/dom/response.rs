@@ -135,12 +135,12 @@ impl BodyMixin for Response {
     }
 }
 
-// https://fetch.spec.whatwg.org/#redirect-status
+/// <https://fetch.spec.whatwg.org/#redirect-status>
 fn is_redirect_status(status: u16) -> bool {
     status == 301 || status == 302 || status == 303 || status == 307 || status == 308
 }
 
-// https://tools.ietf.org/html/rfc7230#section-3.1.2
+/// <https://tools.ietf.org/html/rfc7230#section-3.1.2>
 fn is_valid_status_text(status_text: &ByteString) -> bool {
     // reason-phrase  = *( HTAB / SP / VCHAR / obs-text )
     for byte in status_text.iter() {
@@ -151,7 +151,7 @@ fn is_valid_status_text(status_text: &ByteString) -> bool {
     true
 }
 
-// https://fetch.spec.whatwg.org/#null-body-status
+/// <https://fetch.spec.whatwg.org/#null-body-status>
 fn is_null_body_status(status: u16) -> bool {
     status == 101 || status == 204 || status == 205 || status == 304
 }

@@ -86,7 +86,7 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
     // https://html.spec.whatwg.org/multipage/#dom-tr-bgcolor
     make_legacy_color_setter!(SetBgColor, "bgcolor");
 
-    // https://html.spec.whatwg.org/multipage/#dom-tr-cells
+    /// <https://html.spec.whatwg.org/multipage/#dom-tr-cells>
     fn Cells(&self) -> DomRoot<HTMLCollection> {
         self.cells.or_init(|| {
             HTMLCollection::new_with_filter_fn(
@@ -101,7 +101,7 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
         })
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-tr-insertcell
+    /// <https://html.spec.whatwg.org/multipage/#dom-tr-insertcell>
     fn InsertCell(&self, index: i32, can_gc: CanGc) -> Fallible<DomRoot<HTMLElement>> {
         let node = self.upcast::<Node>();
         node.insert_cell_or_row(
@@ -123,7 +123,7 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
         )
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-tr-deletecell
+    /// <https://html.spec.whatwg.org/multipage/#dom-tr-deletecell>
     fn DeleteCell(&self, index: i32) -> ErrorResult {
         let node = self.upcast::<Node>();
         node.delete_cell_or_row(
@@ -134,7 +134,7 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
         )
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-tr-rowindex
+    /// <https://html.spec.whatwg.org/multipage/#dom-tr-rowindex>
     fn RowIndex(&self) -> i32 {
         let parent = match self.upcast::<Node>().GetParentNode() {
             Some(parent) => parent,
@@ -155,7 +155,7 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
             .map_or(-1, |table| self.row_index(table.Rows()))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-tr-sectionrowindex
+    /// <https://html.spec.whatwg.org/multipage/#dom-tr-sectionrowindex>
     fn SectionRowIndex(&self) -> i32 {
         let parent = match self.upcast::<Node>().GetParentNode() {
             Some(parent) => parent,

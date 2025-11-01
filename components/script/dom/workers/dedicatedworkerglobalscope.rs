@@ -681,7 +681,7 @@ impl DedicatedWorkerGlobalScope {
             .unwrap();
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
+    /// <https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage>
     fn post_message_impl(
         &self,
         cx: SafeJSContext,
@@ -779,7 +779,7 @@ impl DedicatedWorkerGlobalScopeMethods<crate::DomTypeHolder> for DedicatedWorker
         self.post_message_impl(cx, message, guard)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-close
+    /// <https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-close>
     fn Close(&self) {
         // Step 2
         self.upcast::<WorkerGlobalScope>().close();

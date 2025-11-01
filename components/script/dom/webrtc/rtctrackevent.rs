@@ -68,7 +68,7 @@ impl RTCTrackEvent {
 }
 
 impl RTCTrackEventMethods<crate::DomTypeHolder> for RTCTrackEvent {
-    // https://w3c.github.io/webrtc-pc/#dom-rtctrackevent-constructor
+    /// <https://w3c.github.io/webrtc-pc/#dom-rtctrackevent-constructor>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -87,12 +87,12 @@ impl RTCTrackEventMethods<crate::DomTypeHolder> for RTCTrackEvent {
         ))
     }
 
-    // https://w3c.github.io/webrtc-pc/#dom-rtctrackevent-track
+    /// <https://w3c.github.io/webrtc-pc/#dom-rtctrackevent-track>
     fn Track(&self) -> DomRoot<MediaStreamTrack> {
         DomRoot::from_ref(&*self.track)
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

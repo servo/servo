@@ -723,7 +723,7 @@ impl ServoParser {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-end
+    /// <https://html.spec.whatwg.org/multipage/#the-end>
     fn finish(&self, can_gc: CanGc) {
         assert!(!self.suspended.get());
         assert!(self.last_chunk_received.get());

@@ -68,7 +68,7 @@ impl XRSessionEvent {
 }
 
 impl XRSessionEventMethods<crate::DomTypeHolder> for XRSessionEvent {
-    // https://immersive-web.github.io/webxr/#dom-xrsessionevent-xrsessionevent
+    /// <https://immersive-web.github.io/webxr/#dom-xrsessionevent-xrsessionevent>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -87,12 +87,12 @@ impl XRSessionEventMethods<crate::DomTypeHolder> for XRSessionEvent {
         ))
     }
 
-    // https://immersive-web.github.io/webxr/#dom-xrsessioneventinit-session
+    /// <https://immersive-web.github.io/webxr/#dom-xrsessioneventinit-session>
     fn Session(&self) -> DomRoot<XRSession> {
         DomRoot::from_ref(&*self.session)
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

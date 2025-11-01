@@ -583,22 +583,22 @@ const DESCRIPTOR_ERROR_MESSAGE: &str = "https://developer.bluetooth.org/gatt/des
      DescriptorsHomePage.aspx\ne.g. 'gatt.characteristic_presentation_format'.";
 
 impl BluetoothUUIDMethods<crate::DomTypeHolder> for BluetoothUUID {
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-canonicaluuid
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-canonicaluuid>
     fn CanonicalUUID(_: &Window, alias: u32) -> UUID {
         canonical_uuid(alias)
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-getservice
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-getservice>
     fn GetService(_: &Window, name: BluetoothServiceUUID) -> Fallible<UUID> {
         Self::service(name)
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-getcharacteristic
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-getcharacteristic>
     fn GetCharacteristic(_: &Window, name: BluetoothCharacteristicUUID) -> Fallible<UUID> {
         Self::characteristic(name)
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-getdescriptor
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-getdescriptor>
     fn GetDescriptor(_: &Window, name: BluetoothDescriptorUUID) -> Fallible<UUID> {
         Self::descriptor(name)
     }
@@ -626,7 +626,7 @@ fn canonical_uuid(alias: u32) -> UUID {
     UUID::from(format!("{:08x}", &alias) + BASE_UUID)
 }
 
-// https://webbluetoothcg.github.io/web-bluetooth/#resolveuuidname
+/// <https://webbluetoothcg.github.io/web-bluetooth/#resolveuuidname>
 fn resolve_uuid_name(
     name: StringOrUnsignedLong,
     assigned_numbers_table: &'static [(&'static str, u32)],

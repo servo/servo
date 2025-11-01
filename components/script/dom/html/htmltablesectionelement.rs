@@ -65,7 +65,7 @@ impl HTMLTableSectionElement {
 }
 
 impl HTMLTableSectionElementMethods<crate::DomTypeHolder> for HTMLTableSectionElement {
-    // https://html.spec.whatwg.org/multipage/#dom-tbody-rows
+    /// <https://html.spec.whatwg.org/multipage/#dom-tbody-rows>
     fn Rows(&self) -> DomRoot<HTMLCollection> {
         HTMLCollection::new_with_filter_fn(
             &self.owner_window(),
@@ -78,7 +78,7 @@ impl HTMLTableSectionElementMethods<crate::DomTypeHolder> for HTMLTableSectionEl
         )
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-tbody-insertrow
+    /// <https://html.spec.whatwg.org/multipage/#dom-tbody-insertrow>
     fn InsertRow(&self, index: i32, can_gc: CanGc) -> Fallible<DomRoot<HTMLElement>> {
         let node = self.upcast::<Node>();
         node.insert_cell_or_row(
@@ -100,7 +100,7 @@ impl HTMLTableSectionElementMethods<crate::DomTypeHolder> for HTMLTableSectionEl
         )
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-tbody-deleterow
+    /// <https://html.spec.whatwg.org/multipage/#dom-tbody-deleterow>
     fn DeleteRow(&self, index: i32) -> ErrorResult {
         let node = self.upcast::<Node>();
         node.delete_cell_or_row(

@@ -161,7 +161,7 @@ impl XRInputSourceMethods<crate::DomTypeHolder> for XRInputSource {
             None
         }
     }
-    // https://immersive-web.github.io/webxr/#dom-xrinputsource-profiles
+    /// <https://immersive-web.github.io/webxr/#dom-xrinputsource-profiles>
     fn Profiles(&self, _cx: JSContext, mut retval: MutableHandleValue) {
         retval.set(self.profiles.get())
     }
@@ -178,7 +178,7 @@ impl XRInputSourceMethods<crate::DomTypeHolder> for XRInputSource {
         Some(DomRoot::from_ref(&*self.gamepad))
     }
 
-    // https://github.com/immersive-web/webxr-hands-input/blob/master/explainer.md
+    /// <https://github.com/immersive-web/webxr-hands-input/blob/master/explainer.md>
     fn GetHand(&self) -> Option<DomRoot<XRHand>> {
         self.info.hand_support.as_ref().map(|hand| {
             self.hand

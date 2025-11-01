@@ -245,12 +245,12 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     // https://html.spec.whatwg.org/multipage/#dom-fs-enctype
     make_setter!(SetEnctype, "enctype");
 
-    // https://html.spec.whatwg.org/multipage/#dom-fs-encoding
+    /// <https://html.spec.whatwg.org/multipage/#dom-fs-encoding>
     fn Encoding(&self) -> DOMString {
         self.Enctype()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-fs-encoding
+    /// <https://html.spec.whatwg.org/multipage/#dom-fs-encoding>
     fn SetEncoding(&self, value: DOMString) {
         self.SetEnctype(value)
     }
@@ -288,7 +288,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     // https://html.spec.whatwg.org/multipage/#dom-a-rel
     make_getter!(Rel, "rel");
 
-    // https://html.spec.whatwg.org/multipage/#the-form-element:concept-form-submit
+    /// <https://html.spec.whatwg.org/multipage/#the-form-element:concept-form-submit>
     fn Submit(&self, can_gc: CanGc) {
         self.submit(
             SubmittedFrom::FromForm,
@@ -297,7 +297,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
         );
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-form-requestsubmit
+    /// <https://html.spec.whatwg.org/multipage/#dom-form-requestsubmit>
     fn RequestSubmit(&self, submitter: Option<&HTMLElement>, can_gc: CanGc) -> Fallible<()> {
         let submitter: FormSubmitterElement = match submitter {
             Some(submitter_element) => {
@@ -358,12 +358,12 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-form-reset
+    /// <https://html.spec.whatwg.org/multipage/#dom-form-reset>
     fn Reset(&self, can_gc: CanGc) {
         self.reset(ResetFrom::FromForm, can_gc);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-form-elements
+    /// <https://html.spec.whatwg.org/multipage/#dom-form-elements>
     fn Elements(&self, can_gc: CanGc) -> DomRoot<HTMLFormControlsCollection> {
         #[derive(JSTraceable, MallocSizeOf)]
         struct ElementsFilter {
@@ -431,18 +431,18 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
         }))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-form-length
+    /// <https://html.spec.whatwg.org/multipage/#dom-form-length>
     fn Length(&self) -> u32 {
         self.Elements(CanGc::note()).Length()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-form-item
+    /// <https://html.spec.whatwg.org/multipage/#dom-form-item>
     fn IndexedGetter(&self, index: u32, can_gc: CanGc) -> Option<DomRoot<Element>> {
         let elements = self.Elements(can_gc);
         elements.IndexedGetter(index)
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-form-element%3Adetermine-the-value-of-a-named-property
+    /// <https://html.spec.whatwg.org/multipage/#the-form-element%3Adetermine-the-value-of-a-named-property>
     fn NamedGetter(&self, name: DOMString, can_gc: CanGc) -> Option<RadioNodeListOrElement> {
         let window = self.owner_window();
 
@@ -495,13 +495,13 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
         )))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-a-rel
+    /// <https://html.spec.whatwg.org/multipage/#dom-a-rel>
     fn SetRel(&self, rel: DOMString, can_gc: CanGc) {
         self.upcast::<Element>()
             .set_tokenlist_attribute(&local_name!("rel"), rel, can_gc);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-a-rellist
+    /// <https://html.spec.whatwg.org/multipage/#dom-a-rellist>
     fn RelList(&self, can_gc: CanGc) -> DomRoot<DOMTokenList> {
         self.rel_list.or_init(|| {
             DOMTokenList::new(
@@ -673,7 +673,7 @@ pub(crate) enum ResetFrom {
 }
 
 impl HTMLFormElement {
-    // https://html.spec.whatwg.org/multipage/#picking-an-encoding-for-the-form
+    /// <https://html.spec.whatwg.org/multipage/#picking-an-encoding-for-the-form>
     fn pick_encoding(&self) -> &'static Encoding {
         // Step 2
         if self
@@ -698,7 +698,7 @@ impl HTMLFormElement {
         self.owner_document().encoding()
     }
 
-    // https://html.spec.whatwg.org/multipage/#text/plain-encoding-algorithm
+    /// <https://html.spec.whatwg.org/multipage/#text/plain-encoding-algorithm>
     fn encode_plaintext(&self, form_data: &mut [FormDatum]) -> String {
         // Step 1
         let mut result = String::new();
@@ -929,7 +929,7 @@ impl HTMLFormElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#submit-mutate-action
+    /// <https://html.spec.whatwg.org/multipage/#submit-mutate-action>
     fn mutate_action_url(
         &self,
         form_data: &mut [FormDatum],
@@ -949,7 +949,7 @@ impl HTMLFormElement {
         self.plan_to_navigate(load_data, target);
     }
 
-    // https://html.spec.whatwg.org/multipage/#submit-body
+    /// <https://html.spec.whatwg.org/multipage/#submit-body>
     fn submit_entity_body(
         &self,
         form_data: &mut [FormDatum],
@@ -1604,7 +1604,7 @@ pub(crate) trait FormControl: DomObject {
         self.set_form_owner(Some(form));
     }
 
-    // https://html.spec.whatwg.org/multipage/#reset-the-form-owner
+    /// <https://html.spec.whatwg.org/multipage/#reset-the-form-owner>
     fn reset_form_owner(&self, can_gc: CanGc) {
         let elem = self.to_element();
         let node = elem.upcast::<Node>();
@@ -1657,7 +1657,7 @@ pub(crate) trait FormControl: DomObject {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms
+    /// <https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms>
     fn form_attribute_mutated(&self, mutation: AttributeMutation, can_gc: CanGc) {
         match mutation {
             AttributeMutation::Set(_) => {
@@ -1671,7 +1671,7 @@ pub(crate) trait FormControl: DomObject {
         self.reset_form_owner(can_gc);
     }
 
-    // https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms
+    /// <https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms>
     fn register_if_necessary(&self) {
         let elem = self.to_element();
         let form_id = elem.get_string_attribute(&local_name!("form"));
@@ -1693,7 +1693,7 @@ pub(crate) trait FormControl: DomObject {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms
+    /// <https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms>
     fn bind_form_control_to_tree(&self, can_gc: CanGc) {
         let elem = self.to_element();
         let node = elem.upcast::<Node>();
@@ -1710,7 +1710,7 @@ pub(crate) trait FormControl: DomObject {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms
+    /// <https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms>
     fn unbind_form_control_from_tree(&self, can_gc: CanGc) {
         let elem = self.to_element();
         let has_form_attr = elem.has_attribute(&local_name!("form"));

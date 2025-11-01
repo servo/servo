@@ -729,7 +729,7 @@ impl CoreResourceManager {
         });
     }
 
-    // https://websockets.spec.whatwg.org/#concept-websocket-establish
+    /// <https://websockets.spec.whatwg.org/#concept-websocket-establish>
     fn websocket_connect(
         &self,
         mut request: RequestBuilder,

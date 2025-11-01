@@ -35,7 +35,7 @@ struct OpenRequestListener {
 }
 
 impl OpenRequestListener {
-    // https://www.w3.org/TR/IndexedDB-2/#open-a-database
+    /// <https://www.w3.org/TR/IndexedDB-2/#open-a-database>
     fn handle_open_db(
         &self,
         name: String,
@@ -140,7 +140,7 @@ impl IDBOpenDBRequest {
         reflect_dom_object(Box::new(IDBOpenDBRequest::new_inherited()), global, can_gc)
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#run-an-upgrade-transaction
+    /// <https://www.w3.org/TR/IndexedDB-2/#run-an-upgrade-transaction>
     fn upgrade_db_version(&self, connection: &IDBDatabase, version: u64, can_gc: CanGc) {
         let global = self.global();
         // Step 2

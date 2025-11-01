@@ -76,24 +76,24 @@ impl PerformanceEntry {
 }
 
 impl PerformanceEntryMethods<crate::DomTypeHolder> for PerformanceEntry {
-    // https://w3c.github.io/performance-timeline/#dom-performanceentry-name
+    /// <https://w3c.github.io/performance-timeline/#dom-performanceentry-name>
     fn Name(&self) -> DOMString {
         self.name.clone()
     }
 
-    // https://w3c.github.io/performance-timeline/#dom-performanceentry-entrytype
+    /// <https://w3c.github.io/performance-timeline/#dom-performanceentry-entrytype>
     fn EntryType(&self) -> DOMString {
         self.entry_type.clone()
     }
 
-    // https://w3c.github.io/performance-timeline/#dom-performanceentry-starttime
+    /// <https://w3c.github.io/performance-timeline/#dom-performanceentry-starttime>
     fn StartTime(&self) -> DOMHighResTimeStamp {
         self.global()
             .performance()
             .maybe_to_dom_high_res_time_stamp(self.start_time)
     }
 
-    // https://w3c.github.io/performance-timeline/#dom-performanceentry-duration
+    /// <https://w3c.github.io/performance-timeline/#dom-performanceentry-duration>
     fn Duration(&self) -> DOMHighResTimeStamp {
         self.duration.to_dom_high_res_time_stamp()
     }

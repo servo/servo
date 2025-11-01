@@ -135,7 +135,7 @@ impl StorageEvent {
 
 #[allow(non_snake_case)]
 impl StorageEventMethods<crate::DomTypeHolder> for StorageEvent {
-    // https://html.spec.whatwg.org/multipage/#storageevent
+    /// <https://html.spec.whatwg.org/multipage/#storageevent>
     fn Constructor(
         global: &Window,
         proto: Option<HandleObject>,
@@ -166,37 +166,37 @@ impl StorageEventMethods<crate::DomTypeHolder> for StorageEvent {
         Ok(event)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-storageevent-key
+    /// <https://html.spec.whatwg.org/multipage/#dom-storageevent-key>
     fn GetKey(&self) -> Option<DOMString> {
         self.key.borrow().clone()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-storageevent-oldvalue
+    /// <https://html.spec.whatwg.org/multipage/#dom-storageevent-oldvalue>
     fn GetOldValue(&self) -> Option<DOMString> {
         self.old_value.borrow().clone()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-storageevent-newvalue
+    /// <https://html.spec.whatwg.org/multipage/#dom-storageevent-newvalue>
     fn GetNewValue(&self) -> Option<DOMString> {
         self.new_value.borrow().clone()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-storageevent-url
+    /// <https://html.spec.whatwg.org/multipage/#dom-storageevent-url>
     fn Url(&self) -> DOMString {
         self.url.borrow().clone()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-storageevent-storagearea
+    /// <https://html.spec.whatwg.org/multipage/#dom-storageevent-storagearea>
     fn GetStorageArea(&self) -> Option<DomRoot<Storage>> {
         self.storage_area.get()
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-storageevent-initstorageevent
+    /// <https://html.spec.whatwg.org/multipage/#dom-storageevent-initstorageevent>
     fn InitStorageEvent(
         &self,
         type_: DOMString,

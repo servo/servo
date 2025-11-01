@@ -97,7 +97,7 @@ impl XRInputSourcesChangeEvent {
 }
 
 impl XRInputSourcesChangeEventMethods<crate::DomTypeHolder> for XRInputSourcesChangeEvent {
-    // https://immersive-web.github.io/webxr/#dom-xrinputsourceschangeevent-xrinputsourceschangeevent
+    /// <https://immersive-web.github.io/webxr/#dom-xrinputsourceschangeevent-xrinputsourceschangeevent>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -118,22 +118,22 @@ impl XRInputSourcesChangeEventMethods<crate::DomTypeHolder> for XRInputSourcesCh
         )
     }
 
-    // https://immersive-web.github.io/webxr/#dom-xrinputsourceschangeevent-session
+    /// <https://immersive-web.github.io/webxr/#dom-xrinputsourceschangeevent-session>
     fn Session(&self) -> DomRoot<XRSession> {
         DomRoot::from_ref(&*self.session)
     }
 
-    // https://immersive-web.github.io/webxr/#dom-xrinputsourceschangeevent-added
+    /// <https://immersive-web.github.io/webxr/#dom-xrinputsourceschangeevent-added>
     fn Added(&self, _cx: JSContext, mut retval: MutableHandleValue) {
         retval.set(self.added.get())
     }
 
-    // https://immersive-web.github.io/webxr/#dom-xrinputsourceschangeevent-removed
+    /// <https://immersive-web.github.io/webxr/#dom-xrinputsourceschangeevent-removed>
     fn Removed(&self, _cx: JSContext, mut retval: MutableHandleValue) {
         retval.set(self.removed.get())
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

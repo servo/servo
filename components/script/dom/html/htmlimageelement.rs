@@ -1652,12 +1652,12 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     // <https://html.spec.whatwg.org/multipage/#dom-img-sizes>
     make_setter!(SetSizes, "sizes");
 
-    // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
+    /// <https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin>
     fn GetCrossOrigin(&self) -> Option<DOMString> {
         reflect_cross_origin_attribute(self.upcast::<Element>())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
+    /// <https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin>
     fn SetCrossOrigin(&self, value: Option<DOMString>, can_gc: CanGc) {
         set_cross_origin_attribute(self.upcast::<Element>(), value, can_gc);
     }
@@ -1694,7 +1694,7 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     // <https://html.spec.whatwg.org/multipage/#dom-img-height>
     make_dimension_uint_setter!(SetHeight, "height");
 
-    // https://html.spec.whatwg.org/multipage/#dom-img-naturalwidth
+    /// <https://html.spec.whatwg.org/multipage/#dom-img-naturalwidth>
     fn NaturalWidth(&self) -> u32 {
         let request = self.current_request.borrow();
         let pixel_density = request.current_pixel_density.unwrap_or(1f64);
@@ -1705,7 +1705,7 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-img-naturalheight
+    /// <https://html.spec.whatwg.org/multipage/#dom-img-naturalheight>
     fn NaturalHeight(&self) -> u32 {
         let request = self.current_request.borrow();
         let pixel_density = request.current_pixel_density.unwrap_or(1f64);
@@ -1716,7 +1716,7 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-img-complete
+    /// <https://html.spec.whatwg.org/multipage/#dom-img-complete>
     fn Complete(&self) -> bool {
         let elem = self.upcast::<Element>();
         let srcset_absent = !elem.has_attribute(&local_name!("srcset"));
@@ -1735,7 +1735,7 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-img-currentsrc
+    /// <https://html.spec.whatwg.org/multipage/#dom-img-currentsrc>
     fn CurrentSrc(&self) -> USVString {
         let current_request = self.current_request.borrow();
         let url = &current_request.parsed_url;

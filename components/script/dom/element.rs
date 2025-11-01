@@ -564,7 +564,7 @@ impl Element {
         true
     }
 
-    // https://drafts.csswg.org/cssom-view/#scrolling-box
+    /// <https://drafts.csswg.org/cssom-view/#scrolling-box>
     fn has_scrolling_box(&self) -> bool {
         // TODO: scrolling mechanism, such as scrollbar (We don't have scrollbar yet)
         //       self.has_scrolling_mechanism()
@@ -2831,7 +2831,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         self.prefix.borrow().as_ref().map(|p| DOMString::from(&**p))
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-tagname
+    /// <https://dom.spec.whatwg.org/#dom-element-tagname>
     fn TagName(&self) -> DOMString {
         let name = self.tag_name.or_init(|| {
             let qualified_name = match *self.prefix.borrow() {
@@ -2854,22 +2854,22 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         self.get_string_attribute(&local_name!("id"))
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-id
+    /// <https://dom.spec.whatwg.org/#dom-element-id>
     fn SetId(&self, id: DOMString, can_gc: CanGc) {
         self.set_atomic_attribute(&local_name!("id"), id, can_gc);
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-classname
+    /// <https://dom.spec.whatwg.org/#dom-element-classname>
     fn ClassName(&self) -> DOMString {
         self.get_string_attribute(&local_name!("class"))
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-classname
+    /// <https://dom.spec.whatwg.org/#dom-element-classname>
     fn SetClassName(&self, class: DOMString, can_gc: CanGc) {
         self.set_tokenlist_attribute(&local_name!("class"), class, can_gc);
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-classlist
+    /// <https://dom.spec.whatwg.org/#dom-element-classlist>
     fn ClassList(&self, can_gc: CanGc) -> DomRoot<DOMTokenList> {
         self.class_list
             .or_init(|| DOMTokenList::new(self, &local_name!("class"), None, can_gc))
@@ -2881,28 +2881,28 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     // https://dom.spec.whatwg.org/#dom-element-slot
     make_setter!(SetSlot, "slot");
 
-    // https://dom.spec.whatwg.org/#dom-element-attributes
+    /// <https://dom.spec.whatwg.org/#dom-element-attributes>
     fn Attributes(&self, can_gc: CanGc) -> DomRoot<NamedNodeMap> {
         self.attr_list
             .or_init(|| NamedNodeMap::new(&self.owner_window(), self, can_gc))
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-hasattributes
+    /// <https://dom.spec.whatwg.org/#dom-element-hasattributes>
     fn HasAttributes(&self) -> bool {
         !self.attrs.borrow().is_empty()
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-getattributenames
+    /// <https://dom.spec.whatwg.org/#dom-element-getattributenames>
     fn GetAttributeNames(&self) -> Vec<DOMString> {
         self.attrs.borrow().iter().map(|attr| attr.Name()).collect()
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-getattribute
+    /// <https://dom.spec.whatwg.org/#dom-element-getattribute>
     fn GetAttribute(&self, name: DOMString) -> Option<DOMString> {
         self.GetAttributeNode(name).map(|s| s.Value())
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-getattributens
+    /// <https://dom.spec.whatwg.org/#dom-element-getattributens>
     fn GetAttributeNS(
         &self,
         namespace: Option<DOMString>,
@@ -2912,12 +2912,12 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             .map(|attr| attr.Value())
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-getattributenode
+    /// <https://dom.spec.whatwg.org/#dom-element-getattributenode>
     fn GetAttributeNode(&self, name: DOMString) -> Option<DomRoot<Attr>> {
         self.get_attribute_by_name(name)
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-getattributenodens
+    /// <https://dom.spec.whatwg.org/#dom-element-getattributenodens>
     fn GetAttributeNodeNS(
         &self,
         namespace: Option<DOMString>,
@@ -2927,7 +2927,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         self.get_attribute(namespace, &LocalName::from(local_name))
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-toggleattribute
+    /// <https://dom.spec.whatwg.org/#dom-element-toggleattribute>
     fn ToggleAttribute(
         &self,
         name: DOMString,
@@ -3023,7 +3023,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         Ok(())
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-setattributens
+    /// <https://dom.spec.whatwg.org/#dom-element-setattributens>
     fn SetAttributeNS(
         &self,
         namespace: Option<DOMString>,
@@ -3059,23 +3059,23 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         Ok(())
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-setattributenode
+    /// <https://dom.spec.whatwg.org/#dom-element-setattributenode>
     fn SetAttributeNode(&self, attr: &Attr, can_gc: CanGc) -> Fallible<Option<DomRoot<Attr>>> {
         self.set_attribute_node(attr, can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-setattributenodens
+    /// <https://dom.spec.whatwg.org/#dom-element-setattributenodens>
     fn SetAttributeNodeNS(&self, attr: &Attr, can_gc: CanGc) -> Fallible<Option<DomRoot<Attr>>> {
         self.set_attribute_node(attr, can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-removeattribute
+    /// <https://dom.spec.whatwg.org/#dom-element-removeattribute>
     fn RemoveAttribute(&self, name: DOMString, can_gc: CanGc) {
         let name = self.parsed_name(name);
         self.remove_attribute_by_name(&name, can_gc);
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-removeattributens
+    /// <https://dom.spec.whatwg.org/#dom-element-removeattributens>
     fn RemoveAttributeNS(
         &self,
         namespace: Option<DOMString>,
@@ -3087,23 +3087,23 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         self.remove_attribute(&namespace, &local_name, can_gc);
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-removeattributenode
+    /// <https://dom.spec.whatwg.org/#dom-element-removeattributenode>
     fn RemoveAttributeNode(&self, attr: &Attr, can_gc: CanGc) -> Fallible<DomRoot<Attr>> {
         self.remove_first_matching_attribute(|a| a == attr, can_gc)
             .ok_or(Error::NotFound(None))
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-hasattribute
+    /// <https://dom.spec.whatwg.org/#dom-element-hasattribute>
     fn HasAttribute(&self, name: DOMString) -> bool {
         self.GetAttribute(name).is_some()
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-hasattributens
+    /// <https://dom.spec.whatwg.org/#dom-element-hasattributens>
     fn HasAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> bool {
         self.GetAttributeNS(namespace, local_name).is_some()
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-getelementsbytagname
+    /// <https://dom.spec.whatwg.org/#dom-element-getelementsbytagname>
     fn GetElementsByTagName(&self, localname: DOMString, can_gc: CanGc) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
         HTMLCollection::by_qualified_name(
@@ -3114,7 +3114,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         )
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-getelementsbytagnamens
+    /// <https://dom.spec.whatwg.org/#dom-element-getelementsbytagnamens>
     fn GetElementsByTagNameNS(
         &self,
         maybe_ns: Option<DOMString>,
@@ -3125,13 +3125,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         HTMLCollection::by_tag_name_ns(&window, self.upcast(), localname, maybe_ns, can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-getelementsbyclassname
+    /// <https://dom.spec.whatwg.org/#dom-element-getelementsbyclassname>
     fn GetElementsByClassName(&self, classes: DOMString, can_gc: CanGc) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
         HTMLCollection::by_class_name(&window, self.upcast(), classes, can_gc)
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-getclientrects
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-getclientrects>
     fn GetClientRects(&self, can_gc: CanGc) -> DomRoot<DOMRectList> {
         let win = self.owner_window();
         let raw_rects = self.upcast::<Node>().border_boxes();
@@ -3151,7 +3151,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         DOMRectList::new(&win, rects, can_gc)
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect>
     fn GetBoundingClientRect(&self, can_gc: CanGc) -> DomRoot<DOMRect> {
         let win = self.owner_window();
         let rect = self.upcast::<Node>().border_box().unwrap_or_default();
@@ -3165,7 +3165,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         )
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-scroll
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-scroll>
     fn Scroll(&self, options: &ScrollToOptions) {
         // Step 1
         let left = options.left.unwrap_or(self.ScrollLeft());
@@ -3173,22 +3173,22 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         self.scroll(left, top, options.parent.behavior);
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-scroll
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-scroll>
     fn Scroll_(&self, x: f64, y: f64) {
         self.scroll(x, y, ScrollBehavior::Auto);
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-scrollto
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollto>
     fn ScrollTo(&self, options: &ScrollToOptions) {
         self.Scroll(options);
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-scrollto
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollto>
     fn ScrollTo_(&self, x: f64, y: f64) {
         self.Scroll_(x, y);
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-scrollby
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollby>
     fn ScrollBy(&self, options: &ScrollToOptions) {
         // Step 2
         let delta_left = options.left.unwrap_or(0.0f64);
@@ -3198,14 +3198,14 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         self.scroll(left + delta_left, top + delta_top, options.parent.behavior);
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-scrollby
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollby>
     fn ScrollBy_(&self, x: f64, y: f64) {
         let left = self.ScrollLeft();
         let top = self.ScrollTop();
         self.scroll(left + x, top + y, ScrollBehavior::Auto);
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-scrolltop>
     fn ScrollTop(&self) -> f64 {
         let node = self.upcast::<Node>();
 
@@ -3302,7 +3302,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         win.scroll_an_element(self, self.ScrollLeft() as f32, y, behavior);
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-scrollleft
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollleft>
     fn ScrollLeft(&self) -> f64 {
         let node = self.upcast::<Node>();
 
@@ -3348,7 +3348,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         point.x.abs() as f64
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-scrollleft
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollleft>
     fn SetScrollLeft(&self, x: f64) {
         let behavior = ScrollBehavior::Auto;
 
@@ -3445,32 +3445,32 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // element to the user’s attention.
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth>
     fn ScrollWidth(&self) -> i32 {
         self.upcast::<Node>().scroll_area().size.width
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-scrollheight
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollheight>
     fn ScrollHeight(&self) -> i32 {
         self.upcast::<Node>().scroll_area().size.height
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-clienttop
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-clienttop>
     fn ClientTop(&self) -> i32 {
         self.client_rect().origin.y
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-clientleft
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-clientleft>
     fn ClientLeft(&self) -> i32 {
         self.client_rect().origin.x
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-clientwidth
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-clientwidth>
     fn ClientWidth(&self) -> i32 {
         self.client_rect().size.width
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-clientheight
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-clientheight>
     fn ClientHeight(&self) -> i32 {
         self.client_rect().size.height
     }
@@ -3639,7 +3639,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         Ok(())
     }
 
-    // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-previouselementsibling
+    /// <https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-previouselementsibling>
     fn GetPreviousElementSibling(&self) -> Option<DomRoot<Element>> {
         self.upcast::<Node>()
             .preceding_siblings()
@@ -3647,7 +3647,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             .next()
     }
 
-    // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-nextelementsibling
+    /// <https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-nextelementsibling>
     fn GetNextElementSibling(&self) -> Option<DomRoot<Element>> {
         self.upcast::<Node>()
             .following_siblings()
@@ -3655,18 +3655,18 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             .next()
     }
 
-    // https://dom.spec.whatwg.org/#dom-parentnode-children
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-children>
     fn Children(&self, can_gc: CanGc) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
         HTMLCollection::children(&window, self.upcast(), can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild>
     fn GetFirstElementChild(&self) -> Option<DomRoot<Element>> {
         self.upcast::<Node>().child_elements().next()
     }
 
-    // https://dom.spec.whatwg.org/#dom-parentnode-lastelementchild
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-lastelementchild>
     fn GetLastElementChild(&self) -> Option<DomRoot<Element>> {
         self.upcast::<Node>()
             .rev_children()
@@ -3674,59 +3674,59 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             .next()
     }
 
-    // https://dom.spec.whatwg.org/#dom-parentnode-childelementcount
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-childelementcount>
     fn ChildElementCount(&self) -> u32 {
         self.upcast::<Node>().child_elements().count() as u32
     }
 
-    // https://dom.spec.whatwg.org/#dom-parentnode-prepend
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-prepend>
     fn Prepend(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         self.upcast::<Node>().prepend(nodes, can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-parentnode-append
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-append>
     fn Append(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         self.upcast::<Node>().append(nodes, can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-parentnode-replacechildren
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-replacechildren>
     fn ReplaceChildren(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         self.upcast::<Node>().replace_children(nodes, can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselector>
     fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
         let root = self.upcast::<Node>();
         root.query_selector(selectors)
     }
 
-    // https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall>
     fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<DomRoot<NodeList>> {
         let root = self.upcast::<Node>();
         root.query_selector_all(selectors)
     }
 
-    // https://dom.spec.whatwg.org/#dom-childnode-before
+    /// <https://dom.spec.whatwg.org/#dom-childnode-before>
     fn Before(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         self.upcast::<Node>().before(nodes, can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-childnode-after
+    /// <https://dom.spec.whatwg.org/#dom-childnode-after>
     fn After(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         self.upcast::<Node>().after(nodes, can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-childnode-replacewith
+    /// <https://dom.spec.whatwg.org/#dom-childnode-replacewith>
     fn ReplaceWith(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         self.upcast::<Node>().replace_with(nodes, can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-childnode-remove
+    /// <https://dom.spec.whatwg.org/#dom-childnode-remove>
     fn Remove(&self, can_gc: CanGc) {
         self.upcast::<Node>().remove_self(can_gc);
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-matches
+    /// <https://dom.spec.whatwg.org/#dom-element-matches>
     fn Matches(&self, selectors: DOMString) -> Fallible<bool> {
         let doc = self.owner_document();
         let url = doc.url();
@@ -3748,12 +3748,12 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         ))
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-webkitmatchesselector
+    /// <https://dom.spec.whatwg.org/#dom-element-webkitmatchesselector>
     fn WebkitMatchesSelector(&self, selectors: DOMString) -> Fallible<bool> {
         self.Matches(selectors)
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-closest
+    /// <https://dom.spec.whatwg.org/#dom-element-closest>
     fn Closest(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
         let doc = self.owner_document();
         let url = doc.url();
@@ -3774,7 +3774,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         .map(SelectorWrapper::into_owned))
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-insertadjacentelement
+    /// <https://dom.spec.whatwg.org/#dom-element-insertadjacentelement>
     fn InsertAdjacentElement(
         &self,
         where_: DOMString,
@@ -3786,7 +3786,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         Ok(inserted_node.map(|node| DomRoot::downcast(node).unwrap()))
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-insertadjacenttext
+    /// <https://dom.spec.whatwg.org/#dom-element-insertadjacenttext>
     fn InsertAdjacentText(&self, where_: DOMString, data: DOMString, can_gc: CanGc) -> ErrorResult {
         // Step 1.
         let text = Text::new(data, &self.owner_document(), can_gc);
@@ -3797,7 +3797,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             .map(|_| ())
     }
 
-    // https://w3c.github.io/DOM-Parsing/#dom-element-insertadjacenthtml
+    /// <https://w3c.github.io/DOM-Parsing/#dom-element-insertadjacenthtml>
     fn InsertAdjacentHTML(
         &self,
         position: DOMString,
@@ -3876,13 +3876,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         }
     }
 
-    // https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen
+    /// <https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen>
     fn RequestFullscreen(&self, can_gc: CanGc) -> Rc<Promise> {
         let doc = self.owner_document();
         doc.enter_fullscreen(self, can_gc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-attachshadow
+    /// <https://dom.spec.whatwg.org/#dom-element-attachshadow>
     fn AttachShadow(&self, init: &ShadowRootInit, can_gc: CanGc) -> Fallible<DomRoot<ShadowRoot>> {
         // Step 1. Run attach a shadow root with this, init["mode"], init["clonable"], init["serializable"],
         // init["delegatesFocus"], and init["slotAssignment"].

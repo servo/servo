@@ -97,7 +97,7 @@ impl GainNode {
 }
 
 impl GainNodeMethods<crate::DomTypeHolder> for GainNode {
-    // https://webaudio.github.io/web-audio-api/#dom-gainnode-gainnode
+    /// <https://webaudio.github.io/web-audio-api/#dom-gainnode-gainnode>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -108,7 +108,7 @@ impl GainNodeMethods<crate::DomTypeHolder> for GainNode {
         GainNode::new_with_proto(window, proto, context, options, can_gc)
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-gainnode-gain
+    /// <https://webaudio.github.io/web-audio-api/#dom-gainnode-gain>
     fn Gain(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.gain)
     }

@@ -98,7 +98,7 @@ impl OfflineAudioContext {
 }
 
 impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
-    // https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-offlineaudiocontext
+    /// <https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-offlineaudiocontext>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -115,7 +115,7 @@ impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
         )
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-offlineaudiocontext-numberofchannels-length-samplerate
+    /// <https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-offlineaudiocontext-numberofchannels-length-samplerate>
     fn Constructor_(
         window: &Window,
         proto: Option<HandleObject>,
@@ -137,12 +137,12 @@ impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
     // https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-oncomplete
     event_handler!(complete, GetOncomplete, SetOncomplete);
 
-    // https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-length
+    /// <https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-length>
     fn Length(&self) -> u32 {
         self.length
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-startrendering
+    /// <https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-startrendering>
     fn StartRendering(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);
         if self.rendering_started.get() {

@@ -68,7 +68,7 @@ impl RTCDataChannelEvent {
 }
 
 impl RTCDataChannelEventMethods<crate::DomTypeHolder> for RTCDataChannelEvent {
-    // https://www.w3.org/TR/webrtc/#dom-rtcdatachannelevent-constructor
+    /// <https://www.w3.org/TR/webrtc/#dom-rtcdatachannelevent-constructor>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -87,12 +87,12 @@ impl RTCDataChannelEventMethods<crate::DomTypeHolder> for RTCDataChannelEvent {
         )
     }
 
-    // https://www.w3.org/TR/webrtc/#dom-datachannelevent-channel
+    /// <https://www.w3.org/TR/webrtc/#dom-datachannelevent-channel>
     fn Channel(&self) -> DomRoot<RTCDataChannel> {
         DomRoot::from_ref(&*self.channel)
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

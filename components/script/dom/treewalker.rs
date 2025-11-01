@@ -71,17 +71,17 @@ impl TreeWalker {
 }
 
 impl TreeWalkerMethods<crate::DomTypeHolder> for TreeWalker {
-    // https://dom.spec.whatwg.org/#dom-treewalker-root
+    /// <https://dom.spec.whatwg.org/#dom-treewalker-root>
     fn Root(&self) -> DomRoot<Node> {
         DomRoot::from_ref(&*self.root_node)
     }
 
-    // https://dom.spec.whatwg.org/#dom-treewalker-whattoshow
+    /// <https://dom.spec.whatwg.org/#dom-treewalker-whattoshow>
     fn WhatToShow(&self) -> u32 {
         self.what_to_show
     }
 
-    // https://dom.spec.whatwg.org/#dom-treewalker-filter
+    /// <https://dom.spec.whatwg.org/#dom-treewalker-filter>
     fn GetFilter(&self) -> Option<Rc<NodeFilter>> {
         match self.filter {
             Filter::None => None,
@@ -89,17 +89,17 @@ impl TreeWalkerMethods<crate::DomTypeHolder> for TreeWalker {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-treewalker-currentnode
+    /// <https://dom.spec.whatwg.org/#dom-treewalker-currentnode>
     fn CurrentNode(&self) -> DomRoot<Node> {
         self.current_node.get()
     }
 
-    // https://dom.spec.whatwg.org/#dom-treewalker-currentnode
+    /// <https://dom.spec.whatwg.org/#dom-treewalker-currentnode>
     fn SetCurrentNode(&self, node: &Node) {
         self.current_node.set(node);
     }
 
-    // https://dom.spec.whatwg.org/#dom-treewalker-parentnode
+    /// <https://dom.spec.whatwg.org/#dom-treewalker-parentnode>
     fn ParentNode(&self, can_gc: CanGc) -> Fallible<Option<DomRoot<Node>>> {
         // "1. Let node be the value of the currentNode attribute."
         let mut node = self.current_node.get();
@@ -123,7 +123,7 @@ impl TreeWalkerMethods<crate::DomTypeHolder> for TreeWalker {
         Ok(None)
     }
 
-    // https://dom.spec.whatwg.org/#dom-treewalker-firstchild
+    /// <https://dom.spec.whatwg.org/#dom-treewalker-firstchild>
     fn FirstChild(&self, can_gc: CanGc) -> Fallible<Option<DomRoot<Node>>> {
         // "The firstChild() method must traverse children of type first."
         self.traverse_children(
@@ -133,7 +133,7 @@ impl TreeWalkerMethods<crate::DomTypeHolder> for TreeWalker {
         )
     }
 
-    // https://dom.spec.whatwg.org/#dom-treewalker-lastchild
+    /// <https://dom.spec.whatwg.org/#dom-treewalker-lastchild>
     fn LastChild(&self, can_gc: CanGc) -> Fallible<Option<DomRoot<Node>>> {
         // "The lastChild() method must traverse children of type last."
         self.traverse_children(
@@ -143,7 +143,7 @@ impl TreeWalkerMethods<crate::DomTypeHolder> for TreeWalker {
         )
     }
 
-    // https://dom.spec.whatwg.org/#dom-treewalker-previoussibling
+    /// <https://dom.spec.whatwg.org/#dom-treewalker-previoussibling>
     fn PreviousSibling(&self, can_gc: CanGc) -> Fallible<Option<DomRoot<Node>>> {
         // "The nextSibling() method must traverse siblings of type next."
         self.traverse_siblings(
@@ -153,7 +153,7 @@ impl TreeWalkerMethods<crate::DomTypeHolder> for TreeWalker {
         )
     }
 
-    // https://dom.spec.whatwg.org/#dom-treewalker-nextsibling
+    /// <https://dom.spec.whatwg.org/#dom-treewalker-nextsibling>
     fn NextSibling(&self, can_gc: CanGc) -> Fallible<Option<DomRoot<Node>>> {
         // "The previousSibling() method must traverse siblings of type previous."
         self.traverse_siblings(
@@ -163,7 +163,7 @@ impl TreeWalkerMethods<crate::DomTypeHolder> for TreeWalker {
         )
     }
 
-    // https://dom.spec.whatwg.org/#dom-treewalker-previousnode
+    /// <https://dom.spec.whatwg.org/#dom-treewalker-previousnode>
     fn PreviousNode(&self, can_gc: CanGc) -> Fallible<Option<DomRoot<Node>>> {
         // "1. Let node be the value of the currentNode attribute."
         let mut node = self.current_node.get();
@@ -221,7 +221,7 @@ impl TreeWalkerMethods<crate::DomTypeHolder> for TreeWalker {
         Ok(None)
     }
 
-    // https://dom.spec.whatwg.org/#dom-treewalker-nextnode
+    /// <https://dom.spec.whatwg.org/#dom-treewalker-nextnode>
     fn NextNode(&self, can_gc: CanGc) -> Fallible<Option<DomRoot<Node>>> {
         // "1. Let node be the value of the currentNode attribute."
         let mut node = self.current_node.get();
@@ -273,7 +273,7 @@ impl TreeWalkerMethods<crate::DomTypeHolder> for TreeWalker {
 }
 
 impl TreeWalker {
-    // https://dom.spec.whatwg.org/#concept-traverse-children
+    /// <https://dom.spec.whatwg.org/#concept-traverse-children>
     fn traverse_children<F, G>(
         &self,
         next_child: F,
@@ -350,7 +350,7 @@ impl TreeWalker {
         }
     }
 
-    // https://dom.spec.whatwg.org/#concept-traverse-siblings
+    /// <https://dom.spec.whatwg.org/#concept-traverse-siblings>
     fn traverse_siblings<F, G>(
         &self,
         next_child: F,
@@ -416,7 +416,7 @@ impl TreeWalker {
         }
     }
 
-    // https://dom.spec.whatwg.org/#concept-tree-following
+    /// <https://dom.spec.whatwg.org/#concept-tree-following>
     fn first_following_node_not_following_root(&self, node: &Node) -> Option<DomRoot<Node>> {
         // "An object A is following an object B if A and B are in the same tree
         //  and A comes after B in tree order."
@@ -438,7 +438,7 @@ impl TreeWalker {
         }
     }
 
-    // https://dom.spec.whatwg.org/#concept-node-filter
+    /// <https://dom.spec.whatwg.org/#concept-node-filter>
     fn accept_node(&self, node: &Node, can_gc: CanGc) -> Fallible<u16> {
         // Step 1.
         if self.active.get() {

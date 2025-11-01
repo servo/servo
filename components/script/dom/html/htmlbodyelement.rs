@@ -73,7 +73,7 @@ impl HTMLBodyElementMethods<crate::DomTypeHolder> for HTMLBodyElement {
     // https://html.spec.whatwg.org/multipage/#dom-body-background
     make_getter!(Background, "background");
 
-    // https://html.spec.whatwg.org/multipage/#dom-body-background
+    /// <https://html.spec.whatwg.org/multipage/#dom-body-background>
     fn SetBackground(&self, input: DOMString, can_gc: CanGc) {
         let value =
             AttrValue::from_resolved_url(&self.owner_document().base_url().get_arc(), input.into());

@@ -182,12 +182,12 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
         Ok(Blob::new_with_proto(global, proto, blob_impl, can_gc))
     }
 
-    // https://w3c.github.io/FileAPI/#dfn-size
+    /// <https://w3c.github.io/FileAPI/#dfn-size>
     fn Size(&self) -> u64 {
         self.global().get_blob_size(&self.blob_id)
     }
 
-    // https://w3c.github.io/FileAPI/#dfn-type
+    /// <https://w3c.github.io/FileAPI/#dfn-type>
     fn Type(&self) -> DOMString {
         DOMString::from(self.type_string())
     }
@@ -248,7 +248,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
         p
     }
 
-    // https://w3c.github.io/FileAPI/#arraybuffer-method-algo
+    /// <https://w3c.github.io/FileAPI/#arraybuffer-method-algo>
     fn ArrayBuffer(&self, in_realm: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let cx = GlobalScope::get_cx();
         let global = GlobalScope::from_safe_context(cx, in_realm);

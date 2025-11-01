@@ -159,7 +159,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
         Ok(doc)
     }
 
-    // https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
+    /// <https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument>
     fn CreateHTMLDocument(&self, title: Option<DOMString>, can_gc: CanGc) -> DomRoot<Document> {
         let win = self.document.window();
         let loader = DocumentLoader::new(&self.document.loader());
@@ -264,7 +264,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
         doc
     }
 
-    // https://dom.spec.whatwg.org/#dom-domimplementation-hasfeature
+    /// <https://dom.spec.whatwg.org/#dom-domimplementation-hasfeature>
     fn HasFeature(&self) -> bool {
         true
     }

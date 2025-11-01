@@ -60,7 +60,7 @@ impl AudioScheduledSourceNodeMethods<crate::DomTypeHolder> for AudioScheduledSou
     // https://webaudio.github.io/web-audio-api/#dom-audioscheduledsourcenode-onended
     event_handler!(ended, GetOnended, SetOnended);
 
-    // https://webaudio.github.io/web-audio-api/#dom-audioscheduledsourcenode-start
+    /// <https://webaudio.github.io/web-audio-api/#dom-audioscheduledsourcenode-start>
     fn Start(&self, when: Finite<f64>) -> Fallible<()> {
         if *when < 0. {
             return Err(Error::Range("'when' must be a positive value".to_owned()));
@@ -99,7 +99,7 @@ impl AudioScheduledSourceNodeMethods<crate::DomTypeHolder> for AudioScheduledSou
         Ok(())
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audioscheduledsourcenode-stop
+    /// <https://webaudio.github.io/web-audio-api/#dom-audioscheduledsourcenode-stop>
     fn Stop(&self, when: Finite<f64>) -> Fallible<()> {
         if *when < 0. {
             return Err(Error::Range("'when' must be a positive value".to_owned()));

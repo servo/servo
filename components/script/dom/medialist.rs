@@ -168,7 +168,7 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
         self.parent_stylesheet.notify_invalidations();
     }
 
-    // https://drafts.csswg.org/cssom/#dom-medialist-length
+    /// <https://drafts.csswg.org/cssom/#dom-medialist-length>
     fn Length(&self) -> u32 {
         let guard = self.shared_lock().read();
         self.media_queries

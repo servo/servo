@@ -264,17 +264,17 @@ impl BluetoothDevice {
 }
 
 impl BluetoothDeviceMethods<crate::DomTypeHolder> for BluetoothDevice {
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-id
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-id>
     fn Id(&self) -> DOMString {
         self.id.clone()
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-name
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-name>
     fn GetName(&self) -> Option<DOMString> {
         self.name.clone()
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-gatt
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-gatt>
     fn GetGatt(&self, can_gc: CanGc) -> Option<DomRoot<BluetoothRemoteGATTServer>> {
         // Step 1.
         if self
@@ -290,7 +290,7 @@ impl BluetoothDeviceMethods<crate::DomTypeHolder> for BluetoothDevice {
         None
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-watchadvertisements
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-watchadvertisements>
     fn WatchAdvertisements(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let p = Promise::new_in_current_realm(comp, can_gc);
         let sender = response_async(&p, self);
@@ -306,14 +306,14 @@ impl BluetoothDeviceMethods<crate::DomTypeHolder> for BluetoothDevice {
         p
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-unwatchadvertisements
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-unwatchadvertisements>
     fn UnwatchAdvertisements(&self) {
         // Step 1.
         self.watching_advertisements.set(false)
         // TODO: Step 2.
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-watchingadvertisements
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-watchingadvertisements>
     fn WatchingAdvertisements(&self) -> bool {
         self.watching_advertisements.get()
     }

@@ -31,22 +31,22 @@ impl OESVertexArrayObject {
 }
 
 impl OESVertexArrayObjectMethods<crate::DomTypeHolder> for OESVertexArrayObject {
-    // https://www.khronos.org/registry/webgl/extensions/OES_vertex_array_object/
+    /// <https://www.khronos.org/registry/webgl/extensions/OES_vertex_array_object/>
     fn CreateVertexArrayOES(&self) -> Option<DomRoot<WebGLVertexArrayObjectOES>> {
         self.ctx.create_vertex_array()
     }
 
-    // https://www.khronos.org/registry/webgl/extensions/OES_vertex_array_object/
+    /// <https://www.khronos.org/registry/webgl/extensions/OES_vertex_array_object/>
     fn DeleteVertexArrayOES(&self, vao: Option<&WebGLVertexArrayObjectOES>) {
         self.ctx.delete_vertex_array(vao);
     }
 
-    // https://www.khronos.org/registry/webgl/extensions/OES_vertex_array_object/
+    /// <https://www.khronos.org/registry/webgl/extensions/OES_vertex_array_object/>
     fn IsVertexArrayOES(&self, vao: Option<&WebGLVertexArrayObjectOES>) -> bool {
         self.ctx.is_vertex_array(vao)
     }
 
-    // https://www.khronos.org/registry/webgl/extensions/OES_vertex_array_object/
+    /// <https://www.khronos.org/registry/webgl/extensions/OES_vertex_array_object/>
     fn BindVertexArrayOES(&self, vao: Option<&WebGLVertexArrayObjectOES>) {
         self.ctx.bind_vertex_array(vao);
     }

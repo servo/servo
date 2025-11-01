@@ -70,7 +70,7 @@ impl TransitionEvent {
 }
 
 impl TransitionEventMethods<crate::DomTypeHolder> for TransitionEvent {
-    // https://drafts.csswg.org/css-transitions/#dom-transitionevent-transitionevent
+    /// <https://drafts.csswg.org/css-transitions/#dom-transitionevent-transitionevent>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -87,22 +87,22 @@ impl TransitionEventMethods<crate::DomTypeHolder> for TransitionEvent {
         ))
     }
 
-    // https://drafts.csswg.org/css-transitions/#Events-TransitionEvent-propertyName
+    /// <https://drafts.csswg.org/css-transitions/#Events-TransitionEvent-propertyName>
     fn PropertyName(&self) -> DOMString {
         DOMString::from(&*self.property_name)
     }
 
-    // https://drafts.csswg.org/css-transitions/#Events-TransitionEvent-elapsedTime
+    /// <https://drafts.csswg.org/css-transitions/#Events-TransitionEvent-elapsedTime>
     fn ElapsedTime(&self) -> Finite<f32> {
         self.elapsed_time
     }
 
-    // https://drafts.csswg.org/css-transitions/#Events-TransitionEvent-pseudoElement
+    /// <https://drafts.csswg.org/css-transitions/#Events-TransitionEvent-pseudoElement>
     fn PseudoElement(&self) -> DOMString {
         self.pseudo_element.clone()
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.upcast::<Event>().IsTrusted()
     }

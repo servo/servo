@@ -56,7 +56,7 @@ impl HTMLAudioElement {
 }
 
 impl HTMLAudioElementMethods<crate::DomTypeHolder> for HTMLAudioElement {
-    // https://html.spec.whatwg.org/multipage/#dom-audio
+    /// <https://html.spec.whatwg.org/multipage/#dom-audio>
     fn Audio(
         window: &Window,
         proto: Option<HandleObject>,

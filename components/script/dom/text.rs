@@ -55,7 +55,7 @@ impl Text {
 }
 
 impl TextMethods<crate::DomTypeHolder> for Text {
-    // https://dom.spec.whatwg.org/#dom-text-text
+    /// <https://dom.spec.whatwg.org/#dom-text-text>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -67,7 +67,7 @@ impl TextMethods<crate::DomTypeHolder> for Text {
     }
 
     // https://dom.spec.whatwg.org/#dom-text-splittext
-    // https://dom.spec.whatwg.org/#concept-text-split
+    /// <https://dom.spec.whatwg.org/#concept-text-split>
     fn SplitText(&self, offset: u32, can_gc: CanGc) -> Fallible<DomRoot<Text>> {
         let cdata = self.upcast::<CharacterData>();
         // Step 1.
@@ -103,7 +103,7 @@ impl TextMethods<crate::DomTypeHolder> for Text {
         Ok(new_node)
     }
 
-    // https://dom.spec.whatwg.org/#dom-text-wholetext
+    /// <https://dom.spec.whatwg.org/#dom-text-wholetext>
     fn WholeText(&self) -> DOMString {
         let first = self
             .upcast::<Node>()

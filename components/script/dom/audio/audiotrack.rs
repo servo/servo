@@ -89,32 +89,32 @@ impl AudioTrack {
 }
 
 impl AudioTrackMethods<crate::DomTypeHolder> for AudioTrack {
-    // https://html.spec.whatwg.org/multipage/#dom-audiotrack-id
+    /// <https://html.spec.whatwg.org/multipage/#dom-audiotrack-id>
     fn Id(&self) -> DOMString {
         self.id()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-audiotrack-kind
+    /// <https://html.spec.whatwg.org/multipage/#dom-audiotrack-kind>
     fn Kind(&self) -> DOMString {
         self.kind()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-audiotrack-label
+    /// <https://html.spec.whatwg.org/multipage/#dom-audiotrack-label>
     fn Label(&self) -> DOMString {
         self.label.clone()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-audiotrack-language
+    /// <https://html.spec.whatwg.org/multipage/#dom-audiotrack-language>
     fn Language(&self) -> DOMString {
         self.language.clone()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-audiotrack-enabled
+    /// <https://html.spec.whatwg.org/multipage/#dom-audiotrack-enabled>
     fn Enabled(&self) -> bool {
         self.enabled()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-audiotrack-enabled
+    /// <https://html.spec.whatwg.org/multipage/#dom-audiotrack-enabled>
     fn SetEnabled(&self, value: bool) {
         if let Some(list) = self.track_list.borrow().as_ref() {
             if let Some(idx) = list.find(self) {

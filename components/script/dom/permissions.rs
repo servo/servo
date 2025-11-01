@@ -200,17 +200,17 @@ impl Permissions {
 
 #[allow(non_snake_case)]
 impl PermissionsMethods<crate::DomTypeHolder> for Permissions {
-    // https://w3c.github.io/permissions/#dom-permissions-query
+    /// <https://w3c.github.io/permissions/#dom-permissions-query>
     fn Query(&self, cx: JSContext, permissionDesc: *mut JSObject, can_gc: CanGc) -> Rc<Promise> {
         self.manipulate(Operation::Query, cx, permissionDesc, None, can_gc)
     }
 
-    // https://w3c.github.io/permissions/#dom-permissions-request
+    /// <https://w3c.github.io/permissions/#dom-permissions-request>
     fn Request(&self, cx: JSContext, permissionDesc: *mut JSObject, can_gc: CanGc) -> Rc<Promise> {
         self.manipulate(Operation::Request, cx, permissionDesc, None, can_gc)
     }
 
-    // https://w3c.github.io/permissions/#dom-permissions-revoke
+    /// <https://w3c.github.io/permissions/#dom-permissions-revoke>
     fn Revoke(&self, cx: JSContext, permissionDesc: *mut JSObject, can_gc: CanGc) -> Rc<Promise> {
         self.manipulate(Operation::Revoke, cx, permissionDesc, None, can_gc)
     }
@@ -257,7 +257,7 @@ impl PermissionAlgorithm for Permissions {
         status.set_state(descriptor_permission_state(status.get_query(), None));
     }
 
-    // https://w3c.github.io/permissions/#boolean-permission-request-algorithm
+    /// <https://w3c.github.io/permissions/#boolean-permission-request-algorithm>
     fn permission_request(
         cx: JSContext,
         promise: &Rc<Promise>,

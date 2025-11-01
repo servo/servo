@@ -31,12 +31,12 @@ impl MediaError {
 }
 
 impl MediaErrorMethods<crate::DomTypeHolder> for MediaError {
-    // https://html.spec.whatwg.org/multipage/#dom-mediaerror-code
+    /// <https://html.spec.whatwg.org/multipage/#dom-mediaerror-code>
     fn Code(&self) -> u16 {
         self.code
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-mediaerror-message
+    /// <https://html.spec.whatwg.org/multipage/#dom-mediaerror-message>
     fn Message(&self) -> DOMString {
         DOMString::new()
     }

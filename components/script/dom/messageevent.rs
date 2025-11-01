@@ -275,7 +275,7 @@ impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
         self.origin.borrow().clone()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-messageevent-source
+    /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-source>
     fn GetSource(&self) -> Option<WindowProxyOrMessagePortOrServiceWorker> {
         match &*self.source.borrow() {
             Some(SrcObject::WindowProxy(i)) => Some(

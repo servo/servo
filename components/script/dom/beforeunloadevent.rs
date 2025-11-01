@@ -54,17 +54,17 @@ impl BeforeUnloadEvent {
 }
 
 impl BeforeUnloadEventMethods<crate::DomTypeHolder> for BeforeUnloadEvent {
-    // https://html.spec.whatwg.org/multipage/#dom-beforeunloadevent-returnvalue
+    /// <https://html.spec.whatwg.org/multipage/#dom-beforeunloadevent-returnvalue>
     fn ReturnValue(&self) -> DOMString {
         self.return_value.borrow().clone()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-beforeunloadevent-returnvalue
+    /// <https://html.spec.whatwg.org/multipage/#dom-beforeunloadevent-returnvalue>
     fn SetReturnValue(&self, value: DOMString) {
         *self.return_value.borrow_mut() = value;
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

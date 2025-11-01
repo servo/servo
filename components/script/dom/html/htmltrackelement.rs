@@ -79,7 +79,7 @@ impl HTMLTrackElement {
 }
 
 impl HTMLTrackElementMethods<crate::DomTypeHolder> for HTMLTrackElement {
-    // https://html.spec.whatwg.org/multipage/#dom-track-kind
+    /// <https://html.spec.whatwg.org/multipage/#dom-track-kind>
     fn Kind(&self) -> DOMString {
         let element = self.upcast::<Element>();
         // Get the value of "kind" and transform all uppercase
@@ -131,12 +131,12 @@ impl HTMLTrackElementMethods<crate::DomTypeHolder> for HTMLTrackElement {
     // https://html.spec.whatwg.org/multipage/#dom-track-default
     make_bool_setter!(SetDefault, "default");
 
-    // https://html.spec.whatwg.org/multipage/#dom-track-readystate
+    /// <https://html.spec.whatwg.org/multipage/#dom-track-readystate>
     fn ReadyState(&self) -> u16 {
         self.ready_state as u16
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-track-track
+    /// <https://html.spec.whatwg.org/multipage/#dom-track-track>
     fn Track(&self) -> DomRoot<TextTrack> {
         DomRoot::from_ref(&*self.track)
     }

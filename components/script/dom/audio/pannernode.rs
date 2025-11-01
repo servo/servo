@@ -216,7 +216,7 @@ impl PannerNode {
 }
 
 impl PannerNodeMethods<crate::DomTypeHolder> for PannerNode {
-    // https://webaudio.github.io/web-audio-api/#dom-pannernode-pannernode
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-pannernode>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -227,33 +227,33 @@ impl PannerNodeMethods<crate::DomTypeHolder> for PannerNode {
         PannerNode::new_with_proto(window, proto, context, options, can_gc)
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-pannernode-positionx
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-positionx>
     fn PositionX(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.position_x)
     }
-    // https://webaudio.github.io/web-audio-api/#dom-pannernode-positiony
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-positiony>
     fn PositionY(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.position_y)
     }
-    // https://webaudio.github.io/web-audio-api/#dom-pannernode-positionz
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-positionz>
     fn PositionZ(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.position_z)
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-pannernode-orientationx
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-orientationx>
     fn OrientationX(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.orientation_x)
     }
-    // https://webaudio.github.io/web-audio-api/#dom-pannernode-orientationy
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-orientationy>
     fn OrientationY(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.orientation_y)
     }
-    // https://webaudio.github.io/web-audio-api/#dom-pannernode-orientationz
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-orientationz>
     fn OrientationZ(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.orientation_z)
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-pannernode-distancemodel
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-distancemodel>
     fn DistanceModel(&self) -> DistanceModelType {
         match self.distance_model.get() {
             DistanceModel::Linear => DistanceModelType::Linear,
@@ -261,32 +261,32 @@ impl PannerNodeMethods<crate::DomTypeHolder> for PannerNode {
             DistanceModel::Exponential => DistanceModelType::Exponential,
         }
     }
-    // https://webaudio.github.io/web-audio-api/#dom-pannernode-distancemodel
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-distancemodel>
     fn SetDistanceModel(&self, model: DistanceModelType) {
         self.distance_model.set(model.convert());
         let msg = PannerNodeMessage::SetDistanceModel(self.distance_model.get());
         self.upcast::<AudioNode>()
             .message(AudioNodeMessage::PannerNode(msg));
     }
-    // https://webaudio.github.io/web-audio-api/#dom-pannernode-panningmodel
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-panningmodel>
     fn PanningModel(&self) -> PanningModelType {
         match self.panning_model.get() {
             PanningModel::EqualPower => PanningModelType::Equalpower,
             PanningModel::HRTF => PanningModelType::HRTF,
         }
     }
-    // https://webaudio.github.io/web-audio-api/#dom-pannernode-panningmodel
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-panningmodel>
     fn SetPanningModel(&self, model: PanningModelType) {
         self.panning_model.set(model.convert());
         let msg = PannerNodeMessage::SetPanningModel(self.panning_model.get());
         self.upcast::<AudioNode>()
             .message(AudioNodeMessage::PannerNode(msg));
     }
-    // https://webaudio.github.io/web-audio-api/#dom-pannernode-refdistance
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-refdistance>
     fn RefDistance(&self) -> Finite<f64> {
         Finite::wrap(self.ref_distance.get())
     }
-    // https://webaudio.github.io/web-audio-api/#dom-pannernode-refdistance
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-refdistance>
     fn SetRefDistance(&self, val: Finite<f64>) -> Fallible<()> {
         if *val < 0. {
             return Err(Error::Range("value should be non-negative".into()));
@@ -297,11 +297,11 @@ impl PannerNodeMethods<crate::DomTypeHolder> for PannerNode {
             .message(AudioNodeMessage::PannerNode(msg));
         Ok(())
     }
-    // https://webaudio.github.io/web-audio-api/#dom-pannernode-maxdistance
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-maxdistance>
     fn MaxDistance(&self) -> Finite<f64> {
         Finite::wrap(self.max_distance.get())
     }
-    // https://webaudio.github.io/web-audio-api/#dom-pannernode-maxdistance
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-maxdistance>
     fn SetMaxDistance(&self, val: Finite<f64>) -> Fallible<()> {
         if *val <= 0. {
             return Err(Error::Range("value should be positive".into()));
@@ -312,11 +312,11 @@ impl PannerNodeMethods<crate::DomTypeHolder> for PannerNode {
             .message(AudioNodeMessage::PannerNode(msg));
         Ok(())
     }
-    // https://webaudio.github.io/web-audio-api/#dom-pannernode-rollofffactor
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-rollofffactor>
     fn RolloffFactor(&self) -> Finite<f64> {
         Finite::wrap(self.rolloff_factor.get())
     }
-    // https://webaudio.github.io/web-audio-api/#dom-pannernode-rollofffactor
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-rollofffactor>
     fn SetRolloffFactor(&self, val: Finite<f64>) -> Fallible<()> {
         if *val < 0. {
             return Err(Error::Range("value should be non-negative".into()));
@@ -327,33 +327,33 @@ impl PannerNodeMethods<crate::DomTypeHolder> for PannerNode {
             .message(AudioNodeMessage::PannerNode(msg));
         Ok(())
     }
-    // https://webaudio.github.io/web-audio-api/#dom-pannernode-coneinnerangle
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-coneinnerangle>
     fn ConeInnerAngle(&self) -> Finite<f64> {
         Finite::wrap(self.cone_inner_angle.get())
     }
-    // https://webaudio.github.io/web-audio-api/#dom-pannernode-coneinnerangle
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-coneinnerangle>
     fn SetConeInnerAngle(&self, val: Finite<f64>) {
         self.cone_inner_angle.set(*val);
         let msg = PannerNodeMessage::SetConeInner(self.cone_inner_angle.get());
         self.upcast::<AudioNode>()
             .message(AudioNodeMessage::PannerNode(msg));
     }
-    // https://webaudio.github.io/web-audio-api/#dom-pannernode-coneouterangle
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-coneouterangle>
     fn ConeOuterAngle(&self) -> Finite<f64> {
         Finite::wrap(self.cone_outer_angle.get())
     }
-    // https://webaudio.github.io/web-audio-api/#dom-pannernode-coneouterangle
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-coneouterangle>
     fn SetConeOuterAngle(&self, val: Finite<f64>) {
         self.cone_outer_angle.set(*val);
         let msg = PannerNodeMessage::SetConeOuter(self.cone_outer_angle.get());
         self.upcast::<AudioNode>()
             .message(AudioNodeMessage::PannerNode(msg));
     }
-    // https://webaudio.github.io/web-audio-api/#dom-pannernode-coneoutergain
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-coneoutergain>
     fn ConeOuterGain(&self) -> Finite<f64> {
         Finite::wrap(self.cone_outer_gain.get())
     }
-    // https://webaudio.github.io/web-audio-api/#dom-pannernode-coneoutergain
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-coneoutergain>
     fn SetConeOuterGain(&self, val: Finite<f64>) -> Fallible<()> {
         if *val < 0. || *val > 1. {
             return Err(Error::InvalidState(None));
@@ -365,14 +365,14 @@ impl PannerNodeMethods<crate::DomTypeHolder> for PannerNode {
         Ok(())
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-pannernode-setposition
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-setposition>
     fn SetPosition(&self, x: Finite<f32>, y: Finite<f32>, z: Finite<f32>) {
         self.position_x.SetValue(x);
         self.position_y.SetValue(y);
         self.position_z.SetValue(z);
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-pannernode-setorientation
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-setorientation>
     fn SetOrientation(&self, x: Finite<f32>, y: Finite<f32>, z: Finite<f32>) {
         self.orientation_x.SetValue(x);
         self.orientation_y.SetValue(y);

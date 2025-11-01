@@ -662,7 +662,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
     // https://www.w3.org/TR/webxr/#dom-xrsession-onframeratechange
     event_handler!(frameratechange, GetOnframeratechange, SetOnframeratechange);
 
-    // https://immersive-web.github.io/webxr/#dom-xrsession-renderstate
+    /// <https://immersive-web.github.io/webxr/#dom-xrsession-renderstate>
     fn RenderState(&self) -> DomRoot<XRRenderState> {
         self.active_render_state.get()
     }
@@ -926,7 +926,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
         p
     }
 
-    // https://immersive-web.github.io/hit-test/#dom-xrsession-requesthittestsource
+    /// <https://immersive-web.github.io/hit-test/#dom-xrsession-requesthittestsource>
     fn RequestHitTestSource(&self, options: &XRHitTestOptionsInit, can_gc: CanGc) -> Rc<Promise> {
         let p = Promise::new(&self.global(), can_gc);
 

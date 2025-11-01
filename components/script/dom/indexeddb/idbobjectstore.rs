@@ -140,7 +140,7 @@ impl IDBObjectStore {
         receiver.recv().unwrap().unwrap()
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#object-store-in-line-keys
+    /// <https://www.w3.org/TR/IndexedDB-2/#object-store-in-line-keys>
     fn uses_inline_keys(&self) -> bool {
         self.key_path.is_some()
     }
@@ -181,7 +181,7 @@ impl IDBObjectStore {
         Ok(())
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-put
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-put>
     fn put(
         &self,
         cx: SafeJSContext,
@@ -647,7 +647,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         Ok(())
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-keypath
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-keypath>
     fn KeyPath(&self, cx: SafeJSContext, mut ret_val: MutableHandleValue) {
         match &self.key_path {
             Some(KeyPath::String(path)) => path.safe_to_jsval(cx, ret_val, CanGc::note()),
@@ -656,7 +656,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         }
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-indexnames
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-indexnames>
     fn IndexNames(&self) -> DomRoot<DOMStringList> {
         self.index_names.clone()
     }

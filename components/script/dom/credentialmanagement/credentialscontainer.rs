@@ -40,22 +40,22 @@ impl CredentialsContainer {
 }
 
 impl CredentialsContainerMethods<DomTypeHolder> for CredentialsContainer {
-    // https://www.w3.org/TR/credential-management-1/#dom-credentialscontainer-get
+    /// <https://www.w3.org/TR/credential-management-1/#dom-credentialscontainer-get>
     fn Get(&self, _options: &CredentialRequestOptions<DomTypeHolder>) -> Fallible<Rc<Promise>> {
         Err(Error::NotSupported)
     }
 
-    // https://www.w3.org/TR/credential-management-1/#dom-credentialscontainer-store
+    /// <https://www.w3.org/TR/credential-management-1/#dom-credentialscontainer-store>
     fn Store(&self, _credential: &Credential) -> Fallible<Rc<Promise>> {
         Err(Error::NotSupported)
     }
 
-    // https://www.w3.org/TR/credential-management-1/#dom-credentialscontainer-create
+    /// <https://www.w3.org/TR/credential-management-1/#dom-credentialscontainer-create>
     fn Create(&self, _options: &CredentialCreationOptions<DomTypeHolder>) -> Fallible<Rc<Promise>> {
         Err(Error::NotSupported)
     }
 
-    // https://www.w3.org/TR/credential-management-1/#dom-credentialscontainer-preventsilentaccess
+    /// <https://www.w3.org/TR/credential-management-1/#dom-credentialscontainer-preventsilentaccess>
     fn PreventSilentAccess(&self) -> Fallible<Rc<Promise>> {
         Err(Error::NotSupported)
     }

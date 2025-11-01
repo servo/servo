@@ -72,7 +72,7 @@ impl DOMQuad {
 }
 
 impl DOMQuadMethods<crate::DomTypeHolder> for DOMQuad {
-    // https://drafts.fxtf.org/geometry/#dom-domquad-domquad
+    /// <https://drafts.fxtf.org/geometry/#dom-domquad-domquad>
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -93,7 +93,7 @@ impl DOMQuadMethods<crate::DomTypeHolder> for DOMQuad {
         ))
     }
 
-    // https://drafts.fxtf.org/geometry/#dom-domquad-fromrect
+    /// <https://drafts.fxtf.org/geometry/#dom-domquad-fromrect>
     fn FromRect(global: &GlobalScope, other: &DOMRectInit, can_gc: CanGc) -> DomRoot<DOMQuad> {
         DOMQuad::new(
             global,
@@ -112,7 +112,7 @@ impl DOMQuadMethods<crate::DomTypeHolder> for DOMQuad {
         )
     }
 
-    // https://drafts.fxtf.org/geometry/#dom-domquad-fromquad
+    /// <https://drafts.fxtf.org/geometry/#dom-domquad-fromquad>
     fn FromQuad(global: &GlobalScope, other: &DOMQuadInit, can_gc: CanGc) -> DomRoot<DOMQuad> {
         DOMQuad::new(
             global,
@@ -124,27 +124,27 @@ impl DOMQuadMethods<crate::DomTypeHolder> for DOMQuad {
         )
     }
 
-    // https://drafts.fxtf.org/geometry/#dom-domquad-p1
+    /// <https://drafts.fxtf.org/geometry/#dom-domquad-p1>
     fn P1(&self) -> DomRoot<DOMPoint> {
         DomRoot::from_ref(&self.p1)
     }
 
-    // https://drafts.fxtf.org/geometry/#dom-domquad-p2
+    /// <https://drafts.fxtf.org/geometry/#dom-domquad-p2>
     fn P2(&self) -> DomRoot<DOMPoint> {
         DomRoot::from_ref(&self.p2)
     }
 
-    // https://drafts.fxtf.org/geometry/#dom-domquad-p3
+    /// <https://drafts.fxtf.org/geometry/#dom-domquad-p3>
     fn P3(&self) -> DomRoot<DOMPoint> {
         DomRoot::from_ref(&self.p3)
     }
 
-    // https://drafts.fxtf.org/geometry/#dom-domquad-p4
+    /// <https://drafts.fxtf.org/geometry/#dom-domquad-p4>
     fn P4(&self) -> DomRoot<DOMPoint> {
         DomRoot::from_ref(&self.p4)
     }
 
-    // https://drafts.fxtf.org/geometry/#dom-domquad-getbounds
+    /// <https://drafts.fxtf.org/geometry/#dom-domquad-getbounds>
     fn GetBounds(&self, can_gc: CanGc) -> DomRoot<DOMRect> {
         // https://drafts.fxtf.org/geometry/#nan-safe-minimum
         let nan_safe_minimum = |a: f64, b: f64| {

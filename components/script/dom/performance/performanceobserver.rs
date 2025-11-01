@@ -124,7 +124,7 @@ impl PerformanceObserver {
 }
 
 impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
-    // https://w3c.github.io/performance-timeline/#dom-performanceobserver-constructor
+    /// <https://w3c.github.io/performance-timeline/#dom-performanceobserver-constructor>
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -140,7 +140,7 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
         ))
     }
 
-    // https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute
+    /// <https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute>
     fn SupportedEntryTypes(
         cx: JSContext,
         global: &GlobalScope,
@@ -152,7 +152,7 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
         global.supported_performance_entry_types(cx, retval, can_gc)
     }
 
-    // https://w3c.github.io/performance-timeline/#dom-performanceobserver-observe()
+    /// <https://w3c.github.io/performance-timeline/#dom-performanceobserver-observe()>
     fn Observe(&self, options: &PerformanceObserverInit) -> Fallible<()> {
         // Step 1 is self
 
@@ -242,13 +242,13 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
         }
     }
 
-    // https://w3c.github.io/performance-timeline/#dom-performanceobserver-disconnect
+    /// <https://w3c.github.io/performance-timeline/#dom-performanceobserver-disconnect>
     fn Disconnect(&self) {
         self.global().performance().remove_observer(self);
         self.entries.borrow_mut().clear();
     }
 
-    // https://w3c.github.io/performance-timeline/#takerecords-method
+    /// <https://w3c.github.io/performance-timeline/#takerecords-method>
     fn TakeRecords(&self) -> Vec<DomRoot<PerformanceEntry>> {
         let mut entries = self.entries.borrow_mut();
         let taken = entries

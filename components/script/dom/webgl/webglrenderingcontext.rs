@@ -542,7 +542,7 @@ impl WebGLRenderingContext {
     }
 
     // LINEAR filtering may be forbidden when using WebGL extensions.
-    // https://www.khronos.org/registry/webgl/extensions/OES_texture_float_linear/
+    /// <https://www.khronos.org/registry/webgl/extensions/OES_texture_float_linear/>
     fn validate_filterable_texture(
         &self,
         texture: &WebGLTexture,
@@ -2002,7 +2002,7 @@ impl CanvasContext for WebGLRenderingContext {
     // This emits errors quite liberally, but the spec says that this operation
     // can fail and that it is UB what happens in that case.
     //
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#2.2
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#2.2>
     fn get_image_data(&self) -> Option<Snapshot> {
         handle_potential_webgl_error!(self, self.validate_framebuffer(), return None);
         let mut size = self.size().cast();
@@ -2083,38 +2083,38 @@ impl Drop for WebGLRenderingContext {
 }
 
 impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContext {
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1>
     fn Canvas(&self) -> RootedHTMLCanvasElementOrOffscreenCanvas {
         RootedHTMLCanvasElementOrOffscreenCanvas::from(&self.canvas)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11>
     fn Flush(&self) {
         self.send_command(WebGLCommand::Flush);
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11>
     fn Finish(&self) {
         let (sender, receiver) = webgl_channel().unwrap();
         self.send_command(WebGLCommand::Finish(sender));
         receiver.recv().unwrap()
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1>
     fn DrawingBufferWidth(&self) -> i32 {
         let (sender, receiver) = webgl_channel().unwrap();
         self.send_command(WebGLCommand::DrawingBufferWidth(sender));
         receiver.recv().unwrap()
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1>
     fn DrawingBufferHeight(&self) -> i32 {
         let (sender, receiver) = webgl_channel().unwrap();
         self.send_command(WebGLCommand::DrawingBufferHeight(sender));
         receiver.recv().unwrap()
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
     fn GetBufferParameter(
         &self,
         _cx: SafeJSContext,
@@ -2131,7 +2131,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     #[allow(unsafe_code)]
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn GetParameter(&self, cx: SafeJSContext, parameter: u32, mut retval: MutableHandleValue) {
         if !self
             .extension_manager
@@ -2401,7 +2401,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn GetTexParameter(
         &self,
         _cx: SafeJSContext,
@@ -2473,7 +2473,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn GetError(&self) -> u32 {
         let error_code = if let Some(error) = self.last_error.get() {
             match error {
@@ -2491,7 +2491,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         error_code
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.2
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.2>
     fn GetContextAttributes(&self) -> Option<WebGLContextAttributes> {
         let (sender, receiver) = webgl_channel().unwrap();
 
@@ -2519,12 +2519,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         })
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.13
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.13>
     fn IsContextLost(&self) -> bool {
         false
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14>
     fn GetSupportedExtensions(&self) -> Option<Vec<DOMString>> {
         self.extension_manager
             .init_once(|| self.get_gl_extensions());
@@ -2537,38 +2537,38 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         )
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14>
     fn GetExtension(&self, _cx: SafeJSContext, name: DOMString) -> Option<NonNull<JSObject>> {
         self.extension_manager
             .init_once(|| self.get_gl_extensions());
         self.extension_manager.get_or_init_extension(&name, self)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn ActiveTexture(&self, texture: u32) {
         handle_potential_webgl_error!(self, self.textures.set_active_unit_enum(texture), return);
         self.send_command(WebGLCommand::ActiveTexture(texture));
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn BlendColor(&self, r: f32, g: f32, b: f32, a: f32) {
         self.send_command(WebGLCommand::BlendColor(r, g, b, a));
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn BlendEquation(&self, mode: u32) {
         handle_potential_webgl_error!(self, self.validate_blend_mode(mode), return);
         self.send_command(WebGLCommand::BlendEquation(mode))
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn BlendEquationSeparate(&self, mode_rgb: u32, mode_alpha: u32) {
         handle_potential_webgl_error!(self, self.validate_blend_mode(mode_rgb), return);
         handle_potential_webgl_error!(self, self.validate_blend_mode(mode_alpha), return);
         self.send_command(WebGLCommand::BlendEquationSeparate(mode_rgb, mode_alpha));
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn BlendFunc(&self, src_factor: u32, dest_factor: u32) {
         // From the WebGL 1.0 spec, 6.13: Viewport Depth Range:
         //
@@ -2585,7 +2585,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.send_command(WebGLCommand::BlendFunc(src_factor, dest_factor));
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn BlendFuncSeparate(&self, src_rgb: u32, dest_rgb: u32, src_alpha: u32, dest_alpha: u32) {
         // From the WebGL 1.0 spec, 6.13: Viewport Depth Range:
         //
@@ -2604,27 +2604,27 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         ));
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn AttachShader(&self, program: &WebGLProgram, shader: &WebGLShader) {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return);
         handle_potential_webgl_error!(self, self.validate_ownership(shader), return);
         handle_potential_webgl_error!(self, program.attach_shader(shader));
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn DetachShader(&self, program: &WebGLProgram, shader: &WebGLShader) {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return);
         handle_potential_webgl_error!(self, self.validate_ownership(shader), return);
         handle_potential_webgl_error!(self, program.detach_shader(shader));
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn BindAttribLocation(&self, program: &WebGLProgram, index: u32, name: DOMString) {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return);
         handle_potential_webgl_error!(self, program.bind_attrib_location(index, name));
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
     fn BindBuffer(&self, target: u32, buffer: Option<&WebGLBuffer>) {
         let current_vao;
         let slot = match target {
@@ -2638,7 +2638,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.bind_buffer_maybe(slot, target, buffer);
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6>
     fn BindFramebuffer(&self, target: u32, framebuffer: Option<&WebGLFramebuffer>) {
         handle_potential_webgl_error!(
             self,
@@ -2653,7 +2653,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.bind_framebuffer_to(target, framebuffer, &self.bound_draw_framebuffer)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7>
     fn BindRenderbuffer(&self, target: u32, renderbuffer: Option<&WebGLRenderbuffer>) {
         if let Some(rb) = renderbuffer {
             handle_potential_webgl_error!(self, self.validate_ownership(rb), return);
@@ -2683,7 +2683,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn BindTexture(&self, target: u32, texture: Option<&WebGLTexture>) {
         if let Some(texture) = texture {
             handle_potential_webgl_error!(self, self.validate_ownership(texture), return);
@@ -2704,7 +2704,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         texture_slot.set(texture);
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn GenerateMipmap(&self, target: u32) {
         let texture_slot = handle_potential_webgl_error!(
             self,
@@ -2717,14 +2717,14 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         handle_potential_webgl_error!(self, texture.generate_mipmap());
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
     fn BufferData_(&self, target: u32, data: Option<ArrayBufferViewOrArrayBuffer>, usage: u32) {
         let usage = handle_potential_webgl_error!(self, self.buffer_usage(usage), return);
         let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);
         self.buffer_data(target, data, usage, bound_buffer)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
     fn BufferData(&self, target: u32, size: i64, usage: u32) {
         let usage = handle_potential_webgl_error!(self, self.buffer_usage(usage), return);
         let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);
@@ -2773,7 +2773,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         )
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn CopyTexImage2D(
         &self,
         target: u32,
@@ -2874,7 +2874,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.send_command(msg);
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn CopyTexSubImage2D(
         &self,
         target: u32,
@@ -2943,7 +2943,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.send_command(msg);
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11>
     fn Clear(&self, mask: u32) {
         handle_potential_webgl_error!(self, self.validate_framebuffer(), return);
         if mask &
@@ -2959,28 +2959,28 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.mark_as_dirty();
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn ClearColor(&self, red: f32, green: f32, blue: f32, alpha: f32) {
         self.current_clear_color.set((red, green, blue, alpha));
         self.send_command(WebGLCommand::ClearColor(red, green, blue, alpha));
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn ClearDepth(&self, depth: f32) {
         self.send_command(WebGLCommand::ClearDepth(depth))
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn ClearStencil(&self, stencil: i32) {
         self.send_command(WebGLCommand::ClearStencil(stencil))
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn ColorMask(&self, r: bool, g: bool, b: bool, a: bool) {
         self.send_command(WebGLCommand::ColorMask(r, g, b, a))
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn CullFace(&self, mode: u32) {
         match mode {
             constants::FRONT | constants::BACK | constants::FRONT_AND_BACK => {
@@ -2990,14 +2990,14 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn FrontFace(&self, mode: u32) {
         match mode {
             constants::CW | constants::CCW => self.send_command(WebGLCommand::FrontFace(mode)),
             _ => self.webgl_error(InvalidEnum),
         }
     }
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn DepthFunc(&self, func: u32) {
         match func {
             constants::NEVER |
@@ -3012,12 +3012,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn DepthMask(&self, flag: bool) {
         self.send_command(WebGLCommand::DepthMask(flag))
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn DepthRange(&self, near: f32, far: f32) {
         // https://www.khronos.org/registry/webgl/specs/latest/1.0/#VIEWPORT_DEPTH_RANGE
         if near > far {
@@ -3026,21 +3026,21 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.send_command(WebGLCommand::DepthRange(near, far))
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn Enable(&self, cap: u32) {
         if handle_potential_webgl_error!(self, self.capabilities.set(cap, true), return) {
             self.send_command(WebGLCommand::Enable(cap));
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn Disable(&self, cap: u32) {
         if handle_potential_webgl_error!(self, self.capabilities.set(cap, false), return) {
             self.send_command(WebGLCommand::Disable(cap));
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn CompileShader(&self, shader: &WebGLShader) {
         handle_potential_webgl_error!(self, self.validate_ownership(shader), return);
         handle_potential_webgl_error!(
@@ -3055,32 +3055,32 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         )
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
     fn CreateBuffer(&self) -> Option<DomRoot<WebGLBuffer>> {
         WebGLBuffer::maybe_new(self, CanGc::note())
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6>
     fn CreateFramebuffer(&self) -> Option<DomRoot<WebGLFramebuffer>> {
         WebGLFramebuffer::maybe_new(self, CanGc::note())
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7>
     fn CreateRenderbuffer(&self) -> Option<DomRoot<WebGLRenderbuffer>> {
         WebGLRenderbuffer::maybe_new(self)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn CreateTexture(&self) -> Option<DomRoot<WebGLTexture>> {
         WebGLTexture::maybe_new(self)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn CreateProgram(&self) -> Option<DomRoot<WebGLProgram>> {
         WebGLProgram::maybe_new(self, CanGc::note())
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn CreateShader(&self, shader_type: u32) -> Option<DomRoot<WebGLShader>> {
         match shader_type {
             constants::VERTEX_SHADER | constants::FRAGMENT_SHADER => {},
@@ -3092,7 +3092,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         WebGLShader::maybe_new(self, shader_type)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
     fn DeleteBuffer(&self, buffer: Option<&WebGLBuffer>) {
         let buffer = match buffer {
             Some(buffer) => buffer,
@@ -3110,7 +3110,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         buffer.mark_for_deletion(Operation::Infallible);
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6>
     fn DeleteFramebuffer(&self, framebuffer: Option<&WebGLFramebuffer>) {
         if let Some(framebuffer) = framebuffer {
             // https://immersive-web.github.io/webxr/#opaque-framebuffer
@@ -3131,7 +3131,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7>
     fn DeleteRenderbuffer(&self, renderbuffer: Option<&WebGLRenderbuffer>) {
         if let Some(renderbuffer) = renderbuffer {
             handle_potential_webgl_error!(self, self.validate_ownership(renderbuffer), return);
@@ -3148,7 +3148,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn DeleteTexture(&self, texture: Option<&WebGLTexture>) {
         if let Some(texture) = texture {
             handle_potential_webgl_error!(self, self.validate_ownership(texture), return);
@@ -3183,7 +3183,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn DeleteProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
             handle_potential_webgl_error!(self, self.validate_ownership(program), return);
@@ -3191,7 +3191,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn DeleteShader(&self, shader: Option<&WebGLShader>) {
         if let Some(shader) = shader {
             handle_potential_webgl_error!(self, self.validate_ownership(shader), return);
@@ -3199,12 +3199,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11>
     fn DrawArrays(&self, mode: u32, first: i32, count: i32) {
         handle_potential_webgl_error!(self, self.draw_arrays_instanced(mode, first, count, 1));
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11>
     fn DrawElements(&self, mode: u32, count: i32, type_: u32, offset: i64) {
         handle_potential_webgl_error!(
             self,
@@ -3212,7 +3212,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         );
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn EnableVertexAttribArray(&self, attrib_id: u32) {
         if attrib_id >= self.limits.max_vertex_attribs {
             return self.webgl_error(InvalidValue);
@@ -3228,7 +3228,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.send_command(WebGLCommand::EnableVertexAttribArray(attrib_id));
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn DisableVertexAttribArray(&self, attrib_id: u32) {
         if attrib_id >= self.limits.max_vertex_attribs {
             return self.webgl_error(InvalidValue);
@@ -3244,7 +3244,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.send_command(WebGLCommand::DisableVertexAttribArray(attrib_id));
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn GetActiveUniform(
         &self,
         program: &WebGLProgram,
@@ -3260,7 +3260,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn GetActiveAttrib(
         &self,
         program: &WebGLProgram,
@@ -3274,13 +3274,13 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         )
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn GetAttribLocation(&self, program: &WebGLProgram, name: DOMString) -> i32 {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return -1);
         handle_potential_webgl_error!(self, program.get_attrib_location(name), -1)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6>
     fn GetFramebufferAttachmentParameter(
         &self,
         cx: SafeJSContext,
@@ -3398,7 +3398,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         retval.set(Int32Value(receiver.recv().unwrap()))
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7>
     fn GetRenderbufferParameter(
         &self,
         _cx: SafeJSContext,
@@ -3447,7 +3447,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         retval.set(Int32Value(result))
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn GetProgramInfoLog(&self, program: &WebGLProgram) -> Option<DOMString> {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return None);
         match program.get_info_log() {
@@ -3459,7 +3459,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn GetProgramParameter(
         &self,
         _: SafeJSContext,
@@ -3504,13 +3504,13 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         })
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn GetShaderInfoLog(&self, shader: &WebGLShader) -> Option<DOMString> {
         handle_potential_webgl_error!(self, self.validate_ownership(shader), return None);
         Some(shader.info_log())
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn GetShaderParameter(
         &self,
         _: SafeJSContext,
@@ -3538,7 +3538,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         })
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn GetShaderPrecisionFormat(
         &self,
         shader_type: u32,
@@ -3582,7 +3582,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         ))
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn GetUniformLocation(
         &self,
         program: &WebGLProgram,
@@ -3597,7 +3597,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     #[allow(unsafe_code)]
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn GetVertexAttrib(
         &self,
         cx: SafeJSContext,
@@ -3703,7 +3703,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn GetVertexAttribOffset(&self, index: u32, pname: u32) -> i64 {
         if pname != constants::VERTEX_ATTRIB_ARRAY_POINTER {
             self.webgl_error(InvalidEnum);
@@ -3731,7 +3731,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn Hint(&self, target: u32, mode: u32) {
         if target != constants::GENERATE_MIPMAP_HINT &&
             !self.extension_manager.is_hint_target_enabled(target)
@@ -3748,50 +3748,50 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.send_command(WebGLCommand::Hint(target, mode));
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
     fn IsBuffer(&self, buffer: Option<&WebGLBuffer>) -> bool {
         buffer.is_some_and(|buf| {
             self.validate_ownership(buf).is_ok() && buf.target().is_some() && !buf.is_deleted()
         })
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn IsEnabled(&self, cap: u32) -> bool {
         handle_potential_webgl_error!(self, self.capabilities.is_enabled(cap), false)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6>
     fn IsFramebuffer(&self, frame_buffer: Option<&WebGLFramebuffer>) -> bool {
         frame_buffer.is_some_and(|buf| {
             self.validate_ownership(buf).is_ok() && buf.target().is_some() && !buf.is_deleted()
         })
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn IsProgram(&self, program: Option<&WebGLProgram>) -> bool {
         program.is_some_and(|p| self.validate_ownership(p).is_ok() && !p.is_deleted())
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7>
     fn IsRenderbuffer(&self, render_buffer: Option<&WebGLRenderbuffer>) -> bool {
         render_buffer.is_some_and(|buf| {
             self.validate_ownership(buf).is_ok() && buf.ever_bound() && !buf.is_deleted()
         })
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn IsShader(&self, shader: Option<&WebGLShader>) -> bool {
         shader.is_some_and(|s| self.validate_ownership(s).is_ok() && !s.is_deleted())
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn IsTexture(&self, texture: Option<&WebGLTexture>) -> bool {
         texture.is_some_and(|tex| {
             self.validate_ownership(tex).is_ok() && tex.target().is_some() && !tex.is_invalid()
         })
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn LineWidth(&self, width: f32) {
         if width.is_nan() || width <= 0f32 {
             return self.webgl_error(InvalidValue);
@@ -3802,7 +3802,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
     // NOTE: Usage of this function could affect rendering while we keep using
     //   readback to render to the page.
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn PixelStorei(&self, param_name: u32, param_value: i32) {
         let mut texture_settings = self.texture_unpacking_settings.get();
         match param_name {
@@ -3844,7 +3844,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.texture_unpacking_settings.set(texture_settings);
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn PolygonOffset(&self, factor: f32, units: f32) {
         self.send_command(WebGLCommand::PolygonOffset(factor, units))
     }
@@ -3956,12 +3956,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn SampleCoverage(&self, value: f32, invert: bool) {
         self.send_command(WebGLCommand::SampleCoverage(value, invert));
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4>
     fn Scissor(&self, x: i32, y: i32, width: i32, height: i32) {
         if width < 0 || height < 0 {
             return self.webgl_error(InvalidValue);
@@ -3974,7 +3974,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.send_command(WebGLCommand::Scissor(x, y, width, height));
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn StencilFunc(&self, func: u32, ref_: i32, mask: u32) {
         match func {
             constants::NEVER |
@@ -3989,7 +3989,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn StencilFuncSeparate(&self, face: u32, func: u32, ref_: i32, mask: u32) {
         match face {
             constants::FRONT | constants::BACK | constants::FRONT_AND_BACK => (),
@@ -4011,12 +4011,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn StencilMask(&self, mask: u32) {
         self.send_command(WebGLCommand::StencilMask(mask))
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn StencilMaskSeparate(&self, face: u32, mask: u32) {
         match face {
             constants::FRONT | constants::BACK | constants::FRONT_AND_BACK => {
@@ -4026,7 +4026,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         };
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn StencilOp(&self, fail: u32, zfail: u32, zpass: u32) {
         if self.validate_stencil_actions(fail) &&
             self.validate_stencil_actions(zfail) &&
@@ -4038,7 +4038,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn StencilOpSeparate(&self, face: u32, fail: u32, zfail: u32, zpass: u32) {
         match face {
             constants::FRONT | constants::BACK | constants::FRONT_AND_BACK => (),
@@ -4055,7 +4055,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn LinkProgram(&self, program: &WebGLProgram) {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return);
         if program.is_deleted() {
@@ -4064,19 +4064,19 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         handle_potential_webgl_error!(self, program.link());
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn ShaderSource(&self, shader: &WebGLShader, source: DOMString) {
         handle_potential_webgl_error!(self, self.validate_ownership(shader), return);
         shader.set_source(source)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn GetShaderSource(&self, shader: &WebGLShader) -> Option<DOMString> {
         handle_potential_webgl_error!(self, self.validate_ownership(shader), return None);
         Some(shader.source())
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform1f(&self, location: Option<&WebGLUniformLocation>, val: f32) {
         self.with_location(location, |location| {
             match location.type_() {
@@ -4088,7 +4088,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         });
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform1i(&self, location: Option<&WebGLUniformLocation>, val: i32) {
         self.with_location(location, |location| {
             match location.type_() {
@@ -4108,12 +4108,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         });
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform1iv(&self, location: Option<&WebGLUniformLocation>, val: Int32ArrayOrLongSequence) {
         self.uniform1iv(location, val, 0, 0)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform1fv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -4122,7 +4122,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.uniform1fv(location, val, 0, 0)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform2f(&self, location: Option<&WebGLUniformLocation>, x: f32, y: f32) {
         self.with_location(location, |location| {
             match location.type_() {
@@ -4134,7 +4134,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         });
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform2fv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -4143,7 +4143,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.uniform2fv(location, val, 0, 0)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform2i(&self, location: Option<&WebGLUniformLocation>, x: i32, y: i32) {
         self.with_location(location, |location| {
             match location.type_() {
@@ -4155,12 +4155,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         });
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform2iv(&self, location: Option<&WebGLUniformLocation>, val: Int32ArrayOrLongSequence) {
         self.uniform2iv(location, val, 0, 0)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform3f(&self, location: Option<&WebGLUniformLocation>, x: f32, y: f32, z: f32) {
         self.with_location(location, |location| {
             match location.type_() {
@@ -4172,7 +4172,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         });
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform3fv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -4181,7 +4181,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.uniform3fv(location, val, 0, 0)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform3i(&self, location: Option<&WebGLUniformLocation>, x: i32, y: i32, z: i32) {
         self.with_location(location, |location| {
             match location.type_() {
@@ -4193,12 +4193,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         });
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform3iv(&self, location: Option<&WebGLUniformLocation>, val: Int32ArrayOrLongSequence) {
         self.uniform3iv(location, val, 0, 0)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform4i(&self, location: Option<&WebGLUniformLocation>, x: i32, y: i32, z: i32, w: i32) {
         self.with_location(location, |location| {
             match location.type_() {
@@ -4210,12 +4210,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         });
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform4iv(&self, location: Option<&WebGLUniformLocation>, val: Int32ArrayOrLongSequence) {
         self.uniform4iv(location, val, 0, 0)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform4f(&self, location: Option<&WebGLUniformLocation>, x: f32, y: f32, z: f32, w: f32) {
         self.with_location(location, |location| {
             match location.type_() {
@@ -4227,7 +4227,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         });
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform4fv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -4236,7 +4236,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.uniform4fv(location, val, 0, 0)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn UniformMatrix2fv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -4246,7 +4246,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.uniform_matrix_2fv(location, transpose, val, 0, 0)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn UniformMatrix3fv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -4256,7 +4256,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.uniform_matrix_3fv(location, transpose, val, 0, 0)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn UniformMatrix4fv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -4365,7 +4365,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn UseProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
             handle_potential_webgl_error!(self, self.validate_ownership(program), return);
@@ -4385,7 +4385,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.current_program.set(program);
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn ValidateProgram(&self, program: &WebGLProgram) {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return);
         if let Err(e) = program.validate() {
@@ -4393,12 +4393,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn VertexAttrib1f(&self, indx: u32, x: f32) {
         self.vertex_attrib(indx, x, 0f32, 0f32, 1f32)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn VertexAttrib1fv(&self, indx: u32, v: Float32ArrayOrUnrestrictedFloatSequence) {
         let values = match v {
             Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
@@ -4411,12 +4411,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.vertex_attrib(indx, values[0], 0f32, 0f32, 1f32);
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn VertexAttrib2f(&self, indx: u32, x: f32, y: f32) {
         self.vertex_attrib(indx, x, y, 0f32, 1f32)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn VertexAttrib2fv(&self, indx: u32, v: Float32ArrayOrUnrestrictedFloatSequence) {
         let values = match v {
             Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
@@ -4429,12 +4429,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.vertex_attrib(indx, values[0], values[1], 0f32, 1f32);
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn VertexAttrib3f(&self, indx: u32, x: f32, y: f32, z: f32) {
         self.vertex_attrib(indx, x, y, z, 1f32)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn VertexAttrib3fv(&self, indx: u32, v: Float32ArrayOrUnrestrictedFloatSequence) {
         let values = match v {
             Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
@@ -4447,12 +4447,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.vertex_attrib(indx, values[0], values[1], values[2], 1f32);
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn VertexAttrib4f(&self, indx: u32, x: f32, y: f32, z: f32, w: f32) {
         self.vertex_attrib(indx, x, y, z, w)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn VertexAttrib4fv(&self, indx: u32, v: Float32ArrayOrUnrestrictedFloatSequence) {
         let values = match v {
             Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
@@ -4465,7 +4465,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.vertex_attrib(indx, values[0], values[1], values[2], values[3]);
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn VertexAttribPointer(
         &self,
         index: u32,
@@ -4486,7 +4486,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         handle_potential_webgl_error!(self, res);
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4>
     fn Viewport(&self, x: i32, y: i32, width: i32, height: i32) {
         if width < 0 || height < 0 {
             return self.webgl_error(InvalidValue);
@@ -4629,7 +4629,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         Ok(())
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn TexImage2D_(
         &self,
         target: u32,
@@ -4805,7 +4805,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         Ok(())
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn TexSubImage2D_(
         &self,
         target: u32,
@@ -4850,17 +4850,17 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         Ok(())
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn TexParameterf(&self, target: u32, name: u32, value: f32) {
         self.tex_parameter(target, name, TexParameterValue::Float(value))
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn TexParameteri(&self, target: u32, name: u32, value: i32) {
         self.tex_parameter(target, name, TexParameterValue::Int(value))
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6>
     fn CheckFramebufferStatus(&self, target: u32) -> u32 {
         // From the GLES 2.0.25 spec, 4.4 ("Framebuffer Objects"):
         //
@@ -4878,12 +4878,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7>
     fn RenderbufferStorage(&self, target: u32, internal_format: u32, width: i32, height: i32) {
         self.renderbuffer_storage(target, 0, internal_format, width, height)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6>
     fn FramebufferRenderbuffer(
         &self,
         target: u32,
@@ -4905,7 +4905,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         };
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6>
     fn FramebufferTexture2D(
         &self,
         target: u32,

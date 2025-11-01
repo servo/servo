@@ -44,35 +44,35 @@ impl StyleSheetMethods<crate::DomTypeHolder> for StyleSheet {
         self.type_.clone()
     }
 
-    // https://drafts.csswg.org/cssom/#dom-stylesheet-href
+    /// <https://drafts.csswg.org/cssom/#dom-stylesheet-href>
     fn GetHref(&self) -> Option<DOMString> {
         self.href.clone()
     }
 
-    // https://drafts.csswg.org/cssom/#dom-stylesheet-ownernode
+    /// <https://drafts.csswg.org/cssom/#dom-stylesheet-ownernode>
     fn GetOwnerNode(&self) -> Option<DomRoot<Element>> {
         self.downcast::<CSSStyleSheet>()
             .and_then(|s| s.owner_node())
     }
 
-    // https://drafts.csswg.org/cssom/#dom-stylesheet-media
+    /// <https://drafts.csswg.org/cssom/#dom-stylesheet-media>
     fn Media(&self) -> DomRoot<MediaList> {
         self.downcast::<CSSStyleSheet>()
             .unwrap()
             .medialist(CanGc::note())
     }
 
-    // https://drafts.csswg.org/cssom/#dom-stylesheet-title
+    /// <https://drafts.csswg.org/cssom/#dom-stylesheet-title>
     fn GetTitle(&self) -> Option<DOMString> {
         self.title.clone()
     }
 
-    // https://drafts.csswg.org/cssom/#dom-stylesheet-disabled
+    /// <https://drafts.csswg.org/cssom/#dom-stylesheet-disabled>
     fn Disabled(&self) -> bool {
         self.downcast::<CSSStyleSheet>().unwrap().disabled()
     }
 
-    // https://drafts.csswg.org/cssom/#dom-stylesheet-disabled
+    /// <https://drafts.csswg.org/cssom/#dom-stylesheet-disabled>
     fn SetDisabled(&self, disabled: bool) {
         self.downcast::<CSSStyleSheet>()
             .unwrap()

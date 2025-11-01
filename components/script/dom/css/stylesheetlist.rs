@@ -111,12 +111,12 @@ impl StyleSheetList {
 }
 
 impl StyleSheetListMethods<crate::DomTypeHolder> for StyleSheetList {
-    // https://drafts.csswg.org/cssom/#dom-stylesheetlist-length
+    /// <https://drafts.csswg.org/cssom/#dom-stylesheetlist-length>
     fn Length(&self) -> u32 {
         self.document_or_shadow_root.stylesheet_count() as u32
     }
 
-    // https://drafts.csswg.org/cssom/#dom-stylesheetlist-item
+    /// <https://drafts.csswg.org/cssom/#dom-stylesheetlist-item>
     fn Item(&self, index: u32) -> Option<DomRoot<StyleSheet>> {
         // XXXManishearth this  doesn't handle the origin clean flag and is a
         // cors vulnerability

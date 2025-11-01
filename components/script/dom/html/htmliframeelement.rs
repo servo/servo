@@ -608,13 +608,13 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
     // https://html.spec.whatwg.org/multipage/#dom-iframe-src
     make_url_setter!(SetSrc, "src");
 
-    // https://html.spec.whatwg.org/multipage/#dom-iframe-srcdoc
+    /// <https://html.spec.whatwg.org/multipage/#dom-iframe-srcdoc>
     fn Srcdoc(&self) -> TrustedHTMLOrString {
         let element = self.upcast::<Element>();
         element.get_trusted_html_attribute(&local_name!("srcdoc"))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-iframe-srcdoc
+    /// <https://html.spec.whatwg.org/multipage/#dom-iframe-srcdoc>
     fn SetSrcdoc(&self, value: TrustedHTMLOrString, can_gc: CanGc) -> Fallible<()> {
         // Step 1: Let compliantString be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
@@ -665,7 +665,7 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
         })
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-iframe-contentwindow
+    /// <https://html.spec.whatwg.org/multipage/#dom-iframe-contentwindow>
     fn GetContentWindow(&self) -> Option<DomRoot<WindowProxy>> {
         self.browsing_context_id
             .get()
@@ -673,7 +673,7 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentdocument
-    // https://html.spec.whatwg.org/multipage/#concept-bcc-content-document
+    /// <https://html.spec.whatwg.org/multipage/#concept-bcc-content-document>
     fn GetContentDocument(&self) -> Option<DomRoot<Document>> {
         // Step 1.
         let pipeline_id = self.pipeline_id.get()?;

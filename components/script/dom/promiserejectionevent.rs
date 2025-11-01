@@ -96,7 +96,7 @@ impl PromiseRejectionEvent {
 }
 
 impl PromiseRejectionEventMethods<crate::DomTypeHolder> for PromiseRejectionEvent {
-    // https://html.spec.whatwg.org/multipage/#promiserejectionevent
+    /// <https://html.spec.whatwg.org/multipage/#promiserejectionevent>
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -121,17 +121,17 @@ impl PromiseRejectionEventMethods<crate::DomTypeHolder> for PromiseRejectionEven
         Ok(event)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-promiserejectionevent-promise
+    /// <https://html.spec.whatwg.org/multipage/#dom-promiserejectionevent-promise>
     fn Promise(&self, _cx: JSContext) -> NonNull<JSObject> {
         NonNull::new(self.promise.get()).unwrap()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-promiserejectionevent-reason
+    /// <https://html.spec.whatwg.org/multipage/#dom-promiserejectionevent-reason>
     fn Reason(&self, _cx: JSContext, mut retval: MutableHandleValue) {
         retval.set(self.reason.get())
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

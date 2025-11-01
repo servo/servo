@@ -134,54 +134,54 @@ impl Gamepad {
 }
 
 impl GamepadMethods<crate::DomTypeHolder> for Gamepad {
-    // https://w3c.github.io/gamepad/#dom-gamepad-id
+    /// <https://w3c.github.io/gamepad/#dom-gamepad-id>
     fn Id(&self) -> DOMString {
         DOMString::from(self.id.clone())
     }
 
-    // https://w3c.github.io/gamepad/#dom-gamepad-index
+    /// <https://w3c.github.io/gamepad/#dom-gamepad-index>
     fn Index(&self) -> i32 {
         self.index.get()
     }
 
-    // https://w3c.github.io/gamepad/#dom-gamepad-connected
+    /// <https://w3c.github.io/gamepad/#dom-gamepad-connected>
     fn Connected(&self) -> bool {
         self.connected.get()
     }
 
-    // https://w3c.github.io/gamepad/#dom-gamepad-timestamp
+    /// <https://w3c.github.io/gamepad/#dom-gamepad-timestamp>
     fn Timestamp(&self) -> Finite<f64> {
         Finite::wrap(self.timestamp.get())
     }
 
-    // https://w3c.github.io/gamepad/#dom-gamepad-mapping
+    /// <https://w3c.github.io/gamepad/#dom-gamepad-mapping>
     fn Mapping(&self) -> DOMString {
         DOMString::from(self.mapping_type.clone())
     }
 
-    // https://w3c.github.io/gamepad/#dom-gamepad-axes
+    /// <https://w3c.github.io/gamepad/#dom-gamepad-axes>
     fn Axes(&self, _cx: JSContext) -> Float64Array {
         self.axes
             .get_typed_array()
             .expect("Failed to get gamepad axes.")
     }
 
-    // https://w3c.github.io/gamepad/#dom-gamepad-buttons
+    /// <https://w3c.github.io/gamepad/#dom-gamepad-buttons>
     fn Buttons(&self) -> DomRoot<GamepadButtonList> {
         DomRoot::from_ref(&*self.buttons)
     }
 
-    // https://w3c.github.io/gamepad/#dom-gamepad-vibrationactuator
+    /// <https://w3c.github.io/gamepad/#dom-gamepad-vibrationactuator>
     fn VibrationActuator(&self) -> DomRoot<GamepadHapticActuator> {
         DomRoot::from_ref(&*self.vibration_actuator)
     }
 
-    // https://w3c.github.io/gamepad/extensions.html#gamepadhand-enum
+    /// <https://w3c.github.io/gamepad/extensions.html#gamepadhand-enum>
     fn Hand(&self) -> GamepadHand {
         self.hand
     }
 
-    // https://w3c.github.io/gamepad/extensions.html#dom-gamepad-pose
+    /// <https://w3c.github.io/gamepad/extensions.html#dom-gamepad-pose>
     fn GetPose(&self) -> Option<DomRoot<GamepadPose>> {
         self.pose.as_ref().map(|p| DomRoot::from_ref(&**p))
     }

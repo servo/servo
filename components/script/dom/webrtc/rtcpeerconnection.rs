@@ -501,7 +501,7 @@ impl RTCPeerConnection {
 }
 
 impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
-    // https://w3c.github.io/webrtc-pc/#dom-peerconnection
+    /// <https://w3c.github.io/webrtc-pc/#dom-peerconnection>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -715,7 +715,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         p
     }
 
-    // https://w3c.github.io/webrtc-pc/#legacy-interface-extensions
+    /// <https://w3c.github.io/webrtc-pc/#legacy-interface-extensions>
     fn AddStream(&self, stream: &MediaStream) {
         for track in &*stream.get_tracks() {
             self.controller

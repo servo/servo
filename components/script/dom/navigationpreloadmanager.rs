@@ -46,7 +46,7 @@ impl NavigationPreloadManager {
 }
 
 impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreloadManager {
-    // https://w3c.github.io/ServiceWorker/#navigation-preload-manager-enable
+    /// <https://w3c.github.io/ServiceWorker/#navigation-preload-manager-enable>
     fn Enable(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);
 
@@ -68,7 +68,7 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
         promise
     }
 
-    // https://w3c.github.io/ServiceWorker/#navigation-preload-manager-disable
+    /// <https://w3c.github.io/ServiceWorker/#navigation-preload-manager-disable>
     fn Disable(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);
 
@@ -90,7 +90,7 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
         promise
     }
 
-    // https://w3c.github.io/ServiceWorker/#navigation-preload-manager-setheadervalue
+    /// <https://w3c.github.io/ServiceWorker/#navigation-preload-manager-setheadervalue>
     fn SetHeaderValue(&self, value: ByteString, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);
 
@@ -112,7 +112,7 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
         promise
     }
 
-    // https://w3c.github.io/ServiceWorker/#navigation-preload-manager-getstate
+    /// <https://w3c.github.io/ServiceWorker/#navigation-preload-manager-getstate>
     fn GetState(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);
         // 2.

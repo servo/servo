@@ -89,32 +89,32 @@ impl VideoTrack {
 }
 
 impl VideoTrackMethods<crate::DomTypeHolder> for VideoTrack {
-    // https://html.spec.whatwg.org/multipage/#dom-videotrack-id
+    /// <https://html.spec.whatwg.org/multipage/#dom-videotrack-id>
     fn Id(&self) -> DOMString {
         self.id()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-videotrack-kind
+    /// <https://html.spec.whatwg.org/multipage/#dom-videotrack-kind>
     fn Kind(&self) -> DOMString {
         self.kind()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-videotrack-label
+    /// <https://html.spec.whatwg.org/multipage/#dom-videotrack-label>
     fn Label(&self) -> DOMString {
         self.label.clone()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-videotrack-language
+    /// <https://html.spec.whatwg.org/multipage/#dom-videotrack-language>
     fn Language(&self) -> DOMString {
         self.language.clone()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-videotrack-selected
+    /// <https://html.spec.whatwg.org/multipage/#dom-videotrack-selected>
     fn Selected(&self) -> bool {
         self.selected()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-videotrack-selected
+    /// <https://html.spec.whatwg.org/multipage/#dom-videotrack-selected>
     fn SetSelected(&self, value: bool) {
         if let Some(list) = self.track_list.borrow().as_ref() {
             if let Some(idx) = list.find(self) {

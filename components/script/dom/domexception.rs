@@ -213,7 +213,7 @@ impl DOMException {
 }
 
 impl DOMExceptionMethods<crate::DomTypeHolder> for DOMException {
-    // https://webidl.spec.whatwg.org/#dom-domexception-domexception
+    /// <https://webidl.spec.whatwg.org/#dom-domexception-domexception>
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -229,7 +229,7 @@ impl DOMExceptionMethods<crate::DomTypeHolder> for DOMException {
         ))
     }
 
-    // https://webidl.spec.whatwg.org/#dom-domexception-code
+    /// <https://webidl.spec.whatwg.org/#dom-domexception-code>
     fn Code(&self) -> u16 {
         match DOMErrorName::from(&self.name) {
             Some(code) if code <= DOMErrorName::DataCloneError => code as u16,
@@ -237,12 +237,12 @@ impl DOMExceptionMethods<crate::DomTypeHolder> for DOMException {
         }
     }
 
-    // https://webidl.spec.whatwg.org/#dom-domexception-name
+    /// <https://webidl.spec.whatwg.org/#dom-domexception-name>
     fn Name(&self) -> DOMString {
         self.name.clone()
     }
 
-    // https://webidl.spec.whatwg.org/#dom-domexception-message
+    /// <https://webidl.spec.whatwg.org/#dom-domexception-message>
     fn Message(&self) -> DOMString {
         self.message.clone()
     }
@@ -252,7 +252,7 @@ impl Serializable for DOMException {
     type Index = DomExceptionIndex;
     type Data = DomException;
 
-    // https://webidl.spec.whatwg.org/#idl-DOMException
+    /// <https://webidl.spec.whatwg.org/#idl-DOMException>
     fn serialize(&self) -> Result<(DomExceptionId, Self::Data), ()> {
         let serialized = DomException {
             message: self.message.to_string(),
@@ -261,7 +261,7 @@ impl Serializable for DOMException {
         Ok((DomExceptionId::new(), serialized))
     }
 
-    // https://webidl.spec.whatwg.org/#idl-DOMException
+    /// <https://webidl.spec.whatwg.org/#idl-DOMException>
     fn deserialize(
         owner: &GlobalScope,
         serialized: Self::Data,

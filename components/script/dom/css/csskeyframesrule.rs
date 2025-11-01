@@ -109,12 +109,12 @@ impl CSSKeyframesRule {
 }
 
 impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
-    // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-cssrules
+    /// <https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-cssrules>
     fn CssRules(&self, can_gc: CanGc) -> DomRoot<CSSRuleList> {
         self.rulelist(can_gc)
     }
 
-    // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-appendrule
+    /// <https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-appendrule>
     fn AppendRule(&self, rule: DOMString, can_gc: CanGc) {
         let style_stylesheet = self.cssrule.parent_stylesheet().style_stylesheet();
         let rule = rule.str();
@@ -140,27 +140,27 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
         }
     }
 
-    // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-deleterule
+    /// <https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-deleterule>
     fn DeleteRule(&self, selector: DOMString, can_gc: CanGc) {
         if let Some(idx) = self.find_rule(&selector) {
             let _ = self.rulelist(can_gc).remove_rule(idx as u32);
         }
     }
 
-    // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-findrule
+    /// <https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-findrule>
     fn FindRule(&self, selector: DOMString, can_gc: CanGc) -> Option<DomRoot<CSSKeyframeRule>> {
         self.find_rule(&selector)
             .and_then(|idx| self.rulelist(can_gc).item(idx as u32, can_gc))
             .and_then(DomRoot::downcast)
     }
 
-    // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name
+    /// <https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name>
     fn Name(&self) -> DOMString {
         let guard = self.cssrule.shared_lock().read();
         DOMString::from(&**self.keyframesrule.borrow().read_with(&guard).name.as_atom())
     }
 
-    // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name
+    /// <https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name>
     fn SetName(&self, value: DOMString) -> ErrorResult {
         // Spec deviation: https://github.com/w3c/csswg-drafts/issues/801
         // Setting this property to a CSS-wide keyword or `none` does not throw,

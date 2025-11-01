@@ -30,25 +30,25 @@ impl PluginArray {
 }
 
 impl PluginArrayMethods<crate::DomTypeHolder> for PluginArray {
-    // https://html.spec.whatwg.org/multipage/#dom-pluginarray-refresh
+    /// <https://html.spec.whatwg.org/multipage/#dom-pluginarray-refresh>
     fn Refresh(&self, _reload: bool) {}
 
-    // https://html.spec.whatwg.org/multipage/#dom-pluginarray-length
+    /// <https://html.spec.whatwg.org/multipage/#dom-pluginarray-length>
     fn Length(&self) -> u32 {
         0
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-pluginarray-item
+    /// <https://html.spec.whatwg.org/multipage/#dom-pluginarray-item>
     fn Item(&self, _index: u32) -> Option<DomRoot<Plugin>> {
         None
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-pluginarray-nameditem
+    /// <https://html.spec.whatwg.org/multipage/#dom-pluginarray-nameditem>
     fn NamedItem(&self, _name: DOMString) -> Option<DomRoot<Plugin>> {
         None
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-pluginarray-item
+    /// <https://html.spec.whatwg.org/multipage/#dom-pluginarray-item>
     fn IndexedGetter(&self, _index: u32) -> Option<DomRoot<Plugin>> {
         None
     }
@@ -58,7 +58,7 @@ impl PluginArrayMethods<crate::DomTypeHolder> for PluginArray {
         None
     }
 
-    // https://heycam.github.io/webidl/#dfn-supported-property-names
+    /// <https://heycam.github.io/webidl/#dfn-supported-property-names>
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         vec![]
     }

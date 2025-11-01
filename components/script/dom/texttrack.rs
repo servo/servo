@@ -93,37 +93,37 @@ impl TextTrack {
 }
 
 impl TextTrackMethods<crate::DomTypeHolder> for TextTrack {
-    // https://html.spec.whatwg.org/multipage/#dom-texttrack-kind
+    /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-kind>
     fn Kind(&self) -> TextTrackKind {
         self.kind
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-texttrack-label
+    /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-label>
     fn Label(&self) -> DOMString {
         DOMString::from(self.label.clone())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-texttrack-language
+    /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-language>
     fn Language(&self) -> DOMString {
         DOMString::from(self.language.clone())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-texttrack-id
+    /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-id>
     fn Id(&self) -> DOMString {
         DOMString::from(self.id.clone())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-texttrack-mode
+    /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-mode>
     fn Mode(&self) -> TextTrackMode {
         self.mode.get()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-texttrack-mode
+    /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-mode>
     fn SetMode(&self, value: TextTrackMode) {
         self.mode.set(value)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-texttrack-cues
+    /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-cues>
     fn GetCues(&self) -> Option<DomRoot<TextTrackCueList>> {
         match self.Mode() {
             TextTrackMode::Disabled => None,
@@ -131,7 +131,7 @@ impl TextTrackMethods<crate::DomTypeHolder> for TextTrack {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-texttrack-activecues
+    /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-activecues>
     fn GetActiveCues(&self) -> Option<DomRoot<TextTrackCueList>> {
         // XXX implement active cues logic
         //      https://github.com/servo/servo/issues/22314
@@ -142,7 +142,7 @@ impl TextTrackMethods<crate::DomTypeHolder> for TextTrack {
         ))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-texttrack-addcue
+    /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-addcue>
     fn AddCue(&self, cue: &TextTrackCue) -> ErrorResult {
         // FIXME(#22314, dlrobertson) add Step 1 & 2
         // Step 3
@@ -159,7 +159,7 @@ impl TextTrackMethods<crate::DomTypeHolder> for TextTrack {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-texttrack-removecue
+    /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-removecue>
     fn RemoveCue(&self, cue: &TextTrackCue) -> ErrorResult {
         // Step 1
         let cues = self.get_cues();

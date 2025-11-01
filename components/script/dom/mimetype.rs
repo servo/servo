@@ -16,22 +16,22 @@ pub(crate) struct MimeType {
 }
 
 impl MimeTypeMethods<crate::DomTypeHolder> for MimeType {
-    // https://html.spec.whatwg.org/multipage/#dom-mimetype-type
+    /// <https://html.spec.whatwg.org/multipage/#dom-mimetype-type>
     fn Type(&self) -> DOMString {
         unreachable!()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-mimetype-description
+    /// <https://html.spec.whatwg.org/multipage/#dom-mimetype-description>
     fn Description(&self) -> DOMString {
         unreachable!()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-mimetype-suffixes
+    /// <https://html.spec.whatwg.org/multipage/#dom-mimetype-suffixes>
     fn Suffixes(&self) -> DOMString {
         unreachable!()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-mimetype-enabledplugin
+    /// <https://html.spec.whatwg.org/multipage/#dom-mimetype-enabledplugin>
     fn EnabledPlugin(&self) -> DomRoot<Plugin> {
         unreachable!()
     }

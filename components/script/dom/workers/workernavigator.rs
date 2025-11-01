@@ -44,57 +44,57 @@ impl WorkerNavigator {
 }
 
 impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-product
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-product>
     fn Product(&self) -> DOMString {
         navigatorinfo::Product()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-productsub
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-productsub>
     fn ProductSub(&self) -> DOMString {
         navigatorinfo::ProductSub()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-vendor
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-vendor>
     fn Vendor(&self) -> DOMString {
         navigatorinfo::Vendor()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-vendorsub
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-vendorsub>
     fn VendorSub(&self) -> DOMString {
         navigatorinfo::VendorSub()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-taintenabled
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-taintenabled>
     fn TaintEnabled(&self) -> bool {
         navigatorinfo::TaintEnabled()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-appname
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-appname>
     fn AppName(&self) -> DOMString {
         navigatorinfo::AppName()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-appcodename
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-appcodename>
     fn AppCodeName(&self) -> DOMString {
         navigatorinfo::AppCodeName()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-platform
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-platform>
     fn Platform(&self) -> DOMString {
         navigatorinfo::Platform()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-useragent
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-useragent>
     fn UserAgent(&self) -> DOMString {
         navigatorinfo::UserAgent(&pref!(user_agent))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-appversion
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-appversion>
     fn AppVersion(&self) -> DOMString {
         navigatorinfo::AppVersion()
     }
 
-    // https://html.spec.whatwg.org/multipage/#navigatorlanguage
+    /// <https://html.spec.whatwg.org/multipage/#navigatorlanguage>
     fn Language(&self) -> DOMString {
         navigatorinfo::Language()
     }
@@ -110,7 +110,7 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
         true
     }
 
-    // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
+    /// <https://w3c.github.io/permissions/#navigator-and-workernavigator-extension>
     fn Permissions(&self) -> DomRoot<Permissions> {
         self.permissions
             .or_init(|| Permissions::new(&self.global(), CanGc::note()))

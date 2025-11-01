@@ -108,7 +108,7 @@ impl Selection {
 }
 
 impl SelectionMethods<crate::DomTypeHolder> for Selection {
-    // https://w3c.github.io/selection-api/#dom-selection-anchornode
+    /// <https://w3c.github.io/selection-api/#dom-selection-anchornode>
     fn GetAnchorNode(&self) -> Option<DomRoot<Node>> {
         if let Some(range) = self.range.get() {
             match self.direction.get() {
@@ -120,7 +120,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         }
     }
 
-    // https://w3c.github.io/selection-api/#dom-selection-anchoroffset
+    /// <https://w3c.github.io/selection-api/#dom-selection-anchoroffset>
     fn AnchorOffset(&self) -> u32 {
         if let Some(range) = self.range.get() {
             match self.direction.get() {
@@ -132,7 +132,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         }
     }
 
-    // https://w3c.github.io/selection-api/#dom-selection-focusnode
+    /// <https://w3c.github.io/selection-api/#dom-selection-focusnode>
     fn GetFocusNode(&self) -> Option<DomRoot<Node>> {
         if let Some(range) = self.range.get() {
             match self.direction.get() {
@@ -144,7 +144,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         }
     }
 
-    // https://w3c.github.io/selection-api/#dom-selection-focusoffset
+    /// <https://w3c.github.io/selection-api/#dom-selection-focusoffset>
     fn FocusOffset(&self) -> u32 {
         if let Some(range) = self.range.get() {
             match self.direction.get() {
@@ -156,7 +156,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         }
     }
 
-    // https://w3c.github.io/selection-api/#dom-selection-iscollapsed
+    /// <https://w3c.github.io/selection-api/#dom-selection-iscollapsed>
     fn IsCollapsed(&self) -> bool {
         if let Some(range) = self.range.get() {
             range.collapsed()
@@ -165,12 +165,12 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         }
     }
 
-    // https://w3c.github.io/selection-api/#dom-selection-rangecount
+    /// <https://w3c.github.io/selection-api/#dom-selection-rangecount>
     fn RangeCount(&self) -> u32 {
         if self.range.get().is_some() { 1 } else { 0 }
     }
 
-    // https://w3c.github.io/selection-api/#dom-selection-type
+    /// <https://w3c.github.io/selection-api/#dom-selection-type>
     fn Type(&self) -> DOMString {
         if let Some(range) = self.range.get() {
             if range.collapsed() {
@@ -183,7 +183,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         }
     }
 
-    // https://w3c.github.io/selection-api/#dom-selection-getrangeat
+    /// <https://w3c.github.io/selection-api/#dom-selection-getrangeat>
     fn GetRangeAt(&self, index: u32) -> Fallible<DomRoot<Range>> {
         if index != 0 {
             Err(Error::IndexSize)
@@ -194,7 +194,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         }
     }
 
-    // https://w3c.github.io/selection-api/#dom-selection-addrange
+    /// <https://w3c.github.io/selection-api/#dom-selection-addrange>
     fn AddRange(&self, range: &Range) {
         // Step 1
         if !self.is_same_root(&range.start_container()) {
@@ -212,7 +212,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         self.direction.set(Direction::Forwards);
     }
 
-    // https://w3c.github.io/selection-api/#dom-selection-removerange
+    /// <https://w3c.github.io/selection-api/#dom-selection-removerange>
     fn RemoveRange(&self, range: &Range) -> ErrorResult {
         if let Some(own_range) = self.range.get() {
             if &*own_range == range {
@@ -223,7 +223,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         Err(Error::NotFound(None))
     }
 
-    // https://w3c.github.io/selection-api/#dom-selection-removeallranges
+    /// <https://w3c.github.io/selection-api/#dom-selection-removeallranges>
     fn RemoveAllRanges(&self) {
         self.clear_range();
     }
@@ -235,7 +235,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         self.clear_range();
     }
 
-    // https://w3c.github.io/selection-api/#dom-selection-collapse
+    /// <https://w3c.github.io/selection-api/#dom-selection-collapse>
     fn Collapse(&self, node: Option<&Node>, offset: u32, can_gc: CanGc) -> ErrorResult {
         if let Some(node) = node {
             if node.is_doctype() {
@@ -275,7 +275,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         self.Collapse(node, offset, can_gc)
     }
 
-    // https://w3c.github.io/selection-api/#dom-selection-collapsetostart
+    /// <https://w3c.github.io/selection-api/#dom-selection-collapsetostart>
     fn CollapseToStart(&self, can_gc: CanGc) -> ErrorResult {
         if let Some(range) = self.range.get() {
             self.Collapse(
@@ -288,7 +288,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         }
     }
 
-    // https://w3c.github.io/selection-api/#dom-selection-collapsetoend
+    /// <https://w3c.github.io/selection-api/#dom-selection-collapsetoend>
     fn CollapseToEnd(&self, can_gc: CanGc) -> ErrorResult {
         if let Some(range) = self.range.get() {
             self.Collapse(Some(&*range.end_container()), range.end_offset(), can_gc)
@@ -370,7 +370,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         Ok(())
     }
 
-    // https://w3c.github.io/selection-api/#dom-selection-setbaseandextent
+    /// <https://w3c.github.io/selection-api/#dom-selection-setbaseandextent>
     fn SetBaseAndExtent(
         &self,
         anchor_node: &Node,
@@ -426,7 +426,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         Ok(())
     }
 
-    // https://w3c.github.io/selection-api/#dom-selection-selectallchildren
+    /// <https://w3c.github.io/selection-api/#dom-selection-selectallchildren>
     fn SelectAllChildren(&self, node: &Node, can_gc: CanGc) -> ErrorResult {
         if node.is_doctype() {
             // w3c/selection-api#118
@@ -452,7 +452,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         Ok(())
     }
 
-    // https://w3c.github.io/selection-api/#dom-selection-deletecontents
+    /// <https://w3c.github.io/selection-api/#dom-selection-deletecontents>
     fn DeleteFromDocument(&self) -> ErrorResult {
         if let Some(range) = self.range.get() {
             // Since the range is changing, it should trigger a
@@ -462,7 +462,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         Ok(())
     }
 
-    // https://w3c.github.io/selection-api/#dom-selection-containsnode
+    /// <https://w3c.github.io/selection-api/#dom-selection-containsnode>
     fn ContainsNode(&self, node: &Node, allow_partial_containment: bool) -> bool {
         // TODO: Spec requires a "visually equivalent to" check, which is
         // probably up to a layout query. This is therefore not a full implementation.
@@ -513,7 +513,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         }
     }
 
-    // https://w3c.github.io/selection-api/#dom-selection-stringifier
+    /// <https://w3c.github.io/selection-api/#dom-selection-stringifier>
     fn Stringifier(&self) -> DOMString {
         // The spec as of Jan 31 2020 just says
         // "See W3C bug 10583." for this method.

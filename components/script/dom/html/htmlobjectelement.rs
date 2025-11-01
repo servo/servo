@@ -96,37 +96,37 @@ impl HTMLObjectElementMethods<crate::DomTypeHolder> for HTMLObjectElement {
     // https://html.spec.whatwg.org/multipage/#dom-object-type
     make_setter!(SetType, "type");
 
-    // https://html.spec.whatwg.org/multipage/#dom-fae-form
+    /// <https://html.spec.whatwg.org/multipage/#dom-fae-form>
     fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate>
     fn WillValidate(&self) -> bool {
         self.is_instance_validatable()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-validity
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-validity>
     fn Validity(&self, can_gc: CanGc) -> DomRoot<ValidityState> {
         self.validity_state(can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity>
     fn CheckValidity(&self, can_gc: CanGc) -> bool {
         self.check_validity(can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity>
     fn ReportValidity(&self, can_gc: CanGc) -> bool {
         self.report_validity(can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
     fn ValidationMessage(&self) -> DOMString {
         self.validation_message()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity>
     fn SetCustomValidity(&self, error: DOMString, can_gc: CanGc) {
         self.validity_state(can_gc).set_custom_error_message(error);
     }

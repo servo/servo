@@ -85,12 +85,12 @@ impl MediaQueryList {
 }
 
 impl MediaQueryListMethods<crate::DomTypeHolder> for MediaQueryList {
-    // https://drafts.csswg.org/cssom-view/#dom-mediaquerylist-media
+    /// <https://drafts.csswg.org/cssom-view/#dom-mediaquerylist-media>
     fn Media(&self) -> DOMString {
         self.media_query_list.to_css_string().into()
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-mediaquerylist-matches
+    /// <https://drafts.csswg.org/cssom-view/#dom-mediaquerylist-matches>
     fn Matches(&self) -> bool {
         match self.last_match_state.get() {
             None => self.evaluate(),
@@ -98,7 +98,7 @@ impl MediaQueryListMethods<crate::DomTypeHolder> for MediaQueryList {
         }
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-mediaquerylist-addlistener
+    /// <https://drafts.csswg.org/cssom-view/#dom-mediaquerylist-addlistener>
     fn AddListener(&self, listener: Option<Rc<EventListener>>) {
         self.upcast::<EventTarget>().add_event_listener(
             DOMString::from_string("change".to_owned()),
@@ -112,7 +112,7 @@ impl MediaQueryListMethods<crate::DomTypeHolder> for MediaQueryList {
         );
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-mediaquerylist-removelistener
+    /// <https://drafts.csswg.org/cssom-view/#dom-mediaquerylist-removelistener>
     fn RemoveListener(&self, listener: Option<Rc<EventListener>>) {
         self.upcast::<EventTarget>().remove_event_listener(
             DOMString::from_string("change".to_owned()),

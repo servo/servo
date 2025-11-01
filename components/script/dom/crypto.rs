@@ -47,7 +47,7 @@ impl CryptoMethods<crate::DomTypeHolder> for Crypto {
     }
 
     #[allow(unsafe_code)]
-    // https://w3c.github.io/webcrypto/#Crypto-method-getRandomValues
+    /// <https://w3c.github.io/webcrypto/#Crypto-method-getRandomValues>
     fn GetRandomValues(
         &self,
         _cx: JSContext,
@@ -76,7 +76,7 @@ impl CryptoMethods<crate::DomTypeHolder> for Crypto {
         }
     }
 
-    // https://w3c.github.io/webcrypto/#Crypto-method-randomUUID
+    /// <https://w3c.github.io/webcrypto/#Crypto-method-randomUUID>
     fn RandomUUID(&self) -> DOMString {
         let uuid = Uuid::new_v4();
         uuid.hyphenated()

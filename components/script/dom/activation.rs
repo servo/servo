@@ -15,12 +15,12 @@ pub(crate) trait Activatable {
     // Is this particular instance of the element activatable?
     fn is_instance_activatable(&self) -> bool;
 
-    // https://dom.spec.whatwg.org/#eventtarget-legacy-pre-activation-behavior
+    /// <https://dom.spec.whatwg.org/#eventtarget-legacy-pre-activation-behavior>
     fn legacy_pre_activation_behavior(&self, _can_gc: CanGc) -> Option<InputActivationState> {
         None
     }
 
-    // https://dom.spec.whatwg.org/#eventtarget-legacy-canceled-activation-behavior
+    /// <https://dom.spec.whatwg.org/#eventtarget-legacy-canceled-activation-behavior>
     fn legacy_canceled_activation_behavior(
         &self,
         _state_before: Option<InputActivationState>,
@@ -33,7 +33,7 @@ pub(crate) trait Activatable {
     // where the target is an <img ismap> so the href gets coordinates appended
     fn activation_behavior(&self, event: &Event, target: &EventTarget, can_gc: CanGc);
 
-    // https://html.spec.whatwg.org/multipage/#concept-selector-active
+    /// <https://html.spec.whatwg.org/multipage/#concept-selector-active>
     fn enter_formal_activation_state(&self) {
         self.as_element().set_active_state(true);
     }

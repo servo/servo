@@ -51,7 +51,7 @@ impl AudioDestinationNode {
 }
 
 impl AudioDestinationNodeMethods<crate::DomTypeHolder> for AudioDestinationNode {
-    // https://webaudio.github.io/web-audio-api/#dom-audiodestinationnode-maxchannelcount
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiodestinationnode-maxchannelcount>
     fn MaxChannelCount(&self) -> u32 {
         MAX_CHANNEL_COUNT
     }

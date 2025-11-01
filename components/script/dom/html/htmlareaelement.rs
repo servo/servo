@@ -377,7 +377,7 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     // https://html.spec.whatwg.org/multipage/#dom-a-rel
     make_getter!(Rel, "rel");
 
-    // https://html.spec.whatwg.org/multipage/#dom-a-rel
+    /// <https://html.spec.whatwg.org/multipage/#dom-a-rel>
     fn SetRel(&self, rel: DOMString, can_gc: CanGc) {
         self.upcast::<Element>()
             .set_tokenlist_attribute(&local_name!("rel"), rel, can_gc);
@@ -514,7 +514,7 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
 }
 
 impl Activatable for HTMLAreaElement {
-    // https://html.spec.whatwg.org/multipage/#the-area-element:activation-behaviour
+    /// <https://html.spec.whatwg.org/multipage/#the-area-element:activation-behaviour>
     fn as_element(&self) -> &Element {
         self.upcast::<Element>()
     }

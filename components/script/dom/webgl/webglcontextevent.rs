@@ -26,7 +26,7 @@ pub(crate) struct WebGLContextEvent {
 }
 
 impl WebGLContextEventMethods<crate::DomTypeHolder> for WebGLContextEvent {
-    // https://registry.khronos.org/webgl/specs/latest/1.0/#5.15
+    /// <https://registry.khronos.org/webgl/specs/latest/1.0/#5.15>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -54,12 +54,12 @@ impl WebGLContextEventMethods<crate::DomTypeHolder> for WebGLContextEvent {
         ))
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.15
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.15>
     fn StatusMessage(&self) -> DOMString {
         self.status_message.clone()
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

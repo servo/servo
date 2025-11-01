@@ -155,17 +155,17 @@ impl UIEventMethods<crate::DomTypeHolder> for UIEvent {
         Ok(event)
     }
 
-    // https://w3c.github.io/uievents/#widl-UIEvent-view
+    /// <https://w3c.github.io/uievents/#widl-UIEvent-view>
     fn GetView(&self) -> Option<DomRoot<Window>> {
         self.view.get()
     }
 
-    // https://w3c.github.io/uievents/#widl-UIEvent-detail
+    /// <https://w3c.github.io/uievents/#widl-UIEvent-detail>
     fn Detail(&self) -> i32 {
         self.detail.get()
     }
 
-    // https://w3c.github.io/uievents/#widl-UIEvent-initUIEvent
+    /// <https://w3c.github.io/uievents/#widl-UIEvent-initUIEvent>
     fn InitUIEvent(
         &self,
         type_: DOMString,
@@ -184,7 +184,7 @@ impl UIEventMethods<crate::DomTypeHolder> for UIEvent {
         self.detail.set(detail);
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

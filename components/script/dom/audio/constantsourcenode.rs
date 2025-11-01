@@ -95,7 +95,7 @@ impl ConstantSourceNode {
 }
 
 impl ConstantSourceNodeMethods<crate::DomTypeHolder> for ConstantSourceNode {
-    // https://webaudio.github.io/web-audio-api/#dom-constantsourcenode-constantsourcenode
+    /// <https://webaudio.github.io/web-audio-api/#dom-constantsourcenode-constantsourcenode>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -106,7 +106,7 @@ impl ConstantSourceNodeMethods<crate::DomTypeHolder> for ConstantSourceNode {
         ConstantSourceNode::new_with_proto(window, proto, context, options, can_gc)
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-constantsourcenode-offset
+    /// <https://webaudio.github.io/web-audio-api/#dom-constantsourcenode-offset>
     fn Offset(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.offset)
     }

@@ -361,7 +361,7 @@ impl PaintWorkletGlobalScope {
         }
     }
 
-    // https://drafts.csswg.org/css-images-4/#invalid-image
+    /// <https://drafts.csswg.org/css-images-4/#invalid-image>
     fn invalid_image(
         &self,
         size: Size2D<u32, DevicePixel>,

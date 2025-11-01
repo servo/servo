@@ -54,7 +54,7 @@ impl ServiceWorkerContainer {
 }
 
 impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContainer {
-    // https://w3c.github.io/ServiceWorker/#service-worker-container-controller-attribute
+    /// <https://w3c.github.io/ServiceWorker/#service-worker-container-controller-attribute>
     fn GetController(&self) -> Option<DomRoot<ServiceWorker>> {
         self.client.get_controller()
     }

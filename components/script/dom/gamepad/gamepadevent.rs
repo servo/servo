@@ -87,7 +87,7 @@ impl GamepadEvent {
 }
 
 impl GamepadEventMethods<crate::DomTypeHolder> for GamepadEvent {
-    // https://w3c.github.io/gamepad/#gamepadevent-interface
+    /// <https://w3c.github.io/gamepad/#gamepadevent-interface>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -106,12 +106,12 @@ impl GamepadEventMethods<crate::DomTypeHolder> for GamepadEvent {
         ))
     }
 
-    // https://w3c.github.io/gamepad/#gamepadevent-interface
+    /// <https://w3c.github.io/gamepad/#gamepadevent-interface>
     fn Gamepad(&self) -> DomRoot<Gamepad> {
         DomRoot::from_ref(&*self.gamepad)
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

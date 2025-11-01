@@ -45,47 +45,47 @@ impl WorkerLocation {
 }
 
 impl WorkerLocationMethods<crate::DomTypeHolder> for WorkerLocation {
-    // https://html.spec.whatwg.org/multipage/#dom-workerlocation-hash
+    /// <https://html.spec.whatwg.org/multipage/#dom-workerlocation-hash>
     fn Hash(&self) -> USVString {
         UrlHelper::Hash(&self.url)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-workerlocation-host
+    /// <https://html.spec.whatwg.org/multipage/#dom-workerlocation-host>
     fn Host(&self) -> USVString {
         UrlHelper::Host(&self.url)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-workerlocation-hostname
+    /// <https://html.spec.whatwg.org/multipage/#dom-workerlocation-hostname>
     fn Hostname(&self) -> USVString {
         UrlHelper::Hostname(&self.url)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-workerlocation-href
+    /// <https://html.spec.whatwg.org/multipage/#dom-workerlocation-href>
     fn Href(&self) -> USVString {
         UrlHelper::Href(&self.url)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-workerlocation-origin
+    /// <https://html.spec.whatwg.org/multipage/#dom-workerlocation-origin>
     fn Origin(&self) -> USVString {
         UrlHelper::Origin(&self.url)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-workerlocation-pathname
+    /// <https://html.spec.whatwg.org/multipage/#dom-workerlocation-pathname>
     fn Pathname(&self) -> USVString {
         UrlHelper::Pathname(&self.url)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-workerlocation-port
+    /// <https://html.spec.whatwg.org/multipage/#dom-workerlocation-port>
     fn Port(&self) -> USVString {
         UrlHelper::Port(&self.url)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-workerlocation-protocol
+    /// <https://html.spec.whatwg.org/multipage/#dom-workerlocation-protocol>
     fn Protocol(&self) -> USVString {
         UrlHelper::Protocol(&self.url)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-workerlocation-search
+    /// <https://html.spec.whatwg.org/multipage/#dom-workerlocation-search>
     fn Search(&self) -> USVString {
         UrlHelper::Search(&self.url)
     }

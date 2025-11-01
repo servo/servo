@@ -117,12 +117,12 @@ impl ServiceWorker {
 }
 
 impl ServiceWorkerMethods<crate::DomTypeHolder> for ServiceWorker {
-    // https://w3c.github.io/ServiceWorker/#service-worker-state-attribute
+    /// <https://w3c.github.io/ServiceWorker/#service-worker-state-attribute>
     fn State(&self) -> ServiceWorkerState {
         self.state.get()
     }
 
-    // https://w3c.github.io/ServiceWorker/#service-worker-url-attribute
+    /// <https://w3c.github.io/ServiceWorker/#service-worker-url-attribute>
     fn ScriptURL(&self) -> USVString {
         USVString(self.script_url.borrow().clone())
     }

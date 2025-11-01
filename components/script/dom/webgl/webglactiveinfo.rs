@@ -47,17 +47,17 @@ impl WebGLActiveInfo {
 }
 
 impl WebGLActiveInfoMethods<crate::DomTypeHolder> for WebGLActiveInfo {
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.11.1
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.11.1>
     fn Size(&self) -> i32 {
         self.size
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.11.1
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.11.1>
     fn Type(&self) -> u32 {
         self.ty
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.11.1
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.11.1>
     fn Name(&self) -> DOMString {
         self.name.clone()
     }

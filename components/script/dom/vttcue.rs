@@ -78,7 +78,7 @@ impl VTTCue {
 }
 
 impl VTTCueMethods<crate::DomTypeHolder> for VTTCue {
-    // https://w3c.github.io/webvtt/#dom-vttcue-vttcue
+    /// <https://w3c.github.io/webvtt/#dom-vttcue-vttcue>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -90,7 +90,7 @@ impl VTTCueMethods<crate::DomTypeHolder> for VTTCue {
         VTTCue::new(window, proto, *start_time, *end_time, text, can_gc)
     }
 
-    // https://w3c.github.io/webvtt/#dom-vttcue-region
+    /// <https://w3c.github.io/webvtt/#dom-vttcue-region>
     fn GetRegion(&self) -> Option<DomRoot<VTTRegion>> {
         self.region
             .borrow()
@@ -98,57 +98,57 @@ impl VTTCueMethods<crate::DomTypeHolder> for VTTCue {
             .map(|r| DomRoot::from_ref(&**r))
     }
 
-    // https://w3c.github.io/webvtt/#dom-vttcue-region
+    /// <https://w3c.github.io/webvtt/#dom-vttcue-region>
     fn SetRegion(&self, value: Option<&VTTRegion>) {
         *self.region.borrow_mut() = value.map(Dom::from_ref)
     }
 
-    // https://w3c.github.io/webvtt/#dom-vttcue-vertical
+    /// <https://w3c.github.io/webvtt/#dom-vttcue-vertical>
     fn Vertical(&self) -> DirectionSetting {
         self.vertical.get()
     }
 
-    // https://w3c.github.io/webvtt/#dom-vttcue-vertical
+    /// <https://w3c.github.io/webvtt/#dom-vttcue-vertical>
     fn SetVertical(&self, value: DirectionSetting) {
         self.vertical.set(value);
     }
 
-    // https://w3c.github.io/webvtt/#dom-vttcue-snaptolines
+    /// <https://w3c.github.io/webvtt/#dom-vttcue-snaptolines>
     fn SnapToLines(&self) -> bool {
         self.snap_to_lines.get()
     }
 
-    // https://w3c.github.io/webvtt/#dom-vttcue-snaptolines
+    /// <https://w3c.github.io/webvtt/#dom-vttcue-snaptolines>
     fn SetSnapToLines(&self, value: bool) {
         self.snap_to_lines.set(value)
     }
 
-    // https://w3c.github.io/webvtt/#dom-vttcue-line
+    /// <https://w3c.github.io/webvtt/#dom-vttcue-line>
     fn Line(&self) -> VTTCueBinding::LineAndPositionSetting {
         VTTCueBinding::LineAndPositionSetting::from(self.line.borrow().clone())
     }
 
-    // https://w3c.github.io/webvtt/#dom-vttcue-line
+    /// <https://w3c.github.io/webvtt/#dom-vttcue-line>
     fn SetLine(&self, value: VTTCueBinding::LineAndPositionSetting) {
         *self.line.borrow_mut() = value.into();
     }
 
-    // https://w3c.github.io/webvtt/#dom-vttcue-linealign
+    /// <https://w3c.github.io/webvtt/#dom-vttcue-linealign>
     fn LineAlign(&self) -> LineAlignSetting {
         self.line_align.get()
     }
 
-    // https://w3c.github.io/webvtt/#dom-vttcue-linealign
+    /// <https://w3c.github.io/webvtt/#dom-vttcue-linealign>
     fn SetLineAlign(&self, value: LineAlignSetting) {
         self.line_align.set(value);
     }
 
-    // https://w3c.github.io/webvtt/#dom-vttcue-position
+    /// <https://w3c.github.io/webvtt/#dom-vttcue-position>
     fn Position(&self) -> VTTCueBinding::LineAndPositionSetting {
         VTTCueBinding::LineAndPositionSetting::from(self.position.borrow().clone())
     }
 
-    // https://w3c.github.io/webvtt/#dom-vttcue-position
+    /// <https://w3c.github.io/webvtt/#dom-vttcue-position>
     fn SetPosition(&self, value: VTTCueBinding::LineAndPositionSetting) -> ErrorResult {
         if let VTTCueBinding::LineAndPositionSetting::Double(x) = value {
             if *x < 0_f64 || *x > 100_f64 {
@@ -160,22 +160,22 @@ impl VTTCueMethods<crate::DomTypeHolder> for VTTCue {
         Ok(())
     }
 
-    // https://w3c.github.io/webvtt/#dom-vttcue-positionalign
+    /// <https://w3c.github.io/webvtt/#dom-vttcue-positionalign>
     fn PositionAlign(&self) -> PositionAlignSetting {
         self.position_align.get()
     }
 
-    // https://w3c.github.io/webvtt/#dom-vttcue-positionalign
+    /// <https://w3c.github.io/webvtt/#dom-vttcue-positionalign>
     fn SetPositionAlign(&self, value: PositionAlignSetting) {
         self.position_align.set(value);
     }
 
-    // https://w3c.github.io/webvtt/#dom-vttcue-size
+    /// <https://w3c.github.io/webvtt/#dom-vttcue-size>
     fn Size(&self) -> Finite<f64> {
         Finite::wrap(self.size.get())
     }
 
-    // https://w3c.github.io/webvtt/#dom-vttcue-size
+    /// <https://w3c.github.io/webvtt/#dom-vttcue-size>
     fn SetSize(&self, value: Finite<f64>) -> ErrorResult {
         if *value < 0_f64 || *value > 100_f64 {
             return Err(Error::IndexSize);
@@ -185,27 +185,27 @@ impl VTTCueMethods<crate::DomTypeHolder> for VTTCue {
         Ok(())
     }
 
-    // https://w3c.github.io/webvtt/#dom-vttcue-align
+    /// <https://w3c.github.io/webvtt/#dom-vttcue-align>
     fn Align(&self) -> AlignSetting {
         self.align.get()
     }
 
-    // https://w3c.github.io/webvtt/#dom-vttcue-align
+    /// <https://w3c.github.io/webvtt/#dom-vttcue-align>
     fn SetAlign(&self, value: AlignSetting) {
         self.align.set(value);
     }
 
-    // https://w3c.github.io/webvtt/#dom-vttcue-text
+    /// <https://w3c.github.io/webvtt/#dom-vttcue-text>
     fn Text(&self) -> DOMString {
         self.text.borrow().clone()
     }
 
-    // https://w3c.github.io/webvtt/#dom-vttcue-text
+    /// <https://w3c.github.io/webvtt/#dom-vttcue-text>
     fn SetText(&self, value: DOMString) {
         *self.text.borrow_mut() = value;
     }
 
-    // https://w3c.github.io/webvtt/#dom-vttcue-getcueashtml
+    /// <https://w3c.github.io/webvtt/#dom-vttcue-getcueashtml>
     fn GetCueAsHTML(&self) -> DomRoot<DocumentFragment> {
         todo!()
     }

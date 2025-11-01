@@ -82,12 +82,12 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
     // HTMLOptionsCollection) implements NamedGetter.
     // https://github.com/servo/servo/issues/5875
     //
-    // https://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
+    /// <https://dom.spec.whatwg.org/#dom-htmlcollection-nameditem>
     fn NamedGetter(&self, name: DOMString) -> Option<DomRoot<Element>> {
         self.upcast().NamedItem(name)
     }
 
-    // https://heycam.github.io/webidl/#dfn-supported-property-names
+    /// <https://heycam.github.io/webidl/#dfn-supported-property-names>
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         self.upcast().SupportedPropertyNames()
     }
@@ -96,12 +96,12 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
     // HTMLOptionsCollection) implements IndexedGetter.
     // https://github.com/servo/servo/issues/5875
     //
-    // https://dom.spec.whatwg.org/#dom-htmlcollection-item
+    /// <https://dom.spec.whatwg.org/#dom-htmlcollection-item>
     fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Element>> {
         self.upcast().IndexedGetter(index)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-setter
+    /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-setter>
     fn IndexedSetter(
         &self,
         index: u32,

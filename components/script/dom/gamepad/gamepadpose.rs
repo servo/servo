@@ -50,42 +50,42 @@ impl GamepadPose {
 }
 
 impl GamepadPoseMethods<crate::DomTypeHolder> for GamepadPose {
-    // https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-position
+    /// <https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-position>
     fn GetPosition(&self, _cx: JSContext) -> Option<Float32Array> {
         self.position.typed_array_to_option()
     }
 
-    // https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-hasposition
+    /// <https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-hasposition>
     fn HasPosition(&self) -> bool {
         self.position.is_initialized()
     }
 
-    // https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-linearvelocity
+    /// <https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-linearvelocity>
     fn GetLinearVelocity(&self, _cx: JSContext) -> Option<Float32Array> {
         self.linear_vel.typed_array_to_option()
     }
 
-    // https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-linearacceleration
+    /// <https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-linearacceleration>
     fn GetLinearAcceleration(&self, _cx: JSContext) -> Option<Float32Array> {
         self.linear_acc.typed_array_to_option()
     }
 
-    // https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-orientation
+    /// <https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-orientation>
     fn GetOrientation(&self, _cx: JSContext) -> Option<Float32Array> {
         self.orientation.typed_array_to_option()
     }
 
-    // https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-orientation
+    /// <https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-orientation>
     fn HasOrientation(&self) -> bool {
         self.orientation.is_initialized()
     }
 
-    // https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-angularvelocity
+    /// <https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-angularvelocity>
     fn GetAngularVelocity(&self, _cx: JSContext) -> Option<Float32Array> {
         self.angular_vel.typed_array_to_option()
     }
 
-    // https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-angularacceleration
+    /// <https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-angularacceleration>
     fn GetAngularAcceleration(&self, _cx: JSContext) -> Option<Float32Array> {
         self.angular_acc.typed_array_to_option()
     }

@@ -177,52 +177,52 @@ impl Navigator {
 }
 
 impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-product
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-product>
     fn Product(&self) -> DOMString {
         navigatorinfo::Product()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-productsub
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-productsub>
     fn ProductSub(&self) -> DOMString {
         navigatorinfo::ProductSub()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-vendor
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-vendor>
     fn Vendor(&self) -> DOMString {
         navigatorinfo::Vendor()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-vendorsub
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-vendorsub>
     fn VendorSub(&self) -> DOMString {
         navigatorinfo::VendorSub()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-taintenabled
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-taintenabled>
     fn TaintEnabled(&self) -> bool {
         navigatorinfo::TaintEnabled()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-appname
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-appname>
     fn AppName(&self) -> DOMString {
         navigatorinfo::AppName()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-appcodename
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-appcodename>
     fn AppCodeName(&self) -> DOMString {
         navigatorinfo::AppCodeName()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-platform
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-platform>
     fn Platform(&self) -> DOMString {
         navigatorinfo::Platform()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-useragent
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-useragent>
     fn UserAgent(&self) -> DOMString {
         navigatorinfo::UserAgent(&pref!(user_agent))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-appversion
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-appversion>
     fn AppVersion(&self) -> DOMString {
         navigatorinfo::AppVersion()
     }
@@ -234,18 +234,18 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
             .or_init(|| Bluetooth::new(&self.global(), CanGc::note()))
     }
 
-    // https://www.w3.org/TR/credential-management-1/#framework-credential-management
+    /// <https://www.w3.org/TR/credential-management-1/#framework-credential-management>
     fn Credentials(&self) -> DomRoot<CredentialsContainer> {
         self.credentials
             .or_init(|| CredentialsContainer::new(&self.global(), CanGc::note()))
     }
 
-    // https://www.w3.org/TR/geolocation/#navigator_interface
+    /// <https://www.w3.org/TR/geolocation/#navigator_interface>
     fn Geolocation(&self) -> DomRoot<Geolocation> {
         Geolocation::new(&self.global(), CanGc::note())
     }
 
-    // https://html.spec.whatwg.org/multipage/#navigatorlanguage
+    /// <https://html.spec.whatwg.org/multipage/#navigatorlanguage>
     fn Language(&self) -> DOMString {
         navigatorinfo::Language()
     }
@@ -261,30 +261,30 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         true
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-plugins
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-plugins>
     fn Plugins(&self) -> DomRoot<PluginArray> {
         self.plugins
             .or_init(|| PluginArray::new(&self.global(), CanGc::note()))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-mimetypes
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-mimetypes>
     fn MimeTypes(&self) -> DomRoot<MimeTypeArray> {
         self.mime_types
             .or_init(|| MimeTypeArray::new(&self.global(), CanGc::note()))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-javaenabled
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-javaenabled>
     fn JavaEnabled(&self) -> bool {
         false
     }
 
-    // https://w3c.github.io/ServiceWorker/#navigator-service-worker-attribute
+    /// <https://w3c.github.io/ServiceWorker/#navigator-service-worker-attribute>
     fn ServiceWorker(&self) -> DomRoot<ServiceWorkerContainer> {
         self.service_worker
             .or_init(|| ServiceWorkerContainer::new(&self.global(), CanGc::note()))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-cookieenabled
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-cookieenabled>
     fn CookieEnabled(&self) -> bool {
         true
     }
@@ -302,7 +302,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
 
         self.gamepads.borrow().iter().map(|g| g.get()).collect()
     }
-    // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
+    /// <https://w3c.github.io/permissions/#navigator-and-workernavigator-extension>
     fn Permissions(&self) -> DomRoot<Permissions> {
         self.permissions
             .or_init(|| Permissions::new(&self.global(), CanGc::note()))

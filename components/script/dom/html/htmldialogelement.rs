@@ -62,13 +62,13 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
     // https://html.spec.whatwg.org/multipage/#dom-dialog-open
     make_bool_setter!(SetOpen, "open");
 
-    // https://html.spec.whatwg.org/multipage/#dom-dialog-returnvalue
+    /// <https://html.spec.whatwg.org/multipage/#dom-dialog-returnvalue>
     fn ReturnValue(&self) -> DOMString {
         let return_value = self.return_value.borrow();
         return_value.clone()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-dialog-returnvalue
+    /// <https://html.spec.whatwg.org/multipage/#dom-dialog-returnvalue>
     fn SetReturnValue(&self, return_value: DOMString) {
         *self.return_value.borrow_mut() = return_value;
     }
@@ -98,7 +98,7 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
         // TODO(Issue #32702): Step 8 Run the dialog focusing steps given this.
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-dialog-close
+    /// <https://html.spec.whatwg.org/multipage/#dom-dialog-close>
     fn Close(&self, return_value: Option<DOMString>, can_gc: CanGc) {
         let element = self.upcast::<Element>();
         let target = self.upcast::<EventTarget>();

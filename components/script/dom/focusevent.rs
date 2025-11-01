@@ -93,7 +93,7 @@ impl FocusEvent {
 }
 
 impl FocusEventMethods<crate::DomTypeHolder> for FocusEvent {
-    // https://w3c.github.io/uievents/#dom-focusevent-focusevent
+    /// <https://w3c.github.io/uievents/#dom-focusevent-focusevent>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -120,12 +120,12 @@ impl FocusEventMethods<crate::DomTypeHolder> for FocusEvent {
         Ok(event)
     }
 
-    // https://w3c.github.io/uievents/#widl-FocusEvent-relatedTarget
+    /// <https://w3c.github.io/uievents/#widl-FocusEvent-relatedTarget>
     fn GetRelatedTarget(&self) -> Option<DomRoot<EventTarget>> {
         self.upcast::<Event>().related_target()
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.uievent.IsTrusted()
     }
