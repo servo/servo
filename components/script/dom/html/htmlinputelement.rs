@@ -3678,8 +3678,8 @@ fn round_halves_positive(n: f64) -> f64 {
     }
 }
 
-// This is used to compile JS-compatible regex provided in pattern attribute
-// that matches only the entirety of string.
+/// This is used to compile JS-compatible regex provided in pattern attribute
+/// that matches only the entirety of string.
 /// <https://html.spec.whatwg.org/multipage/#compiled-pattern-regular-expression>
 fn compile_pattern(
     cx: SafeJSContext,

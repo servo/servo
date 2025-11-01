@@ -3800,8 +3800,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.send_command(WebGLCommand::LineWidth(width))
     }
 
-    // NOTE: Usage of this function could affect rendering while we keep using
-    //   readback to render to the page.
+    /// NOTE: Usage of this function could affect rendering while we keep using
+    ///   readback to render to the page.
+    ///
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn PixelStorei(&self, param_name: u32, param_value: i32) {
         let mut texture_settings = self.texture_unpacking_settings.get();

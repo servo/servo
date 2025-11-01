@@ -141,7 +141,7 @@ impl HTMLTableElement {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-table-createthead
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-createthead>
     /// <https://html.spec.whatwg.org/multipage/#dom-table-createtfoot>
     fn create_section_of_type(
         &self,
@@ -174,7 +174,7 @@ impl HTMLTableElement {
         section
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-table-deletethead
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-deletethead>
     /// <https://html.spec.whatwg.org/multipage/#dom-table-deletetfoot>
     fn delete_first_section_of_type(&self, atom: &LocalName, can_gc: CanGc) {
         if let Some(thead) = self.get_first_section_of_type(atom) {
