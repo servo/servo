@@ -58,6 +58,13 @@ impl ProtocolHandler for ServoProtocolHandler {
                 "/preferences.html",
             ),
 
+            "license" => ResourceProtocolHandler::response_for_path(
+                request,
+                done_chan,
+                context,
+                "/license.html",
+            ),
+
             "experimental-preferences" => {
                 let pref_list = EXPERIMENTAL_PREFS
                     .iter()

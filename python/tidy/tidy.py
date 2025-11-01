@@ -101,7 +101,7 @@ FILE_PATTERNS_TO_CHECK = [
 ]
 
 # File patterns that are ignored for all tidy and lint checks.
-FILE_PATTERNS_TO_IGNORE = ["*.#*", "*.pyc", "fake-ld.sh", "*.ogv", "*.webm"]
+FILE_PATTERNS_TO_IGNORE = ["*.#*", "*.pyc", "fake-ld.sh", "*.ogv", "*.webm", "license.html"]
 
 SPEC_BASE_PATH = "components/script/dom/"
 
@@ -482,6 +482,34 @@ def run_cargo_deny_lints() -> Iterator[tuple[str, int, str]]:
 
     for error in errors:
         yield error
+
+
+def run_cargo_about_lints() -> Iterator[tuple[str, int, str]]:
+    print("\r ➤  Ensuring license.html is up-to-date...")
+    result = subprocess.run(
+        ["cargo", "about", "generate", "etc/about.hbs"],
+        encoding="utf-8",
+        capture_output=True,
+    )
+    assert result.stderr is not None, "cargo about should return error information via stderr when failing"
+
+    errors = []
+    for line in result.stderr.splitlines():
+        if "error:" in line:
+            errors.append((CARGO_DENY_CONFIG_FILE, 1, line.strip()))
+
+    for error in errors:
+        yield error
+
+    comp_path = "resources/resource_protocol/license.html"
+    with open(comp_path, "r", encoding="utf-8") as f:
+        content = f.read()
+        if content != result.stdout:
+            yield (
+                comp_path,
+                1,
+                "license.html is out of date; run `cargo about generate etc/about.hbs > resources/resource_protocol/license.html` to update it",
+            )
 
 
 def check_toml(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
@@ -907,11 +935,19 @@ def scan(only_changed_files: bool = False, progress: bool = False, github_annota
     python_errors = check_ruff_lints()
     python_type_check = run_python_type_checker()
     cargo_lock_errors = run_cargo_deny_lints()
+    license_errors = run_cargo_about_lints()
     wpt_errors = run_wpt_lints(only_changed_files)
 
     # chain all the iterators
     errors = itertools.chain(
-        config_errors, directory_errors, file_errors, python_errors, python_type_check, wpt_errors, cargo_lock_errors
+        config_errors,
+        directory_errors,
+        file_errors,
+        python_errors,
+        python_type_check,
+        wpt_errors,
+        cargo_lock_errors,
+        license_errors,
     )
 
     colorama.init()
