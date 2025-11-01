@@ -700,7 +700,7 @@ def check_spec(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
     macro_patt = re.compile(r"^\s*\S+!(.*)$")
 
     # Pattern representing a line with comment containing a spec link
-    link_patt = re.compile(r"^\s*///? (<https://.+>.*|https://.+)$")
+    link_patt = re.compile(r"^\s*/// (<https://.+>.*|https://.+)$")
 
     # Pattern representing a line with comment or attribute
     comment_patt = re.compile(r"^\s*(///?.+|#\[.+\])$")
