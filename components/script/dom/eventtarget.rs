@@ -699,10 +699,9 @@ impl EventTarget {
         );
     }
 
-    // https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler
-    // step 3
-    // While the CanGc argument appears unused, it reflects the fact that the CompileFunction
-    // API call can trigger a GC operation.
+    /// Step 3 of <https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler>
+    /// While the CanGc argument appears unused, it reflects the fact that the CompileFunction
+    /// API call can trigger a GC operation.
     #[allow(unsafe_code)]
     fn get_compiled_event_handler(
         &self,
@@ -710,44 +709,48 @@ impl EventTarget {
         ty: &Atom,
         can_gc: CanGc,
     ) -> Option<CommonEventHandler> {
-        // Step 3.1
+        // Step 3.1. If eventTarget is an element, then let element be eventTarget, and document be element's node document.
+        // Otherwise, eventTarget is a Window object, let element be null, and document be eventTarget's associated Document.
         let element = self.downcast::<Element>();
         let document = match element {
             Some(element) => element.owner_document(),
             None => self.downcast::<Window>().unwrap().Document(),
         };
 
-        // Step 3.2
+        // Step 3.2. If scripting is disabled for document, then return null.
         if !document.scripting_enabled() {
             return None;
         }
 
-        // Step 3.3
+        // Step 3.3. Let body be the uncompiled script body in eventHandler's value.
         let body: Vec<u16> = handler.source.str().encode_utf16().collect();
 
-        // Step 3.4 is handler.line
+        // Step 3.4. Let location be the location where the script body originated, as given by eventHandler's value.
+        //
+        // is handler.line
 
-        // Step 3.5
+        // Step 3.5. If element is not null and element has a form owner, let form owner be that form owner.
+        // Otherwise, let form owner be null.
         let form_owner = element
             .and_then(|e| e.as_maybe_form_control())
             .and_then(|f| f.form_owner());
 
-        // Step 3.6 TODO: settings objects not implemented
+        // Step 3.6. Let settings object be the relevant settings object of document.
+        //
+        // TODO: settings objects not implemented
 
-        // Step 3.7 is written as though we call the parser separately
-        // from the compiler; since we just call CompileFunction with
-        // source text, we handle parse errors later
+        // Step 3.7 is handled below
 
-        // Step 3.8 TODO: settings objects not implemented
+        // Step 3.8. Push settings object's realm execution context onto the JavaScript execution context stack;
+        // it is now the running JavaScript execution context.
         let window = document.window();
         let _ac = enter_realm(window);
-
-        // Step 3.9
 
         let name = CString::new(format!("on{}", &**ty)).unwrap();
 
         // Step 3.9, subsection ParameterList
         const ARG_NAMES: &[*const c_char] = &[c"event".as_ptr()];
+        // Let the function have five arguments, named event, source, lineno, colno, and error.
         const ERROR_ARG_NAMES: &[*const c_char] = &[
             c"event".as_ptr(),
             c"source".as_ptr(),
@@ -755,7 +758,10 @@ impl EventTarget {
             c"colno".as_ptr(),
             c"error".as_ptr(),
         ];
+        // If name is onerror and eventTarget is a Window object
         let is_error = ty == &atom!("error") && self.is::<Window>();
+        // Otherwise
+        // Let the function have a single argument called event.
         let args = if is_error { ERROR_ARG_NAMES } else { ARG_NAMES };
 
         let cx = GlobalScope::get_cx();
@@ -766,14 +772,19 @@ impl EventTarget {
         // Step 3.9, subsection Scope steps 1-6
         let scopechain = js::rust::EnvironmentChain::new(*cx, SupportUnscopables::Yes);
 
+        // Step 3.9.scope.3. If eventHandler is an element's event handler, then set scope to NewObjectEnvironment(document, true, scope).
         if let Some(element) = element {
+            // Step 3.9.scope.3. (Otherwise, eventHandler is a Window object's event handler.)
             scopechain.append(document.reflector().get_jsobject().get());
+            // Step 3.9.scope.4. If form owner is not null, then set scope to NewObjectEnvironment(form owner, true, scope).
             if let Some(form_owner) = form_owner {
                 scopechain.append(form_owner.reflector().get_jsobject().get());
             }
+            // Step 3.9.scope.5. If element is not null, then set scope to NewObjectEnvironment(element, true, scope).
             scopechain.append(element.reflector().get_jsobject().get());
         }
 
+        // Step 3.9. Let function be the result of calling OrdinaryFunctionCreate, with arguments:
         rooted!(in(*cx) let mut handler = unsafe {
             CompileFunction(
                 *cx,
@@ -785,22 +796,38 @@ impl EventTarget {
                 &mut transform_u16_to_source_text(&body),
             )
         });
+        // Step 3.7. If body is not parsable as FunctionBody or
+        // if parsing detects an early error, then follow these substeps:
         if handler.get().is_null() {
-            // Step 3.7
+            // Step 3.7.1. Set eventHandler's value to null.
+            //
+            // Not required, as that is handled by `CompileFunction`
+
+            // Step 3.7.2 Let syntaxError be a new SyntaxError exception associated with
+            // settings object's realm which describes the error while parsing.
+            // It should be based on location, where the script body originated.
             let ar = enter_realm(self);
+            // Step 3.7.3. Report an exception with syntaxError for settings object's global object.
+            //
             // FIXME(#13152): dispatch error event.
             report_pending_exception(cx, false, InRealm::Entered(&ar), can_gc);
+            // Step 3.7.4. Return null.
             return None;
         }
 
-        // Step 3.10 happens when we drop _ac
+        // Step 3.10. Remove settings object's realm execution context from the JavaScript execution context stack.
+        //
+        // happens when we drop _ac
 
-        // TODO Step 3.11
+        // Step 3.11. Set function.[[ScriptOrModule]] to null.
+        //
+        // TODO
 
-        // Step 3.12
+        // Step 3.12. Set eventHandler's value to the result of creating a Web IDL EventHandler callback function object
+        // whose object reference is function and whose callback context is settings object.
         let funobj = unsafe { JS_GetFunctionObject(handler.get()) };
         assert!(!funobj.is_null());
-        // Step 1.14
+        // Step 4. Return eventHandler's value.
         if is_error {
             Some(CommonEventHandler::ErrorEventHandler(unsafe {
                 OnErrorEventHandlerNonNull::new(cx, funobj)
@@ -1097,6 +1124,37 @@ impl EventTarget {
     /// <https://html.spec.whatwg.org/multipage/#event-handler-content-attributes>
     pub(crate) fn is_content_event_handler(name: &str) -> bool {
         CONTENT_EVENT_HANDLER_NAMES.contains(&name)
+    }
+
+    /// We optimize event handlers to only compile when required. This means that we
+    /// lazily compile the handlers against the global at the time of compilation. However,
+    /// after adoption of elements in a different document, the global is changed. Therefore,
+    /// we need to recompile all relevant event listeners to avoid crashing when running
+    /// the relevant event listener in the old document.
+    pub(crate) fn recompile_all_event_handlers_for_element(&self, element: &Element) {
+        let handlers = self.handlers.borrow_mut();
+        let global_url = element.owner_window().get_url();
+        for (ty, entries) in handlers.iter() {
+            for entry in entries.iter() {
+                let EventListenerType::Inline(ref inline_listener) = entry.borrow().listener else {
+                    continue;
+                };
+                let attr_name = DOMString::from(format!("on{}", &**ty));
+                let Some(source) = element.get_attribute_by_name(attr_name) else {
+                    // This is an inline listener that was added as JavaScript callback
+                    // rather than passed in through as attribute string. These do not
+                    // need to be recompiled
+                    continue;
+                };
+                let source = DOMString::from(&**source.value());
+                *inline_listener.borrow_mut() =
+                    InlineEventListener::Uncompiled(InternalRawUncompiledHandler {
+                        source,
+                        url: global_url.clone(),
+                        line: 1, // TODO(#9604) get current JS execution line
+                    });
+            }
+        }
     }
 }
 
