@@ -465,6 +465,7 @@ pub fn send_response_to_devtools(
         meta.headers.map(Serde::into_inner),
         meta.status,
         body_data,
+        response.cache_state,
         request,
         context.devtools_chan.clone(),
     );
@@ -475,6 +476,7 @@ pub fn send_response_values_to_devtools(
     headers: Option<HeaderMap>,
     status: HttpStatus,
     body: Option<Vec<u8>>,
+    cache_state: CacheState,
     request: &Request,
     devtools_chan: Option<StdArc<Mutex<Sender<DevtoolsControlMsg>>>>,
 ) {
@@ -484,11 +486,13 @@ pub fn send_response_values_to_devtools(
         request.target_webview_id,
     ) {
         let browsing_context_id = webview_id.into();
+        let from_cache = matches!(cache_state, CacheState::Local | CacheState::Validated);
 
         let devtoolsresponse = DevtoolsHttpResponse {
             headers,
             status,
             body,
+            from_cache,
             pipeline_id,
             browsing_context_id,
         };
@@ -2200,6 +2204,7 @@ async fn http_network_fetch(
                     Some(headers),
                     status,
                     Some(devtools_response_body),
+                    CacheState::None,
                     &devtools_request,
                     devtools_chan,
                 );
