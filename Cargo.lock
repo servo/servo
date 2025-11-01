@@ -7490,6 +7490,7 @@ dependencies = [
  "backtrace",
  "base",
  "base64 0.22.1",
+ "base64ct",
  "bincode",
  "bitflags 2.10.0",
  "bluetooth_traits",
