@@ -7,6 +7,7 @@ use std::cell::{Cell, Ref};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::rust::HandleObject;
+use script_bindings::domstring::DOMString;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
@@ -16,14 +17,17 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMeth
 use crate::dom::bindings::codegen::UnionTypes::ElementOrText;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, CustomElementCreationMode, Element, ElementCreator};
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlslotelement::HTMLSlotElement;
 use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeDamage, NodeTraits};
 use crate::dom::text::Text;
+use crate::dom::toggleevent::ToggleEvent;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
@@ -253,6 +257,11 @@ impl VirtualMethods for HTMLDetailsElement {
 
             let counter = self.toggle_counter.get() + 1;
             self.toggle_counter.set(counter);
+            let (old_state, new_state) = if self.Open() {
+                ("closed", "open")
+            } else {
+                ("open", "closed")
+            };
 
             let this = Trusted::new(self);
             self.owner_global()
@@ -261,7 +270,18 @@ impl VirtualMethods for HTMLDetailsElement {
                 .queue(task!(details_notification_task_steps: move || {
                     let this = this.root();
                     if counter == this.toggle_counter.get() {
-                        this.upcast::<EventTarget>().fire_event(atom!("toggle"), CanGc::note());
+                        let event = ToggleEvent::new(
+                            this.global().as_window(),
+                            atom!("toggle"),
+                            EventBubbles::DoesNotBubble,
+                            EventCancelable::NotCancelable,
+                            DOMString::from(old_state),
+                            DOMString::from(new_state),
+                            None,
+                            CanGc::note(),
+                        );
+                        let event = event.upcast::<Event>();
+                        event.fire(this.upcast::<EventTarget>(), CanGc::note());
                     }
                 }));
             self.upcast::<Node>().dirty(NodeDamage::Other);

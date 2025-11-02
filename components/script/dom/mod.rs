@@ -415,6 +415,7 @@ pub(crate) mod texttrackcuelist;
 pub(crate) mod texttracklist;
 #[allow(dead_code)]
 pub(crate) mod timeranges;
+pub(crate) mod toggleevent;
 pub(crate) mod touch;
 pub(crate) mod touchevent;
 pub(crate) mod touchlist;
