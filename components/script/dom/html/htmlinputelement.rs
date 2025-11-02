@@ -2063,7 +2063,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// Select the files based on filepaths passed in, enabled by
-    /// `dom.htmlinputelement.select_files.enabled`, used for test purpose.
+    /// `dom_testing_html_input_element_select_files_enabled`, used for test purpose.
     fn SelectFiles(&self, paths: Vec<DOMString>) {
         if self.input_type() == InputType::File {
             self.select_files(Some(paths));

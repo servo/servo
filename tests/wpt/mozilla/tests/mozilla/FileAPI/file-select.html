@@ -9,23 +9,20 @@
 <script>
 
 async_test(function() {
-  var e = document.getElementById("file-input");
+  var fileInput = document.getElementById("file-input");
+  assert_true(fileInput.selectFiles != undefined, "selectFiles is not defined")
 
-  assert_true(e.selectFiles != undefined, "selectFiles is not defined")
 
-  e.selectFiles(["./tests/wpt/mozilla/tests/mozilla/test.txt"]);
+  fileInput.addEventListener("change", () => {
+    assert_true(fileInput.files.length > 0, "test.txt is not selected");
 
-  assert_true(e.files.length > 0, "test.txt is not selected");
-
-  var reader = new FileReader;
-
-  reader.onloadend = this.step_func(function(evt) {
-    assert_equals(evt.target.result, "hello, servo\n");
-
-    this.done();
+    var reader = new FileReader;
+    reader.onloadend = this.step_func_done(function(evt) {
+      assert_equals(evt.target.result, "hello, servo\n");
+    });
+    reader.readAsText(fileInput.files[0]);
   });
 
-  reader.readAsText(e.files[0]);
-
+  fileInput.selectFiles(["./tests/wpt/mozilla/tests/mozilla/test.txt"]);
 }, "Select a file");
 </script>

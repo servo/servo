@@ -3,6 +3,9 @@
 </form>
 
 <script type="text/javascript">
-    var e = document.getElementById("file-input");
-    e.selectFiles(["./tests/wpt/mozilla/tests/mozilla/FileAPI/resource/upload.txt"]);
+    var fileInput = document.getElementById("file-input");
+    fileInput.addEventListener("change", () => {
+      parent.postMessage("loadedAndFilesChanged");
+    });
+    fileInput.selectFiles(["./tests/wpt/mozilla/tests/mozilla/FileAPI/resource/upload.txt"]);
 </script>

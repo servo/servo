@@ -19,5 +19,7 @@ function run_test() {
   };
   testdocument.getElementById("testform").submit();
 }
+
+window.addEventListener("message", () => run_test());
 </script>
-<iframe id=testframe src="file-upload-frame.html" onload="run_test();"></iframe>
+<iframe id=testframe src="file-upload-frame.html"></iframe>
