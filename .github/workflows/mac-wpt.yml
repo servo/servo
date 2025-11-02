@@ -10,19 +10,16 @@ on:
       profile:
         required: true
         type: string
-      arm:
-        required: true
-        type: boolean
 
 env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
-  NAME: ${{ inputs.arm && 'macos-arm64' || 'macos' }}
+  NAME: ${{ 'macos-arm64' }}
 
 jobs:
   mac-wpt:
     name: WPT
-    runs-on: ${{ inputs.arm && 'macos-15' || 'macos-13' }}
+    runs-on: ${{ 'macos-15' }}
     env:
       max_chunk_id: 5
     strategy:

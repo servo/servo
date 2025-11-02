@@ -197,7 +197,6 @@ jobs:
     with:
       profile: ${{ inputs.profile }}
       wpt-args: ${{ inputs.wpt-args }}
-      arm: true
     secrets: inherit
 
   bencher:

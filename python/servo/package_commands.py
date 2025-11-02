@@ -52,9 +52,6 @@ PACKAGES = {
     "linux": [
         "production/servo-tech-demo.tar.gz",
     ],
-    "mac": [
-        "production/servo-tech-demo.dmg",
-    ],
     "mac-arm64": [
         "production/servo-tech-demo.dmg",
     ],

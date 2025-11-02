@@ -23,7 +23,6 @@ from enum import Enum
 
 class Workflow(str, Enum):
     LINUX = "linux"
-    MACOS = "macos"
     MACOS_ARM = "macos-arm64"
     WINDOWS = "windows"
     ANDROID = "android"
@@ -67,8 +66,6 @@ class JobConfig(object):
     def update_name(self) -> None:
         if self.workflow is Workflow.LINUX:
             self.name = "Linux"
-        elif self.workflow is Workflow.MACOS:
-            self.name = "MacOS"
         elif self.workflow is Workflow.MACOS_ARM:
             self.name = "MacOS Arm64"
         elif self.workflow is Workflow.WINDOWS:
@@ -99,10 +96,8 @@ def handle_preset(s: str) -> Optional[JobConfig]:
 
     if any(word in s for word in ["linux"]):
         return JobConfig("Linux", Workflow.LINUX)
-    elif any(word in s for word in ["mac-arm", "macos-arm", "mac-arm64", "macos-arm64"]):
+    elif any(word in s for word in ["mac", "macos", "mac-arm", "macos-arm", "mac-arm64", "macos-arm64"]):
         return JobConfig("MacOS Arm64", Workflow.MACOS_ARM)
-    elif any(word in s for word in ["mac", "macos"]):
-        return JobConfig("MacOS", Workflow.MACOS)
     elif any(word in s for word in ["win", "windows"]):
         return JobConfig("Windows", Workflow.WINDOWS)
     elif any(word in s for word in ["android"]):
@@ -213,7 +208,6 @@ class Config(object):
                 words.extend(
                     [
                         "linux-bencher",
-                        "macos-bencher",
                         "macos-arm-bencher",
                         "windows-bencher",
                         "android-bencher",
@@ -225,7 +219,6 @@ class Config(object):
                 words.extend(
                     [
                         "linux-production-bencher",
-                        "macos-production-bencher",
                         "macos-arm-production-bencher",
                         "windows-production-bencher",
                     ]
@@ -415,7 +408,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(a, JobConfig("Linux (Unit Tests, WPT)", Workflow.LINUX, unit_tests=True, wpt=True))
 
         a = JobConfig("Linux (Unit Tests)", Workflow.LINUX, unit_tests=True)
-        b = JobConfig("Mac", Workflow.MACOS, unit_tests=True)
+        b = JobConfig("Mac", Workflow.MACOS_ARM, unit_tests=True)
         self.assertFalse(a.merge(b), "Should not merge jobs with different workflows.")
         self.assertEqual(a, JobConfig("Linux (Unit Tests)", Workflow.LINUX, unit_tests=True))
 

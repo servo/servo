@@ -71,7 +71,6 @@ jobs:
       - create-draft-release
       - upload-linux
       - upload-win
-      - upload-mac
       - upload-mac-arm64
       - upload-android
       - upload-ohos
@@ -83,20 +82,6 @@ jobs:
     needs:
       - create-draft-release
     uses: ./.github/workflows/windows.yml
-    with:
-      profile: "production"
-      upload: true
-      github-release-id: ${{ needs.create-draft-release.outputs.release-id }}
-      force-github-hosted-runner: true  # <https://github.com/servo/servo/issues/33296>
-    secrets: inherit
-
-  upload-mac:
-    # This job is only useful when run on upstream servo.
-    if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
-    name: Upload nightly (macOS)
-    needs:
-      - create-draft-release
-    uses: ./.github/workflows/mac.yml
     with:
       profile: "production"
       upload: true
