@@ -3,10 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::rc::Rc;
-use js::gc::MutableHandleValue;
-use js::jsval::UndefinedValue;
+
 use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
+use js::gc::MutableHandleValue;
+use js::jsval::UndefinedValue;
 use js::rust::HandleObject;
 use profile_traits::mem::MemoryReportResult;
 use script_bindings::conversions::SafeToJSValConvertible;
@@ -40,8 +41,8 @@ fn pref_to_jsval(pref: &PrefValue, cx: JSContext, rval: MutableHandleValue, can_
                 pref_to_jsval(item, cx, js_val.handle_mut(), can_gc);
                 js_arr.push(js_val.get());
             }
-            js_arr.safe_to_jsval(cx , rval, can_gc);
-        }
+            js_arr.safe_to_jsval(cx, rval, can_gc);
+        },
     }
 }
 
@@ -98,7 +99,12 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
     }
 
     /// <https://servo.org/internal-no-spec>
-    fn DefaultValue(&self, cx: SafeJSContext, name: USVString, rval: MutableHandleValue) -> Fallible<()> {
+    fn DefaultValue(
+        &self,
+        cx: SafeJSContext,
+        name: USVString,
+        rval: MutableHandleValue,
+    ) -> Fallible<()> {
         if !Preferences::exists(&name) {
             return Err(Error::NotFound(None));
         }
@@ -107,7 +113,12 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
         Ok(())
     }
 
-    fn GetPreference(&self, cx: JSContext, name: USVString, rval: MutableHandleValue) -> Fallible<()> {
+    fn GetPreference(
+        &self,
+        cx: JSContext,
+        name: USVString,
+        rval: MutableHandleValue,
+    ) -> Fallible<()> {
         if !Preferences::exists(&name) {
             return Err(Error::NotFound(None));
         }
@@ -115,7 +126,6 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
         pref_to_jsval(&pref, cx, rval, CanGc::note());
         Ok(())
     }
-
 
     /// <https://servo.org/internal-no-spec>
     fn GetBoolPreference(&self, name: USVString) -> Fallible<bool> {
