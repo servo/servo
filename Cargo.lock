@@ -2816,6 +2816,7 @@ dependencies = [
  "bitflags 2.10.0",
  "byteorder",
  "compositing_traits",
+ "content-security-policy",
  "core-foundation 0.9.4",
  "core-graphics",
  "core-text",

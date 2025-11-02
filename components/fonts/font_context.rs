@@ -12,6 +12,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use app_units::Au;
 use base::id::{PainterId, WebViewId};
 use compositing_traits::CrossProcessCompositorApi;
+use content_security_policy::Violation;
 use fonts_traits::{
     CSSFontFaceDescriptors, FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef,
     FontTemplateRefMethods, StylesheetWebFontLoadFinishedCallback,
@@ -109,13 +110,34 @@ pub struct FontContext {
     have_removed_web_fonts: AtomicBool,
 }
 
+/// A callback that will be invoked on the Fetch thread if a web font download
+/// results in CSP violations. This handler will be cloned each time a new
+/// web font download is initiated.
+pub trait CspViolationHandler: Send + std::fmt::Debug {
+    fn process_violations(&self, violations: Vec<Violation>);
+    fn clone(&self) -> Box<dyn CspViolationHandler>;
+}
+
 /// Document-specific data required to fetch a web font.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct WebFontDocumentContext {
     pub policy_container: PolicyContainer,
     pub document_url: ServoUrl,
     pub has_trustworthy_ancestor_origin: bool,
     pub insecure_requests_policy: InsecureRequestsPolicy,
+    pub csp_handler: Box<dyn CspViolationHandler>,
+}
+
+impl Clone for WebFontDocumentContext {
+    fn clone(&self) -> WebFontDocumentContext {
+        Self {
+            policy_container: self.policy_container.clone(),
+            document_url: self.document_url.clone(),
+            has_trustworthy_ancestor_origin: self.has_trustworthy_ancestor_origin,
+            insecure_requests_policy: self.insecure_requests_policy,
+            csp_handler: self.csp_handler.clone(),
+        }
+    }
 }
 
 impl FontContext {
@@ -991,9 +1013,18 @@ impl RemoteWebFontDownloader {
         response_message: FetchResponseMsg,
     ) -> DownloaderResponseResult {
         match response_message {
-            FetchResponseMsg::ProcessRequestBody(..) |
-            FetchResponseMsg::ProcessRequestEOF(..) |
-            FetchResponseMsg::ProcessCspViolations(..) => DownloaderResponseResult::InProcess,
+            FetchResponseMsg::ProcessRequestBody(..) | FetchResponseMsg::ProcessRequestEOF(..) => {
+                DownloaderResponseResult::InProcess
+            },
+            FetchResponseMsg::ProcessCspViolations(_request_id, violations) => {
+                self.state
+                    .as_ref()
+                    .expect("must have download state before termination")
+                    .document_context
+                    .csp_handler
+                    .process_violations(violations);
+                DownloaderResponseResult::InProcess
+            },
             FetchResponseMsg::ProcessResponse(_, meta_result) => {
                 trace!(
                     "@font-face {} metadata ok={:?}",
