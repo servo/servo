@@ -35,6 +35,7 @@ use fonts::{
 };
 use super::line_breaker::LineBreaker;
 use euclid::Point2D;
+use style::values::specified::text::TextOverflowSide;
 
 pub(super) struct LineMetrics {
     /// The block offset of the line start in the containing
@@ -562,7 +563,13 @@ impl LineItemLayout<'_, '_> {
             return;
         }
 
-        let mut can_be_ellided = true; // TODO: add more logic later on.
+        let mut can_be_ellided = false; // TODO: add more logic later on.
+
+        // check if current textrun can be ellided
+        if self.layout.containing_block.style.get_text().text_overflow.second == TextOverflowSide::Ellipsis {
+            can_be_ellided = true;
+        }
+
         let mut number_of_justification_opportunities = 0;
         let mut inline_advance = text_item
             .text
@@ -658,6 +665,7 @@ impl LineItemLayout<'_, '_> {
         );
 
         // finding the inline start corner (if horizontal, then starting x pos)
+        // TODO: fix the logic.
         let inline_target = self.layout.containing_block.size.inline - ellipsis_textrun_segment.runs[0].glyph_store.total_advance();
         let mut inline_start = self.layout.containing_block.size.inline;
         let mut glyph_index = text_item.text.len() - 1;
@@ -677,13 +685,22 @@ impl LineItemLayout<'_, '_> {
                 // try to mini increment if possible
                 for glyph in text_item.text[glyph_index].iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), text_item.text[glyph_index].len())) {
                     // TODO
-                    if inline_start + glyph.advance() < inline_target {
+                    if inline_start + glyph.advance() <= inline_target {
                         inline_start += glyph.advance();
                     }
                 }
             }
             if glyph_index > 0 {
                 glyph_index -= 1;
+            }
+            else {
+                if !inline_start_found { // 1st char should be clipped, not ellided.
+                    inline_start = self.layout.containing_block.size.inline;
+                    if inline_start < text_item.text[glyph_index].total_advance() {
+                        inline_start = text_item.text[glyph_index].total_advance();
+                    }
+                }
+                inline_start_found = true;
             }
         }
 

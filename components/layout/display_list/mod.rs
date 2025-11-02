@@ -1565,9 +1565,9 @@ fn glyphs(
 
     for run in glyph_runs {
         for glyph in run.iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), run.len())) {
+            total_advance += glyph.advance();
             if !run.is_whitespace() || include_whitespace {
                 let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
-                total_advance += glyph.advance();
                 let point = units::LayoutPoint::new(
                     baseline_origin.x.to_f32_px() + glyph_offset.x.to_f32_px(),
                     baseline_origin.y.to_f32_px() + glyph_offset.y.to_f32_px(),
@@ -1583,6 +1583,7 @@ fn glyphs(
 
             if glyph.char_is_word_separator() {
                 baseline_origin.x += justification_adjustment;
+                total_advance += justification_adjustment;
             }
             baseline_origin.x += glyph.advance();
             
