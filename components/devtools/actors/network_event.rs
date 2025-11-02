@@ -45,6 +45,7 @@ pub struct NetworkEventActor {
     pub response_start: Option<ResponseStartMsg>,
     pub response_cookies: Option<ResponseCookiesMsg>,
     pub response_headers: Option<ResponseHeadersMsg>,
+    pub cache_details: Option<CacheDetails>,
     pub total_time: Duration,
     pub security_state: String,
     pub event_timing: Option<Timings>,
@@ -106,6 +107,13 @@ pub struct ResponseContentMsg {
 pub struct ResponseHeadersMsg {
     pub headers: usize,
     pub headers_size: usize,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CacheDetails {
+    from_cache: bool,
+    from_service_worker: bool,
 }
 
 #[derive(Serialize)]
@@ -447,6 +455,7 @@ impl NetworkEventActor {
             response_start: None,
             response_cookies: None,
             response_headers: None,
+            cache_details: None,
             total_time: Duration::ZERO,
             security_state: "insecure".to_owned(),
             event_timing: None,
@@ -480,6 +489,7 @@ impl NetworkEventActor {
             self.response_content = Some(response_content);
         }
         self.response_headers_raw = response.headers.clone();
+        self.cache_details = Some(Self::cache_details(&response));
     }
 
     pub fn event_actor(&self) -> EventActor {
@@ -625,6 +635,13 @@ impl NetworkEventActor {
         Some(RequestCookiesMsg { cookies })
     }
 
+    pub fn cache_details(response: &DevtoolsHttpResponse) -> CacheDetails {
+        CacheDetails {
+            from_cache: response.from_cache,
+            from_service_worker: false,
+        }
+    }
+
     pub fn total_time(request: &DevtoolsHttpRequest) -> Duration {
         request.connect_time + request.send_time
     }
@@ -710,6 +727,7 @@ impl NetworkEventActor {
         Self::insert_serialized_map(&mut resource_updates, &self.request_headers);
         Self::insert_serialized_map(&mut resource_updates, &self.request_cookies);
         Self::insert_serialized_map(&mut resource_updates, &self.response_start);
+        Self::insert_serialized_map(&mut resource_updates, &self.cache_details);
         Self::insert_serialized_map(&mut resource_updates, &self.event_timing);
 
         // TODO: Set the correct values for these fields
