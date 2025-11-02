@@ -241,6 +241,9 @@ xi-unicode = "0.3.0"
 xml5ever = "0.38"
 xpath = { package = "servo-xpath", path = "components/xpath" }
 
+[workspace.metadata.vet]
+store = { path = "./etc/supply-chain" }
+
 # RSA key generation could be very slow without compilation
 # optimizations, in development mode. Without optimizations, WPT might
 # consider RSA key generation tests fail due to timeout.
