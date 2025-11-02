@@ -52,10 +52,10 @@ def create_parser() -> ArgumentParser:
         help="Filter intermittents against known intermittents and save the filtered output to the given file.",
     )
     parser.add_argument(
-        "--log-raw-unexpected",
+        "--log-raw-stable-unexpected",
         default=None,
         action="store",
-        help="Raw structured log messages for unexpected results."
+        help="Raw structured log messages for stable unexpected results."
         " '--log-raw' Must also be passed in order to use this.",
     )
     return parser

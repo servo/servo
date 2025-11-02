@@ -139,9 +139,9 @@ def run_tests(default_binary_path: str, **kwargs: Any) -> int:
     # Write the unexpected-only raw log if that was specified on the command-line.
     if unexpected_raw_log_output_file:
         if not raw_log_outputs:
-            print("'--log-raw-unexpected' not written without '--log-raw'.")
+            print("'--log-raw-stable-unexpected' not written without '--log-raw'.")
         else:
-            write_unexpected_only_raw_log(
+            write_stable_unexpected_only_raw_log(
                 handler.unexpected_results, raw_log_outputs[0].name, unexpected_raw_log_output_file
             )
 
@@ -282,11 +282,14 @@ def filter_intermittents(unexpected_results: List[UnexpectedResult], output_path
     return not any([is_stable_and_unexpected(result) for result in unexpected_results])
 
 
-def write_unexpected_only_raw_log(
+def write_stable_unexpected_only_raw_log(
     unexpected_results: List[UnexpectedResult], raw_log_file: str, filtered_raw_log_file: str
 ) -> None:
-    tests = [result.path for result in unexpected_results]
-    print(f"Writing unexpected-only raw log to {filtered_raw_log_file}")
+    # Only write the data for tests which are not flaky and which do not have issues.
+    # This allows the resulting log file to be used to update baselines after a CI run,
+    # as it will only contain stable unexpected results without issues.
+    tests = [result.path for result in unexpected_results if not result.flaky and not result.issues]
+    print(f"Writing stable unexpected-only raw log to {filtered_raw_log_file}")
 
     with open(filtered_raw_log_file, "w", encoding="utf-8") as output:
         with open(raw_log_file) as input:
