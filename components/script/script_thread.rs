@@ -123,6 +123,7 @@ use crate::dom::customelementregistry::{
 };
 use crate::dom::document::{
     Document, DocumentSource, FocusInitiator, HasBrowsingContext, IsHTMLDocument,
+    RenderingUpdateReason,
 };
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
@@ -1135,6 +1136,10 @@ impl ScriptThread {
                 continue;
             }
 
+            // Clear this as early as possible so that any callbacks that
+            // trigger new reasons for updating the rendering don't get lost.
+            document.clear_rendering_update_reasons();
+
             // TODO(#31581): The steps in the "Revealing the document" section need to be implemented
             // `process_pending_input_events` handles the focusing steps as well as other events
             // from the compositor.
@@ -1187,8 +1192,12 @@ impl ScriptThread {
 
             if document.has_skipped_resize_observations() {
                 document.deliver_resize_loop_error_notification(can_gc);
+                // Ensure that another turn of the event loop occurs to process
+                // the skipped observations.
+                document.add_rendering_update_reason(
+                    RenderingUpdateReason::ResizeObserverStartedObservingTarget,
+                );
             }
-            document.clear_rendering_update_reasons();
 
             // TODO(#31870): Implement step 17: if the focused area of doc is not a focusable area,
             // then run the focusing steps for document's viewport.
