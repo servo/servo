@@ -113,6 +113,7 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
         Ok(())
     }
 
+    /// <https://servo.org/internal-no-spec>
     fn GetPreference(
         &self,
         cx: JSContext,
