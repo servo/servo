@@ -1,0 +1,7 @@
+features:
+- name: mutation-events
+  files:
+  - DOMNodeInserted.html
+  - DOMNodeRemoved.html
+  - DOMSubtreeModified.html
+  - MutationEvent.*

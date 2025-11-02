@@ -33,7 +33,7 @@ test(t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
 
-    const dc = pc.createDataChannel('');
+    const dc = pc.createDataChannel('constructor');
     const event = new RTCDataChannelEvent('type', { channel: dc });
     assert_true(event instanceof RTCDataChannelEvent);
     assert_equals(event.channel, dc);

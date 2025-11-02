@@ -1,60 +1,28 @@
 <!DOCTYPE html>
+<link rel=stylesheet href=resources/menu-elements-styles.css>
 <style>
-  #menubar {
-    width: 300px;
-    background: lightblue;
-  }
-  .menuitem {
-    background: red;
-    padding: 1em;
-    width: 100px;
-    border: 0;
-  }
-  #menubar > .menuitem {
-    display: inline-block;
-  }
-  /*
-    Only buttons can trigger popovers, so style buttons like menuitems, and
-    reset some of their default styles.
-  */
+  /* Only buttons can trigger popovers, so style buttons like menuitems, and
+   * reset some of their default styles. */
   button {
     box-sizing: content-box;
     font-size: unset;
     font-family: unset;
     text-align: unset;
-  }
-  /* Unset some default popover styles to style them like menulists */
-  div[popover] {
-    height: 150px;
-    background: green;
+    background: unset;
     border: 0;
-    padding: 0;
-    margin: 0;
-  }
-
-  #menulist-with-menubar-anchor {
-    position: absolute;
-    /* Below and span-right, by default. */
-    position-area: block-end span-inline-end;
-  }
-
-  #menulist-with-menulist-anchor {
-    position: absolute;
-    /* To the right, with its top aligned to the implicit anchor's top */
-    position-area: inline-end span-block-end;
   }
 </style>
 
-<div id=menubar>
+<div class=menubar>
   <div class=menuitem>Nothing</div>
-  <button class=menuitem id=trigger popovertarget=menulist-with-menubar-anchor>Trigger</button>
+  <button class=menuitem id=trigger popovertarget=top-menulist>Trigger</button>
 </div>
 
-<div popover id=menulist-with-menubar-anchor>
-  <button class=menuitem id=trigger2 popovertarget=menulist-with-menulist-anchor>Trigger 2</button>
+<div popover class="menulist menulist-with-menubar-anchor" id=top-menulist>
+  <button class=menuitem id=trigger2 popovertarget=sub-menulist>Trigger 2</button>
 </div>
 
-<div popover id=menulist-with-menulist-anchor>
+<div popover class="menulist menulist-with-menulist-anchor" id=sub-menulist>
   <div class=menuitem>Most nested item</div>
 </div>
 

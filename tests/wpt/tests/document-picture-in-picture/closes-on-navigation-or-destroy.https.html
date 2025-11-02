@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<title>Test that a document picture-in-picture window closes when itself or the opener is navigated / destroyed</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel="help" href="https://wicg.github.io/document-picture-in-picture/#close-on-destroy"/>
+<link rel="help" href="https://wicg.github.io/document-picture-in-picture/#close-on-navigate"/>
+<body>
+<script>
+function waitForEvent(target, event) {
+  return new Promise(resolve => target.addEventListener(event, resolve, {once: true}))
+}
+
+async function waitForMessage(target, type) {
+  const { data } = await waitForEvent(target, 'message');
+  assert_equals(data.type, type, "Got the expected message");
+  return data;
+}
+
+window.addEventListener('message', ({data}) => {
+  if (data.type == 'error') {
+    throw data;
+  }
+});
+
+let last_id = 0;
+async function new_opener_with_pip_window(t) {
+  // We cannot navigate this window, so do the tests in a popup.
+  const channelName = `pip channel ${++last_id}`;
+
+  const opener = window.open(`support/popup-opens-pip.html`);
+  await waitForEvent(opener, "load");
+  assert_true(true, "Popup loaded");
+
+  const pipChannel = new BroadcastChannel(channelName);
+  pipChannel.addEventListener('message', ({data}) => {
+    if (data.type == 'error') {
+      throw new Error(`${data.name}: ${data.message}`);
+    }
+  });
+
+  await test_driver.bless('activate popup window', null, opener);
+  opener.postMessage({ type: 'request-pip', channelName });
+  await waitForMessage(pipChannel, 'pip-ready');
+
+  t.add_cleanup(function() {
+    pipChannel.close();
+    opener.close();
+  });
+
+  return { opener, pipChannel };
+}
+
+function evalInPIP(pipChannel, code, args = []) {
+  pipChannel.postMessage({ type: "exec", code: code.toString(), args });
+  return waitForMessage(pipChannel, "exec-result");
+}
+
+promise_test(async (t) => {
+  // Trivial test case, mostly a sanity-check for this test infrastructure
+  const { opener, pipChannel } = await new_opener_with_pip_window(t);
+  assert_true(true, 'Succeded in getting an opener with pip window');
+
+  opener.postMessage({ type: 'close-pip' });
+  // This also tests that a PIP window gets a pagehide
+  await waitForMessage(pipChannel, 'pip-pagehide');
+
+  opener.postMessage({ type: 'get-pip-status' });
+  const statusMsg = await waitForMessage(window, 'pip-status');
+  assert_true(statusMsg.closed, 'Succeeded in closing the pip window');
+}, 'PIP window can be closed');
+
+promise_test(async (t) => {
+  const { opener, pipChannel } = await new_opener_with_pip_window(t);
+
+  opener.close();
+  await waitForMessage(pipChannel, 'pip-pagehide');
+}, 'PIP window closes when opener closes');
+
+function waitTillPiPClosed(t, opener) {
+  let closed = false;
+  let shouldPing = true;
+
+  const listener = ({ data }) => {
+    if (data.type == "pip-status") {
+      closed = data.closed;
+      shouldPing = true;
+    }
+  }
+  window.addEventListener("message", listener);
+
+  const condition = () => {
+    if (shouldPing && !closed) {
+      opener.postMessage({ type: 'get-pip-status' });
+      shouldPing = false;
+    }
+    return closed;
+  }
+  return t.step_wait(condition, "PiP window .closed becomes true")
+    .finally(() => {
+      window.removeEventListener("message", listener)
+    })
+}
+
+promise_test(async (t) => {
+  const { opener, pipChannel } = await new_opener_with_pip_window(t);
+
+  // Per spec, #close-a-top-level-traversable doesn't set #is-closing and thus
+  // window.closed only becomes true when the traversable is destroyed. This happens
+  // via `afterAllUnloads` after pagehide. This is different for window.close().
+  // https://github.com/whatwg/html/issues/11853
+  opener.postMessage({ type: 'navigate-pip', href: "/common/blank.html" });
+  const statusMsg = await waitForMessage(pipChannel, 'pip-pagehide');
+  assert_false(statusMsg.closed, "window.closed is false during pagehide");
+  await waitTillPiPClosed(t, opener);
+}, "window.closed becomes true after pagehide if not window.close() initiated");
+
+promise_test(async (t) => {
+  const { opener, pipChannel } = await new_opener_with_pip_window(t);
+
+  opener.postMessage({ type: 'navigate-pip', href: "about:blank#0" });
+
+  opener.postMessage({ type: 'get-pip-status' });
+  const statusMsg = await waitForMessage(window, 'pip-status');
+  assert_false(statusMsg.closed, 'Same-page navigation did not close PIP');
+
+  opener.postMessage({ type: 'navigate-pip', href: "/common/blank.html" });
+  await waitForMessage(pipChannel, 'pip-pagehide');
+  await waitTillPiPClosed(t, opener);
+}, 'PIP window closes when navigated');
+
+promise_test(async (t) => {
+  const { opener, pipChannel } = await new_opener_with_pip_window(t);
+
+  await evalInPIP(pipChannel, () => window.name = "pipwindow" )
+
+  const w = window.open("/common/blank.html", "pipwindow");
+  await waitForMessage(pipChannel, "pip-pagehide");
+  await waitTillPiPClosed(t, opener);
+}, 'PIP window closes when navigated by name');
+
+promise_test(async (t) => {
+  const { opener, pipChannel } = await new_opener_with_pip_window(t);
+
+  opener.location = opener.location.href + "#0";
+
+  opener.postMessage({ type: 'get-pip-status' });
+  const statusMsg = await waitForMessage(window, 'pip-status');
+  assert_false(statusMsg.closed, 'Same-page navigation of opener did not close PIP');
+
+  opener.location = "/common/blank.html";
+  await waitForMessage(pipChannel, 'pip-pagehide');
+}, 'PIP window closes when opener navigates');
+</script>
+</body>

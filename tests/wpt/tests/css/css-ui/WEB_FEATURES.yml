@@ -2,6 +2,7 @@ features:
 - name: accent-color
   files:
   - accent-color-*
+  - transparent-accent-color-*
 - name: appearance
   files:
   - appearance-*

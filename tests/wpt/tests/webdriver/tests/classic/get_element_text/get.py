@@ -66,7 +66,7 @@ def test_no_such_element_from_other_frame(session, get_test_page, closed):
     session.url = get_test_page(as_frame=True)
 
     frame = session.find.css("iframe", all=False)
-    session.switch_frame(frame)
+    session.switch_to_frame(frame)
 
     element = session.find.css("div", all=False)
 
@@ -99,7 +99,8 @@ def test_read_element_text(session, inline):
     ("foo bar", "Foo Bar"),
     ("foo-bar", "Foo-Bar"),
     ("foo_bar", "Foo_bar"),
-], ids=["space", "dash", "underscore"])
+    ("foo bár", "Foo Bár"),
+], ids=["space", "dash", "underscore", "accent"])
 def test_transform_capitalize(session, inline, text, expected):
     session.url = inline(
         f"""<div style="text-transform: capitalize;">{text}""")

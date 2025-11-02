@@ -9,7 +9,10 @@
 <script>
 async_test((t) => {
   test_driver.bless('request PiP window').then(t.step_func(_ => {
-    documentPictureInPicture.onenter = t.step_func_done();
+    documentPictureInPicture.onenter = t.step_func_done((e) => {
+      assert_true(e.isTrusted, "is trusted");
+      assert_false(e.cancelable, "is not cancelable");
+    });
     documentPictureInPicture.requestWindow();
   }));
 });

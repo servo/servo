@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSS zoom does not apply to text-indent on SVG primitives when specified and inherited</title>
+<link rel="help" href="https://drafts.csswg.org/css-viewport/">
+<link rel="match" href="reference/text-indent-svg-ref.html">
+
+<style>
+.indent {
+  text-indent: 1rem;
+}
+.zoom {
+  zoom: 2;
+}
+</style>
+
+<svg width="150" height="30">
+  <text class="indent" x="0" y="20">unzoomed</text>
+</svg>
+
+<div class="zoom">
+  <svg width="150" height="30">
+    <text class="indent" x="0" y="20">zoomed</text>
+  </svg>
+</div>

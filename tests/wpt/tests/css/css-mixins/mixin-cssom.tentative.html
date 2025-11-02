@@ -88,5 +88,21 @@
         });
       }, '@apply is not legal at top level');
     </script>
+
+
+    <style id=style6>
+      @mixin --m3(--arg type(<length>): 1em, --other-arg) {
+        margin-left: var(--arg);
+      }
+    </style>
+    <script>
+      test(() => {
+        let ss = style6.sheet;
+        assert_equals(ss.cssRules[0].cssText,
+`@mixin --m3(--arg <length>: 1em, --other-arg) {
+  margin-left: var(--arg);
+}`);
+      }, 'serialization of @mixin with parameters');
+    </script>
   </body>
 </html>

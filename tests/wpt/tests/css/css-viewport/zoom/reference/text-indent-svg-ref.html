@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<style>
+html {
+  --scale: 1;
+}
+.indent {
+  text-indent: calc(1rem * var(--scale));
+}
+.zoom {
+  --scale: 2;
+}
+</style>
+
+<svg width="150" height="30">
+  <text class="indent" x="0" y="20">unzoomed</text>
+</svg>
+
+<div class="zoom">
+  <svg width="300" height="60">
+    <text style="font-size: calc(1rem * var(--scale))" class="indent" x="0" y="40">zoomed</text>
+  </svg>
+</div>

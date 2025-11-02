@@ -1,0 +1,19 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates: patching via innerHTML</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="placeholder" contentname="p">Old content</div>
+<div id="container"></div>
+<script>
+test(() => {
+    const placeholder = document.getElementById("placeholder");
+    const container = document.getElementById("container");
+    assert_equals(placeholder.textContent, "Old content");
+    container.innerHTML = "<template contentmethod=replace><div contentname=p>New content</div></template>";
+    assert_equals(placeholder.textContent, "Old content");
+    // The <template> element should not be inserted, so no child nodes.
+    assert_false(container.hasChildNodes(), "template should not attach");
+}, "<template contentmethod> in innerHTML should not patch outer element");
+</script>

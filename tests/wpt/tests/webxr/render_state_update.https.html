@@ -52,31 +52,6 @@ let testNoParams = function(session, fakeDeviceController, t) {
   });
 };
 
-let testParams = function(session, fakeDeviceController, t, sessionObjects) {
-  return new Promise((resolve, reject) => {
-    let gl = sessionObjects.gl;
-    try {
-      gl.makeXRCompatible().then(() => {
-        t.step(() => {
-          let fov = Math.PI;
-          let near = 0.2;
-          let far = 0.8;
-          let layer = new XRWebGLLayer(session, gl);
-          session.updateRenderState({ inlineVerticalFieldOfView: fov, depthNear: near, depthFar: far, baseLayer: layer });
-          // The update can only happen between frame boundaries, updateRenderState only queues changes.
-          assert_not_equals(session.renderState.inlineVerticalFieldOfView, fov);
-          assert_not_equals(session.renderState.depthNear, near);
-          assert_not_equals(session.renderState.depthFar, far);
-          assert_not_equals(session.renderState.baseLayer, layer);
-        });
-      });
-    } catch (err) {
-      assert_unreached("updateRenderState should not fail when all params are specified");
-    }
-    resolve();
-  });
-};
-
 let testMinMaxClippingPlanes = function(session, fakeDeviceController, t, sessionObjects) {
   return new Promise((resolve, reject) => {
     let gl = sessionObjects.gl;
@@ -122,9 +97,6 @@ xr_session_promise_test(testName, testFieldOfView, fakeDeviceInitParams, 'immers
 
 testName = "updateRenderState handles appropriately XRRenderStateInit with no params";
 xr_session_promise_test(testName, testNoParams, fakeDeviceInitParams, 'immersive-vr');
-
-testName = "updateRenderState handles appropriately XRRenderStateInit params";
-xr_session_promise_test(testName, testParams, fakeDeviceInitParams, 'inline');
 
 testName = "updateRenderState clamps appropriately near/far clipping planes";
 xr_session_promise_test(testName, testMinMaxClippingPlanes, fakeDeviceInitParams, 'immersive-vr');

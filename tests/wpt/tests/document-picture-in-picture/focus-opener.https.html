@@ -27,7 +27,9 @@ promise_test(async (t) => {
     window.addEventListener('focus', resolve, { once: true });
     await test_driver.bless('focus opener window', pipWindow);
     const focusScript = pipWindow.document.createElement('script');
-    focusScript.setAttribute('src', 'support/focus-opener.js');
+    // Resolve URI so that we don't implicitly test the base URI of the PIP
+    const scriptURI = new URL('support/focus-opener.js', document.baseURI).href;
+    focusScript.setAttribute('src', scriptURI);
     pipWindow.document.body.append(focusScript);
   });
   return focusPromise;

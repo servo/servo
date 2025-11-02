@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>Test that the document Picture in picture window receives system focus</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+  await test_driver.bless('request PiP window');
+  const pipWindow = await documentPictureInPicture.requestWindow();
+  if (!pipWindow.document.hasFocus()) {
+    await new Promise(resolve => pipWindow.onfocus = resolve);
+  }
+  assert_true(pipWindow.document.hasFocus(), 'PiP has focus');
+  pipWindow.close();
+}, 'PiP recieves system focus after being opened');
+</script>
+</body>

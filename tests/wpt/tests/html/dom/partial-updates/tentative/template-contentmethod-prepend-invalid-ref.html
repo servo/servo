@@ -1,0 +1,19 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates - declarative prepend element</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="placeholder" contentname="placeholder"><span id="ref">old</span>content</div>
+<template contentmethod="prepend">
+    <div contentname="placeholder"><span>New </span><script id="removal-script">
+            document.querySelector("#ref").remove();
+        </script><span>Junk </span></div>
+</template>
+<script>
+test(() => {
+    document.querySelector("#removal-script").remove();
+    assert_equals(document.getElementById("placeholder").textContent, "New content");
+}, "If the first node is no longer a child of the parent during prepend, next insertions abort");
+</script>

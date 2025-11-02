@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="row-reverse-001-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+.masonry {
+    display: masonry;
+    item-tolerance: 0;
+    grid-template-rows: repeat(3, 50px);
+    gap: 10px;
+    masonry-direction: row-reverse;
+}
+</style>
+<body>
+  <p>Test that masonry items with reverse auto placement and explicit placement are correctly positioned within the grid axis.</p>
+  <div class="masonry">
+    <div style="background: lavender; width: 20px;">1</div>
+    <div style="background: lightskyblue; width: 20px;">2</div>
+    <div style="background: lightgreen; width: 20px;">3</div>
+    <div style="background: lightpink; grid-row: span 2; width: 20px;">4</div>
+    <div style="background: lavender; width: 20px;">5</div>
+    <div style="background: lightskyblue; width: 20px;">6</div>
+    <div style="background: lightgreen; width: 20px;">7</div>
+    <div style="background: lightpink; grid-row: 1 / span 2; width: 20px;">8</div>
+    <div style="background: lavender; width: 20px;">9</div>
+    <div style="background: lightskyblue; width: 20px;">10</div>
+    <div style="background: lavender; width: 30px;">11</div>
+    <div style="background: lightskyblue; width: 40px;">12</div>
+    <div style="background: lightgreen; width: 50px;">13</div>
+    <div style="background: lightgreen; width: 10px;">14</div>
+    <div style="background: lightskyblue; width: 40px;">15</div>
+  </div>
+</body>
+</html>

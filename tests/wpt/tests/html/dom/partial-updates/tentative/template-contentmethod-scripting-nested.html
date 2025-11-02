@@ -1,0 +1,20 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates - a script inside a template inside a patch should not execute</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<section id="placeholder" contentname="c">
+    <script>
+    window.state = "init";
+    </script>
+</section>
+<template contentmethod="replace-children"><section contentname="c"><template><script>window.state = 'patched';</script></section></template></template>
+<script>
+test(() => {
+    assert_not_equals(document.querySelector("#placeholder").firstElementChild, null);
+    assert_equals(window.state, "init");
+});
+
+</script>

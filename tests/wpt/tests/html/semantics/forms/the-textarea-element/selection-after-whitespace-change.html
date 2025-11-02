@@ -19,10 +19,10 @@ promise_test(async () => {
       .send();
   } else {
     // Home
-    await test_driver.send_keys(t, ["\uE011"]);
+    await test_driver.send_keys(t, "\uE011");
   }
   // And then Delete
-  await test_driver.send_keys(t, ["\uE017"]);
+  await test_driver.send_keys(t, "\uE017");
   t.style.whiteSpace = "pre-line";
   await new Promise(setTimeout);
   assert_equals(t.selectionStart, 0, "selectionStart should remain 0");

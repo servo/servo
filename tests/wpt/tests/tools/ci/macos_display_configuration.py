@@ -213,11 +213,13 @@ def create_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--no-color-profile",
         action="store_false",
+        dest="color_profile",
         help="Don't set color profiles",
     )
     parser.add_argument(
         "--no-display-mode",
         action="store_false",
+        dest="display_mode",
         help="Don't set display mode",
     )
     parser.add_argument(
@@ -232,8 +234,8 @@ def run(venv: Any, **kwargs: Any) -> None:
     profile_url = NSURL.fileURLWithPath_(kwargs["profile_path"])
     dry_run = kwargs["dry_run"]
 
-    if not kwargs["no_color_profile"]:
+    if kwargs["color_profile"]:
         set_color_profiles(profile_url, dry_run=dry_run)
 
-    if not kwargs["no_display_mode"]:
+    if kwargs["display_mode"]:
         set_display_modes(dry_run=dry_run)

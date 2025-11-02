@@ -35,6 +35,11 @@ fedcm_test(async t => {
   const frame = await CreateFrame(www_alt + responder_html_load_ack, false,
     undefined, `identity-credentials-get ${www_alt};`);
   assert_equals(await frame_loaded, "loaded");
+  if (await FrameHasStorageAccess(frame)) {
+    // Nothing to test here, as cross-site cookies are not blocked.
+    // See https://github.com/privacycg/storage-access/issues/162.
+    return;
+  }
 
   assert_true(await RequestStorageAccessInFrame(frame),
     "requestStorageAccess doesn't require a gesture since the FedCM account is already connected.");
@@ -59,6 +64,11 @@ fedcm_test(async t => {
   });
   const frame = await CreateFrame(www_alt + responder_html_load_ack, false);
   assert_equals(await frame_loaded, "loaded");
+  if (await FrameHasStorageAccess(frame)) {
+    // Nothing to test here, as cross-site cookies are not blocked.
+    // See https://github.com/privacycg/storage-access/issues/162.
+    return;
+  }
 
   assert_false(await RequestStorageAccessInFrame(frame),
     "requestStorageAccess requires a gesture since the 'identity-credentials-get' policy is absent.");
@@ -90,6 +100,11 @@ fedcm_test(async t => {
   const frame = await CreateFrame(www_alt + responder_html_load_ack, false,
     undefined, `identity-credentials-get ${www_alt};`);
   assert_equals(await frame_loaded, "loaded");
+  if (await FrameHasStorageAccess(frame)) {
+    // Nothing to test here, as cross-site cookies are not blocked.
+    // See https://github.com/privacycg/storage-access/issues/162.
+    return;
+  }
 
   assert_false(await RequestStorageAccessInFrame(frame),
     "requestStorageAccess requires a gesture since the preventSilentAccess flag is true.");

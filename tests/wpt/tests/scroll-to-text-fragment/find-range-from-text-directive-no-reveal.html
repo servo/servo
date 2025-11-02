@@ -25,7 +25,7 @@ promise_test(async t => {
 
   window.location.hash = ':~:text=abc,-def';
 
-  await new Promise(resolve => requestAnimationFrame(resolve));
+  await new Promise(resolve => details2.addEventListener('toggle', resolve));
 
   assert_equals(hidden1.hidden, 'until-found', 'hidden=until-found element should remain hidden');
   assert_false(details1.open, 'closed <details> element should remain closed');

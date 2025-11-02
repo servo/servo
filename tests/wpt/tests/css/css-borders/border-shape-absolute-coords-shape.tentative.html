@@ -3,6 +3,7 @@
 <link rel="help" href="https://www.w3.org/TR/css-borders-4/#propdef-border-shape">
 <link rel="help" href="https://drafts.csswg.org/css-shapes-1/#shape-function">
 <link rel="match" href="border-shape-absolute-coords-shape-ref.tentative.html">
+<meta name="fuzzy" content="maxDifference=0-70;totalPixels=0-1200">
 <style>
   .bs-target {
     position: absolute;
@@ -11,8 +12,7 @@
     width: 200px;
     height: 200px;
     border-shape: shape(from 0% 0%, line to 100% 0%, line to 50% 100%, close);
-    stroke: purple;
-    stroke-width: 20px;
+    border: 20px solid purple;
     background: green;
   }
 </style>

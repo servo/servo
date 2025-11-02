@@ -13,7 +13,7 @@ def switch_to_parent_frame(session):
 def test_null_response_value(session, inline, iframe):
     session.url = inline(iframe("<p>foo"))
     frame_element = session.find.css("iframe", all=False)
-    session.switch_frame(frame_element)
+    session.switch_to_frame(frame_element)
 
     response = switch_to_parent_frame(session)
     value = assert_success(response)
@@ -26,7 +26,7 @@ def test_no_top_browsing_context(session, url):
     session.url = url("/webdriver/tests/support/html/frames.html")
 
     subframe = session.find.css("#sub-frame", all=False)
-    session.switch_frame(subframe)
+    session.switch_to_frame(subframe)
 
     session.window.close()
 
@@ -49,7 +49,7 @@ def test_no_browsing_context_when_already_top_level(session, closed_window):
 def test_switch_from_iframe(session, inline, iframe):
     session.url = inline(iframe("<p>foo"))
     frame_element = session.find.css("iframe", all=False)
-    session.switch_frame(frame_element)
+    session.switch_to_frame(frame_element)
     element = session.find.css("p", all=False)
 
     result = switch_to_parent_frame(session)

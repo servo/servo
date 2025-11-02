@@ -42,7 +42,7 @@ def test_no_top_browsing_context(session, url, id):
     session.url = url("/webdriver/tests/support/html/frames.html")
 
     subframe = session.find.css("#sub-frame", all=False)
-    session.switch_frame(subframe)
+    session.switch_to_frame(subframe)
 
     session.window.close()
 
@@ -88,11 +88,11 @@ def test_frame_id_null(session, inline, iframe):
     session.url = inline(iframe("{}<div>foo".format(iframe("<p>bar"))))
 
     frame1 = session.find.css("iframe", all=False)
-    session.switch_frame(frame1)
+    session.switch_to_frame(frame1)
     element1 = session.find.css("div", all=False)
 
     frame2 = session.find.css("iframe", all=False)
-    session.switch_frame(frame2)
+    session.switch_to_frame(frame2)
     element2 = session.find.css("p", all=False)
 
     # Switch to top-level browsing context
@@ -118,7 +118,7 @@ def test_find_element_while_frame_is_still_loading(session, url):
         "document.documentElement.innerHTML = arguments[0];", args=[page_url])
 
     frame1 = session.find.css("iframe", all=False)
-    session.switch_frame(frame1)
+    session.switch_to_frame(frame1)
 
     # Ensure that the is always a valid browsing context, and the element
     # can be found eventually.

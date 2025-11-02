@@ -646,3 +646,9 @@ test<div>p</div>tt<p>div</p><test>test</test>
 |   content
 |     "Hello"
 
+#data
+<a href="about:blank" rel="opener">Click.</a>
+#document
+| <a>
+|   href="about:blank"
+|   "Click."

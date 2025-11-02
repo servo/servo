@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Moving focus from its own focus() call doesn't leave stale :focus-within state</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#the-focus-within-pseudo">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1996182">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.com" title="Mozilla">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="wrapper">
+  <div id="outer">
+    <input id="tab">
+    <input id="input" onblur="outside.focus()">
+  </div>
+  <input id="outside">
+</div>
+<script>
+onload = function() {
+  test(function() {
+    let wrapper = document.getElementById("wrapper");
+    let outer = document.getElementById("outer");
+    let tab = document.getElementById("tab");
+    let input = document.getElementById("input");
+    let outside = document.getElementById("outside");
+
+    input.focus();
+    assert_equals(document.activeElement, input, "activeElement after focus");
+    assert_true(outer.matches(":focus-within"), "outer matches :focus-within");
+    assert_true(wrapper.matches(":focus-within"), "wrapper matches :focus-within");
+    // This ends up shifting to `outside` rather than `tab`.
+    tab.focus();
+    assert_equals(document.activeElement, outside, "activeElement after trying to focus sibling");
+    assert_true(wrapper.matches(":focus-within"), "wrapper still matches :focus-within");
+    assert_false(outer.matches(":focus-within"), "outer no longer matches :focus-within");
+  });
+}
+</script>

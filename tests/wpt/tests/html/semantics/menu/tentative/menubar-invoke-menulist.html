@@ -128,14 +128,13 @@ test(() => {
 }, "Menuitem with invalid command/commandfor cannot invoke menulist popover.");
 
 test(() => {
-  checkableMenuitem.command = "toggle-menu";
-  checkableMenuitem.commandForElement = menulist;
-
+  assert_equals(checkableMenuitem.commandForElement,null,
+   "To start, checkable item shouldn't be an invoker")
   checkableMenuitem.click();
   assert_true(checkableMenuitem.checked,
       "checkable menu item becomes checked");
-  assert_true(menulist.matches(":popover-open"),
-      "menulist matches :popover-open");
+  assert_false(menulist.matches(":popover-open"),
+      "not an invoker yet");
 
   checkableMenuitem.click();
 
@@ -143,5 +142,16 @@ test(() => {
       "checkable menu item is no longer checked");
   assert_false(menulist.matches(":popover-open"),
       "menulist no longer matches :popover-open");
+
+   // Being checkable causes sub-menu functionality to stop.
+  checkableMenuitem.command = "toggle-menu";
+  checkableMenuitem.commandForElement = menulist;
+  checkableMenuitem.click();
+  assert_true(checkableMenuitem.checked,
+      "checkable menu item that invokes a menu becomes checked");
+  assert_false(menulist.matches(":popover-open"), "menulist is not open");
+  checkableMenuitem.click();
+  assert_false(checkableMenuitem.checked, "checkable menu item unchecks");
+  assert_false(menulist.matches(":popover-open"), "menulist still not open");
 }, "Checkable menuitems can still invoke menulist popovers");
 </script>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+  <head>
+    <title>CSS Mixins: Invalidates on negative media query becoming positive</title>
+    <link rel="help" href="https://drafts.csswg.org/css-mixins/#mixin-rule">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <iframe id="iframe" width="500" height="300" srcdoc="
+      <style>
+        @mixin --m1() {
+          color: red;
+        }
+        @media (width < 50px) {
+          @mixin --m1() {
+            color: green;
+          }
+        }
+      </style>
+      <style>
+        /* Invalidated by a mixin in a different style sheet. */
+        #target {
+          @apply --m1;
+        }
+      </style>
+      <div id='target'>This text should be green once narrowed.</div>
+    "></iframe>
+    <script>
+      promise_test(async () => {
+        await new Promise(r => iframe.addEventListener('load', r));
+
+        let target = iframe.contentDocument.getElementById('target');
+        assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+        iframe.width = 30;
+        assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+      });
+    </script>
+</body>
+</html>

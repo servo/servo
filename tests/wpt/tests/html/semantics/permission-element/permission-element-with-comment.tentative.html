@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md">
+<link rel="match" href="permission-element-with-comment-ref.html">
+
+<permission type="geolocation"> <!-- Comment 1 --> </permission>
+<permission type="camera"> <!-- C1 --> Text <!-- C2 --> </permission>
+<div style="display: flex;">
+  <permission type="microphone"> <!-- Comment 1 --> </permission>
+</div>
+<permission type="geolocation">
+  <!-- Comment Before -->
+  <span>
+    <button>Click Me</button>
+    <textarea>Some text</textarea>
+  </span>
+  <!-- Comment After -->
+</permission>

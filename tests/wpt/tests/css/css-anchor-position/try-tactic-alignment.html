@@ -183,8 +183,16 @@ function test_computed_value(try_tactic, property, value, expected) {
       #target {
         position-try-fallbacks: --pf ${try_tactic};
       }
+      @position-try --ref {
+        inset: 0;
+        ${property}:${expected};
+      }
+      #ref {
+        position-try-fallbacks: --ref;
+      }
     `;
-    assert_equals(getComputedStyle(target).getPropertyValue(property), expected);
+    assert_equals(target.offsetLeft, ref.offsetLeft, 'offsetLeft');
+    assert_equals(target.offsetTop, ref.offsetTop, 'offsetTop');
   }, `${try_tactic}, ${property}:${value}`);
 }
 

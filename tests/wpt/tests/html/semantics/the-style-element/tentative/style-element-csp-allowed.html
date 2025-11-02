@@ -8,7 +8,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
-<meta http-equiv="Content-Security-Policy" content="style-src 'self' 'unsafe-inline' data:;">
+<meta http-equiv="Content-Security-Policy" content="style-src 'self' 'unsafe-inline' data: blob:;">
 
 <script>
   const t1 = async_test("Test securitypolicyviolation event doesn't fire on Declarative CSS Module when allowed via CSP");

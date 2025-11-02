@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="row-reverse-003-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+.masonry {
+    display: masonry;
+    item-tolerance: 0;
+    grid-template-rows: repeat(3, 50px);
+    gap: 10px;
+    masonry-direction: row-reverse;
+    direction: rtl;
+}
+</style>
+<body>
+  <p>The CSS property `direction` is correctly applied on top of `masonry-direction`</p>
+  <div class="masonry">
+    <div style="background: lavender;">Some larger words in this sentence</div>
+    <div style="background: lightgreen; width: min-content;">milk</div>
+    <div style="background: lightskyblue;">The cat cannot be separated from milk</div>
+    <div style="background: lavender;">Some larger words in this sentence</div>
+  </div>
+</body>
+</html>

@@ -22,8 +22,9 @@ promise_test(async t => {
   const iframe = await createIframe(t, `${FRAME_SRC}?nonce=${rnd}&server_slow`);
   // Expect the response from the fetch handler.
   assert_equals(iframe.contentWindow.document.body.innerText, rnd);
-  const {requests}  = await get_info_from_worker(worker);
+  const {requests, errors}  = await get_info_from_worker(worker);
   assert_equals(requests.length, 1);
+  assert_equals(errors.length, 0);
 }, 'Main resource load matched the rule with race-network-and-fetch-handler source, and the fetch handler response is faster than the server response');
 
 promise_test(async t => {
@@ -33,9 +34,33 @@ promise_test(async t => {
   // Expect the response from the netowrk request.
   assert_equals(iframe.contentWindow.document.body.innerText, "Network with GET request");
   // Ensure the fetch handler is also executed.
-  const {requests}  = await get_info_from_worker(worker);
+  const {requests, errors}  = await get_info_from_worker(worker);
   assert_equals(requests.length, 1);
+  assert_equals(errors.length, 0);
 }, 'Main resource load matched the rule with race-network-and-fetch-handler source, and the server reseponse is faster than the fetch handler');
+
+promise_test(async t => {
+  const rnd = randomString();
+  const worker = await registerAndActivate(t, ROUTER_KEY, SW_SRC);
+  const iframe = await createIframe(t, `${FRAME_SRC}?nonce=${rnd}&server_slow&call_fetch`);
+  // Expect the response from the fetch handler.
+  assert_equals(iframe.contentWindow.document.body.innerText, rnd);
+  const {requests, errors}  = await get_info_from_worker(worker);
+  assert_equals(requests.length, 1);
+  assert_equals(errors.length, 0);
+}, 'Main resource load matched the rule with race-network-and-fetch-handler source, and the fetch handler response is faster than the server response while fetch() is triggered inside the fetch handler');
+
+promise_test(async t => {
+  const rnd = randomString();
+  const worker = await registerAndActivate(t, ROUTER_KEY, SW_SRC);
+  const iframe = await createIframe(t, `${FRAME_SRC}?nonce=${rnd}&sw_slow&call_fetch`);
+  // Expect the response from the netowrk request.
+  assert_equals(iframe.contentWindow.document.body.innerText, "Network with GET request");
+  // Ensure the fetch handler is also executed.
+  const {requests, errors}  = await get_info_from_worker(worker);
+  assert_equals(requests.length, 1);
+  assert_equals(errors.length, 0);
+}, 'Main resource load matched the rule with race-network-and-fetch-handler source, and the server reseponse is faster than the fetch handler while fetch() is triggered inside the fetch handler');
 
 promise_test(async t => {
   const rnd = randomString();

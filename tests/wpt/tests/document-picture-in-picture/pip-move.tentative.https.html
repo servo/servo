@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Test that a moveTo and moveBy are disabled for a document picture-in-picture window</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+  await test_driver.bless('request PiP window from top window');
+  const pipWindow = await documentPictureInPicture.requestWindow();
+
+  const initialX = pipWindow.screenX, initialY = pipWindow.screenY;
+
+  // Unlikely, but let's make sure move doesn't fail due to a lack of space
+  // I.e. if PiP is in top left, move down right, otherwise up left.
+  const x = initialX > 50 ? 20 : 60;
+  const y = initialY > 50 ? 20 : 60;
+
+  try {
+    pipWindow.moveTo(x, y);
+    pipWindow.moveBy(x, y);
+  } catch (e) {
+    // Test is tentative because it's not specified whether to throw
+    assert_unreached("moveTo and moveBy should not throw");
+  }
+
+  assert_equals(pipWindow.screenX, initialX, 'PiP screenX did not change');
+  assert_equals(pipWindow.screenY, initialY, 'PiP screenY did not change');
+});
+</script>
+</body>

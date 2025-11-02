@@ -69,7 +69,7 @@ def test_no_such_element_with_startnode_from_other_window_handle(session, inline
 def test_no_such_element_with_startnode_from_other_frame(session, iframe, inline):
     session.url = inline(iframe("<div id='parent'><p/>"))
 
-    session.switch_frame(0)
+    session.switch_to_frame(0)
     from_element = session.find.css("#parent", all=False)
     session.switch_to_parent_frame()
 

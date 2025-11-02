@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>&lt;img> representing image: Natural size before partially available</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#images-3">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  function check_sizes(img, rendered_expected, natural_expected) {
+    const rect = img.getBoundingClientRect();
+    const rendered_actual = [rect.width, rect.height];
+    const natural_actual = [img.naturalWidth, img.naturalHeight];
+    assert_array_equals(rendered_actual, rendered_expected, 'rendered');
+    assert_array_equals(natural_actual, natural_expected, 'natural');
+  }
+
+  promise_test(async (t) => {
+    const img = new Image();
+    img.src = "/images/green-256x256.png?pipe=trickle(8:d0.25)";
+
+    // Approximate a TTFB delay using another request for the same image
+    // resource but with a shorter trickle delay.
+    await new Promise(resolve => {
+      const timingImg = new Image();
+      timingImg.src = "/images/green-256x256.png?pipe=trickle(8:d0.05)";
+      timingImg.onload = resolve;
+    });
+
+    document.body.appendChild(img);
+
+    const observer = new ResizeObserver(
+      () => img.dispatchEvent(new Event('resized')));
+    observer.observe(img);
+
+    const watcher = new EventWatcher(t, img, 'resized');
+    await watcher.wait_for('resized');
+    check_sizes(img, [0, 0], [0 ,0]);
+    await watcher.wait_for('resized');
+    check_sizes(img, [256, 256], [256 ,256]);
+  });
+</script>

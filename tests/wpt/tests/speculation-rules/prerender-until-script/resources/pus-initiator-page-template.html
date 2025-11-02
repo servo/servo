@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Initiator page</title>
+</head>
+<body>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script type="speculationrules">
+{
+  "prerender_until_script": [
+    {
+      "urls": ["{{prerendering_url}}"]
+    }
+  ]
+}
+</script>
+<script>
+  const params = new URLSearchParams(location.search);
+  const uid = params.get('uid');
+
+  const signal_url = `{{signal_url}}`;
+  const prerendering_url = `{{prerendering_url}}`;
+
+  fetch(signal_url).then(response => {
+    // The fetch promise will be resolved after the prerendering page is ready
+    // for activation. The server will hold the response to signal_url until it
+    // receives a signal from the prerendering page to confirm it is ready for
+    // activation.
+    if (response.status == 200){
+      window.location = prerendering_url.toString();
+    } else {
+    const testChannel = new PrerenderChannel('test-channel');
+    testChannel.postMessage(
+        `Failed to navigate the prerendered page: ${e.toString()}`);
+    testChannel.close();
+    window.close();
+    }
+  });
+</script>
+42
+</body>
+</html>

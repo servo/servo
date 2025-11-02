@@ -21,6 +21,10 @@
   // pointerdown entry with a valid/non-trivial interactionId.
   promise_test(async t => {
     assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
+    // Workaround https://bugs.webkit.org/show_bug.cgi?id=213060, which causes
+    // WebKit-based browsers to never release the pointerdown, breaking
+    // subsequent tests.
+    t.add_cleanup(() => orphanAuxPointerup(document.getElementById('target')).catch(() => {}));
     // This test is not applicable to platforms like Windows where contextmenu
     // is triggered on aux pointerup. So we do a platform behavior test first to
     // distinguish and skip those platforms who do not dispatch contextmenu on

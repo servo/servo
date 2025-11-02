@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates - multiple patches</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div contentname="p1">Old P1</div>
+<div contentname="p2">Old P2</div>
+<div contentname="p3">Old P3</div>
+<template contentmethod="replace-children">
+    <div contentname="p1"><span>New P1</span></div>
+    <div contentname="p2"><span>New P2</span></div>
+</template>
+<template contentmethod="replace">
+    <div contentname="p3"><span>New P3</span></div>
+</template>
+<template contentmethod="append">
+    <div contentname="p2"><span>...</span><span></span>more P2</span></div>
+</template>
+<template contentmethod="prepend">
+    <div contentname="p2"><span>And</span><span>...</span></div>
+    <div contentname="p3"><span>Pre P3 </span></div>
+</template>
+<script>
+test(() => {
+    assert_equals(document.querySelector("div[contentname=p1]").textContent, 'New P1');
+    assert_equals(document.querySelector("div[contentname=p2]").textContent, 'And...New P2...more P2');
+    assert_equals(document.querySelector("div[contentname=p3]").textContent, 'Pre P3 New P3');
+}, "Multiple <template contentmethod>");
+</script>

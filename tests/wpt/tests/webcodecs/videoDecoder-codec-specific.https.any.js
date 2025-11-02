@@ -125,6 +125,21 @@ promise_test(async t => {
   const callbacks = {};
   const decoder = createVideoDecoder(t, callbacks);
   decoder.configure(CONFIG);
+
+  // Mark a keyframe chunk as a delta chunk to ensure any packet analysis
+  // doesn't override the user provided type.
+  let mismarked_chunk = new EncodedVideoChunk(
+      {type: 'delta', timestamp: 0, duration: 1, data: CHUNK_DATA[0]});
+
+  assert_throws_dom(
+      'DataError', () => decoder.decode(mismarked_chunk, 'decode'));
+}, 'Decode a key frame marked as delta fails');
+
+promise_test(async t => {
+  await checkImplements();
+  const callbacks = {};
+  const decoder = createVideoDecoder(t, callbacks);
+  decoder.configure(CONFIG);
   for (let i = 0; i < 16; i++) {
     decoder.decode(new EncodedVideoChunk(
         {type: 'key', timestamp: 0, data: CHUNK_DATA[0]}));

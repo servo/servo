@@ -42,10 +42,10 @@ def test_no_browsing_context(session, url):
 
     session.url = url("/webdriver/tests/support/html/frames.html")
     subframe = session.find.css("#sub-frame", all=False)
-    session.switch_frame(subframe)
+    session.switch_to_frame(subframe)
 
     deleteframe = session.find.css("#delete-frame", all=False)
-    session.switch_frame(deleteframe)
+    session.switch_to_frame(deleteframe)
 
     button = session.find.css("#remove-parent", all=False)
     button.click()
@@ -60,7 +60,7 @@ def test_switch_to_window_sets_top_level_context(session, inline, iframe):
     session.url = inline(iframe("<p>foo"))
 
     frame = session.find.css("iframe", all=False)
-    session.switch_frame(frame)
+    session.switch_to_frame(frame)
     session.find.css("p", all=False)
 
     response = switch_to_window(session, session.window_handle)

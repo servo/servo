@@ -381,6 +381,20 @@ async function auxPointerdown(target) {
     .send();
 }
 
+async function orphanAuxPointerup(target) {
+  const actions = new test_driver.Actions();
+  await actions.addPointer("mousePointer", "mouse")
+    .pointerMove(0, 0, { origin: target })
+    .pointerUp({ button: actions.ButtonType.RIGHT })
+    .send();
+
+  // Orphan pointerup doesn't get triggered in some browsers. Sending a
+  // non-pointer related event to make sure that at least an event gets handled.
+  // If a browsers sends an orphan pointerup, it will always be before the
+  // keydown, so the test will correctly handle it.
+  await pressKey(target, 'a');
+}
+
 // The testdriver.js, testdriver-vendor.js need to be included to use this
 // function.
 async function pressKey(target, key) {

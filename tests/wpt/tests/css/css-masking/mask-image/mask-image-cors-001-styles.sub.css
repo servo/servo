@@ -1,0 +1,29 @@
+#mask-allowed {
+    height: 100px;
+    width: 100px;
+    /* We reference the image from "origin C" (the www2 origin); and we ensure
+       that it's served with a 'Access-Control-Allow-Origin' header whose value
+       is set to "origin A" (the "www" origin).  This matches the origin of the
+       iframe's inner document, and hence allows the mask-image to be used
+       there, which should make this element render as two blue squares with
+       corners touching. See the main comment in mask-image-cors-001.sub.html
+       for more details. */
+    mask-image: url("https://{{domains[www2]}}:{{ports[https][0]}}/css/css-masking/mask-image/mask-image-cors-001-image.png?pipe=header(Access-Control-Allow-Origin,https://{{domains[www]}}:{{ports[https][0]}})");
+    mask-size: 100px 100px;
+    background: blue;
+}
+
+#mask-disallowed {
+    height: 100px;
+    width: 100px;
+    /* We reference the image from "origin C" (the www2 origin); and we ensure
+       that it's served with a 'Access-Control-Allow-Origin' header whose value
+       is set to "origin B" (the "www1" origin).  This happens to match this
+       stylesheet's origin, but it *does not match* the origin of the iframe's
+       inner document. So, the mask-image should be forbidden in that document,
+       and this element should render fully-masked, i.e. no red should be
+       visible. */
+    mask-image: url("https://{{domains[www2]}}:{{ports[https][0]}}/css/css-masking/mask-image/mask-image-cors-001-image.png?pipe=header(Access-Control-Allow-Origin,https://{{domains[www1]}}:{{ports[https][0]}})");
+    mask-size: 100px 100px;
+    background: red;
+}

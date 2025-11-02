@@ -1,0 +1,13 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates: invalid contentmethod</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<template contentmethod="invalid">New content</template>
+<script>
+test(() => {
+    assert_not_equals(document.querySelector("template[contentmethod=invalid]"), null);
+}, "<template contentmethod> with an invalid contentmethod should attach");
+</script>
