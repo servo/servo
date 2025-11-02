@@ -24,6 +24,6 @@ def main(request, response):
     body += b"\r\n" + b"content-type: text/plain\r\n\r\nHello\r\n--" + boundary + b"--\r\n"
 
     if body != request.body:
-        return fail("request body doesn't match: " + body + "+++++++" + request.body)
+        return fail(f"request body doesn't match: {body} +++++++ {request.body}")
 
     return ([("Content-Type", "text/plain")], "OK")

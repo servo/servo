@@ -7702,7 +7702,7 @@
    "mozilla": {
     "FileAPI": {
      "blob_url_upload.html": [
-      "17c8e3ad0b4fe904a77db8ecb9f63598e4a84b2c",
+      "dcf974d017dbf8499b9967704f8406a132237391",
       [
        null,
        [
@@ -10599,16 +10599,16 @@
     ],
     "FileAPI": {
      "blob_url_upload_ref.html": [
-      "6f95c43ac324528035901d763a02885505b49a9c",
+      "d24414fe19ed423c8b8121f12dd4648f0bf0df28",
       []
      ],
      "file-upload-frame.html": [
-      "13951bb37d06045220de53862bc45a9129c85ad9",
+      "eb2edda26647329cda5509736bcde0236fac0194",
       []
      ],
      "resource": {
       "file-submission.py": [
-       "5f65cebd05ce89b3a51c2382a39b6a6438133b43",
+       "bb10538bb79b85a9ae6aeb54b875099e0edc819a",
        []
       ],
       "upload.txt": [
@@ -12938,14 +12938,14 @@
       ]
      ],
      "file-select.html": [
-      "06a5f30dd441e9f4bb54ba7019469d7280f12310",
+      "066ff828e599ef1c4c6e87d64df19fdbb181f617",
       [
        null,
        {}
       ]
      ],
      "file-upload.html": [
-      "bff5fb1ee7a0908a7761cd7fa02895f732a3f1dd",
+      "56940864bf958be64757c43762c644cb4293ccad",
       [
        null,
        {}
