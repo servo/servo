@@ -74,6 +74,24 @@ pub fn key_type_to_jsval(
                 values.push(Heap::boxed(value.get()));
             }
             values.safe_to_jsval(cx, result, can_gc);
+
+            // rooted!(in(*cx) let mut arr = unsafe { js::jsapi::NewArrayObject1(*cx, a.len() as _) });
+            // let mut i: u32 = 0;
+            // for key in a {
+            //     rooted!(in(*cx) let mut v: js::jsval::JSVal);
+            //     key_type_to_jsval(cx, key, v.handle_mut(), can_gc);
+            //     unsafe {
+            //         assert!(js::jsapi::JS_DefineElement(
+            //             *cx,
+            //             arr.handle().into(),
+            //             i,
+            //             v.handle().into(),
+            //             js::jsapi::JSPROP_ENUMERATE as u32
+            //         ));
+            //     }
+            //     i += 1;
+            // }
+            // result.set(js::jsval::ObjectValue(arr.get()));
         },
     }
 }

@@ -14,6 +14,7 @@ use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::{Sender, unbounded};
 use dom_struct::dom_struct;
 use euclid::{Scale, Size2D};
+use js::gc::ValueArray;
 use js::jsapi::{
     HandleValueArray, Heap, IsCallable, IsConstructor, JS_ClearPendingException,
     JS_IsExceptionPending, JSAutoRealm, JSObject, NewArrayObject, Value,
@@ -320,13 +321,12 @@ impl PaintWorkletGlobalScope {
         let arguments_value_array = HandleValueArray::from(&arguments_values);
         rooted!(in(*cx) let argument_object = unsafe { NewArrayObject(*cx, &arguments_value_array) });
 
-        rooted_vec!(let mut callback_args);
-        callback_args.push(ObjectValue(
-            rendering_context.reflector().get_jsobject().get(),
-        ));
-        callback_args.push(ObjectValue(paint_size.reflector().get_jsobject().get()));
-        callback_args.push(ObjectValue(properties.reflector().get_jsobject().get()));
-        callback_args.push(ObjectValue(argument_object.get()));
+        rooted!(in(*cx) let mut callback_args = ValueArray::new([
+            ObjectValue(rendering_context.reflector().get_jsobject().get()),
+            ObjectValue(paint_size.reflector().get_jsobject().get()),
+            ObjectValue(properties.reflector().get_jsobject().get()),
+            ObjectValue(argument_object.get()),
+        ]));
         let args = HandleValueArray::from(&callback_args);
 
         rooted!(in(*cx) let mut result = UndefinedValue());
