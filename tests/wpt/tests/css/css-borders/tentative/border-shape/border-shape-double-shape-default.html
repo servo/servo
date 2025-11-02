@@ -19,13 +19,13 @@ body {
   border: 20px solid rgba(255, 0, 0, 0.5);
   fill: rgba(0, 255, 0, 0.3);
 }
-/* Double shape - should default to border-box for both */
+/* Double shape - should default to border-box + padding-box */
 #double-implicit {
   border-shape: circle(50%) circle(40%);
 }
 /* Explicit border-box should match */
 #double-explicit {
-  border-shape: circle(50%) border-box circle(40%) border-box;
+  border-shape: circle(50%) border-box circle(40%) padding-box;
 }
 </style>
 <div class="container">

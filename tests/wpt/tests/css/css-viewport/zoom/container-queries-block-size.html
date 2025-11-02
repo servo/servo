@@ -1,0 +1,36 @@
+<!doctype html>
+<link rel="help" href="https://drafts.csswg.org/css-viewport/">
+<link rel="match" href="reference/container-queries-block-size-ref.html">
+<style>
+  .container {
+    container-type: size;
+    width: 100px;
+    height: 200px;
+    writing-mode: vertical-lr;
+  }
+  .child {
+    background-color: green;
+    height: 50px;
+    width: 50px;
+    @container (block-size > 120px) {
+      background-color: red;
+    }
+  }
+</style>
+<p>All boxes below should be green.</p>
+<div class="container">
+  <div class="child"></div>
+</div>
+<div class="container" style="zoom: 2">
+  <div class="child"></div>
+</div>
+<div class="container" style="zoom: 2">
+  <div class="nested" style="zoom: 2">
+    <div class="child"></div>
+  </div>
+</div>
+<div class="outer" style="zoom: 2">
+  <div class="container">
+    <div class="child"></div>
+  </div>
+</div>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<title>Test: position-area normal alignment overflow in a scrollable container</title>
+<link rel="help" href="https://www.w3.org/TR/css-align-3/#auto-safety-position">
+<link rel="help" href="https://www.w3.org/TR/css-anchor-position/#position-area-alignment">
+<meta name="assert" content="Test passes if alignment overflow is kept away from the unscrollable region (only).">
+<style>
+  .container {
+    position: relative;
+    overflow: scroll;
+    scrollbar-width: none;
+    width: 100px;
+    height: 120px;
+    border: solid;
+    margin: 1em;
+    float: left;
+  }
+  .anchor {
+    border: solid blue 10px;
+    anchor-name: --foo;
+    inset: 0;
+    place-self: center;
+    position: absolute;
+  }
+  .test {
+    border: solid 5px #0084;
+    position: absolute;
+    position-anchor: --foo;
+    width: 100%;
+    height: 100%;
+  }
+</style>
+
+<div class="container" title="TB LTR">
+  <div class="anchor"></div>
+  <div class="test" style="position-area: top left"></div>
+  <div class="test" style="position-area: bottom right"></div>
+  <div class="test" style="position-area: center"></div>
+</div>
+
+<div class="container" title="TB LTR">
+  <div class="anchor"></div>
+  <div class="test" style="position-area: top"></div>
+  <div class="test" style="position-area: bottom"></div>
+  <div class="test" style="position-area: span-all center"></div>
+</div>
+
+<div class="container" style="writing-mode: vertical-rl" title="RL TTB">
+  <div class="anchor"></div>
+  <div class="test" style="position-area: top left"></div>
+  <div class="test" style="position-area: bottom right"></div>
+  <div class="test" style="position-area: center"></div>
+</div>
+
+<div class="container" style="writing-mode: vertical-rl" title="RL TTB">
+  <div class="anchor"></div>
+  <div class="test" style="position-area: top"></div>
+  <div class="test" style="position-area: bottom"></div>
+  <div class="test" style="position-area: center span-all"></div>
+</div>
+
+<div class="container" style="writing-mode: vertical-lr; direction: rtl;" title="LR BTT">
+  <div class="anchor"></div>
+  <div class="test" style="position-area: top left"></div>
+  <div class="test" style="position-area: bottom right"></div>
+  <div class="test" style="position-area: center"></div>
+</div>
+
+<div class="container" style="writing-mode: vertical-lr; direction: rtl;" title="LR BTT">
+  <div class="anchor"></div>
+  <div class="test" style="position-area: top"></div>
+  <div class="test" style="position-area: bottom"></div>
+  <div class="test" style="position-area: center span-all"></div>
+</div>

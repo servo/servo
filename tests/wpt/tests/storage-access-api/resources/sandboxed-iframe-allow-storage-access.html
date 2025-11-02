@@ -21,6 +21,12 @@
             'sandbox attribute should be supported');
   }, '`allow-storage-access-by-user-activation` sandbox attribute is supported');
 
+  if (CanAccessCookiesViaJS()) {
+    // Nothing to test here, as cookie access is not blocked.
+    // See https://github.com/privacycg/storage-access/issues/162.
+    return;
+  }
+
   // Ideally this would check whether the user-activation condition changes
   // the behavior; however, due to limitations in the test driver, the
   // 'prompt' permission state is effectively the same as 'denied' from the

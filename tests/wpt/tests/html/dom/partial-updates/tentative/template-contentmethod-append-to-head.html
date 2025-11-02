@@ -1,0 +1,17 @@
+<!DOCTYPE HTML>
+<head contentname="head">
+<meta charset="utf-8" />
+<title >HTML partial updates - cannot patch head directly</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<template contentmethod="append">
+    <head contentname="head"><meta id="added" content="something"></head>
+</template>
+<script>
+test(() => {
+    const meta = document.getElementById("added");
+    assert_equals(meta, null);
+});
+</script>

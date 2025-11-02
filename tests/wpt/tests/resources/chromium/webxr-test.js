@@ -902,8 +902,10 @@ class MockRuntime {
       height: fakeXRViewInit.resolution.height
       },
       isFirstPersonObserver: fakeXRViewInit.isFirstPersonObserver ? true : false,
-      viewOffset: composeGFXTransform(fakeXRViewInit.viewOffset)
+      viewOffset: composeGFXTransform(fakeXRViewInit.viewOffset),
+      visibilityMaskId: { idValue : 0 }
     };
+
   }
 
   _setFeatures(supportedFeatures) {
@@ -2400,7 +2402,7 @@ class MockXRPresentationProvider {
 
   submitFrameWithTextureHandle(frameId, texture, syncToken) {}
 
-  submitFrameDrawnIntoTexture(frameId, syncToken, timeWaited) {}
+  submitFrameDrawnIntoTexture(frameId, layer_ids, syncToken, timeWaited) {}
 
   // Utility methods
   _close() {

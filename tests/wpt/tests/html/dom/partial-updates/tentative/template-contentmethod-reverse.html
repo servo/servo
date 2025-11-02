@@ -1,0 +1,15 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates: patch should appear after its target</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<template contentmethod="replace">New content</template>
+<div id="placeholder">Old content</div>
+<script>
+test(() => {
+    assert_equals(document.querySelector("#placeholder").innerText, "Old content");
+    assert_equals(document.querySelector("template[contentmethod=replace]"), null, "Template should not attach");
+});
+</script>

@@ -40,7 +40,7 @@ def test_iframe(session, one_frame_doc):
     session.url = top_level_doc
 
     frame = session.find.css("iframe", all=False)
-    session.switch_frame(frame)
+    session.switch_to_frame(frame)
     session.find.css("p", all=False)
 
     response = get_current_url(session)
@@ -52,10 +52,10 @@ def test_nested_iframe(session, nested_frames_doc):
     top_level_doc = session.url
 
     outer_frame = session.find.css("iframe", all=False)
-    session.switch_frame(outer_frame)
+    session.switch_to_frame(outer_frame)
 
     inner_frame = session.find.css("iframe", all=False)
-    session.switch_frame(inner_frame)
+    session.switch_to_frame(inner_frame)
     session.find.css("p", all=False)
 
     response = get_current_url(session)
@@ -68,7 +68,7 @@ def test_origin(session, inline, iframe, domain):
 
     session.url = top_level_doc
     frame = session.find.css("iframe", all=False)
-    session.switch_frame(frame)
+    session.switch_to_frame(frame)
     session.find.css("p", all=False)
 
     response = get_current_url(session)

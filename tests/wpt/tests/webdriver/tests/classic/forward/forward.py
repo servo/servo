@@ -168,7 +168,7 @@ def test_removed_iframe(session, url, inline):
     session.back()
 
     subframe = session.find.css("#sub-frame", all=False)
-    session.switch_frame(subframe)
+    session.switch_to_frame(subframe)
 
     response = forward(session)
     assert_success(response)

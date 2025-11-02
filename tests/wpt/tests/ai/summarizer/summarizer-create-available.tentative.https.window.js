@@ -7,7 +7,7 @@
 
 promise_test(async () => {
   const summarizer = await createSummarizer();
-  assert_equals(typeof summarizer, 'object');
+  assert_true(summarizer instanceof Summarizer);
 
   assert_equals(typeof summarizer.summarize, 'function');
   assert_equals(typeof summarizer.summarizeStreaming, 'function');

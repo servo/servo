@@ -932,3 +932,31 @@ test_scope_invalidation(document.currentScript, () => {
   assert_not_green(f);
 }, 'Parent element of subject affecting scope limit')
 </script>
+
+<template>
+  <div class=a>
+    <div><div><div><div>
+      <style>
+        @scope(.a) {
+          @scope {
+            @scope(> .b) {
+              :scope { background: green; }
+            }
+          }
+        }
+      </style>
+      <div class=b></div>
+    </div></div></div></div>
+  </div>
+</template>
+<script>
+test_scope_invalidation(document.currentScript, () => {
+  let a = main.querySelector('.a');
+  let b = main.querySelector('.b');
+  assert_green(b);
+  a.classList.remove('a');
+  assert_not_green(b);
+  a.classList.add('a');
+  assert_green(b);
+}, 'Sandwiched deep implicit scope root, :scope in subject')
+</script>

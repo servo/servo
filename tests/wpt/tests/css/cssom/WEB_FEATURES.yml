@@ -9,3 +9,15 @@ features:
   files:
   - caretPositionFromPoint-with-transformation.html
   - caretPositionFromPoint.html
+- name: all
+  files:
+  - "*-all-*"
+- name: alternative-style-sheets
+  files:
+  - HTMLLinkElement-disabled-002.html
+  - HTMLLinkElement-disabled-003.html
+  - HTMLLinkElement-disabled-004.html
+  - HTMLLinkElement-disabled-005.html
+  - HTMLLinkElement-disabled-006.html
+  - HTMLLinkElement-disabled-007.html
+  - HTMLLinkElement-disabled-alternate.html

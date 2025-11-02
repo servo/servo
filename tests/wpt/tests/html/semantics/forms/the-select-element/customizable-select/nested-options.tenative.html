@@ -33,6 +33,7 @@ test(() => {
 
 // Manually nest the <options> anyway for the following tests.
 o1.appendChild(o2);
+select.appendChild(o1);
 
 test(() => {
   assert_equals(select.options.length, 1, 'select.options.length');

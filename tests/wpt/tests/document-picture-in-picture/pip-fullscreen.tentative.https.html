@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>Test how document picture-in-picture interacts with fullscreen</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel="help" href="https://github.com/WICG/document-picture-in-picture/issues/133">
+<body>
+<script>
+function waitForEvent(target, event) {
+  return new Promise(resolve => target.addEventListener(event, resolve, {once: true}))
+}
+
+promise_test(async (t) => {
+  await test_driver.bless('request PiP window from top window');
+  const pipWindow = await documentPictureInPicture.requestWindow();
+
+  await test_driver.bless('request fullscreen for PiP');
+  try {
+    await pipWindow.document.body.requestFullscreen();
+    assert_unreached('request fullscreen should fail');
+  } catch (e) {
+    assert_equals(e.name, "TypeError", "fullscreening PiP throws an exception");
+  }
+}, "A pip window cannot be fullscreened");
+
+promise_test(async (t) => {
+  await test_driver.bless('request PiP window from top window');
+  const pipWindow = await documentPictureInPicture.requestWindow();
+
+  if (pipWindow.document.readyState != "complete") {
+    // about:blank should load synchronous, but Gecko is still working on that...
+    // The initial placeholder is in many ways not initialized, e.g. doesn't have the right base
+    assert_true(true, "Waiting for pip window to load");
+    await new Promise(res => pipWindow.addEventListener("load", res, { once: true }));
+  }
+
+  const fsResult = new Promise((res, rej) => {
+    document.body.addEventListener('fullscreenchange', res);
+    document.body.addEventListener('fullscreenerror', rej);
+  });
+
+  await test_driver.bless('request fullscreen from opener', null, pipWindow);
+  const script = pipWindow.document.createElement("script");
+  script.textContent = `opener.document.body.requestFullscreen()`;
+  pipWindow.document.body.append(script);
+
+  const res = await fsResult;
+  assert_true(document.fullscreen, 'opener entered fullscreen');
+  await document.exitFullscreen();
+}, "A pip window can fullscreen it's opener");
+</script>
+</body>

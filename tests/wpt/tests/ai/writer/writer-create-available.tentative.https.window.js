@@ -7,7 +7,7 @@
 
 promise_test(async () => {
   const writer = await createWriter();
-  assert_equals(typeof writer, 'object');
+  assert_true(writer instanceof Writer);
 
   assert_equals(typeof writer.write, 'function');
   assert_equals(typeof writer.writeStreaming, 'function');

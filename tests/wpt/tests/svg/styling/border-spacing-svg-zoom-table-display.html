@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Tables: border-spacing with display: table on non-root SVG</title>
+<link rel="help" href="https://www.w3.org/TR/CSS22/tables.html#separated-borders">
+<link rel="help" href="https://www.w3.org/TR/css-tables-3/#separated-borders">
+<link rel="match" href="border-spacing-svg-zoom-table-display-ref.html">
+<style>
+  .container {
+    width: 400px;
+    height: 100px;
+  }
+
+  .table-group {
+    display: table;
+    border-spacing: 10px;
+    border-collapse: separate;
+  }
+
+  .table-row {
+    display: table-row;
+  }
+
+  .table-cell {
+    display: table-cell;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <svg width="100%" height="100%" style="zoom: 2.0;">
+    <g class="table-group">
+      <g class="table-row">
+        <rect class="table-cell" x="0" y="0" width="60" height="40" />
+        <rect class="table-cell" x="80" y="0" width="60" height="40" />
+      </g>
+    </g>
+  </svg>
+</div>
+</body>
+</html>

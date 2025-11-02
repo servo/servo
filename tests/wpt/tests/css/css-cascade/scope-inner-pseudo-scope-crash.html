@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>Crash with :scope in both subject and prelude</title>
+<link rel="help" href="https://issues.chromium.org/issues/454830626">
+<style>
+@scope (.a) {
+  @scope(:scope) {
+    :scope {
+      background: green;
+    }
+  }
+}
+</style>
+<div class=a>PASS if no crash</div>

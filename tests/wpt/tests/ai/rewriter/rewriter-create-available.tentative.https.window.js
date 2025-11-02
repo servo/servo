@@ -7,7 +7,7 @@
 
 promise_test(async () => {
   const rewriter = await createRewriter();
-  assert_equals(typeof rewriter, 'object');
+  assert_true(rewriter instanceof Rewriter);
 
   assert_equals(typeof rewriter.rewrite, 'function');
   assert_equals(typeof rewriter.rewriteStreaming, 'function');

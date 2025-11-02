@@ -27,23 +27,28 @@ self.addEventListener('activate', e => {
   e.waitUntil(clients.claim());
 });
 
-self.addEventListener('fetch', function(event) {
-  recordRequest(event.request);
-  const url = new URL(event.request.url);
-
-
-  // Force slow response
-  if (url.searchParams.has('sw_slow')) {
-    const start = Date.now();
-    while (true) {
-      if (Date.now() - start > 200) {
-        break;
+self.addEventListener('fetch', async function(event) {
+  try {
+    recordRequest(event.request);
+    const url = new URL(event.request.url);
+    // Force slow response
+    if (url.searchParams.has('sw_slow')) {
+      const start = Date.now();
+      while (true) {
+        if (Date.now() - start > 200) {
+          break;
+        }
       }
     }
+    const nonce = url.searchParams.get('nonce');
+    event.respondWith(new Response(nonce));
+    // Call `fetch(e.request)` but it's not consumed.
+    if (url.searchParams.has('call_fetch')) {
+      await fetch(event.request);
+    }
+  } catch (e) {
+    recordError(e)
   }
-
-  const nonce = url.searchParams.get('nonce');
-  event.respondWith(new Response(nonce));
 });
 
 self.addEventListener('message', function(event) {

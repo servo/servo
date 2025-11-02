@@ -7,6 +7,8 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
 <style>
   body {
     margin: 0;
@@ -16,6 +18,8 @@
     content: "down";
     position: absolute;
     top: 0;
+    width: 30px;
+    height: 30px;;
   }
 
   div {
@@ -30,13 +34,14 @@
 <div></div>
 <script>
   promise_test(async t => {
+    let scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(window);
     await new test_driver.Actions()
     .pointerMove(10, 10)
     .pointerDown()
     .pointerUp()
-    .pointerDown()
-    .pointerUp()
     .send();
-    assert_equals(window.scrollY, 360);
+    await scrollEndPromise;
+    await waitForAnimationFrames(2);
+    assert_not_equals(window.scrollY, 0);
   });
 </script>

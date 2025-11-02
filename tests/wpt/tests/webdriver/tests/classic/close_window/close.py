@@ -20,10 +20,10 @@ def test_no_browsing_context(session, url):
     session.url = url("/webdriver/tests/support/html/frames.html")
 
     subframe = session.find.css("#sub-frame", all=False)
-    session.switch_frame(subframe)
+    session.switch_to_frame(subframe)
 
     frame = session.find.css("#delete-frame", all=False)
-    session.switch_frame(frame)
+    session.switch_to_frame(frame)
 
     button = session.find.css("#remove-parent", all=False)
     button.click()

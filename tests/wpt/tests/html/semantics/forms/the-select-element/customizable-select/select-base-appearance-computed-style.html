@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/w3c/csswg-drafts/issues/10857">
+<link rel=help href="https://github.com/w3c/csswg-drafts/issues/11486">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+select, ::picker(select) {
+  appearance: base-select;
+}
+#sibling {
+  color: CanvasText;
+  background-color: Canvas;
+}
+#parent {
+  text-transform: uppercase;
+  text-align: end;
+}
+</style>
+
+<div id=parent>
+  <select>
+    <button>button</button>
+    <div id=parent-in-picker>
+      <option>option</option>
+      <optgroup>
+        <legend>legend</legend>
+        <option>option in optgroup</option>
+      </optgroup>
+    </div>
+  </select>
+  <div id=sibling>sibling</div>
+</div>
+<div id=initial></div>
+
+<script>
+const select = document.querySelector('select');
+const parent = document.getElementById('parent');
+const parentInPicker = document.getElementById('parent-in-picker');
+const sibling = document.getElementById('sibling');
+const intial = document.getElementById('initial');
+const button = document.querySelector('button');
+const option = document.querySelector('option');
+const optgroup = document.querySelector('optgroup');
+const legend = document.querySelector('legend');
+const optgroupOption = document.querySelector('optgroup > option');
+
+const canvas = getComputedStyle(sibling).backgroundColor;
+const canvasText = getComputedStyle(sibling).color;
+
+// All of the elements should inherit these properties.
+const expectedInheritedProperties = {
+  'font-size': '24px',
+  'font-family': 'monospace',
+  'font-stretch': '150%',
+  'font-style': 'italic',
+  'font-variant': 'small-caps',
+  'font-weight': '500',
+  'line-height': '13px',
+  'text-shadow': 'rgb(1, 1, 1) 1px 1px 1px',
+  'text-rendering': 'optimizelegibility',
+  'letter-spacing': '1px',
+  'word-spacing': '2px',
+  'color': 'rgb(255, 0, 0)',
+};
+for (const [property, value] of Object.entries(expectedInheritedProperties)) {
+  parent.style[property] = value;
+  parentInPicker.style[property] = value;
+}
+
+function testProperties(style, expectedProperties) {
+  const parentStyle = getComputedStyle(parent);
+  const initialStyle = getComputedStyle(initial);
+
+  for (let [property, value] of Object.entries(expectedProperties)) {
+    if (value == 'initial') {
+      value = initialStyle[property];
+    } else if (value.endsWith('em')) {
+      // Properties with em units get serialized into px. In order to calculate
+      // the expected value of an em unit, we can set another element to the
+      // expected amount of ems and then serialize that one.
+      sibling.style[property] = value;
+      value = getComputedStyle(sibling)[property];
+    }
+    assert_equals(style[property], value, property);
+  }
+
+  for (const [property, value] of Object.entries(expectedInheritedProperties)) {
+    // Don't test whether a property was inherited if expectedProperties
+    // already has an expected value for it.
+    if (!Object.keys(expectedProperties).includes(property)) {
+      assert_equals(style[property], value, property);
+    }
+  }
+}
+
+test(() => {
+  const expectedProperties = {
+    'background-color': 'rgba(0, 0, 0, 0)',
+    'border': '1px solid rgb(255, 0, 0)', /* color is currentColor */
+    'min-inline-size': 'calc-size(auto, max(size, 24px))',
+    'display': 'inline-flex',
+    'user-select': 'none',
+    'min-block-size': `calc-size(auto, max(size, 24px, ${expectedInheritedProperties['line-height']}))`,
+    'padding-block-start': '0.25em',
+    'padding-block-end': '0.25em',
+    'padding-inline-start': '0.5em',
+    'padding-inline-end': '0.5em',
+    'gap': '0.5em',
+    'border-radius': '0.5em',
+    'text-indent': 'initial',
+    'cursor': 'initial',
+    'white-space': 'initial',
+    'align-items': 'initial',
+    'text-transform': 'initial',
+    'text-align': 'initial'
+  };
+  testProperties(getComputedStyle(select), expectedProperties);
+}, 'UA styles of base appearance <select>.');
+
+test(() => {
+  // margin-inline-start:auto is not tested here because the value 'auto' gets
+  // serialized to '0px'.
+  const expectedProperties = {
+    'content': 'counter(fake-counter-name, disclosure-open)',
+    'display': 'block'
+  };
+  testProperties(getComputedStyle(select, '::picker-icon'), expectedProperties);
+}, 'UA styles of base appearance select::picker-icon.');
+
+test(() => {
+  // Properties not tested here:
+  // min-inline-size: anchor-size(self-inline)
+  // min-block-size: stretch
+  const expectedProperties = {
+    'box-sizing': 'border-box',
+    'padding': '0px',
+    'margin': '0px',
+    'inset': 'auto',
+    'overflow': 'auto',
+    // position-area is actually 'block-end span-inline-end' but gets
+    // serialized this way. position-try-fallbacks also gets serialized
+    // differently.
+    // https://drafts.csswg.org/css-anchor-position/#position-area-computed
+    'position-area': 'end span-end',
+    'position-try-order': 'most-block-size',
+    'position-try-fallbacks': 'start span-end, end span-start, start span-start',
+    'border': `1px solid ${canvasText}`,
+    'background-color': canvas,
+    'color': canvasText
+  };
+  testProperties(getComputedStyle(select, '::picker(select)'), expectedProperties);
+}, 'UA styles of base appearance ::picker(select)');
+
+test(() => {
+  const expectedProperties = {
+    'min-inline-size': '24px',
+    'min-block-size': '24px',
+    'padding-block-start': '0px',
+    'padding-block-end': '0px',
+    'padding-inline-start': '0.5em',
+    'padding-inline-end': '0.5em',
+    'display': 'flex',
+    'gap': '0.5em',
+    'align-items': 'center',
+    'white-space': 'nowrap'
+  };
+  testProperties(getComputedStyle(option), expectedProperties);
+}, 'UA styles of base appearance <option>.');
+
+test(() => {
+  const expectedProperties = {
+    'content': `"${String.fromCodePoint(10003)}"`
+  }
+  testProperties(getComputedStyle(option, '::checkmark'), expectedProperties);
+}, 'UA styles of base appearance option::checkmark.');
+
+test(() => {
+  const expectedProperties = {
+    'font-weight': '700',
+    'display': 'block'
+  };
+  testProperties(getComputedStyle(optgroup), expectedProperties);
+}, 'UA styles of base appearance <optgroup>.');
+
+test(() => {
+  const expectedProperties = {
+    'min-block-size': expectedInheritedProperties['line-height'],
+    'padding-inline': '0.5em',
+    'display': 'block',
+    'unicode-bidi': 'isolate',
+    'font-weight': '700'
+  };
+  testProperties(getComputedStyle(legend), expectedProperties);
+}, 'UA styles of base appearance <legend>.');
+
+test(() => {
+  // Properties not tested here:
+  // all: unset
+  const expectedProperties = {
+    'display': 'contents'
+  };
+  testProperties(getComputedStyle(button), expectedProperties);
+}, 'UA styles of base appearance select <button>.');
+
+test(() => {
+  const expectedProperties = {
+    'font-weight': '400',
+  };
+  testProperties(getComputedStyle(optgroupOption), expectedProperties);
+}, 'UA styles of base appearance <option> in <optgroup>.');
+</script>

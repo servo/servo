@@ -296,7 +296,7 @@ def test_move_to_origin_position_within_frame(
     )
 
     frame = session.find.css("iframe", all=False)
-    session.switch_frame(frame)
+    session.switch_to_frame(frame)
 
     elem = session.find.css("input", all=False)
     elem_center_point = center_point(elem)

@@ -1,0 +1,18 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates: template with contentmethod does not work in XHTML</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async () => {
+    const iframe = document.createElement("iframe");
+    iframe.src = "resources/contentmethod.xhtml";
+    document.body.append(iframe);
+    await new Promise(resolve => iframe.addEventListener("load", resolve));
+    const {contentDocument} = iframe;
+    assert_not_equals(contentDocument.querySelector("#patch"), null);
+    assert_equals(contentDocument.querySelector("#placeholder").textContent, "Unchanged");
+});
+</script>

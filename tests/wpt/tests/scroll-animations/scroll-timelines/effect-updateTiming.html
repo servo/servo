@@ -341,6 +341,10 @@ test(t => {
 // ------------------------------
 //  duration
 // ------------------------------
+test(t => {
+  const anim = createScrollLinkedAnimationWithTiming(t, { duration: Infinity });
+}, `Allows creating scroll linked animation with duration Infinity`);
+
 // adapted for progress based animations
 const gGoodDurationValuesForProgressBased = [
   // until duration returns a CSSNumberish which can handle percentages, 100%

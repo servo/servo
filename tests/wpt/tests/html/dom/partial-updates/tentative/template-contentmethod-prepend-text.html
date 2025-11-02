@@ -1,0 +1,14 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates - declarative prepend text</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="placeholder" contentname="placeholder"> content</div>
+<template contentmethod="prepend"><div contentname="placeholder">Some</div></template>
+<script>
+test(() => {
+    assert_equals(document.getElementById("placeholder").textContent, "Some content");
+}, "<template contentmethod=prepend> with text");
+</script>

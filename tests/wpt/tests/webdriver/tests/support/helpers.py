@@ -97,7 +97,7 @@ def _switch_to_top_level_browsing_context(session):
     `<frame>` or an `<iframe>`, switch it back to the top-level
     browsing context.
     """
-    session.switch_frame(None)
+    session.switch_to_frame(None)
 
 
 def _windows(session, exclude=None):

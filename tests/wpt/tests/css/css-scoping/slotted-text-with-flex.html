@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Test dynamic updates with text slotted into flexbox</title>
+<link rel="help" href="https://drafts.csswg.org/css-scoping/">
+<div id="test">
+    <template shadowrootmode=open>
+        <style>
+            .content {
+                border: 2px solid blue;
+                display: flex;
+            }
+        </style>
+        <div class="content">
+            <slot></slot>
+            <div id="toggle">This too.</div>
+        </div>
+    </template>
+    This should be visible.
+</div>
+
+<script>
+document.body.offsetLeft;
+const toggle = test.shadowRoot.querySelector("#toggle");
+toggle.style.display = "none";
+document.body.offsetLeft;
+toggle.style.display = "block";
+</script>

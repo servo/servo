@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Crash when transitioning on a table-row-group element with pending substitution</title>
+<link rel="help" href="https://crbug.com/444818221">
+<style>
+  optgroup {
+    display: contents;
+    writing-mode: vertical-lr;
+  }
+  option {
+    display: table-row-group;
+    transition: color 1s;
+    --p: 2px;
+    padding-inline: var(--p);
+  }
+</style>
+<select>
+  <optgroup>
+    <option id="opt"></option>
+  </optgroup>
+</select>
+<script>
+  opt.offsetTop;
+  opt.style.setProperty("color", "red");
+  opt.offsetTop;
+</script>

@@ -101,9 +101,21 @@ Used a [custom tool](https://storage.googleapis.com/dalecurtis/avif2mp4.html) to
 ffmpeg -f lavfi -i testsrc=rate=10:n=1 -t 1 -pix_fmt yuv420p -vcodec h264 -tune zerolatency h264.mp4
 ```
 
+### h264_sei.mp4
+Similar to the construction of `h264.mp4`, but produces a file where the 5th
+frame is an SEI recovery point with a `recovery_frame_cnt=0`.
+```
+ffmpeg -f lavfi -i testsrc=rate=10:n=1 -t 1 -pix_fmt yuv420p -vcodec h264 -tune zerolatency -x264-params "open-gop=1:keyint=5:bframes=3" h264_sei.mp4
+```
+
 ### h264.annexb
 ```
-ffmpeg -i h264.mp4 -codec copy -bsf:v h264_mp4toannexb -f h264 h264.annexb
+ffmpeg -f lavfi -i testsrc=rate=10:n=1 -t 1 -pix_fmt yuv420p -vcodec h264 -tune zerolatency -f h264 h264.annexb
+```
+
+### h264_sei.annexb
+```
+ffmpeg -f lavfi -i testsrc=rate=10:n=1 -t 1 -pix_fmt yuv420p -vcodec h264 -tune zerolatency -x264-params "open-gop=1:keyint=5:bframes=3" -f h264 h264_sei.annexb
 ```
 
 ### h265.mp4
@@ -113,7 +125,7 @@ ffmpeg -f lavfi -i testsrc=rate=10:n=1 -t 1 -pix_fmt yuv420p -vcodec hevc -tag:v
 
 ### h265.annexb
 ```
-ffmpeg -i h265.mp4 -codec copy -bsf:v hevc_mp4toannexb -f hevc h265.annexb
+ffmpeg -f lavfi -i testsrc=rate=10:n=1 -t 1 -pix_fmt yuv420p -vcodec hevc -tag:v hvc1 -tune zerolatency -f hevc h265.annexb
 ```
 
 ### sfx.adts

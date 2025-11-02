@@ -74,6 +74,25 @@ const H264_AVC_DATA = {
   ]
 };
 
+const H264_SEI_AVC_DATA = {
+  src: 'h264_sei.mp4',
+  config: {
+    codec: 'avc1.64000b',
+    description: {offset: 11989, size: 46},
+    codedWidth: 320,
+    codedHeight: 240,
+    displayAspectWidth: 320,
+    displayAspectHeight: 240,
+  },
+  chunks: [
+    {offset: 48, size: 4229, key: true}, {offset: 4277, size: 1114},
+    {offset: 5391, size: 320}, {offset: 5711, size: 188},
+    {offset: 5899, size: 173}, {offset: 6072, size: 3694, key: true},
+    {offset: 9766, size: 936}, {offset: 10702, size: 345},
+    {offset: 11047, size: 213}, {offset: 11260, size: 210}
+  ]
+};
+
 const H264_ANNEXB_DATA = {
   src: 'h264.annexb',
   config: {
@@ -89,6 +108,24 @@ const H264_ANNEXB_DATA = {
     {offset: 5809, size: 585}, {offset: 6394, size: 517},
     {offset: 6911, size: 530}, {offset: 7441, size: 521},
     {offset: 7962, size: 452}, {offset: 8414, size: 526}
+  ]
+};
+
+const H264_SEI_ANNEXB_DATA = {
+  src: 'h264_sei.annexb',
+  config: {
+    codec: 'avc1.64000b',
+    codedWidth: 320,
+    codedHeight: 240,
+    displayAspectWidth: 320,
+    displayAspectHeight: 240,
+  },
+  chunks: [
+    {offset: 0, size: 4264, key: true}, {offset: 4264, size: 1112},
+    {offset: 5376, size: 318}, {offset: 5694, size: 186},
+    {offset: 5880, size: 171}, {offset: 6051, size: 3729, key: true},
+    {offset: 9780, size: 934}, {offset: 10714, size: 343},
+    {offset: 11057, size: 211}, {offset: 11268, size: 208}
   ]
 };
 
@@ -152,8 +189,12 @@ function createVideoDecoder(t, callbacks) {
 
 function createCorruptChunk(index) {
   let bad_data = CHUNK_DATA[index];
-  for (var i = 0; i < bad_data.byteLength; i += 4)
+  // AV1 may require more extensive corruption to trigger decoding errors with
+  // some software decoders (e.g., dav1d).
+  let skip = CONFIG.codec.indexOf('av01') >= 0 ? 2 : 4;
+  for (var i = 0; i < bad_data.byteLength; i += skip) {
     bad_data[i] = 0xFF;
+  }
   return new EncodedVideoChunk(
       {type: 'delta', timestamp: index, data: bad_data});
 }
@@ -187,7 +228,9 @@ promise_setup(async () => {
     '?vp8': VP8_DATA,
     '?vp9': VP9_DATA,
     '?h264_avc': H264_AVC_DATA,
+    '?h264_sei_avc': H264_SEI_AVC_DATA,
     '?h264_annexb': H264_ANNEXB_DATA,
+    '?h264_sei_annexb': H264_SEI_ANNEXB_DATA,
     '?h265_hevc': H265_HEVC_DATA,
     '?h265_annexb': H265_ANNEXB_DATA
   }[location.search];
@@ -203,7 +246,11 @@ promise_setup(async () => {
 
   CHUNK_DATA = data.chunks.map((chunk, i) => view(buf, chunk));
 
-  CHUNKS = CHUNK_DATA.map(
-      (data, i) => new EncodedVideoChunk(
-          {type: i == 0 ? 'key' : 'delta', timestamp: i, duration: 1, data}));
+  CHUNKS =
+      CHUNK_DATA.map((encoded_data, i) => new EncodedVideoChunk({
+                       type: (i == 0 || data.chunks[i].key) ? 'key' : 'delta',
+                       timestamp: i,
+                       duration: 1,
+                       data: encoded_data
+                     }));
 });

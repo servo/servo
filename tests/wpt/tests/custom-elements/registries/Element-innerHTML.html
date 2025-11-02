@@ -6,6 +6,11 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 </head>
+<div id="host">
+    <template shadowrootmode="open" shadowrootclonable="true" shadowrootcustomelementregistry>
+        <new-element></new-element>
+    </template>
+</div>
 <body>
 <script>
 
@@ -22,6 +27,9 @@ customElements.define('some-element', GlobalSomeElement);
 
 class GlobalOtherElement extends HTMLElement { };
 customElements.define('other-element', GlobalOtherElement);
+
+class WrongNewElement extends HTMLElement{ };
+customElements.define('new-element', WrongNewElement);
 
 test((test) => {
     const registry = new CustomElementRegistry;
@@ -107,6 +115,29 @@ test((test) => {
     someElement.innerHTML = '<other-element></other-element>';
     assert_true(someElement.querySelector('other-element') instanceof ScopedOtherElement1);
 }, 'innerHTML on an inserted element should continue to use the scoped registry it was created with');
+
+test((test) => {
+    const shadowRoot = host.cloneNode(true).shadowRoot;
+    const container_element = shadowRoot.lastElementChild;
+    assert_equals(container_element.customElementRegistry, null);
+    assert_false(container_element instanceof WrongNewElement);
+
+    container_element.innerHTML = '<new-element><new-element></new-element></new-element>';
+    const outer_element = container_element.querySelector('new-element');
+    const inner_element = outer_element.querySelector('new-element');
+    assert_equals(outer_element.customElementRegistry, null);
+    assert_false(outer_element instanceof WrongNewElement);
+    assert_equals(inner_element.customElementRegistry, null);
+    assert_false(inner_element instanceof WrongNewElement);
+}, 'nested descendants in innerHTML should use the null registry when the container element has null registry');
+
+test((test) => {
+    const shadowRoot = host.cloneNode(true).shadowRoot;
+    shadowRoot.firstElementChild.insertAdjacentHTML('afterend', '<new-element></new-element>');
+    const container_element = shadowRoot.lastElementChild;
+    assert_equals(container_element.customElementRegistry, null);
+    assert_false(container_element instanceof WrongNewElement);
+}, 'insertAdjacentHTML should use the element\'s registry even when the registry is null');
 
 </script>
 </body>

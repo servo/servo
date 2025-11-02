@@ -6,75 +6,68 @@
     </title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <script src="/webaudio/resources/audit.js"></script>
   </head>
   <body>
-    <script id="layout-test-code">
-      const audit = Audit.createTaskRunner();
-      const context = new AudioContext();
+    <script>
+      const processorUrl = 'processors/channel-count-processor.js';
 
-      setup(function () {
-        context.audioWorklet.addModule(
-          'processors/channel-count-processor.js').then(() => audit.run());
+      const waitForMessageFromPort = (port) => {
+        return new Promise(resolve => {
+          port.onmessage = e => resolve(e.data);
+        });
+      };
 
-        // Test if the output channe count dynamically changes if the input
-        // and output is 1.
-        audit.define(
-            {label: 'Dynamically change the channel count to if unspecified.'},
-            (task, should) => {
-              // Use arbitrary parameters for the test.
-              const buffer = new AudioBuffer({
-                numberOfChannels: 17,
-                length: 1,
-                sampleRate: context.sampleRate,
-              });
-              const source = new AudioBufferSourceNode(context);
-              source.buffer = buffer;
+      promise_test(async t => {
+        const context = new AudioContext();
 
-              const node = new AudioWorkletNode(context, 'channel-count', {
-                numberOfInputs: 1,
-                numberOfOutputs: 1,
-              });
+        await context.audioWorklet.addModule(processorUrl);
 
-              node.port.onmessage = (message) => {
-                const expected = message.data;
-                should(expected.outputChannel,
-                       'The expected output channel count').beEqualTo(17);
-                task.done();
-              };
+        {
+          const buffer = new AudioBuffer({
+            numberOfChannels: 17,
+            length: 1,
+            sampleRate: context.sampleRate,
+          });
 
-              // We need to make an actual connection becasue the channel count
-              // change happen when the rendering starts. It is to test if the
-              // channel count adapts to the upstream node correctly.
-              source.connect(node).connect(context.destination);
-              source.start();
-            });
+          const source = new AudioBufferSourceNode(context, { buffer });
 
-        // Test if outputChannelCount is honored as expected even if the input
-        // and output is 1.
-        audit.define(
-            {label: 'Givien outputChannelCount must be honored.'},
-            (task, should) => {
-              const node = new AudioWorkletNode(
-                  context, 'channel-count', {
-                    numberOfInputs: 1,
-                    numberOfOutputs: 1,
-                    outputChannelCount: [2],
-                  });
+          const node = new AudioWorkletNode(context, 'channel-count', {
+            numberOfInputs: 1,
+            numberOfOutputs: 1,
+          });
 
-              node.port.onmessage = (message) => {
-                const expected = message.data;
-                should(expected.outputChannel,
-                       'The expected output channel count').beEqualTo(2);
-                task.done();
-              };
+          const promiseMessage = waitForMessageFromPort(node.port);
 
-              // We need to make an actual connection becasue the channel count
-              // change might happen when the rendering starts. It is to test
-              // if the specified channel count is kept correctly.
-              node.connect(context.destination);
-            });
-      });
+          source.connect(node).connect(context.destination);
+          source.start();
+
+          const { outputChannel } = await promiseMessage;
+          assert_equals(
+              outputChannel,
+              17,
+              'Output channel count should follow upstream (17).');
+
+        }
+
+        {
+          const node = new AudioWorkletNode(context, 'channel-count', {
+            numberOfInputs: 1,
+            numberOfOutputs: 1,
+            outputChannelCount: [2],
+          });
+
+          const promiseMessage = waitForMessageFromPort(node.port);
+
+          node.connect(context.destination);
+
+          const { outputChannel } = await promiseMessage;
+          assert_equals(
+              outputChannel,
+              2,
+              'Explicit outputChannelCount [2] must be honored.');
+        }
+      }, `AudioWorkletNode channel count: dynamic propagation and `+
+          `honoring outputChannelCount (single serialized test).`);
     </script>
   </body>
 </html>

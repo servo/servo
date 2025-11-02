@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Link Parameters - URL fragment takes precedence over link-parameters property</title>
+<link rel="author" title="Divyansh Mangal" href="mailto:dmangal@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-link-params/#setting">
+<link rel="match" href="circle-green-ref.html"/>
+<style>
+  img {
+  link-parameters: param(--color, red);
+  }
+</style>
+
+<img src="circle-with-parameters.svg#param(--color, green)">

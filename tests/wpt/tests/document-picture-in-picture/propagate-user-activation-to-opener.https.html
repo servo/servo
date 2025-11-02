@@ -4,11 +4,19 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<iframe id="same-origin-iframe" src="/common/blank.html"></iframe>
 <body>
 <script>
 promise_test(async (t) => {
   await test_driver.bless('request PiP window');
   const pipWindow = await documentPictureInPicture.requestWindow();
+
+  if (pipWindow.document.readyState != "complete") {
+    // about:blank should load synchronous, but Gecko is still working on that...
+    // The async load could blow away our document while blessing causing an error
+    assert_true(true, "Waiting for pip window to load");
+    await new Promise(res => pipWindow.addEventListener("load", res, { once: true }));
+  }
 
   assert_false(navigator.userActivation.isActive, 'the opener should initially not have user activation');
   assert_false(pipWindow.navigator.userActivation.isActive, 'the PiP window should initially not have user activation');
@@ -19,8 +27,90 @@ promise_test(async (t) => {
   assert_true(pipWindow.navigator.userActivation.isActive, 'the PiP window should be activated');
 
   // Consuming activation in the picture-in-picture window should also consume it in the opener.
-  pipWindow.open();
+  pipWindow.open().close();
   assert_false(navigator.userActivation.isActive, 'the opener should no longer be active once the PiP window consumes activation');
   assert_false(pipWindow.navigator.userActivation.isActive, 'the PiP window should no longer be active once it consumes activation');
-});
+}, 'user activation propagates from PiP to opener');
+
+promise_test(async (t) => {
+  await test_driver.bless('request PiP window');
+  const pipWindow = await documentPictureInPicture.requestWindow();
+
+  if (pipWindow.document.readyState != "complete") {
+    // about:blank should load synchronous, but Gecko is still working on that...
+    // The async load could blow away our document while blessing causing an error
+    assert_true(true, "Waiting for pip window to load");
+    await new Promise(res => pipWindow.addEventListener("load", res, { once: true }));
+  }
+
+  const ifr = pipWindow.document.createElement("iframe");
+  ifr.src = 'https://{{hosts[alt][www]}}:{{ports[https][0]}}/common/blank.html';
+  pipWindow.document.body.append(ifr);
+  await new Promise(res => ifr.addEventListener('load', res, { once: true }));
+
+  assert_false(navigator.userActivation.isActive, 'opener initially not active');
+  assert_false(pipWindow.navigator.userActivation.isActive, 'PiP initially not active');
+
+  await test_driver.bless('activate cross-origin iframe', null, ifr.contentWindow);
+
+  assert_true(navigator.userActivation.isActive, 'activation propagated to opener');
+
+  pipWindow.open().close();
+
+  assert_false(navigator.userActivation.isActive, 'activation was consumed in opener');
+  assert_false(pipWindow.navigator.userActivation.isActive, 'activation was consumed in PiP');
+}, 'user activation propagates from cross-origin iframe in PiP to opener');
+
+promise_test(async (t) => {
+await test_driver.bless('request PiP window');
+  const pipWindow = await documentPictureInPicture.requestWindow();
+
+  if (pipWindow.document.readyState != "complete") {
+    // about:blank should load synchronous, but Gecko is still working on that...
+    // The async load could blow away our document while blessing causing an error
+    assert_true(true, "Waiting for pip window to load");
+    await new Promise(res => pipWindow.addEventListener("load", res, { once: true }));
+  }
+
+  const ifr = document.getElementById("same-origin-iframe");
+
+  assert_false(navigator.userActivation.isActive, 'opener initially not active');
+  assert_false(ifr.contentWindow.navigator.userActivation.isActive, 'iframe in opener initially not active');
+  assert_false(pipWindow.navigator.userActivation.isActive, 'PiP initially not active');
+
+  await test_driver.bless('activate pip window', null, pipWindow);
+
+  assert_true(navigator.userActivation.isActive, 'activation propagated to opener');
+  assert_false(ifr.contentWindow.navigator.userActivation.isActive, 'activation did not propagate to iframe in opener');
+}, 'user activation does not propagate from PiP to iframe in opener');
+
+// Note how activation is not propagated to an iframe in the opener, but consumption is
+promise_test(async (t) => {
+await test_driver.bless('request PiP window');
+  const pipWindow = await documentPictureInPicture.requestWindow();
+
+  if (pipWindow.document.readyState != "complete") {
+    // about:blank should load synchronous, but Gecko is still working on that...
+    // The async load could blow away our document while blessing causing an error
+    assert_true(true, "Waiting for pip window to load");
+    await new Promise(res => pipWindow.addEventListener("load", res, { once: true }));
+  }
+
+  const ifr = document.getElementById("same-origin-iframe");
+
+  assert_false(navigator.userActivation.isActive, 'opener initially not active');
+  assert_false(ifr.contentWindow.navigator.userActivation.isActive, 'iframe in opener initially not active');
+  assert_false(pipWindow.navigator.userActivation.isActive, 'PiP initially not active');
+
+  await test_driver.bless('activate iframe in opener', null, ifr.contentWindow);
+  await test_driver.bless('activate pip window', null, pipWindow);
+
+  assert_true(ifr.contentWindow.navigator.userActivation.isActive, 'iframe in opener is active');
+  assert_true(pipWindow.navigator.userActivation.isActive, 'PiP is active');
+
+  pipWindow.open().close();
+
+  assert_false(ifr.contentWindow.navigator.userActivation.isActive, 'activation was consumed in iframe in opener');
+  assert_false(pipWindow.navigator.userActivation.isActive, 'activation was consumed in PiP');
+}, 'Consuming activation in PiP also consumes activation in iframes in opener');
 </script>

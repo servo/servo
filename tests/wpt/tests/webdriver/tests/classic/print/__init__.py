@@ -1,4 +1,5 @@
-def do_print(session, options={}):
+def do_print(session, options=None):
+    options = options or {}
     params = {}
 
     if options.get("background", None) is not None:

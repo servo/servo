@@ -126,7 +126,7 @@ def test_removed_iframe(session, url, inline):
     session.url = url("/webdriver/tests/support/html/frames_no_bfcache.html")
 
     subframe = session.find.css("#sub-frame", all=False)
-    session.switch_frame(subframe)
+    session.switch_to_frame(subframe)
 
     response = back(session)
     assert_success(response)

@@ -25,7 +25,7 @@ def test_always_captures_top_browsing_context(session, inline, iframe):
     assert png_dimensions(reference_screenshot) == viewport_dimensions(session)
 
     frame = session.find.css("iframe", all=False)
-    session.switch_frame(frame)
+    session.switch_to_frame(frame)
 
     response = take_screenshot(session)
     screenshot = assert_success(response)

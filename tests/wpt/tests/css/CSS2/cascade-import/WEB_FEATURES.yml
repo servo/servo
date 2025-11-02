@@ -1,0 +1,11 @@
+features:
+- name: alternative-style-sheets
+  files:
+  - cascade-import-005.xht
+  - cascade-import-006.xht
+  - cascade-import-007.xht
+  - cascade-import-008.xht
+  - cascade-import-009.xht
+  - cascade-import-010.xht
+  - cascade-import-011.xht
+  - cascade-import-012.xht

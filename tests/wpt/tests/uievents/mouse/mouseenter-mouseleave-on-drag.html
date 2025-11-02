@@ -11,17 +11,19 @@
 <style>
 #outer {
   background: grey;
-  position: absolute;
-  left: 100px;
-  top: 100px;
   width: 100px;
   height: 100px;
 }
 #inner {
   background: red;
-  position: absolute;
+  position: relative;
   left: 30px;
   top: 30px;
+  width: 40px;
+  height: 40px;
+}
+#done {
+  background: green;
   width: 40px;
   height: 40px;
 }
@@ -33,6 +35,7 @@
   <div id="outer">
     <div id="inner"></div>
   </div>
+  <div id="done"></div>
 </body>
 <script>
 let eventLog = [];
@@ -84,39 +87,39 @@ function addEventListeners(test) {
   });
 }
 
-// At the end of each action sequence we move the mouse over the root element.
-// Once this event is detected, all other upstream events must be logged and
-// we can proceed with the checks.
-async function mousemoveOverRootElement() {
+// A click on `done` marks the end of actions in each promise_test.
+async function getClick(target, test) {
   return new Promise(resolve => {
-    const listener = (e) => {
-      if (e.eventPhase == Event.AT_TARGET) {
-        document.documentElement.removeEventListener('mousemove', listener);
-        resolve();
-      }
-    };
-    document.documentElement.addEventListener('mousemove', listener);
+    const listener = e => resolve(e);
+    target.addEventListener('click', listener, { once: true });
+    if (test) {
+      test.add_cleanup(() =>
+          target.removeEventListener('click', listener, { once: true }));
+    }
   });
 }
 
 window.onload = async () => {
   const outer = document.getElementById('outer');
   const inner = document.getElementById('inner');
-  const leftOuter = 100;
-  const rightOuter = 200;
-  const leftInner = 130;
-  const rightInner = 170;
-  const centerY = 150;
+  const done = document.getElementById('done');
+  const leftOuter = 0;
+  const rightOuter = 100;
+  const leftInner = 30;
+  const rightInner = 70;
+  const centerY = 50;
 
   promise_test(async t => {
     addEventListeners(t);
-    const completionPromise = mousemoveOverRootElement();
+    const completionPromise = getClick(done, t);
     const actions =new test_driver.Actions();
     actions.pointerMove(leftOuter + 10, centerY)
            .pointerDown({button: actions.ButtonType.LEFT})
            .pointerMove(rightOuter - 10, centerY)
            .pointerUp({button: actions.ButtonType.LEFT})
-           .pointerMove(0, 0)
+           .pointerMove(0, 0, {origin: done})
+           .pointerDown()
+           .pointerUp()
            .send();
     await actions;
     await completionPromise;
@@ -132,13 +135,15 @@ window.onload = async () => {
 
   promise_test(async t => {
     addEventListeners(t);
-    const completionPromise = mousemoveOverRootElement();
+    const completionPromise = getClick(done, t);
     const actions =new test_driver.Actions();
     actions.pointerMove(leftOuter + 10, centerY)
            .pointerDown({button: actions.ButtonType.LEFT})
            .pointerMove(leftInner + 10, centerY)
            .pointerUp({button: actions.ButtonType.LEFT})
-           .pointerMove(0, 0)
+           .pointerMove(0, 0, {origin: done})
+           .pointerDown()
+           .pointerUp()
            .send();
     await actions;
     await completionPromise;
@@ -159,13 +164,15 @@ window.onload = async () => {
 
   promise_test(async t => {
     addEventListeners(t);
-    const completionPromise = mousemoveOverRootElement();
+    const completionPromise = getClick(done, t);
     const actions =new test_driver.Actions();
     actions.pointerMove(leftInner + 10, centerY)
            .pointerDown({button: actions.ButtonType.LEFT})
            .pointerMove(rightInner + 10, centerY)
            .pointerUp({button: actions.ButtonType.LEFT})
-           .pointerMove(0, 0)
+           .pointerMove(0, 0, {origin: done})
+           .pointerDown()
+           .pointerUp()
            .send();
     await actions;
     await completionPromise;

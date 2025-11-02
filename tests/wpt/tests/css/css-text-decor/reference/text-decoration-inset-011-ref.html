@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Text Decoration 4: text-decoration-inset</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-inset-property">
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+
+<style>
+body {
+  background: white;
+  color: black;
+  font-family: times new roman, serif;
+}
+div {
+  position: relative;
+  margin-left: 10px;
+}
+h1 {
+  position: absolute;
+  line-height: 2;
+  width: 10em;
+}
+u.a {
+  text-decoration-color: blue;
+  text-underline-offset: 20px;
+}
+u.b {
+  text-decoration-color: green;
+  text-underline-offset: 20px;
+}
+span {
+  display: inline-block;
+  position: relative;
+}
+span u.a, span u.b {
+  display: inline-block;
+  width: calc(100% - 10px);
+  overflow-x: clip;
+  position: absolute;
+  left: 0;
+}
+span u.a2 {
+  left: auto;
+  right: 0;
+}
+span u.b2 {
+  width: 100%;
+}
+span u.b3 {
+  width: 100%;
+  left: -10px;
+}
+</style>
+
+<p>The underline of the first phrase should be trimmed by 10px at both ends;
+the underline of the second should be offset by 10px to the left at both start and end:</p>
+
+<div lang="ar">
+  <h1 dir="rtl">صِف<u class="a"> خَلقَ خَودِ كَمِثلِ الشَمسِ إِذ </u>بَزَغَت —<br> يَحظى<u class="b"> الضَجيعُ بِها نَجلاءَ </u>مِعطارِ</h1>
+  <h1 dir="rtl" style="color: transparent"><span><u class="a">صِف</u>صِف</span> خَلقَ خَودِ كَمِثلِ الشَمسِ إِذ <span><u class="a a2">بَزَغَت</u>بَزَغَت</span></h1>
+  <h1 dir="rtl" style="color: transparent">صِف خَلقَ خَودِ كَمِثلِ الشَمسِ إِذ بَزَغَت —<br>
+    <span><u class="b">يَحظى</u>يَحظى</span> الضَجيعُ بِها نَجلاءَ <span><u class="b b2">مِعطارِ</u><u class="b b3">مِعطارِ</u>مِعطارِ</span></h1>
+</div>

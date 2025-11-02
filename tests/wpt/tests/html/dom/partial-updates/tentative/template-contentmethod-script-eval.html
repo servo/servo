@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates - content template updates script with plain text but doesn't execute</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script id="placeholder" contentname="s">
+    window.state = "init";
+</script>
+<script>
+    window.placeholder = document.querySelector("#placeholder");
+</script>
+<template contentmethod="replace-children"><script contentname="s">window.state = 'patched';</script></template>
+<script>
+test(() => {
+    assert_equals(placeholder.firstElementChild, null);
+    assert_equals(placeholder.textContent, "window.state = 'patched';");
+    // The script has already started, so patching it would have no effect.
+    assert_equals(window.state, "init");
+});
+
+</script>

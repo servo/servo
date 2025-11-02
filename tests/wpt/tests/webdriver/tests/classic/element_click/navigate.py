@@ -132,7 +132,7 @@ def test_link_from_nested_context_with_target(session, inline, iframe, target):
 
     session.url = inline(iframe("<a href='{}' target='{}'>click</a>".format(target_page, target)))
     frame = session.find.css("iframe", all=False)
-    session.switch_frame(frame)
+    session.switch_to_frame(frame)
     element = session.find.css("a", all=False)
 
     orig_handles = session.handles
@@ -149,7 +149,7 @@ def test_link_from_nested_context_with_target(session, inline, iframe, target):
     if target == "_parent":
         session.switch_to_parent_frame()
     elif target == "_top":
-        session.switch_frame(None)
+        session.switch_to_frame(None)
 
     wait = Poll(
         session,

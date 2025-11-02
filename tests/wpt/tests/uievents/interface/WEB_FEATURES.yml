@@ -1,0 +1,4 @@
+features:
+- name: accesskey
+  files:
+  - keyboard-accesskey-click-event.html

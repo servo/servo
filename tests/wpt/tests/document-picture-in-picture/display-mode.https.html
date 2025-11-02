@@ -9,8 +9,29 @@
 promise_test(async (t) => {
   await test_driver.bless('request PiP window');
   const pipWindow = await documentPictureInPicture.requestWindow();
+
+  if (pipWindow.document.readyState != "complete") {
+    // about:blank should load synchronous, but Gecko is still working on that...
+    // Ensure the async load doesn't blow away the iframe later on.
+    assert_true(true, "Waiting for pip window to load");
+    await new Promise(res => pipWindow.addEventListener("load", res, { once: true }));
+  }
+
   await new Promise(requestAnimationFrame);
-  assert_true(!!pipWindow.matchMedia('(display-mode: picture-in-picture)'.matches));
+  assert_true(
+    !!pipWindow.matchMedia('(display-mode: picture-in-picture)'.matches),
+    'PIP matches display mode'
+  );
+
+  const iframe = pipWindow.document.createElement("iframe");
+  iframe.src = '/common/blank.html';
+  pipWindow.document.body.append(iframe);
+  await new Promise(res => iframe.addEventListener("load", res, { once: true }));
+
+  assert_true(
+    !!iframe.contentWindow.matchMedia('(display-mode: picture-in-picture)'.matches),
+    'iframe in PIP matches display mode'
+  );
 });
 </script>
 </body>

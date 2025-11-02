@@ -5,12 +5,13 @@ import hashlib
 import io
 import json
 import os
+import socket
+import struct
+import sys
 import threading
 import traceback
-import socket
-import sys
 from abc import ABCMeta, abstractmethod
-from typing import Any, Callable, ClassVar, Tuple, Type
+from typing import Any, Callable, ClassVar, Optional, Union, Tuple, Type
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
 from . import pytestrunner
@@ -618,10 +619,50 @@ class RefTestImplementation:
         self.screenshot_cache[key] = hash_val, data
         return True, data
 
+    def get_png_dimensions(
+        self, base64_image_data: Union[bytes, str], png_name: str
+    ) -> Optional[Tuple[int, int]]:
+        needed_bytes = 32  # math.ceil(24 / 3) * 4
+        image_data = base64.b64decode(base64_image_data[:needed_bytes])
+
+        png_signature = b"\x89PNG\x0d\x0a\x1a\x0a"
+
+        if not image_data.startswith(png_signature):
+            self.logger.warning(f"Got data which wasn't a PNG for {png_name}")
+            return None
+
+        chunk_length, chunk_type = struct.unpack(">L4s", image_data[8:16])
+        if chunk_type != b"IHDR" or chunk_length < 8:
+            self.logger.warning(
+                f"Got PNG whose first chunk was {chunk_type.decode('ASCII')}, "
+                f"not IHDR, for {png_name}"
+            )
+            return None
+
+        return struct.unpack(">LL", image_data[16:24])
+
     def get_screenshot_list(self, node, viewport_size, dpi, page_ranges):
         success, data = self.executor.screenshot(node, viewport_size, dpi, page_ranges)
-        if success and not isinstance(data, list):
-            return success, [data]
+        viewport_size = (800, 600) if viewport_size is None else viewport_size
+        dpi = 96 if dpi is None else dpi
+        dpcm = dpi / 2.54
+
+        if self.executor.is_print:
+            # In the print case, viewport_size is in cm.
+            vw, vh = viewport_size
+            viewport_size = (round(vw * dpcm), round(vh * dpcm))
+
+        if success:
+            if not isinstance(data, list):
+                data = [data]
+
+            for screenshot in data:
+                image_size = self.get_png_dimensions(screenshot, node.url)
+                if image_size is not None and image_size != viewport_size:
+                    self.logger.warning(
+                        f"Unexpected viewport size for {node.url}, "
+                        f"{image_size}, expected {viewport_size}"
+                    )
         return success, data
 
 

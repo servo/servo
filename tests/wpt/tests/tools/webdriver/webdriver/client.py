@@ -598,7 +598,7 @@ class Session:
         body = {"handle": handle}
         return self.send_session_command("POST", "window", body=body)
 
-    def switch_frame(self, frame):
+    def switch_to_frame(self, frame):
         body = {"id": frame}
         return self.send_session_command("POST", "frame", body=body)
 

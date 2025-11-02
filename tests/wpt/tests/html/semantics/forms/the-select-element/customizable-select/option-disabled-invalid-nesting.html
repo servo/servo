@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/pull/11790#issuecomment-3404807465">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<select>
+  <optgroup disabled>
+    <option></option>
+    <datalist></datalist>
+  </optgroup>
+</select>
+
+<script>
+test(() => {
+  const optionContainer = document.querySelector('option');
+  assert_true(optionContainer.matches(':disabled'),
+    'Valid option without nesting should be disabled.');
+
+  const nestedInOption = document.createElement('option');
+  optionContainer.appendChild(nestedInOption);
+  assert_false(nestedInOption.matches(':disabled'),
+    'Option nested in option should not inherit disabledness.');
+
+  const parentOptgroup = document.querySelector('optgroup');
+  const childOptgroup = document.createElement('optgroup');
+  parentOptgroup.appendChild(childOptgroup);
+  const nestedInOptgroup = document.createElement('option');
+  childOptgroup.appendChild(nestedInOptgroup);
+  assert_false(nestedInOptgroup.matches(':disabled'),
+    'Option nested in doubly nested optgroups should not inherit disabledness.');
+
+  const hr = document.createElement('hr');
+  parentOptgroup.appendChild(hr);
+  const nestedInHr = document.createElement('option');
+  hr.appendChild(nestedInHr);
+  assert_false(nestedInHr.matches(':disabled'),
+    'Option nested in hr should not inherit disabledness.');
+
+  const datalist = document.querySelector('datalist');
+  const nestedInDatalist = document.createElement('option');
+  datalist.appendChild(nestedInDatalist);
+  assert_false(nestedInDatalist.matches(':disabled'),
+    'Option nested in datalist should not inherit disabledness.');
+}, 'options should not inherit disabledness when nested in invalid elements.');
+</script>

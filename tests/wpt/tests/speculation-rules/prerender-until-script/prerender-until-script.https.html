@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<title>Prerender and activate prerender-until-script action page correctly</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  /*
+  Workflows:
+  1. The initiator page (pus-initiator-page-template.html)
+  triggers the prerender and simultaneously fetches a signal_url. This
+  fetch is designed to hang on the server.
+
+  2. The prerendered page (pus-page-template.html) is allowed to fetch an
+  async script (which also hits the signal_url, but with
+  isprerendering=True).
+
+  3. When the server receives the request from the prerendered page, it
+  puts a token in its stash, which in turn unblocks the initiator's
+  hanging fetch.
+
+  4. The .then() block of the initiator's fetch then runs, navigating to
+  the prerendered page and causing activation.
+
+  5. The (previously blocked) inline script on the prerendered page then
+  executes, verifying that document.prerendering is false and sending the
+  result back to the main test page.
+  */
+
+  const uid = token();
+  const bc = new PrerenderChannel('test-channel', uid);
+
+  const gotMessage = new Promise(resolve => {
+    bc.addEventListener('message', e => {
+      resolve(e.data);
+    }, {
+      once: true
+    });
+  });
+  const url = `resources/pus-handler.py?type=main&uid=${uid}`;
+  window.open(url, '_blank', 'noopener');
+
+  const result = await gotMessage;
+  assert_equals(result, 'prerendering state when executing JS: false');
+
+  bc.close();
+}, `when prerender-until-script action prerenders a page, the script on that page should always be executed after activation.`);
+</script>

@@ -12,7 +12,7 @@ for (const options of [{}, {negotiated: true, id: 0}]) {
   const mode = `${options.negotiated? "negotiated " : ""}datachannel`;
 
   promise_test(async t => {
-    const [channel1, channel2] = await createDataChannelPair(t, options);
+    const [channel1, channel2] = await createDataChannelPairWithLabel(t, 'dc_close_causes_remote_events_1', options);
     const haveClosed = new Promise(r => channel2.onclose = r);
     let closingSeen = false;
     channel1.onclosing = t.unreached_func();
@@ -30,7 +30,7 @@ for (const options of [{}, {negotiated: true, id: 0}]) {
   promise_test(async t => {
     // This is the same test as above, but using addEventListener
     // rather than the "onclose" attribute.
-    const [channel1, channel2] = await createDataChannelPair(t, options);
+    const [channel1, channel2] = await createDataChannelPairWithLabel(t, 'dc_close_causes_remote_events_2', options);
     const haveClosed = new Promise(r => channel2.addEventListener('close', r));
     let closingSeen = false;
     channel1.addEventListener('closing', t.unreached_func());
@@ -87,7 +87,7 @@ for (const options of [{}, {negotiated: true, id: 0}]) {
    promise_test(async t => {
     const pc1 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());
-    const [channel1, channel2] = await createDataChannelPair(t, options, pc1);
+    const [channel1, channel2] = await createDataChannelPairWithLabel(t, 'pc_close_causes_remote_events', options, pc1);
     const events = [];
     let error = null;
     channel2.addEventListener('error', t.step_func(event => {
@@ -114,7 +114,7 @@ for (const options of [{}, {negotiated: true, id: 0}]) {
   promise_test(async t => {
     let pc1 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());
-    let [channel1, channel2] = await createDataChannelPair(t, options, pc1);
+    let [channel1, channel2] = await createDataChannelPairWithLabel(t, 'pc_close_after_dc_close', options, pc1);
     // The expected sequence of events when closing a DC is that
     // channel1 goes to closing, channel2 fires onclose, and when
     // the close is confirmed, channel1 fires onclose.
@@ -154,6 +154,7 @@ for (const options of [{}, {negotiated: true, id: 0}]) {
     if (!options.negotiated) {
       await tokenDataChannel;
     }
+
     let closeExpectedCount = 0;
     let errorExpectedCount = 0;
     let resolveCountIsZero;
@@ -164,9 +165,9 @@ for (const options of [{}, {negotiated: true, id: 0}]) {
       if ('id' in options) {
         options.id = i;
       }
-      pc1.createDataChannel('', options);
+      pc1.createDataChannel(`dc${i} pc1`, options);
       if (options.negotiated) {
-        const channel = pc2.createDataChannel('', options);
+        const channel = pc2.createDataChannel(`dc${i} pc2`, options);
         channel.addEventListener('error', t.step_func(event => {
           assert_true(event instanceof RTCErrorEvent, 'error event ' + event);
           errorExpectedCount -= 1;

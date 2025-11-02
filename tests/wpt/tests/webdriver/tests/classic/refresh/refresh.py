@@ -98,7 +98,7 @@ def test_history_pushstate(session, inline):
 def test_refresh_switches_to_parent_browsing_context(session, create_frame, inline):
     session.url = inline("<div id=foo>")
 
-    session.switch_frame(create_frame())
+    session.switch_to_frame(create_frame())
     with pytest.raises(error.NoSuchElementException):
         session.find.css("#foo", all=False)
 

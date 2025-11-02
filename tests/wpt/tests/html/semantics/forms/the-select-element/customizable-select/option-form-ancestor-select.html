@@ -6,10 +6,14 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <form id=form>
-  <select id=select1></select>
+  <select id=select1>
+    <optgroup></optgroup>
+  </select>
 </form>
 
-<select id=select2 form=form></select>
+<select id=select2 form=form>
+  <optgroup></optgroup>
+</select>
 
 <script>
 const form = document.getElementById('form');
@@ -30,4 +34,18 @@ test(() => {
   assert_equals(option1.form, form, 'option1');
   assert_equals(option2.form, form, 'option2');
 }, 'option.form should look up the ancestor chain for a select element to get its form from.');
+
+test(() => {
+  ['datalist', 'optgroup', 'datalist', 'hr'].forEach(tagName => {
+    ['select1', 'select2'].forEach(selectId => {
+      const select = document.getElementById(selectId);
+      const container = select.querySelector('optgroup');
+      const blockingElement = document.createElement(tagName);
+      container.appendChild(blockingElement);
+      const option = document.createElement('option');
+      blockingElement.appendChild(option);
+      assert_equals(option.form, null, `${selectId} ${tagName}: option.form should be null.`);
+    });
+  });
+}, 'option.form should be null when options are nested in invalid elements.');
 </script>

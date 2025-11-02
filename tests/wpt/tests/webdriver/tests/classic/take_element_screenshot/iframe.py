@@ -73,7 +73,7 @@ def test_frame_element(session, inline, iframe):
     session.url = inline("""{0}{1}""".format(OUTER_IFRAME_STYLE, iframe(iframe_content)))
 
     frame = session.find.css("iframe", all=False)
-    session.switch_frame(frame)
+    session.switch_to_frame(frame)
     div = session.find.css("div", all=False)
     div_dimensions = element_dimensions(session, div)
     assert div_dimensions == ref_dimensions

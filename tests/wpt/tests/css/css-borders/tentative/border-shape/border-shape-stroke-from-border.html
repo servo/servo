@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<title>CSS Borders Test: border-shape takes stroke from relevant border side</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#relevant-side-for-border-shape">
+<link rel="match" href="border-shape-stroke-from-border-ref.html">
+<meta name="assert" content="When border-shape provides a single shape without an explicit stroke, the stroke width and color follow the first renderable logical border side (block-start, inline-start, block-end, inline-end).">
+<meta name="fuzzy" content="maxDifference=0-70;totalPixels=0-3500">
+<style>
+body {
+  margin: 0;
+}
+.container {
+  display: flex;
+  gap: 32px;
+  padding: 20px;
+}
+.target {
+  width: 120px;
+  height: 120px;
+}
+.single-shape {
+  border-shape: circle(45px at 60px 60px);
+}
+.double-shape {
+  border-shape: circle(100px at 60px 60px) circle(45px at 60px 60px);
+}
+.case1 {
+  border-top: 18px solid rgb(220, 0, 0);
+  border-left: 10px solid rgb(0, 140, 0);
+  border-bottom: 4px solid rgb(200, 200, 0);
+  border-right: 6px solid rgb(0, 0, 220);
+}
+.case2 {
+  writing-mode: vertical-rl;
+  border-top: 18px solid rgb(220, 0, 0);
+  border-left: 10px solid rgb(0, 140, 0);
+  border-bottom: 4px solid rgb(200, 200, 0);
+  border-right: 6px solid rgb(0, 0, 220);
+}
+.case3 {
+  writing-mode: vertical-rl;
+  border-top: 18px solid rgb(220, 0, 0);
+  border-left: 10px solid rgb(0, 140, 0);
+  border-bottom: 4px solid rgb(200, 200, 0);
+  border-right: none;
+}
+.case4 {
+  writing-mode: vertical-lr;
+  border-top: 18px solid rgb(220, 0, 0);
+  border-left: 10px solid rgb(0, 140, 0);
+  border-bottom: 4px solid rgb(200, 200, 0);
+  border-right: none;
+}
+</style>
+<div class="container">
+  <div class="target single-shape case1"></div>
+  <div class="target single-shape case2"></div>
+  <div class="target single-shape case3"></div>
+  <div class="target single-shape case4"></div>
+</div>
+<div class="container">
+  <div class="target double-shape case1"></div>
+  <div class="target double-shape case2"></div>
+  <div class="target double-shape case3"></div>
+  <div class="target double-shape case4"></div>
+</div>
