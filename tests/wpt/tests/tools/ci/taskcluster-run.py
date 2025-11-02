@@ -82,8 +82,8 @@ def main(product, channel, commit_range, artifact_path, wpt_args):
         "--install-fonts",
         "--verify-log-full"
     ]
-    # Enable headless mode for WPE MiniBrowser because it can't work under Xvfb/X11 (needs Wayland)
-    wpt_args.append("--headless" if product == "wpewebkit_minibrowser" else "--no-headless")
+    # Enable headless mode for WPE MiniBrowser and Servo because they do not work under Xvfb/X11 (needs Wayland)
+    wpt_args.append("--headless" if product in ("wpewebkit_minibrowser", "servo") else "--no-headless")
 
     wpt_args += get_browser_args(product, channel, artifact_path)
 
