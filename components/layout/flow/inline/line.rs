@@ -570,6 +570,7 @@ impl LineItemLayout<'_, '_> {
             can_be_ellided = true;
         }
 
+        let original_inline_advance = self.current_state.inline_advance;
         let mut number_of_justification_opportunities = 0;
         let mut inline_advance = text_item
             .text
@@ -699,13 +700,21 @@ impl LineItemLayout<'_, '_> {
                     if inline_start < text_item.text[glyph_index].total_advance() {
                         inline_start = text_item.text[glyph_index].total_advance();
                     }
+                    else {
+                        can_be_ellided = false;
+                    }
                 }
+
+                if inline_start == Au(0){
+                    can_be_ellided = false;
+                }
+                can_be_ellided = false;
                 inline_start_found = true;
             }
         }
 
         // create & insert text fragment to vector
-        if can_be_ellided && self.current_state.inline_advance > self.layout.containing_block.size.inline {
+        if can_be_ellided && self.current_state.inline_advance > self.layout.containing_block.size.inline && original_inline_advance < self.layout.containing_block.size.inline  {
             // insert text fragment
             let text_fragment_clip = (Au(0), ellipsis_textrun_segment.runs[0].glyph_store.total_advance());
             self.current_state.fragments.push((
