@@ -570,6 +570,7 @@ impl LineItemLayout<'_, '_> {
             can_be_ellided = true;
         }
 
+        let original_inline_advance = self.current_state.inline_advance;
         let mut number_of_justification_opportunities = 0;
         let mut inline_advance = text_item
             .text
@@ -705,7 +706,7 @@ impl LineItemLayout<'_, '_> {
         }
 
         // create & insert text fragment to vector
-        if can_be_ellided && self.current_state.inline_advance > self.layout.containing_block.size.inline {
+        if can_be_ellided && self.current_state.inline_advance > self.layout.containing_block.size.inline && original_inline_advance < self.layout.containing_block.size.inline {
             // insert text fragment
             let text_fragment_clip = (Au(0), ellipsis_textrun_segment.runs[0].glyph_store.total_advance());
             self.current_state.fragments.push((
