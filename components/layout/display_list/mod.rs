@@ -1576,7 +1576,8 @@ fn glyphs(
                     index: glyph.id(),
                     point,
                 };
-                if total_advance <= max_total_advance {
+                // first glyph must never be ellided. otherwise, check if it's time to crop.
+                if total_advance <= max_total_advance || glyphs.len() == 0 { 
                     glyphs.push(glyph);
                 }
             }

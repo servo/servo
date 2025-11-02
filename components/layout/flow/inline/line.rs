@@ -685,7 +685,6 @@ impl LineItemLayout<'_, '_> {
 
                 // try to mini increment if possible
                 for glyph in text_item.text[glyph_index].iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), text_item.text[glyph_index].len())) {
-                    // TODO
                     if inline_start + glyph.advance() <= inline_target {
                         inline_start += glyph.advance();
                     }
@@ -695,13 +694,10 @@ impl LineItemLayout<'_, '_> {
                 glyph_index -= 1;
             }
             else {
-                if !inline_start_found { // 1st char should be clipped, not ellided.
-                    inline_start = self.layout.containing_block.size.inline;
-                    if inline_start < text_item.text[glyph_index].total_advance() {
-                        inline_start = text_item.text[glyph_index].total_advance();
-                    }
-                }
                 inline_start_found = true;
+            }
+            if inline_start == original_inline_advance { 
+                can_be_ellided = false; // first char cannot be ellided.
             }
         }
 
