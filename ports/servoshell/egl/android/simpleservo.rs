@@ -15,7 +15,9 @@ pub use servo::{MediaSessionPlaybackState, WindowRenderingContext};
 use crate::egl::android::resources::ResourceReaderInstance;
 #[cfg(feature = "webxr")]
 use crate::egl::app_state::XrDiscoveryWebXrRegistry;
-use crate::egl::app_state::{Coordinates, RunningAppState, ServoWindowCallbacks};
+use crate::egl::app_state::{
+    Coordinates, RunningAppState, ServoWindowCallbacks, VsyncRefreshDriver,
+};
 use crate::egl::host_trait::HostTrait;
 use crate::prefs::{ArgumentParsingResult, parse_command_line_arguments};
 
@@ -87,10 +89,12 @@ pub fn init(
         RefCell::new(init_opts.coordinates),
     ));
 
+    let refresh_driver = Rc::new(VsyncRefreshDriver::default());
     let servo_builder = ServoBuilder::new(rendering_context.clone())
         .opts(opts)
         .preferences(preferences)
-        .event_loop_waker(waker.clone());
+        .event_loop_waker(waker.clone())
+        .refresh_driver(refresh_driver.clone());
 
     #[cfg(feature = "webxr")]
     let servo_builder = servo_builder.webxr_registry(Box::new(XrDiscoveryWebXrRegistry::new(
@@ -114,7 +118,7 @@ pub fn init(
             rendering_context,
             servo,
             window_callbacks,
-            None,
+            Some(refresh_driver),
             servoshell_preferences,
             webdriver_receiver,
         );

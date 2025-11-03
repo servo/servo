@@ -36,7 +36,8 @@ import java.util.ArrayList;
 public class ServoView extends SurfaceView
                         implements
                         GfxCallbacks,
-                        RunCallback {
+                        RunCallback,
+                        Choreographer.FrameCallback {
     private static final String LOGTAG = "ServoView";
     private GLThread mGLThread;
     private Handler mGLLooperHandler;
@@ -157,6 +158,14 @@ public class ServoView extends SurfaceView
         return true;
     }
 
+    @Override
+    public void doFrame(long frameTimeNanos) {
+        if (mServo != null) {
+            mServo.onDoFrame();
+        }
+        Choreographer.getInstance().postFrameCallback(this);
+    }
+
     // Calls from Activity
     public void onPause() {
         if (mServo != null) {
@@ -238,6 +247,8 @@ public class ServoView extends SurfaceView
                 mPaused = false;
                 mServoView.mServo.resumeCompositor(surface, coords);
             }
+
+            Choreographer.getInstance().postFrameCallback(mServoView);
 
         }
 

@@ -276,6 +276,14 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_scroll<'local>(
     });
 }
 
+#[unsafe(no_mangle)]
+pub extern "C" fn Java_org_servo_servoview_JNIServo_doFrame<'local>(
+    mut env: JNIEnv<'local>,
+    _: JClass<'local>,
+) {
+    call(&mut env, |s| s.notify_vsync());
+}
+
 enum KeyCode {
     Delete,
     ForwardDelete,
