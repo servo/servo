@@ -1538,6 +1538,26 @@ impl ScriptThread {
             // https://html.spec.whatwg.org/multipage/#the-end step 6
             let mut docs = self.docs_with_no_blocking_loads.borrow_mut();
             for document in docs.iter() {
+                let window = document.window();
+                if let Some(window_proxy) = window.undiscarded_window_proxy() {
+                    if let Some(frame) = window_proxy
+                        .frame_element()
+                        .and_then(|e| e.downcast::<HTMLIFrameElement>())
+                    {
+                        // Both the initial about:blank document,
+                        // and the initial inserted iframe that matches about:blank,
+                        // should not run the document completion steps.
+                        if frame.is_initial_blank_document() ||
+                            (frame.is_initial_navigated_document_that_matches_about_blank() 
+                                && document.url().matches_about_blank())
+                        {
+                            // Note: this is a subset of `maybe_queue_document_completion`,
+                            // which any other iframe should run.
+                            document.run_initial_iframe_about_blank_insertion_completion();
+                            continue;
+                        }
+                    }
+                }
                 let _realm = enter_realm(&**document);
                 document.maybe_queue_document_completion();
             }
