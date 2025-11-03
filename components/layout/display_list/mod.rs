@@ -700,6 +700,7 @@ impl Fragment {
             include_whitespace,
             fragment.parent_width,
             fragment.text_clip,
+            fragment.contains_first_character_of_the_line,
         );
         if glyphs.is_empty() {
             return;
@@ -1555,6 +1556,7 @@ fn glyphs(
     include_whitespace: bool,
     containing_block_width: Au,
     text_clip_boundaries: (Au, Au), // TODO: handle left side ellipsis.
+    contains_first_character_of_the_line: bool,
 ) -> Vec<wr::GlyphInstance> {
     use fonts_traits::ByteIndex;
     use range::Range;
@@ -1577,7 +1579,7 @@ fn glyphs(
                     point,
                 };
                 // first glyph must never be ellided. otherwise, check if it's time to crop.
-                if total_advance <= max_total_advance || glyphs.len() == 0 { 
+                if total_advance <= max_total_advance || (glyphs.len() == 0 && contains_first_character_of_the_line) { 
                     glyphs.push(glyph);
                 }
             }
