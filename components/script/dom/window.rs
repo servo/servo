@@ -2655,15 +2655,25 @@ impl Window {
         &self,
         node: &Node,
         area: BoxAreaType,
+        exclude_transform_and_inline: bool,
     ) -> Option<UntypedRect<Au>> {
         let layout = self.layout.borrow();
         layout.ensure_stacking_context_tree(self.viewport_details.get());
-        layout.query_box_area(node.to_trusted_node_address(), area)
+        layout.query_box_area(
+            node.to_trusted_node_address(),
+            area,
+            exclude_transform_and_inline,
+        )
     }
 
-    pub(crate) fn box_area_query(&self, node: &Node, area: BoxAreaType) -> Option<UntypedRect<Au>> {
+    pub(crate) fn box_area_query(
+        &self,
+        node: &Node,
+        area: BoxAreaType,
+        exclude_transform_and_inline: bool,
+    ) -> Option<UntypedRect<Au>> {
         self.layout_reflow(QueryMsg::BoxArea);
-        self.box_area_query_without_reflow(node, area)
+        self.box_area_query_without_reflow(node, area, exclude_transform_and_inline)
     }
 
     pub(crate) fn box_areas_query(&self, node: &Node, area: BoxAreaType) -> Vec<UntypedRect<Au>> {

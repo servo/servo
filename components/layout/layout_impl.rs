@@ -283,6 +283,7 @@ impl Layout for LayoutThread {
         &self,
         node: TrustedNodeAddress,
         area: BoxAreaType,
+        exclude_transform_and_inline: bool,
     ) -> Option<UntypedRect<Au>> {
         // If we have not built a fragment tree yet, there is no way we have layout information for
         // this query, which can be run without forcing a layout (for IntersectionObserver).
@@ -295,7 +296,12 @@ impl Layout for LayoutThread {
         let stacking_context_tree = stacking_context_tree
             .as_ref()
             .expect("Should always have a StackingContextTree for box area queries");
-        process_box_area_request(stacking_context_tree, node.to_threadsafe(), area)
+        process_box_area_request(
+            stacking_context_tree,
+            node.to_threadsafe(),
+            area,
+            exclude_transform_and_inline,
+        )
     }
 
     /// Get a `Vec` of bounding boxes of this node's `Fragment`s specific area in the coordinate space of

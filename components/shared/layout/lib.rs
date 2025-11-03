@@ -299,7 +299,12 @@ pub trait Layout {
     fn set_needs_new_display_list(&self);
 
     fn query_padding(&self, node: TrustedNodeAddress) -> Option<PhysicalSides>;
-    fn query_box_area(&self, node: TrustedNodeAddress, area: BoxAreaType) -> Option<Rect<Au>>;
+    fn query_box_area(
+        &self,
+        node: TrustedNodeAddress,
+        area: BoxAreaType,
+        exclude_transform_and_inline: bool,
+    ) -> Option<Rect<Au>>;
     fn query_box_areas(&self, node: TrustedNodeAddress, area: BoxAreaType) -> Vec<Rect<Au>>;
     fn query_client_rect(&self, node: TrustedNodeAddress) -> Rect<i32>;
     fn query_element_inner_outer_text(&self, node: TrustedNodeAddress) -> String;
