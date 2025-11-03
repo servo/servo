@@ -2289,8 +2289,7 @@ dependencies = [
 [[package]]
 name = "ecolor"
 version = "0.33.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adf31f99fad93fe83c1055b92b5c1b135f1ecfa464789817c372000e768d4bd1"
+source = "git+https://codeberg.org/shuppy/accesskit-test#5762fccc07f1b6d27f4d8154c69d08cdfa6d5da6"
 dependencies = [
  "bytemuck",
  "emath",
@@ -2299,8 +2298,7 @@ dependencies = [
 [[package]]
 name = "egui"
 version = "0.33.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab9b5d3376c79439f53a78bf7da1e3c0b862ffa3e29f46ab0f3e107430f2e576"
+source = "git+https://codeberg.org/shuppy/accesskit-test#5762fccc07f1b6d27f4d8154c69d08cdfa6d5da6"
 dependencies = [
  "accesskit",
  "ahash",
@@ -2396,8 +2394,7 @@ dependencies = [
 [[package]]
 name = "emath"
 version = "0.33.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c615516cdceec867065f20d7db13d8eb8aedd65c9e32cc0c7c379380fa42e6e8"
+source = "git+https://codeberg.org/shuppy/accesskit-test#5762fccc07f1b6d27f4d8154c69d08cdfa6d5da6"
 dependencies = [
  "bytemuck",
 ]
@@ -2525,8 +2522,7 @@ dependencies = [
 [[package]]
 name = "epaint"
 version = "0.33.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9926b9500ccb917adb070207ec722dd8ea78b8321f94a85ebec776f501f2930c"
+source = "git+https://codeberg.org/shuppy/accesskit-test#5762fccc07f1b6d27f4d8154c69d08cdfa6d5da6"
 dependencies = [
  "ab_glyph",
  "ahash",
@@ -2543,8 +2539,7 @@ dependencies = [
 [[package]]
 name = "epaint_default_fonts"
 version = "0.33.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66054d943c66715c6003a27a3dc152d87cadf714ef2597ccd79f550413009b97"
+source = "git+https://codeberg.org/shuppy/accesskit-test#5762fccc07f1b6d27f4d8154c69d08cdfa6d5da6"
 
 [[package]]
 name = "equator"
