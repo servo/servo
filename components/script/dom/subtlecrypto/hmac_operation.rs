@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use aws_lc_rs::hmac;
-use base64::prelude::*;
+use base64ct::{Base64UrlUnpadded, Encoding};
 use rand::TryRngCore;
 use rand::rngs::OsRng;
 use script_bindings::codegen::GenericBindings::CryptoKeyBinding::CryptoKeyMethods;
@@ -198,8 +198,7 @@ pub(crate) fn import_key(
             // NOTE: Done by Step 2.4 and 2.6.
 
             // Step 2.4. Let data be the byte sequence obtained by decoding the k field of jwk.
-            data = base64::engine::general_purpose::STANDARD_NO_PAD
-                .decode(&*jwk.k.as_ref().ok_or(Error::Data)?.as_bytes())
+            data = Base64UrlUnpadded::decode_vec(&jwk.k.as_ref().ok_or(Error::Data)?.str())
                 .map_err(|_| Error::Data)?;
 
             // Step 2.5. Set the hash to equal the hash member of normalizedAlgorithm.
@@ -330,7 +329,7 @@ pub(crate) fn export(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, 
         KeyFormat::Jwk => {
             let key_data = key.handle().as_bytes();
             // Step 3. Set the k attribute of jwk to be a string containing data
-            let k = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(key_data);
+            let k = Base64UrlUnpadded::encode_string(key_data);
             // Step 6.
             let hash_algorithm = match key.algorithm() {
                 KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(alg) => match &*alg.hash.name {

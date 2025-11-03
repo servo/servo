@@ -8,7 +8,7 @@ use aes::cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit, StreamCipher};
 use aes::{Aes128, Aes192, Aes256};
 use aes_gcm::{AeadInPlace, AesGcm, KeyInit};
 use aes_kw::{KekAes128, KekAes192, KekAes256};
-use base64::prelude::*;
+use base64ct::{Base64UrlUnpadded, Encoding};
 use cipher::consts::{U12, U16, U32};
 use rand::TryRngCore;
 use rand::rngs::OsRng;
@@ -849,8 +849,7 @@ fn import_key_aes(
             // NOTE: Done by Step 2.4 and 2.5.
 
             // Step 2.4. Let data be the byte sequence obtained by decoding the k field of jwk.
-            data = base64::engine::general_purpose::STANDARD_NO_PAD
-                .decode(&*jwk.k.as_ref().ok_or(Error::Data)?.as_bytes())
+            data = Base64UrlUnpadded::decode_vec(&jwk.k.as_ref().ok_or(Error::Data)?.str())
                 .map_err(|_| Error::Data)?;
 
             // NOTE: This function is shared by AES-CBC, AES-CTR, AES-GCM and AES-KW.
@@ -997,9 +996,9 @@ fn export_key_aes(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Err
             // the key represented by the [[handle]] internal slot of key, encoded according to
             // Section 6.4 of JSON Web Algorithms [JWA].
             let k = match key.handle() {
-                Handle::Aes128(key) => base64::engine::general_purpose::STANDARD_NO_PAD.encode(key),
-                Handle::Aes192(key) => base64::engine::general_purpose::STANDARD_NO_PAD.encode(key),
-                Handle::Aes256(key) => base64::engine::general_purpose::STANDARD_NO_PAD.encode(key),
+                Handle::Aes128(key) => Base64UrlUnpadded::encode_string(key),
+                Handle::Aes192(key) => Base64UrlUnpadded::encode_string(key),
+                Handle::Aes256(key) => Base64UrlUnpadded::encode_string(key),
                 _ => unreachable!(),
             };
 

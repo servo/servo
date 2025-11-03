@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base64::prelude::*;
+use base64ct::{Base64UrlUnpadded, Encoding};
 use elliptic_curve::SecretKey;
 use elliptic_curve::rand_core::OsRng;
 use elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint, ValidatePublicKey};
@@ -479,157 +479,153 @@ pub(crate) fn import_key(
 
             // Step 2.10.
             // If namedCurve is "P-256", "P-384" or "P-521":
-            let (handle, key_type) = if matches!(
-                named_curve.as_str(),
-                NAMED_CURVE_P256 | NAMED_CURVE_P384 | NAMED_CURVE_P521
-            ) {
-                match jwk.d {
-                    // If the d field is present:
-                    Some(d) => {
-                        // Step 2.10.1. If jwk does not meet the requirements of Section 6.2.2 of
-                        // JSON Web Algorithms [JWA], then throw a DataError.
-                        let x = match jwk.x {
-                            Some(x) => base64::engine::general_purpose::URL_SAFE_NO_PAD
-                                .decode(&*x.as_bytes())
-                                .map_err(|_| Error::Data)?,
-                            None => return Err(Error::Data),
-                        };
-                        let y = match jwk.y {
-                            Some(y) => base64::engine::general_purpose::URL_SAFE_NO_PAD
-                                .decode(&*y.as_bytes())
-                                .map_err(|_| Error::Data)?,
-                            None => return Err(Error::Data),
-                        };
-                        let d = base64::engine::general_purpose::URL_SAFE_NO_PAD
-                            .decode(&*d.as_bytes())
-                            .map_err(|_| Error::Data)?;
+            let (handle, key_type) =
+                if matches!(
+                    named_curve.as_str(),
+                    NAMED_CURVE_P256 | NAMED_CURVE_P384 | NAMED_CURVE_P521
+                ) {
+                    match jwk.d {
+                        // If the d field is present:
+                        Some(d) => {
+                            // Step 2.10.1. If jwk does not meet the requirements of Section 6.2.2 of
+                            // JSON Web Algorithms [JWA], then throw a DataError.
+                            let x = match jwk.x {
+                                Some(x) => Base64UrlUnpadded::decode_vec(&x.str())
+                                    .map_err(|_| Error::Data)?,
+                                None => return Err(Error::Data),
+                            };
+                            let y = match jwk.y {
+                                Some(y) => Base64UrlUnpadded::decode_vec(&y.str())
+                                    .map_err(|_| Error::Data)?,
+                                None => return Err(Error::Data),
+                            };
+                            let d =
+                                Base64UrlUnpadded::decode_vec(&d.str()).map_err(|_| Error::Data)?;
 
-                        // Step 2.10.2. Let key be a new CryptoKey object that represents the
-                        // Elliptic Curve private key identified by interpreting jwk according to
-                        // Section 6.2.2 of JSON Web Algorithms [JWA].
-                        // NOTE: CryptoKey is created in Step 2.12 - 2.15.
-                        let handle = match named_curve.as_str() {
-                            NAMED_CURVE_P256 => {
-                                let private_key =
-                                    p256::SecretKey::from_slice(&d).map_err(|_| Error::Data)?;
-                                let mut sec1_bytes = vec![4u8];
-                                sec1_bytes.extend_from_slice(&x);
-                                sec1_bytes.extend_from_slice(&y);
-                                let encoded_point = EncodedPoint::from_bytes(&sec1_bytes)
-                                    .map_err(|_| Error::Data)?;
-                                NistP256::validate_public_key(&private_key, &encoded_point)
-                                    .map_err(|_| Error::Data)?;
-                                Handle::P256PrivateKey(private_key)
-                            },
-                            NAMED_CURVE_P384 => {
-                                let private_key =
-                                    p384::SecretKey::from_slice(&d).map_err(|_| Error::Data)?;
-                                let mut sec1_bytes = vec![4u8];
-                                sec1_bytes.extend_from_slice(&x);
-                                sec1_bytes.extend_from_slice(&y);
-                                let encoded_point = EncodedPoint::from_bytes(&sec1_bytes)
-                                    .map_err(|_| Error::Data)?;
-                                NistP384::validate_public_key(&private_key, &encoded_point)
-                                    .map_err(|_| Error::Data)?;
-                                Handle::P384PrivateKey(private_key)
-                            },
-                            NAMED_CURVE_P521 => {
-                                let private_key =
-                                    p521::SecretKey::from_slice(&d).map_err(|_| Error::Data)?;
-                                let mut sec1_bytes = vec![4u8];
-                                sec1_bytes.extend_from_slice(&x);
-                                sec1_bytes.extend_from_slice(&y);
-                                let encoded_point = EncodedPoint::from_bytes(&sec1_bytes)
-                                    .map_err(|_| Error::Data)?;
-                                NistP521::validate_public_key(&private_key, &encoded_point)
-                                    .map_err(|_| Error::Data)?;
-                                Handle::P521PrivateKey(private_key)
-                            },
-                            _ => unreachable!(),
-                        };
+                            // Step 2.10.2. Let key be a new CryptoKey object that represents the
+                            // Elliptic Curve private key identified by interpreting jwk according to
+                            // Section 6.2.2 of JSON Web Algorithms [JWA].
+                            // NOTE: CryptoKey is created in Step 2.12 - 2.15.
+                            let handle = match named_curve.as_str() {
+                                NAMED_CURVE_P256 => {
+                                    let private_key =
+                                        p256::SecretKey::from_slice(&d).map_err(|_| Error::Data)?;
+                                    let mut sec1_bytes = vec![4u8];
+                                    sec1_bytes.extend_from_slice(&x);
+                                    sec1_bytes.extend_from_slice(&y);
+                                    let encoded_point = EncodedPoint::from_bytes(&sec1_bytes)
+                                        .map_err(|_| Error::Data)?;
+                                    NistP256::validate_public_key(&private_key, &encoded_point)
+                                        .map_err(|_| Error::Data)?;
+                                    Handle::P256PrivateKey(private_key)
+                                },
+                                NAMED_CURVE_P384 => {
+                                    let private_key =
+                                        p384::SecretKey::from_slice(&d).map_err(|_| Error::Data)?;
+                                    let mut sec1_bytes = vec![4u8];
+                                    sec1_bytes.extend_from_slice(&x);
+                                    sec1_bytes.extend_from_slice(&y);
+                                    let encoded_point = EncodedPoint::from_bytes(&sec1_bytes)
+                                        .map_err(|_| Error::Data)?;
+                                    NistP384::validate_public_key(&private_key, &encoded_point)
+                                        .map_err(|_| Error::Data)?;
+                                    Handle::P384PrivateKey(private_key)
+                                },
+                                NAMED_CURVE_P521 => {
+                                    let private_key =
+                                        p521::SecretKey::from_slice(&d).map_err(|_| Error::Data)?;
+                                    let mut sec1_bytes = vec![4u8];
+                                    sec1_bytes.extend_from_slice(&x);
+                                    sec1_bytes.extend_from_slice(&y);
+                                    let encoded_point = EncodedPoint::from_bytes(&sec1_bytes)
+                                        .map_err(|_| Error::Data)?;
+                                    NistP521::validate_public_key(&private_key, &encoded_point)
+                                        .map_err(|_| Error::Data)?;
+                                    Handle::P521PrivateKey(private_key)
+                                },
+                                _ => unreachable!(),
+                            };
 
-                        // Step 2.10.3. Set the [[type]] internal slot of Key to "private".
-                        let key_type = KeyType::Private;
+                            // Step 2.10.3. Set the [[type]] internal slot of Key to "private".
+                            let key_type = KeyType::Private;
 
-                        (handle, key_type)
-                    },
-                    // Otherwise:
-                    None => {
-                        // Step 2.10.1. If jwk does not meet the requirements of Section 6.2.1 of
-                        // JSON Web Algorithms [JWA], then throw a DataError.
-                        let x = match jwk.x {
-                            Some(x) => base64::engine::general_purpose::URL_SAFE_NO_PAD
-                                .decode(&*x.as_bytes())
-                                .map_err(|_| Error::Data)?,
-                            None => return Err(Error::Data),
-                        };
-                        let y = match jwk.y {
-                            Some(y) => base64::engine::general_purpose::URL_SAFE_NO_PAD
-                                .decode(&*y.as_bytes())
-                                .map_err(|_| Error::Data)?,
-                            None => return Err(Error::Data),
-                        };
+                            (handle, key_type)
+                        },
+                        // Otherwise:
+                        None => {
+                            // Step 2.10.1. If jwk does not meet the requirements of Section 6.2.1 of
+                            // JSON Web Algorithms [JWA], then throw a DataError.
+                            let x = match jwk.x {
+                                Some(x) => Base64UrlUnpadded::decode_vec(&x.str())
+                                    .map_err(|_| Error::Data)?,
+                                None => return Err(Error::Data),
+                            };
+                            let y = match jwk.y {
+                                Some(y) => Base64UrlUnpadded::decode_vec(&y.str())
+                                    .map_err(|_| Error::Data)?,
+                                None => return Err(Error::Data),
+                            };
 
-                        // Step 2.10.2. Let key be a new CryptoKey object that represents the
-                        // Elliptic Curve public key identified by interpreting jwk according to
-                        // Section 6.2.1 of JSON Web Algorithms [JWA].
-                        // NOTE: CryptoKey is created in Step 2.12 - 2.15.
-                        let handle = match named_curve.as_str() {
-                            NAMED_CURVE_P256 => {
-                                let mut sec1_bytes = vec![4u8];
-                                sec1_bytes.extend_from_slice(&x);
-                                sec1_bytes.extend_from_slice(&y);
-                                let encoded_point = EncodedPoint::from_bytes(&sec1_bytes)
-                                    .map_err(|_| Error::Data)?;
-                                let public_key =
-                                    p256::PublicKey::from_encoded_point(&encoded_point)
-                                        .into_option()
-                                        .ok_or(Error::Data)?;
-                                Handle::P256PublicKey(public_key)
-                            },
-                            NAMED_CURVE_P384 => {
-                                let mut sec1_bytes = vec![4u8];
-                                sec1_bytes.extend_from_slice(&x);
-                                sec1_bytes.extend_from_slice(&y);
-                                let encoded_point = EncodedPoint::from_bytes(&sec1_bytes)
-                                    .map_err(|_| Error::Data)?;
-                                let public_key =
-                                    p384::PublicKey::from_encoded_point(&encoded_point)
-                                        .into_option()
-                                        .ok_or(Error::Data)?;
-                                Handle::P384PublicKey(public_key)
-                            },
-                            NAMED_CURVE_P521 => {
-                                let mut sec1_bytes = vec![4u8];
-                                sec1_bytes.extend_from_slice(&x);
-                                sec1_bytes.extend_from_slice(&y);
-                                let encoded_point = EncodedPoint::from_bytes(&sec1_bytes)
-                                    .map_err(|_| Error::Data)?;
-                                let public_key =
-                                    p521::PublicKey::from_encoded_point(&encoded_point)
-                                        .into_option()
-                                        .ok_or(Error::Data)?;
-                                Handle::P521PublicKey(public_key)
-                            },
-                            _ => unreachable!(),
-                        };
+                            // Step 2.10.2. Let key be a new CryptoKey object that represents the
+                            // Elliptic Curve public key identified by interpreting jwk according to
+                            // Section 6.2.1 of JSON Web Algorithms [JWA].
+                            // NOTE: CryptoKey is created in Step 2.12 - 2.15.
+                            let handle = match named_curve.as_str() {
+                                NAMED_CURVE_P256 => {
+                                    let mut sec1_bytes = vec![4u8];
+                                    sec1_bytes.extend_from_slice(&x);
+                                    sec1_bytes.extend_from_slice(&y);
+                                    let encoded_point = EncodedPoint::from_bytes(&sec1_bytes)
+                                        .map_err(|_| Error::Data)?;
+                                    let public_key =
+                                        p256::PublicKey::from_encoded_point(&encoded_point)
+                                            .into_option()
+                                            .ok_or(Error::Data)?;
+                                    Handle::P256PublicKey(public_key)
+                                },
+                                NAMED_CURVE_P384 => {
+                                    let mut sec1_bytes = vec![4u8];
+                                    sec1_bytes.extend_from_slice(&x);
+                                    sec1_bytes.extend_from_slice(&y);
+                                    let encoded_point = EncodedPoint::from_bytes(&sec1_bytes)
+                                        .map_err(|_| Error::Data)?;
+                                    let public_key =
+                                        p384::PublicKey::from_encoded_point(&encoded_point)
+                                            .into_option()
+                                            .ok_or(Error::Data)?;
+                                    Handle::P384PublicKey(public_key)
+                                },
+                                NAMED_CURVE_P521 => {
+                                    let mut sec1_bytes = vec![4u8];
+                                    sec1_bytes.extend_from_slice(&x);
+                                    sec1_bytes.extend_from_slice(&y);
+                                    let encoded_point = EncodedPoint::from_bytes(&sec1_bytes)
+                                        .map_err(|_| Error::Data)?;
+                                    let public_key =
+                                        p521::PublicKey::from_encoded_point(&encoded_point)
+                                            .into_option()
+                                            .ok_or(Error::Data)?;
+                                    Handle::P521PublicKey(public_key)
+                                },
+                                _ => unreachable!(),
+                            };
 
-                        // Step 2.10.3. Set the [[type]] internal slot of Key to "public".
-                        let key_type = KeyType::Public;
+                            // Step 2.10.3. Set the [[type]] internal slot of Key to "public".
+                            let key_type = KeyType::Public;
 
-                        (handle, key_type)
-                    },
+                            (handle, key_type)
+                        },
+                    }
                 }
-            }
-            // Otherwise
-            else {
-                // Step 2.10.1. Perform any key import steps defined by other applicable
-                // specifications, passing format, jwk and obtaining key.
-                // Step 2.10.2. If an error occurred or there are no applicable specifications,
-                // throw a DataError.
-                // NOTE: We currently do not support applicable specifications.
-                return Err(Error::NotSupported);
-            };
+                // Otherwise
+                else {
+                    // Step 2.10.1. Perform any key import steps defined by other applicable
+                    // specifications, passing format, jwk and obtaining key.
+                    // Step 2.10.2. If an error occurred or there are no applicable specifications,
+                    // throw a DataError.
+                    // NOTE: We currently do not support applicable specifications.
+                    return Err(Error::NotSupported);
+                };
 
             // Step 2.11. If the key value is not a valid point on the Elliptic Curve identified by
             // the namedCurve member of normalizedAlgorithm throw a DataError.
@@ -945,16 +941,8 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                     },
                     _ => return Err(Error::Operation),
                 };
-                jwk.x = Some(
-                    base64::engine::general_purpose::URL_SAFE_NO_PAD
-                        .encode(&x)
-                        .into(),
-                );
-                jwk.y = Some(
-                    base64::engine::general_purpose::URL_SAFE_NO_PAD
-                        .encode(&y)
-                        .into(),
-                );
+                jwk.x = Some(Base64UrlUnpadded::encode_string(&x).into());
+                jwk.y = Some(Base64UrlUnpadded::encode_string(&y).into());
 
                 // Step 3.3.4.
                 // If the [[type]] internal slot of key is "private"
@@ -967,11 +955,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                         Handle::P521PrivateKey(private_key) => private_key.to_bytes().to_vec(),
                         _ => return Err(Error::NotSupported),
                     };
-                    jwk.d = Some(
-                        base64::engine::general_purpose::URL_SAFE_NO_PAD
-                            .encode(&d)
-                            .into(),
-                    );
+                    jwk.d = Some(Base64UrlUnpadded::encode_string(&d).into());
                 }
             }
             // Otherwise:
