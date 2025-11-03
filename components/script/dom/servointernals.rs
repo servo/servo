@@ -100,7 +100,7 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
     }
 
     /// <https://servo.org/internal-no-spec>
-    fn DefaultValue(
+    fn DefaultPreferenceValue(
         &self,
         cx: SafeJSContext,
         name: USVString,

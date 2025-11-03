@@ -14,7 +14,7 @@ interface ServoInternals {
 
     sequence<USVString> preferenceList();
     [Throws] USVString preferenceType(USVString name);
-    [Throws] any defaultValue(USVString name);
+    [Throws] any defaultPreferenceValue(USVString name);
     [Throws] any getPreference(USVString name);
     [Throws] USVString getStringPreference(USVString name);
     [Throws] long long getIntPreference(USVString name);
