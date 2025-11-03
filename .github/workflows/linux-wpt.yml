@@ -85,7 +85,7 @@ jobs:
             --total-chunks ${{ inputs.number-of-wpt-chunks }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw wpt-full-logs/linux/raw/${{ matrix.chunk_id }}.log \
             --log-wptreport wpt-full-logs/linux/wptreport/${{ matrix.chunk_id }}.json \
-            --log-raw-unexpected wpt-filtered-logs/linux/${{ matrix.chunk_id }}.log \
+            --log-raw-stable-unexpected wpt-filtered-logs/linux/${{ matrix.chunk_id }}.log \
             --filter-intermittents wpt-filtered-logs/linux/${{ matrix.chunk_id }}.json \
             ${{ inputs.wpt-args }}
         env:
@@ -129,6 +129,17 @@ jobs:
         with:
           name: wpt-filtered-logs-linux
           path: results
+      - name: Aggregate results
+        if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
+        run: |
+          touch stable-unexpected-results.log
+          cat results/linux/*.log > stable-unexpected-results.log || true
+      - name: Upload aggregated results
+        if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: stable-unexpected-results-linux
+          path: stable-unexpected-results.log
       - name: Report results
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
         run: |

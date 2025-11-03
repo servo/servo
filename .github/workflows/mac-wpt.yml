@@ -58,7 +58,7 @@ jobs:
             --${{ inputs.profile }} --processes $(sysctl -n hw.logicalcpu) --timeout-multiplier 8 \
             --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw wpt-full-logs/${{ env.NAME }}/${{ matrix.chunk_id }}.log \
-            --log-raw-unexpected wpt-filtered-logs/${{ env.NAME }}/${{ matrix.chunk_id }}.log \
+            --log-raw-stable-unexpected wpt-filtered-logs/${{ env.NAME }}/${{ matrix.chunk_id }}.log \
             --filter-intermittents wpt-filtered-logs/${{ env.NAME }}/${{ matrix.chunk_id }}.json
             ${{ inputs.wpt-args }}
       - name: Archive results (filtered)
@@ -96,6 +96,17 @@ jobs:
         if: ${{ !cancelled() }}
         with:
           fetch-depth: 2
+      - name: Aggregate results
+        if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
+        run: |
+          touch stable-unexpected-results.log
+          cat results/${{ env.NAME }}/*.log > stable-unexpected-results.log || true
+      - name: Upload aggregated results
+        if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: stable-unexpected-results-${{ env.NAME }}
+          path: stable-unexpected-results.log
       - uses: actions/download-artifact@v4
         if: ${{ !cancelled() }}
         with:
