@@ -8,19 +8,19 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
 use std::{mem, thread};
 
-use base::id::PipelineId;
+use base::id::{PipelineId, WebViewId};
 use base::threadpool::ThreadPool;
 use compositing_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
 use imsz::imsz_from_reader;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
-use log::{debug, error, warn};
+use log::{debug, warn};
 use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use net_traits::image_cache::{
-    Image, ImageCache, ImageCacheResponseMessage, ImageCacheResult, ImageLoadListener,
-    ImageOrMetadataAvailable, ImageResponse, PendingImageId, RasterizationCompleteResponse,
-    UsePlaceholder, VectorImage,
+    Image, ImageCache, ImageCacheFactory, ImageCacheResponseMessage, ImageCacheResult,
+    ImageLoadListener, ImageOrMetadataAvailable, ImageResponse, PendingImageId,
+    RasterizationCompleteResponse, UsePlaceholder, VectorImage,
 };
 use net_traits::request::CorsSettings;
 use net_traits::{FetchMetadata, FetchResponseMsg, FilteredMetadata, NetworkError};
@@ -475,9 +475,11 @@ struct ImageCacheStore {
     #[ignore_malloc_size_of = "Channel from another crate"]
     compositor_api: CrossProcessCompositorApi,
 
-    // The PipelineId will initially be None because the constructed cache is not associated
-    // with any pipeline yet. This will happen later by way of `create_new_image_cache`.
-    pipeline_id: Option<PipelineId>,
+    /// The [`WebView`] of the `Webview` associated with this [`ImageCache`].
+    webview_id: WebViewId,
+
+    /// The [`PipelineId`] of the `Pipeline` associated with this [`ImageCache`].
+    pipeline_id: PipelineId,
 
     /// Main struct to handle the cache of `WebRenderImageKey` and
     /// images that do not have a key yet.
@@ -502,24 +504,21 @@ impl ImageCacheStore {
     /// If a key is available the image will be immediately loaded, otherwise it will load then the next batch of
     /// keys is received. Only call this if the image does not have a `LoadKey` yet.
     fn load_image_with_keycache(&mut self, pending_image: PendingKey) {
-        if let Some(pipeline_id) = self.pipeline_id {
-            match self.key_cache.cache {
-                KeyCacheState::PendingBatch => {
+        match self.key_cache.cache {
+            KeyCacheState::PendingBatch => {
+                self.key_cache.images_pending_keys.push_back(pending_image);
+            },
+            KeyCacheState::Ready(ref mut cache) => match cache.pop() {
+                Some(image_key) => {
+                    self.set_key_and_finish_load(pending_image, image_key);
+                },
+                None => {
                     self.key_cache.images_pending_keys.push_back(pending_image);
+                    self.compositor_api
+                        .generate_image_key_async(self.pipeline_id);
+                    self.key_cache.cache = KeyCacheState::PendingBatch
                 },
-                KeyCacheState::Ready(ref mut cache) => match cache.pop() {
-                    Some(image_key) => {
-                        self.set_key_and_finish_load(pending_image, image_key);
-                    },
-                    None => {
-                        self.key_cache.images_pending_keys.push_back(pending_image);
-                        self.compositor_api.generate_image_key_async(pipeline_id);
-                        self.key_cache.cache = KeyCacheState::PendingBatch
-                    },
-                },
-            }
-        } else {
-            error!("No pipeline id for this image key cache.");
+            },
         }
     }
 
@@ -541,7 +540,7 @@ impl ImageCacheStore {
             }
             if !self.key_cache.images_pending_keys.is_empty() {
                 self.compositor_api
-                    .generate_image_key_async(self.pipeline_id.unwrap());
+                    .generate_image_key_async(self.pipeline_id);
                 self.key_cache.cache = KeyCacheState::PendingBatch
             }
         } else {
@@ -669,18 +668,19 @@ impl ImageCacheStore {
     }
 }
 
-pub struct ImageCacheImpl {
-    store: Arc<Mutex<ImageCacheStore>>,
-
+pub struct ImageCacheFactoryImpl {
+    /// The data to use for the placeholder image used when images cannot load.
+    rippy_data: Arc<Vec<u8>>,
     /// Thread pool for image decoding
     thread_pool: Arc<ThreadPool>,
-
+    /// A shared font database to be used by system fonts accessed when rasterizing vector
+    /// images.
     fontdb: Arc<fontdb::Database>,
 }
 
-impl ImageCache for ImageCacheImpl {
-    fn new(compositor_api: CrossProcessCompositorApi, rippy_data: Vec<u8>) -> ImageCacheImpl {
-        debug!("New image cache");
+impl ImageCacheFactoryImpl {
+    pub fn new(rippy_data: Vec<u8>) -> Self {
+        debug!("Creating new ImageCacheFactoryImpl");
 
         // Uses an estimate of the system cpus to decode images
         // See https://doc.rust-lang.org/stable/std/thread/fn.available_parallelism.html
@@ -693,23 +693,52 @@ impl ImageCache for ImageCacheImpl {
         let mut fontdb = fontdb::Database::new();
         fontdb.load_system_fonts();
 
-        ImageCacheImpl {
+        Self {
+            rippy_data: Arc::new(rippy_data),
+            thread_pool: Arc::new(ThreadPool::new(thread_count, "ImageCache".to_string())),
+            fontdb: Arc::new(fontdb),
+        }
+    }
+}
+
+impl ImageCacheFactory for ImageCacheFactoryImpl {
+    fn create(
+        &self,
+        webview_id: WebViewId,
+        pipeline_id: PipelineId,
+        compositor_api: &CrossProcessCompositorApi,
+    ) -> Arc<dyn ImageCache> {
+        Arc::new(ImageCacheImpl {
             store: Arc::new(Mutex::new(ImageCacheStore {
                 pending_loads: AllPendingLoads::new(),
                 completed_loads: HashMap::new(),
                 vector_images: FxHashMap::default(),
                 rasterized_vector_images: FxHashMap::default(),
-                placeholder_image: get_placeholder_image(&compositor_api, &rippy_data),
+                placeholder_image: get_placeholder_image(compositor_api, &self.rippy_data),
                 placeholder_url: ServoUrl::parse("chrome://resources/rippy.png").unwrap(),
                 compositor_api: compositor_api.clone(),
-                pipeline_id: None,
+                pipeline_id,
+                webview_id,
                 key_cache: KeyCache::new(),
             })),
-            thread_pool: Arc::new(ThreadPool::new(thread_count, "ImageCache".to_string())),
-            fontdb: Arc::new(fontdb),
-        }
+            thread_pool: self.thread_pool.clone(),
+            fontdb: self.fontdb.clone(),
+        })
     }
+}
 
+pub struct ImageCacheImpl {
+    /// Per-[`ImageCache`] data.
+    store: Arc<Mutex<ImageCacheStore>>,
+    /// Thread pool for image decoding. This is shared with other [`ImageCache`]s in the
+    /// same process.
+    thread_pool: Arc<ThreadPool>,
+    /// A shared font database to be used by system fonts accessed when rasterizing vector
+    /// images. This is shared with other [`ImageCache`]s in the same process.
+    fontdb: Arc<fontdb::Database>,
+}
+
+impl ImageCache for ImageCacheImpl {
     fn memory_report(&self, prefix: &str, ops: &mut MallocSizeOfOps) -> Report {
         let size = self.store.lock().unwrap().size_of(ops);
         Report {
@@ -1043,31 +1072,6 @@ impl ImageCache for ImageCacheImpl {
                 }
             },
         }
-    }
-
-    fn create_new_image_cache(
-        &self,
-        pipeline_id: Option<PipelineId>,
-        compositor_api: CrossProcessCompositorApi,
-    ) -> Arc<dyn ImageCache> {
-        let store = self.store.lock().unwrap();
-        let placeholder_image = store.placeholder_image.clone();
-        let placeholder_url = store.placeholder_url.clone();
-        Arc::new(ImageCacheImpl {
-            store: Arc::new(Mutex::new(ImageCacheStore {
-                pending_loads: AllPendingLoads::new(),
-                completed_loads: HashMap::new(),
-                placeholder_image,
-                placeholder_url,
-                compositor_api,
-                vector_images: FxHashMap::default(),
-                rasterized_vector_images: FxHashMap::default(),
-                key_cache: KeyCache::new(),
-                pipeline_id,
-            })),
-            thread_pool: self.thread_pool.clone(),
-            fontdb: self.fontdb.clone(),
-        })
     }
 
     fn fill_key_cache_with_batch_of_keys(&self, image_keys: Vec<WebRenderImageKey>) {

@@ -149,8 +149,7 @@ use keyboard_types::{Key, KeyState, Modifiers, NamedKey};
 use layout_api::{LayoutFactory, ScriptThreadFactory};
 use log::{debug, error, info, trace, warn};
 use media::WindowGLContext;
-use net::image_cache::ImageCacheImpl;
-use net_traits::image_cache::ImageCache;
+use net::image_cache::ImageCacheFactoryImpl;
 use net_traits::pub_domains::reg_host;
 use net_traits::request::Referrer;
 use net_traits::{
@@ -488,8 +487,10 @@ pub struct Constellation<STF, SWF> {
     /// A list of URLs that can access privileged internal APIs.
     privileged_urls: Vec<ServoUrl>,
 
-    /// The image cache for the single-process mode
-    image_cache: Box<dyn ImageCache>,
+    /// The [`ImageCacheFactory`] to use for all `ScriptThread`s when we are running in
+    /// single-process mode. In multi-process mode, each process will create its own
+    /// [`ImageCacheFactoryImpl`].
+    image_cache_factory: Arc<ImageCacheFactoryImpl>,
 
     /// Pending viewport changes for browsing contexts that are not
     /// yet known to the constellation.
@@ -730,8 +731,7 @@ where
                     async_runtime: state.async_runtime,
                     script_join_handles: Default::default(),
                     privileged_urls: state.privileged_urls,
-                    image_cache: Box::new(ImageCacheImpl::new(
-                        state.compositor_proxy.cross_process_compositor_api,
+                    image_cache_factory: Arc::new(ImageCacheFactoryImpl::new(
                         rippy_data,
                     )),
                     pending_viewport_changes: Default::default(),
@@ -1017,10 +1017,7 @@ where
             rippy_data: self.rippy_data.clone(),
             user_content_manager: self.user_content_manager.clone(),
             privileged_urls: self.privileged_urls.clone(),
-            image_cache: self.image_cache.create_new_image_cache(
-                Some(pipeline_id),
-                self.compositor_proxy.cross_process_compositor_api.clone(),
-            ),
+            image_cache_factory: self.image_cache_factory.clone(),
         });
 
         let pipeline = match result {

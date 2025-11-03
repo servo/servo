@@ -39,7 +39,7 @@ use keyboard_types::Modifiers;
 use malloc_size_of_derive::MallocSizeOf;
 use media::WindowGLContext;
 use net_traits::ResourceThreads;
-use net_traits::image_cache::ImageCache;
+use net_traits::image_cache::ImageCacheFactory;
 use pixels::PixelFormat;
 use profile_traits::mem;
 use rustc_hash::FxHashMap;
@@ -352,8 +352,8 @@ pub struct InitialScriptState {
     /// A channel to the bluetooth thread.
     #[cfg(feature = "bluetooth")]
     pub bluetooth_sender: IpcSender<BluetoothRequest>,
-    /// The image cache for this script thread.
-    pub image_cache: Arc<dyn ImageCache>,
+    /// The [`ImageCacheFactory] for this `ScriptThread`.
+    pub image_cache_factory: Arc<dyn ImageCacheFactory>,
     /// A channel to the time profiler thread.
     pub time_profiler_sender: profile_traits::time::ProfilerChan,
     /// A channel to the memory profiler thread.
