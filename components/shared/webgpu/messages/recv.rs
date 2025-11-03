@@ -62,6 +62,10 @@ pub struct PendingTexture {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebGPURequest {
+    SetImageKey {
+        context_id: WebGPUContextId,
+        image_key: ImageKey,
+    },
     BufferMapAsync {
         sender: IpcSender<Result<Mapping, BufferAccessError>>,
         buffer_id: BufferId,
@@ -158,7 +162,7 @@ pub enum WebGPURequest {
     CreateContext {
         buffer_ids: ArrayVec<BufferId, PRESENTATION_BUFFER_COUNT>,
         size: DeviceIntSize,
-        sender: IpcSender<(WebGPUContextId, ImageKey)>,
+        sender: IpcSender<WebGPUContextId>,
     },
     /// Present texture to WebRender
     Present {

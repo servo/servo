@@ -93,15 +93,14 @@ impl CanvasPaintThread {
     }
 
     #[servo_tracing::instrument(skip_all)]
-    pub fn create_canvas(&mut self, size: Size2D<u64>) -> Option<(CanvasId, ImageKey)> {
+    pub fn create_canvas(&mut self, size: Size2D<u64>) -> Option<CanvasId> {
         let canvas_id = self.next_canvas_id;
         self.next_canvas_id.0 += 1;
 
         let canvas = Canvas::new(size, self.compositor_api.clone())?;
-        let image_key = canvas.image_key();
         self.canvases.insert(canvas_id, canvas);
 
-        Some((canvas_id, image_key))
+        Some(canvas_id)
     }
 
     #[servo_tracing::instrument(
@@ -110,6 +109,9 @@ impl CanvasPaintThread {
     )]
     fn process_canvas_2d_message(&mut self, message: Canvas2dMsg, canvas_id: CanvasId) {
         match message {
+            Canvas2dMsg::SetImageKey(image_key) => {
+                self.canvas(canvas_id).set_image_key(image_key);
+            },
             Canvas2dMsg::FillText(
                 text_bounds,
                 text_runs,
@@ -315,12 +317,12 @@ impl Canvas {
         }
     }
 
-    fn image_key(&self) -> ImageKey {
+    fn set_image_key(&mut self, image_key: ImageKey) {
         match self {
             #[cfg(feature = "vello")]
-            Canvas::Vello(canvas_data) => canvas_data.image_key(),
+            Canvas::Vello(canvas_data) => canvas_data.set_image_key(image_key),
             #[cfg(feature = "vello_cpu")]
-            Canvas::VelloCPU(canvas_data) => canvas_data.image_key(),
+            Canvas::VelloCPU(canvas_data) => canvas_data.set_image_key(image_key),
         }
     }
 

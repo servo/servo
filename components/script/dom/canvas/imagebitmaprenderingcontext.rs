@@ -7,19 +7,15 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use pixels::Snapshot;
-use webrender_api::ImageKey;
 
-use crate::canvas_context::{
-    CanvasContext, CanvasHelpers, HTMLCanvasElementOrOffscreenCanvas,
-    LayoutCanvasRenderingContextHelpers,
-};
+use crate::canvas_context::{CanvasContext, CanvasHelpers, HTMLCanvasElementOrOffscreenCanvas};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::ImageBitmapMethods;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapRenderingContextBinding::ImageBitmapRenderingContextMethods;
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
-use crate::dom::bindings::root::{DomRoot, LayoutDom};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::imagebitmap::ImageBitmap;
 use crate::script_runtime::CanGc;
@@ -94,12 +90,6 @@ impl ImageBitmapRenderingContext {
     }
 }
 
-impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, ImageBitmapRenderingContext> {
-    fn canvas_data_source(self) -> Option<ImageKey> {
-        None
-    }
-}
-
 impl CanvasContext for ImageBitmapRenderingContext {
     type ID = ();
 
@@ -155,10 +145,6 @@ impl CanvasContext for ImageBitmapRenderingContext {
             .borrow()
             .as_ref()
             .map_or_else(|| self.canvas.size(), |bitmap| bitmap.size())
-    }
-
-    fn image_key(&self) -> Option<ImageKey> {
-        None
     }
 
     fn mark_as_dirty(&self) {}

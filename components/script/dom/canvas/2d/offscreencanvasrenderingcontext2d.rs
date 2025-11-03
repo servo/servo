@@ -97,10 +97,6 @@ impl CanvasContext for OffscreenCanvasRenderingContext2D {
         self.context.origin_is_clean()
     }
 
-    fn image_key(&self) -> Option<webrender_api::ImageKey> {
-        None
-    }
-
     fn mark_as_dirty(&self) {}
 }
 

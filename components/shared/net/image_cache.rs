@@ -188,6 +188,11 @@ pub trait ImageCacheFactory: Sync + Send {
 pub trait ImageCache: Sync + Send {
     fn memory_report(&self, prefix: &str, ops: &mut MallocSizeOfOps) -> Report;
 
+    /// Get an [`ImageKey`] to be used for external WebRender image management for
+    /// things like canvas rendering. Returns `None` when an [`ImageKey`] cannot
+    /// be generated properly.
+    fn get_image_key(&self) -> Option<ImageKey>;
+
     /// Definitively check whether there is a cached, fully loaded image available.
     fn get_image(
         &self,

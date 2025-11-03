@@ -29,7 +29,7 @@ use url::Host;
 use webrender_api::ImageKey;
 
 use super::validations::types::TexImageTarget;
-use crate::canvas_context::{CanvasContext, LayoutCanvasRenderingContextHelpers};
+use crate::canvas_context::CanvasContext;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::{
     WebGL2RenderingContextConstants as constants, WebGL2RenderingContextMethods,
 };
@@ -43,7 +43,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
 };
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 #[cfg(feature = "webxr")]
@@ -187,6 +187,10 @@ impl WebGL2RenderingContext {
     ) -> Option<DomRoot<WebGL2RenderingContext>> {
         WebGL2RenderingContext::new_inherited(window, canvas, size, attrs, can_gc)
             .map(|ctx| reflect_dom_object(Box::new(ctx), window, can_gc))
+    }
+
+    pub(crate) fn set_image_key(&self, image_key: ImageKey) {
+        self.base.set_image_key(image_key);
     }
 
     #[allow(unsafe_code)]
@@ -989,10 +993,6 @@ impl CanvasContext for WebGL2RenderingContext {
 
     fn mark_as_dirty(&self) {
         self.base.mark_as_dirty()
-    }
-
-    fn image_key(&self) -> Option<ImageKey> {
-        self.base.image_key()
     }
 }
 
@@ -4919,14 +4919,6 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         let p = Promise::new(&self.global(), can_gc);
         p.resolve_native(&(), can_gc);
         p
-    }
-}
-
-impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, WebGL2RenderingContext> {
-    #[allow(unsafe_code)]
-    fn canvas_data_source(self) -> Option<ImageKey> {
-        let this = self.unsafe_get();
-        unsafe { (*this.base.to_layout().unsafe_get()).layout_handle() }
     }
 }
 

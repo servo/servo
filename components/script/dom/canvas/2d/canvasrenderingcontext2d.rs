@@ -12,10 +12,7 @@ use servo_url::ServoUrl;
 use webrender_api::ImageKey;
 
 use super::canvas_state::CanvasState;
-use crate::canvas_context::{
-    CanvasContext, CanvasHelpers, HTMLCanvasElementOrOffscreenCanvas,
-    LayoutCanvasRenderingContextHelpers,
-};
+use crate::canvas_context::{CanvasContext, CanvasHelpers, HTMLCanvasElementOrOffscreenCanvas};
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
     CanvasRenderingContext2DMethods, CanvasTextAlign, CanvasTextBaseline,
@@ -28,7 +25,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom};
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::canvasgradient::CanvasGradient;
 use crate::dom::canvaspattern::CanvasPattern;
@@ -36,7 +33,6 @@ use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::imagedata::ImageData;
-use crate::dom::node::NodeTraits;
 use crate::dom::path2d::Path2D;
 use crate::dom::textmetrics::TextMetrics;
 use crate::script_runtime::CanGc;
@@ -90,17 +86,16 @@ impl CanvasRenderingContext2D {
     pub(crate) fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {
         self.canvas_state.send_canvas_2d_msg(msg)
     }
-}
 
-impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, CanvasRenderingContext2D> {
-    fn canvas_data_source(self) -> Option<ImageKey> {
-        let canvas_state = &self.unsafe_get().canvas_state;
+    pub(crate) fn set_image_key(&self, image_key: ImageKey) {
+        self.canvas_state.set_image_key(image_key);
+    }
 
-        if canvas_state.is_paintable() {
-            Some(canvas_state.image_key())
-        } else {
-            None
+    pub(crate) fn update_rendering(&self, canvas_epoch: Epoch) -> bool {
+        if !self.onscreen() {
+            return false;
         }
+        self.canvas_state.update_rendering(Some(canvas_epoch))
     }
 }
 
@@ -113,13 +108,6 @@ impl CanvasContext for CanvasRenderingContext2D {
 
     fn canvas(&self) -> Option<RootedHTMLCanvasElementOrOffscreenCanvas> {
         Some(RootedHTMLCanvasElementOrOffscreenCanvas::from(&self.canvas))
-    }
-
-    fn update_rendering(&self, canvas_epoch: Epoch) -> bool {
-        if !self.onscreen() {
-            return false;
-        }
-        self.canvas_state.update_rendering(Some(canvas_epoch))
     }
 
     fn resize(&self) {
@@ -146,13 +134,7 @@ impl CanvasContext for CanvasRenderingContext2D {
     }
 
     fn mark_as_dirty(&self) {
-        if let Some(canvas) = self.canvas.canvas() {
-            canvas.owner_document().add_dirty_2d_canvas(self);
-        }
-    }
-
-    fn image_key(&self) -> Option<ImageKey> {
-        Some(self.canvas_state.image_key())
+        self.canvas.mark_as_dirty();
     }
 }
 

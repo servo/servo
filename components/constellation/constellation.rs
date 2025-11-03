@@ -175,8 +175,8 @@ use style::global_style_data::StyleThreadPool;
 use webgpu::canvas_context::WGPUImageMap;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPU, WebGPURequest};
+use webrender_api::ExternalScrollId;
 use webrender_api::units::LayoutVector2D;
-use webrender_api::{ExternalScrollId, ImageKey};
 
 use crate::broadcastchannel::BroadcastChannels;
 use crate::browsingcontext::{
@@ -4487,7 +4487,7 @@ where
     fn handle_create_canvas_paint_thread_msg(
         &mut self,
         size: UntypedSize2D<u64>,
-        response_sender: IpcSender<Option<(GenericSender<CanvasMsg>, CanvasId, ImageKey)>>,
+        response_sender: IpcSender<Option<(GenericSender<CanvasMsg>, CanvasId)>>,
     ) {
         let (canvas_data_sender, canvas_data_receiver) = unbounded();
         let (canvas_sender, canvas_ipc_sender) = self
@@ -4502,9 +4502,7 @@ where
             None
         } else {
             match canvas_data_receiver.recv() {
-                Ok(Some((canvas_id, image_key))) => {
-                    Some((canvas_ipc_sender.clone(), canvas_id, image_key))
-                },
+                Ok(Some(canvas_id)) => Some((canvas_ipc_sender.clone(), canvas_id)),
                 Ok(None) => None,
                 Err(e) => {
                     warn!("Create canvas paint thread id response failed ({})", e);

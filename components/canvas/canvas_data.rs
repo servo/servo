@@ -22,9 +22,9 @@ pub(crate) enum Filter {
 }
 
 pub(crate) struct CanvasData<DrawTarget: GenericDrawTarget> {
-    drawtarget: DrawTarget,
+    draw_target: DrawTarget,
     compositor_api: CrossProcessCompositorApi,
-    image_key: ImageKey,
+    image_key: Option<ImageKey>,
 }
 
 impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
@@ -32,20 +32,20 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         size: Size2D<u64>,
         compositor_api: CrossProcessCompositorApi,
     ) -> CanvasData<DrawTarget> {
-        let size = size.max(MIN_WR_IMAGE_SIZE);
-        let mut draw_target = DrawTarget::new(size.cast());
-        let image_key = compositor_api.generate_image_key_blocking().unwrap();
-        let (descriptor, data) = draw_target.image_descriptor_and_serializable_data();
-        compositor_api.add_image(image_key, descriptor, data);
         CanvasData {
-            drawtarget: draw_target,
+            draw_target: DrawTarget::new(size.max(MIN_WR_IMAGE_SIZE).cast()),
             compositor_api,
-            image_key,
+            image_key: None,
         }
     }
 
-    pub(crate) fn image_key(&self) -> ImageKey {
-        self.image_key
+    pub(crate) fn set_image_key(&mut self, image_key: ImageKey) {
+        let (descriptor, data) = self.draw_target.image_descriptor_and_serializable_data();
+        self.compositor_api.add_image(image_key, descriptor, data);
+
+        if let Some(old_image_key) = self.image_key.replace(image_key) {
+            self.compositor_api.delete_image(old_image_key);
+        }
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -93,7 +93,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
                 writer,
             );
         } else {
-            writer(&mut self.drawtarget, transform);
+            writer(&mut self.draw_target, transform);
         }
     }
 
@@ -113,7 +113,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
             transform,
             |self_, style| {
                 self_
-                    .drawtarget
+                    .draw_target
                     .fill_text(text_runs, style, composition_options, transform);
             },
         );
@@ -135,7 +135,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
             &text_bounds,
             transform,
             |self_, style| {
-                self_.drawtarget.stroke_text(
+                self_.draw_target.stroke_text(
                     text_runs,
                     style,
                     line_options,
@@ -176,7 +176,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
                 transform,
                 |self_, style| {
                     self_
-                        .drawtarget
+                        .draw_target
                         .fill_rect(rect, style, composition_options, transform);
                 },
             );
@@ -184,7 +184,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
     }
 
     pub(crate) fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f64>) {
-        self.drawtarget.clear_rect(rect, transform);
+        self.draw_target.clear_rect(rect, transform);
     }
 
     pub(crate) fn stroke_rect(
@@ -223,7 +223,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
                 &rect.cast(),
                 transform,
                 |self_, style| {
-                    self_.drawtarget.stroke_rect(
+                    self_.draw_target.stroke_rect(
                         rect,
                         style,
                         line_options,
@@ -255,7 +255,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
             transform,
             |self_, style| {
                 self_
-                    .drawtarget
+                    .draw_target
                     .fill(path, fill_rule, style, composition_options, transform)
             },
         )
@@ -281,7 +281,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
             transform,
             |self_, style| {
                 self_
-                    .drawtarget
+                    .draw_target
                     .stroke(path, style, line_options, composition_options, transform);
             },
         )
@@ -293,18 +293,18 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         fill_rule: FillRule,
         transform: Transform2D<f64>,
     ) {
-        self.drawtarget.push_clip(path, fill_rule, transform);
+        self.draw_target.push_clip(path, fill_rule, transform);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#reset-the-rendering-context-to-its-default-state>
     pub(crate) fn recreate(&mut self, size: Option<Size2D<u64>>) {
         let size = size
-            .unwrap_or_else(|| self.drawtarget.get_size().to_u64())
+            .unwrap_or_else(|| self.draw_target.get_size().to_u64())
             .max(MIN_WR_IMAGE_SIZE);
 
         // Step 1. Clear canvas's bitmap to transparent black.
-        self.drawtarget = self
-            .drawtarget
+        self.draw_target = self
+            .draw_target
             .create_similar_draw_target(&Size2D::new(size.width, size.height).cast());
 
         self.update_image_rendering(None);
@@ -312,6 +312,10 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
 
     /// Update image in WebRender
     pub(crate) fn update_image_rendering(&mut self, canvas_epoch: Option<Epoch>) {
+        let Some(image_key) = self.image_key else {
+            return;
+        };
+
         let (descriptor, data) = {
             #[cfg(feature = "tracing")]
             let _span = tracing::trace_span!(
@@ -319,21 +323,21 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
                 servo_profiling = true,
             )
             .entered();
-            self.drawtarget.image_descriptor_and_serializable_data()
+            self.draw_target.image_descriptor_and_serializable_data()
         };
 
         self.compositor_api
-            .update_image(self.image_key, descriptor, data, canvas_epoch);
+            .update_image(image_key, descriptor, data, canvas_epoch);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
     pub(crate) fn put_image_data(&mut self, snapshot: Snapshot, rect: Rect<u32>) {
         assert_eq!(rect.size, snapshot.size());
         let source_surface = self
-            .drawtarget
+            .draw_target
             .create_source_surface_from_data(snapshot)
             .unwrap();
-        self.drawtarget.copy_surface(
+        self.draw_target.copy_surface(
             source_surface,
             Rect::from_size(rect.size.to_i32()),
             rect.origin.to_i32(),
@@ -341,7 +345,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
     }
 
     fn create_draw_target_for_shadow(&self, source_rect: &Rect<f32>) -> DrawTarget {
-        self.drawtarget.create_similar_draw_target(&Size2D::new(
+        self.draw_target.create_similar_draw_target(&Size2D::new(
             source_rect.size.width as i32,
             source_rect.size.height as i32,
         ))
@@ -363,7 +367,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         let shadow_transform = transform
             .then(&Transform2D::identity().pre_translate(-shadow_src_rect.origin.to_vector()));
         draw_shadow_source(&mut new_draw_target, shadow_transform);
-        self.drawtarget.draw_surface_with_shadow(
+        self.draw_target.draw_surface_with_shadow(
             new_draw_target.surface(),
             &Point2D::new(
                 shadow_src_rect.origin.x as f32,
@@ -403,9 +407,9 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         ))
         .cast();
         let rect = transform.outer_transformed_rect(&rect);
-        self.drawtarget.push_clip_rect(&rect.cast());
+        self.draw_target.push_clip_rect(&rect.cast());
         draw_shape(self, style);
-        self.drawtarget.pop_clip();
+        self.draw_target.pop_clip();
     }
 
     /// It reads image data from the canvas
@@ -413,7 +417,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
     /// read_rect: The area of the canvas we want to read from
     #[servo_tracing::instrument(skip_all)]
     pub(crate) fn read_pixels(&mut self, read_rect: Option<Rect<u32>>) -> Snapshot {
-        let canvas_size = self.drawtarget.get_size().cast();
+        let canvas_size = self.draw_target.get_size().cast();
 
         if let Some(read_rect) = read_rect {
             let canvas_rect = Rect::from_size(canvas_size);
@@ -423,23 +427,25 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
             {
                 Snapshot::empty()
             } else {
-                self.drawtarget.snapshot().get_rect(read_rect)
+                self.draw_target.snapshot().get_rect(read_rect)
             }
         } else {
-            self.drawtarget.snapshot()
+            self.draw_target.snapshot()
         }
     }
 
     pub(crate) fn pop_clips(&mut self, clips: usize) {
         for _ in 0..clips {
-            self.drawtarget.pop_clip();
+            self.draw_target.pop_clip();
         }
     }
 }
 
 impl<D: GenericDrawTarget> Drop for CanvasData<D> {
     fn drop(&mut self) {
-        self.compositor_api.delete_image(self.image_key);
+        if let Some(image_key) = self.image_key {
+            self.compositor_api.delete_image(image_key);
+        }
     }
 }
 

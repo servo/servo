@@ -16,8 +16,6 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::WebViewId;
 use base::{Epoch, IpcSend, generic_channel};
 use bitflags::bitflags;
-use canvas_traits::canvas::CanvasId;
-use canvas_traits::webgl::{WebGLContextId, WebGLMsg};
 use chrono::Local;
 use constellation_traits::{NavigationHistoryBehavior, ScriptToConstellationMessage};
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
@@ -69,12 +67,9 @@ use style::stylesheets::{Origin, OriginSet, Stylesheet};
 use stylo_atoms::Atom;
 use url::Host;
 use uuid::Uuid;
-#[cfg(feature = "webgpu")]
-use webgpu_traits::WebGPUContextId;
 
 use crate::animation_timeline::AnimationTimeline;
 use crate::animations::Animations;
-use crate::canvas_context::CanvasContext as _;
 use crate::document_loader::{DocumentLoader, LoadType};
 use crate::dom::attr::Attr;
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
@@ -118,7 +113,6 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::{HashMapTracedValues, NoTrace};
 use crate::dom::bindings::weakref::DOMTracker;
 use crate::dom::bindings::xmlname::matches_name_production;
-use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use crate::dom::cdatasection::CDATASection;
 use crate::dom::comment::Comment;
 use crate::dom::compositionevent::CompositionEvent;
@@ -184,12 +178,9 @@ use crate::dom::touchevent::TouchEvent as DomTouchEvent;
 use crate::dom::touchlist::TouchList;
 use crate::dom::treewalker::TreeWalker;
 use crate::dom::trustedhtml::TrustedHTML;
-use crate::dom::types::VisibilityStateEntry;
+use crate::dom::types::{HTMLCanvasElement, VisibilityStateEntry};
 use crate::dom::uievent::UIEvent;
 use crate::dom::virtualmethods::vtable_for;
-use crate::dom::webgl::webglrenderingcontext::WebGLRenderingContext;
-#[cfg(feature = "webgpu")]
-use crate::dom::webgpu::gpucanvascontext::GPUCanvasContext;
 use crate::dom::websocket::WebSocket;
 use crate::dom::window::Window;
 use crate::dom::windowproxy::WindowProxy;
@@ -501,18 +492,11 @@ pub(crate) struct Document {
     /// where `id` needs to match any of the registered ShadowRoots
     /// hosting the media controls UI.
     media_controls: DomRefCell<HashMap<String, Dom<ShadowRoot>>>,
-    /// List of all context 2d IDs that need flushing.
-    dirty_2d_contexts:
-        DomRefCell<HashMapTracedValues<CanvasId, Dom<CanvasRenderingContext2D>, FxBuildHasher>>,
-    /// List of all WebGL context IDs that need flushing.
-    dirty_webgl_contexts:
-        DomRefCell<HashMapTracedValues<WebGLContextId, Dom<WebGLRenderingContext>, FxBuildHasher>>,
+    /// A set of dirty HTML canvas elements that need their WebRender images updated the
+    /// next time the rendering is updated.
+    dirty_canvases: DomRefCell<Vec<Dom<HTMLCanvasElement>>>,
     /// Whether or not animated images need to have their contents updated.
     has_pending_animated_image_update: Cell<bool>,
-    /// List of all WebGPU contexts that need flushing.
-    #[cfg(feature = "webgpu")]
-    dirty_webgpu_contexts:
-        DomRefCell<HashMapTracedValues<WebGPUContextId, Dom<GPUCanvasContext>, FxBuildHasher>>,
     /// <https://w3c.github.io/slection-api/#dfn-selection>
     selection: MutNullableDom<Selection>,
     /// A timeline for animations which is used for synchronizing animations.
@@ -2708,26 +2692,15 @@ impl Document {
         );
     }
 
-    pub(crate) fn add_dirty_webgl_canvas(&self, context: &WebGLRenderingContext) {
-        self.dirty_webgl_contexts
-            .borrow_mut()
-            .entry(context.context_id())
-            .or_insert_with(|| Dom::from_ref(context));
-    }
-
-    pub(crate) fn add_dirty_2d_canvas(&self, context: &CanvasRenderingContext2D) {
-        self.dirty_2d_contexts
-            .borrow_mut()
-            .entry(context.context_id())
-            .or_insert_with(|| Dom::from_ref(context));
-    }
-
-    #[cfg(feature = "webgpu")]
-    pub(crate) fn add_dirty_webgpu_context(&self, context: &GPUCanvasContext) {
-        self.dirty_webgpu_contexts
-            .borrow_mut()
-            .entry(context.context_id())
-            .or_insert_with(|| Dom::from_ref(context));
+    pub(crate) fn mark_canvas_as_dirty(&self, canvas: &HTMLCanvasElement) {
+        let mut dirty_canvases = self.dirty_canvases.borrow_mut();
+        if dirty_canvases
+            .iter()
+            .any(|dirty_canvas| std::ptr::eq(&**dirty_canvas, canvas))
+        {
+            return;
+        }
+        dirty_canvases.push(Dom::from_ref(canvas));
     }
 
     /// Whether or not this [`Document`] needs a rendering update, due to changed
@@ -2755,15 +2728,8 @@ impl Document {
         if self.window().has_unhandled_resize_event() {
             return true;
         }
-        if self.has_pending_animated_image_update.get() ||
-            !self.dirty_2d_contexts.borrow().is_empty() ||
-            !self.dirty_webgl_contexts.borrow().is_empty()
+        if self.has_pending_animated_image_update.get() || !self.dirty_canvases.borrow().is_empty()
         {
-            return true;
-        }
-
-        #[cfg(feature = "webgpu")]
-        if !self.dirty_webgpu_contexts.borrow().is_empty() {
             return true;
         }
 
@@ -2796,63 +2762,23 @@ impl Document {
         let current_rendering_epoch = self.current_rendering_epoch.get();
 
         // All dirty canvases are flushed before updating the rendering.
-        let mut image_keys = Vec::new();
-        #[cfg(feature = "webgpu")]
-        image_keys.extend(
-            self.dirty_webgpu_contexts
-                .borrow_mut()
-                .drain()
-                .filter(|(_, context)| context.update_rendering(current_rendering_epoch))
-                .map(|(_, context)| {
-                    results.insert(ReflowPhasesRun::UpdatedImageData);
-                    context.image_key()
-                }),
-        );
-
-        image_keys.extend(
-            self.dirty_2d_contexts
-                .borrow_mut()
-                .drain()
-                .filter(|(_, context)| context.update_rendering(current_rendering_epoch))
-                .map(|(_, context)| {
-                    results.insert(ReflowPhasesRun::UpdatedImageData);
-                    context.image_key()
-                }),
-        );
-
-        let dirty_webgl_context_ids: Vec<_> = self
-            .dirty_webgl_contexts
+        let image_keys: Vec<_> = self
+            .dirty_canvases
             .borrow_mut()
-            .drain()
-            .filter(|(_, context)| context.onscreen())
-            .map(|(id, context)| {
-                image_keys.push(context.image_key());
-                id
-            })
+            .drain(..)
+            .filter_map(|canvas| canvas.update_rendering(current_rendering_epoch))
             .collect();
-
-        if !dirty_webgl_context_ids.is_empty() {
-            results.insert(ReflowPhasesRun::UpdatedImageData);
-            self.window
-                .webgl_chan()
-                .expect("Where's the WebGL channel?")
-                .send(WebGLMsg::SwapBuffers(
-                    dirty_webgl_context_ids,
-                    Some(current_rendering_epoch),
-                    0,
-                ))
-                .unwrap();
-        }
 
         // The renderer should wait to display the frame until all canvas images are
         // uploaded. This allows canvas image uploading to happen asynchronously.
         let pipeline_id = self.window().pipeline_id();
         if !image_keys.is_empty() {
+            results.insert(ReflowPhasesRun::UpdatedImageData);
             self.waiting_on_canvas_image_updates.set(true);
             self.window().compositor_api().delay_new_frame_for_canvas(
                 self.window().pipeline_id(),
                 current_rendering_epoch,
-                image_keys.into_iter().flatten().collect(),
+                image_keys,
             );
         }
 
@@ -3554,11 +3480,8 @@ impl Document {
             shadow_roots: DomRefCell::new(HashSet::new()),
             shadow_roots_styles_changed: Cell::new(false),
             media_controls: DomRefCell::new(HashMap::new()),
-            dirty_2d_contexts: DomRefCell::new(HashMapTracedValues::new_fx()),
-            dirty_webgl_contexts: DomRefCell::new(HashMapTracedValues::new_fx()),
+            dirty_canvases: DomRefCell::new(Default::default()),
             has_pending_animated_image_update: Cell::new(false),
-            #[cfg(feature = "webgpu")]
-            dirty_webgpu_contexts: DomRefCell::new(HashMapTracedValues::new_fx()),
             selection: MutNullableDom::new(None),
             animation_timeline: if pref!(layout_animations_test_enabled) {
                 DomRefCell::new(AnimationTimeline::new_for_testing())

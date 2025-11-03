@@ -10,6 +10,7 @@ use std::rc::Rc;
 
 #[cfg(feature = "webgl_backtrace")]
 use backtrace::Backtrace;
+use base::Epoch;
 use bitflags::bitflags;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
@@ -35,9 +36,7 @@ use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use webrender_api::ImageKey;
 
-use crate::canvas_context::{
-    CanvasContext, HTMLCanvasElementOrOffscreenCanvas, LayoutCanvasRenderingContextHelpers,
-};
+use crate::canvas_context::{CanvasContext, HTMLCanvasElementOrOffscreenCanvas};
 use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use crate::dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
@@ -56,12 +55,12 @@ use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
-use crate::dom::bindings::root::{DomOnceCell, DomRoot, LayoutDom, MutNullableDom};
+use crate::dom::bindings::root::{DomOnceCell, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 #[cfg(feature = "webgl_backtrace")]
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::node::{Node, NodeDamage, NodeTraits};
+use crate::dom::node::NodeTraits;
 #[cfg(feature = "webxr")]
 use crate::dom::promise::Promise;
 use crate::dom::webgl::extensions::WebGLExtensions;
@@ -174,11 +173,8 @@ pub(crate) enum Operation {
 #[dom_struct]
 pub(crate) struct WebGLRenderingContext {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "Channels are hard"]
-    webgl_sender: WebGLMessageSender,
-    #[ignore_malloc_size_of = "Defined in webrender"]
     #[no_trace]
-    webrender_image: ImageKey,
+    webgl_sender: WebGLMsgSender,
     #[no_trace]
     webgl_version: WebGLVersion,
     #[no_trace]
@@ -248,8 +244,7 @@ impl WebGLRenderingContext {
             let max_vertex_attribs = ctx_data.limits.max_vertex_attribs as usize;
             Self {
                 reflector_: Reflector::new(),
-                webgl_sender: WebGLMessageSender::new(ctx_data.sender),
-                webrender_image: ctx_data.image_key,
+                webgl_sender: ctx_data.sender,
                 webgl_version,
                 glsl_version: ctx_data.glsl_version,
                 limits: ctx_data.limits,
@@ -325,6 +320,27 @@ impl WebGLRenderingContext {
                 None
             },
         }
+    }
+
+    pub(crate) fn set_image_key(&self, image_key: ImageKey) {
+        self.webgl_sender.set_image_key(image_key);
+    }
+
+    pub(crate) fn update_rendering(&self, canvas_epoch: Epoch) -> bool {
+        let global = self.global();
+        let Some(window) = global.downcast::<Window>() else {
+            return false;
+        };
+
+        window
+            .webgl_chan()
+            .expect("Where's the WebGL channel?")
+            .send(WebGLMsg::SwapBuffers(
+                vec![self.context_id()],
+                Some(canvas_epoch),
+                0, /* time */
+            ))
+            .is_ok()
     }
 
     pub(crate) fn webgl_version(&self) -> WebGLVersion {
@@ -939,10 +955,6 @@ impl WebGLRenderingContext {
         let (sender, receiver) = webgl_channel().unwrap();
         self.send_command(WebGLCommand::GetExtensions(sender));
         receiver.recv().unwrap()
-    }
-
-    pub(crate) fn layout_handle(&self) -> Option<ImageKey> {
-        Some(self.webrender_image)
     }
 
     // https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/
@@ -2043,17 +2055,7 @@ impl CanvasContext for WebGLRenderingContext {
             return;
         }
 
-        match self.canvas {
-            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
-                canvas.upcast::<Node>().dirty(NodeDamage::Other);
-                canvas.owner_document().add_dirty_webgl_canvas(self);
-            },
-            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => {},
-        }
-    }
-
-    fn image_key(&self) -> Option<ImageKey> {
-        Some(self.webrender_image)
+        self.canvas.mark_as_dirty();
     }
 }
 
@@ -4957,12 +4959,6 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 }
 
-impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, WebGLRenderingContext> {
-    fn canvas_data_source(self) -> Option<ImageKey> {
-        (*self.unsafe_get()).layout_handle()
-    }
-}
-
 #[derive(Default, JSTraceable, MallocSizeOf)]
 struct Capabilities {
     value: Cell<CapFlags>,
@@ -5220,50 +5216,6 @@ impl WebGLCommandSender {
 
     pub(crate) fn send(&self, msg: WebGLMsg) -> WebGLSendResult {
         self.sender.send(msg)
-    }
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-pub(crate) struct WebGLMessageSender {
-    #[no_trace]
-    sender: WebGLMsgSender,
-}
-
-impl Clone for WebGLMessageSender {
-    fn clone(&self) -> WebGLMessageSender {
-        WebGLMessageSender {
-            sender: self.sender.clone(),
-        }
-    }
-}
-
-impl WebGLMessageSender {
-    pub(crate) fn new(sender: WebGLMsgSender) -> WebGLMessageSender {
-        WebGLMessageSender { sender }
-    }
-
-    pub(crate) fn context_id(&self) -> WebGLContextId {
-        self.sender.context_id()
-    }
-
-    pub(crate) fn send(
-        &self,
-        msg: WebGLCommand,
-        backtrace: WebGLCommandBacktrace,
-    ) -> WebGLSendResult {
-        self.sender.send(msg, backtrace)
-    }
-
-    pub(crate) fn send_resize(
-        &self,
-        size: Size2D<u32>,
-        sender: WebGLSender<Result<(), String>>,
-    ) -> WebGLSendResult {
-        self.sender.send_resize(size, sender)
-    }
-
-    pub(crate) fn send_remove(&self) -> WebGLSendResult {
-        self.sender.send_remove()
     }
 }
 
