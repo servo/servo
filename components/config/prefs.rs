@@ -309,7 +309,7 @@ impl Preferences {
             dom_offscreen_canvas_enabled: false,
             dom_permissions_enabled: false,
             dom_permissions_testing_allowed_in_nonsecure_contexts: false,
-            dom_resize_observer_enabled: false,
+            dom_resize_observer_enabled: true,
             dom_script_asynch: true,
             dom_serviceworker_enabled: false,
             dom_serviceworker_timeout_seconds: 60,
