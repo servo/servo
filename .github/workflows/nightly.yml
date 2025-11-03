@@ -159,7 +159,7 @@ jobs:
       attestations: write
     uses: ./.github/workflows/ohos.yml
     with:
-      profile: "release"
+      profile: "production"
       upload: true
       github-release-id: ${{ needs.create-draft-release.outputs.release-id }}
     secrets: inherit
