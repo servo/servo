@@ -10,9 +10,7 @@ body {
 }
 
 body {
-  background-color: #121619;
   font-family: sans-serif;
-  color: hsl(0, 0%, 96%);
   font-weight: 400;
   line-height: 1.5;
   display: flex;
@@ -28,26 +26,18 @@ img {
 
 form {
   margin: 1em;
+  display: flex;
+  justify-items: center;
+  gap: 1.0em;
 }
 
 input {
-  background-color: #333;
   border-width: 0;
-  color: white;
   border-radius: 5px;
   height: 2.5em;
   width: 50vw;
   text-indent: 3px;
-}
-
-a {
-  color: #1191e8;
-  cursor: pointer;
-  text-decoration: none;
-}
-
-a:hover {
-  color: #42bf64;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 /* This should not be needed but paper over missing default styles */
@@ -55,8 +45,7 @@ button {
   padding-inline: 8px;
   border-radius: 5px;
   border: none;
-  background-color: #333;
-  color: #42bf64;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   /* Servo has trouble with button styling */
   display: flex;
   justify-items: center;
@@ -64,13 +53,73 @@ button {
   line-height: 1;
 }
 
-button:hover {
-  background-color: #292929;
+.search-button:hover {
   cursor: pointer;
 }
 
-form {
-  display: flex;
-  justify-items: center;
-  gap: 1.0em;
+a {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+:root {
+  --theme-color-primary: #1191e8;
+  --theme-color-secondary: #42bf64;
+}
+
+/* These link colors work well for both light and dark mode */
+a {
+  color: var(--theme-color-primary);
+}
+
+a:hover {
+  color: var(--theme-color-secondary);
+}
+
+@media (prefers-color-scheme: light) {
+  .dark {
+    display: none;
+  }
+
+  body {
+    background: #f9f9f9;
+  }
+
+  .search-input {
+    background-color: white;
+  }
+
+  .search-button {
+    background-color: var(--theme-color-secondary);
+    color: white;
+  }
+
+  .search-button:hover {
+    background-color: #3baa59;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .light {
+    display: none;
+  }
+
+  body {
+    background-color: #121619;
+    color: hsl(0, 0%, 96%);
+  }
+
+  .search-input {
+    background-color: #333;
+    color: white;
+  }
+
+  .search-button {
+    background-color: #333;
+    color: var(--theme-color-secondary);
+  }
+
+  .search-button:hover {
+    background-color: #292929;
+  }
 }
