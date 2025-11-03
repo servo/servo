@@ -17,7 +17,7 @@ use servo::ipc_channel::ipc::IpcSender;
 use servo::style_traits::CSSPixel;
 use servo::{
     InputEvent, InputEventId, ScreenshotCaptureError, Servo, TraversalId, WebDriverJSResult,
-    WebDriverLoadStatus, WebDriverSenders, WebView,
+    WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView,
 };
 
 use crate::prefs::ServoShellPreferences;
@@ -139,6 +139,27 @@ pub trait RunningAppStateTrait {
             result_sender.send(Err(ScreenshotCaptureError::WebViewDoesNotExist))
         {
             error!("Failed to send response to TakeScreenshot: {error}");
+        }
+    }
+
+    fn handle_webdriver_script_command(&self, script_command: &WebDriverScriptCommand) {
+        match script_command {
+            WebDriverScriptCommand::ExecuteScript(_webview_id, response_sender) |
+            WebDriverScriptCommand::ExecuteAsyncScript(_webview_id, response_sender) => {
+                // Give embedder a chance to interrupt the script command.
+                // Webdriver only handles 1 script command at a time, so we can
+                // safely set a new interrupt sender and remove the previous one here.
+                self.set_script_command_interrupt_sender(Some(response_sender.clone()));
+            },
+            WebDriverScriptCommand::AddLoadStatusSender(webview_id, load_status_sender) => {
+                self.set_load_status_sender(*webview_id, load_status_sender.clone());
+            },
+            WebDriverScriptCommand::RemoveLoadStatusSender(webview_id) => {
+                self.remove_load_status_sender(*webview_id);
+            },
+            _ => {
+                self.set_script_command_interrupt_sender(None);
+            },
         }
     }
 }

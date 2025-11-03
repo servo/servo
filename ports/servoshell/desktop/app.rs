@@ -19,9 +19,7 @@ use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
 use servo::servo_url::ServoUrl;
 use servo::user_content_manager::{UserContentManager, UserScript};
-use servo::{
-    EventLoopWaker, WebDriverCommandMsg, WebDriverScriptCommand, WebDriverUserPromptAction,
-};
+use servo::{EventLoopWaker, WebDriverCommandMsg, WebDriverUserPromptAction};
 use url::Url;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
@@ -320,7 +318,7 @@ impl App {
         }
     }
 
-    pub fn handle_webdriver_messages(&self) {
+    pub(crate) fn handle_webdriver_messages(&self) {
         let AppState::Running(running_state) = &self.state else {
             return;
         };
@@ -478,7 +476,7 @@ impl App {
                     );
                 },
                 WebDriverCommandMsg::ScriptCommand(_, ref webdriver_script_command) => {
-                    self.handle_webdriver_script_command(webdriver_script_command, running_state);
+                    running_state.handle_webdriver_script_command(webdriver_script_command);
                     running_state.servo().execute_webdriver_command(msg);
                 },
                 WebDriverCommandMsg::CurrentUserPrompt(webview_id, response_sender) => {
@@ -531,31 +529,6 @@ impl App {
                     running_state.handle_webdriver_screenshot(webview_id, rect, result_sender);
                 },
             };
-        }
-    }
-
-    fn handle_webdriver_script_command(
-        &self,
-        msg: &WebDriverScriptCommand,
-        running_state: &RunningAppState,
-    ) {
-        match msg {
-            WebDriverScriptCommand::ExecuteScript(_webview_id, response_sender) |
-            WebDriverScriptCommand::ExecuteAsyncScript(_webview_id, response_sender) => {
-                // Give embedder a chance to interrupt the script command.
-                // Webdriver only handles 1 script command at a time, so we can
-                // safely set a new interrupt sender and remove the previous one here.
-                running_state.set_script_command_interrupt_sender(Some(response_sender.clone()));
-            },
-            WebDriverScriptCommand::AddLoadStatusSender(webview_id, load_status_sender) => {
-                running_state.set_load_status_sender(*webview_id, load_status_sender.clone());
-            },
-            WebDriverScriptCommand::RemoveLoadStatusSender(webview_id) => {
-                running_state.remove_load_status_sender(*webview_id);
-            },
-            _ => {
-                running_state.set_script_command_interrupt_sender(None);
-            },
         }
     }
 }
