@@ -16,6 +16,7 @@ use html5ever::{LocalName, Namespace};
 use js::conversions::{ToJSValConvertible, jsstr_to_string};
 use js::gc::MutableHandleValue;
 use js::jsapi::{Heap, JS_GetLatin1StringCharsAndLength, JSContext, JSString};
+use js::jsval::StringValue;
 use js::rust::{Runtime, Trace};
 use malloc_size_of::MallocSizeOfOps;
 use num_traits::{ToPrimitive, Zero};
@@ -36,6 +37,25 @@ const ASCII_NEWLINE: u8 = 0x0A;
 const ASCII_FORMFEED: u8 = 0x0C;
 const ASCII_CR: u8 = 0x0D;
 const ASCII_SPACE: u8 = 0x20;
+
+/// Gets the latin1 bytes from the js engine.
+/// Safety: Make sure the *mut JSString is not null.
+unsafe fn get_latin1_string_bytes(
+    rooted_traceable_box: &RootedTraceableBox<Heap<*mut JSString>>,
+) -> &[u8] {
+    debug_assert!(!rooted_traceable_box.get().is_null());
+    let mut length = 0;
+    unsafe {
+        let chars = JS_GetLatin1StringCharsAndLength(
+            Runtime::get().expect("JS runtime has shut down").as_ptr(),
+            ptr::null(),
+            rooted_traceable_box.get(),
+            &mut length,
+        );
+        assert!(!chars.is_null());
+        slice::from_raw_parts(chars, length)
+    }
+}
 
 #[derive(Debug, PartialEq, Eq)]
 /// A type representing the underlying encoded bytes. Either Latin1 or Utf8.
@@ -68,6 +88,21 @@ impl DOMStringType {
             },
             #[cfg(test)]
             &DOMStringType::Latin1Vec(_) => panic!("Cannot do a string"),
+        }
+    }
+
+    /// Warning:
+    /// This function does not checking and just returns the raw bytes of teh string,
+    /// independently if they are  utf8 or latin1.
+    /// The caller needs to take care that these make sense in context.
+    fn as_raw_bytes(&self) -> &[u8] {
+        match self {
+            DOMStringType::Rust(s) => s.as_bytes(),
+            DOMStringType::JSString(rooted_traceable_box) => unsafe {
+                get_latin1_string_bytes(rooted_traceable_box)
+            },
+            #[cfg(test)]
+            DOMStringType::Latin1Vec(items) => items,
         }
     }
 }
@@ -142,7 +177,7 @@ impl From<StringView<'_>> for String {
     }
 }
 
-/// Safety comment: ??
+/// Safety comment:
 ///
 /// This method will _not_ trace the pointer if the rust string exists.
 /// The js string could be garbage collected and, hence, violating this
@@ -198,17 +233,7 @@ impl EncodedBytesView<'_> {
         match *self.0 {
             DOMStringType::Rust(ref s) => EncodedBytes::Utf8Bytes(s.as_bytes()),
             DOMStringType::JSString(ref rooted_traceable_box) => {
-                let mut length = 0;
-                unsafe {
-                    let chars = JS_GetLatin1StringCharsAndLength(
-                        Runtime::get().expect("JS runtime has shut down").as_ptr(),
-                        ptr::null(),
-                        rooted_traceable_box.get(),
-                        &mut length,
-                    );
-                    assert!(!chars.is_null());
-                    EncodedBytes::Latin1Bytes(slice::from_raw_parts(chars, length))
-                }
+                EncodedBytes::Latin1Bytes(unsafe { get_latin1_string_bytes(rooted_traceable_box) })
             },
             #[cfg(test)]
             DOMStringType::Latin1Vec(ref s) => EncodedBytes::Latin1Bytes(s),
@@ -583,10 +608,17 @@ impl DOMString {
         }
     }
 
-    /// This returns the string in utf8 bytes, i.e., `[u8]`.
+    /// This returns the string in utf8 bytes, i.e., `[u8]` encoded with utf8.
     pub fn as_bytes(&self) -> BytesView<'_> {
-        self.make_rust();
-        BytesView(self.0.borrow())
+        // BytesView will just give the raw bytes on dereference.
+        // If we are ascii this is the same for latin1 and utf8.
+        // Otherwise we convert to rust.
+        if self.is_ascii() {
+            BytesView(self.0.borrow())
+        } else {
+            self.make_rust();
+            BytesView(self.0.borrow())
+        }
     }
 
     /// Tests if there are only ascii lowercase characters. Does not include special characters.
@@ -600,6 +632,15 @@ impl DOMString {
                 .map(|c| c.to_u8().unwrap_or(ASCII_LOWERCASE_A - 1))
                 .all(|c| (ASCII_LOWERCASE_A..=ASCII_LOWERCASE_Z).contains(&c)),
         }
+    }
+
+    /// Is the string only ascii characters
+    pub fn is_ascii(&self) -> bool {
+        match self.view().encoded_bytes() {
+            EncodedBytes::Latin1Bytes(items) => items,
+            EncodedBytes::Utf8Bytes(items) => items,
+        }
+        .is_ascii()
     }
 }
 
@@ -623,7 +664,8 @@ impl Deref for BytesView<'_> {
     type Target = [u8];
 
     fn deref(&self) -> &Self::Target {
-        self.0.str().as_bytes()
+        // This does the correct thing by the construction of BytesView in `DOMString::as_bytes`.
+        self.0.as_raw_bytes()
     }
 }
 
@@ -653,11 +695,29 @@ impl Extend<char> for DOMString {
 }
 
 impl ToJSValConvertible for DOMString {
-    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        self.make_rust();
-        unsafe {
-            self.str().to_jsval(cx, rval);
-        }
+    unsafe fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
+        let val = self.0.borrow();
+        match *val {
+            DOMStringType::Rust(ref s) => unsafe {
+                s.to_jsval(cx, rval);
+            },
+            DOMStringType::JSString(ref rooted_traceable_box) => unsafe {
+                rval.set(StringValue(&*rooted_traceable_box.get()));
+            },
+            #[cfg(test)]
+            DOMStringType::Latin1Vec(ref items) => {
+                let mut v = vec![0; items.len() * 2];
+                let real_size = tendril::encoding_rs::mem::convert_latin1_to_utf8(
+                    items.as_slice(),
+                    v.as_mut_slice(),
+                );
+                v.truncate(real_size);
+
+                String::from_utf8(v)
+                    .expect("Error in constructin test string")
+                    .to_jsval(cx, rval);
+            },
+        };
     }
 }
 
@@ -955,6 +1015,10 @@ macro_rules! match_domstring_ascii {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const LATIN1_PILLCROW: u8 = 0xB6;
+    const UTF8_PILLCROW: [u8; 2] = [194, 182];
+    const LATIN1_POWER2: u8 = 0xB2;
 
     fn from_latin1(l1vec: Vec<u8>) -> DOMString {
         DOMString(RefCell::new(DOMStringType::Latin1Vec(l1vec)))
@@ -1320,31 +1384,33 @@ mod tests {
 
     #[test]
     fn namespace() {
-        let s = from_latin1(vec![b'a', b'a', b'a', 0x20, b'a', b'a']);
+        let s = from_latin1(vec![b'a', b'a', b'a', ASCII_SPACE, b'a', b'a']);
         let atom1 = Namespace::from(s);
         let s2 = DOMString::from_string(String::from("aaa aa"));
         let atom2 = Namespace::from(s2);
         assert_eq!(atom1, atom2);
-        let s3 = from_latin1(vec![b'a', b'a', b'a', 0xB2, b'a', b'a']);
+        let s3 = from_latin1(vec![b'a', b'a', b'a', LATIN1_POWER2, b'a', b'a']);
         let atom3 = Namespace::from(s3);
         assert_ne!(atom1, atom3);
     }
 
     #[test]
     fn localname() {
-        let s = from_latin1(vec![b'a', b'a', b'a', 0x20, b'a', b'a']);
+        let s = from_latin1(vec![b'a', b'a', b'a', ASCII_SPACE, b'a', b'a']);
         let atom1 = LocalName::from(s);
         let s2 = DOMString::from_string(String::from("aaa aa"));
         let atom2 = LocalName::from(s2);
         assert_eq!(atom1, atom2);
-        let s3 = from_latin1(vec![b'a', b'a', b'a', 0xB2, b'a', b'a']);
+        let s3 = from_latin1(vec![b'a', b'a', b'a', LATIN1_POWER2, b'a', b'a']);
         let atom3 = LocalName::from(s3);
         assert_ne!(atom1, atom3);
     }
 
     #[test]
     fn is_ascii_lowercase() {
-        let s = from_latin1(vec![b'a', b'a', b'a', 0x20, b'a', b'a']);
+        let s = from_latin1(vec![b'a', b'a', b'a', ASCII_SPACE, b'a', b'a']);
+        assert!(!s.is_ascii_lowercase());
+        let s = from_latin1(vec![b'a', b'a', b'a', LATIN1_PILLCROW, b'a', b'a']);
         assert!(!s.is_ascii_lowercase());
         let s = from_latin1(vec![b'a', b'a', b'a', b'a', b'z']);
         assert!(s.is_ascii_lowercase());
@@ -1354,5 +1420,46 @@ mod tests {
         assert!(!s.is_ascii_lowercase());
         let s = DOMString::from_string(String::from("aaaz"));
         assert!(s.is_ascii_lowercase());
+    }
+
+    #[test]
+    fn test_as_bytes() {
+        const ASCII_SMALL_A: u8 = b'a';
+        const ASCII_SMALL_Z: u8 = b'z';
+
+        let v1 = vec![b'a', b'a', b'a', LATIN1_PILLCROW, b'a', b'a'];
+        let s = from_latin1(v1.clone());
+        assert_eq!(
+            *s.as_bytes(),
+            [
+                ASCII_SMALL_A,
+                ASCII_SMALL_A,
+                ASCII_SMALL_A,
+                UTF8_PILLCROW[0],
+                UTF8_PILLCROW[1],
+                ASCII_SMALL_A,
+                ASCII_SMALL_A
+            ]
+        );
+
+        let v2 = vec![b'a', b'a', b'a', b'a', b'z'];
+        let s = from_latin1(v2.clone());
+        assert_eq!(
+            *s.as_bytes(),
+            [
+                ASCII_SMALL_A,
+                ASCII_SMALL_A,
+                ASCII_SMALL_A,
+                ASCII_SMALL_A,
+                ASCII_SMALL_Z
+            ]
+        );
+
+        let str = "abc%$²".to_owned();
+        let s = DOMString::from(str.clone());
+        assert_eq!(&*s.as_bytes(), str.as_bytes());
+        let str = "AbBcC❤&%$#".to_owned();
+        let s = DOMString::from(str.clone());
+        assert_eq!(&*s.as_bytes(), str.as_bytes());
     }
 }
