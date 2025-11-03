@@ -33,7 +33,6 @@ pub(crate) static EXPERIMENTAL_PREFS: &[&str] = &[
     "dom_notification_enabled",
     "dom_offscreen_canvas_enabled",
     "dom_permissions_enabled",
-    "dom_resize_observer_enabled",
     "dom_webgl2_enabled",
     "dom_webgpu_enabled",
     "layout_columns_enabled",
