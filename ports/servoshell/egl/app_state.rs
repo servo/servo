@@ -24,8 +24,8 @@ use servo::{
     MediaSessionEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
     NavigationRequest, PermissionRequest, RefreshDriver, RenderingContext, ScreenGeometry, Scroll,
     Servo, ServoDelegate, ServoError, TouchEvent, TouchEventType, TouchId, TraversalId,
-    WebDriverCommandMsg, WebDriverLoadStatus, WebDriverScriptCommand, WebView, WebViewBuilder,
-    WebViewDelegate, WindowRenderingContext,
+    WebDriverCommandMsg, WebDriverLoadStatus, WebView, WebViewBuilder, WebViewDelegate,
+    WindowRenderingContext,
 };
 use url::Url;
 
@@ -517,27 +517,6 @@ impl RunningAppState {
             .expect("Should always have an active WebView")
     }
 
-    fn handle_webdriver_script_command(&self, msg: &WebDriverScriptCommand) {
-        match msg {
-            WebDriverScriptCommand::ExecuteScript(_webview_id, response_sender) |
-            WebDriverScriptCommand::ExecuteAsyncScript(_webview_id, response_sender) => {
-                // Give embedder a chance to interrupt the script command.
-                // Webdriver only handles 1 script command at a time, so we can
-                // safely set a new interrupt sender and remove the previous one here.
-                self.set_script_command_interrupt_sender(Some(response_sender.clone()));
-            },
-            WebDriverScriptCommand::AddLoadStatusSender(webview_id, load_status_sender) => {
-                self.set_load_status_sender(*webview_id, load_status_sender.clone());
-            },
-            WebDriverScriptCommand::RemoveLoadStatusSender(webview_id) => {
-                self.remove_load_status_sender(*webview_id);
-            },
-            _ => {
-                self.set_script_command_interrupt_sender(None);
-            },
-        }
-    }
-
     /// Request shutdown. Will call on_shutdown_complete.
     pub fn request_shutdown(&self) {
         self.servo().start_shutting_down();
@@ -628,7 +607,7 @@ impl RunningAppState {
     }
 
     /// WebDriver message handling methods
-    pub fn handle_webdriver_messages(self: &Rc<Self>) {
+    pub(crate) fn handle_webdriver_messages(self: &Rc<Self>) {
         if let Some(webdriver_receiver) = &self.webdriver_receiver {
             while let Ok(msg) = webdriver_receiver.try_recv() {
                 match msg {
@@ -729,7 +708,6 @@ impl RunningAppState {
                         }
                     },
                     WebDriverCommandMsg::ScriptCommand(_, ref webdriver_script_command) => {
-                        info!("Handling ScriptCommand: {:?}", webdriver_script_command);
                         self.handle_webdriver_script_command(webdriver_script_command);
                         self.servo().execute_webdriver_command(msg);
                     },
