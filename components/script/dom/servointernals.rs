@@ -7,6 +7,7 @@ use std::rc::Rc;
 use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
 use js::gc::MutableHandleValue;
+use js::jsapi::Heap;
 use js::jsval::UndefinedValue;
 use js::rust::HandleObject;
 use profile_traits::mem::MemoryReportResult;
@@ -39,7 +40,7 @@ fn pref_to_jsval(pref: &PrefValue, cx: JSContext, rval: MutableHandleValue, can_
             for item in arr {
                 rooted!(in(*cx) let mut js_val = UndefinedValue());
                 pref_to_jsval(item, cx, js_val.handle_mut(), can_gc);
-                js_arr.push(js_val.get());
+                js_arr.push(Heap::boxed(js_val.get()));
             }
             js_arr.safe_to_jsval(cx, rval, can_gc);
         },
