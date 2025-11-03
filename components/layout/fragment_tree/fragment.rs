@@ -81,13 +81,7 @@ pub(crate) struct TextFragment {
     pub line_number: i32,
     pub parent_width: Au,
     pub text_clip: (Au, Au), // left & right
-}
-
-impl TextFragment {
-    pub fn set_text_clip(&mut self, l: Au, r: Au){
-        self.text_clip.0 = l;
-        self.text_clip.1 = r;
-    }
+    pub contains_first_character_of_the_line: bool,
 }
 
 #[derive(MallocSizeOf)]

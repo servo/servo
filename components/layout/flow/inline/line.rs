@@ -566,11 +566,22 @@ impl LineItemLayout<'_, '_> {
         let mut can_be_ellided = false; // TODO: add more logic later on.
 
         // check if current textrun can be ellided
-        if self.layout.containing_block.style.get_text().text_overflow.second == TextOverflowSide::Ellipsis {
-            can_be_ellided = true;
+        let parent_style = self.layout.containing_block.style.clone();
+        match parent_style.get_text().text_overflow.second {
+            TextOverflowSide::Ellipsis => {
+                can_be_ellided = true;
+            },
+            _ => {}, // do nothing 
         }
 
         let original_inline_advance = self.current_state.inline_advance;
+        let mut first_text_item_of_the_line = false;
+
+        // check if current text fragment to be generated will be the first of the line.
+        if original_inline_advance == Au(0) {
+            first_text_item_of_the_line = true;
+        }
+
         let mut number_of_justification_opportunities = 0;
         let mut inline_advance = text_item
             .text
@@ -668,13 +679,26 @@ impl LineItemLayout<'_, '_> {
         // finding the inline start corner (if horizontal, then starting x pos)
         // TODO: fix the logic.
         let inline_target = self.layout.containing_block.size.inline - ellipsis_textrun_segment.runs[0].glyph_store.total_advance();
-        let mut inline_start = self.layout.containing_block.size.inline;
-        let mut glyph_index = text_item.text.len() - 1;
+        let mut inline_start = Au(0);
+        
         let mut inline_start_found = false;
+        let mut glyph_index_forward = 0;
+        let mut glyph_index_backward = text_item.text.len() - 1;
 
-        while glyph_index >= 0 && !inline_start_found {
-            if inline_start > text_item.text[glyph_index].total_advance() {
-                inline_start -= text_item.text[glyph_index].total_advance();
+        // forward pass
+        while glyph_index_forward <= glyph_index_backward {
+            for glyph in text_item.text[glyph_index_forward].iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), text_item.text[glyph_index_forward].len())) {
+                if inline_start + glyph.advance() <= self.layout.containing_block.size.inline {
+                    inline_start += glyph.advance();
+                }
+            }
+            glyph_index_forward += 1;
+        }
+
+        // backward pass
+        while !inline_start_found {
+            if inline_start > text_item.text[glyph_index_backward].total_advance() {
+                inline_start -= text_item.text[glyph_index_backward].total_advance();
             }
             else {
                 inline_start = Au(0);
@@ -684,22 +708,23 @@ impl LineItemLayout<'_, '_> {
                 inline_start_found = true;
 
                 // try to mini increment if possible
-                for glyph in text_item.text[glyph_index].iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), text_item.text[glyph_index].len())) {
+                for glyph in text_item.text[glyph_index_backward].iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), text_item.text[glyph_index_backward].len())) {
                     if inline_start + glyph.advance() <= inline_target {
                         inline_start += glyph.advance();
                     }
                 }
             }
-            if glyph_index > 0 {
-                glyph_index -= 1;
+            if glyph_index_backward > 0 {
+                glyph_index_backward -= 1;
             }
             else {
                 inline_start_found = true;
             }
             if inline_start == original_inline_advance { 
-                can_be_ellided = false; // first char cannot be ellided.
+                can_be_ellided = false; // first character cannot be ellided.
             }
         }
+
 
         // create & insert text fragment to vector
         if can_be_ellided && self.current_state.inline_advance > self.layout.containing_block.size.inline && original_inline_advance < self.layout.containing_block.size.inline {
@@ -719,6 +744,7 @@ impl LineItemLayout<'_, '_> {
                     line_number: line_number,
                     parent_width: self.layout.containing_block.size.inline,
                     text_clip: text_fragment_clip,
+                    contains_first_character_of_the_line: first_text_item_of_the_line,
                 })),
                 content_rect,
             ));
@@ -753,9 +779,15 @@ impl LineItemLayout<'_, '_> {
                     line_number: line_number,
                     parent_width: self.layout.containing_block.size.inline,
                     text_clip: (Au(0), Au(0)),
+                    contains_first_character_of_the_line: false,
                 })),
                 content_rect,
             ));
+
+            // if the ellipsis has been generated, then don't produce anymore text!
+            if self.current_state.inline_advance < self.layout.containing_block.size.inline {
+                self.current_state.inline_advance = self.layout.containing_block.size.inline;
+            }
         }
         else {
             // insert text fragment
@@ -773,6 +805,7 @@ impl LineItemLayout<'_, '_> {
                     line_number: line_number,
                     parent_width: self.layout.containing_block.size.inline,
                     text_clip: (Au(0), Au(0)),
+                    contains_first_character_of_the_line: first_text_item_of_the_line,
                 })),
                 content_rect,
             ));
