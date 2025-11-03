@@ -614,10 +614,10 @@ impl DOMString {
         // If we are ascii this is the same for latin1 and utf8.
         // Otherwise we convert to rust.
         if self.is_ascii() {
-            BytesView(BytesViewWrapper(self.0.borrow()))
+            BytesView(self.0.borrow())
         } else {
             self.make_rust();
-            BytesView(BytesViewWrapper(self.0.borrow()))
+            BytesView(self.0.borrow())
         }
     }
 
@@ -631,20 +631,6 @@ impl DOMString {
                 .iter()
                 .map(|c| c.to_u8().unwrap_or(ASCII_LOWERCASE_A - 1))
                 .all(|c| (ASCII_LOWERCASE_A..=ASCII_LOWERCASE_Z).contains(&c)),
-        }
-    }
-
-    /// Only use this if your string does not use any characters that are non-ascii
-    pub fn eq_ascii(&self, needle: &str) -> bool {
-        debug_assert!(needle.is_ascii());
-        match self.view().encoded_bytes() {
-            EncodedBytes::Latin1Bytes(items) => needle.as_bytes() == items,
-            EncodedBytes::Utf8Bytes(s) => {
-                unsafe {
-                    // Save because we know it was a utf8 string
-                    str::from_utf8_unchecked(s) == needle
-                }
-            },
         }
     }
 
@@ -672,17 +658,14 @@ pub fn parse_floating_point_number(input: &str) -> Option<f64> {
     })
 }
 
-/// Only used to keep the type inside BytesView private so
-/// nobody can construct a BytesView except this file.
-struct BytesViewWrapper<'a>(Ref<'a, DOMStringType>);
-pub struct BytesView<'a>(BytesViewWrapper<'a>);
+pub struct BytesView<'a>(Ref<'a, DOMStringType>);
 
 impl Deref for BytesView<'_> {
     type Target = [u8];
 
     fn deref(&self) -> &Self::Target {
         // This does the correct thing by the construction of BytesView in `DOMString::as_bytes`.
-        self.0.0.as_raw_bytes()
+        self.0.as_raw_bytes()
     }
 }
 
@@ -730,11 +713,9 @@ impl ToJSValConvertible for DOMString {
                 );
                 v.truncate(real_size);
 
-                // Safety: convert_latin1_to_utf8 converts the raw bytes to utf8 and the
-                // buffer is the size specified in the documentation, so this should be safe.
-                unsafe {
-                    String::from_utf8_unchecked(v).to_jsval(cx, rval);
-                }
+                String::from_utf8(v)
+                    .expect("Error in constructin test string")
+                    .to_jsval(cx, rval);
             },
         };
     }
@@ -1443,9 +1424,8 @@ mod tests {
 
     #[test]
     fn test_as_bytes() {
-        const ASCII_SMALL_A: u8 = 0x61;
-        const ASCII_SMALL_Z: u8 = 0x7A;
-        const UTF8_POWER2: [u8; 2] = [194, 178];
+        const ASCII_SMALL_A: u8 = b'a';
+        const ASCII_SMALL_Z: u8 = b'z';
 
         let v1 = vec![b'a', b'a', b'a', LATIN1_PILLCROW, b'a', b'a'];
         let s = from_latin1(v1.clone());
