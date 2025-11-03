@@ -117,13 +117,11 @@ impl DefaultTeeReadRequest {
             chunk: Heap::boxed(*chunk.handle()),
             tee_read_request: Dom::from_ref(self),
         };
-        let global = self.stream.global();
-        let microtask_queue = global.microtask_queue();
-        let cx = GlobalScope::get_cx();
-        microtask_queue.enqueue(
-            Microtask::ReadableStreamTeeReadRequest(tee_read_request_chunk),
-            cx,
-        );
+        self.stream
+            .global()
+            .enqueue_microtask(Microtask::ReadableStreamTeeReadRequest(
+                tee_read_request_chunk,
+            ));
     }
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A2>
     #[allow(clippy::borrowed_box)]

@@ -3267,7 +3267,6 @@ impl ScriptThread {
             self.webgl_chan.as_ref().map(|chan| chan.channel()),
             #[cfg(feature = "webxr")]
             self.webxr_registry.clone(),
-            self.microtask_queue.clone(),
             self.compositor_api.clone(),
             self.unminify_js,
             self.unminify_css,
@@ -3879,7 +3878,7 @@ impl ScriptThread {
         });
     }
 
-    fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
+    pub(crate) fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
         // Only perform the checkpoint if we're not shutting down.
         if self.can_continue_running_inner() {
             let globals = self
