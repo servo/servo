@@ -22,7 +22,7 @@ env:
 jobs:
   mac-wpt:
     name: WPT
-    runs-on: ${{ inputs.arm && 'macos-15' || 'macos-13' }}
+    runs-on: ${{ inputs.arm && 'macos-15' || 'macos-15-intel' }}
     env:
       max_chunk_id: 5
     strategy:
