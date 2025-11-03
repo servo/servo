@@ -133,9 +133,9 @@ fn process_ws_response(
     if let Some(protocol_name) = response.headers().get("Sec-WebSocket-Protocol") {
         let protocol_name = protocol_name.to_str().unwrap_or("");
         if !protocols.is_empty() && !protocols.iter().any(|p| protocol_name == (*p)) {
-            return Err(Error::Protocol(ProtocolError::InvalidHeader(
+            return Err(Error::Protocol(ProtocolError::InvalidHeader(Box::new(
                 HeaderName::from_static("sec-websocket-protocol"),
-            )));
+            ))));
         }
         protocol_in_use = Some(protocol_name.to_string());
     }
