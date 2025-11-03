@@ -317,7 +317,6 @@ impl Painter {
             lcp_calculator: LargestContentfulPaintCalculator::new(),
         };
         painter.assert_gl_framebuffer_complete();
-        painter.clear_background();
         painter
     }
 
