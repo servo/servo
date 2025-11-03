@@ -291,9 +291,20 @@ jobs:
         id: BencherRun
         run: ./mach test-speedometer-ohos --bmf-output speedometer.json --profile ${{ inputs.profile }}
         continue-on-error: true
-      - name: Create empty speedometer.json if failed
-        run: touch speedometer.json
+      - name: Handle failed speedometer
         if: ${{ steps.BencherRun.outcome == 'failure' }}
+        run: | 
+          touch speedometer.json # Create an empty file for bencher.
+          mkdir speedometer_error_logs
+          hdc shell snapshot_display -f /data/local/tmp/servo.jpeg
+          hdc file recv /data/local/tmp/servo.jpeg speedometer_error_logs/servo_hos_screenshot.jpeg
+          # Todo: Upload logs. This is currently not possible since the test-speedometer-ohos command
+          # sets a log filter, which filters everything except JS console output.
+      - uses: actions/upload-artifact@v4
+        if: ${{ steps.BencherRun.outcome == 'failure' }}
+        with:
+          name: ohos-speedometer-failure-${{ matrix.target }}-${{ inputs.profile }}
+          path: speedometer_error_logs
       - name: Getting model name
         # awk is used to remove trailing spaces
         run: |
