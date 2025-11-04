@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use crossbeam_channel::Sender;
 use euclid::Rect;
 use image::RgbaImage;
-use log::{error, warn};
+use log::{error, info, warn};
 use servo::base::generic_channel::GenericSender;
 use servo::base::id::WebViewId;
 use servo::ipc_channel::ipc::IpcSender;
@@ -19,6 +19,7 @@ use servo::{
     InputEvent, InputEventId, ScreenshotCaptureError, Servo, TraversalId, WebDriverJSResult,
     WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView,
 };
+use url::Url;
 
 use crate::prefs::ServoShellPreferences;
 
@@ -160,6 +161,19 @@ pub trait RunningAppStateTrait {
             _ => {
                 self.set_script_command_interrupt_sender(None);
             },
+        }
+    }
+
+    fn handle_webdriver_load_url(
+        &self,
+        webview_id: WebViewId,
+        url: Url,
+        load_status_sender: GenericSender<WebDriverLoadStatus>,
+    ) {
+        if let Some(webview) = self.webview_by_id(webview_id) {
+            info!("Loading URL in webview {}: {}", webview_id, url);
+            self.set_load_status_sender(webview_id, load_status_sender);
+            webview.load(url);
         }
     }
 }

@@ -612,21 +612,7 @@ impl RunningAppState {
             while let Ok(msg) = webdriver_receiver.try_recv() {
                 match msg {
                     WebDriverCommandMsg::LoadUrl(webview_id, url, load_status_sender) => {
-                        info!("Loading URL in webview {}: {}", webview_id, url);
-
-                        if let Some(webview) = self.webview_by_id(webview_id) {
-                            self.set_load_status_sender(webview_id, load_status_sender.clone());
-                            self.inner_mut().focused_webview_id = Some(webview_id);
-                            webview.focus();
-                            let url_string = url.to_string();
-                            webview.load(url.into_url());
-                            info!(
-                                "Successfully loaded URL {} in focused webview {}",
-                                url_string, webview_id
-                            );
-                        } else {
-                            warn!("WebView {} not found for LoadUrl command", webview_id);
-                        }
+                        self.handle_webdriver_load_url(webview_id, url, load_status_sender);
                     },
                     WebDriverCommandMsg::NewWebView(response_sender, load_status_sender) => {
                         info!("Creating new webview via WebDriver");

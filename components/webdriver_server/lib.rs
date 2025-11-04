@@ -655,15 +655,9 @@ impl Handler {
         self.verify_top_level_browsing_context_is_open(webview_id)?;
         // Step 3. If URL is not an absolute URL or is not an absolute URL with fragment
         // or not a local scheme, return error with error code invalid argument.
-        let url = match ServoUrl::parse(&parameters.url[..]) {
-            Ok(url) => url,
-            Err(_) => {
-                return Err(WebDriverError::new(
-                    ErrorStatus::InvalidArgument,
-                    "Invalid URL",
-                ));
-            },
-        };
+        let url = ServoUrl::parse(&parameters.url)
+            .map(|url| url.into_url())
+            .map_err(|_| WebDriverError::new(ErrorStatus::InvalidArgument, "Invalid URL"))?;
 
         // Step 4. Handle any user prompt.
         self.handle_any_user_prompts(webview_id)?;
@@ -806,7 +800,7 @@ impl Handler {
         let url = wait_for_ipc_response(receiver)?;
 
         Ok(WebDriverResponse::Generic(ValueResponse(
-            serde_json::to_value(url.as_str())?,
+            serde_json::to_value(url)?,
         )))
     }
 

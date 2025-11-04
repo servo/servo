@@ -445,10 +445,7 @@ impl App {
                     };
                 },
                 WebDriverCommandMsg::LoadUrl(webview_id, url, load_status_sender) => {
-                    if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        running_state.set_load_status_sender(webview_id, load_status_sender);
-                        webview.load(url.into_url());
-                    }
+                    running_state.handle_webdriver_load_url(webview_id, url, load_status_sender);
                 },
                 WebDriverCommandMsg::Refresh(webview_id, load_status_sender) => {
                     if let Some(webview) = running_state.webview_by_id(webview_id) {
