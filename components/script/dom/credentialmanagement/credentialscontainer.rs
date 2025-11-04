@@ -7,11 +7,12 @@ use dom_struct::dom_struct;
 use script_bindings::codegen::GenericBindings::CredentialsContainerBinding::{
     CredentialCreationOptions, CredentialRequestOptions,
 };
+use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::error::{Error, Fallible};
 
 use crate::dom::bindings::codegen::Bindings::CredentialsContainerBinding::CredentialsContainerMethods;
 use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::credentialmanagement::credential::Credential;
 use crate::dom::globalscope::GlobalScope;
@@ -37,22 +38,76 @@ impl CredentialsContainer {
             can_gc,
         )
     }
+
+    /// <https://www.w3.org/TR/credential-management-1/#abstract-opdef-request-a-credential>
+    fn request_credential(
+        &self,
+        options: &CredentialRequestOptions<DomTypeHolder>,
+    ) -> Fallible<Rc<Promise>> {
+        // Step 1. Let settings be the current settings object.
+        let global = self.global();
+        // Step 2. Assert: settings is a secure context.
+        assert!(global.is_secure_context());
+        // Step 3. Let document be settings’s relevant global object's associated Document.
+        let document = global.as_window().Document();
+        // Step 4. If document is not fully active, then return a promise rejected with an "InvalidStateError" DOMException.
+        if !document.is_fully_active() {
+            return Err(Error::InvalidState(None));
+        }
+        // Step 5. If options.signal is aborted, then return a promise rejected with options.signal’s abort reason.
+        if options.signal.as_ref().is_some_and(|s| s.aborted()) {
+            return Err(Error::Abort);
+        }
+        Err(Error::NotSupported)
+    }
+
+    /// <https://www.w3.org/TR/credential-management-1/#abstract-opdef-store-a-credential>
+    fn store_credential(&self, _credential: &Credential) -> Fallible<Rc<Promise>> {
+        // Step 1. Let settings be the current settings object.
+        let global = self.global();
+        // Step 2. Assert: settings is a secure context.
+        assert!(global.is_secure_context());
+        // Step 3. If settings’s relevant global object's associated Document is not fully active, then return a promise rejected with an "InvalidStateError" DOMException.
+        if !global.as_window().Document().is_fully_active() {
+            return Err(Error::InvalidState(None));
+        }
+        Err(Error::NotSupported)
+    }
+
+    /// <https://www.w3.org/TR/credential-management-1/#abstract-opdef-create-a-credential>
+    fn create_credential(
+        &self,
+        _options: &CredentialCreationOptions<DomTypeHolder>,
+    ) -> Fallible<Rc<Promise>> {
+        // Step 1. Let settings be the current settings object.
+        let global = self.global();
+        // Step 2. Assert: settings is a secure context.
+        assert!(global.is_secure_context());
+        // Step 3. Let global be settings’ global object.
+        // Step 4. Let document be the relevant global object’s associated Document.
+        let document = global.as_window().Document();
+        // Step 5. If document is not fully active, then return a promise rejected with an "InvalidStateError" DOMException.
+        if !document.is_fully_active() {
+            return Err(Error::InvalidState(None));
+        }
+        Err(Error::NotSupported)
+    }
 }
 
 impl CredentialsContainerMethods<DomTypeHolder> for CredentialsContainer {
     /// <https://www.w3.org/TR/credential-management-1/#dom-credentialscontainer-get>
-    fn Get(&self, _options: &CredentialRequestOptions<DomTypeHolder>) -> Fallible<Rc<Promise>> {
-        Err(Error::NotSupported)
+    fn Get(&self, options: &CredentialRequestOptions<DomTypeHolder>) -> Fallible<Rc<Promise>> {
+        self.request_credential(options)
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#dom-credentialscontainer-store>
-    fn Store(&self, _credential: &Credential) -> Fallible<Rc<Promise>> {
-        Err(Error::NotSupported)
+    fn Store(&self, credential: &Credential) -> Fallible<Rc<Promise>> {
+        self.store_credential(credential)
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#dom-credentialscontainer-create>
-    fn Create(&self, _options: &CredentialCreationOptions<DomTypeHolder>) -> Fallible<Rc<Promise>> {
-        Err(Error::NotSupported)
+    fn Create(&self, options: &CredentialCreationOptions<DomTypeHolder>) -> Fallible<Rc<Promise>> {
+        self.create_credential(options)
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#dom-credentialscontainer-preventsilentaccess>
