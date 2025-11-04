@@ -7,7 +7,7 @@ use std::ops::Range;
 use icu_segmenter::LineSegmenter;
 
 pub(crate) struct LineBreaker {
-    pub linebreaks: Vec<usize>,
+    linebreaks: Vec<usize>,
     current_offset: usize,
 }
 
