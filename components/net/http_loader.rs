@@ -55,8 +55,9 @@ use net_traits::request::{
 };
 use net_traits::response::{CacheState, HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{
-    CookieSource, DebugVec, DOCUMENT_ACCEPT_HEADER_VALUE, FetchMetadata, NetworkError, RedirectEndValue,
-    RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
+    CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, DebugVec, FetchMetadata, NetworkError,
+    RedirectEndValue, RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
+    ResourceTimeValue,
 };
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
