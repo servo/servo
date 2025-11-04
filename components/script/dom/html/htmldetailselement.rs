@@ -337,12 +337,7 @@ impl HTMLDetailsElement {
         // details name group except for element, in tree order.
         // Step 4. For each element otherElement of groupMembers:
         //     Step 4.1 If the open attribute is set on otherElement, then:
-        //         Step 4.1.1 Assert: otherElement is the only element in groupMembers that has the open attribute set.
-        //         Step 4.1.2 Remove the open attribute on otherElement.
-        //         Step 4.1.3 Break.
-        //
-        //         Step 4.1.1 Remove the open attribute on element.
-        //         Step 4.1.2 Break.
+
         // NOTE: We implement an optimization that allows us to easily find details group members when the
         // root of the tree is a document or shadow root, which is why this looks a bit more complicated.
         let other_open_member = if let Some(shadow_root) = self.containing_shadow_root() {
@@ -372,6 +367,13 @@ impl HTMLDetailsElement {
         };
 
         if let Some(other_open_member) = other_open_member {
+            // Step 4.1.1 Assert: otherElement is the only element in groupMembers that has the open attribute set.
+            // Step 4.1.2 Remove the open attribute on otherElement.
+            // Step 4.1.3 Break.
+            //
+            // Step 4.1.1 Remove the open attribute on element.
+            // Step 4.1.2 Break.
+            // NOTE: We don't bother to assert here and don't need to "break" since we're not in a loop.
             match conflict_resolution_behaviour {
                 ExclusivityConflictResolution::CloseThisElement => self.SetOpen(false),
                 ExclusivityConflictResolution::CloseExistingOpenElement => {
@@ -401,6 +403,7 @@ impl VirtualMethods for HTMLDetailsElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#the-details-element:concept-element-attributes-change-ext>
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
         self.super_type()
             .unwrap()
@@ -414,17 +417,17 @@ impl VirtualMethods for HTMLDetailsElement {
         // Step 2. If localName is name, then ensure details exclusivity by closing the given element if needed
         // given element.
         if attr.local_name() == &local_name!("name") {
-            let old_name: DOMString = match mutation {
-                AttributeMutation::Set(old) => old
-                    .map(|value| value.to_string().into())
-                    .unwrap_or_default(),
-                AttributeMutation::Removed => attr.value().to_string().into(),
+            let old_name: Option<DOMString> = match mutation {
+                AttributeMutation::Set(old) => old.map(|value| value.to_string().into()),
+                AttributeMutation::Removed => Some(attr.value().to_string().into()),
             };
 
             if let Some(shadow_root) = self.containing_shadow_root() {
-                shadow_root
-                    .details_name_groups()
-                    .unregister_details_element(old_name, self);
+                if let Some(old_name) = old_name {
+                    shadow_root
+                        .details_name_groups()
+                        .unregister_details_element(old_name, self);
+                }
                 if matches!(mutation, AttributeMutation::Set(_)) {
                     shadow_root
                         .details_name_groups()
@@ -432,9 +435,11 @@ impl VirtualMethods for HTMLDetailsElement {
                 }
             } else if self.upcast::<Node>().is_in_a_document_tree() {
                 let document = self.owner_document();
-                document
-                    .details_name_groups()
-                    .unregister_details_element(old_name, self);
+                if let Some(old_name) = old_name {
+                    document
+                        .details_name_groups()
+                        .unregister_details_element(old_name, self);
+                }
                 if matches!(mutation, AttributeMutation::Set(_)) {
                     document
                         .details_name_groups()
@@ -479,7 +484,13 @@ impl VirtualMethods for HTMLDetailsElement {
                 }));
             self.upcast::<Node>().dirty(NodeDamage::Other);
 
-            if self.Open() {
+            // Step 3.2. If oldValue is null and value is not null, then ensure details exclusivity
+            // by closing other elements if needed given element.
+            let was_previously_closed = match mutation {
+                AttributeMutation::Set(old) => old.is_none(),
+                AttributeMutation::Removed => false,
+            };
+            if was_previously_closed && self.Open() {
                 self.ensure_details_exclusivity(
                     ExclusivityConflictResolution::CloseExistingOpenElement,
                 );
@@ -495,6 +506,7 @@ impl VirtualMethods for HTMLDetailsElement {
         self.update_shadow_tree_contents(can_gc);
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#the-details-element:html-element-insertion-steps>
     fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         self.super_type().unwrap().bind_to_tree(context, can_gc);
 
@@ -518,6 +530,7 @@ impl VirtualMethods for HTMLDetailsElement {
             }
         }
 
+        // Step 1. Ensure details exclusivity by closing the given element if needed given insertedNode.
         self.ensure_details_exclusivity(ExclusivityConflictResolution::CloseThisElement);
     }
 
