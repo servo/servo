@@ -21,7 +21,7 @@ use style::stylist::{CascadeData, Stylist};
 use stylo_atoms::Atom;
 
 use crate::conversions::Convert;
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{DomRefCell, RefMut};
 use crate::dom::bindings::codegen::Bindings::ElementBinding::GetHTMLOptions;
 use crate::dom::bindings::codegen::Bindings::HTMLSlotElementBinding::HTMLSlotElement_Binding::HTMLSlotElementMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
@@ -46,6 +46,7 @@ use crate::dom::documentorshadowroot::{
 };
 use crate::dom::element::Element;
 use crate::dom::html::htmlslotelement::HTMLSlotElement;
+use crate::dom::htmldetailselement::DetailsNameGroups;
 use crate::dom::node::{
     BindContext, IsShadowTree, Node, NodeDamage, NodeFlags, NodeTraits, ShadowIncluding,
     UnbindContext, VecPreOrderInsertionHelper,
@@ -109,6 +110,8 @@ pub(crate) struct ShadowRoot {
     /// Cached frozen array of [`Self::adopted_stylesheets`]
     #[ignore_malloc_size_of = "mozjs"]
     adopted_stylesheets_frozen_types: CachedFrozenArray,
+
+    details_name_groups: DomRefCell<Option<DetailsNameGroups>>,
 }
 
 impl ShadowRoot {
@@ -148,6 +151,7 @@ impl ShadowRoot {
             delegates_focus: Cell::new(false),
             adopted_stylesheets: Default::default(),
             adopted_stylesheets_frozen_types: CachedFrozenArray::new(),
+            details_name_groups: Default::default(),
         }
     }
 
@@ -359,6 +363,13 @@ impl ShadowRoot {
 
     pub(crate) fn set_delegates_focus(&self, delegates_focus: bool) {
         self.delegates_focus.set(delegates_focus);
+    }
+
+    pub(crate) fn details_name_groups(&self) -> RefMut<'_, DetailsNameGroups> {
+        RefMut::map(
+            self.details_name_groups.borrow_mut(),
+            |details_name_groups| details_name_groups.get_or_insert_default(),
+        )
     }
 }
 
