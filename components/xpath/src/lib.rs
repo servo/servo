@@ -5,7 +5,7 @@
 mod ast;
 mod context;
 mod eval;
-mod eval_function;
+mod functions;
 mod parser;
 mod tokenizer;
 mod value;
