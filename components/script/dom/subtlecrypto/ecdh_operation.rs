@@ -261,10 +261,11 @@ pub(crate) fn derive_bits(
                 if length % 8 != 0 {
                     // Clean excess bits in last byte of secret.
                     let mask = u8::MAX << (8 - length % 8);
-                    let secret_length = secret.len();
-                    secret[secret_length - 1] &= mask;
+                    if let Some(last_byte) = secret.last_mut() {
+                        *last_byte &= mask;
+                    }
                 }
-                Ok(secret[..length.div_ceil(8) as usize].to_vec())
+                Ok(secret)
             }
         },
     }
