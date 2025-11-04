@@ -700,7 +700,11 @@ impl WebViewRenderer {
 
         for scroll_event in self.pending_scroll_zoom_events.drain(..) {
             match scroll_event {
-                ScrollZoomEvent::PinchZoom(factor, center) => {
+                ScrollZoomEvent::PinchZoom(mut factor, center) => {
+                    // Clamp the pinch zoom factor according to the viewport description, if any.
+                    if let Some(viewport_description) = self.viewport_description.as_ref() {
+                        factor = viewport_description.clamp_page_zoom(factor);
+                    }
                     new_pinch_zoom.zoom(factor, center);
                 },
                 ScrollZoomEvent::Scroll(scroll_event_info) => {
