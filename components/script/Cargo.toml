@@ -150,6 +150,7 @@ webrender_api = { workspace = true }
 webxr-api = { workspace = true, features = ["ipc"], optional = true }
 wgpu-core = { workspace = true }
 wgpu-types = { workspace = true }
+x25519-dalek = { workspace = true }
 xml5ever = { workspace = true }
 xpath = { workspace = true }
 

@@ -9,6 +9,7 @@ mod hkdf_operation;
 mod hmac_operation;
 mod pbkdf2_operation;
 mod sha_operation;
+mod x25519_operation;
 
 use std::ptr;
 use std::rc::Rc;
@@ -66,6 +67,7 @@ const ALG_RSA_PSS: &str = "RSA-PSS";
 const ALG_ECDH: &str = "ECDH";
 const ALG_ECDSA: &str = "ECDSA";
 const ALG_ED25519: &str = "Ed25519";
+const ALG_X25519: &str = "X25519";
 
 static SUPPORTED_ALGORITHMS: &[&str] = &[
     ALG_AES_CBC,
@@ -85,6 +87,7 @@ static SUPPORTED_ALGORITHMS: &[&str] = &[
     ALG_ECDH,
     ALG_ECDSA,
     ALG_ED25519,
+    ALG_X25519,
 ];
 
 const NAMED_CURVE_P256: &str = "P-256";
@@ -2337,6 +2340,13 @@ fn normalize_algorithm(
                     NormalizedAlgorithm::Algorithm(params.into())
                 },
 
+                // <https://w3c.github.io/webcrypto/#x25519-registration>
+                (ALG_X25519, Operation::ImportKey) => {
+                    let mut params = dictionary_from_jsval::<Algorithm>(cx, value.handle())?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+
                 // <https://w3c.github.io/webcrypto/#aes-ctr-registration>
                 (ALG_AES_CTR, Operation::Encrypt) => {
                     let mut params = dictionary_from_jsval::<RootedTraceableBox<AesCtrParams>>(
@@ -2749,6 +2759,14 @@ impl NormalizedAlgorithm {
         match self {
             NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
                 ALG_ED25519 => ed25519_operation::import_key(
+                    global,
+                    format,
+                    key_data,
+                    extractable,
+                    usages,
+                    can_gc,
+                ),
+                ALG_X25519 => x25519_operation::import_key(
                     global,
                     format,
                     key_data,
