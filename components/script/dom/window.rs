@@ -1635,7 +1635,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
                 webdriver_script_sender.send(Err(JavaScriptEvaluationError::EvaluationFailure(
                     Some(javascript_error_info_from_error_info(
                         cx,
-                        &ErrorInfo::from_value(value, cx),
+                        &ErrorInfo::from_value(value, cx, can_gc),
                         value,
                         can_gc,
                     )),
