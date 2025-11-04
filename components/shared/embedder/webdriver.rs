@@ -18,8 +18,8 @@ use ipc_channel::ipc::IpcSender;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_geometry::DeviceIndependentIntRect;
-use servo_url::ServoUrl;
 use style_traits::CSSPixel;
+use url::Url;
 use webdriver::error::ErrorStatus;
 use webrender_api::units::DevicePixel;
 
@@ -77,7 +77,7 @@ pub enum WebDriverCommandMsg {
     /// Get the viewport size.
     GetViewportSize(WebViewId, IpcSender<Size2D<u32, DevicePixel>>),
     /// Load a URL in the top-level browsing context with the given ID.
-    LoadUrl(WebViewId, ServoUrl, GenericSender<WebDriverLoadStatus>),
+    LoadUrl(WebViewId, Url, GenericSender<WebDriverLoadStatus>),
     /// Refresh the top-level browsing context with the given ID.
     Refresh(WebViewId, GenericSender<WebDriverLoadStatus>),
     /// Navigate the webview with the given ID to the previous page in the browsing context's history.
@@ -201,7 +201,7 @@ pub enum WebDriverScriptCommand {
         IpcSender<Result<BrowsingContextId, ErrorStatus>>,
     ),
     GetParentFrameId(IpcSender<Result<BrowsingContextId, ErrorStatus>>),
-    GetUrl(IpcSender<ServoUrl>),
+    GetUrl(IpcSender<String>),
     GetPageSource(IpcSender<Result<String, ErrorStatus>>),
     IsEnabled(String, IpcSender<Result<bool, ErrorStatus>>),
     IsSelected(String, IpcSender<Result<bool, ErrorStatus>>),

@@ -32,7 +32,6 @@ use net_traits::CoreResourceMsg::{
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::conversions::is_array_like;
 use script_bindings::num::Finite;
-use servo_url::ServoUrl;
 use webdriver::error::ErrorStatus;
 
 use crate::document_collection::DocumentCollection;
@@ -1796,7 +1795,7 @@ pub(crate) fn handle_get_css(
 pub(crate) fn handle_get_url(
     documents: &DocumentCollection,
     pipeline: PipelineId,
-    reply: IpcSender<ServoUrl>,
+    reply: IpcSender<String>,
     _can_gc: CanGc,
 ) {
     reply
@@ -1804,8 +1803,8 @@ pub(crate) fn handle_get_url(
             // TODO: Return an error if the pipeline doesn't exist.
             documents
                 .find_document(pipeline)
-                .map(|document| document.url())
-                .unwrap_or_else(|| ServoUrl::parse("about:blank").expect("infallible")),
+                .map(|document| document.url().into_string())
+                .unwrap_or_else(|| "about:blank".to_string()),
         )
         .unwrap();
 }
