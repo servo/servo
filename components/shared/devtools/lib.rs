@@ -24,6 +24,7 @@ use embedder_traits::Theme;
 use http::{HeaderMap, Method};
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
+use net_traits::DebugVec;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::Destination;
 use serde::{Deserialize, Serialize};
@@ -441,28 +442,6 @@ impl From<ConsoleMessage> for ConsoleLog {
 pub enum CachedConsoleMessage {
     PageError(PageError),
     ConsoleLog(ConsoleLog),
-}
-
-#[derive(Clone, PartialEq)]
-pub struct DebugVec(pub Vec<u8>);
-
-impl std::ops::Deref for DebugVec {
-    type Target = Vec<u8>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl From<Vec<u8>> for DebugVec {
-    fn from(v: Vec<u8>) -> Self {
-        Self(v)
-    }
-}
-
-impl std::fmt::Debug for DebugVec {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("[{}; ...]", self.0.len()))
-    }
 }
 
 #[derive(Debug, PartialEq)]

@@ -265,7 +265,7 @@ impl std::ops::Deref for DebugVec {
 
 impl std::fmt::Debug for DebugVec {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("[{}; ...]", self.0.len()))
+        f.write_fmt(format_args!("[...; {}]", self.0.len()))
     }
 }
 
