@@ -154,6 +154,10 @@ pub struct LayoutThread {
     /// Is this the first reflow in this LayoutThread?
     have_ever_generated_display_list: Cell<bool>,
 
+    /// Whether a new overflow calculation needs to happen due to changes to the fragment
+    /// tree. This is set to true every time a restyle requests overflow calculation.
+    need_overflow_calculation: Cell<bool>,
+
     /// Whether a new display list is necessary due to changes to layout or stacking
     /// contexts. This is set to true every time layout changes, even when a display list
     /// isn't requested for this layout, such as for layout queries. The next time a
@@ -696,6 +700,7 @@ impl LayoutThread {
             font_context: config.font_context,
             have_added_user_agent_stylesheets: false,
             have_ever_generated_display_list: Cell::new(false),
+            need_overflow_calculation: Cell::new(false),
             need_new_display_list: Cell::new(false),
             need_new_stacking_context_tree: Cell::new(false),
             box_tree: Default::default(),
@@ -854,19 +859,19 @@ impl LayoutThread {
             animation_timeline_value: reflow_request.animation_timeline_value,
         });
 
-        let (mut reflow_phases_run, damage, iframe_sizes) = self.restyle_and_build_trees(
+        let (mut reflow_phases_run, iframe_sizes) = self.restyle_and_build_trees(
             &mut reflow_request,
             document,
             root_element,
             &image_resolver,
         );
-        if self.calculate_overflow(damage) {
+        if self.calculate_overflow() {
             reflow_phases_run.insert(ReflowPhasesRun::CalculatedOverflow);
         }
-        if self.build_stacking_context_tree_for_reflow(&reflow_request, damage) {
+        if self.build_stacking_context_tree_for_reflow(&reflow_request) {
             reflow_phases_run.insert(ReflowPhasesRun::BuiltStackingContextTree);
         }
-        if self.build_display_list(&reflow_request, damage, &image_resolver) {
+        if self.build_display_list(&reflow_request, &image_resolver) {
             reflow_phases_run.insert(ReflowPhasesRun::BuiltDisplayList);
         }
         if self.handle_update_scroll_node_request(&reflow_request) {
@@ -956,7 +961,7 @@ impl LayoutThread {
         document: ServoLayoutDocument<'_>,
         root_element: ServoLayoutElement<'_>,
         image_resolver: &Arc<ImageResolver>,
-    ) -> (ReflowPhasesRun, RestyleDamage, IFrameSizes) {
+    ) -> (ReflowPhasesRun, IFrameSizes) {
         let mut snapshot_map = SnapshotMap::new();
         let _snapshot_setter = match reflow_request.restyle.as_mut() {
             Some(restyle) => SnapshotSetter::new(restyle, &mut snapshot_map),
@@ -1053,15 +1058,25 @@ impl LayoutThread {
         } else {
             Default::default()
         };
+
         let damage = compute_damage_and_repair_style(
             &layout_context.style_context,
             root_node.to_threadsafe(),
             damage_from_environment,
         );
+        if damage.contains(RestyleDamage::RECALCULATE_OVERFLOW) {
+            self.need_overflow_calculation.set(true);
+        }
+        if damage.contains(RestyleDamage::REBUILD_STACKING_CONTEXT) {
+            self.need_new_stacking_context_tree.set(true);
+        }
+        if damage.contains(RestyleDamage::REPAINT) {
+            self.need_new_display_list.set(true);
+        }
 
         if !damage.contains(RestyleDamage::RELAYOUT) {
             layout_context.style_context.stylist.rule_tree().maybe_gc();
-            return (ReflowPhasesRun::empty(), damage, IFrameSizes::default());
+            return (ReflowPhasesRun::empty(), IFrameSizes::default());
         }
 
         let mut box_tree = self.box_tree.borrow_mut();
@@ -1098,11 +1113,6 @@ impl LayoutThread {
 
         *self.fragment_tree.borrow_mut() = Some(fragment_tree);
 
-        // Changes to layout require us to generate a new stacking context tree and display
-        // list the next time one is requested.
-        self.need_new_display_list.set(true);
-        self.need_new_stacking_context_tree.set(true);
-
         if self.debug.dump_style_tree {
             println!(
                 "{:?}",
@@ -1124,14 +1134,13 @@ impl LayoutThread {
         let mut iframe_sizes = layout_context.iframe_sizes.lock();
         (
             ReflowPhasesRun::RanLayout,
-            damage,
             std::mem::take(&mut *iframe_sizes),
         )
     }
 
     #[servo_tracing::instrument(name = "Overflow Calculation", skip_all)]
-    fn calculate_overflow(&self, damage: RestyleDamage) -> bool {
-        if !damage.contains(RestyleDamage::RECALCULATE_OVERFLOW) {
+    fn calculate_overflow(&self) -> bool {
+        if !self.need_overflow_calculation.get() {
             return false;
         }
 
@@ -1142,28 +1151,23 @@ impl LayoutThread {
             }
         }
 
-        // Changes to overflow require us to generate a new stacking context tree and
-        // display list the next time one is requested.
-        self.need_new_display_list.set(true);
-        self.need_new_stacking_context_tree.set(true);
+        self.need_overflow_calculation.set(false);
+        assert!(self.need_new_display_list.get());
+        assert!(self.need_new_stacking_context_tree.get());
+
         true
     }
 
-    fn build_stacking_context_tree_for_reflow(
-        &self,
-        reflow_request: &ReflowRequest,
-        damage: RestyleDamage,
-    ) -> bool {
+    fn build_stacking_context_tree_for_reflow(&self, reflow_request: &ReflowRequest) -> bool {
         if !ReflowPhases::necessary(&reflow_request.reflow_goal)
             .contains(ReflowPhases::StackingContextTreeConstruction)
         {
             return false;
         }
-        if !damage.contains(RestyleDamage::REBUILD_STACKING_CONTEXT) &&
-            !self.need_new_stacking_context_tree.get()
-        {
+        if !self.need_new_stacking_context_tree.get() {
             return false;
         }
+
         self.build_stacking_context_tree(reflow_request.viewport_details)
     }
 
@@ -1208,11 +1212,9 @@ impl LayoutThread {
 
         *stacking_context_tree = Some(new_stacking_context_tree);
 
-        // Force display list generation as layout has changed.
-        self.need_new_display_list.set(true);
-
         // The stacking context tree is up-to-date again.
         self.need_new_stacking_context_tree.set(false);
+        assert!(self.need_new_display_list.get());
 
         true
     }
@@ -1223,7 +1225,6 @@ impl LayoutThread {
     fn build_display_list(
         &self,
         reflow_request: &ReflowRequest,
-        damage: RestyleDamage,
         image_resolver: &Arc<ImageResolver>,
     ) -> bool {
         if !ReflowPhases::necessary(&reflow_request.reflow_goal)
@@ -1239,11 +1240,10 @@ impl LayoutThread {
             return false;
         };
 
-        // It's not enough to simply check `damage` here as not all reflow requests
-        // require display lists. If a non-display-list-generating reflow updated layout
-        // in a previous refow, we cannot skip display list generation here the next time
-        // a display list is requested.
-        if !self.need_new_display_list.get() && !damage.contains(RestyleDamage::REPAINT) {
+        // If a non-display-list-generating reflow updated layout in a previous refow, we
+        // cannot skip display list generation here the next time a display list is
+        // requested.
+        if !self.need_new_display_list.get() {
             return false;
         }
 
