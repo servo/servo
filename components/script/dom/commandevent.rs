@@ -8,9 +8,9 @@ use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::inheritance::Castable;
 use stylo_atoms::Atom;
 
-use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::CommandEventBinding;
 use crate::dom::bindings::codegen::Bindings::CommandEventBinding::CommandEventMethods;
+use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
@@ -44,6 +44,7 @@ impl CommandEvent {
     }
 
     #[allow(clippy::too_many_arguments)]
+    #[allow(dead_code)]
     pub(crate) fn new(
         window: &Window,
         type_: Atom,
@@ -109,6 +110,7 @@ impl CommandEventMethods<crate::DomTypeHolder> for CommandEvent {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-commandevent-command>
     fn Command(&self) -> DOMString {
+        // The command attribute must return the value it was initialized to.
         self.command.clone()
     }
 
