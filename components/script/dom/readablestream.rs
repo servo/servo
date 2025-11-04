@@ -10,7 +10,6 @@ use std::rc::Rc;
 use base::id::{MessagePortId, MessagePortIndex};
 use constellation_traits::MessagePortImpl;
 use dom_struct::dom_struct;
-use rustc_hash::FxHashMap;
 use ipc_channel::ipc::IpcSharedMemory;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
@@ -19,6 +18,7 @@ use js::rust::{
     MutableHandleValue as SafeMutableHandleValue,
 };
 use js::typedarray::ArrayBufferViewU8;
+use rustc_hash::FxHashMap;
 use script_bindings::conversions::SafeToJSValConvertible;
 
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
@@ -2209,8 +2209,9 @@ pub(crate) unsafe fn get_type_and_value_from_message(
         .expect("Getting the value should not fail.");
 
     // Assert: type is a String.
-    let result = DOMString::safe_from_jsval(cx, type_.handle(), StringificationBehavior::Empty)
-        .expect("The type of the message should be a string");
+    let result =
+        DOMString::safe_from_jsval(cx, type_.handle(), StringificationBehavior::Empty, can_gc)
+            .expect("The type of the message should be a string");
     let ConversionResult::Success(type_string) = result else {
         unreachable!("The type of the message should be a string");
     };
@@ -2314,7 +2315,7 @@ pub(crate) fn get_read_promise_done(
         rooted!(in(*cx) let object = v.to_object());
         rooted!(in(*cx) let mut done = UndefinedValue());
         match get_dictionary_property(*cx, object.handle(), "done", done.handle_mut(), can_gc) {
-            Ok(true) => match bool::safe_from_jsval(cx, done.handle(), ()) {
+            Ok(true) => match bool::safe_from_jsval(cx, done.handle(), (), can_gc) {
                 Ok(ConversionResult::Success(val)) => Ok(val),
                 Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.to_string())),
                 _ => Err(Error::Type("Unknown format for done property.".to_string())),
@@ -2346,6 +2347,7 @@ pub(crate) fn get_read_promise_bytes(
                     cx,
                     bytes.handle(),
                     ConversionBehavior::EnforceRange,
+                    can_gc,
                 ) {
                     Ok(ConversionResult::Success(val)) => Ok(val),
                     Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.to_string())),

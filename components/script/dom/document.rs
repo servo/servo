@@ -6078,12 +6078,18 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
-    fn SetAdoptedStyleSheets(&self, context: JSContext, val: HandleValue) -> ErrorResult {
+    fn SetAdoptedStyleSheets(
+        &self,
+        context: JSContext,
+        val: HandleValue,
+        can_gc: CanGc,
+    ) -> ErrorResult {
         let result = DocumentOrShadowRoot::set_adopted_stylesheet_from_jsval(
             context,
             self.adopted_stylesheets.borrow_mut().as_mut(),
             val,
             &StyleSheetListOwner::Document(Dom::from_ref(self)),
+            can_gc,
         );
 
         // If update is successful, clear the FrozenArray cache.

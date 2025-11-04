@@ -188,7 +188,7 @@ pub(crate) fn decompress_and_enqueue_a_chunk(
     can_gc: CanGc,
 ) -> Fallible<()> {
     // Step 1. If chunk is not a BufferSource type, then throw a TypeError.
-    let chunk = convert_chunk_to_vec(cx, chunk)?;
+    let chunk = convert_chunk_to_vec(cx, chunk, can_gc)?;
 
     // Step 2. Let buffer be the result of decompressing chunk with ds’s format and context. If
     // this results in an error, then throw a TypeError.

@@ -11,7 +11,7 @@ use js::rust::HandleValue;
 use layout_api::ElementsFromPointFlags;
 use rustc_hash::FxBuildHasher;
 use script_bindings::error::{Error, ErrorResult};
-use script_bindings::script_runtime::JSContext;
+use script_bindings::script_runtime::{CanGc, JSContext};
 use servo_arc::Arc;
 use servo_config::pref;
 use style::media_queries::MediaList;
@@ -431,9 +431,10 @@ impl DocumentOrShadowRoot {
         adopted_stylesheets: &mut Vec<Dom<CSSStyleSheet>>,
         incoming_value: HandleValue,
         owner: &StyleSheetListOwner,
+        can_gc: CanGc,
     ) -> ErrorResult {
         let maybe_stylesheets =
-            Vec::<DomRoot<CSSStyleSheet>>::safe_from_jsval(context, incoming_value, ());
+            Vec::<DomRoot<CSSStyleSheet>>::safe_from_jsval(context, incoming_value, (), can_gc);
 
         match maybe_stylesheets {
             Ok(ConversionResult::Success(stylesheets)) => {

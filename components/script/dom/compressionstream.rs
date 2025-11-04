@@ -191,7 +191,7 @@ pub(crate) fn compress_and_enqueue_a_chunk(
     can_gc: CanGc,
 ) -> Fallible<()> {
     // Step 1. If chunk is not a BufferSource type, then throw a TypeError.
-    let chunk = convert_chunk_to_vec(cx, chunk)?;
+    let chunk = convert_chunk_to_vec(cx, chunk, can_gc)?;
 
     // Step 2. Let buffer be the result of compressing chunk with cs’s format and context.
     // NOTE: In our implementation, the enum type of context already indicates the format.
@@ -274,9 +274,10 @@ pub(crate) fn compress_flush_and_enqueue(
 pub(crate) fn convert_chunk_to_vec(
     cx: SafeJSContext,
     chunk: SafeHandleValue,
+    can_gc: CanGc,
 ) -> Result<Vec<u8>, Error> {
-    let conversion_result =
-        ArrayBufferViewOrArrayBuffer::safe_from_jsval(cx, chunk, ()).map_err(|_| {
+    let conversion_result = ArrayBufferViewOrArrayBuffer::safe_from_jsval(cx, chunk, (), can_gc)
+        .map_err(|_| {
             Error::Type("Unable to convert chunk into ArrayBuffer or ArrayBufferView".to_string())
         })?;
     let buffer_source = conversion_result.get_success_value().ok_or_else(|| {

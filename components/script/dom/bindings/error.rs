@@ -248,7 +248,7 @@ impl ErrorInfo {
         None
     }
 
-    pub(crate) fn from_value(value: HandleValue, cx: SafeJSContext) -> ErrorInfo {
+    pub(crate) fn from_value(value: HandleValue, cx: SafeJSContext, can_gc: CanGc) -> ErrorInfo {
         if value.is_object() {
             rooted!(in(*cx) let object = value.to_object());
             if let Some(info) = ErrorInfo::from_object(object.handle(), cx) {
@@ -256,7 +256,7 @@ impl ErrorInfo {
             }
         }
 
-        match USVString::safe_from_jsval(cx, value, ()) {
+        match USVString::safe_from_jsval(cx, value, (), can_gc) {
             Ok(ConversionResult::Success(USVString(string))) => ErrorInfo {
                 message: format!("uncaught exception: {}", string),
                 filename: String::new(),
@@ -282,7 +282,7 @@ pub(crate) fn report_pending_exception(
 ) {
     rooted!(in(*cx) let mut value = UndefinedValue());
     if take_pending_exception(cx, value.handle_mut()) {
-        let error_info = ErrorInfo::from_value(value.handle(), cx);
+        let error_info = ErrorInfo::from_value(value.handle(), cx, can_gc);
         report_error(
             error_info,
             value.handle(),
@@ -393,7 +393,7 @@ pub(crate) fn take_and_report_pending_exception_for_api(
         return None;
     }
 
-    let error_info = ErrorInfo::from_value(value.handle(), cx);
+    let error_info = ErrorInfo::from_value(value.handle(), cx, can_gc);
     let return_value =
         javascript_error_info_from_error_info(cx, &error_info, value.handle(), can_gc);
     report_error(

@@ -3555,6 +3555,7 @@ impl ScriptThread {
                 GlobalScope::get_cx(),
                 jsval.handle(),
                 StringificationBehavior::Empty,
+                can_gc,
             );
             match strval {
                 Ok(ConversionResult::Success(s)) => {

@@ -81,6 +81,7 @@ pub trait SafeFromJSValConvertible: Sized {
         cx: SafeJSContext,
         value: HandleValue,
         option: Self::Config,
+        _can_gc: CanGc,
     ) -> Result<ConversionResult<Self>, ()>;
 }
 
@@ -91,6 +92,7 @@ impl<T: FromJSValConvertible> SafeFromJSValConvertible for T {
         cx: SafeJSContext,
         value: HandleValue,
         option: Self::Config,
+        _can_gc: CanGc,
     ) -> Result<ConversionResult<Self>, ()> {
         unsafe { T::from_jsval(*cx, value, option) }
     }

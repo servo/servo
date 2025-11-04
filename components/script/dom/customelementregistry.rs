@@ -205,8 +205,12 @@ impl CustomElementRegistry {
         Ok(())
     }
 
-    #[expect(unsafe_code)]
-    fn get_observed_attributes(&self, constructor: HandleObject) -> Fallible<Vec<DOMString>> {
+    #[allow(unsafe_code)]
+    fn get_observed_attributes(
+        &self,
+        constructor: HandleObject,
+        can_gc: CanGc,
+    ) -> Fallible<Vec<DOMString>> {
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut observed_attributes = UndefinedValue());
         if unsafe {
@@ -228,6 +232,7 @@ impl CustomElementRegistry {
             cx,
             observed_attributes.handle(),
             StringificationBehavior::Default,
+            can_gc,
         );
         match conversion {
             Ok(ConversionResult::Success(attributes)) => Ok(attributes),
@@ -238,8 +243,12 @@ impl CustomElementRegistry {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
     /// Step 14.11: Get the value of `formAssociated`.
-    #[expect(unsafe_code)]
-    fn get_form_associated_value(&self, constructor: HandleObject) -> Fallible<bool> {
+    #[allow(unsafe_code)]
+    fn get_form_associated_value(
+        &self,
+        constructor: HandleObject,
+        can_gc: CanGc,
+    ) -> Fallible<bool> {
         let cx = self.window.get_cx();
         rooted!(in(*cx) let mut form_associated_value = UndefinedValue());
         if unsafe {
@@ -257,8 +266,12 @@ impl CustomElementRegistry {
             return Ok(false);
         }
 
-        let conversion =
-            SafeFromJSValConvertible::safe_from_jsval(cx, form_associated_value.handle(), ());
+        let conversion = SafeFromJSValConvertible::safe_from_jsval(
+            cx,
+            form_associated_value.handle(),
+            (),
+            can_gc,
+        );
         match conversion {
             Ok(ConversionResult::Success(flag)) => Ok(flag),
             Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into())),
@@ -268,8 +281,12 @@ impl CustomElementRegistry {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
     /// Step 14.7: Get `disabledFeatures` value
-    #[expect(unsafe_code)]
-    fn get_disabled_features(&self, constructor: HandleObject) -> Fallible<Vec<DOMString>> {
+    #[allow(unsafe_code)]
+    fn get_disabled_features(
+        &self,
+        constructor: HandleObject,
+        can_gc: CanGc,
+    ) -> Fallible<Vec<DOMString>> {
         let cx = self.window.get_cx();
         rooted!(in(*cx) let mut disabled_features = UndefinedValue());
         if unsafe {
@@ -291,6 +308,7 @@ impl CustomElementRegistry {
             cx,
             disabled_features.handle(),
             StringificationBehavior::Default,
+            can_gc,
         );
         match conversion {
             Ok(ConversionResult::Success(attributes)) => Ok(attributes),
@@ -453,7 +471,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         // is not null.
         let observed_attributes = if callbacks.attribute_changed_callback.is_some() {
             let _ac = JSAutoRealm::new(*cx, constructor.get());
-            match self.get_observed_attributes(constructor.handle()) {
+            match self.get_observed_attributes(constructor.handle(), can_gc) {
                 Ok(attributes) => attributes,
                 Err(error) => {
                     self.element_definition_is_running.set(false);
@@ -467,7 +485,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         // Steps 14.6 - 14.10: Handle `disabledFeatures`.
         let (disable_internals, disable_shadow) = {
             let _ac = JSAutoRealm::new(*cx, constructor.get());
-            match self.get_disabled_features(constructor.handle()) {
+            match self.get_disabled_features(constructor.handle(), can_gc) {
                 Ok(sequence) => (
                     sequence.iter().any(|s| *s == "internals"),
                     sequence.iter().any(|s| *s == "shadow"),
@@ -482,7 +500,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         // Step 14.11 - 14.12: Handle `formAssociated`.
         let form_associated = {
             let _ac = JSAutoRealm::new(*cx, constructor.get());
-            match self.get_form_associated_value(constructor.handle()) {
+            match self.get_form_associated_value(constructor.handle(), can_gc) {
                 Ok(flag) => flag,
                 Err(error) => {
                     self.element_definition_is_running.set(false);
@@ -729,7 +747,7 @@ impl CustomElementDefinition {
         document: &Document,
         prefix: Option<Prefix>,
         // This function can cause GC through AutoEntryScript::Drop, but we can't pass a CanGc there
-        _can_gc: CanGc,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<Element>> {
         let window = document.window();
         let cx = GlobalScope::get_cx();
@@ -751,7 +769,7 @@ impl CustomElementDefinition {
 
         rooted!(in(*cx) let element_val = ObjectValue(element.get()));
         let element: DomRoot<Element> =
-            match SafeFromJSValConvertible::safe_from_jsval(cx, element_val.handle(), ()) {
+            match SafeFromJSValConvertible::safe_from_jsval(cx, element_val.handle(), (), can_gc) {
                 Ok(ConversionResult::Success(element)) => element,
                 Ok(ConversionResult::Failure(..)) => {
                     return Err(Error::Type(
