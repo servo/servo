@@ -8118,6 +8118,7 @@ dependencies = [
  "ohos-vsync",
  "ohos-window-manager-sys",
  "raw-window-handle",
+ "rustc-hash 2.1.1",
  "rustls",
  "serde_json",
  "servo_allocator",

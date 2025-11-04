@@ -69,6 +69,7 @@ libservo = { path = "../../components/servo", features = ["background_hang_monit
 log = { workspace = true }
 mime_guess = { workspace = true }
 raw-window-handle = { workspace = true }
+rustc-hash = { workspace = true }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
 tokio = { workspace = true }
 tracing = { workspace = true, optional = true }

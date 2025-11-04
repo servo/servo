@@ -8,16 +8,17 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use dpi::PhysicalSize;
-use egui::accesskit::{Node, Role};
+use egui::accesskit::{Node, NodeId, Role, TreeUpdate};
 use egui::text::{CCursor, CCursorRange};
 use egui::text_edit::TextEditState;
 use egui::{
     Button, CentralPanel, Frame, Key, Label, Modifiers, PaintCallback, TopBottomPanel, Vec2, pos2,
 };
 use egui_glow::{CallbackFn, EguiGlow};
-use egui_winit::EventResponse;
+use egui_winit::{EventResponse, accesskit_winit};
 use euclid::{Box2D, Length, Point2D, Rect, Scale, Size2D};
 use log::{trace, warn};
+use rustc_hash::FxHasher;
 use servo::base::id::WebViewId;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
@@ -64,6 +65,7 @@ pub struct Minibrowser {
     experimental_prefs_enabled: bool,
 
     root_accesskit_node_id: Option<egui::accesskit::NodeId>,
+    accesskit_adapter: accesskit_winit::Adapter,
 }
 
 pub enum MinibrowserEvent {
@@ -92,6 +94,19 @@ impl Drop for Minibrowser {
     }
 }
 
+trait NodeIdExt {
+    fn with(self, child: impl std::hash::Hash) -> Self;
+}
+impl NodeIdExt for NodeId {
+    fn with(self, child: impl std::hash::Hash) -> Self {
+        use std::hash::Hasher as _;
+        let mut hasher = FxHasher::with_seed(0);
+        hasher.write_u64(self.0);
+        child.hash(&mut hasher);
+        Self(hasher.finish())
+    }
+}
+
 impl Minibrowser {
     pub fn new(
         window: &ServoWindow,
@@ -113,7 +128,7 @@ impl Minibrowser {
         let winit_window = window.winit_window().unwrap();
         context
             .egui_winit
-            .init_accesskit(event_loop, winit_window, event_loop_proxy);
+            .init_accesskit(event_loop, winit_window, event_loop_proxy.clone());
         winit_window.set_visible(true);
 
         context.egui_ctx.options_mut(|options| {
@@ -140,6 +155,11 @@ impl Minibrowser {
             favicon_textures: Default::default(),
             experimental_prefs_enabled: preferences.experimental_prefs_enabled,
             root_accesskit_node_id: None,
+            accesskit_adapter: accesskit_winit::Adapter::with_event_loop_proxy(
+                event_loop,
+                winit_window,
+                event_loop_proxy,
+            ),
         }
     }
 
@@ -508,6 +528,8 @@ impl Minibrowser {
                     });
                 }
 
+                let first_update = self.root_accesskit_node_id.is_none();
+
                 ctx.accesskit_subtree_builder(ui.id(), |node, accesskit_state| {
                     node.set_role(Role::Group);
 
@@ -527,6 +549,36 @@ impl Minibrowser {
                     // where they meet. then we can do what we want with that root.
                     node.push_child(*root_accesskit_node_id);
                 });
+
+                if first_update {
+                    let root_id = self.root_accesskit_node_id.expect("Guaranteed by accesskit_subtree_builder() call above");
+                    self.accesskit_adapter.update_if_active(|| {
+                        let mut root = Node::default();
+                        root.set_role(Role::WebView);
+                        let a_id = root_id.with(1);
+                        let mut a = Node::default();
+                        a.set_role(Role::Button);
+                        let b_id = root_id.with(2);
+                        let mut b = Node::default();
+                        b.set_role(Role::Button);
+                        let c_id = root_id.with(3);
+                        let mut c = Node::default();
+                        c.set_role(Role::Button);
+                        root.set_children(vec![a_id, b_id, c_id]);
+                        TreeUpdate {
+                            nodes: vec![
+                                (root_id, root),
+                                (a_id, a),
+                                (b_id, b),
+                                (c_id, c),
+                            ],
+                            tree: None,
+                            // TODO: this needs to align with the focus in egui’s updates,
+                            // unless the focus has genuinely changed
+                            focus: b_id,
+                        }
+                    });
+                }
             });
 
             *last_update = now;
