@@ -82,6 +82,7 @@ pub(crate) struct TextFragment {
     pub parent_width: Au,
     pub text_clip: (Au, Au), // left & right
     pub contains_first_character_of_the_line: bool,
+    pub inline_offset: Au,
 }
 
 #[derive(MallocSizeOf)]

@@ -701,6 +701,7 @@ impl Fragment {
             fragment.parent_width,
             fragment.text_clip,
             fragment.contains_first_character_of_the_line,
+            fragment.inline_offset,
         );
         if glyphs.is_empty() {
             return;
@@ -1557,12 +1558,13 @@ fn glyphs(
     containing_block_width: Au,
     text_clip_boundaries: (Au, Au), // TODO: handle left side ellipsis.
     contains_first_character_of_the_line: bool,
+    inline_offset: Au,
 ) -> Vec<wr::GlyphInstance> {
     use fonts_traits::ByteIndex;
     use range::Range;
 
     let mut glyphs = vec![];
-    let mut total_advance = Au(0);
+    let mut total_advance = inline_offset;
     let max_total_advance = containing_block_width - text_clip_boundaries.1;
 
     for run in glyph_runs {

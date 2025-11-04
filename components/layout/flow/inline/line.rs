@@ -24,6 +24,7 @@ use crate::geom::{LogicalRect, LogicalVec2, PhysicalRect, ToLogical};
 use crate::positioned::{
     AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, relative_adjustement,
 };
+use crate::query::process_client_rect_request;
 use crate::{ContainingBlock, ContainingBlockSize};
 
 use crate::flow::inline::text_run::TextRunSegment;
@@ -623,6 +624,10 @@ impl LineItemLayout<'_, '_> {
 
         self.current_state.inline_advance += inline_advance;
 
+        if self.current_state.inline_advance <= self.layout.containing_block.size.inline {
+            can_be_ellided = false;
+        }
+
         // create & insert text fragment to vector
         if can_be_ellided && self.current_state.inline_advance > self.layout.containing_block.size.inline && original_inline_advance < self.layout.containing_block.size.inline {
             // create ellipsis bounding box
@@ -637,7 +642,6 @@ impl LineItemLayout<'_, '_> {
                 original_inline_advance, 
                 can_be_ellided, 
             );
-            
             // check one more time to see if we can actually ellide the text.
             if can_be_ellided {
                 let text_fragment_clip = (Au(0), ellipsis_textrun_segment.runs[0].glyph_store.total_advance());
@@ -656,6 +660,7 @@ impl LineItemLayout<'_, '_> {
                         parent_width: self.layout.containing_block.size.inline,
                         text_clip: text_fragment_clip,
                         contains_first_character_of_the_line: first_text_item_of_the_line,
+                        inline_offset: original_inline_advance,
                     })),
                     content_rect,
                 ));
@@ -676,6 +681,7 @@ impl LineItemLayout<'_, '_> {
                         parent_width: self.layout.containing_block.size.inline,
                         text_clip: (Au(0), Au(0)),
                         contains_first_character_of_the_line: false,
+                        inline_offset: original_inline_advance,
                     })),
                     ellipsis_content_rect,
                 ));
@@ -698,6 +704,7 @@ impl LineItemLayout<'_, '_> {
                         parent_width: self.layout.containing_block.size.inline,
                         text_clip: (Au(0), Au(0)),
                         contains_first_character_of_the_line: first_text_item_of_the_line,
+                        inline_offset: original_inline_advance,
                     })),
                     content_rect,
                 ));
@@ -720,6 +727,7 @@ impl LineItemLayout<'_, '_> {
                     parent_width: self.layout.containing_block.size.inline,
                     text_clip: (Au(0), Au(0)),
                     contains_first_character_of_the_line: first_text_item_of_the_line,
+                    inline_offset: original_inline_advance,
                 })),
                 content_rect,
             ));
@@ -730,8 +738,7 @@ impl LineItemLayout<'_, '_> {
     fn form_ellipsis_bounding_box (&mut self, ellipsis_textrun_segment: TextRunSegment, text_item: TextRunLineItem, original_inline_advance: Au, mut can_be_ellided: bool)  -> (LogicalRect<Au>, bool, TextRunSegment, TextRunLineItem) {
         // finding the inline start corner (if horizontal, then starting x pos)
         let inline_target = self.layout.containing_block.size.inline 
-        - ellipsis_textrun_segment.runs[0].glyph_store.total_advance() 
-        - original_inline_advance;
+        - ellipsis_textrun_segment.runs[0].glyph_store.total_advance();
         let mut inline_start = original_inline_advance;
         
         let mut inline_start_found = false;
@@ -776,10 +783,7 @@ impl LineItemLayout<'_, '_> {
             }
             else {
                 inline_start_found = true;
-            }
-            if inline_start == original_inline_advance { 
-                can_be_ellided = false; // first character cannot be ellided.
-            }
+            }  
         }
 
 
