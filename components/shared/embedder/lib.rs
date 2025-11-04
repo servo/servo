@@ -263,13 +263,6 @@ pub trait RefreshDriver {
     fn observe_next_frame(&self, start_frame_callback: Box<dyn Fn() + Send + 'static>);
 }
 
-#[derive(Deserialize, Serialize)]
-pub enum ContextMenuResult {
-    Dismissed,
-    Ignored,
-    Selected(usize),
-}
-
 /// [Simple dialogs](https://html.spec.whatwg.org/multipage/#simple-dialogs) are synchronous dialogs
 /// that can be opened by web content. Since their messages are controlled by web content, they
 /// should be presented to the user in a way that makes them impossible to mistake for browser UI.
@@ -545,13 +538,6 @@ pub enum EmbedderMsg {
         bool, /* for proxy */
         GenericSender<Option<AuthenticationResponse>>,
     ),
-    /// Show a context menu to the user
-    ShowContextMenu(
-        WebViewId,
-        GenericSender<ContextMenuResult>,
-        Option<String>,
-        Vec<String>,
-    ),
     /// Whether or not to allow a pipeline to load a url.
     AllowNavigationRequest(WebViewId, PipelineId, ServoUrl),
     /// Whether or not to allow script to open a new tab/browser
@@ -666,6 +652,35 @@ pub enum EmbedderControlRequest {
     /// Indicates that the the user has activated a text or input control that should show
     /// an IME.
     InputMethod(InputMethodRequest),
+    /// Indicates that the the user has triggered the display of a context menu.
+    ContextMenu(ContextMenuRequest),
+}
+
+/// Request to present a context menu to the user. This is triggered by things like
+/// right-clicking on web content.
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ContextMenuRequest {
+    pub items: Vec<ContextMenuItem>,
+}
+
+/// An item in a context menu.
+#[derive(Debug, Deserialize, Serialize)]
+pub enum ContextMenuItem {
+    Item {
+        label: String,
+        action: ContextMenuAction,
+    },
+    Separator,
+}
+
+/// A particular action associated with a [`ContextMenuItem`]. These actions are
+/// context-sensitive, which means that some of them are available only for some
+/// page elements.
+#[derive(Debug, Deserialize, Serialize)]
+pub enum ContextMenuAction {
+    GoBack,
+    GoForward,
+    Reload,
 }
 
 /// Request to present an IME to the user when an editable element is focused. If `type` is
@@ -693,6 +708,7 @@ pub enum EmbedderControlResponse {
     SelectElement(Option<usize>),
     ColorPicker(Option<RgbColor>),
     FilePicker(Option<Vec<SelectedFile>>),
+    ContextMenu(Option<ContextMenuAction>),
 }
 
 /// Response to file selection request

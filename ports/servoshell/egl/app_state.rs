@@ -19,11 +19,11 @@ use servo::webrender_api::units::{
     DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, DeviceVector2D,
 };
 use servo::{
-    AllowOrDenyRequest, ContextMenuResult, EmbedderControl, EmbedderControlId, ImeEvent,
-    InputEvent, InputEventId, InputEventResult, KeyboardEvent, LoadStatus, MediaSessionActionType,
-    MediaSessionEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
-    NavigationRequest, PermissionRequest, RefreshDriver, RenderingContext, ScreenGeometry, Scroll,
-    Servo, ServoDelegate, ServoError, TouchEvent, TouchEventType, TouchId, TraversalId,
+    AllowOrDenyRequest, EmbedderControl, EmbedderControlId, ImeEvent, InputEvent, InputEventId,
+    InputEventResult, KeyboardEvent, LoadStatus, MediaSessionActionType, MediaSessionEvent,
+    MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent, NavigationRequest,
+    PermissionRequest, RefreshDriver, RenderingContext, ScreenGeometry, Scroll, Servo,
+    ServoDelegate, ServoError, TouchEvent, TouchEventType, TouchId, TraversalId,
     WebDriverCommandMsg, WebDriverLoadStatus, WebView, WebViewBuilder, WebViewDelegate,
     WindowRenderingContext,
 };
@@ -95,8 +95,6 @@ struct RunningAppStateInner {
     /// The webview that is currently focused.
     /// Modified by EmbedderMsg::WebViewFocused and EmbedderMsg::WebViewBlurred.
     focused_webview_id: Option<WebViewId>,
-
-    context_menu_sender: Option<GenericSender<ContextMenuResult>>,
 
     /// Whether or not the animation state has changed. This is used to trigger
     /// host callbacks indicating that animation state has changed.
@@ -309,24 +307,6 @@ impl WebViewDelegate for RunningAppState {
         warn!("Received resize event (to {size:?}). Currently only the user can resize windows");
     }
 
-    fn show_context_menu(
-        &self,
-        _webview: WebView,
-        result_sender: GenericSender<ContextMenuResult>,
-        title: Option<String>,
-        items: Vec<String>,
-    ) {
-        if self.inner().context_menu_sender.is_some() {
-            warn!("Trying to show a context menu when a context menu is already active");
-            let _ = result_sender.send(ContextMenuResult::Ignored);
-        } else {
-            self.inner_mut().context_menu_sender = Some(result_sender);
-            self.callbacks
-                .host_callbacks
-                .show_context_menu(title, items);
-        }
-    }
-
     fn show_embedder_control(&self, webview: WebView, embedder_control: EmbedderControl) {
         let control_id = embedder_control.id();
         match embedder_control {
@@ -426,7 +406,6 @@ impl RunningAppState {
             webdriver_receiver,
             inner: RefCell::new(RunningAppStateInner {
                 need_present: false,
-                context_menu_sender: None,
                 webviews: Default::default(),
                 creation_order: vec![],
                 focused_webview_id: None,
@@ -921,15 +900,6 @@ impl RunningAppState {
         self.active_webview()
             .notify_input_event(InputEvent::Ime(ImeEvent::Dismissed));
         self.perform_updates();
-    }
-
-    pub fn on_context_menu_closed(&self, result: ContextMenuResult) -> Result<(), &'static str> {
-        if let Some(sender) = self.inner_mut().context_menu_sender.take() {
-            let _ = sender.send(result);
-        } else {
-            warn!("Trying to close a context menu when no context menu is active");
-        }
-        Ok(())
     }
 
     pub fn present_if_needed(&self) {

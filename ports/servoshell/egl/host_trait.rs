@@ -18,8 +18,6 @@ pub trait HostTrait {
     /// way that makes them impossible to mistake for browser UI.
     /// TODO: This API needs to be reworked to match the new model of how responses are sent.
     fn show_simple_dialog(&self, _webview: WebView, dialog: SimpleDialog);
-    /// Show context menu
-    fn show_context_menu(&self, title: Option<String>, items: Vec<String>);
     /// Notify that the load status of the page has changed.
     /// Started:
     ///  - "Reload button" should be disabled.
