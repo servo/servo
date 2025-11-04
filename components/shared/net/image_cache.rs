@@ -4,7 +4,7 @@
 
 use std::sync::Arc;
 
-use base::id::PipelineId;
+use base::id::{PipelineId, WebViewId};
 use compositing_traits::CrossProcessCompositorApi;
 use ipc_channel::ipc::IpcSender;
 use log::debug;
@@ -171,11 +171,21 @@ pub enum ImageCacheResult {
     ReadyForRequest(PendingImageId),
 }
 
-pub trait ImageCache: Sync + Send {
-    fn new(compositor_api: CrossProcessCompositorApi, rippy_data: Vec<u8>) -> Self
-    where
-        Self: Sized;
+/// A shared [`ImageCacheFactory`] is a per-process data structure used to create an [`ImageCache`]
+/// inside that process in any `ScriptThread`. This allows sharing the same font database (for
+/// SVGs) and also decoding thread pool among all [`ImageCache`]s in the same process.
+pub trait ImageCacheFactory: Sync + Send {
+    fn create(
+        &self,
+        webview_id: WebViewId,
+        pipeline_id: PipelineId,
+        compositor_api: &CrossProcessCompositorApi,
+    ) -> Arc<dyn ImageCache>;
+}
 
+/// An [`ImageCache`] manages fetching and decoding images for a single `Pipeline` for its
+/// `Document` and all of its associated `Worker`s.
+pub trait ImageCache: Sync + Send {
     fn memory_report(&self, prefix: &str, ops: &mut MallocSizeOfOps) -> Report;
 
     /// Definitively check whether there is a cached, fully loaded image available.
@@ -222,13 +232,6 @@ pub trait ImageCache: Sync + Send {
 
     /// Inform the image cache about a response for a pending request.
     fn notify_pending_response(&self, id: PendingImageId, action: FetchResponseMsg);
-
-    /// Create new image cache based on this one, while reusing the existing thread_pool.
-    fn create_new_image_cache(
-        &self,
-        pipeline_id: Option<PipelineId>,
-        compositor_api: CrossProcessCompositorApi,
-    ) -> Arc<dyn ImageCache>;
 
     /// Fills the image cache with a batch of keys.
     fn fill_key_cache_with_batch_of_keys(&self, image_keys: Vec<ImageKey>);

@@ -70,7 +70,7 @@ use js::rust::ParentRuntime;
 use layout_api::{LayoutConfig, LayoutFactory, RestyleReason, ScriptThreadFactory};
 use media::WindowGLContext;
 use metrics::MAX_TASK_NS;
-use net_traits::image_cache::{ImageCache, ImageCacheResponseMessage};
+use net_traits::image_cache::{ImageCache, ImageCacheFactory, ImageCacheResponseMessage};
 use net_traits::request::{Referrer, RequestId};
 use net_traits::response::ResponseInit;
 use net_traits::{
@@ -234,9 +234,10 @@ pub struct ScriptThread {
     incomplete_loads: DomRefCell<Vec<InProgressLoad>>,
     /// A vector containing parser contexts which have not yet been fully processed
     incomplete_parser_contexts: IncompleteParserContexts,
-    /// Image cache for this script thread.
+    /// An [`ImageCacheFactory`] to use for creating [`ImageCache`]s for all of the
+    /// child `Pipeline`s.
     #[no_trace]
-    image_cache: Arc<dyn ImageCache>,
+    image_cache_factory: Arc<dyn ImageCacheFactory>,
 
     /// A [`ScriptThreadReceivers`] holding all of the incoming `Receiver`s for messages
     /// to this [`ScriptThread`].
@@ -964,7 +965,7 @@ impl ScriptThread {
             incomplete_parser_contexts: IncompleteParserContexts(RefCell::new(vec![])),
             senders,
             receivers,
-            image_cache: state.image_cache.clone(),
+            image_cache_factory: state.image_cache_factory,
             resource_threads: state.resource_threads,
             storage_threads: state.storage_threads,
             task_queue,
@@ -3216,9 +3217,11 @@ impl ScriptThread {
             self.resource_threads.clone(),
         ));
 
-        let image_cache = self
-            .image_cache
-            .create_new_image_cache(Some(incomplete.pipeline_id), self.compositor_api.clone());
+        let image_cache = self.image_cache_factory.create(
+            incomplete.webview_id,
+            incomplete.pipeline_id,
+            &self.compositor_api,
+        );
 
         let layout_config = LayoutConfig {
             id: incomplete.pipeline_id,
