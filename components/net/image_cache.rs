@@ -514,12 +514,16 @@ impl ImageCacheStore {
                 },
                 None => {
                     self.key_cache.images_pending_keys.push_back(pending_image);
-                    self.compositor_api
-                        .generate_image_key_async(self.pipeline_id);
-                    self.key_cache.cache = KeyCacheState::PendingBatch
+                    self.fetch_more_image_keys();
                 },
             },
         }
+    }
+
+    fn fetch_more_image_keys(&mut self) {
+        self.key_cache.cache = KeyCacheState::PendingBatch;
+        self.compositor_api
+            .generate_image_key_async(self.pipeline_id);
     }
 
     /// Insert received keys into the cache and complete the loading of images.
@@ -754,6 +758,8 @@ impl ImageCache for ImageCacheImpl {
             if let Some(image_key) = cache.pop() {
                 return Some(image_key);
             }
+
+            store.fetch_more_image_keys();
         }
 
         store.compositor_api.generate_image_key_blocking()
