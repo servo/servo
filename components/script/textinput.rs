@@ -1028,7 +1028,11 @@ impl<T: ClipboardProvider> TextInput<T> {
                         InputType::InsertFromPaste,
                     )
                 } else {
-                    KeyReaction::DispatchInput(None, IsComposing::NotComposing, InputType::Nothing)
+                    KeyReaction::DispatchInput(
+                        Some("".to_string()),
+                        IsComposing::NotComposing,
+                        InputType::InsertFromPaste,
+                    )
                 }
             })
             .shortcut(Modifiers::empty(), Key::Named(NamedKey::Delete), || {
@@ -1150,7 +1154,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                 if matches!(key, Key::Named(NamedKey::Process)) {
                     return KeyReaction::DispatchInput(
                         None,
-                        IsComposing::NotComposing,
+                        IsComposing::Composing,
                         InputType::Nothing,
                     );
                 }

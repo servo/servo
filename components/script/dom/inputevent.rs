@@ -96,20 +96,20 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
         self.is_composing
     }
 
-    // https://w3c.github.io/uievents/#dom-inputevent-inputtype
+    /// <https://w3c.github.io/uievents/#dom-inputevent-inputtype>
     fn InputType(&self) -> DOMString {
         self.input_type.clone()
     }
 
-    // https://w3c.github.io/input-events/#dom-inputevent-datatransfer
-    // TODO: Populate dataTransfer for contenteditable
+    /// <https://w3c.github.io/input-events/#dom-inputevent-datatransfer>
     fn GetDataTransfer(&self) -> Option<DomRoot<DataTransfer>> {
+        // TODO: Populate dataTransfer for contenteditable
         None
     }
 
-    // https://w3c.github.io/input-events/#dom-inputevent-gettargetranges
-    // TODO: Populate targetRanges for contenteditable
+    /// <https://w3c.github.io/input-events/#dom-inputevent-gettargetranges>
     fn GetTargetRanges(&self) -> Vec<DomRoot<StaticRange>> {
+        // TODO: Populate targetRanges for contenteditable
         Vec::new()
     }
 
