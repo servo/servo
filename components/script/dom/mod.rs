@@ -237,6 +237,7 @@ pub(crate) mod clipboard;
 pub(crate) mod clipboardevent;
 pub(crate) mod clipboarditem;
 pub(crate) mod closeevent;
+pub(crate) mod commandevent;
 pub(crate) mod comment;
 pub(crate) mod compositionevent;
 pub(crate) mod compressionstream;
