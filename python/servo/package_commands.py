@@ -593,11 +593,11 @@ class PackageCommands(CommandBase):
     @CommandArgument("target", type=str, help="Target version to bump to")
     def bump_version(self, target: str) -> int:
         replacements = {
-            "ports/servoshell/Cargo.toml": r'^version ?= ?"(?P<version>.*)"',
-            "support/windows/Servo.wxs.mako": r'<Product(.|\n)*Version="(?P<version>.*)".*>',
-            "Info.plist": r"<key>CFBundleShortVersionString</key>\n\s*<string>(?P<version>.*)</string>",
-            "support/android/apk/servoapp/build.gradle.kts": r'versionName\s*=\s*"(?P<version>.*)"',
-            "support/openharmony/oh-package.json5": r'"version"\s*:\s*"(?P<version>.*)"',
+            "ports/servoshell/Cargo.toml": r'^version ?= ?"(?P<version>.*?)"',
+            "support/windows/Servo.wxs.mako": r'<Product(.|\n)*Version="(?P<version>.*?)".*>',
+            "Info.plist": r"<key>CFBundleShortVersionString</key>\n\s*<string>(?P<version>.*?)</string>",
+            "support/android/apk/servoapp/build.gradle.kts": r'versionName\s*=\s*"(?P<version>.*?)"',
+            "support/openharmony/oh-package.json5": r'"version"\s*:\s*"(?P<version>.*?)"',
         }
 
         for filename, expression in replacements.items():
