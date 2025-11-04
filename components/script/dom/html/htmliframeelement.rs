@@ -581,7 +581,7 @@ impl HTMLIFrameElement {
             !self.pending_navigation.get() &&
                 !self.upcast::<Element>().has_attribute(&local_name!("src"))
         } else {
-            true
+            !self.pending_navigation.get()
         };
         if should_fire_event {
             // Step 6. Fire an event named load at element.
