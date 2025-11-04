@@ -27,6 +27,10 @@ use url::Url;
 use webrender_api::units::{DeviceIntRect, DevicePixel, DevicePoint, DeviceSize};
 
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
+use crate::credential_management_delegate::{
+    CredentialManagementDelegate, DefaultCredentialManagementDelegate,
+};
+use crate::javascript_evaluator::JavaScriptEvaluator;
 use crate::webview_delegate::{DefaultWebViewDelegate, WebViewDelegate};
 use crate::{
     ColorPicker, ContextMenu, EmbedderControl, InputMethodControl, SelectElement, Servo,
@@ -82,6 +86,7 @@ pub(crate) struct WebViewInner {
     pub(crate) servo: Servo,
     pub(crate) delegate: Rc<dyn WebViewDelegate>,
     pub(crate) clipboard_delegate: Rc<dyn ClipboardDelegate>,
+    pub(crate) credential_management_delegate: Rc<dyn CredentialManagementDelegate>,
 
     rendering_context: Rc<dyn RenderingContext>,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
@@ -123,6 +128,7 @@ impl WebView {
             rendering_context: builder.rendering_context,
             delegate: builder.delegate,
             clipboard_delegate: Rc::new(DefaultClipboardDelegate),
+            credential_management_delegate: Rc::new(DefaultCredentialManagementDelegate::new()),
             hidpi_scale_factor: builder.hidpi_scale_factor,
             load_status: LoadStatus::Started,
             status_text: None,
@@ -207,6 +213,17 @@ impl WebView {
 
     pub fn set_clipboard_delegate(&self, delegate: Rc<dyn ClipboardDelegate>) {
         self.inner_mut().clipboard_delegate = delegate;
+    }
+
+    pub fn credential_management_delegate(&self) -> Rc<dyn CredentialManagementDelegate> {
+        self.inner().credential_management_delegate.clone()
+    }
+
+    pub fn set_credential_management_delegate(
+        &self,
+        delegate: Rc<dyn CredentialManagementDelegate>,
+    ) {
+        self.inner_mut().credential_management_delegate = delegate;
     }
 
     pub fn id(&self) -> WebViewId {
