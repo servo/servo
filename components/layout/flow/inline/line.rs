@@ -36,6 +36,8 @@ use fonts::{
 use super::line_breaker::LineBreaker;
 use euclid::Point2D;
 use style::values::specified::text::TextOverflowSide;
+use style::
+computed_values::overflow_x::T as Overflow_X;
 
 pub(super) struct LineMetrics {
     /// The block offset of the line start in the containing
@@ -569,13 +571,16 @@ impl LineItemLayout<'_, '_> {
         let parent_style = self.layout.containing_block.style.clone();
         match parent_style.get_text().text_overflow.second {
             TextOverflowSide::Ellipsis => {
-                can_be_ellided = true;
+                if parent_style.get_box().overflow_x == Overflow_X::Hidden{
+                    can_be_ellided = true;
+                }
             },
             TextOverflowSide::Clip => {}, // do nothing!
             _ => {}, // TODO: handle strings.
         }
 
         let original_inline_advance = self.current_state.inline_advance;
+        //let original_inline_advance = Au(0);
         let mut first_text_item_of_the_line = false;
 
         // check if current text fragment to be generated will be the first of the line.
@@ -631,7 +636,6 @@ impl LineItemLayout<'_, '_> {
                 text_item, 
                 original_inline_advance, 
                 can_be_ellided, 
-                original_inline_advance
             );
             
             // check one more time to see if we can actually ellide the text.
@@ -723,7 +727,7 @@ impl LineItemLayout<'_, '_> {
         
     }
 
-    fn form_ellipsis_bounding_box (&mut self, ellipsis_textrun_segment: TextRunSegment, text_item: TextRunLineItem, original_inline_advance: Au, mut can_be_ellided: bool, original_line_advance: Au)  -> (LogicalRect<Au>, bool, TextRunSegment, TextRunLineItem) {
+    fn form_ellipsis_bounding_box (&mut self, ellipsis_textrun_segment: TextRunSegment, text_item: TextRunLineItem, original_inline_advance: Au, mut can_be_ellided: bool)  -> (LogicalRect<Au>, bool, TextRunSegment, TextRunLineItem) {
         // finding the inline start corner (if horizontal, then starting x pos)
         let inline_target = self.layout.containing_block.size.inline 
         - ellipsis_textrun_segment.runs[0].glyph_store.total_advance() 
@@ -748,11 +752,11 @@ impl LineItemLayout<'_, '_> {
 
         // backward pass
         while !inline_start_found {
-            if inline_start > text_item.text[glyph_index_backward].total_advance() {
+            if inline_start > text_item.text[glyph_index_backward].total_advance() && inline_start - text_item.text[glyph_index_backward].total_advance() >= original_inline_advance {
                 inline_start -= text_item.text[glyph_index_backward].total_advance();
             }
             else {
-                inline_start = Au(0);
+                inline_start = original_inline_advance;
             }
         
             if inline_start <= inline_target {
