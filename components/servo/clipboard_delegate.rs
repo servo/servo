@@ -75,6 +75,40 @@ impl ClipboardDelegate for DefaultClipboardDelegate {
     }
 }
 
+mod fallback_clipboard {
+    use std::sync::{LockResult, Mutex, OnceLock};
+
+    use crate::clipboard_delegate::StringRequest;
+
+    /// If the clipboard cannot be accessed, we fall back to a simple `String` to store
+    /// text for the clipboard. This obviously does not work across processes.
+    static SHARED_FALLBACK_CLIPBOARD: OnceLock<Mutex<String>> = OnceLock::new();
+
+    fn with_shared_clipboard(callback: impl FnOnce(&mut String)) {
+        let clipboard_mutex =
+            SHARED_FALLBACK_CLIPBOARD.get_or_init(|| Mutex::new(Default::default()));
+        if let LockResult::Ok(mut string) = clipboard_mutex.lock() {
+            callback(&mut string)
+        }
+    }
+
+    pub(super) fn clear() {
+        with_shared_clipboard(|clipboard_string| {
+            clipboard_string.clear();
+        });
+    }
+
+    pub(super) fn get_text(request: StringRequest) {
+        with_shared_clipboard(move |clipboard_string| request.success(clipboard_string.clone()));
+    }
+
+    pub(super) fn set_text(new_contents: String) {
+        with_shared_clipboard(move |clipboard_string| {
+            *clipboard_string = new_contents;
+        });
+    }
+}
+
 #[cfg(all(
     feature = "clipboard",
     not(any(target_os = "android", target_env = "ohos"))
@@ -86,6 +120,7 @@ mod clipboard {
     use parking_lot::Mutex;
 
     use super::StringRequest;
+    use crate::clipboard_delegate::fallback_clipboard;
 
     /// A shared clipboard for use by the [`DefaultClipboardDelegate`]. This is protected by
     /// a mutex so that it can only be used by one thread at a time. The `arboard` documentation
@@ -93,39 +128,50 @@ mod clipboard {
     /// time. See <https://docs.rs/arboard/latest/arboard/struct.Clipboard.html>.
     static SHARED_CLIPBOARD: OnceLock<Option<Mutex<Clipboard>>> = OnceLock::new();
 
-    fn with_shared_clipboard(callback: impl FnOnce(&mut Clipboard)) {
-        if let Some(clipboard_mutex) =
-            SHARED_CLIPBOARD.get_or_init(|| Clipboard::new().ok().map(Mutex::new))
-        {
-            callback(&mut clipboard_mutex.lock())
+    fn with_shared_clipboard<ResultType>(
+        callback: impl FnOnce(&mut Clipboard) -> Result<ResultType, arboard::Error>,
+    ) -> Result<ResultType, arboard::Error> {
+        match SHARED_CLIPBOARD.get_or_init(|| Clipboard::new().ok().map(Mutex::new)) {
+            Some(clipboard_mutex) => callback(&mut clipboard_mutex.lock()),
+            None => Err(arboard::Error::ClipboardNotSupported),
         }
     }
 
     pub(super) fn clear() {
-        with_shared_clipboard(|clipboard| {
-            let _ = clipboard.clear();
-        });
+        if with_shared_clipboard(|clipboard| clipboard.clear()).is_err() {
+            fallback_clipboard::clear();
+        }
     }
 
     pub(super) fn get_text(request: StringRequest) {
-        with_shared_clipboard(move |clipboard| match clipboard.get_text() {
-            Ok(text) => request.success(text),
-            Err(error) => request.failure(format!("{error:?}")),
-        });
+        if let Ok(text) = with_shared_clipboard(|clipboard| clipboard.get_text()) {
+            request.success(text);
+            return;
+        };
+        fallback_clipboard::get_text(request);
     }
 
     pub(super) fn set_text(new_contents: String) {
-        with_shared_clipboard(move |clipboard| {
-            let _ = clipboard.set_text(new_contents);
-        });
+        if with_shared_clipboard(|clipboard| clipboard.set_text(&new_contents)).is_err() {
+            fallback_clipboard::set_text(new_contents);
+        }
     }
 }
 
 #[cfg(any(not(feature = "clipboard"), target_os = "android", target_env = "ohos"))]
 mod clipboard {
     use super::StringRequest;
+    use crate::clipboard_delegate::fallback_clipboard;
 
-    pub(super) fn clear() {}
-    pub(super) fn get_text(_: StringRequest) {}
-    pub(super) fn set_text(_: String) {}
+    pub(super) fn clear() {
+        fallback_clipboard::clear();
+    }
+
+    pub(super) fn get_text(request: StringRequest) {
+        fallback_clipboard::get_text(request);
+    }
+
+    pub(super) fn set_text(new_contents: String) {
+        fallback_clipboard::set_text(new_contents);
+    }
 }
