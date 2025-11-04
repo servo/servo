@@ -205,14 +205,14 @@
 #[macro_use]
 pub(crate) mod macros;
 
-#[allow(unused_imports)]
+#[expect(unused_imports)]
 pub(crate) mod types {
     include!(concat!(env!("OUT_DIR"), "/InterfaceTypes.rs"));
 }
 
 pub(crate) mod abortcontroller;
 pub(crate) mod abortsignal;
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) mod abstractrange;
 pub(crate) mod activation;
 pub(crate) mod animationevent;
@@ -266,7 +266,7 @@ pub(crate) mod defaultteereadrequest;
 pub(crate) mod defaultteeunderlyingsource;
 pub(crate) mod dissimilaroriginlocation;
 pub(crate) mod dissimilaroriginwindow;
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) mod document;
 mod document_embedder_controls;
 pub(crate) mod document_event_handler;
@@ -288,7 +288,7 @@ pub(crate) mod domstringlist;
 pub(crate) mod domstringmap;
 pub(crate) mod domtokenlist;
 pub(crate) mod dynamicmoduleowner;
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) mod element;
 pub(crate) mod elementinternals;
 pub(crate) mod errorevent;
@@ -309,7 +309,7 @@ pub(crate) mod gamepad;
 pub(crate) use self::gamepad::*;
 pub(crate) mod geolocation;
 pub(crate) use self::geolocation::*;
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) mod globalscope;
 pub(crate) mod hashchangeevent;
 pub(crate) mod headers;
@@ -327,7 +327,7 @@ pub(crate) mod media;
 pub(crate) use self::media::*;
 pub(crate) mod messagechannel;
 pub(crate) mod messageevent;
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) mod messageport;
 pub(crate) mod mimetype;
 pub(crate) mod mimetypearray;
@@ -338,10 +338,10 @@ pub(crate) mod namednodemap;
 pub(crate) mod navigationpreloadmanager;
 pub(crate) mod navigator;
 pub(crate) mod navigatorinfo;
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) mod node;
 pub(crate) mod nodeiterator;
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) mod nodelist;
 pub(crate) mod notification;
 pub(crate) mod pagetransitionevent;
@@ -354,13 +354,13 @@ pub(crate) mod permissionstatus;
 pub(crate) mod pipelineid;
 pub(crate) mod plugin;
 pub(crate) mod pluginarray;
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) mod pointerevent;
 pub(crate) mod popstateevent;
 pub(crate) mod processinginstruction;
 pub(crate) mod processingoptions;
 pub(crate) mod progressevent;
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) mod promise;
 pub(crate) mod promisenativehandler;
 pub(crate) mod promiserejectionevent;
@@ -368,7 +368,7 @@ pub(crate) mod quotaexceedederror;
 pub(crate) mod radionodelist;
 pub(crate) mod range;
 pub(crate) mod raredata;
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) mod readablebytestreamcontroller;
 pub(crate) mod readablestream;
 pub(crate) mod readablestreambyobreader;
@@ -388,7 +388,7 @@ mod scrolling_box;
 pub(crate) mod securitypolicyviolationevent;
 pub(crate) mod selection;
 pub(crate) mod servointernals;
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) mod servoparser;
 pub(crate) mod shadowroot;
 pub(crate) mod staticrange;
@@ -413,7 +413,7 @@ pub(crate) mod texttrack;
 pub(crate) mod texttrackcue;
 pub(crate) mod texttrackcuelist;
 pub(crate) mod texttracklist;
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) mod timeranges;
 pub(crate) mod toggleevent;
 pub(crate) mod touch;
@@ -462,9 +462,9 @@ pub(crate) use self::webrtc::*;
 pub(crate) mod transformstream;
 pub(crate) mod transformstreamdefaultcontroller;
 pub(crate) mod wheelevent;
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) mod window;
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) mod windowproxy;
 pub(crate) mod workers;
 pub(crate) use self::workers::*;

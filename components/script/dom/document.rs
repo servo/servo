@@ -597,7 +597,6 @@ pub(crate) struct Document {
     websockets: DOMTracker<WebSocket>,
 }
 
-#[allow(non_snake_case)]
 impl Document {
     /// <https://html.spec.whatwg.org/multipage/#unloading-document-cleanup-steps>
     fn unloading_cleanup_steps(&self) {
@@ -3199,7 +3198,6 @@ pub(crate) enum DocumentSource {
     NotFromParser,
 }
 
-#[allow(unsafe_code)]
 pub(crate) trait LayoutDocumentHelpers<'dom> {
     fn is_html_document_for_layout(&self) -> bool;
     fn quirks_mode(self) -> QuirksMode;

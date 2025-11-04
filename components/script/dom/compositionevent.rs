@@ -35,7 +35,7 @@ impl CompositionEvent {
         reflect_dom_object(Box::new(CompositionEvent::new_inherited()), window, can_gc)
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         window: &Window,
         type_: DOMString,
@@ -51,7 +51,7 @@ impl CompositionEvent {
         )
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,

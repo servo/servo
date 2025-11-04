@@ -125,7 +125,7 @@ pub(crate) struct Notification {
 }
 
 impl Notification {
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         global: &GlobalScope,
         title: DOMString,
@@ -595,7 +595,7 @@ fn create_notification_with_settings_object(
 }
 
 /// <https://notifications.spec.whatwg.org/#create-a-notification
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 fn create_notification(
     global: &GlobalScope,
     title: DOMString,

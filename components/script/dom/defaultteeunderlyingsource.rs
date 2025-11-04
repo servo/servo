@@ -46,10 +46,10 @@ pub(crate) struct DefaultTeeUnderlyingSource {
     #[conditional_malloc_size_of]
     clone_for_branch_2: Rc<Cell<bool>>,
     #[ignore_malloc_size_of = "mozjs"]
-    #[allow(clippy::redundant_allocation)]
+    #[expect(clippy::redundant_allocation)]
     reason_1: Rc<Box<Heap<Value>>>,
     #[ignore_malloc_size_of = "mozjs"]
-    #[allow(clippy::redundant_allocation)]
+    #[expect(clippy::redundant_allocation)]
     reason_2: Rc<Box<Heap<Value>>>,
     #[conditional_malloc_size_of]
     cancel_promise: Rc<Promise>,
@@ -57,8 +57,8 @@ pub(crate) struct DefaultTeeUnderlyingSource {
 }
 
 impl DefaultTeeUnderlyingSource {
-    #[allow(clippy::too_many_arguments)]
-    #[allow(clippy::redundant_allocation)]
+    #[expect(clippy::too_many_arguments)]
+    #[expect(clippy::redundant_allocation)]
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         reader: &ReadableStreamDefaultReader,
@@ -153,7 +153,6 @@ impl DefaultTeeUnderlyingSource {
     /// Let cancel1Algorithm be the following steps, taking a reason argument
     /// and
     /// Let cancel2Algorithm be the following steps, taking a reason argument
-    #[allow(unsafe_code)]
     pub(crate) fn cancel_algorithm(
         &self,
         cx: SafeJSContext,
@@ -193,7 +192,7 @@ impl DefaultTeeUnderlyingSource {
         }
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn resolve_cancel_promise(&self, cx: SafeJSContext, global: &GlobalScope, can_gc: CanGc) {
         // Let compositeReason be ! CreateArrayFromList(« reason_1, reason_2 »).
         rooted_vec!(let mut reasons_values);

@@ -65,7 +65,7 @@ pub(crate) struct DefaultTeeReadRequest {
     tee_underlying_source: Dom<DefaultTeeUnderlyingSource>,
 }
 impl DefaultTeeReadRequest {
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         stream: &ReadableStream,
@@ -124,7 +124,7 @@ impl DefaultTeeReadRequest {
             ));
     }
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A2>
-    #[allow(clippy::borrowed_box)]
+    #[expect(clippy::borrowed_box)]
     pub(crate) fn chunk_steps(&self, cx: SafeJSContext, chunk: &Box<Heap<JSVal>>, can_gc: CanGc) {
         let global = &self.stream.global();
         // Set readAgain to false.

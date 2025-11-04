@@ -94,7 +94,7 @@ const NAMED_CURVE_P521: &str = "P-521";
 static SUPPORTED_CURVES: &[&str] = &[NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521];
 
 /// <https://w3c.github.io/webcrypto/#supported-operation>
-#[allow(dead_code)]
+#[expect(dead_code)]
 enum Operation {
     Encrypt,
     Decrypt,
@@ -1995,7 +1995,7 @@ pub(crate) enum ExportedKey {
 /// our "subtle" structs of the corresponding IDL dictionary types so that they can be easily
 /// passed to another threads.
 #[derive(Clone, Debug, MallocSizeOf)]
-#[allow(clippy::enum_variant_names)]
+#[expect(clippy::enum_variant_names)]
 pub(crate) enum KeyAlgorithmAndDerivatives {
     KeyAlgorithm(SubtleKeyAlgorithm),
     EcKeyAlgorithm(SubtleEcKeyAlgorithm),
@@ -2087,7 +2087,7 @@ trait JsonWebKeyExt {
 
 impl JsonWebKeyExt for JsonWebKey {
     /// <https://w3c.github.io/webcrypto/#concept-parse-a-jwk>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn parse(cx: JSContext, data: &[u8]) -> Result<JsonWebKey, Error> {
         // Step 1. Let data be the sequence of bytes to be parsed.
         // (It is given as a method paramter.)

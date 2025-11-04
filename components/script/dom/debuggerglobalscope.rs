@@ -59,7 +59,7 @@ impl DebuggerGlobalScope {
     ///   pipeline ids, and they may contain debuggees from more than one pipeline
     /// - in web worker threads, it should be set to the pipeline id of the page that created the thread, because
     ///   those threads can’t generate pipeline ids, and they only contain one debuggee from one pipeline
-    #[allow(unsafe_code, clippy::too_many_arguments)]
+    #[expect(unsafe_code, clippy::too_many_arguments)]
     pub(crate) fn new(
         debugger_pipeline_id: PipelineId,
         script_to_devtools_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,

@@ -137,7 +137,7 @@ impl CustomElementRegistry {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
     /// Steps 10.1, 10.2
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn check_prototype(
         &self,
         constructor: HandleObject,
@@ -167,7 +167,7 @@ impl CustomElementRegistry {
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
     /// This function includes both steps 14.3 and 14.4 which add the callbacks to a map and
     /// process them.
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     unsafe fn get_callbacks(&self, prototype: HandleObject) -> Fallible<LifecycleCallbacks> {
         let cx = GlobalScope::get_cx();
 
@@ -187,7 +187,7 @@ impl CustomElementRegistry {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
     /// Step 14.13: Add form associated callbacks to LifecycleCallbacks
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     unsafe fn add_form_associated_callbacks(
         &self,
         prototype: HandleObject,
@@ -205,7 +205,7 @@ impl CustomElementRegistry {
         Ok(())
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn get_observed_attributes(&self, constructor: HandleObject) -> Fallible<Vec<DOMString>> {
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut observed_attributes = UndefinedValue());
@@ -238,7 +238,7 @@ impl CustomElementRegistry {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
     /// Step 14.11: Get the value of `formAssociated`.
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn get_form_associated_value(&self, constructor: HandleObject) -> Fallible<bool> {
         let cx = self.window.get_cx();
         rooted!(in(*cx) let mut form_associated_value = UndefinedValue());
@@ -268,7 +268,7 @@ impl CustomElementRegistry {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
     /// Step 14.7: Get `disabledFeatures` value
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn get_disabled_features(&self, constructor: HandleObject) -> Fallible<Vec<DOMString>> {
         let cx = self.window.get_cx();
         rooted!(in(*cx) let mut disabled_features = UndefinedValue());
@@ -302,7 +302,7 @@ impl CustomElementRegistry {
 
 /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
 /// Step 14.4: Get `callbackValue` for all `callbackName` in `lifecycleCallbacks`.
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 fn get_callback(
     cx: JSContext,
     prototype: HandleObject,
@@ -333,7 +333,7 @@ fn get_callback(
 }
 
 impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistry {
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
     fn Define(
@@ -693,7 +693,7 @@ pub(crate) struct CustomElementDefinition {
 }
 
 impl CustomElementDefinition {
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn new(
         name: LocalName,
         local_name: LocalName,
@@ -723,7 +723,7 @@ impl CustomElementDefinition {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-create-element> Step 5.1
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn create_element(
         &self,
         document: &Document,
@@ -910,7 +910,7 @@ pub(crate) fn upgrade_element(
 
 /// <https://html.spec.whatwg.org/multipage/#concept-upgrade-an-element>
 /// Steps 9.1-9.4
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 fn run_upgrade_constructor(
     definition: &CustomElementDefinition,
     element: &Element,

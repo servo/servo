@@ -26,7 +26,7 @@ pub(crate) struct CloseEvent {
     reason: DOMString,
 }
 
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 impl CloseEvent {
     pub(crate) fn new_inherited(was_clean: bool, code: u16, reason: DOMString) -> CloseEvent {
         CloseEvent {
@@ -37,7 +37,7 @@ impl CloseEvent {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         global: &GlobalScope,
         type_: Atom,
@@ -53,7 +53,7 @@ impl CloseEvent {
         )
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,

@@ -251,7 +251,7 @@ pub(crate) trait GlobalCspReporting {
     );
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 fn compute_scripted_caller_source_position() -> SourcePosition {
     let scripted_caller =
         unsafe { describe_scripted_caller(*GlobalScope::get_cx()) }.unwrap_or_default();

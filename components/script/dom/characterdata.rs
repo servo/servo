@@ -291,7 +291,7 @@ pub(crate) trait LayoutCharacterDataHelpers<'dom> {
 }
 
 impl<'dom> LayoutCharacterDataHelpers<'dom> for LayoutDom<'dom, CharacterData> {
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     #[inline]
     fn data_for_layout(self) -> &'dom str {
         unsafe { self.unsafe_get().data.borrow_for_layout() }
