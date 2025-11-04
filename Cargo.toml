@@ -193,6 +193,7 @@ windows-sys = "0.61"
 winit = "0.30.12"
 wio = "0.2"
 wr_malloc_size_of = { git = "https://github.com/servo/webrender", branch = "0.68" }
+x25519-dalek = { version = "2.0.1", features = ["static_secrets"] }
 xi-unicode = "0.3.0"
 xml5ever = "0.35"
 xpath = { path = "components/xpath" }

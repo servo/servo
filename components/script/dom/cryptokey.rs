@@ -33,6 +33,8 @@ pub(crate) enum Handle {
     P256PublicKey(p256::PublicKey),
     P384PublicKey(p384::PublicKey),
     P521PublicKey(p521::PublicKey),
+    X25519PrivateKey(x25519_dalek::StaticSecret),
+    X25519PublicKey(x25519_dalek::PublicKey),
     Aes128(Vec<u8>),
     Aes192(Vec<u8>),
     Aes256(Vec<u8>),
@@ -211,12 +213,14 @@ impl Handle {
 impl MallocSizeOf for Handle {
     fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
         match self {
-            Handle::P256PrivateKey(secret_key) => secret_key.size_of(ops),
-            Handle::P384PrivateKey(secret_key) => secret_key.size_of(ops),
-            Handle::P521PrivateKey(secret_key) => secret_key.size_of(ops),
+            Handle::P256PrivateKey(private_key) => private_key.size_of(ops),
+            Handle::P384PrivateKey(private_key) => private_key.size_of(ops),
+            Handle::P521PrivateKey(private_key) => private_key.size_of(ops),
             Handle::P256PublicKey(public_key) => public_key.size_of(ops),
             Handle::P384PublicKey(public_key) => public_key.size_of(ops),
             Handle::P521PublicKey(public_key) => public_key.size_of(ops),
+            Handle::X25519PrivateKey(private_key) => private_key.size_of(ops),
+            Handle::X25519PublicKey(public_key) => public_key.size_of(ops),
             Handle::Aes128(bytes) => bytes.size_of(ops),
             Handle::Aes192(bytes) => bytes.size_of(ops),
             Handle::Aes256(bytes) => bytes.size_of(ops),
