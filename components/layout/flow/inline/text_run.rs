@@ -181,7 +181,7 @@ impl TextRunSegment {
     /// Shape the text of this [`TextRunSegment`], first finding "words" for the shaper by processing
     /// the linebreaks found in the owning [`super::InlineFormattingContext`]. Linebreaks are filtered,
     /// based on the style of the parent inline box.
-    pub(super) fn shape_text(
+    fn shape_text(
         &mut self,
         parent_style: &ComputedValues,
         formatting_context_text: &str,
