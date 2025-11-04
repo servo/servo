@@ -101,7 +101,7 @@ jobs:
         uses: ./.github/actions/runner-select
         with:
           GITHUB_TOKEN: ${{ github.token }}
-          github-hosted-runner-label: macos-13
+          github-hosted-runner-label: macos-15-intel
           self-hosted-image-name: servo-macos13
           # You can disable self-hosted runners globally by creating a repository variable named
           # NO_SELF_HOSTED_RUNNERS with any non-empty value.
@@ -262,7 +262,7 @@ jobs:
   build-libservo:
     if: ${{ inputs.build-libservo }}
     name: Build libservo and MSRV check
-    runs-on: macos-13
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v4
         if: github.event_name != 'pull_request_target'
