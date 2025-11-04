@@ -576,9 +576,25 @@ impl LineItemLayout<'_, '_> {
                     can_be_ellided = true;
                 }
             },
-            TextOverflowSide::Clip => {}, // do nothing!
+            TextOverflowSide::Clip => {
+            }, // do nothing!
             _ => {}, // TODO: handle strings.
         }
+
+        // when there is a block child, for some reason the styling of the parent is passed to the children. Not sure why.
+        // relevant test: example 7 from https://www.w3.org/TR/css-ui-3/#text-overflow
+        let second = &text_item.inline_styles.style.borrow().get_text().text_overflow.second.clone();
+        match second {
+            TextOverflowSide::Ellipsis => {
+                if text_item.inline_styles.style.borrow().get_box().overflow_x == Overflow_X::Hidden{
+                    can_be_ellided = true;
+                }
+            },
+            TextOverflowSide::Clip => {
+            }, // do nothing!
+            _ => {}, // TODO: handle strings.
+        }
+
 
         let original_inline_advance = self.current_state.inline_advance;
         //let original_inline_advance = Au(0);
