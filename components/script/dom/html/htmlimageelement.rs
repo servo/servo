@@ -19,7 +19,7 @@ use mime::{self, Mime};
 use net_traits::http_status::HttpStatus;
 use net_traits::image_cache::{
     Image, ImageCache, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable,
-    ImageResponse, PendingImageId, UsePlaceholder,
+    ImageResponse, PendingImageId,
 };
 use net_traits::request::{CorsSettings, Destination, Initiator, RequestId};
 use net_traits::{
@@ -362,26 +362,13 @@ impl HTMLImageElement {
             img_url.clone(),
             window.origin().immutable().clone(),
             cors_setting_for_element(self.upcast()),
-            UsePlaceholder::Yes,
         );
 
         match cache_result {
             ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable {
                 image,
                 url,
-                is_placeholder,
-            }) => {
-                if is_placeholder {
-                    if let Some(raster_image) = image.as_raster_image() {
-                        self.process_image_response(
-                            ImageResponse::PlaceholderLoaded(raster_image, url),
-                            can_gc,
-                        )
-                    }
-                } else {
-                    self.process_image_response(ImageResponse::Loaded(image, url), can_gc)
-                }
-            },
+            }) => self.process_image_response(ImageResponse::Loaded(image, url), can_gc),
             ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(
                 metadata,
                 id,
@@ -396,7 +383,9 @@ impl HTMLImageElement {
                 self.fetch_request(img_url, id);
                 self.register_image_cache_callback(id, ChangeType::Element);
             },
-            ImageCacheResult::LoadError => self.process_image_response(ImageResponse::None, can_gc),
+            ImageCacheResult::FailedToLoadOrDecode => {
+                self.process_image_response(ImageResponse::FailedToLoadOrDecode, can_gc)
+            },
         };
     }
 
@@ -501,21 +490,11 @@ impl HTMLImageElement {
                 self.handle_loaded_image(image, url, can_gc);
                 (true, false)
             },
-            (ImageResponse::PlaceholderLoaded(image, url), ImageRequestPhase::Current) => {
-                self.handle_loaded_image(Image::Raster(image), url, can_gc);
-                (false, true)
-            },
             (ImageResponse::Loaded(image, url), ImageRequestPhase::Pending) => {
                 self.abort_request(State::Unavailable, ImageRequestPhase::Pending, can_gc);
                 self.image_request.set(ImageRequestPhase::Current);
                 self.handle_loaded_image(image, url, can_gc);
                 (true, false)
-            },
-            (ImageResponse::PlaceholderLoaded(image, url), ImageRequestPhase::Pending) => {
-                self.abort_request(State::Unavailable, ImageRequestPhase::Pending, can_gc);
-                self.image_request.set(ImageRequestPhase::Current);
-                self.handle_loaded_image(Image::Raster(image), url, can_gc);
-                (false, true)
             },
             (ImageResponse::MetadataLoaded(meta), ImageRequestPhase::Current) => {
                 self.current_request.borrow_mut().state = State::PartiallyAvailable;
@@ -526,14 +505,20 @@ impl HTMLImageElement {
                 self.pending_request.borrow_mut().state = State::PartiallyAvailable;
                 (false, false)
             },
-            (ImageResponse::None, ImageRequestPhase::Current) => {
+            (ImageResponse::FailedToLoadOrDecode, ImageRequestPhase::Current) => {
                 self.abort_request(State::Broken, ImageRequestPhase::Current, can_gc);
+
+                self.load_broken_image_icon();
+
                 (false, true)
             },
-            (ImageResponse::None, ImageRequestPhase::Pending) => {
+            (ImageResponse::FailedToLoadOrDecode, ImageRequestPhase::Pending) => {
                 self.abort_request(State::Broken, ImageRequestPhase::Current, can_gc);
                 self.abort_request(State::Broken, ImageRequestPhase::Pending, can_gc);
                 self.image_request.set(ImageRequestPhase::Current);
+
+                self.load_broken_image_icon();
+
                 (false, true)
             },
         };
@@ -556,6 +541,8 @@ impl HTMLImageElement {
         }
     }
 
+    /// The response part of
+    /// <https://html.spec.whatwg.org/multipage/#reacting-to-environment-changes>.
     fn process_image_response_for_environment_change(
         &self,
         image: ImageResponse,
@@ -571,18 +558,18 @@ impl HTMLImageElement {
                 self.pending_request.borrow_mut().image = Some(image);
                 self.finish_reacting_to_environment_change(src, generation, selected_pixel_density);
             },
-            ImageResponse::PlaceholderLoaded(image, url) => {
-                let image = Image::Raster(image);
-                self.pending_request.borrow_mut().metadata = Some(image.metadata());
-                self.pending_request.borrow_mut().final_url = Some(url);
-                self.pending_request.borrow_mut().image = Some(image);
-                self.finish_reacting_to_environment_change(src, generation, selected_pixel_density);
+            ImageResponse::FailedToLoadOrDecode => {
+                // > Step 15.6: If response's unsafe response is a network error or if the
+                // > image format is unsupported (as determined by applying the image
+                // > sniffing rules, again as mentioned earlier), or if the user agent is
+                // > able to determine that image request's image is corrupted in some fatal
+                // > way such that the image dimensions cannot be obtained, or if the
+                // > resource type is multipart/x-mixed-replace, then set the pending
+                // > request to null and abort these steps.
+                self.abort_request(State::Unavailable, ImageRequestPhase::Pending, can_gc);
             },
             ImageResponse::MetadataLoaded(meta) => {
                 self.pending_request.borrow_mut().metadata = Some(meta);
-            },
-            ImageResponse::None => {
-                self.abort_request(State::Unavailable, ImageRequestPhase::Pending, can_gc);
             },
         };
     }
@@ -886,7 +873,7 @@ impl HTMLImageElement {
             Some(LoadBlocker::new(&document, LoadType::Image(url.clone())));
     }
 
-    /// Step 13-17 of html.spec.whatwg.org/multipage/#update-the-image-data
+    /// Step 13-17 of <https://html.spec.whatwg.org/multipage/#update-the-image-data>.
     fn prepare_image_request(
         &self,
         url: &ServoUrl,
@@ -1166,7 +1153,6 @@ impl HTMLImageElement {
             img_url.clone(),
             window.origin().immutable().clone(),
             cors_setting_for_element(self.upcast()),
-            UsePlaceholder::No,
         );
 
         let change_type = ChangeType::Environment {
@@ -1193,9 +1179,9 @@ impl HTMLImageElement {
                 );
                 self.register_image_cache_callback(id, change_type);
             },
-            ImageCacheResult::LoadError => {
+            ImageCacheResult::FailedToLoadOrDecode => {
                 self.process_image_response_for_environment_change(
-                    ImageResponse::None,
+                    ImageResponse::FailedToLoadOrDecode,
                     selected_source,
                     generation,
                     selected_pixel_density,
@@ -1456,6 +1442,17 @@ impl HTMLImageElement {
     fn generation_id(&self) -> u32 {
         self.generation.get()
     }
+
+    fn load_broken_image_icon(&self) {
+        let window = self.owner_window();
+        let Some(broken_image_icon) = window.image_cache().get_broken_image_icon() else {
+            return;
+        };
+
+        self.current_request.borrow_mut().metadata = Some(broken_image_icon.metadata);
+        self.current_request.borrow_mut().image = Some(Image::Raster(broken_image_icon));
+        self.upcast::<Node>().dirty(NodeDamage::Other);
+    }
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -1518,6 +1515,7 @@ pub(crate) trait LayoutHTMLImageElementHelpers {
     fn image_data(self) -> (Option<Image>, Option<ImageMetadata>);
     fn get_width(self) -> LengthOrPercentageOrAuto;
     fn get_height(self) -> LengthOrPercentageOrAuto;
+    fn showing_broken_image_icon(self) -> bool;
 }
 
 impl<'dom> LayoutDom<'dom, HTMLImageElement> {
@@ -1549,6 +1547,10 @@ impl LayoutHTMLImageElementHelpers for LayoutDom<'_, HTMLImageElement> {
 
     fn image_density(self) -> Option<f64> {
         self.current_request().current_pixel_density
+    }
+
+    fn showing_broken_image_icon(self) -> bool {
+        matches!(self.current_request().state, State::Broken)
     }
 
     fn get_width(self) -> LengthOrPercentageOrAuto {

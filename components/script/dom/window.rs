@@ -680,7 +680,7 @@ impl Window {
         };
         if matches!(
             response.response,
-            ImageResponse::Loaded(_, _) | ImageResponse::PlaceholderLoaded(_, _)
+            ImageResponse::Loaded(_, _) | ImageResponse::FailedToLoadOrDecode
         ) {
             for ancillary_data in nodes.get() {
                 match ancillary_data.destination {
@@ -696,9 +696,7 @@ impl Window {
 
         match response.response {
             ImageResponse::MetadataLoaded(_) => {},
-            ImageResponse::Loaded(_, _) |
-            ImageResponse::PlaceholderLoaded(_, _) |
-            ImageResponse::None => {
+            ImageResponse::Loaded(_, _) | ImageResponse::FailedToLoadOrDecode => {
                 nodes.remove();
             },
         }
@@ -737,9 +735,7 @@ impl Window {
 
         match response.response {
             ImageResponse::MetadataLoaded(_) => {},
-            ImageResponse::Loaded(_, _) |
-            ImageResponse::PlaceholderLoaded(_, _) |
-            ImageResponse::None => {
+            ImageResponse::Loaded(_, _) | ImageResponse::FailedToLoadOrDecode => {
                 callbacks.remove();
             },
         }

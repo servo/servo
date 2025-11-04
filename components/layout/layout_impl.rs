@@ -32,7 +32,7 @@ use layout_api::{
 };
 use log::{debug, error, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
-use net_traits::image_cache::{ImageCache, UsePlaceholder};
+use net_traits::image_cache::ImageCache;
 use parking_lot::{Mutex, RwLock};
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::time::{
@@ -183,7 +183,7 @@ pub struct LayoutThread {
     // A cache that maps image resources specified in CSS (e.g as the `url()` value
     // for `background-image` or `content` properties) to either the final resolved
     // image data, or an error if the image cache failed to load/decode the image.
-    resolved_images_cache: Arc<RwLock<HashMap<(ServoUrl, UsePlaceholder), CachedImageOrError>>>,
+    resolved_images_cache: Arc<RwLock<HashMap<ServoUrl, CachedImageOrError>>>,
 
     /// The executors for paint worklets.
     registered_painters: RegisteredPaintersImpl,

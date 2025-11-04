@@ -97,7 +97,7 @@ pub enum Resource {
     ///
     /// If the resource is not provided, servo will fallback to a baked in default (See resources/rippy.png).
     /// However, if the image is provided but invalid, Servo will crash.
-    RippyPNG,
+    BrokenImageIcon,
     /// A placeholder HTML page to display when the code responsible for rendering a page panics and the original
     /// page can no longer be displayed.
     /// The message can contain a placeholder `${details}` for the error details.
@@ -121,7 +121,7 @@ impl Resource {
             Resource::HstsPreloadList => "hsts_preload.fstmap",
             Resource::BadCertHTML => "badcert.html",
             Resource::NetErrorHTML => "neterror.html",
-            Resource::RippyPNG => "rippy.png",
+            Resource::BrokenImageIcon => "rippy.png",
             Resource::CrashHTML => "crash.html",
             Resource::DirectoryListingHTML => "directory-listing.html",
             Resource::AboutMemoryHTML => "about-memory.html",
@@ -162,7 +162,7 @@ fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
                 },
                 Resource::BadCertHTML => &include_bytes!("../../../resources/badcert.html")[..],
                 Resource::NetErrorHTML => &include_bytes!("../../../resources/neterror.html")[..],
-                Resource::RippyPNG => &include_bytes!("../../../resources/rippy.png")[..],
+                Resource::BrokenImageIcon => &include_bytes!("../../../resources/rippy.png")[..],
                 Resource::CrashHTML => &include_bytes!("../../../resources/crash.html")[..],
                 Resource::DirectoryListingHTML => {
                     &include_bytes!("../../../resources/directory-listing.html")[..]

@@ -12,7 +12,7 @@ use ipc_channel::ipc::IpcSender;
 use js::rust::HandleObject;
 use net_traits::image_cache::{
     Image, ImageCache, ImageCacheResponseMessage, ImageCacheResult, ImageLoadListener,
-    ImageOrMetadataAvailable, ImageResponse, PendingImageId, UsePlaceholder,
+    ImageOrMetadataAvailable, ImageResponse, PendingImageId,
 };
 use net_traits::request::{Destination, Initiator, RequestBuilder, RequestId};
 use net_traits::{
@@ -636,17 +636,12 @@ impl HTMLLinkElement {
             href,
             window.origin().immutable().clone(),
             cors_setting_for_element(self.upcast()),
-            UsePlaceholder::No,
         );
 
         match cache_result {
             ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable {
-                image,
-                is_placeholder,
-                ..
+                image, ..
             }) => {
-                debug_assert!(!is_placeholder);
-
                 self.process_favicon_response(image);
             },
             ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(_, id)) |
@@ -680,7 +675,7 @@ impl HTMLLinkElement {
                 };
                 document.fetch_background(request, fetch_context);
             },
-            ImageCacheResult::LoadError => {},
+            ImageCacheResult::FailedToLoadOrDecode => {},
         };
     }
 

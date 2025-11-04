@@ -84,6 +84,7 @@ pub(crate) struct ImageFragment {
     pub rect: PhysicalRect<Au>,
     pub clip: PhysicalRect<Au>,
     pub image_key: Option<ImageKey>,
+    pub showing_broken_image_icon: bool,
 }
 
 #[derive(MallocSizeOf)]

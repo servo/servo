@@ -38,11 +38,14 @@ use style::values::generics::NonNegative;
 use style::values::generics::rect::Rect;
 use style::values::specified::text::TextDecorationLine;
 use style_traits::{CSSPixel as StyloCSSPixel, DevicePixel as StyloDevicePixel};
-use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutRect, LayoutSize};
+use webrender_api::units::{
+    DeviceIntSize, DevicePixel, LayoutPixel, LayoutRect, LayoutSideOffsets, LayoutSize,
+};
 use webrender_api::{
-    self as wr, BorderDetails, BorderRadius, BoxShadowClipMode, BuiltDisplayList, ClipChainId,
-    ClipMode, CommonItemProperties, ComplexClipRegion, NinePatchBorder, NinePatchBorderSource,
-    PrimitiveFlags, PropertyBinding, SpatialId, SpatialTreeItemKey, units,
+    self as wr, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, BuiltDisplayList,
+    ClipChainId, ClipMode, ColorF, CommonItemProperties, ComplexClipRegion, NinePatchBorder,
+    NinePatchBorderSource, NormalBorder, PrimitiveFlags, PropertyBinding, SpatialId,
+    SpatialTreeItemKey, units,
 };
 use wr::units::LayoutVector2D;
 
@@ -481,7 +484,7 @@ impl DisplayListBuilder<'_> {
                     // We paint each highlighted area as if it was a border for simplicity
                     let border_style = wr::BorderSide {
                         color,
-                        style: webrender_api::BorderStyle::Solid,
+                        style: wr::BorderStyle::Solid,
                     };
 
                     let details = wr::BorderDetails::Normal(wr::NormalBorder {
@@ -656,6 +659,14 @@ impl Fragment {
                                 wr::AlphaType::PremultipliedAlpha,
                                 image_key,
                                 wr::ColorF::WHITE,
+                            );
+                        }
+
+                        if image.showing_broken_image_icon {
+                            self.build_display_list_for_broken_image_border(
+                                builder,
+                                containing_block,
+                                &common,
                             );
                         }
 
@@ -948,6 +959,31 @@ impl Fragment {
                 text_decoration.style.to_webrender(),
             );
         }
+    }
+
+    fn build_display_list_for_broken_image_border(
+        &self,
+        builder: &mut DisplayListBuilder,
+        containing_block: &PhysicalRect<Au>,
+        common: &CommonItemProperties,
+    ) {
+        let border_side = BorderSide {
+            color: ColorF::BLACK,
+            style: wr::BorderStyle::Inset,
+        };
+        builder.wr().push_border(
+            common,
+            containing_block.to_webrender(),
+            LayoutSideOffsets::new_all_same(1.0),
+            BorderDetails::Normal(NormalBorder {
+                left: border_side,
+                right: border_side,
+                top: border_side,
+                bottom: border_side,
+                radius: BorderRadius::zero(),
+                do_aa: true,
+            }),
+        );
     }
 }
 

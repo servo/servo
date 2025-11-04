@@ -411,9 +411,7 @@ impl CanvasState {
                     return None;
                 }
             },
-            ImageResponse::PlaceholderLoaded(_, _) |
-            ImageResponse::None |
-            ImageResponse::MetadataLoaded(_) => {
+            ImageResponse::FailedToLoadOrDecode | ImageResponse::MetadataLoaded(_) => {
                 return None;
             },
         };
@@ -435,7 +433,7 @@ impl CanvasState {
                 // Rather annoyingly, we get the same response back from
                 // A load which really failed and from a load which hasn't started yet.
                 self.missing_image_urls.borrow_mut().push(url);
-                ImageResponse::None
+                ImageResponse::FailedToLoadOrDecode
             },
         }
     }

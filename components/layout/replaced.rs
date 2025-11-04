@@ -10,7 +10,7 @@ use euclid::{Scale, Size2D};
 use layout_api::wrapper_traits::ThreadSafeLayoutNode;
 use layout_api::{IFrameSize, LayoutImageDestination};
 use malloc_size_of_derive::MallocSizeOf;
-use net_traits::image_cache::{Image, ImageOrMetadataAvailable, UsePlaceholder, VectorImage};
+use net_traits::image_cache::{Image, ImageOrMetadataAvailable, VectorImage};
 use script::layout_dom::ServoThreadSafeLayoutNode;
 use servo_arc::Arc as ServoArc;
 use style::Zero;
@@ -123,7 +123,7 @@ pub(crate) struct VideoInfo {
 
 #[derive(Debug, MallocSizeOf)]
 pub(crate) enum ReplacedContentKind {
-    Image(Option<Image>),
+    Image(Option<Image>, bool /* showing_broken_image_icon */),
     IFrame(IFrameInfo),
     Canvas(CanvasInfo),
     Video(Option<VideoInfo>),
@@ -148,7 +148,7 @@ impl ReplacedContents {
         let (kind, natural_size) = {
             if let Some((image, natural_size_in_dots)) = node.as_image() {
                 (
-                    ReplacedContentKind::Image(image),
+                    ReplacedContentKind::Image(image, node.showing_broken_image_icon()),
                     NaturalSizes::from_natural_size_in_dots(natural_size_in_dots),
                 )
             } else if let Some((canvas_info, natural_size_in_dots)) = node.as_canvas() {
@@ -192,7 +192,6 @@ impl ReplacedContents {
                     .get_cached_image_for_url(
                         node.opaque(),
                         svg_source,
-                        UsePlaceholder::No,
                         LayoutImageDestination::BoxTreeConstruction,
                     )
                     .ok();
@@ -212,7 +211,7 @@ impl ReplacedContents {
             }
         };
 
-        if let ReplacedContentKind::Image(Some(Image::Raster(ref image))) = kind {
+        if let ReplacedContentKind::Image(Some(Image::Raster(ref image)), _) = kind {
             context
                 .image_resolver
                 .handle_animated_image(node.opaque(), image.clone());
@@ -234,7 +233,6 @@ impl ReplacedContents {
             let (image, width, height) = match context.image_resolver.get_or_request_image_or_meta(
                 node.opaque(),
                 image_url.clone().into(),
-                UsePlaceholder::No,
                 LayoutImageDestination::BoxTreeConstruction,
             ) {
                 LayoutImageCacheResult::DataAvailable(img_or_meta) => match img_or_meta {
@@ -254,7 +252,7 @@ impl ReplacedContents {
             };
 
             return Some(Self {
-                kind: ReplacedContentKind::Image(image),
+                kind: ReplacedContentKind::Image(image, false /* showing_broken_image_icon */),
                 natural_size: NaturalSizes::from_width_and_height(width, height),
                 base_fragment_info: node.into(),
             });
@@ -303,6 +301,7 @@ impl ReplacedContents {
             self.natural_size.height.unwrap_or(size.height),
         );
 
+        let showing_broken_image_icon = matches!(self.kind, ReplacedContentKind::Image(_, true));
         let object_fit_size = self.natural_size.ratio.map_or(size, |width_over_height| {
             let preserve_aspect_ratio_with_comparison =
                 |size: PhysicalSize<Au>, comparison: fn(&Au, &Au) -> bool| {
@@ -316,7 +315,12 @@ impl ReplacedContents {
                     PhysicalSize::new(size.width, candidate_height)
                 };
 
-            match style.clone_object_fit() {
+            let object_fit = match showing_broken_image_icon {
+                true => ObjectFit::ScaleDown,
+                false => style.clone_object_fit(),
+            };
+
+            match object_fit {
                 ObjectFit::Fill => size,
                 ObjectFit::Contain => preserve_aspect_ratio_with_comparison(size, PartialOrd::le),
                 ObjectFit::Cover => preserve_aspect_ratio_with_comparison(size, PartialOrd::ge),
@@ -335,14 +339,16 @@ impl ReplacedContents {
             .vertical
             .to_used_value(size.height - object_fit_size.height);
 
-        let rect = PhysicalRect::new(
-            PhysicalPoint::new(horizontal_position, vertical_position),
-            object_fit_size,
-        );
+        let object_position = match showing_broken_image_icon {
+            true => PhysicalPoint::origin(),
+            false => PhysicalPoint::new(horizontal_position, vertical_position),
+        };
+
+        let rect = PhysicalRect::new(object_position, object_fit_size);
         let clip = PhysicalRect::new(PhysicalPoint::origin(), size);
 
         match &self.kind {
-            ReplacedContentKind::Image(image) => image
+            ReplacedContentKind::Image(image, _) => image
                 .as_ref()
                 .and_then(|image| match image {
                     Image::Raster(raster_image) => raster_image.id,
@@ -365,6 +371,7 @@ impl ReplacedContents {
                         rect,
                         clip,
                         image_key: Some(image_key),
+                        showing_broken_image_icon,
                     }))
                 })
                 .into_iter()
@@ -376,6 +383,7 @@ impl ReplacedContents {
                     rect,
                     clip,
                     image_key: video.as_ref().map(|video| video.image_key),
+                    showing_broken_image_icon,
                 }))]
             },
             ReplacedContentKind::IFrame(iframe) => {
@@ -417,6 +425,7 @@ impl ReplacedContents {
                     rect,
                     clip,
                     image_key: Some(image_key),
+                    showing_broken_image_icon,
                 }))]
             },
             ReplacedContentKind::SVGElement(vector_image) => {
@@ -454,6 +463,7 @@ impl ReplacedContents {
                             rect,
                             clip,
                             image_key: Some(image_key),
+                            showing_broken_image_icon,
                         }))
                     })
                     .into_iter()

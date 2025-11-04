@@ -4524,7 +4524,7 @@
      ]
     ],
     "no-image.html": [
-     "e4ee17532cea9f904e031cec4c4339893f96b7e6",
+     "33f8392b804278c8985a1a3c76671cd49d0ff54e",
      [
       null,
       [
@@ -9596,7 +9596,7 @@
      []
     ],
     "no-image-ref.html": [
-     "0d53ae51ac60682c87c596218b97685328f7ba82",
+     "01d08d427b7ef229acec0dbff29e60e2ffac7d38",
      []
     ],
     "no_image_background_ref.html": [
@@ -9957,6 +9957,10 @@
     ],
     "restyle_hints_state_ref.html": [
      "d8d0ad1dd092a591ab23ec48e0d1c7c8975e94af",
+     []
+    ],
+    "rippy.png": [
+     "9e1bfdee1dadc8cf192d9b7117c7be884fb31163",
      []
     ],
     "root_display_ref.html": [

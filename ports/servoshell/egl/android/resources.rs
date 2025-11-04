@@ -21,7 +21,7 @@ impl ResourceReaderMethods for ResourceReaderInstance {
             },
             Resource::BadCertHTML => &include_bytes!("../../../../resources/badcert.html")[..],
             Resource::NetErrorHTML => &include_bytes!("../../../../resources/neterror.html")[..],
-            Resource::RippyPNG => &include_bytes!("../../../../resources/rippy.png")[..],
+            Resource::BrokenImageIcon => &include_bytes!("../../../../resources/rippy.png")[..],
             Resource::DomainList => &include_bytes!("../../../../resources/public_domains.txt")[..],
             Resource::BluetoothBlocklist => {
                 &include_bytes!("../../../../resources/gatt_blocklist.txt")[..]
