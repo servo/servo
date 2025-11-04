@@ -62,6 +62,8 @@ pub struct Minibrowser {
 
     /// Whether the user has enabled experimental preferences.
     experimental_prefs_enabled: bool,
+
+    root_accesskit_node_id: Option<egui::accesskit::NodeId>,
 }
 
 pub enum MinibrowserEvent {
@@ -137,6 +139,7 @@ impl Minibrowser {
             status_text: None,
             favicon_textures: Default::default(),
             experimental_prefs_enabled: preferences.experimental_prefs_enabled,
+            root_accesskit_node_id: None,
         }
     }
 
@@ -508,11 +511,21 @@ impl Minibrowser {
                 ctx.accesskit_subtree_builder(ui.id(), |node, accesskit_state| {
                     node.set_role(Role::Group);
 
-                    let mut child = Node::default();
-                    child.set_role(Role::Switch);
-                    let child_id = dbg!(ui.id().with(1));
-                    accesskit_state.nodes.insert(child_id, child);
-                    node.push_child(child_id.value().into());
+                    // egui sends a TreeUpdate on every tick with all of the nodes it knows about.
+                    // but TreeUpdate can be used incrementally, so we can take advantage of that
+                    // to send updates to Servo’s accessibility subtree on our own schedule.
+                    let root_accesskit_node_id = self.root_accesskit_node_id.get_or_insert_with(|| {
+                        // the first time only, we tell accesskit about the root of our tree using
+                        // a dummy node, which we can later update however we like.
+                        let child = Node::default();
+                        let child_id = ui.id().with(1);
+                        accesskit_state.nodes.insert(child_id, child);
+                        child_id.value().into()
+                    });
+                    // to ensure that the boundary between egui’s tree and our tree doesn’t get
+                    // clobbered, we need to tell egui to include the root of our tree at the node
+                    // where they meet. then we can do what we want with that root.
+                    node.push_child(*root_accesskit_node_id);
                 });
             });
 
