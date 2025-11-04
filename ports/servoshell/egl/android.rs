@@ -766,8 +766,6 @@ impl HostTrait for HostCallbacks {
         .unwrap();
     }
 
-    fn show_context_menu(&self, _title: Option<String>, _items: Vec<String>) {}
-
     fn on_panic(&self, _reason: String, _backtrace: Option<String>) {}
 }
 

@@ -122,6 +122,7 @@ use crate::responders::ServoErrorChannel;
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
 use crate::webview::MINIMUM_WEBVIEW_SIZE;
 pub use crate::webview::{WebView, WebViewBuilder};
+use crate::webview_delegate::ContextMenu;
 pub use crate::webview_delegate::{
     AllowOrDenyRequest, AuthenticationRequest, ColorPicker, EmbedderControl, FilePicker,
     InputMethodControl, NavigationRequest, PermissionRequest, SelectElement, WebResourceLoad,
@@ -523,13 +524,6 @@ impl Servo {
                     );
                 }
             },
-            EmbedderMsg::ShowContextMenu(webview_id, ipc_sender, title, items) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview
-                        .delegate()
-                        .show_context_menu(webview, ipc_sender, title, items);
-                }
-            },
             EmbedderMsg::AllowNavigationRequest(webview_id, pipeline_id, servo_url) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     let request = NavigationRequest {
@@ -830,6 +824,15 @@ impl Servo {
                                 insertion_point: input_method_request.insertion_point,
                                 position,
                                 multiline: input_method_request.multiline,
+                            })
+                        },
+                        EmbedderControlRequest::ContextMenu(context_menu_request) => {
+                            EmbedderControl::ContextMenu(ContextMenu {
+                                id: control_id,
+                                position,
+                                items: context_menu_request.items,
+                                constellation_proxy,
+                                response_sent: false,
                             })
                         },
                         EmbedderControlRequest::FilePicker { .. } => unreachable!(

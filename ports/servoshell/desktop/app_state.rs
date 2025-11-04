@@ -762,6 +762,7 @@ impl WebViewDelegate for RunningAppState {
             EmbedderControl::SimpleDialog(simple_dialog) => {
                 self.show_simple_dialog(webview, simple_dialog);
             },
+            EmbedderControl::ContextMenu(..) => {},
         }
     }
 

@@ -8,11 +8,12 @@ use base::generic_channel::{GenericSender, SendResult};
 use base::id::PipelineId;
 use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{
-    AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, EmbedderControlId,
-    EmbedderControlResponse, FilePickerRequest, FilterPattern, GamepadHapticEffectType,
-    InputEventId, InputEventResult, InputMethodType, LoadStatus, MediaSessionEvent, Notification,
-    PermissionFeature, RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup, SimpleDialog,
-    TraversalId, WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
+    AllowOrDeny, AuthenticationResponse, ContextMenuAction, ContextMenuItem, Cursor,
+    EmbedderControlId, EmbedderControlResponse, FilePickerRequest, FilterPattern,
+    GamepadHapticEffectType, InputEventId, InputEventResult, InputMethodType, LoadStatus,
+    MediaSessionEvent, Notification, PermissionFeature, RgbColor, ScreenGeometry,
+    SelectElementOptionOrOptgroup, SimpleDialog, TraversalId, WebResourceRequest,
+    WebResourceResponse, WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
 use serde::Serialize;
@@ -313,6 +314,10 @@ pub enum EmbedderControl {
     /// content, they should be presented to the user in a way that makes them impossible to
     /// mistake for browser UI.
     SimpleDialog(SimpleDialog),
+    /// A context menu. This can be triggered by things like right-clicking on web content.
+    /// The menu that is actually shown the user may be customized, but custom menu entries
+    /// must be handled by the embedder.
+    ContextMenu(ContextMenu),
 }
 
 impl EmbedderControl {
@@ -323,9 +328,71 @@ impl EmbedderControl {
             EmbedderControl::FilePicker(file_picker) => file_picker.id,
             EmbedderControl::InputMethod(input_method) => input_method.id,
             EmbedderControl::SimpleDialog(simple_dialog) => simple_dialog.id(),
+            EmbedderControl::ContextMenu(context_menu) => context_menu.id,
         }
     }
 }
+
+/// Represents a context menu opened on web content.
+pub struct ContextMenu {
+    pub(crate) id: EmbedderControlId,
+    pub(crate) position: DeviceIntRect,
+    pub(crate) items: Vec<ContextMenuItem>,
+    pub(crate) response_sent: bool,
+    pub(crate) constellation_proxy: ConstellationProxy,
+}
+
+impl ContextMenu {
+    /// Return the [`EmbedderComtrolId`] associated with this element.
+    pub fn id(&self) -> EmbedderControlId {
+        self.id
+    }
+
+    /// Return the area occupied by the element on which this context menu was triggered.
+    ///
+    /// The embedder should use this value to position the prompt that is shown to the user.
+    pub fn position(&self) -> DeviceIntRect {
+        self.position
+    }
+
+    /// Resolve the context menu by activating the given context menu action.
+    pub fn items(&self) -> &[ContextMenuItem] {
+        &self.items
+    }
+
+    /// Resolve the context menu by activating the given context menu action.
+    pub fn select(mut self, action: ContextMenuAction) {
+        self.constellation_proxy
+            .send(EmbedderToConstellationMessage::EmbedderControlResponse(
+                self.id,
+                EmbedderControlResponse::ContextMenu(Some(action)),
+            ));
+        self.response_sent = true;
+    }
+
+    /// Tell Servo that the context menu was dismissed with no selection.
+    pub fn dismiss(mut self) {
+        self.constellation_proxy
+            .send(EmbedderToConstellationMessage::EmbedderControlResponse(
+                self.id,
+                EmbedderControlResponse::ContextMenu(None),
+            ));
+        self.response_sent = true;
+    }
+}
+
+impl Drop for ContextMenu {
+    fn drop(&mut self) {
+        if !self.response_sent {
+            self.constellation_proxy
+                .send(EmbedderToConstellationMessage::EmbedderControlResponse(
+                    self.id,
+                    EmbedderControlResponse::ContextMenu(None),
+                ));
+        }
+    }
+}
+
 /// Represents a dialog triggered by clicking a `<select>` element.
 pub struct SelectElement {
     pub(crate) id: EmbedderControlId,
@@ -633,17 +700,6 @@ pub trait WebViewDelegate {
         _webview: WebView,
         _authentication_request: AuthenticationRequest,
     ) {
-    }
-
-    /// Show a context menu to the user
-    fn show_context_menu(
-        &self,
-        _webview: WebView,
-        result_sender: GenericSender<ContextMenuResult>,
-        _: Option<String>,
-        _: Vec<String>,
-    ) {
-        let _ = result_sender.send(ContextMenuResult::Ignored);
     }
 
     /// Open dialog to select bluetooth device.

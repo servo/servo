@@ -11,9 +11,10 @@ use std::rc::Rc;
 use dpi::PhysicalSize;
 use euclid::{Point2D, Size2D};
 use servo::{
-    Cursor, EmbedderControl, InputEvent, InputMethodType, JSValue, JavaScriptEvaluationError,
-    LoadStatus, MouseButton, MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent,
-    MouseMoveEvent, Servo, SimpleDialog, Theme, WebView, WebViewBuilder, WebViewDelegate,
+    ContextMenuAction, ContextMenuItem, Cursor, EmbedderControl, InputEvent, InputMethodType,
+    JSValue, JavaScriptEvaluationError, LoadStatus, MouseButton, MouseButtonAction,
+    MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, Servo, SimpleDialog, Theme, WebView,
+    WebViewBuilder, WebViewDelegate,
 };
 use servo_config::prefs::Preferences;
 use url::Url;
@@ -543,4 +544,70 @@ fn test_simple_dialog(prompt: &str, validate: impl Fn(&SimpleDialog)) {
             .as_ref()
             .expect("the spin call above ensures this is not None"),
     );
+}
+
+#[test]
+fn test_simple_context_menu() {
+    let servo_test = ServoTest::new();
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo())
+        .delegate(delegate.clone())
+        .url(Url::parse("data:text/html,<!DOCTYPE html>").unwrap())
+        .build();
+
+    webview.focus();
+    webview.show(true);
+    webview.move_resize(servo_test.rendering_context.size2d().to_f32().into());
+
+    let load_webview = webview.clone();
+    servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+
+    // Wait for at least one frame after the load completes.
+    delegate.reset();
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || !captured_delegate.new_frame_ready.get());
+
+    let point = DevicePoint::new(50.0, 50.0).into();
+    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
+    webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+        MouseButtonAction::Down,
+        MouseButton::Right,
+        point,
+    )));
+
+    // The form control should be shown.
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || captured_delegate.number_of_controls_shown.get() != 1);
+
+    {
+        let controls = delegate.controls_shown.borrow();
+        assert_eq!(controls.len(), 1);
+        let EmbedderControl::ContextMenu(context_menu) = &controls[0] else {
+            unreachable!("Expected embedder control to be an IME");
+        };
+
+        let items = context_menu.items();
+        assert!(matches!(
+            items[0],
+            ContextMenuItem::Item {
+                action: ContextMenuAction::GoBack,
+                ..
+            }
+        ));
+        assert!(matches!(
+            items[1],
+            ContextMenuItem::Item {
+                action: ContextMenuAction::GoForward,
+                ..
+            }
+        ));
+        assert!(matches!(
+            items[2],
+            ContextMenuItem::Item {
+                action: ContextMenuAction::Reload,
+                ..
+            }
+        ));
+    }
 }

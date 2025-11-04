@@ -937,10 +937,6 @@ impl HostTrait for HostCallbacks {
         };
     }
 
-    fn show_context_menu(&self, title: Option<String>, items: Vec<String>) {
-        warn!("show_context_menu not implemented")
-    }
-
     fn notify_load_status_changed(&self, load_status: LoadStatus) {
         // Note: It seems that we don't necessarily get 1 `LoadStatus::Complete` for each
         // each time `LoadStatus::Started` is called. Presumably this requires some API changes,

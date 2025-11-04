@@ -6,13 +6,17 @@ use std::cell::Cell;
 
 use base::{Epoch, IpcSend};
 use embedder_traits::{
-    EmbedderControlId, EmbedderControlRequest, EmbedderControlResponse, EmbedderMsg,
+    ContextMenuAction, ContextMenuItem, ContextMenuRequest, EmbedderControlId,
+    EmbedderControlRequest, EmbedderControlResponse, EmbedderMsg,
 };
 use euclid::{Point2D, Rect, Size2D};
 use ipc_channel::router::ROUTER;
 use net_traits::CoreResourceMsg;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use rustc_hash::FxHashMap;
+use script_bindings::codegen::GenericBindings::HistoryBinding::HistoryMethods;
+use script_bindings::codegen::GenericBindings::LocationBinding::LocationMethods;
+use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::script_runtime::CanGc;
 use webrender_api::units::DeviceIntRect;
@@ -20,7 +24,8 @@ use webrender_api::units::DeviceIntRect;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::inheritance::Castable as _;
 use crate::dom::bindings::trace::NoTrace;
-use crate::dom::node::Node;
+use crate::dom::inputevent::HitTestResult;
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::types::{Element, HTMLElement, HTMLInputElement, HTMLSelectElement, Window};
 use crate::messaging::MainThreadScriptMsg;
 
@@ -30,6 +35,7 @@ pub(crate) enum ControlElement {
     ColorInput(DomRoot<HTMLInputElement>),
     FileInput(DomRoot<HTMLInputElement>),
     Ime(DomRoot<HTMLElement>),
+    ContextMenu(DomRoot<Element>),
 }
 
 impl ControlElement {
@@ -39,6 +45,7 @@ impl ControlElement {
             ControlElement::ColorInput(element) => element.upcast::<Element>(),
             ControlElement::FileInput(element) => element.upcast::<Element>(),
             ControlElement::Ime(element) => element.upcast::<Element>(),
+            ControlElement::ContextMenu(element) => element.upcast::<Element>(),
         }
     }
 }
@@ -92,7 +99,9 @@ impl DocumentEmbedderControls {
             Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
             Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
         );
-        // FIXME: this is a CSS px rect, not a device rect
+
+        // FIXME: This is a CSS pixel rect relative to this frame, we need a DevicePixel rectangle
+        // relative to the entire WebView!
         let rect = DeviceIntRect::from_untyped(&rect.to_box2d());
         self.visible_elements
             .borrow_mut()
@@ -101,7 +110,8 @@ impl DocumentEmbedderControls {
         match request {
             EmbedderControlRequest::SelectElement(..) |
             EmbedderControlRequest::ColorPicker(..) |
-            EmbedderControlRequest::InputMethod(..) => self
+            EmbedderControlRequest::InputMethod(..) |
+            EmbedderControlRequest::ContextMenu(..) => self
                 .window
                 .send_to_embedder(EmbedderMsg::ShowEmbedderControl(id, rect, request)),
             EmbedderControlRequest::FilePicker(file_picker_request) => {
@@ -190,9 +200,65 @@ impl DocumentEmbedderControls {
             ) => {
                 input_element.handle_file_picker_response(response, can_gc);
             },
+            (
+                ControlElement::ContextMenu(element),
+                EmbedderControlResponse::ContextMenu(action),
+            ) => {
+                self.handle_context_menu_action(&element, action, can_gc);
+            },
             (_, _) => unreachable!(
                 "The response to a form control should always match it's originating type."
             ),
+        }
+    }
+
+    pub(crate) fn show_context_menu(&self, hit_test_result: &HitTestResult) {
+        let Some(element) = hit_test_result.node.downcast::<Element>() else {
+            return;
+        };
+
+        let items = vec![
+            ContextMenuItem::Item {
+                label: "Back".into(),
+                action: ContextMenuAction::GoBack,
+            },
+            ContextMenuItem::Item {
+                label: "Forward".into(),
+                action: ContextMenuAction::GoForward,
+            },
+            ContextMenuItem::Item {
+                label: "Reload".into(),
+                action: ContextMenuAction::Reload,
+            },
+        ];
+
+        self.show_embedder_control(
+            ControlElement::ContextMenu(DomRoot::from_ref(element)),
+            EmbedderControlRequest::ContextMenu(ContextMenuRequest { items }),
+        );
+    }
+
+    fn handle_context_menu_action(
+        &self,
+        element: &Element,
+        action: Option<ContextMenuAction>,
+        can_gc: CanGc,
+    ) {
+        let Some(action) = action else {
+            return;
+        };
+
+        let window = element.owner_window();
+        match action {
+            ContextMenuAction::GoBack => {
+                let _ = window.History().Back();
+            },
+            ContextMenuAction::GoForward => {
+                let _ = window.History().Forward();
+            },
+            ContextMenuAction::Reload => {
+                let _ = self.window.Location().Reload(can_gc);
+            },
         }
     }
 }
