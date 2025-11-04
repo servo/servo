@@ -93,7 +93,7 @@ def run_tests(default_binary_path: str, **kwargs: Any) -> int:
         kwargs["test_types"] = test_types[product]
 
     filter_intermittents_output = kwargs.pop("filter_intermittents", None)
-    unexpected_raw_log_output_file = kwargs.pop("log_raw_unexpected", None)
+    stable_unexpected_raw_log_output_file = kwargs.pop("log_raw_stable_unexpected", None)
     raw_log_outputs = kwargs.get("log_raw", [])
     if filter_intermittents_output and kwargs["retry_unexpected"] <= 0:
         kwargs["retry_unexpected"] = 1
@@ -137,12 +137,12 @@ def run_tests(default_binary_path: str, **kwargs: Any) -> int:
         return_value = 0 if all_filtered else 1
 
     # Write the unexpected-only raw log if that was specified on the command-line.
-    if unexpected_raw_log_output_file:
+    if stable_unexpected_raw_log_output_file:
         if not raw_log_outputs:
             print("'--log-raw-stable-unexpected' not written without '--log-raw'.")
         else:
             write_stable_unexpected_only_raw_log(
-                handler.unexpected_results, raw_log_outputs[0].name, unexpected_raw_log_output_file
+                handler.unexpected_results, raw_log_outputs[0].name, stable_unexpected_raw_log_output_file
             )
 
     return return_value
