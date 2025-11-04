@@ -311,12 +311,6 @@ impl WebGLThread {
 
                 result_sender
                     .send(result.map(|(id, limits)| {
-                        let image_key = self
-                            .cached_context_info
-                            .get_mut(&id)
-                            .expect("Where's the cached context info?")
-                            .image_key;
-
                         let data = Self::make_current_if_needed(
                             &self.device,
                             id,
@@ -359,10 +353,12 @@ impl WebGLThread {
                             limits,
                             glsl_version,
                             api_type,
-                            image_key,
                         }
                     }))
                     .unwrap();
+            },
+            WebGLMsg::SetImageKey(ctx_id, image_key) => {
+                self.handle_set_image_key(ctx_id, image_key);
             },
             WebGLMsg::ResizeContext(ctx_id, size, sender) => {
                 let _ = sender.send(self.resize_webgl_context(ctx_id, size));
@@ -594,7 +590,6 @@ impl WebGLThread {
         let descriptor_attributes = self.device.context_descriptor_attributes(&descriptor);
         let gl_version = descriptor_attributes.version;
         let has_alpha = requested_flags.contains(ContextAttributeFlags::ALPHA);
-        let image_buffer_kind = current_wr_image_buffer_kind(&self.device);
 
         self.device.make_context_current(&ctx).unwrap();
         let framebuffer = self
@@ -645,16 +640,14 @@ impl WebGLThread {
             },
         );
 
-        let image_key = Self::create_wr_external_image(
-            &self.compositor_api,
-            size.to_i32(),
-            has_alpha,
+        self.cached_context_info.insert(
             id,
-            image_buffer_kind,
+            WebGLContextInfo {
+                image_key: None,
+                size: size.to_i32(),
+                alpha: has_alpha,
+            },
         );
-
-        self.cached_context_info
-            .insert(id, WebGLContextInfo { image_key });
 
         Ok((id, limits))
     }
@@ -705,7 +698,7 @@ impl WebGLThread {
             .state
             .requested_flags
             .contains(ContextAttributeFlags::ALPHA);
-        self.update_wr_image_for_context(context_id, size.to_i32(), has_alpha, None);
+        self.update_webrender_image_for_context(context_id, size.to_i32(), has_alpha, None);
 
         Ok(())
     }
@@ -713,8 +706,12 @@ impl WebGLThread {
     /// Removes a WebGLContext and releases attached resources.
     fn remove_webgl_context(&mut self, context_id: WebGLContextId) {
         // Release webrender image keys.
-        if let Some(info) = self.cached_context_info.remove(&context_id) {
-            self.compositor_api.delete_image(info.image_key);
+        if let Some(image_key) = self
+            .cached_context_info
+            .remove(&context_id)
+            .and_then(|info| info.image_key)
+        {
+            self.compositor_api.delete_image(image_key);
         }
 
         // We need to make the context current so its resources can be disposed of.
@@ -840,7 +837,7 @@ impl WebGLThread {
                 .state
                 .requested_flags
                 .contains(ContextAttributeFlags::ALPHA);
-            self.update_wr_image_for_context(context_id, size, has_alpha, canvas_epoch);
+            self.update_webrender_image_for_context(context_id, size, has_alpha, canvas_epoch);
         }
 
         #[allow(unused)]
@@ -890,60 +887,38 @@ impl WebGLThread {
         data
     }
 
-    /// Creates a `webrender_api::ImageKey` that uses shared textures.
-    fn create_wr_external_image(
-        compositor_api: &CrossProcessCompositorApi,
-        size: Size2D<i32>,
-        alpha: bool,
-        context_id: WebGLContextId,
-        image_buffer_kind: ImageBufferKind,
-    ) -> ImageKey {
-        let descriptor = Self::image_descriptor(size, alpha);
-        let data = Self::external_image_data(context_id, image_buffer_kind);
-
-        let image_key = compositor_api.generate_image_key_blocking().unwrap();
-        compositor_api.add_image(image_key, descriptor, data);
-
-        image_key
-    }
-
     /// Tell WebRender to invalidate any cached tiles for a given `WebGLContextId`
     /// when the underlying surface has changed e.g due to resize or buffer swap
-    fn update_wr_image_for_context(
+    fn update_webrender_image_for_context(
         &mut self,
         context_id: WebGLContextId,
         size: Size2D<i32>,
         has_alpha: bool,
         canvas_epoch: Option<Epoch>,
     ) {
-        let info = self.cached_context_info.get(&context_id).unwrap();
-        let image_buffer_kind = current_wr_image_buffer_kind(&self.device);
+        let image_data = self.external_image_data(context_id);
+        let info = self.cached_context_info.get_mut(&context_id).unwrap();
+        info.size = size;
+        info.alpha = has_alpha;
 
-        let descriptor = Self::image_descriptor(size, has_alpha);
-        let image_data = Self::external_image_data(context_id, image_buffer_kind);
-
-        self.compositor_api
-            .update_image(info.image_key, descriptor, image_data, canvas_epoch);
-    }
-
-    /// Helper function to create a `ImageDescriptor`.
-    fn image_descriptor(size: Size2D<i32>, alpha: bool) -> ImageDescriptor {
-        let mut flags = ImageDescriptorFlags::empty();
-        flags.set(ImageDescriptorFlags::IS_OPAQUE, !alpha);
-        ImageDescriptor {
-            size: DeviceIntSize::new(size.width, size.height),
-            stride: None,
-            format: ImageFormat::BGRA8,
-            offset: 0,
-            flags,
+        if let Some(image_key) = info.image_key {
+            self.compositor_api.update_image(
+                image_key,
+                info.image_descriptor(),
+                image_data,
+                canvas_epoch,
+            );
         }
     }
 
     /// Helper function to create a `ImageData::External` instance.
-    fn external_image_data(
-        context_id: WebGLContextId,
-        image_buffer_kind: ImageBufferKind,
-    ) -> SerializableImageData {
+    fn external_image_data(&self, context_id: WebGLContextId) -> SerializableImageData {
+        // TODO(pcwalton): Add `GL_TEXTURE_EXTERNAL_OES`?
+        let image_buffer_kind = match self.device.surface_gl_texture_target() {
+            gl::TEXTURE_RECTANGLE => ImageBufferKind::TextureRect,
+            _ => ImageBufferKind::Texture2D,
+        };
+
         let data = ExternalImageData {
             id: ExternalImageId(context_id.0),
             channel_index: 0,
@@ -969,19 +944,43 @@ impl WebGLThread {
 
         WebGLSLVersion { major, minor }
     }
+
+    fn handle_set_image_key(&mut self, context_id: WebGLContextId, image_key: ImageKey) {
+        let external_image_data = self.external_image_data(context_id);
+        let Some(info) = self.cached_context_info.get_mut(&context_id) else {
+            self.compositor_api.delete_image(image_key);
+            return;
+        };
+
+        if let Some(old_image_key) = info.image_key.replace(image_key) {
+            self.compositor_api.delete_image(old_image_key);
+            return;
+        }
+
+        self.compositor_api
+            .add_image(image_key, info.image_descriptor(), external_image_data);
+    }
 }
 
 /// Helper struct to store cached WebGLContext information.
 struct WebGLContextInfo {
-    /// Currently used WebRender image key.
-    image_key: ImageKey,
+    image_key: Option<ImageKey>,
+    size: Size2D<i32>,
+    alpha: bool,
 }
 
-// TODO(pcwalton): Add `GL_TEXTURE_EXTERNAL_OES`?
-fn current_wr_image_buffer_kind(device: &Device) -> ImageBufferKind {
-    match device.surface_gl_texture_target() {
-        gl::TEXTURE_RECTANGLE => ImageBufferKind::TextureRect,
-        _ => ImageBufferKind::Texture2D,
+impl WebGLContextInfo {
+    /// Helper function to create a `ImageDescriptor`.
+    fn image_descriptor(&self) -> ImageDescriptor {
+        let mut flags = ImageDescriptorFlags::empty();
+        flags.set(ImageDescriptorFlags::IS_OPAQUE, !self.alpha);
+        ImageDescriptor {
+            size: DeviceIntSize::new(self.size.width, self.size.height),
+            stride: None,
+            format: ImageFormat::BGRA8,
+            offset: 0,
+            flags,
+        }
     }
 }
 

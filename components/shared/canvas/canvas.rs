@@ -18,6 +18,7 @@ use pixels::SharedSnapshot;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 use style::color::AbsoluteColor;
+use webrender_api::ImageKey;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Path(pub BezPath);
@@ -447,6 +448,7 @@ pub enum CanvasMsg {
 
 #[derive(Debug, Deserialize, Serialize, strum::Display)]
 pub enum Canvas2dMsg {
+    SetImageKey(ImageKey),
     DrawImage(
         SharedSnapshot,
         Rect<f64>,

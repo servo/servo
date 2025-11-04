@@ -127,7 +127,7 @@ pub enum LayoutElementType {
 }
 
 pub struct HTMLCanvasData {
-    pub source: Option<ImageKey>,
+    pub image_key: Option<ImageKey>,
     pub width: u32,
     pub height: u32,
 }

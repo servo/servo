@@ -374,7 +374,7 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
 
     fn as_canvas(&self) -> Option<(CanvasInfo, PhysicalSize<f64>)> {
         let canvas_data = self.canvas_data()?;
-        let source = canvas_data.source;
+        let source = canvas_data.image_key;
         Some((
             CanvasInfo { source },
             PhysicalSize::new(canvas_data.width.into(), canvas_data.height.into()),

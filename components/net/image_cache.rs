@@ -514,12 +514,16 @@ impl ImageCacheStore {
                 },
                 None => {
                     self.key_cache.images_pending_keys.push_back(pending_image);
-                    self.compositor_api
-                        .generate_image_key_async(self.pipeline_id);
-                    self.key_cache.cache = KeyCacheState::PendingBatch
+                    self.fetch_more_image_keys();
                 },
             },
         }
+    }
+
+    fn fetch_more_image_keys(&mut self) {
+        self.key_cache.cache = KeyCacheState::PendingBatch;
+        self.compositor_api
+            .generate_image_key_async(self.pipeline_id);
     }
 
     /// Insert received keys into the cache and complete the loading of images.
@@ -746,6 +750,19 @@ impl ImageCache for ImageCacheImpl {
             kind: ReportKind::ExplicitSystemHeapSize,
             size,
         }
+    }
+
+    fn get_image_key(&self) -> Option<WebRenderImageKey> {
+        let mut store = self.store.lock().unwrap();
+        if let KeyCacheState::Ready(ref mut cache) = store.key_cache.cache {
+            if let Some(image_key) = cache.pop() {
+                return Some(image_key);
+            }
+
+            store.fetch_more_image_keys();
+        }
+
+        store.compositor_api.generate_image_key_blocking()
     }
 
     fn get_image(

@@ -195,11 +195,9 @@ impl CanvasContextState {
 #[derive(JSTraceable, MallocSizeOf)]
 pub(super) struct CanvasState {
     #[no_trace]
-    ipc_renderer: GenericSender<CanvasMsg>,
+    canvas_thread_sender: GenericSender<CanvasMsg>,
     #[no_trace]
     canvas_id: CanvasId,
-    #[no_trace]
-    image_key: ImageKey,
     #[no_trace]
     size: Cell<Size2D<u64>>,
     state: DomRefCell<CanvasContextState>,
@@ -235,7 +233,7 @@ impl CanvasState {
                 size, sender,
             ))
             .unwrap();
-        let (ipc_renderer, canvas_id, image_key) = receiver.recv().ok()??;
+        let (canvas_thread_sender, canvas_id) = receiver.recv().ok()??;
         debug!("Done.");
         // Worklets always receive a unique origin. This messes with fetching
         // cached images in the case of paint worklets, since the image cache
@@ -246,7 +244,7 @@ impl CanvasState {
             global.origin().immutable().clone()
         };
         Some(CanvasState {
-            ipc_renderer,
+            canvas_thread_sender,
             canvas_id,
             size: Cell::new(size),
             state: DomRefCell::new(CanvasContextState::new()),
@@ -255,14 +253,13 @@ impl CanvasState {
             base_url: global.api_base_url(),
             missing_image_urls: DomRefCell::new(Vec::new()),
             saved_states: DomRefCell::new(Vec::new()),
-            image_key,
             origin,
             current_default_path: DomRefCell::new(Path::new()),
         })
     }
 
-    pub(super) fn image_key(&self) -> ImageKey {
-        self.image_key
+    pub(super) fn set_image_key(&self, image_key: ImageKey) {
+        self.send_canvas_2d_msg(Canvas2dMsg::SetImageKey(image_key));
     }
 
     pub(super) fn get_missing_image_urls(&self) -> &DomRefCell<Vec<ServoUrl>> {
@@ -282,7 +279,7 @@ impl CanvasState {
             return;
         }
 
-        self.ipc_renderer
+        self.canvas_thread_sender
             .send(CanvasMsg::Canvas2d(msg, self.get_canvas_id()))
             .unwrap()
     }
@@ -293,7 +290,7 @@ impl CanvasState {
             return false;
         }
 
-        self.ipc_renderer
+        self.canvas_thread_sender
             .send(CanvasMsg::Canvas2d(
                 Canvas2dMsg::UpdateImage(canvas_epoch),
                 self.canvas_id,
@@ -310,7 +307,7 @@ impl CanvasState {
         // Step 2. Resize the output bitmap to the new width and height.
         self.size.replace(adjust_canvas_size(size));
 
-        self.ipc_renderer
+        self.canvas_thread_sender
             .send(CanvasMsg::Recreate(
                 Some(self.size.get()),
                 self.get_canvas_id(),
@@ -327,7 +324,7 @@ impl CanvasState {
         }
 
         // Step 1. Clear canvas's bitmap to transparent black.
-        self.ipc_renderer
+        self.canvas_thread_sender
             .send(CanvasMsg::Recreate(None, self.get_canvas_id()))
             .unwrap();
     }
@@ -2424,7 +2421,10 @@ impl CanvasState {
 
 impl Drop for CanvasState {
     fn drop(&mut self) {
-        if let Err(err) = self.ipc_renderer.send(CanvasMsg::Close(self.canvas_id)) {
+        if let Err(err) = self
+            .canvas_thread_sender
+            .send(CanvasMsg::Close(self.canvas_id))
+        {
             warn!("Could not close canvas: {}", err)
         }
     }

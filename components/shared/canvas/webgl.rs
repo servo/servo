@@ -95,6 +95,8 @@ pub enum WebGLMsg {
         GLContextAttributes,
         WebGLSender<Result<WebGLCreateContextResult, String>>,
     ),
+    /// Set an [`ImageKey`] on a `WebGLContext`.
+    SetImageKey(WebGLContextId, ImageKey),
     /// Resizes a WebGLContext.
     ResizeContext(WebGLContextId, Size2D<u32>, WebGLSender<Result<(), String>>),
     /// Drops a WebGLContext.
@@ -131,8 +133,6 @@ pub struct WebGLCreateContextResult {
     pub glsl_version: WebGLSLVersion,
     /// The GL API used by the context.
     pub api_type: GlType,
-    /// The WebRender image key.
-    pub image_key: ImageKey,
 }
 
 /// Defines the WebGL version
@@ -180,6 +180,14 @@ impl WebGLMsgSender {
     pub fn send(&self, command: WebGLCommand, backtrace: WebGLCommandBacktrace) -> WebGLSendResult {
         self.sender
             .send(WebGLMsg::WebGLCommand(self.ctx_id, command, backtrace))
+    }
+
+    /// Set an [`ImageKey`] on this WebGL context.
+    #[inline]
+    pub fn set_image_key(&self, image_key: ImageKey) {
+        let _ = self
+            .sender
+            .send(WebGLMsg::SetImageKey(self.ctx_id, image_key));
     }
 
     /// Send a resize message

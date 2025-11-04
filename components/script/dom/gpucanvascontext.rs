@@ -5,7 +5,6 @@
 use dom_struct::dom_struct;
 use webrender_api::ImageKey;
 
-use crate::canvas_context::LayoutCanvasRenderingContextHelpers;
 use crate::dom::bindings::codegen::Bindings::GPUCanvasContextBinding::GPUCanvasContextMethods;
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::reflector::Reflector;
@@ -26,12 +25,6 @@ impl GPUCanvasContext {
 impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-canvas>
     fn Canvas(&self) -> RootedHTMLCanvasElementOrOffscreenCanvas {
-        unimplemented!()
-    }
-}
-
-impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, GPUCanvasContext> {
-    fn canvas_data_source(self) -> Option<ImageKey> {
         unimplemented!()
     }
 }

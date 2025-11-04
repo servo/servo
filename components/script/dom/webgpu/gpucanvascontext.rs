@@ -20,10 +20,7 @@ use wgpu_core::id;
 
 use super::gpuconvert::convert_texture_descriptor;
 use super::gputexture::GPUTexture;
-use crate::canvas_context::{
-    CanvasContext, CanvasHelpers, HTMLCanvasElementOrOffscreenCanvas,
-    LayoutCanvasRenderingContextHelpers,
-};
+use crate::canvas_context::{CanvasContext, CanvasHelpers, HTMLCanvasElementOrOffscreenCanvas};
 use crate::dom::bindings::codegen::Bindings::GPUCanvasContextBinding::GPUCanvasContextMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUTexture_Binding::GPUTextureMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -33,11 +30,10 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
-use crate::dom::node::NodeTraits;
 use crate::script_runtime::CanGc;
 
 /// <https://gpuweb.github.io/gpuweb/#supported-context-formats>
@@ -57,9 +53,6 @@ pub(crate) struct GPUCanvasContext {
     channel: WebGPU,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-canvas>
     canvas: HTMLCanvasElementOrOffscreenCanvas,
-    #[ignore_malloc_size_of = "Defined in webrender"]
-    #[no_trace]
-    webrender_image: ImageKey,
     #[no_trace]
     context_id: WebGPUContextId,
     #[ignore_malloc_size_of = "manual writing is hard"]
@@ -87,20 +80,20 @@ impl GPUCanvasContext {
         for _ in 0..PRESENTATION_BUFFER_COUNT {
             buffer_ids.push(global.wgpu_id_hub().create_buffer_id());
         }
-        if let Err(e) = channel.0.send(WebGPURequest::CreateContext {
+        if let Err(error) = channel.0.send(WebGPURequest::CreateContext {
             buffer_ids,
             size,
             sender,
         }) {
-            warn!("Failed to send CreateContext ({:?})", e);
+            warn!("Failed to send CreateContext ({error:?})");
         }
-        let (external_id, webrender_image) = receiver.recv().unwrap();
+        let context_id = receiver.recv().unwrap();
+
         Self {
             reflector_: Reflector::new(),
             channel,
             canvas,
-            webrender_image,
-            context_id: WebGPUContextId(external_id.0),
+            context_id,
             configuration: RefCell::new(None),
             texture_descriptor: RefCell::new(None),
             current_texture: MutNullableDom::default(),
@@ -128,6 +121,40 @@ impl GPUCanvasContext {
 
 // Abstract ops from spec
 impl GPUCanvasContext {
+    pub(crate) fn set_image_key(&self, image_key: ImageKey) {
+        if let Err(error) = self.channel.0.send(WebGPURequest::SetImageKey {
+            context_id: self.context_id,
+            image_key,
+        }) {
+            warn!(
+                "Failed to send WebGPURequest::Present({:?}) ({error})",
+                self.context_id
+            );
+        }
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-updating-the-rendering-of-a-webgpu-canvas>
+    pub(crate) fn update_rendering(&self, canvas_epoch: Epoch) -> bool {
+        // Present by updating the image in WebRender. This will copy the texture into
+        // the presentation buffer and use it for presenting or send a cleared image to WebRender.
+        if let Err(error) = self.channel.0.send(WebGPURequest::Present {
+            context_id: self.context_id,
+            pending_texture: self.pending_texture(),
+            size: self.size(),
+            canvas_epoch,
+        }) {
+            warn!(
+                "Failed to send WebGPURequest::Present({:?}) ({error})",
+                self.context_id
+            );
+        }
+
+        // 1. Expire the current texture of context.
+        self.expire_current_texture(true);
+
+        true
+    }
+
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-gputexturedescriptor-for-the-canvas-and-configuration>
     fn texture_descriptor_for_canvas_and_configuration(
         &self,
@@ -225,32 +252,6 @@ impl CanvasContext for GPUCanvasContext {
         self.context_id
     }
 
-    fn image_key(&self) -> Option<ImageKey> {
-        Some(self.webrender_image)
-    }
-
-    /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-updating-the-rendering-of-a-webgpu-canvas>
-    fn update_rendering(&self, canvas_epoch: Epoch) -> bool {
-        // Present by updating the image in WebRender. This will copy the texture into
-        // the presentation buffer and use it for presenting or send a cleared image to WebRender.
-        if let Err(error) = self.channel.0.send(WebGPURequest::Present {
-            context_id: self.context_id,
-            pending_texture: self.pending_texture(),
-            size: self.size(),
-            canvas_epoch,
-        }) {
-            warn!(
-                "Failed to send WebGPURequest::Present({:?}) ({error})",
-                self.context_id
-            );
-        }
-
-        // 1. Expire the current texture of context.
-        self.expire_current_texture(true);
-
-        true
-    }
-
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-update-the-canvas-size>
     fn resize(&self) {
         // 1. Replace the drawing buffer of context.
@@ -296,15 +297,7 @@ impl CanvasContext for GPUCanvasContext {
     }
 
     fn mark_as_dirty(&self) {
-        if let HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) = self.canvas {
-            canvas.owner_document().add_dirty_webgpu_context(self);
-        }
-    }
-}
-
-impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, GPUCanvasContext> {
-    fn canvas_data_source(self) -> Option<ImageKey> {
-        (*self.unsafe_get()).image_key()
+        self.canvas.mark_as_dirty();
     }
 }
 
@@ -405,12 +398,12 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
 
 impl Drop for GPUCanvasContext {
     fn drop(&mut self) {
-        if let Err(e) = self.channel.0.send(WebGPURequest::DestroyContext {
+        if let Err(error) = self.channel.0.send(WebGPURequest::DestroyContext {
             context_id: self.context_id,
         }) {
             warn!(
-                "Failed to send DestroySwapChain-ImageKey({:?}) ({})",
-                self.webrender_image, e
+                "Failed to send DestroyContext({:?}): {error}",
+                self.context_id
             );
         }
     }

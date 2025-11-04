@@ -385,7 +385,9 @@ impl PresentationStagingBuffer {
 /// The embedder process-side representation of what is the `GPUCanvasContext` in script.
 pub struct ContextData {
     /// The [`ImageKey`] of the WebRender image associated with this context.
-    image_key: ImageKey,
+    image_key: Option<ImageKey>,
+    /// The current size of this context.
+    size: DeviceIntSize,
     /// Staging buffers that are not actively used.
     ///
     /// Staging buffer here are either [`StagingBufferState::Unassigned`] or [`StagingBufferState::Available`].
@@ -401,12 +403,13 @@ pub struct ContextData {
 
 impl ContextData {
     fn new(
-        image_key: ImageKey,
         global: &Arc<Global>,
         buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
+        size: DeviceIntSize,
     ) -> Self {
         Self {
-            image_key,
+            image_key: None,
+            size,
             inactive_staging_buffers: buffer_ids
                 .iter()
                 .map(|buffer_id| StagingBuffer::new(global.clone(), *buffer_id))
@@ -456,7 +459,7 @@ impl ContextData {
     /// Destroy the context that this [`ContextData`] represents,
     /// freeing all of its buffers, and deleting the associated WebRender image.
     fn destroy(
-        self,
+        mut self,
         script_sender: &IpcSender<WebGPUMsg>,
         compositor_api: &CrossProcessCompositorApi,
     ) {
@@ -470,7 +473,9 @@ impl ContextData {
                 );
             };
         }
-        compositor_api.delete_image(self.image_key);
+        if let Some(image_key) = self.image_key.take() {
+            compositor_api.delete_image(image_key);
+        }
     }
 
     /// Advance the [`Epoch`] and return the new one.
@@ -513,22 +518,10 @@ impl crate::WGPU {
     pub(crate) fn create_context(
         &self,
         context_id: WebGPUContextId,
-        image_key: ImageKey,
         size: DeviceIntSize,
         buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
     ) {
-        let context_data = ContextData::new(image_key, &self.global, buffer_ids);
-        self.compositor_api.add_image(
-            image_key,
-            ImageDescriptor {
-                format: ImageFormat::BGRA8,
-                size,
-                stride: None,
-                offset: 0,
-                flags: ImageDescriptorFlags::empty(),
-            },
-            SerializableImageData::External(image_data(context_id)),
-        );
+        let context_data = ContextData::new(&self.global, buffer_ids, size);
         assert!(
             self.wgpu_image_map
                 .lock()
@@ -536,6 +529,27 @@ impl crate::WGPU {
                 .insert(context_id, context_data)
                 .is_none(),
             "Context should be created only once!"
+        );
+    }
+
+    pub(crate) fn set_image_key(&self, context_id: WebGPUContextId, image_key: ImageKey) {
+        let mut webgpu_contexts = self.wgpu_image_map.lock().unwrap();
+        let context_data = webgpu_contexts.get_mut(&context_id).unwrap();
+
+        if let Some(old_image_key) = context_data.image_key.replace(image_key) {
+            self.compositor_api.delete_image(old_image_key);
+        }
+
+        self.compositor_api.add_image(
+            image_key,
+            ImageDescriptor {
+                format: ImageFormat::BGRA8,
+                size: context_data.size,
+                stride: None,
+                offset: 0,
+                flags: ImageDescriptorFlags::empty(),
+            },
+            SerializableImageData::External(image_data(context_id)),
         );
     }
 
@@ -621,7 +635,11 @@ impl crate::WGPU {
     ) {
         let mut webgpu_contexts = self.wgpu_image_map.lock().unwrap();
         let context_data = webgpu_contexts.get_mut(&context_id).unwrap();
-        let image_key = context_data.image_key;
+
+        let Some(image_key) = context_data.image_key else {
+            return;
+        };
+
         let Some(PendingTexture {
             texture_id,
             encoder_id,

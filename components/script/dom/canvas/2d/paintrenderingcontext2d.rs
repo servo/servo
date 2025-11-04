@@ -38,15 +38,24 @@ pub(crate) struct PaintRenderingContext2D {
     canvas_state: CanvasState,
     #[no_trace]
     device_pixel_ratio: Cell<Scale<f32, CSSPixel, DevicePixel>>,
+    /// An [`ImageKey`] used to store the results of this [`PaintWorkletGlobalScope`].
+    #[no_trace]
+    image_key: ImageKey,
 }
 
 impl PaintRenderingContext2D {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(global: &PaintWorkletGlobalScope) -> Option<PaintRenderingContext2D> {
+        let canvas_state = CanvasState::new(global.upcast(), Size2D::zero())?;
+        let image_cache = global.image_cache();
+        let image_key = image_cache.get_image_key()?;
+        canvas_state.set_image_key(image_key);
+
         Some(PaintRenderingContext2D {
             reflector_: Reflector::new(),
-            canvas_state: CanvasState::new(global.upcast(), Size2D::zero())?,
+            canvas_state,
             device_pixel_ratio: Cell::new(Scale::new(1.0)),
+            image_key,
         })
     }
 
@@ -66,9 +75,8 @@ impl PaintRenderingContext2D {
         self.canvas_state.update_rendering(None)
     }
 
-    /// Send update to canvas paint thread and returns [`ImageKey`]
     pub(crate) fn image_key(&self) -> ImageKey {
-        self.canvas_state.image_key()
+        self.image_key
     }
 
     pub(crate) fn take_missing_image_urls(&self) -> Vec<ServoUrl> {

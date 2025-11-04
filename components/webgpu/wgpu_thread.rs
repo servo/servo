@@ -162,6 +162,10 @@ impl WGPU {
             if let Ok(msg) = self.receiver.recv() {
                 log::trace!("recv: {msg:?}");
                 match msg {
+                    WebGPURequest::SetImageKey {
+                        context_id,
+                        image_key,
+                    } => self.set_image_key(context_id, image_key),
                     WebGPURequest::BufferMapAsync {
                         sender,
                         buffer_id,
@@ -498,12 +502,13 @@ impl WGPU {
                             .lock()
                             .expect("Lock poisoned?")
                             .next_id(WebRenderImageHandlerType::WebGpu);
-                        let image_key = self.compositor_api.generate_image_key_blocking().unwrap();
                         let context_id = WebGPUContextId(id.0);
-                        if let Err(e) = sender.send((context_id, image_key)) {
-                            warn!("Failed to send ExternalImageId to new context ({})", e);
+
+                        if let Err(error) = sender.send(context_id) {
+                            warn!("Failed to send ContextId to new context ({error})");
                         };
-                        self.create_context(context_id, image_key, size, buffer_ids);
+
+                        self.create_context(context_id, size, buffer_ids);
                     },
                     WebGPURequest::Present {
                         context_id,
