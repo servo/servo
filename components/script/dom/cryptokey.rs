@@ -26,7 +26,6 @@ pub(crate) enum CryptoKeyOrCryptoKeyPair {
 }
 
 /// The underlying cryptographic data this key represents
-#[allow(dead_code)]
 pub(crate) enum Handle {
     P256PrivateKey(p256::SecretKey),
     P384PrivateKey(p384::SecretKey),
@@ -99,7 +98,6 @@ impl CryptoKey {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         global: &GlobalScope,
         key_type: KeyType,

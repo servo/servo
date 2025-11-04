@@ -46,7 +46,7 @@ impl CryptoMethods<crate::DomTypeHolder> for Crypto {
             .or_init(|| SubtleCrypto::new(&self.global(), can_gc))
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     /// <https://w3c.github.io/webcrypto/#Crypto-method-getRandomValues>
     fn GetRandomValues(
         &self,

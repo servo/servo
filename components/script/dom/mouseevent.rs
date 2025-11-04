@@ -211,7 +211,7 @@ impl MouseEvent {
     }
 
     /// <https://w3c.github.io/uievents/#initialize-a-mouseevent>
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn initialize_mouse_event(
         &self,
         type_: DOMString,

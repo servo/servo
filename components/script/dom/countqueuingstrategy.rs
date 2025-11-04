@@ -84,7 +84,7 @@ impl CountQueuingStrategyMethods<crate::DomTypeHolder> for CountQueuingStrategy 
 }
 
 /// <https://streams.spec.whatwg.org/#count-queuing-strategy-size-function>
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 pub(crate) unsafe fn count_queuing_strategy_size(
     _cx: *mut JSContext,
     argc: u32,
@@ -129,7 +129,7 @@ pub(crate) fn extract_size_algorithm(
     if strategy.size.is_none() {
         let cx = GlobalScope::get_cx();
         let fun_obj = native_raw_obj_fn!(cx, count_queuing_strategy_size, c"size", 0, 0);
-        #[allow(unsafe_code)]
+        #[expect(unsafe_code)]
         unsafe {
             return QueuingStrategySize::new(cx, fun_obj);
         };

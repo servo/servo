@@ -117,8 +117,7 @@ fn create_svg_element(
 }
 
 /// <https://dom.spec.whatwg.org/#concept-create-element>
-#[allow(unsafe_code)]
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 fn create_html_element(
     name: QualName,
     prefix: Option<Prefix>,

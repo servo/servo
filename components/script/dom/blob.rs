@@ -130,7 +130,7 @@ impl Serializable for Blob {
 
 /// Extract bytes from BlobParts, used by Blob and File constructor
 /// <https://w3c.github.io/FileAPI/#constructorBlob>
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 pub(crate) fn blob_parts_to_bytes(
     mut blobparts: Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>,
 ) -> Result<Vec<u8>, ()> {
@@ -160,7 +160,7 @@ pub(crate) fn blob_parts_to_bytes(
 
 impl BlobMethods<crate::DomTypeHolder> for Blob {
     // https://w3c.github.io/FileAPI/#constructorBlob
-    #[allow(non_snake_case)]
+    #[expect(non_snake_case)]
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,

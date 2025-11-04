@@ -85,7 +85,6 @@ pub(crate) struct PaintWorkletGlobalScope {
 }
 
 impl PaintWorkletGlobalScope {
-    #[allow(unsafe_code)]
     pub(crate) fn new(
         webview_id: WebViewId,
         pipeline_id: PipelineId,
@@ -222,8 +221,8 @@ impl PaintWorkletGlobalScope {
     }
 
     /// <https://drafts.css-houdini.org/css-paint-api/#invoke-a-paint-callback>
-    #[allow(clippy::too_many_arguments)]
-    #[allow(unsafe_code)]
+    #[expect(clippy::too_many_arguments)]
+    #[expect(unsafe_code)]
     fn invoke_a_paint_callback(
         &self,
         name: &Atom,
@@ -492,7 +491,7 @@ impl PaintDefinition {
 }
 
 impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobalScope {
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     /// <https://drafts.css-houdini.org/css-paint-api/#dom-paintworkletglobalscope-registerpaint>
     fn RegisterPaint(&self, name: DOMString, paint_ctor: Rc<VoidFunction>) -> Fallible<()> {

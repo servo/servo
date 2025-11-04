@@ -39,7 +39,7 @@ const MAX_LOG_CHILDREN: usize = 15;
 pub(crate) struct Console;
 
 impl Console {
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn build_message(level: LogLevel) -> ConsoleMessageBuilder {
         let cx = GlobalScope::get_cx();
         let caller = unsafe { describe_scripted_caller(*cx) }.unwrap_or_default();
@@ -121,7 +121,7 @@ where
     f()
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe fn handle_value_to_string(cx: *mut jsapi::JSContext, value: HandleValue) -> DOMString {
     rooted!(in(cx) let mut js_string = std::ptr::null_mut::<jsapi::JSString>());
     match std::ptr::NonNull::new(JS_ValueToSource(cx, value)) {
@@ -133,7 +133,7 @@ unsafe fn handle_value_to_string(cx: *mut jsapi::JSContext, value: HandleValue) 
     }
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 fn console_argument_from_handle_value(
     cx: JSContext,
     handle_value: HandleValue,
@@ -159,7 +159,7 @@ fn console_argument_from_handle_value(
     ConsoleMessageArgument::String(stringified_value.into())
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 fn stringify_handle_value(message: HandleValue) -> DOMString {
     let cx = GlobalScope::get_cx();
     unsafe {
@@ -282,7 +282,7 @@ fn stringify_handle_value(message: HandleValue) -> DOMString {
     }
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 fn maybe_stringify_dom_object(cx: JSContext, value: HandleValue) -> Option<DOMString> {
     // The standard object serialization is not effective for DOM objects,
     // since their properties generally live on the prototype object.
@@ -305,7 +305,7 @@ fn maybe_stringify_dom_object(cx: JSContext, value: HandleValue) -> Option<DOMSt
     let mut repr = format!("{} ", class_name);
     rooted!(in(*cx) let mut value = value.get());
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     unsafe extern "C" fn stringified(
         string: *const u16,
         len: u32,
@@ -345,7 +345,6 @@ fn stringify_handle_values(messages: &[HandleValue]) -> DOMString {
 /// to the logger. As `Console::method` and `Console::send_string_message`
 /// already forwards all messages to the logger with appropriate level
 /// this does not need to do anything for these targets.
-#[allow(unused_variables)]
 fn console_message_to_stdout(global: &GlobalScope, message: &DOMString) {
     #[cfg(not(any(target_os = "android", target_env = "ohos")))]
     {
@@ -469,7 +468,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
     }
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 fn get_js_stack(cx: *mut jsapi::JSContext) -> Vec<StackFrame> {
     const MAX_FRAME_COUNT: u32 = 128;
 

@@ -60,7 +60,7 @@ impl Attr {
             owner: MutNullableDom::new(owner),
         }
     }
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         document: &Document,
         local_name: LocalName,
@@ -233,7 +233,6 @@ impl Attr {
     }
 }
 
-#[allow(unsafe_code)]
 pub(crate) trait AttrHelpersForLayout<'dom> {
     fn value(self) -> &'dom AttrValue;
     fn as_str(&self) -> &'dom str;
@@ -242,7 +241,7 @@ pub(crate) trait AttrHelpersForLayout<'dom> {
     fn namespace(self) -> &'dom Namespace;
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 impl<'dom> AttrHelpersForLayout<'dom> for LayoutDom<'dom, Attr> {
     #[inline]
     fn value(self) -> &'dom AttrValue {

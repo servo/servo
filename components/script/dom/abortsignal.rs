@@ -37,7 +37,6 @@ impl js::gc::Rootable for AbortAlgorithm {}
 /// in order to integrate the abort signal with its various use cases.
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-#[allow(dead_code)]
 pub(crate) enum AbortAlgorithm {
     /// <https://dom.spec.whatwg.org/#add-an-event-listener>
     DomEventListener(RemovableDomEventListener),
@@ -400,7 +399,7 @@ impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-abortsignal-throwifaborted>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn ThrowIfAborted(&self) -> Fallible<()> {
         // The throwIfAborted() method steps are to throw this’s abort reason, if this is aborted.
         if self.aborted() {

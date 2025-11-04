@@ -85,7 +85,7 @@ impl ByteLengthQueuingStrategyMethods<crate::DomTypeHolder> for ByteLengthQueuin
 }
 
 /// <https://streams.spec.whatwg.org/#byte-length-queuing-strategy-size-function>
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 pub(crate) unsafe fn byte_length_queuing_strategy_size(
     cx: *mut JSContext,
     argc: u32,

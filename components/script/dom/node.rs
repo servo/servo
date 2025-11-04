@@ -3178,7 +3178,7 @@ impl Node {
     ///
     /// Callers should ensure they pass an UntrustedNodeAddress that points to a valid [`JSObject`]
     /// in memory that represents a [`Node`].
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) unsafe fn from_untrusted_node_address(
         candidate: UntrustedNodeAddress,
     ) -> &'static Self {
@@ -4393,7 +4393,6 @@ impl<'a> UnbindContext<'a> {
     }
 
     /// The index of the inclusive ancestor that was removed from the tree.
-    #[allow(unsafe_code)]
     pub(crate) fn index(&self) -> u32 {
         if let Some(index) = self.index.get() {
             return index;
@@ -4412,7 +4411,7 @@ pub(crate) struct UniqueId {
 unsafe_no_jsmanaged_fields!(UniqueId);
 
 impl MallocSizeOf for UniqueId {
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         if let Some(uuid) = unsafe { &*self.cell.get() } {
             unsafe { ops.malloc_size_of(&**uuid) }
@@ -4431,7 +4430,7 @@ impl UniqueId {
     }
 
     /// The Uuid of that unique ID.
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn borrow(&self) -> &Uuid {
         unsafe {
             let ptr = self.cell.get();

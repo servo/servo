@@ -45,7 +45,6 @@ pub(crate) struct DissimilarOriginWindow {
 }
 
 impl DissimilarOriginWindow {
-    #[allow(unsafe_code)]
     pub(crate) fn new(
         global_to_clone_from: &GlobalScope,
         window_proxy: &WindowProxy,
