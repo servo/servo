@@ -327,6 +327,10 @@ impl WebGLRenderingContext {
     }
 
     pub(crate) fn update_rendering(&self, canvas_epoch: Epoch) -> bool {
+        if !self.onscreen() {
+            return false;
+        }
+
         let global = self.global();
         let Some(window) = global.downcast::<Window>() else {
             return false;

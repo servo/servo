@@ -2692,15 +2692,15 @@ impl Document {
         );
     }
 
-    pub(crate) fn mark_canvas_as_dirty(&self, canvas: &HTMLCanvasElement) {
+    pub(crate) fn mark_canvas_as_dirty(&self, canvas: &Dom<HTMLCanvasElement>) {
         let mut dirty_canvases = self.dirty_canvases.borrow_mut();
         if dirty_canvases
             .iter()
-            .any(|dirty_canvas| std::ptr::eq(&**dirty_canvas, canvas))
+            .any(|dirty_canvas| dirty_canvas == canvas)
         {
             return;
         }
-        dirty_canvases.push(Dom::from_ref(canvas));
+        dirty_canvases.push(canvas.clone());
     }
 
     /// Whether or not this [`Document`] needs a rendering update, due to changed
