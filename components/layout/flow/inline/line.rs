@@ -808,6 +808,12 @@ impl LineItemLayout<'_, '_> {
     }
 
     fn form_ellipsis(&mut self) -> (TextRunSegment, FontRef) {
+        // Render an ellipsis character (U+2026) to represent clipped inline content. 
+        // Implementations may substitute a more language, script, 
+        // or writing-mode appropriate ellipsis character, or three dots "..." 
+        // if the ellipsis character is unavailable.
+        // https://www.w3.org/TR/css-ui-3/#text-overflow
+        // TODO: add the fallback three dots.
         let ellipsis_text = "\u{2026}";
         let ellipsis_char = ellipsis_text.chars().next().unwrap();
 
