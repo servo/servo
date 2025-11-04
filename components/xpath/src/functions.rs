@@ -47,12 +47,17 @@ fn substring_after(s1: &str, s2: &str) -> String {
     }
 }
 
-fn substring(s: &str, start_idx: isize, len: Option<isize>) -> String {
-    let s_len = s.len();
-    let len = len.unwrap_or(s_len as isize).max(0) as usize;
-    let start_idx = start_idx.max(0) as usize;
-    let end_idx = (start_idx + len.max(0)).min(s_len);
-    s[start_idx..end_idx].to_string()
+/// <https://www.w3.org/TR/xpath-10/#function-substring>
+fn substring(source: &str, start: isize, length: Option<isize>) -> String {
+    let start_index = start.max(0) as usize;
+    let length = length
+        .map(|length| length.max(0) as usize)
+        .unwrap_or(usize::MAX);
+
+    // The specification doesn't tell us whether the term "length" refers
+    // to bytes, codepoints, graphemes etc. We choose code points.
+    // Firefox uses bytes and allows slicing at indices that are not char boundaries... Let's not do that.
+    source.chars().skip(start_index).take(length).collect()
 }
 
 /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#function-normalize-space>
@@ -210,16 +215,19 @@ impl CoreFunction {
                 let s2 = str2.evaluate(context)?.convert_to_string();
                 Ok(Value::String(substring_after(&s1, &s2)))
             },
-            CoreFunction::Substring(str1, start, length_opt) => {
-                let s = str1.evaluate(context)?.convert_to_string();
+            CoreFunction::Substring(source_expression, start, length) => {
+                let source = source_expression.evaluate(context)?.convert_to_string();
                 let start_idx = start.evaluate(context)?.convert_to_number().round() as isize - 1;
-                let len = match length_opt {
-                    Some(len_expr) => {
-                        Some(len_expr.evaluate(context)?.convert_to_number().round() as isize)
-                    },
-                    None => None,
+                let result = if let Some(length_expression) = length {
+                    let length = length_expression
+                        .evaluate(context)?
+                        .convert_to_number()
+                        .round() as isize;
+                    substring(&source, start_idx, Some(length))
+                } else {
+                    substring(&source, start_idx, None)
                 };
-                Ok(Value::String(substring(&s, start_idx, len)))
+                Ok(Value::String(result))
             },
             CoreFunction::StringLength(expr_opt) => {
                 let s = match expr_opt {
@@ -328,6 +336,16 @@ mod tests {
         assert_eq!(substring("", 0, Some(5)), "");
         assert_eq!(substring("hello", 0, Some(0)), "");
         assert_eq!(substring("hello", 0, Some(-5)), "");
+    }
+
+    #[test]
+    fn test_substring_with_out_of_bounds_index() {
+        assert_eq!(substring("Servo", 42, None), "");
+    }
+
+    #[test]
+    fn test_substring_with_multi_byte_characters() {
+        assert_eq!(substring("🦞🦞🦞", 1, None), "🦞🦞");
     }
 
     #[test]
