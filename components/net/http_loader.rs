@@ -14,7 +14,7 @@ use base::id::{BrowsingContextId, HistoryStateId, PipelineId};
 use crossbeam_channel::Sender;
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
-    HttpResponse as DevtoolsHttpResponse, NetworkEvent,
+    HttpResponse as DevtoolsHttpResponse, NetworkEvent, SecurityInfoUpdate,
 };
 use embedder_traits::{AuthenticationResponse, EmbedderMsg, EmbedderProxy};
 use futures::{TryFutureExt, TryStreamExt, future};
@@ -57,6 +57,7 @@ use net_traits::response::{CacheState, HttpsState, Response, ResponseBody, Respo
 use net_traits::{
     CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, FetchMetadata, NetworkError, RedirectEndValue,
     RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
+    TlsSecurityInfo, TlsSecurityState,
 };
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
@@ -68,9 +69,10 @@ use tokio::sync::mpsc::{
     unbounded_channel,
 };
 use tokio_stream::wrappers::ReceiverStream;
-
 use crate::async_runtime::spawn_task;
-use crate::connector::{CertificateErrorOverrideManager, Connector, create_tls_config};
+use crate::connector::{
+    CertificateErrorOverrideManager, Connector, TlsHandshakeInfo, create_tls_config,
+};
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
@@ -397,6 +399,101 @@ fn set_cookies_from_headers(
     }
 }
 
+fn is_weak_cipher_suite(cipher: &str) -> bool {
+    // Check for weak ciphers based on common security best practices
+    // References:
+    // - OWASP TLS Cipher String Cheat Sheet
+    // - Mozilla Server Side TLS Guidelines
+    // - NIST SP 800-52 Rev. 2
+
+    let cipher_upper = cipher.to_uppercase();
+
+    // Weak algorithms
+    if cipher_upper.contains("3DES") ||
+       cipher_upper.contains("RC4") ||
+       cipher_upper.contains("DES_") ||
+       cipher_upper.contains("_DES_") ||
+       cipher_upper.contains("NULL") ||
+       cipher_upper.contains("ANON") ||
+       cipher_upper.contains("EXPORT") {
+        return true;
+    }
+
+    // CBC mode ciphers (vulnerable to BEAST/Lucky13 in TLS 1.0/1.1)
+    // Note: CBC in TLS 1.2+ is considered acceptable but not ideal
+    if cipher_upper.contains("_CBC_") {
+        return true;
+    }
+
+    // MD5-based ciphers (deprecated)
+    if cipher_upper.contains("MD5") {
+        return true;
+    }
+
+    false
+}
+
+fn build_tls_security_info(handshake: &TlsHandshakeInfo, hsts_enabled: bool) -> TlsSecurityInfo {
+    let mut severity = 0_usize;
+    let mut reasons = Vec::new();
+
+    match handshake.protocol_version.as_deref() {
+        None => {
+            severity = 2;
+            reasons.push("unknownProtocol".to_string());
+        },
+        Some(protocol) => {
+            if matches!(protocol, "TLS 1.0" | "TLS 1.1") {
+                severity = severity.max(1);
+                reasons.push("protocolVersion".to_string());
+            } else if protocol.starts_with("SSL") {
+                severity = 2;
+                reasons.push("protocolVersion".to_string());
+            }
+        },
+    }
+
+    match &handshake.cipher_suite {
+        None => {
+            severity = 2;
+            reasons.push("cipherSuite".to_string());
+        },
+        Some(cipher) => {
+            if is_weak_cipher_suite(cipher) {
+                severity = severity.max(1);
+                reasons.push("cipherSuite".to_string());
+            }
+        },
+    }
+
+    let mut dedup = HashSet::new();
+    reasons.retain(|reason| dedup.insert(reason.clone()));
+
+    let state = match severity {
+        0 => TlsSecurityState::Secure,
+        1 => TlsSecurityState::Weak,
+        _ => TlsSecurityState::Insecure,
+    };
+
+    TlsSecurityInfo {
+        state,
+        weakness_reasons: reasons,
+        protocol_version: handshake.protocol_version.clone(),
+        cipher_suite: handshake.cipher_suite.clone(),
+        kea_group_name: handshake.kea_group_name.clone(),
+        signature_scheme_name: handshake.signature_scheme_name.clone(),
+        alpn_protocol: handshake.alpn_protocol.clone(),
+        certificate_chain_der: handshake.certificate_chain_der.clone(),
+        certificate_transparency: None,
+        hsts: hsts_enabled,
+        hpkp: false,
+        used_ech: handshake.used_ech,
+        used_delegated_credentials: false,
+        used_ocsp: false,
+        used_private_dns: false,
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 fn prepare_devtools_request(
     request_id: String,
@@ -501,6 +598,40 @@ pub fn send_response_values_to_devtools(
             .lock()
             .unwrap()
             .send(DevtoolsControlMsg::FromChrome(msg));
+    }
+}
+
+pub fn send_security_info_to_devtools(
+    request: &Request,
+    context: &FetchContext,
+    response: &Response,
+) {
+    let meta = match response.metadata() {
+        Ok(FetchMetadata::Unfiltered(m)) => m,
+        Ok(FetchMetadata::Filtered { unsafe_, .. }) => unsafe_,
+        Err(_) => {
+            log::warn!("No metadata available, skipping devtools security info.");
+            return;
+        },
+    };
+
+    if let (Some(devtools_chan), Some(security_info), Some(webview_id)) = (
+        context.devtools_chan.clone(),
+        meta.tls_security_info.clone(),
+        request.target_webview_id,
+    ) {
+        let update = NetworkEvent::SecurityInfo(SecurityInfoUpdate {
+            browsing_context_id: webview_id.into(),
+            security_info: Some(security_info),
+        });
+
+        let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request.id.0.to_string(), update);
+
+        let _ = devtools_chan
+            .lock()
+            .unwrap()
+            .send(DevtoolsControlMsg::FromChrome(msg));
+
     }
 }
 
@@ -2121,6 +2252,15 @@ async fn http_network_fetch(
     let timing = context.timing.lock().unwrap().clone();
     let mut response = Response::new(url.clone(), timing);
 
+    if let Some(handshake_info) = res.extensions().get::<TlsHandshakeInfo>() {
+        let hsts_enabled = url
+            .host_str()
+            .map_or(false, |host| {
+                context.state.hsts_list.read().unwrap().is_host_secure(host)
+            });
+        response.tls_security_info = Some(build_tls_security_info(handshake_info, hsts_enabled));
+    }
+
     let status_text = res
         .extensions()
         .get::<ReasonPhrase>()
@@ -2797,5 +2937,141 @@ fn set_requests_referrer_policy_on_redirect(request: &mut Request, response: &Re
     // Step 2: If policy is not the empty string, then set request’s referrer policy to policy.
     if referrer_policy != ReferrerPolicy::EmptyString {
         request.referrer_policy = referrer_policy;
+    }
+}
+
+#[cfg(test)]
+mod tests_tls_security {
+    use super::build_tls_security_info;
+    use crate::connector::TlsHandshakeInfo;
+    use net_traits::TlsSecurityState;
+
+    #[test]
+    fn tls_security_info_marks_secure_connection() {
+        let handshake = TlsHandshakeInfo {
+            protocol_version: Some("TLS 1.3".to_string()),
+            cipher_suite: Some("TLS_AES_128_GCM_SHA256".to_string()),
+            kea_group_name: Some("X25519".to_string()),
+            signature_scheme_name: Some("ECDSA_P256_SHA256".to_string()),
+            alpn_protocol: Some("h2".to_string()),
+            certificate_chain_der: vec![vec![0x01, 0x02, 0x03]],
+            used_ech: true,
+        };
+
+        let info = build_tls_security_info(&handshake, true);
+
+        assert_eq!(info.state, TlsSecurityState::Secure);
+        assert!(info.weakness_reasons.is_empty());
+        assert_eq!(info.cipher_suite, handshake.cipher_suite);
+        assert_eq!(info.protocol_version, handshake.protocol_version);
+        assert_eq!(info.alpn_protocol, handshake.alpn_protocol);
+        assert_eq!(info.certificate_chain_der, handshake.certificate_chain_der);
+        assert!(info.hsts);
+        assert!(info.used_ech);
+    }
+
+    #[test]
+    fn tls_security_info_marks_insecure_when_missing_parameters() {
+        let handshake = TlsHandshakeInfo {
+            protocol_version: None,
+            cipher_suite: None,
+            kea_group_name: None,
+            signature_scheme_name: None,
+            alpn_protocol: None,
+            certificate_chain_der: Vec::new(),
+            used_ech: false,
+        };
+
+        let info = build_tls_security_info(&handshake, false);
+
+        assert_eq!(info.state, TlsSecurityState::Insecure);
+        assert!(
+            info.weakness_reasons
+                .contains(&"unknownProtocol".to_string())
+        );
+        assert!(info.weakness_reasons.contains(&"cipherSuite".to_string()));
+        assert!(!info.hsts);
+        assert!(!info.used_ech);
+    }
+
+    #[test]
+    fn tls_security_info_detects_weak_cipher_suites() {
+        // Test CBC cipher (weak)
+        let handshake = TlsHandshakeInfo {
+            protocol_version: Some("TLS 1.2".to_string()),
+            cipher_suite: Some("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA".to_string()),
+            kea_group_name: Some("X25519".to_string()),
+            signature_scheme_name: None,
+            alpn_protocol: None,
+            certificate_chain_der: vec![],
+            used_ech: false,
+        };
+
+        let info = build_tls_security_info(&handshake, false);
+        assert_eq!(info.state, TlsSecurityState::Weak);
+        assert!(info.weakness_reasons.contains(&"cipherSuite".to_string()));
+
+        // Test 3DES cipher (weak)
+        let handshake = TlsHandshakeInfo {
+            protocol_version: Some("TLS 1.2".to_string()),
+            cipher_suite: Some("TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA".to_string()),
+            kea_group_name: Some("X25519".to_string()),
+            signature_scheme_name: None,
+            alpn_protocol: None,
+            certificate_chain_der: vec![],
+            used_ech: false,
+        };
+
+        let info = build_tls_security_info(&handshake, false);
+        assert_eq!(info.state, TlsSecurityState::Weak);
+        assert!(info.weakness_reasons.contains(&"cipherSuite".to_string()));
+
+        // Test RC4 cipher (weak)
+        let handshake = TlsHandshakeInfo {
+            protocol_version: Some("TLS 1.2".to_string()),
+            cipher_suite: Some("TLS_RSA_WITH_RC4_128_SHA".to_string()),
+            kea_group_name: None,
+            signature_scheme_name: None,
+            alpn_protocol: None,
+            certificate_chain_der: vec![],
+            used_ech: false,
+        };
+
+        let info = build_tls_security_info(&handshake, false);
+        assert_eq!(info.state, TlsSecurityState::Weak);
+        assert!(info.weakness_reasons.contains(&"cipherSuite".to_string()));
+    }
+
+    #[test]
+    fn tls_security_info_accepts_strong_cipher_suites() {
+        // Test GCM cipher (strong)
+        let handshake = TlsHandshakeInfo {
+            protocol_version: Some("TLS 1.3".to_string()),
+            cipher_suite: Some("TLS_AES_256_GCM_SHA384".to_string()),
+            kea_group_name: Some("X25519".to_string()),
+            signature_scheme_name: None,
+            alpn_protocol: Some("h2".to_string()),
+            certificate_chain_der: vec![],
+            used_ech: false,
+        };
+
+        let info = build_tls_security_info(&handshake, false);
+        assert_eq!(info.state, TlsSecurityState::Secure);
+        assert!(info.weakness_reasons.is_empty());
+
+        // Test ChaCha20-Poly1305 (strong)
+        let handshake = TlsHandshakeInfo {
+            protocol_version: Some("TLS 1.3".to_string()),
+            cipher_suite: Some("TLS_CHACHA20_POLY1305_SHA256".to_string()),
+            kea_group_name: Some("X25519".to_string()),
+            signature_scheme_name: None,
+            alpn_protocol: Some("h2".to_string()),
+            certificate_chain_der: vec![],
+            used_ech: false,
+        };
+
+        let info = build_tls_security_info(&handshake, false);
+        assert_eq!(info.state, TlsSecurityState::Secure);
+        assert!(info.weakness_reasons.is_empty());
     }
 }

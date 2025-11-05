@@ -142,16 +142,18 @@ fn expect_response(events: &mut Vec<NetworkEvent>) -> DevtoolsHttpResponse {
 pub fn expect_devtools_http_response(
     devtools_port: &Receiver<DevtoolsControlMsg>,
 ) -> DevtoolsHttpResponse {
-    match devtools_port.recv().unwrap() {
-        DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
-            _,
-            net_event_response,
-        )) => match net_event_response {
-            NetworkEvent::HttpResponse(httpresponse) => httpresponse,
-
-            other => panic!("Expected HttpResponse but got: {:?}", other),
-        },
-        other => panic!("Expected NetworkEvent but got: {:?}", other),
+    loop {
+        match devtools_port.recv().unwrap() {
+            DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
+                _,
+                net_event_response,
+            )) => match net_event_response {
+                NetworkEvent::HttpResponse(httpresponse) => return httpresponse,
+                NetworkEvent::SecurityInfo(_) => continue,
+                other => panic!("Expected HttpResponse but got: {:?}", other),
+            },
+            other => panic!("Expected NetworkEvent but got: {:?}", other),
+        }
     }
 }
 

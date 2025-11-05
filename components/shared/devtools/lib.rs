@@ -24,6 +24,7 @@ use embedder_traits::Theme;
 use http::{HeaderMap, Method};
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
+use net_traits::TlsSecurityInfo;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::Destination;
 use serde::{Deserialize, Serialize};
@@ -468,21 +469,28 @@ pub struct HttpResponse {
     pub browsing_context_id: BrowsingContextId,
 }
 
+#[derive(Debug, PartialEq)]
+pub struct SecurityInfoUpdate {
+    pub browsing_context_id: BrowsingContextId,
+    pub security_info: Option<TlsSecurityInfo>,
+}
+
 #[derive(Debug)]
 pub enum NetworkEvent {
     HttpRequest(HttpRequest),
     HttpRequestUpdate(HttpRequest),
     HttpResponse(HttpResponse),
+    SecurityInfo(SecurityInfoUpdate),
 }
 
 impl NetworkEvent {
     pub fn forward_to_devtools(&self) -> bool {
-        !matches!(self, NetworkEvent::HttpRequest(http_request) if http_request.url.scheme() == "data") ||
-            match self {
-                NetworkEvent::HttpRequest(http_request) => http_request.url.scheme() != "data",
-                NetworkEvent::HttpRequestUpdate(..) => true,
-                NetworkEvent::HttpResponse(..) => true,
-            }
+        match self {
+            NetworkEvent::HttpRequest(http_request) => http_request.url.scheme() != "data",
+            NetworkEvent::HttpRequestUpdate(_) => true,
+            NetworkEvent::HttpResponse(_) => true,
+            NetworkEvent::SecurityInfo(_) => true,
+        }
     }
 }
 

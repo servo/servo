@@ -85,5 +85,19 @@ pub(crate) fn handle_network_event(
                 );
             }
         },
+        NetworkEvent::SecurityInfo(update) => {
+            actor.update_security_info(update.security_info);
+            let resource = actor.resource_updates();
+            let watcher_actor = actors.find::<WatcherActor>(&watcher_name);
+
+            for stream in &mut connections {
+                watcher_actor.resource_array(
+                    resource.clone(),
+                    "network-event".to_string(),
+                    ResourceArrayType::Updated,
+                    stream,
+                );
+            }
+        },
     }
 }

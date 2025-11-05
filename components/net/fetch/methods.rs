@@ -45,8 +45,7 @@ use crate::fetch::fetch_params::{FetchParams, PreloadResponseCandidate};
 use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::FileManager;
 use crate::http_loader::{
-    HttpState, determine_requests_referrer, http_fetch, send_early_httprequest_to_devtools,
-    send_response_to_devtools, set_default_accept,
+    HttpState, determine_requests_referrer, http_fetch, send_early_httprequest_to_devtools, send_response_to_devtools, send_security_info_to_devtools, set_default_accept
 };
 use crate::protocols::{ProtocolRegistry, is_url_potentially_trustworthy};
 use crate::request_interceptor::RequestInterceptor;
@@ -773,6 +772,8 @@ pub async fn main_fetch(
     target.process_response(request, &response);
     // Send Response to Devtools
     send_response_to_devtools(request, context, &response, None);
+    // Send SecurityInfo to Devtools
+    send_security_info_to_devtools(request, context, &response);
 
     // Step 23.
     if !response_loaded {
