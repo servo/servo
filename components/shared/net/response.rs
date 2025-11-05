@@ -18,7 +18,7 @@ use crate::fetch::headers::extract_mime_type_as_mime;
 use crate::http_status::HttpStatus;
 use crate::{
     FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming,
-    ResourceTimingType,
+    ResourceTimingType, TlsSecurityInfo,
 };
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
@@ -103,6 +103,7 @@ pub struct Response {
     pub body: Arc<Mutex<ResponseBody>>,
     pub cache_state: CacheState,
     pub https_state: HttpsState,
+    pub tls_security_info: Option<TlsSecurityInfo>,
     pub referrer: Option<ServoUrl>,
     pub referrer_policy: ReferrerPolicy,
     /// [CORS-exposed header-name list](https://fetch.spec.whatwg.org/#concept-response-cors-exposed-header-name-list)
@@ -137,6 +138,7 @@ impl Response {
             body: Arc::new(Mutex::new(ResponseBody::Empty)),
             cache_state: CacheState::None,
             https_state: HttpsState::None,
+            tls_security_info: None,
             referrer: None,
             referrer_policy: ReferrerPolicy::EmptyString,
             cors_exposed_header_name_list: vec![],
@@ -169,6 +171,7 @@ impl Response {
             body: Arc::new(Mutex::new(ResponseBody::Empty)),
             cache_state: CacheState::None,
             https_state: HttpsState::None,
+            tls_security_info: None,
             referrer: None,
             referrer_policy: ReferrerPolicy::EmptyString,
             cors_exposed_header_name_list: vec![],
@@ -308,6 +311,9 @@ impl Response {
             metadata.referrer.clone_from(&response.referrer);
             metadata.referrer_policy = response.referrer_policy;
             metadata.redirected = response.actual_response().url_list.len() > 1;
+            metadata
+                .tls_security_info
+                .clone_from(&response.tls_security_info);
             metadata
         }
 

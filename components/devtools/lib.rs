@@ -501,6 +501,7 @@ impl DevtoolsInstance {
             NetworkEvent::HttpRequest(req) => req.browsing_context_id,
             NetworkEvent::HttpRequestUpdate(req) => req.browsing_context_id,
             NetworkEvent::HttpResponse(resp) => resp.browsing_context_id,
+            NetworkEvent::SecurityInfo(update) => update.browsing_context_id,
         };
 
         let Some(browsing_context_actor_name) = self.browsing_contexts.get(&browsing_context_id)

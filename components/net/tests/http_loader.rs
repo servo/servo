@@ -50,7 +50,8 @@ use url::Url;
 
 use crate::{
     create_embedder_proxy_and_receiver, fetch, fetch_with_context, make_body, make_server,
-    mock_origin, new_fetch_context, receive_credential_prompt_msgs, spawn_blocking_task,
+    make_ssl_server, mock_origin, new_fetch_context, receive_credential_prompt_msgs,
+    spawn_blocking_task,
 };
 
 fn assert_cookie_for_domain(
@@ -143,16 +144,18 @@ fn expect_response(events: &mut Vec<NetworkEvent>) -> DevtoolsHttpResponse {
 pub fn expect_devtools_http_response(
     devtools_port: &Receiver<DevtoolsControlMsg>,
 ) -> DevtoolsHttpResponse {
-    match devtools_port.recv().unwrap() {
-        DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
-            _,
-            net_event_response,
-        )) => match net_event_response {
-            NetworkEvent::HttpResponse(httpresponse) => httpresponse,
-
-            other => panic!("Expected HttpResponse but got: {:?}", other),
-        },
-        other => panic!("Expected NetworkEvent but got: {:?}", other),
+    loop {
+        match devtools_port.recv().unwrap() {
+            DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
+                _,
+                net_event_response,
+            )) => match net_event_response {
+                NetworkEvent::HttpResponse(httpresponse) => return httpresponse,
+                NetworkEvent::SecurityInfo(_) => continue,
+                other => panic!("Expected HttpResponse but got: {:?}", other),
+            },
+            other => panic!("Expected NetworkEvent but got: {:?}", other),
+        }
     }
 }
 
@@ -1975,4 +1978,145 @@ fn test_prompt_credentials_user_input_incorrect_mode() {
     server.close();
 
     assert!(response.internal_response.is_none());
+}
+
+/// Collects all network events from the devtools channel.
+/// Drains all available events after the fetch has completed.
+fn collect_all_network_events(devtools_port: &Receiver<DevtoolsControlMsg>) -> Vec<NetworkEvent> {
+    let mut events = Vec::new();
+
+    // Drain all available events from the channel.
+    // Since fetch has already completed, all events should be queued.
+    while let Ok(msg) = devtools_port.try_recv() {
+        if let DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
+            _,
+            net_event,
+        )) = msg
+        {
+            events.push(net_event);
+        }
+    }
+    events
+}
+
+#[test]
+fn test_security_info_for_https_connection() {
+    let handler =
+        move |_: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            *response.body_mut() = make_body(b"Hello HTTPS!".to_vec());
+        };
+
+    let (server, mut url) = make_ssl_server(handler);
+    url.as_mut_url().set_scheme("https").unwrap();
+
+    let (devtools_sender, devtools_receiver) = unbounded();
+
+    let mut context = new_fetch_context(Some(devtools_sender), None, None);
+
+    // The server certificate is self-signed, so we need to add an override
+    // so that the connection works properly.
+    for certificate in server.certificates.as_ref().unwrap().iter() {
+        context.state.override_manager.add_override(certificate);
+    }
+
+    let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
+        .method(Method::GET)
+        .body(None)
+        .destination(Destination::Document)
+        .origin(url.clone().origin())
+        .pipeline_id(Some(TEST_PIPELINE_ID))
+        .policy_container(Default::default())
+        .build();
+
+    let response = fetch_with_context(request, &mut context);
+    server.close();
+
+    assert!(response.status.code().is_success());
+
+    let events = collect_all_network_events(&devtools_receiver);
+    let security_info_event = events.iter().find_map(|event| {
+        if let NetworkEvent::SecurityInfo(info) = event {
+            Some(info)
+        } else {
+            None
+        }
+    });
+
+    assert!(
+        security_info_event.is_some(),
+        "Expected to receive a SecurityInfo event for HTTPS connection"
+    );
+
+    let security_info = security_info_event.unwrap();
+    assert!(
+        security_info.security_info.is_some(),
+        "Expected security_info to contain TLS details for HTTPS connection"
+    );
+
+    let tls_info = security_info.security_info.as_ref().unwrap();
+    assert!(
+        tls_info.protocol_version.is_some(),
+        "Expected protocol_version to be set for HTTPS connection"
+    );
+
+    let protocol = tls_info.protocol_version.as_ref().unwrap();
+    assert!(
+        protocol.starts_with("TLS"),
+        "Expected TLS protocol version, got: {}",
+        protocol
+    );
+
+    assert!(
+        tls_info.cipher_suite.is_some(),
+        "Expected cipher_suite to be set for HTTPS connection"
+    );
+}
+
+#[test]
+fn test_no_security_info_for_http_connection() {
+    let handler =
+        move |_: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            *response.body_mut() = make_body(b"Hello HTTP!".to_vec());
+        };
+
+    let (server, url) = make_server(handler);
+
+    let (devtools_sender, devtools_receiver) = unbounded();
+
+    let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
+        .method(Method::GET)
+        .body(None)
+        .destination(Destination::Document)
+        .origin(url.clone().origin())
+        .pipeline_id(Some(TEST_PIPELINE_ID))
+        .policy_container(Default::default())
+        .build();
+
+    let mut context = new_fetch_context(Some(devtools_sender), None, None);
+
+    let response = fetch_with_context(request, &mut context);
+    server.close();
+
+    assert!(response.status.code().is_success());
+
+    let events = collect_all_network_events(&devtools_receiver);
+    let security_info_events: Vec<_> = events
+        .iter()
+        .filter_map(|event| {
+            if let NetworkEvent::SecurityInfo(info) = event {
+                Some(info)
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    for security_info in &security_info_events {
+        assert!(
+            security_info.security_info.is_none(),
+            "HTTP connection should not have TLS security info"
+        );
+    }
 }

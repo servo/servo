@@ -5,6 +5,7 @@
 use std::collections::hash_map::HashMap;
 use std::convert::TryFrom;
 use std::sync::Arc;
+use std::{fmt, io};
 
 use futures::task::{Context, Poll};
 use futures::{Future, TryFutureExt};
@@ -12,16 +13,19 @@ use http::uri::{Authority, Uri as Destination};
 use http_body_util::combinators::BoxBody;
 use hyper::body::Bytes;
 use hyper::rt::Executor;
-use hyper_rustls::HttpsConnector as HyperRustlsHttpsConnector;
+use hyper_rustls::{HttpsConnector as HyperRustlsHttpsConnector, MaybeHttpsStream};
 use hyper_util::client::legacy::Client;
-use hyper_util::client::legacy::connect::HttpConnector as HyperHttpConnector;
 use hyper_util::client::legacy::connect::proxy::Tunnel;
+use hyper_util::client::legacy::connect::{
+    Connected, Connection, HttpConnector as HyperHttpConnector,
+};
 use hyper_util::rt::TokioIo;
 use log::warn;
 use parking_lot::Mutex;
-use rustls::ClientConfig;
 use rustls::client::danger::ServerCertVerifier;
+use rustls::client::{ClientConnection, EchStatus};
 use rustls::crypto::aws_lc_rs;
+use rustls::{ClientConfig, ProtocolVersion};
 use rustls_pki_types::{CertificateDer, ServerName, UnixTime};
 use tokio::net::TcpStream;
 use tower::Service;
@@ -30,6 +34,9 @@ use crate::async_runtime::spawn_task;
 use crate::hosts::replace_host;
 
 pub const BUF_SIZE: usize = 32768;
+
+/// ALPN identifier for HTTP/2 (RFC 7540 §3.1).
+pub const ALPN_H2: &str = "h2";
 
 #[derive(Clone)]
 pub struct ServoHttpConnector {
@@ -86,7 +93,223 @@ impl Service<Destination> for ServoHttpConnector {
     }
 }
 
-pub type Connector = HyperRustlsHttpsConnector<ServoHttpConnector>;
+type BoxError = Box<dyn std::error::Error + Send + Sync>;
+
+#[derive(Clone)]
+pub struct InstrumentedConnector<T> {
+    inner: HyperRustlsHttpsConnector<T>,
+}
+
+impl<T> InstrumentedConnector<T> {
+    fn new(inner: HyperRustlsHttpsConnector<T>) -> Self {
+        Self { inner }
+    }
+}
+
+impl<T> From<HyperRustlsHttpsConnector<T>> for InstrumentedConnector<T> {
+    fn from(inner: HyperRustlsHttpsConnector<T>) -> Self {
+        Self::new(inner)
+    }
+}
+
+pub struct InstrumentedStream<T> {
+    inner: MaybeHttpsStream<T>,
+    tls_info: Option<TlsHandshakeInfo>,
+}
+
+impl<T: Unpin> Unpin for InstrumentedStream<T> {}
+
+impl<T> fmt::Debug for InstrumentedStream<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("InstrumentedStream")
+            .field("tls_info", &self.tls_info)
+            .finish()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct TlsHandshakeInfo {
+    pub protocol_version: Option<String>,
+    pub cipher_suite: Option<String>,
+    pub kea_group_name: Option<String>,
+    pub signature_scheme_name: Option<String>,
+    pub alpn_protocol: Option<String>,
+    pub certificate_chain_der: Vec<Vec<u8>>,
+    pub used_ech: bool,
+}
+
+impl TlsHandshakeInfo {
+    fn from_connection(conn: &ClientConnection) -> Self {
+        let protocol_version = conn.protocol_version().map(protocol_version_to_string);
+        let cipher_suite = conn
+            .negotiated_cipher_suite()
+            .map(|suite| format!("{:?}", suite.suite()));
+        let kea_group_name = conn
+            .negotiated_key_exchange_group()
+            .map(|group| format!("{:?}", group.name()));
+        let certificate_chain_der = conn
+            .peer_certificates()
+            .map(|certs| certs.iter().map(|cert| cert.as_ref().to_vec()).collect())
+            .unwrap_or_default();
+        let alpn_protocol = conn
+            .alpn_protocol()
+            .map(|proto| String::from_utf8_lossy(proto).into_owned());
+        let used_ech = matches!(conn.ech_status(), EchStatus::Accepted);
+
+        Self {
+            protocol_version,
+            cipher_suite,
+            kea_group_name,
+            signature_scheme_name: None,
+            alpn_protocol,
+            certificate_chain_der,
+            used_ech,
+        }
+    }
+}
+
+fn protocol_version_to_string(version: ProtocolVersion) -> String {
+    match version {
+        ProtocolVersion::TLSv1_3 => "TLS 1.3".to_string(),
+        ProtocolVersion::TLSv1_2 => "TLS 1.2".to_string(),
+        ProtocolVersion::TLSv1_1 => "TLS 1.1".to_string(),
+        ProtocolVersion::TLSv1_0 => "TLS 1.0".to_string(),
+        ProtocolVersion::SSLv2 => "SSL 2.0".to_string(),
+        ProtocolVersion::SSLv3 => "SSL 3.0".to_string(),
+        ProtocolVersion::DTLSv1_0 => "DTLS 1.0".to_string(),
+        ProtocolVersion::DTLSv1_2 => "DTLS 1.2".to_string(),
+        ProtocolVersion::DTLSv1_3 => "DTLS 1.3".to_string(),
+        ProtocolVersion::Unknown(v) => format!("Unknown(0x{v:04x})"),
+        _ => format!("{version:?}"),
+    }
+}
+
+impl<T> InstrumentedStream<T>
+where
+    T: Connection + hyper::rt::Read + hyper::rt::Write + Unpin,
+{
+    fn from_maybe_https_stream(stream: MaybeHttpsStream<T>) -> Self {
+        match stream {
+            MaybeHttpsStream::Http(inner) => Self {
+                inner: MaybeHttpsStream::Http(inner),
+                tls_info: None,
+            },
+            MaybeHttpsStream::Https(tls_stream) => {
+                let (_tcp, tls) = tls_stream.inner().get_ref();
+                let tls_info = TlsHandshakeInfo::from_connection(tls);
+
+                Self {
+                    inner: MaybeHttpsStream::Https(tls_stream),
+                    tls_info: Some(tls_info),
+                }
+            },
+        }
+    }
+}
+
+impl<T> Connection for InstrumentedStream<T>
+where
+    T: Connection + hyper::rt::Read + hyper::rt::Write + Unpin,
+{
+    fn connected(&self) -> Connected {
+        let connected = match &self.inner {
+            MaybeHttpsStream::Http(stream) => stream.connected(),
+            MaybeHttpsStream::Https(stream) => {
+                let (tcp, tls) = stream.inner().get_ref();
+                if tls.alpn_protocol() == Some(ALPN_H2.as_bytes()) {
+                    tcp.inner().connected().negotiated_h2()
+                } else {
+                    tcp.inner().connected()
+                }
+            },
+        };
+        if let Some(info) = &self.tls_info {
+            connected.extra(info.clone())
+        } else {
+            connected
+        }
+    }
+}
+
+impl<T> hyper::rt::Read for InstrumentedStream<T>
+where
+    T: Connection + hyper::rt::Read + hyper::rt::Write + Unpin,
+{
+    fn poll_read(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: hyper::rt::ReadBufCursor<'_>,
+    ) -> Poll<Result<(), io::Error>> {
+        std::pin::Pin::new(&mut self.get_mut().inner).poll_read(cx, buf)
+    }
+}
+
+impl<T> hyper::rt::Write for InstrumentedStream<T>
+where
+    T: Connection + hyper::rt::Read + hyper::rt::Write + Unpin,
+{
+    fn poll_write(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<Result<usize, io::Error>> {
+        std::pin::Pin::new(&mut self.get_mut().inner).poll_write(cx, buf)
+    }
+
+    fn poll_flush(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Result<(), io::Error>> {
+        std::pin::Pin::new(&mut self.get_mut().inner).poll_flush(cx)
+    }
+
+    fn poll_shutdown(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Result<(), io::Error>> {
+        std::pin::Pin::new(&mut self.get_mut().inner).poll_shutdown(cx)
+    }
+
+    fn is_write_vectored(&self) -> bool {
+        self.inner.is_write_vectored()
+    }
+
+    fn poll_write_vectored(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        bufs: &[io::IoSlice<'_>],
+    ) -> Poll<Result<usize, io::Error>> {
+        std::pin::Pin::new(&mut self.get_mut().inner).poll_write_vectored(cx, bufs)
+    }
+}
+
+impl<T> Service<Destination> for InstrumentedConnector<T>
+where
+    T: Service<Destination>,
+    T::Response: Connection + hyper::rt::Read + hyper::rt::Write + Send + Unpin + 'static,
+    T::Future: Send + 'static,
+    T::Error: Into<BoxError>,
+{
+    type Response = InstrumentedStream<T::Response>;
+    type Error = BoxError;
+    type Future = std::pin::Pin<
+        Box<dyn Future<Output = Result<InstrumentedStream<T::Response>, BoxError>> + Send>,
+    >;
+
+    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.inner.poll_ready(cx).map_err(Into::into)
+    }
+
+    fn call(&mut self, dst: Destination) -> Self::Future {
+        let future = self.inner.call(dst);
+        Box::pin(async move {
+            let stream = future.await.map_err(|error| -> BoxError { error })?;
+            Ok(InstrumentedStream::from_maybe_https_stream(stream))
+        })
+    }
+}
+
+pub type Connector = InstrumentedConnector<ServoHttpConnector>;
 pub type TlsConfig = ClientConfig;
 
 #[derive(Clone, Debug, Default)]
@@ -372,7 +595,7 @@ impl Service<Destination> for TunnelErrorMasker {
     }
 }
 
-pub type ServoClient = Client<hyper_rustls::HttpsConnector<MaybeProxyConnector>, BoxedBody>;
+pub type ServoClient = Client<InstrumentedConnector<MaybeProxyConnector>, BoxedBody>;
 
 pub fn create_http_client(tls_config: TlsConfig) -> ServoClient {
     let maybe_proxy_connector = create_maybe_proxy_connector();
@@ -385,5 +608,5 @@ pub fn create_http_client(tls_config: TlsConfig) -> ServoClient {
 
     Client::builder(TokioExecutor {})
         .http1_title_case_headers(true)
-        .build(connector)
+        .build(InstrumentedConnector::from(connector))
 }
