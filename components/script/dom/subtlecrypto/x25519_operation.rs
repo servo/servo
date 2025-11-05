@@ -4,19 +4,22 @@
 
 use base64ct::{Base64UrlUnpadded, Encoding};
 use pkcs8::PrivateKeyInfo;
-use pkcs8::der::asn1::{BitStringRef, OctetStringRef};
-use pkcs8::der::{AnyRef, Decode};
-use pkcs8::spki::{ObjectIdentifier, SubjectPublicKeyInfo};
+use pkcs8::der::asn1::{BitStringRef, OctetString, OctetStringRef};
+use pkcs8::der::{AnyRef, Decode, Encode};
+use pkcs8::spki::{AlgorithmIdentifier, ObjectIdentifier, SubjectPublicKeyInfo};
 use x25519_dalek::{PublicKey, StaticSecret};
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsage};
+use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
+    CryptoKeyMethods, KeyType, KeyUsage,
+};
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_X25519, JsonWebKeyExt, KeyAlgorithmAndDerivatives, SubtleKeyAlgorithm,
+    ALG_X25519, ExportedKey, JsonWebKeyExt, KeyAlgorithmAndDerivatives, SubtleKeyAlgorithm,
 };
 use crate::script_runtime::CanGc;
 
@@ -321,4 +324,155 @@ pub(crate) fn import_key(
 
     // Step 3. Return key
     Ok(key)
+}
+
+/// <https://w3c.github.io/webcrypto/#x25519-operations-export-key>
+pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+    // Step 1. Let key be the CryptoKey to be exported.
+
+    // Step 2. If the underlying cryptographic key material represented by the [[handle]] internal
+    // slot of key cannot be accessed, then throw an OperationError.
+    // NOTE: Done in Step 3.
+
+    // Step 3.
+    let result = match format {
+        // If format is "spki":
+        KeyFormat::Spki => {
+            // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
+            // InvalidAccessError.
+            if key.Type() != KeyType::Public {
+                return Err(Error::InvalidAccess);
+            }
+
+            // Step 3.2.
+            // Let data be an instance of the SubjectPublicKeyInfo ASN.1 structure defined in
+            // [RFC5280] with the following properties:
+            //     * Set the algorithm field to an AlgorithmIdentifier ASN.1 type with the
+            //       following properties:
+            //         * Set the algorithm object identifier to the id-X25519 OID defined in
+            //           [RFC8410].
+            //     * Set the subjectPublicKey field to keyData.
+            let Handle::X25519PublicKey(public_key) = key.handle() else {
+                return Err(Error::Operation);
+            };
+            let data = SubjectPublicKeyInfo::<BitStringRef, _> {
+                algorithm: AlgorithmIdentifier {
+                    oid: ObjectIdentifier::new_unwrap(X25519_OID_STRING),
+                    parameters: None,
+                },
+                subject_public_key: BitStringRef::from_bytes(public_key.as_bytes())
+                    .map_err(|_| Error::Data)?,
+            };
+
+            // Step 3.3. Let result be the result of DER-encoding data.
+            ExportedKey::Raw(data.to_der().map_err(|_| Error::Operation)?)
+        },
+        // If format is "pkcs8":
+        KeyFormat::Pkcs8 => {
+            // Step 3.1. If the [[type]] internal slot of key is not "private", then throw an
+            // InvalidAccessError.
+            if key.Type() != KeyType::Private {
+                return Err(Error::InvalidAccess);
+            }
+
+            // Step 3.2.
+            // Let data be an instance of the PrivateKeyInfo ASN.1 structure defined in [RFC5208]
+            // with the following properties:
+            //     * Set the version field to 0.
+            //     * Set the privateKeyAlgorithm field to a PrivateKeyAlgorithmIdentifier ASN.1
+            //       type with the following properties:
+            //         * Set the algorithm object identifier to the id-X25519 OID defined in
+            //         [RFC8410].
+            //     * Set the privateKey field to the result of DER-encoding a CurvePrivateKey ASN.1
+            //       type, as defined in Section 7 of [RFC8410], that represents the X25519 private
+            //       key represented by the [[handle]] internal slot of key
+            let Handle::X25519PrivateKey(private_key) = key.handle() else {
+                return Err(Error::Operation);
+            };
+            let curve_private_key =
+                OctetString::new(private_key.as_bytes()).map_err(|_| Error::Data)?;
+            let data = PrivateKeyInfo {
+                algorithm: AlgorithmIdentifier {
+                    oid: ObjectIdentifier::new_unwrap(X25519_OID_STRING),
+                    parameters: None,
+                },
+                private_key: &curve_private_key.to_der().map_err(|_| Error::Data)?,
+                public_key: None,
+            };
+
+            // Step 3.3. Let result be the result of DER-encoding data.
+            ExportedKey::Raw(data.to_der().map_err(|_| Error::Operation)?)
+        },
+        // If format is "jwk":
+        KeyFormat::Jwk => {
+            // Step 3.1. Let jwk be a new JsonWebKey dictionary.
+            // Step 3.2. Set the kty attribute of jwk to "OKP".
+            // Step 3.3. Set the crv attribute of jwk to "X25519".
+            let mut jwk = JsonWebKey {
+                kty: Some(DOMString::from("OKP")),
+                crv: Some(DOMString::from(ALG_X25519)),
+                ..Default::default()
+            };
+
+            // Step 3.4. Set the x attribute of jwk according to the definition in Section 2 of
+            // [RFC8037].
+            jwk.x = match key.handle() {
+                Handle::X25519PrivateKey(private_key) => {
+                    let public_key = PublicKey::from(private_key);
+                    Some(Base64UrlUnpadded::encode_string(public_key.as_bytes()).into())
+                },
+                Handle::X25519PublicKey(public_key) => {
+                    Some(Base64UrlUnpadded::encode_string(public_key.as_bytes()).into())
+                },
+                _ => return Err(Error::Operation),
+            };
+
+            // Step 3.5.
+            // If the [[type]] internal slot of key is "private"
+            //     Set the d attribute of jwk according to the definition in Section 2 of
+            //     [RFC8037].
+            if key.Type() == KeyType::Private {
+                if let Handle::X25519PrivateKey(private_key) = key.handle() {
+                    jwk.d = Some(Base64UrlUnpadded::encode_string(private_key.as_bytes()).into());
+                } else {
+                    return Err(Error::Operation);
+                }
+            }
+
+            // Step 3.6. Set the key_ops attribute of jwk to the usages attribute of key.
+            jwk.key_ops = Some(
+                key.usages()
+                    .iter()
+                    .map(|usage| DOMString::from(usage.as_str()))
+                    .collect::<Vec<DOMString>>(),
+            );
+
+            // Step 3.7. Set the ext attribute of jwk to the [[extractable]] internal slot of key.
+            jwk.ext = Some(key.Extractable());
+
+            // Step 3.8. Let result be jwk.
+            ExportedKey::Jwk(Box::new(jwk))
+        },
+        // If format is "raw":
+        KeyFormat::Raw => {
+            // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
+            // InvalidAccessError.
+            if key.Type() != KeyType::Public {
+                return Err(Error::InvalidAccess);
+            }
+
+            // Step 3.2. Let data be a byte sequence representing the X25519 public key represented
+            // by the [[handle]] internal slot of key.
+            let Handle::X25519PublicKey(public_key) = key.handle() else {
+                return Err(Error::Operation);
+            };
+            let data = public_key.as_bytes();
+
+            // Step 3.3. Let result be data.
+            ExportedKey::Raw(data.to_vec())
+        },
+    };
+
+    // Step 4. Return result.
+    Ok(result)
 }
