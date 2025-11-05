@@ -122,6 +122,16 @@ pub enum ProgressiveWebMetricType {
     TimeToInteractive,
 }
 
+impl ProgressiveWebMetricType {
+    /// Returns the area if the metric type is LargestContentfulPaint
+    pub fn area(&self) -> usize {
+        match self {
+            ProgressiveWebMetricType::LargestContentfulPaint { area, .. } => *area,
+            _ => 0,
+        }
+    }
+}
+
 /// The reason why the pipeline id of an iframe is being updated.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum UpdatePipelineIdReason {

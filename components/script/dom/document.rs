@@ -154,6 +154,7 @@ use crate::dom::html::htmltitleelement::HTMLTitleElement;
 use crate::dom::htmldetailselement::DetailsNameGroups;
 use crate::dom::intersectionobserver::IntersectionObserver;
 use crate::dom::keyboardevent::KeyboardEvent;
+use crate::dom::largestcontentfulpaint::LargestContentfulPaint;
 use crate::dom::location::{Location, NavigationType};
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::mouseevent::MouseEvent;
@@ -3085,29 +3086,33 @@ impl Document {
     ) {
         let metrics = self.interactive_time.borrow();
         match metric_type {
-            ProgressiveWebMetricType::FirstPaint => {
-                metrics.set_first_paint(metric_value, first_reflow)
-            },
+            ProgressiveWebMetricType::FirstPaint |
             ProgressiveWebMetricType::FirstContentfulPaint => {
-                metrics.set_first_contentful_paint(metric_value, first_reflow)
+                let binding = PerformancePaintTiming::new(
+                    self.window.as_global_scope(),
+                    metric_type,
+                    metric_value,
+                    can_gc,
+                );
+                metrics.set_performance_paint_metric(metric_value, first_reflow, metric_type);
+                let entry = binding.upcast::<PerformanceEntry>();
+                self.window.Performance().queue_entry(entry, can_gc);
             },
             ProgressiveWebMetricType::LargestContentfulPaint { area, lcp_type } => {
-                metrics.set_largest_contentful_paint(metric_value, area, lcp_type)
+                let binding = LargestContentfulPaint::new(
+                    self.window.as_global_scope(),
+                    metric_type,
+                    metric_value,
+                    can_gc,
+                );
+                metrics.set_largest_contentful_paint(metric_value, area, lcp_type);
+                let entry = binding.upcast::<PerformanceEntry>();
+                self.window.Performance().queue_entry(entry, can_gc);
             },
             ProgressiveWebMetricType::TimeToInteractive => {
                 unreachable!("Unexpected non-paint metric.")
             },
         }
-
-        let entry = PerformancePaintTiming::new(
-            self.window.as_global_scope(),
-            metric_type,
-            metric_value,
-            can_gc,
-        );
-        self.window
-            .Performance()
-            .queue_entry(entry.upcast::<PerformanceEntry>(), can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#document-write-steps>
