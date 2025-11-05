@@ -566,9 +566,18 @@ impl LineItemLayout<'_, '_> {
             return;
         }
 
+        // check if current text fragment to be generated will be the first of the line.
+        let original_inline_advance = self.current_state.inline_advance;
+        let mut first_text_item_of_the_line = false;
+
+        if original_inline_advance == Au(0) {
+            first_text_item_of_the_line = true;
+        }
+
+        // check if we can ellide the current `TextRunLineItem`
         let mut can_be_ellided = false; // TODO: add more logic later on.
 
-        // check if current textrun can be ellided
+        // 1. check the parent style's text-overflow property.
         let parent_style = self.layout.containing_block.style.clone();
         match parent_style.get_text().text_overflow.second {
             TextOverflowSide::Ellipsis => {
@@ -581,8 +590,10 @@ impl LineItemLayout<'_, '_> {
             _ => {}, // TODO: handle strings.
         }
 
-        // when there is a block child, for some reason the styling of the parent is passed to the children. Not sure why.
-        // relevant test: example 7 from https://www.w3.org/TR/css-ui-3/#text-overflow
+        // 2. check current `TextRunLineItem` style's text-overflow property.
+        // When there is a block child, the styling of the parent is passed to the children. 
+        // Not sure why, but this is an observation obtained from doing a test from CSS specs website.
+        // Relevant test: example 7 from https://www.w3.org/TR/css-ui-3/#text-overflow
         let second = &text_item.inline_styles.style.borrow().get_text().text_overflow.second.clone();
         match second {
             TextOverflowSide::Ellipsis => {
@@ -590,19 +601,8 @@ impl LineItemLayout<'_, '_> {
                     can_be_ellided = true;
                 }
             },
-            TextOverflowSide::Clip => {
-            }, // do nothing!
+            TextOverflowSide::Clip => {}, // do nothing!
             _ => {}, // TODO: handle strings.
-        }
-
-
-        let original_inline_advance = self.current_state.inline_advance;
-        //let original_inline_advance = Au(0);
-        let mut first_text_item_of_the_line = false;
-
-        // check if current text fragment to be generated will be the first of the line.
-        if original_inline_advance == Au(0) {
-            first_text_item_of_the_line = true;
         }
 
         let mut number_of_justification_opportunities = 0;
@@ -646,21 +646,27 @@ impl LineItemLayout<'_, '_> {
 
         // create & insert text fragment to vector
         if can_be_ellided && self.current_state.inline_advance > self.layout.containing_block.size.inline && original_inline_advance < self.layout.containing_block.size.inline {
-            // create ellipsis bounding box
+            // create ellipsis text fragment & its bounding box
             let (ellipsis_textrun_segment, ellipsis_font) = self.form_ellipsis();
             let (ellipsis_content_rect, 
-                can_be_ellided, 
                 ellipsis_textrun_segment, 
                 text_item) = self.
             form_ellipsis_bounding_box(
                 ellipsis_textrun_segment, 
                 text_item, 
                 original_inline_advance, 
-                can_be_ellided, 
             );
-            // check one more time to see if we can actually ellide the text.
-            if can_be_ellided {
-                let text_fragment_clip = (Au(0), ellipsis_textrun_segment.runs[0].glyph_store.total_advance());
+            let text_fragment_clip = (Au(0), ellipsis_textrun_segment.runs[0].glyph_store.total_advance());
+            
+            // 1. insert the text fragment.
+            // but before that, we need to check if the entire text will be ellided.
+            // For example, let's say we have "中文中文english". Then there will be two `TextFragment`s, "中文中文" & "english". 
+            // Let's say that the ellided text will be "中文中文..."
+            // Then that would mean the entire "english" `TextFragment` will be ellided, so we don't need to push it.
+            // An exception is if "english" is the first `TextFragment`, in which case we cannot ellide.
+            // "The first character or atomic inline-level element on a line must be clipped rather than ellipsed.""
+            // https://www.w3.org/TR/css-ui-3/#text-overflow
+            if !(ellipsis_content_rect.start_corner.inline == original_inline_advance && original_inline_advance != Au(0)) {
                 self.current_state.fragments.push((
                     Fragment::Text(ArcRefCell::new(TextFragment {
                         base: text_item.base_fragment_info.into(),
@@ -680,51 +686,28 @@ impl LineItemLayout<'_, '_> {
                     })),
                     content_rect,
                 ));
-
-                // insert ellipsis fragment
-                self.current_state.fragments.push((
-                    Fragment::Text(ArcRefCell::new(TextFragment {
-                        base: text_item.base_fragment_info.into(),
-                        inline_styles: self.layout.ifc.shared_inline_styles.clone(),
-                        rect: PhysicalRect::zero(),
-                        font_metrics: ellipsis_font.metrics.clone(),
-                        font_key: self.layout.ifc.font_metrics[0].key,
-                        glyphs: vec![ellipsis_textrun_segment.runs[0].glyph_store.clone()],
-                        justification_adjustment: self.justification_adjustment,
-                        selection_range: text_item.selection_range,
-                        is_ellipsis_text_fragment: true,
-                        line_number: line_number,
-                        parent_width: self.layout.containing_block.size.inline,
-                        text_clip: (Au(0), Au(0)),
-                        contains_first_character_of_the_line: false,
-                        inline_offset: original_inline_advance,
-                    })),
-                    ellipsis_content_rect,
-                ));
-
             }
-            else {
-                // insert text fragment
-                self.current_state.fragments.push((
-                    Fragment::Text(ArcRefCell::new(TextFragment {
-                        base: text_item.base_fragment_info.into(),
-                        inline_styles: text_item.inline_styles.clone(),
-                        rect: PhysicalRect::zero(),
-                        font_metrics: text_item.font_metrics,
-                        font_key: text_item.font_key,
-                        glyphs: text_item.text.clone(),
-                        justification_adjustment: self.justification_adjustment,
-                        selection_range: text_item.selection_range,
-                        is_ellipsis_text_fragment: false,
-                        line_number: line_number,
-                        parent_width: self.layout.containing_block.size.inline,
-                        text_clip: (Au(0), Au(0)),
-                        contains_first_character_of_the_line: first_text_item_of_the_line,
-                        inline_offset: original_inline_advance,
-                    })),
-                    content_rect,
-                ));
-            }
+
+            // 2. insert ellipsis fragment
+            self.current_state.fragments.push((
+                Fragment::Text(ArcRefCell::new(TextFragment {
+                    base: text_item.base_fragment_info.into(),
+                    inline_styles: self.layout.ifc.shared_inline_styles.clone(),
+                    rect: PhysicalRect::zero(),
+                    font_metrics: ellipsis_font.metrics.clone(),
+                    font_key: self.layout.ifc.font_metrics[0].key,
+                    glyphs: vec![ellipsis_textrun_segment.runs[0].glyph_store.clone()],
+                    justification_adjustment: self.justification_adjustment,
+                    selection_range: text_item.selection_range,
+                    is_ellipsis_text_fragment: true,
+                    line_number: line_number,
+                    parent_width: self.layout.containing_block.size.inline,
+                    text_clip: (Au(0), Au(0)),
+                    contains_first_character_of_the_line: false,
+                    inline_offset: original_inline_advance,
+                })),
+                ellipsis_content_rect,
+            ));
         }
         else {
             // insert text fragment
@@ -751,55 +734,29 @@ impl LineItemLayout<'_, '_> {
         
     }
 
-    fn form_ellipsis_bounding_box (&mut self, ellipsis_textrun_segment: TextRunSegment, text_item: TextRunLineItem, original_inline_advance: Au, mut can_be_ellided: bool)  -> (LogicalRect<Au>, bool, TextRunSegment, TextRunLineItem) {
+    fn form_ellipsis_bounding_box (&mut self, ellipsis_textrun_segment: TextRunSegment, text_item: TextRunLineItem, original_inline_advance: Au)  -> (LogicalRect<Au>, TextRunSegment, TextRunLineItem) {
         // finding the inline start corner (if horizontal, then starting x pos)
         let inline_target = self.layout.containing_block.size.inline 
         - ellipsis_textrun_segment.runs[0].glyph_store.total_advance();
-        let mut inline_start = original_inline_advance;
-        
-        let mut inline_start_found = false;
+        let mut inline_start = original_inline_advance;   
         let mut glyph_index_forward = 0;
-        let mut glyph_index_backward = text_item.text.len().saturating_sub(1);
 
         // forward pass
-        while glyph_index_forward <= glyph_index_backward {
+        let mut found = false;
+        while glyph_index_forward <= text_item.text.len().saturating_sub(1) {
             for glyph in text_item.text[glyph_index_forward]
             .iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), text_item.text[glyph_index_forward]
-            .len())) {
-                if inline_start + glyph.advance() <= self.layout.containing_block.size.inline {
-                    inline_start += glyph.advance();
-                }
+        .len())) {
+            if !found && inline_start + glyph.advance() + glyph.offset().unwrap_or(Point2D::zero()).x <= inline_target {
+                inline_start += glyph.advance();
+                inline_start += glyph.offset().unwrap_or(Point2D::zero()).x;
             }
-            glyph_index_forward += 1;
+            else {
+                found = true;
+
+            }
         }
-
-        // backward pass
-        while !inline_start_found {
-            if inline_start > text_item.text[glyph_index_backward].total_advance() && inline_start - text_item.text[glyph_index_backward].total_advance() >= original_inline_advance {
-                inline_start -= text_item.text[glyph_index_backward].total_advance();
-            }
-            else {
-                inline_start = original_inline_advance;
-            }
-        
-            if inline_start <= inline_target {
-                inline_start_found = true;
-
-                // try to mini increment if possible
-                for glyph in text_item.text[glyph_index_backward]
-                .iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), text_item.text[glyph_index_backward]
-                .len())) {
-                    if inline_start + glyph.advance() <= inline_target {
-                        inline_start += glyph.advance();
-                    }
-                }
-            }
-            if glyph_index_backward > 0 {
-                glyph_index_backward -= 1;
-            }
-            else {
-                inline_start_found = true;
-            }  
+            glyph_index_forward += 1;
         }
 
 
@@ -818,9 +775,8 @@ impl LineItemLayout<'_, '_> {
             },
         };
 
-
         // return
-        (content_rect, can_be_ellided, ellipsis_textrun_segment, text_item)
+        (content_rect, ellipsis_textrun_segment, text_item)
     }
 
     fn form_ellipsis(&mut self) -> (TextRunSegment, FontRef) {
