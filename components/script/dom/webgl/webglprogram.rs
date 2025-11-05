@@ -99,6 +99,10 @@ impl WebGLProgram {
         self.id
     }
 
+    pub(crate) fn context(&self) -> &WebGLRenderingContext {
+        self.upcast::<WebGLObject>().context()
+    }
+
     /// glDeleteProgram
     pub(crate) fn mark_for_deletion(&self, operation_fallibility: Operation) {
         if self.marked_for_deletion.get() {
