@@ -93,6 +93,7 @@ use crate::dom::bindings::domname::{
 };
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
@@ -3473,6 +3474,12 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     /// <https://drafts.csswg.org/cssom-view/#dom-element-clientheight>
     fn ClientHeight(&self) -> i32 {
         self.client_rect().size.height
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-currentcsszoom
+    fn CurrentCSSZoom(&self) -> Finite<f64> {
+        let window = self.owner_window();
+        Finite::wrap(window.current_css_zoom_query(self.upcast::<Node>()) as f64)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-sethtmlunsafe>
