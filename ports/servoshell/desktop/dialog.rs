@@ -5,17 +5,22 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use egui::Modal;
+use egui::{Area, Frame, Id, Label, Modal, Order, Sense, pos2};
 use egui_file_dialog::{DialogState, FileDialog as EguiFileDialog};
 use euclid::Length;
 use log::warn;
 use servo::base::generic_channel::GenericSender;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::{
-    AlertResponse, AuthenticationRequest, ColorPicker, ConfirmResponse, EmbedderControlId,
-    FilePicker, PermissionRequest, PromptResponse, RgbColor, SelectElement, SelectElementOption,
-    SelectElementOptionOrOptgroup, SimpleDialog, WebDriverUserPrompt,
+    AlertResponse, AuthenticationRequest, ColorPicker, ConfirmResponse, ContextMenu,
+    ContextMenuItem, EmbedderControlId, FilePicker, PermissionRequest, PromptResponse, RgbColor,
+    SelectElement, SelectElementOption, SelectElementOptionOrOptgroup, SimpleDialog,
+    WebDriverUserPrompt,
 };
+
+/// The minimum width of many UI elements including dialog boxes and menus,
+/// for the sake of consistency.
+const MINIMUM_UI_ELEMENT_WIDTH: f32 = 150.0;
 
 #[allow(clippy::large_enum_variant)]
 pub enum Dialog {
@@ -46,6 +51,10 @@ pub enum Dialog {
     ColorPicker {
         current_color: egui::Color32,
         maybe_prompt: Option<ColorPicker>,
+        toolbar_offset: Length<f32, DeviceIndependentPixel>,
+    },
+    ContextMenu {
+        menu: Option<ContextMenu>,
         toolbar_offset: Length<f32, DeviceIndependentPixel>,
     },
 }
@@ -332,7 +341,7 @@ impl Dialog {
                 let mut is_open = true;
                 Modal::new("authentication".into()).show(ctx, |ui| {
                     let mut frame = egui::Frame::default().inner_margin(10.0).begin(ui);
-                    frame.content_ui.set_min_width(150.0);
+                    frame.content_ui.set_min_width(MINIMUM_UI_ELEMENT_WIDTH);
 
                     if let Some(request) = request {
                         let url =
@@ -419,7 +428,7 @@ impl Dialog {
                 let modal = Modal::new("device_picker".into());
                 modal.show(ctx, |ui| {
                     let mut frame = egui::Frame::default().inner_margin(10.0).begin(ui);
-                    frame.content_ui.set_min_width(150.0);
+                    frame.content_ui.set_min_width(MINIMUM_UI_ELEMENT_WIDTH);
 
                     frame.content_ui.heading("Choose a Device");
                     frame.content_ui.add_space(10.0);
@@ -623,16 +632,77 @@ impl Dialog {
 
                 is_open
             },
+            Dialog::ContextMenu {
+                menu,
+                toolbar_offset,
+            } => {
+                let mut is_open = true;
+                if let Some(context_menu) = menu {
+                    let mut selected_action = None;
+                    let mut position = context_menu.position();
+                    position.min.y += toolbar_offset.0 as i32;
+                    position.max.y += toolbar_offset.0 as i32;
+
+                    let response = Area::new(Id::new("context_menu"))
+                        .fixed_pos(pos2(position.min.x as f32, position.min.y as f32))
+                        .order(Order::Foreground)
+                        .show(ctx, |ui| {
+                            // Do not allow selecting text in menu labels.
+                            ui.style_mut().interaction.selectable_labels = false;
+
+                            Frame::popup(ui.style()).show(ui, |ui| {
+                                ui.set_min_width(MINIMUM_UI_ELEMENT_WIDTH);
+                                for item in context_menu.items() {
+                                    match item {
+                                        ContextMenuItem::Item { label, action } => {
+                                            if ui
+                                                .add(Label::new(label).sense(Sense::click()))
+                                                .clicked()
+                                            {
+                                                selected_action = Some(*action);
+                                                ui.close();
+                                            }
+                                        },
+                                        ContextMenuItem::Separator => {
+                                            ui.separator();
+                                        },
+                                    }
+                                }
+                            })
+                        });
+
+                    if response.response.clicked_elsewhere() {
+                        is_open = false;
+                    }
+
+                    if let Some(action) = selected_action {
+                        if let Some(context_menu) = menu.take() {
+                            context_menu.select(action);
+                            return false;
+                        }
+                    }
+                }
+                is_open
+            },
         }
     }
 
-    pub fn webdriver_diaglog_type(&self) -> WebDriverUserPrompt {
+    pub fn webdriver_dialog_type(&self) -> Option<WebDriverUserPrompt> {
+        // From <https://w3c.github.io/webdriver/#dfn-handle-any-user-prompts>
+        // > Step 3: If the current user prompt is an alert dialog, set type to "alert". Otherwise,
+        // > if the current user prompt is a beforeunload dialog, set type to
+        // > "beforeUnload". Otherwise, if the current user prompt is a confirm dialog, set
+        // > type to "confirm". Otherwise, if the current user prompt is a prompt dialog,
+        // > set type to "prompt".
         match self {
-            Dialog::File { .. } => WebDriverUserPrompt::File,
-            Dialog::SimpleDialog(SimpleDialog::Alert { .. }) => WebDriverUserPrompt::Alert,
-            Dialog::SimpleDialog(SimpleDialog::Confirm { .. }) => WebDriverUserPrompt::Confirm,
-            Dialog::SimpleDialog(SimpleDialog::Prompt { .. }) => WebDriverUserPrompt::Prompt,
-            _ => WebDriverUserPrompt::Default,
+            Dialog::SimpleDialog(SimpleDialog::Alert { .. }) => Some(WebDriverUserPrompt::Alert),
+            Dialog::SimpleDialog(SimpleDialog::Confirm { .. }) => {
+                Some(WebDriverUserPrompt::Confirm)
+            },
+            Dialog::SimpleDialog(SimpleDialog::Prompt { .. }) => Some(WebDriverUserPrompt::Prompt),
+            Dialog::File { .. } => Some(WebDriverUserPrompt::File),
+            Dialog::SelectElement { .. } => Some(WebDriverUserPrompt::Default),
+            _ => None,
         }
     }
 
@@ -647,11 +717,21 @@ impl Dialog {
             _ => None,
         }
     }
+
+    pub(crate) fn new_context_menu(
+        menu: ContextMenu,
+        toolbar_offset: Length<f32, DeviceIndependentPixel>,
+    ) -> Dialog {
+        Dialog::ContextMenu {
+            menu: Some(menu),
+            toolbar_offset,
+        }
+    }
 }
 
 fn make_dialog_label(message: &str, ui: &mut egui::Ui, input_text: Option<&mut String>) {
     let mut frame = egui::Frame::default().inner_margin(10.0).begin(ui);
-    frame.content_ui.set_min_width(150.0);
+    frame.content_ui.set_min_width(MINIMUM_UI_ELEMENT_WIDTH);
     frame.content_ui.label(message);
     if let Some(input_text) = input_text {
         frame.content_ui.text_edit_singleline(input_text);

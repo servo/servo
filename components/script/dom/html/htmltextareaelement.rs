@@ -223,6 +223,7 @@ impl HTMLTextAreaElement {
                     insertion_point: self.GetSelectionEnd(),
                     multiline: false,
                 }),
+                None,
             );
     }
 }

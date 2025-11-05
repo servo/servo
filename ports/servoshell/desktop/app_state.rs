@@ -17,7 +17,7 @@ use servo::config::pref;
 use servo::ipc_channel::ipc::IpcSender;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
-    AllowOrDenyRequest, AuthenticationRequest, EmbedderControl, EmbedderControlId,
+    AllowOrDenyRequest, AuthenticationRequest, Cursor, EmbedderControl, EmbedderControlId,
     GamepadHapticEffectType, InputEventId, InputEventResult, JSValue, LoadStatus,
     PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog, TraversalId,
     WebDriverCommandMsg, WebDriverLoadStatus, WebDriverUserPrompt, WebView, WebViewBuilder,
@@ -254,6 +254,18 @@ impl RunningAppState {
         };
 
         let mut inner = self.inner_mut();
+
+        // If a dialog is open, clear any Servo cursor. TODO: This should restore the
+        // cursor too, when all dialogs close. In general, we need a better cursor
+        // management strategy.
+        if inner
+            .dialogs
+            .get(&webview_id)
+            .is_some_and(|dialogs| !dialogs.is_empty())
+        {
+            inner.window.set_cursor(Cursor::Default);
+        }
+
         if let Some(dialogs) = inner.dialogs.get_mut(&webview_id) {
             let length = dialogs.len();
             dialogs.retain_mut(callback);
@@ -367,11 +379,13 @@ impl RunningAppState {
         &self,
         webview_id: WebViewId,
     ) -> Option<WebDriverUserPrompt> {
-        self.inner()
-            .dialogs
-            .get(&webview_id)
-            .and_then(|dialogs| dialogs.last())
-            .map(|dialog| dialog.webdriver_diaglog_type())
+        let inner = self.inner();
+        let dialogs = inner.dialogs.get(&webview_id)?;
+        dialogs
+            .iter()
+            .rev()
+            .filter_map(|dialog| dialog.webdriver_dialog_type())
+            .nth(0)
     }
 
     pub(crate) fn accept_active_dialogs(&self, webview_id: WebViewId) {
@@ -762,7 +776,10 @@ impl WebViewDelegate for RunningAppState {
             EmbedderControl::SimpleDialog(simple_dialog) => {
                 self.show_simple_dialog(webview, simple_dialog);
             },
-            EmbedderControl::ContextMenu(..) => {},
+            EmbedderControl::ContextMenu(prompt) => {
+                let offset = self.inner().window.toolbar_height();
+                self.add_dialog(webview, Dialog::new_context_menu(prompt, offset));
+            },
         }
     }
 

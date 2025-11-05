@@ -398,6 +398,7 @@ impl HTMLSelectElement {
             .show_embedder_control(
                 ControlElement::Select(DomRoot::from_ref(self)),
                 EmbedderControlRequest::SelectElement(options, selected_index),
+                None,
             );
     }
 

@@ -2428,6 +2428,7 @@ impl HTMLInputElement {
                     allow_select_multiple: self.Multiple(),
                     accept_current_paths_for_testing,
                 }),
+                None,
             );
     }
 
@@ -2810,6 +2811,7 @@ impl HTMLInputElement {
             document.embedder_controls().show_embedder_control(
                 ControlElement::ColorInput(DomRoot::from_ref(self)),
                 EmbedderControlRequest::ColorPicker(current_color),
+                None,
             );
         }
     }
@@ -2893,6 +2895,7 @@ impl HTMLInputElement {
                     insertion_point: self.GetSelectionEnd(),
                     multiline: false,
                 }),
+                None,
             );
     }
 }
