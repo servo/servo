@@ -48,7 +48,6 @@ use profile_traits::ipc as profile_ipc;
 use profile_traits::time::TimerMetadataFrameType;
 use regex::bytes::Regex;
 use rustc_hash::{FxBuildHasher, FxHashMap};
-use script_bindings::codegen::GenericBindings::ElementBinding::ElementMethods;
 use script_bindings::interfaces::DocumentHelpers;
 use script_bindings::script_runtime::JSContext;
 use script_traits::{DocumentActivity, ProgressiveWebMetricType};
@@ -79,9 +78,7 @@ use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnl
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState, DocumentVisibilityState, NamedPropertyValue,
 };
-use crate::dom::bindings::codegen::Bindings::ElementBinding::{
-    ScrollIntoViewContainer, ScrollIntoViewOptions, ScrollLogicalPosition,
-};
+use crate::dom::bindings::codegen::Bindings::ElementBinding::ScrollLogicalPosition;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElement_Binding::HTMLIFrameElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
@@ -91,13 +88,12 @@ use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionName;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
-    FrameRequestCallback, ScrollBehavior, ScrollOptions, WindowMethods,
+    FrameRequestCallback, ScrollBehavior, WindowMethods,
 };
 use crate::dom::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluatorMethods;
 use crate::dom::bindings::codegen::Bindings::XPathNSResolverBinding::XPathNSResolver;
 use crate::dom::bindings::codegen::UnionTypes::{
-    BooleanOrScrollIntoViewOptions, NodeOrString, StringOrElementCreationOptions,
-    TrustedHTMLOrString,
+    NodeOrString, StringOrElementCreationOptions, TrustedHTMLOrString,
 };
 use crate::dom::bindings::domname::{
     self, is_valid_attribute_local_name, is_valid_element_local_name, namespace_from_domstring,
@@ -169,7 +165,7 @@ use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::promise::Promise;
 use crate::dom::range::Range;
 use crate::dom::resizeobserver::{ResizeObservationDepth, ResizeObserver};
-use crate::dom::scrolling_box::ScrollingBox;
+use crate::dom::scrolling_box::{ScrollAxisState, ScrollRequirement, ScrollingBox};
 use crate::dom::selection::Selection;
 use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::ShadowRoot;
@@ -1448,20 +1444,26 @@ impl Document {
                 // FIXME: pass appropriate relatedTarget
                 self.fire_focus_event(FocusEventType::Focus, node.upcast(), None, can_gc);
 
-                // Scroll operation to happen after element gets focus.
-                // This is needed to ensure that the focused element is visible.
-                // Only scroll if preventScroll was not specified
+                // Scroll operation to happen after element gets focus. This is needed to ensure that the
+                // focused element is visible. Only scroll if preventScroll was not specified.
                 if !prevent_scroll {
-                    elem.ScrollIntoView(BooleanOrScrollIntoViewOptions::ScrollIntoViewOptions(
-                        ScrollIntoViewOptions {
-                            parent: ScrollOptions {
-                                behavior: ScrollBehavior::Smooth,
-                            },
-                            block: ScrollLogicalPosition::Center,
-                            inline: ScrollLogicalPosition::Center,
-                            container: ScrollIntoViewContainer::All,
-                        },
-                    ));
+                    // We are following the firefox implementation where we are only scrolling to the element
+                    // if the element itself it not visible.
+                    let scroll_axis = ScrollAxisState {
+                        position: ScrollLogicalPosition::Center,
+                        requirement: ScrollRequirement::IfNotVisible,
+                    };
+
+                    // TODO(stevennovaryo): we doesn't differentiate focus operation from script and from user
+                    //                      for a scroll yet.
+                    // TODO(#40474): Implement specific ScrollIntoView for a selection of text control element.
+                    elem.scroll_into_view_with_options(
+                        ScrollBehavior::Smooth,
+                        scroll_axis,
+                        scroll_axis,
+                        None,
+                        None,
+                    );
                 }
             }
         }

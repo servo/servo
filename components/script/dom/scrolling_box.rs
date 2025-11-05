@@ -38,6 +38,48 @@ pub(crate) enum ScrollingBoxAxis {
     Y,
 }
 
+#[derive(Copy, Clone)]
+pub(crate) enum ScrollRequirement {
+    Always,
+    IfNotVisible,
+}
+
+impl ScrollRequirement {
+    fn compute_need_scroll(
+        &self,
+        element_start: f32,
+        element_end: f32,
+        container_size: f32,
+    ) -> bool {
+        match self {
+            ScrollRequirement::Always => true,
+            ScrollRequirement::IfNotVisible => {
+                // Because the element_start and element_end have taken into account the scroll_offset, the
+                // viewport_start and viewport_end should have the root coordinate space.
+                let viewport_start = 0.;
+                let viewport_end = container_size;
+
+                element_end <= viewport_start || element_start >= viewport_end
+            },
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
+pub(crate) struct ScrollAxisState {
+    pub(crate) position: ScrollLogicalPosition,
+    pub(crate) requirement: ScrollRequirement,
+}
+
+impl ScrollAxisState {
+    pub fn new_always_scroll_position(position: ScrollLogicalPosition) -> Self {
+        ScrollAxisState {
+            position,
+            requirement: ScrollRequirement::Always,
+        }
+    }
+}
+
 impl ScrollingBox {
     pub(crate) fn new(target: ScrollingBoxSource, overflow: AxesOverflow) -> Self {
         Self {
@@ -148,8 +190,8 @@ impl ScrollingBox {
     /// <https://drafts.csswg.org/cssom-view/#determine-the-scroll-into-view-position>
     pub(crate) fn determine_scroll_into_view_position(
         &self,
-        block: ScrollLogicalPosition,
-        inline: ScrollLogicalPosition,
+        block: ScrollAxisState,
+        inline: ScrollAxisState,
         target_rect: Rect<Au>,
     ) -> LayoutVector2D {
         let device_pixel_ratio = self.node().owner_window().device_pixel_ratio().get();
@@ -203,16 +245,25 @@ impl ScrollingBox {
     }
 
     /// Step 10 from <https://drafts.csswg.org/cssom-view/#determine-the-scroll-into-view-position>:
+    // TODO: we are not considering the coordinate system of the element while deciding the scroll position.
     fn calculate_scroll_position_one_axis(
-        alignment: ScrollLogicalPosition,
+        state: ScrollAxisState,
         element_start: f32,
         element_end: f32,
         container_size: f32,
         current_scroll_offset: f32,
     ) -> f32 {
+        if !state
+            .requirement
+            .compute_need_scroll(element_start, element_end, container_size)
+        {
+            return current_scroll_offset;
+        }
+
         let element_size = element_end - element_start;
+
         current_scroll_offset +
-            match alignment {
+            match state.position {
                 // Step 1 & 5: If inline is "start", then align element start edge with scrolling box start edge.
                 ScrollLogicalPosition::Start => element_start,
                 // Step 2 & 6: If inline is "end", then align element end edge with
@@ -225,8 +276,10 @@ impl ScrollingBox {
                 },
                 // Step 4 & 8: If inline is "nearest",
                 ScrollLogicalPosition::Nearest => {
-                    let viewport_start = current_scroll_offset;
-                    let viewport_end = current_scroll_offset + container_size;
+                    // Because the element_start and element_end have taken into account the scroll_offset, the
+                    // viewport_start and viewport_end should have the root coordinate space.
+                    let viewport_start = 0.;
+                    let viewport_end = container_size;
 
                     // Step 4.2 & 8.2: If element start edge is outside scrolling box start edge and element
                     // size is less than scrolling box size or If element end edge is outside
@@ -249,7 +302,7 @@ impl ScrollingBox {
                     // Step 4.1 & 8.1: If element start edge and element end edge are both outside scrolling
                     // box start edge and scrolling box end edge or an invalid situation: Do nothing.
                     else {
-                        current_scroll_offset
+                        0.
                     }
                 },
             }
