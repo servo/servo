@@ -413,7 +413,7 @@ impl Window {
                 );
             })
             .shortcut(CMD_OR_CONTROL, 'Q', || {
-                state.servo().start_shutting_down(None)
+                state.servo().start_shutting_down()
             })
             .otherwise(|| handled = false);
         handled
@@ -685,7 +685,7 @@ impl WindowPortsMethods for Window {
                 webview.pinch_zoom(delta as f32 + 1.0, self.webview_relative_mouse_point.get());
             },
             WindowEvent::CloseRequested => {
-                state.servo().start_shutting_down(None);
+                state.servo().start_shutting_down();
             },
             WindowEvent::ThemeChanged(theme) => {
                 webview.notify_theme_change(match theme {

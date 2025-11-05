@@ -190,8 +190,7 @@ pub struct Servo {
     compositor: Rc<RefCell<IOCompositor>>,
     constellation_proxy: ConstellationProxy,
     embedder_receiver: Receiver<EmbedderMsg>,
-    /// A Crossbeam Sender to asynchronusly notify WebDriver server that shutdown has completed.
-    webdriver_shutdown_status_sender: Cell<Option<Sender<()>>>,
+
     /// A struct that tracks ongoing JavaScript evaluations and is responsible for
     /// calling the callback when the evaluation is complete.
     javascript_evaluator: Rc<RefCell<JavaScriptEvaluator>>,
@@ -321,7 +320,6 @@ impl Servo {
             ))),
             constellation_proxy,
             embedder_receiver,
-            webdriver_shutdown_status_sender: Default::default(),
             shutdown_state,
             webviews: Default::default(),
             servo_errors: ServoErrorChannel::default(),
@@ -465,7 +463,7 @@ impl Servo {
             .send(EmbedderToConstellationMessage::CreateMemoryReport(snd));
     }
 
-    pub fn start_shutting_down(&self, webdriver_shutdown_status_sender: Option<Sender<()>>) {
+    pub fn start_shutting_down(&self) {
         if self.shutdown_state.get() != ShutdownState::NotShuttingDown {
             warn!("Requested shutdown while already shutting down");
             return;
@@ -475,19 +473,12 @@ impl Servo {
         self.constellation_proxy
             .send(EmbedderToConstellationMessage::Exit);
         self.shutdown_state.set(ShutdownState::ShuttingDown);
-
-        self.webdriver_shutdown_status_sender
-            .set(webdriver_shutdown_status_sender);
     }
 
     fn finish_shutting_down(&self) {
         debug!("Servo received message that Constellation shutdown is complete");
         self.shutdown_state.set(ShutdownState::FinishedShuttingDown);
         self.compositor.borrow_mut().finish_shutting_down();
-
-        self.webdriver_shutdown_status_sender
-            .take()
-            .map(|sender| sender.send(()));
     }
 
     pub fn deinit(&self) {

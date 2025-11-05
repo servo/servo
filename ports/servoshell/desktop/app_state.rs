@@ -224,7 +224,7 @@ impl RunningAppState {
         if self.servoshell_preferences().exit_after_stable_image &&
             self.inner().achieved_stable_image.get()
         {
-            self.servo().start_shutting_down(None);
+            self.servo().start_shutting_down();
         }
 
         PumpResult::Continue {
@@ -288,7 +288,7 @@ impl RunningAppState {
                 last_created_webview.focus();
             },
             None if self.servoshell_preferences().webdriver_port.is_none() => {
-                self.servo().start_shutting_down(None)
+                self.servo().start_shutting_down()
             },
             None => {
                 // For WebDriver, don't shut down when last webview closed

@@ -2454,9 +2454,7 @@ impl Handler {
     }
 
     fn handle_shutdown(&self) -> WebDriverResult<WebDriverResponse> {
-        let (sender, receiver) = crossbeam_channel::unbounded();
-        self.send_message_to_embedder(WebDriverCommandMsg::Shutdown(sender))?;
-        receiver.recv().expect("shutdown infallible");
+        self.send_message_to_embedder(WebDriverCommandMsg::Shutdown)?;
         Ok(WebDriverResponse::Void)
     }
 
