@@ -24,7 +24,6 @@ use crate::geom::{LogicalRect, LogicalVec2, PhysicalRect, ToLogical};
 use crate::positioned::{
     AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, relative_adjustement,
 };
-use crate::query::process_client_rect_request;
 use crate::{ContainingBlock, ContainingBlockSize};
 
 use crate::flow::inline::text_run::TextRunSegment;
@@ -32,9 +31,8 @@ use crate::flow::inline::add_or_get_font;
 use crate::flow::inline::FontKeyAndMetrics;
 use unicode_script::Script;
 use fonts::{
-    FontContext, FontRef, GlyphRun, LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
+    FontRef, ShapingFlags, ShapingOptions,
 };
-use super::line_breaker::LineBreaker;
 use euclid::Point2D;
 use style::values::specified::text::TextOverflowSide;
 use style::
@@ -816,7 +814,7 @@ impl LineItemLayout<'_, '_> {
         let Some(ellipsis_font) = ellipsis_font_group
         .write()
         .find_by_codepoint(
-            &ellipsis_font_context,
+            ellipsis_font_context,
             ellipsis_char,
             None,
             None,
@@ -828,7 +826,7 @@ impl LineItemLayout<'_, '_> {
         let ellipsis_font_index = add_or_get_font(
             &ellipsis_font,
             &mut ellipsis_font_cache, 
-            &ellipsis_font_context, 
+            ellipsis_font_context, 
             ellipsis_rendering_group_id
             );
 
