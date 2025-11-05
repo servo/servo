@@ -114,6 +114,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::html::htmlscriptelement::{ScriptId, SourceCode};
 use crate::dom::htmlscriptelement::ScriptOrigin;
+use crate::dom::mediasource::MediaSource;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::performance::Performance;
@@ -2230,6 +2231,10 @@ impl GlobalScope {
                 Err(_) => return Err(()),
             }
         }
+    }
+
+    pub(crate) fn get_source_url_id(&self, _source: &MediaSource) -> Uuid {
+        Uuid::new_v4()
     }
 
     pub(crate) fn permission_state_invocation_results(

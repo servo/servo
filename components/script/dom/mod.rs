@@ -332,6 +332,8 @@ pub(crate) mod messageport;
 pub(crate) mod mimetype;
 pub(crate) mod mimetypearray;
 pub(crate) mod mouseevent;
+pub(crate) mod mse;
+pub(crate) use self::mse::*;
 pub(crate) mod mutationobserver;
 pub(crate) mod mutationrecord;
 pub(crate) mod namednodemap;

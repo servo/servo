@@ -30,6 +30,7 @@ use net_traits::{
 };
 use pixels::RasterImage;
 use script_bindings::codegen::GenericBindings::TimeRangesBinding::TimeRangesMethods;
+use script_bindings::codegen::GenericUnionTypes::BlobOrMediaSource;
 use script_bindings::codegen::InheritTypes::{
     ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId, NodeTypeId,
 };
@@ -61,7 +62,7 @@ use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{TextTrackKind, T
 use crate::dom::bindings::codegen::Bindings::URLBinding::URLMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::{
-    MediaStreamOrBlob, VideoTrackOrAudioTrackOrTextTrack,
+    MediaStreamOrMediaSourceOrBlob, VideoTrackOrAudioTrackOrTextTrack,
 };
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -86,6 +87,7 @@ use crate::dom::html::htmlvideoelement::HTMLVideoElement;
 use crate::dom::mediaerror::MediaError;
 use crate::dom::mediafragmentparser::MediaFragmentParser;
 use crate::dom::medialist::MediaList;
+use crate::dom::mediasource::MediaSource;
 use crate::dom::mediastream::MediaStream;
 use crate::dom::node::{Node, NodeDamage, NodeTraits, UnbindContext};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
@@ -425,15 +427,19 @@ impl VideoFrameRenderer for MediaFrameRenderer {
 #[derive(JSTraceable, MallocSizeOf)]
 enum SrcObject {
     MediaStream(Dom<MediaStream>),
+    MediaSource(Dom<MediaSource>),
     Blob(Dom<Blob>),
 }
 
-impl From<MediaStreamOrBlob> for SrcObject {
+impl From<MediaStreamOrMediaSourceOrBlob> for SrcObject {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn from(src_object: MediaStreamOrBlob) -> SrcObject {
+    fn from(src_object: MediaStreamOrMediaSourceOrBlob) -> SrcObject {
         match src_object {
-            MediaStreamOrBlob::Blob(blob) => SrcObject::Blob(Dom::from_ref(&*blob)),
-            MediaStreamOrBlob::MediaStream(stream) => {
+            MediaStreamOrMediaSourceOrBlob::Blob(blob) => SrcObject::Blob(Dom::from_ref(&*blob)),
+            MediaStreamOrMediaSourceOrBlob::MediaSource(media_source) => {
+                SrcObject::MediaSource(Dom::from_ref(&*media_source))
+            },
+            MediaStreamOrMediaSourceOrBlob::MediaStream(stream) => {
                 SrcObject::MediaStream(Dom::from_ref(&*stream))
             },
         }
@@ -1383,7 +1389,10 @@ impl HTMLMediaElement {
                 if let Some(ref src_object) = *self.src_object.borrow() {
                     match src_object {
                         SrcObject::Blob(blob) => {
-                            let blob_url = URL::CreateObjectURL(&self.global(), blob);
+                            let blob_url = URL::CreateObjectURL(
+                                &self.global(),
+                                BlobOrMediaSource::Blob(blob.as_rooted()),
+                            );
                             *self.blob_url.borrow_mut() =
                                 Some(ServoUrl::parse(&blob_url.str()).expect("infallible"));
                             self.fetch_request(None, None);
@@ -1403,6 +1412,20 @@ impl HTMLMediaElement {
                                 {
                                     self.resource_selection_algorithm_failure_steps();
                                 }
+                            }
+                        },
+                        SrcObject::MediaSource(source) => {
+                            if self
+                                .player
+                                .borrow()
+                                .as_ref()
+                                .unwrap()
+                                .lock()
+                                .unwrap()
+                                .connect_media_source(source.inner())
+                                .is_err()
+                            {
+                                self.resource_selection_algorithm_failure_steps();
                             }
                         },
                     }
@@ -2700,19 +2723,24 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-srcobject>
-    fn GetSrcObject(&self) -> Option<MediaStreamOrBlob> {
+    fn GetSrcObject(&self) -> Option<MediaStreamOrMediaSourceOrBlob> {
         (*self.src_object.borrow())
             .as_ref()
             .map(|src_object| match src_object {
-                SrcObject::Blob(blob) => MediaStreamOrBlob::Blob(DomRoot::from_ref(blob)),
+                SrcObject::Blob(blob) => {
+                    MediaStreamOrMediaSourceOrBlob::Blob(DomRoot::from_ref(blob))
+                },
+                SrcObject::MediaSource(source) => {
+                    MediaStreamOrMediaSourceOrBlob::MediaSource(DomRoot::from_ref(source))
+                },
                 SrcObject::MediaStream(stream) => {
-                    MediaStreamOrBlob::MediaStream(DomRoot::from_ref(stream))
+                    MediaStreamOrMediaSourceOrBlob::MediaStream(DomRoot::from_ref(stream))
                 },
             })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-srcobject>
-    fn SetSrcObject(&self, value: Option<MediaStreamOrBlob>, can_gc: CanGc) {
+    fn SetSrcObject(&self, value: Option<MediaStreamOrMediaSourceOrBlob>, can_gc: CanGc) {
         *self.src_object.borrow_mut() = value.map(|value| value.into());
         self.media_element_load_algorithm(can_gc);
     }
