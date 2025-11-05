@@ -50,6 +50,10 @@ impl WebGLTransformFeedback {
 }
 
 impl WebGLTransformFeedback {
+    pub(crate) fn context(&self) -> &WebGLRenderingContext {
+        self.upcast::<WebGLObject>().context()
+    }
+
     pub(crate) fn bind(&self, context: &WebGLRenderingContext, target: u32) {
         context.send_command(WebGLCommand::BindTransformFeedback(target, self.id()));
         self.has_been_bound.set(true);
