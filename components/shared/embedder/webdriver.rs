@@ -133,6 +133,7 @@ pub enum WebDriverCommandMsg {
     GetAlertText(WebViewId, IpcSender<Result<String, ()>>),
     SendAlertText(WebViewId, String),
     FocusBrowsingContext(BrowsingContextId),
+    Shutdown(Sender<()>),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -240,4 +241,5 @@ pub struct WebDriverSenders {
     pub load_status_senders: FxHashMap<WebViewId, GenericSender<WebDriverLoadStatus>>,
     pub script_evaluation_interrupt_sender: Option<IpcSender<WebDriverJSResult>>,
     pub pending_traversals: HashMap<TraversalId, GenericSender<WebDriverLoadStatus>>,
+    pub shutdown_status_sender: Option<GenericSender<()>>,
 }

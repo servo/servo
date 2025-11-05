@@ -412,7 +412,9 @@ impl Window {
                         .expect("Should be able to unconditionally parse 'servo:newtab' as URL"),
                 );
             })
-            .shortcut(CMD_OR_CONTROL, 'Q', || state.servo().start_shutting_down())
+            .shortcut(CMD_OR_CONTROL, 'Q', || {
+                state.servo().start_shutting_down(None)
+            })
             .otherwise(|| handled = false);
         handled
     }
@@ -683,7 +685,7 @@ impl WindowPortsMethods for Window {
                 webview.pinch_zoom(delta as f32 + 1.0, self.webview_relative_mouse_point.get());
             },
             WindowEvent::CloseRequested => {
-                state.servo().start_shutting_down();
+                state.servo().start_shutting_down(None);
             },
             WindowEvent::ThemeChanged(theme) => {
                 webview.notify_theme_change(match theme {

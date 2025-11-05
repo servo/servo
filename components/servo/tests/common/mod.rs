@@ -24,7 +24,7 @@ pub struct ServoTest {
 
 impl Drop for ServoTest {
     fn drop(&mut self) {
-        self.servo.start_shutting_down();
+        self.servo.start_shutting_down(None);
         while self.servo.spin_event_loop() {
             std::thread::sleep(Duration::from_millis(1));
         }

@@ -208,7 +208,7 @@ impl WebViewDelegate for RunningAppState {
         if let Some(newest_webview) = self.newest_webview() {
             newest_webview.focus();
         } else {
-            self.servo().start_shutting_down();
+            self.servo().start_shutting_down(None);
         }
     }
 
@@ -498,7 +498,7 @@ impl RunningAppState {
 
     /// Request shutdown. Will call on_shutdown_complete.
     pub fn request_shutdown(&self) {
-        self.servo().start_shutting_down();
+        self.servo().start_shutting_down(None);
         self.perform_updates();
     }
 
