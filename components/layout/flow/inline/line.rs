@@ -645,7 +645,9 @@ impl LineItemLayout<'_, '_> {
         }
 
         // create & insert text fragment to vector
-        if can_be_ellided && self.current_state.inline_advance > self.layout.containing_block.size.inline && original_inline_advance < self.layout.containing_block.size.inline {
+        if can_be_ellided 
+        && self.current_state.inline_advance > self.layout.containing_block.size.inline 
+        && original_inline_advance < self.layout.containing_block.size.inline {
             // create ellipsis text fragment & its bounding box
             let (ellipsis_textrun_segment, ellipsis_font) = self.form_ellipsis();
             let (ellipsis_content_rect, 
@@ -666,7 +668,8 @@ impl LineItemLayout<'_, '_> {
             // An exception is if "english" is the first `TextFragment`, in which case we cannot ellide.
             // "The first character or atomic inline-level element on a line must be clipped rather than ellipsed.""
             // https://www.w3.org/TR/css-ui-3/#text-overflow
-            if !(ellipsis_content_rect.start_corner.inline == original_inline_advance && original_inline_advance != Au(0)) {
+            if !(ellipsis_content_rect.start_corner.inline == original_inline_advance 
+                && original_inline_advance != Au(0)) {
                 self.current_state.fragments.push((
                     Fragment::Text(ArcRefCell::new(TextFragment {
                         base: text_item.base_fragment_info.into(),
@@ -677,7 +680,6 @@ impl LineItemLayout<'_, '_> {
                         glyphs: text_item.text.clone(),
                         justification_adjustment: self.justification_adjustment,
                         selection_range: text_item.selection_range,
-                        is_ellipsis_text_fragment: false,
                         line_number: line_number,
                         parent_width: self.layout.containing_block.size.inline,
                         text_clip: text_fragment_clip,
@@ -699,7 +701,6 @@ impl LineItemLayout<'_, '_> {
                     glyphs: vec![ellipsis_textrun_segment.runs[0].glyph_store.clone()],
                     justification_adjustment: self.justification_adjustment,
                     selection_range: text_item.selection_range,
-                    is_ellipsis_text_fragment: true,
                     line_number: line_number,
                     parent_width: self.layout.containing_block.size.inline,
                     text_clip: (Au(0), Au(0)),
@@ -721,7 +722,6 @@ impl LineItemLayout<'_, '_> {
                     glyphs: text_item.text.clone(),
                     justification_adjustment: self.justification_adjustment,
                     selection_range: text_item.selection_range,
-                    is_ellipsis_text_fragment: false,
                     line_number: line_number,
                     parent_width: self.layout.containing_block.size.inline,
                     text_clip: (Au(0), Au(0)),
