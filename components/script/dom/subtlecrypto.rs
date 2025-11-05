@@ -2393,6 +2393,12 @@ fn normalize_algorithm(
                     params.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::Algorithm(params.into())
                 },
+                (ALG_X25519, Operation::ExportKey) => {
+                    let mut params =
+                        dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
 
                 // <https://w3c.github.io/webcrypto/#aes-ctr-registration>
                 (ALG_AES_CTR, Operation::Encrypt) => {
@@ -2971,6 +2977,7 @@ fn perform_export_key_operation(format: KeyFormat, key: &CryptoKey) -> Result<Ex
     match key.algorithm().name() {
         ALG_ECDH => ecdh_operation::export_key(format, key),
         ALG_ED25519 => ed25519_operation::export_key(format, key),
+        ALG_X25519 => x25519_operation::export_key(format, key),
         ALG_AES_CTR => aes_operation::export_key_aes_ctr(format, key),
         ALG_AES_CBC => aes_operation::export_key_aes_cbc(format, key),
         ALG_AES_GCM => aes_operation::export_key_aes_gcm(format, key),
