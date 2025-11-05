@@ -41,7 +41,7 @@ use embedder_traits::{
     ScriptToEmbedderChan, SimpleDialog, Theme, UntrustedNodeAddress, ViewportDetails,
     WebDriverJSResult, WebDriverLoadStatus,
 };
-use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
+use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
 use fonts::FontContext;
 use ipc_channel::ipc::IpcSender;
@@ -82,7 +82,7 @@ use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
 use servo_config::pref;
-use servo_geometry::{DeviceIndependentIntRect, f32_rect_to_au_rect};
+use servo_geometry::DeviceIndependentIntRect;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::StorageType;
@@ -350,11 +350,6 @@ pub(crate) struct Window {
 
     /// The current state of the window object
     current_state: Cell<WindowState>,
-
-    /// The current size of the viewport. This might change if the `WebView` or containing `<iframe>`
-    /// for this `Window` object change.
-    #[no_trace]
-    current_viewport_size: Cell<UntypedSize2D<Au>>,
 
     error_reporter: CSSErrorReporter,
 
@@ -2462,7 +2457,6 @@ impl Window {
             animation_timeline_value: document.current_animation_timeline_value(),
             animations: document.animations().sets.clone(),
             animating_images: document.image_animation_manager().animating_images(),
-            theme: self.theme.get(),
             highlighted_dom_node: document.highlighted_dom_node().map(|node| node.to_opaque()),
         };
 
@@ -3024,8 +3018,15 @@ impl Window {
         };
     }
 
-    pub(crate) fn set_viewport_details(&self, size: ViewportDetails) {
-        self.viewport_details.set(size);
+    /// Handle a potential change to the [`ViewportDetails`] of this [`Window`],
+    /// triggering a reflow if any change occurred.
+    pub(crate) fn set_viewport_details(&self, viewport_details: ViewportDetails) {
+        self.viewport_details.set(viewport_details);
+        if !self.layout_mut().set_viewport_details(viewport_details) {
+            return;
+        }
+        self.Document()
+            .add_restyle_reason(RestyleReason::ViewportChanged);
     }
 
     pub(crate) fn viewport_details(&self) -> ViewportDetails {
@@ -3038,11 +3039,11 @@ impl Window {
     }
 
     /// Handle a theme change request, triggering a reflow is any actual change occured.
-    pub(crate) fn handle_theme_change(&self, new_theme: Theme) {
-        if self.theme.get() == new_theme {
+    pub(crate) fn set_theme(&self, new_theme: Theme) {
+        self.theme.set(new_theme);
+        if !self.layout_mut().set_theme(new_theme) {
             return;
         }
-        self.theme.set(new_theme);
         self.Document()
             .add_restyle_reason(RestyleReason::ThemeChanged);
     }
@@ -3068,29 +3069,6 @@ impl Window {
     /// Whether or not this [`Window`] has any resize events that have not been processed.
     pub(crate) fn has_unhandled_resize_event(&self) -> bool {
         self.unhandled_resize_event.borrow().is_some()
-    }
-
-    pub(crate) fn set_viewport_size(&self, new_viewport_size: UntypedSize2D<f32>) {
-        let new_viewport_size = Size2D::new(
-            Au::from_f32_px(new_viewport_size.width),
-            Au::from_f32_px(new_viewport_size.height),
-        );
-        if new_viewport_size == self.current_viewport_size.get() {
-            return;
-        }
-
-        self.current_viewport_size.set(new_viewport_size);
-
-        // The document needs to be repainted, because the initial containing block
-        // is now a different size.
-        self.Document()
-            .add_restyle_reason(RestyleReason::ViewportSizeChanged);
-
-        // If viewport units were used, all nodes need to be restyled, because
-        // we currently do not track which ones rely on viewport units.
-        if self.layout().device().used_viewport_units() {
-            self.Document().dirty_all_nodes();
-        }
     }
 
     pub(crate) fn suspend(&self, can_gc: CanGc) {
@@ -3196,7 +3174,7 @@ impl Window {
         // block is now a different size. This should be triggered before the
         // event is fired below so that any script queries trigger a restyle.
         self.Document()
-            .add_restyle_reason(RestyleReason::ViewportSizeChanged);
+            .add_restyle_reason(RestyleReason::ViewportChanged);
 
         // If viewport units were used, all nodes need to be restyled, because
         // we currently do not track which ones rely on viewport units.
@@ -3414,11 +3392,6 @@ impl Window {
             script_chan: control_chan,
         };
 
-        let initial_viewport = f32_rect_to_au_rect(UntypedRect::new(
-            Point2D::zero(),
-            viewport_details.size.to_untyped(),
-        ));
-
         let win = Box::new(Self {
             webview_id,
             globalscope: GlobalScope::new_inherited(
@@ -3466,7 +3439,6 @@ impl Window {
             bluetooth_extra_permission_data: BluetoothExtraPermissionData::new(),
             unhandled_resize_event: Default::default(),
             viewport_details: Cell::new(viewport_details),
-            current_viewport_size: Cell::new(initial_viewport.to_untyped().size),
             layout_blocker: Cell::new(LayoutBlocker::WaitingForParse),
             current_state: Cell::new(WindowState::Alive),
             devtools_marker_sender: Default::default(),

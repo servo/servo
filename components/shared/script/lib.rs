@@ -33,7 +33,7 @@ use embedder_traits::{
     InputEventAndId, JavaScriptEvaluationId, MediaSessionActionType, ScriptToEmbedderChan, Theme,
     ViewportDetails, WebDriverScriptCommand,
 };
-use euclid::{Rect, Scale, Size2D, UnknownUnit};
+use euclid::{Scale, Size2D};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use keyboard_types::Modifiers;
 use malloc_size_of_derive::MallocSizeOf;
@@ -161,8 +161,6 @@ pub enum ScriptThreadMessage {
     /// recently hovered cursor position and resetting the cursor. This happens after a
     /// display list update is rendered.
     RefreshCursor(PipelineId),
-    /// Notifies script of the viewport.
-    Viewport(PipelineId, Rect<f32, UnknownUnit>),
     /// Requests that the script thread immediately send the constellation the title of a pipeline.
     GetTitle(PipelineId),
     /// Notifies script thread of a change to one of its document's activity

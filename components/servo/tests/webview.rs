@@ -160,9 +160,8 @@ fn test_theme_change() {
 
     // Changing the theme updates the current page.
     webview.notify_theme_change(Theme::Dark);
-    let _result = evaluate_javascript(&servo_test, webview.clone(), is_dark_theme_script);
-    // TODO: This is failing due to https://github.com/servo/servo/issues/40129
-    // assert_eq!(result, Ok(JSValue::Boolean(true)));
+    let result = evaluate_javascript(&servo_test, webview.clone(), is_dark_theme_script);
+    assert_eq!(result, Ok(JSValue::Boolean(true)));
 
     delegate.reset();
     webview.load(Url::parse("data:text/html,page two").unwrap());

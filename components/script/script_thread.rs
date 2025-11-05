@@ -54,7 +54,6 @@ use embedder_traits::{
     JavaScriptEvaluationError, JavaScriptEvaluationId, MediaSessionActionType, Theme,
     ViewportDetails, WebDriverScriptCommand,
 };
-use euclid::default::Rect;
 use fonts::{FontContext, SystemFontServiceProxy};
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
 use http::header::REFRESH;
@@ -1402,10 +1401,6 @@ impl ScriptThread {
                 )) => {
                     self.handle_resize_message(id, size, size_type);
                 },
-                MixedMessage::FromConstellation(ScriptThreadMessage::Viewport(id, rect)) => self
-                    .profile_event(ScriptThreadEventCategory::SetViewport, Some(id), || {
-                        self.handle_viewport(id, rect);
-                    }),
                 MixedMessage::FromConstellation(ScriptThreadMessage::TickAllAnimations(
                     _webviews,
                 )) => {
@@ -1893,7 +1888,6 @@ impl ScriptThread {
                     ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(port);
             },
             msg @ ScriptThreadMessage::AttachLayout(..) |
-            msg @ ScriptThreadMessage::Viewport(..) |
             msg @ ScriptThreadMessage::Resize(..) |
             msg @ ScriptThreadMessage::ExitFullScreen(..) |
             msg @ ScriptThreadMessage::SendInputEvent(..) |
@@ -2148,7 +2142,7 @@ impl ScriptThread {
             DevtoolScriptControlMsg::SimulateColorScheme(id, theme) => {
                 match documents.find_window(id) {
                     Some(window) => {
-                        window.handle_theme_change(theme);
+                        window.set_theme(theme);
                     },
                     None => warn!("Message sent to closed pipeline {}.", id),
                 }
@@ -2536,7 +2530,7 @@ impl ScriptThread {
     /// Handle changes to the theme, triggering reflow if the theme actually changed.
     fn handle_theme_change_msg(&self, theme: Theme) {
         for (_, document) in self.documents.borrow().iter() {
-            document.window().handle_theme_change(theme);
+            document.window().set_theme(theme);
         }
     }
 
@@ -2547,19 +2541,6 @@ impl ScriptThread {
             let _ac = enter_realm(&*document);
             document.exit_fullscreen(can_gc);
         }
-    }
-
-    fn handle_viewport(&self, id: PipelineId, rect: Rect<f32>) {
-        let document = self.documents.borrow().find_document(id);
-        if let Some(document) = document {
-            document.window().set_viewport_size(rect.size);
-            return;
-        }
-        let loads = self.incomplete_loads.borrow();
-        if loads.iter().any(|load| load.pipeline_id == id) {
-            return;
-        }
-        warn!("Page rect message sent to nonexistent pipeline");
     }
 
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo, origin: MutableOrigin) {
