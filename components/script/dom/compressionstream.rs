@@ -13,6 +13,7 @@ use js::jsapi::JSObject;
 use js::jsval::UndefinedValue;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use js::typedarray::Uint8Array;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::CompressionStreamBinding::{
@@ -94,6 +95,16 @@ impl Compressor {
     }
 }
 
+impl MallocSizeOf for Compressor {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        match self {
+            Compressor::Deflate(zlib_encoder) => zlib_encoder.size_of(ops),
+            Compressor::DeflateRaw(deflate_encoder) => deflate_encoder.size_of(ops),
+            Compressor::Gzip(gz_encoder) => gz_encoder.size_of(ops),
+        }
+    }
+}
+
 /// <https://compression.spec.whatwg.org/#compressionstream>
 #[dom_struct]
 pub(crate) struct CompressionStream {
@@ -106,7 +117,6 @@ pub(crate) struct CompressionStream {
     format: CompressionFormat,
 
     // <https://compression.spec.whatwg.org/#compressionstream-context>
-    #[ignore_malloc_size_of = "defined in flate2"]
     #[no_trace]
     context: RefCell<Compressor>,
 }
