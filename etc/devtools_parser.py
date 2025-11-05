@@ -51,9 +51,11 @@ except ImportError:
         return text
 
 
-# Run a tshark command
-# If wait is true, the main process will stop until SIGINT is passed, stopping the analysis
 def tshark(args, wait=False):
+    """Run a tshark command with the specified arguments.
+    Some custom arguments are always prepended to set the stdout format: date, port, hex-encoded data.
+    If `wait` is True, the main process will pause until SIGINT is triggered. This action will stop the analysis and continue execution."""
+
     cmd = ["tshark", "-T", "fields", "-e", "frame.time", "-e", "tcp.srcport", "-e", "tcp.payload"] + args
     process = Popen(cmd, stdout=PIPE, encoding="utf-8")
 
@@ -64,8 +66,9 @@ def tshark(args, wait=False):
     return process.communicate()[0]
 
 
-# Transform the raw output of wireshark into a more manageable one
 def process_data(input, servo_port):
+    """Transform the raw output of tshark stdout into a manageable list."""
+
     # Split the input into lines.
     # `input` = newline-terminated lines of tab-delimited tshark(1) output
     lines = [line.split("\t") for line in input.split("\n")]
@@ -141,8 +144,10 @@ def process_data(input, servo_port):
     return result
 
 
-# Pretty prints the json message
 def parse_message(msg, *, json_output=False):
+    """Pretty print the JSON message, actor and timestamp.
+    If `json_output` is True, output the JSON message in one line instead."""
+
     time, sender, i, data = msg
     from_servo = sender == "Servo"
 
