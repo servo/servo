@@ -10,10 +10,12 @@ interface HTMLDialogElement : HTMLElement {
   [CEReactions]
   attribute boolean open;
   attribute DOMString returnValue;
-  [CEReactions]
+  [Throws, CEReactions]
   undefined show();
-  // [CEReactions]
-  // void showModal();
+  [Throws, CEReactions]
+  undefined showModal();
   [CEReactions]
   undefined close(optional DOMString returnValue);
+  // [CEReactions]
+  // undefined requestClose(optional DOMString returnValue);
 };
