@@ -329,6 +329,9 @@ impl App {
 
         while let Ok(msg) = webdriver_receiver.try_recv() {
             match msg {
+                WebDriverCommandMsg::Shutdown => {
+                    running_state.servo().start_shutting_down();
+                },
                 WebDriverCommandMsg::IsWebViewOpen(webview_id, sender) => {
                     let context = running_state.webview_by_id(webview_id);
 

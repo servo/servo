@@ -94,6 +94,11 @@ fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
             "/session/{sessionId}/servo/prefs/reset",
             ServoExtensionRoute::ResetPrefs,
         ),
+        (
+            Method::DELETE,
+            "/session/{sessionId}/servo/shutdown",
+            ServoExtensionRoute::Shutdown,
+        ),
     ]
 }
 
@@ -174,6 +179,7 @@ enum ServoExtensionRoute {
     GetPrefs,
     SetPrefs,
     ResetPrefs,
+    Shutdown,
 }
 
 impl WebDriverExtensionRoute for ServoExtensionRoute {
@@ -197,17 +203,19 @@ impl WebDriverExtensionRoute for ServoExtensionRoute {
                 let parameters: GetPrefsParameters = serde_json::from_value(body_data.clone())?;
                 ServoExtensionCommand::ResetPrefs(parameters)
             },
+            ServoExtensionRoute::Shutdown => ServoExtensionCommand::Shutdown,
         };
         Ok(WebDriverCommand::Extension(command))
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 #[allow(clippy::enum_variant_names)]
 enum ServoExtensionCommand {
     GetPrefs(GetPrefsParameters),
     SetPrefs(SetPrefsParameters),
     ResetPrefs(GetPrefsParameters),
+    Shutdown,
 }
 
 impl WebDriverExtensionCommand for ServoExtensionCommand {
@@ -216,6 +224,7 @@ impl WebDriverExtensionCommand for ServoExtensionCommand {
             ServoExtensionCommand::GetPrefs(ref x) => serde_json::to_value(x).ok(),
             ServoExtensionCommand::SetPrefs(ref x) => serde_json::to_value(x).ok(),
             ServoExtensionCommand::ResetPrefs(ref x) => serde_json::to_value(x).ok(),
+            ServoExtensionCommand::Shutdown => None,
         }
     }
 }
@@ -2444,19 +2453,21 @@ impl Handler {
         )))
     }
 
+    fn handle_shutdown(&self) -> WebDriverResult<WebDriverResponse> {
+        self.send_message_to_embedder(WebDriverCommandMsg::Shutdown)?;
+        Ok(WebDriverResponse::Void)
+    }
+
     fn verify_top_level_browsing_context_is_open(
         &self,
         webview_id: WebViewId,
     ) -> Result<(), WebDriverError> {
         let (sender, receiver) = ipc::channel().unwrap();
         self.send_message_to_embedder(WebDriverCommandMsg::IsWebViewOpen(webview_id, sender))?;
-        if !receiver.recv().unwrap_or(false) {
-            Err(WebDriverError::new(
-                ErrorStatus::NoSuchWindow,
-                "No such window",
-            ))
-        } else {
+        if wait_for_ipc_response(receiver)? {
             Ok(())
+        } else {
+            Err(WebDriverError::new(ErrorStatus::NoSuchWindow, ""))
         }
     }
 
@@ -2598,10 +2609,11 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::TakeElementScreenshot(ref x) => {
                 self.handle_take_element_screenshot(x)
             },
-            WebDriverCommand::Extension(ref extension) => match *extension {
+            WebDriverCommand::Extension(extension) => match extension {
                 ServoExtensionCommand::GetPrefs(ref x) => self.handle_get_prefs(x),
                 ServoExtensionCommand::SetPrefs(ref x) => self.handle_set_prefs(x),
                 ServoExtensionCommand::ResetPrefs(ref x) => self.handle_reset_prefs(x),
+                ServoExtensionCommand::Shutdown => self.handle_shutdown(),
             },
             _ => Err(WebDriverError::new(
                 ErrorStatus::UnsupportedOperation,
