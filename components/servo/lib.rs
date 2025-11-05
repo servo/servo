@@ -190,7 +190,6 @@ pub struct Servo {
     compositor: Rc<RefCell<IOCompositor>>,
     constellation_proxy: ConstellationProxy,
     embedder_receiver: Receiver<EmbedderMsg>,
-
     /// A struct that tracks ongoing JavaScript evaluations and is responsible for
     /// calling the callback when the evaluation is complete.
     javascript_evaluator: Rc<RefCell<JavaScriptEvaluator>>,
