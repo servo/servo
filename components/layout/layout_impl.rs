@@ -151,6 +151,10 @@ pub struct LayoutThread {
     /// Whether or not user agent stylesheets have been added to the Stylist or not.
     have_added_user_agent_stylesheets: bool,
 
+    /// Whether or not this [`LayoutImpl`]'s [`Device`] has changed since the last restyle.
+    /// If it has, a restyle is pending.
+    device_has_changed: bool,
+
     /// Is this the first reflow in this LayoutThread?
     have_ever_generated_display_list: Cell<bool>,
 
@@ -225,6 +229,33 @@ impl Drop for LayoutThread {
 impl Layout for LayoutThread {
     fn device(&self) -> &Device {
         self.stylist.device()
+    }
+
+    fn set_theme(&mut self, theme: Theme) -> bool {
+        let theme: PrefersColorScheme = theme.into();
+        let device = self.stylist.device_mut();
+        if theme == device.color_scheme() {
+            return false;
+        }
+
+        device.set_color_scheme(theme);
+        self.device_has_changed = true;
+        true
+    }
+
+    fn set_viewport_details(&mut self, viewport_details: ViewportDetails) -> bool {
+        let device = self.stylist.device_mut();
+        let device_pixel_ratio = Scale::new(viewport_details.hidpi_scale_factor.get());
+        if device.viewport_size() == viewport_details.size &&
+            device.device_pixel_ratio() == device_pixel_ratio
+        {
+            return false;
+        }
+
+        device.set_viewport_size(viewport_details.size);
+        device.set_device_pixel_ratio(device_pixel_ratio);
+        self.device_has_changed = true;
+        true
     }
 
     fn load_web_fonts_from_stylesheet(&self, stylesheet: &ServoArc<Stylesheet>) {
@@ -706,6 +737,7 @@ impl LayoutThread {
             font_context: config.font_context,
             have_added_user_agent_stylesheets: false,
             have_ever_generated_display_list: Cell::new(false),
+            device_has_changed: false,
             need_overflow_calculation: Cell::new(false),
             need_new_display_list: Cell::new(false),
             need_new_stacking_context_tree: Cell::new(false),
@@ -899,25 +931,6 @@ impl LayoutThread {
         })
     }
 
-    fn update_device_if_necessary(
-        &mut self,
-        reflow_request: &ReflowRequest,
-        viewport_changed: bool,
-        guards: &StylesheetGuards,
-    ) -> bool {
-        let had_used_viewport_units = self.stylist.device().used_viewport_units();
-        let theme_changed = self.theme_did_change(reflow_request.theme);
-        if !viewport_changed && !theme_changed {
-            return false;
-        }
-        self.update_device(
-            reflow_request.viewport_details,
-            reflow_request.theme,
-            guards,
-        );
-        (viewport_changed && had_used_viewport_units) || theme_changed
-    }
-
     #[servo_tracing::instrument(skip_all)]
     fn prepare_stylist_for_reflow<'dom>(
         &mut self,
@@ -978,16 +991,23 @@ impl LayoutThread {
         let author_guard = document_shared_lock.read();
         let ua_stylesheets = &*UA_STYLESHEETS;
         let ua_or_user_guard = ua_stylesheets.shared_lock.read();
-        let rayon_pool = STYLE_THREAD_POOL.lock();
-        let rayon_pool = rayon_pool.pool();
-        let rayon_pool = rayon_pool.as_ref();
         let guards = StylesheetGuards {
             author: &author_guard,
             ua_or_user: &ua_or_user_guard,
         };
 
-        let viewport_changed = self.viewport_did_change(reflow_request.viewport_details);
-        if self.update_device_if_necessary(reflow_request, viewport_changed, &guards) {
+        let rayon_pool = STYLE_THREAD_POOL.lock();
+        let rayon_pool = rayon_pool.pool();
+        let rayon_pool = rayon_pool.as_ref();
+
+        let device_has_changed = std::mem::replace(&mut self.device_has_changed, false);
+        if device_has_changed {
+            let sheet_origins_affected_by_device_change = self
+                .stylist
+                .media_features_change_changed_style(&guards, self.device());
+            self.stylist
+                .force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
+
             if let Some(mut data) = root_element.mutate_data() {
                 data.hint.insert(RestyleHint::recascade_subtree());
             }
@@ -1059,7 +1079,7 @@ impl LayoutThread {
         }
 
         let root_node = root_element.as_node();
-        let damage_from_environment = if viewport_changed {
+        let damage_from_environment = if device_has_changed {
             RestyleDamage::RELAYOUT
         } else {
             Default::default()
@@ -1359,50 +1379,6 @@ impl LayoutThread {
                 TimerMetadataReflowType::FirstReflow
             },
         })
-    }
-
-    fn viewport_did_change(&mut self, viewport_details: ViewportDetails) -> bool {
-        let new_pixel_ratio = viewport_details.hidpi_scale_factor.get();
-        let new_viewport_size = Size2D::new(
-            Au::from_f32_px(viewport_details.size.width),
-            Au::from_f32_px(viewport_details.size.height),
-        );
-
-        let device = self.stylist.device();
-        let size_did_change = device.au_viewport_size() != new_viewport_size;
-        let pixel_ratio_did_change = device.device_pixel_ratio().get() != new_pixel_ratio;
-
-        size_did_change || pixel_ratio_did_change
-    }
-
-    fn theme_did_change(&self, theme: Theme) -> bool {
-        let theme: PrefersColorScheme = theme.into();
-        theme != self.device().color_scheme()
-    }
-
-    /// Update layout given a new viewport. Returns true if the viewport changed or false if it didn't.
-    fn update_device(
-        &mut self,
-        viewport_details: ViewportDetails,
-        theme: Theme,
-        guards: &StylesheetGuards,
-    ) {
-        let device = Device::new(
-            MediaType::screen(),
-            self.stylist.quirks_mode(),
-            viewport_details.size,
-            Scale::new(viewport_details.hidpi_scale_factor.get()),
-            Box::new(LayoutFontMetricsProvider(self.font_context.clone())),
-            self.stylist.device().default_computed_values().to_arc(),
-            theme.into(),
-        );
-
-        // Preserve any previously computed root font size.
-        device.set_root_font_size(self.stylist.device().root_font_size().px());
-
-        let sheet_origins_affected_by_device_change = self.stylist.set_device(device, guards);
-        self.stylist
-            .force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
     }
 }
 

@@ -67,7 +67,6 @@ impl MixedMessage {
                 ScriptThreadMessage::ExitScriptThread => None,
                 ScriptThreadMessage::SendInputEvent(_, id, _) => Some(*id),
                 ScriptThreadMessage::RefreshCursor(id, ..) => Some(*id),
-                ScriptThreadMessage::Viewport(id, ..) => Some(*id),
                 ScriptThreadMessage::GetTitle(id) => Some(*id),
                 ScriptThreadMessage::SetDocumentActivity(id, ..) => Some(*id),
                 ScriptThreadMessage::SetThrottled(_, id, ..) => Some(*id),

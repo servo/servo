@@ -241,6 +241,16 @@ pub trait Layout {
     /// resolve font metrics.
     fn device(&self) -> &Device;
 
+    /// Set the theme on this [`Layout`]'s [`Device`]. The caller should also trigger a
+    /// new layout when this happens, though it can happen later. Returns `true` if the
+    /// [`Theme`] actually changed or `false` otherwise.
+    fn set_theme(&mut self, theme: Theme) -> bool;
+
+    /// Set the [`ViewportDetails`] on this [`Layout`]'s [`Device`]. The caller should also
+    /// trigger a new layout when this happens, though it can happen later. Returns `true`
+    /// if the [`ViewportDetails`] actually changed or `false` otherwise.
+    fn set_viewport_details(&mut self, viewport_details: ViewportDetails) -> bool;
+
     /// Load all fonts from the given stylesheet, returning the number of fonts that
     /// need to be loaded.
     fn load_web_fonts_from_stylesheet(&self, stylesheet: &ServoArc<Stylesheet>);
@@ -490,7 +500,7 @@ bitflags! {
         const PendingRestyles = 1 << 2;
         const HighlightedDOMNodeChanged = 1 << 3;
         const ThemeChanged = 1 << 4;
-        const ViewportSizeChanged = 1 << 5;
+        const ViewportChanged = 1 << 5;
         const PaintWorkletLoaded = 1 << 6;
     }
 }
@@ -585,8 +595,6 @@ pub struct ReflowRequest {
     pub animations: DocumentAnimationSet,
     /// An [`AnimatingImages`] struct used to track images that are animating.
     pub animating_images: Arc<RwLock<AnimatingImages>>,
-    /// The theme for the window
-    pub theme: Theme,
     /// The node highlighted by the devtools, if any
     pub highlighted_dom_node: Option<OpaqueNode>,
 }
