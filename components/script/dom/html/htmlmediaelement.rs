@@ -5,7 +5,7 @@
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, Weak};
 use std::time::{Duration, Instant};
 use std::{f64, mem};
 
@@ -18,7 +18,7 @@ use headers::{ContentLength, ContentRange, HeaderMapExt};
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use http::StatusCode;
 use http::header::{self, HeaderMap, HeaderValue};
-use ipc_channel::ipc::{self, IpcSharedMemory, channel};
+use ipc_channel::ipc::{self, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoRealm;
 use layout_api::MediaFrame;
@@ -104,6 +104,7 @@ use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
+use crate::task_source::SendableTaskSource;
 
 /// A CSS file to style the media controls.
 static MEDIA_CONTROL_CSS: &str = include_str!("../../resources/media-controls.css");
@@ -165,8 +166,11 @@ impl FrameHolder {
 
 #[derive(MallocSizeOf)]
 pub(crate) struct MediaFrameRenderer {
-    player_id: Option<u64>,
+    player_id: Option<usize>,
+    glplayer_id: Option<u64>,
     compositor_api: CrossProcessCompositorApi,
+    #[ignore_malloc_size_of = "Defined in other crates"]
+    player_context: WindowGLContext,
     current_frame: Option<MediaFrame>,
     old_frame: Option<ImageKey>,
     very_old_frame: Option<ImageKey>,
@@ -176,15 +180,114 @@ pub(crate) struct MediaFrameRenderer {
 }
 
 impl MediaFrameRenderer {
-    fn new(compositor_api: CrossProcessCompositorApi) -> Self {
+    fn new(compositor_api: CrossProcessCompositorApi, player_context: WindowGLContext) -> Self {
         Self {
             player_id: None,
+            glplayer_id: None,
             compositor_api,
+            player_context,
             current_frame: None,
             old_frame: None,
             very_old_frame: None,
             current_frame_holder: None,
             poster_frame: None,
+        }
+    }
+
+    fn setup(
+        &mut self,
+        player_id: usize,
+        task_source: SendableTaskSource,
+        weak_video_renderer: Weak<Mutex<MediaFrameRenderer>>,
+    ) {
+        self.player_id = Some(player_id);
+
+        let (glplayer_id, image_receiver) = self
+            .player_context
+            .glplayer_thread_sender
+            .as_ref()
+            .map(|sender| {
+                let (image_sender, image_receiver) = ipc::channel::<GLPlayerMsgForward>().unwrap();
+                sender
+                    .send(GLPlayerMsg::RegisterPlayer(image_sender))
+                    .unwrap();
+                match image_receiver.recv().unwrap() {
+                    GLPlayerMsgForward::PlayerId(id) => (Some(id), Some(image_receiver)),
+                    _ => unreachable!(),
+                }
+            })
+            .unwrap_or((None, None));
+
+        self.glplayer_id = glplayer_id;
+
+        let Some(image_receiver) = image_receiver else {
+            return;
+        };
+
+        ROUTER.add_typed_route(
+            image_receiver,
+            Box::new(move |message| {
+                let message = message.unwrap();
+                let weak_video_renderer = weak_video_renderer.clone();
+
+                task_source.queue(task!(handle_glplayer_message: move || {
+                    trace!("GLPlayer message {:?}", message);
+
+                    let Some(video_renderer) = weak_video_renderer.upgrade() else {
+                        return;
+                    };
+
+                    match message {
+                        GLPlayerMsgForward::Lock(sender) => {
+                            if let Some(holder) = video_renderer
+                                .lock()
+                                .unwrap()
+                                .current_frame_holder
+                                .as_mut() {
+                                    holder.lock();
+                                    sender.send(holder.get()).unwrap();
+                                };
+                        },
+                        GLPlayerMsgForward::Unlock() => {
+                            if let Some(holder) = video_renderer
+                                .lock()
+                                .unwrap()
+                                .current_frame_holder
+                                .as_mut() { holder.unlock() }
+                        },
+                        _ => (),
+                    }
+                }));
+            }),
+        );
+    }
+
+    fn reset(&mut self) {
+        self.player_id = None;
+
+        if let Some(glplayer_id) = self.glplayer_id.take() {
+            self.player_context
+                .send(GLPlayerMsg::UnregisterPlayer(glplayer_id));
+        }
+
+        self.current_frame_holder = None;
+
+        let mut updates = smallvec::smallvec![];
+
+        if let Some(current_frame) = self.current_frame.take() {
+            updates.push(ImageUpdate::DeleteImage(current_frame.image_key));
+        }
+
+        if let Some(old_image_key) = self.old_frame.take() {
+            updates.push(ImageUpdate::DeleteImage(old_image_key));
+        }
+
+        if let Some(very_old_image_key) = self.very_old_frame.take() {
+            updates.push(ImageUpdate::DeleteImage(very_old_image_key));
+        }
+
+        if !updates.is_empty() {
+            self.compositor_api.update_images(updates);
         }
     }
 
@@ -199,8 +302,18 @@ impl MediaFrameRenderer {
     }
 }
 
+impl Drop for MediaFrameRenderer {
+    fn drop(&mut self) {
+        self.reset();
+    }
+}
+
 impl VideoFrameRenderer for MediaFrameRenderer {
     fn render(&mut self, frame: VideoFrame) {
+        if self.player_id.is_none() || (frame.is_gl_texture() && self.glplayer_id.is_none()) {
+            return;
+        }
+
         let mut updates = smallvec::smallvec![];
 
         if let Some(old_image_key) = mem::replace(&mut self.very_old_frame, self.old_frame.take()) {
@@ -248,7 +361,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                 current_frame.width = frame.get_width();
                 current_frame.height = frame.get_height();
 
-                let image_data = if frame.is_gl_texture() && self.player_id.is_some() {
+                let image_data = if frame.is_gl_texture() && self.glplayer_id.is_some() {
                     let texture_target = if frame.is_external_oes() {
                         ImageBufferKind::TextureExternal
                     } else {
@@ -256,7 +369,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                     };
 
                     SerializableImageData::External(ExternalImageData {
-                        id: ExternalImageId(self.player_id.unwrap()),
+                        id: ExternalImageId(self.glplayer_id.unwrap()),
                         channel_index: 0,
                         image_type: ExternalImageType::TextureHandle(texture_target),
                         normalized_uvs: false,
@@ -282,7 +395,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                     height: frame.get_height(),
                 });
 
-                let image_data = if frame.is_gl_texture() && self.player_id.is_some() {
+                let image_data = if frame.is_gl_texture() && self.glplayer_id.is_some() {
                     let texture_target = if frame.is_external_oes() {
                         ImageBufferKind::TextureExternal
                     } else {
@@ -290,7 +403,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                     };
 
                     SerializableImageData::External(ExternalImageData {
-                        id: ExternalImageId(self.player_id.unwrap()),
+                        id: ExternalImageId(self.glplayer_id.unwrap()),
                         channel_index: 0,
                         image_type: ExternalImageType::TextureHandle(texture_target),
                         normalized_uvs: false,
@@ -353,34 +466,6 @@ impl SourceChildrenPointer {
     }
 }
 
-#[derive(JSTraceable, MallocSizeOf)]
-struct DroppableHtmlMediaElement {
-    /// Player Id reported the player thread
-    player_id: Cell<u64>,
-    #[ignore_malloc_size_of = "Defined in other crates"]
-    #[no_trace]
-    player_context: WindowGLContext,
-}
-
-impl DroppableHtmlMediaElement {
-    fn new(player_id: Cell<u64>, player_context: WindowGLContext) -> Self {
-        Self {
-            player_id,
-            player_context,
-        }
-    }
-
-    pub(crate) fn set_player_id(&self, id: u64) {
-        self.player_id.set(id);
-    }
-}
-
-impl Drop for DroppableHtmlMediaElement {
-    fn drop(&mut self) {
-        self.player_context
-            .send(GLPlayerMsg::UnregisterPlayer(self.player_id.get()));
-    }
-}
 #[dom_struct]
 #[allow(non_snake_case)]
 pub(crate) struct HTMLMediaElement {
@@ -470,7 +555,6 @@ pub(crate) struct HTMLMediaElement {
     /// the access to the "privileged" document.servoGetMediaControls(id) API by
     /// keeping a whitelist of media controls identifiers.
     media_controls_id: DomRefCell<Option<String>>,
-    droppable: DroppableHtmlMediaElement,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -525,6 +609,7 @@ impl HTMLMediaElement {
             player: Default::default(),
             video_renderer: Arc::new(Mutex::new(MediaFrameRenderer::new(
                 document.window().compositor_api().clone(),
+                document.window().get_player_context(),
             ))),
             audio_renderer: Default::default(),
             show_poster: Cell::new(true),
@@ -542,10 +627,6 @@ impl HTMLMediaElement {
             next_timeupdate_event: Cell::new(Instant::now() + Duration::from_millis(250)),
             current_fetch_context: RefCell::new(None),
             media_controls_id: DomRefCell::new(None),
-            droppable: DroppableHtmlMediaElement::new(
-                Cell::new(0),
-                document.window().get_player_context(),
-            ),
         }
     }
 
@@ -639,7 +720,7 @@ impl HTMLMediaElement {
 
                         if let Some(ref player) = *this.player.borrow() {
                             if let Err(e) = player.lock().unwrap().pause() {
-                                eprintln!("Could not pause player {:?}", e);
+                                error!("Could not pause player {:?}", e);
                             }
                         }
 
@@ -982,6 +1063,9 @@ impl HTMLMediaElement {
             }
         }
 
+        // Reset the media player before loading the next source child.
+        self.reset_media_player();
+
         self.current_source_child.set(Some(source));
 
         // Step 9.children.7. Set the currentSrc attribute to the result of applying the URL
@@ -1141,7 +1225,7 @@ impl HTMLMediaElement {
 
     fn fetch_request(&self, offset: Option<u64>, seek_lock: Option<SeekLock>) {
         if self.resource_url.borrow().is_none() && self.blob_url.borrow().is_none() {
-            eprintln!("Missing request url");
+            error!("Missing request url");
             if let Some(seek_lock) = seek_lock {
                 seek_lock.unlock(/* successful seek */ false);
             }
@@ -1233,8 +1317,8 @@ impl HTMLMediaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#concept-media-load-resource>
     fn resource_fetch_algorithm(&self, resource: Resource) {
-        if let Err(e) = self.setup_media_player(&resource) {
-            eprintln!("Setup media player error {:?}", e);
+        if let Err(e) = self.create_media_player(&resource) {
+            error!("Create media player error {:?}", e);
             self.resource_selection_algorithm_failure_steps();
             return;
         }
@@ -1366,7 +1450,7 @@ impl HTMLMediaElement {
 
                     if let Some(ref player) = *this.player.borrow() {
                         if let Err(e) = player.lock().unwrap().stop() {
-                            eprintln!("Could not stop player {:?}", e);
+                            error!("Could not stop player {:?}", e);
                         }
                     }
 
@@ -1453,6 +1537,9 @@ impl HTMLMediaElement {
             self.queue_media_element_task_to_fire_event(atom!("abort"));
         }
 
+        // Reset the media player for any previously playing media resource (see Step 11).
+        self.reset_media_player();
+
         // Step 7. If the media element's networkState is not set to NETWORK_EMPTY, then:
         if network_state != NetworkState::Empty {
             // Step 7.1. Queue a media element task given the media element to fire an event named
@@ -1516,8 +1603,7 @@ impl HTMLMediaElement {
         // Step 10. Invoke the media element's resource selection algorithm.
         self.invoke_resource_selection_algorithm(can_gc);
 
-        // TODO Step 11. Note: Playback of any previously playing media resource for this element
-        // stops.
+        // Step 11. Note: Playback of any previously playing media resource for this element stops.
     }
 
     /// Queue a media element task given the media element to fire an event at the media element.
@@ -1758,7 +1844,7 @@ impl HTMLMediaElement {
         // Step 11.
         if let Some(ref player) = *self.player.borrow() {
             if let Err(e) = player.lock().unwrap().seek(time) {
-                eprintln!("Seek error {:?}", e);
+                error!("Seek error {:?}", e);
             }
         }
 
@@ -1785,10 +1871,6 @@ impl HTMLMediaElement {
         task_source.queue_simple_event(self.upcast(), atom!("seeked"));
     }
 
-    fn set_player_id(&self, player_id: u64) {
-        self.droppable.set_player_id(player_id);
-    }
-
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
     pub(crate) fn set_poster_frame(&self, image: Option<Arc<RasterImage>>) {
         let queue_postershown_event = pref!(media_testing_enabled) && image.is_some();
@@ -1805,7 +1887,7 @@ impl HTMLMediaElement {
         }
     }
 
-    fn setup_media_player(&self, resource: &Resource) -> Result<(), ()> {
+    fn create_media_player(&self, resource: &Resource) -> Result<(), ()> {
         let stream_type = match *resource {
             Resource::Object => {
                 if let Some(ref src_object) = *self.src_object.borrow() {
@@ -1871,67 +1953,35 @@ impl HTMLMediaElement {
             }),
         );
 
-        // GLPlayer thread setup
-        let (player_id, image_receiver) = window
-            .get_player_context()
-            .glplayer_thread_sender
-            .map(|pipeline| {
-                let (image_sender, image_receiver) = channel().unwrap();
-                pipeline
-                    .send(GLPlayerMsg::RegisterPlayer(image_sender))
-                    .unwrap();
-                match image_receiver.recv().unwrap() {
-                    GLPlayerMsgForward::PlayerId(id) => (id, Some(image_receiver)),
-                    _ => unreachable!(),
-                }
-            })
-            .unwrap_or((0, None));
+        let task_source = self
+            .owner_global()
+            .task_manager()
+            .media_element_task_source()
+            .to_sendable();
+        let weak_video_renderer = Arc::downgrade(&self.video_renderer);
 
-        self.set_player_id(player_id);
-        self.video_renderer.lock().unwrap().player_id = Some(player_id);
-
-        if let Some(image_receiver) = image_receiver {
-            let trusted_node = Trusted::new(self);
-            let task_source = self
-                .owner_global()
-                .task_manager()
-                .media_element_task_source()
-                .to_sendable();
-            ROUTER.add_typed_route(
-                image_receiver,
-                Box::new(move |message| {
-                    let msg = message.unwrap();
-                    let this = trusted_node.clone();
-                    task_source.queue(task!(handle_glplayer_message: move || {
-                        trace!("GLPlayer message {:?}", msg);
-                        let video_renderer = this.root().video_renderer.clone();
-
-                        match msg {
-                            GLPlayerMsgForward::Lock(sender) => {
-                                if let Some(holder) = video_renderer
-                                    .lock()
-                                    .unwrap()
-                                    .current_frame_holder
-                                    .as_mut() {
-                                        holder.lock();
-                                        sender.send(holder.get()).unwrap();
-                                    };
-                            },
-                            GLPlayerMsgForward::Unlock() => {
-                                if let Some(holder) = video_renderer
-                                    .lock()
-                                    .unwrap()
-                                    .current_frame_holder
-                                    .as_mut() { holder.unlock() }
-                            },
-                            _ => (),
-                        }
-                    }));
-                }),
-            );
-        }
+        self.video_renderer
+            .lock()
+            .unwrap()
+            .setup(player_id, task_source, weak_video_renderer);
 
         Ok(())
+    }
+
+    fn reset_media_player(&self) {
+        if self.player.borrow().is_none() {
+            return;
+        }
+
+        if let Some(ref player) = *self.player.borrow() {
+            if let Err(e) = player.lock().unwrap().stop() {
+                error!("Could not stop player {:?}", e);
+            }
+        }
+
+        *self.player.borrow_mut() = None;
+        self.video_renderer.lock().unwrap().reset();
+        self.handle_resize(None, None);
     }
 
     pub(crate) fn set_audio_track(&self, idx: usize, enabled: bool) {
@@ -2491,11 +2541,6 @@ impl HTMLMediaElement {
         current_frame
     }
 
-    pub(crate) fn clear_current_frame_data(&self) {
-        self.handle_resize(None, None);
-        self.video_renderer.lock().unwrap().current_frame = None;
-    }
-
     fn handle_resize(&self, width: Option<u32>, height: Option<u32>) {
         if let Some(video_elem) = self.downcast::<HTMLVideoElement>() {
             video_elem.resize(width, height);
@@ -2515,7 +2560,7 @@ impl HTMLMediaElement {
         *self.audio_renderer.borrow_mut() = Some(audio_renderer);
         if let Some(ref player) = *self.player.borrow() {
             if let Err(e) = player.lock().unwrap().stop() {
-                eprintln!("Could not stop player {:?}", e);
+                error!("Could not stop player {:?}", e);
             }
             self.media_element_load_algorithm(can_gc);
         }
@@ -2537,7 +2582,7 @@ impl HTMLMediaElement {
     pub(crate) fn reset(&self) {
         if let Some(ref player) = *self.player.borrow() {
             if let Err(e) = player.lock().unwrap().stop() {
-                eprintln!("Could not stop player {:?}", e);
+                error!("Could not stop player {:?}", e);
             }
         }
     }
@@ -3041,11 +3086,9 @@ impl VirtualMethods for HTMLMediaElement {
                 // If a src attribute of a media element is set or changed, the user agent must invoke
                 // the media element's media element load algorithm (Removing the src attribute does
                 // not do this, even if there are source elements present).
-                if mutation.new_value(attr).is_none() {
-                    self.clear_current_frame_data();
-                    return;
+                if !mutation.is_removal() {
+                    self.media_element_load_algorithm(can_gc);
                 }
-                self.media_element_load_algorithm(can_gc);
             },
             local_name!("controls") => {
                 if mutation.new_value(attr).is_some() {
