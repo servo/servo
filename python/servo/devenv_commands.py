@@ -78,6 +78,14 @@ class MachCommands(CommandBase):
         if not params:
             params = []
 
+        if kwargs.get("use_crown", False):
+            print(
+                "Error: `clippy` and `--use-crown` cannot be used together.\n"
+                "`clippy` takes precedence over `crown`, so `crown` would not run.\n"
+                "Please use `./mach check --use-crown` instead to run the crown linter."
+            )
+            return 1
+
         self.ensure_bootstrapped()
         self.ensure_clobbered()
         env = self.build_env()
