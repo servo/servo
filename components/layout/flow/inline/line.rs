@@ -735,17 +735,19 @@ impl LineItemLayout<'_, '_> {
     }
 
     fn form_ellipsis_bounding_box (&mut self, ellipsis_textrun_segment: TextRunSegment, text_item: TextRunLineItem, original_inline_advance: Au)  -> (LogicalRect<Au>, TextRunSegment, TextRunLineItem) {
-        // finding the inline start corner (if horizontal, then starting x pos)
+        // 1. find the inline start corner (if horizontal, then starting x pos), denoted as `inline_start`
+        // `inline_target` is the minimum value for `inline_start`. 
+        // The inline start corner of the ellipsis bounding box must be between 
+        // `inline_target` & `self.layout.containing_block.size.inline`.
         let inline_target = self.layout.containing_block.size.inline 
         - ellipsis_textrun_segment.runs[0].glyph_store.total_advance();
         let mut inline_start = original_inline_advance;   
-        let mut glyph_index_forward = 0;
-
-        // forward pass
+        let mut glyph_index = 0;
         let mut found = false;
-        while glyph_index_forward <= text_item.text.len().saturating_sub(1) {
-            for glyph in text_item.text[glyph_index_forward]
-            .iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), text_item.text[glyph_index_forward]
+
+        while glyph_index <= text_item.text.len().saturating_sub(1) {
+            for glyph in text_item.text[glyph_index]
+            .iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), text_item.text[glyph_index]
         .len())) {
             if !found && inline_start + glyph.advance() + glyph.offset().unwrap_or(Point2D::zero()).x <= inline_target {
                 inline_start += glyph.advance();
@@ -756,11 +758,14 @@ impl LineItemLayout<'_, '_> {
 
             }
         }
-            glyph_index_forward += 1;
+            glyph_index += 1;
         }
 
 
-        // create the bounding box of the ellipsis text fragment
+        // 2. create the bounding box of the ellipsis text fragment
+        // when computing `start_corner.block`, 
+        // I used the same logic used in `LineItemLayout::layout_text_run`, 
+        // the difference is that I am using the `ascent` of the IFC.
         let start_corner = LogicalVec2 {
             inline: inline_start,
             block: self.current_state.baseline_offset -
@@ -780,12 +785,16 @@ impl LineItemLayout<'_, '_> {
     }
 
     fn form_ellipsis(&mut self) -> (TextRunSegment, FontRef) {
-        // Render an ellipsis character (U+2026) to represent clipped inline content. 
+        // CSS specs:
+        // 1. The ellipsis is styled and baseline-aligned according to the block.
+        // 2. Render an ellipsis character (U+2026) to represent clipped inline content. 
         // Implementations may substitute a more language, script, 
         // or writing-mode appropriate ellipsis character, or three dots "..." 
         // if the ellipsis character is unavailable.
         // https://www.w3.org/TR/css-ui-3/#text-overflow
         // TODO: add the fallback three dots.
+
+        // 1. create the arguments needed to create a `TextRunSegment`
         let ellipsis_text = "\u{2026}";
         let ellipsis_char = ellipsis_text.chars().next().unwrap();
 
@@ -795,11 +804,18 @@ impl LineItemLayout<'_, '_> {
         let ellipsis_start_byte_index: usize = 0;
 
         let mut ellipsis_font_cache: Vec<FontKeyAndMetrics> = vec![];
+
+        // According to spec # 1, we should use the styling of the block.
+        // In the context of Servo, this corresponds to the IFC of current `TextRunSegment`.
         let ellipsis_font_context = &self.layout.layout_context.font_context;
         let ellipsis_rendering_group_id = self.layout.layout_context.rendering_group_id;
 
-        let ellipsis_font_group = ellipsis_font_context.font_group(self.layout.containing_block.style.clone().clone_font());
-        let Some(ellipsis_font) = ellipsis_font_group.write().find_by_codepoint(
+        let ellipsis_font_group = ellipsis_font_context
+        .font_group(self.layout.containing_block.style.clone().clone_font());
+
+        let Some(ellipsis_font) = ellipsis_font_group
+        .write()
+        .find_by_codepoint(
             &ellipsis_font_context,
             ellipsis_char,
             None,
@@ -807,6 +823,8 @@ impl LineItemLayout<'_, '_> {
             None,
         ) else {todo!()};
 
+        // FIXME: for `ellipsis_font_cache`, maybe passing an empty vector directly is more efficient? 
+        // I'm thinking **maybe** we can improve this in the future, so I used a variable instead.
         let ellipsis_font_index = add_or_get_font(
             &ellipsis_font,
             &mut ellipsis_font_cache, 
@@ -814,7 +832,7 @@ impl LineItemLayout<'_, '_> {
             ellipsis_rendering_group_id
             );
 
-
+        // 2. create the `TextRunSegment`
         let mut ellipsis_textrun_segment = TextRunSegment::new(
             ellipsis_font_index,
             ellipsis_script,
@@ -822,7 +840,7 @@ impl LineItemLayout<'_, '_> {
             ellipsis_start_byte_index,
         );
 
-        // shape text
+        // 3. create arguments for shaping, which will be done by `shape_and_push_range()`
         let ellipsis_flags = ShapingFlags::empty();
 
         let ellipsis_shaping_options = ShapingOptions {
@@ -832,6 +850,7 @@ impl LineItemLayout<'_, '_> {
             flags: ellipsis_flags,
         };
 
+        // 4. shape text
         ellipsis_textrun_segment.shape_and_push_range(
             &(0..3),
             ellipsis_text,
@@ -839,6 +858,7 @@ impl LineItemLayout<'_, '_> {
             &ellipsis_shaping_options,
         );
 
+        // return
         (ellipsis_textrun_segment, ellipsis_font)
     }
 
