@@ -2337,7 +2337,7 @@ fn normalize_algorithm(
                 },
                 (ALG_ECDH, Operation::DeriveBits) => {
                     let mut params =
-                        dictionary_from_jsval::<EcdhKeyDeriveParams>(cx, value.handle())?;
+                        dictionary_from_jsval::<EcdhKeyDeriveParams>(cx, value.handle(), can_gc)?;
                     params.parent.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::EcdhKeyDeriveParams(params.into())
                 },
