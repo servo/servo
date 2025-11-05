@@ -1699,8 +1699,11 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-img-naturalwidth>
     fn NaturalWidth(&self) -> u32 {
         let request = self.current_request.borrow();
-        let pixel_density = request.current_pixel_density.unwrap_or(1f64);
+        if matches!(request.state, State::Broken) {
+            return 0;
+        }
 
+        let pixel_density = request.current_pixel_density.unwrap_or(1f64);
         match request.metadata {
             Some(ref metadata) => (metadata.width as f64 / pixel_density) as u32,
             None => 0,
@@ -1710,8 +1713,11 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-img-naturalheight>
     fn NaturalHeight(&self) -> u32 {
         let request = self.current_request.borrow();
-        let pixel_density = request.current_pixel_density.unwrap_or(1f64);
+        if matches!(request.state, State::Broken) {
+            return 0;
+        }
 
+        let pixel_density = request.current_pixel_density.unwrap_or(1f64);
         match request.metadata {
             Some(ref metadata) => (metadata.height as f64 / pixel_density) as u32,
             None => 0,

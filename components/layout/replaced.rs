@@ -272,6 +272,11 @@ impl ReplacedContents {
     }
 
     #[inline]
+    fn is_broken_image(&self) -> bool {
+        matches!(self.kind, ReplacedContentKind::Image(_, true))
+    }
+
+    #[inline]
     fn content_size(
         &self,
         axis: Direction,
@@ -290,18 +295,25 @@ impl ReplacedContents {
         }
     }
 
-    pub fn make_fragments(
+    fn calculate_fragment_rect(
         &self,
-        layout_context: &LayoutContext,
         style: &ServoArc<ComputedValues>,
         size: PhysicalSize<Au>,
-    ) -> Vec<Fragment> {
+    ) -> (PhysicalSize<Au>, PhysicalRect<Au>) {
+        if let ReplacedContentKind::Image(Some(Image::Raster(image)), true) = &self.kind {
+            let size = Size2D::new(
+                Au::from_f32_px(image.metadata.width as f32),
+                Au::from_f32_px(image.metadata.height as f32),
+            )
+            .min(size);
+            return (PhysicalSize::zero(), size.into());
+        }
+
         let natural_size = PhysicalSize::new(
             self.natural_size.width.unwrap_or(size.width),
             self.natural_size.height.unwrap_or(size.height),
         );
 
-        let showing_broken_image_icon = matches!(self.kind, ReplacedContentKind::Image(_, true));
         let object_fit_size = self.natural_size.ratio.map_or(size, |width_over_height| {
             let preserve_aspect_ratio_with_comparison =
                 |size: PhysicalSize<Au>, comparison: fn(&Au, &Au) -> bool| {
@@ -315,12 +327,7 @@ impl ReplacedContents {
                     PhysicalSize::new(size.width, candidate_height)
                 };
 
-            let object_fit = match showing_broken_image_icon {
-                true => ObjectFit::ScaleDown,
-                false => style.clone_object_fit(),
-            };
-
-            match object_fit {
+            match style.clone_object_fit() {
                 ObjectFit::Fill => size,
                 ObjectFit::Contain => preserve_aspect_ratio_with_comparison(size, PartialOrd::le),
                 ObjectFit::Cover => preserve_aspect_ratio_with_comparison(size, PartialOrd::ge),
@@ -339,16 +346,24 @@ impl ReplacedContents {
             .vertical
             .to_used_value(size.height - object_fit_size.height);
 
-        let object_position = match showing_broken_image_icon {
-            true => PhysicalPoint::origin(),
-            false => PhysicalPoint::new(horizontal_position, vertical_position),
-        };
+        let object_position = PhysicalPoint::new(horizontal_position, vertical_position);
+        (
+            object_fit_size,
+            PhysicalRect::new(object_position, object_fit_size),
+        )
+    }
 
-        let rect = PhysicalRect::new(object_position, object_fit_size);
+    pub fn make_fragments(
+        &self,
+        layout_context: &LayoutContext,
+        style: &ServoArc<ComputedValues>,
+        size: PhysicalSize<Au>,
+    ) -> Vec<Fragment> {
+        let (object_fit_size, rect) = self.calculate_fragment_rect(style, size);
         let clip = PhysicalRect::new(PhysicalPoint::origin(), size);
 
         match &self.kind {
-            ReplacedContentKind::Image(image, _) => image
+            ReplacedContentKind::Image(image, showing_broken_image_icon) => image
                 .as_ref()
                 .and_then(|image| match image {
                     Image::Raster(raster_image) => raster_image.id,
@@ -371,7 +386,7 @@ impl ReplacedContents {
                         rect,
                         clip,
                         image_key: Some(image_key),
-                        showing_broken_image_icon,
+                        showing_broken_image_icon: *showing_broken_image_icon,
                     }))
                 })
                 .into_iter()
@@ -383,7 +398,7 @@ impl ReplacedContents {
                     rect,
                     clip,
                     image_key: video.as_ref().map(|video| video.image_key),
-                    showing_broken_image_icon,
+                    showing_broken_image_icon: false,
                 }))]
             },
             ReplacedContentKind::IFrame(iframe) => {
@@ -425,7 +440,7 @@ impl ReplacedContents {
                     rect,
                     clip,
                     image_key: Some(image_key),
-                    showing_broken_image_icon,
+                    showing_broken_image_icon: false,
                 }))]
             },
             ReplacedContentKind::SVGElement(vector_image) => {
@@ -463,7 +478,7 @@ impl ReplacedContents {
                             rect,
                             clip,
                             image_key: Some(image_key),
-                            showing_broken_image_icon,
+                            showing_broken_image_icon: false,
                         }))
                     })
                     .into_iter()
@@ -477,7 +492,16 @@ impl ReplacedContents {
         style: &ComputedValues,
         padding_border_sums: &LogicalVec2<Au>,
     ) -> Option<AspectRatio> {
-        style.preferred_aspect_ratio(self.natural_size.ratio, padding_border_sums)
+        if self.is_broken_image() {
+            // This isn't specified, but when an image is broken, we should prefer to the aspect
+            // ratio from the style, rather than the aspect ratio from the broken image icon.
+            // Note that the broken image icon *does* affect the content size of the image
+            // though as we want the image to be as big as the icon if the size was not specified
+            // in the style.
+            style.preferred_aspect_ratio(None, padding_border_sums)
+        } else {
+            style.preferred_aspect_ratio(self.natural_size.ratio, padding_border_sums)
+        }
     }
 
     /// The inline size that would result from combining the natural size
