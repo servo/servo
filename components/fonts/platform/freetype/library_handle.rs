@@ -61,7 +61,7 @@ unsafe impl Sync for FreeTypeLibraryHandle {}
 unsafe impl Send for FreeTypeLibraryHandle {}
 
 impl Drop for FreeTypeLibraryHandle {
-    #[allow(unused)]
+    #[expect(unused)]
     fn drop(&mut self) {
         assert!(!self.freetype_library.is_null());
         unsafe {

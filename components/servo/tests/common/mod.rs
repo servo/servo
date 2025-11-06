@@ -18,7 +18,6 @@ use servo::{
 
 pub struct ServoTest {
     pub servo: Rc<Servo>,
-    #[allow(dead_code)]
     pub rendering_context: Rc<dyn RenderingContext>,
 }
 
@@ -84,7 +83,6 @@ impl ServoTest {
     ///    any longer.
     // The dead code exception here is because not all test suites that use `common` also
     // use `spin()`.
-    #[allow(dead_code)]
     pub fn spin(&self, callback: impl Fn() -> bool + 'static) {
         while callback() {
             std::thread::sleep(Duration::from_millis(1));

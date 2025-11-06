@@ -8,7 +8,7 @@ mod font;
 mod font_context;
 mod font_store;
 mod glyph;
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 pub mod platform; // Public because integration tests need this
 mod shapers;
 mod system_font_service;

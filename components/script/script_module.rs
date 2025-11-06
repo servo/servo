@@ -525,7 +525,7 @@ impl ModuleTree {
         }
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script>
     /// Step 5-2.
     pub(crate) fn instantiate_module_tree(
@@ -558,7 +558,7 @@ impl ModuleTree {
     /// Execute the provided module, storing the evaluation return value in the provided
     /// mutable handle. Although the CanGc appears unused, it represents the GC operations
     /// possible when evluating arbitrary JS.
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn execute_module(
         &self,
         global: &GlobalScope,
@@ -600,7 +600,7 @@ impl ModuleTree {
         }
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn report_error(&self, global: &GlobalScope, can_gc: CanGc) {
         let module_error = self.rethrow_error.borrow();
 
@@ -617,7 +617,7 @@ impl ModuleTree {
         }
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn resolve_requested_module_specifiers(
         &self,
         global: &GlobalScope,
@@ -659,7 +659,6 @@ impl ModuleTree {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#resolve-a-module-specifier>
-    #[allow(unsafe_code)]
     fn resolve_module_specifier(
         global: &GlobalScope,
         script: Option<&ModuleScript>,
@@ -840,7 +839,6 @@ impl ModuleTree {
         (None, parse_error)
     }
 
-    #[allow(unsafe_code)]
     // FIXME: spec links in this function are all broken, so it’s unclear what this algorithm does
     /// <https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-a-module-script>
     fn fetch_module_descendants(
@@ -1037,7 +1035,7 @@ impl Callback for ModuleHandler {
 /// It can be `worker` or `script` element
 #[derive(Clone)]
 pub(crate) enum ModuleOwner {
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     Worker(TrustedWorkerAddress),
     Window(Trusted<HTMLScriptElement>),
     DynamicModule(Trusted<DynamicModuleOwner>),
@@ -1107,7 +1105,7 @@ impl ModuleOwner {
         }
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#hostimportmoduledynamically(referencingscriptormodule,-specifier,-promisecapability):fetch-an-import()-module-script-graph>
     /// Step 6-9
     fn finish_dynamic_module(
@@ -1255,7 +1253,6 @@ impl FetchResponseListener for ModuleContext {
 
     /// <https://html.spec.whatwg.org/multipage/#fetch-a-single-module-script>
     /// Step 9-12
-    #[allow(unsafe_code)]
     fn process_response_eof(
         &mut self,
         _: RequestId,
@@ -1420,19 +1417,19 @@ pub(crate) unsafe fn EnsureModuleHooksInitialized(rt: *mut JSRuntime) {
     SetModuleDynamicImportHook(rt, Some(host_import_module_dynamically));
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn host_add_ref_top_level_script(value: *const Value) {
     let val = Rc::from_raw((*value).to_private() as *const ModuleScript);
     mem::forget(val.clone());
     mem::forget(val);
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn host_release_top_level_script(value: *const Value) {
     let _val = Rc::from_raw((*value).to_private() as *const ModuleScript);
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 /// <https://tc39.es/ecma262/#sec-hostimportmoduledynamically>
 /// <https://html.spec.whatwg.org/multipage/#hostimportmoduledynamically(referencingscriptormodule,-specifier,-promisecapability)>
 pub(crate) unsafe extern "C" fn host_import_module_dynamically(
@@ -1503,7 +1500,7 @@ impl ScriptFetchOptions {
     }
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe fn module_script_from_reference_private(
     reference_private: &RawHandle<JSVal>,
 ) -> Option<&ModuleScript> {
@@ -1514,7 +1511,7 @@ unsafe fn module_script_from_reference_private(
 }
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-an-import()-module-script-graph>
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 fn fetch_an_import_module_script_graph(
     global: &GlobalScope,
     module_request: RawHandle<*mut JSObject>,
@@ -1887,7 +1884,6 @@ fn fetch_single_module_script(
     }
 }
 
-#[allow(unsafe_code)]
 /// <https://html.spec.whatwg.org/multipage/#fetch-an-inline-module-script-graph>
 pub(crate) fn fetch_inline_module_script(
     owner: ModuleOwner,
@@ -2269,7 +2265,6 @@ pub(crate) fn parse_an_import_map_string(
 }
 
 /// <https://html.spec.whatwg.org/multipage/#sorting-and-normalizing-a-module-specifier-map>
-#[allow(unsafe_code)]
 fn sort_and_normalize_module_specifier_map(
     global: &GlobalScope,
     original_map: &JsonMap<String, JsonValue>,

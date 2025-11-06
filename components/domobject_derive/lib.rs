@@ -37,7 +37,7 @@ fn expand_dom_object(input: syn::DeriveInput) -> proc_macro2::TokenStream {
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let items = quote! {
         impl #impl_generics ::js::conversions::ToJSValConvertible for #name #ty_generics #where_clause {
-            #[allow(unsafe_code)]
+            #[expect(unsafe_code)]
             unsafe fn to_jsval(&self,
                                 cx: *mut js::jsapi::JSContext,
                                 rval: js::rust::MutableHandleValue) {
@@ -85,7 +85,7 @@ fn expand_dom_object(input: syn::DeriveInput) -> proc_macro2::TokenStream {
         impl<T: ?Sized> NoDomObjectInDomObject<()> for T {}
 
         // Used for the specialized impl when DomObject is implemented.
-        #[allow(dead_code)]
+        #[expect(dead_code)]
         struct Invalid;
         // forbids DomObject
         impl<T> NoDomObjectInDomObject<Invalid> for T where T: ?Sized + crate::DomObject {}

@@ -33,9 +33,9 @@ use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::JSContext as SafeJSContext;
 
 struct SyncWrapper(*const libc::c_void);
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe impl Sync for SyncWrapper {}
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe impl Send for SyncWrapper {}
 
 static HANDLER: LazyLock<SyncWrapper> = LazyLock::new(|| {
@@ -72,13 +72,13 @@ static HANDLER: LazyLock<SyncWrapper> = LazyLock::new(|| {
         isConstructor: None,
     };
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     unsafe {
         SyncWrapper(CreateProxyHandler(&traps, ptr::null()))
     }
 });
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn get_own_property_descriptor(
     cx: *mut JSContext,
     proxy: HandleObject,
@@ -154,7 +154,7 @@ unsafe extern "C" fn get_own_property_descriptor(
     true
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn own_property_keys(
     cx: *mut JSContext,
     _proxy: HandleObject,
@@ -170,7 +170,7 @@ unsafe extern "C" fn own_property_keys(
     true
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn define_property(
     _cx: *mut JSContext,
     _proxy: HandleObject,
@@ -184,7 +184,7 @@ unsafe extern "C" fn define_property(
     true
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn delete(
     _cx: *mut JSContext,
     _proxy: HandleObject,
@@ -197,7 +197,7 @@ unsafe extern "C" fn delete(
     true
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn get_prototype_if_ordinary(
     _cx: *mut JSContext,
     proxy: HandleObject,
@@ -211,7 +211,7 @@ unsafe extern "C" fn get_prototype_if_ordinary(
     true
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn prevent_extensions(
     _cx: *mut JSContext,
     _proxy: HandleObject,
@@ -223,7 +223,7 @@ unsafe extern "C" fn prevent_extensions(
     true
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn is_extensible(
     _cx: *mut JSContext,
     _proxy: HandleObject,
@@ -235,13 +235,13 @@ unsafe extern "C" fn is_extensible(
     true
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn class_name(_cx: *mut JSContext, _proxy: HandleObject) -> *const libc::c_char {
     c"WindowProperties".as_ptr()
 }
 
 // Maybe this should be a DOMJSClass. See https://bugzilla.mozilla.org/show_bug.cgi?id=787070
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 static CLASS: JSClass = JSClass {
     name: c"WindowProperties".as_ptr(),
     flags: JSClass_NON_NATIVE |
@@ -254,7 +254,7 @@ static CLASS: JSClass = JSClass {
     oOps: unsafe { &ProxyObjectOps },
 };
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 pub(crate) fn create(
     cx: SafeJSContext,
     proto: RustHandleObject,

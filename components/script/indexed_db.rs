@@ -50,7 +50,7 @@ where
 }
 
 // https://www.w3.org/TR/IndexedDB-2/#convert-key-to-value
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 pub fn key_type_to_jsval(
     cx: SafeJSContext,
     key: &IndexedDBKeyType,
@@ -81,7 +81,7 @@ pub fn key_type_to_jsval(
 /// <https://www.w3.org/TR/IndexedDB-2/#valid-key-path>
 pub(crate) fn is_valid_key_path(key_path: &StrOrStringSequence) -> Result<bool, Error> {
     // <https://tc39.es/ecma262/#prod-IdentifierName>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     let is_identifier_name = |name: &str| -> Result<bool, Error> {
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut value = UndefinedValue());
@@ -151,7 +151,7 @@ impl ConversionResult {
 }
 
 // https://www.w3.org/TR/IndexedDB-2/#convert-value-to-key
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 pub fn convert_value_to_key(
     cx: SafeJSContext,
     input: HandleValue,
@@ -259,7 +259,7 @@ pub fn convert_value_to_key(
 }
 
 /// <https://www.w3.org/TR/IndexedDB-2/#convert-a-value-to-a-key-range>
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 pub fn convert_value_to_key_range(
     cx: SafeJSContext,
     input: HandleValue,
@@ -310,7 +310,7 @@ pub(crate) enum EvaluationResult {
 }
 
 /// <https://www.w3.org/TR/IndexedDB-2/#evaluate-a-key-path-on-a-value>
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 pub(crate) fn evaluate_key_path_on_value(
     cx: SafeJSContext,
     value: HandleValue,

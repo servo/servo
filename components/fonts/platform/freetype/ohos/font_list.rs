@@ -33,7 +33,7 @@ static OHOS_FONTS_DIR: &str = env!("OHOS_SDK_FONTS_DIR");
 #[cfg(not(ohos_mock))]
 static OHOS_FONTS_DIR: &str = "/system/fonts";
 
-#[allow(unused)]
+#[expect(unused)]
 #[derive(Clone, Copy, Debug, Default)]
 // HarmonyOS only comes in Condensed and Normal variants
 enum FontWidth {

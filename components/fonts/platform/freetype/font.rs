@@ -53,7 +53,6 @@ impl FontTableMethods for FontTable {
 }
 
 #[derive(Debug)]
-#[allow(unused)]
 pub struct PlatformFont {
     face: ReentrantMutex<FreeTypeFace>,
     requested_face_size: Au,

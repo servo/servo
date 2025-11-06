@@ -1065,7 +1065,7 @@ pub struct UntrustedNodeAddress(pub *const c_void);
 
 malloc_size_of_is_0!(UntrustedNodeAddress);
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe impl Send for UntrustedNodeAddress {}
 
 impl From<style_traits::dom::OpaqueNode> for UntrustedNodeAddress {

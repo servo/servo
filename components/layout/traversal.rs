@@ -30,7 +30,7 @@ impl<'a> RecalcStyle<'a> {
     }
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 impl<'dom, E> DomTraversal<E> for RecalcStyle<'_>
 where
     E: TElement,

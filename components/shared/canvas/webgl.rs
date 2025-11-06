@@ -617,7 +617,6 @@ macro_rules! define_resource_id {
             }
         }
 
-        #[allow(unsafe_code)]
         impl<'de> ::serde::Deserialize<'de> for $name {
             fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
             where

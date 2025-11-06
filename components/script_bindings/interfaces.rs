@@ -65,7 +65,7 @@ pub trait DomHelpers<D: DomTypes> {
 }
 
 /// Operations that must be invoked from the generated bindings.
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 pub trait GlobalScopeHelpers<D: DomTypes> {
     /// # Safety
     /// `cx` must point to a valid, non-null RawJSContext.

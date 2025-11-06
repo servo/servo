@@ -772,7 +772,6 @@ pub struct ResourceFetchTiming {
 }
 
 pub enum RedirectStartValue {
-    #[allow(dead_code)]
     Zero,
     FetchStart,
 }

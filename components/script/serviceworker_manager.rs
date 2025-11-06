@@ -80,7 +80,7 @@ impl ServiceWorker {
 }
 
 /// When updating a registration, which worker are we targetting?
-#[allow(dead_code)]
+#[expect(dead_code)]
 enum RegistrationUpdateTarget {
     Installing,
     Waiting,

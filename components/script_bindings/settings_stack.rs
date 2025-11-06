@@ -30,7 +30,7 @@ pub struct StackEntry<D: DomTypes> {
 pub struct GenericAutoEntryScript<D: DomTypes> {
     global: DomRoot<D::GlobalScope>,
     #[cfg(feature = "tracing")]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     span: tracing::span::EnteredSpan,
 }
 

@@ -9,7 +9,7 @@
 //! of `assert!` for test assertions. `ensure!` will produce a `Result::Err` in
 //! place of panicking.
 
-#[allow(dead_code)]
+#[expect(dead_code)]
 mod common;
 
 use std::rc::Rc;

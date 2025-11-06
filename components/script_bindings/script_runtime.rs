@@ -12,7 +12,7 @@ use js::jsapi::JSContext as RawJSContext;
 #[repr(transparent)]
 pub struct JSContext(*mut RawJSContext);
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 impl JSContext {
     /// Create a new [`JSContext`] object from the given raw pointer.
     ///
@@ -24,7 +24,6 @@ impl JSContext {
     }
 }
 
-#[allow(unsafe_code)]
 impl Deref for JSContext {
     type Target = *mut RawJSContext;
 

@@ -935,7 +935,6 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
         self.element.is::<HTMLSlotElement>()
     }
 
-    #[allow(unsafe_code)]
     fn assigned_slot(&self) -> Option<Self> {
         self.as_node().assigned_slot()
     }

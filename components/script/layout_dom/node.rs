@@ -485,7 +485,7 @@ pub enum ServoThreadSafeLayoutNodeChildrenIterator<'dom> {
 }
 
 impl<'dom> ServoThreadSafeLayoutNodeChildrenIterator<'dom> {
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn new(
         parent: ServoThreadSafeLayoutNode<'dom>,
     ) -> ServoThreadSafeLayoutNodeChildrenIterator<'dom> {
