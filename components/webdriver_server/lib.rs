@@ -96,7 +96,7 @@ fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
         ),
         (
             Method::DELETE,
-            "/session/{sessionId}/servo/shutdown",
+            "/servo/shutdown",
             ServoExtensionRoute::Shutdown,
         ),
     ]
