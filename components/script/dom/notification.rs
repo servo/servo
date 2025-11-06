@@ -20,7 +20,7 @@ use js::rust::{HandleObject, MutableHandleValue};
 use net_traits::http_status::HttpStatus;
 use net_traits::image_cache::{
     ImageCache, ImageCacheResponseMessage, ImageCacheResult, ImageLoadListener,
-    ImageOrMetadataAvailable, ImageResponse, PendingImageId, UsePlaceholder,
+    ImageOrMetadataAvailable, ImageResponse, PendingImageId,
 };
 use net_traits::request::{Destination, RequestBuilder, RequestId};
 use net_traits::{
@@ -878,7 +878,6 @@ impl Notification {
             request.url.clone(),
             global.origin().immutable().clone(),
             None, // TODO: check which CORS should be used
-            UsePlaceholder::No,
         );
         match cache_result {
             ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable {
@@ -915,7 +914,7 @@ impl Notification {
                 );
                 self.fetch(pending_image_id, request, global);
             },
-            ImageCacheResult::LoadError => {
+            ImageCacheResult::FailedToLoadOrDecode => {
                 self.set_resource_and_show_when_ready(request_id, &resource_type, None);
             },
         };
@@ -949,7 +948,7 @@ impl Notification {
                         };
                         this.handle_image_cache_response(request_id, status.response, resource_type);
                     } else {
-                        this.handle_image_cache_response(request_id, ImageResponse::None, resource_type);
+                        this.handle_image_cache_response(request_id, ImageResponse::FailedToLoadOrDecode, resource_type);
                     }
                 }));
             }),
@@ -976,10 +975,7 @@ impl Notification {
                 };
                 self.set_resource_and_show_when_ready(request_id, &resource_type, image);
             },
-            ImageResponse::PlaceholderLoaded(image, _) => {
-                self.set_resource_and_show_when_ready(request_id, &resource_type, Some(image));
-            },
-            ImageResponse::None => {
+            ImageResponse::FailedToLoadOrDecode => {
                 self.set_resource_and_show_when_ready(request_id, &resource_type, None);
             },
             _ => (),

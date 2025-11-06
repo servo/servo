@@ -16,7 +16,6 @@ use layout_api::{
 };
 use net_traits::image_cache::{
     Image as CachedImage, ImageCache, ImageCacheResult, ImageOrMetadataAvailable, PendingImageId,
-    UsePlaceholder,
 };
 use parking_lot::{Mutex, RwLock};
 use pixels::RasterImage;
@@ -105,7 +104,7 @@ pub(crate) struct ImageResolver {
 
     // A cache that maps image resources used in CSS (e.g as the `url()` value
     // for `background-image` or `content` property) to the final resolved image data.
-    pub resolved_images_cache: Arc<RwLock<HashMap<(ServoUrl, UsePlaceholder), CachedImageOrError>>>,
+    pub resolved_images_cache: Arc<RwLock<HashMap<ServoUrl, CachedImageOrError>>>,
 
     /// The current animation timeline value used to properly initialize animating images.
     pub animation_timeline_value: f64,
@@ -130,16 +129,12 @@ impl ImageResolver {
         &self,
         node: OpaqueNode,
         url: ServoUrl,
-        use_placeholder: UsePlaceholder,
         destination: LayoutImageDestination,
     ) -> LayoutImageCacheResult {
         // Check for available image or start tracking.
-        let cache_result = self.image_cache.get_cached_image_status(
-            url.clone(),
-            self.origin.clone(),
-            None,
-            use_placeholder,
-        );
+        let cache_result =
+            self.image_cache
+                .get_cached_image_status(url.clone(), self.origin.clone(), None);
 
         match cache_result {
             ImageCacheResult::Available(img_or_meta) => {
@@ -171,7 +166,7 @@ impl ImageResolver {
                 LayoutImageCacheResult::Pending
             },
             // Image failed to load, so just return the same error.
-            ImageCacheResult::LoadError => LayoutImageCacheResult::LoadError,
+            ImageCacheResult::FailedToLoadOrDecode => LayoutImageCacheResult::LoadError,
         }
     }
 
@@ -188,19 +183,13 @@ impl ImageResolver {
         &self,
         node: OpaqueNode,
         url: ServoUrl,
-        use_placeholder: UsePlaceholder,
         destination: LayoutImageDestination,
     ) -> Result<CachedImage, ResolveImageError> {
-        if let Some(cached_image) = self
-            .resolved_images_cache
-            .read()
-            .get(&(url.clone(), use_placeholder))
-        {
+        if let Some(cached_image) = self.resolved_images_cache.read().get(&url) {
             return cached_image.clone();
         }
 
-        let result =
-            self.get_or_request_image_or_meta(node, url.clone(), use_placeholder, destination);
+        let result = self.get_or_request_image_or_meta(node, url.clone(), destination);
         match result {
             LayoutImageCacheResult::DataAvailable(img_or_meta) => match img_or_meta {
                 ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
@@ -209,7 +198,7 @@ impl ImageResolver {
                     }
 
                     let mut resolved_images_cache = self.resolved_images_cache.write();
-                    resolved_images_cache.insert((url, use_placeholder), Ok(image.clone()));
+                    resolved_images_cache.insert(url, Ok(image.clone()));
                     Ok(image)
                 },
                 ImageOrMetadataAvailable::MetadataAvailable(..) => {
@@ -221,7 +210,7 @@ impl ImageResolver {
                 let error = Err(ResolveImageError::LoadError);
                 self.resolved_images_cache
                     .write()
-                    .insert((url, use_placeholder), error.clone());
+                    .insert(url, error.clone());
                 error
             },
         }
@@ -278,7 +267,6 @@ impl ImageResolver {
                 let image = self.get_cached_image_for_url(
                     node,
                     image_url.clone().into(),
-                    UsePlaceholder::No,
                     LayoutImageDestination::DisplayListBuilding,
                 )?;
                 let metadata = image.metadata();

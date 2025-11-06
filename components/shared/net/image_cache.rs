@@ -68,11 +68,7 @@ impl Image {
 /// Indicating either entire image or just metadata availability
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum ImageOrMetadataAvailable {
-    ImageAvailable {
-        image: Image,
-        url: ServoUrl,
-        is_placeholder: bool,
-    },
+    ImageAvailable { image: Image, url: ServoUrl },
     MetadataAvailable(ImageMetadata, PendingImageId),
 }
 
@@ -124,10 +120,8 @@ pub enum ImageResponse {
     Loaded(Image, ServoUrl),
     /// The request image metadata was loaded.
     MetadataLoaded(ImageMetadata),
-    /// The requested image failed to load, so a placeholder was loaded instead.
-    PlaceholderLoaded(#[conditional_malloc_size_of] Arc<RasterImage>, ServoUrl),
-    /// Neither the requested image nor the placeholder could be loaded.
-    None,
+    /// The requested image failed to load or decode.
+    FailedToLoadOrDecode,
 }
 
 /// The unique id for an image that has previously been requested.
@@ -154,19 +148,13 @@ pub enum ImageCacheResponseMessage {
     VectorImageRasterizationComplete(RasterizationCompleteResponse),
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-pub enum UsePlaceholder {
-    No,
-    Yes,
-}
-
 // ======================================================================
 // ImageCache public API.
 // ======================================================================
 
 pub enum ImageCacheResult {
     Available(ImageOrMetadataAvailable),
-    LoadError,
+    FailedToLoadOrDecode,
     Pending(PendingImageId),
     ReadyForRequest(PendingImageId),
 }
@@ -206,7 +194,6 @@ pub trait ImageCache: Sync + Send {
         url: ServoUrl,
         origin: ImmutableOrigin,
         cors_setting: Option<CorsSettings>,
-        use_placeholder: UsePlaceholder,
     ) -> ImageCacheResult;
 
     /// Returns `Some` if the given `image_id` has already been rasterized at the given `size`.
@@ -230,6 +217,10 @@ pub trait ImageCache: Sync + Send {
         size: DeviceIntSize,
         sender: IpcSender<ImageCacheResponseMessage>,
     );
+
+    /// Synchronously get the broken image icon for this [`ImageCache`]. This will
+    /// allocate space for this icon and upload it to WebRender.
+    fn get_broken_image_icon(&self) -> Option<Arc<RasterImage>>;
 
     /// Add a new listener for the given pending image id. If the image is already present,
     /// the responder will still receive the expected response.

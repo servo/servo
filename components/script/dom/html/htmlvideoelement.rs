@@ -12,7 +12,7 @@ use js::rust::HandleObject;
 use layout_api::{HTMLMediaData, MediaMetadata};
 use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable, ImageResponse,
-    PendingImageId, UsePlaceholder,
+    PendingImageId,
 };
 use net_traits::request::{CredentialsMode, Destination, RequestBuilder, RequestId};
 use net_traits::{
@@ -199,7 +199,6 @@ impl HTMLVideoElement {
             poster_url.clone(),
             window.origin().immutable().clone(),
             None,
-            UsePlaceholder::No,
         );
 
         let id = match cache_result {
@@ -216,8 +215,8 @@ impl HTMLVideoElement {
                 self.do_fetch_poster_frame(poster_url, id, can_gc);
                 id
             },
-            ImageCacheResult::LoadError => {
-                self.process_image_response(ImageResponse::None, can_gc);
+            ImageCacheResult::FailedToLoadOrDecode => {
+                self.process_image_response(ImageResponse::FailedToLoadOrDecode, can_gc);
                 return;
             },
             ImageCacheResult::Pending(id) => id,
@@ -300,7 +299,7 @@ impl HTMLVideoElement {
             },
             ImageResponse::MetadataLoaded(..) => {},
             // The image cache may have loaded a placeholder for an invalid poster url
-            ImageResponse::PlaceholderLoaded(..) | ImageResponse::None => {
+            ImageResponse::FailedToLoadOrDecode => {
                 self.htmlmediaelement.set_poster_frame(None);
                 // A failed load should unblock the document load.
                 LoadBlocker::terminate(&self.load_blocker, can_gc);

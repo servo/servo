@@ -338,14 +338,8 @@ pub(crate) trait NodeExt<'dom> {
 impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
     fn as_image(&self) -> Option<(Option<Image>, PhysicalSize<f64>)> {
         let (resource, metadata) = self.image_data()?;
-        let (width, height) = resource
-            .as_ref()
-            .map(|image| {
-                let image_metadata = image.metadata();
-                (image_metadata.width, image_metadata.height)
-            })
-            .or_else(|| metadata.map(|metadata| (metadata.width, metadata.height)))
-            .unwrap_or((0, 0));
+        let width = metadata.map(|metadata| metadata.width).unwrap_or_default();
+        let height = metadata.map(|metadata| metadata.height).unwrap_or_default();
         let (mut width, mut height) = (width as f64, height as f64);
         if let Some(density) = self.image_density().filter(|density| *density != 1.) {
             width /= density;

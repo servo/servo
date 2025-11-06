@@ -215,6 +215,9 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
     /// If this is an image element, returns its image data. Otherwise, returns `None`.
     fn image_data(&self) -> Option<(Option<Image>, Option<ImageMetadata>)>;
 
+    /// Whether or not this is an image element that is showing a broken image icon.
+    fn showing_broken_image_icon(&self) -> bool;
+
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
 
     fn svg_data(&self) -> Option<SVGElementData>;

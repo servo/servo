@@ -1712,6 +1712,7 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     fn image_url(self) -> Option<ServoUrl>;
     fn image_density(self) -> Option<f64>;
     fn image_data(self) -> Option<(Option<Image>, Option<ImageMetadata>)>;
+    fn showing_broken_image_icon(self) -> bool;
     fn canvas_data(self) -> Option<HTMLCanvasData>;
     fn media_data(self) -> Option<HTMLMediaData>;
     fn svg_data(self) -> Option<SVGElementData>;
@@ -1991,6 +1992,12 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         self.downcast::<HTMLImageElement>()
             .expect("not an image!")
             .image_density()
+    }
+
+    fn showing_broken_image_icon(self) -> bool {
+        self.downcast::<HTMLImageElement>()
+            .map(|image_element| image_element.showing_broken_image_icon())
+            .unwrap_or_default()
     }
 
     fn canvas_data(self) -> Option<HTMLCanvasData> {

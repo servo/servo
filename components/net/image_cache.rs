@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::OnceCell;
 use std::cmp::min;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, VecDeque};
@@ -20,7 +21,7 @@ use mime::Mime;
 use net_traits::image_cache::{
     Image, ImageCache, ImageCacheFactory, ImageCacheResponseMessage, ImageCacheResult,
     ImageLoadListener, ImageOrMetadataAvailable, ImageResponse, PendingImageId,
-    RasterizationCompleteResponse, UsePlaceholder, VectorImage,
+    RasterizationCompleteResponse, VectorImage,
 };
 use net_traits::request::CorsSettings;
 use net_traits::{FetchMetadata, FetchResponseMsg, FilteredMetadata, NetworkError};
@@ -35,9 +36,9 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 use webrender_api::ImageKey as WebRenderImageKey;
 use webrender_api::units::DeviceIntSize;
 
-// We bake in rippy.png as a fallback, in case the embedder does not provide
-// a rippy resource. this version is 253 bytes large, don't exchange it against
-// something in higher resolution.
+// We bake in rippy.png as a fallback, in case the embedder does not provide a broken
+// image icon resource. This version is 229 bytes, so don't exchange it against
+// something of higher resolution.
 const FALLBACK_RIPPY: &[u8] = include_bytes!("../../resources/rippy.png");
 
 /// The current SVG stack relies on `resvg` to provide the natural dimensions of
@@ -109,22 +110,6 @@ fn decode_bytes_sync(
     };
 
     DecoderMsg { key, image }
-}
-
-/// This will block on getting an ImageKey
-/// but that is ok because it is done once upon start-up of a script-thread.
-fn get_placeholder_image(
-    compositor_api: &CrossProcessCompositorApi,
-    data: &[u8],
-) -> Arc<RasterImage> {
-    let mut image = load_from_memory(data, CorsStatus::Unsafe)
-        .or_else(|| load_from_memory(FALLBACK_RIPPY, CorsStatus::Unsafe))
-        .expect("load fallback image failed");
-    let image_key = compositor_api
-        .generate_image_key_blocking()
-        .expect("Could not generate image key");
-    set_webrender_image_key(compositor_api, &mut image, image_key);
-    Arc::new(image)
 }
 
 fn set_webrender_image_key(
@@ -328,8 +313,7 @@ impl LoadKeyGenerator {
 enum LoadResult {
     LoadedRasterImage(RasterImage),
     LoadedVectorImage(VectorImageData),
-    PlaceholderLoaded(Arc<RasterImage>),
-    None,
+    FailedToLoadOrDecode,
 }
 
 /// Represents an image that is either being loaded
@@ -464,12 +448,9 @@ struct ImageCacheStore {
     /// contains the rasterized image.
     rasterized_vector_images: FxHashMap<(PendingImageId, DeviceIntSize), RasterizationTask>,
 
-    /// The placeholder image used when an image fails to load
+    /// The [`RasterImage`] used for the broken image icon, initialized lazily, only when necessary.
     #[conditional_malloc_size_of]
-    placeholder_image: Arc<RasterImage>,
-
-    /// The URL used for the placeholder image
-    placeholder_url: ServoUrl,
+    broken_image_icon_image: OnceCell<Option<Arc<RasterImage>>>,
 
     /// Cross-process compositor API instance.
     #[ignore_malloc_size_of = "Channel from another crate"]
@@ -610,10 +591,7 @@ impl ImageCacheStore {
                 };
                 ImageResponse::Loaded(Image::Vector(vector_image), url.unwrap())
             },
-            LoadResult::PlaceholderLoaded(image) => {
-                ImageResponse::PlaceholderLoaded(image, self.placeholder_url.clone())
-            },
-            LoadResult::None => ImageResponse::None,
+            LoadResult::FailedToLoadOrDecode => ImageResponse::FailedToLoadOrDecode,
         };
 
         let completed_load = CompletedLoad::new(image_response.clone(), key);
@@ -638,28 +616,20 @@ impl ImageCacheStore {
         url: ServoUrl,
         origin: ImmutableOrigin,
         cors_setting: Option<CorsSettings>,
-        placeholder: UsePlaceholder,
     ) -> Option<Result<(Image, ServoUrl), ()>> {
         self.completed_loads
             .get(&(url, origin, cors_setting))
-            .map(
-                |completed_load| match (&completed_load.image_response, placeholder) {
-                    (ImageResponse::Loaded(image, url), _) => Ok((image.clone(), url.clone())),
-                    (ImageResponse::PlaceholderLoaded(image, url), UsePlaceholder::Yes) => {
-                        Ok((Image::Raster(image.clone()), url.clone()))
-                    },
-                    (ImageResponse::PlaceholderLoaded(_, _), UsePlaceholder::No) |
-                    (ImageResponse::None, _) |
-                    (ImageResponse::MetadataLoaded(_), _) => Err(()),
-                },
-            )
+            .map(|completed_load| match &completed_load.image_response {
+                ImageResponse::Loaded(image, url) => Ok((image.clone(), url.clone())),
+                ImageResponse::FailedToLoadOrDecode | ImageResponse::MetadataLoaded(_) => Err(()),
+            })
     }
 
     /// Handle a message from one of the decoder worker threads or from a sync
     /// decoding operation.
     fn handle_decoder(&mut self, msg: DecoderMsg) {
         let image = match msg.image {
-            None => LoadResult::None,
+            None => LoadResult::FailedToLoadOrDecode,
             Some(DecodedImage::Raster(raster_image)) => {
                 self.load_image_with_keycache(PendingKey::RasterImage((msg.key, raster_image)));
                 return;
@@ -673,8 +643,8 @@ impl ImageCacheStore {
 }
 
 pub struct ImageCacheFactoryImpl {
-    /// The data to use for the placeholder image used when images cannot load.
-    rippy_data: Arc<Vec<u8>>,
+    /// The data to use for the broken image icon used when images cannot load.
+    broken_image_icon_data: Arc<Vec<u8>>,
     /// Thread pool for image decoding
     thread_pool: Arc<ThreadPool>,
     /// A shared font database to be used by system fonts accessed when rasterizing vector
@@ -683,7 +653,7 @@ pub struct ImageCacheFactoryImpl {
 }
 
 impl ImageCacheFactoryImpl {
-    pub fn new(rippy_data: Vec<u8>) -> Self {
+    pub fn new(broken_image_icon_data: Vec<u8>) -> Self {
         debug!("Creating new ImageCacheFactoryImpl");
 
         // Uses an estimate of the system cpus to decode images
@@ -698,7 +668,7 @@ impl ImageCacheFactoryImpl {
         fontdb.load_system_fonts();
 
         Self {
-            rippy_data: Arc::new(rippy_data),
+            broken_image_icon_data: Arc::new(broken_image_icon_data),
             thread_pool: Arc::new(ThreadPool::new(thread_count, "ImageCache".to_string())),
             fontdb: Arc::new(fontdb),
         }
@@ -718,13 +688,13 @@ impl ImageCacheFactory for ImageCacheFactoryImpl {
                 completed_loads: HashMap::new(),
                 vector_images: FxHashMap::default(),
                 rasterized_vector_images: FxHashMap::default(),
-                placeholder_image: get_placeholder_image(compositor_api, &self.rippy_data),
-                placeholder_url: ServoUrl::parse("chrome://resources/rippy.png").unwrap(),
+                broken_image_icon_image: OnceCell::new(),
                 compositor_api: compositor_api.clone(),
                 pipeline_id,
                 webview_id,
                 key_cache: KeyCache::new(),
             })),
+            broken_image_icon_data: self.broken_image_icon_data.clone(),
             thread_pool: self.thread_pool.clone(),
             fontdb: self.fontdb.clone(),
         })
@@ -734,6 +704,8 @@ impl ImageCacheFactory for ImageCacheFactoryImpl {
 pub struct ImageCacheImpl {
     /// Per-[`ImageCache`] data.
     store: Arc<Mutex<ImageCacheStore>>,
+    /// The data to use for the broken image icon used when images cannot load.
+    broken_image_icon_data: Arc<Vec<u8>>,
     /// Thread pool for image decoding. This is shared with other [`ImageCache`]s in the
     /// same process.
     thread_pool: Arc<ThreadPool>,
@@ -772,8 +744,7 @@ impl ImageCache for ImageCacheImpl {
         cors_setting: Option<CorsSettings>,
     ) -> Option<Image> {
         let store = self.store.lock().unwrap();
-        let result =
-            store.get_completed_image_if_available(url, origin, cors_setting, UsePlaceholder::No);
+        let result = store.get_completed_image_if_available(url, origin, cors_setting);
         match result {
             Some(Ok((img, _))) => Some(img),
             _ => None,
@@ -785,28 +756,22 @@ impl ImageCache for ImageCacheImpl {
         url: ServoUrl,
         origin: ImmutableOrigin,
         cors_setting: Option<CorsSettings>,
-        use_placeholder: UsePlaceholder,
     ) -> ImageCacheResult {
         let mut store = self.store.lock().unwrap();
-        if let Some(result) = store.get_completed_image_if_available(
-            url.clone(),
-            origin.clone(),
-            cors_setting,
-            use_placeholder,
-        ) {
+        if let Some(result) =
+            store.get_completed_image_if_available(url.clone(), origin.clone(), cors_setting)
+        {
             match result {
                 Ok((image, image_url)) => {
                     debug!("{} is available", url);
-                    let is_placeholder = image_url == store.placeholder_url;
                     return ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable {
                         image,
                         url: image_url,
-                        is_placeholder,
                     });
                 },
                 Err(()) => {
                     debug!("{} is not available", url);
-                    return ImageCacheResult::LoadError;
+                    return ImageCacheResult::FailedToLoadOrDecode;
                 },
             }
         }
@@ -847,7 +812,7 @@ impl ImageCache for ImageCacheImpl {
                 },
                 CacheResult::Miss(None) => {
                     debug!("Couldn't find an entry for {}", url);
-                    return ImageCacheResult::LoadError;
+                    return ImageCacheResult::FailedToLoadOrDecode;
                 },
             }
         };
@@ -857,13 +822,11 @@ impl ImageCache for ImageCacheImpl {
         // and ignore the async decode when it finishes later.
         // TODO: make this behaviour configurable according to the caller's needs.
         store.handle_decoder(decoded);
-        match store.get_completed_image_if_available(url, origin, cors_setting, use_placeholder) {
+        match store.get_completed_image_if_available(url, origin, cors_setting) {
             Some(Ok((image, image_url))) => {
-                let is_placeholder = image_url == store.placeholder_url;
                 ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable {
                     image,
                     url: image_url,
-                    is_placeholder,
                 })
             },
             // Note: this happens if we are pending a batch of image keys.
@@ -1080,11 +1043,10 @@ impl ImageCache for ImageCacheImpl {
                             local_store.lock().unwrap().handle_decoder(msg);
                         });
                     },
-                    Err(_) => {
-                        debug!("Processing error for {:?}", key);
+                    Err(error) => {
+                        debug!("Processing error for {key:?}: {error:?}");
                         let mut store = self.store.lock().unwrap();
-                        let placeholder_image = store.placeholder_image.clone();
-                        store.complete_load(id, LoadResult::PlaceholderLoaded(placeholder_image))
+                        store.complete_load(id, LoadResult::FailedToLoadOrDecode)
                     },
                 }
             },
@@ -1094,6 +1056,23 @@ impl ImageCache for ImageCacheImpl {
     fn fill_key_cache_with_batch_of_keys(&self, image_keys: Vec<WebRenderImageKey>) {
         let mut store = self.store.lock().unwrap();
         store.insert_keys_and_load_images(image_keys);
+    }
+
+    fn get_broken_image_icon(&self) -> Option<Arc<RasterImage>> {
+        let store = self.store.lock().unwrap();
+        store
+            .broken_image_icon_image
+            .get_or_init(|| {
+                let mut image = load_from_memory(&self.broken_image_icon_data, CorsStatus::Unsafe)
+                    .or_else(|| load_from_memory(FALLBACK_RIPPY, CorsStatus::Unsafe))?;
+                let image_key = store
+                    .compositor_api
+                    .generate_image_key_blocking()
+                    .expect("Could not generate image key for broken image icon");
+                set_webrender_image_key(&store.compositor_api, &mut image, image_key);
+                Some(Arc::new(image))
+            })
+            .clone()
     }
 }
 
