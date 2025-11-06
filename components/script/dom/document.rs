@@ -66,7 +66,6 @@ use style::stylesheet_set::DocumentStylesheetSet;
 use style::stylesheets::{Origin, OriginSet, Stylesheet};
 use stylo_atoms::Atom;
 use url::Host;
-use uuid::Uuid;
 
 use crate::animation_timeline::AnimationTimeline;
 use crate::animations::Animations;
@@ -2679,12 +2678,16 @@ impl Document {
         }
     }
 
-    pub(crate) fn register_media_controls(&self, controls: &ShadowRoot) -> String {
-        let id = Uuid::new_v4().to_string();
-        self.media_controls
+    pub(crate) fn register_media_controls(&self, id: &str, controls: &ShadowRoot) {
+        let did_have_these_media_controls = self
+            .media_controls
             .borrow_mut()
-            .insert(id.clone(), Dom::from_ref(controls));
-        id
+            .insert(id.to_string(), Dom::from_ref(controls))
+            .is_some();
+        debug_assert!(
+            !did_have_these_media_controls,
+            "Trying to register known media controls"
+        );
     }
 
     pub(crate) fn unregister_media_controls(&self, id: &str) {
