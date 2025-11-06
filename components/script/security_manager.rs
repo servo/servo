@@ -9,9 +9,7 @@ use headers::{ContentType, HeaderMap, HeaderMapExt};
 use net_traits::request::{
     CredentialsMode, Destination, RequestBody, RequestId, create_request_body_with_content,
 };
-use net_traits::{
-    FetchMetadata, FetchResponseListener, NetworkError, ResourceFetchTiming, ResourceTimingType,
-};
+use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming, ResourceTimingType};
 use servo_url::ServoUrl;
 use stylo_atoms::Atom;
 
@@ -30,7 +28,7 @@ use crate::dom::reportingobserver::ReportingObserver;
 use crate::dom::securitypolicyviolationevent::SecurityPolicyViolationEvent;
 use crate::dom::types::GlobalScope;
 use crate::fetch::create_a_potential_cors_request;
-use crate::network_listener::{PreInvoke, ResourceTimingListener, submit_timing};
+use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
 use crate::script_runtime::CanGc;
 use crate::task::TaskOnce;
 
@@ -237,11 +235,5 @@ impl ResourceTimingListener for CSPReportUriFetchListener {
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
         self.global.root()
-    }
-}
-
-impl PreInvoke for CSPReportUriFetchListener {
-    fn should_invoke(&self) -> bool {
-        true
     }
 }

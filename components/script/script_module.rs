@@ -40,8 +40,7 @@ use net_traits::request::{
     CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder, RequestId, RequestMode,
 };
 use net_traits::{
-    FetchMetadata, FetchResponseListener, Metadata, NetworkError, ReferrerPolicy,
-    ResourceFetchTiming, ResourceTimingType,
+    FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceTimingType,
 };
 use script_bindings::domstring::BytesView;
 use script_bindings::error::Fallible;
@@ -77,7 +76,9 @@ use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::types::Console;
 use crate::dom::window::Window;
 use crate::dom::worker::TrustedWorkerAddress;
-use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
+use crate::network_listener::{
+    self, FetchResponseListener, NetworkListener, ResourceTimingListener,
+};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, IntroductionType, JSContext as SafeJSContext};
 use crate::task::TaskBox;
@@ -1396,8 +1397,6 @@ impl ResourceTimingListener for ModuleContext {
         self.owner.global()
     }
 }
-
-impl PreInvoke for ModuleContext {}
 
 #[allow(unsafe_code, non_snake_case)]
 /// A function to register module hooks (e.g. listening on resolving modules,

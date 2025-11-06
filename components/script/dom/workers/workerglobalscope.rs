@@ -33,8 +33,7 @@ use net_traits::request::{
     RequestBuilder as NetRequestInit, RequestId,
 };
 use net_traits::{
-    FetchMetadata, FetchResponseListener, Metadata, NetworkError, ReferrerPolicy,
-    ResourceFetchTiming, ResourceTimingType,
+    FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceTimingType,
 };
 use profile_traits::mem::{ProcessReports, perform_memory_report};
 use servo_url::{MutableOrigin, ServoUrl};
@@ -88,7 +87,7 @@ use crate::dom::workernavigator::WorkerNavigator;
 use crate::fetch::{CspViolationsProcessor, Fetch, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
-use crate::network_listener::{PreInvoke, ResourceTimingListener, submit_timing};
+use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType, JSContext, JSContextHelper, Runtime};
@@ -273,8 +272,6 @@ impl ResourceTimingListener for ScriptFetchContext {
         self.scope.root().global()
     }
 }
-
-impl PreInvoke for ScriptFetchContext {}
 
 // https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface
 #[dom_struct]

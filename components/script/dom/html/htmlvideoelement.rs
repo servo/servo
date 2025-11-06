@@ -16,8 +16,8 @@ use net_traits::image_cache::{
 };
 use net_traits::request::{CredentialsMode, Destination, RequestBuilder, RequestId};
 use net_traits::{
-    CoreResourceThread, FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError,
-    ResourceFetchTiming, ResourceTimingType,
+    CoreResourceThread, FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming,
+    ResourceTimingType,
 };
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use servo_media::player::video::VideoFrame;
@@ -42,7 +42,7 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::FetchCanceller;
-use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
+use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -510,12 +510,6 @@ impl ResourceTimingListener for PosterFrameFetchContext {
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
         self.elem.root().owner_document().global()
-    }
-}
-
-impl PreInvoke for PosterFrameFetchContext {
-    fn should_invoke(&self) -> bool {
-        true
     }
 }
 

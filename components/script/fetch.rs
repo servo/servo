@@ -19,9 +19,9 @@ use net_traits::request::{
     Request as NetTraitsRequest, RequestBuilder, RequestId, RequestMode, ServiceWorkersMode,
 };
 use net_traits::{
-    CoreResourceMsg, CoreResourceThread, FetchChannels, FetchMetadata, FetchResponseListener,
-    FetchResponseMsg, FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming,
-    ResourceTimingType, cancel_async_fetch,
+    CoreResourceMsg, CoreResourceThread, FetchChannels, FetchMetadata, FetchResponseMsg,
+    FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming, ResourceTimingType,
+    cancel_async_fetch,
 };
 use servo_url::ServoUrl;
 use timers::TimerEventRequest;
@@ -53,7 +53,9 @@ use crate::dom::request::Request;
 use crate::dom::response::Response;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::dom::window::Window;
-use crate::network_listener::{self, PreInvoke, ResourceTimingListener, submit_timing_data};
+use crate::network_listener::{
+    self, FetchResponseListener, ResourceTimingListener, submit_timing_data,
+};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::CanGc;
 
@@ -456,8 +458,6 @@ pub(crate) struct FetchContext {
     canceller: FetchCanceller,
 }
 
-impl PreInvoke for FetchContext {}
-
 impl FetchContext {
     /// Step 11 of <https://fetch.spec.whatwg.org/#dom-global-fetch>
     pub(crate) fn abort_fetch(
@@ -689,12 +689,6 @@ impl ResourceTimingListener for FetchLaterListener {
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
         self.global.root()
-    }
-}
-
-impl PreInvoke for FetchLaterListener {
-    fn should_invoke(&self) -> bool {
-        true
     }
 }
 

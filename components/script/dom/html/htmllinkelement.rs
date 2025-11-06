@@ -16,8 +16,8 @@ use net_traits::image_cache::{
 };
 use net_traits::request::{Destination, Initiator, RequestBuilder, RequestId};
 use net_traits::{
-    FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError, ReferrerPolicy,
-    ResourceFetchTiming, ResourceTimingType,
+    FetchMetadata, FetchResponseMsg, NetworkError, ReferrerPolicy, ResourceFetchTiming,
+    ResourceTimingType,
 };
 use pixels::PixelFormat;
 use script_bindings::root::Dom;
@@ -58,7 +58,7 @@ use crate::dom::processingoptions::{
 use crate::dom::types::{EventTarget, GlobalScope};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::links::LinkRelations;
-use crate::network_listener::{PreInvoke, ResourceTimingListener, submit_timing};
+use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
 use crate::script_runtime::CanGc;
 use crate::stylesheet_loader::{ElementStylesheetLoader, StylesheetContextSource, StylesheetOwner};
 
@@ -1072,11 +1072,5 @@ impl ResourceTimingListener for FaviconFetchContext {
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
         self.link.root().upcast::<Node>().owner_doc().global()
-    }
-}
-
-impl PreInvoke for FaviconFetchContext {
-    fn should_invoke(&self) -> bool {
-        true
     }
 }

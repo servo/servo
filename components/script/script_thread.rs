@@ -73,8 +73,8 @@ use net_traits::image_cache::{ImageCache, ImageCacheFactory, ImageCacheResponseM
 use net_traits::request::{Referrer, RequestId};
 use net_traits::response::ResponseInit;
 use net_traits::{
-    FetchMetadata, FetchResponseListener, FetchResponseMsg, Metadata, NetworkError,
-    ResourceFetchTiming, ResourceThreads, ResourceTimingType,
+    FetchMetadata, FetchResponseMsg, Metadata, NetworkError, ResourceFetchTiming, ResourceThreads,
+    ResourceTimingType,
 };
 use percent_encoding::percent_decode;
 use profile_traits::mem::{ProcessReports, ReportsChan, perform_memory_report};
@@ -144,6 +144,7 @@ use crate::messaging::{
 use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::mime::{APPLICATION, MimeExt, TEXT, XML};
 use crate::navigation::{InProgressLoad, NavigationListener};
+use crate::network_listener::FetchResponseListener;
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_mutation_observers::ScriptMutationObservers;

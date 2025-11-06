@@ -13,9 +13,7 @@ use net_traits::request::{
     CredentialsMode, Destination, RequestBody, RequestId, RequestMode,
     create_request_body_with_content,
 };
-use net_traits::{
-    FetchMetadata, FetchResponseListener, NetworkError, ResourceFetchTiming, ResourceTimingType,
-};
+use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming, ResourceTimingType};
 use script_bindings::str::DOMString;
 use serde::Serialize;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -30,7 +28,7 @@ use crate::dom::csppolicyviolationreport::serialize_disposition;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::fetch::create_a_potential_cors_request;
-use crate::network_listener::{PreInvoke, ResourceTimingListener, submit_timing};
+use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
 use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/reporting/#endpoint>
@@ -366,11 +364,5 @@ impl ResourceTimingListener for CSPReportEndpointFetchListener {
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
         self.global.root()
-    }
-}
-
-impl PreInvoke for CSPReportEndpointFetchListener {
-    fn should_invoke(&self) -> bool {
-        true
     }
 }
