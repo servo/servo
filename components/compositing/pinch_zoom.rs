@@ -34,6 +34,10 @@ impl PinchZoom {
         Scale::new(self.zoom_factor)
     }
 
+    pub(crate) fn resize(&mut self, webview_rect: DeviceRect) {
+        self.unscaled_viewport_size = webview_rect.size();
+    }
+
     fn set_transform(&mut self, transform: Transform2D<f32, DevicePixel, DevicePixel>) {
         let rect = Rect::new(
             Point2D::origin(),
