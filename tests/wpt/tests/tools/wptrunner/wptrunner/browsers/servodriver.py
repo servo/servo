@@ -1,7 +1,9 @@
 # mypy: allow-untyped-defs
 
+from http.client import HTTPConnection, ResponseNotReady
 import os
 import tempfile
+import time
 
 from tools.serve.serve import make_hosts_file
 
@@ -126,8 +128,39 @@ class ServoWebDriverBrowser(WebDriverBrowser):
         return [self.webdriver_binary, f"--webdriver={self.port}"] + self.webdriver_args
 
     def cleanup(self):
-        super().cleanup()
         os.remove(self.hosts_path)
+
+    def is_alive(self):
+        if not super().is_alive():
+            return False
+        try:
+            conn = HTTPConnection(self.host, self.port)
+            conn.request("GET", "/status")
+            res = conn.getresponse()
+        except Exception:
+            self.logger.info("Servo has shutted down normally.")
+            return False
+
+        return True
+
+    def stop(self, force=False):
+        conn = HTTPConnection(self.host, self.port)
+        while self.is_alive():
+            self.logger.info("Trying to shut down gracefully by extension command")
+            while True:
+                try:
+                    conn.request("DELETE", "/session/dummy-session-id/servo/shutdown")
+                    res = conn.getresponse()
+                    self.logger.info(f"Got response status for shutdown command: {res.status}")
+                except ResponseNotReady:
+                    self.logger.info(f"Shutdown request not sent yet, retrying...")
+                    continue
+                except Exception as e:
+                    self.logger.info(f"Servo browser already shut down: {e}")
+                    return
+                # Successfully sent the shutdown command
+                break
+            time.sleep(0.1)
 
     def find_wpt_prefs(self, logger):
         default_path = os.path.join("resources", "wpt-prefs.json")
