@@ -44,7 +44,6 @@ impl WebXRBridge {
 }
 
 impl WebXRBridge {
-    #[allow(unsafe_code)]
     pub(crate) fn create_layer_manager(
         &mut self,
         device: &mut Device,

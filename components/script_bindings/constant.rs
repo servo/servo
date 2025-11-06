@@ -25,7 +25,7 @@ pub struct ConstantSpec {
 
 /// Representation of an IDL constant value.
 #[derive(Clone)]
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub enum ConstantVal {
     /// `long` constant.
     Int(i32),

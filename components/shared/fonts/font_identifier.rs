@@ -64,7 +64,7 @@ mod platform {
             }
         }
 
-        #[allow(unsafe_code)]
+        #[expect(unsafe_code)]
         pub fn font_data_and_index(&self) -> Option<FontDataAndIndex> {
             let file = File::open(Path::new(&*self.path)).ok()?;
             let mmap = unsafe { Mmap::map(&file).ok()? };
@@ -126,7 +126,7 @@ mod platform {
             0
         }
 
-        #[allow(unsafe_code)]
+        #[expect(unsafe_code)]
         pub fn font_data_and_index(&self) -> Option<FontDataAndIndex> {
             let file = File::open(Path::new(&*self.path)).ok()?;
             let mmap = unsafe { Mmap::map(&file).ok()? };

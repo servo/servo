@@ -118,7 +118,7 @@ impl<'de, T: Serialize + Deserialize<'de>> serde::de::Visitor<'de> for GenericSe
                 let ptr = addr as *mut crossbeam_channel::Sender<Result<T, ipc_channel::Error>>;
                 // SAFETY: We know we are in the same address space as the sender, so we can safely
                 // reconstruct the Box.
-                #[allow(unsafe_code)]
+                #[expect(unsafe_code)]
                 let sender = unsafe { Box::from_raw(ptr) };
                 Ok(GenericSender(GenericSenderVariants::Crossbeam(*sender)))
             },
@@ -392,7 +392,7 @@ where
                 let ptr = addr as *mut RoutedReceiver<T>;
                 // SAFETY: We know we are in the same address space as the sender, so we can safely
                 // reconstruct the Box.
-                #[allow(unsafe_code)]
+                #[expect(unsafe_code)]
                 let receiver = unsafe { Box::from_raw(ptr) };
                 Ok(GenericReceiver(GenericReceiverVariants::Crossbeam(
                     *receiver,

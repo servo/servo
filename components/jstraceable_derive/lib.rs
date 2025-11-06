@@ -93,12 +93,12 @@ fn assert_not_impl_traceable(ty: &syn::Type) -> proc_macro2::TokenStream {
             impl<T: ?Sized> NoTraceOnJSTraceable<()> for T {}
 
             // Used for the specialized impl when JSTraceable is implemented.
-            #[allow(dead_code)]
+            #[expect(dead_code)]
             struct Invalid0;
             // forbids JSTraceable
             impl<T> NoTraceOnJSTraceable<Invalid0> for T where T: ?Sized + crate::JSTraceable {}
 
-            #[allow(dead_code)]
+            #[expect(dead_code)]
             struct Invalid2;
             // forbids HashMap<JSTraceble, _>
             impl<K, V, S> NoTraceOnJSTraceable<Invalid2> for std::collections::HashMap<K, V, S>
@@ -108,7 +108,7 @@ fn assert_not_impl_traceable(ty: &syn::Type) -> proc_macro2::TokenStream {
             {
             }
 
-            #[allow(dead_code)]
+            #[expect(dead_code)]
             struct Invalid3;
             // forbids HashMap<_, JSTraceble>
             impl<K, V, S> NoTraceOnJSTraceable<Invalid3> for std::collections::HashMap<K, V, S>
@@ -119,7 +119,7 @@ fn assert_not_impl_traceable(ty: &syn::Type) -> proc_macro2::TokenStream {
             {
             }
 
-            #[allow(dead_code)]
+            #[expect(dead_code)]
             struct Invalid4;
             // forbids BTreeMap<_, JSTraceble>
             impl<K, V> NoTraceOnJSTraceable<Invalid4> for std::collections::BTreeMap<K, V> where
@@ -127,7 +127,7 @@ fn assert_not_impl_traceable(ty: &syn::Type) -> proc_macro2::TokenStream {
             {
             }
 
-            #[allow(dead_code)]
+            #[expect(dead_code)]
             struct Invalid5;
             // forbids BTreeMap<_, JSTraceble>
             impl<K, V> NoTraceOnJSTraceable<Invalid5> for std::collections::BTreeMap<K, V>
@@ -177,10 +177,10 @@ fn js_traceable_derive(s: synstructure::Structure) -> proc_macro2::TokenStream {
     let tokens = quote! {
         #asserts
 
-        #[allow(unsafe_code)]
+        #[expect(unsafe_code)]
         unsafe impl #impl_generics crate::JSTraceable for #name #ty_generics #where_clause {
             #[inline]
-            #[allow(unused_variables, unused_imports)]
+            #[expect(unused_variables, unused_imports)]
             unsafe fn trace(&self, tracer: *mut js::jsapi::JSTracer) {
                 use crate::JSTraceable;
                 match *self {

@@ -382,7 +382,7 @@ impl BackgroundHangMonitorExitSignal for BHMExitSignal {
     }
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn interrupt_callback(_cx: *mut UnsafeJSContext) -> bool {
     let res = ScriptThread::can_continue_running();
     if !res {
@@ -1003,7 +1003,7 @@ impl ScriptThread {
         }
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn get_cx(&self) -> JSContext {
         unsafe { JSContext::from_ptr(self.js_runtime.cx()) }
     }

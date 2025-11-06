@@ -397,7 +397,7 @@ where
     if !v.get().is_object() {
         return Err(());
     }
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     unsafe {
         root_from_object(v.get().to_object(), *cx)
     }
@@ -506,7 +506,7 @@ where
         return Err(());
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     unsafe {
         native_from_object(v.get().to_object(), *cx)
     }

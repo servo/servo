@@ -11,7 +11,7 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 /// Used by codegen to include the pointer to the `MallocSizeOf` implementation of each
 /// IDL interface. This way we don't have to find the most-derived interface of DOM
 /// objects by hand in code.
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 pub(crate) unsafe fn malloc_size_of_including_raw_self<T: MallocSizeOf>(
     ops: &mut MallocSizeOfOps,
     obj: *const c_void,

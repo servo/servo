@@ -840,7 +840,7 @@ impl WebGLThread {
             self.update_webrender_image_for_context(context_id, size, has_alpha, canvas_epoch);
         }
 
-        #[allow(unused)]
+        #[expect(unused)]
         let mut end_swap = 0;
     }
 

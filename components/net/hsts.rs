@@ -92,7 +92,7 @@ pub struct HstsList {
 pub struct HstsPreloadList(pub fst::Map<Vec<u8>>);
 
 impl MallocSizeOf for HstsPreloadList {
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
         unsafe { ops.malloc_size_of(self.0.as_fst().as_inner().as_ptr()) }
     }

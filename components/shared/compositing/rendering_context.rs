@@ -119,7 +119,7 @@ impl SurfmanRenderingContext {
             device.create_context_descriptor(&ContextAttributes { flags, version })?;
         let context = device.create_context(&context_descriptor, None)?;
 
-        #[allow(unsafe_code)]
+        #[expect(unsafe_code)]
         let gleam_gl = {
             match gl_api {
                 GLApi::GL => unsafe {
@@ -131,7 +131,7 @@ impl SurfmanRenderingContext {
             }
         };
 
-        #[allow(unsafe_code)]
+        #[expect(unsafe_code)]
         let glow_gl = unsafe {
             glow::Context::from_loader_function(|function_name| {
                 device.get_proc_address(&context, function_name)
@@ -199,7 +199,7 @@ impl SurfmanRenderingContext {
             })
     }
 
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     fn native_context(&self) -> NativeContext {
         let device = &self.device.borrow();
         let context = &self.context.borrow();
@@ -710,7 +710,7 @@ impl OffscreenRenderingContext {
         }))
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn blit_framebuffer(
         gl: &glow::Context,
         source_rect: Rect<i32>,
@@ -841,7 +841,7 @@ mod test {
     use super::Framebuffer;
 
     #[test]
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn test_read_pixels() -> Result<(), Error> {
         let connection = Connection::new()?;
         let adapter = connection.create_software_adapter()?;

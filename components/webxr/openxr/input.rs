@@ -123,7 +123,7 @@ pub struct OpenXRInput {
     click_state: ClickState,
     squeeze_state: ClickState,
     menu_gesture_sustain: u8,
-    #[allow(unused)]
+    #[expect(unused)]
     hand_tracker: Option<HandTracker>,
     action_buttons_common: Vec<Action<f32>>,
     action_buttons_left: Vec<Action<f32>>,

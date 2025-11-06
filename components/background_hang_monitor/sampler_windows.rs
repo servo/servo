@@ -6,7 +6,7 @@ use crate::sampler::{NativeStack, Sampler};
 
 type MonitoredThreadId = usize; // TODO: use the `windows` crate to do this.
 
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub struct WindowsSampler {
     thread_id: MonitoredThreadId,
 }

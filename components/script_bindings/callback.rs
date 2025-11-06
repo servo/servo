@@ -94,7 +94,7 @@ impl<D: DomTypes> CallbackObject<D> {
         self.callback.get()
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     unsafe fn init(&mut self, cx: JSContext, callback: *mut JSObject) {
         self.callback.set(callback);
         self.permanent_js_root.set(ObjectValue(callback));
@@ -109,7 +109,7 @@ impl<D: DomTypes> CallbackObject<D> {
 }
 
 impl<D: DomTypes> Drop for CallbackObject<D> {
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn drop(&mut self) {
         unsafe {
             if let Some(cx) = Runtime::get() {

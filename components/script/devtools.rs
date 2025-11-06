@@ -47,7 +47,7 @@ use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType};
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 pub(crate) fn handle_evaluate_js(
     global: &GlobalScope,
     eval: String,

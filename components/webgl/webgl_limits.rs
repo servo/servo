@@ -216,7 +216,7 @@ trait GLExt {
 
 macro_rules! create_fun {
     ($tryer:ident, $getter:ident, $gltype:ty, $glcall:ident, $rstype:ty) => {
-        #[allow(unsafe_code)]
+        #[expect(unsafe_code)]
         fn $tryer(self, parameter: GLenum) -> Option<$rstype> {
             let mut value = [<$gltype>::default()];
             unsafe {

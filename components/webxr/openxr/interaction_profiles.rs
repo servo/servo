@@ -47,7 +47,7 @@ pub enum InteractionProfileType {
 
 #[derive(Clone, Copy, Debug)]
 pub struct InteractionProfile<'a> {
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub profile_type: InteractionProfileType,
     /// The interaction profile path
     pub path: &'static str,

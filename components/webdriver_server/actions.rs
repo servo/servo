@@ -65,7 +65,7 @@ pub(crate) enum InputSourceState {
 /// <https://w3c.github.io/webdriver/#dfn-pointer-input-source>
 /// TODO: subtype is used for <https://w3c.github.io/webdriver/#dfn-get-a-pointer-id>
 /// Need to add pointer-id to the following struct
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) struct PointerInputState {
     subtype: PointerType,
     pressed: FxHashSet<u64>,

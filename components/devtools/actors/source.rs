@@ -59,7 +59,6 @@ pub struct SourceActor {
     pub content_type: Option<String>,
 
     // TODO: use it in #37667, then remove this allow
-    #[allow(unused)]
     pub spidermonkey_id: u32,
     /// `introductionType` in SpiderMonkey `CompileOptionsWrapper`.
     pub introduction_type: String,

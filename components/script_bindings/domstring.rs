@@ -78,7 +78,6 @@ enum DOMStringType {
 }
 
 impl DOMStringType {
-    #[allow(unused)]
     /// Returns the str if Rust and otherwise panic. You need to call `make_rust`.
     fn str(&self) -> &str {
         match self {
@@ -378,7 +377,7 @@ impl DOMString {
     }
 
     /// Debug the current  state of the string without modifying it.
-    #[allow(unused)]
+    #[expect(unused)]
     fn debug_js(&self) {
         match *self.0.borrow() {
             DOMStringType::Rust(ref s) => info!("Rust String ({})", s),

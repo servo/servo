@@ -20,7 +20,7 @@ use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::resource::ResourceAvailable;
 
 #[derive(Clone, Copy)]
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub enum WorkerType {
     Dedicated = 0,
     Shared = 1,

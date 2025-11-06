@@ -244,7 +244,7 @@ where
                 // serialization.
                 // Attention: Code reviewers should carefully compare the deserialization here
                 // with the serialization above.
-                #[allow(unsafe_code)]
+                #[expect(unsafe_code)]
                 let callback = unsafe { Box::from_raw(ptr) };
                 Ok(GenericCallback(GenericCallbackVariants::InProcess(
                     *callback,
