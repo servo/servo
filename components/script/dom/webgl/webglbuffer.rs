@@ -219,6 +219,7 @@ impl WebGLBuffer {
         self.target.get()
     }
 
+    /// <https://registry.khronos.org/webgl/specs/latest/2.0/#5.1>
     fn can_bind_to(&self, new_target: u32) -> bool {
         if let Some(current_target) = self.target.get() {
             if [current_target, new_target]
@@ -234,9 +235,21 @@ impl WebGLBuffer {
         if !self.can_bind_to(target) {
             return Err(WebGLError::InvalidOperation);
         }
-        if !target_is_copy_buffer(target) {
-            self.target.set(Some(target));
+
+        if self.target.get().is_none() {
+            if target_is_copy_buffer(target) {
+                // Binding a buffer with type undefined to the COPY_READ_BUFFER or COPY_WRITE_BUFFER
+                // binding points will set its type to other data.
+                self.target
+                    .set(Some(WebGLRenderingContextConstants::ARRAY_BUFFER));
+            } else {
+                // Calling bindBuffer, bindBufferRange or bindBufferBase with the target argument
+                // set to any buffer binding point except COPY_READ_BUFFER or COPY_WRITE_BUFFER
+                // will then set the WebGL buffer type of the buffer being bound according to the table above.
+                self.target.set(Some(target));
+            }
         }
+
         Ok(())
     }
 
