@@ -4552,7 +4552,12 @@ impl VirtualMethods for Element {
     }
 
     fn adopting_steps(&self, old_doc: &Document, can_gc: CanGc) {
-        self.super_type().unwrap().adopting_steps(old_doc, can_gc);
+        if let Some(s) = self.super_type() {
+            s.adopting_steps(old_doc, can_gc);
+        }
+
+        self.upcast::<EventTarget>()
+            .recompile_all_event_handlers_for_element(self);
 
         if self.owner_document().is_html_document() != old_doc.is_html_document() {
             self.tag_name.clear();
