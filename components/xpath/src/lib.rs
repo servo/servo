@@ -189,6 +189,7 @@ mod dummy_implementation {
         type Document = DummyDocument;
         type Attribute = DummyAttribute;
         type Element = DummyElement;
+        type Opaque = usize;
 
         fn is_comment(&self) -> bool {
             false
@@ -232,7 +233,7 @@ mod dummy_implementation {
         fn owner_document(&self) -> Self::Document {
             DummyDocument
         }
-        fn to_opaque(&self) -> impl Eq + Hash {
+        fn to_opaque(&self) -> Self::Opaque {
             0
         }
         fn as_processing_instruction(&self) -> Option<Self::ProcessingInstruction> {
