@@ -698,7 +698,7 @@ impl WorkletThread {
         // Also, the spec currently doesn't allow exceptions to be propagated
         // to the main script thread.
         // https://github.com/w3c/css-houdini-drafts/issues/407
-        let ok = script.is_some_and(|s| global_scope.evaluate_js(&s, can_gc).is_ok());
+        let ok = script.is_some_and(|s| global_scope.evaluate_js(s.into(), can_gc).is_ok());
 
         if !ok {
             // Step 3.
