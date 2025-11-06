@@ -2538,6 +2538,10 @@ impl ScriptThread {
         for (_, document) in self.documents.borrow().iter() {
             document.window().handle_theme_change(theme);
         }
+        let mut loads = self.incomplete_loads.borrow_mut();
+        for load in loads.iter_mut() {
+            load.theme = theme;
+        }
     }
 
     // exit_fullscreen creates a new JS promise object, so we need to have entered a realm
