@@ -29,7 +29,7 @@ from enum import Enum
 from glob import glob
 from os import path
 from subprocess import PIPE, CompletedProcess
-from typing import Any, Optional, Union, LiteralString, cast
+from typing import Any, Optional, Union, LiteralString, cast, List
 from collections.abc import Generator, Callable
 from xml.etree.ElementTree import XML
 
@@ -89,6 +89,14 @@ class BuildType:
             return "release"
         else:
             return self.profile
+
+    def as_cargo_arg(self) -> List[str]:
+        if self.is_dev():
+            return ["--debug"]
+        elif self.is_release():
+            return ["--release"]
+        else:
+            return ["--profile", self.profile]
 
     def __eq__(self, other: object) -> bool:
         raise Exception("BUG: do not compare BuildType with ==")

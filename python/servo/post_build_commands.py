@@ -33,6 +33,8 @@ from servo.command_base import (
 )
 from servo.platform.build_target import is_android
 
+from python.servo.command_base import BuildType
+
 ANDROID_APP_NAME = "org.servo.servoshell"
 
 
@@ -199,8 +201,8 @@ class PostBuildCommands(CommandBase):
 
     @Command("coverage-report", description="Create Servo Code Coverage report.", category="post-build")
     @CommandArgument("params", nargs="...", help="Command-line arguments to be passed through to cargo llvm-cov")
-    @CommandBase.common_command_arguments(binary_selection=True, coverage_report=True)
-    def coverage_report(self, params: Optional[List[str]] = None, **kwargs: Any) -> int:
+    @CommandBase.common_command_arguments(binary_selection=True, build_type=True, coverage_report=True)
+    def coverage_report(self, build_type: BuildType, params: Optional[List[str]] = None, **kwargs: Any) -> int:
         target_dir = servo.util.get_target_dir()
         # See `cargo llvm-cov show-env`. We only export the values required at runtime.
         os.environ["CARGO_LLVM_COV"] = "1"
@@ -208,6 +210,7 @@ class PostBuildCommands(CommandBase):
         os.environ["CARGO_LLVM_COV_TARGET_DIR"] = target_dir
         try:
             cargo_llvm_cov_cmd = ["cargo", "llvm-cov", "report", "--target", self.target.triple()]
+            cargo_llvm_cov_cmd.extend(build_type.as_cargo_arg())
             cargo_llvm_cov_cmd.extend(params or [])
             subprocess.check_call(cargo_llvm_cov_cmd)
         except subprocess.CalledProcessError as exception:
