@@ -5,7 +5,7 @@
 use crate::ast::CoreFunction;
 use crate::context::EvaluationCtx;
 use crate::eval::try_extract_nodeset;
-use crate::value::parse_number_from_string;
+use crate::value::{NodeSet, parse_number_from_string};
 use crate::{Document, Dom, Element, Error, Node, Value};
 
 /// Returns e.g. "rect" for `<svg:rect>`
@@ -151,21 +151,22 @@ impl CoreFunction {
                 let args = args_normalized.split(' ');
 
                 let document = context.context_node.owner_document();
-                let mut result = Vec::new();
+                let mut result = NodeSet::default();
                 for arg in args {
                     for element in document.get_elements_with_id(arg) {
                         result.push(element.as_node());
                     }
                 }
-                Ok(Value::Nodeset(result))
+                result.assume_sorted();
+
+                Ok(Value::NodeSet(result))
             },
             CoreFunction::LocalName(expr_opt) => {
                 let node = match expr_opt {
                     Some(expr) => expr
                         .evaluate(context)
                         .and_then(try_extract_nodeset)?
-                        .first()
-                        .cloned(),
+                        .first(),
                     None => Some(context.context_node.clone()),
                 };
                 let name = node.and_then(|n| local_name(&n)).unwrap_or_default();
@@ -176,8 +177,7 @@ impl CoreFunction {
                     Some(expr) => expr
                         .evaluate(context)
                         .and_then(try_extract_nodeset)?
-                        .first()
-                        .cloned(),
+                        .first(),
                     None => Some(context.context_node.clone()),
                 };
                 let ns = node.and_then(|n| namespace_uri(&n)).unwrap_or_default();
@@ -188,8 +188,7 @@ impl CoreFunction {
                     Some(expr) => expr
                         .evaluate(context)
                         .and_then(try_extract_nodeset)?
-                        .first()
-                        .cloned(),
+                        .first(),
                     None => Some(context.context_node.clone()),
                 };
                 let name = node.and_then(|n| name(&n)).unwrap_or_default();
@@ -230,25 +229,25 @@ impl CoreFunction {
                 Ok(Value::String(result))
             },
             CoreFunction::StringLength(expr_opt) => {
-                let s = match expr_opt {
+                let string = match expr_opt {
                     Some(expr) => expr.evaluate(context)?.convert_to_string(),
                     None => context.context_node.text_content(),
                 };
-                Ok(Value::Number(s.chars().count() as f64))
+                Ok(Value::Number(string.chars().count() as f64))
             },
             CoreFunction::NormalizeSpace(expr_opt) => {
-                let s = match expr_opt {
+                let string = match expr_opt {
                     Some(expr) => expr.evaluate(context)?.convert_to_string(),
                     None => context.context_node.text_content(),
                 };
 
-                Ok(Value::String(normalize_space(&s)))
+                Ok(Value::String(normalize_space(&string)))
             },
             CoreFunction::Translate(str1, str2, str3) => {
-                let s = str1.evaluate(context)?.convert_to_string();
+                let string = str1.evaluate(context)?.convert_to_string();
                 let from = str2.evaluate(context)?.convert_to_string();
                 let to = str3.evaluate(context)?.convert_to_string();
-                let result = s
+                let result = string
                     .chars()
                     .map(|c| match from.find(c) {
                         Some(i) if i < to.chars().count() => to.chars().nth(i).unwrap(),

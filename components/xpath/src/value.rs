@@ -4,6 +4,7 @@
 
 use std::borrow::ToOwned;
 use std::collections::HashSet;
+use std::mem;
 
 use crate::Node;
 
@@ -14,8 +15,131 @@ pub enum Value<N: Node> {
     /// A IEEE-754 double-precision floating point number.
     Number(f64),
     String(String),
-    /// A collection of not-necessarily-unique nodes.
-    Nodeset(Vec<N>),
+    NodeSet(NodeSet<N>),
+}
+
+#[derive(Debug)]
+pub struct NodeSet<N: Node> {
+    nodes: Vec<N>,
+    is_sorted: bool,
+}
+
+impl<N: Node> Default for NodeSet<N> {
+    fn default() -> Self {
+        Self {
+            nodes: Default::default(),
+            is_sorted: false,
+        }
+    }
+}
+
+impl<N: Node> NodeSet<N> {
+    pub(crate) fn len(&self) -> usize {
+        self.nodes.len()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.nodes.is_empty()
+    }
+
+    pub(crate) fn push(&mut self, node: N) {
+        self.is_sorted = false;
+        self.nodes.push(node);
+    }
+
+    pub(crate) fn extend<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = N>,
+    {
+        self.nodes.extend(iter);
+    }
+
+    /// Whether this set is known to be sorted in tree order.
+    ///
+    /// This method is pessimistic and will never look at the elements in the set.
+    /// As such, it *may* return `false` even if the set happens to be sorted.
+    pub(crate) fn is_sorted(&self) -> bool {
+        self.is_sorted || self.nodes.len() < 2
+    }
+
+    /// Assume that this set is sorted, without actually sorting it.
+    pub(crate) fn assume_sorted(&mut self) {
+        debug_assert!(
+            self.nodes
+                .is_sorted_by(|a, b| a.compare_tree_order(b).is_le())
+        );
+        self.is_sorted = true;
+    }
+
+    pub(crate) fn sort(&mut self) {
+        if self.is_sorted() {
+            return;
+        }
+
+        // Using sort_unstable_by here is fine because duplicates won't appear in the final
+        // result anyways.
+        self.nodes.sort_unstable_by(|a, b| a.compare_tree_order(b));
+    }
+
+    pub(crate) fn iter(&self) -> impl Iterator<Item = &N> {
+        self.nodes.iter()
+    }
+
+    /// Return the first node in tree order that appears within this set.
+    ///
+    /// This method will not sort the set itself.
+    pub(crate) fn first(&self) -> Option<N> {
+        if self.is_sorted() {
+            return self.nodes.first().cloned();
+        }
+
+        self.iter().min_by(|a, b| a.compare_tree_order(b)).cloned()
+    }
+
+    pub(crate) fn deduplicate(&mut self) {
+        let mut seen = HashSet::new();
+        self.nodes = mem::take(&mut self.nodes)
+            .into_iter()
+            .filter_map(|node| {
+                let opaque = node.to_opaque();
+                seen.insert(opaque).then_some(node)
+            })
+            .collect();
+    }
+
+    /// Retains only the elements specified by the predicate.
+    ///
+    /// In other words, remove all elements `e` for which `f(&e)` returns `false`.
+    /// This method operates in place, visiting each element exactly once in the
+    /// original order, and preserves the order of the retained elements.
+    pub(crate) fn retain<F>(&mut self, f: F)
+    where
+        F: FnMut(&N) -> bool,
+    {
+        self.nodes.retain(f)
+    }
+
+    pub(crate) fn reverse(&mut self) {
+        self.nodes = mem::take(&mut self.nodes).into_iter().rev().collect();
+    }
+}
+
+impl<N: Node> IntoIterator for NodeSet<N> {
+    type IntoIter = <Vec<N> as IntoIterator>::IntoIter;
+    type Item = <Vec<N> as IntoIterator>::Item;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.nodes.into_iter()
+    }
+}
+
+impl<N: Node> FromIterator<N> for NodeSet<N> {
+    fn from_iter<T: IntoIterator<Item = N>>(iter: T) -> Self {
+        Self {
+            nodes: iter.into_iter().collect(),
+            is_sorted: false,
+        }
+    }
 }
 
 pub(crate) fn parse_number_from_string(string: &str) -> f64 {
@@ -31,7 +155,7 @@ pub(crate) fn parse_number_from_string(string: &str) -> f64 {
 }
 
 /// Helper for `PartialEq<Value>` implementations
-fn num_vals<N: Node>(nodes: &[N]) -> Vec<f64> {
+fn num_vals<N: Node>(nodes: &NodeSet<N>) -> Vec<f64> {
     nodes
         .iter()
         .map(|node| parse_number_from_string(&node.text_content()))
@@ -41,20 +165,20 @@ fn num_vals<N: Node>(nodes: &[N]) -> Vec<f64> {
 impl<N: Node> PartialEq<Value<N>> for Value<N> {
     fn eq(&self, other: &Value<N>) -> bool {
         match (self, other) {
-            (Value::Nodeset(left_nodes), Value::Nodeset(right_nodes)) => {
+            (Value::NodeSet(left_nodes), Value::NodeSet(right_nodes)) => {
                 let left_strings: HashSet<String> =
                     left_nodes.iter().map(|node| node.text_content()).collect();
                 let right_strings: HashSet<String> =
                     right_nodes.iter().map(|node| node.text_content()).collect();
                 !left_strings.is_disjoint(&right_strings)
             },
-            (&Value::Nodeset(ref nodes), &Value::Number(val)) |
-            (&Value::Number(val), &Value::Nodeset(ref nodes)) => {
+            (&Value::NodeSet(ref nodes), &Value::Number(val)) |
+            (&Value::Number(val), &Value::NodeSet(ref nodes)) => {
                 let numbers = num_vals(nodes);
                 numbers.contains(&val)
             },
-            (&Value::Nodeset(ref nodes), &Value::String(ref string)) |
-            (&Value::String(ref string), &Value::Nodeset(ref nodes)) => nodes
+            (&Value::NodeSet(ref nodes), &Value::String(ref string)) |
+            (&Value::String(ref string), &Value::NodeSet(ref nodes)) => nodes
                 .iter()
                 .map(|node| node.text_content())
                 .any(|text_content| &text_content == string),
@@ -76,7 +200,7 @@ impl<N: Node> Value<N> {
             Value::Boolean(boolean) => *boolean,
             Value::Number(number) => *number != 0.0 && !number.is_nan(),
             Value::String(string) => !string.is_empty(),
-            Value::Nodeset(nodeset) => !nodeset.is_empty(),
+            Value::NodeSet(nodeset) => !nodeset.is_empty(),
         }
     }
 
@@ -92,7 +216,7 @@ impl<N: Node> Value<N> {
             },
             Value::Number(number) => *number,
             Value::String(string) => parse_number_from_string(string),
-            Value::Nodeset(_) => parse_number_from_string(&self.convert_to_string()),
+            Value::NodeSet(_) => parse_number_from_string(&self.convert_to_string()),
         }
     }
 
@@ -115,8 +239,8 @@ impl<N: Node> Value<N> {
                 }
             },
             Value::String(string) => string.to_owned(),
-            Value::Nodeset(nodes) => nodes
-                .document_order_first()
+            Value::NodeSet(nodes) => nodes
+                .first()
                 .as_ref()
                 .map(Node::text_content)
                 .unwrap_or_default(),
@@ -142,7 +266,6 @@ impl<'a, N: Node> From<&'a str> for Value<N> {
         Value::String(other.into())
     }
 }
-from_impl!(Vec<N>, Value::Nodeset);
 
 macro_rules! partial_eq_impl {
     ($raw:ty, $variant:pat => $b:expr) => {
@@ -170,44 +293,6 @@ partial_eq_impl!(bool, Value::Boolean(ref v) => v);
 partial_eq_impl!(f64, Value::Number(ref v) => v);
 partial_eq_impl!(String, Value::String(ref v) => v);
 partial_eq_impl!(&str, Value::String(ref v) => v);
-partial_eq_impl!(Vec<N>, Value::Nodeset(ref v) => v);
-
-pub trait NodesetHelpers<N: Node> {
-    /// Returns the node that occurs first in [document order]
-    ///
-    /// [document order]: https://www.w3.org/TR/xpath/#dt-document-order
-    fn document_order_first(&self) -> Option<N>;
-    fn document_order(&self) -> Vec<N>;
-    fn document_order_unique(&self) -> Vec<N>;
-}
-
-impl<N: Node> NodesetHelpers<N> for Vec<N> {
-    fn document_order_first(&self) -> Option<N> {
-        self.iter().min_by(|a, b| a.compare_tree_order(b)).cloned()
-    }
-
-    fn document_order(&self) -> Vec<N> {
-        let mut nodes: Vec<N> = self.clone();
-        if nodes.len() <= 1 {
-            return nodes;
-        }
-
-        nodes.sort_by(|a, b| a.compare_tree_order(b));
-
-        nodes
-    }
-
-    fn document_order_unique(&self) -> Vec<N> {
-        let mut seen = HashSet::new();
-        let unique_nodes: Vec<N> = self
-            .iter()
-            .filter(|node| seen.insert(node.to_opaque()))
-            .cloned()
-            .collect();
-
-        unique_nodes.document_order()
-    }
-}
 
 #[cfg(test)]
 mod tests {
