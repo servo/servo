@@ -170,6 +170,16 @@ fn test_theme_change() {
     // The theme persists after a navigation.
     let result = evaluate_javascript(&servo_test, webview.clone(), is_dark_theme_script);
     assert_eq!(result, Ok(JSValue::Boolean(true)));
+
+    // Now test the same thing, but setting the theme immediately after creating the WebView.
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo())
+        .delegate(delegate.clone())
+        .url(Url::parse("data:text/html,page one").unwrap())
+        .build();
+    webview.notify_theme_change(Theme::Dark);
+    let result = evaluate_javascript(&servo_test, webview.clone(), is_dark_theme_script);
+    assert_eq!(result, Ok(JSValue::Boolean(true)));
 }
 
 #[test]
