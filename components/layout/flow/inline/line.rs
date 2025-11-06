@@ -575,7 +575,7 @@ impl LineItemLayout<'_, '_> {
         let mut can_be_ellided = false; // TODO: add more logic later on.
 
         // 1. check the parent style's text-overflow property.
-        let parent_style = self.layout.containing_block.style.clone();
+        let parent_style = self.layout.ifc.shared_inline_styles.style.borrow();
         match parent_style.get_text().text_overflow.second {
             TextOverflowSide::Ellipsis => {
                 if parent_style.get_box().overflow_x == Overflow_X::Hidden{
@@ -584,21 +584,6 @@ impl LineItemLayout<'_, '_> {
             },
             TextOverflowSide::Clip => {
             }, // do nothing!
-            _ => {}, // TODO: handle strings.
-        }
-
-        // 2. check current `TextRunLineItem` style's text-overflow property.
-        // When there is a block child, the styling of the parent is passed to the children. 
-        // Not sure why, but this is an observation obtained from doing a test from CSS specs website.
-        // Relevant test: example 7 from <https://www.w3.org/TR/css-ui-3/#text-overflow>
-        let second = &text_item.inline_styles.style.borrow().get_text().text_overflow.second.clone();
-        match second {
-            TextOverflowSide::Ellipsis => {
-                if text_item.inline_styles.style.borrow().get_box().overflow_x == Overflow_X::Hidden{
-                    can_be_ellided = true;
-                }
-            },
-            TextOverflowSide::Clip => {}, // do nothing!
             _ => {}, // TODO: handle strings.
         }
 
