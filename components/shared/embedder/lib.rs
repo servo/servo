@@ -32,7 +32,7 @@ use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use log::warn;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
-use pixels::RasterImage;
+use pixels::SharedRasterImage;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize};
 use servo_url::ServoUrl;
@@ -1002,16 +1002,16 @@ pub struct Notification {
     /// The URL of an icon. The icon will be displayed as part of the notification.
     pub icon_url: Option<ServoUrl>,
     /// Icon's raw image data and metadata.
-    pub icon_resource: Option<Arc<RasterImage>>,
+    pub icon_resource: Option<Arc<SharedRasterImage>>,
     /// The URL of a badge. The badge is used when there is no enough space to display the notification,
     /// such as on a mobile device's notification bar.
     pub badge_url: Option<ServoUrl>,
     /// Badge's raw image data and metadata.
-    pub badge_resource: Option<Arc<RasterImage>>,
+    pub badge_resource: Option<Arc<SharedRasterImage>>,
     /// The URL of an image. The image will be displayed as part of the notification.
     pub image_url: Option<ServoUrl>,
     /// Image's raw image data and metadata.
-    pub image_resource: Option<Arc<RasterImage>>,
+    pub image_resource: Option<Arc<SharedRasterImage>>,
     /// Actions available for users to choose from for interacting with the notification.
     pub actions: Vec<NotificationAction>,
 }
@@ -1026,7 +1026,7 @@ pub struct NotificationAction {
     /// The URL of an icon. The icon will be displayed with the action.
     pub icon_url: Option<ServoUrl>,
     /// Icon's raw image data and metadata.
-    pub icon_resource: Option<Arc<RasterImage>>,
+    pub icon_resource: Option<Arc<SharedRasterImage>>,
 }
 
 /// Information about a `WebView`'s screen geometry and offset. This is used

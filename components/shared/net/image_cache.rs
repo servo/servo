@@ -28,7 +28,7 @@ pub type VectorImageId = PendingImageId;
 // Represents either a raster image for which the pixel data is available
 // or a vector image for which only the natural dimensions are available
 // and thus requires a further rasterization step to render.
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub enum Image {
     Raster(#[conditional_malloc_size_of] Arc<RasterImage>),
     Vector(VectorImage),
@@ -65,7 +65,7 @@ impl Image {
 }
 
 /// Indicating either entire image or just metadata availability
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub enum ImageOrMetadataAvailable {
     ImageAvailable { image: Image, url: ServoUrl },
     MetadataAvailable(ImageMetadata, PendingImageId),
@@ -111,7 +111,7 @@ impl ImageLoadListener {
 }
 
 /// The returned image.
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub enum ImageResponse {
     /// The requested image was loaded.
     Loaded(Image, ServoUrl),
@@ -125,7 +125,7 @@ pub enum ImageResponse {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct PendingImageId(pub u64);
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug)]
 pub struct PendingImageResponse {
     pub pipeline_id: PipelineId,
     pub response: ImageResponse,
@@ -139,7 +139,7 @@ pub struct RasterizationCompleteResponse {
     pub requested_size: DeviceIntSize,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug)]
 pub enum ImageCacheResponseMessage {
     NotifyPendingImageLoadStatus(PendingImageResponse),
     VectorImageRasterizationComplete(RasterizationCompleteResponse),
