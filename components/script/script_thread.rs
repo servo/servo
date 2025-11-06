@@ -3527,7 +3527,7 @@ impl ScriptThread {
         let _ac = enter_realm(global_scope);
         rooted!(in(*GlobalScope::get_cx()) let mut jsval = UndefinedValue());
         _ = global_scope.evaluate_js_on_global_with_result(
-            &script_source,
+            script_source,
             jsval.handle_mut(),
             ScriptFetchOptions::default_classic_script(global_scope),
             global_scope.api_base_url(),
@@ -3912,7 +3912,7 @@ impl ScriptThread {
 
         rooted!(in(*context) let mut return_value = UndefinedValue());
         if let Err(err) = global_scope.evaluate_js_on_global_with_result(
-            &script,
+            script.into(),
             return_value.handle_mut(),
             ScriptFetchOptions::default_classic_script(global_scope),
             global_scope.api_base_url(),

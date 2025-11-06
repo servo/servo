@@ -637,7 +637,7 @@ pub(crate) fn handle_execute_script(
             rooted!(in(*cx) let mut rval = UndefinedValue());
             let global = window.as_global_scope();
             let evaluation_result = global.evaluate_js_on_global_with_result(
-                &eval,
+                eval.into(),
                 rval.handle_mut(),
                 ScriptFetchOptions::default_classic_script(global),
                 global.api_base_url(),
@@ -675,7 +675,7 @@ pub(crate) fn handle_execute_async_script(
 
             let global_scope = window.as_global_scope();
             if let Err(error) = global_scope.evaluate_js_on_global_with_result(
-                &eval,
+                eval.into(),
                 rval.handle_mut(),
                 ScriptFetchOptions::default_classic_script(global_scope),
                 global_scope.api_base_url(),

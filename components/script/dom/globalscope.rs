@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
 use std::cell::{Cell, OnceCell, Ref};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -2821,14 +2822,14 @@ impl GlobalScope {
     /// Evaluate JS code on this global scope.
     pub(crate) fn evaluate_js_on_global_with_result(
         &self,
-        code: &str,
+        code: Cow<'_, str>,
         rval: MutableHandleValue,
         fetch_options: ScriptFetchOptions,
         script_base_url: ServoUrl,
         can_gc: CanGc,
         introduction_type: Option<&'static CStr>,
     ) -> Result<(), JavaScriptEvaluationError> {
-        let source_code = SourceCode::Text(Rc::new(DOMString::from_string((*code).to_string())));
+        let source_code = SourceCode::Text(Rc::new(DOMString::from_string(code.into_owned())));
         self.evaluate_script_on_global_with_result(
             &source_code,
             "",

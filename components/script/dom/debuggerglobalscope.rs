@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
 use std::cell::RefCell;
 
 use base::id::{Index, PipelineId, PipelineNamespaceId};
@@ -122,7 +123,11 @@ impl DebuggerGlobalScope {
         self.upcast::<GlobalScope>()
     }
 
-    fn evaluate_js(&self, script: &str, can_gc: CanGc) -> Result<(), JavaScriptEvaluationError> {
+    fn evaluate_js(
+        &self,
+        script: Cow<'_, str>,
+        can_gc: CanGc,
+    ) -> Result<(), JavaScriptEvaluationError> {
         rooted!(in (*Self::get_cx()) let mut rval = UndefinedValue());
         self.global_scope.evaluate_js_on_global_with_result(
             script,
@@ -136,7 +141,7 @@ impl DebuggerGlobalScope {
 
     pub(crate) fn execute(&self, can_gc: CanGc) {
         if self
-            .evaluate_js(&resources::read_string(Resource::DebuggerJS), can_gc)
+            .evaluate_js(resources::read_string(Resource::DebuggerJS).into(), can_gc)
             .is_err()
         {
             let ar = enter_realm(self);
