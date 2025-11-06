@@ -280,13 +280,13 @@ impl ImageDataMethods<crate::DomTypeHolder> for ImageData {
     ) -> Fallible<DomRoot<Self>> {
         // 1. If one or both of sw and sh are zero, then throw an "IndexSizeError" DOMException.
         if sw == 0 || sh == 0 {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
 
         // When a constructor is called for an ImageData that is too large, other browsers throw
         // IndexSizeError rather than RangeError here, so we do the same.
         pixels::compute_rgba8_byte_length_if_within_limit(sw as usize, sh as usize)
-            .ok_or(Error::IndexSize)?;
+            .ok_or(Error::IndexSize(None))?;
 
         // 2. Initialize this given sw, sh, and settings.
         // 3. Initialize the image data of this to transparent black.
@@ -321,13 +321,13 @@ impl ImageDataMethods<crate::DomTypeHolder> for ImageData {
         let length = length / bytes_per_pixel;
         // 5. If length is not an integral multiple of sw, then throw an "IndexSizeError" DOMException.
         if sw == 0 || length % sw as usize != 0 {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
         // 6. Let height be length divided by sw.
         let height = length / sw as usize;
         // 7. If sh was given and its value is not equal to height, then throw an "IndexSizeError" DOMException.
         if sh.is_some_and(|x| height != x as usize) {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
         // 8. Initialize this given sw, sh, settings, and source set to data.
         Self::initialize(

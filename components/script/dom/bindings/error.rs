@@ -112,7 +112,10 @@ pub(crate) fn create_dom_exception(
     };
 
     let code = match result {
-        Error::IndexSize => DOMErrorName::IndexSizeError,
+        Error::IndexSize(Some(custom_message)) => {
+            return new_custom_exception(DOMErrorName::IndexSizeError, custom_message);
+        },
+        Error::IndexSize(None) => DOMErrorName::IndexSizeError,
         Error::NotFound(Some(custom_message)) => {
             return new_custom_exception(DOMErrorName::NotFoundError, custom_message);
         },

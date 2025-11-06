@@ -33,7 +33,7 @@ impl ChannelSplitterNode {
         options: &ChannelSplitterOptions,
     ) -> Fallible<ChannelSplitterNode> {
         if options.numberOfOutputs < 1 || options.numberOfOutputs > MAX_CHANNEL_COUNT {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
 
         let node_options = options.parent.unwrap_or(

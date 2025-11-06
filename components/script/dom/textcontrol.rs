@@ -175,7 +175,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
 
         // Step 4
         if start > end {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
 
         // Save the original selection state to later pass to set_selection_range, because we will

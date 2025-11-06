@@ -52,15 +52,15 @@ impl AnalyserNode {
             options.fftSize < 32 ||
             (options.fftSize & (options.fftSize - 1) != 0)
         {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
 
         if *options.maxDecibels <= *options.minDecibels {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
 
         if *options.smoothingTimeConstant < 0. || *options.smoothingTimeConstant > 1. {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
 
         let (send, rcv) = ipc::channel().unwrap();
@@ -186,7 +186,7 @@ impl AnalyserNodeMethods<crate::DomTypeHolder> for AnalyserNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-fftsize>
     fn SetFftSize(&self, value: u32) -> Fallible<()> {
         if !(32..=32768).contains(&value) || (value & (value - 1) != 0) {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
         self.engine.borrow_mut().set_fft_size(value as usize);
         Ok(())
@@ -210,7 +210,7 @@ impl AnalyserNodeMethods<crate::DomTypeHolder> for AnalyserNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-mindecibels>
     fn SetMinDecibels(&self, value: Finite<f64>) -> Fallible<()> {
         if *value >= self.engine.borrow().get_max_decibels() {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
         self.engine.borrow_mut().set_min_decibels(*value);
         Ok(())
@@ -224,7 +224,7 @@ impl AnalyserNodeMethods<crate::DomTypeHolder> for AnalyserNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-maxdecibels>
     fn SetMaxDecibels(&self, value: Finite<f64>) -> Fallible<()> {
         if *value <= self.engine.borrow().get_min_decibels() {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
         self.engine.borrow_mut().set_max_decibels(*value);
         Ok(())
@@ -238,7 +238,7 @@ impl AnalyserNodeMethods<crate::DomTypeHolder> for AnalyserNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-smoothingtimeconstant>
     fn SetSmoothingTimeConstant(&self, value: Finite<f64>) -> Fallible<()> {
         if *value < 0. || *value > 1. {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
         self.engine.borrow_mut().set_smoothing_constant(*value);
         Ok(())

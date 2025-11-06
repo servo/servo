@@ -416,7 +416,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         // dimension or its vertical dimension is zero), then return a promise
         // rejected with an "IndexSizeError" DOMException.
         if self.Width() == 0 || self.Height() == 0 {
-            promise.reject_error(Error::IndexSize, can_gc);
+            promise.reject_error(Error::IndexSize(None), can_gc);
             return promise;
         }
 

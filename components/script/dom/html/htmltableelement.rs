@@ -373,7 +373,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
         let number_of_row_elements = rows.Length();
 
         if index < -1 || index > number_of_row_elements as i32 {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
 
         let new_row = Element::create(
@@ -458,7 +458,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
         // Step 1: If index is less than −1 or greater than or equal to the number of elements
         // in the rows collection, then throw an "IndexSizeError".
         if !(-1..num_rows).contains(&index) {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
 
         let num_rows = rows.Length() as i32;
