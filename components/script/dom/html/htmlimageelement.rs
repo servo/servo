@@ -393,7 +393,7 @@ impl HTMLImageElement {
         let trusted_node = Trusted::new(self);
         let generation = self.generation_id();
         let window = self.owner_window();
-        let sender = window.register_image_cache_listener(id, move |response| {
+        let callback = window.register_image_cache_listener(id, move |response| {
             let trusted_node = trusted_node.clone();
             let window = trusted_node.root().owner_window();
             let callback_type = change_type.clone();
@@ -423,9 +423,11 @@ impl HTMLImageElement {
             }));
         });
 
-        window
-            .image_cache()
-            .add_listener(ImageLoadListener::new(sender, window.pipeline_id(), id));
+        window.image_cache().add_listener(ImageLoadListener::new(
+            callback,
+            window.pipeline_id(),
+            id,
+        ));
     }
 
     fn fetch_request(&self, img_url: &ServoUrl, id: PendingImageId) {

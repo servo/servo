@@ -13,14 +13,14 @@ use base::id::{PipelineId, WebViewId};
 use base::threadpool::ThreadPool;
 use compositing_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
 use imsz::imsz_from_reader;
-use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::IpcSharedMemory;
 use log::{debug, warn};
 use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use net_traits::image_cache::{
-    Image, ImageCache, ImageCacheFactory, ImageCacheResponseMessage, ImageCacheResult,
-    ImageLoadListener, ImageOrMetadataAvailable, ImageResponse, PendingImageId,
+    Image, ImageCache, ImageCacheFactory, ImageCacheResponseCallback, ImageCacheResponseMessage,
+    ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable, ImageResponse, PendingImageId,
     RasterizationCompleteResponse, VectorImage,
 };
 use net_traits::request::CorsSettings;
@@ -380,7 +380,8 @@ impl PendingLoad {
 
 #[derive(Default, MallocSizeOf)]
 struct RasterizationTask {
-    listeners: Vec<(PipelineId, IpcSender<ImageCacheResponseMessage>)>,
+    #[ignore_malloc_size_of = "Fn is difficult to measure"]
+    listeners: Vec<(PipelineId, ImageCacheResponseCallback)>,
     result: Option<RasterImage>,
 }
 
@@ -551,8 +552,8 @@ impl ImageCacheStore {
                 .unwrap_or_default()
         };
 
-        for (pipeline_id, sender) in listeners {
-            let _ = sender.send(ImageCacheResponseMessage::VectorImageRasterizationComplete(
+        for (pipeline_id, callback) in listeners {
+            callback(ImageCacheResponseMessage::VectorImageRasterizationComplete(
                 RasterizationCompleteResponse {
                     pipeline_id,
                     image_id: pending_image_id,
@@ -839,9 +840,9 @@ impl ImageCache for ImageCacheImpl {
         pipeline_id: PipelineId,
         image_id: PendingImageId,
         requested_size: DeviceIntSize,
-        sender: IpcSender<ImageCacheResponseMessage>,
+        callback: ImageCacheResponseCallback,
     ) {
-        let completed = {
+        {
             let mut store = self.store.lock().unwrap();
             let key = (image_id, requested_size);
             if !store.vector_images.contains_key(&image_id) {
@@ -854,24 +855,20 @@ impl ImageCache for ImageCacheImpl {
                 return;
             };
 
-            match task.result {
-                Some(_) => true,
-                None => {
-                    task.listeners.push((pipeline_id, sender.clone()));
-                    false
-                },
+            // If `result` is `None`, the task is still pending.
+            if task.result.is_none() {
+                task.listeners.push((pipeline_id, callback));
+                return;
             }
-        };
-
-        if completed {
-            let _ = sender.send(ImageCacheResponseMessage::VectorImageRasterizationComplete(
-                RasterizationCompleteResponse {
-                    pipeline_id,
-                    image_id,
-                    requested_size,
-                },
-            ));
         }
+
+        callback(ImageCacheResponseMessage::VectorImageRasterizationComplete(
+            RasterizationCompleteResponse {
+                pipeline_id,
+                image_id,
+                requested_size,
+            },
+        ));
     }
 
     fn rasterize_vector_image(

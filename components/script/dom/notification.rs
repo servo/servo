@@ -12,8 +12,6 @@ use embedder_traits::{
     EmbedderMsg, Notification as EmbedderNotification,
     NotificationAction as EmbedderNotificationAction,
 };
-use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, MutableHandleValue};
@@ -926,36 +924,25 @@ impl Notification {
         pending_image_id: PendingImageId,
         resource_type: ResourceType,
     ) {
-        let (sender, receiver) = ipc::channel().expect("ipc channel failure");
-
         let global: &GlobalScope = &self.global();
-
         let trusted_this = Trusted::new(self);
-        let resource_type = resource_type.clone();
         let task_source = global.task_manager().networking_task_source().to_sendable();
 
-        ROUTER.add_typed_route(
-            receiver,
-            Box::new(move |response| {
-                let trusted_this = trusted_this.clone();
-                let resource_type = resource_type.clone();
-                task_source.queue(task!(handle_response: move || {
-                    let this = trusted_this.root();
-                    if let Ok(response) = response {
-                        let ImageCacheResponseMessage::NotifyPendingImageLoadStatus(status) = response else {
-                            warn!("Received unexpected message from image cache: {response:?}");
-                            return;
-                        };
-                        this.handle_image_cache_response(request_id, status.response, resource_type);
-                    } else {
-                        this.handle_image_cache_response(request_id, ImageResponse::FailedToLoadOrDecode, resource_type);
-                    }
-                }));
-            }),
-        );
+        let callback = Box::new(move |response| {
+            let trusted_this = trusted_this.clone();
+            let resource_type = resource_type.clone();
+            task_source.queue(task!(handle_response: move || {
+                let this = trusted_this.root();
+                let ImageCacheResponseMessage::NotifyPendingImageLoadStatus(status) = response else {
+                    warn!("Received unexpected message from image cache: {response:?}");
+                    return;
+                };
+                this.handle_image_cache_response(request_id, status.response, resource_type);
+            }));
+        });
 
         global.image_cache().add_listener(ImageLoadListener::new(
-            sender,
+            callback,
             global.pipeline_id(),
             pending_image_id,
         ));
