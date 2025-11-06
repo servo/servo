@@ -122,25 +122,7 @@ jobs:
     name: Windows Build [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     steps:
-      - if: ${{ runner.environment != 'self-hosted' && github.event_name != 'pull_request_target' }}
-        uses: actions/checkout@v4
-      - if: ${{ runner.environment != 'self-hosted' && github.event_name == 'pull_request_target' }}
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 1
-
-      # Faster checkout for self-hosted runner that uses prebaked repo.
-      - if: ${{ runner.environment == 'self-hosted' && github.event_name != 'pull_request_target' }}
-        run: git fetch --depth=1 origin $env:GITHUB_SHA
-      - if: ${{ runner.environment == 'self-hosted' && github.event_name == 'pull_request_target' }}
-        run: git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
-      - if: ${{ runner.environment == 'self-hosted' }}
-        # Same as `git switch --detach FETCH_HEAD`, but fixes up dirty working
-        # trees, in case the runner image was baked with a dirty working tree.
-        run: |
-          git switch --detach
-          git reset --hard FETCH_HEAD
+      - uses: servo/ci-runners/actions/checkout@0b9edd49381b22c14e5b123f21377269864ddf54
 
       - name: ccache
         # FIXME: “Error: Restoring cache failed: Error: Unable to locate executable file: sh.”

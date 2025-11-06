@@ -96,26 +96,7 @@ jobs:
     name: Bencher (${{ inputs.target }}) [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     steps:
-      - uses: actions/checkout@v4
-        if: ${{ runner.environment != 'self-hosted' && github.event_name != 'pull_request_target' }}
-      # This is necessary to checkout the pull request if this run was triggered via a
-      # `pull_request_target` event.
-      - uses: actions/checkout@v4
-        if: ${{ runner.environment != 'self-hosted' && github.event_name == 'pull_request_target' }}
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      # Faster checkout for self-hosted runner that uses prebaked repo.
-      - if: ${{ runner.environment == 'self-hosted' && github.event_name != 'pull_request_target' }}
-        run: git fetch --depth=1 origin $GITHUB_SHA
-      - if: ${{ runner.environment == 'self-hosted' && github.event_name == 'pull_request_target' }}
-        run: git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
-      - if: ${{ runner.environment == 'self-hosted' }}
-        # Same as `git switch --detach FETCH_HEAD`, but fixes up dirty working
-        # trees, in case the runner image was baked with a dirty working tree.
-        run: |
-          git switch --detach
-          git reset --hard FETCH_HEAD
-
+      - uses: servo/ci-runners/actions/checkout@0b9edd49381b22c14e5b123f21377269864ddf54
       - uses: actions/download-artifact@v4
         with:
           name: ${{ inputs.profile }}-binary-${{ inputs.target }}

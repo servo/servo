@@ -138,25 +138,7 @@ jobs:
       - name: Kill XProtectBehaviorService
         run: |
           echo Killing XProtect.; sudo pkill -9 XProtect >/dev/null || true;
-      - uses: actions/checkout@v4
-        if: runner.environment != 'self-hosted' && github.event_name != 'pull_request_target'
-      # This is necessary to checkout the pull request if this run was triggered via a
-      # `pull_request_target` event.
-      - uses: actions/checkout@v4
-        if: runner.environment != 'self-hosted' && github.event_name == 'pull_request_target'
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      # Faster checkout for self-hosted runner that uses prebaked repo.
-      - if: ${{ runner.environment == 'self-hosted' && github.event_name != 'pull_request_target' }}
-        run: git fetch --depth=1 origin $GITHUB_SHA
-      - if: ${{ runner.environment == 'self-hosted' && github.event_name == 'pull_request_target' }}
-        run: git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
-      - if: ${{ runner.environment == 'self-hosted' }}
-        # Same as `git switch --detach FETCH_HEAD`, but fixes up dirty working
-        # trees, in case the runner image was baked with a dirty working tree.
-        run: |
-          git switch --detach
-          git reset --hard FETCH_HEAD
+      - uses: servo/ci-runners/actions/checkout@0b9edd49381b22c14e5b123f21377269864ddf54
 
       - if: runner.environment != 'self-hosted'
         name: Setup Python
