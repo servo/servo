@@ -16,7 +16,7 @@ pub(crate) struct GPUCanvasContext {
 }
 
 impl GPUCanvasContext {
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     fn new_inherited() -> Self {
         unimplemented!()
     }

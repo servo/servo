@@ -480,7 +480,7 @@ impl Window {
         self.exists_mut_observer.set(true);
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn clear_js_runtime_for_script_deallocation(&self) {
         self.as_global_scope()
             .remove_web_messaging_and_dedicated_workers_infra();
@@ -519,7 +519,7 @@ impl Window {
         self.globalscope.origin()
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn get_cx(&self) -> JSContext {
         unsafe { JSContext::from_ptr(self.js_runtime.borrow().as_ref().unwrap().cx()) }
     }
@@ -1163,7 +1163,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         Ok(())
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#dom-opener>
     fn SetOpener(&self, cx: JSContext, value: HandleValue) -> ErrorResult {
         // Step 1.
@@ -1594,14 +1594,14 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         debug!("{}", message);
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn Gc(&self) {
         unsafe {
             JS_GC(*self.get_cx(), GCReason::API);
         }
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn Js_backtrace(&self) {
         unsafe {
             println!("Current JS stack:");
@@ -2184,7 +2184,6 @@ impl Window {
 
     // https://heycam.github.io/webidl/#named-properties-object
     // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
-    #[allow(unsafe_code)]
     pub(crate) fn create_named_properties_object(
         cx: JSContext,
         proto: HandleObject,
@@ -2373,7 +2372,6 @@ impl Window {
 
     /// Prepares to tick animations and then does a reflow which also advances the
     /// layout animation clock.
-    #[allow(unsafe_code)]
     pub(crate) fn advance_animation_clock(&self, delta_ms: i32) {
         self.Document()
             .advance_animation_timeline_for_testing(delta_ms as f64 / 1000.);
@@ -2779,7 +2777,7 @@ impl Window {
             .and_then(|iframe| iframe.size)
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn offset_parent_query(
         &self,
         node: &Node,
@@ -2807,7 +2805,7 @@ impl Window {
             .query_scroll_container(node.map(Node::to_trusted_node_address), flags)
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn scrolling_box_query(
         &self,
         node: Option<&Node>,
@@ -2860,7 +2858,7 @@ impl Window {
         )
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn hit_test_from_point_in_viewport(
         &self,
         point_in_frame: Point2D<f32, CSSPixel>,
@@ -2885,13 +2883,11 @@ impl Window {
         })
     }
 
-    #[allow(unsafe_code)]
     pub(crate) fn init_window_proxy(&self, window_proxy: &WindowProxy) {
         assert!(self.window_proxy.get().is_none());
         self.window_proxy.set(Some(window_proxy));
     }
 
-    #[allow(unsafe_code)]
     pub(crate) fn init_document(&self, document: &Document) {
         assert!(self.document.get().is_none());
         assert!(document.window() == self);
@@ -3286,7 +3282,7 @@ impl Window {
         false
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn handle_pending_images_post_reflow(
         &self,
         pending_images: Vec<PendingImage>,
@@ -3352,7 +3348,6 @@ impl Window {
         }
     }
 
-    #[allow(unsafe_code)]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         webview_id: WebViewId,
@@ -3507,7 +3502,7 @@ pub(crate) struct LayoutValue<T: MallocSizeOf> {
     value: T,
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe impl<T: JSTraceable + MallocSizeOf> JSTraceable for LayoutValue<T> {
     unsafe fn trace(&self, trc: *mut js::jsapi::JSTracer) {
         unsafe { self.value.trace(trc) };
@@ -3664,7 +3659,7 @@ fn is_named_element_with_id_attribute(elem: &Element) -> bool {
     elem.is_html_element()
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 #[unsafe(no_mangle)]
 /// Helper for interactive debugging sessions in lldb/gdb.
 unsafe extern "C" fn dump_js_stack(cx: *mut RawJSContext) {

@@ -98,7 +98,6 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-writebuffer>
-    #[allow(unsafe_code)]
     fn WriteBuffer(
         &self,
         buffer: &GPUBuffer,

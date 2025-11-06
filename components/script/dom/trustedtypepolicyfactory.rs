@@ -345,7 +345,6 @@ impl TrustedTypePolicyFactory {
     }
 
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-isscript>
-    #[allow(unsafe_code)]
     pub(crate) fn is_trusted_script(
         cx: JSContext,
         value: HandleValue,
@@ -365,17 +364,14 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
         self.create_trusted_type_policy(policy_name.to_string(), options, &self.global(), can_gc)
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-ishtml>
-    #[allow(unsafe_code)]
     fn IsHTML(&self, cx: JSContext, value: HandleValue) -> bool {
         root_from_handlevalue::<TrustedHTML>(value, cx).is_ok()
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-isscript>
-    #[allow(unsafe_code)]
     fn IsScript(&self, cx: JSContext, value: HandleValue) -> bool {
         TrustedTypePolicyFactory::is_trusted_script(cx, value).is_ok()
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-isscripturl>
-    #[allow(unsafe_code)]
     fn IsScriptURL(&self, cx: JSContext, value: HandleValue) -> bool {
         root_from_handlevalue::<TrustedScriptURL>(value, cx).is_ok()
     }

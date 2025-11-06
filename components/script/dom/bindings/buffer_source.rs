@@ -919,7 +919,7 @@ impl DataView {
 
 #[cfg(feature = "webgpu")]
 impl Drop for DataView {
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn drop(&mut self) {
         let cx = GlobalScope::get_cx();
         assert!(unsafe {

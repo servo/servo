@@ -67,7 +67,7 @@ pub(crate) fn to_frozen_array<T: ToJSValConvertible>(
 
 /// Returns wether `obj` is a platform object using dynamic unwrap
 /// <https://heycam.github.io/webidl/#dfn-platform-object>
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) fn is_platform_object_dynamic(obj: *mut JSObject, cx: *mut JSContext) -> bool {
     is_platform_object(obj, &|o| unsafe {
         UnwrapObjectDynamic(o, cx, /* stopAtWindowProxy = */ false)

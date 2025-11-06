@@ -1098,7 +1098,7 @@ pub(crate) struct BaseSpace;
 
 pub(crate) type BaseTransform = RigidTransform3D<f32, webxr_api::Native, BaseSpace>;
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 pub(crate) fn cast_transform<T, U, V, W>(
     transform: RigidTransform3D<f32, T, U>,
 ) -> RigidTransform3D<f32, V, W> {

@@ -44,7 +44,6 @@ pub(crate) struct ImageData {
 }
 
 impl ImageData {
-    #[allow(unsafe_code)]
     pub(crate) fn new(
         global: &GlobalScope,
         width: u32,
@@ -166,7 +165,7 @@ impl ImageData {
     }
 
     /// Nothing must change the array on the JS side while the slice is live.
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) unsafe fn as_slice(&self) -> &[u8] {
         assert!(self.data.is_initialized());
         let internal_data = self
@@ -185,12 +184,12 @@ impl ImageData {
     }
 
     /// Nothing must change the array on the JS side while the slice is live.
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) unsafe fn get_rect(&self, rect: Rect<u32>) -> Cow<'_, [u8]> {
         pixels::rgba8_get_rect(unsafe { self.as_slice() }, self.get_size().to_u32(), rect)
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn get_snapshot_rect(&self, rect: Rect<u32>) -> Snapshot {
         Snapshot::from_vec(
             rect.size,
@@ -202,13 +201,13 @@ impl ImageData {
         )
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn to_shared_memory(&self) -> IpcSharedMemory {
         // This is safe because we copy the slice content
         IpcSharedMemory::from_bytes(unsafe { self.as_slice() })
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn to_vec(&self) -> Vec<u8> {
         // This is safe because we copy the slice content
         unsafe { self.as_slice() }.to_vec()

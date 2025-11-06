@@ -1511,7 +1511,7 @@ impl DocumentEventHandler {
 
     /// Handle scroll event triggered by user interactions from embedder side.
     /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn handle_embedder_scroll_event(&self, event: ScrollEvent) {
         // If it is a viewport scroll.
         let document = self.window.Document();

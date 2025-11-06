@@ -25,7 +25,7 @@ pub(crate) mod gpuinternalerror;
 pub(crate) mod gpumapmode;
 pub(crate) mod gpuoutofmemoryerror;
 pub(crate) mod gpupipelineerror;
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) mod gpupipelinelayout;
 pub(crate) mod gpuqueryset;
 pub(crate) mod gpuqueue;
@@ -43,6 +43,6 @@ pub(crate) mod gputextureusage;
 pub(crate) mod gputextureview;
 pub(crate) mod gpuuncapturederrorevent;
 pub(crate) mod gpuvalidationerror;
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) mod identityhub;
 pub(crate) mod wgsllanguagefeatures;

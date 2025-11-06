@@ -1428,7 +1428,6 @@ impl HTMLFormElement {
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub(crate) enum FormDatumValue {
-    #[allow(dead_code)]
     File(DomRoot<File>),
     String(DOMString),
 }

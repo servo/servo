@@ -142,7 +142,7 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuprogrammablepassencoder-setbindgroup>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn SetBindGroup(&self, index: u32, bind_group: &GPUBindGroup, dynamic_offsets: Vec<u32>) {
         if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
             unsafe {

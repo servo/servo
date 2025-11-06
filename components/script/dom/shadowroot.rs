@@ -616,7 +616,7 @@ impl VirtualMethods for ShadowRoot {
     }
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 pub(crate) trait LayoutShadowRootHelpers<'dom> {
     fn get_host_for_layout(self) -> LayoutDom<'dom, Element>;
     fn get_style_data_for_layout(self) -> &'dom CascadeData;
@@ -629,13 +629,13 @@ pub(crate) trait LayoutShadowRootHelpers<'dom> {
 
 impl<'dom> LayoutShadowRootHelpers<'dom> for LayoutDom<'dom, ShadowRoot> {
     #[inline]
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn get_host_for_layout(self) -> LayoutDom<'dom, Element> {
         unsafe { self.unsafe_get().host.to_layout() }
     }
 
     #[inline]
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn get_style_data_for_layout(self) -> &'dom CascadeData {
         fn is_sync<T: Sync>() {}
         let _ = is_sync::<CascadeData>;
@@ -645,7 +645,7 @@ impl<'dom> LayoutShadowRootHelpers<'dom> for LayoutDom<'dom, ShadowRoot> {
     // FIXME(nox): This uses the dreaded borrow_mut_for_layout so this should
     // probably be revisited.
     #[inline]
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     unsafe fn flush_stylesheets<E: TElement>(
         self,
         stylist: &mut Stylist,

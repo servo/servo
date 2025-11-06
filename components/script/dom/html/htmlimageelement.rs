@@ -140,7 +140,6 @@ pub struct Descriptor {
 }
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
-#[allow(dead_code)]
 enum State {
     Unavailable,
     PartiallyAvailable,
@@ -1519,12 +1518,12 @@ pub(crate) trait LayoutHTMLImageElementHelpers {
 }
 
 impl<'dom> LayoutDom<'dom, HTMLImageElement> {
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn current_request(self) -> &'dom ImageRequest {
         unsafe { self.unsafe_get().current_request.borrow_for_layout() }
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn dimension_attribute_source(self) -> LayoutDom<'dom, Element> {
         unsafe {
             self.unsafe_get()

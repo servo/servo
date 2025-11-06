@@ -648,7 +648,7 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn enqueue(
         &self,
         cx: SafeJSContext,

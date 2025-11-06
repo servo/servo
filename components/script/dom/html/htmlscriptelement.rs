@@ -390,7 +390,6 @@ impl FetchResponseListener for ClassicContext {
 
     /// <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
     /// step 4-9
-    #[allow(unsafe_code)]
     fn process_response_eof(
         &mut self,
         _: RequestId,
@@ -1095,7 +1094,6 @@ impl HTMLScriptElement {
         }
     }
 
-    #[allow(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#run-a-module-script>
     pub(crate) fn run_a_module_script(
         &self,

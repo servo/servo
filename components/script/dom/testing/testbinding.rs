@@ -91,7 +91,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         Ok(TestBinding::new(global, proto, can_gc))
     }
 
-    #[allow(unused_variables)]
+    #[expect(unused_variables)]
     fn Constructor_(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -101,7 +101,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         Ok(TestBinding::new(global, proto, can_gc))
     }
 
-    #[allow(unused_variables)]
+    #[expect(unused_variables)]
     fn Constructor__(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -232,7 +232,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
     fn AnyAttribute(&self, _: SafeJSContext, _: MutableHandleValue) {}
     fn SetAnyAttribute(&self, _: SafeJSContext, _: HandleValue) {}
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn ObjectAttribute(&self, cx: SafeJSContext) -> NonNull<JSObject> {
         unsafe {
             rooted!(in(*cx) let obj = JS_NewPlainObject(*cx));
@@ -1064,7 +1064,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         }
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn CrashHard(&self) {
         unsafe { std::ptr::null_mut::<i32>().write(42) }
     }

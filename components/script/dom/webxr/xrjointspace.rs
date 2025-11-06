@@ -42,7 +42,6 @@ impl XRJointSpace {
         }
     }
 
-    #[allow(unused)]
     pub(crate) fn new(
         global: &GlobalScope,
         session: &XRSession,

@@ -27,7 +27,6 @@ impl XRPose {
         }
     }
 
-    #[allow(unused)]
     pub(crate) fn new(
         window: &Window,
         transform: ApiRigidTransform,

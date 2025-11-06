@@ -38,7 +38,7 @@ impl WorkerLocation {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-origin
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub(crate) fn origin(&self) -> ImmutableOrigin {
         self.url.origin()
     }

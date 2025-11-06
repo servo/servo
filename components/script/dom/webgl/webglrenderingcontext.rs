@@ -131,7 +131,7 @@ where
     receiver.recv().unwrap()
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 pub(crate) unsafe fn uniform_typed<T>(
     cx: *mut JSContext,
     value: &[T::Element],
@@ -1291,7 +1291,7 @@ impl WebGLRenderingContext {
         &self.extension_manager
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn buffer_data(
         &self,
         target: u32,
@@ -1333,7 +1333,7 @@ impl WebGLRenderingContext {
         handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, &data, usage));
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn buffer_sub_data(
         &self,
         target: u32,
@@ -2136,7 +2136,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.get_buffer_param(buffer, parameter, retval)
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn GetParameter(&self, cx: SafeJSContext, parameter: u32, mut retval: MutableHandleValue) {
         if !self
@@ -2738,14 +2738,13 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    #[allow(unsafe_code)]
     fn BufferSubData(&self, target: u32, offset: i64, data: ArrayBufferViewOrArrayBuffer) {
         let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);
         self.buffer_sub_data(target, offset, data, bound_buffer)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn CompressedTexImage2D(
         &self,
         target: u32,
@@ -2761,7 +2760,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn CompressedTexSubImage2D(
         &self,
         target: u32,
@@ -3602,7 +3601,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         )
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn GetVertexAttrib(
         &self,
@@ -3857,7 +3856,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.12
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn ReadPixels(
         &self,
         x: i32,
@@ -4274,7 +4273,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn GetUniform(
         &self,
         cx: SafeJSContext,
@@ -4503,7 +4502,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn TexImage2D(
         &self,
         target: u32,
@@ -4724,7 +4723,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn TexSubImage2D(
         &self,
         target: u32,

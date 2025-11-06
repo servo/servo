@@ -526,7 +526,7 @@ impl WritableStreamDefaultController {
         self.advance_queue_if_needed(cx, global, can_gc);
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn start_algorithm(
         &self,
         cx: SafeJSContext,

@@ -253,7 +253,6 @@ impl AudioBufferMethods<crate::DomTypeHolder> for AudioBuffer {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audiobuffer-copyfromchannel
-    #[allow(unsafe_code)]
     fn CopyFromChannel(
         &self,
         mut destination: CustomAutoRooterGuard<Float32Array>,

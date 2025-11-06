@@ -212,7 +212,7 @@ impl Callback for PipeTo {
     /// - the current state.
     /// - the type of `result`.
     /// - the state of a stored promise(in some cases).
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn callback(&self, cx: SafeJSContext, result: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
         let global = self.reader.global();
 
@@ -415,7 +415,7 @@ impl PipeTo {
 
     /// Try to write a chunk using the jsval, and returns wether it succeeded
     // It will fail if it is the last `done` chunk, or if it is not a chunk at all.
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn write_chunk(
         &self,
         cx: SafeJSContext,
@@ -2175,7 +2175,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
     }
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 /// The initial steps for the message handler for both readable and writable cross realm transforms.
 /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
 /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
@@ -2234,7 +2234,7 @@ pub(crate) struct CrossRealmTransformReadable {
 impl CrossRealmTransformReadable {
     /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
     /// Add a handler for port’s message event with the following steps:
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn handle_message(
         &self,
         cx: SafeJSContext,
@@ -2301,7 +2301,7 @@ impl CrossRealmTransformReadable {
     }
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 /// Get the `done` property of an object that a read promise resolved to.
 pub(crate) fn get_read_promise_done(
     cx: SafeJSContext,
@@ -2326,7 +2326,7 @@ pub(crate) fn get_read_promise_done(
     }
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 /// Get the `value` property of an object that a read promise resolved to.
 pub(crate) fn get_read_promise_bytes(
     cx: SafeJSContext,

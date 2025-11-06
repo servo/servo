@@ -21,7 +21,7 @@ pub(crate) struct TestUtils {
 
 impl TestUtilsMethods<crate::DomTypeHolder> for TestUtils {
     /// <https://testutils.spec.whatwg.org/#dom-testutils-gc>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn Gc(global: &GlobalScope) -> Rc<Promise> {
         // 1. Let p be a new promise.
         let promise = Promise::new(global, CanGc::note());

@@ -263,7 +263,7 @@ impl Location {
         );
     }
 
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub(crate) fn origin(&self) -> &MutableOrigin {
         self.window.origin()
     }

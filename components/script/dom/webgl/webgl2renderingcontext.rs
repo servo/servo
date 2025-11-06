@@ -193,7 +193,7 @@ impl WebGL2RenderingContext {
         self.base.set_image_key(image_key);
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn is_webgl2_enabled(_cx: JSContext, global: HandleObject) -> bool {
         if pref!(dom_webgl2_enabled) {
             return true;
@@ -585,7 +585,6 @@ impl WebGL2RenderingContext {
             .uniform_vec_section::<u32>(vec, offset, length, uniform_size, uniform_location)
     }
 
-    #[allow(unsafe_code)]
     fn get_default_fb_attachment_param(
         &self,
         attachment: u32,
@@ -1454,7 +1453,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.3>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn BufferData__(
         &self,
         target: u32,
@@ -1506,7 +1505,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.3>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn BufferSubData_(
         &self,
         target: u32,
@@ -1614,7 +1613,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.3>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn GetBufferSubData(
         &self,
         target: u32,
@@ -1671,7 +1670,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.6>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn CompressedTexImage2D(
         &self,
         target: u32,
@@ -1706,7 +1705,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn CompressedTexSubImage2D(
         &self,
         target: u32,
@@ -2298,7 +2297,6 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.10>
-    #[allow(unsafe_code)]
     fn ReadPixels__(
         &self,
         x: i32,
@@ -2865,7 +2863,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn GetUniform(
         &self,
         cx: JSContext,
@@ -3078,7 +3076,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     ///
     /// Allocates and initializes the specified mipmap level of a three-dimensional or
     /// two-dimensional array texture.
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn TexImage3D(
         &self,
         target: u32,
@@ -3391,7 +3389,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.6>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn TexImage2D____(
         &self,
         target: u32,
@@ -4577,7 +4575,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn GetActiveUniformBlockParameter(
         &self,
         cx: JSContext,
@@ -4807,7 +4805,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.5>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn GetInternalformatParameter(
         &self,
         cx: JSContext,

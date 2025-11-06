@@ -292,7 +292,7 @@ pub(crate) enum CompiledEventListener {
 }
 
 impl CompiledEventListener {
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn associated_global(&self) -> DomRoot<GlobalScope> {
         let obj = match self {
             CompiledEventListener::Listener(listener) => listener.callback(),
@@ -703,7 +703,7 @@ impl EventTarget {
     // step 3
     // While the CanGc argument appears unused, it reflects the fact that the CompileFunction
     // API call can trigger a GC operation.
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn get_compiled_event_handler(
         &self,
         handler: InternalRawUncompiledHandler,
@@ -816,7 +816,7 @@ impl EventTarget {
         }
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn set_event_handler_common<T: CallbackContainer<crate::DomTypeHolder>>(
         &self,
         ty: &str,
@@ -832,7 +832,7 @@ impl EventTarget {
         self.set_inline_event_listener(Atom::from(ty), event_listener);
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn set_error_event_handler<T: CallbackContainer<crate::DomTypeHolder>>(
         &self,
         ty: &str,
@@ -848,7 +848,7 @@ impl EventTarget {
         self.set_inline_event_listener(Atom::from(ty), event_listener);
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn set_beforeunload_event_handler<T: CallbackContainer<crate::DomTypeHolder>>(
         &self,
         ty: &str,
@@ -864,7 +864,7 @@ impl EventTarget {
         self.set_inline_event_listener(Atom::from(ty), event_listener);
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn get_event_handler_common<T: CallbackContainer<crate::DomTypeHolder>>(
         &self,
         ty: &str,

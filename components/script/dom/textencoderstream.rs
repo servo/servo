@@ -47,7 +47,7 @@ enum ConvertedInput<'a> {
 ///
 /// See below for the `ToString` procedure in spec:
 /// <https://tc39.es/ecma262/multipage/abstract-operations.html#sec-tostring>
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 fn jsval_to_primitive(
     cx: SafeJSContext,
     global: &GlobalScope,
@@ -121,7 +121,6 @@ impl Encoder {
     }
 
     /// Encode an input slice of code unit into unicode scalar values
-    #[allow(unsafe_code)]
     fn encode_from_code_units(&self, input: &[u16]) -> String {
         // <https://encoding.spec.whatwg.org/#encode-and-enqueue-a-chunk>
         //
@@ -211,7 +210,7 @@ fn code_point_type(value: u16) -> CodePointType {
 }
 
 /// <https://encoding.spec.whatwg.org/#encode-and-enqueue-a-chunk>
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 pub(crate) fn encode_and_enqueue_a_chunk(
     cx: SafeJSContext,
     global: &GlobalScope,
@@ -285,7 +284,6 @@ pub(crate) fn encode_and_enqueue_a_chunk(
 }
 
 /// <https://encoding.spec.whatwg.org/#encode-and-flush>
-#[allow(unsafe_code)]
 pub(crate) fn encode_and_flush(
     cx: SafeJSContext,
     global: &GlobalScope,

@@ -30,7 +30,7 @@ pub(crate) struct GamepadPose {
 }
 
 // TODO: support gamepad discovery
-#[allow(dead_code)]
+#[expect(dead_code)]
 impl GamepadPose {
     fn new_inherited() -> GamepadPose {
         GamepadPose {
