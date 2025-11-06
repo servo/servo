@@ -11,8 +11,7 @@ use std::sync::Arc;
 use net_traits::image_cache::{ImageCache, PendingImageId};
 use net_traits::request::{Destination, RequestBuilder as FetchRequestInit, RequestId};
 use net_traits::{
-    FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError, ResourceFetchTiming,
-    ResourceTimingType,
+    FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming, ResourceTimingType,
 };
 use servo_url::ServoUrl;
 
@@ -24,7 +23,7 @@ use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
-use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
+use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::script_runtime::CanGc;
 
 struct LayoutImageContext {
@@ -94,8 +93,6 @@ impl ResourceTimingListener for LayoutImageContext {
         self.doc.root().global()
     }
 }
-
-impl PreInvoke for LayoutImageContext {}
 
 pub(crate) fn fetch_image_for_layout(
     url: ServoUrl,

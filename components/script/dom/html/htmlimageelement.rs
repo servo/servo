@@ -23,8 +23,8 @@ use net_traits::image_cache::{
 };
 use net_traits::request::{CorsSettings, Destination, Initiator, RequestId};
 use net_traits::{
-    FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError, ReferrerPolicy,
-    ResourceFetchTiming, ResourceTimingType,
+    FetchMetadata, FetchResponseMsg, NetworkError, ReferrerPolicy, ResourceFetchTiming,
+    ResourceTimingType,
 };
 use num_traits::ToPrimitive;
 use pixels::{CorsStatus, ImageMetadata, Snapshot};
@@ -81,7 +81,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::fetch::create_a_potential_cors_request;
 use crate::microtask::{Microtask, MicrotaskRunnable};
-use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
+use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
@@ -240,6 +240,10 @@ struct ImageContext {
 }
 
 impl FetchResponseListener for ImageContext {
+    fn should_invoke(&self) -> bool {
+        !self.aborted
+    }
+
     fn process_request_body(&mut self, _: RequestId) {}
     fn process_request_eof(&mut self, _: RequestId) {}
 
@@ -342,12 +346,6 @@ impl ResourceTimingListener for ImageContext {
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
         self.doc.root().global()
-    }
-}
-
-impl PreInvoke for ImageContext {
-    fn should_invoke(&self) -> bool {
-        !self.aborted
     }
 }
 

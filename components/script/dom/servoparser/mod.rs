@@ -27,8 +27,8 @@ use net_traits::mime_classifier::{ApacheBugFlag, MediaType, MimeClassifier, NoSn
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::RequestId;
 use net_traits::{
-    FetchMetadata, FetchResponseListener, LoadContext, Metadata, NetworkError, ReferrerPolicy,
-    ResourceFetchTiming, ResourceTimingType,
+    FetchMetadata, LoadContext, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming,
+    ResourceTimingType,
 };
 use profile_traits::time::{
     ProfilerCategory, ProfilerChan, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
@@ -84,7 +84,7 @@ use crate::dom::shadowroot::IsUserAgentWidget;
 use crate::dom::text::Text;
 use crate::dom::types::HTMLMediaElement;
 use crate::dom::virtualmethods::vtable_for;
-use crate::network_listener::PreInvoke;
+use crate::network_listener::FetchResponseListener;
 use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, IntroductionType};
 use crate::script_thread::ScriptThread;
@@ -1394,8 +1394,6 @@ impl FetchResponseListener for ParserContext {
         global.report_csp_violations(violations, None, None);
     }
 }
-
-impl PreInvoke for ParserContext {}
 
 pub(crate) struct FragmentContext<'a> {
     pub(crate) context_elem: &'a Node,

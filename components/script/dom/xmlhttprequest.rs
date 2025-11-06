@@ -29,8 +29,8 @@ use net_traits::fetch::headers::extract_mime_type_as_dataurl_mime;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{CredentialsMode, Referrer, RequestBuilder, RequestId, RequestMode};
 use net_traits::{
-    FetchMetadata, FetchResponseListener, FilteredMetadata, NetworkError, ReferrerPolicy,
-    ResourceFetchTiming, ResourceTimingType, trim_http_whitespace,
+    FetchMetadata, FilteredMetadata, NetworkError, ReferrerPolicy, ResourceFetchTiming,
+    ResourceTimingType, trim_http_whitespace,
 };
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::num::Finite;
@@ -72,7 +72,7 @@ use crate::dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use crate::dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use crate::fetch::FetchCanceller;
 use crate::mime::{APPLICATION, CHARSET, HTML, MimeExt, TEXT, XML};
-use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
+use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::script_runtime::{CanGc, JSContext};
 use crate::task_source::{SendableTaskSource, TaskSourceName};
 use crate::timers::{OneshotTimerCallback, OneshotTimerHandle};
@@ -151,6 +151,10 @@ impl FetchResponseListener for XHRContext {
         let global = &self.resource_timing_global();
         global.report_csp_violations(violations, None, None);
     }
+
+    fn should_invoke(&self) -> bool {
+        self.xhr.root().generation_id.get() == self.gen_id
+    }
 }
 
 impl ResourceTimingListener for XHRContext {
@@ -160,12 +164,6 @@ impl ResourceTimingListener for XHRContext {
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
         self.xhr.root().global()
-    }
-}
-
-impl PreInvoke for XHRContext {
-    fn should_invoke(&self) -> bool {
-        self.xhr.root().generation_id.get() == self.gen_id
     }
 }
 

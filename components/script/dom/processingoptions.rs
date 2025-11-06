@@ -18,8 +18,7 @@ use net_traits::request::{
 };
 use net_traits::response::{Response, ResponseBody};
 use net_traits::{
-    FetchMetadata, FetchResponseListener, NetworkError, ReferrerPolicy, ResourceFetchTiming,
-    ResourceTimingType,
+    FetchMetadata, NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceTimingType,
 };
 pub use nom_rfc8288::complete::LinkDataOwned as LinkHeader;
 use nom_rfc8288::complete::link_lenient as parse_link_header;
@@ -38,7 +37,7 @@ use crate::dom::medialist::MediaList;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::types::HTMLLinkElement;
 use crate::fetch::create_a_potential_cors_request;
-use crate::network_listener::{PreInvoke, ResourceTimingListener, submit_timing};
+use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
 use crate::script_runtime::CanGc;
 
 trait ValueForKeyInLinkHeader {
@@ -556,12 +555,5 @@ impl ResourceTimingListener for LinkFetchContext {
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
         self.global.root()
-    }
-}
-
-impl PreInvoke for LinkFetchContext {
-    fn should_invoke(&self) -> bool {
-        // Prefetch and preload requests are never aborted.
-        true
     }
 }

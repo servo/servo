@@ -315,26 +315,6 @@ impl FetchMetadata {
     }
 }
 
-pub trait FetchResponseListener {
-    fn process_request_body(&mut self, request_id: RequestId);
-    fn process_request_eof(&mut self, request_id: RequestId);
-    fn process_response(
-        &mut self,
-        request_id: RequestId,
-        metadata: Result<FetchMetadata, NetworkError>,
-    );
-    fn process_response_chunk(&mut self, request_id: RequestId, chunk: Vec<u8>);
-    fn process_response_eof(
-        &mut self,
-        request_id: RequestId,
-        response: Result<ResourceFetchTiming, NetworkError>,
-    );
-    fn resource_timing(&self) -> &ResourceFetchTiming;
-    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming;
-    fn submit_resource_timing(&mut self);
-    fn process_csp_violations(&mut self, request_id: RequestId, violations: Vec<csp::Violation>);
-}
-
 impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
     fn process_request_body(&mut self, request: &Request) {
         let _ = self.send(FetchResponseMsg::ProcessRequestBody(request.id));
@@ -399,51 +379,6 @@ impl FetchTaskTarget for DiscardFetch {
     fn process_response_chunk(&mut self, _: &Request, _: Vec<u8>) {}
     fn process_response_eof(&mut self, _: &Request, _: &Response) {}
     fn process_csp_violations(&mut self, _: &Request, _: Vec<csp::Violation>) {}
-}
-
-pub trait Action<Listener> {
-    fn process(self, listener: &mut Listener);
-}
-
-impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
-    /// Execute the default action on a provided listener.
-    fn process(self, listener: &mut T) {
-        match self {
-            FetchResponseMsg::ProcessRequestBody(request_id) => {
-                listener.process_request_body(request_id)
-            },
-            FetchResponseMsg::ProcessRequestEOF(request_id) => {
-                listener.process_request_eof(request_id)
-            },
-            FetchResponseMsg::ProcessResponse(request_id, meta) => {
-                listener.process_response(request_id, meta)
-            },
-            FetchResponseMsg::ProcessResponseChunk(request_id, data) => {
-                listener.process_response_chunk(request_id, data)
-            },
-            FetchResponseMsg::ProcessResponseEOF(request_id, data) => {
-                match data {
-                    Ok(ref response_resource_timing) => {
-                        // update listener with values from response
-                        *listener.resource_timing_mut() = response_resource_timing.clone();
-                        listener
-                            .process_response_eof(request_id, Ok(response_resource_timing.clone()));
-                        // TODO timing check https://w3c.github.io/resource-timing/#dfn-timing-allow-check
-
-                        listener.submit_resource_timing();
-                    },
-                    // TODO Resources for which the fetch was initiated, but was later aborted
-                    // (e.g. due to a network error) MAY be included as PerformanceResourceTiming
-                    // objects in the Performance Timeline and MUST contain initialized attribute
-                    // values for processed substeps of the processing model.
-                    Err(e) => listener.process_response_eof(request_id, Err(e)),
-                }
-            },
-            FetchResponseMsg::ProcessCspViolations(request_id, violations) => {
-                listener.process_csp_violations(request_id, violations)
-            },
-        }
-    }
 }
 
 /// Handle to an async runtime,

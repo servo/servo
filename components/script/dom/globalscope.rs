@@ -56,8 +56,7 @@ use net_traits::request::{
 };
 use net_traits::response::HttpsState;
 use net_traits::{
-    CoreResourceMsg, CoreResourceThread, FetchResponseListener, ReferrerPolicy, ResourceThreads,
-    fetch_async,
+    CoreResourceMsg, CoreResourceThread, ReferrerPolicy, ResourceThreads, fetch_async,
 };
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
 use rustc_hash::{FxBuildHasher, FxHashMap};
@@ -136,7 +135,7 @@ use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::dom::writablestream::CrossRealmTransformWritable;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::Microtask;
-use crate::network_listener::{NetworkListener, PreInvoke};
+use crate::network_listener::{FetchResponseListener, NetworkListener};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_module::{
     DynamicModuleList, ImportMap, ModuleScript, ModuleTree, ResolvedModule, ScriptFetchOptions,
@@ -3319,7 +3318,7 @@ impl GlobalScope {
         Ok(())
     }
 
-    pub(crate) fn fetch<Listener: FetchResponseListener + PreInvoke + Send + 'static>(
+    pub(crate) fn fetch<Listener: FetchResponseListener>(
         &self,
         request_builder: RequestBuilder,
         context: Arc<Mutex<Listener>>,
@@ -3332,9 +3331,7 @@ impl GlobalScope {
         self.fetch_with_network_listener(request_builder, network_listener);
     }
 
-    pub(crate) fn fetch_with_network_listener<
-        Listener: FetchResponseListener + PreInvoke + Send + 'static,
-    >(
+    pub(crate) fn fetch_with_network_listener<Listener: FetchResponseListener>(
         &self,
         request_builder: RequestBuilder,
         network_listener: NetworkListener<Listener>,

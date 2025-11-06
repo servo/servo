@@ -22,8 +22,7 @@ use net_traits::image_cache::{
 };
 use net_traits::request::{Destination, RequestBuilder, RequestId};
 use net_traits::{
-    FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError, ResourceFetchTiming,
-    ResourceTimingType,
+    FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming, ResourceTimingType,
 };
 use pixels::RasterImage;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -59,7 +58,7 @@ use crate::dom::promise::Promise;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::fetch::create_a_potential_cors_request;
-use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
+use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 // TODO: Service Worker API (persistent notification)
@@ -802,12 +801,6 @@ impl ResourceTimingListener for ResourceFetchListener {
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
         self.notification.root().global()
-    }
-}
-
-impl PreInvoke for ResourceFetchListener {
-    fn should_invoke(&self) -> bool {
-        true
     }
 }
 
