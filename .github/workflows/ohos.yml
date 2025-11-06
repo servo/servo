@@ -353,3 +353,220 @@ jobs:
       - name: Failure
         if: contains(steps.*.outcome, 'failure') || contains(steps.*.outcome, 'cancelled')
         run: exit 1
+
+  test-function-servo-aarch64:
+    name: Test Function servo
+    # We need block servos Merge queue on this job failing.
+    continue-on-error: true
+    runs-on: hos-runner
+    if: github.repository == 'servo/servo'
+    needs: build-harmonyos-aarch64
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          # Name of the artifact to download.
+          # If unspecified, all artifacts for the run are downloaded.
+          name: servoshell-hos-${{ inputs.profile }}.hap
+      - name: Test hdc device
+        # First we ensure a device is actually connected and working.
+        run: hdc list targets && hdc shell echo hello world
+      - name: Sign the hap
+        run: |
+          ls -la
+          /usr/bin/sign-hos.sh servoshell-default-unsigned.hap servoshell-hos-signed.hap
+      - name: Install
+        run: |
+          # Uninstall first. hdc is not very reliable in terms of exiting with an error, so we uninstall first
+          # to make sure we don't use a previous version if installation failed for some reason.
+          hdc uninstall org.servo.servo
+          hdc install -r servoshell-hos-signed.hap
+      - name: Test loading servo.org Run python
+        run: |
+          # Execute a Python file and get the return value
+          python3 ./etc/servoTestOpenPageTestServo.py
+  
+  test-function-mossel-aarch64:
+    name: Test Mossel Home
+    # We need block servos Merge queue on this job failing.
+    continue-on-error: true
+    runs-on: hos-runner
+    if: github.repository == 'servo/servo'
+    needs: build-harmonyos-aarch64
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          # Name of the artifact to download.
+          # If unspecified, all artifacts for the run are downloaded.
+          name: servoshell-hos-${{ inputs.profile }}.hap
+      - name: Test hdc device
+        # First we ensure a device is actually connected and working.
+        run: hdc list targets && hdc shell echo hello world
+      - name: Sign the hap
+        run: |
+          ls -la
+          /usr/bin/sign-hos.sh servoshell-default-unsigned.hap servoshell-hos-signed.hap
+      - name: Install
+        run: |
+          # Uninstall first. hdc is not very reliable in terms of exiting with an error, so we uninstall first
+          # to make sure we don't use a previous version if installation failed for some reason.
+          hdc uninstall org.servo.servo
+          hdc install -r servoshell-hos-signed.hap
+      - name: Test loading Mousel Run python
+        run: |
+          # Execute a Python file and get the return value
+          python3 ./etc/servoTestOpenPageTest.py
+
+  test-function-mossel-redirect-aarch64:
+    name: Test Mossel Redirect
+    # We need block servos Merge queue on this job failing.
+    continue-on-error: true
+    runs-on: hos-runner
+    if: github.repository == 'servo/servo'
+    needs: build-harmonyos-aarch64
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          # Name of the artifact to download.
+          # If unspecified, all artifacts for the run are downloaded.
+          name: servoshell-hos-${{ inputs.profile }}.hap
+      - name: Test hdc device
+        # First we ensure a device is actually connected and working.
+        run: hdc list targets && hdc shell echo hello world
+      - name: Sign the hap
+        run: |
+          ls -la
+          /usr/bin/sign-hos.sh servoshell-default-unsigned.hap servoshell-hos-signed.hap
+      - name: Install
+        run: |
+          # Uninstall first. hdc is not very reliable in terms of exiting with an error, so we uninstall first
+          # to make sure we don't use a previous version if installation failed for some reason.
+          hdc uninstall org.servo.servo
+          hdc install -r servoshell-hos-signed.hap
+      - name: Test Mossel Redirect Run python
+        run: |
+          # Execute a Python file and get the return value
+          python3 ./etc/servoTestRedirectionTest.py
+
+  test-function-mossel-slide-aarch64:
+    name: Test Mossel Slide
+    # We need block servos Merge queue on this job failing.
+    continue-on-error: true
+    runs-on: hos-runner
+    if: github.repository == 'servo/servo'
+    needs: build-harmonyos-aarch64
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          # Name of the artifact to download.
+          # If unspecified, all artifacts for the run are downloaded.
+          name: servoshell-hos-${{ inputs.profile }}.hap
+      - name: Test hdc device
+        # First we ensure a device is actually connected and working.
+        run: hdc list targets && hdc shell echo hello world
+      - name: Sign the hap
+        run: |
+          ls -la
+          /usr/bin/sign-hos.sh servoshell-default-unsigned.hap servoshell-hos-signed.hap
+      - name: Install
+        run: |
+          # Uninstall first. hdc is not very reliable in terms of exiting with an error, so we uninstall first
+          # to make sure we don't use a previous version if installation failed for some reason.
+          hdc uninstall org.servo.servo
+          hdc install -r servoshell-hos-signed.hap
+      - name: Test Mossel Slide Run python
+        run: |
+          # Execute a Python file and get the return value
+          python3 ./etc/servoTestSlidePageTest.py
+
+  test-function-mossel-framerate-basepage-aarch64:
+    name: Test Mossel FrameRate BasePage
+    # We need block servos Merge queue on this job failing.
+    continue-on-error: true
+    runs-on: hos-runner
+    if: github.repository == 'servo/servo'
+    needs: build-harmonyos-aarch64
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          # Name of the artifact to download.
+          # If unspecified, all artifacts for the run are downloaded.
+          name: servoshell-hos-${{ inputs.profile }}.hap
+      - name: Test hdc device
+        # First we ensure a device is actually connected and working.
+        run: hdc list targets && hdc shell echo hello world
+      - name: Sign the hap
+        run: |
+          ls -la
+          /usr/bin/sign-hos.sh servoshell-default-unsigned.hap servoshell-hos-signed.hap
+      - name: Install
+        run: |
+          # Uninstall first. hdc is not very reliable in terms of exiting with an error, so we uninstall first
+          # to make sure we don't use a previous version if installation failed for some reason.
+          hdc uninstall org.servo.servo
+          hdc install -r servoshell-hos-signed.hap
+      - name: Test Mossel FrameRate BasePage Run python
+        run: |
+          # Execute a Python file and get the return value
+          python3 ./etc/servoTestFrameRate_basePage.py
+
+  test-function-mossel-framerate-withcarousel-aarch64:
+    name: Test Mossel FrameRate With Carousel
+    # We need block servos Merge queue on this job failing.
+    continue-on-error: true
+    runs-on: hos-runner
+    if: github.repository == 'servo/servo'
+    needs: build-harmonyos-aarch64
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          # Name of the artifact to download.
+          # If unspecified, all artifacts for the run are downloaded.
+          name: servoshell-hos-${{ inputs.profile }}.hap
+      - name: Test hdc device
+        # First we ensure a device is actually connected and working.
+        run: hdc list targets && hdc shell echo hello world
+      - name: Sign the hap
+        run: |
+          ls -la
+          /usr/bin/sign-hos.sh servoshell-default-unsigned.hap servoshell-hos-signed.hap
+      - name: Install
+        run: |
+          # Uninstall first. hdc is not very reliable in terms of exiting with an error, so we uninstall first
+          # to make sure we don't use a previous version if installation failed for some reason.
+          hdc uninstall org.servo.servo
+          hdc install -r servoshell-hos-signed.hap
+      - name: Test Mossel FrameRate With Carousel Run python
+        run: |
+          # Execute a Python file and get the return value
+          python3 ./etc/servoTestFrameRate_ProductDetails.py
+
+  test-function-mossel-framerate-withvideo-aarch64:
+    name: Test Mossel FrameRate With Video
+    # We need block servos Merge queue on this job failing.
+    continue-on-error: true
+    runs-on: hos-runner
+    if: github.repository == 'servo/servo'
+    needs: build-harmonyos-aarch64
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          # Name of the artifact to download.
+          # If unspecified, all artifacts for the run are downloaded.
+          name: servoshell-hos-${{ inputs.profile }}.hap
+      - name: Test hdc device
+        # First we ensure a device is actually connected and working.
+        run: hdc list targets && hdc shell echo hello world
+      - name: Sign the hap
+        run: |
+          ls -la
+          /usr/bin/sign-hos.sh servoshell-default-unsigned.hap servoshell-hos-signed.hap
+      - name: Install
+        run: |
+          # Uninstall first. hdc is not very reliable in terms of exiting with an error, so we uninstall first
+          # to make sure we don't use a previous version if installation failed for some reason.
+          hdc uninstall org.servo.servo
+          hdc install -r servoshell-hos-signed.hap
+      - name: Test Mossel FrameRate With Video Run python
+        run: |
+          # Execute a Python file and get the return value
+          python3 ./etc/servoTestFrameRate_video.py
