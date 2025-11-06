@@ -70,7 +70,7 @@ pub(crate) trait LayoutHTMLTextAreaElementHelpers {
     fn get_rows(self) -> u32;
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 impl<'dom> LayoutDom<'dom, HTMLTextAreaElement> {
     fn textinput_content(self) -> DOMString {
         unsafe {

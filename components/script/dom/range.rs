@@ -1225,7 +1225,6 @@ impl Default for WeakRangeVec {
     }
 }
 
-#[allow(unsafe_code)]
 impl WeakRangeVec {
     /// Whether that vector of ranges is empty.
     pub(crate) fn is_empty(&self) -> bool {
@@ -1463,7 +1462,7 @@ impl WeakRangeVec {
     }
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe impl JSTraceable for WeakRangeVec {
     unsafe fn trace(&self, _: *mut JSTracer) {
         self.cell.borrow_mut().retain_alive()

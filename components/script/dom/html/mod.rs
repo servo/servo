@@ -9,7 +9,7 @@ pub(crate) mod htmlbaseelement;
 pub(crate) mod htmlbodyelement;
 pub(crate) mod htmlbrelement;
 pub(crate) mod htmlbuttonelement;
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) mod htmlcanvaselement;
 pub(crate) mod htmlcollection;
 pub(crate) mod htmldataelement;
@@ -58,7 +58,7 @@ pub(crate) mod htmlpictureelement;
 pub(crate) mod htmlpreelement;
 pub(crate) mod htmlprogresselement;
 pub(crate) mod htmlquoteelement;
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) mod htmlscriptelement;
 pub(crate) mod htmlselectelement;
 pub(crate) mod htmlslotelement;

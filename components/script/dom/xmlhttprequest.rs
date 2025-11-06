@@ -1444,7 +1444,7 @@ impl XMLHttpRequest {
         self.response_xml.get()
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     /// <https://xhr.spec.whatwg.org/#json-response>
     fn json_response(&self, cx: JSContext, mut rval: MutableHandleValue) {
         // Step 1

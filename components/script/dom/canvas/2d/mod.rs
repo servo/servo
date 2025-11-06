@@ -5,7 +5,7 @@
 mod canvas_state;
 pub(crate) mod canvasgradient;
 pub(crate) mod canvaspattern;
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) mod canvasrenderingcontext2d;
 pub(crate) mod offscreencanvasrenderingcontext2d;
 pub(crate) mod paintrenderingcontext2d;

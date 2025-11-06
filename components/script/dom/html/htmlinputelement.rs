@@ -214,9 +214,7 @@ fn create_ua_widget_div_with_text_node(
 }
 
 /// <https://html.spec.whatwg.org/multipage/#attr-input-type>
-#[derive(Clone, Copy, Debug, Default, JSTraceable, PartialEq)]
-#[allow(dead_code)]
-#[derive(MallocSizeOf)]
+#[derive(Clone, Copy, Debug, Default, JSTraceable, PartialEq, MallocSizeOf)]
 pub(crate) enum InputType {
     /// <https://html.spec.whatwg.org/multipage/#button-state-(type=button)>
     Button,
@@ -1445,7 +1443,7 @@ pub(crate) trait LayoutHTMLInputElementHelpers<'dom> {
     fn selection_for_layout(self) -> Option<Range<usize>>;
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 impl<'dom> LayoutDom<'dom, HTMLInputElement> {
     fn get_raw_textinput_value(self) -> DOMString {
         unsafe {
@@ -1797,7 +1795,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-valueasdate
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn GetValueAsDate(&self, cx: SafeJSContext) -> Option<NonNull<JSObject>> {
         self.convert_string_to_naive_datetime(self.Value())
             .map(|date_time| unsafe {
@@ -1809,7 +1807,8 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-valueasdate
-    #[allow(unsafe_code, non_snake_case)]
+    #[allow(non_snake_case)]
+    #[expect(unsafe_code)]
     fn SetValueAsDate(
         &self,
         cx: SafeJSContext,
@@ -2584,7 +2583,6 @@ impl HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#implicit-submission
-    #[allow(unsafe_code)]
     fn implicit_submission(&self, can_gc: CanGc) {
         let doc = self.owner_document();
         let node = doc.upcast::<Node>();
@@ -3700,7 +3698,7 @@ fn compile_pattern(
     }
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 /// Check if the pattern by itself is valid first, and not that it only becomes
 /// valid once we add ^(?: and )$.
 fn check_js_regex_syntax(cx: SafeJSContext, pattern: &str, _can_gc: CanGc) -> bool {
@@ -3729,7 +3727,7 @@ fn check_js_regex_syntax(cx: SafeJSContext, pattern: &str, _can_gc: CanGc) -> bo
     }
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 pub(crate) fn new_js_regex(
     cx: SafeJSContext,
     pattern: &str,
@@ -3753,7 +3751,7 @@ pub(crate) fn new_js_regex(
     true
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 fn matches_js_regex(
     cx: SafeJSContext,
     regex_obj: HandleObject,

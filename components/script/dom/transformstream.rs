@@ -951,7 +951,7 @@ impl TransformStream {
 #[allow(non_snake_case)]
 impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
     /// <https://streams.spec.whatwg.org/#ts-constructor>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn Constructor(
         cx: SafeJSContext,
         global: &GlobalScope,

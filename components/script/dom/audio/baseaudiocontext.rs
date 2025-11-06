@@ -68,7 +68,6 @@ use crate::dom::promise::Promise;
 use crate::realms::InRealm;
 use crate::script_runtime::CanGc;
 
-#[allow(dead_code)]
 pub(crate) enum BaseAudioContextOptions {
     AudioContext(RealTimeAudioContextOptions),
     OfflineAudioContext(OfflineAudioContextOptions),

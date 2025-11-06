@@ -241,7 +241,6 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-response-json>
-    #[allow(unsafe_code)]
     fn CreateFromJson(
         cx: JSContext,
         global: &GlobalScope,

@@ -154,7 +154,6 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xr-requestsession>
-    #[allow(unsafe_code)]
     fn RequestSession(
         &self,
         mode: XRSessionMode,

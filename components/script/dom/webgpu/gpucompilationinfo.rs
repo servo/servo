@@ -29,7 +29,6 @@ impl GPUCompilationInfo {
         }
     }
 
-    #[allow(dead_code)]
     pub(crate) fn new(
         global: &GlobalScope,
         msg: Vec<DomRoot<GPUCompilationMessage>>,

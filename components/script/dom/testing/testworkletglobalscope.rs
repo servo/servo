@@ -29,7 +29,6 @@ pub(crate) struct TestWorkletGlobalScope {
 }
 
 impl TestWorkletGlobalScope {
-    #[allow(unsafe_code)]
     pub(crate) fn new(
         webview_id: WebViewId,
         pipeline_id: PipelineId,

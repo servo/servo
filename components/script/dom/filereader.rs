@@ -40,7 +40,6 @@ use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext};
 use crate::task::TaskOnce;
 
-#[allow(dead_code)]
 pub(crate) enum FileReadingTask {
     ProcessRead(TrustedFileReader, GenerationId),
     ProcessReadData(TrustedFileReader, GenerationId),
@@ -340,7 +339,7 @@ impl FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn perform_readasarraybuffer(
         result: &DomRefCell<Option<FileReaderResult>>,
         cx: JSContext,
@@ -436,7 +435,7 @@ impl FileReaderMethods<crate::DomTypeHolder> for FileReader {
         self.error.get()
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     /// <https://w3c.github.io/FileAPI/#dfn-result>
     fn GetResult(&self, _: JSContext) -> Option<StringOrObject> {
         self.result.borrow().as_ref().map(|r| match *r {

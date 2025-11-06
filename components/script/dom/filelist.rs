@@ -76,7 +76,7 @@ pub(crate) trait LayoutFileListHelpers<'dom> {
     fn len(&self) -> usize;
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 impl<'dom> LayoutFileListHelpers<'dom> for LayoutDom<'dom, FileList> {
     fn len(&self) -> usize {
         self.unsafe_get().list.len()

@@ -353,7 +353,7 @@ impl HTMLCanvasElement {
         }
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn get_gl_attributes(
         cx: JSContext,
         options: HandleValue,

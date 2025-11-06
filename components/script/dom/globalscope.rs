@@ -2276,13 +2276,13 @@ impl GlobalScope {
 
     /// Returns the global scope of the realm that the given DOM object's reflector
     /// was created in.
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn from_reflector<T: DomObject>(reflector: &T, _realm: InRealm) -> DomRoot<Self> {
         unsafe { GlobalScope::from_object(*reflector.reflector().get_jsobject()) }
     }
 
     /// Returns the global scope of the realm that the given JS object was created in.
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) unsafe fn from_object(obj: *mut JSObject) -> DomRoot<Self> {
         assert!(!obj.is_null());
         let global = unsafe { GetNonCCWObjectGlobal(obj) };
@@ -2290,7 +2290,7 @@ impl GlobalScope {
     }
 
     /// Returns the global scope for the given JSContext
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) unsafe fn from_context(cx: *mut JSContext, _realm: InRealm) -> DomRoot<Self> {
         let global = unsafe { CurrentGlobalOrNull(cx) };
         assert!(!global.is_null());
@@ -2298,14 +2298,14 @@ impl GlobalScope {
     }
 
     /// Returns the global scope for the given SafeJSContext
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn from_safe_context(cx: SafeJSContext, realm: InRealm) -> DomRoot<Self> {
         unsafe { Self::from_context(*cx, realm) }
     }
 
     /// Returns the global object of the realm that the given JS object
     /// was created in, after unwrapping any wrappers.
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) unsafe fn from_object_maybe_wrapped(
         mut obj: *mut JSObject,
         cx: *mut JSContext,
@@ -2387,7 +2387,7 @@ impl GlobalScope {
         &self.inline_module_map
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn get_cx() -> SafeJSContext {
         let cx = Runtime::get()
             .expect("Can't obtain context after runtime shutdown")
@@ -2842,7 +2842,7 @@ impl GlobalScope {
     }
 
     /// Evaluate a JS script on this global scope.
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn evaluate_script_on_global_with_result(
         &self,
@@ -3078,7 +3078,7 @@ impl GlobalScope {
     /// Returns the ["current"] global object.
     ///
     /// ["current"]: https://html.spec.whatwg.org/multipage/#current
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn current() -> Option<DomRoot<Self>> {
         let cx = Runtime::get()?;
         unsafe {
@@ -3597,7 +3597,7 @@ impl GlobalScope {
 }
 
 /// Returns the Rust global scope from a JS global object.
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe fn global_scope_from_global(
     global: *mut JSObject,
     cx: *mut JSContext,
@@ -3614,7 +3614,7 @@ unsafe fn global_scope_from_global(
 }
 
 /// Returns the Rust global scope from a JS global object.
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe fn global_scope_from_global_static(global: *mut JSObject) -> DomRoot<GlobalScope> {
     assert!(!global.is_null());
     let clasp = unsafe { get_object_class(global) };
@@ -3629,7 +3629,7 @@ unsafe fn global_scope_from_global_static(global: *mut JSObject) -> DomRoot<Glob
     root_from_object_static(global).unwrap()
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
     unsafe fn from_context(cx: *mut JSContext, realm: InRealm) -> DomRoot<Self> {
         unsafe { GlobalScope::from_context(cx, realm) }

@@ -62,7 +62,6 @@ impl XRInputSourcesChangeEvent {
         )
     }
 
-    #[allow(unsafe_code)]
     #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
         window: &Window,

@@ -202,7 +202,6 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
             .collect()
     }
 
-    #[allow(unsafe_code)]
     /// <https://www.w3.org/TR/webxr-hand-input-1/#dom-xrframe-filljointradii>
     fn FillJointRadii(
         &self,
@@ -247,7 +246,6 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
         Ok(all_valid)
     }
 
-    #[allow(unsafe_code)]
     /// <https://www.w3.org/TR/webxr-hand-input-1/#dom-xrframe-fillposes>
     fn FillPoses(
         &self,

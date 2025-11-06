@@ -39,7 +39,6 @@ impl XRBoundedReferenceSpace {
         }
     }
 
-    #[allow(unused)]
     pub(crate) fn new(
         window: &Window,
         session: &XRSession,
@@ -50,7 +49,6 @@ impl XRBoundedReferenceSpace {
         Self::new_offset(&global, session, &offset, can_gc)
     }
 
-    #[allow(unused)]
     pub(crate) fn new_offset(
         global: &GlobalScope,
         session: &XRSession,

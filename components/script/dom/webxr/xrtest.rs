@@ -68,7 +68,6 @@ impl XRTest {
 
 impl XRTestMethods<crate::DomTypeHolder> for XRTest {
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
-    #[allow(unsafe_code)]
     fn SimulateDeviceConnection(&self, init: &FakeXRDeviceInit, can_gc: CanGc) -> Rc<Promise> {
         let global = self.global();
         let p = Promise::new(&global, can_gc);

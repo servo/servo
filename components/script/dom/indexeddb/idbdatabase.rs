@@ -121,7 +121,7 @@ impl IDBDatabase {
         self.upgrade_transaction.set(Some(transaction));
     }
 
-    #[allow(dead_code)] // This will be used once we allow multiple concurrent connections
+    #[expect(dead_code)] // This will be used once we allow multiple concurrent connections
     pub fn dispatch_versionchange(
         &self,
         old_version: u64,

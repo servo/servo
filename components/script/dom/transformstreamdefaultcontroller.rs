@@ -51,7 +51,6 @@ struct TransformTransformPromiseRejection {
 
 impl Callback for TransformTransformPromiseRejection {
     /// Reacting to transformPromise with the following fulfillment steps:
-    #[allow(unsafe_code)]
     fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
         // Perform ! TransformStreamError(controller.[[stream]], r).
         self.controller
@@ -573,7 +572,7 @@ impl TransformStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#transform-stream-default-controller-enqueue>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn enqueue(
         &self,
         cx: SafeJSContext,

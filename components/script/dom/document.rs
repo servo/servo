@@ -3218,7 +3218,7 @@ pub(crate) trait LayoutDocumentHelpers<'dom> {
     fn flush_shadow_roots_stylesheets(self);
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 impl<'dom> LayoutDocumentHelpers<'dom> for LayoutDom<'dom, Document> {
     #[inline]
     fn is_html_document_for_layout(&self) -> bool {

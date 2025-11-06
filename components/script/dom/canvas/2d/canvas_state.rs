@@ -82,7 +82,6 @@ const IDEOGRAPHIC_BASELINE_DEFAULT: f64 = 0.5;
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[allow(dead_code)]
 pub(super) enum CanvasFillOrStrokeStyle {
     Color(#[no_trace] AbsoluteColor),
     Gradient(Dom<CanvasGradient>),

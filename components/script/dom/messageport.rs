@@ -112,7 +112,7 @@ impl MessagePort {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#message-port-post-message-steps>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn post_message_impl(
         &self,
         cx: SafeJSContext,
@@ -182,7 +182,6 @@ impl MessagePort {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-packandpostmessagehandlingerror>
-    #[allow(unsafe_code)]
     pub(crate) fn pack_and_post_message_handling_error(
         &self,
         type_: &str,
@@ -207,7 +206,7 @@ impl MessagePort {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-packandpostmessage>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn pack_and_post_message(
         &self,
         type_: &str,

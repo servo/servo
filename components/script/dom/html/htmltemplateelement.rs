@@ -65,7 +65,7 @@ impl HTMLTemplateElement {
     }
 }
 
-#[allow(unused_doc_comments)]
+#[expect(unused_doc_comments)]
 impl HTMLTemplateElementMethods<crate::DomTypeHolder> for HTMLTemplateElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootmode>
     make_enumerated_getter!(

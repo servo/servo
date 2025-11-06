@@ -21,7 +21,7 @@ use crate::script_runtime::CanGc;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 #[repr(u16)]
-#[allow(unused)]
+#[expect(unused)]
 pub(crate) enum ReadyState {
     None = HTMLTrackElementConstants::NONE,
     Loading = HTMLTrackElementConstants::LOADING,

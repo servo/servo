@@ -449,7 +449,7 @@ impl WorkerGlobalScope {
         self.devtools_receiver.as_ref()
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn get_cx(&self) -> JSContext {
         unsafe { JSContext::from_ptr(self.runtime.borrow().as_ref().unwrap().cx()) }
     }
@@ -590,7 +590,7 @@ impl WorkerGlobalScope {
     }
 
     /// onComplete algorithm defined inside <https://html.spec.whatwg.org/multipage/#run-a-worker>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn on_complete(
         &self,
         script: Option<Cow<'_, str>>,
@@ -1010,7 +1010,6 @@ impl WorkerGlobalScope {
     /// Process a single event as if it were the next event
     /// in the queue for this worker event-loop.
     /// Returns a boolean indicating whether further events should be processed.
-    #[allow(unsafe_code)]
     pub(crate) fn process_event(&self, msg: CommonScriptMsg) -> bool {
         if self.is_closing() {
             return false;

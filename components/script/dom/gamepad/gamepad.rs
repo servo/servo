@@ -187,7 +187,7 @@ impl GamepadMethods<crate::DomTypeHolder> for Gamepad {
     }
 }
 
-#[allow(dead_code)]
+#[expect(dead_code)]
 impl Gamepad {
     pub(crate) fn gamepad_id(&self) -> u32 {
         self.gamepad_id
@@ -244,7 +244,7 @@ impl Gamepad {
             .expect("Failed to set axes data on gamepad.")
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     /// <https://www.w3.org/TR/gamepad/#dfn-map-and-normalize-axes>
     pub(crate) fn map_and_normalize_axes(&self, axis_index: usize, value: f64) {
         // Let normalizedValue be 2 (logicalValue − logicalMinimum) / (logicalMaximum − logicalMinimum) − 1.

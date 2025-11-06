@@ -78,7 +78,7 @@ impl<T> From<T> for NoTrace<T> {
     }
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe impl<T> JSTraceable for NoTrace<T> {
     #[inline]
     unsafe fn trace(&self, _: *mut ::js::jsapi::JSTracer) {}
@@ -211,7 +211,7 @@ where
     }
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe impl<K, V: JSTraceable, S> JSTraceable for HashMapTracedValues<K, V, S> {
     #[inline]
     unsafe fn trace(&self, trc: *mut ::js::jsapi::JSTracer) {
@@ -225,7 +225,7 @@ unsafe_no_jsmanaged_fields!(Box<dyn TaskBox>);
 
 unsafe_no_jsmanaged_fields!(IncompleteParserContexts);
 
-#[allow(dead_code)]
+#[expect(dead_code)]
 /// Trace a `JSScript`.
 pub(crate) fn trace_script(tracer: *mut JSTracer, description: &str, script: &Heap<*mut JSScript>) {
     unsafe {
@@ -238,7 +238,7 @@ pub(crate) fn trace_script(tracer: *mut JSTracer, description: &str, script: &He
     }
 }
 
-#[allow(dead_code)]
+#[expect(dead_code)]
 /// Trace a `JSVal`.
 pub(crate) fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) {
     unsafe {
@@ -255,7 +255,7 @@ pub(crate) fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<J
     }
 }
 
-#[allow(dead_code)]
+#[expect(dead_code)]
 /// Trace a `JSString`.
 pub(crate) fn trace_string(tracer: *mut JSTracer, description: &str, s: &Heap<*mut JSString>) {
     unsafe {

@@ -166,7 +166,7 @@ impl<T: WeakReferenceable> DOMTracker<T> {
     }
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe impl<T: WeakReferenceable> JSTraceable for DOMTracker<T> {
     unsafe fn trace(&self, _: *mut JSTracer) {
         self.dom_objects.borrow_mut().retain_alive();

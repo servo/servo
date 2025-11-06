@@ -5,14 +5,13 @@
 pub(crate) mod abstractworker;
 pub(crate) mod abstractworkerglobalscope;
 pub(crate) mod dedicatedworkerglobalscope;
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) mod serviceworker;
 pub(crate) mod serviceworkercontainer;
 pub(crate) mod serviceworkerglobalscope;
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) mod serviceworkerregistration;
 pub(crate) mod worker;
-#[allow(dead_code)]
 pub(crate) mod workerglobalscope;
 pub(crate) mod workerlocation;
 pub(crate) mod workernavigator;

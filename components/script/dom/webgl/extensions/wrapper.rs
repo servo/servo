@@ -49,7 +49,7 @@ impl<T> WebGLExtensionWrapper for TypedWebGLExtensionWrapper<T>
 where
     T: WebGLExtension + JSTraceable + MallocSizeOf + 'static,
 {
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn instance_or_init(
         &self,
         ctx: &WebGLRenderingContext,

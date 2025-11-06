@@ -121,7 +121,7 @@ impl Worklet {
         self.droppable_field.worklet_id
     }
 
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub(crate) fn worklet_global_scope_type(&self) -> WorkletGlobalScopeType {
         self.global_type
     }
@@ -480,7 +480,7 @@ struct WorkletThread {
     gc_threshold: u32,
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe impl JSTraceable for WorkletThread {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         debug!("Tracing worklet thread.");
@@ -490,7 +490,6 @@ unsafe impl JSTraceable for WorkletThread {
 
 impl WorkletThread {
     /// Spawn a new worklet thread, returning the channel to send it control messages.
-    #[allow(unsafe_code)]
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn spawn(
         role: WorkletThreadRole,
@@ -600,13 +599,13 @@ impl WorkletThread {
     }
 
     /// The current memory usage of the thread
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn current_memory_usage(&self) -> u32 {
         unsafe { JS_GetGCParameter(self.runtime.cx(), JSGCParamKey::JSGC_BYTES) }
     }
 
     /// Perform a GC.
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn gc(&mut self) {
         debug!(
             "BEGIN GC (usage = {}, threshold = {}).",
