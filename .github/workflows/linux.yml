@@ -152,7 +152,7 @@ jobs:
     name: Linux Build [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     steps:
-      - uses: servo/ci-runners/actions/checkout@78f4b65e1be542d0e9d84c65a0fcc35529e7b29f
+      - uses: servo/ci-runners/actions/checkout@0b9edd49381b22c14e5b123f21377269864ddf54
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
         if: ${{ runner.environment != 'self-hosted' }}
@@ -343,7 +343,7 @@ jobs:
     runs-on: ${{ needs.runner-select-coverage.outputs.selected-runner-label }}
     continue-on-error: true
     steps:
-      - uses: servo/ci-runners/actions/checkout@78f4b65e1be542d0e9d84c65a0fcc35529e7b29f
+      - uses: servo/ci-runners/actions/checkout@0b9edd49381b22c14e5b123f21377269864ddf54
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
         if: ${{ runner.environment != 'self-hosted' }}

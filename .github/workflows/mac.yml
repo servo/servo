@@ -138,7 +138,7 @@ jobs:
       - name: Kill XProtectBehaviorService
         run: |
           echo Killing XProtect.; sudo pkill -9 XProtect >/dev/null || true;
-      - uses: servo/ci-runners/actions/checkout@78f4b65e1be542d0e9d84c65a0fcc35529e7b29f
+      - uses: servo/ci-runners/actions/checkout@0b9edd49381b22c14e5b123f21377269864ddf54
 
       - if: runner.environment != 'self-hosted'
         name: Setup Python
