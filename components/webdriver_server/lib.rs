@@ -96,7 +96,7 @@ fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
         ),
         (
             Method::DELETE,
-            "/servo/shutdown",
+            "/session/{sessionId}/servo/shutdown",
             ServoExtensionRoute::Shutdown,
         ),
     ]
@@ -179,6 +179,11 @@ enum ServoExtensionRoute {
     GetPrefs,
     SetPrefs,
     ResetPrefs,
+    /// TODO: Shutdown does not actually use sessionId.
+    /// But the webdriver crate always checks existence of sessionID
+    /// except for WebDriverCommand::Status.
+    /// We have to either use our own fork, or relies on the current workaround:
+    /// passing any dummy sessionID.
     Shutdown,
 }
 
@@ -2512,12 +2517,13 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
         // Drain the load status receiver to avoid incorrect status handling
         while self.load_status_receiver.try_recv().is_ok() {}
 
-        // Unless we are trying to create a new session, we need to ensure that a
-        // session has previously been created
+        // Unless we are trying to create/delete a new session, check status, or shutdown Servo,
+        // we need to ensure that a session has previously been created.
         match msg.command {
             WebDriverCommand::NewSession(_) |
             WebDriverCommand::Status |
-            WebDriverCommand::DeleteSession => {},
+            WebDriverCommand::DeleteSession |
+            WebDriverCommand::Extension(ServoExtensionCommand::Shutdown) => {},
             _ => {
                 self.session()?;
             },
