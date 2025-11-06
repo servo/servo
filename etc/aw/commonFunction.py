@@ -3,7 +3,7 @@ from decimal import Decimal
 
 def calcuteFrameRate(file_name):
     """
-    计算帧率
+    calcuteFrameRate
     :param file_name:
     :return:
     """
@@ -23,13 +23,6 @@ def calcuteFrameRate(file_name):
         return 120.00
     else:
         return round(float(len(commands_list) / interval_time), 2)
-
-def check_element(element):
-    """
-    校验元素是否白屏
-    :param element:
-    :return:
-    """
 
 
 if __name__ == '__main__':
