@@ -241,6 +241,7 @@ codegen-units = 1
 
 [patch.crates-io]
 egui = { git = "https://codeberg.org/shuppy/accesskit-test" }
+egui-winit = { git = "https://codeberg.org/shuppy/accesskit-test" }
 # If you need to temporarily test Servo with a local fork of some upstream
 # crate, add that here. Use the form:
 #

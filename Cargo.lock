@@ -2289,7 +2289,7 @@ dependencies = [
 [[package]]
 name = "ecolor"
 version = "0.33.0"
-source = "git+https://codeberg.org/shuppy/accesskit-test#5762fccc07f1b6d27f4d8154c69d08cdfa6d5da6"
+source = "git+https://codeberg.org/shuppy/accesskit-test#053a2f7737ba6e63737fb878d67b801f6df184ba"
 dependencies = [
  "bytemuck",
  "emath",
@@ -2298,7 +2298,7 @@ dependencies = [
 [[package]]
 name = "egui"
 version = "0.33.0"
-source = "git+https://codeberg.org/shuppy/accesskit-test#5762fccc07f1b6d27f4d8154c69d08cdfa6d5da6"
+source = "git+https://codeberg.org/shuppy/accesskit-test#053a2f7737ba6e63737fb878d67b801f6df184ba"
 dependencies = [
  "accesskit",
  "ahash",
@@ -2328,8 +2328,7 @@ dependencies = [
 [[package]]
 name = "egui-winit"
 version = "0.33.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb4ea8cb063c00d8f23ce11279c01eb63a195a72be0e21d429148246dab7983e"
+source = "git+https://codeberg.org/shuppy/accesskit-test#053a2f7737ba6e63737fb878d67b801f6df184ba"
 dependencies = [
  "accesskit_winit",
  "arboard",
@@ -2394,7 +2393,7 @@ dependencies = [
 [[package]]
 name = "emath"
 version = "0.33.0"
-source = "git+https://codeberg.org/shuppy/accesskit-test#5762fccc07f1b6d27f4d8154c69d08cdfa6d5da6"
+source = "git+https://codeberg.org/shuppy/accesskit-test#053a2f7737ba6e63737fb878d67b801f6df184ba"
 dependencies = [
  "bytemuck",
 ]
@@ -2522,7 +2521,7 @@ dependencies = [
 [[package]]
 name = "epaint"
 version = "0.33.0"
-source = "git+https://codeberg.org/shuppy/accesskit-test#5762fccc07f1b6d27f4d8154c69d08cdfa6d5da6"
+source = "git+https://codeberg.org/shuppy/accesskit-test#053a2f7737ba6e63737fb878d67b801f6df184ba"
 dependencies = [
  "ab_glyph",
  "ahash",
@@ -2539,7 +2538,7 @@ dependencies = [
 [[package]]
 name = "epaint_default_fonts"
 version = "0.33.0"
-source = "git+https://codeberg.org/shuppy/accesskit-test#5762fccc07f1b6d27f4d8154c69d08cdfa6d5da6"
+source = "git+https://codeberg.org/shuppy/accesskit-test#053a2f7737ba6e63737fb878d67b801f6df184ba"
 
 [[package]]
 name = "equator"

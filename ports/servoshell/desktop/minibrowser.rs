@@ -549,40 +549,41 @@ impl Minibrowser {
                     // where they meet. then we can do what we want with that root.
                     node.push_child(*root_accesskit_node_id);
                 });
-
-                if first_update {
-                    let root_id = self.root_accesskit_node_id.expect("Guaranteed by accesskit_subtree_builder() call above");
-                    self.accesskit_adapter.update_if_active(|| {
-                        let mut root = Node::default();
-                        root.set_role(Role::WebView);
-                        let a_id = root_id.with(1);
-                        let mut a = Node::default();
-                        a.set_role(Role::Button);
-                        let b_id = root_id.with(2);
-                        let mut b = Node::default();
-                        b.set_role(Role::Button);
-                        let c_id = root_id.with(3);
-                        let mut c = Node::default();
-                        c.set_role(Role::Button);
-                        root.set_children(vec![a_id, b_id, c_id]);
-                        TreeUpdate {
-                            nodes: vec![
-                                (root_id, root),
-                                (a_id, a),
-                                (b_id, b),
-                                (c_id, c),
-                            ],
-                            tree: None,
-                            // TODO: this needs to align with the focus in egui’s updates,
-                            // unless the focus has genuinely changed
-                            focus: b_id,
-                        }
-                    });
-                }
             });
 
             *last_update = now;
         });
+
+        if let Some(root_id) = self.root_accesskit_node_id {
+            if let Some(accesskit_mut) = self.context.egui_winit.accesskit_mut() {
+                accesskit_mut.update_if_active(|| {
+                    let mut root = Node::default();
+                    root.set_role(Role::WebView);
+                    let a_id = root_id.with(1);
+                    let mut a = Node::default();
+                    a.set_role(Role::Button);
+                    let b_id = root_id.with(2);
+                    let mut b = Node::default();
+                    b.set_role(Role::Button);
+                    let c_id = root_id.with(3);
+                    let mut c = Node::default();
+                    c.set_role(Role::Button);
+                    root.set_children(vec![a_id, b_id, c_id]);
+                    TreeUpdate {
+                        nodes: vec![
+                            (root_id, root),
+                            (a_id, a),
+                            (b_id, b),
+                            (c_id, c),
+                        ],
+                        tree: None,
+                        // TODO: this needs to align with the focus in egui’s updates,
+                        // unless the focus has genuinely changed
+                        focus: b_id,
+                    }
+                });
+            }
+        }
     }
 
     /// Paint the minibrowser, as of the last update.
