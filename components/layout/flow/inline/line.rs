@@ -17,7 +17,7 @@ use unicode_bidi::{BidiInfo, Level};
 use webrender_api::FontInstanceKey;
 
 use super::inline_box::{InlineBoxContainerState, InlineBoxIdentifier, InlineBoxTreePathToken};
-use super::{InlineFormattingContextLayout, LineBlockSizes, SharedInlineStyles, line_height};
+use super::{line_height, InlineFormattingContextLayout, LineBlockSizes, SharedInlineStyles};
 use crate::cell::ArcRefCell;
 use crate::fragment_tree::{BaseFragmentInfo, BoxFragment, Fragment, TextFragment};
 use crate::geom::{LogicalRect, LogicalVec2, PhysicalRect, ToLogical};
@@ -27,7 +27,6 @@ use crate::positioned::{
 use crate::{ContainingBlock, ContainingBlockSize};
 
 use crate::flow::inline::text_run::TextRunSegment;
-use crate::flow::inline::add_or_get_font;
 use crate::flow::inline::FontKeyAndMetrics;
 use unicode_script::Script;
 use fonts::{
@@ -219,11 +218,15 @@ impl LineItemLayout<'_, '_> {
 
     pub(super) fn layout(&mut self, mut line_items: Vec<LineItem>) -> Vec<Fragment> {
         let mut last_level = Level::ltr();
+        let mut total_textrun = 0;
         let levels: Vec<_> = line_items
             .iter()
             .map(|item| {
                 let level = match item {
-                    LineItem::TextRun(_, text_run) => text_run.bidi_level,
+                    LineItem::TextRun(_, text_run) => {
+                        total_textrun += 1;
+                        text_run.bidi_level
+                    },
                     // TODO: This level needs either to be last_level, or if there were
                     // unicode characters inserted for the inline box, we need to get the
                     // level from them.
@@ -264,6 +267,7 @@ impl LineItemLayout<'_, '_> {
             Either::Right(line_items.into_iter().rev())
         };
 
+        let mut current_textrun = 0;
         for item in line_item_iterator.into_iter().by_ref() {
             // When preparing to lay out a new line item, start and end inline boxes, so that the current
             // inline box state reflects the item's parent. Items in the line are not necessarily in tree
@@ -285,7 +289,15 @@ impl LineItemLayout<'_, '_> {
                         .flags
                         .insert(LineLayoutInlineContainerFlags::HAD_INLINE_END_PBM);
                 },
-                LineItem::TextRun(_, text_run) => self.layout_text_run(text_run),
+                LineItem::TextRun(_, text_run) => {
+                    current_textrun += 1;
+                    if current_textrun == total_textrun {
+                        self.layout_text_run(text_run, true);
+                    }
+                    else {
+                        self.layout_text_run(text_run, false);
+                    }
+                },
                 LineItem::Atomic(_, atomic) => self.layout_atomic(atomic),
                 LineItem::AbsolutelyPositioned(_, absolute) => self.layout_absolute(absolute),
                 LineItem::Float(_, float) => self.layout_float(float),
@@ -558,7 +570,7 @@ impl LineItemLayout<'_, '_> {
         }
     }
 
-    fn layout_text_run(&mut self, text_item: TextRunLineItem) {
+    fn layout_text_run(&mut self, text_item: TextRunLineItem, is_last_textrun: bool) {
         if text_item.text.is_empty() {
             return;
         }
@@ -622,14 +634,13 @@ impl LineItemLayout<'_, '_> {
 
         self.current_state.inline_advance += inline_advance;
 
-        if self.current_state.inline_advance <= self.layout.containing_block.size.inline {
-            can_be_ellided = false;
-        }
 
         // create & insert text fragment to vector
         if can_be_ellided 
-        && self.current_state.inline_advance > self.layout.containing_block.size.inline 
-        && original_inline_advance < self.layout.containing_block.size.inline {
+        && ((self.current_state.inline_advance > self.layout.containing_block.size.inline 
+        && original_inline_advance < self.layout.containing_block.size.inline) 
+        || (self.current_state.inline_advance == self.layout.containing_block.size.inline 
+        && !is_last_textrun)) {
             // create ellipsis text fragment & its bounding box
             let Some((overflow_marker_textrun_segment, overflow_marker_font)) = self.form_overflow_marker(&"\u{2026}") else {
                     todo!()
