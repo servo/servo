@@ -7,7 +7,6 @@
 use std::cell::Ref;
 use std::cmp::Ordering;
 use std::fmt::Debug;
-use std::hash::Hash;
 use std::rc::Rc;
 
 use html5ever::{LocalName, Namespace, Prefix};
@@ -18,6 +17,7 @@ use script_bindings::root::Dom;
 use script_bindings::script_runtime::CanGc;
 use script_bindings::str::DOMString;
 use style::Atom;
+use style::dom::OpaqueNode;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::XPathNSResolverBinding::XPathNSResolver;
@@ -50,6 +50,8 @@ impl xpath::Node for XPathWrapper<DomRoot<Node>> {
     type Document = XPathWrapper<DomRoot<Document>>;
     type Attribute = XPathWrapper<DomRoot<Attr>>;
     type Element = XPathWrapper<DomRoot<Element>>;
+    /// A opaque handle to a node with the sole purpose of comparing one node with another.
+    type Opaque = OpaqueNode;
 
     fn is_comment(&self) -> bool {
         self.0.is::<Comment>()
@@ -126,7 +128,7 @@ impl xpath::Node for XPathWrapper<DomRoot<Node>> {
         XPathWrapper(self.0.owner_document())
     }
 
-    fn to_opaque(&self) -> impl Eq + Hash {
+    fn to_opaque(&self) -> Self::Opaque {
         self.0.to_opaque()
     }
 

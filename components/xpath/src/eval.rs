@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::iter;
+
 use markup5ever::{QualName, local_name, ns};
 
 use crate::ast::{
@@ -9,11 +11,13 @@ use crate::ast::{
     NodeTest, PathExpression, PredicateListExpression,
 };
 use crate::context::PredicateCtx;
-use crate::{Attribute, Dom, Element, Error, EvaluationCtx, Node, ProcessingInstruction, Value};
+use crate::{
+    Attribute, Dom, Element, Error, EvaluationCtx, Node, NodeSet, ProcessingInstruction, Value,
+};
 
-pub(crate) fn try_extract_nodeset<N: Node>(v: Value<N>) -> Result<Vec<N>, Error> {
+pub(crate) fn try_extract_nodeset<N: Node>(v: Value<N>) -> Result<NodeSet<N>, Error> {
     match v {
-        Value::Nodeset(ns) => Ok(ns),
+        Value::NodeSet(node_set) => Ok(node_set),
         _ => Err(Error::NotANodeset),
     }
 }
@@ -77,7 +81,8 @@ impl Expression {
                         let right_nodes = as_nodes(right)?;
 
                         left_nodes.extend(right_nodes);
-                        Value::Nodeset(left_nodes)
+                        left_nodes.sort();
+                        Value::NodeSet(left_nodes)
                     },
                     _ => unreachable!("And/Or were handled above"),
                 };
@@ -95,7 +100,11 @@ impl Expression {
             Expression::Filter(filter_expression) => filter_expression.evaluate(context),
             Expression::Literal(literal) => Ok(literal.evaluate::<D>()),
             Expression::Function(function) => function.evaluate(context),
-            Expression::ContextItem => Ok(Value::Nodeset(vec![context.context_node.clone()])),
+            Expression::ContextItem => {
+                let mut result = NodeSet::default();
+                result.push(context.context_node.clone());
+                Ok(Value::NodeSet(result))
+            },
             Expression::Variable(_) => Err(Error::CannotUseVariables),
         }
     }
@@ -104,33 +113,36 @@ impl Expression {
 impl PathExpression {
     fn evaluate<D: Dom>(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error> {
         // Use root node for absolute paths, context_node otherwise
-        let mut current_nodes = if self.is_absolute {
-            vec![context.context_node.get_root_node()]
+        let starting_node = if self.is_absolute {
+            context.context_node.get_root_node()
         } else {
-            vec![context.context_node.clone()]
+            context.context_node.clone()
         };
 
         // If path starts with '//', add an implicit descendant-or-self::node() step
+        let mut current_nodes = NodeSet::default();
         if self.has_implicit_descendant_or_self_step {
-            current_nodes = current_nodes
-                .iter()
-                .flat_map(|node| node.traverse_preorder())
-                .collect();
+            for node in starting_node.traverse_preorder() {
+                current_nodes.push(node);
+            }
+        } else {
+            current_nodes.push(starting_node);
         }
+        current_nodes.assume_sorted();
 
         log::trace!("[PathExpr] Evaluating path expr: {:?}", self);
 
         let have_multiple_steps = self.steps.len() > 1;
 
         for step_expression in &self.steps {
-            let mut next_nodes = Vec::new();
+            let mut next_nodes = NodeSet::default();
             for node in current_nodes {
                 let step_context = context.subcontext_for_node(node.clone());
                 let step_result = step_expression.evaluate(&step_context)?;
                 match (have_multiple_steps, step_result) {
-                    (_, Value::Nodeset(mut nodes)) => {
+                    (_, Value::NodeSet(nodes)) => {
                         // as long as we evaluate to nodesets, keep going
-                        next_nodes.append(&mut nodes);
+                        next_nodes.extend(nodes);
                     },
                     (false, value) => {
                         log::trace!("[PathExpr] Got single primitive value: {:?}", value);
@@ -152,7 +164,7 @@ impl PathExpression {
 
         log::trace!("[PathExpr] Got nodes: {:?}", current_nodes);
 
-        Ok(Value::Nodeset(current_nodes))
+        Ok(Value::NodeSet(current_nodes))
     }
 }
 
@@ -241,7 +253,7 @@ fn apply_node_test<D: Dom>(test: &NodeTest, node: &D::Node) -> Result<bool, Erro
 
 impl LocationStepExpression {
     fn evaluate<D: Dom>(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error> {
-        let nodes: Vec<D::Node> = match self.axis {
+        let mut nodes: NodeSet<D::Node> = match self.axis {
             Axis::Child => context.context_node.children().collect(),
             Axis::Descendant => context.context_node.traverse_preorder().skip(1).collect(),
             Axis::Parent => vec![context.context_node.parent()]
@@ -268,28 +280,48 @@ impl LocationStepExpression {
                         .map(|attribute| attribute.as_node())
                         .collect()
                 } else {
-                    vec![]
+                    Default::default()
                 }
             },
-            Axis::Self_ => vec![context.context_node.clone()],
+            Axis::Self_ => iter::once(context.context_node.clone()).collect(),
             Axis::DescendantOrSelf => context.context_node.traverse_preorder().collect(),
             Axis::AncestorOrSelf => context.context_node.inclusive_ancestors().collect(),
-            Axis::Namespace => Vec::new(), // Namespace axis is not commonly implemented
+            Axis::Namespace => Default::default(), // Namespace axis is not commonly implemented
         };
+
+        if matches!(
+            self.axis,
+            Axis::Child |
+                Axis::Descendant |
+                Axis::Parent |
+                Axis::Following |
+                Axis::FollowingSibling |
+                Axis::Attribute |
+                Axis::Self_ |
+                Axis::DescendantOrSelf |
+                Axis::AncestorOrSelf
+        ) {
+            // The elements on these axis values are already in tree order
+            nodes.assume_sorted();
+        } else {
+            // The elements on these axis values are in inverse tree order
+            nodes.reverse();
+            nodes.assume_sorted();
+        }
 
         log::trace!("[StepExpr] Axis {:?} got nodes {:?}", self.axis, nodes);
 
         // Filter nodes according to the step's node_test. Will error out if any NodeTest
         // application errors out.
-        let filtered_nodes: Vec<D::Node> = nodes
+        // FIXME: Invent something like try_retain and use it here
+        let filtered_nodes: NodeSet<D::Node> = nodes
             .into_iter()
-            .map(|node| {
-                apply_node_test::<D>(&self.node_test, &node).map(|matches| matches.then_some(node))
+            .filter_map(|node| match apply_node_test::<D>(&self.node_test, &node) {
+                Ok(false) => None,
+                Ok(true) => Some(Ok(node)),
+                Err(error) => Some(Err(error)),
             })
-            .collect::<Result<Vec<_>, _>>()?
-            .into_iter()
-            .flatten()
-            .collect();
+            .collect::<Result<NodeSet<_>, _>>()?;
 
         log::trace!("[StepExpr] Filtering got nodes {:?}", filtered_nodes);
 
@@ -298,7 +330,7 @@ impl LocationStepExpression {
                 "[StepExpr] No predicates, returning nodes {:?}",
                 filtered_nodes
             );
-            Ok(Value::Nodeset(filtered_nodes))
+            Ok(Value::NodeSet(filtered_nodes))
         } else {
             // Apply predicates
             self.predicate_list.evaluate::<D>(filtered_nodes)
@@ -307,40 +339,43 @@ impl LocationStepExpression {
 }
 
 impl PredicateListExpression {
-    fn evaluate<D: Dom>(&self, mut matched_nodes: Vec<D::Node>) -> Result<Value<D::Node>, Error> {
+    fn evaluate<D: Dom>(
+        &self,
+        mut matched_nodes: NodeSet<D::Node>,
+    ) -> Result<Value<D::Node>, Error> {
         for predicate_expr in &self.predicates {
             let size = matched_nodes.len();
-            let mut new_matched = Vec::new();
 
-            for (i, node) in matched_nodes.iter().enumerate() {
-                // 1-based position, per XPath spec
+            // 1-based position, per XPath spec
+            let mut position = 1;
+            matched_nodes.retain(|node| {
                 let predicate_ctx: EvaluationCtx<D> = EvaluationCtx {
                     context_node: node.clone(),
-                    predicate_ctx: Some(PredicateCtx { index: i + 1, size }),
+                    predicate_ctx: Some(PredicateCtx {
+                        index: position,
+                        size,
+                    }),
                 };
-
                 let eval_result = predicate_expr.evaluate(&predicate_ctx);
 
                 let keep = match eval_result {
-                    Ok(Value::Number(number)) => (i + 1) as f64 == number,
+                    Ok(Value::Number(number)) => position as f64 == number,
                     Ok(Value::Boolean(boolean)) => boolean,
                     Ok(value) => value.convert_to_boolean(),
                     Err(_) => false,
                 };
+                position += 1;
 
-                if keep {
-                    new_matched.push(node.clone());
-                }
-            }
+                keep
+            });
 
-            matched_nodes = new_matched;
             log::trace!(
                 "[PredicateListExpr] Predicate {:?} matched nodes {:?}",
                 predicate_expr,
                 matched_nodes
             );
         }
-        Ok(Value::Nodeset(matched_nodes))
+        Ok(Value::NodeSet(matched_nodes))
     }
 }
 
@@ -348,7 +383,7 @@ impl FilterExpression {
     fn evaluate<D: Dom>(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error> {
         debug_assert!(!self.predicates.predicates.is_empty());
 
-        let Value::Nodeset(node_set) = self.expression.evaluate(context)? else {
+        let Value::NodeSet(node_set) = self.expression.evaluate(context)? else {
             // You can't use filtering expressions `[]` on other than node-sets
             return Err(Error::NotANodeset);
         };

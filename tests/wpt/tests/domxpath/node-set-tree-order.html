@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tree order of node sets during evaluation</title>
+  <link rel="author" title="Simon Wülker" href="mailto:simon.wuelker@arcor.de">
+  <link rel="help" href="https://github.com/servo/servo/issues/40435">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <div id="container">
+        <span></span>
+        <p id="p"></p>
+    </div>
+    <script>
+    function toArray(result) {
+      var a = [];
+      while (true) {
+        var node = result.iterateNext();
+        if (node === null) break;
+        a.push(node);
+      }
+      return a;
+    }
+
+    let container = document.getElementById("container");
+    test(() => {
+      // If the result of "(./p | ./span)" is not in tree order then "last()" will filter the wrong element,
+      // causing the span to be returned.
+
+      let result = document.evaluate("(./p | ./span)[last()]", container, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
+      assert_array_equals(toArray(result), [document.getElementById("p")])
+    }, "Temporary node sets created during evaluation must be in tree order");
+    </script>
+</body>
+</html>
