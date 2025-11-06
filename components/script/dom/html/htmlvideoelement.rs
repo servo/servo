@@ -224,7 +224,7 @@ impl HTMLVideoElement {
 
         let trusted_node = Trusted::new(self);
         let generation = self.generation_id();
-        let sender = window.register_image_cache_listener(id, move |response| {
+        let callback = window.register_image_cache_listener(id, move |response| {
             let element = trusted_node.root();
 
             // Ignore any image response for a previous request that has been discarded.
@@ -234,7 +234,7 @@ impl HTMLVideoElement {
             element.process_image_response(response.response, CanGc::note());
         });
 
-        image_cache.add_listener(ImageLoadListener::new(sender, window.pipeline_id(), id));
+        image_cache.add_listener(ImageLoadListener::new(callback, window.pipeline_id(), id));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>

@@ -896,13 +896,6 @@ impl ScriptThread {
         );
 
         let (image_cache_sender, image_cache_receiver) = unbounded();
-        let (ipc_image_cache_sender, ipc_image_cache_receiver) = ipc::channel().unwrap();
-        ROUTER.add_typed_route(
-            ipc_image_cache_receiver,
-            Box::new(move |message| {
-                let _ = image_cache_sender.send(message.unwrap());
-            }),
-        );
 
         let receivers = ScriptThreadReceivers {
             constellation_receiver,
@@ -921,7 +914,7 @@ impl ScriptThread {
             constellation_sender: state.constellation_sender,
             pipeline_to_constellation_sender: state.pipeline_to_constellation_sender.sender.clone(),
             pipeline_to_embedder_sender: state.pipeline_to_embedder_sender.clone(),
-            image_cache_sender: ipc_image_cache_sender,
+            image_cache_sender,
             time_profiler_sender: state.time_profiler_sender,
             memory_profiler_sender: state.memory_profiler_sender,
             devtools_server_sender,

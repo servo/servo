@@ -8,10 +8,9 @@ use std::default::Default;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
-use ipc_channel::ipc::IpcSender;
 use js::rust::HandleObject;
 use net_traits::image_cache::{
-    Image, ImageCache, ImageCacheResponseMessage, ImageCacheResult, ImageLoadListener,
+    Image, ImageCache, ImageCacheResponseCallback, ImageCacheResult, ImageLoadListener,
     ImageOrMetadataAvailable, ImageResponse, PendingImageId,
 };
 use net_traits::request::{Destination, Initiator, RequestBuilder, RequestId};
@@ -679,10 +678,7 @@ impl HTMLLinkElement {
         };
     }
 
-    fn register_image_cache_callback(
-        &self,
-        id: PendingImageId,
-    ) -> IpcSender<ImageCacheResponseMessage> {
+    fn register_image_cache_callback(&self, id: PendingImageId) -> ImageCacheResponseCallback {
         let trusted_node = Trusted::new(self);
         let window = self.owner_window();
         let request_generation_id = self.get_request_generation_id();

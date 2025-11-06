@@ -66,8 +66,8 @@ use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::{
-    ImageCache, ImageCacheResponseMessage, ImageLoadListener, ImageResponse, PendingImageId,
-    PendingImageResponse, RasterizationCompleteResponse,
+    ImageCache, ImageCacheResponseCallback, ImageCacheResponseMessage, ImageLoadListener,
+    ImageResponse, PendingImageId, PendingImageResponse, RasterizationCompleteResponse,
 };
 use num_traits::ToPrimitive;
 use profile_traits::generic_channel as ProfiledGenericChannel;
@@ -276,7 +276,7 @@ pub(crate) struct Window {
     #[no_trace]
     image_cache: Arc<dyn ImageCache>,
     #[no_trace]
-    image_cache_sender: IpcSender<ImageCacheResponseMessage>,
+    image_cache_sender: Sender<ImageCacheResponseMessage>,
     window_proxy: MutNullableDom<WindowProxy>,
     document: MutNullableDom<Document>,
     location: MutNullableDom<Location>,
@@ -657,13 +657,17 @@ impl Window {
         &self,
         id: PendingImageId,
         callback: impl Fn(PendingImageResponse) + 'static,
-    ) -> IpcSender<ImageCacheResponseMessage> {
+    ) -> ImageCacheResponseCallback {
         self.pending_image_callbacks
             .borrow_mut()
             .entry(id)
             .or_default()
             .push(PendingImageCallback(Box::new(callback)));
-        self.image_cache_sender.clone()
+
+        let image_cache_sender = self.image_cache_sender.clone();
+        Box::new(move |message| {
+            let _ = image_cache_sender.send(message);
+        })
     }
 
     fn pending_layout_image_notification(&self, response: PendingImageResponse) {
@@ -3326,11 +3330,14 @@ impl Window {
 
             let mut images = self.pending_images_for_rasterization.borrow_mut();
             if !images.contains_key(&(image.id, image.size)) {
+                let image_cache_sender = self.image_cache_sender.clone();
                 self.image_cache.add_rasterization_complete_listener(
                     pipeline_id,
                     image.id,
                     image.size,
-                    self.image_cache_sender.clone(),
+                    Box::new(move |response| {
+                        let _ = image_cache_sender.send(response);
+                    }),
                 );
             }
 
@@ -3355,7 +3362,7 @@ impl Window {
         script_chan: Sender<MainThreadScriptMsg>,
         layout: Box<dyn Layout>,
         font_context: Arc<FontContext>,
-        image_cache_sender: IpcSender<ImageCacheResponseMessage>,
+        image_cache_sender: Sender<ImageCacheResponseMessage>,
         image_cache: Arc<dyn ImageCache>,
         resource_threads: ResourceThreads,
         storage_threads: StorageThreads,
