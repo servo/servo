@@ -131,7 +131,14 @@ class MachCommands(CommandBase):
             print("Building with code coverage instrumentation...")
             # We don't want coverage for build-scripts and proc macros.
             kwargs["target_override"] = target_triple
-            env["RUSTFLAGS"] += " -Cinstrument-coverage=true --cfg=coverage"
+            this_dir = pathlib.Path(os.path.dirname(__file__))
+            servo_root_dir = this_dir.parent.parent
+            coverage_workspace_wrapper = servo_root_dir.joinpath("etc/coverage_workspace_wrapper.py")
+            if not coverage_workspace_wrapper.exists():
+                print(
+                    f"Could not find rustc workspace wrapper script at expected location: {coverage_workspace_wrapper}"
+                )
+            env["RUSTC_WORKSPACE_WRAPPER"] = str(coverage_workspace_wrapper)
 
         if sanitizer.is_some():
             self.build_sanitizer_env(env, opts, kwargs, target_triple, sanitizer)
