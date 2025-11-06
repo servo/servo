@@ -64,7 +64,7 @@ PACKAGES = {
         r"production\msi\Servo.zip",
     ],
     "ohos": [
-        "openharmony/aarch64-unknown-linux-ohos/production/libservoshell.so",
+        "aarch64-unknown-linux-ohos/production/libservoshell.so",
         "openharmony/aarch64-unknown-linux-ohos/production/entry/build/"
         + "default/outputs/default/servoshell-default-signed.hap",
     ],
