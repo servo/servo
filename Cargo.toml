@@ -248,14 +248,14 @@ codegen-units = 1
 # Or for Stylo:
 #
 [patch."https://github.com/servo/stylo"]
-selectors = { git = "https://github.com/RichardTjokroutomo/stylo", branch = "2025-10-01" }
-servo_arc = { git = "https://github.com/RichardTjokroutomo/stylo", branch = "2025-10-01" }
-stylo = { git = "https://github.com/RichardTjokroutomo/stylo", branch = "2025-10-01" }
-stylo_atoms = { git = "https://github.com/RichardTjokroutomo/stylo", branch = "2025-10-01" }
-stylo_config = { git = "https://github.com/RichardTjokroutomo/stylo", branch = "2025-10-01" }
-stylo_dom = { git = "https://github.com/RichardTjokroutomo/stylo", branch = "2025-10-01" }
-stylo_malloc_size_of = { git = "https://github.com/RichardTjokroutomo/stylo", branch = "2025-10-01" }
-stylo_traits = { git = "https://github.com/RichardTjokroutomo/stylo", branch = "2025-10-01" }
+selectors = { git = "https://github.com/RichardTjokroutomo/stylo", branch = "text-overflow" }
+servo_arc = { git = "https://github.com/RichardTjokroutomo/stylo", branch = "text-overflow" }
+stylo = { git = "https://github.com/RichardTjokroutomo/stylo", branch = "text-overflow" }
+stylo_atoms = { git = "https://github.com/RichardTjokroutomo/stylo", branch = "text-overflow" }
+stylo_config = { git = "https://github.com/RichardTjokroutomo/stylo", branch = "text-overflow" }
+stylo_dom = { git = "https://github.com/RichardTjokroutomo/stylo", branch = "text-overflow" }
+stylo_malloc_size_of = { git = "https://github.com/RichardTjokroutomo/stylo", branch = "text-overflow" }
+stylo_traits = { git = "https://github.com/RichardTjokroutomo/stylo", branch = "text-overflow" }
 #
 # Or for WebRender:
 #
