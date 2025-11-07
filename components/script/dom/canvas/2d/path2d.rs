@@ -139,7 +139,7 @@ impl Path2DMethods<crate::DomTypeHolder> for Path2D {
         self.path
             .borrow_mut()
             .arc_to(x1, y1, x2, y2, radius)
-            .map_err(|_| Error::IndexSize)
+            .map_err(|_| Error::IndexSize(None))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-rect>
@@ -160,7 +160,7 @@ impl Path2DMethods<crate::DomTypeHolder> for Path2D {
         self.path
             .borrow_mut()
             .arc(x, y, radius, start_angle, end_angle, counterclockwise)
-            .map_err(|_| Error::IndexSize)
+            .map_err(|_| Error::IndexSize(None))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-ellipse>
@@ -187,7 +187,7 @@ impl Path2DMethods<crate::DomTypeHolder> for Path2D {
                 end_angle,
                 counterclockwise,
             )
-            .map_err(|_| Error::IndexSize)
+            .map_err(|_| Error::IndexSize(None))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-path2d-dev>

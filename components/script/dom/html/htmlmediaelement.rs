@@ -3046,7 +3046,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         let minimum_volume = 0.0;
         let maximum_volume = 1.0;
         if *value < minimum_volume || *value > maximum_volume {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
 
         if *value != self.volume.get() {

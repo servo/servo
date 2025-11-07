@@ -35,7 +35,7 @@ macro_rules! make_limited_int_setter(
             use $crate::script_runtime::CanGc;
 
             let value = if value < 0 {
-                return Err($crate::dom::bindings::error::Error::IndexSize);
+                return Err($crate::dom::bindings::error::Error::IndexSize(None));
             } else {
                 value
             };
@@ -320,7 +320,7 @@ macro_rules! make_limited_uint_setter(
             use $crate::dom::values::UNSIGNED_LONG_MAX;
             use $crate::script_runtime::CanGc;
             let value = if value == 0 {
-                return Err($crate::dom::bindings::error::Error::IndexSize);
+                return Err($crate::dom::bindings::error::Error::IndexSize(None));
             } else if value > UNSIGNED_LONG_MAX {
                 $default
             } else {

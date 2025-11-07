@@ -78,7 +78,7 @@ impl VTTRegionMethods<crate::DomTypeHolder> for VTTRegion {
     /// <https://w3c.github.io/webvtt/#dom-vttregion-width>
     fn SetWidth(&self, value: Finite<f64>) -> ErrorResult {
         if *value < 0_f64 || *value > 100_f64 {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
 
         self.width.set(*value);
@@ -104,7 +104,7 @@ impl VTTRegionMethods<crate::DomTypeHolder> for VTTRegion {
     /// <https://w3c.github.io/webvtt/#dom-vttregion-regionanchorx>
     fn SetRegionAnchorX(&self, value: Finite<f64>) -> ErrorResult {
         if *value < 0_f64 || *value > 100_f64 {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
 
         self.region_anchor_x.set(*value);
@@ -119,7 +119,7 @@ impl VTTRegionMethods<crate::DomTypeHolder> for VTTRegion {
     /// <https://w3c.github.io/webvtt/#dom-vttregion-regionanchory>
     fn SetRegionAnchorY(&self, value: Finite<f64>) -> ErrorResult {
         if *value < 0_f64 || *value > 100_f64 {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
 
         self.region_anchor_y.set(*value);
@@ -134,7 +134,7 @@ impl VTTRegionMethods<crate::DomTypeHolder> for VTTRegion {
     /// <https://w3c.github.io/webvtt/#dom-vttregion-viewportanchorx>
     fn SetViewportAnchorX(&self, value: Finite<f64>) -> ErrorResult {
         if *value < 0_f64 || *value > 100_f64 {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
 
         self.viewport_anchor_x.set(*value);
@@ -149,7 +149,7 @@ impl VTTRegionMethods<crate::DomTypeHolder> for VTTRegion {
     /// <https://w3c.github.io/webvtt/#dom-vttregion-viewportanchory>
     fn SetViewportAnchorY(&self, value: Finite<f64>) -> ErrorResult {
         if *value < 0_f64 || *value > 100_f64 {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
 
         self.viewport_anchor_y.set(*value);

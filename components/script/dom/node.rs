@@ -1397,7 +1397,7 @@ impl Node {
         I: DerivedFrom<Node> + DerivedFrom<HTMLElement> + DomObject,
     {
         if index < -1 {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
 
         let tr = new_child();
@@ -1415,7 +1415,7 @@ impl Node {
                     .chain(iter::once(None))
                     .nth(index as usize)
                 {
-                    None => return Err(Error::IndexSize),
+                    None => return Err(Error::IndexSize(None)),
                     Some(node) => node,
                 };
                 self.InsertBefore(tr_node, node.as_deref(), can_gc)?;
@@ -1438,7 +1438,7 @@ impl Node {
         G: Fn(&Element) -> bool,
     {
         let element = match index {
-            index if index < -1 => return Err(Error::IndexSize),
+            index if index < -1 => return Err(Error::IndexSize(None)),
             -1 => {
                 let last_child = self.upcast::<Node>().GetLastChild();
                 match last_child.and_then(|node| {
@@ -1452,7 +1452,7 @@ impl Node {
             },
             index => match get_items().Item(index as u32) {
                 Some(element) => element,
-                None => return Err(Error::IndexSize),
+                None => return Err(Error::IndexSize(None)),
             },
         };
 
