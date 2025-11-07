@@ -18,7 +18,10 @@ use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::Mutex;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use webrender_api::{ExternalScrollId, PipelineId as WebRenderPipelineId};
+use webrender_api::{
+    ExternalScrollId, FontInstanceKey, FontKey, IdNamespace, ImageKey,
+    PipelineId as WebRenderPipelineId,
+};
 
 use crate::generic_channel::{self, GenericReceiver, GenericSender};
 
@@ -447,7 +450,7 @@ impl fmt::Display for PainterId {
     }
 }
 
-static PAINTER_ID: AtomicU32 = AtomicU32::new(0);
+static PAINTER_ID: AtomicU32 = AtomicU32::new(1);
 
 impl PainterId {
     pub fn next() -> Self {
@@ -457,5 +460,35 @@ impl PainterId {
     /// TODO: This should be removed once font keys are generated per-Painter.
     pub fn first_for_system_font_service() -> Self {
         Self(0)
+    }
+}
+
+impl From<PainterId> for IdNamespace {
+    fn from(painter_id: PainterId) -> Self {
+        IdNamespace(painter_id.0)
+    }
+}
+
+impl From<IdNamespace> for PainterId {
+    fn from(id_namespace: IdNamespace) -> Self {
+        PainterId(id_namespace.0)
+    }
+}
+
+impl From<FontKey> for PainterId {
+    fn from(font_key: FontKey) -> Self {
+        font_key.0.into()
+    }
+}
+
+impl From<FontInstanceKey> for PainterId {
+    fn from(font_instance_key: FontInstanceKey) -> Self {
+        font_instance_key.0.into()
+    }
+}
+
+impl From<ImageKey> for PainterId {
+    fn from(image_key: ImageKey) -> Self {
+        image_key.0.into()
     }
 }
