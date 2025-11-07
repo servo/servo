@@ -1394,40 +1394,6 @@ impl ScriptThread {
                         },
                     )
                 },
-                MixedMessage::FromConstellation(ScriptThreadMessage::Resize(
-                    id,
-                    size,
-                    size_type,
-                )) => {
-                    self.handle_resize_message(id, size, size_type);
-                },
-                MixedMessage::FromConstellation(ScriptThreadMessage::TickAllAnimations(
-                    _webviews,
-                )) => {
-                    self.set_needs_rendering_update();
-                },
-                MixedMessage::FromConstellation(
-                    ScriptThreadMessage::NoLongerWaitingOnAsychronousImageUpdates(pipeline_id),
-                ) => {
-                    if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
-                        document.handle_no_longer_waiting_on_asynchronous_image_updates();
-                    }
-                },
-                MixedMessage::FromConstellation(ScriptThreadMessage::SendInputEvent(
-                    webview_id,
-                    id,
-                    event,
-                )) => self.handle_input_event(webview_id, id, event),
-                MixedMessage::FromScript(MainThreadScriptMsg::Common(CommonScriptMsg::Task(
-                    _,
-                    _,
-                    _,
-                    TaskSourceName::Rendering,
-                ))) => {
-                    // Instead of interleaving any number of update the rendering tasks with other
-                    // message handling, we run those steps only once at the end of each call of
-                    // this function.
-                },
                 MixedMessage::FromScript(MainThreadScriptMsg::Inactive) => {
                     // An event came-in from a document that is not fully-active, it has been stored by the task-queue.
                     // Continue without adding it to "sequential".
@@ -1441,9 +1407,9 @@ impl ScriptThread {
                 },
             }
 
-            // If any of our input sources has an event pending, we'll perform another iteration
-            // and check for more resize events. If there are no events pending, we'll move
-            // on and execute the sequential non-resize events we've seen.
+            // If any of our input sources has an event pending, we'll perform another
+            // iteration and check for events. If there are no events pending, we'll move
+            // on and execute the sequential events.
             match self.receivers.try_recv(&self.task_queue, &fully_active) {
                 Some(new_event) => event = new_event,
                 None => break,
@@ -1862,6 +1828,9 @@ impl ScriptThread {
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg)
             },
             ScriptThreadMessage::Reload(pipeline_id) => self.handle_reload(pipeline_id, can_gc),
+            ScriptThreadMessage::Resize(id, size, size_type) => {
+                self.handle_resize_message(id, size, size_type);
+            },
             ScriptThreadMessage::ExitPipeline(
                 webview_id,
                 pipeline_id,
@@ -1887,17 +1856,24 @@ impl ScriptThread {
             ScriptThreadMessage::MediaSessionAction(pipeline_id, action) => {
                 self.handle_media_session_action(pipeline_id, action, can_gc)
             },
+            ScriptThreadMessage::SendInputEvent(webview_id, id, event) => {
+                self.handle_input_event(webview_id, id, event)
+            },
             #[cfg(feature = "webgpu")]
             ScriptThreadMessage::SetWebGPUPort(port) => {
                 *self.receivers.webgpu_receiver.borrow_mut() =
                     ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(port);
             },
+            ScriptThreadMessage::TickAllAnimations(_webviews) => {
+                self.set_needs_rendering_update();
+            },
+            ScriptThreadMessage::NoLongerWaitingOnAsychronousImageUpdates(pipeline_id) => {
+                if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
+                    document.handle_no_longer_waiting_on_asynchronous_image_updates();
+                }
+            },
             msg @ ScriptThreadMessage::SpawnPipeline(..) |
-            msg @ ScriptThreadMessage::Resize(..) |
             msg @ ScriptThreadMessage::ExitFullScreen(..) |
-            msg @ ScriptThreadMessage::SendInputEvent(..) |
-            msg @ ScriptThreadMessage::TickAllAnimations(..) |
-            msg @ ScriptThreadMessage::NoLongerWaitingOnAsychronousImageUpdates(..) |
             msg @ ScriptThreadMessage::ExitScriptThread => {
                 panic!("should have handled {:?} already", msg)
             },
