@@ -29,12 +29,11 @@ impl GPUError {
         }
     }
 
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub(crate) fn new(global: &GlobalScope, message: DOMString, can_gc: CanGc) -> DomRoot<Self> {
         Self::new_with_proto(global, None, message, can_gc)
     }
 
-    #[allow(dead_code)]
     pub(crate) fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,

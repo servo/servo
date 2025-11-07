@@ -15,9 +15,7 @@ use net_traits::request::{
     CredentialsMode, Destination, RequestBuilder, RequestId, RequestMode,
     is_cors_safelisted_request_content_type,
 };
-use net_traits::{
-    FetchMetadata, FetchResponseListener, NetworkError, ResourceFetchTiming, ResourceTimingType,
-};
+use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming, ResourceTimingType};
 use servo_config::pref;
 use servo_url::ServoUrl;
 
@@ -55,7 +53,7 @@ use crate::dom::webgpu::gpu::GPU;
 use crate::dom::window::Window;
 #[cfg(feature = "webxr")]
 use crate::dom::xrsystem::XRSystem;
-use crate::network_listener::{PreInvoke, ResourceTimingListener, submit_timing};
+use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
 use crate::script_runtime::{CanGc, JSContext};
 
 pub(super) fn hardware_concurrency() -> u64 {
@@ -251,7 +249,6 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-languages
-    #[allow(unsafe_code)]
     fn Languages(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
         to_frozen_array(&[self.Language()], cx, retval, can_gc)
     }
@@ -502,11 +499,5 @@ impl ResourceTimingListener for BeaconFetchListener {
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
         self.global.root()
-    }
-}
-
-impl PreInvoke for BeaconFetchListener {
-    fn should_invoke(&self) -> bool {
-        true
     }
 }

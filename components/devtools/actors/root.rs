@@ -292,7 +292,6 @@ impl RootActor {
         tab_msg
     }
 
-    #[allow(dead_code)]
     pub fn active_tab(&self) -> Option<String> {
         self.active_tab.borrow().clone()
     }

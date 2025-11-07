@@ -98,7 +98,7 @@ impl TextTrackList {
 
     // FIXME(#22314, dlrobertson) allow TextTracks to be
     // removed from the TextTrackList.
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub(crate) fn remove(&self, idx: usize, can_gc: CanGc) {
         if let Some(track) = self.dom_tracks.borrow().get(idx) {
             track.remove_track_list();

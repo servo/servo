@@ -76,7 +76,7 @@ pub(crate) struct UserMicrotask {
 impl MicrotaskQueue {
     /// Add a new microtask to this queue. It will be invoked as part of the next
     /// microtask checkpoint.
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn enqueue(&self, job: Microtask, cx: JSContext) {
         self.microtask_queue.borrow_mut().push(job);
         unsafe { JobQueueMayNotBeEmpty(*cx) };
@@ -84,7 +84,7 @@ impl MicrotaskQueue {
 
     /// <https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint>
     /// Perform a microtask checkpoint, executing all queued microtasks until the queue is empty.
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn checkpoint<F>(
         &self,
         cx: JSContext,

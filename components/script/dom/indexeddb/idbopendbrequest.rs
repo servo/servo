@@ -92,7 +92,7 @@ impl OpenRequestListener {
         match result {
             Ok(_) => {
                 let _ac = enter_realm(&*open_request);
-                #[allow(unsafe_code)]
+                #[expect(unsafe_code)]
                 unsafe {
                     open_request
                         .set_result(js::gc::Handle::from_raw(js::jsapi::UndefinedHandleValue));

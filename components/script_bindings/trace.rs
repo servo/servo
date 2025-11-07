@@ -71,7 +71,7 @@ pub(crate) unsafe fn trace_object(
 macro_rules! unsafe_no_jsmanaged_fields(
     ($($ty:ty),+) => (
         $(
-            #[allow(unsafe_code)]
+            #[expect(unsafe_code)]
             unsafe impl crate::JSTraceable for $ty {
                 #[inline]
                 unsafe fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
@@ -288,7 +288,7 @@ unsafe impl<Handle: JSTraceable + Clone, Sink: TreeSink<Handle = Handle> + JSTra
     }
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe impl<Handle: JSTraceable + Clone, Sink: TokenSink<Handle = Handle> + CustomTraceable>
     CustomTraceable for Tokenizer<Sink>
 {
@@ -297,7 +297,7 @@ unsafe impl<Handle: JSTraceable + Clone, Sink: TokenSink<Handle = Handle> + Cust
     }
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe impl<Handle: JSTraceable + Clone, Sink: JSTraceable + XmlTreeSink<Handle = Handle>>
     CustomTraceable for XmlTokenizer<XmlTreeBuilder<Handle, Sink>>
 {
@@ -407,7 +407,7 @@ impl<T> From<T> for NoTrace<T> {
     }
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe impl<T> JSTraceable for NoTrace<T> {
     #[inline]
     unsafe fn trace(&self, _: *mut ::js::jsapi::JSTracer) {}

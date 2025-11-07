@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
 use std::sync::Arc;
 
 use base::generic_channel::GenericSender;
@@ -132,7 +133,7 @@ impl WorkletGlobalScope {
     /// Evaluate a JS script in this global.
     pub(crate) fn evaluate_js(
         &self,
-        script: &str,
+        script: Cow<'_, str>,
         can_gc: CanGc,
     ) -> Result<(), JavaScriptEvaluationError> {
         debug!("Evaluating Dom in a worklet.");

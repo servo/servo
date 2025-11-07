@@ -263,7 +263,7 @@ const INCUMBENT_SETTING_SLOT: u32 = 0;
 const HOST_DEFINED_DATA_SLOTS: u32 = 1;
 
 /// <https://searchfox.org/mozilla-central/rev/2a8a30f4c9b918b726891ab9d2d62b76152606f1/xpcom/base/CycleCollectedJSContext.cpp#316>
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn get_host_defined_data(
     _: *const c_void,
     cx: *mut RawJSContext,
@@ -291,7 +291,7 @@ unsafe extern "C" fn get_host_defined_data(
     true
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn run_jobs(microtask_queue: *const c_void, cx: *mut RawJSContext) {
     let cx = JSContext::from_ptr(cx);
     wrap_panic(&mut || {
@@ -302,7 +302,7 @@ unsafe extern "C" fn run_jobs(microtask_queue: *const c_void, cx: *mut RawJSCont
     });
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn empty(extra: *const c_void) -> bool {
     let mut result = false;
     wrap_panic(&mut || {
@@ -312,7 +312,7 @@ unsafe extern "C" fn empty(extra: *const c_void) -> bool {
     result
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn push_new_interrupt_queue(interrupt_queues: *mut c_void) -> *const c_void {
     let mut result = std::ptr::null();
     wrap_panic(&mut || {
@@ -325,7 +325,7 @@ unsafe extern "C" fn push_new_interrupt_queue(interrupt_queues: *mut c_void) -> 
     result
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn pop_interrupt_queue(interrupt_queues: *mut c_void) -> *const c_void {
     let mut result = std::ptr::null();
     wrap_panic(&mut || {
@@ -339,7 +339,7 @@ unsafe extern "C" fn pop_interrupt_queue(interrupt_queues: *mut c_void) -> *cons
     result
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn drop_interrupt_queues(interrupt_queues: *mut c_void) {
     wrap_panic(&mut || {
         let interrupt_queues = Box::from_raw(interrupt_queues as *mut Vec<Rc<MicrotaskQueue>>);
@@ -350,7 +350,7 @@ unsafe extern "C" fn drop_interrupt_queues(interrupt_queues: *mut c_void) {
 /// <https://searchfox.org/mozilla-central/rev/2a8a30f4c9b918b726891ab9d2d62b76152606f1/xpcom/base/CycleCollectedJSContext.cpp#355>
 /// SM callback for promise job resolution. Adds a promise callback to the current
 /// global's microtask queue.
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn enqueue_promise_job(
     extra: *const c_void,
     cx: *mut RawJSContext,
@@ -396,7 +396,7 @@ unsafe extern "C" fn enqueue_promise_job(
     result
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
 /// <https://html.spec.whatwg.org/multipage/#the-hostpromiserejectiontracker-implementation>
 unsafe extern "C" fn promise_rejection_tracker(
@@ -475,7 +475,7 @@ unsafe extern "C" fn promise_rejection_tracker(
     })
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 fn safely_convert_null_to_string(cx: JSContext, str_: HandleString) -> DOMString {
     DOMString::from(match std::ptr::NonNull::new(*str_) {
         None => "".to_owned(),
@@ -483,7 +483,7 @@ fn safely_convert_null_to_string(cx: JSContext, str_: HandleString) -> DOMString
     })
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn code_for_eval_gets(
     cx: *mut RawJSContext,
     code: HandleObject,
@@ -499,7 +499,7 @@ unsafe extern "C" fn code_for_eval_gets(
     true
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn content_security_policy_allows(
     cx: *mut RawJSContext,
     runtime_code: RuntimeCode,
@@ -585,7 +585,7 @@ unsafe extern "C" fn content_security_policy_allows(
     true
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
 /// <https://html.spec.whatwg.org/multipage/#notify-about-rejected-promises>
 pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
@@ -681,7 +681,7 @@ impl Runtime {
     /// invalid and undefined state.
     ///
     /// This, like many calls to SpiderMoney API, is unsafe.
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn new(networking_task_source: Option<SendableTaskSource>) -> Runtime {
         unsafe { Self::new_with_parent(None, networking_task_source) }
     }
@@ -698,7 +698,7 @@ impl Runtime {
     /// The `parent` pointer in the [`ParentRuntime`] argument must point to a valid object in memory.
     ///
     /// This, like many calls to the SpiderMoney API, is unsafe.
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) unsafe fn new_with_parent(
         parent: Option<ParentRuntime>,
         networking_task_source: Option<SendableTaskSource>,
@@ -935,7 +935,7 @@ impl Runtime {
 }
 
 impl Drop for Runtime {
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn drop(&mut self) {
         // Clear our main microtask_queue.
         self.microtask_queue.clear();
@@ -988,7 +988,7 @@ fn in_range<T: PartialOrd + Copy>(val: T, min: T, max: T) -> Option<T> {
 
 thread_local!(static MALLOC_SIZE_OF_OPS: Cell<*mut MallocSizeOfOps> = const { Cell::new(ptr::null_mut()) });
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
     match get_dom_class(obj) {
         Ok(v) => {
@@ -1007,7 +1007,7 @@ unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
 thread_local!(static GC_CYCLE_START: Cell<Option<Instant>> = const { Cell::new(None) });
 thread_local!(static GC_SLICE_START: Cell<Option<Instant>> = const { Cell::new(None) });
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn gc_slice_callback(
     _cx: *mut RawJSContext,
     progress: GCProgress,
@@ -1045,7 +1045,7 @@ unsafe extern "C" fn gc_slice_callback(
     let _ = stdout().flush();
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn debug_gc_callback(
     _cx: *mut RawJSContext,
     status: JSGCStatus,
@@ -1058,7 +1058,7 @@ unsafe extern "C" fn debug_gc_callback(
     }
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn trace_rust_roots(tr: *mut JSTracer, _data: *mut os::raw::c_void) {
     if !runtime_is_alive() {
         return;
@@ -1071,13 +1071,13 @@ unsafe extern "C" fn trace_rust_roots(tr: *mut JSTracer, _data: *mut os::raw::c_
     trace!("done custom root handler");
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn servo_build_id(build_id: *mut BuildIdCharVector) -> bool {
     let servo_id = b"Servo\0";
     SetBuildId(build_id, servo_id[0] as *const c_char, servo_id.len())
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 #[cfg(feature = "debugmozjs")]
 unsafe fn set_gc_zeal_options(cx: *mut RawJSContext) {
     use js::jsapi::SetGCZeal;
@@ -1094,7 +1094,7 @@ unsafe fn set_gc_zeal_options(cx: *mut RawJSContext) {
     SetGCZeal(cx, level, frequency);
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 #[cfg(not(feature = "debugmozjs"))]
 unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
 
@@ -1107,7 +1107,7 @@ pub(crate) trait JSContextHelper {
 }
 
 impl JSContextHelper for JSContext {
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn get_reports(&self, path_seg: String, ops: &mut MallocSizeOfOps) -> Vec<Report> {
         MALLOC_SIZE_OF_OPS.with(|ops_tls| ops_tls.set(ops));
         let stats = unsafe {
@@ -1171,7 +1171,7 @@ impl JSContextHelper for JSContext {
 
 pub(crate) struct StreamConsumer(*mut JSStreamConsumer);
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 impl StreamConsumer {
     pub(crate) fn consume_chunk(&self, stream: &[u8]) -> bool {
         unsafe {
@@ -1217,7 +1217,7 @@ impl StreamConsumer {
 
 /// Implements the steps to compile webassembly response mentioned here
 /// <https://webassembly.github.io/spec/web-api/#compile-a-potential-webassembly-response>
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn consume_stream(
     _cx: *mut RawJSContext,
     obj: HandleObject,
@@ -1306,7 +1306,7 @@ unsafe extern "C" fn consume_stream(
     true
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn report_stream_error(_cx: *mut RawJSContext, error_code: usize) {
     error!(
         "Error initializing StreamConsumer: {:?}",
@@ -1316,12 +1316,12 @@ unsafe extern "C" fn report_stream_error(_cx: *mut RawJSContext, error_code: usi
 
 pub(crate) struct Runnable(*mut DispatchablePointer);
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe impl Sync for Runnable {}
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe impl Send for Runnable {}
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 impl Runnable {
     fn run(&self, cx: *mut RawJSContext, maybe_shutting_down: Dispatchable_MaybeShuttingDown) {
         unsafe {

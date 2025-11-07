@@ -165,7 +165,7 @@ pub fn serialize_jsval_to_json_utf8(cx: JSContext, data: HandleValue) -> Result<
 
     let mut out_str = ToJSONCallbackData { string: None };
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     unsafe extern "C" fn write_callback(
         string: *const u16,
         len: u32,

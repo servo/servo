@@ -336,7 +336,7 @@ impl Animations {
 
     /// Ensure that all nodes with new animations are rooted. This should be called
     /// immediately after a restyle, to ensure that these addresses are still valid.
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn root_newly_animating_dom_nodes(
         &self,
         sets: &FxHashMap<AnimationSetKey, ElementAnimationSet>,

@@ -131,7 +131,7 @@ impl DocumentOrShadowRoot {
         }
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     // https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint
     pub(crate) fn element_from_point(
         &self,
@@ -181,7 +181,7 @@ impl DocumentOrShadowRoot {
         }
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     // https://drafts.csswg.org/cssom-view/#dom-document-elementsfrompoint
     pub(crate) fn elements_from_point(
         &self,

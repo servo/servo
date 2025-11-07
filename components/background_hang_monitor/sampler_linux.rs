@@ -116,7 +116,6 @@ impl Drop for PosixSemaphore {
     }
 }
 
-#[allow(dead_code)]
 pub struct LinuxSampler {
     thread_id: MonitoredThreadId,
     old_handler: SigAction,
@@ -142,7 +141,7 @@ impl LinuxSampler {
 }
 
 impl Sampler for LinuxSampler {
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn suspend_and_sample_thread(&self) -> Result<NativeStack, ()> {
         // Warning: The "critical section" begins here.
         // In the critical section:

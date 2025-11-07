@@ -390,9 +390,7 @@ pub(crate) struct TableLayoutStyle<'a> {
 pub(crate) enum TableLevelBox {
     Caption(ArcRefCell<TableCaption>),
     Cell(ArcRefCell<TableSlotCell>),
-    #[allow(dead_code)]
     TrackGroup(ArcRefCell<TableTrackGroup>),
-    #[allow(dead_code)]
     Track(ArcRefCell<TableTrack>),
 }
 

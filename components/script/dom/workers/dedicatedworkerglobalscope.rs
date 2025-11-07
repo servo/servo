@@ -644,7 +644,6 @@ impl DedicatedWorkerGlobalScope {
     }
 
     // https://html.spec.whatwg.org/multipage/#runtime-script-errors-2
-    #[allow(unsafe_code)]
     pub(crate) fn forward_error_to_worker_object(&self, error_info: ErrorInfo) {
         let worker = self.worker.borrow().as_ref().unwrap().clone();
         let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
@@ -733,7 +732,7 @@ impl DedicatedWorkerGlobalScope {
     }
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 pub(crate) unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> bool {
     let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
     let global = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));

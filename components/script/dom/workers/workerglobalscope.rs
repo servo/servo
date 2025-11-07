@@ -33,8 +33,7 @@ use net_traits::request::{
     RequestBuilder as NetRequestInit, RequestId,
 };
 use net_traits::{
-    FetchMetadata, FetchResponseListener, Metadata, NetworkError, ReferrerPolicy,
-    ResourceFetchTiming, ResourceTimingType,
+    FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceTimingType,
 };
 use profile_traits::mem::{ProcessReports, perform_memory_report};
 use servo_url::{MutableOrigin, ServoUrl};
@@ -88,7 +87,7 @@ use crate::dom::workernavigator::WorkerNavigator;
 use crate::fetch::{CspViolationsProcessor, Fetch, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
-use crate::network_listener::{PreInvoke, ResourceTimingListener, submit_timing};
+use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType, JSContext, JSContextHelper, Runtime};
@@ -274,8 +273,6 @@ impl ResourceTimingListener for ScriptFetchContext {
     }
 }
 
-impl PreInvoke for ScriptFetchContext {}
-
 // https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface
 #[dom_struct]
 pub(crate) struct WorkerGlobalScope {
@@ -449,7 +446,7 @@ impl WorkerGlobalScope {
         self.devtools_receiver.as_ref()
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn get_cx(&self) -> JSContext {
         unsafe { JSContext::from_ptr(self.runtime.borrow().as_ref().unwrap().cx()) }
     }
@@ -590,7 +587,7 @@ impl WorkerGlobalScope {
     }
 
     /// onComplete algorithm defined inside <https://html.spec.whatwg.org/multipage/#run-a-worker>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn on_complete(
         &self,
         script: Option<Cow<'_, str>>,
@@ -1010,7 +1007,6 @@ impl WorkerGlobalScope {
     /// Process a single event as if it were the next event
     /// in the queue for this worker event-loop.
     /// Returns a boolean indicating whether further events should be processed.
-    #[allow(unsafe_code)]
     pub(crate) fn process_event(&self, msg: CommonScriptMsg) -> bool {
         if self.is_closing() {
             return false;

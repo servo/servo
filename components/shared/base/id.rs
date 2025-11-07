@@ -259,7 +259,7 @@ impl PipelineId {
 }
 
 impl From<WebRenderPipelineId> for PipelineId {
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn from(pipeline: WebRenderPipelineId) -> Self {
         let WebRenderPipelineId(namespace_id, index) = pipeline;
         unsafe {

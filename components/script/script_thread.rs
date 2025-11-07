@@ -73,8 +73,8 @@ use net_traits::image_cache::{ImageCache, ImageCacheFactory, ImageCacheResponseM
 use net_traits::request::{Referrer, RequestId};
 use net_traits::response::ResponseInit;
 use net_traits::{
-    FetchMetadata, FetchResponseListener, FetchResponseMsg, Metadata, NetworkError,
-    ResourceFetchTiming, ResourceThreads, ResourceTimingType,
+    FetchMetadata, FetchResponseMsg, Metadata, NetworkError, ResourceFetchTiming, ResourceThreads,
+    ResourceTimingType,
 };
 use percent_encoding::percent_decode;
 use profile_traits::mem::{ProcessReports, ReportsChan, perform_memory_report};
@@ -144,6 +144,7 @@ use crate::messaging::{
 use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::mime::{APPLICATION, MimeExt, TEXT, XML};
 use crate::navigation::{InProgressLoad, NavigationListener};
+use crate::network_listener::FetchResponseListener;
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_mutation_observers::ScriptMutationObservers;
@@ -382,7 +383,7 @@ impl BackgroundHangMonitorExitSignal for BHMExitSignal {
     }
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn interrupt_callback(_cx: *mut UnsafeJSContext) -> bool {
     let res = ScriptThread::can_continue_running();
     if !res {
@@ -896,13 +897,6 @@ impl ScriptThread {
         );
 
         let (image_cache_sender, image_cache_receiver) = unbounded();
-        let (ipc_image_cache_sender, ipc_image_cache_receiver) = ipc::channel().unwrap();
-        ROUTER.add_typed_route(
-            ipc_image_cache_receiver,
-            Box::new(move |message| {
-                let _ = image_cache_sender.send(message.unwrap());
-            }),
-        );
 
         let receivers = ScriptThreadReceivers {
             constellation_receiver,
@@ -921,7 +915,7 @@ impl ScriptThread {
             constellation_sender: state.constellation_sender,
             pipeline_to_constellation_sender: state.pipeline_to_constellation_sender.sender.clone(),
             pipeline_to_embedder_sender: state.pipeline_to_embedder_sender.clone(),
-            image_cache_sender: ipc_image_cache_sender,
+            image_cache_sender,
             time_profiler_sender: state.time_profiler_sender,
             memory_profiler_sender: state.memory_profiler_sender,
             devtools_server_sender,
@@ -1003,7 +997,7 @@ impl ScriptThread {
         }
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn get_cx(&self) -> JSContext {
         unsafe { JSContext::from_ptr(self.js_runtime.cx()) }
     }
@@ -2532,6 +2526,10 @@ impl ScriptThread {
         for (_, document) in self.documents.borrow().iter() {
             document.window().set_theme(theme);
         }
+        let mut loads = self.incomplete_loads.borrow_mut();
+        for load in loads.iter_mut() {
+            load.theme = theme;
+        }
     }
 
     // exit_fullscreen creates a new JS promise object, so we need to have entered a realm
@@ -3523,7 +3521,7 @@ impl ScriptThread {
         let _ac = enter_realm(global_scope);
         rooted!(in(*GlobalScope::get_cx()) let mut jsval = UndefinedValue());
         _ = global_scope.evaluate_js_on_global_with_result(
-            &script_source,
+            script_source,
             jsval.handle_mut(),
             ScriptFetchOptions::default_classic_script(global_scope),
             global_scope.api_base_url(),
@@ -3908,7 +3906,7 @@ impl ScriptThread {
 
         rooted!(in(*context) let mut return_value = UndefinedValue());
         if let Err(err) = global_scope.evaluate_js_on_global_with_result(
-            &script,
+            script.into(),
             return_value.handle_mut(),
             ScriptFetchOptions::default_classic_script(global_scope),
             global_scope.api_base_url(),

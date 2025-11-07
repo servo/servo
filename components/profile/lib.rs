@@ -5,7 +5,7 @@
 #![deny(unsafe_code)]
 
 pub mod mem;
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 pub mod system_reporter;
 pub mod time;
 pub mod trace_dump;

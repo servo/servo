@@ -82,7 +82,6 @@ const IDEOGRAPHIC_BASELINE_DEFAULT: f64 = 0.5;
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[allow(dead_code)]
 pub(super) enum CanvasFillOrStrokeStyle {
     Color(#[no_trace] AbsoluteColor),
     Gradient(Dom<CanvasGradient>),
@@ -411,9 +410,7 @@ impl CanvasState {
                     return None;
                 }
             },
-            ImageResponse::PlaceholderLoaded(_, _) |
-            ImageResponse::None |
-            ImageResponse::MetadataLoaded(_) => {
+            ImageResponse::FailedToLoadOrDecode | ImageResponse::MetadataLoaded(_) => {
                 return None;
             },
         };
@@ -435,7 +432,7 @@ impl CanvasState {
                 // Rather annoyingly, we get the same response back from
                 // A load which really failed and from a load which hasn't started yet.
                 self.missing_image_urls.borrow_mut().push(url);
-                ImageResponse::None
+                ImageResponse::FailedToLoadOrDecode
             },
         }
     }

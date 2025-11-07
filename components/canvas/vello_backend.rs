@@ -590,7 +590,7 @@ impl GenericDrawTarget for VelloDrawTarget {
             };
             let data = SerializableImageData::Raw(if let Some(data) = data {
                 let mut data = IpcSharedMemory::from_bytes(data);
-                #[allow(unsafe_code)]
+                #[expect(unsafe_code)]
                 unsafe {
                     pixels::generic_transform_inplace::<1, false, false>(data.deref_mut());
                 };

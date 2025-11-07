@@ -28,7 +28,6 @@ pub(crate) struct XRLayer {
 }
 
 impl XRLayer {
-    #[allow(dead_code)]
     pub(crate) fn new_inherited(
         session: &XRSession,
         context: &WebGLRenderingContext,

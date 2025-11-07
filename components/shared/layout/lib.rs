@@ -144,7 +144,7 @@ pub struct SVGElementData {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct TrustedNodeAddress(pub *const c_void);
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe impl Send for TrustedNodeAddress {}
 
 /// Whether the pending image needs to be fetched or is waiting on an existing fetch.

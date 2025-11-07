@@ -320,7 +320,7 @@ fn all_matching_links(
         .map(|nodes| matching_links(&nodes, link_text, partial).collect())
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 fn object_has_to_json_property(
     cx: SafeJSContext,
     global_scope: &GlobalScope,
@@ -345,7 +345,7 @@ fn object_has_to_json_property(
     }
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 /// <https://w3c.github.io/webdriver/#dfn-collection>
 fn is_arguments_object(cx: SafeJSContext, value: HandleValue) -> bool {
     rooted!(in(*cx) let class_name = unsafe { ToString(*cx, value) });
@@ -382,7 +382,7 @@ pub(crate) fn jsval_to_webdriver(
     result
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 /// <https://w3c.github.io/webdriver/#dfn-internal-json-clone>
 fn jsval_to_webdriver_inner(
     cx: SafeJSContext,
@@ -485,7 +485,7 @@ fn jsval_to_webdriver_inner(
     }
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 /// <https://w3c.github.io/webdriver/#dfn-clone-an-object>
 fn clone_an_object(
     cx: SafeJSContext,
@@ -637,7 +637,7 @@ pub(crate) fn handle_execute_script(
             rooted!(in(*cx) let mut rval = UndefinedValue());
             let global = window.as_global_scope();
             let evaluation_result = global.evaluate_js_on_global_with_result(
-                &eval,
+                eval.into(),
                 rval.handle_mut(),
                 ScriptFetchOptions::default_classic_script(global),
                 global.api_base_url(),
@@ -675,7 +675,7 @@ pub(crate) fn handle_execute_async_script(
 
             let global_scope = window.as_global_scope();
             if let Err(error) = global_scope.evaluate_js_on_global_with_result(
-                &eval,
+                eval.into(),
                 rval.handle_mut(),
                 ScriptFetchOptions::default_classic_script(global_scope),
                 global_scope.api_base_url(),
@@ -1726,7 +1726,6 @@ pub(crate) fn handle_get_attribute(
         .unwrap();
 }
 
-#[allow(unsafe_code)]
 pub(crate) fn handle_get_property(
     documents: &DocumentCollection,
     pipeline: PipelineId,

@@ -128,7 +128,7 @@ fn get_matching_adapter(
     }
 }
 
-#[allow(unused)]
+#[expect(unused)]
 pub fn create_surfman_adapter() -> Option<SurfmanAdapter> {
     let instance = create_instance(false, false, false, &AppInfo::default()).ok()?;
     let system = instance

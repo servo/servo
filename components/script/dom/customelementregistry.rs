@@ -205,7 +205,7 @@ impl CustomElementRegistry {
         Ok(())
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn get_observed_attributes(
         &self,
         constructor: HandleObject,
@@ -243,7 +243,7 @@ impl CustomElementRegistry {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
     /// Step 14.11: Get the value of `formAssociated`.
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn get_form_associated_value(
         &self,
         constructor: HandleObject,
@@ -281,7 +281,7 @@ impl CustomElementRegistry {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
     /// Step 14.7: Get `disabledFeatures` value
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn get_disabled_features(
         &self,
         constructor: HandleObject,

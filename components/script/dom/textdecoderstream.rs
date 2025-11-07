@@ -25,7 +25,7 @@ use crate::dom::types::{TransformStream, TransformStreamDefaultController};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://encoding.spec.whatwg.org/#decode-and-enqueue-a-chunk>
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 pub(crate) fn decode_and_enqueue_a_chunk(
     cx: SafeJSContext,
     global: &GlobalScope,
@@ -67,7 +67,7 @@ pub(crate) fn decode_and_enqueue_a_chunk(
 }
 
 /// <https://encoding.spec.whatwg.org/#flush-and-enqueue>
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 pub(crate) fn flush_and_enqueue(
     cx: SafeJSContext,
     global: &GlobalScope,

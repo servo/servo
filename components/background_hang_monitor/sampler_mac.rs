@@ -13,7 +13,7 @@ pub struct MacOsSampler {
 }
 
 impl MacOsSampler {
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub fn new_boxed() -> Box<dyn Sampler> {
         let thread_id = unsafe { mach2::mach_init::mach_thread_self() };
         Box::new(MacOsSampler { thread_id })
@@ -21,7 +21,7 @@ impl MacOsSampler {
 }
 
 impl Sampler for MacOsSampler {
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn suspend_and_sample_thread(&self) -> Result<NativeStack, ()> {
         // Warning: The "critical section" begins here.
         // In the critical section:
@@ -60,12 +60,12 @@ fn check_kern_return(kret: mach2::kern_return::kern_return_t) -> Result<(), ()> 
     Ok(())
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe fn suspend_thread(thread_id: MonitoredThreadId) -> Result<(), ()> {
     check_kern_return(unsafe { mach2::thread_act::thread_suspend(thread_id) })
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe fn get_registers(thread_id: MonitoredThreadId) -> Result<Registers, ()> {
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     {
@@ -106,12 +106,12 @@ unsafe fn get_registers(thread_id: MonitoredThreadId) -> Result<Registers, ()> {
         })
     }
 }
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe fn resume_thread(thread_id: MonitoredThreadId) -> Result<(), ()> {
     check_kern_return(unsafe { mach2::thread_act::thread_resume(thread_id) })
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe fn frame_pointer_stack_walk(regs: Registers) -> NativeStack {
     // Note: this function will only work with code build with:
     // --dev,

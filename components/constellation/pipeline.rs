@@ -203,8 +203,8 @@ pub struct InitialPipelineState {
     /// Application window's GL Context for Media player
     pub player_context: WindowGLContext,
 
-    /// The image bytes associated with the RippyPNG embedder resource.
-    pub rippy_data: Vec<u8>,
+    /// The image bytes associated with the BrokenImageIcon embedder resource.
+    pub broken_image_icon_data: Vec<u8>,
 
     /// User content manager
     pub user_content_manager: UserContentManager,
@@ -314,7 +314,7 @@ impl Pipeline {
                     webgl_chan: state.webgl_chan,
                     webxr_registry: state.webxr_registry,
                     player_context: state.player_context,
-                    rippy_data: state.rippy_data,
+                    broken_image_icon_data: state.broken_image_icon_data,
                     user_content_manager: state.user_content_manager,
                     lifeline_sender: None,
                     privileged_urls: state.privileged_urls,
@@ -509,7 +509,7 @@ pub struct UnprivilegedPipelineContent {
     webgl_chan: Option<WebGLPipeline>,
     webxr_registry: Option<webxr_api::Registry>,
     player_context: WindowGLContext,
-    rippy_data: Vec<u8>,
+    broken_image_icon_data: Vec<u8>,
     user_content_manager: UserContentManager,
     lifeline_sender: Option<IpcSender<()>>,
     privileged_urls: Vec<ServoUrl>,
@@ -530,7 +530,7 @@ impl UnprivilegedPipelineContent {
         // When in multiprocess mode, the image cache factory will be `None`, so we create a new
         // one for this process.
         let image_cache_factory = image_cache_factory
-            .unwrap_or_else(|| Arc::new(ImageCacheFactoryImpl::new(self.rippy_data)));
+            .unwrap_or_else(|| Arc::new(ImageCacheFactoryImpl::new(self.broken_image_icon_data)));
 
         let (content_process_shutdown_chan, content_process_shutdown_port) = unbounded();
         let join_handle = STF::create(

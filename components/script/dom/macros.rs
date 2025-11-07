@@ -447,7 +447,7 @@ macro_rules! make_dimension_uint_setter(
 macro_rules! unsafe_no_jsmanaged_fields(
     ($($ty:ty),+) => (
         $(
-            #[allow(unsafe_code)]
+            #[expect(unsafe_code)]
             unsafe impl $crate::dom::bindings::trace::JSTraceable for $ty {
                 #[inline]
                 unsafe fn trace(&self, _: *mut ::js::jsapi::JSTracer) {

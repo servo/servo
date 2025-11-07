@@ -75,7 +75,7 @@ impl Sub<Duration> for CrossProcessInstant {
 mod platform {
     use libc::timespec;
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(super) fn now() -> u64 {
         // SAFETY: libc::timespec is zero initializable.
         let time = unsafe {
@@ -93,7 +93,7 @@ mod platform {
 
     use mach2::mach_time::{mach_absolute_time, mach_timebase_info};
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn timebase_info() -> &'static mach_timebase_info {
         static TIMEBASE_INFO: LazyLock<mach_timebase_info> = LazyLock::new(|| {
             let mut timebase_info = mach_timebase_info { numer: 0, denom: 0 };
@@ -103,7 +103,7 @@ mod platform {
         &TIMEBASE_INFO
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(super) fn now() -> u64 {
         let timebase_info = timebase_info();
         let absolute_time = unsafe { mach_absolute_time() };
@@ -122,7 +122,7 @@ mod platform {
     /// The frequency of the value returned by `QueryPerformanceCounter` in counts per
     /// second. This is taken from the Rust source code at:
     /// <https://github.com/rust-lang/rust/blob/1a1cc050d8efc906ede39f444936ade1fdc9c6cb/library/std/src/sys/pal/windows/time.rs#L197>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn frequency() -> i64 {
         // Either the cached result of `QueryPerformanceFrequency` or `0` for
         // uninitialized. Storing this as a single `AtomicU64` allows us to use
@@ -147,7 +147,7 @@ mod platform {
         frequency
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     /// Get the current instant value in nanoseconds.
     /// Originally from: <https://github.com/rust-lang/rust/blob/1a1cc050d8efc906ede39f444936ade1fdc9c6cb/library/std/src/sys/pal/windows/time.rs#L175>
     pub(super) fn now() -> u64 {

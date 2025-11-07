@@ -9,8 +9,8 @@ use encoding_rs::UTF_8;
 use mime::{self, Mime};
 use net_traits::request::{CorsSettings, Destination, RequestId};
 use net_traits::{
-    FetchMetadata, FetchResponseListener, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy,
-    ResourceFetchTiming, ResourceTimingType,
+    FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming,
+    ResourceTimingType,
 };
 use servo_arc::Arc;
 use servo_url::ServoUrl;
@@ -39,7 +39,7 @@ use crate::dom::node::NodeTraits;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::fetch::create_a_potential_cors_request;
-use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
+use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::script_runtime::CanGc;
 use crate::unminify::{
     BeautifyFileType, create_output_file, create_temp_files, execute_js_beautify,
@@ -123,8 +123,6 @@ impl StylesheetContext {
         style_content
     }
 }
-
-impl PreInvoke for StylesheetContext {}
 
 impl FetchResponseListener for StylesheetContext {
     fn process_request_body(&mut self, _: RequestId) {}

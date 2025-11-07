@@ -62,7 +62,7 @@ trait PromiseHelper {
 }
 
 impl PromiseHelper for Rc<Promise> {
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn initialize(&self, cx: SafeJSContext) {
         let obj = self.reflector().get_jsobject();
         self.permanent_js_root.set(ObjectValue(*obj));
@@ -80,7 +80,7 @@ impl PromiseHelper for Rc<Promise> {
 // rather than when SpiderMonkey runs a GC. This makes it safe to interact with the JS engine unlike
 // Drop implementations for other DOM types.
 impl Drop for Promise {
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn drop(&mut self) {
         unsafe {
             let object = self.permanent_js_root.get().to_object();
@@ -106,13 +106,12 @@ impl Promise {
         Promise::new_with_js_promise(obj.handle(), cx)
     }
 
-    #[allow(unsafe_code)]
     pub(crate) fn duplicate(&self) -> Rc<Promise> {
         let cx = GlobalScope::get_cx();
         Promise::new_with_js_promise(self.reflector().get_jsobject(), cx)
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new_with_js_promise(obj: HandleObject, cx: SafeJSContext) -> Rc<Promise> {
         unsafe {
@@ -128,7 +127,7 @@ impl Promise {
         }
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     // The apparently-unused CanGc parameter reflects the fact that the JS API calls
     // like JS_NewFunction can trigger a GC.
     fn create_js_promise(cx: SafeJSContext, mut obj: MutableHandleObject, _can_gc: CanGc) {
@@ -154,7 +153,7 @@ impl Promise {
         }
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new_resolved(
         global: &GlobalScope,
@@ -172,7 +171,7 @@ impl Promise {
         }
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new_rejected(
         global: &GlobalScope,
@@ -201,7 +200,7 @@ impl Promise {
         self.resolve(cx, v.handle(), can_gc);
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn resolve(&self, cx: SafeJSContext, value: HandleValue, _can_gc: CanGc) {
         unsafe {
@@ -230,7 +229,7 @@ impl Promise {
         self.reject(cx, v.handle(), can_gc);
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn reject(&self, cx: SafeJSContext, value: HandleValue, _can_gc: CanGc) {
         unsafe {
@@ -240,25 +239,25 @@ impl Promise {
         }
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn is_fulfilled(&self) -> bool {
         let state = unsafe { GetPromiseState(self.promise_obj()) };
         matches!(state, PromiseState::Rejected | PromiseState::Fulfilled)
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn is_rejected(&self) -> bool {
         let state = unsafe { GetPromiseState(self.promise_obj()) };
         matches!(state, PromiseState::Rejected)
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn is_pending(&self) -> bool {
         let state = unsafe { GetPromiseState(self.promise_obj()) };
         matches!(state, PromiseState::Pending)
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn promise_obj(&self) -> HandleObject<'_> {
         let obj = self.reflector().get_jsobject();
         unsafe {
@@ -267,7 +266,7 @@ impl Promise {
         obj
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn append_native_handler(
         &self,
         handler: &PromiseNativeHandler,
@@ -299,19 +298,19 @@ impl Promise {
         }
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn get_promise_is_handled(&self) -> bool {
         unsafe { GetPromiseIsHandled(self.reflector().get_jsobject()) }
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn set_promise_is_handled(&self) -> bool {
         let cx = GlobalScope::get_cx();
         unsafe { SetAnyPromiseIsHandled(*cx, self.reflector().get_jsobject()) }
     }
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn do_nothing_promise_executor(
     _cx: *mut JSContext,
     argc: u32,
@@ -331,7 +330,7 @@ enum NativeHandlerTask {
     Reject = 1,
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn native_handler_callback(
     cx: *mut JSContext,
     argc: u32,
@@ -367,7 +366,7 @@ unsafe extern "C" fn native_handler_callback(
     true
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 // The apparently-unused CanGc argument reflects the fact that the JS API calls
 // like NewFunctionWithReserved can trigger a GC.
 fn create_native_handler_function(
@@ -389,7 +388,7 @@ fn create_native_handler_function(
 }
 
 impl FromJSValConvertibleRc for Promise {
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     unsafe fn from_jsval(
         cx: *mut JSContext,
         value: HandleValue,

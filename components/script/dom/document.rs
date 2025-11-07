@@ -38,11 +38,11 @@ use layout_api::{
 use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
+use net_traits::ReferrerPolicy;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::{InsecureRequestsPolicy, PreloadedResources, RequestBuilder};
 use net_traits::response::HttpsState;
-use net_traits::{FetchResponseListener, ReferrerPolicy};
 use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::TimerMetadataFrameType;
@@ -191,7 +191,7 @@ use crate::iframe_collection::IFrameCollection;
 use crate::image_animation::ImageAnimationManager;
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
 use crate::mime::{APPLICATION, CHARSET};
-use crate::network_listener::{NetworkListener, PreInvoke};
+use crate::network_listener::{FetchResponseListener, NetworkListener};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, ScriptThreadEventCategory};
 use crate::script_thread::ScriptThread;
@@ -1889,7 +1889,7 @@ impl Document {
             .https_state(self.https_state.get())
     }
 
-    pub(crate) fn fetch<Listener: FetchResponseListener + PreInvoke + Send + 'static>(
+    pub(crate) fn fetch<Listener: FetchResponseListener>(
         &self,
         load: LoadType,
         mut request: RequestBuilder,
@@ -1911,7 +1911,7 @@ impl Document {
             .fetch_async_with_callback(load, request, callback);
     }
 
-    pub(crate) fn fetch_background<Listener: FetchResponseListener + PreInvoke + Send + 'static>(
+    pub(crate) fn fetch_background<Listener: FetchResponseListener>(
         &self,
         mut request: RequestBuilder,
         listener: Listener,
@@ -3218,7 +3218,7 @@ pub(crate) trait LayoutDocumentHelpers<'dom> {
     fn flush_shadow_roots_stylesheets(self);
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 impl<'dom> LayoutDocumentHelpers<'dom> for LayoutDom<'dom, Document> {
     #[inline]
     fn is_html_document_for_layout(&self) -> bool {

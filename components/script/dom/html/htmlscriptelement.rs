@@ -19,10 +19,7 @@ use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata,
     RequestBuilder, RequestId,
 };
-use net_traits::{
-    FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming,
-    ResourceTimingType,
-};
+use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming, ResourceTimingType};
 use script_bindings::domstring::BytesView;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::attr::AttrValue;
@@ -64,7 +61,7 @@ use crate::dom::trustedscripturl::TrustedScriptURL;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::fetch::create_a_potential_cors_request;
-use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
+use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_realm;
 use crate::script_module::{
     ImportMap, ModuleOwner, ScriptFetchOptions, fetch_external_module_script,
@@ -390,7 +387,6 @@ impl FetchResponseListener for ClassicContext {
 
     /// <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
     /// step 4-9
-    #[allow(unsafe_code)]
     fn process_response_eof(
         &mut self,
         _: RequestId,
@@ -513,8 +509,6 @@ impl ResourceTimingListener for ClassicContext {
         self.elem.root().owner_document().global()
     }
 }
-
-impl PreInvoke for ClassicContext {}
 
 /// Steps 1-2 of <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
 // This function is also used to prefetch a script in `script::dom::servoparser::prefetch`.
@@ -1095,7 +1089,6 @@ impl HTMLScriptElement {
         }
     }
 
-    #[allow(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#run-a-module-script>
     pub(crate) fn run_a_module_script(
         &self,

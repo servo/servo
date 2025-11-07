@@ -51,6 +51,10 @@ impl WebGLSync {
 }
 
 impl WebGLSync {
+    pub(crate) fn context(&self) -> &WebGLRenderingContext {
+        self.upcast::<WebGLObject>().context()
+    }
+
     pub(crate) fn client_wait_sync(
         &self,
         context: &WebGLRenderingContext,

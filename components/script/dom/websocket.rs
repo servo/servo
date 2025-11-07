@@ -58,7 +58,7 @@ enum WebSocketRequestState {
 
 // Close codes defined in https://tools.ietf.org/html/rfc6455#section-7.4.1
 // Names are from https://github.com/mozilla/gecko-dev/blob/master/netwerk/protocol/websocket/nsIWebSocketChannel.idl
-#[allow(dead_code)]
+#[expect(dead_code)]
 mod close_code {
     pub(crate) const NORMAL: u16 = 1000;
     pub(crate) const GOING_AWAY: u16 = 1001;
@@ -600,7 +600,7 @@ struct MessageReceivedTask {
 }
 
 impl TaskOnce for MessageReceivedTask {
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn run_once(self) {
         let ws = self.address.root();
         debug!(

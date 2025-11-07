@@ -194,7 +194,7 @@ impl RTCDataChannel {
         event.upcast::<Event>().fire(self.upcast(), can_gc);
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn on_message(&self, channel_message: DataChannelMessage, can_gc: CanGc) {
         let global = self.global();
         let cx = GlobalScope::get_cx();

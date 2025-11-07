@@ -15,9 +15,9 @@ macro_rules! task {
             $($field: $field_type,)*
             task: F,
         }
-        #[allow(unsafe_code)]
+        #[expect(unsafe_code)]
         unsafe impl<F> crate::JSTraceable for $name<F> {
-            #[allow(unsafe_code)]
+            #[expect(unsafe_code)]
             unsafe fn trace(&self, tracer: *mut ::js::jsapi::JSTracer) {
                 $(self.$field.trace(tracer);)*
                 // We cannot trace the actual task closure. This is safe because

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
 use std::cell::{Cell, OnceCell, Ref};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -56,8 +57,7 @@ use net_traits::request::{
 };
 use net_traits::response::HttpsState;
 use net_traits::{
-    CoreResourceMsg, CoreResourceThread, FetchResponseListener, ReferrerPolicy, ResourceThreads,
-    fetch_async,
+    CoreResourceMsg, CoreResourceThread, ReferrerPolicy, ResourceThreads, fetch_async,
 };
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
 use rustc_hash::{FxBuildHasher, FxHashMap};
@@ -136,7 +136,7 @@ use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::dom::writablestream::CrossRealmTransformWritable;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::Microtask;
-use crate::network_listener::{NetworkListener, PreInvoke};
+use crate::network_listener::{FetchResponseListener, NetworkListener};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_module::{
     DynamicModuleList, ImportMap, ModuleScript, ModuleTree, ResolvedModule, ScriptFetchOptions,
@@ -2276,13 +2276,13 @@ impl GlobalScope {
 
     /// Returns the global scope of the realm that the given DOM object's reflector
     /// was created in.
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn from_reflector<T: DomObject>(reflector: &T, _realm: InRealm) -> DomRoot<Self> {
         unsafe { GlobalScope::from_object(*reflector.reflector().get_jsobject()) }
     }
 
     /// Returns the global scope of the realm that the given JS object was created in.
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) unsafe fn from_object(obj: *mut JSObject) -> DomRoot<Self> {
         assert!(!obj.is_null());
         let global = unsafe { GetNonCCWObjectGlobal(obj) };
@@ -2290,7 +2290,7 @@ impl GlobalScope {
     }
 
     /// Returns the global scope for the given JSContext
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) unsafe fn from_context(cx: *mut JSContext, _realm: InRealm) -> DomRoot<Self> {
         let global = unsafe { CurrentGlobalOrNull(cx) };
         assert!(!global.is_null());
@@ -2298,14 +2298,14 @@ impl GlobalScope {
     }
 
     /// Returns the global scope for the given SafeJSContext
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn from_safe_context(cx: SafeJSContext, realm: InRealm) -> DomRoot<Self> {
         unsafe { Self::from_context(*cx, realm) }
     }
 
     /// Returns the global object of the realm that the given JS object
     /// was created in, after unwrapping any wrappers.
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) unsafe fn from_object_maybe_wrapped(
         mut obj: *mut JSObject,
         cx: *mut JSContext,
@@ -2387,7 +2387,7 @@ impl GlobalScope {
         &self.inline_module_map
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn get_cx() -> SafeJSContext {
         let cx = Runtime::get()
             .expect("Can't obtain context after runtime shutdown")
@@ -2821,14 +2821,14 @@ impl GlobalScope {
     /// Evaluate JS code on this global scope.
     pub(crate) fn evaluate_js_on_global_with_result(
         &self,
-        code: &str,
+        code: Cow<'_, str>,
         rval: MutableHandleValue,
         fetch_options: ScriptFetchOptions,
         script_base_url: ServoUrl,
         can_gc: CanGc,
         introduction_type: Option<&'static CStr>,
     ) -> Result<(), JavaScriptEvaluationError> {
-        let source_code = SourceCode::Text(Rc::new(DOMString::from_string((*code).to_string())));
+        let source_code = SourceCode::Text(Rc::new(DOMString::from_string(code.into_owned())));
         self.evaluate_script_on_global_with_result(
             &source_code,
             "",
@@ -2842,7 +2842,7 @@ impl GlobalScope {
     }
 
     /// Evaluate a JS script on this global scope.
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn evaluate_script_on_global_with_result(
         &self,
@@ -3078,7 +3078,7 @@ impl GlobalScope {
     /// Returns the ["current"] global object.
     ///
     /// ["current"]: https://html.spec.whatwg.org/multipage/#current
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn current() -> Option<DomRoot<Self>> {
         let cx = Runtime::get()?;
         unsafe {
@@ -3319,7 +3319,7 @@ impl GlobalScope {
         Ok(())
     }
 
-    pub(crate) fn fetch<Listener: FetchResponseListener + PreInvoke + Send + 'static>(
+    pub(crate) fn fetch<Listener: FetchResponseListener>(
         &self,
         request_builder: RequestBuilder,
         context: Arc<Mutex<Listener>>,
@@ -3332,9 +3332,7 @@ impl GlobalScope {
         self.fetch_with_network_listener(request_builder, network_listener);
     }
 
-    pub(crate) fn fetch_with_network_listener<
-        Listener: FetchResponseListener + PreInvoke + Send + 'static,
-    >(
+    pub(crate) fn fetch_with_network_listener<Listener: FetchResponseListener>(
         &self,
         request_builder: RequestBuilder,
         network_listener: NetworkListener<Listener>,
@@ -3597,7 +3595,7 @@ impl GlobalScope {
 }
 
 /// Returns the Rust global scope from a JS global object.
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe fn global_scope_from_global(
     global: *mut JSObject,
     cx: *mut JSContext,
@@ -3614,7 +3612,7 @@ unsafe fn global_scope_from_global(
 }
 
 /// Returns the Rust global scope from a JS global object.
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe fn global_scope_from_global_static(global: *mut JSObject) -> DomRoot<GlobalScope> {
     assert!(!global.is_null());
     let clasp = unsafe { get_object_class(global) };
@@ -3629,7 +3627,7 @@ unsafe fn global_scope_from_global_static(global: *mut JSObject) -> DomRoot<Glob
     root_from_object_static(global).unwrap()
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
     unsafe fn from_context(cx: *mut JSContext, realm: InRealm) -> DomRoot<Self> {
         unsafe { GlobalScope::from_context(cx, realm) }

@@ -170,6 +170,16 @@ fn test_theme_change() {
     // The theme persists after a navigation.
     let result = evaluate_javascript(&servo_test, webview.clone(), is_dark_theme_script);
     assert_eq!(result, Ok(JSValue::Boolean(true)));
+
+    // Now test the same thing, but setting the theme immediately after creating the WebView.
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo())
+        .delegate(delegate.clone())
+        .url(Url::parse("data:text/html,page one").unwrap())
+        .build();
+    webview.notify_theme_change(Theme::Dark);
+    let result = evaluate_javascript(&servo_test, webview.clone(), is_dark_theme_script);
+    assert_eq!(result, Ok(JSValue::Boolean(true)));
 }
 
 #[test]
@@ -579,11 +589,11 @@ fn test_simple_context_menu() {
     let captured_delegate = delegate.clone();
     servo_test.spin(move || captured_delegate.number_of_controls_shown.get() != 1);
 
-    {
-        let controls = delegate.controls_shown.borrow();
+    let context_menu = {
+        let mut controls = delegate.controls_shown.borrow_mut();
         assert_eq!(controls.len(), 1);
-        let EmbedderControl::ContextMenu(context_menu) = &controls[0] else {
-            unreachable!("Expected embedder control to be an IME");
+        let Some(EmbedderControl::ContextMenu(context_menu)) = controls.pop() else {
+            unreachable!("Expected embedder control to be a ContextMenu");
         };
 
         let items = context_menu.items();
@@ -608,5 +618,12 @@ fn test_simple_context_menu() {
                 ..
             }
         ));
-    }
+
+        context_menu
+    };
+
+    delegate.reset();
+    context_menu.select(ContextMenuAction::Reload);
+
+    servo_test.spin(move || !delegate.load_status_changed.get());
 }

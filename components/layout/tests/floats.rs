@@ -26,7 +26,7 @@ static PANIC_HOOK_MUTEX: Mutex<()> = Mutex::new(());
 // suppress panic messages from other failing tests. To work around this, run failing tests one at
 // a time or use only a single test thread.
 struct PanicMsgSuppressor<'a> {
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     mutex_guard: MutexGuard<'a, ()>,
     prev_hook: Option<Box<dyn Fn(&PanicHookInfo<'_>) + 'static + Sync + Send>>,
 }

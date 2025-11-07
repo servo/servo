@@ -467,10 +467,10 @@ pub struct Constellation<STF, SWF> {
     /// Pipeline ID of the active media session.
     active_media_session: Option<PipelineId>,
 
-    /// The image bytes associated with the RippyPNG embedder resource.
+    /// The image bytes associated with the BrokenImageIcon embedder resource.
     /// Read during startup and provided to image caches that are created
     /// on an as-needed basis, rather than retrieving it every time.
-    rippy_data: Vec<u8>,
+    broken_image_icon_data: Vec<u8>,
 
     /// User content manager
     user_content_manager: UserContentManager,
@@ -662,7 +662,7 @@ where
                     wgpu_image_map: state.wgpu_image_map,
                 };
 
-                let rippy_data = resources::read_bytes(Resource::RippyPNG);
+                let broken_image_icon_data = resources::read_bytes(Resource::BrokenImageIcon);
 
                 let mut constellation: Constellation<STF, SWF> = Constellation {
                     namespace_receiver,
@@ -725,14 +725,14 @@ where
                     active_keyboard_modifiers: Modifiers::empty(),
                     hard_fail,
                     active_media_session: None,
-                    rippy_data: rippy_data.clone(),
+                    broken_image_icon_data: broken_image_icon_data.clone(),
                     user_content_manager: state.user_content_manager,
                     process_manager: ProcessManager::new(state.mem_profiler_chan),
                     async_runtime: state.async_runtime,
                     script_join_handles: Default::default(),
                     privileged_urls: state.privileged_urls,
                     image_cache_factory: Arc::new(ImageCacheFactoryImpl::new(
-                        rippy_data,
+                        broken_image_icon_data,
                     )),
                     pending_viewport_changes: Default::default(),
                     screenshot_readiness_requests: Vec::new(),
@@ -1014,7 +1014,7 @@ where
                 .map(|threads| threads.pipeline()),
             webxr_registry: self.webxr_registry.clone(),
             player_context: WindowGLContext::get(),
-            rippy_data: self.rippy_data.clone(),
+            broken_image_icon_data: self.broken_image_icon_data.clone(),
             user_content_manager: self.user_content_manager.clone(),
             privileged_urls: self.privileged_urls.clone(),
             image_cache_factory: self.image_cache_factory.clone(),

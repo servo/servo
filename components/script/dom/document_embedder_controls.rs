@@ -15,7 +15,6 @@ use net_traits::CoreResourceMsg;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use rustc_hash::FxHashMap;
 use script_bindings::codegen::GenericBindings::HistoryBinding::HistoryMethods;
-use script_bindings::codegen::GenericBindings::LocationBinding::LocationMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::script_runtime::CanGc;
@@ -257,7 +256,7 @@ impl DocumentEmbedderControls {
                 let _ = window.History().Forward();
             },
             ContextMenuAction::Reload => {
-                let _ = self.window.Location().Reload(can_gc);
+                self.window.Location().reload_without_origin_check(can_gc);
             },
         }
     }

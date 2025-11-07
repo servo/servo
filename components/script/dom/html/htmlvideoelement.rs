@@ -12,12 +12,12 @@ use js::rust::HandleObject;
 use layout_api::{HTMLMediaData, MediaMetadata};
 use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable, ImageResponse,
-    PendingImageId, UsePlaceholder,
+    PendingImageId,
 };
 use net_traits::request::{CredentialsMode, Destination, RequestBuilder, RequestId};
 use net_traits::{
-    CoreResourceThread, FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError,
-    ResourceFetchTiming, ResourceTimingType,
+    CoreResourceThread, FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming,
+    ResourceTimingType,
 };
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use servo_media::player::video::VideoFrame;
@@ -42,7 +42,7 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::FetchCanceller;
-use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
+use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -199,7 +199,6 @@ impl HTMLVideoElement {
             poster_url.clone(),
             window.origin().immutable().clone(),
             None,
-            UsePlaceholder::No,
         );
 
         let id = match cache_result {
@@ -216,8 +215,8 @@ impl HTMLVideoElement {
                 self.do_fetch_poster_frame(poster_url, id, can_gc);
                 id
             },
-            ImageCacheResult::LoadError => {
-                self.process_image_response(ImageResponse::None, can_gc);
+            ImageCacheResult::FailedToLoadOrDecode => {
+                self.process_image_response(ImageResponse::FailedToLoadOrDecode, can_gc);
                 return;
             },
             ImageCacheResult::Pending(id) => id,
@@ -225,7 +224,7 @@ impl HTMLVideoElement {
 
         let trusted_node = Trusted::new(self);
         let generation = self.generation_id();
-        let sender = window.register_image_cache_listener(id, move |response| {
+        let callback = window.register_image_cache_listener(id, move |response| {
             let element = trusted_node.root();
 
             // Ignore any image response for a previous request that has been discarded.
@@ -235,7 +234,7 @@ impl HTMLVideoElement {
             element.process_image_response(response.response, CanGc::note());
         });
 
-        image_cache.add_listener(ImageLoadListener::new(sender, window.pipeline_id(), id));
+        image_cache.add_listener(ImageLoadListener::new(callback, window.pipeline_id(), id));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
@@ -300,7 +299,7 @@ impl HTMLVideoElement {
             },
             ImageResponse::MetadataLoaded(..) => {},
             // The image cache may have loaded a placeholder for an invalid poster url
-            ImageResponse::PlaceholderLoaded(..) | ImageResponse::None => {
+            ImageResponse::FailedToLoadOrDecode => {
                 self.htmlmediaelement.set_poster_frame(None);
                 // A failed load should unblock the document load.
                 LoadBlocker::terminate(&self.load_blocker, can_gc);
@@ -511,12 +510,6 @@ impl ResourceTimingListener for PosterFrameFetchContext {
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
         self.elem.root().owner_document().global()
-    }
-}
-
-impl PreInvoke for PosterFrameFetchContext {
-    fn should_invoke(&self) -> bool {
-        true
     }
 }
 

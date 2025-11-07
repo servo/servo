@@ -374,7 +374,7 @@ where
                 if let Some(layers) = self.pending_layers.take() {
                     self.layers = layers;
                 }
-                #[allow(unused_mut)]
+                #[expect(unused_mut)]
                 let mut frame = match self.device.begin_animation_frame(&self.layers[..]) {
                     Some(frame) => frame,
                     None => {

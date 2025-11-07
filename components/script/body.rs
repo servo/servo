@@ -763,7 +763,7 @@ fn run_text_data_algorithm(bytes: Vec<u8>) -> Fallible<FetchedData> {
     ))
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 /// <https://fetch.spec.whatwg.org/#ref-for-concept-body-consume-body%E2%91%A3>
 fn run_json_data_algorithm(cx: JSContext, bytes: Vec<u8>) -> Fallible<FetchedData> {
     // The JSON spec allows implementations to either ignore UTF-8 BOM or treat it as an error.
@@ -864,7 +864,7 @@ pub(crate) fn run_array_buffer_data_algorithm(
     Ok(FetchedData::ArrayBuffer(rooted_heap))
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 pub(crate) fn decode_to_utf16_with_bom_removal(
     bytes: &[u8],
     encoding: &'static Encoding,

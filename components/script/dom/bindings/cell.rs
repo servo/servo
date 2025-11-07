@@ -46,7 +46,7 @@ impl<T> DomRefCell<T> {
     /// Panics if this is called from anywhere other than the layout thread
     ///
     /// Panics if the value is currently mutably borrowed.
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) unsafe fn borrow_for_layout(&self) -> &T {
         assert_in_layout();
         unsafe {

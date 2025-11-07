@@ -97,7 +97,7 @@ impl XPathExpression {
                 Value::Boolean(_) => XPathResultType::Boolean,
                 Value::Number(_) => XPathResultType::Number,
                 Value::String(_) => XPathResultType::String,
-                Value::Nodeset(_) => XPathResultType::UnorderedNodeIterator,
+                Value::NodeSet(_) => XPathResultType::UnorderedNodeIterator,
             }
         } else {
             result_type

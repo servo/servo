@@ -232,7 +232,6 @@ fn create_http_states(
 }
 
 impl ResourceChannelManager {
-    #[allow(unsafe_code)]
     fn start(
         &mut self,
         public_receiver: IpcReceiver<CoreResourceMsg>,

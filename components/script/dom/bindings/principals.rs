@@ -14,7 +14,7 @@ use servo_url::MutableOrigin;
 use super::structuredclone::StructuredCloneTags;
 use crate::DomTypeHolder;
 
-#[allow(unused)]
+#[expect(unused)]
 pub(crate) unsafe extern "C" fn destroy_servo_jsprincipal(principals: *mut JSPrincipals) {
     unsafe {
         Box::from_raw(GetRustJSPrincipalsPrivate(principals) as *mut MutableOrigin);

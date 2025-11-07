@@ -1211,7 +1211,6 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall>
-    #[allow(unsafe_code)]
     pub(crate) fn query_selector_all(&self, selectors: DOMString) -> Fallible<DomRoot<NodeList>> {
         let window = self.owner_window();
         let iter = self.query_selector_iter(selectors)?;
@@ -1637,13 +1636,13 @@ where
 
 /// If the given untrusted node address represents a valid DOM node in the given runtime,
 /// returns it.
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 pub(crate) unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress) -> DomRoot<Node> {
     let node = unsafe { Node::from_untrusted_node_address(candidate) };
     DomRoot::from_ref(node)
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 pub(crate) trait LayoutNodeHelpers<'dom> {
     fn type_id_for_layout(self) -> NodeTypeId;
 
@@ -1712,6 +1711,7 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     fn image_url(self) -> Option<ServoUrl>;
     fn image_density(self) -> Option<f64>;
     fn image_data(self) -> Option<(Option<Image>, Option<ImageMetadata>)>;
+    fn showing_broken_image_icon(self) -> bool;
     fn canvas_data(self) -> Option<HTMLCanvasData>;
     fn media_data(self) -> Option<HTMLMediaData>;
     fn svg_data(self) -> Option<SVGElementData>;
@@ -1724,7 +1724,7 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
 
 impl<'dom> LayoutDom<'dom, Node> {
     #[inline]
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn parent_node_ref(self) -> Option<LayoutDom<'dom, Node>> {
         unsafe { self.unsafe_get().parent_node.get_inner_as_layout() }
     }
@@ -1747,7 +1747,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     }
 
     #[inline]
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn parent_node_ref(self) -> Option<LayoutDom<'dom, Node>> {
         unsafe { self.unsafe_get().parent_node.get_inner_as_layout() }
     }
@@ -1764,37 +1764,37 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     }
 
     #[inline]
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn first_child_ref(self) -> Option<LayoutDom<'dom, Node>> {
         unsafe { self.unsafe_get().first_child.get_inner_as_layout() }
     }
 
     #[inline]
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn last_child_ref(self) -> Option<LayoutDom<'dom, Node>> {
         unsafe { self.unsafe_get().last_child.get_inner_as_layout() }
     }
 
     #[inline]
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn prev_sibling_ref(self) -> Option<LayoutDom<'dom, Node>> {
         unsafe { self.unsafe_get().prev_sibling.get_inner_as_layout() }
     }
 
     #[inline]
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn next_sibling_ref(self) -> Option<LayoutDom<'dom, Node>> {
         unsafe { self.unsafe_get().next_sibling.get_inner_as_layout() }
     }
 
     #[inline]
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn owner_doc_for_layout(self) -> LayoutDom<'dom, Document> {
         unsafe { self.unsafe_get().owner_doc.get_inner_as_layout().unwrap() }
     }
 
     #[inline]
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn containing_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>> {
         unsafe {
             self.unsafe_get()
@@ -1808,7 +1808,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     }
 
     #[inline]
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn assigned_slot_for_layout(self) -> Option<LayoutDom<'dom, HTMLSlotElement>> {
         unsafe {
             self.unsafe_get()
@@ -1827,13 +1827,13 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     // threads at once, this should be revisited.
 
     #[inline]
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     unsafe fn get_flag(self, flag: NodeFlags) -> bool {
         (self.unsafe_get()).flags.get().contains(flag)
     }
 
     #[inline]
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     unsafe fn set_flag(self, flag: NodeFlags, value: bool) {
         let this = self.unsafe_get();
         let mut flags = (this).flags.get();
@@ -1850,19 +1850,19 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     // FIXME(nox): How we handle style and layout data needs to be completely
     // revisited so we can do that more cleanly and safely in layout 2020.
     #[inline]
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn style_data(self) -> Option<&'dom StyleData> {
         unsafe { self.unsafe_get().style_data.borrow_for_layout().as_deref() }
     }
 
     #[inline]
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn layout_data(self) -> Option<&'dom GenericLayoutData> {
         unsafe { self.unsafe_get().layout_data.borrow_for_layout().as_deref() }
     }
 
     #[inline]
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     unsafe fn initialize_style_data(self) {
         let data = unsafe { self.unsafe_get().style_data.borrow_mut_for_layout() };
         debug_assert!(data.is_none());
@@ -1870,7 +1870,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     }
 
     #[inline]
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     unsafe fn initialize_layout_data(self, new_data: Box<GenericLayoutData>) {
         let data = unsafe { self.unsafe_get().layout_data.borrow_mut_for_layout() };
         debug_assert!(data.is_none());
@@ -1878,7 +1878,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     }
 
     #[inline]
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     unsafe fn clear_style_and_layout_data(self) {
         unsafe {
             self.unsafe_get().style_data.borrow_mut_for_layout().take();
@@ -1993,6 +1993,12 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
             .image_density()
     }
 
+    fn showing_broken_image_icon(self) -> bool {
+        self.downcast::<HTMLImageElement>()
+            .map(|image_element| image_element.showing_broken_image_icon())
+            .unwrap_or_default()
+    }
+
     fn canvas_data(self) -> Option<HTMLCanvasData> {
         self.downcast::<HTMLCanvasElement>()
             .map(|canvas| canvas.data())
@@ -2017,7 +2023,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
             .and_then(|iframe_element| iframe_element.pipeline_id())
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn opaque(self) -> OpaqueNode {
         unsafe { OpaqueNode(self.get_jsobject() as usize) }
     }

@@ -28,7 +28,6 @@ impl XRJointPose {
         }
     }
 
-    #[allow(unsafe_code)]
     pub(crate) fn new(
         window: &Window,
         pose: ApiRigidTransform,

@@ -8,16 +8,15 @@ use std::default::Default;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
-use ipc_channel::ipc::IpcSender;
 use js::rust::HandleObject;
 use net_traits::image_cache::{
-    Image, ImageCache, ImageCacheResponseMessage, ImageCacheResult, ImageLoadListener,
-    ImageOrMetadataAvailable, ImageResponse, PendingImageId, UsePlaceholder,
+    Image, ImageCache, ImageCacheResponseCallback, ImageCacheResult, ImageLoadListener,
+    ImageOrMetadataAvailable, ImageResponse, PendingImageId,
 };
 use net_traits::request::{Destination, Initiator, RequestBuilder, RequestId};
 use net_traits::{
-    FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError, ReferrerPolicy,
-    ResourceFetchTiming, ResourceTimingType,
+    FetchMetadata, FetchResponseMsg, NetworkError, ReferrerPolicy, ResourceFetchTiming,
+    ResourceTimingType,
 };
 use pixels::PixelFormat;
 use script_bindings::root::Dom;
@@ -58,7 +57,7 @@ use crate::dom::processingoptions::{
 use crate::dom::types::{EventTarget, GlobalScope};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::links::LinkRelations;
-use crate::network_listener::{PreInvoke, ResourceTimingListener, submit_timing};
+use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
 use crate::script_runtime::CanGc;
 use crate::stylesheet_loader::{ElementStylesheetLoader, StylesheetContextSource, StylesheetOwner};
 
@@ -636,17 +635,12 @@ impl HTMLLinkElement {
             href,
             window.origin().immutable().clone(),
             cors_setting_for_element(self.upcast()),
-            UsePlaceholder::No,
         );
 
         match cache_result {
             ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable {
-                image,
-                is_placeholder,
-                ..
+                image, ..
             }) => {
-                debug_assert!(!is_placeholder);
-
                 self.process_favicon_response(image);
             },
             ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(_, id)) |
@@ -680,14 +674,11 @@ impl HTMLLinkElement {
                 };
                 document.fetch_background(request, fetch_context);
             },
-            ImageCacheResult::LoadError => {},
+            ImageCacheResult::FailedToLoadOrDecode => {},
         };
     }
 
-    fn register_image_cache_callback(
-        &self,
-        id: PendingImageId,
-    ) -> IpcSender<ImageCacheResponseMessage> {
+    fn register_image_cache_callback(&self, id: PendingImageId) -> ImageCacheResponseCallback {
         let trusted_node = Trusted::new(self);
         let window = self.owner_window();
         let request_generation_id = self.get_request_generation_id();
@@ -1077,11 +1068,5 @@ impl ResourceTimingListener for FaviconFetchContext {
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
         self.link.root().upcast::<Node>().owner_doc().global()
-    }
-}
-
-impl PreInvoke for FaviconFetchContext {
-    fn should_invoke(&self) -> bool {
-        true
     }
 }

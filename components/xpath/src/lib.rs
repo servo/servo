@@ -18,7 +18,7 @@ use ast::QName;
 use context::EvaluationCtx;
 use markup5ever::{LocalName, Namespace, Prefix};
 pub use parser::{Error as ParserError, parse};
-pub use value::{NodesetHelpers, Value};
+pub use value::{NodeSet, Value};
 
 pub trait Dom {
     type Node: Node;
@@ -31,6 +31,7 @@ pub trait Node: Eq + Clone + fmt::Debug {
     type Document: Document<Node = Self>;
     type Attribute: Attribute<Node = Self>;
     type Element: Element<Node = Self>;
+    type Opaque: Eq + Hash + 'static;
 
     fn is_comment(&self) -> bool;
     fn is_text(&self) -> bool;
@@ -50,7 +51,7 @@ pub trait Node: Eq + Clone + fmt::Debug {
     fn preceding_siblings(&self) -> impl Iterator<Item = Self>;
     fn following_siblings(&self) -> impl Iterator<Item = Self>;
     fn owner_document(&self) -> Self::Document;
-    fn to_opaque(&self) -> impl Eq + Hash;
+    fn to_opaque(&self) -> Self::Opaque;
     fn as_processing_instruction(&self) -> Option<Self::ProcessingInstruction>;
     fn as_attribute(&self) -> Option<Self::Attribute>;
     fn as_element(&self) -> Option<Self::Element>;
@@ -68,6 +69,7 @@ pub trait ProcessingInstruction {
 pub trait Document {
     type Node: Node<Document = Self>;
 
+    /// Return an iterator over elements with the given ID in tree order.
     fn get_elements_with_id(&self, id: &str)
     -> impl Iterator<Item = <Self::Node as Node>::Element>;
 }
@@ -100,7 +102,12 @@ pub fn evaluate_parsed_xpath<D: Dom>(
 ) -> Result<Value<D::Node>, Error> {
     let context = EvaluationCtx::<D>::new(context_node);
     match expr.evaluate(&context) {
-        Ok(value) => {
+        Ok(mut value) => {
+            if let Value::NodeSet(node_set) = &mut value {
+                node_set.deduplicate();
+                node_set.sort();
+            }
+
             log::debug!("Evaluated XPath: {value:?}");
             Ok(value)
         },
@@ -182,6 +189,7 @@ mod dummy_implementation {
         type Document = DummyDocument;
         type Attribute = DummyAttribute;
         type Element = DummyElement;
+        type Opaque = usize;
 
         fn is_comment(&self) -> bool {
             false
@@ -225,7 +233,7 @@ mod dummy_implementation {
         fn owner_document(&self) -> Self::Document {
             DummyDocument
         }
-        fn to_opaque(&self) -> impl Eq + Hash {
+        fn to_opaque(&self) -> Self::Opaque {
             0
         }
         fn as_processing_instruction(&self) -> Option<Self::ProcessingInstruction> {

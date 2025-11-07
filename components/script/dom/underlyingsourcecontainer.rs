@@ -112,7 +112,7 @@ impl UnderlyingSourceContainer {
     }
 
     /// <https://streams.spec.whatwg.org/#dom-underlyingsource-cancel>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn call_cancel_algorithm(
         &self,
         cx: SafeJSContext,
@@ -170,7 +170,7 @@ impl UnderlyingSourceContainer {
     }
 
     /// <https://streams.spec.whatwg.org/#dom-underlyingsource-pull>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn call_pull_algorithm(
         &self,
         controller: Controller,
@@ -228,7 +228,7 @@ impl UnderlyingSourceContainer {
     /// and it is also how to spec deals with the situation.
     /// see "Let startPromise be a promise resolved with startResult."
     /// at <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn call_start_algorithm(
         &self,
         controller: Controller,

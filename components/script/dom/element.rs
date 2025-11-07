@@ -1025,7 +1025,7 @@ impl LayoutDom<'_, Element> {
 }
 
 impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     #[inline]
     fn attrs(self) -> &'dom [LayoutDom<'dom, Attr>] {
         unsafe { LayoutDom::to_layout_slice(self.unsafe_get().attrs.borrow_for_layout()) }
@@ -1405,17 +1405,16 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         *self.namespace() == ns!(html)
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn id_attribute(self) -> *const Option<Atom> {
         unsafe { (self.unsafe_get()).id_attribute.borrow_for_layout() }
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn style_attribute(self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>> {
         unsafe { (self.unsafe_get()).style_attribute.borrow_for_layout() }
     }
 
-    #[allow(unsafe_code)]
     fn local_name(self) -> &'dom LocalName {
         &(self.unsafe_get()).local_name
     }
@@ -1470,7 +1469,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     }
 
     #[inline]
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn get_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>> {
         unsafe {
             self.unsafe_get()
@@ -4624,7 +4623,7 @@ impl SelectorWrapper<'_> {
 impl SelectorsElement for SelectorWrapper<'_> {
     type Impl = SelectorImpl;
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn opaque(&self) -> ::selectors::OpaqueElement {
         ::selectors::OpaqueElement::new(unsafe { &*self.reflector().get_jsobject().get() })
     }
@@ -4834,7 +4833,7 @@ impl SelectorsElement for SelectorWrapper<'_> {
         // Handle flags that apply to the element.
         let self_flags = flags.for_self();
         if !self_flags.is_empty() {
-            #[allow(unsafe_code)]
+            #[expect(unsafe_code)]
             unsafe {
                 Dom::from_ref(&***self)
                     .to_layout()
@@ -4846,7 +4845,7 @@ impl SelectorsElement for SelectorWrapper<'_> {
         let parent_flags = flags.for_parent();
         if !parent_flags.is_empty() {
             if let Some(p) = self.parent_element() {
-                #[allow(unsafe_code)]
+                #[expect(unsafe_code)]
                 unsafe {
                     Dom::from_ref(&**p)
                         .to_layout()

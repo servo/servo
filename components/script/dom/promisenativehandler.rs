@@ -47,7 +47,7 @@ impl PromiseNativeHandler {
         )
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn callback(
         callback: &Option<Box<dyn Callback>>,
         cx: *mut JSContext,

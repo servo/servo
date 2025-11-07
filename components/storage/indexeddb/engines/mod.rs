@@ -21,7 +21,6 @@ pub struct KvsOperation {
 pub struct KvsTransaction {
     // Mode could be used by a more optimal implementation of transactions
     // that has different allocated threadpools for reading and writing
-    #[allow(unused)]
     pub mode: IndexedDBTxnMode,
     pub requests: VecDeque<KvsOperation>,
 }

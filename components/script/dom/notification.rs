@@ -12,20 +12,17 @@ use embedder_traits::{
     EmbedderMsg, Notification as EmbedderNotification,
     NotificationAction as EmbedderNotificationAction,
 };
-use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, MutableHandleValue};
 use net_traits::http_status::HttpStatus;
 use net_traits::image_cache::{
     ImageCache, ImageCacheResponseMessage, ImageCacheResult, ImageLoadListener,
-    ImageOrMetadataAvailable, ImageResponse, PendingImageId, UsePlaceholder,
+    ImageOrMetadataAvailable, ImageResponse, PendingImageId,
 };
 use net_traits::request::{Destination, RequestBuilder, RequestId};
 use net_traits::{
-    FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError, ResourceFetchTiming,
-    ResourceTimingType,
+    FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming, ResourceTimingType,
 };
 use pixels::RasterImage;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -61,7 +58,7 @@ use crate::dom::promise::Promise;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::fetch::create_a_potential_cors_request;
-use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
+use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 // TODO: Service Worker API (persistent notification)
@@ -807,12 +804,6 @@ impl ResourceTimingListener for ResourceFetchListener {
     }
 }
 
-impl PreInvoke for ResourceFetchListener {
-    fn should_invoke(&self) -> bool {
-        true
-    }
-}
-
 impl Notification {
     fn build_resource_request(&self, url: &ServoUrl) -> RequestBuilder {
         let global = &self.global();
@@ -878,7 +869,6 @@ impl Notification {
             request.url.clone(),
             global.origin().immutable().clone(),
             None, // TODO: check which CORS should be used
-            UsePlaceholder::No,
         );
         match cache_result {
             ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable {
@@ -915,7 +905,7 @@ impl Notification {
                 );
                 self.fetch(pending_image_id, request, global);
             },
-            ImageCacheResult::LoadError => {
+            ImageCacheResult::FailedToLoadOrDecode => {
                 self.set_resource_and_show_when_ready(request_id, &resource_type, None);
             },
         };
@@ -927,36 +917,25 @@ impl Notification {
         pending_image_id: PendingImageId,
         resource_type: ResourceType,
     ) {
-        let (sender, receiver) = ipc::channel().expect("ipc channel failure");
-
         let global: &GlobalScope = &self.global();
-
         let trusted_this = Trusted::new(self);
-        let resource_type = resource_type.clone();
         let task_source = global.task_manager().networking_task_source().to_sendable();
 
-        ROUTER.add_typed_route(
-            receiver,
-            Box::new(move |response| {
-                let trusted_this = trusted_this.clone();
-                let resource_type = resource_type.clone();
-                task_source.queue(task!(handle_response: move || {
-                    let this = trusted_this.root();
-                    if let Ok(response) = response {
-                        let ImageCacheResponseMessage::NotifyPendingImageLoadStatus(status) = response else {
-                            warn!("Received unexpected message from image cache: {response:?}");
-                            return;
-                        };
-                        this.handle_image_cache_response(request_id, status.response, resource_type);
-                    } else {
-                        this.handle_image_cache_response(request_id, ImageResponse::None, resource_type);
-                    }
-                }));
-            }),
-        );
+        let callback = Box::new(move |response| {
+            let trusted_this = trusted_this.clone();
+            let resource_type = resource_type.clone();
+            task_source.queue(task!(handle_response: move || {
+                let this = trusted_this.root();
+                let ImageCacheResponseMessage::NotifyPendingImageLoadStatus(status) = response else {
+                    warn!("Received unexpected message from image cache: {response:?}");
+                    return;
+                };
+                this.handle_image_cache_response(request_id, status.response, resource_type);
+            }));
+        });
 
         global.image_cache().add_listener(ImageLoadListener::new(
-            sender,
+            callback,
             global.pipeline_id(),
             pending_image_id,
         ));
@@ -976,10 +955,7 @@ impl Notification {
                 };
                 self.set_resource_and_show_when_ready(request_id, &resource_type, image);
             },
-            ImageResponse::PlaceholderLoaded(image, _) => {
-                self.set_resource_and_show_when_ready(request_id, &resource_type, Some(image));
-            },
-            ImageResponse::None => {
+            ImageResponse::FailedToLoadOrDecode => {
                 self.set_resource_and_show_when_ready(request_id, &resource_type, None);
             },
             _ => (),

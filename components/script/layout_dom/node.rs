@@ -405,6 +405,11 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
         this.image_density()
     }
 
+    fn showing_broken_image_icon(&self) -> bool {
+        let this = unsafe { self.get_jsmanaged() };
+        this.showing_broken_image_icon()
+    }
+
     fn image_data(&self) -> Option<(Option<Image>, Option<ImageMetadata>)> {
         let this = unsafe { self.get_jsmanaged() };
         this.image_data()
@@ -480,7 +485,7 @@ pub enum ServoThreadSafeLayoutNodeChildrenIterator<'dom> {
 }
 
 impl<'dom> ServoThreadSafeLayoutNodeChildrenIterator<'dom> {
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn new(
         parent: ServoThreadSafeLayoutNode<'dom>,
     ) -> ServoThreadSafeLayoutNodeChildrenIterator<'dom> {

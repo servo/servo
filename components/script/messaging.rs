@@ -358,11 +358,10 @@ pub(crate) struct ScriptThreadSenders {
     #[no_trace]
     pub(crate) pipeline_to_embedder_sender: ScriptToEmbedderChan,
 
-    /// The shared [`IpcSender`] which is sent to the `ImageCache` when requesting an image. The
-    /// messages on this channel are routed to crossbeam [`Sender`] on the router thread, which
-    /// in turn sends messages to [`ScriptThreadReceivers::image_cache_receiver`].
+    /// The shared [`Sender`] which is sent to the `ImageCache` when requesting an image.
+    /// Messages on this channel are sent to [`ScriptThreadReceivers::image_cache_receiver`].
     #[no_trace]
-    pub(crate) image_cache_sender: IpcSender<ImageCacheResponseMessage>,
+    pub(crate) image_cache_sender: Sender<ImageCacheResponseMessage>,
 
     /// For providing contact with the time profiler.
     #[no_trace]

@@ -838,7 +838,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry/#dommatrixreadonly-stringification-behavior
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn Stringifier(&self) -> Fallible<DOMString> {
         // Step 1. If one or more of m11 element through m44 element are a non-finite value,
         // then throw an "InvalidStateError" DOMException.

@@ -11,7 +11,7 @@ use crate::dom::bindings::utils::is_platform_object_static;
 use crate::script_runtime::JSEngineSetup;
 
 #[cfg(target_os = "linux")]
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 fn perform_platform_specific_initialization() {
     // 4096 is default max on many linux systems
     const MAX_FILE_LIMIT: libc::rlim_t = 4096;
@@ -53,7 +53,7 @@ fn perform_platform_specific_initialization() {
 #[cfg(not(target_os = "linux"))]
 fn perform_platform_specific_initialization() {}
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 unsafe extern "C" fn is_dom_object(obj: *mut JSObject) -> bool {
     !obj.is_null() && (is_platform_object_static(obj) || is_dom_proxy(obj))
 }
@@ -66,7 +66,7 @@ unsafe extern "C" fn is_dom_object(obj: *mut JSObject) -> bool {
 /// Note: This implementation should work fine on all Linux systems, perhaps even Unix systems,
 /// but for now we only enable it on OpenHarmony, since that is where it is most needed.
 #[cfg(target_env = "ohos")]
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 fn jit_forbidden() -> bool {
     debug!("Testing if JIT is allowed.");
 
@@ -76,7 +76,7 @@ fn jit_forbidden() -> bool {
         // can be written to. `read` is a syscall and will return an error code
         // if ptr can't be written (instead of a segfault as with a regular access).
         // We also take care to always close `fd`.
-        #[allow(unsafe_code)]
+        #[expect(unsafe_code)]
         unsafe {
             let fd = libc::open(c"/dev/zero".as_ptr(), libc::O_RDONLY);
             if fd < 0 {
@@ -159,7 +159,7 @@ fn jit_forbidden() -> bool {
     false
 }
 
-#[allow(unsafe_code)]
+#[expect(unsafe_code)]
 pub fn init() -> JSEngineSetup {
     if pref!(js_disable_jit) || jit_forbidden() {
         let reason = if pref!(js_disable_jit) {

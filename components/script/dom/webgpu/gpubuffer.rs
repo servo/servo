@@ -189,7 +189,6 @@ impl Drop for GPUBuffer {
 }
 
 impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
-    #[allow(unsafe_code)]
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap>
     fn Unmap(&self) {
         // Step 1
@@ -296,7 +295,6 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-getmappedrange>
-    #[allow(unsafe_code)]
     fn GetMappedRange(
         &self,
         _cx: JSContext,

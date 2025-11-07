@@ -6,7 +6,6 @@ use std::sync::Arc;
 
 use base::id::{PipelineId, WebViewId};
 use compositing_traits::CrossProcessCompositorApi;
-use ipc_channel::ipc::IpcSender;
 use log::debug;
 use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
@@ -68,52 +67,46 @@ impl Image {
 /// Indicating either entire image or just metadata availability
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum ImageOrMetadataAvailable {
-    ImageAvailable {
-        image: Image,
-        url: ServoUrl,
-        is_placeholder: bool,
-    },
+    ImageAvailable { image: Image, url: ServoUrl },
     MetadataAvailable(ImageMetadata, PendingImageId),
 }
+
+pub type ImageCacheResponseCallback = Box<dyn Fn(ImageCacheResponseMessage) + Send + 'static>;
 
 /// This is optionally passed to the image cache when requesting
 /// and image, and returned to the specified event loop when the
 /// image load completes. It is typically used to trigger a reflow
 /// and/or repaint.
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(MallocSizeOf)]
 pub struct ImageLoadListener {
     pipeline_id: PipelineId,
     pub id: PendingImageId,
-    sender: IpcSender<ImageCacheResponseMessage>,
+    #[ignore_malloc_size_of = "Difficult to measure FnOnce"]
+    callback: ImageCacheResponseCallback,
 }
 
 impl ImageLoadListener {
     pub fn new(
-        sender: IpcSender<ImageCacheResponseMessage>,
+        callback: ImageCacheResponseCallback,
         pipeline_id: PipelineId,
         id: PendingImageId,
     ) -> ImageLoadListener {
         ImageLoadListener {
             pipeline_id,
-            sender,
+            callback,
             id,
         }
     }
 
     pub fn respond(&self, response: ImageResponse) {
         debug!("Notifying listener");
-        // This send can fail if thread waiting for this notification has panicked.
-        // That's not a case that's worth warning about.
-        // TODO(#15501): are there cases in which we should perform cleanup?
-        let _ = self
-            .sender
-            .send(ImageCacheResponseMessage::NotifyPendingImageLoadStatus(
-                PendingImageResponse {
-                    pipeline_id: self.pipeline_id,
-                    response,
-                    id: self.id,
-                },
-            ));
+        (self.callback)(ImageCacheResponseMessage::NotifyPendingImageLoadStatus(
+            PendingImageResponse {
+                pipeline_id: self.pipeline_id,
+                response,
+                id: self.id,
+            },
+        ));
     }
 }
 
@@ -124,10 +117,8 @@ pub enum ImageResponse {
     Loaded(Image, ServoUrl),
     /// The request image metadata was loaded.
     MetadataLoaded(ImageMetadata),
-    /// The requested image failed to load, so a placeholder was loaded instead.
-    PlaceholderLoaded(#[conditional_malloc_size_of] Arc<RasterImage>, ServoUrl),
-    /// Neither the requested image nor the placeholder could be loaded.
-    None,
+    /// The requested image failed to load or decode.
+    FailedToLoadOrDecode,
 }
 
 /// The unique id for an image that has previously been requested.
@@ -154,19 +145,13 @@ pub enum ImageCacheResponseMessage {
     VectorImageRasterizationComplete(RasterizationCompleteResponse),
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-pub enum UsePlaceholder {
-    No,
-    Yes,
-}
-
 // ======================================================================
 // ImageCache public API.
 // ======================================================================
 
 pub enum ImageCacheResult {
     Available(ImageOrMetadataAvailable),
-    LoadError,
+    FailedToLoadOrDecode,
     Pending(PendingImageId),
     ReadyForRequest(PendingImageId),
 }
@@ -206,7 +191,6 @@ pub trait ImageCache: Sync + Send {
         url: ServoUrl,
         origin: ImmutableOrigin,
         cors_setting: Option<CorsSettings>,
-        use_placeholder: UsePlaceholder,
     ) -> ImageCacheResult;
 
     /// Returns `Some` if the given `image_id` has already been rasterized at the given `size`.
@@ -228,8 +212,12 @@ pub trait ImageCache: Sync + Send {
         pipeline_id: PipelineId,
         image_id: VectorImageId,
         size: DeviceIntSize,
-        sender: IpcSender<ImageCacheResponseMessage>,
+        callback: ImageCacheResponseCallback,
     );
+
+    /// Synchronously get the broken image icon for this [`ImageCache`]. This will
+    /// allocate space for this icon and upload it to WebRender.
+    fn get_broken_image_icon(&self) -> Option<Arc<RasterImage>>;
 
     /// Add a new listener for the given pending image id. If the image is already present,
     /// the responder will still receive the expected response.

@@ -801,7 +801,7 @@ impl JsTimerTask {
                 //
                 // FIXME(cybai): Use base url properly by saving private reference for timers (#27260)
                 _ = global.evaluate_js_on_global_with_result(
-                    &code_str.str(),
+                    (*code_str.str()).into(),
                     rval.handle_mut(),
                     ScriptFetchOptions::default_classic_script(&global),
                     // Step 9.6. Let base URL be settings object's API base URL.

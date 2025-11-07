@@ -19,8 +19,8 @@ use js::rust::HandleObject;
 use mime::{self, Mime};
 use net_traits::request::{CacheMode, CorsSettings, Destination, RequestBuilder, RequestId};
 use net_traits::{
-    CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, FetchResponseMsg,
-    FilteredMetadata, NetworkError, ResourceFetchTiming, ResourceTimingType,
+    CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseMsg, FilteredMetadata,
+    NetworkError, ResourceFetchTiming, ResourceTimingType,
 };
 use script_bindings::conversions::SafeToJSValConvertible;
 use servo_url::ServoUrl;
@@ -43,7 +43,9 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::fetch::{FetchCanceller, create_a_potential_cors_request};
-use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
+use crate::network_listener::{
+    self, FetchResponseListener, NetworkListener, ResourceTimingListener,
+};
 use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
 use crate::timers::OneshotTimerCallback;
@@ -357,6 +359,10 @@ impl EventSourceContext {
 }
 
 impl FetchResponseListener for EventSourceContext {
+    fn should_invoke(&self) -> bool {
+        self.event_source.root().generation_id.get() == self.gen_id
+    }
+
     fn process_request_body(&mut self, _: RequestId) {
         // TODO
     }
@@ -484,12 +490,6 @@ impl ResourceTimingListener for EventSourceContext {
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
         self.event_source.root().global()
-    }
-}
-
-impl PreInvoke for EventSourceContext {
-    fn should_invoke(&self) -> bool {
-        self.event_source.root().generation_id.get() == self.gen_id
     }
 }
 
@@ -645,7 +645,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         ROUTER.add_typed_route(
             action_receiver,
             Box::new(move |message| {
-                listener.notify_fetch(message.unwrap());
+                listener.notify(message.unwrap());
             }),
         );
         ev.droppable.set_canceller(FetchCanceller::new(

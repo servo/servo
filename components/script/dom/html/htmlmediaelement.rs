@@ -25,8 +25,8 @@ use layout_api::MediaFrame;
 use media::{GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
 use net_traits::request::{Destination, RequestId};
 use net_traits::{
-    CoreResourceThread, FetchMetadata, FetchResponseListener, FilteredMetadata, NetworkError,
-    ResourceFetchTiming, ResourceTimingType,
+    CoreResourceThread, FetchMetadata, FilteredMetadata, NetworkError, ResourceFetchTiming,
+    ResourceTimingType,
 };
 use pixels::RasterImage;
 use script_bindings::codegen::GenericBindings::TimeRangesBinding::TimeRangesMethods;
@@ -100,7 +100,7 @@ use crate::dom::videotracklist::VideoTrackList;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::{FetchCanceller, create_a_potential_cors_request};
 use crate::microtask::{Microtask, MicrotaskRunnable};
-use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
+use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
@@ -2614,7 +2614,7 @@ impl HTMLMediaElement {
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 enum PlaybackDirection {
     Forwards,
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     Backwards,
 }
 
@@ -3601,26 +3601,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         let global = &self.resource_timing_global();
         global.report_csp_violations(violations, None, None);
     }
-}
 
-impl ResourceTimingListener for HTMLMediaElementFetchListener {
-    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
-        let initiator_type = InitiatorType::LocalName(
-            self.element
-                .root()
-                .upcast::<Element>()
-                .local_name()
-                .to_string(),
-        );
-        (initiator_type, self.url.clone())
-    }
-
-    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        self.element.root().owner_document().global()
-    }
-}
-
-impl PreInvoke for HTMLMediaElementFetchListener {
     fn should_invoke(&self) -> bool {
         let element = self.element.root();
 
@@ -3646,6 +3627,23 @@ impl PreInvoke for HTMLMediaElementFetchListener {
         }
 
         true
+    }
+}
+
+impl ResourceTimingListener for HTMLMediaElementFetchListener {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        let initiator_type = InitiatorType::LocalName(
+            self.element
+                .root()
+                .upcast::<Element>()
+                .local_name()
+                .to_string(),
+        );
+        (initiator_type, self.url.clone())
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        self.element.root().owner_document().global()
     }
 }
 

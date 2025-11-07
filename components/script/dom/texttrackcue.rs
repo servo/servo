@@ -44,7 +44,7 @@ impl TextTrackCue {
         }
     }
 
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub(crate) fn new(
         window: &Window,
         id: DOMString,

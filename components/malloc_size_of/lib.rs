@@ -571,6 +571,14 @@ impl<T: MallocSizeOf> MallocSizeOf for OnceCell<T> {
     }
 }
 
+impl<T: MallocConditionalSizeOf> MallocConditionalSizeOf for OnceCell<T> {
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.get()
+            .map(|interior| interior.conditional_size_of(ops))
+            .unwrap_or_default()
+    }
+}
+
 // See https://github.com/rust-lang/rust/issues/68318:
 // We don't want MallocSizeOf to be defined for Rc and Arc. If negative trait bounds are
 // ever allowed, this code should be uncommented.  Instead, there is a compile-fail test for

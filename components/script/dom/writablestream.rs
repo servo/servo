@@ -211,7 +211,6 @@ impl WritableStream {
         self.controller.set(Some(controller));
     }
 
-    #[allow(unused)]
     pub(crate) fn get_default_controller(&self) -> DomRoot<WritableStreamDefaultController> {
         self.controller.get().expect("Controller should be set.")
     }
@@ -1156,7 +1155,7 @@ pub(crate) struct CrossRealmTransformWritable {
 impl CrossRealmTransformWritable {
     /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
     /// Add a handler for port’s message event with the following steps:
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn handle_message(
         &self,
         cx: SafeJSContext,
