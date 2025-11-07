@@ -1,7 +1,7 @@
 # mypy: allow-untyped-defs
 
-from http.client import HTTPConnection, ResponseNotReady
 import os
+import requests
 import tempfile
 import time
 
@@ -81,6 +81,7 @@ def write_hosts_file(config):
 
 class ServoWebDriverBrowser(WebDriverBrowser):
     init_timeout = 300  # Large timeout for cases where we're booting an Android emulator
+    shutdown_retry = 5
 
     def __init__(self, logger, binary, debug_info=None, webdriver_host="127.0.0.1",
                  server_config=None, binary_args=None,
@@ -134,33 +135,38 @@ class ServoWebDriverBrowser(WebDriverBrowser):
         if not super().is_alive():
             return False
         try:
-            conn = HTTPConnection(self.host, self.port)
-            conn.request("GET", "/status")
-            res = conn.getresponse()
+            requests.get(f"http://{self.host}:{self.port}/status", timeout=5)    
         except Exception:
-            self.logger.info("Servo has shutted down normally.")
+            self.logger.debug("Servo has shut down normally.")
             return False
 
         return True
 
     def stop(self, force=False):
+        retry_cnt = 0
         while self.is_alive():
             self.logger.info("Trying to shut down gracefully by extension command")
-            while True:
-                try:
-                    conn = HTTPConnection(self.host, self.port)
-                    conn.request("DELETE", "/session/dummy-session-id/servo/shutdown")
-                    res = conn.getresponse()
-                    self.logger.info(f"Got response status for shutdown command: {res.status}")
-                except ResponseNotReady:
-                    self.logger.info(f"Shutdown request not sent yet, retrying...")
-                    continue
-                except Exception as e:
-                    self.logger.info(f"Servo browser already shut down: {e}")
-                    return
-                # Successfully sent the shutdown command
+            try:
+                requests.delete(
+                    f"http://{self.host}:{self.port}/session/dummy-session-id/servo/shutdown",
+                    timeout=5
+                )
+            except requests.exceptions.ConnectionError:
+                self.logger.debug("Browser already shut down (connection refused)")
                 break
-            time.sleep(0.1)
+            except requests.exceptions.RequestException as e:
+                self.logger.debug(f"Request exception: {e}")
+                break
+            except requests.exceptions.Timeout:
+                self.logger.debug("Request timed out")
+                break
+                
+            retry_cnt += 1
+            if retry_cnt >= self.shutdown_retry:
+                self.logger.debug("Max retry exceeded.")
+                break
+            time.sleep(1)
+        super().stop(force=force)
 
     def find_wpt_prefs(self, logger):
         default_path = os.path.join("resources", "wpt-prefs.json")
