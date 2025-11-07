@@ -102,7 +102,8 @@ use background_hang_monitor_api::{
 use base::generic_channel::{GenericSender, RoutedReceiver};
 use base::id::{
     BrowsingContextGroupId, BrowsingContextId, HistoryStateId, MessagePortId, MessagePortRouterId,
-    PipelineId, PipelineNamespace, PipelineNamespaceId, PipelineNamespaceRequest, WebViewId,
+    PainterId, PipelineId, PipelineNamespace, PipelineNamespaceId, PipelineNamespaceRequest,
+    WebViewId,
 };
 use base::{Epoch, IpcSend, generic_channel};
 #[cfg(feature = "bluetooth")]
@@ -3053,6 +3054,10 @@ where
             }),
             viewport_details,
         });
+
+        let painter_id = PainterId::from(webview_id);
+        self.system_font_service
+            .prefetch_font_keys_for_painter(painter_id);
     }
 
     #[servo_tracing::instrument(skip_all)]

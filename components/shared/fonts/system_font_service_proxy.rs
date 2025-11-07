@@ -33,6 +33,7 @@ pub enum SystemFontServiceMessage {
         Vec<FontVariation>,
         IpcSender<FontInstanceKey>,
     ),
+    PrefetchFontKeys(PainterId),
     GetFontKey(PainterId, IpcSender<FontKey>),
     GetFontInstanceKey(PainterId, IpcSender<FontInstanceKey>),
     CollectMemoryReport(ReportsChan),
@@ -181,5 +182,11 @@ impl SystemFontServiceProxy {
         result_receiver
             .recv()
             .expect("Failed to communicate with system font service.")
+    }
+
+    pub fn prefetch_font_keys_for_painter(&self, painter_id: PainterId) {
+        let _ = self
+            .sender
+            .send(SystemFontServiceMessage::PrefetchFontKeys(painter_id));
     }
 }

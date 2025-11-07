@@ -456,11 +456,6 @@ impl PainterId {
     pub fn next() -> Self {
         Self(PAINTER_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
     }
-
-    /// TODO: This should be removed once font keys are generated per-Painter.
-    pub fn first_for_system_font_service() -> Self {
-        Self(0)
-    }
 }
 
 impl From<PainterId> for IdNamespace {
