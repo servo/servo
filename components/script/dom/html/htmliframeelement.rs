@@ -576,11 +576,20 @@ impl HTMLIFrameElement {
         // for the initial blank document if we know that a navigation is ongoing,
         // which can be deducted from `pending_navigation` or the presence of an src.
         //
+        // Additionally, to prevent a race condition with navigations,
+        // in all cases, skip the load event if there is a pending navigation.
+        // See #40348
+        //
         // TODO: run these step synchronously as part of processing the iframe attributes.
         let should_fire_event = if self.is_initial_blank_document() {
+            // If this is the initial blank doc:
+            // do not fire if there is a pending navigation,
+            // or if the iframe has an src.
             !self.pending_navigation.get() &&
                 !self.upcast::<Element>().has_attribute(&local_name!("src"))
         } else {
+            // If this is not the initial blank doc:
+            // do not fire if there is a pending navigation.
             !self.pending_navigation.get()
         };
         if should_fire_event {
