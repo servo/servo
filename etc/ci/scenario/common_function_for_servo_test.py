@@ -1,0 +1,64 @@
+import re
+import os
+import shutil
+import subprocess
+from decimal import Decimal
+from selenium import webdriver
+from selenium.webdriver.common.options import ArgOptions
+
+WEBDRIVER_PORT = 7000
+SERVO_URL = f"http://127.0.0.1:{WEBDRIVER_PORT}"
+
+def calculate_frame_rate():
+    """
+    Pull trace from device and calculate frame rate through trace
+    :return: frame rate
+    """
+    path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'target/ci_testing')
+    if not os.path.exists(path):
+        os.makedirs(path)
+        print("Folder created successfully.")
+    else:
+        print("The folder already exists.")
+    file_name = os.path.join(path, 'my_trace.html')
+    cmd = 'hdc file recv /data/local/tmp/my_trace.html {}'.format(file_name)
+    subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    commands_list = []
+    with open(file_name, 'r') as f:
+        for line in f.readlines():
+            if len(re.findall(r'org.servo.servo', line)) > 0 and len(re.findall(r'H:SendCommands', line)) > 0:
+                commands_list.append(line)
+    start_time = commands_list[0].split()[5].split(':')[0]
+    end_time = commands_list[-1].split()[5].split(':')[0]
+    interval_time = Decimal(end_time) - Decimal(start_time)
+    shutil.rmtree(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'target'))
+    if round(float(len(commands_list) / interval_time), 2) > 120.00:
+        return 120.00
+    else:
+        return round(float(len(commands_list) / interval_time), 2)
+
+def setup_hdc_forward():
+    """
+    set hdc forward
+    :return: If successful, return driver; If failed, return False
+    """
+    for v in ("HTTP_PROXY", "http_proxy", "HTTPS_PROXY", "https_proxy"):
+        os.environ.pop(v, None)
+    try:
+        cmd = ["hdc", "fport", f"tcp:{WEBDRIVER_PORT}", f"tcp:7000"]
+        print(f"Setting up HDC port forwarding: {' '.join(cmd)}")
+        subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        print(f"HDC port forwarding established on port {WEBDRIVER_PORT}")
+        options = ArgOptions()
+        options.set_capability("browserName", "servo")
+        driver = webdriver.Remote(command_executor=SERVO_URL, options=options)
+        return driver
+    except FileNotFoundError:
+        print("HDC command not found. Make sure OHOS SDK is installed and hdc is in PATH.")
+        return False
+    except subprocess.TimeoutExpired:
+        print(f"HDC port forwarding timed out on port {WEBDRIVER_PORT}")
+        return False
+    except Exception as e:
+        print(f"failed to setup HDC forwarding: {e}")
+        return False
