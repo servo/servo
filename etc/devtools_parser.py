@@ -173,8 +173,6 @@ if __name__ == "__main__":
     # Program arguments
     parser = ArgumentParser()
     parser.add_argument("-p", "--port", default="1234", help="the port where the devtools client is running")
-    parser.add_argument("-f", "--filter", help="search for the string on the messages")
-    parser.add_argument("--range", help="only parse messages from n to m, with the form of n:m")
     parser.add_argument("--json", action="store_true", help="output in newline-delimited JSON (NDJSON)")
 
     actions = parser.add_mutually_exclusive_group(required=True)
@@ -195,12 +193,5 @@ if __name__ == "__main__":
 
     data = process_data(data)
 
-    # Set the range of messages to show
-    min, max = 0, -2
-    if args.range and len(args.range.split(":")) == 2:
-        min, max = args.range.split(":")
-
-    for msg in data[int(min) : int(max) + 1]:
-        # Filter the messages if specified
-        if not args.filter or args.filter.lower() in msg[3].lower():
-            parse_message(msg, json_output=args.json)
+    for msg in data:
+        parse_message(msg, json_output=args.json)
