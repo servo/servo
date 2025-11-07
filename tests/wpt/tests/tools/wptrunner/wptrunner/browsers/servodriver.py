@@ -144,11 +144,11 @@ class ServoWebDriverBrowser(WebDriverBrowser):
         return True
 
     def stop(self, force=False):
-        conn = HTTPConnection(self.host, self.port)
         while self.is_alive():
             self.logger.info("Trying to shut down gracefully by extension command")
             while True:
                 try:
+                    conn = HTTPConnection(self.host, self.port)
                     conn.request("DELETE", "/session/dummy-session-id/servo/shutdown")
                     res = conn.getresponse()
                     self.logger.info(f"Got response status for shutdown command: {res.status}")
