@@ -131,9 +131,9 @@ pub enum CompositorMsg {
         /// An [ipc::IpcBytesReceiver] used to send the raw data of the display list.
         display_list_receiver: ipc::IpcBytesReceiver,
     },
-    /// Ask the renderer to generate a frame for the current set of display lists that
-    /// have been sent to the renderer.
-    GenerateFrame,
+    /// Ask the renderer to generate a frame for the current set of display lists
+    /// from the given `WebViewId`s that have been sent to the renderer.
+    GenerateFrame(Vec<WebViewId>),
     /// Create a new image key. The result will be returned via the
     /// provided channel sender.
     GenerateImageKey(GenericSender<ImageKey>),
@@ -344,8 +344,8 @@ impl CrossProcessCompositorApi {
     }
 
     /// Ask the Servo renderer to generate a new frame after having new display lists.
-    pub fn generate_frame(&self) {
-        if let Err(error) = self.0.send(CompositorMsg::GenerateFrame) {
+    pub fn generate_frame(&self, webview_ids: Vec<WebViewId>) {
+        if let Err(error) = self.0.send(CompositorMsg::GenerateFrame(webview_ids)) {
             warn!("Error generating frame: {error}");
         }
     }
