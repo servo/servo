@@ -286,7 +286,7 @@ impl IOCompositor {
                     display_list_receiver,
                 );
             },
-            CompositorMsg::GenerateFrame => {
+            CompositorMsg::GenerateFrame(_webview_ids) => {
                 self.painter_mut().generate_frame_for_script();
             },
             CompositorMsg::GenerateImageKey(sender) => {

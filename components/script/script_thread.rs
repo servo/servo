@@ -1073,8 +1073,8 @@ impl ScriptThread {
 
     /// <https://html.spec.whatwg.org/multipage/#update-the-rendering>
     ///
-    /// Attempt to update the rendering and then do a microtask checkpoint if rendering was actually
-    /// updated.
+    /// Attempt to update the rendering and then do a microtask checkpoint if rendering was
+    /// actually updated.
     ///
     /// Returns true if any reflows produced a new display list.
     pub(crate) fn update_the_rendering(&self, can_gc: CanGc) -> bool {
@@ -1114,7 +1114,7 @@ impl ScriptThread {
         // steps per doc in docs. Currently `<iframe>` resizing depends on a parent being able to
         // queue resize events on a child and have those run in the same call to this method, so
         // that needs to be sorted out to fix this.
-        let mut should_generate_frame = false;
+        let mut webviews_generating_frames = HashSet::new();
         for pipeline_id in documents_in_order.iter() {
             let document = self
                 .documents
@@ -1209,15 +1209,18 @@ impl ScriptThread {
 
             // > Step 22: For each doc of docs, update the rendering or user interface of
             // > doc and its node navigable to reflect the current state.
-            should_generate_frame =
-                document.update_the_rendering().needs_frame() || should_generate_frame;
+            if document.update_the_rendering().needs_frame() {
+                webviews_generating_frames.insert(document.webview_id());
+            }
 
             // TODO: Process top layer removals according to
             // https://drafts.csswg.org/css-position-4/#process-top-layer-removals.
         }
 
+        let should_generate_frame = !webviews_generating_frames.is_empty();
         if should_generate_frame {
-            self.compositor_api.generate_frame();
+            self.compositor_api
+                .generate_frame(webviews_generating_frames.into_iter().collect());
         }
 
         // Perform a microtask checkpoint as the specifications says that *update the rendering*
