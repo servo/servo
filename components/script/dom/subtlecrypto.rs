@@ -2387,6 +2387,12 @@ fn normalize_algorithm(
                 },
 
                 // <https://w3c.github.io/webcrypto/#x25519-registration>
+                (ALG_X25519, Operation::GenerateKey) => {
+                    let mut params =
+                        dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
                 (ALG_X25519, Operation::ImportKey) => {
                     let mut params =
                         dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
@@ -2792,6 +2798,8 @@ impl NormalizedAlgorithm {
         match self {
             NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
                 ALG_ED25519 => ed25519_operation::generate_key(global, extractable, usages, can_gc)
+                    .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair),
+                ALG_X25519 => x25519_operation::generate_key(global, extractable, usages, can_gc)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair),
                 _ => Err(Error::NotSupported),
             },
