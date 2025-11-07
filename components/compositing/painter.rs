@@ -277,6 +277,10 @@ impl Painter {
                 upload_method,
                 workers,
                 size_of_op: Some(servo_allocator::usable_size),
+                // This ensures that we can use the `PainterId` as the `IdNamespace`, which allows mapping
+                // from `FontKey`, `FontInstanceKey`, and `ImageKey` back to `PainterId`.
+                namespace_alloc_by_client: true,
+                shared_font_namespace: Some(painter_id.into()),
                 ..Default::default()
             },
             None,
@@ -285,7 +289,7 @@ impl Painter {
 
         webrender.set_external_image_handler(external_image_handlers);
 
-        let webrender_api = webrender_api_sender.create_api();
+        let webrender_api = webrender_api_sender.create_api_by_client(painter_id.into());
         let webrender_document = webrender_api.add_document(rendering_context.size2d().to_i32());
 
         let gl_renderer = webrender_gl.get_string(gleam::gl::RENDERER);
