@@ -15,6 +15,7 @@ use base::generic_channel::{GenericReceiver, GenericSender, RoutedReceiver};
 use crossbeam_channel::{Receiver, Sender, after, never, select, unbounded};
 use rustc_hash::FxHashMap;
 
+use crate::SamplerImpl;
 use crate::sampler::{NativeStack, Sampler};
 
 #[derive(Clone)]
@@ -75,43 +76,8 @@ impl BackgroundHangMonitorRegister for HangMonitorRegister {
             self.monitoring_enabled,
         );
 
-        #[cfg(all(
-            feature = "sampler",
-            target_os = "windows",
-            any(target_arch = "x86_64", target_arch = "x86")
-        ))]
-        let sampler = crate::sampler_windows::WindowsSampler::new_boxed();
-        #[cfg(all(feature = "sampler", target_os = "macos"))]
-        let sampler = crate::sampler_mac::MacOsSampler::new_boxed();
-        #[cfg(all(feature = "sampler", target_os = "android"))]
-        let sampler = crate::sampler_linux::LinuxSampler::new_boxed();
-        #[cfg(all(
-            feature = "sampler",
-            target_os = "linux",
-            not(any(
-                target_arch = "arm",
-                target_arch = "aarch64",
-                target_env = "ohos",
-                target_env = "musl"
-            )),
-        ))]
-        let sampler = crate::sampler_linux::LinuxSampler::new_boxed();
-        #[cfg(any(
-            not(feature = "sampler"),
-            all(
-                target_os = "linux",
-                any(
-                    target_arch = "arm",
-                    target_arch = "aarch64",
-                    target_env = "ohos",
-                    target_env = "musl"
-                )
-            ),
-        ))]
-        let sampler = crate::sampler::DummySampler::new_boxed();
-
         bhm_chan.send(MonitoredComponentMsg::Register(
-            sampler,
+            SamplerImpl::new_boxed(),
             thread::current().name().map(str::to_owned),
             transient_hang_timeout,
             permanent_hang_timeout,
