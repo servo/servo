@@ -43,6 +43,7 @@ from servo.platform.build_target import AndroidTarget, BuildTarget, OpenHarmonyT
 from servo.util import download_file, get_default_cache_dir
 
 from python.servo.platform.build_target import SanitizerKind
+from python.servo.util import get_target_dir
 
 NIGHTLY_REPOSITORY_URL = "https://servo-builds2.s3.amazonaws.com/"
 ASAN_LEAK_SUPPRESSION_FILE = "support/suppressed_leaks_for_asan.txt"
@@ -704,6 +705,11 @@ class CommandBase(object):
                     # In coverage report mode force-enable, so that the user doesn't need to
                     # additionally specify `--coverage`.
                     self.enable_code_coverage |= coverage_report
+                    if self.enable_code_coverage:
+                        target_dir = get_target_dir()
+                        # See `cargo llvm-cov show-env`. We only need the profile file environment variable
+                        # The other variables are only required when creating a coverage report.
+                        os.environ["LLVM_PROFILE_FILE"] = f"{target_dir}/servo-%p-%14m.profraw"
 
                 if binary_selection:
                     if "servo_binary" not in kwargs:
