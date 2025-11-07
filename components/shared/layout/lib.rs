@@ -823,7 +823,6 @@ mod test {
     use std::sync::Arc;
     use std::time::Duration;
 
-    use ipc_channel::ipc::IpcSharedMemory;
     use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage};
 
     use crate::ImageAnimationState;
@@ -845,7 +844,7 @@ mod test {
             },
             format: PixelFormat::BGRA8,
             id: None,
-            bytes: Arc::new(IpcSharedMemory::from_byte(1, 1)),
+            bytes: Arc::new(vec![1]),
             frames: image_frames,
             cors_status: CorsStatus::Unsafe,
             is_opaque: false,

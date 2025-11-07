@@ -92,6 +92,7 @@ pub enum SnapshotData {
         #[conditional_malloc_size_of] Arc<IpcSharedMemory>,
         Range<usize>,
     ),
+    SharedVec(#[conditional_malloc_size_of] Arc<Vec<u8>>, Range<usize>),
     Owned(Vec<u8>),
 }
 
@@ -99,6 +100,7 @@ impl SnapshotData {
     fn to_vec(&self) -> Vec<u8> {
         match &self {
             SnapshotData::SharedMemory(data, byte_range) => Vec::from(&data[byte_range.clone()]),
+            SnapshotData::SharedVec(data, byte_range) => Vec::from(&data[byte_range.clone()]),
             SnapshotData::Owned(data) => data.clone(),
         }
     }
@@ -107,7 +109,7 @@ impl SnapshotData {
 impl DerefMut for SnapshotData {
     fn deref_mut(&mut self) -> &mut Self::Target {
         match self {
-            SnapshotData::SharedMemory(..) => {
+            SnapshotData::SharedMemory(..) | SnapshotData::SharedVec(..) => {
                 *self = SnapshotData::Owned(self.to_vec());
                 &mut *self
             },
@@ -122,6 +124,7 @@ impl Deref for SnapshotData {
     fn deref(&self) -> &Self::Target {
         match &self {
             SnapshotData::SharedMemory(data, byte_range) => &data[byte_range.clone()],
+            SnapshotData::SharedVec(data, byte_range) => &data[byte_range.clone()],
             SnapshotData::Owned(items) => items,
         }
     }
@@ -195,11 +198,11 @@ impl Snapshot {
         }
     }
 
-    pub fn from_shared_memory(
+    pub fn from_arc_vec(
         size: Size2D<u32>,
         format: SnapshotPixelFormat,
         alpha_mode: SnapshotAlphaMode,
-        data: Arc<IpcSharedMemory>,
+        data: Arc<Vec<u8>>,
         byte_range_bounds: impl RangeBounds<usize>,
     ) -> Self {
         let range_start = match byte_range_bounds.start_bound() {
@@ -214,7 +217,7 @@ impl Snapshot {
         };
         Self {
             size,
-            data: SnapshotData::SharedMemory(data, range_start..range_end),
+            data: SnapshotData::SharedVec(data, range_start..range_end),
             format,
             alpha_mode,
         }
@@ -288,6 +291,10 @@ impl Snapshot {
     pub fn to_shared(&self) -> SharedSnapshot {
         let (data, byte_range) = match &self.data {
             SnapshotData::SharedMemory(data, byte_range) => (data.clone(), byte_range.clone()),
+            SnapshotData::SharedVec(data, byte_range) => (
+                Arc::new(IpcSharedMemory::from_bytes(data)),
+                byte_range.clone(),
+            ),
             SnapshotData::Owned(data) => {
                 (Arc::new(IpcSharedMemory::from_bytes(data)), 0..data.len())
             },
@@ -393,6 +400,7 @@ impl From<Snapshot> for Vec<u8> {
     fn from(value: Snapshot) -> Self {
         match value.data {
             SnapshotData::SharedMemory(..) => Vec::from(value.as_raw_bytes()),
+            SnapshotData::SharedVec(..) => Vec::from(value.as_raw_bytes()),
             SnapshotData::Owned(data) => data,
         }
     }

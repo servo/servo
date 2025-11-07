@@ -296,6 +296,11 @@ impl Notification {
 
     /// Create an [`embedder_traits::Notification`].
     fn to_embedder_notification(&self) -> EmbedderNotification {
+        let icon_resource = self
+            .icon_resource
+            .borrow()
+            .as_ref()
+            .map(|image| image.to_shared());
         EmbedderNotification {
             title: self.title.to_string(),
             body: self.body.to_string(),
@@ -325,12 +330,20 @@ impl Notification {
                         .icon_url
                         .as_ref()
                         .and_then(|icon| ServoUrl::parse(icon).ok()),
-                    icon_resource: action.icon_resource.borrow().clone(),
+                    icon_resource: icon_resource.clone(),
                 })
                 .collect(),
-            icon_resource: self.icon_resource.borrow().clone(),
-            badge_resource: self.badge_resource.borrow().clone(),
-            image_resource: self.image_resource.borrow().clone(),
+            icon_resource: icon_resource.clone(),
+            badge_resource: self
+                .badge_resource
+                .borrow()
+                .as_ref()
+                .map(|image| image.to_shared()),
+            image_resource: self
+                .image_resource
+                .borrow()
+                .as_ref()
+                .map(|image| image.to_shared()),
         }
     }
 }

@@ -281,14 +281,28 @@ pub enum CorsStatus {
     Unsafe,
 }
 
-#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
-pub struct RasterImage {
+/// A version of [`RasterImage`] that can be sent across IPC channels.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct SharedRasterImage {
     pub metadata: ImageMetadata,
     pub format: PixelFormat,
     pub id: Option<ImageKey>,
     pub cors_status: CorsStatus,
     #[conditional_malloc_size_of]
     pub bytes: Arc<IpcSharedMemory>,
+    pub frames: Vec<ImageFrame>,
+    /// Whether or not all of the frames of this image are opaque.
+    pub is_opaque: bool,
+}
+
+#[derive(Clone, MallocSizeOf)]
+pub struct RasterImage {
+    pub metadata: ImageMetadata,
+    pub format: PixelFormat,
+    pub id: Option<ImageKey>,
+    pub cors_status: CorsStatus,
+    #[conditional_malloc_size_of]
+    pub bytes: Arc<Vec<u8>>,
     pub frames: Vec<ImageFrame>,
     /// Whether or not all of the frames of this image are opaque.
     pub is_opaque: bool,
@@ -374,7 +388,7 @@ impl RasterImage {
             premultiplied: true,
         };
 
-        Snapshot::from_shared_memory(
+        Snapshot::from_arc_vec(
             size.cast(),
             format,
             alpha_mode,
@@ -392,7 +406,7 @@ impl RasterImage {
             .get(frame_index)
             .expect("Asked for a frame that did not exist: {frame_index:?}");
 
-        let (format, ipc_shared_memory) = match self.format {
+        let (format, data) = match self.format {
             PixelFormat::BGRA8 => (WebRenderImageFormat::BGRA8, (*self.bytes).clone()),
             PixelFormat::RGBA8 => (WebRenderImageFormat::RGBA8, (*self.bytes).clone()),
             PixelFormat::RGB8 => {
@@ -401,10 +415,7 @@ impl RasterImage {
                 for rgb in frame_bytes.chunks(3) {
                     bytes.extend_from_slice(&[rgb[2], rgb[1], rgb[0], 0xff]);
                 }
-                (
-                    WebRenderImageFormat::BGRA8,
-                    IpcSharedMemory::from_bytes(&bytes),
-                )
+                (WebRenderImageFormat::BGRA8, bytes)
             },
             PixelFormat::K8 | PixelFormat::KA8 => {
                 panic!("Not support by webrender yet");
@@ -421,7 +432,19 @@ impl RasterImage {
             offset: frame.byte_range.start as i32,
             flags,
         };
-        (descriptor, ipc_shared_memory)
+        (descriptor, IpcSharedMemory::from_bytes(&data))
+    }
+
+    pub fn to_shared(&self) -> Arc<SharedRasterImage> {
+        Arc::new(SharedRasterImage {
+            metadata: self.metadata,
+            format: self.format,
+            id: self.id,
+            cors_status: self.cors_status,
+            bytes: Arc::new(IpcSharedMemory::from_bytes(&self.bytes)),
+            frames: self.frames.clone(),
+            is_opaque: self.is_opaque,
+        })
     }
 }
 
@@ -697,7 +720,7 @@ fn decode_static_image(
         },
         format: PixelFormat::RGBA8,
         frames: vec![frame],
-        bytes: Arc::new(IpcSharedMemory::from_bytes(&rgba)),
+        bytes: Arc::new(rgba.to_vec()),
         id: None,
         cors_status,
         is_opaque,
@@ -775,7 +798,7 @@ where
         frames,
         id: None,
         format: PixelFormat::RGBA8,
-        bytes: Arc::new(IpcSharedMemory::from_bytes(&bytes)),
+        bytes: Arc::new(bytes),
         is_opaque,
     })
 }
