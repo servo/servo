@@ -81,7 +81,7 @@ def write_hosts_file(config):
 
 class ServoWebDriverBrowser(WebDriverBrowser):
     init_timeout = 300  # Large timeout for cases where we're booting an Android emulator
-    shutdown_retry = 5
+    shutdown_retry = 3
 
     def __init__(self, logger, binary, debug_info=None, webdriver_host="127.0.0.1",
                  server_config=None, binary_args=None,
@@ -135,9 +135,13 @@ class ServoWebDriverBrowser(WebDriverBrowser):
         if not super().is_alive():
             return False
         try:
-            requests.get(f"http://{self.host}:{self.port}/status", timeout=5)    
-        except Exception:
-            self.logger.debug("Servo has shut down normally.")
+            requests.get(f"http://{self.host}:{self.port}/status", timeout=3)    
+        except requests.exceptions.Timeout:
+            # FIXME: This indicates a hanged browser. Reasons need to be investigated further.
+            self.logger.debug("Servo webdriver status request timed out.")
+            return True
+        except Exception as e:
+            self.logger.debug(f"Servo has shut down normally. {e}")
             return False
 
         return True
@@ -149,7 +153,7 @@ class ServoWebDriverBrowser(WebDriverBrowser):
             try:
                 requests.delete(
                     f"http://{self.host}:{self.port}/session/dummy-session-id/servo/shutdown",
-                    timeout=5
+                    timeout=3
                 )
             except requests.exceptions.ConnectionError:
                 self.logger.debug("Browser already shut down (connection refused)")
@@ -166,7 +170,7 @@ class ServoWebDriverBrowser(WebDriverBrowser):
                 self.logger.debug("Max retry exceeded.")
                 break
             time.sleep(1)
-        super().stop(force=force)
+        super().stop(force)
 
     def find_wpt_prefs(self, logger):
         default_path = os.path.join("resources", "wpt-prefs.json")
