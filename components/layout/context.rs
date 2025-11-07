@@ -93,7 +93,7 @@ pub(crate) struct ImageResolver {
     /// A list of `SVGSVGElement`s encountered during layout that are not
     /// serialized yet. This is needed to support inline SVGs as they are treated
     /// as replaced elements and the layout is responsible for triggering the
-    /// network load for the corresponding serialzed data: urls (similar to
+    /// network load for the corresponding serialized data: urls (similar to
     /// background images).
     pub pending_svg_elements_for_serialization: Mutex<Vec<UntrustedNodeAddress>>,
 

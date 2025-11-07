@@ -54,7 +54,7 @@ impl Alpha {
 pub enum SnapshotAlphaMode {
     /// Internal data is opaque (alpha is cleared to 1)
     Opaque,
-    /// Internal data should be threated as opaque (does not mean it actually is)
+    /// Internal data should be treated as opaque (does not mean it actually is)
     AsOpaque { premultiplied: bool },
     /// Data is not opaque
     Transparent { premultiplied: bool },

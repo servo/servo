@@ -65,9 +65,9 @@ impl SessionContext {
                 ("service_worker", false),
                 ("shared_worker", false),
             ]),
-            // At the moment we are blocking most resources to avoid errors
+            // At the moment, we are blocking most resources to avoid errors
             // Support for them will be enabled gradually once the corresponding actors start
-            // working propperly
+            // working properly
             supported_resources: HashMap::from([
                 ("console-message", true),
                 ("css-change", true),
