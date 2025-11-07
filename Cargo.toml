@@ -119,7 +119,7 @@ p521 = { version = "0.13", features = ["ecdh"] }
 parking_lot = "0.12"
 peniko = "0.5"
 percent-encoding = "2.3"
-pkcs8 = "0.10"
+pkcs8 = { version = "0.10", features = ["rand_core"] }
 proc-macro2 = "1"
 profile_traits = { path = "components/shared/profile" }
 quote = "1"
