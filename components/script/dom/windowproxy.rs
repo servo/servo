@@ -37,7 +37,7 @@ use js::rust::wrappers::{JS_TransplantObject, NewWindowProxy, SetWindowProxy};
 use js::rust::{Handle, MutableHandle, MutableHandleValue, get_object_class};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::request::Referrer;
-use script_traits::NewLayoutInfo;
+use script_traits::NewPipelineInfo;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use storage_traits::webstorage_thread::WebStorageThreadMsg;
@@ -336,7 +336,7 @@ impl WindowProxy {
 
         let response = response_receiver.recv().unwrap()?;
         let new_browsing_context_id = BrowsingContextId::from(response.new_webview_id);
-        let new_layout_info = NewLayoutInfo {
+        let new_pipeline_info = NewPipelineInfo {
             parent_info: None,
             new_pipeline_id: response.new_pipeline_id,
             browsing_context_id: new_browsing_context_id,
@@ -348,7 +348,7 @@ impl WindowProxy {
             // change this later.
             theme: window.theme(),
         };
-        ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
+        ScriptThread::spawn_pipeline_in_current(new_pipeline_info, document.origin().clone());
         let new_window_proxy = ScriptThread::find_document(response.new_pipeline_id)
             .and_then(|doc| doc.browsing_context())?;
         if name.to_lowercase() != "_blank" {

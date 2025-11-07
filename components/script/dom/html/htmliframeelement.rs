@@ -20,7 +20,7 @@ use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
 use net_traits::request::Destination;
 use profile_traits::ipc as ProfiledIpc;
-use script_traits::{NewLayoutInfo, UpdatePipelineIdReason};
+use script_traits::{NewPipelineInfo, UpdatePipelineIdReason};
 use servo_url::ServoUrl;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use stylo_atoms::Atom;
@@ -216,7 +216,7 @@ impl HTMLIFrameElement {
                     .send(ScriptToConstellationMessage::ScriptNewIFrame(load_info))
                     .unwrap();
 
-                let new_layout_info = NewLayoutInfo {
+                let new_pipeline_info = NewPipelineInfo {
                     parent_info: Some(window.pipeline_id()),
                     new_pipeline_id,
                     browsing_context_id,
@@ -228,7 +228,10 @@ impl HTMLIFrameElement {
                 };
 
                 self.pipeline_id.set(Some(new_pipeline_id));
-                ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
+                ScriptThread::spawn_pipeline_in_current(
+                    new_pipeline_info,
+                    document.origin().clone(),
+                );
             },
             PipelineType::Navigation => {
                 let load_info = IFrameLoadInfoWithData {
