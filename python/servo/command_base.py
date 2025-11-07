@@ -29,7 +29,7 @@ from enum import Enum
 from glob import glob
 from os import path
 from subprocess import PIPE, CompletedProcess
-from typing import Any, Optional, Union, LiteralString, cast
+from typing import Any, Optional, Union, LiteralString, cast, List
 from collections.abc import Generator, Callable
 from xml.etree.ElementTree import XML
 
@@ -43,6 +43,7 @@ from servo.platform.build_target import AndroidTarget, BuildTarget, OpenHarmonyT
 from servo.util import download_file, get_default_cache_dir
 
 from python.servo.platform.build_target import SanitizerKind
+from python.servo.util import get_target_dir
 
 NIGHTLY_REPOSITORY_URL = "https://servo-builds2.s3.amazonaws.com/"
 ASAN_LEAK_SUPPRESSION_FILE = "support/suppressed_leaks_for_asan.txt"
@@ -89,6 +90,9 @@ class BuildType:
             return "release"
         else:
             return self.profile
+
+    def as_cargo_arg(self) -> List[str]:
+        return ["--profile", self.profile]
 
     def __eq__(self, other: object) -> bool:
         raise Exception("BUG: do not compare BuildType with ==")
@@ -258,6 +262,7 @@ class CommandBase(object):
     def __init__(self, context: Any) -> None:
         self.context = context
         self.enable_media = False
+        self.enable_code_coverage = False
         self.features = []
 
         # Default to native build target. This will later be overriden
@@ -336,7 +341,7 @@ class CommandBase(object):
 
     def get_binary_path(self, build_type: BuildType, sanitizer: SanitizerKind = SanitizerKind.NONE) -> str:
         base_path = util.get_target_dir()
-        if sanitizer.is_some() or self.target.is_cross_build():
+        if sanitizer.is_some() or self.target.is_cross_build() or self.enable_code_coverage:
             base_path = path.join(base_path, self.target.triple())
         binary_name = self.target.binary_name()
         binary_path = path.join(base_path, build_type.directory_name(), binary_name)
@@ -537,6 +542,7 @@ class CommandBase(object):
         build_type: bool = False,
         binary_selection: bool = False,
         package_configuration: bool = False,
+        coverage_report: bool = False,
     ) -> Callable:
         decorators = []
         if build_type or binary_selection:
@@ -658,6 +664,15 @@ class CommandBase(object):
                 CommandArgument("--bin", default=None, help="Launch with specific binary"),
                 CommandArgument("--nightly", "-n", default=None, help="Specify a YYYY-MM-DD nightly build to run"),
             ]
+        if build_configuration or binary_selection:
+            decorators += [
+                CommandArgument(
+                    "--coverage",
+                    default=False,
+                    action="store_true",
+                    help="Build / Run with code coverage instrumentation",
+                ),
+            ]
 
         def decorator_function(original_function: Callable) -> Callable:
             def configuration_decorator(self: CommandBase, *args: Any, **kwargs: Any) -> Callable:
@@ -679,6 +694,17 @@ class CommandBase(object):
                     self.configure_build_target(kwargs)
                     self.features = kwargs.get("features", None) or []
                     self.enable_media = self.is_media_enabled(kwargs["media_stack"])
+
+                if build_configuration or binary_selection:
+                    self.enable_code_coverage = kwargs.pop("coverage", False)
+                    # In coverage report mode force-enable, so that the user doesn't need to
+                    # additionally specify `--coverage`.
+                    self.enable_code_coverage |= coverage_report
+                    if self.enable_code_coverage:
+                        target_dir = get_target_dir()
+                        # See `cargo llvm-cov show-env`. We only need the profile file environment variable
+                        # The other variables are only required when creating a coverage report.
+                        os.environ["LLVM_PROFILE_FILE"] = f"{target_dir}/servo-%p-%14m.profraw"
 
                 if binary_selection:
                     if "servo_binary" not in kwargs:
