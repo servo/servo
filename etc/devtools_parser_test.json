@@ -57,3 +57,4 @@
 {"to": "server1.conn0.thread-configuration15", "configuration": {"shouldPauseOnDebuggerStatement": true}, "type": "updateConfiguration"}
 {"from": "server1.conn0.thread-configuration15"}
 {"to": "server1.conn0.thread-configuration15", "configuration": {"pauseOnExceptions": false, "ignoreCaughtExceptions": false}, "type": "updateConfiguration"}
+{"from": "server1.conn0.thread-configuration15"}
