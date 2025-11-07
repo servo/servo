@@ -92,12 +92,7 @@ class BuildType:
             return self.profile
 
     def as_cargo_arg(self) -> List[str]:
-        if self.is_dev():
-            return ["--debug"]
-        elif self.is_release():
-            return ["--release"]
-        else:
-            return ["--profile", self.profile]
+        return ["--profile", self.profile]
 
     def __eq__(self, other: object) -> bool:
         raise Exception("BUG: do not compare BuildType with ==")
