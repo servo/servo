@@ -521,7 +521,7 @@ impl Window {
 
     #[expect(unsafe_code)]
     pub(crate) fn get_cx(&self) -> JSContext {
-        unsafe { JSContext::from_ptr(self.js_runtime.borrow().as_ref().unwrap().cx()) }
+        unsafe { JSContext::from_ptr(js::rust::Runtime::get().unwrap().as_ptr()) }
     }
 
     pub(crate) fn get_js_runtime(&self) -> Ref<'_, Option<Rc<Runtime>>> {

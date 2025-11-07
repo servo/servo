@@ -22,7 +22,8 @@ use base::IpcSend;
 use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use dom_struct::dom_struct;
-use js::jsapi::{GCReason, JS_GC, JS_GetGCParameter, JSGCParamKey, JSTracer};
+use js::jsapi::{GCReason, JSGCParamKey, JSTracer};
+use js::rust::wrappers2::{JS_GC, JS_GetGCParameter};
 use malloc_size_of::malloc_size_of_is_0;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{Destination, RequestBuilder, RequestMode};
@@ -601,7 +602,7 @@ impl WorkletThread {
     /// The current memory usage of the thread
     #[expect(unsafe_code)]
     fn current_memory_usage(&self) -> u32 {
-        unsafe { JS_GetGCParameter(self.runtime.cx(), JSGCParamKey::JSGC_BYTES) }
+        unsafe { JS_GetGCParameter(self.runtime.cx_no_gc(), JSGCParamKey::JSGC_BYTES) }
     }
 
     /// Perform a GC.

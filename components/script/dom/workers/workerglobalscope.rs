@@ -448,7 +448,7 @@ impl WorkerGlobalScope {
 
     #[expect(unsafe_code)]
     pub(crate) fn get_cx(&self) -> JSContext {
-        unsafe { JSContext::from_ptr(self.runtime.borrow().as_ref().unwrap().cx()) }
+        unsafe { JSContext::from_ptr(js::rust::Runtime::get().unwrap().as_ptr()) }
     }
 
     pub(crate) fn is_closing(&self) -> bool {
@@ -686,7 +686,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             };
         }
 
-        rooted!(in(self.runtime.borrow().as_ref().unwrap().cx()) let mut rval = UndefinedValue());
+        rooted!(in(*self.get_cx()) let mut rval = UndefinedValue());
         for url in urls {
             let global_scope = self.upcast::<GlobalScope>();
             let request = NetRequestInit::new(
@@ -743,7 +743,11 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                 .as_ref()
                 .unwrap()
                 .new_compile_options(url.as_str(), 1);
-            let result = self.runtime.borrow().as_ref().unwrap().evaluate_script(
+            #[allow(unsafe_code)]
+            let mut cx =
+                unsafe { js::context::JSContext::from_ptr(js::rust::Runtime::get().unwrap()) };
+            let result = js::rust::evaluate_script(
+                &mut cx,
                 self.reflector().get_jsobject(),
                 &source,
                 rval.handle_mut(),
