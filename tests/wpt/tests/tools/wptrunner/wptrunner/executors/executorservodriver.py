@@ -22,7 +22,7 @@ def do_delayed_imports():
 
         def get_prefs(self, *prefs):
             body = {"prefs": list(prefs)}
-            return self.session.send_session_command("POST", "servo/prefs/get", body)
+            return self.session.send_session_command("GET", "servo/prefs/get", body)
 
         def set_prefs(self, prefs):
             body = {"prefs": prefs}
@@ -31,6 +31,11 @@ def do_delayed_imports():
         def reset_prefs(self, *prefs):
             body = {"prefs": list(prefs)}
             return self.session.send_session_command("POST", "servo/prefs/reset", body)
+
+        def shutdown(self):
+            body = {}
+            return self.session.send_session_command("DELETE", "servo/shutdown", body)
+
 
         def change_prefs(self, old_prefs, new_prefs):
             # Servo interprets reset with an empty list as reset everything
