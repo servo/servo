@@ -6,7 +6,7 @@
 
 # This is a script designed to easily debug devtools messages
 # It takes the content of a pcap wireshark capture (or creates a new
-# one when using --scan) and pretty prints the JSON payloads.
+# one when using `-w`) and pretty prints the JSON payloads.
 #
 # Wireshark (more specifically its cli tool tshark) needs to be installed
 # for this script to work. Go to https://tshark.dev/setup/install for a
@@ -25,17 +25,18 @@
 #
 # Then run this tool in capture mode and specify the same port as before:
 #
-# ./devtools_parser.py --scan cap.pcap --port 1234
+# ./devtools_parser.py -w capture.pcap -p 1234
 #
 # Finally, open another instance of Firefox and go to about:debugging
 # and connect to localhost:1234. Messages should start popping up. The
 # scan can be finished by pressing Ctrl+C. Then, all of the messages will
 # show up.
 #
-# You can also review the results of a saved scan, and filter by words
-# or by message range:
+# To review the results of the scan use the `-r` flag. It is possible to output
+# newline-delimited JSON for further processing with other tools using the
+# `--json` flag.
 #
-# ./devtools_parser.py --use cap.pcap --port 1234 --filter watcher --range 10:30
+# ./devtools_parser.py -r capture.pcap -p 1234 --json > capture.json
 
 import json
 import signal
@@ -173,21 +174,23 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("-p", "--port", default="1234", help="the port where the devtools client is running")
     parser.add_argument("-f", "--filter", help="search for the string on the messages")
-    parser.add_argument("-r", "--range", help="only parse messages from n to m, with the form of n:m")
+    parser.add_argument("--range", help="only parse messages from n to m, with the form of n:m")
     parser.add_argument("--json", action="store_true", help="output in newline-delimited JSON (NDJSON)")
 
     actions = parser.add_mutually_exclusive_group(required=True)
-    actions.add_argument("-s", "--scan", help="scan and save the output to a file")
-    actions.add_argument("-u", "--use", help="use the scan from a file")
+    actions.add_argument(
+        "-w", "--write-file", help="capture messages on the specified port and write the output to a .pcap file"
+    )
+    actions.add_argument("-r", "--read-file", help="parse the captured messages from a .pcap file")
 
     args = parser.parse_args()
 
     # Run tshark, either to start a capture or to read an already existing pcap file
-    if args.scan:
-        capture_args = ["-i", "lo", "-f", f"tcp port {args.port}", "-w", args.scan]
+    if args.write_file:
+        capture_args = ["-i", "lo", "-f", f"tcp port {args.port}", "-w", args.write_file]
         data = tshark(capture_args, wait=True)
     else:
-        read_args = ["-r", args.use]
+        read_args = ["-r", args.read_file]
         data = tshark(read_args)
 
     data = process_data(data)
