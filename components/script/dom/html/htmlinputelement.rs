@@ -55,7 +55,7 @@ use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, FromInputValueString, ToInputValueString, USVString};
-use crate::dom::clipboardevent::ClipboardEvent;
+use crate::dom::clipboardevent::{ClipboardEvent, ClipboardEventType};
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::document_embedder_controls::ControlElement;
@@ -1619,7 +1619,7 @@ impl TextControlElement for HTMLInputElement {
             InputType::Week |
             InputType::Time |
             InputType::DatetimeLocal |
-            InputType::Number => true,
+            InputType::Number => !self.textinput.borrow().get_content().is_empty(),
 
             InputType::Button |
             InputType::Checkbox |
@@ -1634,8 +1634,17 @@ impl TextControlElement for HTMLInputElement {
         }
     }
 
+    fn has_selection(&self) -> bool {
+        self.textinput.borrow().has_selection()
+    }
+
     fn set_dirty_value_flag(&self, value: bool) {
         self.value_dirty.set(value)
+    }
+
+    fn select_all(&self) {
+        self.textinput.borrow_mut().select_all();
+        self.upcast::<Node>().dirty(NodeDamage::Other);
     }
 }
 
@@ -3251,18 +3260,15 @@ impl VirtualMethods for HTMLInputElement {
                     // now.
                     if let Some(point_in_target) = mouse_event.point_in_target() {
                         let window = self.owner_window();
-                        let index = window
-                            .text_index_query(self.upcast::<Node>(), point_in_target.to_untyped());
-                        // Position the caret at the click position or at the end of the current
-                        // value.
-                        let edit_point_index = match index {
-                            Some(i) => i,
-                            None => self.textinput.borrow().char_count(),
-                        };
+
+                        // Position the caret at the click position or at the end of the current value.
+                        let edit_point_index = window
+                            .text_index_query(self.upcast::<Node>(), point_in_target.to_untyped())
+                            .unwrap_or_else(|| self.textinput.borrow().char_count());
+                        self.textinput.borrow_mut().clear_selection();
                         self.textinput
                             .borrow_mut()
                             .set_edit_point_index(edit_point_index);
-                        // trigger redraw
                         self.upcast::<Node>().dirty(NodeDamage::Other);
                         event.PreventDefault();
                     }
@@ -3320,9 +3326,11 @@ impl VirtualMethods for HTMLInputElement {
                 .handle_clipboard_event(clipboard_event);
             let flags = reaction.flags;
             if flags.contains(ClipboardEventFlags::FireClipboardChangedEvent) {
-                self.owner_document()
-                    .event_handler()
-                    .fire_clipboardchange_event(can_gc);
+                self.owner_document().event_handler().fire_clipboard_event(
+                    None,
+                    ClipboardEventType::Change,
+                    can_gc,
+                );
             }
             if flags.contains(ClipboardEventFlags::QueueInputEvent) {
                 self.textinput.borrow().queue_input_event(

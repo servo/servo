@@ -24,7 +24,7 @@ use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::clipboardevent::ClipboardEvent;
+use crate::dom::clipboardevent::{ClipboardEvent, ClipboardEventType};
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::document_embedder_controls::ControlElement;
@@ -234,11 +234,20 @@ impl TextControlElement for HTMLTextAreaElement {
     }
 
     fn has_selectable_text(&self) -> bool {
-        true
+        !self.textinput.borrow().get_content().is_empty()
+    }
+
+    fn has_selection(&self) -> bool {
+        self.textinput.borrow().has_selection()
     }
 
     fn set_dirty_value_flag(&self, value: bool) {
         self.value_dirty.set(value)
+    }
+
+    fn select_all(&self) {
+        self.textinput.borrow_mut().select_all();
+        self.upcast::<Node>().dirty(NodeDamage::Other);
     }
 }
 
@@ -723,11 +732,14 @@ impl VirtualMethods for HTMLTextAreaElement {
                 .textinput
                 .borrow_mut()
                 .handle_clipboard_event(clipboard_event);
+
             let flags = reaction.flags;
             if flags.contains(ClipboardEventFlags::FireClipboardChangedEvent) {
-                self.owner_document()
-                    .event_handler()
-                    .fire_clipboardchange_event(can_gc);
+                self.owner_document().event_handler().fire_clipboard_event(
+                    None,
+                    ClipboardEventType::Change,
+                    can_gc,
+                );
             }
             if flags.contains(ClipboardEventFlags::QueueInputEvent) {
                 self.textinput.borrow().queue_input_event(

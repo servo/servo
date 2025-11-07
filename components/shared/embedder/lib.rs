@@ -669,6 +669,7 @@ pub enum ContextMenuItem {
     Item {
         label: String,
         action: ContextMenuAction,
+        enabled: bool,
     },
     Separator,
 }
@@ -676,11 +677,22 @@ pub enum ContextMenuItem {
 /// A particular action associated with a [`ContextMenuItem`]. These actions are
 /// context-sensitive, which means that some of them are available only for some
 /// page elements.
-#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
+#[derive(Copy, Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum ContextMenuAction {
     GoBack,
     GoForward,
     Reload,
+
+    CopyLink,
+    OpenLinkInNewWebView,
+
+    CopyImageLink,
+    OpenImageInNewView,
+
+    Cut,
+    Copy,
+    Paste,
+    SelectAll,
 }
 
 /// Request to present an IME to the user when an editable element is focused. If `type` is

@@ -5,7 +5,9 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use egui::{Area, Frame, Id, Label, Modal, Order, Sense, pos2};
+use egui::{
+    Area, Button, CornerRadius, Frame, Id, Modal, Order, RichText, Sense, Stroke, Vec2, pos2,
+};
 use egui_file_dialog::{DialogState, FileDialog as EguiFileDialog};
 use euclid::Length;
 use log::warn;
@@ -548,7 +550,7 @@ impl Dialog {
                                         );
                                     },
                                     SelectElementOptionOrOptgroup::Optgroup { label, options } => {
-                                        ui.label(egui::RichText::new(label).strong());
+                                        ui.label(RichText::new(label).strong());
 
                                         for option in options {
                                             display_option(
@@ -647,18 +649,41 @@ impl Dialog {
                         .fixed_pos(pos2(position.min.x as f32, position.min.y as f32))
                         .order(Order::Foreground)
                         .show(ctx, |ui| {
-                            // Do not allow selecting text in menu labels.
-                            ui.style_mut().interaction.selectable_labels = false;
-
                             Frame::popup(ui.style()).show(ui, |ui| {
                                 ui.set_min_width(MINIMUM_UI_ELEMENT_WIDTH);
                                 for item in context_menu.items() {
                                     match item {
-                                        ContextMenuItem::Item { label, action } => {
-                                            if ui
-                                                .add(Label::new(label).sense(Sense::click()))
-                                                .clicked()
-                                            {
+                                        ContextMenuItem::Item {
+                                            label,
+                                            action,
+                                            enabled,
+                                        } => {
+                                            let (color, sense) = match enabled {
+                                                true => (
+                                                    ui.visuals().strong_text_color(),
+                                                    Sense::click(),
+                                                ),
+                                                false => {
+                                                    (ui.visuals().weak_text_color(), Sense::empty())
+                                                },
+                                            };
+
+                                            ui.style_mut().visuals.widgets.inactive.weak_bg_fill =
+                                                ui.visuals().panel_fill;
+                                            ui.style_mut().visuals.widgets.inactive.bg_fill =
+                                                ui.visuals().panel_fill;
+                                            let button =
+                                                Button::new(RichText::new(label).color(color))
+                                                    .sense(sense)
+                                                    .corner_radius(CornerRadius::ZERO)
+                                                    .stroke(Stroke::NONE)
+                                                    .wrap_mode(egui::TextWrapMode::Extend)
+                                                    .min_size(Vec2 {
+                                                        x: MINIMUM_UI_ELEMENT_WIDTH,
+                                                        y: 0.0,
+                                                    });
+
+                                            if ui.add(button).clicked() {
                                                 selected_action = Some(*action);
                                                 ui.close();
                                             }
