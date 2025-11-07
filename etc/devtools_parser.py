@@ -6,7 +6,7 @@
 
 # This is a script designed to easily debug devtools messages
 # It takes the content of a pcap wireshark capture (or creates a new
-# one when using `-w`) and pretty prints the JSON payloads.
+# one when using `-w`) and prints the JSON payloads.
 #
 # Wireshark (more specifically its cli tool tshark) needs to be installed
 # for this script to work. Go to https://tshark.dev/setup/install for a
@@ -17,26 +17,24 @@
 # MacOS (With homebrew):      brew install --cask wireshark
 # Windows (With chocolatey):  choco install wireshark
 #
-# To use it, launch either Servo or a Firefox debugging instance in
-# devtools mode:
+# To use it, launch Servo or Firefox in devtools mode:
 #
-# Servo: ./mach run --devtools=1234
-# Firefox: firefox --new-instance --start-debugger-server 1234 --profile PROFILE
+# Servo: ./mach run --devtools 6080
+# Firefox: firefox --new-instance --start-debugger-server 6080 --profile PROFILE
 #
-# Then run this tool in capture mode and specify the same port as before:
+# Then run this tool in capture mode, specifying the same port as before:
 #
-# ./devtools_parser.py -w capture.pcap -p 1234
+# ./devtools_parser.py -w capture.pcap -p 6080
 #
-# Finally, open another instance of Firefox and go to about:debugging
-# and connect to localhost:1234. Messages should start popping up. The
-# scan can be finished by pressing Ctrl+C. Then, all of the messages will
-# show up.
+# Finally, open another instance of Firefox, go to about:debugging and connect
+# to localhost:6080. Messages should start popping up. The scan can be finished
+# by pressing Ctrl+C. After that the messages will be printed.
 #
 # To review the results of the scan use the `-r` flag. It is possible to output
 # newline-delimited JSON for further processing with other tools using the
 # `--json` flag.
 #
-# ./devtools_parser.py -r capture.pcap -p 1234 --json > capture.json
+# ./devtools_parser.py -r capture.pcap --json > capture.json
 
 import json
 import signal
@@ -172,7 +170,7 @@ def parse_message(msg, json_output=False):
 if __name__ == "__main__":
     # Program arguments
     parser = ArgumentParser()
-    parser.add_argument("-p", "--port", default="1234", help="the port where the devtools client is running")
+    parser.add_argument("-p", "--port", default="6080", help="the port where the devtools client is running")
     parser.add_argument("--json", action="store_true", help="output in newline-delimited JSON (NDJSON)")
 
     actions = parser.add_mutually_exclusive_group(required=True)
