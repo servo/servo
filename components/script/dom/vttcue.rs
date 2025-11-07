@@ -152,7 +152,7 @@ impl VTTCueMethods<crate::DomTypeHolder> for VTTCue {
     fn SetPosition(&self, value: VTTCueBinding::LineAndPositionSetting) -> ErrorResult {
         if let VTTCueBinding::LineAndPositionSetting::Double(x) = value {
             if *x < 0_f64 || *x > 100_f64 {
-                return Err(Error::IndexSize);
+                return Err(Error::IndexSize(None));
             }
         }
 
@@ -178,7 +178,7 @@ impl VTTCueMethods<crate::DomTypeHolder> for VTTCue {
     /// <https://w3c.github.io/webvtt/#dom-vttcue-size>
     fn SetSize(&self, value: Finite<f64>) -> ErrorResult {
         if *value < 0_f64 || *value > 100_f64 {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
 
         self.size.set(*value);

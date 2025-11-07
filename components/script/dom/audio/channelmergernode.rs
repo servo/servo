@@ -45,7 +45,7 @@ impl ChannelMergerNode {
         }
 
         if options.numberOfInputs < 1 || options.numberOfInputs > MAX_CHANNEL_COUNT {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
 
         let num_inputs = options.numberOfInputs;

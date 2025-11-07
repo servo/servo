@@ -260,7 +260,7 @@ impl Range {
         }
         if offset > node.len() {
             // Step 3.
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
         if let Ordering::Less = bp_position(node, offset, &start_node, self.start_offset()).unwrap()
         {
@@ -360,7 +360,7 @@ impl Range {
 
         // Step 2. If offset is greater than node’s length, then throw an "IndexSizeError" DOMException.
         if offset > node.len() {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
 
         // Step 3. Let bp be the boundary point (node, offset).

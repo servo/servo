@@ -160,7 +160,7 @@ impl TimeRangesMethods<crate::DomTypeHolder> for TimeRanges {
         self.ranges
             .start(index)
             .map(Finite::wrap)
-            .map_err(|_| Error::IndexSize)
+            .map_err(|_| Error::IndexSize(None))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-timeranges-end>
@@ -168,6 +168,6 @@ impl TimeRangesMethods<crate::DomTypeHolder> for TimeRanges {
         self.ranges
             .end(index)
             .map(Finite::wrap)
-            .map_err(|_| Error::IndexSize)
+            .map_err(|_| Error::IndexSize(None))
     }
 }

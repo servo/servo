@@ -14,7 +14,7 @@ use crate::script_runtime::JSContext as SafeJSContext;
 #[derive(Clone, Debug, MallocSizeOf)]
 pub enum Error {
     /// IndexSizeError DOMException
-    IndexSize,
+    IndexSize(Option<String>),
     /// NotFoundError DOMException
     NotFound(Option<String>),
     /// HierarchyRequestError DOMException

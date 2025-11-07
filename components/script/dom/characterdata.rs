@@ -147,7 +147,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
                 s
             },
             // Step 2.
-            Err(()) => return Err(Error::IndexSize),
+            Err(()) => return Err(Error::IndexSize(None)),
         };
         match split_at_utf16_code_unit_offset(remaining, count) {
             // Steps 3.
@@ -200,7 +200,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
                     remaining = r;
                 },
                 // Step 2.
-                Err(()) => return Err(Error::IndexSize),
+                Err(()) => return Err(Error::IndexSize(None)),
             };
             let replacement_after;
             let suffix;

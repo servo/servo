@@ -186,11 +186,11 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     /// <https://w3c.github.io/selection-api/#dom-selection-getrangeat>
     fn GetRangeAt(&self, index: u32) -> Fallible<DomRoot<Range>> {
         if index != 0 {
-            Err(Error::IndexSize)
+            Err(Error::IndexSize(None))
         } else if let Some(range) = self.range.get() {
             Ok(DomRoot::from_ref(&range))
         } else {
-            Err(Error::IndexSize)
+            Err(Error::IndexSize(None))
         }
     }
 
@@ -244,7 +244,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
             }
             if offset > node.len() {
                 // Step 2
-                return Err(Error::IndexSize);
+                return Err(Error::IndexSize(None));
             }
 
             if !self.is_same_root(node) {
@@ -314,7 +314,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
             if offset > node.len() {
                 // As with is_doctype, not explicit in selection spec steps here
                 // but implied by which exceptions are thrown in WPT tests
-                return Err(Error::IndexSize);
+                return Err(Error::IndexSize(None));
             }
 
             // Step 4
@@ -386,7 +386,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         }
 
         if anchor_offset > anchor_node.len() || focus_offset > focus_node.len() {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
 
         // Step 2

@@ -1219,7 +1219,7 @@ impl CanvasState {
         can_gc: CanGc,
     ) -> Fallible<DomRoot<CanvasGradient>> {
         if *r0 < 0. || *r1 < 0. {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
 
         Ok(CanvasGradient::new(
@@ -1749,7 +1749,7 @@ impl CanvasState {
         can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
         if sw == 0 || sh == 0 {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
         ImageData::new(global, sw.unsigned_abs(), sh.unsigned_abs(), None, can_gc)
     }
@@ -1780,7 +1780,7 @@ impl CanvasState {
         // overflow or underflow, this should probably be audited.
 
         if sw == 0 || sh == 0 {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
 
         if !self.origin_is_clean() {
@@ -2218,7 +2218,7 @@ impl CanvasState {
         self.current_default_path
             .borrow_mut()
             .arc(x, y, r, start, end, ccw)
-            .map_err(|_| Error::IndexSize)
+            .map_err(|_| Error::IndexSize(None))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-arcto
@@ -2226,7 +2226,7 @@ impl CanvasState {
         self.current_default_path
             .borrow_mut()
             .arc_to(cp1x, cp1y, cp2x, cp2y, r)
-            .map_err(|_| Error::IndexSize)
+            .map_err(|_| Error::IndexSize(None))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-ellipse>
@@ -2245,7 +2245,7 @@ impl CanvasState {
         self.current_default_path
             .borrow_mut()
             .ellipse(x, y, rx, ry, rotation, start, end, ccw)
-            .map_err(|_| Error::IndexSize)
+            .map_err(|_| Error::IndexSize(None))
     }
 
     fn text_with_size(

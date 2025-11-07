@@ -120,7 +120,7 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         }
 
         if output >= self.NumberOfOutputs() || input >= destination.NumberOfInputs() {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
 
         // servo-media takes care of ignoring duplicated connections.
@@ -144,7 +144,7 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         }
 
         if output >= self.NumberOfOutputs() {
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
 
         // servo-media takes care of ignoring duplicated connections.
@@ -261,7 +261,7 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
                 if self.context.is_offline() {
                     return Err(Error::InvalidState(None));
                 } else if !(1..=MAX_CHANNEL_COUNT).contains(&value) {
-                    return Err(Error::IndexSize);
+                    return Err(Error::IndexSize(None));
                 }
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::PannerNode) => {

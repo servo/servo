@@ -74,7 +74,7 @@ impl TextMethods<crate::DomTypeHolder> for Text {
         let length = cdata.Length();
         if offset > length {
             // Step 2.
-            return Err(Error::IndexSize);
+            return Err(Error::IndexSize(None));
         }
         // Step 3.
         let count = length - offset;
