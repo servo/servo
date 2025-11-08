@@ -937,10 +937,10 @@ unsafe fn GetSubframeWindowProxy(
     proxy: RawHandleObject,
     id: RawHandleId,
 ) -> Option<(DomRoot<WindowProxy>, u32)> {
-    let index = get_array_index_from_id(Handle::from_raw(id));
+    let index = get_array_index_from_id(unsafe { Handle::from_raw(id) });
     if let Some(index) = index {
         let mut slot = UndefinedValue();
-        GetProxyPrivate(*proxy, &mut slot);
+        unsafe { GetProxyPrivate(*proxy, &mut slot) };
         rooted!(in(cx) let target = slot.to_object());
         let script_window_proxies = ScriptThread::window_proxies();
         if let Ok(win) = root_from_handleobject::<Window>(target.handle(), cx) {
@@ -986,53 +986,55 @@ unsafe fn GetSubframeWindowProxy(
 }
 
 #[allow(unsafe_code, non_snake_case)]
-unsafe extern "C" fn getOwnPropertyDescriptor(
+unsafe extern "C" fn get_own_property_descriptor(
     cx: *mut JSContext,
     proxy: RawHandleObject,
     id: RawHandleId,
     desc: RawMutableHandle<PropertyDescriptor>,
     is_none: *mut bool,
 ) -> bool {
-    let window = GetSubframeWindowProxy(cx, proxy, id);
+    let window = unsafe { GetSubframeWindowProxy(cx, proxy, id) };
     if let Some((window, attrs)) = window {
         rooted!(in(cx) let mut val = UndefinedValue());
-        window.to_jsval(cx, val.handle_mut());
+        unsafe { window.to_jsval(cx, val.handle_mut()) };
         set_property_descriptor(
-            MutableHandle::from_raw(desc),
+            unsafe { MutableHandle::from_raw(desc) },
             val.handle(),
             attrs,
-            &mut *is_none,
+            unsafe { &mut *is_none },
         );
         return true;
     }
 
     let mut slot = UndefinedValue();
-    GetProxyPrivate(proxy.get(), &mut slot);
+    unsafe { GetProxyPrivate(proxy.get(), &mut slot) };
     rooted!(in(cx) let target = slot.to_object());
-    JS_GetOwnPropertyDescriptorById(cx, target.handle().into(), id, desc, is_none)
+    unsafe { JS_GetOwnPropertyDescriptorById(cx, target.handle().into(), id, desc, is_none) }
 }
 
 #[allow(unsafe_code, non_snake_case)]
-unsafe extern "C" fn defineProperty(
+unsafe extern "C" fn define_property(
     cx: *mut JSContext,
     proxy: RawHandleObject,
     id: RawHandleId,
     desc: RawHandle<PropertyDescriptor>,
     res: *mut ObjectOpResult,
 ) -> bool {
-    if get_array_index_from_id(Handle::from_raw(id)).is_some() {
+    if get_array_index_from_id(unsafe { Handle::from_raw(id) }).is_some() {
         // Spec says to Reject whether this is a supported index or not,
         // since we have no indexed setter or indexed creator.  That means
         // throwing in strict mode (FIXME: Bug 828137), doing nothing in
         // non-strict mode.
-        (*res).code_ = JSErrNum::JSMSG_CANT_DEFINE_WINDOW_ELEMENT as ::libc::uintptr_t;
+        unsafe {
+            (*res).code_ = JSErrNum::JSMSG_CANT_DEFINE_WINDOW_ELEMENT as ::libc::uintptr_t;
+        }
         return true;
     }
 
     let mut slot = UndefinedValue();
-    GetProxyPrivate(*proxy.ptr, &mut slot);
+    unsafe { GetProxyPrivate(*proxy.ptr, &mut slot) };
     rooted!(in(cx) let target = slot.to_object());
-    JS_DefinePropertyById(cx, target.handle().into(), id, desc, res)
+    unsafe { JS_DefinePropertyById(cx, target.handle().into(), id, desc, res) }
 }
 
 #[expect(unsafe_code)]
@@ -1042,21 +1044,21 @@ unsafe extern "C" fn has(
     id: RawHandleId,
     bp: *mut bool,
 ) -> bool {
-    let window = GetSubframeWindowProxy(cx, proxy, id);
+    let window = unsafe { GetSubframeWindowProxy(cx, proxy, id) };
     if window.is_some() {
-        *bp = true;
+        unsafe { *bp = true };
         return true;
     }
 
     let mut slot = UndefinedValue();
-    GetProxyPrivate(*proxy.ptr, &mut slot);
+    unsafe { GetProxyPrivate(*proxy.ptr, &mut slot) };
     rooted!(in(cx) let target = slot.to_object());
     let mut found = false;
-    if !JS_HasPropertyById(cx, target.handle().into(), id, &mut found) {
+    if !unsafe { JS_HasPropertyById(cx, target.handle().into(), id, &mut found) } {
         return false;
     }
 
-    *bp = found;
+    unsafe { *bp = found };
     true
 }
 
@@ -1068,16 +1070,16 @@ unsafe extern "C" fn get(
     id: RawHandleId,
     vp: RawMutableHandleValue,
 ) -> bool {
-    let window = GetSubframeWindowProxy(cx, proxy, id);
+    let window = unsafe { GetSubframeWindowProxy(cx, proxy, id) };
     if let Some((window, _attrs)) = window {
-        window.to_jsval(cx, MutableHandle::from_raw(vp));
+        unsafe { window.to_jsval(cx, MutableHandle::from_raw(vp)) };
         return true;
     }
 
     let mut slot = UndefinedValue();
-    GetProxyPrivate(*proxy.ptr, &mut slot);
+    unsafe { GetProxyPrivate(*proxy.ptr, &mut slot) };
     rooted!(in(cx) let target = slot.to_object());
-    JS_ForwardGetPropertyTo(cx, target.handle().into(), id, receiver, vp)
+    unsafe { JS_ForwardGetPropertyTo(cx, target.handle().into(), id, receiver, vp) }
 }
 
 #[expect(unsafe_code)]
@@ -1089,16 +1091,16 @@ unsafe extern "C" fn set(
     receiver: RawHandleValue,
     res: *mut ObjectOpResult,
 ) -> bool {
-    if get_array_index_from_id(Handle::from_raw(id)).is_some() {
+    if get_array_index_from_id(unsafe { Handle::from_raw(id) }).is_some() {
         // Reject (which means throw if and only if strict) the set.
-        (*res).code_ = JSErrNum::JSMSG_READ_ONLY as ::libc::uintptr_t;
+        unsafe { (*res).code_ = JSErrNum::JSMSG_READ_ONLY as ::libc::uintptr_t };
         return true;
     }
 
     let mut slot = UndefinedValue();
-    GetProxyPrivate(*proxy.ptr, &mut slot);
+    unsafe { GetProxyPrivate(*proxy.ptr, &mut slot) };
     rooted!(in(cx) let target = slot.to_object());
-    JS_ForwardSetPropertyTo(cx, target.handle().into(), id, v, receiver, res)
+    unsafe { JS_ForwardSetPropertyTo(cx, target.handle().into(), id, v, receiver, res) }
 }
 
 #[expect(unsafe_code)]
@@ -1120,7 +1122,7 @@ unsafe extern "C" fn get_prototype_if_ordinary(
     // only the observer's changed.  So this getPrototypeIfOrdinary trap on the
     // non-wrapper object *must* report non-ordinary, even if static [[Prototype]]
     // usually means ordinary.
-    *is_ordinary = false;
+    unsafe { *is_ordinary = false };
     true
 }
 
@@ -1128,8 +1130,8 @@ static PROXY_TRAPS: ProxyTraps = ProxyTraps {
     // TODO: These traps should change their behavior depending on
     //       `IsPlatformObjectSameOrigin(this.[[Window]])`
     enter: None,
-    getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor),
-    defineProperty: Some(defineProperty),
+    getOwnPropertyDescriptor: Some(get_own_property_descriptor),
+    defineProperty: Some(define_property),
     ownPropertyKeys: None,
     delete_: None,
     enumerate: None,
@@ -1242,11 +1244,10 @@ impl Drop for WindowProxyHandler {
 //       to this function should be replaced with those to
 //       `report_cross_origin_denial`.
 #[expect(unsafe_code)]
-unsafe fn throw_security_error(cx: *mut JSContext, realm: InRealm) -> bool {
-    if !JS_IsExceptionPending(cx) {
-        let safe_context = SafeJSContext::from_ptr(cx);
-        let global = GlobalScope::from_context(cx, realm);
-        throw_dom_exception(safe_context, &global, Error::Security, CanGc::note());
+fn throw_security_error(cx: SafeJSContext, realm: InRealm) -> bool {
+    if !unsafe { JS_IsExceptionPending(*cx) } {
+        let global = unsafe { GlobalScope::from_context(*cx, realm) };
+        throw_dom_exception(cx, &global, Error::Security, CanGc::note());
     }
     false
 }
@@ -1259,15 +1260,16 @@ unsafe extern "C" fn has_xorigin(
     bp: *mut bool,
 ) -> bool {
     let mut slot = UndefinedValue();
-    GetProxyPrivate(*proxy.ptr, &mut slot);
+    unsafe { GetProxyPrivate(*proxy.ptr, &mut slot) };
     rooted!(in(cx) let target = slot.to_object());
     let mut found = false;
-    JS_HasOwnPropertyById(cx, target.handle().into(), id, &mut found);
+    unsafe { JS_HasOwnPropertyById(cx, target.handle().into(), id, &mut found) };
     if found {
-        *bp = true;
+        unsafe { *bp = true };
         true
     } else {
-        let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
+        let cx = unsafe { SafeJSContext::from_ptr(cx) };
+        let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
         throw_security_error(cx, InRealm::Already(&in_realm_proof))
     }
 }
@@ -1281,8 +1283,8 @@ unsafe extern "C" fn get_xorigin(
     vp: RawMutableHandleValue,
 ) -> bool {
     let mut found = false;
-    has_xorigin(cx, proxy, id, &mut found);
-    found && get(cx, proxy, receiver, id, vp)
+    unsafe { has_xorigin(cx, proxy, id, &mut found) };
+    found && unsafe { get(cx, proxy, receiver, id, vp) }
 }
 
 #[expect(unsafe_code)]
@@ -1294,7 +1296,8 @@ unsafe extern "C" fn set_xorigin(
     _: RawHandleValue,
     _: *mut ObjectOpResult,
 ) -> bool {
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
+    let cx = unsafe { SafeJSContext::from_ptr(cx) };
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
     throw_security_error(cx, InRealm::Already(&in_realm_proof))
 }
 
@@ -1305,7 +1308,8 @@ unsafe extern "C" fn delete_xorigin(
     _: RawHandleId,
     _: *mut ObjectOpResult,
 ) -> bool {
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
+    let cx = unsafe { SafeJSContext::from_ptr(cx) };
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
     throw_security_error(cx, InRealm::Already(&in_realm_proof))
 }
 
@@ -1318,8 +1322,8 @@ unsafe extern "C" fn getOwnPropertyDescriptor_xorigin(
     is_none: *mut bool,
 ) -> bool {
     let mut found = false;
-    has_xorigin(cx, proxy, id, &mut found);
-    found && getOwnPropertyDescriptor(cx, proxy, id, desc, is_none)
+    unsafe { has_xorigin(cx, proxy, id, &mut found) };
+    found && unsafe { get_own_property_descriptor(cx, proxy, id, desc, is_none) }
 }
 
 #[allow(unsafe_code, non_snake_case)]
@@ -1330,7 +1334,8 @@ unsafe extern "C" fn defineProperty_xorigin(
     _: RawHandle<PropertyDescriptor>,
     _: *mut ObjectOpResult,
 ) -> bool {
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
+    let cx = unsafe { SafeJSContext::from_ptr(cx) };
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
     throw_security_error(cx, InRealm::Already(&in_realm_proof))
 }
 
@@ -1340,7 +1345,8 @@ unsafe extern "C" fn preventExtensions_xorigin(
     _: RawHandleObject,
     _: *mut ObjectOpResult,
 ) -> bool {
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
+    let cx = unsafe { SafeJSContext::from_ptr(cx) };
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
     throw_security_error(cx, InRealm::Already(&in_realm_proof))
 }
 
@@ -1382,28 +1388,28 @@ static XORIGIN_PROXY_TRAPS: ProxyTraps = ProxyTraps {
 #[expect(unsafe_code)]
 unsafe extern "C" fn finalize(_fop: *mut GCContext, obj: *mut JSObject) {
     let mut slot = UndefinedValue();
-    GetProxyReservedSlot(obj, 0, &mut slot);
+    unsafe { GetProxyReservedSlot(obj, 0, &mut slot) };
     let this = slot.to_private() as *mut WindowProxy;
     if this.is_null() {
         // GC during obj creation or after transplanting.
         return;
     }
-    let jsobject = (*this).reflector.get_jsobject().get();
+    let jsobject = unsafe { (*this).reflector.get_jsobject().get() };
     debug!(
         "WindowProxy finalize: {:p}, with reflector {:p} from {:p}.",
         this, jsobject, obj
     );
-    let _ = Box::from_raw(this);
+    let _ = unsafe { Box::from_raw(this) };
 }
 
 #[expect(unsafe_code)]
 unsafe extern "C" fn trace(trc: *mut JSTracer, obj: *mut JSObject) {
     let mut slot = UndefinedValue();
-    GetProxyReservedSlot(obj, 0, &mut slot);
+    unsafe { GetProxyReservedSlot(obj, 0, &mut slot) };
     let this = slot.to_private() as *const WindowProxy;
     if this.is_null() {
         // GC during obj creation or after transplanting.
         return;
     }
-    (*this).trace(trc);
+    unsafe { (*this).trace(trc) };
 }
