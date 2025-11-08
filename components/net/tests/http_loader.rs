@@ -394,7 +394,7 @@ fn test_request_and_response_data_with_network_messages() {
         url: url,
         method: Method::GET,
         headers: headers,
-        body: Some(vec![]),
+        body: Some(vec![].into()),
         pipeline_id: TEST_PIPELINE_ID,
         started_date_time: devhttprequests.1.started_date_time,
         time_stamp: devhttprequests.1.time_stamp,
@@ -422,7 +422,7 @@ fn test_request_and_response_data_with_network_messages() {
     let httpresponse = DevtoolsHttpResponse {
         headers: Some(response_headers),
         status: HttpStatus::default(),
-        body: Some(content.as_bytes().to_vec()),
+        body: Some(content.as_bytes().to_vec().into()),
         from_cache: false,
         pipeline_id: TEST_PIPELINE_ID,
         browsing_context_id: TEST_WEBVIEW_ID.into(),
