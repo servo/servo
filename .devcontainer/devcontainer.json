@@ -1,0 +1,37 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
+{
+	"name": "Ubuntu",
+	"image": "mcr.microsoft.com/devcontainers/base:noble",
+	"features": {
+		"ghcr.io/devcontainers/features/rust:1": {
+			"version": "1.91",
+			"profile": "default",
+			"targets": "aarch64-unknown-linux-gnu",
+			"components": "clippy,llvm-tools,rustc-dev,rust-analyzer,rust-src,rustfmt"
+		},
+		"ghcr.io/devcontainers-extra/features/uv:1": {
+			"version": "latest"
+		}
+	},
+	// Uncomment the following when using podman (rootless docker)
+	// Update the uid and gid, to your local users uid and gid (run `echo $UID` and `echo $GID`)
+	// "runArgs": ["--userns=keep-id:uid=1000,gid=1000"],
+	// "containerUser": "vscode",
+	// "updateRemoteUserUID": true,
+
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// This takes more time on the first run compared to pulling a prebuilt image layer,
+	// but makes sure the bootstrapped dependencies are always up to date.
+	"postCreateCommand":
+		"./mach bootstrap --force",
+
+	"containerEnv": {
+		"CC": "clang",
+		"CXX": "clang++",
+		// The default `.venv` directory is mapped into both the host and container, so
+		// using it in the container would be problematic.
+		"UV_PYTHON_INSTALL_DIR": "/home/vscode/.servo_venv"
+	}
+}
