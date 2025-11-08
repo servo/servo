@@ -247,7 +247,10 @@ class Linux(Base):
                 missing_pkgs = list(filter(lambda pkg: pkg not in installable, pkgs))
                 pkgs = list(filter(lambda pkg: pkg in installable, pkgs))
                 if len(missing_pkgs) > 0:
-                    print("Skipping the following required pkgs, as they don't exist in this OS version:", missing_pkgs)
+                    print(
+                        "Skipping the following required packages, as they don't exist in this OS version:",
+                        missing_pkgs,
+                    )
 
             if subprocess.call(["dpkg", "-s"] + pkgs, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) != 0:
                 install = True
