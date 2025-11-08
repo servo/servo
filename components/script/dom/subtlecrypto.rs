@@ -2387,6 +2387,12 @@ fn normalize_algorithm(
                 },
 
                 // <https://w3c.github.io/webcrypto/#x25519-registration>
+                (ALG_X25519, Operation::DeriveBits) => {
+                    let mut params =
+                        dictionary_from_jsval::<EcdhKeyDeriveParams>(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::EcdhKeyDeriveParams(params.into())
+                },
                 (ALG_X25519, Operation::GenerateKey) => {
                     let mut params =
                         dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
@@ -2839,6 +2845,7 @@ impl NormalizedAlgorithm {
         match self {
             NormalizedAlgorithm::EcdhKeyDeriveParams(algo) => match algo.name.as_str() {
                 ALG_ECDH => ecdh_operation::derive_bits(algo, key, length),
+                ALG_X25519 => x25519_operation::derive_bits(algo, key, length),
                 _ => Err(Error::NotSupported),
             },
             NormalizedAlgorithm::HkdfParams(algo) => hkdf_operation::derive_bits(algo, key, length),
