@@ -40,6 +40,7 @@ use servo_media::player::{PlaybackState, Player, PlayerError, PlayerEvent, SeekL
 use servo_media::{ClientContextId, ServoMedia, SupportsMediaType};
 use servo_url::ServoUrl;
 use stylo_atoms::Atom;
+use uuid::Uuid;
 use webrender_api::{
     ExternalImageData, ExternalImageId, ExternalImageType, ImageBufferKind, ImageDescriptor,
     ImageDescriptorFlags, ImageFormat, ImageKey,
@@ -2272,12 +2273,6 @@ impl HTMLMediaElement {
 
         // Step 12 & 13 are already handled by the earlier media track processing.
 
-        // We wait until we have metadata to render the controls, so we render them
-        // with the appropriate size.
-        if self.Controls() {
-            self.render_controls(can_gc);
-        }
-
         let global = self.global();
         let window = global.as_window();
 
@@ -2444,12 +2439,11 @@ impl HTMLMediaElement {
     }
 
     fn render_controls(&self, can_gc: CanGc) {
-        let element = self.htmlelement.upcast::<Element>();
-        if self.ready_state.get() < ReadyState::HaveMetadata || element.is_shadow_host() {
-            // Bail out if we have no metadata yet or
-            // if we are already showing the controls.
+        if self.upcast::<Element>().is_shadow_host() {
+            // Bail out if we are already showing the controls.
             return;
         }
+
         // FIXME(stevennovaryo): Recheck styling of media element to avoid
         //                       reparsing styles.
         let shadow_root = self
@@ -2470,7 +2464,8 @@ impl HTMLMediaElement {
         // The media controls UI accesses the document.servoGetMediaControls(id) API
         // to get an instance to the media controls ShadowRoot.
         // `id` needs to match the internally generated UUID assigned to a media element.
-        let id = document.register_media_controls(&shadow_root);
+        let id = Uuid::new_v4().to_string();
+        document.register_media_controls(&id, &shadow_root);
         let media_controls_script = MEDIA_CONTROL_JS.replace("@@@id@@@", &id);
         *self.media_controls_id.borrow_mut() = Some(id);
         script
@@ -3112,6 +3107,24 @@ impl VirtualMethods for HTMLMediaElement {
                 elem: DomRoot::from_ref(self),
             };
             ScriptThread::await_stable_state(Microtask::MediaElement(task));
+        }
+    }
+
+    fn adopting_steps(&self, old_doc: &Document, can_gc: CanGc) {
+        self.super_type().unwrap().adopting_steps(old_doc, can_gc);
+
+        // Note that media control id should be adopting between documents so "privileged"
+        // document.servoGetMediaControls(id) API is keeping access to the whitelist of media
+        // controls identifiers.
+        if let Some(id) = &*self.media_controls_id.borrow() {
+            let Some(shadow_root) = self.upcast::<Element>().shadow_root() else {
+                error!("Missing media controls shadow root");
+                return;
+            };
+
+            old_doc.unregister_media_controls(id);
+            self.owner_document()
+                .register_media_controls(id, &shadow_root);
         }
     }
 }
