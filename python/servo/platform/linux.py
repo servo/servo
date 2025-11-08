@@ -226,10 +226,14 @@ class Linux(Base):
 
             # Try to filter out unknown packages from the list. This is important for Debian
             # as it does not ship all of the packages we want.
+            # We need to run 'apt-get update' first to make sure the package cache is populated.
+            subprocess.run(["sudo", "apt-get", "update"])
             installable = subprocess.check_output(["apt-cache", "--generate", "pkgnames"])
             if installable:
                 installable = installable.decode("ascii").splitlines()
+                missing_pkgs = list(filter(lambda pkg: pkg not in installable, pkgs))
                 pkgs = list(filter(lambda pkg: pkg in installable, pkgs))
+                print("Skipping the following required pkgs, as they don't exist in this OS version:", missing_pkgs)
 
             if subprocess.call(["dpkg", "-s"] + pkgs, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) != 0:
                 install = True
