@@ -316,7 +316,7 @@ unsafe extern "C" fn do_nothing_promise_executor(
     argc: u32,
     vp: *mut JSVal,
 ) -> bool {
-    let args = CallArgs::from_vp(vp, argc);
+    let args = unsafe { CallArgs::from_vp(vp, argc) };
     args.rval().set(UndefinedValue());
     true
 }
@@ -336,30 +336,43 @@ unsafe extern "C" fn native_handler_callback(
     argc: u32,
     vp: *mut JSVal,
 ) -> bool {
-    let cx = SafeJSContext::from_ptr(cx);
+    let cx = unsafe { SafeJSContext::from_ptr(cx) };
     let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
 
-    let args = CallArgs::from_vp(vp, argc);
-    rooted!(in(*cx) let v = *GetFunctionNativeReserved(args.callee(), SLOT_NATIVEHANDLER));
-    assert!(v.get().is_object());
+    let args = unsafe { CallArgs::from_vp(vp, argc) };
+    let native_handler_value =
+        unsafe { *GetFunctionNativeReserved(args.callee(), SLOT_NATIVEHANDLER) };
+    rooted!(in(*cx) let native_handler_value = native_handler_value);
+    assert!(native_handler_value.get().is_object());
 
-    let handler = root_from_object::<PromiseNativeHandler>(v.to_object(), *cx)
-        .expect("unexpected value for native handler in promise native handler callback");
+    let handler =
+        unsafe { root_from_object::<PromiseNativeHandler>(native_handler_value.to_object(), *cx) }
+            .expect("unexpected value for native handler in promise native handler callback");
 
-    rooted!(in(*cx) let v = *GetFunctionNativeReserved(args.callee(), SLOT_NATIVEHANDLER_TASK));
-    match v.to_int32() {
-        v if v == NativeHandlerTask::Resolve as i32 => handler.resolved_callback(
-            *cx,
-            HandleValue::from_raw(args.get(0)),
-            InRealm::Already(&in_realm_proof),
-            CanGc::note(),
-        ),
-        v if v == NativeHandlerTask::Reject as i32 => handler.rejected_callback(
-            *cx,
-            HandleValue::from_raw(args.get(0)),
-            InRealm::Already(&in_realm_proof),
-            CanGc::note(),
-        ),
+    let native_handler_task_value =
+        unsafe { *GetFunctionNativeReserved(args.callee(), SLOT_NATIVEHANDLER_TASK) };
+    rooted!(in(*cx) let native_handler_task_value = native_handler_task_value);
+    match native_handler_task_value.to_int32() {
+        native_handler_task_value
+            if native_handler_task_value == NativeHandlerTask::Resolve as i32 =>
+        {
+            handler.resolved_callback(
+                *cx,
+                unsafe { HandleValue::from_raw(args.get(0)) },
+                InRealm::Already(&in_realm_proof),
+                CanGc::note(),
+            )
+        },
+        native_handler_task_value
+            if native_handler_task_value == NativeHandlerTask::Reject as i32 =>
+        {
+            handler.rejected_callback(
+                *cx,
+                unsafe { HandleValue::from_raw(args.get(0)) },
+                InRealm::Already(&in_realm_proof),
+                CanGc::note(),
+            )
+        },
         _ => panic!("unexpected native handler task value"),
     };
 
@@ -397,9 +410,10 @@ impl FromJSValConvertibleRc for Promise {
             return Ok(ConversionResult::Failure("null not allowed".into()));
         }
 
-        let cx = SafeJSContext::from_ptr(cx);
+        let cx = unsafe { SafeJSContext::from_ptr(cx) };
         let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
-        let global_scope = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
+        let global_scope =
+            unsafe { GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof)) };
 
         let promise = Promise::new_resolved(&global_scope, cx, value, CanGc::note());
         Ok(ConversionResult::Success(promise))

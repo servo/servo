@@ -2195,17 +2195,19 @@ pub(crate) unsafe fn get_type_and_value_from_message(
 
     // Let type be ! Get(data, "type").
     rooted!(in(*cx) let mut type_ = UndefinedValue());
-    get_dictionary_property(
-        *cx,
-        data_object.handle(),
-        "type",
-        type_.handle_mut(),
-        can_gc,
-    )
+    unsafe {
+        get_dictionary_property(
+            *cx,
+            data_object.handle(),
+            "type",
+            type_.handle_mut(),
+            can_gc,
+        )
+    }
     .expect("Getting the type should not fail.");
 
     // Let value be ! Get(data, "value").
-    get_dictionary_property(*cx, data_object.handle(), "value", value, can_gc)
+    unsafe { get_dictionary_property(*cx, data_object.handle(), "value", value, can_gc) }
         .expect("Getting the value should not fail.");
 
     // Assert: type is a String.

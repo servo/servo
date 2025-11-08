@@ -28,7 +28,6 @@ webxr = ["webxr-api", "script_bindings/webxr"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }
-unsafe_op_in_unsafe_fn = { level = "allow" }
 
 [dependencies]
 accountable-refcell = { workspace = true, optional = true }

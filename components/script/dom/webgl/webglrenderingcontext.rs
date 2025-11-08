@@ -140,8 +140,10 @@ pub(crate) unsafe fn uniform_typed<T>(
     T: TypedArrayElementCreator,
 {
     rooted!(in(cx) let mut rval = ptr::null_mut::<JSObject>());
-    <TypedArray<T, *mut JSObject>>::create(cx, CreateWith::Slice(value), rval.handle_mut())
-        .unwrap();
+    unsafe {
+        <TypedArray<T, *mut JSObject>>::create(cx, CreateWith::Slice(value), rval.handle_mut())
+    }
+    .unwrap();
     retval.set(ObjectValue(rval.get()));
 }
 

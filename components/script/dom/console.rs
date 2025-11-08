@@ -124,10 +124,10 @@ where
 #[expect(unsafe_code)]
 unsafe fn handle_value_to_string(cx: *mut jsapi::JSContext, value: HandleValue) -> DOMString {
     rooted!(in(cx) let mut js_string = std::ptr::null_mut::<jsapi::JSString>());
-    match std::ptr::NonNull::new(JS_ValueToSource(cx, value)) {
+    match std::ptr::NonNull::new(unsafe { JS_ValueToSource(cx, value) }) {
         Some(js_str) => {
             js_string.set(js_str.as_ptr());
-            DOMString::from_string(jsstr_to_string(cx, js_str))
+            DOMString::from_string(unsafe { jsstr_to_string(cx, js_str) })
         },
         None => "<error converting value to string>".into(),
     }
@@ -174,16 +174,18 @@ fn stringify_handle_value(message: HandleValue) -> DOMString {
         ) -> DOMString {
             rooted!(in(cx) let mut obj = value.to_object());
             let mut object_class = ESClass::Other;
-            if !GetBuiltinClass(cx, obj.handle(), &mut object_class as *mut _) {
+            if !unsafe { GetBuiltinClass(cx, obj.handle(), &mut object_class as *mut _) } {
                 return DOMString::from("/* invalid */");
             }
-            let mut ids = IdVector::new(cx);
-            if !GetPropertyKeys(
-                cx,
-                obj.handle(),
-                jsapi::JSITER_OWNONLY | jsapi::JSITER_SYMBOLS,
-                ids.handle_mut(),
-            ) {
+            let mut ids = unsafe { IdVector::new(cx) };
+            if !unsafe {
+                GetPropertyKeys(
+                    cx,
+                    obj.handle(),
+                    jsapi::JSITER_OWNONLY | jsapi::JSITER_SYMBOLS,
+                    ids.handle_mut(),
+                )
+            } {
                 return DOMString::from("/* invalid */");
             }
             let truncate = ids.len() > MAX_LOG_CHILDREN;
@@ -191,7 +193,7 @@ fn stringify_handle_value(message: HandleValue) -> DOMString {
                 if truncate {
                     return DOMString::from("…");
                 } else {
-                    return handle_value_to_string(cx, value);
+                    return unsafe { handle_value_to_string(cx, value) };
                 }
             }
 
@@ -202,18 +204,22 @@ fn stringify_handle_value(message: HandleValue) -> DOMString {
                 rooted!(in(cx) let mut desc = PropertyDescriptor::default());
 
                 let mut is_none = false;
-                if !JS_GetOwnPropertyDescriptorById(
-                    cx,
-                    obj.handle(),
-                    id.handle(),
-                    desc.handle_mut(),
-                    &mut is_none,
-                ) {
+                if !unsafe {
+                    JS_GetOwnPropertyDescriptorById(
+                        cx,
+                        obj.handle(),
+                        id.handle(),
+                        desc.handle_mut(),
+                        &mut is_none,
+                    )
+                } {
                     return DOMString::from("/* invalid */");
                 }
 
                 rooted!(in(cx) let mut property = UndefinedValue());
-                if !JS_GetPropertyById(cx, obj.handle(), id.handle(), property.handle_mut()) {
+                if !unsafe {
+                    JS_GetPropertyById(cx, obj.handle(), id.handle(), property.handle_mut())
+                } {
                     return DOMString::from("/* invalid */");
                 }
 
@@ -228,16 +234,19 @@ fn stringify_handle_value(message: HandleValue) -> DOMString {
                         explicit_keys = false;
                     }
                 }
-                let value_string =
-                    stringify_inner(JSContext::from_ptr(cx), property.handle(), parents.clone());
+                let value_string = stringify_inner(
+                    unsafe { JSContext::from_ptr(cx) },
+                    property.handle(),
+                    parents.clone(),
+                );
                 if explicit_keys {
                     let key = if id.is_string() || id.is_symbol() || id.is_int() {
                         rooted!(in(cx) let mut key_value = UndefinedValue());
                         let raw_id: jsapi::HandleId = id.handle().into();
-                        if !JS_IdToValue(cx, *raw_id.ptr, key_value.handle_mut()) {
+                        if !unsafe { JS_IdToValue(cx, *raw_id.ptr, key_value.handle_mut()) } {
                             return DOMString::from("/* invalid */");
                         }
-                        handle_value_to_string(cx, key_value.handle())
+                        unsafe { handle_value_to_string(cx, key_value.handle()) }
                     } else {
                         return DOMString::from("/* invalid */");
                     };
@@ -312,8 +321,8 @@ fn maybe_stringify_dom_object(cx: JSContext, value: HandleValue) -> Option<DOMSt
         data: *mut std::ffi::c_void,
     ) -> bool {
         let s = data as *mut String;
-        let string_chars = slice::from_raw_parts(string, len as usize);
-        (*s).push_str(&String::from_utf16_lossy(string_chars));
+        let string_chars = unsafe { slice::from_raw_parts(string, len as usize) };
+        unsafe { (*s).push_str(&String::from_utf16_lossy(string_chars)) };
         true
     }
 
