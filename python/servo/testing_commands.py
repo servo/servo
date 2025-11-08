@@ -13,7 +13,6 @@ import json
 import logging
 import os
 import os.path as path
-import platform
 import re
 import shutil
 import subprocess
@@ -365,8 +364,7 @@ class MachCommands(CommandBase):
         passed = wpt.run_tests() and passed
 
         print("Running devtools parser tests...")
-        # TODO: Enable these tests on other platforms once mach bootstrap installs tshark(1) for them
-        if platform.system() == "Linux":
+        if shutil.which("tshark"):
             try:
                 result = subprocess.run(
                     ["etc/devtools_parser.py", "--json", "--read-file", "etc/devtools_parser_test.pcap"],
@@ -383,7 +381,7 @@ class MachCommands(CommandBase):
                 print(f"stderr: {repr(e.stderr)}", file=sys.stderr)
                 raise e
         else:
-            print("SKIP")
+            print("SKIP: Install tshark manually")
 
         if all or tests:
             print("Running WebIDL tests...")
