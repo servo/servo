@@ -67,7 +67,6 @@ APT_PKGS = [
     "xorg-dev",
     "libxkbcommon0",
     "libxkbcommon-x11-0",
-    "tshark",
 ]
 
 # https://packages.fedoraproject.org
@@ -114,7 +113,6 @@ DNF_PKGS = [
     "vulkan-loader",
     "libxkbcommon",
     "libxkbcommon-x11",
-    "wireshark-cli",
 ]
 
 # https://voidlinux.org/packages/
