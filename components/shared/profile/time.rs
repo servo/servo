@@ -68,7 +68,7 @@ pub enum ProfilerCategory {
     Layout = 0x10,
 
     ImageSaving = 0x51,
-    ScriptAttachLayout = 0x60,
+    ScriptSpawnPipeline = 0x60,
     ScriptConstellationMsg = 0x61,
     ScriptDevtoolsMsg = 0x62,
     ScriptDocumentEvent = 0x63,
@@ -129,7 +129,7 @@ impl ProfilerCategory {
             ProfilerCategory::Compositing => "Compositing",
             ProfilerCategory::Layout => "Layout",
             ProfilerCategory::ImageSaving => "ImageSaving",
-            ProfilerCategory::ScriptAttachLayout => "ScriptAttachLayout",
+            ProfilerCategory::ScriptSpawnPipeline => "ScriptSpawnPipeline",
             ProfilerCategory::ScriptConstellationMsg => "ScriptConstellationMsg",
             ProfilerCategory::ScriptDatabaseAccessEvent => "ScriptDatabaseAccessEvent",
             ProfilerCategory::ScriptDevtoolsMsg => "ScriptDevtoolsMsg",

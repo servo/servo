@@ -43,7 +43,7 @@ use profile::system_reporter;
 use profile_traits::mem::{ProfilerMsg, Reporter};
 use profile_traits::{mem as profile_mem, time};
 use script_traits::{
-    DiscardBrowsingContext, DocumentActivity, InitialScriptState, NewLayoutInfo,
+    DiscardBrowsingContext, DocumentActivity, InitialScriptState, NewPipelineInfo,
     ScriptThreadMessage,
 };
 use serde::{Deserialize, Serialize};
@@ -232,7 +232,7 @@ impl Pipeline {
         // probably requires a general low-memory strategy.
         let (script_chan, (bhm_control_chan, lifeline, join_handle)) = match state.event_loop {
             Some(script_chan) => {
-                let new_layout_info = NewLayoutInfo {
+                let new_pipeline_info = NewPipelineInfo {
                     parent_info: state.parent_pipeline_id,
                     new_pipeline_id: state.id,
                     browsing_context_id: state.browsing_context_id,
@@ -243,7 +243,8 @@ impl Pipeline {
                     theme: state.theme,
                 };
 
-                if let Err(e) = script_chan.send(ScriptThreadMessage::AttachLayout(new_layout_info))
+                if let Err(e) =
+                    script_chan.send(ScriptThreadMessage::SpawnPipeline(new_pipeline_info))
                 {
                     warn!("Sending to script during pipeline creation failed ({})", e);
                 }

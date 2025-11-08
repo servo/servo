@@ -83,7 +83,8 @@ use profile_traits::time_profile;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
-    NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptThreadMessage, UpdatePipelineIdReason,
+    NewPipelineInfo, Painter, ProgressiveWebMetricType, ScriptThreadMessage,
+    UpdatePipelineIdReason,
 };
 use servo_config::{opts, prefs};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -665,14 +666,17 @@ impl ScriptThread {
         true
     }
 
-    pub(crate) fn process_attach_layout(new_layout_info: NewLayoutInfo, origin: MutableOrigin) {
+    pub(crate) fn spawn_pipeline_in_current(
+        new_pipeline_info: NewPipelineInfo,
+        origin: MutableOrigin,
+    ) {
         with_script_thread(|script_thread| {
-            let pipeline_id = Some(new_layout_info.new_pipeline_id);
+            let pipeline_id = Some(new_pipeline_info.new_pipeline_id);
             script_thread.profile_event(
-                ScriptThreadEventCategory::AttachLayout,
+                ScriptThreadEventCategory::SpawnPipeline,
                 pipeline_id,
                 || {
-                    script_thread.handle_new_layout(new_layout_info, origin);
+                    script_thread.spawn_pipeline(new_pipeline_info, origin);
                 },
             )
         });
@@ -1352,29 +1356,29 @@ impl ScriptThread {
                 // This has to be handled before the ResizeMsg below,
                 // otherwise the page may not have been added to the
                 // child list yet, causing the find() to fail.
-                MixedMessage::FromConstellation(ScriptThreadMessage::AttachLayout(
-                    new_layout_info,
+                MixedMessage::FromConstellation(ScriptThreadMessage::SpawnPipeline(
+                    new_pipeline_info,
                 )) => {
-                    let pipeline_id = new_layout_info.new_pipeline_id;
+                    let pipeline_id = new_pipeline_info.new_pipeline_id;
                     self.profile_event(
-                        ScriptThreadEventCategory::AttachLayout,
+                        ScriptThreadEventCategory::SpawnPipeline,
                         Some(pipeline_id),
                         || {
                             // If this is an about:blank or about:srcdoc load, it must share the
                             // creator's origin. This must match the logic in the constellation
                             // when creating a new pipeline
                             let not_an_about_blank_and_about_srcdoc_load =
-                                new_layout_info.load_data.url.as_str() != "about:blank" &&
-                                    new_layout_info.load_data.url.as_str() != "about:srcdoc";
+                                new_pipeline_info.load_data.url.as_str() != "about:blank" &&
+                                    new_pipeline_info.load_data.url.as_str() != "about:srcdoc";
                             let origin = if not_an_about_blank_and_about_srcdoc_load {
-                                MutableOrigin::new(new_layout_info.load_data.url.origin())
+                                MutableOrigin::new(new_pipeline_info.load_data.url.origin())
                             } else if let Some(parent) =
-                                new_layout_info.parent_info.and_then(|pipeline_id| {
+                                new_pipeline_info.parent_info.and_then(|pipeline_id| {
                                     self.documents.borrow().find_document(pipeline_id)
                                 })
                             {
                                 parent.origin().clone()
-                            } else if let Some(creator) = new_layout_info
+                            } else if let Some(creator) = new_pipeline_info
                                 .load_data
                                 .creator_pipeline_id
                                 .and_then(|pipeline_id| {
@@ -1386,7 +1390,7 @@ impl ScriptThread {
                                 MutableOrigin::new(ImmutableOrigin::new_opaque())
                             };
 
-                            self.handle_new_layout(new_layout_info, origin);
+                            self.spawn_pipeline(new_pipeline_info, origin);
                         },
                     )
                 },
@@ -1585,8 +1589,13 @@ impl ScriptThread {
         let value = if self.profile_script_events {
             let profiler_chan = self.senders.time_profiler_sender.clone();
             match category {
-                ScriptThreadEventCategory::AttachLayout => {
-                    time_profile!(ProfilerCategory::ScriptAttachLayout, None, profiler_chan, f)
+                ScriptThreadEventCategory::SpawnPipeline => {
+                    time_profile!(
+                        ProfilerCategory::ScriptSpawnPipeline,
+                        None,
+                        profiler_chan,
+                        f
+                    )
                 },
                 ScriptThreadEventCategory::ConstellationMsg => time_profile!(
                     ProfilerCategory::ScriptConstellationMsg,
@@ -1883,7 +1892,7 @@ impl ScriptThread {
                 *self.receivers.webgpu_receiver.borrow_mut() =
                     ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(port);
             },
-            msg @ ScriptThreadMessage::AttachLayout(..) |
+            msg @ ScriptThreadMessage::SpawnPipeline(..) |
             msg @ ScriptThreadMessage::Resize(..) |
             msg @ ScriptThreadMessage::ExitFullScreen(..) |
             msg @ ScriptThreadMessage::SendInputEvent(..) |
@@ -2543,8 +2552,8 @@ impl ScriptThread {
         }
     }
 
-    fn handle_new_layout(&self, new_layout_info: NewLayoutInfo, origin: MutableOrigin) {
-        let NewLayoutInfo {
+    fn spawn_pipeline(&self, new_pipeline_info: NewPipelineInfo, origin: MutableOrigin) {
+        let NewPipelineInfo {
             parent_info,
             new_pipeline_id,
             browsing_context_id,
@@ -2553,7 +2562,7 @@ impl ScriptThread {
             load_data,
             viewport_details,
             theme,
-        } = new_layout_info;
+        } = new_pipeline_info;
 
         // Kick off the fetch for the new resource.
         let new_load = InProgressLoad::new(

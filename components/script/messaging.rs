@@ -56,9 +56,9 @@ impl MixedMessage {
         match self {
             MixedMessage::FromConstellation(inner_msg) => match inner_msg {
                 ScriptThreadMessage::StopDelayingLoadEventsMode(id) => Some(*id),
-                ScriptThreadMessage::AttachLayout(new_layout_info) => new_layout_info
+                ScriptThreadMessage::SpawnPipeline(new_pipeline_info) => new_pipeline_info
                     .parent_info
-                    .or(Some(new_layout_info.new_pipeline_id)),
+                    .or(Some(new_pipeline_info.new_pipeline_id)),
                 ScriptThreadMessage::Resize(id, ..) => Some(*id),
                 ScriptThreadMessage::ThemeChange(id, ..) => Some(*id),
                 ScriptThreadMessage::ResizeInactive(id, ..) => Some(*id),

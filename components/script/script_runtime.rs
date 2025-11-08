@@ -108,7 +108,7 @@ static SECURITY_CALLBACKS: JSSecurityCallbacks = JSSecurityCallbacks {
 
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) enum ScriptThreadEventCategory {
-    AttachLayout,
+    SpawnPipeline,
     ConstellationMsg,
     DatabaseAccessEvent,
     DevtoolsMsg,
@@ -144,7 +144,7 @@ pub(crate) enum ScriptThreadEventCategory {
 impl From<ScriptThreadEventCategory> for ProfilerCategory {
     fn from(category: ScriptThreadEventCategory) -> Self {
         match category {
-            ScriptThreadEventCategory::AttachLayout => ProfilerCategory::ScriptAttachLayout,
+            ScriptThreadEventCategory::SpawnPipeline => ProfilerCategory::ScriptSpawnPipeline,
             ScriptThreadEventCategory::ConstellationMsg => ProfilerCategory::ScriptConstellationMsg,
             ScriptThreadEventCategory::DatabaseAccessEvent => {
                 ProfilerCategory::ScriptDatabaseAccessEvent
@@ -192,7 +192,7 @@ impl From<ScriptThreadEventCategory> for ProfilerCategory {
 impl From<ScriptThreadEventCategory> for ScriptHangAnnotation {
     fn from(category: ScriptThreadEventCategory) -> Self {
         match category {
-            ScriptThreadEventCategory::AttachLayout => ScriptHangAnnotation::AttachLayout,
+            ScriptThreadEventCategory::SpawnPipeline => ScriptHangAnnotation::SpawnPipeline,
             ScriptThreadEventCategory::ConstellationMsg => ScriptHangAnnotation::ConstellationMsg,
             ScriptThreadEventCategory::DatabaseAccessEvent => {
                 ScriptHangAnnotation::DatabaseAccessEvent

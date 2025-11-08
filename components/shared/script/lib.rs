@@ -56,9 +56,9 @@ use webgpu_traits::WebGPUMsg;
 use webrender_api::units::{DevicePixel, LayoutVector2D};
 use webrender_api::{ExternalScrollId, ImageKey};
 
-/// The initial data required to create a new layout attached to an existing script thread.
+/// The initial data required to create a new `Pipeline` attached to an existing `ScriptThread`.
 #[derive(Debug, Deserialize, Serialize)]
-pub struct NewLayoutInfo {
+pub struct NewPipelineInfo {
     /// The ID of the parent pipeline and frame type, if any.
     /// If `None`, this is a root pipeline.
     pub parent_info: Option<PipelineId>,
@@ -145,12 +145,14 @@ pub enum UpdatePipelineIdReason {
 /// now) `Layout`.
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum ScriptThreadMessage {
+    /// Span a new `Pipeline` in this `ScriptThread` and start fetching the contents
+    /// according to the provided `LoadData`. This will ultimately create a `Window`
+    /// and all associated data structures such as `Layout` in the `ScriptThread`.
+    SpawnPipeline(NewPipelineInfo),
     /// Takes the associated window proxy out of "delaying-load-events-mode",
     /// used if a scheduled navigated was refused by the embedder.
     /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
     StopDelayingLoadEventsMode(PipelineId),
-    /// Gives a channel and ID to a layout, as well as the ID of that layout's parent
-    AttachLayout(NewLayoutInfo),
     /// Window resized.  Sends a DOM event eventually, but first we combine events.
     Resize(PipelineId, ViewportDetails, WindowSizeType),
     /// Theme changed.
