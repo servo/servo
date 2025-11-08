@@ -31,6 +31,7 @@ use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderMsg, JavaScriptEvaluationError, ScriptToEmbedderChan};
 use fonts::FontContext;
+use indexmap::IndexSet;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
@@ -124,7 +125,7 @@ use crate::dom::reportingobserver::ReportingObserver;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
-use crate::dom::types::{CookieStore, DebuggerGlobalScope, MessageEvent};
+use crate::dom::types::{AbortSignal, CookieStore, DebuggerGlobalScope, MessageEvent};
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpudevice::GPUDevice;
@@ -311,6 +312,10 @@ pub(crate) struct GlobalScope {
 
     /// Vector storing references of all eventsources.
     event_source_tracker: DOMTracker<EventSource>,
+
+    /// Dependent AbortSignals that must be kept alive per
+    /// <https://dom.spec.whatwg.org/#abort-signal-garbage-collection?
+    abort_signal_dependents: DomRefCell<IndexSet<Dom<AbortSignal>>>,
 
     /// Storage for watching rejected promises waiting for some client to
     /// consume their rejection.
@@ -797,6 +802,7 @@ impl GlobalScope {
             permission_state_invocation_results: Default::default(),
             list_auto_close_worker: Default::default(),
             event_source_tracker: DOMTracker::new(),
+            abort_signal_dependents: Default::default(),
             uncaught_rejections: Default::default(),
             consumed_rejections: Default::default(),
             #[cfg(feature = "webgpu")]
@@ -996,6 +1002,7 @@ impl GlobalScope {
         self.perform_a_message_port_garbage_collection_checkpoint();
         self.perform_a_blob_garbage_collection_checkpoint();
         self.perform_a_broadcast_channel_garbage_collection_checkpoint();
+        self.perform_an_abort_signal_garbage_collection_checkpoint();
     }
 
     /// Remove the routers for ports and broadcast-channels.
@@ -1638,6 +1645,21 @@ impl GlobalScope {
         if is_empty {
             self.remove_broadcast_channel_router();
         }
+    }
+
+    /// Register a dependent AbortSignal that may need to be kept alive
+    /// <https://dom.spec.whatwg.org/#abort-signal-garbage-collection>
+    pub(crate) fn register_dependent_abort_signal(&self, signal: &AbortSignal) {
+        self.abort_signal_dependents
+            .borrow_mut()
+            .insert(Dom::from_ref(signal));
+    }
+
+    /// Clean up dependent AbortSignals that no longer satisfy the GC predicate.
+    pub(crate) fn perform_an_abort_signal_garbage_collection_checkpoint(&self) {
+        let mut set = self.abort_signal_dependents.borrow_mut();
+
+        set.retain(|dom_signal| dom_signal.must_keep_alive_for_gc());
     }
 
     /// Start tracking a broadcast-channel.

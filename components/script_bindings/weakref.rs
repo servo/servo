@@ -12,6 +12,7 @@
 //! `WeakBox` itself is dropped too.
 
 use std::cell::Cell;
+use std::hash::{Hash, Hasher};
 use std::ops::Drop;
 use std::{mem, ptr};
 
@@ -76,6 +77,20 @@ pub trait WeakReferenceable: DomObject + Sized {
             WeakRef {
                 ptr: ptr::NonNull::new_unchecked(ptr),
             }
+        }
+    }
+}
+
+impl<T: WeakReferenceable> Eq for WeakRef<T> {}
+
+impl<T: WeakReferenceable> Hash for WeakRef<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        unsafe {
+            let ptr_opt = (*self.ptr.as_ptr())
+                .value
+                .get()
+                .map(|p| p.as_ptr() as *const ());
+            ptr_opt.hash(state);
         }
     }
 }
