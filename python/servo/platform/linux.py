@@ -213,6 +213,19 @@ class Linux(Base):
         return installed_something
 
     def install_non_gstreamer_dependencies(self, force: bool) -> bool:
+        def check_sudo() -> bool:
+            if os.geteuid() != 0:  # pyrefly: ignore[missing-attribute]
+                if shutil.which("sudo") is None:
+                    return False
+            return True
+
+        def run_as_root(command: list[str], force: bool = False) -> int:
+            if os.geteuid() != 0:  # pyrefly: ignore[missing-attribute]
+                command.insert(0, "sudo")
+            if force:
+                command.append("-y")
+            return subprocess.call(command)
+
         install = False
         pkgs = []
         if self.distro in ["Ubuntu", "Debian GNU/Linux", "Raspbian GNU/Linux"]:
@@ -227,7 +240,7 @@ class Linux(Base):
             # Try to filter out unknown packages from the list. This is important for Debian
             # as it does not ship all of the packages we want.
             # We need to run 'apt-get update' first to make sure the package cache is populated.
-            subprocess.run(["sudo", "apt-get", "update"])
+            run_as_root(["apt-get", "update"])
             installable = subprocess.check_output(["apt-cache", "--generate", "pkgnames"])
             if installable:
                 installable = installable.decode("ascii").splitlines()
@@ -258,19 +271,6 @@ class Linux(Base):
 
         if not install:
             return False
-
-        def check_sudo() -> bool:
-            if os.geteuid() != 0:  # pyrefly: ignore[missing-attribute]
-                if shutil.which("sudo") is None:
-                    return False
-            return True
-
-        def run_as_root(command: list[str], force: bool = False) -> int:
-            if os.geteuid() != 0:  # pyrefly: ignore[missing-attribute]
-                command.insert(0, "sudo")
-            if force:
-                command.append("-y")
-            return subprocess.call(command)
 
         print("Installing missing dependencies...")
         if not check_sudo():
