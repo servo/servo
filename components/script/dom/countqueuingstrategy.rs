@@ -90,7 +90,7 @@ pub(crate) unsafe fn count_queuing_strategy_size(
     argc: u32,
     vp: *mut JSVal,
 ) -> bool {
-    let args = CallArgs::from_vp(vp, argc);
+    let args = unsafe { CallArgs::from_vp(vp, argc) };
     // Step 1.1. Return 1.
     args.rval().set(Int32Value(1));
     true

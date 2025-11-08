@@ -3638,7 +3638,7 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
     }
 
     unsafe fn from_object(obj: *mut JSObject) -> DomRoot<Self> {
-        GlobalScope::from_object(obj)
+        unsafe { GlobalScope::from_object(obj) }
     }
 
     fn from_reflector(reflector: &impl DomObject, realm: InRealm) -> DomRoot<Self> {

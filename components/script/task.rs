@@ -19,7 +19,7 @@ macro_rules! task {
         unsafe impl<F> crate::JSTraceable for $name<F> {
             #[expect(unsafe_code)]
             unsafe fn trace(&self, tracer: *mut ::js::jsapi::JSTracer) {
-                $(self.$field.trace(tracer);)*
+                unsafe { $(self.$field.trace(tracer);)* }
                 // We cannot trace the actual task closure. This is safe because
                 // all referenced values from within the closure are either borrowed
                 // or moved into fields in the struct (and therefore traced).
