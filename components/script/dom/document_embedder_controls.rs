@@ -18,7 +18,7 @@ use script_bindings::codegen::GenericBindings::HistoryBinding::HistoryMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::script_runtime::CanGc;
-use webrender_api::units::DeviceIntRect;
+use webrender_api::units::{DeviceIntRect, DevicePoint};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::inheritance::Castable as _;
@@ -34,17 +34,17 @@ pub(crate) enum ControlElement {
     ColorInput(DomRoot<HTMLInputElement>),
     FileInput(DomRoot<HTMLInputElement>),
     Ime(DomRoot<HTMLElement>),
-    ContextMenu(DomRoot<Element>),
+    ContextMenu(DomRoot<Node>),
 }
 
 impl ControlElement {
-    fn element(&self) -> &Element {
+    fn node(&self) -> &Node {
         match self {
-            ControlElement::Select(element) => element.upcast::<Element>(),
-            ControlElement::ColorInput(element) => element.upcast::<Element>(),
-            ControlElement::FileInput(element) => element.upcast::<Element>(),
-            ControlElement::Ime(element) => element.upcast::<Element>(),
-            ControlElement::ContextMenu(element) => element.upcast::<Element>(),
+            ControlElement::Select(element) => element.upcast::<Node>(),
+            ControlElement::ColorInput(element) => element.upcast::<Node>(),
+            ControlElement::FileInput(element) => element.upcast::<Node>(),
+            ControlElement::Ime(element) => element.upcast::<Node>(),
+            ControlElement::ContextMenu(element) => element,
         }
     }
 }
@@ -87,21 +87,28 @@ impl DocumentEmbedderControls {
         &self,
         element: ControlElement,
         request: EmbedderControlRequest,
+        point: Option<DevicePoint>,
     ) -> EmbedderControlId {
         let id = self.next_control_id();
-        let rect = element
-            .element()
-            .upcast::<Node>()
-            .border_box()
-            .unwrap_or_default();
-        let rect = Rect::new(
-            Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
-            Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
-        );
+        let rect = point
+            .map(|point| DeviceIntRect::from_origin_and_size(point.to_i32(), Size2D::zero()))
+            .unwrap_or_else(|| {
+                let rect = element
+                    .node()
+                    .upcast::<Node>()
+                    .border_box()
+                    .unwrap_or_default();
 
-        // FIXME: This is a CSS pixel rect relative to this frame, we need a DevicePixel rectangle
-        // relative to the entire WebView!
-        let rect = DeviceIntRect::from_untyped(&rect.to_box2d());
+                let rect = Rect::new(
+                    Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
+                    Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
+                );
+
+                // FIXME: This is a CSS pixel rect relative to this frame, we need a DevicePixel rectangle
+                // relative to the entire WebView!
+                DeviceIntRect::from_untyped(&rect.to_box2d())
+            });
+
         self.visible_elements
             .borrow_mut()
             .insert(id.index.into(), element);
@@ -153,7 +160,7 @@ impl DocumentEmbedderControls {
         self.visible_elements
             .borrow_mut()
             .retain(|index, control_element| {
-                if control_element.element() != element {
+                if control_element.node() != element.upcast() {
                     return true;
                 }
                 let id = EmbedderControlId {
@@ -212,10 +219,6 @@ impl DocumentEmbedderControls {
     }
 
     pub(crate) fn show_context_menu(&self, hit_test_result: &HitTestResult) {
-        let Some(element) = hit_test_result.node.downcast::<Element>() else {
-            return;
-        };
-
         let items = vec![
             ContextMenuItem::Item {
                 label: "Back".into(),
@@ -232,14 +235,15 @@ impl DocumentEmbedderControls {
         ];
 
         self.show_embedder_control(
-            ControlElement::ContextMenu(DomRoot::from_ref(element)),
+            ControlElement::ContextMenu(hit_test_result.node.clone()),
             EmbedderControlRequest::ContextMenu(ContextMenuRequest { items }),
+            Some(hit_test_result.point_in_frame.cast_unit()),
         );
     }
 
     fn handle_context_menu_action(
         &self,
-        element: &Element,
+        node: &Node,
         action: Option<ContextMenuAction>,
         can_gc: CanGc,
     ) {
@@ -247,7 +251,7 @@ impl DocumentEmbedderControls {
             return;
         };
 
-        let window = element.owner_window();
+        let window = node.owner_window();
         match action {
             ContextMenuAction::GoBack => {
                 let _ = window.History().Back();

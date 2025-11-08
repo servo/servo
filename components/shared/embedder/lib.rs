@@ -664,7 +664,7 @@ pub struct ContextMenuRequest {
 }
 
 /// An item in a context menu.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ContextMenuItem {
     Item {
         label: String,
@@ -676,7 +676,7 @@ pub enum ContextMenuItem {
 /// A particular action associated with a [`ContextMenuItem`]. These actions are
 /// context-sensitive, which means that some of them are available only for some
 /// page elements.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
 pub enum ContextMenuAction {
     GoBack,
     GoForward,

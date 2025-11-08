@@ -122,11 +122,10 @@ use crate::responders::ServoErrorChannel;
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
 use crate::webview::MINIMUM_WEBVIEW_SIZE;
 pub use crate::webview::{WebView, WebViewBuilder};
-use crate::webview_delegate::ContextMenu;
 pub use crate::webview_delegate::{
-    AllowOrDenyRequest, AuthenticationRequest, ColorPicker, EmbedderControl, FilePicker,
-    InputMethodControl, NavigationRequest, PermissionRequest, SelectElement, WebResourceLoad,
-    WebViewDelegate,
+    AllowOrDenyRequest, AuthenticationRequest, ColorPicker, ContextMenu, EmbedderControl,
+    FilePicker, InputMethodControl, NavigationRequest, PermissionRequest, SelectElement,
+    WebResourceLoad, WebViewDelegate,
 };
 
 #[cfg(feature = "media-gstreamer")]
