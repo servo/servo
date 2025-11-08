@@ -931,7 +931,19 @@ class MachCommands(CommandBase):
         commit_message = subprocess.check_output(["git", "show", "-s", "--format=%s"]).decode().strip()
         commit_message = f"{commit_message} ({try_string})"
 
-        result = call(["git", "commit", "--quiet", "--allow-empty", "-m", commit_message, "-m", f"{config.to_json()}"])
+        result = call(
+            [
+                "git",
+                "commit",
+                "--no-verify",
+                "--quiet",
+                "--allow-empty",
+                "-m",
+                commit_message,
+                "-m",
+                f"{config.to_json()}",
+            ]
+        )
         if result != 0:
             return result
 
