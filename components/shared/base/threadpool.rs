@@ -44,7 +44,7 @@ impl ThreadPoolState {
         self.active_workers += 1;
     }
 
-    /// Substract from the count of active workers.
+    /// Subtract from the count of active workers.
     pub fn decrement_active(&mut self) {
         self.active_workers -= 1;
     }

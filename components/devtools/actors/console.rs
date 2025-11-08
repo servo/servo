@@ -430,7 +430,7 @@ impl Actor for ConsoleActor {
                 let stream = request.reply(&early_reply)?;
 
                 if msg.get("eager").and_then(|v| v.as_bool()).unwrap_or(false) {
-                    // We don't support the side-effect free evaluation that eager evalaution
+                    // We don't support the side-effect free evaluation that eager evaluation
                     // really needs.
                     return Ok(());
                 }
