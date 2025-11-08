@@ -369,7 +369,7 @@ class MachCommands(CommandBase):
         if platform.system() == "Linux":
             try:
                 result = subprocess.run(
-                    ["etc/devtools_parser.py", "--json", "--use", "etc/devtools_parser_test.pcap"],
+                    ["etc/devtools_parser.py", "--json", "--read-file", "etc/devtools_parser_test.pcap"],
                     check=True,
                     capture_output=True,
                 )
