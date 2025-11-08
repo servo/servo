@@ -66,7 +66,7 @@ def tshark(args, wait=False):
     return process.communicate()[0]
 
 
-def process_data(input, servo_port):
+def process_data(input):
     """Transform the raw output of tshark stdout into a manageable list."""
 
     # Split the input into lines.
@@ -123,58 +123,49 @@ def process_data(input, servo_port):
             message = rest[:length]
             rest = rest[length:]
             try:
-                records.append([time, port, message.decode()])
+                records.append([time, message.decode()])
             except UnicodeError as e:
                 print(f"[WARNING] Failed to decode message as UTF-8: {e}")
                 continue
 
-    # Process message records.
-    # `records` = [[date, port, message text]], e.g.
-    # `["2025-11-04T16:01:38.013100950+0100", "6080", "{...}"]`
-    result = []
-    for line in records:
-        time, port, text = line
-        # Port
-        port = "Servo" if port == servo_port else "Firefox"
-        # Data
-        result.append([time, port, len(result), text])
-
-    # `result` = [[date, endpoint, index, message text]], e.g.
-    # `["2025-11-04T16:01:38.013100950+0100", "Servo", 0, "{...}"]`
-    return result
+    # Return enumerated records.
+    # `records` = [[date, message text]], e.g.
+    # `["2025-11-04T16:01:38.013100950+0100", "{...}"]`
+    # `return` = [[date, message text, index]], e.g.
+    # `["2025-11-04T16:01:38.013100950+0100", "{...}", 0]`
+    return [(*line, i) for i, line in enumerate(records)]
 
 
-def parse_message(msg, *, json_output=False):
+def parse_message(msg, json_output=False):
     """Pretty print the JSON message, actor and timestamp.
     If `json_output` is True, output the JSON message in one line instead."""
 
-    time, sender, i, data = msg
-    from_servo = sender == "Servo"
-
-    colored_sender = colored(sender, "black", "on_yellow" if from_servo else "on_magenta", attrs=["bold"])
-    if not json_output:
-        print(f"\n{colored_sender} - {colored(i, 'blue')} - {colored(time, 'dark_grey')}")
+    time, data, i = msg
 
     try:
         content = json.loads(data)
-        if json_output:
-            if "to" in content:
-                # This is a request
-                print(json.dumps({"_to": content["to"], "message": content}, sort_keys=True))
-            elif "from" in content:
-                # This is a response
-                print(json.dumps({"_from": content["from"], "message": content}, sort_keys=True))
-            else:
-                assert False, "Message is neither a request nor a response"
-        else:
-            if from_servo and "from" in content:
-                print(colored(f"Actor: {content['from']}", "yellow"))
-            print(json.dumps(content, sort_keys=True, indent=4))
     except json.JSONDecodeError:
         print(f"Warning: Couldn't decode json\n{data}")
+        return
 
-    if not json_output:
-        print()
+    if json_output:
+        # Place from and to at the start so that it is easier to see which actor is involved
+        sorted_content = dict(
+            sorted(content.items(), key=lambda k: f"_{k[0]}" if k[0] == "from" or k[0] == "to" else k[0])
+        )
+        print(json.dumps(sorted_content))
+        return
+
+    is_server = "from" in content
+    colored_sender = (
+        colored("Server", "black", "on_yellow") if is_server else colored("Client", "on_magenta", attrs=["bold"])
+    )
+    pretty_json = json.dumps(content, sort_keys=True, indent=4)
+
+    print(f"""
+{colored_sender} - {colored(i, "blue")} - {colored(time, "dark_grey")}
+{pretty_json}
+""")
 
 
 if __name__ == "__main__":
@@ -199,7 +190,7 @@ if __name__ == "__main__":
         read_args = ["-r", args.use]
         data = tshark(read_args)
 
-    data = process_data(data, args.port)
+    data = process_data(data)
 
     # Set the range of messages to show
     min, max = 0, -2
