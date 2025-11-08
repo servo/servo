@@ -215,7 +215,22 @@ impl CrossProcessCompositorApi {
     /// Create a new [`CrossProcessCompositorApi`] struct that does not have a listener on the other
     /// end to use for unit testing.
     pub fn dummy() -> Self {
-        let callback = GenericCallback::new(|_msg| ()).unwrap();
+        Self::dummy_with_callback(None)
+    }
+
+    /// Create a new [`CrossProcessCompositorApi`] struct for unit testing with an optional callback
+    /// that can respond to compositor messages.
+    pub fn dummy_with_callback(
+        callback: Option<Box<dyn Fn(CompositorMsg) + Send + 'static>>,
+    ) -> Self {
+        let callback = GenericCallback::new(move |msg| {
+            if let Some(ref handler) = callback {
+                if let Ok(compositor_msg) = msg {
+                    handler(compositor_msg);
+                }
+            }
+        })
+        .unwrap();
         Self(callback)
     }
 
