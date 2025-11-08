@@ -124,7 +124,7 @@ impl<Listener: FetchResponseListener> NetworkListener<Listener> {
                     fetch_listener.process_response(request_id, meta)
                 },
                 FetchResponseMsg::ProcessResponseChunk(request_id, data) => {
-                    fetch_listener.process_response_chunk(request_id, data)
+                    fetch_listener.process_response_chunk(request_id, data.0)
                 },
                 FetchResponseMsg::ProcessResponseEOF(request_id, data) => {
                     match data {

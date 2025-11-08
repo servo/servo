@@ -242,9 +242,31 @@ pub enum FetchResponseMsg {
     ProcessRequestEOF(RequestId),
     // todo: send more info about the response (or perhaps the entire Response)
     ProcessResponse(RequestId, Result<FetchMetadata, NetworkError>),
-    ProcessResponseChunk(RequestId, Vec<u8>),
+    ProcessResponseChunk(RequestId, DebugVec),
     ProcessResponseEOF(RequestId, Result<ResourceFetchTiming, NetworkError>),
     ProcessCspViolations(RequestId, Vec<csp::Violation>),
+}
+
+#[derive(Deserialize, PartialEq, Serialize)]
+pub struct DebugVec(pub Vec<u8>);
+
+impl From<Vec<u8>> for DebugVec {
+    fn from(v: Vec<u8>) -> Self {
+        Self(v)
+    }
+}
+
+impl std::ops::Deref for DebugVec {
+    type Target = Vec<u8>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl std::fmt::Debug for DebugVec {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("[...; {}]", self.0.len()))
+    }
 }
 
 impl FetchResponseMsg {
@@ -332,7 +354,10 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
     }
 
     fn process_response_chunk(&mut self, request: &Request, chunk: Vec<u8>) {
-        let _ = self.send(FetchResponseMsg::ProcessResponseChunk(request.id, chunk));
+        let _ = self.send(FetchResponseMsg::ProcessResponseChunk(
+            request.id,
+            chunk.into(),
+        ));
     }
 
     fn process_response_eof(&mut self, request: &Request, response: &Response) {

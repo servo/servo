@@ -298,7 +298,7 @@ impl FetchResponseListener for ImageContext {
         if self.status.is_ok() {
             self.image_cache.notify_pending_response(
                 self.id,
-                FetchResponseMsg::ProcessResponseChunk(request_id, payload),
+                FetchResponseMsg::ProcessResponseChunk(request_id, payload.into()),
             );
         }
     }

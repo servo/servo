@@ -474,7 +474,7 @@ impl NetworkEventActor {
         self.request_started = request.started_date_time;
         self.request_time_stamp = request.time_stamp;
         self.request_destination = request.destination;
-        self.request_body = request.body.clone();
+        self.request_body = request.body.as_ref().map(|b| b.0.clone());
         self.request_headers_raw = Some(request.headers.clone());
     }
 
@@ -544,7 +544,7 @@ impl NetworkEventActor {
         response: &DevtoolsHttpResponse,
     ) -> Option<ResponseContentMsg> {
         let body = response.body.as_ref()?;
-        self.response_body = Some(body.clone());
+        self.response_body = Some(body.0.clone());
 
         let mime_type = response
             .headers

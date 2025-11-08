@@ -55,8 +55,9 @@ use net_traits::request::{
 };
 use net_traits::response::{CacheState, HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{
-    CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, FetchMetadata, NetworkError, RedirectEndValue,
-    RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
+    CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, DebugVec, FetchMetadata, NetworkError,
+    RedirectEndValue, RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
+    ResourceTimeValue,
 };
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
@@ -416,7 +417,7 @@ fn prepare_devtools_request(
         url,
         method,
         headers,
-        body,
+        body: body.map(DebugVec::from),
         pipeline_id,
         started_date_time,
         time_stamp: started_date_time
@@ -491,7 +492,7 @@ pub fn send_response_values_to_devtools(
         let devtoolsresponse = DevtoolsHttpResponse {
             headers,
             status,
-            body,
+            body: body.map(DebugVec::from),
             from_cache,
             pipeline_id,
             browsing_context_id,
