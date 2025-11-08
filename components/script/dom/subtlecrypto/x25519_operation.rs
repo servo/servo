@@ -20,7 +20,8 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_X25519, ExportedKey, JsonWebKeyExt, KeyAlgorithmAndDerivatives, SubtleKeyAlgorithm,
+    ALG_X25519, ExportedKey, JsonWebKeyExt, KeyAlgorithmAndDerivatives, SubtleEcdhKeyDeriveParams,
+    SubtleKeyAlgorithm,
 };
 use crate::script_runtime::CanGc;
 
@@ -29,6 +30,84 @@ const X25519_OID_STRING: &str = "1.3.101.110";
 
 const PRIVATE_KEY_LENGTH: usize = 32;
 const PUBLIC_KEY_LENGTH: usize = 32;
+
+/// <https://w3c.github.io/webcrypto/#x25519-operations-derive-bits>
+pub(crate) fn derive_bits(
+    normalized_algorithm: &SubtleEcdhKeyDeriveParams,
+    key: &CryptoKey,
+    length: Option<u32>,
+) -> Result<Vec<u8>, Error> {
+    // Step 1. If the [[type]] internal slot of key is not "private", then throw an
+    // InvalidAccessError.
+    if key.Type() != KeyType::Private {
+        return Err(Error::InvalidAccess);
+    }
+
+    // Step 2. Let publicKey be the public member of normalizedAlgorithm.
+    let public_key = normalized_algorithm.public.root();
+
+    // Step 3. If the [[type]] internal slot of publicKey is not "public", then throw an
+    // InvalidAccessError.
+    if public_key.Type() != KeyType::Public {
+        return Err(Error::InvalidAccess);
+    }
+
+    // Step 4. If the name attribute of the [[algorithm]] internal slot of publicKey is not equal
+    // to the name property of the [[algorithm]] internal slot of key, then throw an
+    // InvalidAccessError.
+    if public_key.algorithm().name() != key.algorithm().name() {
+        return Err(Error::InvalidAccess);
+    }
+
+    // Step 5. Let secret be the result of performing the X25519 function specified in [RFC7748]
+    // Section 5 with key as the X25519 private key k and the X25519 public key represented by the
+    // [[handle]] internal slot of publicKey as the X25519 public key u.
+    let Handle::X25519PrivateKey(private_key) = key.handle() else {
+        return Err(Error::Operation);
+    };
+    let Handle::X25519PublicKey(public_key) = public_key.handle() else {
+        return Err(Error::Operation);
+    };
+    let shared_key = private_key.diffie_hellman(public_key);
+    let secret = shared_key.as_bytes();
+
+    // Step 6. If secret is the all-zero value, then throw a OperationError. This check must be
+    // performed in constant-time, as per [RFC7748] Section 6.1.
+    let mut is_all_zero = true;
+    for byte in secret {
+        is_all_zero &= *byte == 0;
+    }
+    if is_all_zero {
+        return Err(Error::Operation);
+    }
+
+    // Step 7.
+    // If length is null:
+    //     Return secret
+    // Otherwise:
+    //     If the length of secret in bits is less than length:
+    //         throw an OperationError.
+    //     Otherwise:
+    //         Return a byte sequence containing the first length bits of secret.
+    match length {
+        None => Ok(secret.to_vec()),
+        Some(length) => {
+            if secret.len() * 8 < length as usize {
+                Err(Error::Operation)
+            } else {
+                let mut secret = secret[..length.div_ceil(8) as usize].to_vec();
+                if length % 8 != 0 {
+                    // Clean excess bits in last byte of secret.
+                    let mask = u8::MAX << (8 - length % 8);
+                    if let Some(last_byte) = secret.last_mut() {
+                        *last_byte &= mask;
+                    }
+                }
+                Ok(secret)
+            }
+        },
+    }
+}
 
 /// <https://w3c.github.io/webcrypto/#x25519-operations-generate-key>
 pub(crate) fn generate_key(
