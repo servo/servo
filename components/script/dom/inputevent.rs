@@ -14,7 +14,9 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::datatransfer::DataTransfer;
 use crate::dom::node::Node;
+use crate::dom::staticrange::StaticRange;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -24,11 +26,12 @@ pub(crate) struct InputEvent {
     uievent: UIEvent,
     data: Option<DOMString>,
     is_composing: bool,
+    input_type: DOMString,
 }
 
 impl InputEvent {
     #[allow(clippy::too_many_arguments)]
-    fn new(
+    pub(crate) fn new(
         window: &Window,
         proto: Option<HandleObject>,
         type_: DOMString,
@@ -38,6 +41,7 @@ impl InputEvent {
         detail: i32,
         data: Option<DOMString>,
         is_composing: bool,
+        input_type: DOMString,
         can_gc: CanGc,
     ) -> DomRoot<InputEvent> {
         let ev = reflect_dom_object_with_proto(
@@ -45,6 +49,7 @@ impl InputEvent {
                 uievent: UIEvent::new_inherited(),
                 data,
                 is_composing,
+                input_type,
             }),
             window,
             proto,
@@ -75,6 +80,7 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
             init.parent.detail,
             init.data.clone(),
             init.isComposing,
+            init.inputType.clone(),
             can_gc,
         );
         Ok(event)
@@ -88,6 +94,23 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
     /// <https://w3c.github.io/uievents/#dom-inputevent-iscomposing>
     fn IsComposing(&self) -> bool {
         self.is_composing
+    }
+
+    /// <https://w3c.github.io/uievents/#dom-inputevent-inputtype>
+    fn InputType(&self) -> DOMString {
+        self.input_type.clone()
+    }
+
+    /// <https://w3c.github.io/input-events/#dom-inputevent-datatransfer>
+    fn GetDataTransfer(&self) -> Option<DomRoot<DataTransfer>> {
+        // TODO: Populate dataTransfer for contenteditable
+        None
+    }
+
+    /// <https://w3c.github.io/input-events/#dom-inputevent-gettargetranges>
+    fn GetTargetRanges(&self) -> Vec<DomRoot<StaticRange>> {
+        // TODO: Populate targetRanges for contenteditable
+        Vec::new()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>

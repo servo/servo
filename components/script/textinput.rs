@@ -17,12 +17,17 @@ use unicode_segmentation::UnicodeSegmentation;
 use crate::clipboard_provider::ClipboardProvider;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::event::Event;
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::inputevent::InputEvent;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::types::ClipboardEvent;
 use crate::drag_data_store::Kind;
+use crate::script_runtime::CanGc;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Selection {
@@ -203,10 +208,53 @@ pub struct TextInput<T: ClipboardProvider> {
     was_last_change_by_set_content: bool,
 }
 
+#[derive(Clone, Copy, PartialEq)]
+pub enum IsComposing {
+    Composing,
+    NotComposing,
+}
+
+impl From<IsComposing> for bool {
+    fn from(is_composing: IsComposing) -> Self {
+        match is_composing {
+            IsComposing::Composing => true,
+            IsComposing::NotComposing => false,
+        }
+    }
+}
+
+/// <https://www.w3.org/TR/input-events-2/#interface-InputEvent-Attributes>
+#[derive(Clone, Copy, PartialEq)]
+pub enum InputType {
+    InsertText,
+    InsertLineBreak,
+    InsertFromPaste,
+    InsertCompositionText,
+    DeleteByCut,
+    DeleteContentBackward,
+    DeleteContentForward,
+    Nothing,
+}
+
+impl InputType {
+    fn as_str(&self) -> &str {
+        match *self {
+            InputType::InsertText => "insertText",
+            InputType::InsertLineBreak => "insertLineBreak",
+            InputType::InsertFromPaste => "insertFromPaste",
+            InputType::InsertCompositionText => "insertCompositionText",
+            InputType::DeleteByCut => "deleteByCut",
+            InputType::DeleteContentBackward => "deleteContentBackward",
+            InputType::DeleteContentForward => "deleteContentForward",
+            InputType::Nothing => "",
+        }
+    }
+}
+
 /// Resulting action to be taken by the owner of a text input that is handling an event.
 pub enum KeyReaction {
     TriggerDefaultAction,
-    DispatchInput,
+    DispatchInput(Option<String>, IsComposing, InputType),
     RedrawSelection,
     Nothing,
 }
@@ -214,9 +262,40 @@ pub enum KeyReaction {
 bitflags! {
     /// Resulting action to be taken by the owner of a text input that is handling a clipboard
     /// event.
-    pub struct ClipboardEventReaction: u8 {
+    #[derive(Clone, Copy)]
+    pub struct ClipboardEventFlags: u8 {
         const QueueInputEvent = 1 << 0;
         const FireClipboardChangedEvent = 1 << 1;
+    }
+}
+
+pub struct ClipboardEventReaction {
+    pub flags: ClipboardEventFlags,
+    pub text: Option<String>,
+    pub input_type: InputType,
+}
+
+impl ClipboardEventReaction {
+    fn new(flags: ClipboardEventFlags) -> Self {
+        Self {
+            flags,
+            text: None,
+            input_type: InputType::Nothing,
+        }
+    }
+
+    fn with_text(mut self, text: String) -> Self {
+        self.text = Some(text);
+        self
+    }
+
+    fn with_input_type(mut self, input_type: InputType) -> Self {
+        self.input_type = input_type;
+        self
+    }
+
+    fn empty() -> Self {
+        Self::new(ClipboardEventFlags::empty())
     }
 }
 
@@ -743,7 +822,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             KeyReaction::TriggerDefaultAction
         } else {
             self.insert_char('\n');
-            KeyReaction::DispatchInput
+            KeyReaction::DispatchInput(None, IsComposing::NotComposing, InputType::InsertLineBreak)
         }
     }
 
@@ -931,31 +1010,49 @@ impl<T: ClipboardProvider> TextInput<T> {
                     self.clipboard_provider.set_text(text);
                     self.delete_char(Direction::Backward);
                 }
-                KeyReaction::DispatchInput
+                KeyReaction::DispatchInput(None, IsComposing::NotComposing, InputType::DeleteByCut)
             })
             .shortcut(CMD_OR_CONTROL, 'C', || {
                 // TODO(stevennovaryo): we should not provide text to clipboard for type=password
                 if let Some(text) = self.get_selection_text() {
                     self.clipboard_provider.set_text(text);
                 }
-                KeyReaction::DispatchInput
+                KeyReaction::DispatchInput(None, IsComposing::NotComposing, InputType::Nothing)
             })
             .shortcut(CMD_OR_CONTROL, 'V', || {
                 if let Ok(text_content) = self.clipboard_provider.get_text() {
-                    self.insert_string(text_content);
+                    self.insert_string(&text_content);
+                    KeyReaction::DispatchInput(
+                        Some(text_content),
+                        IsComposing::NotComposing,
+                        InputType::InsertFromPaste,
+                    )
+                } else {
+                    KeyReaction::DispatchInput(
+                        Some("".to_string()),
+                        IsComposing::NotComposing,
+                        InputType::InsertFromPaste,
+                    )
                 }
-                KeyReaction::DispatchInput
             })
             .shortcut(Modifiers::empty(), Key::Named(NamedKey::Delete), || {
                 if self.delete_char(Direction::Forward) {
-                    KeyReaction::DispatchInput
+                    KeyReaction::DispatchInput(
+                        None,
+                        IsComposing::NotComposing,
+                        InputType::DeleteContentForward,
+                    )
                 } else {
                     KeyReaction::Nothing
                 }
             })
             .shortcut(Modifiers::empty(), Key::Named(NamedKey::Backspace), || {
                 if self.delete_char(Direction::Backward) {
-                    KeyReaction::DispatchInput
+                    KeyReaction::DispatchInput(
+                        None,
+                        IsComposing::NotComposing,
+                        InputType::DeleteContentBackward,
+                    )
                 } else {
                     KeyReaction::Nothing
                 }
@@ -1048,10 +1145,18 @@ impl<T: ClipboardProvider> TextInput<T> {
             .otherwise(|| {
                 if let Key::Character(ref c) = key {
                     self.insert_string(c.as_str());
-                    return KeyReaction::DispatchInput;
+                    return KeyReaction::DispatchInput(
+                        Some(c.to_string()),
+                        IsComposing::NotComposing,
+                        InputType::InsertText,
+                    );
                 }
                 if matches!(key, Key::Named(NamedKey::Process)) {
-                    return KeyReaction::DispatchInput;
+                    return KeyReaction::DispatchInput(
+                        None,
+                        IsComposing::Composing,
+                        InputType::Nothing,
+                    );
                 }
                 KeyReaction::Nothing
             })
@@ -1059,19 +1164,29 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     pub(crate) fn handle_compositionend(&mut self, event: &CompositionEvent) -> KeyReaction {
-        self.insert_string(event.data().str());
-        KeyReaction::DispatchInput
+        let ch = event.data().str();
+        self.insert_string(ch.as_ref());
+        KeyReaction::DispatchInput(
+            Some(ch.to_string()),
+            IsComposing::NotComposing,
+            InputType::InsertCompositionText,
+        )
     }
 
     pub(crate) fn handle_compositionupdate(&mut self, event: &CompositionEvent) -> KeyReaction {
+        let ch = event.data().str();
         let start = self.selection_start_offset().0;
-        self.insert_string(event.data().str());
+        self.insert_string(ch.as_ref());
         self.set_selection_range(
             start as u32,
             (start + event.data().len_utf8().0) as u32,
             SelectionDirection::Forward,
         );
-        KeyReaction::DispatchInput
+        KeyReaction::DispatchInput(
+            Some(ch.to_string()),
+            IsComposing::Composing,
+            InputType::InsertCompositionText,
+        )
     }
 
     /// Whether the content is empty.
@@ -1262,7 +1377,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                 }
 
                 // Step 3.2 Fire a clipboard event named clipboardchange
-                ClipboardEventReaction::FireClipboardChangedEvent
+                ClipboardEventReaction::new(ClipboardEventFlags::FireClipboardChangedEvent)
             },
             "cut" => {
                 // These steps are from <https://www.w3.org/TR/clipboard-apis/#cut-action>:
@@ -1282,8 +1397,11 @@ impl<T: ClipboardProvider> TextInput<T> {
 
                 // Step 3.1.3 Fire a clipboard event named clipboardchange
                 // Step 3.1.4 Queue tasks to fire any events that should fire due to the modification.
-                ClipboardEventReaction::FireClipboardChangedEvent
-                    | ClipboardEventReaction::QueueInputEvent
+                ClipboardEventReaction::new(
+                    ClipboardEventFlags::FireClipboardChangedEvent |
+                        ClipboardEventFlags::QueueInputEvent,
+                )
+                .with_input_type(InputType::DeleteByCut)
             },
             "paste" => {
                 // These steps are from <https://www.w3.org/TR/clipboard-apis/#paste-action>:
@@ -1317,12 +1435,49 @@ impl<T: ClipboardProvider> TextInput<T> {
                     return ClipboardEventReaction::empty();
                 }
 
-                self.insert_string(text_content);
+                self.insert_string(&text_content);
 
                 // Step 3.1.2: Queue tasks to fire any events that should fire due to the
                 // modification, see § 5.3 Integration with other scripts and events for details.
-                ClipboardEventReaction::QueueInputEvent
+                ClipboardEventReaction::new(ClipboardEventFlags::QueueInputEvent)
+                    .with_text(text_content)
+                    .with_input_type(InputType::InsertFromPaste)
             },
         _ => ClipboardEventReaction::empty(),)
+    }
+
+    /// <https://w3c.github.io/uievents/#event-type-input>
+    pub(crate) fn queue_input_event(
+        &self,
+        target: &EventTarget,
+        data: Option<String>,
+        is_composing: IsComposing,
+        input_type: InputType,
+    ) {
+        let global = target.global();
+        let target = Trusted::new(target);
+        global.task_manager().user_interaction_task_source().queue(
+            task!(fire_input_event: move || {
+                let target = target.root();
+                let global = target.global();
+                let window = global.as_window();
+                let event = InputEvent::new(
+                    window,
+                    None,
+                    DOMString::from("input"),
+                    true,
+                    false,
+                    Some(window),
+                    0,
+                    data.map(DOMString::from),
+                    is_composing.into(),
+                    input_type.as_str().into(),
+                    CanGc::note(),
+                );
+                let event = event.upcast::<Event>();
+                event.set_composed(true);
+                event.fire(&target, CanGc::note());
+            }),
+        );
     }
 }

@@ -13,10 +13,16 @@ interface InputEvent : UIEvent {
   [Throws] constructor(DOMString type, optional InputEventInit eventInitDict = {});
   readonly attribute DOMString? data;
   readonly attribute boolean isComposing;
+  readonly attribute DOMString inputType;
+  readonly attribute DataTransfer? dataTransfer;
+  sequence<StaticRange> getTargetRanges();
 };
 
 // https://w3c.github.io/uievents/#idl-inputeventinit
 dictionary InputEventInit : UIEventInit {
   DOMString? data = null;
   boolean isComposing = false;
+  DOMString inputType = "";
+  DataTransfer? dataTransfer = null;
+  sequence<StaticRange> targetRanges = [];
 };
