@@ -9,11 +9,11 @@ use malloc_size_of::malloc_size_of_is_0;
 use serde::{Deserialize, Serialize};
 
 use crate::client_storage::ClientStorageThreadMsg;
-use crate::indexeddb_thread::IndexedDBThreadMsg;
+use crate::indexeddb::IndexedDBThreadMsg;
 use crate::webstorage_thread::WebStorageThreadMsg;
 
 pub mod client_storage;
-pub mod indexeddb_thread;
+pub mod indexeddb;
 pub mod webstorage_thread;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

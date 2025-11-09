@@ -17,7 +17,7 @@ use log::{debug, warn};
 use rustc_hash::FxHashMap;
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
-use storage_traits::indexeddb_thread::{
+use storage_traits::indexeddb::{
     AsyncOperation, BackendError, BackendResult, CreateObjectResult, DbResult, IndexedDBThreadMsg,
     IndexedDBTxnMode, KeyPath, SyncOperation,
 };

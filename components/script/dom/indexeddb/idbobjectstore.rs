@@ -10,7 +10,7 @@ use js::rust::HandleValue;
 use profile_traits::ipc;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::error::ErrorResult;
-use storage_traits::indexeddb_thread::{
+use storage_traits::indexeddb::{
     AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, IndexedDBKeyType,
     IndexedDBThreadMsg, SyncOperation,
 };

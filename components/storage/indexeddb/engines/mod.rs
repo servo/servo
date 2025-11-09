@@ -4,9 +4,7 @@
 
 use std::collections::VecDeque;
 
-use storage_traits::indexeddb_thread::{
-    AsyncOperation, CreateObjectResult, IndexedDBTxnMode, KeyPath,
-};
+use storage_traits::indexeddb::{AsyncOperation, CreateObjectResult, IndexedDBTxnMode, KeyPath};
 use tokio::sync::oneshot;
 
 pub use self::sqlite::SqliteEngine;

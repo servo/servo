@@ -13,7 +13,7 @@ use js::rust::HandleValue;
 use profile_traits::ipc::IpcReceiver;
 use script_bindings::conversions::SafeToJSValConvertible;
 use serde::{Deserialize, Serialize};
-use storage_traits::indexeddb_thread::{
+use storage_traits::indexeddb::{
     AsyncOperation, AsyncReadOnlyOperation, BackendError, BackendResult, IndexedDBKeyType,
     IndexedDBRecord, IndexedDBThreadMsg, IndexedDBTxnMode, PutItemResult,
 };

@@ -9,7 +9,7 @@ use ipc_channel::ipc::IpcSender;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use storage_traits::StorageThreads;
 use storage_traits::client_storage::ClientStorageThreadMsg;
-use storage_traits::indexeddb_thread::IndexedDBThreadMsg;
+use storage_traits::indexeddb::IndexedDBThreadMsg;
 use storage_traits::webstorage_thread::WebStorageThreadMsg;
 
 use crate::{ClientStorageThreadFactory, IndexedDBThreadFactory, WebStorageThreadFactory};
