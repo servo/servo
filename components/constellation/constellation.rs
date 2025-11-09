@@ -2596,8 +2596,8 @@ where
             ipc::channel().expect("Failed to create IPC channel!");
         let (indexeddb_ipc_sender, indexeddb_ipc_receiver) =
             ipc::channel().expect("Failed to create IPC channel!");
-        let (storage_ipc_sender, storage_ipc_receiver) =
-            generic_channel::channel().expect("Failed to create IPC channel!");
+        let (web_storage_generic_sender, web_storage_generic_receiver) =
+            generic_channel::channel().expect("Failed to create generic channel!");
 
         debug!("Exiting core resource threads.");
         if let Err(e) = self
@@ -2624,12 +2624,12 @@ where
         {
             warn!("Exit indexeddb thread failed ({})", e);
         }
-        debug!("Exiting storage resource threads.");
+        debug!("Exiting web storage thread.");
         if let Err(e) = generic_channel::GenericSend::send(
             &self.public_storage_threads,
-            WebStorageThreadMsg::Exit(storage_ipc_sender),
+            WebStorageThreadMsg::Exit(web_storage_generic_sender),
         ) {
-            warn!("Exit storage thread failed ({})", e);
+            warn!("Exit web storage thread failed ({})", e);
         }
 
         #[cfg(feature = "bluetooth")]
@@ -2702,8 +2702,8 @@ where
         if let Err(e) = indexeddb_ipc_receiver.recv() {
             warn!("Exit indexeddb thread failed ({:?})", e);
         }
-        if let Err(e) = storage_ipc_receiver.recv() {
-            warn!("Exit storage thread failed ({:?})", e);
+        if let Err(e) = web_storage_generic_receiver.recv() {
+            warn!("Exit web storage thread failed ({:?})", e);
         }
 
         debug!("Shutting-down IPC router thread in constellation.");
