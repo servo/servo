@@ -48,13 +48,13 @@ def do_delayed_imports(paths):
             "-memory",
             "4096",
             "-cores",
-            "8",
+            "4",
             "-prop",
             "ro.test_harness=true",
             "-no-snapstorage",
             "-no-snapshot",
             "-skin",
-            "1080x1920",
+            "800x1280"
         ],
         True,
     )

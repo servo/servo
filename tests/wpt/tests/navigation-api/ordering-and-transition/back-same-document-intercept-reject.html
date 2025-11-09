@@ -44,6 +44,7 @@ promise_test(async t => {
     ["currententrychange", "", { from, navigationType: "traverse" }],
     ["handler run", "", { from, navigationType: "traverse" }],
     ["committed fulfilled", "", { from, navigationType: "traverse" }],
+    ["AbortSignal abort", "", { from, navigationType: "traverse" }],
     ["navigateerror", "", { from, navigationType: "traverse" }],
     ["finished rejected", "", null],
     ["transition.finished rejected", "", null]

@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-  <title>row-rule-outset interpolation</title>
+  <title>row-rule-outset properties interpolation</title>
   <link rel="author" title="Javier Contreras" href="mailto:javiercon@chromium.org">
   <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#outset">
   <script src="/resources/testharness.js"></script>
@@ -11,7 +11,10 @@
   <style>
     .parent {
       row-rule-style: solid;
-      row-rule-outset: 20px;
+      row-rule-edge-start-outset: 20px;
+      row-rule-edge-end-outset: 20px;
+      row-rule-interior-start-outset: 20px;
+      row-rule-interior-end-outset: 20px;
     }
 
     .target {
@@ -21,14 +24,53 @@
       column-rule: 10px solid black;
 
       row-rule-break: intersection;
-      row-rule-outset: 5px;
+      row-rule-edge-start-outset: 5px;
+      row-rule-edge-end-outset: 5px;
+      row-rule-interior-start-outset: 5px;
+      row-rule-interior-end-outset: 5px;
     }
   </style>
 </head>
 <body>
   <script>
     test_interpolation({
-      property: 'row-rule-outset',
+      property: 'row-rule-edge-start-outset',
+      from: neutralKeyframe,
+      to: '15px',
+    }, [
+      { at: -0.3, expect: '2px' },
+      { at: 0, expect: '5px' },
+      { at: 0.3, expect: '8px' },
+      { at: 0.6, expect: '11px' },
+      { at: 1, expect: '15px' },
+      { at: 1.5, expect: '20px' },
+    ]);
+    test_interpolation({
+      property: 'row-rule-edge-end-outset',
+      from: neutralKeyframe,
+      to: '15px',
+    }, [
+      { at: -0.3, expect: '2px' },
+      { at: 0, expect: '5px' },
+      { at: 0.3, expect: '8px' },
+      { at: 0.6, expect: '11px' },
+      { at: 1, expect: '15px' },
+      { at: 1.5, expect: '20px' },
+    ]);
+    test_interpolation({
+      property: 'row-rule-interior-start-outset',
+      from: neutralKeyframe,
+      to: '15px',
+    }, [
+      { at: -0.3, expect: '2px' },
+      { at: 0, expect: '5px' },
+      { at: 0.3, expect: '8px' },
+      { at: 0.6, expect: '11px' },
+      { at: 1, expect: '15px' },
+      { at: 1.5, expect: '20px' },
+    ]);
+    test_interpolation({
+      property: 'row-rule-interior-end-outset',
       from: neutralKeyframe,
       to: '15px',
     }, [
@@ -41,7 +83,43 @@
     ]);
 
     test_interpolation({
-      property: 'row-rule-outset',
+      property: 'row-rule-edge-start-outset',
+      from: 'initial', // initial for `edge` is 0px.
+      to: '10px',
+    }, [
+      { at: -0.3, expect: '-3px' },
+      { at: 0, expect: '0px' },
+      { at: 0.3, expect: '3px' },
+      { at: 0.6, expect: '6px' },
+      { at: 1, expect: '10px' },
+      { at: 1.5, expect: '15px' },
+    ]);
+    test_interpolation({
+      property: 'row-rule-edge-end-outset',
+      from: 'initial', // initial for `edge` is 0px.
+      to: '10px',
+    }, [
+      { at: -0.3, expect: '-3px' },
+      { at: 0, expect: '0px' },
+      { at: 0.3, expect: '3px' },
+      { at: 0.6, expect: '6px' },
+      { at: 1, expect: '10px' },
+      { at: 1.5, expect: '15px' },
+    ]);
+    test_interpolation({
+      property: 'row-rule-interior-start-outset',
+      from: 'initial', // initial is 50%.
+      to: '40%',
+    }, [
+      { at: -0.3, expect: '53%' },
+      { at: 0, expect: '50%' },
+      { at: 0.3, expect: '47%' },
+      { at: 0.6, expect: '44%' },
+      { at: 1, expect: '40%' },
+      { at: 1.5, expect: '35%' },
+    ]);
+    test_interpolation({
+      property: 'row-rule-interior-end-outset',
       from: 'initial', // initial is 50%.
       to: '40%',
     }, [
@@ -54,7 +132,43 @@
     ]);
 
     test_interpolation({
-      property: 'row-rule-outset',
+      property: 'row-rule-edge-start-outset',
+      from: 'inherit',
+      to: '10px',
+    }, [
+      { at: -0.3, expect: '23px' },
+      { at: 0, expect: '20px' },
+      { at: 0.3, expect: '17px' },
+      { at: 0.6, expect: '14px' },
+      { at: 1, expect: '10px' },
+      { at: 1.5, expect: '5px' },
+    ]);
+    test_interpolation({
+      property: 'row-rule-edge-end-outset',
+      from: 'inherit',
+      to: '10px',
+    }, [
+      { at: -0.3, expect: '23px' },
+      { at: 0, expect: '20px' },
+      { at: 0.3, expect: '17px' },
+      { at: 0.6, expect: '14px' },
+      { at: 1, expect: '10px' },
+      { at: 1.5, expect: '5px' },
+    ]);
+    test_interpolation({
+      property: 'row-rule-interior-start-outset',
+      from: 'inherit',
+      to: '10px',
+    }, [
+      { at: -0.3, expect: '23px' },
+      { at: 0, expect: '20px' },
+      { at: 0.3, expect: '17px' },
+      { at: 0.6, expect: '14px' },
+      { at: 1, expect: '10px' },
+      { at: 1.5, expect: '5px' },
+    ]);
+    test_interpolation({
+      property: 'row-rule-interior-end-outset',
       from: 'inherit',
       to: '10px',
     }, [
@@ -67,7 +181,43 @@
     ]);
 
     test_interpolation({
-      property: 'row-rule-outset',
+      property: 'row-rule-edge-start-outset',
+      from: 'unset',
+      to: '10px',
+    }, [
+      { at: -0.3, expect: '-3px' },
+      { at: 0, expect: '0px' },
+      { at: 0.3, expect: '3px' },
+      { at: 0.6, expect: '6px' },
+      { at: 1, expect: '10px' },
+      { at: 1.5, expect: '15px' },
+    ]);
+    test_interpolation({
+      property: 'row-rule-edge-end-outset',
+      from: 'unset',
+      to: '10px',
+    }, [
+      { at: -0.3, expect: '-3px' },
+      { at: 0, expect: '0px' },
+      { at: 0.3, expect: '3px' },
+      { at: 0.6, expect: '6px' },
+      { at: 1, expect: '10px' },
+      { at: 1.5, expect: '15px' },
+    ]);
+    test_interpolation({
+      property: 'row-rule-interior-start-outset',
+      from: 'unset',
+      to: '40%',
+    }, [
+      { at: -0.3, expect: '53%' },
+      { at: 0, expect: '50%' },
+      { at: 0.3, expect: '47%' },
+      { at: 0.6, expect: '44%' },
+      { at: 1, expect: '40%' },
+      { at: 1.5, expect: '35%' },
+    ]);
+    test_interpolation({
+      property: 'row-rule-interior-end-outset',
       from: 'unset',
       to: '40%',
     }, [
@@ -80,11 +230,47 @@
     ]);
 
     test_interpolation({
-      property: 'row-rule-outset',
+      property: 'row-rule-edge-start-outset',
       from: '-5px',
       to: '5px'
     }, [
-      { at: -0.3, expect: '-8px' }, // row-rule-outset can be negative
+      { at: -0.3, expect: '-8px' }, // row-rule-edge-start-outset can be negative
+      { at: 0, expect: '-5px' },
+      { at: 0.3, expect: '-2px' },
+      { at: 0.6, expect: '1px' },
+      { at: 1, expect: '5px' },
+      { at: 1.5, expect: '10px' },
+    ]);
+    test_interpolation({
+      property: 'row-rule-edge-end-outset',
+      from: '-5px',
+      to: '5px'
+    }, [
+      { at: -0.3, expect: '-8px' }, // row-rule-edge-end-outset can be negative
+      { at: 0, expect: '-5px' },
+      { at: 0.3, expect: '-2px' },
+      { at: 0.6, expect: '1px' },
+      { at: 1, expect: '5px' },
+      { at: 1.5, expect: '10px' },
+    ]);
+    test_interpolation({
+      property: 'row-rule-interior-start-outset',
+      from: '-5px',
+      to: '5px'
+    }, [
+      { at: -0.3, expect: '-8px' }, // row-rule-interior-start-outset can be negative
+      { at: 0, expect: '-5px' },
+      { at: 0.3, expect: '-2px' },
+      { at: 0.6, expect: '1px' },
+      { at: 1, expect: '5px' },
+      { at: 1.5, expect: '10px' },
+    ]);
+    test_interpolation({
+      property: 'row-rule-interior-end-outset',
+      from: '-5px',
+      to: '5px'
+    }, [
+      { at: -0.3, expect: '-8px' }, // row-rule-interior-end-outset can be negative
       { at: 0, expect: '-5px' },
       { at: 0.3, expect: '-2px' },
       { at: 0.6, expect: '1px' },
@@ -93,7 +279,43 @@
     ]);
 
     test_interpolation({
-      property: 'row-rule-outset',
+      property: 'row-rule-edge-start-outset',
+      from: '100%',
+      to: '1px',
+    }, [
+      { at: -0.3, expect: 'calc(130% - 0.3px)' },
+      { at: 0, expect: '100%' },
+      { at: 0.3, expect: 'calc(70% + 0.3px)' },
+      { at: 0.6, expect: 'calc(40% + 0.6px)' },
+      { at: 1, expect: 'calc(0% + 1px)' },
+      { at: 1.5, expect: 'calc(-50% + 1.5px)' },
+    ]);
+    test_interpolation({
+      property: 'row-rule-edge-end-outset',
+      from: '100%',
+      to: '1px',
+    }, [
+      { at: -0.3, expect: 'calc(130% - 0.3px)' },
+      { at: 0, expect: '100%' },
+      { at: 0.3, expect: 'calc(70% + 0.3px)' },
+      { at: 0.6, expect: 'calc(40% + 0.6px)' },
+      { at: 1, expect: 'calc(0% + 1px)' },
+      { at: 1.5, expect: 'calc(-50% + 1.5px)' },
+    ]);
+    test_interpolation({
+      property: 'row-rule-interior-start-outset',
+      from: '100%',
+      to: '1px',
+    }, [
+      { at: -0.3, expect: 'calc(130% - 0.3px)' },
+      { at: 0, expect: '100%' },
+      { at: 0.3, expect: 'calc(70% + 0.3px)' },
+      { at: 0.6, expect: 'calc(40% + 0.6px)' },
+      { at: 1, expect: 'calc(0% + 1px)' },
+      { at: 1.5, expect: 'calc(-50% + 1.5px)' },
+    ]);
+    test_interpolation({
+      property: 'row-rule-interior-end-outset',
       from: '100%',
       to: '1px',
     }, [
@@ -106,7 +328,43 @@
     ]);
 
     test_interpolation({
-      property: 'row-rule-outset',
+      property: 'row-rule-edge-start-outset',
+      from: '10px',
+      to: '10%',
+    }, [
+      { at: -0.3, expect: 'calc(-3% + 13px)' },
+      { at: 0, expect: 'calc(0% + 10px)' },
+      { at: 0.3, expect: 'calc(3% + 7px)' },
+      { at: 0.6, expect: 'calc(6% + 4px)' },
+      { at: 1, expect: '10%' },
+      { at: 1.5, expect: 'calc(15% - 5px)' },
+    ]);
+    test_interpolation({
+      property: 'row-rule-edge-end-outset',
+      from: '10px',
+      to: '10%',
+    }, [
+      { at: -0.3, expect: 'calc(-3% + 13px)' },
+      { at: 0, expect: 'calc(0% + 10px)' },
+      { at: 0.3, expect: 'calc(3% + 7px)' },
+      { at: 0.6, expect: 'calc(6% + 4px)' },
+      { at: 1, expect: '10%' },
+      { at: 1.5, expect: 'calc(15% - 5px)' },
+    ]);
+    test_interpolation({
+      property: 'row-rule-interior-start-outset',
+      from: '10px',
+      to: '10%',
+    }, [
+      { at: -0.3, expect: 'calc(-3% + 13px)' },
+      { at: 0, expect: 'calc(0% + 10px)' },
+      { at: 0.3, expect: 'calc(3% + 7px)' },
+      { at: 0.6, expect: 'calc(6% + 4px)' },
+      { at: 1, expect: '10%' },
+      { at: 1.5, expect: 'calc(15% - 5px)' },
+    ]);
+    test_interpolation({
+      property: 'row-rule-interior-end-outset',
       from: '10px',
       to: '10%',
     }, [

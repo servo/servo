@@ -44,6 +44,29 @@ const reduceL1Tests = [
     }
   },
   {
+    'name': 'reduceL1 float32 0D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceL1Input': {
+          'data': [5.50882625579834],
+          'descriptor': {shape: [], dataType: 'float32'},
+          'constant': false
+        }
+      },
+      'operators': [{
+        'name': 'reduceL1',
+        'arguments': [{'input': 'reduceL1Input'}],
+        'outputs': 'reduceL1Output'
+      }],
+      'expectedOutputs': {
+        'reduceL1Output': {
+          'data': 5.50882625579834,
+          'descriptor': {shape: [], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'reduceL1 float32 0D constant tensor empty axes',
     'graph': {
       'inputs': {
@@ -51,6 +74,29 @@ const reduceL1Tests = [
           'data': [5.50882625579834],
           'descriptor': {shape: [], dataType: 'float32'},
           'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceL1',
+        'arguments': [{'input': 'reduceL1Input'}, {'options': {'axes': []}}],
+        'outputs': 'reduceL1Output'
+      }],
+      'expectedOutputs': {
+        'reduceL1Output': {
+          'data': 5.50882625579834,
+          'descriptor': {shape: [], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceL1 float32 0D tensor empty axes',
+    'graph': {
+      'inputs': {
+        'reduceL1Input': {
+          'data': [5.50882625579834],
+          'descriptor': {shape: [], dataType: 'float32'},
+          'constant': false
         }
       },
       'operators': [{
@@ -654,6 +700,29 @@ const reduceL1Tests = [
     }
   },
   {
+    'name': 'reduceL1 float16 0D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceL1Input': {
+          'data': [5.5078125],
+          'descriptor': {shape: [], dataType: 'float16'},
+          'constant': false
+        }
+      },
+      'operators': [{
+        'name': 'reduceL1',
+        'arguments': [{'input': 'reduceL1Input'}],
+        'outputs': 'reduceL1Output'
+      }],
+      'expectedOutputs': {
+        'reduceL1Output': {
+          'data': [5.5078125],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
     'name': 'reduceL1 float16 0D constant tensor empty axes',
     'graph': {
       'inputs': {
@@ -661,6 +730,29 @@ const reduceL1Tests = [
           'data': [5.5078125],
           'descriptor': {shape: [], dataType: 'float16'},
           'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceL1',
+        'arguments': [{'input': 'reduceL1Input'}, {'options': {'axes': []}}],
+        'outputs': 'reduceL1Output'
+      }],
+      'expectedOutputs': {
+        'reduceL1Output': {
+          'data': [5.5078125],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceL1 float16 0D tensor empty axes',
+    'graph': {
+      'inputs': {
+        'reduceL1Input': {
+          'data': [5.5078125],
+          'descriptor': {shape: [], dataType: 'float16'},
+          'constant': false
         }
       },
       'operators': [{

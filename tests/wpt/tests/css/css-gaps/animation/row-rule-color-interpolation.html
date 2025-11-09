@@ -95,16 +95,32 @@ test_interpolation({
   {at: 1.5, expect: 'blue'}
 ]);
 
-// Lists can only be interpolated if they have the same length.
-test_no_interpolation({
+// Lists can be interpolated by expanding to match lengths.
+test_interpolation({
   property: 'row-rule-color',
   from: neutralKeyframe,
   to: 'red blue blue',
-});
-test_no_interpolation({
+}, [
+  {at: -5, expect: 'rgb(255, 255, 0) rgb(255, 255, 0) rgb(255, 255, 0)'},
+  {at: -0.4, expect: 'rgb(255, 255, 0) rgb(255, 255, 0) rgb(255, 255, 0)'},
+  {at: 0, expect: 'rgb(255, 255, 0) rgb(255, 255, 0) rgb(255, 255, 0)'},
+  {at: 0.2, expect: 'rgb(255, 204, 0) rgb(204, 204, 51) rgb(204, 204, 51)'},
+  {at: 0.6, expect: 'rgb(255, 102, 0) rgb(102, 102, 153) rgb(102, 102, 153)'},
+  {at: 1, expect: 'rgb(255, 0, 0) rgb(0, 0, 255) rgb(0, 0, 255)'},
+  {at: 1.5, expect: 'rgb(255, 0, 0) rgb(0, 0, 255) rgb(0, 0, 255)'},
+]);
+test_interpolation({
   property: 'row-rule-color',
   from: 'red blue green',
   to: 'red',
-});
+}, [
+  {at: -5, expect: 'rgb(255, 0, 0) rgb(0, 0, 255) rgb(0, 255, 0)'},
+  {at: -0.4, expect: 'rgb(255, 0, 0) rgb(0, 0, 255) rgb(0, 179, 0)'},
+  {at: 0, expect: 'rgb(255, 0, 0) rgb(0, 0, 255) rgb(0, 128, 0)'},
+  {at: 0.2, expect: 'rgb(255, 0, 0) rgb(51, 0, 204) rgb(51, 102, 0)'},
+  {at: 0.6, expect: 'rgb(255, 0, 0) rgb(153, 0, 102) rgb(153, 51, 0)'},
+  {at: 1, expect: 'rgb(255, 0, 0) rgb(255, 0, 0) rgb(255, 0, 0)'},
+  {at: 1.5, expect: 'rgb(255, 0, 0) rgb(255, 0, 0) rgb(255, 0, 0)'},
+]);
 </script>
 </body>

@@ -29,7 +29,7 @@
   const firstHalf = half === 'first';
   assert_true(firstHalf || half === 'second');
 
-  const allowed = ['button','input','menuitem'];
+  const allowed = ['button','menuitem'];
   const allTags = HTML5_ELEMENTS.filter(el => (!allowed.includes(el)));
   const midpoint = Math.floor(allTags.length / 2);
   const tags = firstHalf ? allTags.slice(0,midpoint) : allTags.slice(midpoint);

@@ -33,7 +33,7 @@
       "otherValues": ["drop-shadow(rgb(0, 0, 0) 10px 10px 10px)"]
     },
     "height": {
-      "value": "9x",
+      "value": "9px",
       "otherValues": ["18px"]
     },
     "inset": {
@@ -117,6 +117,7 @@
 
     // cleanup
     svg.style.removeProperty(property);
+    target.style.removeProperty('zoom');
     if (requiredProperties) {
       for (const [prop, reqValue] of Object.entries(requiredProperties)) {
         svg.style.removeProperty(reqValue);

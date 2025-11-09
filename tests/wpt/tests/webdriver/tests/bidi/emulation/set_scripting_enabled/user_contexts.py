@@ -109,25 +109,25 @@ async def test_set_to_user_context_and_then_to_context(
         user_context=user_context, type_hint="tab"
     )
 
-    # Apply scripting override to the user context.
+    # Disable scripting for the user context.
     await bidi_session.emulation.set_scripting_enabled(
         user_contexts=[user_context],
         enabled=False
     )
 
-    # Apply scripting override now only to the context.
+    # Remove scripting override per context.
     await bidi_session.emulation.set_scripting_enabled(
         contexts=[context_in_user_context_1["context"]],
         enabled=None
     )
-    assert await is_scripting_enabled(context_in_user_context_1) is True
+    # Make sure that the scripting override for the user context is applied.
+    assert await is_scripting_enabled(context_in_user_context_1) is False
 
     await bidi_session.browsing_context.reload(
         context=context_in_user_context_1["context"], wait="complete"
     )
-
-    # Make sure that after reload the scripting is still updated.
-    assert await is_scripting_enabled(context_in_user_context_1) is True
+    # Make sure that the scripting override for the user context is applied.
+    assert await is_scripting_enabled(context_in_user_context_1) is False
 
     # Create a new context in the user context.
     context_in_user_context_2 = await bidi_session.browsing_context.create(
@@ -137,7 +137,7 @@ async def test_set_to_user_context_and_then_to_context(
     assert await is_scripting_enabled(context_in_user_context_2) is False
 
     await bidi_session.emulation.set_scripting_enabled(
-        contexts=[context_in_user_context_1["context"]],
+        user_contexts=[user_context],
         enabled=None,
     )
 

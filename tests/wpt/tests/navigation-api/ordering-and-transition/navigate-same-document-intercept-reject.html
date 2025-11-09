@@ -44,6 +44,7 @@ promise_test(async t => {
     ["committed fulfilled", "#1", { from, navigationType: "push" }],
     ["transition.committed fulfilled", "#1", { from, navigationType: "push" }],
     ["promise microtask", "#1", { from, navigationType: "push" }],
+    ["AbortSignal abort", "#1", { from, navigationType: "push" }],
     ["navigateerror", "#1", { from, navigationType: "push" }],
     ["finished rejected", "#1", null],
     ["transition.finished rejected", "#1", null],

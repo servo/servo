@@ -219,12 +219,12 @@
 
   // Compare a section of the rendered data against our expected signal.
   function comparePartialSignals(
-      should, rendered, expectedFunction, startTime, endTime, valueInfo,
-      sampleRate, errorMetric) {
-    let startSample = timeToSampleFrame(startTime, sampleRate);
+      rendered, expectedFunction, startTime, endTime, valueInfo,
+      sampleRateParam, errorMetric) {
+    let startSample = timeToSampleFrame(startTime, sampleRateParam);
     let expected = expectedFunction(
         startTime, endTime, valueInfo.startValue, valueInfo.endValue,
-        sampleRate, timeConstant);
+        sampleRateParam, timeConstant);
 
     let n = expected.length;
     let maxError = -1;
@@ -237,19 +237,17 @@
       if (!isValidNumber(rendered[startSample + k])) {
         maxError = Infinity;
         maxErrorIndex = startSample + k;
-        should(
+        assert_true(
             isValidNumber(rendered[startSample + k]),
-            'NaN or infinity for rendered data at ' + maxErrorIndex)
-            .beTrue();
+            `NaN or infinity for rendered data at ${maxErrorIndex}`);
         break;
       }
       if (!isValidNumber(expected[k])) {
         maxError = Infinity;
         maxErrorIndex = startSample + k;
-        should(
+        assert_true(
             isValidNumber(expected[k]),
-            'NaN or infinity for rendered data at ' + maxErrorIndex)
-            .beTrue();
+            `NaN or infinity for rendered data at ${maxErrorIndex}`);
         break;
       }
       let error = Math.abs(errorMetric(rendered[startSample + k], expected[k]));
@@ -260,13 +258,13 @@
     }
 
     return {maxError: maxError, index: maxErrorIndex, expected: expected};
-  }
+  };
 
   // Find the discontinuities in the data and compare the locations of the
   // discontinuities with the times that define the time intervals. There is a
   // discontinuity if the difference between successive samples exceeds the
   // threshold.
-  function verifyDiscontinuities(should, values, times, threshold) {
+  function verifyDiscontinuities(values, times, threshold) {
     let n = values.length;
     let success = true;
     let badLocations = 0;
@@ -292,8 +290,8 @@
     // discontinuity.
     if (breaks.length >= numberOfTests) {
       testCount = numberOfTests - 1;
-      should(breaks.length, 'Number of discontinuities')
-          .beLessThan(numberOfTests);
+      assert_less_than(
+          breaks.length, numberOfTests, 'Number of discontinuities');
       success = false;
     } else {
       testCount = breaks.length;
@@ -306,24 +304,23 @@
       if (breaks[k] != expectedSampleFrame) {
         success = false;
         ++badLocations;
-        should(breaks[k], 'Discontinuity at index')
-            .beEqualTo(expectedSampleFrame);
+        assert_equals(breaks[k], expectedSampleFrame, 'Discontinuity at index');
       }
     }
 
     if (badLocations) {
-      should(badLocations, 'Number of discontinuites at incorrect locations')
-          .beEqualTo(0);
+      assert_equals(
+          badLocations, 0, 'Number of discontinuites at incorrect locations');
       success = false;
     } else {
-      should(
+      assert_equals(
           breaks.length + 1,
-          'Number of tests started and ended at the correct time')
-          .beEqualTo(numberOfTests);
+          numberOfTests,
+          'Number of tests started and ended at the correct time');
     }
 
     return success;
-  }
+  };
 
   // Compare the rendered data with the expected data.
   //
@@ -341,39 +338,39 @@
   //
   // breakThreshold - threshold to use for determining discontinuities.
   function compareSignals(
-      should, testName, maxError, renderedData, expectedFunction, timeValueInfo,
+      testName, maxError, renderedData, expectedFunction, timeValueInfo,
       breakThreshold, errorMetric) {
     let success = true;
-    let failedTestCount = 0;
-    let times = timeValueInfo.times;
-    let values = timeValueInfo.values;
-    let n = values.length;
+    const failedTestCount = 0;
+    const times = timeValueInfo.times;
+    const values = timeValueInfo.values;
+    const n = values.length;
     let expectedSignal = [];
 
     success =
-        verifyDiscontinuities(should, renderedData, times, breakThreshold);
+        verifyDiscontinuities(renderedData, times, breakThreshold);
 
     for (let k = 0; k < n; ++k) {
-      let result = comparePartialSignals(
-          should, renderedData, expectedFunction, times[k], times[k + 1],
+      const result = comparePartialSignals(
+          renderedData, expectedFunction, times[k], times[k + 1],
           values[k], sampleRate, errorMetric);
 
       expectedSignal =
           expectedSignal.concat(Array.prototype.slice.call(result.expected));
 
-      should(
+      assert_less_than_equal(
           result.maxError,
-          'Max error for test ' + k + ' at offset ' +
-              (result.index + timeToSampleFrame(times[k], sampleRate)))
-          .beLessThanOrEqualTo(maxError);
+          maxError,
+          `Max error for test ${k} at offset ` +
+              `${result.index + timeToSampleFrame(times[k], sampleRate)}`);
     }
 
-    should(
+    assert_equals(
         failedTestCount,
-        'Number of failed tests with an acceptable relative tolerance of ' +
-            maxError)
-        .beEqualTo(0);
-  }
+        0,
+        `Number of failed tests with an acceptable relative ` +
+            `tolerance of ${maxError}`);
+  };
 
   // Create a function to test the rendered data with the reference data.
   //
@@ -389,7 +386,7 @@
   // discontinuityThreshold.
   //
   function checkResultFunction(
-      task, should, testName, error, referenceFunction, jumpThreshold,
+      task, testName, error, referenceFunction, jumpThreshold,
       errorMetric) {
     return function(event) {
       let buffer = event.renderedBuffer;
@@ -404,7 +401,7 @@
       }
 
       compareSignals(
-          should, testName, error, renderedData, referenceFunction,
+          testName, error, renderedData, referenceFunction,
           timeValueInfo, threshold, errorMetric);
       task.done();
     }
@@ -474,7 +471,6 @@
   // jumpThreshold - optional parameter that specifies the threshold to use for
   // detecting discontinuities.  If not specified, defaults to
   // discontinuityThreshold.
-  //
   function createAudioGraphAndTest(
       task, should, numberOfTests, initialValue, setValueFunction,
       automationFunction, testName, maxError, referenceFunction, jumpThreshold,
@@ -508,7 +504,7 @@
     bufferSource.start(0);
 
     context.oncomplete = checkResultFunction(
-        task, should, testName, maxError, referenceFunction, jumpThreshold,
+        task, testName, maxError, referenceFunction, jumpThreshold,
         errorMetric || relativeErrorMetric);
     context.startRendering();
   }

@@ -758,11 +758,10 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
 
 class H2ConnectionGuard:
     """H2Connection objects are not threadsafe, so this keeps thread safety"""
-    lock = threading.Lock()
-
     def __init__(self, obj):
         assert isinstance(obj, H2Connection)
         self.obj = obj
+        self.lock = threading.Lock()
 
     def __enter__(self):
         self.lock.acquire()

@@ -16,13 +16,13 @@ async def test_return_value(bidi_session):
 
 
 async def test_data_not_available_after_remove(
-    bidi_session, url, add_data_collector, setup_collected_response
+    bidi_session, url, add_data_collector, setup_collected_data
 ):
     # Collect a network response with 2 collectors
     collector = await add_data_collector(
         collector_type="blob", data_types=["response"], max_encoded_data_size=1000
     )
-    [request, other_collector] = await setup_collected_response(
+    [request, other_collector] = await setup_collected_data(
         fetch_url=url(PAGE_EMPTY_TEXT)
     )
 

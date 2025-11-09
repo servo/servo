@@ -39,6 +39,16 @@
     }
 
     const testFunction = function(session, fakeDeviceController, t) {
+      // Verify that setting viewerOrigin to null throws TypeError per spec.
+      t.step(() => {
+        assert_throws_js(TypeError, () => {
+          // fakeDeviceController is supplied to the test and should expose the method
+          // that the implementation uses to set the viewer origin. If the API name
+          // differs, adapt this call accordingly.
+          fakeDeviceController.setViewerOrigin(null);
+        }, "fakeDeviceController.setViewerOrigin(null) should throw TypeError");
+      });
+
       return Promise.all([
         session.requestReferenceSpace('local'),
         session.requestReferenceSpace('viewer'),

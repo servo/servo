@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#outset">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+    .grid {
+        display: grid;
+        grid-template: repeat(auto-fill, 100px) / repeat(3, 100px);
+        grid-gap: 20px;
+        left: 0px;
+        top: 0px;
+    }
+    .item {
+        width: 100px;
+        height: 100px;
+        background: lightgray;
+    }
+    .column-decoration {
+        position: absolute;
+        top: 0px;
+        height: 340px;
+        width: 3px;
+        background: red;
+        height: 105px;
+    }
+    .row-decoration {
+        position: absolute;
+        height: 3px;
+        background-color: gray;
+        width: 334px;
+        left: 1px;
+    }
+</style>
+<div class="column-decoration" style="left: 108.5px"></div>
+<div class="column-decoration" style="left: 228.5px"></div>
+<div class="column-decoration" style="left: 108.5px; top: 120px;"></div>
+<div class="column-decoration" style="left: 228.5px; top: 120px;"></div>
+<div class="column-decoration" style="left: 108.5px; top: 240px; height: 100px"></div>
+<div class="column-decoration" style="left: 228.5px; top: 240px; height: 100px"></div>
+<div class="row-decoration" style="top: 108.5px;"></div>
+<div class="row-decoration" style="top: 228.5px;"></div>
+<div class="grid">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+</div>

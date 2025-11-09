@@ -81,6 +81,7 @@
     }
 
     promise_test(async (test) => {
+      waitForAnimationFrames(2);
       setupAnimationAndTrigger(document.getElementById("target"), subject,
         ANIMATION_DURATION_MS);
       const finish_promise = attachFinishListener();

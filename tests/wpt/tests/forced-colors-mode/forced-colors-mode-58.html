@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode: this mode forces text-style emoji</title>
+<link rel="author" title="Sejal Anand" href="sejalanand@microsoft.com">
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<link rel=match href="forced-colors-mode-58-ref.html">
+<meta name="assert" content="When forced-color-adjust is none, font-variant-emoji: normal/unicode must not be overridden in forced colors mode.">
+
+<style>
+  @media (forced-colors: active) {
+    .optout {
+      font-variant-emoji: normal;
+      forced-color-adjust: none; /* prevents override to text-style emoji */
+    }
+  }
+</style>
+
+<p>In forced-colors mode, this emoji should remain colorful because of <code>forced-color-adjust: none</code>.</p>
+
+<div class="optout">&#x1f600; 😀</div>

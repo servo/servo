@@ -37,7 +37,16 @@ window.insertIframeWith204Src = (t) => {
   return iframe;
 };
 
-// Creates an iframe with src="about:blank" and appends it to the document.
+// Creates an iframe with src="about:blank" and appends it to the document. The
+// resulting document in the iframe is the initial about:blank Document [1],
+// because during the "process the iframe attributes" algorithm [2], `src`
+// navigations to `about:blank` are caught and result in a synchronous load
+// event; not a SEPARATE navigation to a non-initial `about:blank` Document. See
+// the documentation in [3] as well.
+//
+// [1]: https://html.spec.whatwg.org/#is-initial-about:blank
+// [2]: https://html.spec.whatwg.org/#process-the-iframe-attributes
+// [3]: https://html.spec.whatwg.org/#completely-finish-loading
 window.insertIframeWithAboutBlankSrc = (t) => {
   const iframe = document.createElement("iframe");
   t.add_cleanup(() => iframe.remove());
@@ -47,12 +56,14 @@ window.insertIframeWithAboutBlankSrc = (t) => {
 };
 
 // Creates an iframe with src="about:blank", appends it to the document, and
-// waits for the non-initial about:blank document finished loading.
+// waits for initial about:blank Document to finish loading.
 window.insertIframeWithAboutBlankSrcWaitForLoad = async (t) => {
   const iframe = insertIframeWithAboutBlankSrc(t);
   const aboutBlankLoad = new Promise(resolve => {
-    // In some browsers, the non-initial about:blank navigation commits
+    // In some browsers, when the initial about:blank Document is influenced by
+    // a `src=about:blank` attribute, the about:blank navigation commits
     // asynchronously, while in other browsers, it would commit synchronously.
+    //
     // This means we can't wait for the "load" event as it might have already
     // ran. Instead, just wait for 100ms before resolving, as the non-initial
     // about:blank navigation will most likely take less than 100 ms to commit.

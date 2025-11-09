@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<script src="./support/csp-violations.js"></script>
+<script src="./support/navigation-support.js"></script>
+<script>
+  promise_test(async _ => {
+    await new Promise(resolve => window.addEventListener("load", resolve));
+    const result = await setLocationToJavaScriptURL("throw" /* defaultpolicy */);
+    // This is odd but CSP pre-navigation checks on report-only directives cannot block navigation.
+    assert_true(result.javaScriptExecuted, "JavaScript should have been executed");
+    assert_equals(result.violations.length, 1);
+    const violation = result.violations[0];
+    assert_equals(violation.violatedDirective, "require-trusted-types-for");
+    assert_equals(violation.disposition, "report");
+    assert_equals(violation.sample, `Location href|${clipSampleIfNeeded(kJavaScriptURLCode)}`);
+    assert_equals(result.exception, null, "No exception");
+  }, "Setting window.location to a javascript: URL with a default policy that throws should report a CSP violation without rethrowing the exception.");
+</script>

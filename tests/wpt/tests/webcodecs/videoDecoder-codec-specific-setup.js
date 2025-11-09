@@ -166,6 +166,28 @@ const H265_ANNEXB_DATA = {
   ]
 };
 
+// Note: We only test AVC format since with AnnexB there's not enough
+// information ahead of the first decode() call to determine if the content is
+// interlaced or not.
+const H264_INTERLACED_AVC_DATA = {
+  src: 'h264_interlaced.mp4',
+  config: {
+    codec: 'avc1.64000b',
+    description: {offset: 7501, size: 47},
+    codedWidth: 320,
+    codedHeight: 240,
+    displayAspectWidth: 320,
+    displayAspectHeight: 240,
+  },
+  chunks: [
+    {offset: 48, size: 4091}, {offset: 4139, size: 949},
+    {offset: 5088, size: 260}, {offset: 5348, size: 134},
+    {offset: 5482, size: 111}, {offset: 5593, size: 660},
+    {offset: 6253, size: 197}, {offset: 6450, size: 96},
+    {offset: 6546, size: 159}, {offset: 6705, size: 277}
+  ]
+};
+
 // Allows mutating `callbacks` after constructing the VideoDecoder, wraps calls
 // in t.step().
 function createVideoDecoder(t, callbacks) {
@@ -229,6 +251,7 @@ promise_setup(async () => {
     '?vp9': VP9_DATA,
     '?h264_avc': H264_AVC_DATA,
     '?h264_sei_avc': H264_SEI_AVC_DATA,
+    '?h264_interlaced_avc': H264_INTERLACED_AVC_DATA,
     '?h264_annexb': H264_ANNEXB_DATA,
     '?h264_sei_annexb': H264_SEI_ANNEXB_DATA,
     '?h265_hevc': H265_HEVC_DATA,

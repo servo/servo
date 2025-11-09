@@ -6,6 +6,15 @@
 <link rel="help" href="https://www.w3.org/TR/cssom-view-1/#dom-document-caretpositionfrompoint">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+textarea {
+  font: 20px/1 Ahem;
+  border: none;
+  padding: 0;
+}
+</style>
+
 <div id="container"></div>
 <script>
 
@@ -44,12 +53,13 @@ test(() => {
     assert_equals(caretPosition.offset, 0);
 }, "document.caretPositionFromPoint() should return a CaretPosition at the specified location pointing to an input element which is the offsetNode.");
 
-test(() => {
-    container.setHTMLUnsafe(`<textarea rows="2" cols="4">12345678901234567890</textarea>`);
+promise_test(async () => {
+    container.setHTMLUnsafe(`<textarea rows="3" cols="4">12345678\n901234567890</textarea>`);
+    await document.fonts.ready;
     const rect = container.firstChild.getBoundingClientRect();
     // Get x and y coordinate at "1234|5678..."
     const x = rect.left + 1;
-    const y = rect.top + rect.height * 0.75;
+    const y = rect.top + rect.height * 0.5;
     const caretPosition = document.caretPositionFromPoint(x, y);
     assert_true(caretPosition instanceof CaretPosition);
     assert_true(caretPosition.offsetNode instanceof Node);
@@ -57,6 +67,25 @@ test(() => {
     assert_equals(caretPosition.offsetNode, container.firstChild);
     assert_equals(caretPosition.offset, 4);
 }, "document.caretPositionFromPoint() should return a CaretPosition at the specified location pointing to a textarea element which is the offsetNode.");
+
+promise_test(async () => {
+    container.setHTMLUnsafe(`<textarea rows="3" cols="4">12345678\n901234567890</textarea>`);
+    await document.fonts.ready;
+    const element = container.firstChild;
+    const rect = element.getBoundingClientRect();
+    const fontSize = parseInt(getComputedStyle(element).fontSize.match(/\d+/)[0]);
+
+    // Check a position after a forced break.
+    const caretPosition = document.caretPositionFromPoint(
+        rect.left + fontSize + 2, rect.bottom - fontSize / 2);
+    // caretPosition should point between '9' and '0'.
+    assert_equals(caretPosition.offsetNode, element);
+    assert_equals(caretPosition.offset, 10, 'offset');
+    const caretRect = caretPosition.getClientRect();
+    assert_equals(caretRect.left, rect.left + fontSize, 'caretRect.left');
+    assert_greater_than(caretRect.bottom, rect.top + rect.height * 0.9,
+        'caretRect.bottom');
+}, "document.caretPositionFromPoint() for a point after a forced break should return a CaretPosition at the specified location pointing to a textarea element which is the offsetNode.");
 
 test(() => {
     container.setHTMLUnsafe(`a<div id="host"></div>b`);

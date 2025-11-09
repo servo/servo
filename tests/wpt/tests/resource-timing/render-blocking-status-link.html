@@ -27,10 +27,19 @@
       href="resources/empty_style.css?stylesheet-head-alternate">
 <link rel=preload as=style href="resources/empty_style.css?link-style-head-preload">
 <link rel=preload as=style href="resources/empty_style.css?link-style-preload-used">
+<link rel=preload as=style href="resources/empty_style.css?link-style-preload-used-immediately">
+<link rel=stylesheet href="resources/empty_style.css?link-style-preload-used-immediately">
+<link rel=preload as=style href="resources/empty_style.css?link-style-preload-used-immediately-then-preloaded-again">
+<link rel=stylesheet href="resources/empty_style.css?link-style-preload-used-immediately-then-preloaded-again">
+<link rel=preload as=style href="resources/empty_style.css?link-style-preload-used-immediately-then-preloaded-again">
 <link rel=stylesheet href="resources/importer.css?stylesheet-importer-head">
 <link rel=stylesheet id="link-head-remove-attr" blocking="render"
     href="resources/empty_style.css?stylesheet-head-blocking-render-remove-attr">
 <link rel=modulepreload href="resources/empty_script.js?link-head-modulepreload">
+<link rel=preload as="script" href="resources/empty_script.js?link-script-preload-used-immediately">
+<script src="resources/empty_script.js?link-script-preload-used-immediately"></script>
+<link rel=preload as="script" href="resources/empty_script.js?link-script-preload-defer-used-immediately">
+<script defer src="resources/empty_script.js?link-script-preload-defer-used-immediately"></script>
 
 <style>@import url(resources/empty_style.css?stylesheet-inline-imported);</style>
 <style media=print>
@@ -46,6 +55,8 @@
       media=print>
 <link rel=stylesheet blocking="render"
     href="resources/empty_style.css?stylesheet-body-blocking-render">
+
+<img src="resources/blue.png?link-image-preload-used-immediately">
 
 <!-- https://html.spec.whatwg.org/multipage/urls-and-fetching.html#blocking-attributes
      mentions that an element is potentially render-blocking if its blocking
@@ -169,9 +180,9 @@ const wait_for_onload = () => {
 promise_test(
   async () => {
     const expectedRenderBlockingStatus = {
-        'stylesheet-head-dynamic-docWrite': 'blocking',
-        'stylesheet-head-dynamic-docWrite-print': 'non-blocking',
-        'stylesheet-head': 'blocking',
+        'stylesheet-head-dynamic-docWrite' : 'blocking',
+        'stylesheet-head-dynamic-docWrite-print' : 'non-blocking',
+        'stylesheet-head' : 'blocking',
         'stylesheet-head-media-print' : 'non-blocking',
         'stylesheet-head-alternate' : 'non-blocking',
         'link-style-head-preload' : 'non-blocking',
@@ -195,13 +206,18 @@ promise_test(
         'link-head-modulepreload-dynamic-dom' : 'non-blocking',
         'link-style-preload-used' : 'non-blocking',
         'link-style-preload-used-dynamic' : 'non-blocking',
-        'stylesheet-inline-imported-dynamic-docwrite': 'blocking',
+        'link-style-preload-used-immediately' : 'blocking',
+        'link-style-preload-used-immediately-then-preloaded-again' : 'blocking',
+        'stylesheet-inline-imported-dynamic-docwrite' : 'blocking',
         'stylesheet-inline-imported-dynamic-docwrite-print' : 'non-blocking',
         'stylesheet-inline-imported-dynamic-dom' : 'non-blocking',
         'stylesheet-inline-imported-blocking-render-dynamic-dom' : 'blocking',
         'stylesheet-imported' : 'blocking',
         'stylesheet-imported-print' : 'non-blocking',
-        'stylesheet-imported-dynamic' : 'non-blocking'
+        'stylesheet-imported-dynamic' : 'non-blocking',
+        'link-image-preload-used-immediately' : 'non-blocking',
+        'link-script-preload-used-immediately' : 'blocking',
+        'link-script-preload-defer-used-immediately' : 'non-blocking'
     };
 
     await wait_for_onload();
@@ -210,7 +226,8 @@ promise_test(
     for (entry of entry_list) {
         if (entry.name.includes("empty_style.css") ||
                 entry.name.includes("importer.css") ||
-                entry.name.includes("empty_script.js")) {
+                entry.name.includes("empty_script.js") ||
+                entry.name.includes("blue.png")) {
             key = entry.name.split("?").pop();
             expectedStatus = expectedRenderBlockingStatus[key];
             assert_equals(entry.renderBlockingStatus, expectedStatus,

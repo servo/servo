@@ -45,6 +45,29 @@ const reduceSumSquareTests = [
     }
   },
   {
+    'name': 'reduceSumSquare float32 0D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceSumSquareInput': {
+          'data': [52.5615348815918],
+          'descriptor': {shape: [], dataType: 'float32'},
+          'constant': false
+        }
+      },
+      'operators': [{
+        'name': 'reduceSumSquare',
+        'arguments': [{'input': 'reduceSumSquareInput'}],
+        'outputs': 'reduceSumSquareOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumSquareOutput': {
+          'data': 2762.71484375,
+          'descriptor': {shape: [], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'reduceSumSquare float32 0D constant tensor empty axes',
     'graph': {
       'inputs': {
@@ -52,6 +75,30 @@ const reduceSumSquareTests = [
           'data': [52.5615348815918],
           'descriptor': {shape: [], dataType: 'float32'},
           'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceSumSquare',
+        'arguments':
+            [{'input': 'reduceSumSquareInput'}, {'options': {'axes': []}}],
+        'outputs': 'reduceSumSquareOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumSquareOutput': {
+          'data': 2762.71484375,
+          'descriptor': {shape: [], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceSumSquare float32 0D tensor empty axes',
+    'graph': {
+      'inputs': {
+        'reduceSumSquareInput': {
+          'data': [52.5615348815918],
+          'descriptor': {shape: [], dataType: 'float32'},
+          'constant': false
         }
       },
       'operators': [{
@@ -658,6 +705,27 @@ const reduceSumSquareTests = [
     }
   },
   {
+    'name': 'reduceSumSquare float16 0D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceSumSquareInput': {
+          'data': [52.5625],
+          'descriptor': {shape: [], dataType: 'float16'},
+          'constant': false
+        }
+      },
+      'operators': [{
+        'name': 'reduceSumSquare',
+        'arguments': [{'input': 'reduceSumSquareInput'}],
+        'outputs': 'reduceSumSquareOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumSquareOutput':
+            {'data': [2762], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
     'name': 'reduceSumSquare float16 0D constant tensor empty axes',
     'graph': {
       'inputs': {
@@ -665,6 +733,28 @@ const reduceSumSquareTests = [
           'data': [52.5625],
           'descriptor': {shape: [], dataType: 'float16'},
           'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceSumSquare',
+        'arguments':
+            [{'input': 'reduceSumSquareInput'}, {'options': {'axes': []}}],
+        'outputs': 'reduceSumSquareOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumSquareOutput':
+            {'data': [2762], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceSumSquare float16 0D tensor empty axes',
+    'graph': {
+      'inputs': {
+        'reduceSumSquareInput': {
+          'data': [52.5625],
+          'descriptor': {shape: [], dataType: 'float16'},
+          'constant': false
         }
       },
       'operators': [{

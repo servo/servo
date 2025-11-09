@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+'use strict';
+const controls = ['input','textarea'];
+
+function setupControl(control, value) {
+  document.body.innerHTML = control === 'input' ? '<input type="text" id="test">'
+                                                : '<textarea id="test"></textarea>';
+  const element = document.getElementById('test');
+  element.value = value;
+  element.focus();
+  // Stabilize layout.
+  element.style.fontFamily = 'monospace';
+  element.style.fontSize = '16px';
+  element.style.lineHeight = '20px';
+  element.style.padding = '0';
+  element.style.border = '0';
+  element.style.margin = '8px';
+  element.style.boxSizing = 'content-box';
+
+  // Zero scroll offsets so client rects are relative to a known origin.
+  if ('scrollTop' in element) element.scrollTop = 0;
+  if ('scrollLeft' in element) element.scrollLeft = 0;
+  return element;
+}
+function setupFormControlRange(element, startOffset, endOffset){
+  const range = new FormControlRange();
+  range.setFormControlRange(element, startOffset, endOffset);
+  return range;
+}
+
+function assert_rect_inside(inner, outer, msg = '') {
+  const rounding = 0.5; // sub-pixel fuzz
+  assert_greater_than_equal(inner.left + rounding, outer.left, msg + 'left inside');
+  assert_less_than_equal(inner.right - rounding, outer.right, msg + 'right inside');
+}
+
+controls.forEach(controlType => {
+  test(() => {
+    // Collapsed range (caret): no client rects; bounding rect is a caret box
+    // (zero width, non-zero height) positioned within the control.
+    const element = setupControl(controlType, 'Hello');
+    const range = setupFormControlRange(element, 2, 2);
+    const caretRect = range.getBoundingClientRect();
+    assert_equals(range.getClientRects().length, 0, 'collapsed: no client rects');
+    assert_approx_equals(caretRect.width, 0, 0.05, 'caret width should be 0');
+    assert_greater_than(caretRect.height, 0, 'caret height greater than 0');
+    assert_rect_inside(caretRect, element.getBoundingClientRect(), 'caret inside ');
+  }, `Collapsed caret geometry (${controlType})`);
+
+  test(() => {
+    // Non-collapsed selection: non-zero geometry, all rects contained in control.
+    const element = setupControl(controlType, 'ABCDE');
+    const range = setupFormControlRange(element, 1, 4);
+    const boundingRect = range.getBoundingClientRect();
+    const clientRects = Array.from(range.getClientRects());
+    assert_greater_than(boundingRect.width, 0, 'selection width greater than 0');
+    assert_greater_than(boundingRect.height, 0, 'selection height greater than 0');
+    assert_rect_inside(boundingRect, element.getBoundingClientRect());
+    assert_greater_than_equal(clientRects.length, 1);
+    clientRects.forEach((clientRect, index) =>
+      assert_rect_inside(clientRect, element.getBoundingClientRect(), 'rect[' + index + '] ')
+    );
+  }, `Simple selection geometry (${controlType})`);
+
+  test(() => {
+    // If the control is removed from the DOM, geometry should be empty.
+    const element = setupControl(controlType, 'ABCDE');
+    const range = setupFormControlRange(element, 0, element.value.length);
+    assert_greater_than(range.getBoundingClientRect().width,0,'pre removal width greater than 0');
+    element.remove();
+    const boundingRect = range.getBoundingClientRect();
+    assert_approx_equals(boundingRect.width, 0, 0.05, 'width should be 0 after removal');
+    assert_equals(range.getClientRects().length, 0);
+  }, `Geometry empty after control removal (${controlType})`);
+
+  test(() => {
+    const value = 'ABCDE';
+    const element = setupControl(controlType, value);
+    [0, Math.floor(value.length / 2), value.length].forEach(position => {
+      const range = setupFormControlRange(element, position, position);
+      const caretRect = range.getBoundingClientRect();
+      assert_equals(range.getClientRects().length, 0, 'collapsed caret has no rects');
+      assert_approx_equals(caretRect.width, 0, 0.05, 'caret width should be 0');
+      assert_greater_than(caretRect.height, 0, 'caret height greater than 0');
+    });
+  }, `Collapsed caret at start/middle/end (${controlType})`);
+
+  test(() => {
+    // Full selection should yield a non-zero bounding box inside the control.
+    // (For textarea, the string includes a hard newline to exercise multi-line.)
+    const value = controlType === 'textarea' ? 'First line\nSecond line' : 'ABCDE';
+    const element = setupControl(controlType, value);
+    const range = setupFormControlRange(element, 0, element.value.length);
+    const boundingRect = range.getBoundingClientRect();
+    assert_greater_than(boundingRect.width, 0, 'full width greater than 0');
+    assert_greater_than(boundingRect.height, 0, 'full height greater than 0');
+    assert_rect_inside(boundingRect, element.getBoundingClientRect(), 'full selection inside');
+  }, `Full selection bounding box inside element (${controlType})`);
+
+  test(() => {
+    // Backwards offsets are auto-collapsed by setFormControlRange; caret geometry applies.
+    document.body.innerHTML = controlType === 'input' ? '<input type="text" value="Test">'
+                                                    : '<textarea>Test</textarea>';
+    const element = document.body.firstElementChild; const range = new FormControlRange();
+    range.setFormControlRange(element, 3, 1);
+    assert_true(range.collapsed, 'collapsed');
+    const caretRect = range.getBoundingClientRect();
+    assert_approx_equals(caretRect.width, 0, 0.05, 'caret width should be 0');
+    assert_greater_than(caretRect.height, 0, 'caret height greater than 0');
+  }, `Backwards offsets collapse (${controlType})`);
+
+  test(() => {
+    // Elements with display:none have no rendered geometry; ranges report empty rects.
+    document.body.innerHTML = controlType === 'input'
+      ? '<input type="text" id="displayNone" style="display:none" value="hidden">'
+      : '<textarea id="displayNone" style="display:none">hidden</textarea>';
+    const element = document.getElementById('displayNone');
+    const range = setupFormControlRange(element, 0, element.value.length);
+    const boundingRect = range.getBoundingClientRect();
+    assert_approx_equals(boundingRect.width, 0, 0.05, 'width should be 0 (display:none)');
+    assert_approx_equals(boundingRect.height, 0, 0.05, 'height should be 0 (display:none)');
+    assert_equals(range.getClientRects().length, 0);
+  }, `display:none empty geometry (${controlType})`);
+});
+</script>

@@ -477,7 +477,7 @@ var browserTests = [
     {"stylewithcss":[false,true,"",false,false,""],"inserthtml":[false,false,"",false,false,""]}],
 ["<p>[foo]</p>",
     [["inserthtml","<!--abc-->"]],
-    "<p><!--abc-->{}</p>",
+    "<p><!--abc--><br></p>",
     [true],
     {"inserthtml":[false,false,"",false,false,""]}],
 ["<p>{}<br></p>",
@@ -487,7 +487,7 @@ var browserTests = [
     {"inserthtml":[false,false,"",false,false,""]}],
 ["<p>{}<br></p>",
     [["inserthtml","<!--abc-->"]],
-    "<p><!--abc-->{}</p>",
+    "<p><!--abc--><br></p>",
     [true],
     {"inserthtml":[false,false,"",false,false,""]}],
 ["<p><!--foo-->{}<span><br></span><!--bar--></p>",
@@ -521,7 +521,8 @@ var browserTests = [
     {"inserthtml":[false,false,"",false,false,""]}],
 ["<p><br>{}</p>",
     [["inserthtml","<!--abc-->"]],
-    "<p><!--abc--></p>",
+    ["<p><br><!--abc--></p>",
+     "<p><!--abc--><br></p>"],
     [true],
     {"inserthtml":[false,false,"",false,false,""]}],
 ["<p><!--foo--><span><br></span>{}<!--bar--></p>",
@@ -535,18 +536,25 @@ var browserTests = [
     "<p><!--foo--><span><!--abc-->{}<br></span><!--bar--></p>",
     [true],
     {"inserthtml":[false,false,"",false,false,""]}],
-// TODO: Fix the insertion not occurring at caret position.
-// Updating the expected value of below two tests as to how other
-// browsers behave these tests will still fail and since the insertion
-// position is incorrect br tag gets removed, after fixing this it shouldn't.
+// Don't insert text after the invisible <br> element. In the normal cases
+// (meaning without the Comment nodes), caret should be put at the <br>.
+//  Therefore, inserting text should be done before the <br>. Then, the <br>
+// becomes unnecessary so that it should be removed.
 ["<p><span><!--foo--><br><!--bar--></span>{}</p>",
     [["inserthtml","abc"]],
-    "<p><span><!--foo--><br><!--bar--></span>abc</p>",
+    "<p><span><!--foo-->abc<!--bar--></span></p>",
     [true],
     {"inserthtml":[false,false,"",false,false,""]}],
+// It may be allowed to insert new Comment after the invisible <br> element.
+// Therefore, the first one expects the new position as same as the `Selection`.
+// On the other hand, if the inserting content includes visible things,
+// everything should be inserted before the invisible <br>.  Therefore, the
+// new position can be before the <br> as same as handled as inserting visible
+// things.
 ["<p><span><!--foo--><br><!--bar--></span>{}</p>",
     [["inserthtml","<!--abc-->"]],
-    "<p><span><!--foo--><br><!--bar--></span><!--abc--></p>",
+    ["<p><span><!--foo--><br><!--bar--></span><!--abc--></p>",
+     "<p><span><!--foo--><!--abc--><br><!--bar--></span></p>"],
     [true],
     {"inserthtml":[false,false,"",false,false,""]}],
 
