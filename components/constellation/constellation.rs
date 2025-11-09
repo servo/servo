@@ -167,6 +167,7 @@ use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
+use storage_traits::client_storage::ClientStorageThreadMsg;
 use storage_traits::indexeddb_thread::{IndexedDBThreadMsg, SyncOperation};
 use storage_traits::webstorage_thread::{StorageType, WebStorageThreadMsg};
 use style::global_style_data::StyleThreadPool;
@@ -2594,6 +2595,8 @@ where
         // Channels to receive signals when threads are done exiting.
         let (core_ipc_sender, core_ipc_receiver) =
             ipc::channel().expect("Failed to create IPC channel!");
+        let (client_storage_generic_sender, client_storage_generic_receiver) =
+            generic_channel::channel().expect("Failed to create generic channel!");
         let (indexeddb_ipc_sender, indexeddb_ipc_receiver) =
             ipc::channel().expect("Failed to create IPC channel!");
         let (web_storage_generic_sender, web_storage_generic_receiver) =
@@ -2615,6 +2618,13 @@ where
             }
         }
 
+        debug!("Exiting client storage thread.");
+        if let Err(e) = generic_channel::GenericSend::send(
+            &self.public_storage_threads,
+            ClientStorageThreadMsg::Exit(client_storage_generic_sender),
+        ) {
+            warn!("Exit client storage thread failed ({})", e);
+        }
         debug!("Exiting indexeddb resource threads.");
         if let Err(e) =
             self.public_storage_threads
@@ -2698,6 +2708,9 @@ where
         // Receive exit signals from threads.
         if let Err(e) = core_ipc_receiver.recv() {
             warn!("Exit resource thread failed ({:?})", e);
+        }
+        if let Err(e) = client_storage_generic_receiver.recv() {
+            warn!("Exit client storage thread failed ({:?})", e);
         }
         if let Err(e) = indexeddb_ipc_receiver.recv() {
             warn!("Exit indexeddb thread failed ({:?})", e);
