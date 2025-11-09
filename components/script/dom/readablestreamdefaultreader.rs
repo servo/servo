@@ -8,7 +8,7 @@ use std::mem;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSAutoRealm};
+use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 
@@ -30,8 +30,6 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::{ReadableStream, bytes_from_chunk_jsval};
 use crate::dom::readablestreamgenericreader::ReadableStreamGenericReader;
-use crate::microtask::Microtask::ReadableStreamReleaseReader;
-use crate::microtask::MicrotaskRunnable;
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -80,20 +78,6 @@ fn read_loop(
     };
     // Step 2 .Perform ! ReadableStreamDefaultReaderRead(reader, readRequest).
     reader.read(cx, &req, can_gc);
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-pub(crate) struct ReleaseReaderMicrotask {
-    reader: Dom<ReadableStreamDefaultReader>,
-}
-
-impl MicrotaskRunnable for ReleaseReaderMicrotask {
-    fn handler(&self, can_gc: CanGc) {
-        let _ = self.reader.release(can_gc);
-    }
-    fn enter_realm(&self) -> JSAutoRealm {
-        enter_realm(&*self.reader.global())
-    }
 }
 
 /// <https://streams.spec.whatwg.org/#read-request>
@@ -209,13 +193,6 @@ impl ReadRequest {
                 bytes,
                 ..
             } => {
-                // Release the temporary reader asynchronously.
-                // avoid re-entrancy/borrow during close; queue a microtask.
-                let global = reader.global();
-                global.enqueue_microtask(ReadableStreamReleaseReader(ReleaseReaderMicrotask {
-                    reader: Dom::from_ref(reader),
-                }));
-
                 // Step 1. Call successSteps with bytes.
                 (success_steps)(&bytes.borrow());
             },
