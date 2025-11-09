@@ -1,0 +1,28 @@
+<!doctype html>
+<title>SVGGraphicsElement.getCTM and co with empty viewbox</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.com" title="Mozilla">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1997351">
+<link rel="help" href="https://svgwg.org/svg2-draft/types.html#InterfaceSVGGraphicsElement" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="container" style="width: 500px; height: 0px;">
+  <svg width="100%" height="100%" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <defs></defs>
+    <g class="viewport">
+    </g>
+  </svg>
+</div>
+<script>
+  function assert_identity(m, prefix) {
+    assert_equals(m.a, 1, prefix + "a");
+    assert_equals(m.d, 1, prefix + "d");
+    for (let member of ["b", "c", "e", "f"]) {
+      assert_equals(m[member], 0, prefix + member);
+    }
+  }
+  test(function () {
+    assert_identity(document.querySelector(".viewport").getCTM(), "getCTM: ");
+    assert_identity(document.querySelector(".viewport").getScreenCTM(), "getScreenCTM: ");
+  });
+</script>

@@ -35,3 +35,14 @@ test(t => {
   assert_false(a_a.isSameSite(b), "Origins with different registrable domains should not be same-site.");
   assert_false(a_a.isSameSite(b_b), "Origins with different registrable domains should not be same-site.");
 }, "Comparison of tuple origins.");
+
+test(t => {
+  const http = new Origin("http://a.example");
+  const https = new Origin("https://a.example");
+
+  assert_false(http.isSameOrigin(https), "http is not same-site with https");
+  assert_false(https.isSameOrigin(http), "https is not same-site with http");
+
+  assert_false(http.isSameSite(https), "http is not same-site with https");
+  assert_false(https.isSameSite(http), "https is not same-site with http");
+}, "Comparisons are schemeful.");

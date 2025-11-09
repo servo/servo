@@ -2,23 +2,19 @@
 <html>
   <head>
     <title>
-      audiochannelmerger-input-non-default.html
+      ChannelMergerNode: Non-Default Input Handling
     </title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="/webaudio/resources/audit-util.js"></script>
-    <script src="/webaudio/resources/audit.js"></script>
     <script src="/webaudio/resources/merger-testing.js"></script>
   </head>
   <body>
-    <script id="layout-test-code">
-      let audit = Audit.createTaskRunner();
-
-
+    <script>
       // Task: Check if an inactive input renders a silent mono channel in the
       // output.
-      audit.define('silent-channel', (task, should) => {
-        testMergerInput(should, {
+      promise_test(async () => {
+        await testMergerInput_W3CTH({
           numberOfChannels: 7,
 
           // Create a mono source buffer filled with '1'.
@@ -29,14 +25,13 @@
 
           // 7th channel should be '1'.
           expected: [0, 0, 0, 0, 0, 0, 1],
-        }).then(() => task.done());
-      });
-
+        });
+      }, 'silent-channel');
 
       // Task: Check if a stereo input is being down-mixed to mono channel
       // correctly based on the mixing rule.
-      audit.define('stereo-down-mixing', (task, should) => {
-        testMergerInput(should, {
+      promise_test(async () => {
+        await testMergerInput_W3CTH({
           numberOfChannels: 7,
 
           // Create a stereo buffer filled with '1' and '2' for left and right
@@ -49,14 +44,13 @@
           // The result of summed and down-mixed stereo audio should be 1.5.
           // (= 1 * 0.5 + 2 * 0.5)
           expected: [0, 0, 0, 0, 0, 0, 1.5],
-        }).then(() => task.done());
-      });
-
+        });
+      }, 'stereo-down-mixing');
 
       // Task: Check if 3-channel input gets processed by the 'discrete' mixing
       // rule.
-      audit.define('undefined-channel-layout', (task, should) => {
-        testMergerInput(should, {
+      promise_test(async () => {
+        await testMergerInput_W3CTH({
           numberOfChannels: 7,
 
           // Create a 3-channel buffer filled with '1', '2', and '3'
@@ -70,10 +64,8 @@
           // not a canonical layout, so the input channel 2 and 3 should be
           // dropped by 'discrete' mixing rule.
           expected: [0, 0, 0, 0, 0, 0, 1],
-        }).then(() => task.done());
-      });
-
-      audit.run();
+        });
+      }, 'undefined-channel-layout');
     </script>
   </body>
 </html>

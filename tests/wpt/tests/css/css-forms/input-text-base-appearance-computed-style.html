@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://drafts.csswg.org/css-forms-1">
+<link rel=help href="https://github.com/w3c/csswg-drafts/issues/10857">
+<link rel=help href="https://github.com/w3c/csswg-drafts/issues/11486">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+input {
+  appearance: base;
+}
+#parent {
+  text-transform: uppercase;
+  text-align: end;
+  text-indent: 5em;
+}
+</style>
+
+<div id=parent>
+  <input value=value>
+  <div id=sibling>sibling</div>
+</div>
+<div id=initial></div>
+
+<script>
+const input = document.querySelector('input');
+const parent = document.getElementById('parent');
+const sibling = document.getElementById('sibling');
+const intial = document.getElementById('initial');
+
+// All of the elements should inherit these properties.
+const expectedInheritedProperties = {
+  'font-size': '24px',
+  'font-family': 'monospace',
+  'font-stretch': '150%',
+  'font-style': 'italic',
+  'font-variant': 'small-caps',
+  'font-weight': '500',
+  'line-height': '13px',
+  'text-shadow': 'rgb(1, 1, 1) 1px 1px 1px',
+  'text-rendering': 'optimizelegibility',
+  'letter-spacing': '1px',
+  'word-spacing': '2px',
+  'color': 'rgb(255, 0, 0)',
+};
+for (const [property, value] of Object.entries(expectedInheritedProperties)) {
+  parent.style[property] = value;
+}
+
+function testProperties(style, expectedProperties) {
+  const parentStyle = getComputedStyle(parent);
+  const initialStyle = getComputedStyle(initial);
+
+  for (let [property, value] of Object.entries(expectedProperties)) {
+    if (value == 'initial') {
+      value = initialStyle[property];
+    } else if (value.endsWith('em')) {
+      // Properties with em units get serialized into px. In order to calculate
+      // the expected value of an em unit, we can set another element to the
+      // expected amount of ems and then serialize that one.
+      sibling.style[property] = value;
+      value = getComputedStyle(sibling)[property];
+    }
+    assert_equals(style[property], value, property);
+  }
+
+  for (const [property, value] of Object.entries(expectedInheritedProperties)) {
+    // Don't test whether a property was inherited if expectedProperties
+    // already has an expected value for it.
+    if (!Object.keys(expectedProperties).includes(property)) {
+      assert_equals(style[property], value, property);
+    }
+  }
+}
+
+test(() => {
+  const expectedProperties = {
+    'background-color': 'rgba(0, 0, 0, 0)',
+    'border': '1px solid rgb(255, 0, 0)', /* color is currentColor */
+    'display': 'inline-block',
+    'user-select': 'auto',
+    'padding-block-start': '0px',
+    'padding-block-end': '0px',
+    'padding-inline-start': '0px',
+    'padding-inline-end': '0px',
+    'border-radius': '0px',
+    'text-indent': 'initial',
+    'cursor': 'text',
+    'white-space': 'initial',
+    'align-items': 'initial',
+    'text-transform': 'initial',
+    'text-align': 'initial'
+  };
+  testProperties(getComputedStyle(input), expectedProperties);
+}, 'UA styles of base appearance <input type=text>.');
+</script>

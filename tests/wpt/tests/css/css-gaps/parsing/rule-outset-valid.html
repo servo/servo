@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>CSS Gaps: parsing *-rule-outset with valid values</title>
+  <title>CSS Gaps: parsing rule-outset shorthands with valid values</title>
   <link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
   <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#outset">
   <script src="/resources/testharness.js"></script>
@@ -14,11 +14,18 @@
   <script>
     const properties = ['column-rule-outset', 'row-rule-outset', 'rule-outset'];
     for (const property of properties) {
-      test_valid_value(property, '0', '0px');
-      test_valid_value(property, '-20px');
-      test_valid_value(property, '5%');
-      test_valid_value(property, '10vmin');
-      test_valid_value(property, 'calc(8em + 4ex)');
+      test_valid_value(property, '0', '0px 0px / 0px 0px');
+      test_valid_value(property, '-20px', '-20px -20px / -20px -20px');
+      test_valid_value(property, '5%', '5% 5% / 5% 5%');
+      test_valid_value(property, '10vmin', '10vmin 10vmin / 10vmin 10vmin');
+      test_valid_value(property, 'calc(8em + 4ex)', 'calc(8em + 4ex) calc(8em + 4ex) / calc(8em + 4ex) calc(8em + 4ex)');
+      test_valid_value(property, '10px 20px / 30px -10px');
+      test_valid_value(property, '-10px -20px / 25% 24%');
+      test_valid_value(property, '5% 10% / 15% 25%');
+      test_valid_value(property, '10px 20px', '10px 20px / 10px 20px');
+      test_valid_value(property, '10px 20px / -5px', '10px 20px / -5px -5px');
+      test_valid_value(property, '10px / 20px 30px', '10px 10px / 20px 30px');
+      test_valid_value(property, '10px / 20px', '10px 10px / 20px 20px');
     }
   </script>
 </body>

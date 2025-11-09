@@ -246,12 +246,22 @@ async def test_set_to_user_context_and_then_to_context(
         url=test_url,
         wait="complete",
     )
-    # Make sure that the geolocation override for the user context is applied.
+    # Make sure that the user context is applied for the new context.
     assert await get_current_geolocation(context_in_user_context_2) == TEST_COORDINATES
 
+    # Remove browsing context geolocation override.
     await bidi_session.emulation.set_geolocation_override(
         contexts=[context_in_user_context_1["context"]],
         coordinates=None,
+    )
+
+    # Make sure that the user context override is applied.
+    assert await get_current_geolocation(context_in_user_context_2) == TEST_COORDINATES
+
+    # Remove user context override.
+    await bidi_session.emulation.set_geolocation_override(
+        user_contexts=[user_context],
+        coordinates=None
     )
 
     # Make sure that the geolocation override was reset.

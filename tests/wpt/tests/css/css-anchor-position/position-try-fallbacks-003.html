@@ -19,6 +19,7 @@
     position-anchor: --a;
     position-area: top left;
     position-try-fallbacks: flip-block;
+    position-visibility: always;
     width: 100px;
     height: 100px;
     background: hotpink;
@@ -28,13 +29,15 @@
     position-anchor: --a;
     position-area: top right;
     position-try-fallbacks: flip-block;
+    position-visibility: always;
     width: 100px;
-    height: 450px;
+    height: 300px;
     background: yellow;
   }
 </style>
 
-<div id="scroller" style="position:relative; overflow-y:scroll; width:400px; height:400px;">
+<div style="position:relative; width:400px; height:400px;">
+<div id="scroller" style="overflow-y:scroll; scrollbar-width: none; width:400px; height:400px;">
   <div id="anchor"></div>
   <div style="height:1000px;"></div>
   <div id="anchored1"></div>
@@ -59,15 +62,15 @@
     // Both options fits. Pick the first one.
     assert_equals(anchored1.offsetTop, 100);
     // None of the options for #anchor2 fits. Use the first one.
-    assert_equals(anchored2.offsetTop, -250);
+    assert_equals(anchored2.offsetTop, 0);
   }, 'initial position');
 
   promise_test(async () => {
     scroller.scrollTop = 100;
     await waitUntilNextAnimationFrame();
     await waitUntilNextAnimationFrame();
-    assert_equals(anchored1.offsetTop, 100);
-    assert_equals(anchored2.offsetTop, -250);
+    assert_equals(anchored1.offsetTop, 0);
+    assert_equals(anchored2.offsetTop, 0);
   }, 'scroll to 100');
 
   promise_test(async () => {
@@ -76,9 +79,9 @@
     await waitUntilNextAnimationFrame();
     // The first option for #anchored1 no longer fits. Move to the second one,
     // which fits.
-    assert_equals(anchored1.offsetTop, 250);
+    assert_equals(anchored1.offsetTop, 149);
     // None of the options for #anchor2 fits. Keep using the first one.
-    assert_equals(anchored2.offsetTop, -250);
+    assert_equals(anchored2.offsetTop, 0);
   }, 'scroll to 101');
 
   promise_test(async () => {
@@ -87,38 +90,38 @@
     await waitUntilNextAnimationFrame();
     // The first option fits again, but stay at the second option, since that
     // one too still fits.
-    assert_equals(anchored1.offsetTop, 250);
+    assert_equals(anchored1.offsetTop, 150);
 
-    assert_equals(anchored2.offsetTop, -250);
+    assert_equals(anchored2.offsetTop, 0);
   }, 'scroll back to 100');
 
   promise_test(async () => {
     await redisplay();
     // Redisplaying the anchored element should go through the options over
     // again, which means that the first options will be chosen.
-    assert_equals(anchored1.offsetTop, 100);
-    assert_equals(anchored2.offsetTop, -250);
+    assert_equals(anchored1.offsetTop, 0);
+    assert_equals(anchored2.offsetTop, 0);
   }, 'redisplay at 100');
 
   promise_test(async () => {
-    scroller.scrollTop = 299;
+    scroller.scrollTop = 200;
     await waitUntilNextAnimationFrame();
     await waitUntilNextAnimationFrame();
     // The first option no longer fits. Move to the second one, which fits.
-    assert_equals(anchored1.offsetTop, 250);
+    assert_equals(anchored1.offsetTop, 50);
 
-    assert_equals(anchored2.offsetTop, -250);
-  }, 'scroll to 299');
+    assert_equals(anchored2.offsetTop, 50);
+  }, 'scroll to 200');
 
 
   promise_test(async () => {
     scroller.scrollTop = 300;
     await waitUntilNextAnimationFrame();
     await waitUntilNextAnimationFrame();
-    assert_equals(anchored1.offsetTop, 250);
+    assert_equals(anchored1.offsetTop, -50);
 
     // The second option now fits.
-    assert_equals(anchored2.offsetTop, 250);
+    assert_equals(anchored2.offsetTop, -50);
   }, 'scroll to 300');
 
   promise_test(async () => {
@@ -131,6 +134,6 @@
 
     // The second option no longer fits, but neither does the first one. Stay at
     // the second one.
-    assert_equals(anchored2.offsetTop, 250);
+    assert_equals(anchored2.offsetTop, 100);
   }, 'scroll back to 0');
 </script>

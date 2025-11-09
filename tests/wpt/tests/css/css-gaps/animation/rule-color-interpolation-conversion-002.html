@@ -13,7 +13,7 @@
       animation: color-anim 2s linear paused;
     }
     @keyframes color-anim {
-      from { column-rule-color: red; }
+      from { column-rule-color: red repeat(auto, red); }
     }
   </style>
 </head>
@@ -25,7 +25,7 @@
       const el = document.getElementById('target');
       const anim = el.getAnimations()[0];
 
-      assert_equals(getComputedStyle(el).columnRuleColor, 'rgb(255, 0, 0)');
+      assert_equals(getComputedStyle(el).columnRuleColor, 'rgb(255, 0, 0) repeat(auto, rgb(255, 0, 0))');
 
       // Jump to 50% of the animation.
       anim.currentTime = anim.effect.getComputedTiming().duration / 2;
@@ -36,12 +36,12 @@
         'rgb(0, 0, 255) rgb(0, 0, 255)'
       );
 
-      el.style.columnRuleColor = 'blue';
+      el.style.columnRuleColor = 'blue repeat(auto, blue)';
 
       const intermediate = getComputedStyle(el).columnRuleColor;
       assert_equals(
         intermediate,
-        'rgb(128, 0, 128)' // The color at 50% of the animation.
+        'rgb(128, 0, 128) repeat(auto, rgb(128, 0, 128))' // The color at 50% of the animation.
       );
     });
   </script>

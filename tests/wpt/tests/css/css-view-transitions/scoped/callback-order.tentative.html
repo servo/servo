@@ -9,10 +9,15 @@
 </head>
 <style>
   #target {
+    position: relative;
     background-color: blue;
     height: 100px;
     width: 100px;
-    z-index: 1;
+    contain: view-transition;
+    view-transition-name: none;
+  }
+  #child {
+    position: relative;
   }
 </style>
 <script src="/resources/testharness.js"></script>

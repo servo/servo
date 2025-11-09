@@ -12,6 +12,7 @@
   test_cq_condition_known('anchored(fallback: none)');
   test_cq_condition_known('(anchored(fallback: inline-start block-end))');
   test_cq_condition_known('anchored(not ((fallback: --foo) or (fallback: --bar flip-inline)))');
+  test_cq_condition_known('anchored(fallback: flip-x flip-y flip-start flip-block flip-inline)');
 
   test_cq_condition_unknown('anchored(fallback < none)');
   test_cq_condition_unknown('anchored((fallback = none))');

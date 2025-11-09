@@ -120,6 +120,7 @@ jobs:
             -- \
             safari
       - name: Publish results
+        if: "!cancelled()"
         uses: actions/upload-artifact@v4.1.0
         with:
           name: ${{ inputs.artifact-name }}-${{ env.CURRENT_CHUNK }}
@@ -128,14 +129,14 @@ jobs:
             ${{ runner.temp }}/wpt_screenshot_*.txt
           if-no-files-found: error
       - name: Publish safaridriver logs
-        if: inputs.safaridriver-diagnose
+        if: inputs.safaridriver-diagnose && !cancelled()
         uses: actions/upload-artifact@v4.1.0
         with:
           name: ${{ inputs.artifact-name }}-safaridriver-logs-${{ env.CURRENT_CHUNK }}
           path: ~/Library/Logs/com.apple.WebDriver/
           if-no-files-found: warn
       - name: Disable safaridriver diagnostics
-        if: inputs.safaridriver-diagnose
+        if: inputs.safaridriver-diagnose && always()
         run: |-
           defaults write com.apple.WebDriver DiagnosticsEnabled 0
           rm -rf ~/Library/Logs/com.apple.WebDriver/

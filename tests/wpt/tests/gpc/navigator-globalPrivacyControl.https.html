@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<title>Primary navigator.globalPrivacyControl test window</title>
+<head>
+  <script src="/resources/testdriver.js"></script>
+  <script src='/resources/testdriver-vendor.js'></script>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div id="log"></div>
+  <script>
+    setup({explicit_done: true});
+    async function run() {
+      const windows_to_close = [];
+      for (const gpcValue of [true, false]) {
+        await test_driver.set_global_privacy_control(gpcValue);
+
+        let child_window = window.open(`support/navigator-globalPrivacyControl.html?gpc=${gpcValue}`);
+        windows_to_close.push(child_window);
+        await fetch_tests_from_window(child_window);
+      }
+
+      for (const w of windows_to_close) {
+        w.close();
+      }
+      done();
+    }
+    run();
+
+  </script>
+</body>
+</html>

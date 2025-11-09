@@ -382,6 +382,7 @@ class MockRuntime {
     this.send_mojo_space_reset_ = false;
     this.stageParameters_ = null;
     this.stageParametersId_ = 1;
+    this.nextVisibilityMaskId_ = 1;
 
     this.service_ = service;
 
@@ -886,6 +887,18 @@ class MockRuntime {
         break;
     }
 
+    let visibilityMask = null;
+    if (fakeXRViewInit.visibilityMask) {
+      let maskInit = fakeXRViewInit.visibilityMask;
+      visibilityMask = {
+        unvalidatedIndices: maskInit.indices,
+        vertices: []
+      };
+      for (let i = 0; i + 1 < maskInit.vertices.length; i+= 2) {
+        visibilityMask.vertices.push( { x: maskInit.vertices[i], y: maskInit.vertices[i+1]});
+      }
+    }
+
     return {
       eye: viewEye,
       geometry: {
@@ -903,7 +916,8 @@ class MockRuntime {
       },
       isFirstPersonObserver: fakeXRViewInit.isFirstPersonObserver ? true : false,
       viewOffset: composeGFXTransform(fakeXRViewInit.viewOffset),
-      visibilityMaskId: { idValue : 0 }
+      visibilityMask: visibilityMask,
+      visibilityMaskId: { idValue : this.nextVisibilityMaskId_++ }
     };
 
   }

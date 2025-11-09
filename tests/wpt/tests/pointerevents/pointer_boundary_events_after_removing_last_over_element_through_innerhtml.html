@@ -1,0 +1,102 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Boundary events fired after an innerHTML change removes the element under
+  pointer</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-actions.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=pointerevent_support.js></script>
+
+<style>
+  div {
+    width: 80px;
+    height: 80px;
+  }
+</style>
+
+<div id="div1">
+  <div id="div2">
+    <div id="div3">
+      <div id="div4"></div>
+    </div>
+  </div>
+</div>
+<div id="done"></div>
+
+<script>
+"use strict";
+
+let event_log = [];
+let logged_event_prefix = "";
+
+function eventLogger(event) {
+  if (event.type.startsWith(logged_event_prefix) &&
+      event.eventPhase == event.AT_TARGET) {
+    event_log.push(`${event.type}@${event.target.id}`);
+  }
+}
+
+addEventListener("load", () => {
+  const div1 = document.getElementById("div1");
+  const div2 = document.getElementById("div2");
+  const div3 = document.getElementById("div3");
+  const div4 = document.getElementById("div4");
+  const done = document.getElementById("done");
+
+  for (const div of [div1, div2, div3, div4]) {
+    for (const event_suffix of ["enter", "leave", "over", "out", "move"]) {
+      div.addEventListener("pointer" + event_suffix, eventLogger);
+      div.addEventListener("mouse" + event_suffix, eventLogger);
+    }
+  }
+
+  div4.addEventListener("click", event => {
+    div2.innerHTML = "";
+    event_log.push("(empty-div2)");
+  });
+
+  function makePromiseTest(prefix) {
+    promise_test(async test => {
+      event_log = [];
+      logged_event_prefix = prefix;
+
+      test.add_cleanup(() => {
+        div2.appendChild(div3);
+      });
+
+      let done_click_promise = getEvent("click", done, test);
+
+      await new test_driver.Actions()
+        .pointerMove(0, 0, {origin: div4})
+        .pointerDown()
+        .pointerUp() // This sends a click that makes div2 empty.
+        .pointerMove(0, 0, {origin: done})
+        .pointerDown()
+        .pointerUp()
+        .send();
+
+      await done_click_promise;
+
+      const expected_events = [
+        "Eover@div4",
+        "Eenter@div1",
+        "Eenter@div2",
+        "Eenter@div3",
+        "Eenter@div4",
+        "Emove@div4",
+        "(empty-div2)",
+        "Eover@div2",
+        "Eout@div2",
+        "Eleave@div2",
+        "Eleave@div1"
+      ].map(s => s.replace("E", prefix));
+      assert_equals(event_log.toString(), expected_events.toString());
+    }, prefix + " boundary events fired");
+  }
+
+  makePromiseTest("pointer");
+  makePromiseTest("mouse");
+}, {once: true});
+</script>

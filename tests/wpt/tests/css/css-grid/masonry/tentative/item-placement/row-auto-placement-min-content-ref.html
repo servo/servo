@@ -10,20 +10,14 @@ html,body {
 .grid {
     display: grid;
     grid-template-rows: 15px auto auto;
-    width: min-content;
+    width: max-content;
+    background: gray;
     align-items: start;
     padding: 10px;
-}
-
-#gray-bg {
-    background: gray;
-    position: absolute;
-    z-index: -1;
 }
 </style>
 <body>
   <p>Ensure that masonry containers are sized correctly under min-content constraints even if the items do not have the min-content style.</p>
-  <div id="gray-bg"></div>
   <div id="shown-items" class="grid">
     <div style="background: lightskyblue; width: max-content; grid-row: 1; grid-column: 1;">
         Number 1

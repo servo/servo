@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<body>
+<script>document.write(`<p>protocol? ${location.protocol}</p>`);</script>
+<script>
+  window.addEventListener('load', () => {
+    window.parent.postMessage(
+      {
+        name: 'iframe-protocol-check',
+        protocol: location.protocol
+      }, '*');
+  });
+</script>
+</body>

@@ -22,7 +22,7 @@
   }
 </style>
 <div style="position:relative; width:500px; height:500px; background:yellow;">
-  <div id="scrollable" style="overflow: hidden; width: 500px; height: 500px;">
+  <div id="scrollable" style="overflow: scroll; scrollbar-width: none; width: 500px; height: 500px;">
     <div style="width:2000px; height:2000px;">
       <div id="container">
         <div style="anchor-name:--anchor; margin:200px; width:50px; height:50px; background:gray;"></div>
@@ -62,17 +62,17 @@
 
   promise_test(async() => {
     // Switch to bottom left.
-    scrollable.scrollTo(100, 150);
+    scrollable.scrollTo(100, 200);
     await waitUntilNextAnimationFrame();
     await waitUntilNextAnimationFrame();
-    assert_rects_equal(anchored, 50, 100, 50, 200);
-  }, "Scroll to 100,150");
+    assert_rects_equal(anchored, 50, 50, 50, 225);
+  }, "Scroll to 100,200");
 
   promise_test(async() => {
     scrollable.scrollTo(0, 0);
     await waitUntilNextAnimationFrame();
     await waitUntilNextAnimationFrame();
-    assert_rects_equal(anchored, 150, 250, 50, 200);
+    assert_rects_equal(anchored, 150, 250, 50, 225);
   }, "Scroll to 0,0");
 
   promise_test(async() => {
@@ -89,7 +89,7 @@
     await waitUntilNextAnimationFrame();
     await waitUntilNextAnimationFrame();
     assert_rects_equal(anchored, 50, 50, 225, 50);
-  }, "Scroll to 750,100");
+  }, "Scroll to 200,100");
 
   promise_test(async() => {
     // Switch to bottom right.
@@ -97,5 +97,5 @@
     await waitUntilNextAnimationFrame();
     await waitUntilNextAnimationFrame();
     assert_rects_equal(anchored, 50, 50, 225, 225);
-  }, "Scroll to 750,196");
+  }, "Scroll to 200,200");
 </script>

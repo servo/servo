@@ -25,8 +25,14 @@
     column-rule-break: intersection;
     row-rule-break: intersection;
 
-    column-rule-outset: 10px;
-    row-rule-outset: 10px;
+    column-rule-edge-start-outset: 10px;
+    row-rule-edge-start-outset: 10px;
+    column-rule-edge-end-outset: 5px;
+    row-rule-edge-end-outset: 5px;
+    column-rule-interior-start-outset: 10px;
+    row-rule-interior-start-outset: 10px;
+    column-rule-interior-end-outset: 5px;
+    row-rule-interior-end-outset: 5px;
   }
 
   #target2 {
@@ -42,8 +48,14 @@
     column-rule-break: intersection;
     row-rule-break: spanning-item;
 
-    column-rule-outset: 5px;
-    row-rule-outset: 10px;
+    column-rule-edge-start-outset: 5px;
+    row-rule-edge-start-outset: 10px;
+    column-rule-edge-end-outset: 15px;
+    row-rule-edge-end-outset: 20px;
+    column-rule-interior-start-outset: 25px;
+    row-rule-interior-start-outset: 30px;
+    column-rule-interior-end-outset: 35px;
+    row-rule-interior-end-outset: 40px;
   }
 </style>
 <script>
@@ -63,7 +75,7 @@
     assert_equals(window.getComputedStyle(document.getElementById('target1')).getPropertyValue('rule-break'), 'intersection');
   }, "rule-break shorthand computed from longhand values");
   test(function() {
-    assert_equals(window.getComputedStyle(document.getElementById('target1')).getPropertyValue('rule-outset'), '10px');
+    assert_equals(window.getComputedStyle(document.getElementById('target1')).getPropertyValue('rule-outset'), '10px 5px / 10px 5px');
   }, "rule-outset shorthand computed from longhand values");
 
 

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<title>position-area normal alignment vs insets</title>
+<link rel="help" href="https://www.w3.org/TR/css-anchor-position/#position-area-alignment">
+<meta name="assert" content="Test passes if normal alignment aligns towards the non-auto inset.">
+<style>
+  .container {
+    position: relative;
+    width: 100px;
+    height: 120px;
+    border: solid;
+    margin: 1em;
+    float: left;
+  }
+  .anchor {
+    border: solid blue 10px;
+    inset: 0;
+    place-self: center;
+    position: absolute;
+  }
+  .test {
+    border: solid 5px;
+    position: absolute;
+    width: 0;
+    height: 0;
+  }
+  .inset1 {
+    margin-bottom: auto;
+    margin-left: auto;
+    border-color: orange;
+  }
+  .inset2 {
+    margin-top: auto;
+    margin-right: auto;
+    border-color: teal;
+  }
+  .center {
+    margin: auto;
+    border-color: aqua;
+  }
+</style>
+
+<div class="container">
+  <div class="anchor"></div>
+  <div class="test inset1" style="inset: 0 60px 70px 0"></div>
+  <div class="test center" style="inset: 0 60px 70px 0"></div>
+  <div class="test inset2" style="inset: 0 60px 70px 0"></div>
+
+  <div class="test inset1" style="inset: 70px 0 0 60px"></div>
+  <div class="test center" style="inset: 70px 0 0 60px"></div>
+  <div class="test inset2" style="inset: 70px 0 0 60px"></div>
+
+  <div class="test inset1" style="inset: 50px 40px 50px 40px"></div>
+  <div class="test center" style="inset: 50px 40px 50px 40px"></div>
+  <div class="test inset2" style="inset: 50px 40px 50px 40px"></div>
+</div>
+
+<div class="container">
+  <div class="anchor"></div>
+  <div class="test inset1" style="inset: 0 0 70px"></div>
+  <div class="test center" style="inset: 0 0 70px"></div>
+  <div class="test inset2" style="inset: 0 0 70px"></div>
+
+  <div class="test inset1" style="inset: 70px 0 0"></div>
+  <div class="test center" style="inset: 70px 0 0"></div>
+  <div class="test inset2" style="inset: 70px 0 0"></div>
+
+  <div class="test inset1" style="inset: 50px 0"></div>
+  <div class="test center" style="inset: 50px 0"></div>
+  <div class="test inset2" style="inset: 50px 0"></div>
+</div>
+
+
+<div class="container" style="writing-mode: vertical-rl">
+  <div class="anchor"></div>
+  <div class="test inset1" style="inset: 0 60px 70px 0"></div>
+  <div class="test center" style="inset: 0 60px 70px 0"></div>
+  <div class="test inset2" style="inset: 0 60px 70px 0"></div>
+
+  <div class="test inset1" style="inset: 70px 0 0 60px"></div>
+  <div class="test center" style="inset: 70px 0 0 60px"></div>
+  <div class="test inset2" style="inset: 70px 0 0 60px"></div>
+
+  <div class="test inset1" style="inset: 50px 40px 50px 40px"></div>
+  <div class="test center" style="inset: 50px 40px 50px 40px"></div>
+  <div class="test inset2" style="inset: 50px 40px 50px 40px"></div>
+</div>
+
+<div class="container" style="writing-mode: vertical-rl">
+  <div class="anchor"></div>
+  <div class="test inset1" style="inset: 0 0 70px"></div>
+  <div class="test center" style="inset: 0 0 70px"></div>
+  <div class="test inset2" style="inset: 0 0 70px"></div>
+
+  <div class="test inset1" style="inset: 70px 0 0"></div>
+  <div class="test center" style="inset: 70px 0 0"></div>
+  <div class="test inset2" style="inset: 70px 0 0"></div>
+
+  <div class="test inset1" style="inset: 0 40px"></div>
+  <div class="test center" style="inset: 0 40px"></div>
+  <div class="test inset2" style="inset: 0 40px"></div>
+</div>

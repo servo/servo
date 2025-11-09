@@ -4,6 +4,8 @@
 <body>
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
   <script src="resources/largest-contentful-paint-helpers.js"></script>
   <script src="/common/utils.js"></script>
   <script>
@@ -12,8 +14,12 @@
     const imageURL = `${window.location.origin}/images/blue.png`;
 
     async function load_image_and_get_lcp_size(t, imageStyle = {}, containerStyle = {}) {
-      const popup = window.open();
-      t.add_cleanup(() => popup.close());
+      let popup;
+      await test_driver.bless('Open a popup', () => {
+        popup = window.open();
+        t.add_cleanup(() => popup.close());
+      });
+
       const image = popup.document.createElement('img');
       image.src = imageURL;
 

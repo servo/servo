@@ -210,12 +210,8 @@ let testFunction =
 
 const gl_props = { antialias: false, alpha: false, stencil: true, depth: true };
 
-// mac has issues with readPixels from the default fbo.
-// skipping this test for Mac.
-if (navigator.platform.indexOf("Mac") == -1) {
-  xr_session_promise_test(
-    nonImmersiveTestName, testFunction, fakeDeviceInitParams, 'inline', {}, {}, gl_props, gl_props);
-}
+xr_session_promise_test(
+  nonImmersiveTestName, testFunction, fakeDeviceInitParams, 'inline', {}, {}, gl_props, gl_props);
 
 xr_session_promise_test(
   immersiveTestName, testFunction, fakeDeviceInitParams, 'immersive-vr', {}, {}, gl_props, gl_props);

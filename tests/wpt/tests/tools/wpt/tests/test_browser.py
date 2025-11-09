@@ -24,7 +24,7 @@ def test_all_browser_abc():
     # products in unit tests.
     classes = inspect.getmembers(browser)
     for name, cls in classes:
-        if cls in (browser.Browser, browser.ChromeAndroidBase):
+        if cls in (browser.Browser, browser.ChromeChromiumBase, browser.ChromeAndroidBase):
             continue
         if inspect.isclass(cls) and issubclass(cls, browser.Browser):
             assert not inspect.isabstract(cls), "%s is abstract" % name

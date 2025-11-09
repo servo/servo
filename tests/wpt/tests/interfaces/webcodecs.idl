@@ -519,7 +519,7 @@ dictionary ImageDecodeResult {
   required boolean complete;
 };
 
-[Exposed=(Window,DedicatedWorker)]
+[Exposed=(Window,DedicatedWorker), SecureContext]
 interface ImageTrackList {
   getter ImageTrack (unsigned long index);
 
@@ -529,7 +529,7 @@ interface ImageTrackList {
   readonly attribute ImageTrack? selectedTrack;
 };
 
-[Exposed=(Window,DedicatedWorker)]
+[Exposed=(Window,DedicatedWorker), SecureContext]
 interface ImageTrack {
   readonly attribute boolean animated;
   readonly attribute unsigned long frameCount;
