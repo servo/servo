@@ -18,7 +18,7 @@ pub enum Error {
     /// NotFoundError DOMException
     NotFound(Option<String>),
     /// HierarchyRequestError DOMException
-    HierarchyRequest,
+    HierarchyRequest(Option<String>),
     /// WrongDocumentError DOMException
     WrongDocument(Option<String>),
     /// InvalidCharacterError DOMException

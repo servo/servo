@@ -37,8 +37,8 @@ impl Convert<Error> for RulesMutateError {
     fn convert(self) -> Error {
         match self {
             RulesMutateError::Syntax => Error::Syntax(None),
-            RulesMutateError::IndexSize => Error::IndexSize(None),
-            RulesMutateError::HierarchyRequest => Error::HierarchyRequest,
+            RulesMutateError::IndexSize => Error::IndexSize,
+            RulesMutateError::HierarchyRequest => Error::HierarchyRequest(None),
             RulesMutateError::InvalidState => Error::InvalidState(None),
         }
     }
@@ -300,12 +300,12 @@ impl CSSRuleList {
 }
 
 impl CSSRuleListMethods<crate::DomTypeHolder> for CSSRuleList {
-    /// <https://drafts.csswg.org/cssom/#ref-for-dom-cssrulelist-item-1>
+    // https://drafts.csswg.org/cssom/#ref-for-dom-cssrulelist-item-1
     fn Item(&self, idx: u32, can_gc: CanGc) -> Option<DomRoot<CSSRule>> {
         self.item(idx, can_gc)
     }
 
-    /// <https://drafts.csswg.org/cssom/#dom-cssrulelist-length>
+    // https://drafts.csswg.org/cssom/#dom-cssrulelist-length
     fn Length(&self) -> u32 {
         self.dom_rules.borrow().len() as u32
     }
