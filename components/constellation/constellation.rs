@@ -2593,8 +2593,8 @@ where
         // Channels to receive signals when threads are done exiting.
         let (core_ipc_sender, core_ipc_receiver) =
             ipc::channel().expect("Failed to create IPC channel!");
-        let (storage_ipc_sender, storage_ipc_receiver) =
-            generic_channel::channel().expect("Failed to create IPC channel!");
+        let (web_storage_generic_sender, web_storage_generic_receiver) =
+            generic_channel::channel().expect("Failed to create generic channel!");
         let mut webgl_threads_receiver = None;
 
         debug!("Exiting core resource threads.");
@@ -2613,12 +2613,12 @@ where
             }
         }
 
-        debug!("Exiting storage resource threads.");
+        debug!("Exiting web storage thread.");
         if let Err(e) = generic_channel::GenericSend::send(
             &self.public_storage_threads,
-            WebStorageThreadMsg::Exit(storage_ipc_sender),
+            WebStorageThreadMsg::Exit(web_storage_generic_sender),
         ) {
-            warn!("Exit storage thread failed ({})", e);
+            warn!("Exit web storage thread failed ({})", e);
         }
 
         #[cfg(feature = "bluetooth")]
@@ -2698,8 +2698,8 @@ where
         if let Err(e) = core_ipc_receiver.recv() {
             warn!("Exit resource thread failed ({:?})", e);
         }
-        if let Err(e) = storage_ipc_receiver.recv() {
-            warn!("Exit storage thread failed ({:?})", e);
+        if let Err(e) = web_storage_generic_receiver.recv() {
+            warn!("Exit web storage thread failed ({:?})", e);
         }
         if self.webgl_threads.is_some() {
             if let Err(e) = webgl_threads_receiver
