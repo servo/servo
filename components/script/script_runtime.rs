@@ -801,6 +801,7 @@ impl Runtime {
         let cx_opts;
         let job_queue;
         unsafe {
+            let cx = runtime.cx();
             job_queue = CreateJobQueue(
                 &JOB_QUEUE_TRAPS,
                 &*microtask_queue as *const _ as *const c_void,
@@ -854,6 +855,7 @@ impl Runtime {
         cx_opts.set_wasmIon_(pref!(js_wasm_ion_enabled));
 
         unsafe {
+            let cx = runtime.cx();
             // TODO: handle js.throw_on_asmjs_validation_failure (needs new Spidermonkey)
             JS_SetGlobalJitCompilerOption(
                 cx,
