@@ -8,7 +8,7 @@ use js::rust::HandleValue;
 use script_bindings::codegen::GenericBindings::IDBKeyRangeBinding::IDBKeyRangeMethods;
 use script_bindings::root::DomRoot;
 use script_bindings::script_runtime::CanGc;
-use storage_traits::indexeddb_thread::IndexedDBKeyRange;
+use storage_traits::indexeddb::IndexedDBKeyRange;
 
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::import::module::SafeJSContext;

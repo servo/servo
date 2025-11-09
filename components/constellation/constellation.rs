@@ -168,7 +168,7 @@ use servo_config::{opts, pref};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 use storage_traits::client_storage::ClientStorageThreadMsg;
-use storage_traits::indexeddb_thread::{IndexedDBThreadMsg, SyncOperation};
+use storage_traits::indexeddb::{IndexedDBThreadMsg, SyncOperation};
 use storage_traits::webstorage_thread::{StorageType, WebStorageThreadMsg};
 use style::global_style_data::StyleThreadPool;
 #[cfg(feature = "webgpu")]

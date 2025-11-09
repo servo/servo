@@ -8,7 +8,7 @@ use base::IpcSend;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use profile_traits::ipc;
-use storage_traits::indexeddb_thread::{IndexedDBThreadMsg, KeyPath, SyncOperation};
+use storage_traits::indexeddb::{IndexedDBThreadMsg, KeyPath, SyncOperation};
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::cell::DomRefCell;
