@@ -11,7 +11,7 @@ use core::ffi::c_char;
 use std::cell::Cell;
 use std::ffi::{CStr, CString};
 use std::io::{Write, stdout};
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 use std::os::raw::c_void;
 use std::rc::Rc;
 use std::sync::Mutex;
@@ -23,29 +23,32 @@ use js::conversions::jsstr_to_string;
 use js::gc::StackGCVector;
 use js::glue::{
     CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchablePointer, DispatchableRun,
-    JS_GetReservedSlot, JobQueueTraps, RUST_js_GetErrorMessage, SetBuildId, SetUpEventLoopDispatch,
+    JS_GetReservedSlot, JobQueueTraps, RUST_js_GetErrorMessage, SetBuildId,
     StreamConsumerConsumeChunk, StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd,
     StreamConsumerStreamError,
 };
 use js::jsapi::{
-    AsmJSOption, BuildIdCharVector, CompilationType, ContextOptionsRef,
-    Dispatchable_MaybeShuttingDown, GCDescription, GCOptions, GCProgress, GCReason,
-    GetPromiseUserInputEventHandlingState, Handle as RawHandle, HandleObject, HandleString,
-    HandleValue as RawHandleValue, Heap, InitConsumeStreamCallback, JS_AddExtraGCRootsTracer,
-    JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback, JS_NewObject,
-    JS_NewStringCopyUTF8N, JS_SetGCCallback, JS_SetGCParameter, JS_SetGlobalJitCompilerOption,
-    JS_SetOffthreadIonCompilationEnabled, JS_SetReservedSlot, JS_SetSecurityCallbacks,
-    JSCLASS_RESERVED_SLOTS_MASK, JSCLASS_RESERVED_SLOTS_SHIFT, JSClass, JSClassOps,
-    JSContext as RawJSContext, JSGCParamKey, JSGCStatus, JSJitCompilerOption, JSObject,
-    JSSecurityCallbacks, JSString, JSTracer, JobQueue, MimeType, MutableHandleObject,
-    MutableHandleString, PromiseRejectionHandlingState, PromiseUserInputEventHandlingState,
-    RuntimeCode, SetDOMCallbacks, SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks,
-    SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback, StreamConsumer as JSStreamConsumer,
+    AsmJSOption, BuildIdCharVector, CompilationType, Dispatchable_MaybeShuttingDown, GCDescription,
+    GCOptions, GCProgress, GCReason, GetPromiseUserInputEventHandlingState, Handle as RawHandle,
+    HandleObject, HandleString, HandleValue as RawHandleValue, Heap, JS_NewObject,
+    JS_NewStringCopyUTF8N, JS_SetReservedSlot, JSCLASS_RESERVED_SLOTS_MASK,
+    JSCLASS_RESERVED_SLOTS_SHIFT, JSClass, JSClassOps, JSContext as RawJSContext, JSGCParamKey,
+    JSGCStatus, JSJitCompilerOption, JSObject, JSSecurityCallbacks, JSString, JSTracer, JobQueue,
+    MimeType, MutableHandleObject, MutableHandleString, PromiseRejectionHandlingState,
+    PromiseUserInputEventHandlingState, RuntimeCode, SetProcessBuildIdOp,
+    StreamConsumer as JSStreamConsumer,
 };
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::panic::wrap_panic;
 pub(crate) use js::rust::ThreadSafeJSContext;
 use js::rust::wrappers::{GetPromiseIsHandled, JS_GetPromiseResult};
+use js::rust::wrappers2::{
+    ContextOptionsRef, InitConsumeStreamCallback, JS_AddExtraGCRootsTracer,
+    JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback, JS_SetGCCallback,
+    JS_SetGCParameter, JS_SetGlobalJitCompilerOption, JS_SetOffthreadIonCompilationEnabled,
+    JS_SetSecurityCallbacks, SetDOMCallbacks, SetGCSliceCallback, SetJobQueue,
+    SetPreserveWrapperCallbacks, SetPromiseRejectionTrackerCallback, SetUpEventLoopDispatch,
+};
 use js::rust::{
     Handle, HandleObject as RustHandleObject, HandleValue, IntoHandle, JSEngine, JSEngineHandle,
     ParentRuntime, Runtime as RustRuntime,
@@ -711,14 +714,12 @@ impl Runtime {
         parent: Option<ParentRuntime>,
         networking_task_source: Option<SendableTaskSource>,
     ) -> Runtime {
-        let (cx, runtime) = if let Some(parent) = parent {
-            let runtime = unsafe { RustRuntime::create_with_parent(parent) };
-            let cx = runtime.cx();
-            (cx, runtime)
+        let mut runtime = if let Some(parent) = parent {
+            unsafe { RustRuntime::create_with_parent(parent) }
         } else {
-            let runtime = RustRuntime::new(JS_ENGINE.lock().unwrap().as_ref().unwrap().clone());
-            (runtime.cx(), runtime)
+            RustRuntime::new(JS_ENGINE.lock().unwrap().as_ref().unwrap().clone())
         };
+        let cx = runtime.cx();
 
         unsafe {
             JS_AddExtraGCRootsTracer(cx, Some(trace_rust_roots), ptr::null_mut());
@@ -800,6 +801,7 @@ impl Runtime {
         let cx_opts;
         let job_queue;
         unsafe {
+            let cx = runtime.cx();
             job_queue = CreateJobQueue(
                 &JOB_QUEUE_TRAPS,
                 &*microtask_queue as *const _ as *const c_void,
@@ -814,7 +816,9 @@ impl Runtime {
 
             EnsureModuleHooksInitialized(runtime.rt());
 
-            set_gc_zeal_options(cx);
+            let cx = runtime.cx();
+
+            set_gc_zeal_options(cx.raw_cx());
 
             // Enable or disable the JITs.
             cx_opts = &mut *ContextOptionsRef(cx);
@@ -851,6 +855,7 @@ impl Runtime {
         cx_opts.set_wasmIon_(pref!(js_wasm_ion_enabled));
 
         unsafe {
+            let cx = runtime.cx();
             // TODO: handle js.throw_on_asmjs_validation_failure (needs new Spidermonkey)
             JS_SetGlobalJitCompilerOption(
                 cx,
@@ -983,6 +988,12 @@ impl Deref for Runtime {
     type Target = RustRuntime;
     fn deref(&self) -> &RustRuntime {
         &self.rt
+    }
+}
+
+impl DerefMut for Runtime {
+    fn deref_mut(&mut self) -> &mut RustRuntime {
+        &mut self.rt
     }
 }
 

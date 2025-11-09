@@ -61,11 +61,10 @@ use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
-use js::jsapi::{
-    JS_AddInterruptCallback, JSContext as UnsafeJSContext, JSTracer, SetWindowProxyClass,
-};
+use js::jsapi::{JSContext as UnsafeJSContext, JSTracer};
 use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
+use js::rust::wrappers2::{JS_AddInterruptCallback, SetWindowProxyClass};
 use layout_api::{LayoutConfig, LayoutFactory, RestyleReason, ScriptThreadFactory};
 use media::WindowGLContext;
 use metrics::MAX_TASK_NS;
@@ -861,7 +860,7 @@ impl ScriptThread {
         system_font_service: Arc<SystemFontServiceProxy>,
     ) -> ScriptThread {
         let (self_sender, self_receiver) = unbounded();
-        let runtime = Runtime::new(Some(SendableTaskSource {
+        let mut runtime = Runtime::new(Some(SendableTaskSource {
             sender: ScriptEventLoopSender::MainThread(self_sender.clone()),
             pipeline_id: state.id,
             name: TaskSourceName::Networking,
@@ -1002,7 +1001,7 @@ impl ScriptThread {
 
     #[expect(unsafe_code)]
     pub(crate) fn get_cx(&self) -> JSContext {
-        unsafe { JSContext::from_ptr(self.js_runtime.cx()) }
+        unsafe { JSContext::from_ptr(js::rust::Runtime::get().unwrap().as_ptr()) }
     }
 
     /// Check if we are closing.
