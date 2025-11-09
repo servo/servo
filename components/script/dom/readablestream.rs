@@ -1529,27 +1529,39 @@ impl ReadableStream {
         // Set stream.[[state]] to "closed".
         self.state.set(ReadableStreamState::Closed);
         // Let reader be stream.[[reader]].
-        match self.reader.borrow().as_ref() {
-            Some(ReaderType::Default(reader)) => {
-                let Some(reader) = reader.get() else {
-                    // If reader is undefined, return.
-                    return;
-                };
-                // step 5 & 6
-                reader.close(can_gc);
-            },
-            Some(ReaderType::BYOB(reader)) => {
-                let Some(reader) = reader.get() else {
-                    // If reader is undefined, return.
-                    return;
-                };
 
-                reader.close(can_gc)
-            },
-            None => {
-                // If reader is undefined, return.
-            },
+        // NOTE: do not hold the RefCell borrow across reader.close(),
+        // or release() will panic when it tries to mut-borrow stream.reader.
+        // So we pull out the underlying DOM reader in a local, then drop the borrow.
+        let default_reader = {
+            let reader_ref = self.reader.borrow();
+            match reader_ref.as_ref() {
+                Some(ReaderType::Default(reader)) => reader.get(),
+                _ => None,
+            }
+        };
+
+        if let Some(reader) = default_reader {
+            // steps 5 & 6 for a default reader
+            reader.close(can_gc);
+            return;
         }
+
+        // Same for BYOB reader.
+        let byob_reader = {
+            let reader_ref = self.reader.borrow();
+            match reader_ref.as_ref() {
+                Some(ReaderType::BYOB(reader)) => reader.get(),
+                _ => None,
+            }
+        };
+
+        if let Some(reader) = byob_reader {
+            // steps 5 & 6 for a BYOB reader
+            reader.close(can_gc);
+        }
+
+        // If reader is undefined, return.
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>

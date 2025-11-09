@@ -195,6 +195,10 @@ impl ReadRequest {
             } => {
                 // Step 1. Call successSteps with bytes.
                 (success_steps)(&bytes.borrow());
+
+                reader
+                    .release(can_gc)
+                    .expect("Releasing the read-all-bytes reader should succeed");
             },
         }
     }
@@ -210,10 +214,18 @@ impl ReadRequest {
             ReadRequest::DefaultTee { tee_read_request } => {
                 tee_read_request.error_steps();
             },
-            ReadRequest::ReadLoop { failure_steps, .. } => {
+            ReadRequest::ReadLoop {
+                failure_steps,
+                reader,
+                ..
+            } => {
                 // Step 1. Call failureSteps with e.
                 let cx = GlobalScope::get_cx();
                 (failure_steps)(cx, e);
+
+                reader
+                    .release(can_gc)
+                    .expect("Releasing the read-all-bytes reader should succeed");
             },
         }
     }
