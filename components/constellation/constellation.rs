@@ -120,9 +120,10 @@ use constellation_traits::{
     AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, DocumentState,
     EmbedderToConstellationMessage, IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSizeMsg, Job,
     LoadData, LoadOrigin, LogEntry, MessagePortMsg, NavigationHistoryBehavior, PaintMetricEvent,
-    PortMessageTask, PortTransferInfo, SWManagerMsg, SWManagerSenders, ScreenshotReadinessResponse,
-    ScriptToConstellationChan, ScriptToConstellationMessage, ServiceWorkerManagerFactory,
-    ServiceWorkerMsg, StructuredSerializedData, TraversalDirection, WindowSizeType,
+    PortMessageTask, PortTransferInfo, PostMessageData, SWManagerMsg, SWManagerSenders,
+    ScreenshotReadinessResponse, ScriptToConstellationChan, ScriptToConstellationMessage,
+    ServiceWorkerManagerFactory, ServiceWorkerMsg, StructuredSerializedData, TraversalDirection,
+    WindowSizeType,
 };
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::{Receiver, Select, Sender, unbounded};
@@ -1572,6 +1573,65 @@ where
             EmbedderToConstellationMessage::EmbedderControlResponse(id, response) => {
                 self.handle_embedder_control_response(id, response);
             },
+
+            EmbedderToConstellationMessage::CreateEntangledMessagePorts(
+                router_id,
+                sender,
+                port1,
+                port2,
+            ) => {
+                trace!("creating new entangled ports {port1:?} {port2:?}");
+                self.handle_new_messageport_router(router_id, sender);
+                self.handle_new_messageport(router_id, port1);
+                self.handle_new_messageport(router_id, port2);
+                self.handle_entangle_messageports(port1, port2);
+            },
+
+            EmbedderToConstellationMessage::PostMessageToWebView(
+                webview_id,
+                data,
+            ) => {
+                self.process_any_message_ports(&data);
+                self.handle_post_message_from_constellation(webview_id, data);
+            },
+
+            EmbedderToConstellationMessage::PostMessageToMessagePort(port_id, data) => {
+                self.process_any_message_ports(&data);
+                let task = PortMessageTask {
+                    origin: ImmutableOrigin::new_opaque(),
+                    data: PostMessageData::Serialized(data),
+                };
+                self.handle_reroute_messageport(port_id, task);
+            },
+        }
+    }
+
+    fn process_any_message_ports(&mut self, data: &JSValue) {
+        fn extract_port_ids(value: &JSValue) -> Vec<MessagePortId> {
+            match value {
+                JSValue::Undefined |
+                JSValue::Null |
+                JSValue::Boolean(..) |
+                JSValue::Number(..) |
+                JSValue::String(..) |
+                JSValue::Element(..) |
+                JSValue::ShadowRoot(..) |
+                JSValue::Frame(..) |
+                JSValue::Window(..) => vec![],
+                JSValue::Array(array) => array
+                    .iter()
+                    .flat_map(|value| extract_port_ids(value))
+                    .collect(),
+                JSValue::Object(object) => object
+                    .values()
+                    .flat_map(|value| extract_port_ids(value))
+                    .collect(),
+                JSValue::MessagePort { id, .. } => vec![*id],
+            }
+        }
+
+        for port_id in extract_port_ids(data) {
+            self.handle_messageport_shipped(port_id);
         }
     }
 
@@ -4156,7 +4216,29 @@ where
             source_with_ancestry,
             target_origin: origin,
             source_origin,
-            data: Box::new(data),
+            data: Box::new(PostMessageData::StructuredClone(data)),
+        };
+        self.send_message_to_pipeline(pipeline_id, msg, "PostMessage to closed pipeline");
+    }
+
+    #[servo_tracing::instrument(skip_all)]
+    fn handle_post_message_from_constellation(
+        &mut self,
+        webview_id: WebViewId,
+        data: JSValue,
+    ) {
+        let browsing_context_id: BrowsingContextId = webview_id.into();
+        let Some(browsing_context) = self.browsing_contexts.get(&browsing_context_id) else {
+            return;
+        };
+        let pipeline_id = browsing_context.pipeline_id;
+        let msg = ScriptThreadMessage::PostMessage {
+            target: pipeline_id,
+            source_webview: webview_id,
+            source_with_ancestry: vec![browsing_context_id],
+            target_origin: None,
+            source_origin: ImmutableOrigin::new_opaque(),
+            data: Box::new(PostMessageData::Serialized(data)),
         };
         self.send_message_to_pipeline(pipeline_id, msg, "PostMessage to closed pipeline");
     }
@@ -5622,3 +5704,4 @@ struct ScreenshotReadinessRequest {
     state: Cell<ScreenshotRequestState>,
     pipeline_states: RefCell<FxHashMap<PipelineId, Option<Epoch>>>,
 }
+

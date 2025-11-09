@@ -26,9 +26,8 @@ use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
 use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::{
-    LoadData, LoadOrigin, NavigationHistoryBehavior, ScreenshotReadinessResponse,
-    ScriptToConstellationChan, ScriptToConstellationMessage, StructuredSerializedData,
-    WindowSizeType,
+    LoadData, LoadOrigin, NavigationHistoryBehavior, PostMessageData, ScreenshotReadinessResponse,
+    ScriptToConstellationChan, ScriptToConstellationMessage, WindowSizeType,
 };
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::{Sender, unbounded};
@@ -2233,7 +2232,12 @@ impl Window {
         };
 
         // Step 9.
-        self.post_message(target_origin, source_origin, &source.window_proxy(), data);
+        self.post_message(
+            target_origin,
+            source_origin,
+            &source.window_proxy(),
+            PostMessageData::StructuredClone(data),
+        );
         Ok(())
     }
 
@@ -3566,7 +3570,7 @@ impl Window {
         target_origin: Option<ImmutableOrigin>,
         source_origin: ImmutableOrigin,
         source: &WindowProxy,
-        data: StructuredSerializedData,
+        data: PostMessageData,
     ) {
         let this = Trusted::new(self);
         let source = Trusted::new(source);
@@ -3585,9 +3589,26 @@ impl Window {
             // Steps 7.2.-7.5.
             let cx = this.get_cx();
             let obj = this.reflector().get_jsobject();
-            let _ac = JSAutoRealm::new(*cx, obj.get());
+            let realm = JSAutoRealm::new(*cx, obj.get());
             rooted!(in(*cx) let mut message_clone = UndefinedValue());
-            if let Ok(ports) = structuredclone::read(this.upcast(), data, message_clone.handle_mut(), CanGc::note()) {
+            let structured_clone_result = match data {
+                PostMessageData::StructuredClone(data) => {
+                    structuredclone::read(this.upcast(), data, message_clone.handle_mut(), CanGc::note())
+                },
+                PostMessageData::Serialized(data) => {
+                    let ports = crate::embedder_js::jsvalue_to_jsval(
+                        cx,
+                        this.upcast(),
+                        &data,
+                        message_clone.handle_mut(),
+                        (&realm).into(),
+                        CanGc::note(),
+                    );
+                    Ok(ports)
+                },
+            };
+
+            if let Ok(ports) = structured_clone_result {
                 // Step 7.6, 7.7
                 MessageEvent::dispatch_jsval(
                     this.upcast(),

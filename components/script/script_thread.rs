@@ -38,8 +38,8 @@ use canvas_traits::webgl::WebGLPipeline;
 use chrono::{DateTime, Local};
 use compositing_traits::{CrossProcessCompositorApi, PipelineExitSource};
 use constellation_traits::{
-    JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, ScreenshotReadinessResponse,
-    ScriptToConstellationChan, ScriptToConstellationMessage, StructuredSerializedData,
+    JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, PostMessageData,
+    ScreenshotReadinessResponse, ScriptToConstellationChan, ScriptToConstellationMessage,
     WindowSizeType,
 };
 use crossbeam_channel::unbounded;
@@ -2748,7 +2748,7 @@ impl ScriptThread {
         source_with_ancestry: Vec<BrowsingContextId>,
         origin: Option<ImmutableOrigin>,
         source_origin: ImmutableOrigin,
-        data: StructuredSerializedData,
+        data: PostMessageData,
     ) {
         let window = self.documents.borrow().find_window(pipeline_id);
         match window {

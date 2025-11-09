@@ -22,8 +22,8 @@ use canvas_traits::webgl::WebGLPipeline;
 use compositing_traits::CrossProcessCompositorApi;
 use compositing_traits::largest_contentful_paint_candidate::LargestContentfulPaintType;
 use constellation_traits::{
-    KeyboardScroll, LoadData, NavigationHistoryBehavior, ScriptToConstellationChan,
-    StructuredSerializedData, WindowSizeType,
+    KeyboardScroll, LoadData, NavigationHistoryBehavior, PostMessageData,
+    ScriptToConstellationChan, WindowSizeType,
 };
 use crossbeam_channel::{RecvTimeoutError, Sender};
 use devtools_traits::ScriptToDevtoolsControlMsg;
@@ -204,7 +204,7 @@ pub enum ScriptThreadMessage {
         /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-origin>
         source_origin: ImmutableOrigin,
         /// The data to be posted.
-        data: Box<StructuredSerializedData>,
+        data: Box<PostMessageData>,
     },
     /// Updates the current pipeline ID of a given iframe.
     /// First PipelineId is for the parent, second is the new PipelineId for the frame.

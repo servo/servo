@@ -7,15 +7,15 @@ use std::hash::Hash;
 use std::rc::{Rc, Weak};
 use std::time::Duration;
 
-use base::id::WebViewId;
+use base::id::{MessagePortId, WebViewId};
 use compositing::IOCompositor;
 use compositing_traits::WebViewTrait;
 use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
-    Cursor, Image, InputEvent, InputEventAndId, InputEventId, JSValue, JavaScriptEvaluationError,
-    LoadStatus, MediaSessionActionType, ScreenGeometry, ScreenshotCaptureError, Scroll, Theme,
-    TraversalId, ViewportDetails, WebViewPoint, WebViewRect,
+    Cursor, EmbedderProxy, Image, InputEvent, InputEventAndId, InputEventId, JSValue,
+    JavaScriptEvaluationError, LoadStatus, MediaSessionActionType, ScreenGeometry,
+    ScreenshotCaptureError, Scroll, Theme, TraversalId, ViewportDetails, WebViewPoint, WebViewRect,
 };
 use euclid::{Point2D, Scale, Size2D};
 use image::RgbaImage;
@@ -26,6 +26,7 @@ use webrender_api::units::{DevicePixel, DevicePoint, DeviceRect};
 
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 use crate::javascript_evaluator::JavaScriptEvaluator;
+use crate::message_port::MessagePort;
 use crate::webview_delegate::{DefaultWebViewDelegate, WebViewDelegate};
 use crate::{ConstellationProxy, Servo, WebRenderDebugOption};
 
@@ -77,6 +78,7 @@ pub(crate) struct WebViewInner {
     // TODO: ensure that WebView instances interact with the correct Servo instance
     pub(crate) id: WebViewId,
     pub(crate) constellation_proxy: ConstellationProxy,
+    pub(crate) embedder_proxy: EmbedderProxy,
     pub(crate) compositor: Rc<RefCell<IOCompositor>>,
     pub(crate) delegate: Rc<dyn WebViewDelegate>,
     pub(crate) clipboard_delegate: Rc<dyn ClipboardDelegate>,
@@ -93,6 +95,7 @@ pub(crate) struct WebViewInner {
     focused: bool,
     animating: bool,
     cursor: Cursor,
+    message_ports: Vec<MessagePort>,
 }
 
 impl Drop for WebViewInner {
@@ -123,6 +126,7 @@ impl WebView {
         let webview = Self(Rc::new(RefCell::new(WebViewInner {
             id,
             constellation_proxy: servo.constellation_proxy.clone(),
+            embedder_proxy: servo.embedder_proxy.clone(),
             compositor,
             delegate: builder.delegate,
             clipboard_delegate: Rc::new(DefaultClipboardDelegate),
@@ -137,6 +141,7 @@ impl WebView {
             focused: false,
             animating: false,
             cursor: Cursor::Pointer,
+            message_ports: vec![],
         })));
 
         let viewport_details = webview.viewport_details();
@@ -167,6 +172,32 @@ impl WebView {
         }
 
         webview
+    }
+
+    pub fn create_entangled_message_ports(&self) -> (MessagePort, MessagePort) {
+        let constellation_proxy = self.inner().constellation_proxy.clone();
+        let embedder_proxy = self.inner().embedder_proxy.clone();
+
+        let (port1, port2) =
+            MessagePort::new_entangled(constellation_proxy, embedder_proxy, self.id());
+        self.inner_mut()
+            .message_ports
+            .extend([port1.clone(), port2.clone()]);
+        (port1, port2)
+    }
+
+    pub fn post_message(&self, data: JSValue) {
+        self.inner().constellation_proxy.send(
+            EmbedderToConstellationMessage::PostMessageToWebView(self.id(), data),
+        );
+    }
+
+    pub(crate) fn message_port(&self, message_port_id: MessagePortId) -> Option<MessagePort> {
+        self.inner()
+            .message_ports
+            .iter()
+            .find(|port| port.id() == Some(message_port_id))
+            .cloned()
     }
 
     fn inner(&self) -> Ref<'_, WebViewInner> {

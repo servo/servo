@@ -82,6 +82,9 @@ mod from_compositor {
                 },
                 Self::RequestScreenshotReadiness(..) => target!("RequestScreenshotReadiness"),
                 Self::EmbedderControlResponse(..) => target!("EmbedderControlResponse"),
+                Self::CreateEntangledMessagePorts(..) => target!("CreateEntangledMessagePorts"),
+                Self::PostMessageToWebView(..) => target!("PostMessageToWebView"),
+                Self::PostMessageToMessagePort(..) => target!("PostMessageToMessagePort"),
             }
         }
     }

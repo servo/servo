@@ -12,9 +12,9 @@ use dpi::PhysicalSize;
 use euclid::{Point2D, Size2D};
 use servo::{
     ContextMenuAction, ContextMenuItem, Cursor, EmbedderControl, InputEvent, InputMethodType,
-    JSValue, JavaScriptEvaluationError, LoadStatus, MouseButton, MouseButtonAction,
-    MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, Servo, SimpleDialog, Theme, WebView,
-    WebViewBuilder, WebViewDelegate,
+    JSValue, JavaScriptEvaluationError, LoadStatus, MessagePort, MessagePortDelegate, MouseButton,
+    MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, Servo,
+    SimpleDialog, Theme, WebView, WebViewBuilder, WebViewDelegate,
 };
 use servo_config::prefs::Preferences;
 use url::Url;
@@ -626,4 +626,133 @@ fn test_simple_context_menu() {
     context_menu.select(ContextMenuAction::Reload);
 
     servo_test.spin(move || !delegate.load_status_changed.get());
+}
+
+struct PortDelegate(RefCell<Option<JSValue>>);
+impl MessagePortDelegate for PortDelegate {
+    fn post_message_received(&self, _webview: WebView, _message_port: MessagePort, data: JSValue) {
+        *self.0.borrow_mut() = Some(data);
+    }
+}
+
+#[test]
+fn test_post_message_basic() {
+    let servo_test = ServoTest::new();
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo())
+        .delegate(delegate.clone())
+        .build();
+
+    let value = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        r#"
+let port = null;
+onmessage = (msg) => {
+  port = msg.data;
+  port.onmessage = (inner) => port.postMessage(inner.data);
+};
+"#,
+    );
+    assert!(matches!(value, Ok(JSValue::Object(..))));
+
+    let (port1, port2) = webview.create_entangled_message_ports();
+    webview.post_message(port2.into_jsvalue().unwrap());
+
+    assert!(port2.into_jsvalue().is_err());
+    assert!(port2.post_message(JSValue::Undefined).is_err());
+
+    let port_delegate = Rc::new(PortDelegate(Default::default()));
+    port1.set_delegate(port_delegate.clone());
+    port1.post_message(JSValue::Number(42.0)).unwrap();
+
+    let port_delegate2 = port_delegate.clone();
+    let _ = servo_test.spin(move || port_delegate2.0.borrow().is_none());
+    assert_eq!(
+        port_delegate.0.borrow().as_ref(),
+        Some(&JSValue::Number(42.0))
+    );
+}
+
+#[test]
+fn test_post_message_worker() {
+    let servo_test = ServoTest::new();
+
+    // This test verifies that if we post an entangled message port to a page,
+    // and the page posts that message port to a dedicated worker, then any
+    // messages posted over the entangled port are received inside of the worker.
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo())
+        .delegate(delegate.clone())
+        .build();
+
+    let value = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        r#"
+let outer_port = null;
+let worker_ready = false;
+let worker = null;
+
+function try_transfer() {
+  if (!worker_ready || outer_port === null || worker === null) {
+    return;
+  }
+  worker.postMessage(outer_port, [outer_port]);
+  outer_port = null;
+}
+
+function worker_source() {
+  let port = null;
+  onmessage = (msg) => {
+    port = msg.data;
+    port.postMessage(true);
+    port.onmessage = (msg2) => port.postMessage(msg2.data*2);
+  };
+  setTimeout(() => postMessage("ready"), 0);
+}
+let worker_source_string = worker_source.toString().replace("function worker_source() {", "").slice(0, -1);
+
+worker = new Worker("data:text/javascript," + worker_source_string);
+
+worker.onmessage = () => {
+  worker_ready = true;
+  try_transfer();
+};
+
+onmessage = (msg) => {
+  outer_port = msg.data;
+  try_transfer();
+};
+"#,
+    );
+    assert!(matches!(value, Ok(JSValue::Object(..))));
+
+    let (port1, port2) = webview.create_entangled_message_ports();
+    webview.post_message(port2.into_jsvalue().unwrap());
+
+    assert!(port2.into_jsvalue().is_err());
+    assert!(port2.post_message(JSValue::Undefined).is_err());
+
+    let port_delegate = Rc::new(PortDelegate(Default::default()));
+    port1.set_delegate(port_delegate.clone());
+
+    let port_delegate2 = port_delegate.clone();
+    let _ = servo_test.spin(move || port_delegate2.0.borrow().is_none());
+    assert_eq!(
+        port_delegate.0.borrow().as_ref(),
+        Some(&JSValue::Boolean(true))
+    );
+    *port_delegate.0.borrow_mut() = None;
+
+    port1.post_message(JSValue::Number(42.0)).unwrap();
+
+    let port_delegate2 = port_delegate.clone();
+    let _ = servo_test.spin(move || port_delegate2.0.borrow().is_none());
+    assert_eq!(
+        port_delegate.0.borrow().as_ref(),
+        Some(&JSValue::Number(84.0))
+    );
 }

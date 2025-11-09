@@ -19,6 +19,7 @@
 
 mod clipboard_delegate;
 mod javascript_evaluator;
+mod message_port;
 mod proxies;
 mod responders;
 mod servo_delegate;
@@ -117,6 +118,7 @@ pub use {
 #[cfg(feature = "bluetooth")]
 pub use {bluetooth, bluetooth_traits};
 
+pub use crate::message_port::{MessagePort, MessagePortDelegate};
 use crate::proxies::ConstellationProxy;
 use crate::responders::ServoErrorChannel;
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
@@ -188,6 +190,7 @@ pub struct Servo {
     delegate: RefCell<Rc<dyn ServoDelegate>>,
     compositor: Rc<RefCell<IOCompositor>>,
     constellation_proxy: ConstellationProxy,
+    embedder_proxy: EmbedderProxy,
     embedder_receiver: Receiver<EmbedderMsg>,
     /// A struct that tracks ongoing JavaScript evaluations and is responsible for
     /// calling the callback when the evaluation is complete.
@@ -297,7 +300,7 @@ impl Servo {
             embedder_to_constellation_receiver,
             &compositor.borrow(),
             opts.config_dir.clone(),
-            embedder_proxy,
+            embedder_proxy.clone(),
             compositor_proxy.clone(),
             time_profiler_chan,
             mem_profiler_chan,
@@ -317,6 +320,7 @@ impl Servo {
                 constellation_proxy.clone(),
             ))),
             constellation_proxy,
+            embedder_proxy,
             embedder_receiver,
             shutdown_state,
             webviews: Default::default(),
@@ -891,6 +895,17 @@ impl Servo {
                 };
                 if let Err(error) = response_sender.send(screen_metrics()) {
                     warn!("Failed to respond to GetScreenMetrics: {error}");
+                }
+            },
+            EmbedderMsg::PostMessage(webview_id, message_port_id, data) => {
+                let Some(webview) = self.get_webview_handle(webview_id) else {
+                    return;
+                };
+                let Some(message_port) = webview.message_port(message_port_id) else {
+                    return;
+                };
+                if let Some(delegate) = message_port.delegate() {
+                    delegate.post_message_received(webview, message_port.clone(), data);
                 }
             },
         }

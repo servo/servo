@@ -66,17 +66,26 @@ pub struct MessagePortImpl {
 
     /// The UUID of this port.
     message_port_id: MessagePortId,
+
+    ///
+    forbid_structured_clone: bool,
 }
 
 impl MessagePortImpl {
     /// Create a new messageport impl.
-    pub fn new(port_id: MessagePortId) -> MessagePortImpl {
+    pub fn new(port_id: MessagePortId, forbid_structured_clone: bool) -> MessagePortImpl {
         MessagePortImpl {
             state: MessagePortState::Disabled(false),
             entangled_port: None,
             message_buffer: None,
             message_port_id: port_id,
+            forbid_structured_clone,
         }
+    }
+
+    ///
+    pub fn forbid_structured_clone(&self) -> bool {
+        self.forbid_structured_clone
     }
 
     /// Get the Id.
