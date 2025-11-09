@@ -286,7 +286,7 @@ pub(crate) struct GlobalScope {
     resource_threads: ResourceThreads,
 
     /// Associated resource threads for use by DOM objects like XMLHttpRequest,
-    /// including indexeddb_thread and storage_thread
+    /// including indexeddb thread and storage_thread
     #[no_trace]
     storage_threads: StorageThreads,
 

@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::MutableHandleValue;
-use storage_traits::indexeddb_thread::IndexedDBKeyRange;
+use storage_traits::indexeddb::IndexedDBKeyRange;
 
 use crate::dom::bindings::codegen::Bindings::IDBCursorBinding::IDBCursorDirection;
 use crate::dom::bindings::codegen::Bindings::IDBCursorWithValueBinding::IDBCursorWithValueMethods;

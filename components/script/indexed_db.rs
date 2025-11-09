@@ -20,7 +20,7 @@ use profile_traits::ipc;
 use profile_traits::ipc::IpcReceiver;
 use script_bindings::script_runtime::CanGc;
 use serde::{Deserialize, Serialize};
-use storage_traits::indexeddb_thread::{BackendResult, IndexedDBKeyRange, IndexedDBKeyType};
+use storage_traits::indexeddb::{BackendResult, IndexedDBKeyRange, IndexedDBKeyType};
 
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FileBinding::FileMethods;
