@@ -1583,7 +1583,9 @@ fn glyphs(
                 // first glyph must never be ellided. otherwise, check if it's time to crop.
                 // The first character or atomic inline-level element on a line must be clipped rather than ellipsed.
                 // <https://www.w3.org/TR/css-ui-3/#text-overflow>
-                if total_advance <= max_total_advance || (glyphs.is_empty() && contains_first_character_of_the_line) { 
+                if total_advance <= max_total_advance ||
+                    (glyphs.is_empty() && contains_first_character_of_the_line)
+                {
                     glyphs.push(glyph);
                 }
             }
@@ -1593,7 +1595,6 @@ fn glyphs(
                 total_advance += justification_adjustment;
             }
             baseline_origin.x += glyph.advance();
-            
         }
     }
     glyphs

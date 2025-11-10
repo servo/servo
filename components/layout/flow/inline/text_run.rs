@@ -76,7 +76,12 @@ pub(crate) struct TextRunSegment {
 }
 
 impl TextRunSegment {
-    pub(super) fn new(font_index: usize, script: Script, bidi_level: Level, start_offset: usize) -> Self {
+    pub(super) fn new(
+        font_index: usize,
+        script: Script,
+        bidi_level: Level,
+        start_offset: usize,
+    ) -> Self {
         Self {
             font_index,
             script,
@@ -210,7 +215,7 @@ impl TextRunSegment {
             if *break_index == self.range.start {
                 self.break_at_start = true;
                 continue;
-            }      
+            }
 
             let mut options = *shaping_options;
 
@@ -260,11 +265,11 @@ impl TextRunSegment {
                 !can_break_anywhere
             {
                 continue;
-            } 
+            }
 
             // Only advance the last slice if we are not going to try to expand the slice.
             last_slice = slice.start..*break_index;
-            
+
             // Push the non-whitespace part of the range.
             if !slice.is_empty() {
                 self.shape_and_push_range(&slice, formatting_context_text, &font, &options);

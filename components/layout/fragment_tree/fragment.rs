@@ -81,7 +81,7 @@ pub(crate) struct TextFragment {
 
     // the width of left & right text overflow marker. CSS specs refers to them as `first` & `second`.
     // when `text-overflow: ellipsis`, right clip is the width of the ellipsis glyph.
-    pub overflow_marker_width: (Au, Au), 
+    pub overflow_marker_width: (Au, Au),
     pub contains_first_character_of_the_line: bool,
     pub inline_offset: Au,
 }
