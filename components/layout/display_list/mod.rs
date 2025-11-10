@@ -1568,7 +1568,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         // > negative values. User agents should apply this constraint independently in
         // > each dimension. If the outline is drawn as multiple disconnected shapes, this
         // > constraint applies to each shape separately.
-        let offset = outline.outline_offset.px() + width;
+        let offset = outline.outline_offset.to_f32_px() + width;
         let outline_rect = self.border_rect.inflate(
             offset.max(-self.border_rect.width() / 2.0 + width),
             offset.max(-self.border_rect.height() / 2.0 + width),
