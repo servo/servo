@@ -3143,6 +3143,10 @@ impl GlobalScope {
         self.https_state.set(https_state);
     }
 
+    pub(crate) fn inherited_secure_context(&self) -> Option<bool> {
+        self.inherited_secure_context
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#secure-context>
     pub(crate) fn is_secure_context(&self) -> bool {
         // This differs from the specification, but it seems that

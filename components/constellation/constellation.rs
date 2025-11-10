@@ -1015,7 +1015,6 @@ where
             devtools_sender: self.devtools_sender.clone(),
             #[cfg(feature = "bluetooth")]
             bluetooth_thread: self.bluetooth_ipc_sender.clone(),
-            swmanager_thread: self.swmanager_ipc_sender.clone(),
             system_font_service: self.system_font_service.clone(),
             resource_threads,
             storage_threads,

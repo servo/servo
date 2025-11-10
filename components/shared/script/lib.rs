@@ -10,12 +10,13 @@
 #![deny(unsafe_code)]
 
 use std::fmt;
-use std::sync::Arc;
 
-use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use base::cross_process_instant::CrossProcessInstant;
 use base::generic_channel::{GenericReceiver, GenericSender};
-use base::id::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId, WebViewId};
+use base::id::{
+    BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId, PipelineNamespaceRequest,
+    WebViewId,
+};
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
@@ -25,7 +26,7 @@ use constellation_traits::{
     KeyboardScroll, LoadData, NavigationHistoryBehavior, ScriptToConstellationChan,
     StructuredSerializedData, WindowSizeType,
 };
-use crossbeam_channel::{RecvTimeoutError, Sender};
+use crossbeam_channel::RecvTimeoutError;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
@@ -34,12 +35,12 @@ use embedder_traits::{
     ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::{Scale, Size2D};
+use fonts_traits::SystemFontServiceProxySender;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use keyboard_types::Modifiers;
 use malloc_size_of_derive::MallocSizeOf;
 use media::WindowGLContext;
 use net_traits::ResourceThreads;
-use net_traits::image_cache::ImageCacheFactory;
 use pixels::PixelFormat;
 use profile_traits::mem;
 use rustc_hash::FxHashMap;
@@ -326,35 +327,25 @@ pub struct ConstellationInputEvent {
     pub event: InputEventAndId,
 }
 
-/// Data needed to construct a script thread.
+/// All of the information necessary to create a new [`ScriptThread`] for a new [`EventLoop`].
 ///
 /// NB: *DO NOT* add any Senders or Receivers here! pcwalton will have to rewrite your code if you
 /// do! Use IPC senders and receivers instead.
+#[derive(Deserialize, Serialize)]
 pub struct InitialScriptState {
-    /// The ID of the pipeline with which this script thread is associated.
-    pub id: PipelineId,
-    /// The subpage ID of this pipeline to create in its pipeline parent.
-    /// If `None`, this is the root.
-    pub parent_info: Option<PipelineId>,
-    /// The ID of the browsing context this script is part of.
-    pub browsing_context_id: BrowsingContextId,
-    /// The ID of the top-level browsing context this script is part of.
-    pub webview_id: WebViewId,
-    /// The ID of the opener, if any.
-    pub opener: Option<BrowsingContextId>,
-    /// Loading into a Secure Context
-    pub inherited_secure_context: Option<bool>,
+    /// The sender to use to install the `Pipeline` namespace into this process (if necessary).
+    pub namespace_request_sender: GenericSender<PipelineNamespaceRequest>,
     /// A channel with which messages can be sent to us (the script thread).
-    pub constellation_sender: GenericSender<ScriptThreadMessage>,
+    pub constellation_to_script_sender: GenericSender<ScriptThreadMessage>,
     /// A port on which messages sent by the constellation to script can be received.
-    pub constellation_receiver: GenericReceiver<ScriptThreadMessage>,
+    pub constellation_to_script_receiver: GenericReceiver<ScriptThreadMessage>,
     /// A channel on which messages can be sent to the constellation from script.
     pub pipeline_to_constellation_sender: ScriptToConstellationChan,
     /// A channel which allows script to send messages directly to the Embedder
     /// This will pump the embedder event loop.
-    pub pipeline_to_embedder_sender: ScriptToEmbedderChan,
-    /// A handle to register script-(and associated layout-)threads for hang monitoring.
-    pub background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
+    pub script_to_embedder_sender: ScriptToEmbedderChan,
+    /// An IpcSender to the `SystemFontService` used to create a `SystemFontServiceProxy`.
+    pub system_font_service: SystemFontServiceProxySender,
     /// A channel to the resource manager thread.
     pub resource_threads: ResourceThreads,
     /// A channel to the storage manager thread.
@@ -362,28 +353,20 @@ pub struct InitialScriptState {
     /// A channel to the bluetooth thread.
     #[cfg(feature = "bluetooth")]
     pub bluetooth_sender: IpcSender<BluetoothRequest>,
-    /// The [`ImageCacheFactory] for this `ScriptThread`.
-    pub image_cache_factory: Arc<dyn ImageCacheFactory>,
     /// A channel to the time profiler thread.
     pub time_profiler_sender: profile_traits::time::ProfilerChan,
     /// A channel to the memory profiler thread.
     pub memory_profiler_sender: mem::ProfilerChan,
     /// A channel to the developer tools, if applicable.
     pub devtools_server_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-    /// Initial [`ViewportDetails`] for the frame that is initiating this `ScriptThread`.
-    pub viewport_details: ViewportDetails,
-    /// Initial [`Theme`] for the frame that is initiating this `ScriptThread`.
-    pub theme: Theme,
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
-    /// A ping will be sent on this channel once the script thread shuts down.
-    pub content_process_shutdown_sender: Sender<()>,
     /// A channel to the WebGL thread used in this pipeline.
     pub webgl_chan: Option<WebGLPipeline>,
     /// The XR device registry
     pub webxr_registry: Option<webxr_api::Registry>,
     /// Access to the compositor across a process boundary.
-    pub compositor_api: CrossProcessCompositorApi,
+    pub cross_process_compositor_api: CrossProcessCompositorApi,
     /// Application window's GL Context for Media player
     pub player_context: WindowGLContext,
     /// User content manager

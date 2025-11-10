@@ -171,6 +171,7 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
                 options.credentials,
                 pending_tasks_struct,
                 &promise,
+                global_scope.inherited_secure_context(),
             );
 
         // Step 5.
@@ -330,6 +331,7 @@ impl WorkletThreadPool {
         credentials: RequestCredentials,
         pending_tasks_struct: PendingTasksStruct,
         promise: &Rc<Promise>,
+        inherited_secure_context: Option<bool>,
     ) {
         // Send each thread a control message asking it to load the script.
         for sender in &[
@@ -349,6 +351,7 @@ impl WorkletThreadPool {
                 credentials,
                 pending_tasks_struct: pending_tasks_struct.clone(),
                 promise: TrustedPromise::new(promise.clone()),
+                inherited_secure_context,
             });
         }
         self.wake_threads();
@@ -406,6 +409,7 @@ enum WorkletControl {
         credentials: RequestCredentials,
         pending_tasks_struct: PendingTasksStruct,
         promise: TrustedPromise,
+        inherited_secure_context: Option<bool>,
     },
 }
 
@@ -629,6 +633,7 @@ impl WorkletThread {
         webview_id: WebViewId,
         pipeline_id: PipelineId,
         worklet_id: WorkletId,
+        inherited_secure_context: Option<bool>,
         global_type: WorkletGlobalScopeType,
         base_url: ServoUrl,
     ) -> DomRoot<WorkletGlobalScope> {
@@ -642,6 +647,7 @@ impl WorkletThread {
                     webview_id,
                     pipeline_id,
                     base_url,
+                    inherited_secure_context,
                     executor,
                     &self.global_init,
                 );
@@ -750,11 +756,13 @@ impl WorkletThread {
                 credentials,
                 pending_tasks_struct,
                 promise,
+                inherited_secure_context,
             } => {
                 let global = self.get_worklet_global_scope(
                     webview_id,
                     pipeline_id,
                     worklet_id,
+                    inherited_secure_context,
                     global_type,
                     base_url,
                 );

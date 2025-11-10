@@ -29,8 +29,8 @@ use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant, SystemTime};
 
 use background_hang_monitor_api::{
-    BackgroundHangMonitor, BackgroundHangMonitorExitSignal, HangAnnotation, MonitoredComponentId,
-    MonitoredComponentType,
+    BackgroundHangMonitor, BackgroundHangMonitorExitSignal, BackgroundHangMonitorRegister,
+    HangAnnotation, MonitoredComponentId, MonitoredComponentType,
 };
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, WebViewId};
@@ -42,7 +42,7 @@ use constellation_traits::{
     ScriptToConstellationChan, ScriptToConstellationMessage, StructuredSerializedData,
     WindowSizeType,
 };
-use crossbeam_channel::unbounded;
+use crossbeam_channel::{Receiver, Sender, unbounded};
 use data_url::mime::Mime;
 use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
@@ -343,9 +343,6 @@ pub struct ScriptThread {
     #[cfg(feature = "webgpu")]
     gpu_id_hub: Arc<IdentityHub>,
 
-    // Secure context
-    inherited_secure_context: Option<bool>,
-
     /// A factory for making new layouts. This allows layout to depend on script.
     #[no_trace]
     layout_factory: Arc<dyn LayoutFactory>,
@@ -424,31 +421,54 @@ impl Drop for ScriptMemoryFailsafe<'_> {
 impl ScriptThreadFactory for ScriptThread {
     fn create(
         state: InitialScriptState,
+        new_pipeline_info: NewPipelineInfo,
         layout_factory: Arc<dyn LayoutFactory>,
-        system_font_service: Arc<SystemFontServiceProxy>,
-        load_data: LoadData,
-    ) -> JoinHandle<()> {
-        thread::Builder::new()
-            .name(format!("Script{:?}", state.id))
+        image_cache_factory: Arc<dyn ImageCacheFactory>,
+        background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
+    ) -> (Receiver<()>, JoinHandle<()>) {
+        // TODO: This should be replaced with some sort of per-ScriptThread id. It doesn't make
+        // sense to associate a ScriptThread with an ephemeral Pipeline.
+        let pipeline_id = new_pipeline_info.new_pipeline_id;
+        // This ScriptThread isn't necessary *only* associated with this WebView, so we
+        // should stop relying on this value here.
+        let webview_id = new_pipeline_info.webview_id;
+
+        // Setup pipeline-namespace-installing for all threads in this process.
+        // Idempotent in single-process mode.
+        PipelineNamespace::set_installer_sender(state.namespace_request_sender.clone());
+
+        // TOOD: Can this just be replaced with the `JoinHandle` that this function also returns?
+        let (content_process_shutdown_sender, content_process_shutdown_receiver) = unbounded();
+
+        let join_handle = thread::Builder::new()
+            .name(format!("Script{:?}", pipeline_id))
             .spawn(move || {
                 thread_state::initialize(ThreadState::SCRIPT | ThreadState::LAYOUT);
                 PipelineNamespace::install(state.pipeline_namespace_id);
-                WebViewId::install(state.webview_id);
+                WebViewId::install(webview_id);
                 let memory_profiler_sender = state.memory_profiler_sender.clone();
 
                 let in_progress_load = InProgressLoad::new(
-                    state.id,
-                    state.browsing_context_id,
-                    state.webview_id,
-                    state.parent_info,
-                    state.opener,
-                    state.viewport_details,
-                    state.theme,
-                    MutableOrigin::new(load_data.url.origin()),
-                    load_data,
+                    new_pipeline_info.new_pipeline_id,
+                    new_pipeline_info.browsing_context_id,
+                    new_pipeline_info.webview_id,
+                    new_pipeline_info.parent_info,
+                    new_pipeline_info.opener,
+                    new_pipeline_info.viewport_details,
+                    new_pipeline_info.theme,
+                    MutableOrigin::new(new_pipeline_info.load_data.url.origin()),
+                    new_pipeline_info.load_data,
                 );
-                let reporter_name = format!("script-reporter-{:?}", state.id);
-                let script_thread = ScriptThread::new(state, layout_factory, system_font_service);
+                let reporter_name = format!("script-reporter-{pipeline_id:?}");
+                let script_thread = ScriptThread::new(
+                    state,
+                    layout_factory,
+                    image_cache_factory,
+                    background_hang_monitor_register,
+                    content_process_shutdown_sender,
+                    webview_id,
+                    pipeline_id,
+                );
 
                 SCRIPT_THREAD_ROOT.with(|root| {
                     root.set(Some(&script_thread as *const _));
@@ -475,7 +495,8 @@ impl ScriptThreadFactory for ScriptThread {
                 // This must always be the very last operation performed before the thread completes
                 failsafe.neuter();
             })
-            .expect("Thread spawning failed")
+            .expect("Thread spawning failed");
+        (content_process_shutdown_receiver, join_handle)
     }
 }
 
@@ -766,7 +787,6 @@ impl ScriptThread {
                         image_cache,
                         #[cfg(feature = "webgpu")]
                         gpu_id_hub: script_thread.gpu_id_hub.clone(),
-                        inherited_secure_context: script_thread.inherited_secure_context,
                     };
                     Rc::new(WorkletThreadPool::spawn(init))
                 })
@@ -857,12 +877,18 @@ impl ScriptThread {
     pub(crate) fn new(
         state: InitialScriptState,
         layout_factory: Arc<dyn LayoutFactory>,
-        system_font_service: Arc<SystemFontServiceProxy>,
+        image_cache_factory: Arc<dyn ImageCacheFactory>,
+        background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
+        content_process_shutdown_sender: Sender<()>,
+        webview_id: WebViewId,
+        pipeline_id: PipelineId,
     ) -> ScriptThread {
         let (self_sender, self_receiver) = unbounded();
         let mut runtime = Runtime::new(Some(SendableTaskSource {
             sender: ScriptEventLoopSender::MainThread(self_sender.clone()),
-            pipeline_id: state.id,
+            // TODO: We shouldn't rely on this Pipeline as a ScriptThread can have multiple
+            // Pipelines and any of them might disappear at any time.
+            pipeline_id,
             name: TaskSourceName::Networking,
             canceller: Default::default(),
         }));
@@ -873,7 +899,9 @@ impl ScriptThread {
             JS_AddInterruptCallback(cx, Some(interrupt_callback));
         }
 
-        let constellation_receiver = state.constellation_receiver.route_preserving_errors();
+        let constellation_receiver = state
+            .constellation_to_script_receiver
+            .route_preserving_errors();
 
         // Ask the router to proxy IPC messages from the devtools to us.
         let devtools_server_sender = state.devtools_server_sender;
@@ -891,8 +919,10 @@ impl ScriptThread {
             js_context: runtime.thread_safe_js_context(),
         };
 
-        let background_hang_monitor = state.background_hang_monitor_register.register_component(
-            MonitoredComponentId(state.id, MonitoredComponentType::Script),
+        let background_hang_monitor = background_hang_monitor_register.register_component(
+            // TODO: We shouldn't rely on this PipelineId as a ScriptThread can have multiple
+            // Pipelines and any of them might disappear at any time.
+            MonitoredComponentId(pipeline_id, MonitoredComponentType::Script),
             Duration::from_millis(1000),
             Duration::from_millis(5000),
             Box::new(background_hang_monitor_exit_signal),
@@ -914,15 +944,15 @@ impl ScriptThread {
             self_sender,
             #[cfg(feature = "bluetooth")]
             bluetooth_sender: state.bluetooth_sender,
-            constellation_sender: state.constellation_sender,
+            constellation_sender: state.constellation_to_script_sender,
             pipeline_to_constellation_sender: state.pipeline_to_constellation_sender.sender.clone(),
-            pipeline_to_embedder_sender: state.pipeline_to_embedder_sender.clone(),
+            pipeline_to_embedder_sender: state.script_to_embedder_sender.clone(),
             image_cache_sender,
             time_profiler_sender: state.time_profiler_sender,
             memory_profiler_sender: state.memory_profiler_sender,
             devtools_server_sender,
             devtools_client_to_script_thread_sender: ipc_devtools_sender,
-            content_process_shutdown_sender: state.content_process_shutdown_sender,
+            content_process_shutdown_sender,
         };
 
         let microtask_queue = runtime.microtask_queue.clone();
@@ -933,7 +963,9 @@ impl ScriptThread {
         let pipeline_id = PipelineId::new();
         let script_to_constellation_chan = ScriptToConstellationChan {
             sender: senders.pipeline_to_constellation_sender.clone(),
-            webview_id: state.webview_id,
+            // TODO: We shouldn't rely on this WebViewId and PipelineId as a ScriptThread can have
+            // multiple Pipelines and any of them might disappear at any time.
+            webview_id,
             pipeline_id,
         };
         let debugger_global = DebuggerGlobalScope::new(
@@ -960,7 +992,7 @@ impl ScriptThread {
             incomplete_parser_contexts: IncompleteParserContexts(RefCell::new(vec![])),
             senders,
             receivers,
-            image_cache_factory: state.image_cache_factory,
+            image_cache_factory,
             resource_threads: state.resource_threads,
             storage_threads: state.storage_threads,
             task_queue,
@@ -971,14 +1003,14 @@ impl ScriptThread {
             js_runtime,
             closed_pipelines: DomRefCell::new(FxHashSet::default()),
             mutation_observers: Default::default(),
-            system_font_service,
+            system_font_service: Arc::new(state.system_font_service.to_proxy()),
             webgl_chan: state.webgl_chan,
             #[cfg(feature = "webxr")]
             webxr_registry: state.webxr_registry,
             worklet_thread_pool: Default::default(),
             docs_with_no_blocking_loads: Default::default(),
             custom_element_reaction_stack: Rc::new(CustomElementReactionStack::new()),
-            compositor_api: state.compositor_api,
+            compositor_api: state.cross_process_compositor_api,
             profile_script_events: opts.debug.profile_script_events,
             print_pwm: opts.print_pwm,
             unminify_js: opts.unminify_js,
@@ -990,7 +1022,6 @@ impl ScriptThread {
             is_user_interacting: Rc::new(Cell::new(false)),
             #[cfg(feature = "webgpu")]
             gpu_id_hub,
-            inherited_secure_context: state.inherited_secure_context,
             layout_factory,
             scheduled_update_the_rendering: Default::default(),
             needs_rendering_update: Arc::new(AtomicBool::new(false)),

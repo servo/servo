@@ -19,27 +19,28 @@ use std::time::Duration;
 
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
+use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use base::Epoch;
 use base::generic_channel::GenericSender;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use bitflags::bitflags;
 use compositing_traits::CrossProcessCompositorApi;
-use constellation_traits::LoadData;
+use crossbeam_channel::Receiver;
 use embedder_traits::{Cursor, Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::Point2D;
 use euclid::default::{Point2D as UntypedPoint2D, Rect};
-use fonts::{FontContext, SystemFontServiceProxy};
+use fonts::FontContext;
 pub use layout_damage::LayoutDamage;
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps, malloc_size_of_is_0};
 use malloc_size_of_derive::MallocSizeOf;
-use net_traits::image_cache::{ImageCache, PendingImageId};
+use net_traits::image_cache::{ImageCache, ImageCacheFactory, PendingImageId};
 use parking_lot::RwLock;
 use pixels::RasterImage;
 use profile_traits::mem::Report;
 use profile_traits::time;
 use rustc_hash::FxHashMap;
-use script_traits::{InitialScriptState, Painter, ScriptThreadMessage};
+use script_traits::{InitialScriptState, NewPipelineInfo, Painter, ScriptThreadMessage};
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -362,10 +363,11 @@ pub trait ScriptThreadFactory {
     /// Create a `ScriptThread`.
     fn create(
         state: InitialScriptState,
+        new_pipeline_info: NewPipelineInfo,
         layout_factory: Arc<dyn LayoutFactory>,
-        system_font_service: Arc<SystemFontServiceProxy>,
-        load_data: LoadData,
-    ) -> JoinHandle<()>;
+        image_cache_factory: Arc<dyn ImageCacheFactory>,
+        background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
+    ) -> (Receiver<()>, JoinHandle<()>);
 }
 
 /// Type of the area of CSS box for query.
