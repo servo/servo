@@ -33,7 +33,9 @@ use style::font_face::{
 use style::media_queries::Device;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::shared_lock::SharedRwLockReadGuard;
-use style::stylesheets::{CssRule, DocumentStyleSheet, FontFaceRule, StylesheetInDocument};
+use style::stylesheets::{
+    CssRule, CustomMediaMap, DocumentStyleSheet, FontFaceRule, StylesheetInDocument,
+};
 use style::values::computed::font::{FamilyName, FontFamilyNameSyntax, SingleFontFamily};
 use url::Url;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey, FontVariation};
@@ -536,7 +538,11 @@ impl FontContextWebFontMethods for Arc<FontContext> {
         finished_callback: StylesheetWebFontLoadFinishedCallback,
     ) -> usize {
         let mut number_loading = 0;
-        for rule in stylesheet.contents(guard).effective_rules(device, guard) {
+        let custom_media = &CustomMediaMap::default();
+        for rule in stylesheet
+            .contents(guard)
+            .effective_rules(device, custom_media, guard)
+        {
             let CssRule::FontFace(ref lock) = *rule else {
                 continue;
             };

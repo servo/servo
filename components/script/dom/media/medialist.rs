@@ -10,7 +10,7 @@ use servo_arc::Arc;
 use style::media_queries::{MediaList as StyleMediaList, MediaQuery};
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, SharedRwLock};
-use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
+use style::stylesheets::{CssRuleType, CustomMediaEvaluator, Origin, UrlExtraData};
 use style_traits::{ParseError, ParsingMode, ToCss};
 
 use crate::dom::bindings::codegen::Bindings::MediaListBinding::MediaListMethods;
@@ -141,7 +141,11 @@ impl MediaList {
         let mut parser_input = ParserInput::new(media_query);
         let mut parser = Parser::new(&mut parser_input);
         let media_list = StyleMediaList::parse(&context, &mut parser);
-        media_list.evaluate(document.window().layout().device(), quirks_mode)
+        media_list.evaluate(
+            document.window().layout().device(),
+            quirks_mode,
+            &mut CustomMediaEvaluator::none(),
+        )
     }
 }
 

@@ -69,7 +69,7 @@ use style::selector_parser::{PseudoElement, RestyleDamage, SnapshotMap};
 use style::servo::media_queries::FontMetricsProvider;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{
-    DocumentStyleSheet, Origin, Stylesheet, StylesheetInDocument, UrlExtraData,
+    CustomMediaMap, DocumentStyleSheet, Origin, Stylesheet, StylesheetInDocument, UrlExtraData,
     UserAgentStylesheets,
 };
 use style::stylist::Stylist;
@@ -779,7 +779,8 @@ impl LayoutThread {
         stylesheet: &DocumentStyleSheet,
         guard: &SharedRwLockReadGuard,
     ) {
-        if !stylesheet.is_effective_for_device(self.stylist.device(), guard) {
+        let custom_media = &CustomMediaMap::default();
+        if !stylesheet.is_effective_for_device(self.stylist.device(), custom_media, guard) {
             return;
         }
 
