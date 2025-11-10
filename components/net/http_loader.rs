@@ -1360,7 +1360,7 @@ async fn http_network_or_cache_fetch(
         Referrer::Client(ref http_request_referrer) => {
             // Step 8.11.1: Let referrerValue be httpRequest’s referrer, serialized and isomorphic
             // encoded.
-            if let Ok(referer) = http_request_referrer.to_string().parse::<Referer>() {
+            if let Ok(referer) = http_request_referrer.as_str().parse::<Referer>() {
                 // Step 8.11.2: Append (`Referer`, referrerValue) to httpRequest’s header list.
                 http_request.headers.typed_insert(referer);
             } else {
