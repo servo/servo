@@ -4,6 +4,7 @@
 
 mod aes_operation;
 mod ecdh_operation;
+mod ecdsa_operation;
 mod ed25519_operation;
 mod hkdf_operation;
 mod hmac_operation;
@@ -2328,6 +2329,14 @@ fn normalize_algorithm(
             // NOTE: Step 10.1.3 is done by the `From` and `TryFrom` trait implementation of
             // "subtle" binding structs.
             let normalized_algorithm = match (alg_name, op) {
+                // <https://w3c.github.io/webcrypto/#ecdsa-registration>
+                (ALG_ECDSA, Operation::ImportKey) => {
+                    let mut params =
+                        dictionary_from_jsval::<EcKeyImportParams>(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::EcKeyImportParams(params.into())
+                },
+
                 // <https://w3c.github.io/webcrypto/#ecdh-registration>
                 (ALG_ECDH, Operation::GenerateKey) => {
                     let mut params =
@@ -2923,15 +2932,27 @@ impl NormalizedAlgorithm {
                 },
                 _ => Err(Error::NotSupported),
             },
-            NormalizedAlgorithm::EcKeyImportParams(algo) => ecdh_operation::import_key(
-                global,
-                algo,
-                format,
-                key_data,
-                extractable,
-                usages,
-                can_gc,
-            ),
+            NormalizedAlgorithm::EcKeyImportParams(algo) => match algo.name.as_str() {
+                ALG_ECDSA => ecdsa_operation::import_key(
+                    global,
+                    algo,
+                    format,
+                    key_data,
+                    extractable,
+                    usages,
+                    can_gc,
+                ),
+                ALG_ECDH => ecdh_operation::import_key(
+                    global,
+                    algo,
+                    format,
+                    key_data,
+                    extractable,
+                    usages,
+                    can_gc,
+                ),
+                _ => Err(Error::NotSupported),
+            },
             NormalizedAlgorithm::HmacImportParams(algo) => hmac_operation::import_key(
                 global,
                 algo,
