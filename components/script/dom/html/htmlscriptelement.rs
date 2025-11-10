@@ -1276,7 +1276,7 @@ impl VirtualMethods for HTMLScriptElement {
             .unwrap()
             .attribute_mutated(attr, mutation, can_gc);
         if *attr.local_name() == local_name!("src") {
-            if let AttributeMutation::Set(_) = mutation {
+            if let AttributeMutation::Set(..) = mutation {
                 if !self.parser_inserted.get() && self.upcast::<Node>().is_connected() {
                     self.prepare(Some(IntroductionType::INJECTED_SCRIPT), can_gc);
                 }

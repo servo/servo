@@ -165,8 +165,8 @@ impl VirtualMethods for HTMLFieldSetElement {
         match *attr.local_name() {
             local_name!("disabled") => {
                 let disabled_state = match mutation {
-                    AttributeMutation::Set(None) => true,
-                    AttributeMutation::Set(Some(_)) => {
+                    AttributeMutation::Set(None, _) => true,
+                    AttributeMutation::Set(Some(_), _) => {
                         // Fieldset was already disabled before.
                         return;
                     },

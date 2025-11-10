@@ -92,7 +92,9 @@ use crate::dom::customelementregistry::{CallbackReaction, try_upgrade_element};
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
-use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator, SelectorWrapper};
+use crate::dom::element::{
+    AttributeMutationReason, CustomElementCreationMode, Element, ElementCreator, SelectorWrapper,
+};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -3026,6 +3028,7 @@ impl Node {
                         attr.name().clone(),
                         attr.namespace().clone(),
                         attr.prefix().cloned(),
+                        AttributeMutationReason::ByCloning,
                         can_gc,
                     );
                 }

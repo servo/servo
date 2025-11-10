@@ -75,7 +75,7 @@ use crate::dom::blob::Blob;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
 use crate::dom::element::{
-    AttributeMutation, CustomElementCreationMode, Element, ElementCreator,
+    AttributeMutation, AttributeMutationReason, CustomElementCreationMode, Element, ElementCreator,
     cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute,
 };
 use crate::dom::event::Event;
@@ -3074,7 +3074,13 @@ impl VirtualMethods for HTMLMediaElement {
 
         match *attr.local_name() {
             local_name!("muted") => {
-                self.SetMuted(mutation.new_value(attr).is_some());
+                if let AttributeMutation::Set(
+                    _,
+                    AttributeMutationReason::ByCloning | AttributeMutationReason::ByParser,
+                ) = mutation
+                {
+                    self.SetMuted(true);
+                }
             },
             local_name!("src") => {
                 // <https://html.spec.whatwg.org/multipage/#location-of-the-media-resource>
