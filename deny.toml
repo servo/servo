@@ -194,6 +194,7 @@ skip = [
 
     # duplicated by cssparser
     "phf",
+    "phf_codegen",
     "phf_generator",
     "phf_shared",
 ]
