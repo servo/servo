@@ -381,7 +381,7 @@ fn set_cookie_for_url(cookie_jar: &RwLock<CookieStorage>, request: &ServoUrl, co
     let mut cookie_jar = cookie_jar.write().unwrap();
     let source = CookieSource::HTTP;
 
-    if let Some(cookie) = ServoCookie::from_cookie_string(cookie_val.into(), request, source) {
+    if let Some(cookie) = ServoCookie::from_cookie_string(cookie_val, request, source) {
         cookie_jar.push(cookie, request, source);
     }
 }
@@ -392,7 +392,11 @@ fn set_cookies_from_headers(
     cookie_jar: &RwLock<CookieStorage>,
 ) {
     for cookie in headers.get_all(header::SET_COOKIE) {
-        if let Ok(cookie_str) = std::str::from_utf8(cookie.as_bytes()) {
+        let cookie_bytes = cookie.as_bytes();
+        if !ServoCookie::is_valid_name_or_value(cookie_bytes) {
+            continue;
+        }
+        if let Ok(cookie_str) = std::str::from_utf8(cookie_bytes) {
             set_cookie_for_url(cookie_jar, url, cookie_str);
         }
     }

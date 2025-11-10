@@ -42,11 +42,11 @@ pub struct ServoCookie {
 
 impl ServoCookie {
     pub fn from_cookie_string(
-        cookie_str: String,
+        cookie_str: &str,
         request: &ServoUrl,
         source: CookieSource,
     ) -> Option<ServoCookie> {
-        let mut cookie = Cookie::parse(cookie_str.clone()).ok()?;
+        let mut cookie = Cookie::parse(cookie_str.to_owned()).ok()?;
 
         // Cookie::parse uses RFC 2616 <http://tools.ietf.org/html/rfc2616#section-3.3.1> to parse
         // cookie expiry date. If it fails to parse the expiry date, try to parse again with
@@ -635,5 +635,14 @@ impl ServoCookie {
 
         // Step 7. Return the parsed-cookie-date as the result of this algorithm.
         Some(parsed_cookie_date)
+    }
+
+    /// Returns true if the slice only contains bytes that are safe to use in cookie strings.
+    /// Rejects 0x7f, and values < 0x1f except 0x09
+    /// <https://www.ietf.org/archive/id/draft-ietf-httpbis-rfc6265bis-15.html#section-5.6-6>
+    pub fn is_valid_name_or_value(bytes: &[u8]) -> bool {
+        !bytes
+            .iter()
+            .any(|c| *c == 0x7f || (*c <= 0x1f && *c != 0x09))
     }
 }
