@@ -39,9 +39,6 @@ pub(crate) enum AppState {
 
 pub(crate) struct RunningAppState {
     base: RunningAppStateBase,
-    /// A [`Receiver`] for receiving commands from a running WebDriver server, if WebDriver
-    /// was enabled.
-    webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
     inner: RefCell<RunningAppStateInner>,
 }
 
@@ -120,8 +117,7 @@ impl RunningAppState {
             None
         };
         RunningAppState {
-            base: RunningAppStateBase::new(servoshell_preferences, servo),
-            webdriver_receiver,
+            base: RunningAppStateBase::new(servoshell_preferences, servo, webdriver_receiver),
             inner: RefCell::new(RunningAppStateInner {
                 webviews: HashMap::default(),
                 creation_order: Default::default(),
@@ -161,10 +157,6 @@ impl RunningAppState {
 
     pub(crate) fn inner_mut(&self) -> RefMut<'_, RunningAppStateInner> {
         self.inner.borrow_mut()
-    }
-
-    pub(crate) fn webdriver_receiver(&self) -> Option<&Receiver<WebDriverCommandMsg>> {
-        self.webdriver_receiver.as_ref()
     }
 
     pub(crate) fn hidpi_scale_factor_changed(&self) {
