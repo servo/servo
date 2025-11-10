@@ -30,7 +30,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::indexeddb::idbobjectstore::IDBObjectStore;
 use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::dom::indexeddb::idbversionchangeevent::IDBVersionChangeEvent;
-use crate::indexed_db::is_valid_key_path;
+use crate::indexeddb::is_valid_key_path;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]

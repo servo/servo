@@ -13,7 +13,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::indexeddb::idbopendbrequest::IDBOpenDBRequest;
-use crate::indexed_db::convert_value_to_key;
+use crate::indexeddb::convert_value_to_key;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
