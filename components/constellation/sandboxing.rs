@@ -22,29 +22,29 @@ use serde::{Deserialize, Serialize};
 use servo_config::opts::Opts;
 use servo_config::prefs::Preferences;
 
-use crate::pipeline::UnprivilegedPipelineContent;
+use crate::event_loop::NewScriptEventLoopProcessInfo;
 use crate::process_manager::Process;
 use crate::serviceworker::ServiceWorkerUnprivilegedContent;
 
 #[derive(Deserialize, Serialize)]
 #[allow(clippy::large_enum_variant)]
 pub enum UnprivilegedContent {
-    Pipeline(UnprivilegedPipelineContent),
+    ScriptEventLoop(NewScriptEventLoopProcessInfo),
     ServiceWorker(ServiceWorkerUnprivilegedContent),
 }
 
 impl UnprivilegedContent {
     pub fn opts(&self) -> Opts {
         match self {
-            UnprivilegedContent::Pipeline(content) => content.opts(),
-            UnprivilegedContent::ServiceWorker(content) => content.opts(),
+            UnprivilegedContent::ScriptEventLoop(content) => content.opts.clone(),
+            UnprivilegedContent::ServiceWorker(content) => content.opts.clone(),
         }
     }
 
     pub fn prefs(&self) -> &Preferences {
         match self {
-            UnprivilegedContent::Pipeline(content) => content.prefs(),
-            UnprivilegedContent::ServiceWorker(content) => content.prefs(),
+            UnprivilegedContent::ScriptEventLoop(content) => &content.prefs,
+            UnprivilegedContent::ServiceWorker(content) => &content.prefs,
         }
     }
 }

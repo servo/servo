@@ -60,6 +60,7 @@ impl WorkletGlobalScope {
         webview_id: WebViewId,
         pipeline_id: PipelineId,
         base_url: ServoUrl,
+        inherited_secure_context: Option<bool>,
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
     ) -> DomRoot<WorkletGlobalScope> {
@@ -69,6 +70,7 @@ impl WorkletGlobalScope {
                 webview_id,
                 pipeline_id,
                 base_url,
+                inherited_secure_context,
                 executor,
                 init,
             )),
@@ -76,6 +78,7 @@ impl WorkletGlobalScope {
                 webview_id,
                 pipeline_id,
                 base_url,
+                inherited_secure_context,
                 executor,
                 init,
             )),
@@ -92,6 +95,7 @@ impl WorkletGlobalScope {
         webview_id: WebViewId,
         pipeline_id: PipelineId,
         base_url: ServoUrl,
+        inherited_secure_context: Option<bool>,
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
     ) -> Self {
@@ -115,7 +119,7 @@ impl WorkletGlobalScope {
                 None,
                 #[cfg(feature = "webgpu")]
                 init.gpu_id_hub.clone(),
-                init.inherited_secure_context,
+                inherited_secure_context,
                 false,
                 None, // font_context
             ),
@@ -216,8 +220,6 @@ pub(crate) struct WorkletGlobalScopeInit {
     /// Identity manager for WebGPU resources
     #[cfg(feature = "webgpu")]
     pub(crate) gpu_id_hub: Arc<IdentityHub>,
-    /// Is considered secure
-    pub(crate) inherited_secure_context: Option<bool>,
 }
 
 /// <https://drafts.css-houdini.org/worklets/#worklet-global-scope-type>

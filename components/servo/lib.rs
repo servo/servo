@@ -31,6 +31,7 @@ use std::path::PathBuf;
 use std::rc::{Rc, Weak};
 use std::sync::Arc;
 
+use background_hang_monitor::HangMonitorRegister;
 use base::generic_channel::{GenericCallback, RoutedReceiver};
 pub use base::id::WebViewId;
 use base::id::{PipelineNamespace, PipelineNamespaceId};
@@ -56,7 +57,7 @@ use compositing_traits::{CompositorMsg, CompositorProxy, CrossProcessCompositorA
 use constellation::content_process_sandbox_profile;
 use constellation::{
     Constellation, FromEmbedderLogger, FromScriptLogger, InitialConstellationState,
-    UnprivilegedContent,
+    NewScriptEventLoopProcessInfo, UnprivilegedContent,
 };
 pub use constellation_traits::EmbedderToConstellationMessage;
 use constellation_traits::ScriptToConstellationChan;
@@ -76,19 +77,22 @@ use fonts::SystemFontService;
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 pub use gleam::gl;
 pub use image::RgbaImage;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::{self, IpcSender, channel};
+use ipc_channel::router::ROUTER;
 use javascript_evaluator::JavaScriptEvaluator;
 pub use keyboard_types::{
     Code, CompositionEvent, CompositionState, Key, KeyState, Location, Modifiers, NamedKey,
 };
 use layout::LayoutFactoryImpl;
-use log::{Log, Metadata, Record, debug, warn};
+use layout_api::ScriptThreadFactory;
+use log::{Log, Metadata, Record, debug, error, warn};
 use media::{GlApi, NativeDisplay, WindowGLContext};
+use net::image_cache::ImageCacheFactoryImpl;
 use net::protocols::ProtocolRegistry;
 use net::resource_thread::new_resource_threads;
 use net_traits::{exit_fetch_thread, start_fetch_thread};
-use profile::{mem as profile_mem, time as profile_time};
-use profile_traits::mem::MemoryReportResult;
+use profile::{mem as profile_mem, system_reporter, time as profile_time};
+use profile_traits::mem::{MemoryReportResult, ProfilerMsg, Reporter};
 use profile_traits::{mem, time};
 use rustc_hash::FxHashMap;
 use script::{JSEngineSetup, ServiceWorkerManager};
@@ -1091,35 +1095,52 @@ pub fn run_content_process(token: String) {
     let _js_engine_setup = script::init();
 
     match unprivileged_content {
-        UnprivilegedContent::Pipeline(mut content) => {
+        UnprivilegedContent::ScriptEventLoop(new_event_loop_info) => {
             media_platform::init();
 
             // Start the fetch thread for this content process.
             let fetch_thread_join_handle = start_fetch_thread();
 
-            set_logger(content.script_to_constellation_chan().clone());
-
-            let (background_hang_monitor_register, join_handle) =
-                content.register_with_background_hang_monitor();
-            let layout_factory = Arc::new(LayoutFactoryImpl());
-
-            content.register_system_memory_reporter();
-
-            let script_join_handle = content.start_all::<script::ScriptThread>(
-                true,
-                layout_factory,
-                background_hang_monitor_register,
-                None,
+            set_logger(
+                new_event_loop_info
+                    .initial_script_state
+                    .pipeline_to_constellation_sender
+                    .clone(),
             );
 
-            // Since wait_for_completion is true,
-            // here we know that the script-thread
-            // will exit(or already has),
-            // and so we can join first on the script, and then on the BHM worker, threads.
+            register_system_memory_reporter_for_event_loop(&new_event_loop_info);
+
+            let (background_hang_monitor_register, background_hang_monitor_join_handle) =
+                HangMonitorRegister::init(
+                    new_event_loop_info.bhm_to_constellation_sender.clone(),
+                    new_event_loop_info.constellation_to_bhm_receiver,
+                    opts::get().background_hang_monitor,
+                );
+
+            let layout_factory = Arc::new(LayoutFactoryImpl());
+            let (script_thread_exit_receiver, script_join_handle) = script::ScriptThread::create(
+                new_event_loop_info.initial_script_state,
+                new_event_loop_info.new_pipeline_info,
+                layout_factory,
+                Arc::new(ImageCacheFactoryImpl::new(
+                    new_event_loop_info.broken_image_icon_data,
+                )),
+                background_hang_monitor_register,
+            );
+
+            // TODO: Could this just use the JoinHandle here?
+            match script_thread_exit_receiver.recv() {
+                Ok(()) => {},
+                Err(_) => error!("Script-thread shut-down unexpectedly"),
+            }
+
+            // Since we have waited for the ScriptThread to complete, we know it is has already
+            // exited or will soon so we can join first on the script, and then on the BHM worker
+            // threads.
             script_join_handle
                 .join()
                 .expect("Failed to join on the script thread.");
-            join_handle
+            background_hang_monitor_join_handle
                 .join()
                 .expect("Failed to join on the BHM background thread.");
 
@@ -1242,4 +1263,29 @@ impl ServoBuilder {
         self.webxr_registry = webxr_registry;
         self
     }
+}
+
+pub fn register_system_memory_reporter_for_event_loop(
+    new_event_loop_info: &NewScriptEventLoopProcessInfo,
+) {
+    // Register the system memory reporter, which will run on its own thread. It never needs to
+    // be unregistered, because as long as the memory profiler is running the system memory
+    // reporter can make measurements.
+    let (system_reporter_sender, system_reporter_receiver) =
+        channel().expect("failed to create ipc channel");
+    ROUTER.add_typed_route(
+        system_reporter_receiver,
+        Box::new(|message| {
+            if let Ok(request) = message {
+                system_reporter::collect_reports(request);
+            }
+        }),
+    );
+    new_event_loop_info
+        .initial_script_state
+        .memory_profiler_sender
+        .send(ProfilerMsg::RegisterReporter(
+            format!("system-content-{}", std::process::id()),
+            Reporter(system_reporter_sender),
+        ));
 }
