@@ -8,7 +8,6 @@ use std::rc::Rc;
 use crossbeam_channel::Receiver;
 use dpi::PhysicalSize;
 use euclid::{Point2D, Rect, Scale, Size2D};
-use image::{DynamicImage, ImageFormat};
 use keyboard_types::{CompositionEvent, CompositionState, Key, KeyState, NamedKey};
 use log::{debug, error, info, warn};
 use raw_window_handle::{RawWindowHandle, WindowHandle};
@@ -102,10 +101,6 @@ struct RunningAppStateInner {
 
     /// The HiDPI scaling factor to use for the display of [`WebView`]s.
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
-
-    /// Whether or not the application has achieved stable image output. This is used
-    /// for the `exit_after_stable_image` option.
-    achieved_stable_image: Rc<Cell<bool>>,
 
     /// A list of showing [`InputMethod`] interfaces.
     visible_input_methods: Vec<EmbedderControlId>,
@@ -411,7 +406,6 @@ impl RunningAppState {
                 focused_webview_id: None,
                 animating_state_changed,
                 hidpi_scale_factor: Scale::new(hidpi_scale_factor),
-                achieved_stable_image: Default::default(),
                 visible_input_methods: Default::default(),
             }),
         });
@@ -912,48 +906,10 @@ impl RunningAppState {
         self.rendering_context.present();
 
         if self.servoshell_preferences().exit_after_stable_image &&
-            self.inner().achieved_stable_image.get()
+            self.base().achieved_stable_image.get()
         {
             self.request_shutdown();
         }
-    }
-
-    /// If we are exiting after achieving a stable image or we want to save the display of the
-    /// [`WebView`] to an image file, request a screenshot of the [`WebView`].
-    fn maybe_request_screenshot(&self, webview: WebView) {
-        let output_path = self.servoshell_preferences().output_image_path.clone();
-        if !self.servoshell_preferences().exit_after_stable_image && output_path.is_none() {
-            return;
-        }
-
-        // Never request more than a single screenshot for now.
-        let achieved_stable_image = self.inner().achieved_stable_image.clone();
-        if achieved_stable_image.get() {
-            return;
-        }
-
-        webview.take_screenshot(None, move |image| {
-            achieved_stable_image.set(true);
-
-            let Some(output_path) = output_path else {
-                return;
-            };
-
-            let image = match image {
-                Ok(image) => image,
-                Err(error) => {
-                    error!("Could not take screenshot: {error:?}");
-                    return;
-                },
-            };
-
-            let image_format = ImageFormat::from_path(&output_path).unwrap_or(ImageFormat::Png);
-            if let Err(error) =
-                DynamicImage::ImageRgba8(image).save_with_format(output_path, image_format)
-            {
-                error!("Failed to save screenshot: {error}.");
-            }
-        });
     }
 }
 

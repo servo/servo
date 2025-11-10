@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, Ref, RefCell, RefMut};
+use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::mem;
 use std::rc::Rc;
 
 use crossbeam_channel::Receiver;
-use image::{DynamicImage, ImageFormat};
 use log::{error, info};
 use servo::base::generic_channel::GenericSender;
 use servo::base::id::WebViewId;
@@ -83,10 +82,6 @@ pub struct RunningAppStateInner {
     /// to the GPU by egui.
     pending_favicon_loads: Vec<WebViewId>,
 
-    /// Whether or not the application has achieved stable image output. This is used
-    /// for the `exit_after_stable_image` option.
-    achieved_stable_image: Rc<Cell<bool>>,
-
     /// A list of showing [`InputMethod`] interfaces.
     visible_input_methods: Vec<EmbedderControlId>,
 }
@@ -138,7 +133,6 @@ impl RunningAppState {
                 need_repaint: false,
                 dialog_amount_changed: false,
                 pending_favicon_loads: Default::default(),
-                achieved_stable_image: Default::default(),
                 visible_input_methods: Default::default(),
             }),
         }
@@ -222,7 +216,7 @@ impl RunningAppState {
         self.inner_mut().dialog_amount_changed = false;
 
         if self.servoshell_preferences().exit_after_stable_image &&
-            self.inner().achieved_stable_image.get()
+            self.base().achieved_stable_image.get()
         {
             self.servo().start_shutting_down();
         }
@@ -491,44 +485,6 @@ impl RunningAppState {
     /// Return a list of all webviews that have favicons that have not yet been loaded by egui.
     pub(crate) fn take_pending_favicon_loads(&self) -> Vec<WebViewId> {
         mem::take(&mut self.inner_mut().pending_favicon_loads)
-    }
-
-    /// If we are exiting after achieving a stable image or we want to save the display of the
-    /// [`WebView`] to an image file, request a screenshot of the [`WebView`].
-    fn maybe_request_screenshot(&self, webview: WebView) {
-        let output_path = self.servoshell_preferences().output_image_path.clone();
-        if !self.servoshell_preferences().exit_after_stable_image && output_path.is_none() {
-            return;
-        }
-
-        // Never request more than a single screenshot for now.
-        let achieved_stable_image = self.inner().achieved_stable_image.clone();
-        if achieved_stable_image.get() {
-            return;
-        }
-
-        webview.take_screenshot(None, move |image| {
-            achieved_stable_image.set(true);
-
-            let Some(output_path) = output_path else {
-                return;
-            };
-
-            let image = match image {
-                Ok(image) => image,
-                Err(error) => {
-                    error!("Could not take screenshot: {error:?}");
-                    return;
-                },
-            };
-
-            let image_format = ImageFormat::from_path(&output_path).unwrap_or(ImageFormat::Png);
-            if let Err(error) =
-                DynamicImage::ImageRgba8(image).save_with_format(output_path, image_format)
-            {
-                error!("Failed to save screenshot: {error}.");
-            }
-        });
     }
 }
 

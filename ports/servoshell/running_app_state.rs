@@ -4,12 +4,13 @@
 
 //! Shared state and methods for desktop and EGL implementations.
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use crossbeam_channel::Sender;
 use euclid::Rect;
-use image::RgbaImage;
+use image::{DynamicImage, ImageFormat, RgbaImage};
 use log::{error, info, warn};
 use servo::base::generic_channel::GenericSender;
 use servo::base::id::WebViewId;
@@ -36,6 +37,10 @@ pub struct RunningAppStateBase {
 
     /// A handle to the Servo instance.
     pub(crate) servo: Servo,
+
+    /// Whether or not the application has achieved stable image output. This is used
+    /// for the `exit_after_stable_image` option.
+    pub(crate) achieved_stable_image: Rc<Cell<bool>>,
 }
 
 impl RunningAppStateBase {
@@ -45,6 +50,7 @@ impl RunningAppStateBase {
             pending_webdriver_events: Default::default(),
             servoshell_preferences,
             servo,
+            achieved_stable_image: Default::default(),
         }
     }
 }
@@ -175,5 +181,43 @@ pub trait RunningAppStateTrait {
             self.set_load_status_sender(webview_id, load_status_sender);
             webview.load(url);
         }
+    }
+
+    /// If we are exiting after achieving a stable image or we want to save the display of the
+    /// [`WebView`] to an image file, request a screenshot of the [`WebView`].
+    fn maybe_request_screenshot(&self, webview: WebView) {
+        let output_path = self.servoshell_preferences().output_image_path.clone();
+        if !self.servoshell_preferences().exit_after_stable_image && output_path.is_none() {
+            return;
+        }
+
+        // Never request more than a single screenshot for now.
+        let achieved_stable_image = self.base().achieved_stable_image.clone();
+        if achieved_stable_image.get() {
+            return;
+        }
+
+        webview.take_screenshot(None, move |image| {
+            achieved_stable_image.set(true);
+
+            let Some(output_path) = output_path else {
+                return;
+            };
+
+            let image = match image {
+                Ok(image) => image,
+                Err(error) => {
+                    error!("Could not take screenshot: {error:?}");
+                    return;
+                },
+            };
+
+            let image_format = ImageFormat::from_path(&output_path).unwrap_or(ImageFormat::Png);
+            if let Err(error) =
+                DynamicImage::ImageRgba8(image).save_with_format(output_path, image_format)
+            {
+                error!("Failed to save screenshot: {error}.");
+            }
+        });
     }
 }
