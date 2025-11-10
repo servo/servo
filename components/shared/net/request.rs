@@ -13,6 +13,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
+use tokio::sync::oneshot::{Receiver as TokioReceiver, Sender as TokioSender};
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
@@ -157,8 +158,10 @@ pub struct PreloadEntry {
     /// <https://html.spec.whatwg.org/multipage/#preload-integrity-metadata>
     integrity_metadata: String,
     /// <https://html.spec.whatwg.org/multipage/#preload-response>
-    #[serde(skip)]
     response: Option<Response>,
+    /// <https://html.spec.whatwg.org/multipage/#preload-on-response-available>
+    #[ignore_malloc_size_of = "channels are hard"]
+    on_response_available: Option<TokioSender<Response>>,
 }
 
 impl PreloadEntry {
@@ -166,13 +169,18 @@ impl PreloadEntry {
         Self {
             integrity_metadata,
             response: None,
+            on_response_available: None,
         }
     }
 
-    pub fn with_response(&self, response: Response) -> Self {
-        Self {
-            integrity_metadata: self.integrity_metadata.clone(),
-            response: Some(response),
+    /// Part of step 11.5 of <https://html.spec.whatwg.org/multipage/#preload>
+    pub fn with_response(mut self, response: Response) {
+        // Step 11.5. If entry's on response available is null, then set entry's response to response;
+        // otherwise call entry's on response available given response.
+        if let Some(sender) = self.on_response_available {
+            let _ = sender.send(response);
+        } else {
+            self.response = Some(response);
         }
     }
 }
@@ -198,6 +206,7 @@ impl RequestClient {
         &self,
         request: &Request,
         on_response_available: impl FnOnce(Response),
+        on_pending_response: impl FnOnce(TokioReceiver<Response>),
     ) -> bool {
         // Step 1. Let key be a preload key whose URL is url,
         // destination is destination, mode is mode, and credentials mode is credentialsMode.
@@ -231,17 +240,20 @@ impl RequestClient {
             // then return false.
             return false;
         }
+        // Step 8. Remove preloads[key].
+        //
+        // Skipped as otherwise we can't find it
+        //preloads.shift_remove(&key);
+
         // Step 10. Otherwise, call onResponseAvailable with entry's response.
         if let Some(response) = entry.response.as_ref() {
             on_response_available(response.clone());
         } else {
             // Step 9. If entry's response is null, then set entry's on response available to onResponseAvailable.
-            // TODO
+            let (sender, receiver) = tokio::sync::oneshot::channel();
+            entry.on_response_available = Some(sender);
+            on_pending_response(receiver);
         }
-        // Step 8. Remove preloads[key].
-        //
-        // Moved down to avoid double borrow on preloads with entry
-        preloads.shift_remove(&key);
         // Step 11. Return true.
         true
     }
