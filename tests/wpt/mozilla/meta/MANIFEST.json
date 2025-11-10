@@ -10625,6 +10625,10 @@
      "182d72fa7fddab14222e4085b2cc498d79865709",
      []
     ],
+    "alphabet.xml": [
+     "aaf2e1a49542c1eee44d132d270ba1a7169cb873",
+     []
+    ],
     "blank.html": [
      "39654855a826184e75c4278434360ee0a6fb2a59",
      []
@@ -14690,6 +14694,13 @@
     ],
     "xpath-reuse-result-iterator.html": [
      "5f97115a82dba24ae4ca807b1e60ee93b3a526ea",
+     [
+      null,
+      {}
+     ]
+    ],
+    "xpathmark-ft.html": [
+     "4d5325dcee4d9f869723d36309a0d22185780e54",
      [
       null,
       {}
