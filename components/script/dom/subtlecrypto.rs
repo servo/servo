@@ -2336,6 +2336,12 @@ fn normalize_algorithm(
                     params.parent.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::EcKeyImportParams(params.into())
                 },
+                (ALG_ECDSA, Operation::ExportKey) => {
+                    let mut params =
+                        dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
 
                 // <https://w3c.github.io/webcrypto/#ecdh-registration>
                 (ALG_ECDH, Operation::GenerateKey) => {
@@ -3011,6 +3017,7 @@ impl NormalizedAlgorithm {
 /// for export key operation.
 fn perform_export_key_operation(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
     match key.algorithm().name() {
+        ALG_ECDSA => ecdsa_operation::export_key(format, key),
         ALG_ECDH => ecdh_operation::export_key(format, key),
         ALG_ED25519 => ed25519_operation::export_key(format, key),
         ALG_X25519 => x25519_operation::export_key(format, key),
