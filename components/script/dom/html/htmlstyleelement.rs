@@ -12,7 +12,6 @@ use net_traits::ReferrerPolicy;
 use script_bindings::root::Dom;
 use servo_arc::Arc;
 use style::media_queries::MediaList as StyleMediaList;
-use style::shared_lock::DeepCloneWithLock;
 use style::stylesheets::{
     AllowImportRules, Origin, Stylesheet, StylesheetContents, StylesheetInDocument, UrlExtraData,
 };
@@ -252,11 +251,11 @@ impl HTMLStyleElement {
         let lock = stylesheet_with_shared_contents.shared_lock.clone();
         let guard = stylesheet_with_shared_contents.shared_lock.read();
         let stylesheet_with_owned_contents = Arc::new(Stylesheet {
-            contents: lock.wrap(Arc::new(
+            contents: lock.wrap(
                 stylesheet_with_shared_contents
                     .contents(&guard)
-                    .deep_clone_with_lock(&lock, &guard),
-            )),
+                    .deep_clone(&lock, None, &guard),
+            ),
             shared_lock: lock,
             media: stylesheet_with_shared_contents.media.clone(),
             disabled: AtomicBool::new(
