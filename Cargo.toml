@@ -78,7 +78,7 @@ gstreamer-video = "0.24"
 harfbuzz-sys = "0.6.1"
 headers = "0.4"
 hitrace = "0.1.5"
-html5ever = "0.35"
+html5ever = "0.36"
 http = "1.3"
 http-body-util = "0.1"
 hyper = "1.7"
@@ -101,7 +101,7 @@ log = "0.4.27"
 mach2 = "0.4"
 malloc_size_of = { package = "servo_malloc_size_of", path = "components/malloc_size_of" }
 malloc_size_of_derive = "0.1"
-markup5ever = "0.35"
+markup5ever = "0.36"
 memmap2 = "0.9.9"
 mime = "0.3.13"
 mime_guess = "2.0.5"
@@ -148,7 +148,7 @@ servo_arc = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
 skrifa = "0.37.0"
 smallvec = { version = "1.15", features = ["serde", "union"] }
 storage_traits = { path = "components/shared/storage" }
-string_cache = "0.8"
+string_cache = "0.9"
 strum = "0.27"
 strum_macros = "0.27"
 stylo = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
@@ -195,7 +195,7 @@ wio = "0.2"
 wr_malloc_size_of = { git = "https://github.com/servo/webrender", branch = "0.68" }
 x25519-dalek = { version = "2.0.1", features = ["static_secrets"] }
 xi-unicode = "0.3.0"
-xml5ever = "0.35"
+xml5ever = "0.36"
 xpath = { path = "components/xpath" }
 
 # Force tikv-jemalloc-sys to build with at least -O1.
