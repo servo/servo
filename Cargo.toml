@@ -53,7 +53,7 @@ constellation_traits = { path = "components/shared/constellation" }
 content-security-policy = { git = "https://github.com/servo/rust-content-security-policy", branch = "servo-csp", features = ["serde"] }
 cookie = { package = "cookie", version = "0.18" }
 crossbeam-channel = "0.5"
-cssparser = { version = "0.35", features = ["serde"] }
+cssparser = { version = "0.36", features = ["serde"] }
 ctr = "0.9.2"
 data-url = "0.3"
 devtools_traits = { path = "components/shared/devtools" }
