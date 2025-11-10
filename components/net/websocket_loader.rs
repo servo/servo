@@ -341,12 +341,8 @@ pub(crate) async fn start_websocket(
     if original_url.scheme() == "ws" && url.scheme() == "https" {
         original_url.as_mut_url().set_scheme("wss").unwrap();
     }
-    let mut builder = ClientRequestBuilder::new(
-        original_url
-            .into_string()
-            .parse()
-            .expect("unable to parse URI"),
-    );
+    let mut builder =
+        ClientRequestBuilder::new(original_url.as_str().parse().expect("unable to parse URI"));
     for (key, value) in client.headers.iter() {
         builder = builder.with_header(
             key.as_str(),
