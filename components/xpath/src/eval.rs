@@ -298,8 +298,7 @@ impl LocationStepExpression {
                 Axis::FollowingSibling |
                 Axis::Attribute |
                 Axis::Self_ |
-                Axis::DescendantOrSelf |
-                Axis::AncestorOrSelf
+                Axis::DescendantOrSelf
         ) {
             // The elements on these axis values are already in tree order
             nodes.assume_sorted();
