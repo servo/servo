@@ -99,7 +99,7 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
         navigatorinfo::Language()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-languages
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-languages>
     fn Languages(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
         to_frozen_array(&[self.Language()], cx, retval, can_gc)
     }

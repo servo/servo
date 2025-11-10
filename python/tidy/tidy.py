@@ -700,7 +700,8 @@ def check_spec(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
     macro_patt = re.compile(r"^\s*\S+!(.*)$")
 
     # Pattern representing a line with comment containing a spec link
-    link_patt = re.compile(r"^\s*/// (<https://.+>.*|https://.+)$")
+    fn_link_patt = re.compile(r"^\s*/// (<https://.+>.*|https://.+)$")
+    macro_link_patt = re.compile(r"^\s*// (<https://.+>.*|https://.+)$")
 
     # Pattern representing a line with comment or attribute
     comment_patt = re.compile(r"^\s*(///?.+|#\[.+\])$")
@@ -718,7 +719,9 @@ def check_spec(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
             if ("fn " in line or macro_patt.match(line)) and brace_count == 1:
                 for up_idx in range(1, idx + 1):
                     up_line = lines[idx - up_idx].decode("utf-8")
-                    if link_patt.match(up_line):
+                    if ("fn " in line and fn_link_patt.match(up_line)) or (
+                        macro_patt.match(line) and macro_link_patt.match(up_line)
+                    ):
                         # Comment with spec link exists
                         break
                     if not comment_patt.match(up_line):

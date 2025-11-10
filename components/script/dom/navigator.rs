@@ -304,7 +304,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         navigatorinfo::AppVersion()
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-navigator-bluetooth
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-navigator-bluetooth>
     #[cfg(feature = "bluetooth")]
     fn Bluetooth(&self) -> DomRoot<Bluetooth> {
         self.bluetooth
@@ -327,7 +327,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         navigatorinfo::Language()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-languages
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-languages>
     fn Languages(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
         to_frozen_array(&[self.Language()], cx, retval, can_gc)
     }
@@ -413,7 +413,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         })
     }
 
-    // https://gpuweb.github.io/gpuweb/#dom-navigator-gpu
+    /// <https://gpuweb.github.io/gpuweb/#dom-navigator-gpu>
     #[cfg(feature = "webgpu")]
     fn Gpu(&self) -> DomRoot<GPU> {
         self.gpu.or_init(|| GPU::new(&self.global(), CanGc::note()))

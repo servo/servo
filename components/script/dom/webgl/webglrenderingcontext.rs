@@ -2739,7 +2739,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         self.buffer_data_(target, size, usage, bound_buffer)
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
     fn BufferSubData(&self, target: u32, offset: i64, data: ArrayBufferViewOrArrayBuffer) {
         let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);
         self.buffer_sub_data(target, offset, data, bound_buffer)

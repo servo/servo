@@ -157,7 +157,7 @@ impl Worker {
 }
 
 impl WorkerMethods<crate::DomTypeHolder> for Worker {
-    // https://html.spec.whatwg.org/multipage/#dom-worker
+    /// <https://html.spec.whatwg.org/multipage/#dom-worker>
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
