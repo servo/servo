@@ -478,7 +478,7 @@ impl HoistedAbsolutelyPositionedBox {
         // in the inline axis.
         let inline_box_offsets = box_offset.inline_sides();
         let inline_alignment = match inline_box_offsets.either_specified() {
-            true => style.clone_justify_self().0.0,
+            true => style.clone_justify_self().0,
             false => self.resolved_alignment.inline,
         };
 
@@ -502,7 +502,7 @@ impl HoistedAbsolutelyPositionedBox {
         // against this containing block.
         let block_box_offsets = box_offset.block_sides();
         let block_alignment = match block_box_offsets.either_specified() {
-            true => style.clone_align_self().0.0,
+            true => style.clone_align_self().0,
             false => self.resolved_alignment.block,
         };
         let block_axis_solver = AbsoluteAxisSolver {

@@ -1807,8 +1807,8 @@ fn solve_block_margins_for_in_flow_block_level(pbm: &PaddingBorderMargin) -> (Au
 /// Resolves the `justify-self` value, preserving flags.
 fn resolve_justify_self(style: &ComputedValues, parent_style: &ComputedValues) -> AlignFlags {
     let is_ltr = |style: &ComputedValues| style.writing_mode.line_left_is_inline_start();
-    let alignment = match style.clone_justify_self().0.0 {
-        AlignFlags::AUTO => parent_style.clone_justify_items().computed.0,
+    let alignment = match style.clone_justify_self().0 {
+        AlignFlags::AUTO => parent_style.clone_justify_items().computed.0.0,
         alignment => alignment,
     };
     let alignment_value = match alignment.value() {
