@@ -81,7 +81,7 @@ impl VirtualMethods for SVGElement {
         let element = self.as_element();
         if let (&local_name!("nonce"), mutation) = (attr.local_name(), mutation) {
             match mutation {
-                AttributeMutation::Set(_) => {
+                AttributeMutation::Set(..) => {
                     let nonce = &**attr.value();
                     element.update_nonce_internal_slot(nonce.to_owned());
                 },

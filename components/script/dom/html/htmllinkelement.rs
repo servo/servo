@@ -298,7 +298,7 @@ impl VirtualMethods for HTMLLinkElement {
                 // When the as attribute of the link element of an external resource link
                 // that is already browsing-context connected is changed.
                 if self.relations.get().contains(LinkRelations::PRELOAD) {
-                    if let AttributeMutation::Set(Some(_)) = mutation {
+                    if let AttributeMutation::Set(Some(_), _) = mutation {
                         self.handle_preload_url();
                     }
                 }
@@ -335,7 +335,7 @@ impl VirtualMethods for HTMLLinkElement {
                     !self.previous_media_environment_matched.get()
                 {
                     match mutation {
-                        AttributeMutation::Removed | AttributeMutation::Set(Some(_)) => {
+                        AttributeMutation::Removed | AttributeMutation::Set(Some(_), _) => {
                             self.handle_preload_url()
                         },
                         _ => {},

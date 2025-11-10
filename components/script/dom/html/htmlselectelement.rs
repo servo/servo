@@ -674,7 +674,7 @@ impl VirtualMethods for HTMLSelectElement {
             local_name!("disabled") => {
                 let el = self.upcast::<Element>();
                 match mutation {
-                    AttributeMutation::Set(_) => {
+                    AttributeMutation::Set(..) => {
                         el.set_disabled_state(true);
                         el.set_enabled_state(false);
                     },

@@ -309,7 +309,7 @@ impl VirtualMethods for HTMLOptionElement {
             local_name!("disabled") => {
                 let el = self.upcast::<Element>();
                 match mutation {
-                    AttributeMutation::Set(_) => {
+                    AttributeMutation::Set(..) => {
                         el.set_disabled_state(true);
                         el.set_enabled_state(false);
                     },
@@ -323,7 +323,7 @@ impl VirtualMethods for HTMLOptionElement {
             },
             local_name!("selected") => {
                 match mutation {
-                    AttributeMutation::Set(_) => {
+                    AttributeMutation::Set(..) => {
                         // https://html.spec.whatwg.org/multipage/#concept-option-selectedness
                         if !self.dirtiness.get() {
                             self.selectedness.set(true);

@@ -526,7 +526,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             local_name!("disabled") => {
                 let el = self.upcast::<Element>();
                 match mutation {
-                    AttributeMutation::Set(_) => {
+                    AttributeMutation::Set(..) => {
                         el.set_disabled_state(true);
                         el.set_enabled_state(false);
 
@@ -572,7 +572,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                 {
                     let mut placeholder = self.placeholder.borrow_mut();
                     placeholder.clear();
-                    if let AttributeMutation::Set(_) = mutation {
+                    if let AttributeMutation::Set(..) = mutation {
                         placeholder.push_str(attr.value().as_ref());
                     }
                 }
@@ -581,7 +581,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             local_name!("readonly") => {
                 let el = self.upcast::<Element>();
                 match mutation {
-                    AttributeMutation::Set(_) => {
+                    AttributeMutation::Set(..) => {
                         el.set_read_write_state(false);
                     },
                     AttributeMutation::Removed => {

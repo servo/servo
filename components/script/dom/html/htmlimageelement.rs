@@ -1847,8 +1847,8 @@ impl VirtualMethods for HTMLImageElement {
                 // <https://html.spec.whatwg.org/multipage/#reacting-to-dom-mutations>
                 // The element's crossorigin attribute's state is changed.
                 let cross_origin_state_changed = match mutation {
-                    AttributeMutation::Removed | AttributeMutation::Set(None) => true,
-                    AttributeMutation::Set(Some(old_value)) => {
+                    AttributeMutation::Removed | AttributeMutation::Set(None, _) => true,
+                    AttributeMutation::Set(Some(old_value), _) => {
                         let new_cors_setting =
                             CorsSettings::from_enumerated_attribute(&attr.value());
                         let old_cors_setting = CorsSettings::from_enumerated_attribute(old_value);
@@ -1865,10 +1865,10 @@ impl VirtualMethods for HTMLImageElement {
                 // <https://html.spec.whatwg.org/multipage/#reacting-to-dom-mutations>
                 // The element's referrerpolicy attribute's state is changed.
                 let referrer_policy_state_changed = match mutation {
-                    AttributeMutation::Removed | AttributeMutation::Set(None) => {
+                    AttributeMutation::Removed | AttributeMutation::Set(None, _) => {
                         ReferrerPolicy::from(&**attr.value()) != ReferrerPolicy::EmptyString
                     },
-                    AttributeMutation::Set(Some(old_value)) => {
+                    AttributeMutation::Set(Some(old_value), _) => {
                         ReferrerPolicy::from(&**attr.value()) != ReferrerPolicy::from(&**old_value)
                     },
                 };
