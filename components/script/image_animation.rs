@@ -71,7 +71,7 @@ impl ImageAnimationManager {
                     image.webrender_image_descriptor_and_data_for_frame(state.active_frame);
 
                 Some(ImageUpdate::UpdateImage(
-                    image.id.unwrap(),
+                    image.base.id.unwrap(),
                     descriptor,
                     SerializableImageData::Raw(ipc_shared_memory),
                     None,

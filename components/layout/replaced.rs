@@ -302,8 +302,8 @@ impl ReplacedContents {
     ) -> (PhysicalSize<Au>, PhysicalRect<Au>) {
         if let ReplacedContentKind::Image(Some(Image::Raster(image)), true) = &self.kind {
             let size = Size2D::new(
-                Au::from_f32_px(image.metadata.width as f32),
-                Au::from_f32_px(image.metadata.height as f32),
+                Au::from_f32_px(image.base.metadata.width as f32),
+                Au::from_f32_px(image.base.metadata.height as f32),
             )
             .min(size);
             return (PhysicalSize::zero(), size.into());
@@ -366,7 +366,7 @@ impl ReplacedContents {
             ReplacedContentKind::Image(image, showing_broken_image_icon) => image
                 .as_ref()
                 .and_then(|image| match image {
-                    Image::Raster(raster_image) => raster_image.id,
+                    Image::Raster(raster_image) => raster_image.base.id,
                     Image::Vector(vector_image) => {
                         let scale = layout_context.style_context.device_pixel_ratio();
                         let width = object_fit_size.width.scale_by(scale.0).to_px();
@@ -376,7 +376,7 @@ impl ReplacedContents {
                         layout_context
                             .image_resolver
                             .rasterize_vector_image(vector_image.id, size, tag.node)
-                            .and_then(|i| i.id)
+                            .and_then(|i| i.base.id)
                     },
                 })
                 .map(|image_key| {
@@ -470,7 +470,7 @@ impl ReplacedContents {
                 layout_context
                     .image_resolver
                     .rasterize_vector_image(vector_image.id, raster_size, tag.node)
-                    .and_then(|image| image.id)
+                    .and_then(|image| image.base.id)
                     .map(|image_key| {
                         Fragment::Image(ArcRefCell::new(ImageFragment {
                             base: self.base_fragment_info.into(),

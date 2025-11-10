@@ -281,15 +281,12 @@ pub enum CorsStatus {
     Unsafe,
 }
 
-/// A version of [`RasterImage`] that can be sent across IPC channels.
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
-pub struct SharedRasterImage {
+#[derive(Clone, Debug, Serialize, Deserialize, MallocSizeOf)]
+pub struct RasterImageBase {
     pub metadata: ImageMetadata,
     pub format: PixelFormat,
     pub id: Option<ImageKey>,
     pub cors_status: CorsStatus,
-    #[conditional_malloc_size_of]
-    pub bytes: Arc<IpcSharedMemory>,
     pub frames: Vec<ImageFrame>,
     /// Whether or not all of the frames of this image are opaque.
     pub is_opaque: bool,
@@ -297,15 +294,16 @@ pub struct SharedRasterImage {
 
 #[derive(Clone, MallocSizeOf)]
 pub struct RasterImage {
-    pub metadata: ImageMetadata,
-    pub format: PixelFormat,
-    pub id: Option<ImageKey>,
-    pub cors_status: CorsStatus,
+    pub base: RasterImageBase,
     #[conditional_malloc_size_of]
     pub bytes: Arc<Vec<u8>>,
-    pub frames: Vec<ImageFrame>,
-    /// Whether or not all of the frames of this image are opaque.
-    pub is_opaque: bool,
+}
+
+#[derive(Clone, Serialize, Deserialize, MallocSizeOf)]
+pub struct SharedRasterImage {
+    pub base: RasterImageBase,
+    #[conditional_malloc_size_of]
+    pub bytes: Arc<IpcSharedMemory>,
 }
 
 fn sensible_delay(delay: Duration) -> Duration {
@@ -353,7 +351,7 @@ impl ImageFrameView<'_> {
 
 impl RasterImage {
     pub fn should_animate(&self) -> bool {
-        self.frames.len() > 1
+        self.base.frames.len() > 1
     }
 
     fn frame_view<'image>(&'image self, frame: &ImageFrame) -> ImageFrameView<'image> {
@@ -366,7 +364,10 @@ impl RasterImage {
     }
 
     pub fn frame(&self, index: usize) -> Option<ImageFrameView<'_>> {
-        self.frames.get(index).map(|frame| self.frame_view(frame))
+        self.base
+            .frames
+            .get(index)
+            .map(|frame| self.frame_view(frame))
     }
 
     pub fn first_frame(&self) -> ImageFrameView<'_> {
@@ -375,8 +376,8 @@ impl RasterImage {
     }
 
     pub fn as_snapshot(&self) -> Snapshot {
-        let size = Size2D::new(self.metadata.width, self.metadata.height);
-        let format = match self.format {
+        let size = Size2D::new(self.base.metadata.width, self.base.metadata.height);
+        let format = match self.base.format {
             PixelFormat::BGRA8 => SnapshotPixelFormat::BGRA,
             PixelFormat::RGBA8 => SnapshotPixelFormat::RGBA,
             pixel_format => {
@@ -393,7 +394,7 @@ impl RasterImage {
             format,
             alpha_mode,
             self.bytes.clone(),
-            self.frames[0].byte_range.clone(),
+            self.base.frames[0].byte_range.clone(),
         )
     }
 
@@ -402,11 +403,12 @@ impl RasterImage {
         frame_index: usize,
     ) -> (ImageDescriptor, IpcSharedMemory) {
         let frame = self
+            .base
             .frames
             .get(frame_index)
             .expect("Asked for a frame that did not exist: {frame_index:?}");
 
-        let (format, data) = match self.format {
+        let (format, data) = match self.base.format {
             PixelFormat::BGRA8 => (WebRenderImageFormat::BGRA8, (*self.bytes).clone()),
             PixelFormat::RGBA8 => (WebRenderImageFormat::RGBA8, (*self.bytes).clone()),
             PixelFormat::RGB8 => {
@@ -422,9 +424,12 @@ impl RasterImage {
             },
         };
         let mut flags = ImageDescriptorFlags::ALLOW_MIPMAPS;
-        flags.set(ImageDescriptorFlags::IS_OPAQUE, self.is_opaque);
+        flags.set(ImageDescriptorFlags::IS_OPAQUE, self.base.is_opaque);
 
-        let size = DeviceIntSize::new(self.metadata.width as i32, self.metadata.height as i32);
+        let size = DeviceIntSize::new(
+            self.base.metadata.width as i32,
+            self.base.metadata.height as i32,
+        );
         let descriptor = ImageDescriptor {
             size,
             stride: None,
@@ -437,13 +442,8 @@ impl RasterImage {
 
     pub fn to_shared(&self) -> Arc<SharedRasterImage> {
         Arc::new(SharedRasterImage {
-            metadata: self.metadata,
-            format: self.format,
-            id: self.id,
-            cors_status: self.cors_status,
+            base: self.base.clone(),
             bytes: Arc::new(IpcSharedMemory::from_bytes(&self.bytes)),
-            frames: self.frames.clone(),
-            is_opaque: self.is_opaque,
         })
     }
 }
@@ -453,7 +453,17 @@ impl fmt::Debug for RasterImage {
         write!(
             f,
             "Image {{ width: {}, height: {}, format: {:?}, ..., id: {:?} }}",
-            self.metadata.width, self.metadata.height, self.format, self.id
+            self.base.metadata.width, self.base.metadata.height, self.base.format, self.base.id
+        )
+    }
+}
+
+impl fmt::Debug for SharedRasterImage {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Image {{ width: {}, height: {}, format: {:?}, ..., id: {:?} }}",
+            self.base.metadata.width, self.base.metadata.height, self.base.format, self.base.id
         )
     }
 }
@@ -714,16 +724,18 @@ fn decode_static_image(
         height: rgba.height(),
     };
     Some(RasterImage {
-        metadata: ImageMetadata {
-            width: rgba.width(),
-            height: rgba.height(),
+        base: RasterImageBase {
+            metadata: ImageMetadata {
+                width: rgba.width(),
+                height: rgba.height(),
+            },
+            format: PixelFormat::RGBA8,
+            frames: vec![frame],
+            id: None,
+            cors_status,
+            is_opaque,
         },
-        format: PixelFormat::RGBA8,
-        frames: vec![frame],
         bytes: Arc::new(rgba.to_vec()),
-        id: None,
-        cors_status,
-        is_opaque,
     })
 }
 
@@ -793,13 +805,15 @@ where
     }
 
     Some(RasterImage {
-        metadata: ImageMetadata { width, height },
-        cors_status,
-        frames,
-        id: None,
-        format: PixelFormat::RGBA8,
+        base: RasterImageBase {
+            metadata: ImageMetadata { width, height },
+            cors_status,
+            frames,
+            id: None,
+            format: PixelFormat::RGBA8,
+            is_opaque,
+        },
         bytes: Arc::new(bytes),
-        is_opaque,
     })
 }
 

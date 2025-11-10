@@ -1448,7 +1448,7 @@ impl HTMLImageElement {
             return;
         };
 
-        self.current_request.borrow_mut().metadata = Some(broken_image_icon.metadata);
+        self.current_request.borrow_mut().metadata = Some(broken_image_icon.base.metadata);
         self.current_request.borrow_mut().image = Some(Image::Raster(broken_image_icon));
         self.upcast::<Node>().dirty(NodeDamage::Other);
     }

@@ -294,10 +294,10 @@ impl MediaFrameRenderer {
 
     fn set_poster_frame(&mut self, image: Option<Arc<RasterImage>>) {
         self.poster_frame = image.and_then(|image| {
-            image.id.map(|image_key| MediaFrame {
+            image.base.id.map(|image_key| MediaFrame {
                 image_key,
-                width: image.metadata.width as i32,
-                height: image.metadata.height as i32,
+                width: image.base.metadata.width as i32,
+                height: image.base.metadata.height as i32,
             })
         });
     }

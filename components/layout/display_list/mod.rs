@@ -1279,7 +1279,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                         NaturalSizes::from_width_and_height(size.width / dppx, size.height / dppx);
                     let layer = background::layout_layer(self, painter, builder, index, intrinsic);
                     let image_wr_key = match image {
-                        CachedImage::Raster(raster_image) => raster_image.id,
+                        CachedImage::Raster(raster_image) => raster_image.base.id,
                         CachedImage::Vector(vector_image) => {
                             let scale = builder.device_pixel_ratio.get();
                             let default_size: DeviceIntSize =
@@ -1300,7 +1300,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                                     node,
                                 )
                             })
-                            .and_then(|rasterized_image| rasterized_image.id)
+                            .and_then(|rasterized_image| rasterized_image.base.id)
                         },
                     };
 
@@ -1502,7 +1502,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                     return false;
                 };
 
-                let Some(key) = image.id else {
+                let Some(key) = image.base.id else {
                     return false;
                 };
 

@@ -45,14 +45,14 @@ impl Image {
     pub fn metadata(&self) -> ImageMetadata {
         match self {
             Image::Vector(image, ..) => image.metadata,
-            Image::Raster(image) => image.metadata,
+            Image::Raster(image) => image.base.metadata,
         }
     }
 
     pub fn cors_status(&self) -> CorsStatus {
         match self {
             Image::Vector(image) => image.cors_status,
-            Image::Raster(image) => image.cors_status,
+            Image::Raster(image) => image.base.cors_status,
         }
     }
 

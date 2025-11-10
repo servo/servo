@@ -696,12 +696,13 @@ impl ImageAnimationState {
     }
 
     pub fn image_key(&self) -> Option<ImageKey> {
-        self.image.id
+        self.image.base.id
     }
 
     pub fn duration_to_next_frame(&self, now: f64) -> Duration {
         let frame_delay = self
             .image
+            .base
             .frames
             .get(self.active_frame)
             .expect("Image frame should always be valid")
@@ -717,13 +718,14 @@ impl ImageAnimationState {
     /// return true if there are image that need to be updated.
     /// false otherwise.
     pub fn update_frame_for_animation_timeline_value(&mut self, now: f64) -> bool {
-        if self.image.frames.len() <= 1 {
+        if self.image.base.frames.len() <= 1 {
             return false;
         }
         let image = &self.image;
         let time_interval_since_last_update = now - self.frame_start_time;
         let mut remain_time_interval = time_interval_since_last_update -
             image
+                .base
                 .frames
                 .get(self.active_frame)
                 .unwrap()
@@ -732,8 +734,9 @@ impl ImageAnimationState {
                 .as_secs_f64();
         let mut next_active_frame_id = self.active_frame;
         while remain_time_interval > 0.0 {
-            next_active_frame_id = (next_active_frame_id + 1) % image.frames.len();
+            next_active_frame_id = (next_active_frame_id + 1) % image.base.frames.len();
             remain_time_interval -= image
+                .base
                 .frames
                 .get(next_active_frame_id)
                 .unwrap()
@@ -796,7 +799,7 @@ impl AnimatingImages {
 
         // If the entry exists, but it is for a different image id, replace it as the image
         // has changed during this layout.
-        if entry.image.id != image.id {
+        if entry.image.base.id != image.base.id {
             self.dirty = true;
             *entry = ImageAnimationState::new(image.clone(), current_timeline_value);
         }
@@ -823,7 +826,9 @@ mod test {
     use std::sync::Arc;
     use std::time::Duration;
 
-    use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage};
+    use pixels::{
+        CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, RasterImageBase,
+    };
 
     use crate::ImageAnimationState;
 
@@ -838,16 +843,18 @@ mod test {
         .take(10)
         .collect();
         let image = RasterImage {
-            metadata: ImageMetadata {
-                width: 100,
-                height: 100,
+            base: RasterImageBase {
+                metadata: ImageMetadata {
+                    width: 100,
+                    height: 100,
+                },
+                format: PixelFormat::BGRA8,
+                id: None,
+                frames: image_frames,
+                cors_status: CorsStatus::Unsafe,
+                is_opaque: false,
             },
-            format: PixelFormat::BGRA8,
-            id: None,
             bytes: Arc::new(vec![1]),
-            frames: image_frames,
-            cors_status: CorsStatus::Unsafe,
-            is_opaque: false,
         };
         let mut image_animation_state = ImageAnimationState::new(Arc::new(image), 0.0);
 

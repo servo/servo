@@ -725,7 +725,7 @@ impl HTMLLinkElement {
             // Let's not worry about animated favicons...
             let frame = raster_image.first_frame();
 
-            let format = match raster_image.format {
+            let format = match raster_image.base.format {
                 PixelFormat::K8 => embedder_traits::PixelFormat::K8,
                 PixelFormat::KA8 => embedder_traits::PixelFormat::KA8,
                 PixelFormat::RGB8 => embedder_traits::PixelFormat::RGB8,
@@ -737,7 +737,7 @@ impl HTMLLinkElement {
                 frame.width,
                 frame.height,
                 std::sync::Arc::new(IpcSharedMemory::from_bytes(&raster_image.bytes)),
-                raster_image.frames[0].byte_range.clone(),
+                raster_image.base.frames[0].byte_range.clone(),
                 format,
             );
             document.set_favicon(embedder_image);

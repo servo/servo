@@ -24,7 +24,10 @@ use net_traits::image_cache::{
 };
 use net_traits::request::CorsSettings;
 use net_traits::{FetchMetadata, FetchResponseMsg, FilteredMetadata, NetworkError};
-use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, load_from_memory};
+use pixels::{
+    CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, RasterImageBase,
+    load_from_memory,
+};
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
 use resvg::tiny_skia;
@@ -116,7 +119,7 @@ fn set_webrender_image_key(
     image: &mut RasterImage,
     image_key: WebRenderImageKey,
 ) {
-    if image.id.is_some() {
+    if image.base.id.is_some() {
         return;
     }
 
@@ -124,7 +127,7 @@ fn set_webrender_image_key(
     let data = SerializableImageData::Raw(ipc_shared_memory);
 
     compositor_api.add_image(image_key, descriptor, data);
-    image.id = Some(image_key);
+    image.base.id = Some(image_key);
 }
 
 // ======================================================================
@@ -573,7 +576,7 @@ impl ImageCacheStore {
         let url = pending_load.final_url.clone();
         let image_response = match load_result {
             LoadResult::LoadedRasterImage(raster_image) => {
-                assert!(raster_image.id.is_some());
+                assert!(raster_image.base.id.is_some());
                 ImageResponse::Loaded(Image::Raster(Arc::new(raster_image)), url.unwrap())
             },
             LoadResult::LoadedVectorImage(vector_image) => {
@@ -928,16 +931,18 @@ impl ImageCache for ImageCacheImpl {
             };
 
             let rasterized_image = RasterImage {
-                metadata: ImageMetadata {
-                    width: tinyskia_requested_size.width(),
-                    height: tinyskia_requested_size.height(),
+                base: RasterImageBase {
+                    metadata: ImageMetadata {
+                        width: tinyskia_requested_size.width(),
+                        height: tinyskia_requested_size.height(),
+                    },
+                    format: PixelFormat::RGBA8,
+                    frames: vec![frame],
+                    id: None,
+                    cors_status: vector_image.cors_status,
+                    is_opaque: false,
                 },
-                format: PixelFormat::RGBA8,
-                frames: vec![frame],
                 bytes: Arc::new(bytes),
-                id: None,
-                cors_status: vector_image.cors_status,
-                is_opaque: false,
             };
 
             let mut store = store.lock().unwrap();
@@ -1079,14 +1084,14 @@ impl Drop for ImageCacheStore {
             .values()
             .filter_map(|load| match &load.image_response {
                 ImageResponse::Loaded(Image::Raster(image), _) => {
-                    image.id.map(ImageUpdate::DeleteImage)
+                    image.base.id.map(ImageUpdate::DeleteImage)
                 },
                 _ => None,
             })
             .chain(
                 self.rasterized_vector_images
                     .values()
-                    .filter_map(|task| task.result.as_ref()?.id.map(ImageUpdate::DeleteImage)),
+                    .filter_map(|task| task.result.as_ref()?.base.id.map(ImageUpdate::DeleteImage)),
             )
             .collect();
         self.compositor_api.update_images(image_updates);
