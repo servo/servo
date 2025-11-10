@@ -77,9 +77,6 @@ pub struct RunningAppState {
     callbacks: Rc<ServoWindowCallbacks>,
     refresh_driver: Option<Rc<VsyncRefreshDriver>>,
     inner: RefCell<RunningAppStateInner>,
-    /// A [`Receiver`] for receiving commands from a running WebDriver server, if WebDriver
-    /// was enabled.
-    webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
 }
 
 struct RunningAppStateInner {
@@ -399,11 +396,10 @@ impl RunningAppState {
         }));
 
         let app_state = Rc::new(Self {
-            base: RunningAppStateBase::new(servoshell_preferences, servo),
+            base: RunningAppStateBase::new(servoshell_preferences, servo, webdriver_receiver),
             rendering_context,
             callbacks,
             refresh_driver,
-            webdriver_receiver,
             inner: RefCell::new(RunningAppStateInner {
                 need_present: false,
                 webviews: Default::default(),
@@ -467,10 +463,6 @@ impl RunningAppState {
 
     fn inner_mut(&self) -> RefMut<'_, RunningAppStateInner> {
         self.inner.borrow_mut()
-    }
-
-    pub(crate) fn webdriver_receiver(&self) -> Option<&Receiver<WebDriverCommandMsg>> {
-        self.webdriver_receiver.as_ref()
     }
 
     fn get_browser_id(&self) -> Result<WebViewId, &'static str> {
@@ -587,7 +579,7 @@ impl RunningAppState {
 
     /// WebDriver message handling methods
     pub(crate) fn handle_webdriver_messages(self: &Rc<Self>) {
-        if let Some(webdriver_receiver) = &self.webdriver_receiver {
+        if let Some(webdriver_receiver) = &self.webdriver_receiver() {
             while let Ok(msg) = webdriver_receiver.try_recv() {
                 match msg {
                     WebDriverCommandMsg::LoadUrl(webview_id, url, load_status_sender) => {

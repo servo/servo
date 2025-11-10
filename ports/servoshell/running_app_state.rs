@@ -7,7 +7,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-use crossbeam_channel::Sender;
+use crossbeam_channel::{Receiver, Sender};
 use euclid::Rect;
 use image::RgbaImage;
 use log::{error, info, warn};
@@ -16,8 +16,8 @@ use servo::base::id::WebViewId;
 use servo::ipc_channel::ipc::IpcSender;
 use servo::style_traits::CSSPixel;
 use servo::{
-    InputEvent, InputEventId, ScreenshotCaptureError, Servo, TraversalId, WebDriverJSResult,
-    WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView,
+    InputEvent, InputEventId, ScreenshotCaptureError, Servo, TraversalId, WebDriverCommandMsg,
+    WebDriverJSResult, WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView,
 };
 use url::Url;
 
@@ -31,6 +31,10 @@ pub struct RunningAppStateBase {
     /// to report back to WebDriver when that happens.
     pub(crate) pending_webdriver_events: RefCell<HashMap<InputEventId, Sender<()>>>,
 
+    /// A [`Receiver`] for receiving commands from a running WebDriver server, if WebDriver
+    /// was enabled.
+    pub(crate) webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
+
     /// servoshell specific preferences created during startup of the application.
     pub(crate) servoshell_preferences: ServoShellPreferences,
 
@@ -39,10 +43,15 @@ pub struct RunningAppStateBase {
 }
 
 impl RunningAppStateBase {
-    pub fn new(servoshell_preferences: ServoShellPreferences, servo: Servo) -> Self {
+    pub fn new(
+        servoshell_preferences: ServoShellPreferences,
+        servo: Servo,
+        webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
+    ) -> Self {
         Self {
             webdriver_senders: RefCell::default(),
             pending_webdriver_events: Default::default(),
+            webdriver_receiver,
             servoshell_preferences,
             servo,
         }
@@ -63,6 +72,10 @@ pub trait RunningAppStateTrait {
 
     fn servo(&self) -> &Servo {
         &self.base().servo
+    }
+
+    fn webdriver_receiver(&self) -> Option<&Receiver<WebDriverCommandMsg>> {
+        self.base().webdriver_receiver.as_ref()
     }
 
     fn set_pending_traversal(
