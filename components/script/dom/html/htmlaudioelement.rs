@@ -10,7 +10,6 @@ use style::attr::AttrValue;
 use crate::dom::bindings::codegen::Bindings::HTMLAudioElementBinding::HTMLAudioElementMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
@@ -63,31 +62,36 @@ impl HTMLAudioElementMethods<crate::DomTypeHolder> for HTMLAudioElement {
         can_gc: CanGc,
         src: Option<DOMString>,
     ) -> Fallible<DomRoot<HTMLAudioElement>> {
-        let element = Element::create(
+        // Step 1. Let document be the current global object's associated Document.
+        let document = window.Document();
+
+        // Step 2. Let audio be the result of creating an element given document, "audio", and the
+        // HTML namespace.
+        let audio = Element::create(
             QualName::new(None, ns!(html), local_name!("audio")),
             None,
-            &window.Document(),
+            &document,
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
             proto,
             can_gc,
         );
 
-        let audio = DomRoot::downcast::<HTMLAudioElement>(element).unwrap();
-
-        audio.upcast::<Element>().set_attribute(
+        // Step 3. Set an attribute value for audio using "preload" and "auto".
+        audio.set_attribute(
             &local_name!("preload"),
             AttrValue::String("auto".to_owned()),
             can_gc,
         );
+
+        // Step 4. If src is given, then set an attribute value for audio using "src" and src. (This
+        // will cause the user agent to invoke the object's resource selection algorithm before
+        // returning).
         if let Some(s) = src {
-            audio.upcast::<Element>().set_attribute(
-                &local_name!("src"),
-                AttrValue::String(s.into()),
-                can_gc,
-            );
+            audio.set_attribute(&local_name!("src"), AttrValue::String(s.into()), can_gc);
         }
 
-        Ok(audio)
+        // Step 5. Return audio.
+        Ok(DomRoot::downcast::<HTMLAudioElement>(audio).unwrap())
     }
 }
