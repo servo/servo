@@ -123,7 +123,7 @@ impl HTMLTableElement {
     {
         if let Some(e) = section {
             if e.upcast::<Element>().local_name() != atom {
-                return Err(Error::HierarchyRequest);
+                return Err(Error::HierarchyRequest(None));
             }
         }
 
