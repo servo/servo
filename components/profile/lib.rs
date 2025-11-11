@@ -5,7 +5,10 @@
 #![deny(unsafe_code)]
 
 pub mod mem;
-#[cfg_attr(target_os = "linux", expect(unsafe_code))]
+#[cfg_attr(
+    not(any(target_os = "windows", target_env = "ohos")),
+    expect(unsafe_code)
+)]
 pub mod system_reporter;
 pub mod time;
 pub mod trace_dump;
