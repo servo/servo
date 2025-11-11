@@ -3,22 +3,29 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use base::generic_channel::{GenericSend, GenericSender, SendResult};
+#[cfg(not(feature = "indexeddb_next"))]
 use base::{IpcSend, IpcSendResult};
+#[cfg(not(feature = "indexeddb_next"))]
 use ipc_channel::ipc::{IpcError, IpcSender};
 use malloc_size_of::malloc_size_of_is_0;
 use serde::{Deserialize, Serialize};
 
 use crate::client_storage::ClientStorageThreadMsg;
+#[cfg(not(feature = "indexeddb_next"))]
 use crate::indexeddb::IndexedDBThreadMsg;
 use crate::webstorage_thread::WebStorageThreadMsg;
 
 pub mod client_storage;
+#[cfg(not(feature = "indexeddb_next"))]
 pub mod indexeddb;
+#[cfg(feature = "indexeddb_next")]
+pub mod indexeddb_next;
 pub mod webstorage_thread;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct StorageThreads {
     clientstorage_thread: GenericSender<ClientStorageThreadMsg>,
+    #[cfg(not(feature = "indexeddb_next"))]
     idb_thread: IpcSender<IndexedDBThreadMsg>,
     web_storage_thread: GenericSender<WebStorageThreadMsg>,
 }
@@ -26,11 +33,12 @@ pub struct StorageThreads {
 impl StorageThreads {
     pub fn new(
         clientstorage_thread: GenericSender<ClientStorageThreadMsg>,
-        idb_thread: IpcSender<IndexedDBThreadMsg>,
+        #[cfg(not(feature = "indexeddb_next"))] idb_thread: IpcSender<IndexedDBThreadMsg>,
         web_storage_thread: GenericSender<WebStorageThreadMsg>,
     ) -> StorageThreads {
         StorageThreads {
             clientstorage_thread,
+            #[cfg(not(feature = "indexeddb_next"))]
             idb_thread,
             web_storage_thread,
         }
@@ -47,6 +55,7 @@ impl GenericSend<ClientStorageThreadMsg> for StorageThreads {
     }
 }
 
+#[cfg(not(feature = "indexeddb_next"))]
 impl IpcSend<IndexedDBThreadMsg> for StorageThreads {
     fn send(&self, msg: IndexedDBThreadMsg) -> IpcSendResult {
         self.idb_thread.send(msg).map_err(IpcError::Bincode)

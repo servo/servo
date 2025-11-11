@@ -316,8 +316,14 @@ pub(crate) mod headers;
 pub(crate) mod history;
 pub(crate) mod html;
 pub(crate) use self::html::*;
+#[cfg(not(feature = "indexeddb_next"))]
 pub(crate) mod indexeddb;
+#[cfg(not(feature = "indexeddb_next"))]
 pub(crate) use self::indexeddb::*;
+#[cfg(feature = "indexeddb_next")]
+pub(crate) mod indexeddb_next;
+#[cfg(feature = "indexeddb_next")]
+pub(crate) use self::indexeddb_next::*;
 pub(crate) mod inputevent;
 pub(crate) mod intersectionobserver;
 pub(crate) mod intersectionobserverentry;

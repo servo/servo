@@ -11,6 +11,9 @@ rust-version.workspace = true
 name = "storage_traits"
 path = "lib.rs"
 
+[features]
+indexeddb_next = []
+
 [dependencies]
 base = { workspace = true }
 ipc-channel = { workspace = true }
