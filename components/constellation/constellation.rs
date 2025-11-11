@@ -119,7 +119,7 @@ use compositing_traits::{
 use constellation_traits::{
     AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, DocumentState,
     EmbedderToConstellationMessage, IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSizeMsg, Job,
-    LoadData, LoadOrigin, LogEntry, MessagePortMsg, NavigationHistoryBehavior, PaintMetricEvent,
+    LoadData, LogEntry, MessagePortMsg, NavigationHistoryBehavior, PaintMetricEvent,
     PortMessageTask, PortTransferInfo, SWManagerMsg, SWManagerSenders, ScreenshotReadinessResponse,
     ScriptToConstellationChan, ScriptToConstellationMessage, ServiceWorkerManagerFactory,
     ServiceWorkerMsg, StructuredSerializedData, TraversalDirection, WindowSizeType,
@@ -152,10 +152,7 @@ use log::{debug, error, info, trace, warn};
 use media::WindowGLContext;
 use net::image_cache::ImageCacheFactoryImpl;
 use net_traits::pub_domains::reg_host;
-use net_traits::request::Referrer;
-use net_traits::{
-    self, AsyncRuntime, ReferrerPolicy, ResourceThreads, exit_fetch_thread, start_fetch_thread,
-};
+use net_traits::{self, AsyncRuntime, ResourceThreads, exit_fetch_thread, start_fetch_thread};
 use profile_traits::mem::ProfilerMsg;
 use profile_traits::{mem, time};
 use rand::rngs::SmallRng;
@@ -1398,17 +1395,7 @@ where
             // If there is already a pending page (self.pending_changes), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.
             EmbedderToConstellationMessage::LoadUrl(webview_id, url) => {
-                let load_data = LoadData::new(
-                    LoadOrigin::Constellation,
-                    url,
-                    None,
-                    Referrer::NoReferrer,
-                    ReferrerPolicy::EmptyString,
-                    None,
-                    None,
-                    false,
-                    SandboxingFlagSet::empty(),
-                );
+                let load_data = LoadData::new_for_new_unrelated_webview(url);
                 let ctx_id = BrowsingContextId::from(webview_id);
                 let pipeline_id = match self.browsing_contexts.get(&ctx_id) {
                     Some(ctx) => ctx.pipeline_id,
@@ -2999,17 +2986,7 @@ where
     ) {
         let pipeline_id = PipelineId::new();
         let browsing_context_id = BrowsingContextId::from(webview_id);
-        let load_data = LoadData::new(
-            LoadOrigin::Constellation,
-            url,
-            None,
-            Referrer::NoReferrer,
-            ReferrerPolicy::EmptyString,
-            None,
-            None,
-            false,
-            SandboxingFlagSet::empty(),
-        );
+        let load_data = LoadData::new_for_new_unrelated_webview(url);
         let is_private = false;
         let throttled = false;
 
