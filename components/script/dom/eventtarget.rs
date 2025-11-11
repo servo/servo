@@ -760,7 +760,7 @@ impl EventTarget {
 
         let cx = GlobalScope::get_cx();
         let options = unsafe {
-            CompileOptionsWrapper::new(*cx, &handler.url.to_string(), handler.line as u32)
+            CompileOptionsWrapper::new_raw(*cx, &handler.url.to_string(), handler.line as u32)
         };
 
         // Step 3.9, subsection Scope steps 1-6

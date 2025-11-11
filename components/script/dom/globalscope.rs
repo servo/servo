@@ -2865,7 +2865,7 @@ impl GlobalScope {
             rooted!(in(*cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
             match code {
                 SourceCode::Text(text_code) => {
-                    let mut options = CompileOptionsWrapper::new(*cx, filename, line_number);
+                    let mut options = CompileOptionsWrapper::new_raw(*cx, filename, line_number);
                     if let Some(introduction_type) = introduction_type {
                         options.set_introduction_type(introduction_type);
                     }
