@@ -23,7 +23,9 @@ use style::servo::selector_parser::PseudoElement;
 use style::values::CSSFloat;
 use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::image::Image as ComputedImageLayer;
-use style::values::computed::{AlignItems, BorderStyle, Color, Inset, LengthPercentage, Margin};
+use style::values::computed::{
+    BorderStyle, Color, Inset, ItemPlacement, LengthPercentage, Margin, SelfAlignment,
+};
 use style::values::generics::box_::Perspective;
 use style::values::generics::position::{GenericAspectRatio, PreferredRatio};
 use style::values::generics::transform::{GenericRotate, GenericScale, GenericTranslate};
@@ -351,9 +353,9 @@ pub(crate) trait ComputedValuesExt {
     fn bidi_control_chars(&self) -> (&'static str, &'static str);
     fn resolve_align_self(
         &self,
-        resolved_auto_value: AlignItems,
-        resolved_normal_value: AlignItems,
-    ) -> AlignItems;
+        resolved_auto_value: ItemPlacement,
+        resolved_normal_value: AlignFlags,
+    ) -> SelfAlignment;
     fn depends_on_block_constraints_due_to_relative_positioning(
         &self,
         writing_mode: WritingMode,
@@ -666,7 +668,7 @@ impl ComputedValuesExt for ComputedValues {
         // form an independent block formatting context. This should really only happen
         // for block containers, but we do not support subgrid containers yet which is the
         // only other case.
-        if self.get_position().align_content.0.primary() != AlignFlags::NORMAL {
+        if self.get_position().align_content.primary() != AlignFlags::NORMAL {
             return true;
         }
 
@@ -978,14 +980,14 @@ impl ComputedValuesExt for ComputedValues {
 
     fn resolve_align_self(
         &self,
-        resolved_auto_value: AlignItems,
-        resolved_normal_value: AlignItems,
-    ) -> AlignItems {
-        match self.clone_align_self().0.0 {
-            AlignFlags::AUTO => resolved_auto_value,
+        resolved_auto_value: ItemPlacement,
+        resolved_normal_value: AlignFlags,
+    ) -> SelfAlignment {
+        SelfAlignment(match self.clone_align_self().0 {
+            AlignFlags::AUTO => resolved_auto_value.0,
             AlignFlags::NORMAL => resolved_normal_value,
-            value => AlignItems(value),
-        }
+            value => value,
+        })
     }
 
     fn depends_on_block_constraints_due_to_relative_positioning(

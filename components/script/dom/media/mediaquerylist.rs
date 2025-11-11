@@ -7,6 +7,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use style::media_queries::MediaList;
+use style::stylesheets::CustomMediaEvaluator;
 use style_traits::ToCss;
 
 use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
@@ -79,8 +80,11 @@ impl MediaQueryList {
 
     pub(crate) fn evaluate(&self) -> bool {
         let quirks_mode = self.document.quirks_mode();
-        self.media_query_list
-            .evaluate(self.document.window().layout().device(), quirks_mode)
+        self.media_query_list.evaluate(
+            self.document.window().layout().device(),
+            quirks_mode,
+            &mut CustomMediaEvaluator::none(),
+        )
     }
 }
 

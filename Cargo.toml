@@ -135,7 +135,7 @@ rustls-pemfile = "2.0"
 rustls-pki-types = "1.13"
 script_traits = { path = "components/shared/script" }
 sec1 = "0.7"
-selectors = { git = "https://github.com/servo/stylo", branch = "2025-10-01" }
+selectors = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
 serde = "1.0.228"
 serde_bytes = "0.11"
 serde_core = "1.0.226"
@@ -144,19 +144,19 @@ servo-media = { git = "https://github.com/servo/media" }
 servo-media-dummy = { git = "https://github.com/servo/media" }
 servo-media-gstreamer = { git = "https://github.com/servo/media" }
 servo-tracing = { path = "components/servo_tracing" }
-servo_arc = { git = "https://github.com/servo/stylo", branch = "2025-10-01" }
+servo_arc = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
 skrifa = "0.37.0"
 smallvec = { version = "1.15", features = ["serde", "union"] }
 storage_traits = { path = "components/shared/storage" }
 string_cache = "0.8"
 strum = "0.27"
 strum_macros = "0.27"
-stylo = { git = "https://github.com/servo/stylo", branch = "2025-10-01" }
-stylo_atoms = { git = "https://github.com/servo/stylo", branch = "2025-10-01" }
-stylo_config = { git = "https://github.com/servo/stylo", branch = "2025-10-01" }
-stylo_dom = { git = "https://github.com/servo/stylo", branch = "2025-10-01" }
-stylo_malloc_size_of = { git = "https://github.com/servo/stylo", branch = "2025-10-01" }
-stylo_traits = { git = "https://github.com/servo/stylo", branch = "2025-10-01" }
+stylo = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
+stylo_atoms = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
+stylo_config = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
+stylo_dom = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
+stylo_malloc_size_of = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
+stylo_traits = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
 surfman = { version = "0.10.0", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"

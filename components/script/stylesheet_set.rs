@@ -5,7 +5,7 @@
 use style::media_queries::Device;
 use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheet_set::{AuthorStylesheetSet, DocumentStylesheetSet};
-use style::stylesheets::StylesheetInDocument;
+use style::stylesheets::{CustomMediaMap, StylesheetInDocument};
 
 /// Functionality common to DocumentStylesheetSet and AuthorStylesheetSet.
 pub(crate) enum StylesheetSetRef<'a, S>
@@ -31,9 +31,14 @@ where
         sheet: S,
         guard: &SharedRwLockReadGuard,
     ) {
+        let custom_media = &CustomMediaMap::default();
         match self {
-            StylesheetSetRef::Author(set) => set.append_stylesheet(device, sheet, guard),
-            StylesheetSetRef::Document(set) => set.append_stylesheet(device, sheet, guard),
+            StylesheetSetRef::Author(set) => {
+                set.append_stylesheet(device, custom_media, sheet, guard)
+            },
+            StylesheetSetRef::Document(set) => {
+                set.append_stylesheet(device, custom_media, sheet, guard)
+            },
         }
     }
 
@@ -45,12 +50,13 @@ where
         before_sheet: S,
         guard: &SharedRwLockReadGuard,
     ) {
+        let custom_media = &CustomMediaMap::default();
         match self {
             StylesheetSetRef::Author(set) => {
-                set.insert_stylesheet_before(device, sheet, before_sheet, guard)
+                set.insert_stylesheet_before(device, custom_media, sheet, before_sheet, guard)
             },
             StylesheetSetRef::Document(set) => {
-                set.insert_stylesheet_before(device, sheet, before_sheet, guard)
+                set.insert_stylesheet_before(device, custom_media, sheet, before_sheet, guard)
             },
         }
     }
@@ -62,9 +68,14 @@ where
         sheet: S,
         guard: &SharedRwLockReadGuard,
     ) {
+        let custom_media = &CustomMediaMap::default();
         match self {
-            StylesheetSetRef::Author(set) => set.remove_stylesheet(device, sheet, guard),
-            StylesheetSetRef::Document(set) => set.remove_stylesheet(device, sheet, guard),
+            StylesheetSetRef::Author(set) => {
+                set.remove_stylesheet(device, custom_media, sheet, guard)
+            },
+            StylesheetSetRef::Document(set) => {
+                set.remove_stylesheet(device, custom_media, sheet, guard)
+            },
         }
     }
 }
