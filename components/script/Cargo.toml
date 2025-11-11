@@ -102,7 +102,7 @@ p384 = { workspace = true }
 p521 = { workspace = true }
 parking_lot = { workspace = true }
 percent-encoding = { workspace = true }
-phf = "0.11"
+phf = "0.13"
 pixels = { path = "../pixels" }
 pkcs8 = { workspace = true }
 profile_traits = { workspace = true }

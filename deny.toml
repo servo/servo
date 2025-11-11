@@ -191,12 +191,6 @@ skip = [
 
     # usvg depends on svgtypes, which depends on old version of kurbo
     "kurbo",
-
-    # duplicated by cssparser
-    "phf",
-    "phf_codegen",
-    "phf_generator",
-    "phf_shared",
 ]
 
 # github.com organizations to allow git sources for

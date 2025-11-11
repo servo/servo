@@ -46,7 +46,7 @@ fn main() {
         let parts = value.as_array().unwrap();
         map.entry(
             Bytes(key),
-            &format!(
+            format!(
                 "Interface {{ define: {}, enabled: {} }}",
                 parts[0].as_str().unwrap(),
                 parts[1].as_str().unwrap()
