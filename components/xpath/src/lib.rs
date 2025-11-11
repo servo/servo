@@ -46,8 +46,18 @@ pub trait Node: Eq + Clone + fmt::Debug {
     /// A non-shadow-including preorder traversal.
     fn traverse_preorder(&self) -> impl Iterator<Item = Self>;
     fn inclusive_ancestors(&self) -> impl Iterator<Item = Self>;
-    fn preceding_nodes(&self, root: &Self) -> impl Iterator<Item = Self>;
-    fn following_nodes(&self, root: &Self) -> impl Iterator<Item = Self>;
+
+    /// Return an iterator over all nodes that come before `self` in [tree order],
+    /// excluding any ancestors and attribute nodes.
+    ///
+    /// [tree order]: https://dom.spec.whatwg.org/#concept-tree-order
+    fn preceding_nodes(&self) -> impl Iterator<Item = Self>;
+
+    /// Return an iterator over all nodes that come after `self` in [tree order],
+    /// excluding any descendants and attribute nodes.
+    ///
+    /// [tree order]: https://dom.spec.whatwg.org/#concept-tree-order
+    fn following_nodes(&self) -> impl Iterator<Item = Self>;
     fn preceding_siblings(&self) -> impl Iterator<Item = Self>;
     fn following_siblings(&self) -> impl Iterator<Item = Self>;
     fn owner_document(&self) -> Self::Document;
