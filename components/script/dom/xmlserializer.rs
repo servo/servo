@@ -59,7 +59,7 @@ impl XMLSerializerMethods<crate::DomTypeHolder> for XMLSerializer {
         let mut writer = vec![];
         match serialize(
             &mut writer,
-            &HtmlSerialize::new(&root),
+            &HtmlSerialize::new(root),
             SerializeOpts {
                 traversal_scope: TraversalScope::IncludeNode,
             },

@@ -1681,7 +1681,7 @@ fn serialize_document(doc: &Document) -> Fallible<DOMString> {
     let mut writer = vec![];
     match serialize(
         &mut writer,
-        &HtmlSerialize::new(&doc.upcast::<Node>()),
+        &HtmlSerialize::new(doc.upcast::<Node>()),
         SerializeOpts::default(),
     ) {
         Ok(_) => Ok(DOMString::from(String::from_utf8(writer).unwrap())),

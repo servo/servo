@@ -3240,7 +3240,7 @@ impl Node {
         let mut writer = vec![];
         xml_serialize::serialize(
             &mut writer,
-            &HtmlSerialize::new(&self),
+            &HtmlSerialize::new(self),
             xml_serialize::SerializeOpts { traversal_scope },
         )
         .map_err(|error| {
