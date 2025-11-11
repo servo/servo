@@ -5,7 +5,7 @@
 use std::default::Default;
 
 use dom_struct::dom_struct;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
 
 use crate::dom::bindings::codegen::Bindings::ClientBinding::{ClientMethods, FrameType};
@@ -58,6 +58,28 @@ impl Client {
     #[expect(dead_code)]
     pub(crate) fn set_controller(&self, worker: &ServiceWorker) {
         self.active_worker.set(Some(worker));
+    }
+
+    /// <https://storage.spec.whatwg.org/#obtain-a-storage-key-for-non-storage-purposes>
+    pub(crate) fn obtain_storage_key_for_non_storage_purposes(&self) -> (ImmutableOrigin,) {
+        // Step 1. Let origin be environment’s origin if environment is an environment settings object;
+        // otherwise environment’s creation URL’s origin.
+        let origin = self.url.origin();
+        // Return a tuple consisting of origin.
+        (origin,)
+    }
+
+    /// <https://storage.spec.whatwg.org/#obtain-a-storage-key>
+    pub(crate) fn obtain_storage_key(&self) -> Result<(ImmutableOrigin,), ()> {
+        // Step 1. Let key be the result of running obtain a storage key for non-storage purposes with environment.
+        let key = self.obtain_storage_key_for_non_storage_purposes();
+        // Step 2. If key’s origin is an opaque origin, then return failure.
+        if matches!(key.0, ImmutableOrigin::Opaque(..)) {
+            return Err(());
+        }
+        // TODO: Step 3. If the user has disabled storage, then return failure.
+        // Step 4. Return key.
+        Ok(key)
     }
 }
 
