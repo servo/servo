@@ -8484,6 +8484,7 @@ dependencies = [
  "tokio-rustls",
  "tokio-stream",
  "tokio-util",
+ "url",
  "uuid",
 ]
 
