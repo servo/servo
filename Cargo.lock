@@ -8432,6 +8432,7 @@ dependencies = [
  "ipc-channel",
  "log",
  "malloc_size_of_derive",
+ "profile",
  "profile_traits",
  "rusqlite",
  "rustc-hash 2.1.1",
