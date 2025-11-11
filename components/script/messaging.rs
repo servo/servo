@@ -377,9 +377,6 @@ pub(crate) struct ScriptThreadSenders {
 
     #[no_trace]
     pub(crate) devtools_client_to_script_thread_sender: IpcSender<DevtoolScriptControlMsg>,
-
-    #[no_trace]
-    pub(crate) content_process_shutdown_sender: Sender<()>,
 }
 
 #[derive(JSTraceable)]

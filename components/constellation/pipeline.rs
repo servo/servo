@@ -329,7 +329,7 @@ impl Pipeline {
                     let background_hang_monitor_register = state
                         .background_monitor_register
                         .expect("Couldn't start content, no background monitor has been initiated");
-                    let (_, join_handle) = STF::create(
+                    let join_handle = STF::create(
                         initial_script_state,
                         new_pipeline_info,
                         state.layout_factory,

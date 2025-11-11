@@ -85,7 +85,7 @@ pub use keyboard_types::{
 };
 use layout::LayoutFactoryImpl;
 use layout_api::ScriptThreadFactory;
-use log::{Log, Metadata, Record, debug, error, warn};
+use log::{Log, Metadata, Record, debug, warn};
 use media::{GlApi, NativeDisplay, WindowGLContext};
 use net::image_cache::ImageCacheFactoryImpl;
 use net::protocols::ProtocolRegistry;
@@ -1118,7 +1118,7 @@ pub fn run_content_process(token: String) {
                 );
 
             let layout_factory = Arc::new(LayoutFactoryImpl());
-            let (script_thread_exit_receiver, script_join_handle) = script::ScriptThread::create(
+            let script_join_handle = script::ScriptThread::create(
                 new_event_loop_info.initial_script_state,
                 new_event_loop_info.new_pipeline_info,
                 layout_factory,
@@ -1128,15 +1128,6 @@ pub fn run_content_process(token: String) {
                 background_hang_monitor_register,
             );
 
-            // TODO: Could this just use the JoinHandle here?
-            match script_thread_exit_receiver.recv() {
-                Ok(()) => {},
-                Err(_) => error!("Script-thread shut-down unexpectedly"),
-            }
-
-            // Since we have waited for the ScriptThread to complete, we know it is has already
-            // exited or will soon so we can join first on the script, and then on the BHM worker
-            // threads.
             script_join_handle
                 .join()
                 .expect("Failed to join on the script thread.");
