@@ -60,8 +60,10 @@ ctr = { workspace = true }
 data-url = { workspace = true }
 deny_public_fields = { path = "../deny_public_fields" }
 devtools_traits = { workspace = true }
+digest = { workspace = true }
 dom_struct = { path = "../dom_struct" }
 domobject_derive = { path = "../domobject_derive" }
+ecdsa = { workspace = true }
 elliptic-curve = { workspace = true }
 embedder_traits = { workspace = true }
 encoding_rs = { workspace = true }
@@ -121,6 +123,8 @@ servo_arc = { workspace = true }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
+sha1 = { workspace = true }
+sha2 = { workspace = true }
 smallvec = { workspace = true }
 storage_traits = { workspace = true }
 strum = { workspace = true }

@@ -57,8 +57,10 @@ cssparser = { version = "0.36", features = ["serde"] }
 ctr = "0.9.2"
 data-url = "0.3"
 devtools_traits = { path = "components/shared/devtools" }
+digest = "0.10"
 dpi = "0.1"
 dwrote = "0.11.5"
+ecdsa = "0.16"
 elliptic-curve = "0.13"
 embedder_traits = { path = "components/shared/embedder" }
 encoding_rs = "0.8"
@@ -145,6 +147,8 @@ servo-media-dummy = { git = "https://github.com/servo/media" }
 servo-media-gstreamer = { git = "https://github.com/servo/media" }
 servo-tracing = { path = "components/servo_tracing" }
 servo_arc = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
+sha1 = "0.10"
+sha2 = "0.10"
 skrifa = "0.37.0"
 smallvec = { version = "1.15", features = ["serde", "union"] }
 storage_traits = { path = "components/shared/storage" }

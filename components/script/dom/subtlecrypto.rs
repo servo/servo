@@ -31,9 +31,9 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesGcmParams, AesKeyAlgorithm,
     AesKeyGenParams, Algorithm, AlgorithmIdentifier, EcKeyAlgorithm, EcKeyGenParams,
-    EcKeyImportParams, EcdhKeyDeriveParams, HkdfParams, HmacImportParams, HmacKeyAlgorithm,
-    HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params, RsaOtherPrimesInfo,
-    SubtleCryptoMethods,
+    EcKeyImportParams, EcdhKeyDeriveParams, EcdsaParams, HkdfParams, HmacImportParams,
+    HmacKeyAlgorithm, HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params,
+    RsaOtherPrimesInfo, SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey, ObjectOrString,
@@ -1642,6 +1642,29 @@ impl SafeToJSValConvertible for SubtleKeyAlgorithm {
     }
 }
 
+/// <https://w3c.github.io/webcrypto/#dfn-EcdsaParams>
+#[derive(Clone, Debug, MallocSizeOf)]
+struct SubtleEcdsaParams {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: String,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-EcdsaParams-hash>
+    hash: SubtleKeyAlgorithm,
+}
+
+impl TryFrom<RootedTraceableBox<EcdsaParams>> for SubtleEcdsaParams {
+    type Error = Error;
+
+    fn try_from(value: RootedTraceableBox<EcdsaParams>) -> Result<Self, Error> {
+        let cx = GlobalScope::get_cx();
+        let hash = normalize_algorithm(cx, &Operation::Digest, &value.hash, CanGc::note())?;
+        Ok(SubtleEcdsaParams {
+            name: value.parent.name.to_string(),
+            hash: hash.into(),
+        })
+    }
+}
+
 /// <https://w3c.github.io/webcrypto/#dfn-EcKeyGenParams>
 #[derive(Clone, Debug, MallocSizeOf)]
 struct SubtleEcKeyGenParams {
@@ -2231,6 +2254,7 @@ impl JsonWebKeyExt for JsonWebKey {
 #[derive(Clone, MallocSizeOf)]
 enum NormalizedAlgorithm {
     Algorithm(SubtleAlgorithm),
+    EcdsaParams(SubtleEcdsaParams),
     EcKeyGenParams(SubtleEcKeyGenParams),
     EcKeyImportParams(SubtleEcKeyImportParams),
     EcdhKeyDeriveParams(SubtleEcdhKeyDeriveParams),
@@ -2330,6 +2354,15 @@ fn normalize_algorithm(
             // "subtle" binding structs.
             let normalized_algorithm = match (alg_name, op) {
                 // <https://w3c.github.io/webcrypto/#ecdsa-registration>
+                (ALG_ECDSA, Operation::Verify) => {
+                    let mut params = dictionary_from_jsval::<RootedTraceableBox<EcdsaParams>>(
+                        cx,
+                        value.handle(),
+                        can_gc,
+                    )?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::EcdsaParams(params.try_into()?)
+                },
                 (ALG_ECDSA, Operation::GenerateKey) => {
                     let mut params =
                         dictionary_from_jsval::<EcKeyGenParams>(cx, value.handle(), can_gc)?;
@@ -2736,6 +2769,7 @@ impl NormalizedAlgorithm {
     fn name(&self) -> &str {
         match self {
             NormalizedAlgorithm::Algorithm(algo) => &algo.name,
+            NormalizedAlgorithm::EcdsaParams(algo) => &algo.name,
             NormalizedAlgorithm::EcKeyGenParams(algo) => &algo.name,
             NormalizedAlgorithm::EcKeyImportParams(algo) => &algo.name,
             NormalizedAlgorithm::EcdhKeyDeriveParams(algo) => &algo.name,
@@ -2797,6 +2831,10 @@ impl NormalizedAlgorithm {
             NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
                 ALG_ED25519 => ed25519_operation::verify(key, message, signature),
                 ALG_HMAC => hmac_operation::verify(key, message, signature),
+                _ => Err(Error::NotSupported),
+            },
+            NormalizedAlgorithm::EcdsaParams(algo) => match algo.name.as_str() {
+                ALG_ECDSA => ecdsa_operation::verify(algo, key, message, signature),
                 _ => Err(Error::NotSupported),
             },
             _ => Err(Error::NotSupported),
