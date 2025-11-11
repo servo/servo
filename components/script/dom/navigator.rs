@@ -5,7 +5,7 @@
 use std::cell::Cell;
 use std::convert::TryInto;
 use std::ops::Deref;
-use std::sync::{Arc, LazyLock, Mutex};
+use std::sync::LazyLock;
 
 use dom_struct::dom_struct;
 use headers::HeaderMap;
@@ -15,7 +15,7 @@ use net_traits::request::{
     CredentialsMode, Destination, RequestBuilder, RequestId, RequestMode,
     is_cors_safelisted_request_content_type,
 };
-use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming, ResourceTimingType};
+use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming};
 use servo_config::pref;
 use servo_url::ServoUrl;
 
@@ -421,11 +421,10 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         // Step 7.2. Fetch req.
         global.fetch(
             request,
-            Arc::new(Mutex::new(BeaconFetchListener {
+            BeaconFetchListener {
                 url,
                 global: Trusted::new(&global),
-                resource_timing: ResourceFetchTiming::new(ResourceTimingType::None),
-            })),
+            },
             global.task_manager().networking_task_source().into(),
         );
         // Step 7. Set the return value to true, return the sendBeacon() call,
@@ -443,8 +442,6 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
 struct BeaconFetchListener {
     /// URL of this request.
     url: ServoUrl,
-    /// Timing data for this resource.
-    resource_timing: ResourceFetchTiming,
     /// The global object fetching the report uri violation
     global: Trusted<GlobalScope>,
 }
@@ -467,23 +464,13 @@ impl FetchResponseListener for BeaconFetchListener {
     }
 
     fn process_response_eof(
-        &mut self,
+        self,
         _: RequestId,
         response: Result<ResourceFetchTiming, NetworkError>,
     ) {
-        _ = response;
-    }
-
-    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-        &mut self.resource_timing
-    }
-
-    fn resource_timing(&self) -> &ResourceFetchTiming {
-        &self.resource_timing
-    }
-
-    fn submit_resource_timing(&mut self) {
-        submit_timing(self, CanGc::note())
+        if let Ok(response) = response {
+            submit_timing(&self, &response, CanGc::note());
+        }
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

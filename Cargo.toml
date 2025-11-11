@@ -181,6 +181,7 @@ unicode-script = "0.5"
 unicode-segmentation = "1.12.0"
 url = "2.5"
 urlpattern = "0.3"
+utf-8 = "0.7"
 uuid = { version = "1.18.1", features = ["v4", "v5"] }
 vello = "0.6"
 vello_cpu = "0.0.4"

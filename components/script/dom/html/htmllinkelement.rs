@@ -17,7 +17,6 @@ use net_traits::image_cache::{
 use net_traits::request::{Destination, Initiator, RequestBuilder, RequestId};
 use net_traits::{
     FetchMetadata, FetchResponseMsg, NetworkError, ReferrerPolicy, ResourceFetchTiming,
-    ResourceTimingType,
 };
 use pixels::PixelFormat;
 use script_bindings::root::Dom;
@@ -538,7 +537,6 @@ impl HTMLLinkElement {
             link: Some(Trusted::new(self)),
             document: Trusted::new(&document),
             global: Trusted::new(&document.global()),
-            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             type_: LinkFetchContextType::Prefetch,
             response_body: vec![],
         };
@@ -671,7 +669,6 @@ impl HTMLLinkElement {
                     image_cache: window.image_cache(),
                     id,
                     link: Trusted::new(self),
-                    resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
                 };
                 document.fetch_background(request, fetch_context);
             },
@@ -999,8 +996,6 @@ struct FaviconFetchContext {
 
     /// The base url of the document that the `<link>` element belongs to.
     url: ServoUrl,
-
-    resource_timing: ResourceFetchTiming,
 }
 
 impl FetchResponseListener for FaviconFetchContext {
@@ -1027,26 +1022,17 @@ impl FetchResponseListener for FaviconFetchContext {
     }
 
     fn process_response_eof(
-        &mut self,
+        self,
         request_id: RequestId,
         response: Result<ResourceFetchTiming, NetworkError>,
     ) {
         self.image_cache.notify_pending_response(
             self.id,
-            FetchResponseMsg::ProcessResponseEOF(request_id, response),
+            FetchResponseMsg::ProcessResponseEOF(request_id, response.clone()),
         );
-    }
-
-    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-        &mut self.resource_timing
-    }
-
-    fn resource_timing(&self) -> &ResourceFetchTiming {
-        &self.resource_timing
-    }
-
-    fn submit_resource_timing(&mut self) {
-        submit_timing(self, CanGc::note())
+        if let Ok(response) = response {
+            submit_timing(&self, &response, CanGc::note());
+        }
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

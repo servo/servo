@@ -10,7 +10,6 @@ use mime::{self, Mime};
 use net_traits::request::{CorsSettings, Destination, RequestId};
 use net_traits::{
     FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming,
-    ResourceTimingType,
 };
 use servo_arc::Arc;
 use servo_url::ServoUrl;
@@ -90,7 +89,6 @@ pub(crate) struct StylesheetContext {
     /// A token which must match the generation id of the `HTMLLinkElement` for it to load the stylesheet.
     /// This is ignored for `HTMLStyleElement` and imports.
     request_generation_id: Option<RequestGenerationId>,
-    resource_timing: ResourceFetchTiming,
 }
 
 impl StylesheetContext {
@@ -149,7 +147,7 @@ impl FetchResponseListener for StylesheetContext {
     }
 
     fn process_response_eof(
-        &mut self,
+        mut self,
         _: RequestId,
         status: Result<ResourceFetchTiming, NetworkError>,
     ) {
@@ -157,10 +155,13 @@ impl FetchResponseListener for StylesheetContext {
         let document = self.document.root();
         let mut successful = false;
 
-        if status.is_ok() {
+        if let Ok(response) = &status {
             let metadata = match self.metadata.take() {
                 Some(meta) => meta,
-                None => return,
+                None => {
+                    network_listener::submit_timing(&self, response, CanGc::note());
+                    return;
+                },
             };
 
             let mut is_css = metadata.content_type.is_some_and(|ct| {
@@ -290,18 +291,10 @@ impl FetchResponseListener for StylesheetContext {
                 .upcast::<EventTarget>()
                 .fire_event(event, CanGc::note());
         }
-    }
 
-    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-        &mut self.resource_timing
-    }
-
-    fn resource_timing(&self) -> &ResourceFetchTiming {
-        &self.resource_timing
-    }
-
-    fn submit_resource_timing(&mut self) {
-        network_listener::submit_timing(self, CanGc::note())
+        if let Ok(response) = status {
+            network_listener::submit_timing(&self, &response, CanGc::note());
+        }
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -364,7 +357,6 @@ impl ElementStylesheetLoader<'_> {
             shadow_root,
             origin_clean: true,
             request_generation_id: generation,
-            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         };
 
         let owner = self

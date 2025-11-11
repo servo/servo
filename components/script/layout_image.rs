@@ -10,9 +10,7 @@ use std::sync::Arc;
 
 use net_traits::image_cache::{ImageCache, PendingImageId};
 use net_traits::request::{Destination, RequestBuilder as FetchRequestInit, RequestId};
-use net_traits::{
-    FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming, ResourceTimingType,
-};
+use net_traits::{FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming};
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::refcounted::Trusted;
@@ -29,7 +27,6 @@ use crate::script_runtime::CanGc;
 struct LayoutImageContext {
     id: PendingImageId,
     cache: Arc<dyn ImageCache>,
-    resource_timing: ResourceFetchTiming,
     doc: Trusted<Document>,
     url: ServoUrl,
 }
@@ -56,26 +53,17 @@ impl FetchResponseListener for LayoutImageContext {
     }
 
     fn process_response_eof(
-        &mut self,
+        self,
         request_id: RequestId,
         response: Result<ResourceFetchTiming, NetworkError>,
     ) {
         self.cache.notify_pending_response(
             self.id,
-            FetchResponseMsg::ProcessResponseEOF(request_id, response),
+            FetchResponseMsg::ProcessResponseEOF(request_id, response.clone()),
         );
-    }
-
-    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-        &mut self.resource_timing
-    }
-
-    fn resource_timing(&self) -> &ResourceFetchTiming {
-        &self.resource_timing
-    }
-
-    fn submit_resource_timing(&mut self) {
-        network_listener::submit_timing(self, CanGc::note())
+        if let Ok(response) = response {
+            network_listener::submit_timing(&self, &response, CanGc::note());
+        }
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -104,7 +92,6 @@ pub(crate) fn fetch_image_for_layout(
     let context = LayoutImageContext {
         id,
         cache,
-        resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         doc: Trusted::new(&document),
         url: url.clone(),
     };

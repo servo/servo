@@ -19,7 +19,7 @@ use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata,
     RequestBuilder, RequestId,
 };
-use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming, ResourceTimingType};
+use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
 use script_bindings::domstring::BytesView;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::attr::AttrValue;
@@ -340,8 +340,6 @@ struct ClassicContext {
     status: Result<(), NetworkError>,
     /// The fetch options of the script
     fetch_options: ScriptFetchOptions,
-    /// Timing object for this resource
-    resource_timing: ResourceFetchTiming,
 }
 
 impl FetchResponseListener for ClassicContext {
@@ -388,36 +386,41 @@ impl FetchResponseListener for ClassicContext {
     /// <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
     /// step 4-9
     fn process_response_eof(
-        &mut self,
+        mut self,
         _: RequestId,
         response: Result<ResourceFetchTiming, NetworkError>,
     ) {
-        let (source_text, final_url) = match (response.as_ref(), self.status.as_ref()) {
-            (Err(err), _) | (_, Err(err)) => {
+        match (response.as_ref(), self.status.as_ref()) {
+            (Err(error), _) | (_, Err(error)) => {
                 // Step 6, response is an error.
                 finish_fetching_a_classic_script(
                     &self.elem.root(),
                     self.kind,
                     self.url.clone(),
-                    Err(NoTrace(err.clone())),
+                    Err(NoTrace(error.clone())),
                     CanGc::note(),
                 );
+
+                // Resource timing is expected to be available before "error" or "load" events are fired.
+                if let Ok(response) = &response {
+                    network_listener::submit_timing(&self, response, CanGc::note());
+                }
                 return;
             },
-            (Ok(_), Ok(_)) => {
-                let metadata = self.metadata.take().unwrap();
-
-                // Step 7.
-                let encoding = metadata
-                    .charset
-                    .and_then(|encoding| Encoding::for_label(encoding.as_bytes()))
-                    .unwrap_or(self.character_encoding);
-
-                // Step 8.
-                let (source_text, _, _) = encoding.decode(&self.data);
-                (source_text, metadata.final_url)
-            },
+            _ => {},
         };
+
+        let metadata = self.metadata.take().unwrap();
+        let final_url = metadata.final_url;
+
+        // Step 7.
+        let encoding = metadata
+            .charset
+            .and_then(|encoding| Encoding::for_label(encoding.as_bytes()))
+            .unwrap_or(self.character_encoding);
+
+        // Step 8.
+        let (source_text, _, _) = encoding.decode(&self.data);
 
         let elem = self.elem.root();
         let global = elem.global();
@@ -469,18 +472,10 @@ impl FetchResponseListener for ClassicContext {
             CanGc::note(),
         );
         // }
-    }
 
-    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-        &mut self.resource_timing
-    }
-
-    fn resource_timing(&self) -> &ResourceFetchTiming {
-        &self.resource_timing
-    }
-
-    fn submit_resource_timing(&mut self) {
-        network_listener::submit_timing(self, CanGc::note())
+        if let Ok(response) = response {
+            network_listener::submit_timing(&self, &response, CanGc::note());
+        }
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -581,7 +576,6 @@ fn fetch_a_classic_script(
         url: url.clone(),
         status: Ok(()),
         fetch_options: options,
-        resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
     };
     doc.fetch(LoadType::Script(url), request, context);
 }

@@ -1901,7 +1901,7 @@ impl Document {
             .insecure_requests_policy(self.insecure_requests_policy())
             .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_or_current_origin());
         let callback = NetworkListener {
-            context: std::sync::Arc::new(Mutex::new(listener)),
+            context: std::sync::Arc::new(Mutex::new(Some(listener))),
             task_source: self
                 .owner_global()
                 .task_manager()
@@ -1922,7 +1922,7 @@ impl Document {
             .insecure_requests_policy(self.insecure_requests_policy())
             .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_or_current_origin());
         let callback = NetworkListener {
-            context: std::sync::Arc::new(Mutex::new(listener)),
+            context: std::sync::Arc::new(Mutex::new(Some(listener))),
             task_source: self
                 .owner_global()
                 .task_manager()

@@ -2,14 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::{Arc, Mutex};
-
 use content_security_policy as csp;
 use headers::{ContentType, HeaderMap, HeaderMapExt};
 use net_traits::request::{
     CredentialsMode, Destination, RequestBody, RequestId, create_request_body_with_content,
 };
-use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming, ResourceTimingType};
+use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming};
 use servo_url::ServoUrl;
 use stylo_atoms::Atom;
 
@@ -129,11 +127,10 @@ impl CSPViolationReportTask {
             // Step 3.4.2.4. Fetch request. The result will be ignored.
             global.fetch(
                 request,
-                Arc::new(Mutex::new(CSPReportUriFetchListener {
+                CSPReportUriFetchListener {
                     endpoint,
                     global: Trusted::new(&global),
-                    resource_timing: ResourceFetchTiming::new(ResourceTimingType::None),
-                })),
+                },
                 global.task_manager().networking_task_source().into(),
             );
         }
@@ -182,8 +179,6 @@ impl TaskOnce for CSPViolationReportTask {
 struct CSPReportUriFetchListener {
     /// Endpoint URL of this request.
     endpoint: ServoUrl,
-    /// Timing data for this resource.
-    resource_timing: ResourceFetchTiming,
     /// The global object fetching the report uri violation
     global: Trusted<GlobalScope>,
 }
@@ -206,23 +201,13 @@ impl FetchResponseListener for CSPReportUriFetchListener {
     }
 
     fn process_response_eof(
-        &mut self,
+        self,
         _: RequestId,
         response: Result<ResourceFetchTiming, NetworkError>,
     ) {
-        _ = response;
-    }
-
-    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-        &mut self.resource_timing
-    }
-
-    fn resource_timing(&self) -> &ResourceFetchTiming {
-        &self.resource_timing
-    }
-
-    fn submit_resource_timing(&mut self) {
-        submit_timing(self, CanGc::note())
+        if let Ok(response) = response {
+            submit_timing(&self, &response, CanGc::note())
+        }
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, _violations: Vec<Violation>) {}

@@ -145,7 +145,7 @@ unicode-script = { workspace = true }
 unicode-segmentation = { workspace = true }
 url = { workspace = true }
 urlpattern = { workspace = true }
-utf-8 = "0.7"
+utf-8 = { workspace = true }
 uuid = { workspace = true, features = ["serde"] }
 webdriver = { workspace = true }
 webgpu_traits = { workspace = true }

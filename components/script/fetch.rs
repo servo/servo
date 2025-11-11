@@ -54,7 +54,7 @@ use crate::dom::response::Response;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::dom::window::Window;
 use crate::network_listener::{
-    self, FetchResponseListener, ResourceTimingListener, submit_timing_data,
+    self, FetchResponseListener, NetworkListener, ResourceTimingListener, submit_timing_data,
 };
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::CanGc;
@@ -202,7 +202,6 @@ pub(crate) fn Fetch(
     };
     // Step 3. Let request be requestObject’s request.
     let request = request_object.get_request();
-    let timing_type = request.timing_type();
     let request_id = request.id;
 
     // Step 4. If requestObject’s signal is aborted, then:
@@ -240,26 +239,26 @@ pub(crate) fn Fetch(
 
     // Step 9. Let locallyAborted be false.
     // Step 10. Let controller be null.
-    let fetch_context = Arc::new(Mutex::new(FetchContext {
+    let fetch_context = FetchContext {
         fetch_promise: Some(TrustedPromise::new(promise.clone())),
         response_object: Trusted::new(&*response),
         request: Trusted::new(&*request_object),
         global: Trusted::new(global),
-        resource_timing: ResourceFetchTiming::new(timing_type),
         locally_aborted: false,
         canceller: FetchCanceller::new(request_id, global.core_resource_thread()),
-    }));
-
-    // Step 11. Add the following abort steps to requestObject’s signal:
-    signal.add(&AbortAlgorithm::Fetch(fetch_context.clone()));
-
-    // Step 12. Set controller to the result of calling fetch given request and
-    // processResponse given response being these steps:
-    global.fetch(
-        request_init,
+    };
+    let network_listener = NetworkListener::new(
         fetch_context,
         global.task_manager().networking_task_source().to_sendable(),
     );
+    let fetch_context = network_listener.context.clone();
+
+    // Step 11. Add the following abort steps to requestObject’s signal:
+    signal.add(&AbortAlgorithm::Fetch(fetch_context));
+
+    // Step 12. Set controller to the result of calling fetch given request and
+    // processResponse given response being these steps:
+    global.fetch_with_network_listener(request_init, network_listener);
 
     // Step 13. Return p.
     promise
@@ -429,11 +428,10 @@ impl DeferredFetchRecord {
         self.invoke_state.set(DeferredFetchRecordInvokeState::Sent);
         // Step 3. Fetch deferredRecord’s request.
         let url = self.request.url().clone();
-        let fetch_later_listener = Arc::new(Mutex::new(FetchLaterListener {
+        let fetch_later_listener = FetchLaterListener {
             url,
-            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             global: self.global.clone(),
-        }));
+        };
         let global = self.global.root();
         let request_init = request_init_from_request(self.request.clone(), &global);
         global.fetch(
@@ -452,8 +450,6 @@ pub(crate) struct FetchContext {
     response_object: Trusted<Response>,
     request: Trusted<Request>,
     global: Trusted<GlobalScope>,
-    #[no_trace]
-    resource_timing: ResourceFetchTiming,
     locally_aborted: bool,
     canceller: FetchCanceller,
 }
@@ -585,29 +581,21 @@ impl FetchResponseListener for FetchContext {
     }
 
     fn process_response_eof(
-        &mut self,
+        self,
         _: RequestId,
-        _response: Result<ResourceFetchTiming, NetworkError>,
+        response: Result<ResourceFetchTiming, NetworkError>,
     ) {
-        let response = self.response_object.root();
-        let _ac = enter_realm(&*response);
-        response.finish(CanGc::note());
+        let response_object = self.response_object.root();
+        let _ac = enter_realm(&*response_object);
+        response_object.finish(CanGc::note());
         // TODO
         // ... trailerObject is not supported in Servo yet.
-    }
 
-    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-        &mut self.resource_timing
-    }
-
-    fn resource_timing(&self) -> &ResourceFetchTiming {
-        &self.resource_timing
-    }
-
-    fn submit_resource_timing(&mut self) {
         // navigation submission is handled in servoparser/mod.rs
-        if self.resource_timing.timing_type == ResourceTimingType::Resource {
-            network_listener::submit_timing(self, CanGc::note())
+        if let Ok(response) = response {
+            if response.timing_type == ResourceTimingType::Resource {
+                network_listener::submit_timing(&self, &response, CanGc::note());
+            }
         }
     }
 
@@ -633,8 +621,6 @@ impl ResourceTimingListener for FetchContext {
 struct FetchLaterListener {
     /// URL of this request.
     url: ServoUrl,
-    /// Timing data for this resource.
-    resource_timing: ResourceFetchTiming,
     /// The global object fetching the report uri violation
     global: Trusted<GlobalScope>,
 }
@@ -657,23 +643,13 @@ impl FetchResponseListener for FetchLaterListener {
     }
 
     fn process_response_eof(
-        &mut self,
+        self,
         _: RequestId,
         response: Result<ResourceFetchTiming, NetworkError>,
     ) {
-        _ = response;
-    }
-
-    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-        &mut self.resource_timing
-    }
-
-    fn resource_timing(&self) -> &ResourceFetchTiming {
-        &self.resource_timing
-    }
-
-    fn submit_resource_timing(&mut self) {
-        network_listener::submit_timing(self, CanGc::note())
+        if let Ok(response) = response {
+            network_listener::submit_timing(&self, &response, CanGc::note());
+        }
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

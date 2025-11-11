@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
-use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
@@ -491,12 +491,12 @@ impl DedicatedWorkerGlobalScope {
                     name: TaskSourceName::Networking,
                     canceller: Default::default(),
                 };
-                let context = Arc::new(Mutex::new(ScriptFetchContext::new(
+                let context = ScriptFetchContext::new(
                     Trusted::new(scope),
                     request.url.clone(),
                     worker.clone(),
                     policy_container,
-                )));
+                );
                 global_scope.fetch(request, context, task_source);
 
                 let reporter_name = format!("dedicated-worker-reporter-{}", worker_id);

@@ -4,7 +4,7 @@
 
 use std::collections::HashSet;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use dom_struct::dom_struct;
@@ -21,9 +21,7 @@ use net_traits::image_cache::{
     ImageOrMetadataAvailable, ImageResponse, PendingImageId,
 };
 use net_traits::request::{Destination, RequestBuilder, RequestId};
-use net_traits::{
-    FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming, ResourceTimingType,
-};
+use net_traits::{FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming};
 use pixels::RasterImage;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
@@ -725,8 +723,6 @@ struct ResourceFetchListener {
     status: Result<(), NetworkError>,
     /// Resource URL of this request.
     url: ServoUrl,
-    /// Timing data for this resource.
-    resource_timing: ResourceFetchTiming,
 }
 
 impl FetchResponseListener for ResourceFetchListener {
@@ -779,26 +775,17 @@ impl FetchResponseListener for ResourceFetchListener {
     }
 
     fn process_response_eof(
-        &mut self,
+        self,
         request_id: RequestId,
         response: Result<ResourceFetchTiming, NetworkError>,
     ) {
         self.image_cache.notify_pending_response(
             self.pending_image_id,
-            FetchResponseMsg::ProcessResponseEOF(request_id, response),
+            FetchResponseMsg::ProcessResponseEOF(request_id, response.clone()),
         );
-    }
-
-    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-        &mut self.resource_timing
-    }
-
-    fn resource_timing(&self) -> &ResourceFetchTiming {
-        &self.resource_timing
-    }
-
-    fn submit_resource_timing(&mut self) {
-        network_listener::submit_timing(self, CanGc::note())
+        if let Ok(response) = response {
+            network_listener::submit_timing(&self, &response, CanGc::note());
+        }
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -1014,14 +1001,13 @@ impl Notification {
         request: RequestBuilder,
         global: &GlobalScope,
     ) {
-        let context = Arc::new(Mutex::new(ResourceFetchListener {
+        let context = ResourceFetchListener {
             pending_image_id,
             image_cache: global.image_cache(),
             notification: Trusted::new(self),
             url: request.url.clone(),
             status: Ok(()),
-            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
-        }));
+        };
 
         global.fetch(
             request,
