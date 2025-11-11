@@ -7,13 +7,10 @@ from selenium.webdriver.common.by import By
 
 def operator():
     # Step 1. Open mossel
-    cmd_start_servo = [
-        f'hdc shell aa force-stop org.servo.servo',
-        f'hdc shell aa start -a EntryAbility -b org.servo.servo -U https://m.huaweimossel.com --psn --webdriver',
-    ]
-
-    for cmd in cmd_start_servo:
-        subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
+    subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    cmd = ["hdc", "shell", "aa start -a EntryAbility -b org.servo.servo -U https://m.huaweimossel.com --psn --webdriver"]
+    subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     time.sleep(10)
 
     driver = common_function_for_servo_test.setup_hdc_forward()
@@ -25,7 +22,7 @@ def operator():
         time.sleep(1)
 
         # Step 3. Click 'Categories'
-        cmd = 'hdc shell "uinput -T -c 380 2556"'
+        cmd = ["hdc", "shell", "uinput -T -c 380 2556"]
         subprocess.run(cmd, capture_output=True, text=True, timeout=10)
         time.sleep(5)
 
@@ -40,12 +37,12 @@ def operator():
         time.sleep(5)
 
         # Step 6. Catch trace
-        process = subprocess.Popen(
-            "hdc shell hitrace -b 81920 -t 10 nweb ace app ohos zimage zmedia zcamera zaudio ability distributeddatamgr graphic sched freq irq sync mmc rpc workq idle disk pagecache memreclaim binder -o /data/local/tmp/my_trace.html",
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        cmd = ["hdc", "shell",
+             "hitrace -b 81920 -t 10 nweb ace app ohos zimage zmedia zcamera zaudio ability distributeddatamgr graphic sched freq irq sync mmc rpc workq idle disk pagecache memreclaim binder -o /data/local/tmp/my_trace.html"]
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         time.sleep(4)
 
-        cmd = 'hdc shell "uinput -T -m 770 2000 770 770 30"'
+        cmd = ["hdc", "shell", "uinput -T -m 770 2000 770 770 30"]
         subprocess.run(cmd, capture_output=True, text=True, timeout=10)
         time.sleep(20)
 
@@ -63,11 +60,11 @@ def operator():
         print(f'framerate is {frame_rate}')
 
         if frame_rate >= 115:
-            cmd = 'hdc shell aa force-stop org.servo.servo'
+            cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
             subprocess.run(cmd, capture_output=True, text=True, timeout=10)
             return True
         else:
-            cmd = 'hdc shell aa force-stop org.servo.servo'
+            cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
             subprocess.run(cmd, capture_output=True, text=True, timeout=10)
             return False
     else:

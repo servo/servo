@@ -1,6 +1,7 @@
 import re
 import os
 import shutil
+import pathlib
 import subprocess
 from decimal import Decimal
 from selenium import webdriver
@@ -12,17 +13,17 @@ SERVO_URL = f"http://127.0.0.1:{WEBDRIVER_PORT}"
 def calculate_frame_rate():
     """
     Pull trace from device and calculate frame rate through trace
+    calculate frame rate: When there are elements moving on the page, H: EndCommands will be printed to indicate that the frame is being sent out. After capturing the trace, the frame rate can be obtained by calculating the number of frames printed per unit time (per second).
     :return: frame rate
     """
-    path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'target/ci_testing')
-    if not os.path.exists(path):
-        os.makedirs(path)
-        print("Folder created successfully.")
-    else:
-        print("The folder already exists.")
-    file_name = os.path.join(path, 'my_trace.html')
-    cmd = 'hdc file recv /data/local/tmp/my_trace.html {}'.format(file_name)
-    subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    target_path = os.path.join(pathlib.Path(os.path.dirname(__file__)).parent.parent.parent, 'target')
+    os.makedirs(target_path, exist_ok=True)
+    ci_testing_path = os.path.join(target_path, 'ci_testing')
+    os.makedirs(ci_testing_path, exist_ok=True)
+
+    file_name = os.path.join(ci_testing_path, 'my_trace.html')
+    cmd = ["hdc", "file", "recv", "/data/local/tmp/my_trace.html", f"{file_name}"]
+    res = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     commands_list = []
     with open(file_name, 'r') as f:
         for line in f.readlines():
@@ -31,7 +32,7 @@ def calculate_frame_rate():
     start_time = commands_list[0].split()[5].split(':')[0]
     end_time = commands_list[-1].split()[5].split(':')[0]
     interval_time = Decimal(end_time) - Decimal(start_time)
-    shutil.rmtree(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'target'))
+    shutil.rmtree(target_path)
     if round(float(len(commands_list) / interval_time), 2) > 120.00:
         return 120.00
     else:
