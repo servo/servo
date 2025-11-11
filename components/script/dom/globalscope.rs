@@ -9,8 +9,8 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::ffi::CStr;
 use std::ops::Index;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use std::{mem, ptr};
@@ -3326,13 +3326,10 @@ impl GlobalScope {
     pub(crate) fn fetch<Listener: FetchResponseListener>(
         &self,
         request_builder: RequestBuilder,
-        context: Arc<Mutex<Listener>>,
+        context: Listener,
         task_source: SendableTaskSource,
     ) {
-        let network_listener = NetworkListener {
-            context,
-            task_source,
-        };
+        let network_listener = NetworkListener::new(context, task_source);
         self.fetch_with_network_listener(request_builder, network_listener);
     }
 

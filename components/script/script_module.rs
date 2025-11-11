@@ -9,7 +9,6 @@ use std::collections::{HashMap, HashSet};
 use std::ffi::CStr;
 use std::rc::Rc;
 use std::str::FromStr;
-use std::sync::{Arc, Mutex};
 use std::{mem, ptr};
 
 use encoding_rs::UTF_8;
@@ -39,9 +38,7 @@ use net_traits::http_status::HttpStatus;
 use net_traits::request::{
     CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder, RequestId, RequestMode,
 };
-use net_traits::{
-    FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceTimingType,
-};
+use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use script_bindings::domstring::BytesView;
 use script_bindings::error::Fallible;
 use serde_json::{Map as JsonMap, Value as JsonValue};
@@ -1205,8 +1202,6 @@ struct ModuleContext {
     options: ScriptFetchOptions,
     /// Indicates whether the request failed, and why
     status: Result<(), NetworkError>,
-    /// Timing object for this resource
-    resource_timing: ResourceFetchTiming,
     /// `introductionType` value to set in the `CompileOptionsWrapper`.
     introduction_type: Option<&'static CStr>,
 }
@@ -1255,7 +1250,7 @@ impl FetchResponseListener for ModuleContext {
     /// <https://html.spec.whatwg.org/multipage/#fetch-a-single-module-script>
     /// Step 9-12
     fn process_response_eof(
-        &mut self,
+        mut self,
         _: RequestId,
         response: Result<ResourceFetchTiming, NetworkError>,
     ) {
@@ -1268,7 +1263,7 @@ impl FetchResponseListener for ModuleContext {
         }
 
         // Step 9-1 & 9-2.
-        let load = response.and(self.status.clone()).and_then(|_| {
+        let load = response.clone().and(self.status.clone()).and_then(|_| {
             // Step 9-3.
             let meta = self.metadata.take().unwrap();
 
@@ -1367,18 +1362,10 @@ impl FetchResponseListener for ModuleContext {
                 }
             },
         }
-    }
 
-    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-        &mut self.resource_timing
-    }
-
-    fn resource_timing(&self) -> &ResourceFetchTiming {
-        &self.resource_timing
-    }
-
-    fn submit_resource_timing(&mut self) {
-        network_listener::submit_timing(self, CanGc::note())
+        if let Ok(response) = response {
+            network_listener::submit_timing(&self, &response, CanGc::note())
+        }
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -1862,7 +1849,7 @@ fn fetch_single_module_script(
         .policy_container(global.policy_container().to_owned())
         .cryptographic_nonce_metadata(options.cryptographic_nonce.clone());
 
-    let context = Arc::new(Mutex::new(ModuleContext {
+    let context = ModuleContext {
         owner,
         data: vec![],
         metadata: None,
@@ -1870,14 +1857,13 @@ fn fetch_single_module_script(
         destination,
         options,
         status: Ok(()),
-        resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         introduction_type,
-    }));
-
-    let network_listener = NetworkListener {
-        context,
-        task_source: global.task_manager().networking_task_source().to_sendable(),
     };
+
+    let network_listener = NetworkListener::new(
+        context,
+        global.task_manager().networking_task_source().to_sendable(),
+    );
     match document {
         Some(document) => {
             let request = document.prepare_request(request);

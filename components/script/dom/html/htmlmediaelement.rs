@@ -26,7 +26,6 @@ use media::{GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
 use net_traits::request::{Destination, RequestId};
 use net_traits::{
     CoreResourceThread, FetchMetadata, FilteredMetadata, NetworkError, ResourceFetchTiming,
-    ResourceTimingType,
 };
 use pixels::RasterImage;
 use script_bindings::codegen::GenericBindings::TimeRangesBinding::TimeRangesMethods;
@@ -3386,8 +3385,6 @@ struct HTMLMediaElementFetchListener {
     request_id: RequestId,
     /// Time of last progress notification.
     next_progress_event: Instant,
-    /// Timing data for this resource.
-    resource_timing: ResourceFetchTiming,
     /// Url for the resource.
     url: ServoUrl,
     /// Expected content length of the media asset being fetched or played.
@@ -3540,11 +3537,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         }
     }
 
-    fn process_response_eof(
-        &mut self,
-        _: RequestId,
-        status: Result<ResourceFetchTiming, NetworkError>,
-    ) {
+    fn process_response_eof(self, _: RequestId, status: Result<ResourceFetchTiming, NetworkError>) {
         let element = self.element.root();
 
         // <https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list>
@@ -3602,18 +3595,10 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             // unsupported format, or can otherwise not be rendered at all"
             element.media_data_processing_failure_steps();
         }
-    }
 
-    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-        &mut self.resource_timing
-    }
-
-    fn resource_timing(&self) -> &ResourceFetchTiming {
-        &self.resource_timing
-    }
-
-    fn submit_resource_timing(&mut self) {
-        network_listener::submit_timing(self, CanGc::note())
+        if let Ok(response) = status {
+            network_listener::submit_timing(&self, &response, CanGc::note())
+        }
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -3673,7 +3658,6 @@ impl HTMLMediaElementFetchListener {
             generation_id: element.generation_id.get(),
             request_id,
             next_progress_event: Instant::now() + Duration::from_millis(350),
-            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             url,
             expected_content_length: None,
             fetched_content_length: 0,

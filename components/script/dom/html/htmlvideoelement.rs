@@ -17,7 +17,6 @@ use net_traits::image_cache::{
 use net_traits::request::{CredentialsMode, Destination, RequestBuilder, RequestId};
 use net_traits::{
     CoreResourceThread, FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming,
-    ResourceTimingType,
 };
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use servo_media::player::video::VideoFrame;
@@ -415,8 +414,6 @@ struct PosterFrameFetchContext {
     id: PendingImageId,
     /// True if this response is invalid and should be ignored.
     cancelled: bool,
-    /// Timing data for this resource
-    resource_timing: ResourceFetchTiming,
     /// Url for the resource
     url: ServoUrl,
     /// A [`FetchCanceller`] for this request.
@@ -468,26 +465,17 @@ impl FetchResponseListener for PosterFrameFetchContext {
     }
 
     fn process_response_eof(
-        &mut self,
+        self,
         request_id: RequestId,
         response: Result<ResourceFetchTiming, NetworkError>,
     ) {
         self.image_cache.notify_pending_response(
             self.id,
-            FetchResponseMsg::ProcessResponseEOF(request_id, response),
+            FetchResponseMsg::ProcessResponseEOF(request_id, response.clone()),
         );
-    }
-
-    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-        &mut self.resource_timing
-    }
-
-    fn resource_timing(&self) -> &ResourceFetchTiming {
-        &self.resource_timing
-    }
-
-    fn submit_resource_timing(&mut self) {
-        network_listener::submit_timing(self, CanGc::note())
+        if let Ok(response) = response {
+            network_listener::submit_timing(&self, &response, CanGc::note());
+        }
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -527,7 +515,6 @@ impl PosterFrameFetchContext {
             elem: Trusted::new(elem),
             id,
             cancelled: false,
-            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             url,
             fetch_canceller: FetchCanceller::new(request_id, core_resource_thread),
         }

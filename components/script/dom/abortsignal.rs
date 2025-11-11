@@ -46,7 +46,7 @@ pub(crate) enum AbortAlgorithm {
     Fetch(
         #[no_trace]
         #[conditional_malloc_size_of]
-        Arc<Mutex<FetchContext>>,
+        Arc<Mutex<Option<FetchContext>>>,
     ),
     /// <https://fetch.spec.whatwg.org/#dom-window-fetchlater>
     FetchLater(
@@ -190,10 +190,9 @@ impl AbortSignal {
             AbortAlgorithm::Fetch(fetch_context) => {
                 rooted!(in(*cx) let mut reason = UndefinedValue());
                 reason.set(self.abort_reason.get());
-                fetch_context
-                    .lock()
-                    .unwrap()
-                    .abort_fetch(reason.handle(), cx, can_gc);
+                if let Some(fetch_context) = &mut *fetch_context.lock().unwrap() {
+                    fetch_context.abort_fetch(reason.handle(), cx, can_gc);
+                }
             },
             AbortAlgorithm::FetchLater(deferred_fetch_record) => {
                 deferred_fetch_record.lock().unwrap().abort();

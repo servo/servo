@@ -3657,8 +3657,8 @@ impl ScriptThread {
             .position(|&(pipeline_id, _)| pipeline_id == id);
 
         if let Some(idx) = idx {
-            let (_, mut ctxt) = self.incomplete_parser_contexts.0.borrow_mut().remove(idx);
-            ctxt.process_response_eof(request_id, eof);
+            let (_, context) = self.incomplete_parser_contexts.0.borrow_mut().remove(idx);
+            context.process_response_eof(request_id, eof);
         }
     }
 

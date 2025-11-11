@@ -17,9 +17,7 @@ use net_traits::request::{
     Referrer, RequestBuilder, RequestId,
 };
 use net_traits::response::{Response, ResponseBody};
-use net_traits::{
-    FetchMetadata, NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceTimingType,
-};
+use net_traits::{FetchMetadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 pub use nom_rfc8288::complete::LinkDataOwned as LinkHeader;
 use nom_rfc8288::complete::link_lenient as parse_link_header;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -312,7 +310,6 @@ impl LinkProcessingOptions {
             link,
             document: Trusted::new(document),
             global: Trusted::new(&document.global()),
-            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             type_: LinkFetchContextType::Preload(key, Box::new(entry)),
             response_body: vec![],
         };
@@ -447,8 +444,6 @@ pub(crate) struct LinkFetchContext {
     pub(crate) global: Trusted<GlobalScope>,
     pub(crate) document: Trusted<Document>,
 
-    pub(crate) resource_timing: ResourceFetchTiming,
-
     /// The url being prefetched
     pub(crate) url: ServoUrl,
 
@@ -480,7 +475,7 @@ impl FetchResponseListener for LinkFetchContext {
     /// Step 7 of <https://html.spec.whatwg.org/multipage/#link-type-prefetch:fetch-and-process-the-linked-resource-2>
     /// and step 3.1 of <https://html.spec.whatwg.org/multipage/#link-type-preload:fetch-and-process-the-linked-resource-2>
     fn process_response_eof(
-        &mut self,
+        mut self,
         _: RequestId,
         response_result: Result<ResourceFetchTiming, NetworkError>,
     ) {
@@ -521,20 +516,12 @@ impl FetchResponseListener for LinkFetchContext {
         // Part of Prefetch
         if let Some(link) = self.link.as_ref() {
             link.root()
-                .fire_event_after_response(response_result, CanGc::note());
+                .fire_event_after_response(response_result.clone(), CanGc::note());
         }
-    }
 
-    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-        &mut self.resource_timing
-    }
-
-    fn resource_timing(&self) -> &ResourceFetchTiming {
-        &self.resource_timing
-    }
-
-    fn submit_resource_timing(&mut self) {
-        submit_timing(self, CanGc::note())
+        if let Ok(response) = response_result {
+            submit_timing(&self, &response, CanGc::note());
+        }
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

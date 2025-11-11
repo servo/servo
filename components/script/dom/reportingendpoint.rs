@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
 
 use headers::{ContentType, HeaderMapExt};
 use http::HeaderMap;
@@ -13,7 +12,7 @@ use net_traits::request::{
     CredentialsMode, Destination, RequestBody, RequestId, RequestMode,
     create_request_body_with_content,
 };
-use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming, ResourceTimingType};
+use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming};
 use script_bindings::str::DOMString;
 use serde::Serialize;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -218,11 +217,10 @@ impl SendReportsToEndpoints for GlobalScope {
         // Step 3. Queue a task to fetch request.
         self.fetch(
             request,
-            Arc::new(Mutex::new(CSPReportEndpointFetchListener {
+            CSPReportEndpointFetchListener {
                 endpoint: endpoint.clone(),
                 global: Trusted::new(self),
-                resource_timing: ResourceFetchTiming::new(ResourceTimingType::None),
-            })),
+            },
             self.task_manager().networking_task_source().into(),
         );
         // Step 4. Wait for a response (response).
@@ -311,8 +309,6 @@ impl From<CSPViolationReportBody> for CSPReportingEndpointBody {
 struct CSPReportEndpointFetchListener {
     /// Endpoint URL of this request.
     endpoint: ServoUrl,
-    /// Timing data for this resource.
-    resource_timing: ResourceFetchTiming,
     /// The global object fetching the report uri violation
     global: Trusted<GlobalScope>,
 }
@@ -335,23 +331,13 @@ impl FetchResponseListener for CSPReportEndpointFetchListener {
     }
 
     fn process_response_eof(
-        &mut self,
+        self,
         _: RequestId,
         response: Result<ResourceFetchTiming, NetworkError>,
     ) {
-        _ = response;
-    }
-
-    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-        &mut self.resource_timing
-    }
-
-    fn resource_timing(&self) -> &ResourceFetchTiming {
-        &self.resource_timing
-    }
-
-    fn submit_resource_timing(&mut self) {
-        submit_timing(self, CanGc::note())
+        if let Ok(response) = response {
+            submit_timing(&self, &response, CanGc::note())
+        }
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, _violations: Vec<Violation>) {}

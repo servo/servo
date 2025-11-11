@@ -19,7 +19,7 @@ use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata,
     RequestBuilder, RequestId,
 };
-use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming, ResourceTimingType};
+use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
 use script_bindings::domstring::BytesView;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::attr::AttrValue;
@@ -340,8 +340,6 @@ struct ClassicContext {
     status: Result<(), NetworkError>,
     /// The fetch options of the script
     fetch_options: ScriptFetchOptions,
-    /// Timing object for this resource
-    resource_timing: ResourceFetchTiming,
 }
 
 impl FetchResponseListener for ClassicContext {
@@ -388,7 +386,7 @@ impl FetchResponseListener for ClassicContext {
     /// <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
     /// step 4-9
     fn process_response_eof(
-        &mut self,
+        mut self,
         _: RequestId,
         response: Result<ResourceFetchTiming, NetworkError>,
     ) {
@@ -469,18 +467,10 @@ impl FetchResponseListener for ClassicContext {
             CanGc::note(),
         );
         // }
-    }
 
-    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-        &mut self.resource_timing
-    }
-
-    fn resource_timing(&self) -> &ResourceFetchTiming {
-        &self.resource_timing
-    }
-
-    fn submit_resource_timing(&mut self) {
-        network_listener::submit_timing(self, CanGc::note())
+        if let Ok(response) = response {
+            network_listener::submit_timing(&self, &response, CanGc::note());
+        }
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -581,7 +571,6 @@ fn fetch_a_classic_script(
         url: url.clone(),
         status: Ok(()),
         fetch_options: options,
-        resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
     };
     doc.fetch(LoadType::Script(url), request, context);
 }

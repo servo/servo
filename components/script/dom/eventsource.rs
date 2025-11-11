@@ -20,7 +20,7 @@ use mime::{self, Mime};
 use net_traits::request::{CacheMode, CorsSettings, Destination, RequestBuilder, RequestId};
 use net_traits::{
     CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseMsg, FilteredMetadata,
-    NetworkError, ResourceFetchTiming, ResourceTimingType,
+    NetworkError, ResourceFetchTiming,
 };
 use script_bindings::conversions::SafeToJSValConvertible;
 use servo_url::ServoUrl;
@@ -129,8 +129,6 @@ struct EventSourceContext {
     event_type: String,
     data: String,
     last_event_id: String,
-
-    resource_timing: ResourceFetchTiming,
 }
 
 impl EventSourceContext {
@@ -453,28 +451,17 @@ impl FetchResponseListener for EventSourceContext {
     }
 
     fn process_response_eof(
-        &mut self,
+        mut self,
         _: RequestId,
         response: Result<ResourceFetchTiming, NetworkError>,
     ) {
         if self.incomplete_utf8.take().is_some() {
             self.parse("\u{FFFD}".chars(), CanGc::note());
         }
-        if response.is_ok() {
+        if let Ok(response) = response {
             self.reestablish_the_connection();
+            network_listener::submit_timing(&self, &response, CanGc::note())
         }
-    }
-
-    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-        &mut self.resource_timing
-    }
-
-    fn resource_timing(&self) -> &ResourceFetchTiming {
-        &self.resource_timing
-    }
-
-    fn submit_resource_timing(&mut self) {
-        network_listener::submit_timing(self, CanGc::note())
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -636,10 +623,9 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
             event_type: String::new(),
             data: String::new(),
             last_event_id: String::new(),
-            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         };
         let mut listener = NetworkListener {
-            context: Arc::new(Mutex::new(context)),
+            context: Arc::new(Mutex::new(Some(context))),
             task_source: global.task_manager().networking_task_source().into(),
         };
         ROUTER.add_typed_route(

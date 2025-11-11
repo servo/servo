@@ -7,9 +7,10 @@ use std::cell::Cell;
 use std::cmp;
 use std::default::Default;
 use std::str::{self, FromStr};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+use atomic_refcell::AtomicRefCell;
 use constellation_traits::BlobImpl;
 use data_url::mime::Mime;
 use dom_struct::dom_struct;
@@ -30,7 +31,7 @@ use net_traits::http_status::HttpStatus;
 use net_traits::request::{CredentialsMode, Referrer, RequestBuilder, RequestId, RequestMode};
 use net_traits::{
     FetchMetadata, FilteredMetadata, NetworkError, ReferrerPolicy, ResourceFetchTiming,
-    ResourceTimingType, trim_http_whitespace,
+    trim_http_whitespace,
 };
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::num::Finite;
@@ -94,8 +95,7 @@ pub(crate) struct GenerationId(u32);
 struct XHRContext {
     xhr: TrustedXHRAddress,
     gen_id: GenerationId,
-    sync_status: DomRefCell<Option<ErrorResult>>,
-    resource_timing: ResourceFetchTiming,
+    sync_status: Arc<AtomicRefCell<Option<ErrorResult>>>,
     url: ServoUrl,
 }
 
@@ -123,28 +123,20 @@ impl FetchResponseListener for XHRContext {
     }
 
     fn process_response_eof(
-        &mut self,
+        self,
         _: RequestId,
         response: Result<ResourceFetchTiming, NetworkError>,
     ) {
         let rv = self.xhr.root().process_response_complete(
             self.gen_id,
-            response.map(|_| ()),
+            response.clone().map(|_| ()),
             CanGc::note(),
         );
         *self.sync_status.borrow_mut() = Some(rv);
-    }
 
-    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-        &mut self.resource_timing
-    }
-
-    fn resource_timing(&self) -> &ResourceFetchTiming {
-        &self.resource_timing
-    }
-
-    fn submit_resource_timing(&mut self) {
-        network_listener::submit_timing(self, CanGc::note())
+        if let Ok(response) = response {
+            network_listener::submit_timing(&self, &response, CanGc::note());
+        }
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -1564,13 +1556,13 @@ impl XMLHttpRequest {
     ) -> ErrorResult {
         let xhr = Trusted::new(self);
 
-        let context = Arc::new(Mutex::new(XHRContext {
+        let sync_status = Arc::new(AtomicRefCell::new(None));
+        let context = XHRContext {
             xhr,
             gen_id: self.generation_id.get(),
-            sync_status: DomRefCell::new(None),
-            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
+            sync_status: sync_status.clone(),
             url: request_builder.url.clone(),
-        }));
+        };
 
         let (task_source, script_port) = if self.sync.get() {
             let (sender, receiver) = global.new_script_pair();
@@ -1592,7 +1584,8 @@ impl XMLHttpRequest {
 
         *self.canceller.borrow_mut() =
             FetchCanceller::new(request_builder.id, global.core_resource_thread());
-        global.fetch(request_builder, context.clone(), task_source);
+
+        global.fetch(request_builder, context, task_source);
 
         if let Some(script_port) = script_port {
             loop {
@@ -1600,9 +1593,7 @@ impl XMLHttpRequest {
                     // We're exiting.
                     return Err(Error::Abort);
                 }
-                let context = context.lock().unwrap();
-                let sync_status = context.sync_status.borrow();
-                if let Some(ref status) = *sync_status {
+                if let Some(ref status) = *sync_status.borrow() {
                     return status.clone();
                 }
             }
