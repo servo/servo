@@ -186,6 +186,7 @@ use crate::dom::websocket::WebSocket;
 use crate::dom::window::Window;
 use crate::dom::windowproxy::WindowProxy;
 use crate::dom::xpathevaluator::XPathEvaluator;
+use crate::dom::xpathexpression::XPathExpression;
 use crate::fetch::FetchCanceller;
 use crate::iframe_collection::IFrameCollection;
 use crate::image_animation::ImageAnimationManager;
@@ -199,6 +200,7 @@ use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::NonSendTaskBox;
 use crate::task_source::TaskSourceName;
 use crate::timers::OneshotTimerCallback;
+use crate::xpath::parse_expression;
 
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) enum FireMouseEventType {
@@ -6043,15 +6045,14 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         resolver: Option<Rc<XPathNSResolver>>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<super::types::XPathExpression>> {
-        let global = self.global();
-        let window = global.as_window();
-        let evaluator = XPathEvaluator::new(window, None, can_gc);
-        XPathEvaluatorMethods::<crate::DomTypeHolder>::CreateExpression(
-            &*evaluator,
-            expression,
-            resolver,
+        let parsed_expression =
+            parse_expression(&expression.str(), resolver, self.is_html_document())?;
+        Ok(XPathExpression::new(
+            &self.window,
+            None,
             can_gc,
-        )
+            parsed_expression,
+        ))
     }
 
     fn CreateNSResolver(&self, node_resolver: &Node, can_gc: CanGc) -> DomRoot<Node> {
@@ -6066,19 +6067,15 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         expression: DOMString,
         context_node: &Node,
         resolver: Option<Rc<XPathNSResolver>>,
-        type_: u16,
+        result_type: u16,
         result: Option<&super::types::XPathResult>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<super::types::XPathResult>> {
-        let global = self.global();
-        let window = global.as_window();
-        let evaluator = XPathEvaluator::new(window, None, can_gc);
-        XPathEvaluatorMethods::<crate::DomTypeHolder>::Evaluate(
-            &*evaluator,
-            expression,
+        let parsed_expression =
+            parse_expression(&expression.str(), resolver, self.is_html_document())?;
+        XPathExpression::new(&self.window, None, can_gc, parsed_expression).evaluate_internal(
             context_node,
-            resolver,
-            type_,
+            result_type,
             result,
             can_gc,
         )
