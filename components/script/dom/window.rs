@@ -154,7 +154,7 @@ use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::history::History;
 use crate::dom::html::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::html::htmliframeelement::HTMLIFrameElement;
-use crate::dom::indexeddb::idbfactory::IDBFactory;
+use crate::dom::idbfactory::IDBFactory;
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::location::Location;
 use crate::dom::medialist::MediaList;
