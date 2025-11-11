@@ -12,6 +12,7 @@ use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::node::Node;
+use crate::dom::servoparser::html::HtmlSerialize;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
@@ -58,7 +59,7 @@ impl XMLSerializerMethods<crate::DomTypeHolder> for XMLSerializer {
         let mut writer = vec![];
         match serialize(
             &mut writer,
-            &root,
+            &HtmlSerialize::new(&root),
             SerializeOpts {
                 traversal_scope: TraversalScope::IncludeNode,
             },

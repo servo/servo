@@ -66,6 +66,7 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::progressevent::ProgressEvent;
 use crate::dom::readablestream::ReadableStream;
 use crate::dom::servoparser::ServoParser;
+use crate::dom::servoparser::html::HtmlSerialize;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
@@ -1678,7 +1679,11 @@ impl XHRTimeoutCallback {
 
 fn serialize_document(doc: &Document) -> Fallible<DOMString> {
     let mut writer = vec![];
-    match serialize(&mut writer, &doc.upcast::<Node>(), SerializeOpts::default()) {
+    match serialize(
+        &mut writer,
+        &HtmlSerialize::new(&doc.upcast::<Node>()),
+        SerializeOpts::default(),
+    ) {
         Ok(_) => Ok(DOMString::from(String::from_utf8(writer).unwrap())),
         Err(_) => Err(Error::InvalidState(None)),
     }
