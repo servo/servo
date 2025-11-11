@@ -2330,6 +2330,12 @@ fn normalize_algorithm(
             // "subtle" binding structs.
             let normalized_algorithm = match (alg_name, op) {
                 // <https://w3c.github.io/webcrypto/#ecdsa-registration>
+                (ALG_ECDSA, Operation::GenerateKey) => {
+                    let mut params =
+                        dictionary_from_jsval::<EcKeyGenParams>(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::EcKeyGenParams(params.into())
+                },
                 (ALG_ECDSA, Operation::ImportKey) => {
                     let mut params =
                         dictionary_from_jsval::<EcKeyImportParams>(cx, value.handle(), can_gc)?;
@@ -2825,6 +2831,10 @@ impl NormalizedAlgorithm {
                 _ => Err(Error::NotSupported),
             },
             NormalizedAlgorithm::EcKeyGenParams(algo) => match algo.name.as_str() {
+                ALG_ECDSA => {
+                    ecdsa_operation::generate_key(global, algo, extractable, usages, can_gc)
+                        .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair)
+                },
                 ALG_ECDH => ecdh_operation::generate_key(global, algo, extractable, usages, can_gc)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair),
                 _ => Err(Error::NotSupported),
