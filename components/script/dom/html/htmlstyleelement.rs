@@ -12,9 +12,7 @@ use net_traits::ReferrerPolicy;
 use script_bindings::root::Dom;
 use servo_arc::Arc;
 use style::media_queries::MediaList as StyleMediaList;
-use style::stylesheets::{
-    AllowImportRules, Origin, Stylesheet, StylesheetContents, StylesheetInDocument, UrlExtraData,
-};
+use style::stylesheets::{Stylesheet, StylesheetInDocument, UrlExtraData};
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
@@ -37,7 +35,7 @@ use crate::dom::medialist::MediaList;
 use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeTraits, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
-use crate::stylesheet_loader::{ElementStylesheetLoader, StylesheetOwner};
+use crate::stylesheet_loader::StylesheetOwner;
 
 #[dom_struct]
 pub(crate) struct HTMLStyleElement {
@@ -130,29 +128,11 @@ impl HTMLStyleElement {
             return;
         }
 
-        let window = node.owner_window();
         let data = node
             .GetTextContent()
             .expect("Element.textContent must be a string");
         let shared_lock = node.owner_doc().style_shared_lock().clone();
         let mq = Arc::new(shared_lock.wrap(self.create_media_list(&self.Media().str())));
-        let loader = ElementStylesheetLoader::new(self.upcast());
-
-        let stylesheetcontents_create_callback = || {
-            #[cfg(feature = "tracing")]
-            let _span = tracing::trace_span!("ParseStylesheet", servo_profiling = true).entered();
-            StylesheetContents::from_str(
-                &data.str(),
-                UrlExtraData(window.get_url().get_arc()),
-                Origin::Author,
-                &shared_lock,
-                Some(&loader),
-                window.css_error_reporter(),
-                doc.quirks_mode(),
-                AllowImportRules::Yes,
-                /* sanitized_output = */ None,
-            )
-        };
 
         // For duplicate style sheets with identical content, `StylesheetContents` can be reused
         // to avoid reedundant parsing of the style sheets. Additionally, the cache hit rate of
@@ -161,9 +141,9 @@ impl HTMLStyleElement {
         let (cache_key, contents) = StylesheetContentsCache::get_or_insert_with(
             &data.str(),
             &shared_lock,
-            UrlExtraData(window.get_url().get_arc()),
+            UrlExtraData(doc.base_url().get_arc()),
             doc.quirks_mode(),
-            stylesheetcontents_create_callback,
+            self.upcast(),
         );
 
         let sheet = Arc::new(Stylesheet {
