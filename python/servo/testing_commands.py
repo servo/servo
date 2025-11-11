@@ -39,6 +39,8 @@ from servo.command_base import BuildType, CommandBase, call, check_call
 from servo.post_build_commands import PostBuildCommands
 from servo.util import delete
 
+from python.servo.util import HarmonyDeviceConnector, HarmonyDevicePerfMode
+
 SCRIPT_PATH = os.path.split(__file__)[0]
 PROJECT_TOPLEVEL_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
 WEB_PLATFORM_TESTS_PATH = os.path.join("tests", "wpt", "tests")
@@ -720,83 +722,54 @@ class MachCommands(CommandBase):
             self.speedometer_to_bmf(speedometer, bmf_output, profile)
 
     def speedometer_runner_ohos(self, bmf_output: str | None, profile: str | None) -> None:
-        hdc_path = shutil.which("hdc")
+        hdc = HarmonyDeviceConnector()
         log_path: str = "/data/app/el2/100/base/org.servo.servo/cache/servo.log"
 
-        if hdc_path is None:
-            ohos_sdk_native = os.getenv("OHOS_SDK_NATIVE")
-            assert ohos_sdk_native
-            hdc_path = path.join(ohos_sdk_native, "../", "toolchains", "hdc")
+        hdc.cmd("aa force-stop org.servo.servo")
 
-        def read_log_file(hdc_path: str) -> str:
-            subprocess.call([hdc_path, "file", "recv", log_path, "servo.log"])
-            file = ""
-            try:
-                with open("servo.log") as file:
-                    return file.read()
-            except OSError:
-                return ""
-
-        subprocess.call(
-            [
-                hdc_path,
-                "shell",
-                "aa",
-                "force-stop",
-                "org.servo.servo",
-            ]
-        )
-
-        subprocess.call([hdc_path, "shell", "rm", log_path])
-        subprocess.call(
-            [
-                hdc_path,
-                "shell",
-                "aa",
-                "start",
-                "-a",
-                "EntryAbility",
-                "-b",
-                "org.servo.servo",
-                "-U",
-                "https://servospeedometer.netlify.app?headless=1",
-                "--ps",
-                "--log-filter",
-                "script::dom::console",
-                "--psn",
-                "--log-to-file",
-            ]
-        )
-
-        # A current (2025-06-23) run took 3m 49s = 229s. We keep a safety margin
-        # but we will exit earlier if we see "{"
-        whole_file: str = ""
-        for i in range(10):
-            sleep(30)
-            whole_file = read_log_file(hdc_path)
-            if "[INFO script::dom::console]" in whole_file:
-                # technically the file could not have been written completely yet
-                # on devices with slow flash, we might want to wait a bit more
-                sleep(2)
-                whole_file = read_log_file(hdc_path)
-                break
-            if not subprocess.check_output([hdc_path, "shell", "pidof", "org.servo.servo"]):
-                print("Servo crashed, aborting speedometer test")
+        hdc.cmd(f"rm {log_path}")
+        with HarmonyDevicePerfMode(600, hdc):
+            start_command = (
+                "aa start -a EntryAbility -b org.servo.servo -U https://servospeedometer.netlify.app?headless=1"
+            )
+            start_command += " --ps --log-filter script::dom::console --psn --log-to-file"
+            hdc.cmd(start_command)
+            # A current (2025-06-23) run took 3m 49s = 229s. We keep a safety margin
+            # but we will exit earlier if we see "{"
+            whole_file = None
+            for i in range(10):
+                sleep(30)
+                whole_file: str | None = hdc.read_file(log_path)
+                if whole_file is None:
+                    continue
+                if "[INFO script::dom::console]" in whole_file:
+                    # technically the file could not have been written completely yet
+                    # on devices with slow flash, we might want to wait a bit more
+                    sleep(2)
+                    whole_file = hdc.read_file(log_path)
+                    break
+                check_live_output = hdc.cmd("pidof org.servo.servo || echo dead", capture_output=True).stdout
+                print(f"Output: `{check_live_output}`")
+                if check_live_output == "dead\n":
+                    print("Servo crashed, aborting speedometer test")
+                    exit(1)
+            if whole_file is None:
+                print("Empty logfile after timeout")
                 exit(1)
-        else:
-            print("Error failed to find console logs in log file")
-            print(f"log-file contents: `{whole_file}`")
-            exit(1)
-        start_index: int = whole_file.index("[INFO script::dom::console]") + len("[INFO script::dom::console]") + 1
-        json_string = whole_file[start_index:]
-        try:
-            speedometer = json.loads(json_string)
-        except json.decoder.JSONDecodeError as e:
-            print(f"Error: Failed to convert log output to JSON: {e}")
-            pretty_print_json_decode_error(e)
-            print("Error: Failed to parse speedometer results")
-            print("This can happen if other log messages are printed while running servo...")
-            exit(1)
+            if "[INFO script::dom::console]" not in whole_file:
+                print("Error failed to find console logs in log file")
+                print(f"log-file contents: `{whole_file}`")
+                exit(1)
+            start_index: int = whole_file.index("[INFO script::dom::console]") + len("[INFO script::dom::console]") + 1
+            json_string = whole_file[start_index:]
+            try:
+                speedometer = json.loads(json_string)
+            except json.decoder.JSONDecodeError as e:
+                print(f"Error: Failed to convert log output to JSON: {e}")
+                pretty_print_json_decode_error(e)
+                print("Error: Failed to parse speedometer results")
+                print("This can happen if other log messages are printed while running servo...")
+                exit(1)
 
         print(f"Score: {speedometer['Score']['mean']} ± {speedometer['Score']['delta']}")
         if bmf_output:
