@@ -7,13 +7,14 @@ use std::ptr;
 use std::rc::Rc;
 
 use base::id::{MessagePortId, MessagePortIndex};
-use constellation_traits::{MessagePortImpl, PortMessageTask};
+use constellation_traits::{MessagePortImpl, PortMessageTask, PostMessageData};
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JS_NewObject, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use rustc_hash::FxHashMap;
 use script_bindings::conversions::SafeToJSValConvertible;
+use script_bindings::realms::InRealm;
 
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::{
@@ -30,7 +31,9 @@ use crate::dom::bindings::transferable::Transferable;
 use crate::dom::bindings::utils::set_dictionary_property;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::webdriver_handlers::jsval_to_webdriver;
 
 #[dom_struct]
 /// The MessagePort used in the DOM.
@@ -41,6 +44,7 @@ pub(crate) struct MessagePort {
     #[no_trace]
     entangled_port: RefCell<Option<MessagePortId>>,
     detached: Cell<bool>,
+    forbid_structured_clone: bool,
 }
 
 impl MessagePort {
@@ -50,6 +54,7 @@ impl MessagePort {
             entangled_port: RefCell::new(None),
             detached: Cell::new(false),
             message_port_id,
+            forbid_structured_clone: false,
         }
     }
 
@@ -60,10 +65,11 @@ impl MessagePort {
     }
 
     /// Create a new port for an incoming transfer-received one.
-    pub(crate) fn new_transferred(
+    fn new_transferred(
         owner: &GlobalScope,
         transferred_port: MessagePortId,
         entangled_port: Option<MessagePortId>,
+        forbid_structured_clone: bool,
         can_gc: CanGc,
     ) -> DomRoot<MessagePort> {
         reflect_dom_object(
@@ -72,6 +78,7 @@ impl MessagePort {
                 eventtarget: EventTarget::new_inherited(),
                 detached: Cell::new(false),
                 entangled_port: RefCell::new(entangled_port),
+                forbid_structured_clone,
             }),
             owner,
             can_gc,
@@ -148,7 +155,21 @@ impl MessagePort {
         }
 
         // Step 5
-        let data = structuredclone::write(cx, message, Some(transfer))?;
+        let data = if self.forbid_structured_clone {
+            let realm = enter_realm(self);
+            PostMessageData::Serialized(
+                jsval_to_webdriver(
+                    cx,
+                    &self.global(),
+                    message,
+                    InRealm::entered(&realm),
+                    CanGc::note(),
+                )
+                .map_err(|_| Error::InvalidState(None))?,
+            )
+        } else {
+            PostMessageData::StructuredClone(structuredclone::write(cx, message, Some(transfer))?)
+        };
 
         if doomed {
             // TODO: The spec says to optionally report such a case to a dev console.
@@ -271,8 +292,13 @@ impl Transferable for MessagePort {
         id: MessagePortId,
         port_impl: MessagePortImpl,
     ) -> Result<DomRoot<Self>, ()> {
-        let transferred_port =
-            MessagePort::new_transferred(owner, id, port_impl.entangled_port_id(), CanGc::note());
+        let transferred_port = MessagePort::new_transferred(
+            owner,
+            id,
+            port_impl.entangled_port_id(),
+            port_impl.forbid_structured_clone(),
+            CanGc::note(),
+        );
         owner.track_message_port(&transferred_port, Some(port_impl));
         Ok(transferred_port)
     }

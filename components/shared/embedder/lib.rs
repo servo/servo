@@ -24,7 +24,7 @@ use std::time::SystemTime;
 
 use base::Epoch;
 use base::generic_channel::{GenericCallback, GenericSender, SendResult};
-use base::id::{PipelineId, WebViewId};
+use base::id::{MessagePortId, PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use euclid::{Box2D, Point2D, Scale, Size2D, Vector2D};
 use http::{HeaderMap, Method, StatusCode};
@@ -625,6 +625,9 @@ pub enum EmbedderMsg {
     /// Inform the embedding layer that a particular `InputEvent` was handled by Servo
     /// and the embedder can continue processing it, if necessary.
     InputEventHandled(WebViewId, InputEventId, InputEventResult),
+    /// Inform the embedding layer that a MessagePort has posted a message to
+    /// an entanged MessagePort owned by the embedder.
+    PostMessage(WebViewId, MessagePortId, JSValue),
 }
 
 impl Debug for EmbedderMsg {
@@ -1200,7 +1203,7 @@ impl Display for FocusSequenceNumber {
 #[derive(Clone, Copy, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct JavaScriptEvaluationId(pub usize);
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum JSValue {
     Undefined,
     Null,
@@ -1213,6 +1216,11 @@ pub enum JSValue {
     Window(String),
     Array(Vec<JSValue>),
     Object(HashMap<String, JSValue>),
+    MessagePort {
+        webview_id: WebViewId,
+        id: MessagePortId,
+        entangled: MessagePortId,
+    },
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]

@@ -16,10 +16,10 @@ use std::fmt;
 use std::time::Duration;
 
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::{MessagePortId, PipelineId, WebViewId};
+use base::id::{MessagePortId, MessagePortRouterId, PipelineId, WebViewId};
 use compositing_traits::largest_contentful_paint_candidate::LargestContentfulPaintType;
 use embedder_traits::{
-    CompositorHitTestResult, EmbedderControlId, EmbedderControlResponse, InputEventAndId,
+    CompositorHitTestResult, EmbedderControlId, EmbedderControlResponse, InputEventAndId, JSValue,
     JavaScriptEvaluationId, MediaSessionActionType, Theme, TraversalId, ViewportDetails,
     WebDriverCommandMsg,
 };
@@ -111,6 +111,21 @@ pub enum EmbedderToConstellationMessage {
     RequestScreenshotReadiness(WebViewId),
     /// A response to a request to show an embedder user interface control.
     EmbedderControlResponse(EmbedderControlId, EmbedderControlResponse),
+    /// Inform the constellation of two new MessagePorts that are entangled,
+    /// which will receive post message tasks over the provided sender associated
+    /// with the given [MessagePortRouterId].
+    CreateEntangledMessagePorts(
+        MessagePortRouterId,
+        IpcSender<MessagePortMsg>,
+        MessagePortId,
+        MessagePortId,
+    ),
+    /// Post an arbitrary serialized JS value to the provided web view. The event
+    /// received will be handled like a postMessage operation from an opaque origin.
+    PostMessageToWebView(WebViewId, JSValue),
+    /// Post an arbitrary JS value to the provided message port. The event
+    /// received will be treated as a postMessage operation from the entangled port.
+    PostMessageToMessagePort(MessagePortId, JSValue),
 }
 
 /// A description of a paint metric that is sent from the Servo renderer to the
@@ -169,7 +184,13 @@ pub struct PortMessageTask {
     /// The origin of this task.
     pub origin: ImmutableOrigin,
     /// A data-holder for serialized data and transferred objects.
-    pub data: StructuredSerializedData,
+    pub data: PostMessageData,
+}
+
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+pub enum PostMessageData {
+    StructuredClone(StructuredSerializedData),
+    Serialized(JSValue),
 }
 
 /// The information needed by a global to process the transfer of a port.

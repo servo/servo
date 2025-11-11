@@ -267,6 +267,9 @@ impl Serialize for SendableJSValue {
                 .map(|(k, v)| (k.clone(), SendableJSValue(v.clone())))
                 .collect::<HashMap<String, SendableJSValue>>()
                 .serialize(serializer),
+            JSValue::MessagePort { .. } => {
+                unreachable!("MessagePort objects must be serialized as JSValue::Object")
+            },
         }
     }
 }
