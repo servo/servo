@@ -2225,7 +2225,7 @@ impl HTMLMediaElement {
         // Step 4.
         let previous_duration = self.duration.get();
         if let Some(duration) = metadata.duration {
-            self.duration.set(duration.as_secs() as f64);
+            self.duration.set(duration.as_secs_f64());
         } else {
             self.duration.set(f64::INFINITY);
         }
@@ -2343,8 +2343,7 @@ impl HTMLMediaElement {
         }
     }
 
-    fn playback_position_changed(&self, position: u64) {
-        let position = position as f64;
+    fn playback_position_changed(&self, position: f64) {
         let _ = self
             .played
             .borrow_mut()
