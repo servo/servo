@@ -1,0 +1,345 @@
+<!doctype html>
+<head>
+    <title>XPathMark Functional Test (originally authored by Massimo Franceschet)</title>
+    <link rel="author" title="Massimo Franceschet">
+    <link rel="author" title="Simon Wülker" href="simon.wuelker@arcor.de">
+    <link rel="help" href="https://web.archive.org/web/20070720155520/https://users.dimi.uniud.it/~massimo.franceschet/xpathmark/FT.html">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<script>
+setup({ explicit_done: true });
+
+function toArray(result) {
+  var array = [];
+  while (true) {
+    var node = result.iterateNext();
+    if (node === null) break;
+    array.push(node);
+  }
+  return array;
+}
+
+function run_tests(xml_document) {
+  // Get all nodes for testing
+  let n = [];
+  // Element ids start at one so add a bogus element for convenience
+  n.push(null);
+  for (let i = 1; i < 27; i++) {
+    n.push(xml_document.getElementById("n" + i));
+  }
+
+  let comment = n[12].childNodes[1];
+  let processing_instruction = n[12].childNodes[7];
+
+  const cases = [
+    // Axes
+    {
+      "query": "//L/*",
+      "expected": [n[13], n[14], n[17]]
+    },
+    {
+      "query": "//L/parent::*",
+      "expected": [n[5]]
+    },
+    {
+      "query": "//L/descendant::*",
+      "expected": [n[13], n[14], n[15], n[16], n[17]]
+    },
+    {
+      "query": "//L/descendant-or-self::*",
+      "expected": [n[12], n[13], n[14], n[15], n[16], n[17]]
+    },
+    {
+      "query": "//L/ancestor::*",
+      "expected": [n[1], n[5]]
+    },
+    {
+      "query": "//L/ancestor-or-self::*",
+      "expected": [n[1], n[5], n[12]]
+    },
+    {
+      "query": "//L/following-sibling::*",
+      "expected": [n[18], n[21]]
+    },
+    {
+      "query": "//L/preceding-sibling::*",
+      "expected": [n[6], n[9]]
+    },
+    {
+      "query": "//L/following::*",
+      "expected": [n[18], n[19], n[20], n[21], n[22], n[23], n[24], n[25], n[26]]
+    },
+    {
+      "query": "//L/preceding::*",
+      // XPathMark thinks n5 should be included, Firefox and Chrome say no
+      "expected": [n[2], n[3], n[4], n[6], n[7], n[8], n[9], n[10], n[11]]
+    },
+    {
+      "query": "//L/self::* ",
+      "expected": [n[12]]
+    },
+    {
+      "query": "//L/@id/parent::*",
+      "expected": [n[12]]
+    },
+    // Filters
+    {
+      "query": "//*[L]",
+      "expected": [n[5]],
+    },
+    {
+      "query": "//*[parent::L]",
+      "expected": [n[13], n[14], n[17]]
+    },
+    {
+      "query": "//*[descendant::L]",
+      "expected": [n[1], n[5]]
+    },
+    {
+      "query": "//*[descendant-or-self::L]",
+      "expected": [n[1], n[5], n[12]]
+    },
+    {
+      "query": "//*[ancestor::L]",
+      "expected": [n[13], n[14], n[15], n[16], n[17]]
+    },
+    {
+      "query": "//*[ancestor-or-self::L]",
+      "expected": [n[12], n[13], n[14], n[15], n[16], n[17]]
+    },
+    {
+      "query": "//*[following-sibling::L]",
+      "expected": [n[6], n[9]]
+    },
+    {
+      "query": "//*[preceding-sibling::L]",
+      "expected": [n[18], n[21]]
+    },
+    {
+      "query": "//*[following::L]",
+      // XPathMark thinks n5 should be included, Firefox and Chrome say no
+      "expected": [n[2], n[3], n[4], n[6], n[7], n[8], n[9], n[10], n[11]]
+    },
+    {
+      "query": "//*[preceding::L]",
+      "expected": [n[18], n[19], n[20], n[21], n[22], n[23], n[24], n[25], n[26]]
+    },
+    {
+      "query": "//*[self::L]",
+      "expected": [n[12]]
+    },
+    {
+      "query": "//*[@id]",
+      "expected": [n[1], n[2], n[3], n[4], n[5], n[6], n[7], n[8], n[9], n[10], n[11], n[12], n[13], n[14], n[15], n[16], n[17], n[18], n[19], n[20], n[21], n[22], n[23], n[24], n[25], n[26]]
+    },
+    // Node tests
+    {
+      "query": "//L/text()",
+      "expected": Array.from(n[12].childNodes).filter(function(node) {
+        return node.nodeType == Node.TEXT_NODE;
+      })
+    },
+    {
+      "query": "//L/comment()",
+      "expected": [comment],
+    },
+    {
+      "query": " //L/processing-instruction()",
+      "expected": [processing_instruction]
+    },
+    {
+      "query": "//L/processing-instruction(\"myPI\")",
+      "expected": [processing_instruction]
+    },
+    {
+      "query": "//L/node()",
+      "expected": n[12].childNodes,
+    },
+    {
+      "query": "//L/N",
+      "expected": [n[14]]
+    },
+    {
+      "query": "//L/*",
+      "expected": [n[13], n[14], n[17]]
+    },
+    // Operators
+    {
+      "query": "//*[child::* and preceding::Q]",
+      "expected": [n[18], n[21], n[24]],
+    },
+    {
+      "query": "//*[not(child::*) and preceding::Q]",
+      "expected": [n[19], n[20], n[22], n[23], n[25], n[26]]
+    },
+    {
+      "query": "//*[preceding::L or following::L]",
+      "expected": [n[2], n[3], n[4], n[6], n[7], n[8], n[9], n[10], n[11], n[18], n[19], n[20], n[21], n[22], n[23], n[24], n[25], n[26]]
+    },
+    {
+      "query": "//L/ancestor::* | //L/descendant::*",
+      "expected": [n[1], n[5], n[13], n[14], n[15], n[16], n[17]]
+    },
+    {
+      "query": "//*[.=\"happy-go-lucky man\"]",
+      "expected": [n[8]]
+    },
+    {
+      "query": "//*[@pre > 12 and @post < 15]",
+      "expected": [n[13], n[14], n[15], n[16], n[17]]
+    },
+    {
+      "query": "//*[@pre != @post]",
+      "expected": [n[1], n[2], n[3], n[4], n[5], n[7], n[8], n[10], n[11], n[12], n[13], n[14], n[15], n[16], n[17], n[19], n[20], n[22], n[23], n[24], n[25], n[26]]
+    },
+    {
+      "query": "//*[((@post * @post + @pre * @pre) div (@post + @pre)) > ((@post - @pre) * (@post - @pre))]",
+      "expected": [n[2], n[6], n[9], n[11], n[12], n[13], n[14], n[17], n[18], n[19], n[20], n[21], n[22], n[23], n[24], n[25], n[26]]
+    },
+    {
+      "query": "//*[@pre mod 2 = 0]",
+      "expected": [n[2], n[4], n[6], n[8], n[10], n[12], n[14], n[16], n[18], n[20], n[22], n[24], n[26]]
+    },
+    // Functions
+    {
+      "query": "//*[contains(.,\"plentiful\")]",
+      "expected": [n[1], n[5], n[12], n[14], n[16]],
+    },
+    {
+      "query": "//*[starts-with(.,\"plentiful\")]",
+      "expected": [n[16]]
+    },
+    {
+      "query": "//*[substring(.,1,9) = \"plentiful\"]",
+      "expected": [n[16]]
+    },
+    {
+      "query": "//*[substring-after(.,\"oven\") = \"ware\"]",
+      "expected": [n[15]]
+    },
+    {
+      "query": "//*[substring-before(.,\"ful\") = \"plenti\"]",
+      "expected":[n[16]]
+    },
+    {
+      "query": "//*[string-length(translate(normalize-space(.),\" \",\"\")) > 100]",
+      "expected": [n[1], n[5]]
+    },
+    {
+      "query": "//*[concat(.,..) = ..]",
+      "expected": [n[13]]
+    },
+    {
+      "query": "//*[ceiling(@pre div @post) = 1]",
+      "expected": [n[1], n[2], n[5], n[6], n[9], n[12], n[18], n[21], n[24]]
+    },
+    {
+      "query": "//*[floor(@pre div @post) = 0]",
+      "expected": [n[1], n[2], n[5], n[12], n[24]]
+    },
+    {
+      "query": "//*[round(@pre div @post) = 0]",
+      "expected": [n[1], n[5]]
+    },
+    {
+      "query": "//*[name(.) = \"X\"]",
+      "expected": [n[24]]
+    },
+    {
+      "query": "//*[lang(\"it\")]",
+      "expected": [n[26]]
+    },
+    {
+      "query": "//L/child::*[last()]",
+      "expected": [n[17]]
+    },
+    {
+      "query": "//L/descendant::*[4]",
+      "expected": [n[16]]
+    },
+    {
+      "query": "//L/ancestor::*[2]",
+      "expected": [n[1]]
+    },
+    {
+      "query": "//L/following-sibling::*[1]",
+      "expected": [n[18]]
+    },
+    {
+      "query": "//L/preceding-sibling::*[1]",
+      "expected": [n[9]]
+    },
+    {
+      "query": "//L/following::*[7]",
+      "expected": [n[24]]
+    },
+    {
+      "query": " //L/preceding::*[7]",
+      "expected": [n[4]]
+    },
+    {
+      "query": "//*[count(ancestor::*) > 3]",
+      "expected": [n[15], n[16]]
+    },
+    {
+      "query": "//*[sum(ancestor::*/@pre) < sum(descendant::*/@pre)]",
+      "expected": [n[1], n[2], n[5], n[6], n[9], n[12], n[14], n[18], n[21], n[24]]
+    },
+    {
+      "query": "id(\"n1 n26\")",
+      "expected": [n[1], n[26]]
+    },
+    {
+      "query": "id(id(//*[.=\"happy-go-lucky man\"]/@idrefs)/@idrefs)",
+      "expected": [n[8], n[17], n[26]]
+    },
+    {
+      "query": "//*[number(@pre) < number(@post)]",
+      "expected": [n[1], n[2], n[5], n[12], n[24]]
+    },
+    {
+      "query": "//*[string(@pre - 1) = \"0\"]",
+      "expected": [n[1]]
+    },
+    {
+      "query": "//*[boolean(@id) = true() and boolean(@idrefs) = false()]",
+      "expected": [n[1], n[2], n[3], n[4], n[5], n[6], n[7], n[9], n[10], n[11], n[12], n[13], n[14], n[15], n[16], n[18], n[19], n[20], n[21], n[22], n[23], n[24], n[25]]
+    }
+  ];
+
+  for (var i = 0; i < cases.length; i++) {
+    const test_case = cases[i];
+    test(() => {
+      if (test_case.expected instanceof String) {
+        let result = xml_document.evaluate(
+          test_case.query,
+          xml_document.documentElement,
+          null,
+          XPathResult.STRING_TYPE,
+          null
+        ).stringValue;
+        assert_equals(result, test_case.expected);
+      } else {
+        let result = xml_document.evaluate(
+          test_case.query,
+          xml_document.documentElement,
+          null,
+          XPathResult.ORDERED_NODE_ITERATOR_TYPE,
+          null
+        );
+        let elements = toArray(result);
+        assert_array_equals(elements, test_case.expected);
+      }
+    }, "Expected results for " + test_case.query);
+  }
+}
+
+var xhr = new XMLHttpRequest();
+xhr.open("GET", "alphabet.xml");
+xhr.onload = function(e) {
+  run_tests(xhr.responseXML);
+  done();
+};
+xhr.send();
+</script>
