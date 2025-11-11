@@ -153,9 +153,6 @@ def attribute_names(property_name: str) -> Iterator[str]:
     if "-" in property_name:
         yield "".join(camel_case(property_name))
 
-    # https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-webkit-cased-attribute
-    if property_name.startswith("-webkit-"):
-        yield "".join(camel_case(property_name, True))
 
 
 # https://drafts.csswg.org/cssom/#css-property-to-idl-attribute
