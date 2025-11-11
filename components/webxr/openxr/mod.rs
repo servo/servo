@@ -471,7 +471,7 @@ impl OpenXrLayer {
 impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
     fn create_layer(
         &mut self,
-        device: &mut SurfmanDevice,
+        device: &SurfmanDevice,
         contexts: &mut dyn GLContexts<SurfmanGL>,
         context_id: ContextId,
         init: LayerInit,
@@ -541,7 +541,7 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
 
     fn destroy_layer(
         &mut self,
-        device: &mut SurfmanDevice,
+        device: &SurfmanDevice,
         contexts: &mut dyn GLContexts<SurfmanGL>,
         context_id: ContextId,
         layer_id: LayerId,
@@ -574,7 +574,7 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
 
     fn end_frame(
         &mut self,
-        _device: &mut SurfmanDevice,
+        _device: &SurfmanDevice,
         _contexts: &mut dyn GLContexts<SurfmanGL>,
         layers: &[(ContextId, LayerId)],
     ) -> Result<(), Error> {
@@ -727,7 +727,6 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
 
     fn begin_frame(
         &mut self,
-        device: &mut SurfmanDevice,
         contexts: &mut dyn GLContexts<SurfmanGL>,
         layers: &[(ContextId, LayerId)],
     ) -> Result<Vec<SubImages>, Error> {
