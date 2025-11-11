@@ -3597,7 +3597,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         }
 
         if let Ok(response) = status {
-            network_listener::submit_timing(&self, &response, CanGc::note())
+            network_listener::submit_timing(&self, &response, CanGc::note());
         }
     }
 

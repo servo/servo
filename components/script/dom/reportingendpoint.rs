@@ -336,7 +336,7 @@ impl FetchResponseListener for CSPReportEndpointFetchListener {
         response: Result<ResourceFetchTiming, NetworkError>,
     ) {
         if let Ok(response) = response {
-            submit_timing(&self, &response, CanGc::note())
+            submit_timing(&self, &response, CanGc::note());
         }
     }
 

@@ -5,23 +5,17 @@
 use std::cell::Cell;
 use std::mem;
 use std::str::{Chars, FromStr};
-use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use dom_struct::dom_struct;
 use headers::ContentType;
 use http::StatusCode;
 use http::header::{self, HeaderName, HeaderValue};
-use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
 use js::rust::HandleObject;
 use mime::{self, Mime};
 use net_traits::request::{CacheMode, CorsSettings, Destination, RequestBuilder, RequestId};
-use net_traits::{
-    CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseMsg, FilteredMetadata,
-    NetworkError, ResourceFetchTiming,
-};
+use net_traits::{FetchMetadata, FilteredMetadata, NetworkError, ResourceFetchTiming};
 use script_bindings::conversions::SafeToJSValConvertible;
 use servo_url::ServoUrl;
 use stylo_atoms::Atom;
@@ -43,9 +37,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::fetch::{FetchCanceller, create_a_potential_cors_request};
-use crate::network_listener::{
-    self, FetchResponseListener, NetworkListener, ResourceTimingListener,
-};
+use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
 use crate::timers::OneshotTimerCallback;
@@ -107,6 +99,7 @@ pub(crate) struct EventSource {
     droppable: DroppableEventSource,
 }
 
+#[derive(Clone, MallocSizeOf)]
 enum ParserState {
     Field,
     Comment,
@@ -114,18 +107,15 @@ enum ParserState {
     Eol,
 }
 
+#[derive(Clone, MallocSizeOf)]
 struct EventSourceContext {
     incomplete_utf8: Option<utf8::Incomplete>,
-
     event_source: Trusted<EventSource>,
     gen_id: GenerationId,
-    action_sender: ipc::IpcSender<FetchResponseMsg>,
-
     parser_state: ParserState,
     field: String,
     value: String,
     origin: String,
-
     event_type: String,
     data: String,
     last_event_id: String,
@@ -169,8 +159,8 @@ impl EventSourceContext {
         }
 
         let trusted_event_source = self.event_source.clone();
-        let action_sender = self.action_sender.clone();
         let global = event_source.global();
+        let event_source_context = self.clone();
         global.task_manager().remote_event_task_source().queue(
             task!(reestablish_the_event_source_onnection: move || {
                 let event_source = trusted_event_source.root();
@@ -196,7 +186,7 @@ impl EventSourceContext {
                 let callback = OneshotTimerCallback::EventSourceTimeout(
                     EventSourceTimeoutCallback {
                         event_source: trusted_event_source,
-                        action_sender,
+                        event_source_context,
                     }
                 );
                 event_source.global().schedule_callback(callback, duration);
@@ -460,7 +450,7 @@ impl FetchResponseListener for EventSourceContext {
         }
         if let Ok(response) = response {
             self.reestablish_the_connection();
-            network_listener::submit_timing(&self, &response, CanGc::note())
+            network_listener::submit_timing(&self, &response, CanGc::note());
         }
     }
 
@@ -560,7 +550,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
             Err(_) => return Err(Error::Syntax(None)),
         };
         // Step 1 Let ev be a new EventSource object.
-        let ev = EventSource::new(
+        let event_source = EventSource::new(
             global,
             proto,
             // Step 5 Set ev's url to urlRecord.
@@ -568,7 +558,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
             event_source_init.withCredentials,
             can_gc,
         );
-        global.track_event_source(&ev);
+        global.track_event_source(&event_source);
         let cors_attribute_state = if event_source_init.withCredentials {
             // Step 7 If the value of eventSourceInitDict's withCredentials member is true,
             // then set corsAttributeState to Use Credentials and set ev's withCredentials
@@ -604,17 +594,19 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         // Step 11 Set request's cache mode to "no-store".
         request.cache_mode = CacheMode::NoStore;
         // Step 13 Set ev's request to request.
-        *ev.request.borrow_mut() = Some(request.clone());
+        *event_source.request.borrow_mut() = Some(request.clone());
         // Step 14 Let processEventSourceEndOfBody given response res be the following step:
         // if res is not a network error, then reestablish the connection.
-        let (action_sender, action_receiver) = ipc::channel().unwrap();
+
+        event_source.droppable.set_canceller(FetchCanceller::new(
+            request.id,
+            global.core_resource_thread(),
+        ));
+
         let context = EventSourceContext {
             incomplete_utf8: None,
-
-            event_source: Trusted::new(&ev),
-            gen_id: ev.generation_id.get(),
-            action_sender: action_sender.clone(),
-
+            event_source: Trusted::new(&event_source),
+            gen_id: event_source.generation_id.get(),
             parser_state: ParserState::Eol,
             field: String::new(),
             value: String::new(),
@@ -624,29 +616,12 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
             data: String::new(),
             last_event_id: String::new(),
         };
-        let mut listener = NetworkListener {
-            context: Arc::new(Mutex::new(Some(context))),
-            task_source: global.task_manager().networking_task_source().into(),
-        };
-        ROUTER.add_typed_route(
-            action_receiver,
-            Box::new(move |message| {
-                listener.notify(message.unwrap());
-            }),
-        );
-        ev.droppable.set_canceller(FetchCanceller::new(
-            request.id,
-            global.core_resource_thread(),
-        ));
-        global
-            .core_resource_thread()
-            .send(CoreResourceMsg::Fetch(
-                request,
-                FetchChannels::ResponseMsg(action_sender),
-            ))
-            .unwrap();
+
+        let task_source = global.task_manager().networking_task_source().into();
+        global.fetch(request, context, task_source);
+
         // Step 16 Return ev.
-        Ok(ev)
+        Ok(event_source)
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-eventsource-onopen
@@ -686,23 +661,27 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
 pub(crate) struct EventSourceTimeoutCallback {
     #[ignore_malloc_size_of = "Because it is non-owning"]
     event_source: Trusted<EventSource>,
-    #[ignore_malloc_size_of = "Because it is non-owning"]
     #[no_trace]
-    action_sender: ipc::IpcSender<FetchResponseMsg>,
+    event_source_context: EventSourceContext,
 }
 
 impl EventSourceTimeoutCallback {
-    // https://html.spec.whatwg.org/multipage/#reestablish-the-connection
+    /// <https://html.spec.whatwg.org/multipage/#reestablish-the-connection>
     pub(crate) fn invoke(self) {
         let event_source = self.event_source.root();
         let global = event_source.global();
-        // Step 5.1
+
+        // Step 5.1: If the EventSource object's readyState attribute is not set to CONNECTING, then return.
         if event_source.ready_state.get() != ReadyState::Connecting {
             return;
         }
-        // Step 5.2
+
+        // Step 5.2: Let request be the EventSource object's request.
         let mut request = event_source.request();
-        // Step 5.3
+
+        // Step 5.3: If the EventSource object's last event ID string is not the empty string, then:
+        //  - Let lastEventIDValue be the EventSource object's last event ID string, encoded as UTF-8.
+        //  - Set (`Last-Event-ID`, lastEventIDValue) in request's header list.
         if !event_source.last_event_id.borrow().is_empty() {
             // TODO(eijebong): Change this once typed header support custom values
             request.headers.insert(
@@ -711,13 +690,10 @@ impl EventSourceTimeoutCallback {
                     .unwrap(),
             );
         }
-        // Step 5.4
-        global
-            .core_resource_thread()
-            .send(CoreResourceMsg::Fetch(
-                request,
-                FetchChannels::ResponseMsg(self.action_sender),
-            ))
-            .unwrap();
+
+        // Step 5.4: Fetch request and process the response obtained in this fashion, if
+        // any, as described earlier in this section.
+        let task_source = global.task_manager().networking_task_source().into();
+        global.fetch(request, self.event_source_context, task_source);
     }
 }

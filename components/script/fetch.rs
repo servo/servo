@@ -648,7 +648,7 @@ impl FetchResponseListener for FetchLaterListener {
         response: Result<ResourceFetchTiming, NetworkError>,
     ) {
         if let Ok(response) = response {
-            network_listener::submit_timing(&self, &response, CanGc::note())
+            network_listener::submit_timing(&self, &response, CanGc::note());
         }
     }
 

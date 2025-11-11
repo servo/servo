@@ -310,7 +310,7 @@ impl FetchResponseListener for ImageContext {
             FetchResponseMsg::ProcessResponseEOF(request_id, response.clone()),
         );
         if let Ok(response) = response {
-            network_listener::submit_timing(&self, &response, CanGc::note())
+            network_listener::submit_timing(&self, &response, CanGc::note());
         }
     }
 

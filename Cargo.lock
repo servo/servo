@@ -8134,6 +8134,7 @@ dependencies = [
  "unicode-script",
  "url",
  "urlpattern",
+ "utf-8",
  "uuid",
  "webrender",
  "webrender_api",

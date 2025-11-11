@@ -1031,7 +1031,7 @@ impl FetchResponseListener for FaviconFetchContext {
             FetchResponseMsg::ProcessResponseEOF(request_id, response.clone()),
         );
         if let Ok(response) = response {
-            submit_timing(&self, &response, CanGc::note())
+            submit_timing(&self, &response, CanGc::note());
         }
     }
 

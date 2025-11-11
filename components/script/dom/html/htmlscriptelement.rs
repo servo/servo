@@ -390,32 +390,37 @@ impl FetchResponseListener for ClassicContext {
         _: RequestId,
         response: Result<ResourceFetchTiming, NetworkError>,
     ) {
-        let (source_text, final_url) = match (response.as_ref(), self.status.as_ref()) {
-            (Err(err), _) | (_, Err(err)) => {
+        match (response.as_ref(), self.status.as_ref()) {
+            (Err(error), _) | (_, Err(error)) => {
                 // Step 6, response is an error.
                 finish_fetching_a_classic_script(
                     &self.elem.root(),
                     self.kind,
                     self.url.clone(),
-                    Err(NoTrace(err.clone())),
+                    Err(NoTrace(error.clone())),
                     CanGc::note(),
                 );
+
+                // Resource timing is expected to be available before "error" or "load" events are fired.
+                if let Ok(response) = &response {
+                    network_listener::submit_timing(&self, response, CanGc::note());
+                }
                 return;
             },
-            (Ok(_), Ok(_)) => {
-                let metadata = self.metadata.take().unwrap();
-
-                // Step 7.
-                let encoding = metadata
-                    .charset
-                    .and_then(|encoding| Encoding::for_label(encoding.as_bytes()))
-                    .unwrap_or(self.character_encoding);
-
-                // Step 8.
-                let (source_text, _, _) = encoding.decode(&self.data);
-                (source_text, metadata.final_url)
-            },
+            _ => {},
         };
+
+        let metadata = self.metadata.take().unwrap();
+        let final_url = metadata.final_url;
+
+        // Step 7.
+        let encoding = metadata
+            .charset
+            .and_then(|encoding| Encoding::for_label(encoding.as_bytes()))
+            .unwrap_or(self.character_encoding);
+
+        // Step 8.
+        let (source_text, _, _) = encoding.decode(&self.data);
 
         let elem = self.elem.root();
         let global = elem.global();
