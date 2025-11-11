@@ -156,9 +156,7 @@ def attribute_names(property_name: str) -> Iterator[str]:
 
 
 # https://drafts.csswg.org/cssom/#css-property-to-idl-attribute
-def camel_case(chars: str, webkit_prefixed: bool = False) -> Iterator[str]:
-    if webkit_prefixed:
-        chars = chars[1:]
+def camel_case(chars: str) -> Iterator[str]:
     next_is_uppercase = False
     for c in chars:
         if c == '-':
