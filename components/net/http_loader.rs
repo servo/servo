@@ -1270,9 +1270,6 @@ async fn http_network_or_cache_fetch(
     done_chan: &mut DoneChannel,
     context: &FetchContext,
 ) -> Response {
-    // Step 1. Let request be fetchParams’s request.
-    let request = &mut fetch_params.request;
-
     // Step 2. Let httpFetchParams be null.
     let http_fetch_params: &mut FetchParams;
     let mut fetch_params_copy: FetchParams;
@@ -1288,9 +1285,9 @@ async fn http_network_or_cache_fetch(
     // TODO(#33616): Step 8. Run these steps, but abort when fetchParams is canceled:
     // Step 8.1. If request’s traversable for user prompts is "no-traversable"
     // and request’s redirect mode is "error", then set httpFetchParams to fetchParams and httpRequest to request.
-    let http_request = if request.traversable_for_user_prompts ==
+    let http_request = if fetch_params.request.traversable_for_user_prompts ==
         TraversableForUserPrompts::NoTraversable &&
-        request.redirect_mode == RedirectMode::Error
+        fetch_params.request.redirect_mode == RedirectMode::Error
     {
         http_fetch_params = fetch_params;
         &mut http_fetch_params.request
@@ -1503,164 +1500,13 @@ async fn http_network_or_cache_fetch(
 
     // TODO(#33616) Step 8.22 If there’s a proxy-authentication entry, use it as appropriate.
 
-    // If the cache is not ready to construct a response, wait.
-    //
-    // The cache is not ready if a previous fetch checked the cache, found nothing,
-    // and moved on to a network fetch, and hasn't updated the cache yet with a pending resource.
-    //
-    // Note that this is a different workflow from the one involving `wait_for_cached_response`.
-    // That one happens when a fetch gets a cache hit, and the resource is pending completion from the network.
-    {
-        let (lock, cvar) = {
-            let entry_key = CacheKey::new(http_request);
-            let mut state_map = context.state.http_cache_state.lock().unwrap();
-            &*state_map
-                .entry(entry_key)
-                .or_insert_with(|| {
-                    Arc::new((
-                        Mutex::new(HttpCacheEntryState::ReadyToConstruct),
-                        Condvar::new(),
-                    ))
-                })
-                .clone()
-        };
-
-        // Start of critical section on http-cache state.
-        let mut state = lock.lock().unwrap();
-        while let HttpCacheEntryState::PendingStore(_) = *state {
-            let (current_state, time_out) = cvar
-                .wait_timeout(state, Duration::from_millis(500))
-                .unwrap();
-            state = current_state;
-            if time_out.timed_out() {
-                // After a timeout, ignore the pending store.
-                break;
-            }
-        }
-
-        // TODO(#33616): Step 8.23 Set httpCache to the result of determining the
-        // HTTP cache partition, given httpRequest.
-        if let Ok(http_cache) = context.state.http_cache.read() {
-            // Step 8.25.1 Set storedResponse to the result of selecting a response from the httpCache,
-            //              possibly needing validation, as per the "Constructing Responses from Caches"
-            //              chapter of HTTP Caching, if any.
-            let stored_response = http_cache.construct_response(http_request, done_chan);
-
-            // Step 8.25.2 If storedResponse is non-null, then:
-            if let Some(response_from_cache) = stored_response {
-                let response_headers = response_from_cache.response.headers.clone();
-                // Substep 1, 2, 3, 4
-                let (cached_response, needs_revalidation) =
-                    match (http_request.cache_mode, &http_request.mode) {
-                        (CacheMode::ForceCache, _) => (Some(response_from_cache.response), false),
-                        (CacheMode::OnlyIfCached, &RequestMode::SameOrigin) => {
-                            (Some(response_from_cache.response), false)
-                        },
-                        (CacheMode::OnlyIfCached, _) |
-                        (CacheMode::NoStore, _) |
-                        (CacheMode::Reload, _) => (None, false),
-                        (_, _) => (
-                            Some(response_from_cache.response),
-                            response_from_cache.needs_validation,
-                        ),
-                    };
-
-                if needs_revalidation {
-                    revalidating_flag = true;
-                    // Substep 5
-                    if let Some(http_date) = response_headers.typed_get::<LastModified>() {
-                        let http_date: SystemTime = http_date.into();
-                        http_request
-                            .headers
-                            .typed_insert(IfModifiedSince::from(http_date));
-                    }
-                    if let Some(entity_tag) = response_headers.get(header::ETAG) {
-                        http_request
-                            .headers
-                            .insert(header::IF_NONE_MATCH, entity_tag.clone());
-                    }
-                } else {
-                    // Substep 6
-                    response = cached_response;
-                    if let Some(response) = &mut response {
-                        response.cache_state = CacheState::Local;
-                    }
-                }
-                if response.is_none() {
-                    // Ensure the done chan is not set if we're not using the cached response,
-                    // as the cache might have set it to Some if it constructed a pending response.
-                    *done_chan = None;
-
-                    // Update the cache state, incrementing the pending store count,
-                    // or starting the count.
-                    if let HttpCacheEntryState::PendingStore(i) = *state {
-                        let new = i + 1;
-                        *state = HttpCacheEntryState::PendingStore(new);
-                    } else {
-                        *state = HttpCacheEntryState::PendingStore(1);
-                    }
-                }
-            }
-        }
-        // Notify the next thread waiting in line, if there is any.
-        if *state == HttpCacheEntryState::ReadyToConstruct {
-            cvar.notify_one();
-        }
-        // End of critical section on http-cache state.
-    }
-
-    // Decrement the number of pending stores,
-    // and set the state to ready to construct,
-    // if no stores are pending.
-    fn update_http_cache_state(context: &FetchContext, http_request: &Request) {
-        let (lock, cvar) = {
-            let entry_key = CacheKey::new(http_request);
-            let mut state_map = context.state.http_cache_state.lock().unwrap();
-            &*state_map
-                .get_mut(&entry_key)
-                .expect("Entry in http-cache state to have been previously inserted")
-                .clone()
-        };
-        let mut state = lock.lock().unwrap();
-        if let HttpCacheEntryState::PendingStore(i) = *state {
-            let new = i - 1;
-            if new == 0 {
-                *state = HttpCacheEntryState::ReadyToConstruct;
-                // Notify the next thread waiting in line, if there is any.
-                cvar.notify_one();
-            } else {
-                *state = HttpCacheEntryState::PendingStore(new);
-            }
-        }
-    }
-
-    async fn wait_for_cached_response(
-        done_chan: &mut DoneChannel,
-        response: &mut Option<Response>,
-    ) {
-        if let Some(ref mut ch) = *done_chan {
-            // The cache constructed a response with a body of ResponseBody::Receiving.
-            // We wait for the response in the cache to "finish",
-            // with a body of either Done or Cancelled.
-            assert!(response.is_some());
-
-            loop {
-                match ch.1.recv().await {
-                    Some(Data::Payload(_)) => {},
-                    Some(Data::Done) => break, // Return the full response as if it was initially cached as such.
-                    Some(Data::Cancelled) => {
-                        // The response was cancelled while the fetch was ongoing.
-                        // Set response to None, which will trigger a network fetch below.
-                        *response = None;
-                        break;
-                    },
-                    _ => panic!("HTTP cache should always send Done or Cancelled"),
-                }
-            }
-        }
-        // Set done_chan back to None, it's cache-related usefulness ends here.
-        *done_chan = None;
-    }
+    block_for_cache_ready(
+        context,
+        http_request,
+        done_chan,
+        &mut revalidating_flag,
+        &mut response,
+    );
 
     wait_for_cached_response(done_chan, &mut response).await;
 
@@ -1868,6 +1714,172 @@ async fn http_network_or_cache_fetch(
 
     // Step 18. Return response.
     response
+}
+
+/// If the cache is not ready to construct a response, wait.
+///
+/// The cache is not ready if a previous fetch checked the cache, found nothing,
+/// and moved on to a network fetch, and hasn't updated the cache yet with a pending resource.
+///
+/// Note that this is a different workflow from the one involving `wait_for_cached_response`.
+/// That one happens when a fetch gets a cache hit, and the resource is pending completion from the network.
+///
+fn block_for_cache_ready(
+    context: &FetchContext,
+    http_request: &mut Request,
+    done_chan: &mut DoneChannel,
+    revalidating_flag: &mut bool,
+    response: &mut Option<Response>,
+) {
+    let (lock, cvar) = {
+        let entry_key = CacheKey::new(http_request);
+        let mut state_map = context.state.http_cache_state.lock().unwrap();
+        &*state_map
+            .entry(entry_key)
+            .or_insert_with(|| {
+                Arc::new((
+                    Mutex::new(HttpCacheEntryState::ReadyToConstruct),
+                    Condvar::new(),
+                ))
+            })
+            .clone()
+    };
+
+    // Start of critical section on http-cache state.
+    let mut state = lock.lock().unwrap();
+    while let HttpCacheEntryState::PendingStore(_) = *state {
+        let (current_state, time_out) = cvar
+            .wait_timeout(state, Duration::from_millis(500))
+            .unwrap();
+        state = current_state;
+        if time_out.timed_out() {
+            // After a timeout, ignore the pending store.
+            break;
+        }
+    }
+
+    // TODO(#33616): Step 8.23 Set httpCache to the result of determining the
+    // HTTP cache partition, given httpRequest.
+    if let Ok(http_cache) = context.state.http_cache.read() {
+        // Step 8.25.1 Set storedResponse to the result of selecting a response from the httpCache,
+        //              possibly needing validation, as per the "Constructing Responses from Caches"
+        //              chapter of HTTP Caching, if any.
+        let stored_response = http_cache.construct_response(http_request, done_chan);
+
+        // Step 8.25.2 If storedResponse is non-null, then:
+        if let Some(response_from_cache) = stored_response {
+            let response_headers = response_from_cache.response.headers.clone();
+            // Substep 1, 2, 3, 4
+            let (cached_response, needs_revalidation) =
+                match (http_request.cache_mode, &http_request.mode) {
+                    (CacheMode::ForceCache, _) => (Some(response_from_cache.response), false),
+                    (CacheMode::OnlyIfCached, &RequestMode::SameOrigin) => {
+                        (Some(response_from_cache.response), false)
+                    },
+                    (CacheMode::OnlyIfCached, _) |
+                    (CacheMode::NoStore, _) |
+                    (CacheMode::Reload, _) => (None, false),
+                    (_, _) => (
+                        Some(response_from_cache.response),
+                        response_from_cache.needs_validation,
+                    ),
+                };
+
+            if needs_revalidation {
+                *revalidating_flag = true;
+                // Substep 5
+                if let Some(http_date) = response_headers.typed_get::<LastModified>() {
+                    let http_date: SystemTime = http_date.into();
+                    http_request
+                        .headers
+                        .typed_insert(IfModifiedSince::from(http_date));
+                }
+                if let Some(entity_tag) = response_headers.get(header::ETAG) {
+                    http_request
+                        .headers
+                        .insert(header::IF_NONE_MATCH, entity_tag.clone());
+                }
+            } else {
+                // Substep 6
+                *response = cached_response;
+                if let Some(response) = response {
+                    response.cache_state = CacheState::Local;
+                }
+            }
+            if response.is_none() {
+                // Ensure the done chan is not set if we're not using the cached response,
+                // as the cache might have set it to Some if it constructed a pending response.
+                *done_chan = None;
+
+                // Update the cache state, incrementing the pending store count,
+                // or starting the count.
+                if let HttpCacheEntryState::PendingStore(i) = *state {
+                    let new = i + 1;
+                    *state = HttpCacheEntryState::PendingStore(new);
+                } else {
+                    *state = HttpCacheEntryState::PendingStore(1);
+                }
+            }
+        }
+    }
+    // Notify the next thread waiting in line, if there is any.
+    if *state == HttpCacheEntryState::ReadyToConstruct {
+        cvar.notify_one();
+    }
+    // End of critical section on http-cache state.
+}
+
+/// Decrement the number of pending stores,
+/// and set the state to ready to construct,
+/// if no stores are pending.
+///
+fn update_http_cache_state(context: &FetchContext, http_request: &Request) {
+    let (lock, cvar) = {
+        let entry_key = CacheKey::new(http_request);
+        let mut state_map = context.state.http_cache_state.lock().unwrap();
+        &*state_map
+            .get_mut(&entry_key)
+            .expect("Entry in http-cache state to have been previously inserted")
+            .clone()
+    };
+    let mut state = lock.lock().unwrap();
+    if let HttpCacheEntryState::PendingStore(i) = *state {
+        let new = i - 1;
+        if new == 0 {
+            *state = HttpCacheEntryState::ReadyToConstruct;
+            // Notify the next thread waiting in line, if there is any.
+            cvar.notify_one();
+        } else {
+            *state = HttpCacheEntryState::PendingStore(new);
+        }
+    }
+}
+
+/// Wait for a cached response from channel.
+/// Happens when a fetch gets a cache hit, and the resource is pending completion from the network.
+async fn wait_for_cached_response(done_chan: &mut DoneChannel, response: &mut Option<Response>) {
+    if let Some(ref mut ch) = *done_chan {
+        // The cache constructed a response with a body of ResponseBody::Receiving.
+        // We wait for the response in the cache to "finish",
+        // with a body of either Done or Cancelled.
+        assert!(response.is_some());
+
+        loop {
+            match ch.1.recv().await {
+                Some(Data::Payload(_)) => {},
+                Some(Data::Done) => break, // Return the full response as if it was initially cached as such.
+                Some(Data::Cancelled) => {
+                    // The response was cancelled while the fetch was ongoing.
+                    // Set response to None, which will trigger a network fetch below.
+                    *response = None;
+                    break;
+                },
+                _ => panic!("HTTP cache should always send Done or Cancelled"),
+            }
+        }
+    }
+    // Set done_chan back to None, it's cache-related usefulness ends here.
+    *done_chan = None;
 }
 
 /// <https://fetch.spec.whatwg.org/#cross-origin-resource-policy-check>
