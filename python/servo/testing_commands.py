@@ -226,6 +226,7 @@ class MachCommands(CommandBase):
             "servo_config",
             "servoshell",
             "servo_url",
+            "storage",
             "xpath",
         ]
         if not packages:

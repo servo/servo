@@ -36,6 +36,9 @@ tokio-stream = "0.1"
 tokio-util = { version = "0.7.12", default-features = false, features = ["codec", "io"] }
 uuid = { workspace = true }
 
+[dev-dependencies]
+url = { workspace = true }
+
 [[test]]
 name = "main"
 path = "tests/main.rs"
