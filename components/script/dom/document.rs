@@ -5554,6 +5554,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             return Err(Error::Security);
         }
 
+        if !cookie.is_valid_for_cookie() {
+            return Ok(());
+        }
+
         let cookies = if let Some(cookie) = Cookie::parse(cookie.to_string()).ok().map(Serde) {
             vec![cookie]
         } else {

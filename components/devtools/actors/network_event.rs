@@ -578,7 +578,7 @@ impl NetworkEventActor {
             .get_all("set-cookie")
             .iter()
             .filter_map(|cookie| {
-                let cookie_str = String::from_utf8(cookie.as_bytes().to_vec()).ok()?;
+                let cookie_str = std::str::from_utf8(cookie.as_bytes()).ok()?;
                 ServoCookie::from_cookie_string(cookie_str, url, CookieSource::HTTP)
             })
             .map(|servo_cookie| {
