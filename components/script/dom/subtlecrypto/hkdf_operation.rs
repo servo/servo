@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use aws_lc_rs::hkdf;
+use hkdf::Hkdf;
+use sha1::Sha1;
+use sha2::{Sha256, Sha384, Sha512};
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsage};
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
@@ -31,44 +33,34 @@ pub(crate) fn derive_bits(
     };
 
     // Step 2. Let keyDerivationKey be the secret represented by the [[handle]] internal slot of key.
-    let key_derivation_key = key.handle().as_bytes();
-
-    // NOTE: Since https://github.com/w3c/webcrypto/pull/380, WebCrypto allows zero length in HKDF
-    // deriveBits operation. However, in Step 4 below, `output_key_material.fill(&mut result)`
-    // gives an error when length is 0. Therefore, when length is zero, we immediately returns an
-    // empty byte sequence beforehand.
-    if length == 0 {
-        return Ok(Vec::new());
-    }
+    let Handle::HkdfSecret(key_derivation_key) = key.handle() else {
+        return Err(Error::Operation);
+    };
 
     // Step 3. Let result be the result of performing the HKDF extract and then the HKDF expand
     // step described in Section 2 of [RFC5869] using:
-    // * the hash member of normalizedAlgorithm as Hash,
-    // * keyDerivationKey as the input keying material, IKM,
-    // * the salt member of normalizedAlgorithm as salt,
-    // * the info member of normalizedAlgorithm as info,
-    // * length divided by 8 as the value of L,
+    //     * the hash member of normalizedAlgorithm as Hash,
+    //     * keyDerivationKey as the input keying material, IKM,
+    //     * the salt member of normalizedAlgorithm as salt,
+    //     * the info member of normalizedAlgorithm as info,
+    //     * length divided by 8 as the value of L,
     // Step 4. If the key derivation operation fails, then throw an OperationError.
-    let mut result = vec![0; length as usize / 8];
-    let algorithm = match normalized_algorithm.hash.name.as_str() {
-        ALG_SHA1 => hkdf::HKDF_SHA1_FOR_LEGACY_USE_ONLY,
-        ALG_SHA256 => hkdf::HKDF_SHA256,
-        ALG_SHA384 => hkdf::HKDF_SHA384,
-        ALG_SHA512 => hkdf::HKDF_SHA512,
-        _ => {
-            return Err(Error::NotSupported);
-        },
-    };
-    let salt = hkdf::Salt::new(algorithm, &normalized_algorithm.salt);
-    let info = normalized_algorithm.info.as_slice();
-    let pseudo_random_key = salt.extract(key_derivation_key);
-    let Ok(output_key_material) = pseudo_random_key.expand(std::slice::from_ref(&info), algorithm)
-    else {
-        return Err(Error::Operation);
-    };
-    if output_key_material.fill(&mut result).is_err() {
-        return Err(Error::Operation);
-    };
+    let mut result = vec![0u8; length as usize / 8];
+    match normalized_algorithm.hash.name.as_str() {
+        ALG_SHA1 => Hkdf::<Sha1>::new(Some(&normalized_algorithm.salt), key_derivation_key)
+            .expand(&normalized_algorithm.info, &mut result)
+            .map_err(|_| Error::Operation)?,
+        ALG_SHA256 => Hkdf::<Sha256>::new(Some(&normalized_algorithm.salt), key_derivation_key)
+            .expand(&normalized_algorithm.info, &mut result)
+            .map_err(|_| Error::Operation)?,
+        ALG_SHA384 => Hkdf::<Sha384>::new(Some(&normalized_algorithm.salt), key_derivation_key)
+            .expand(&normalized_algorithm.info, &mut result)
+            .map_err(|_| Error::Operation)?,
+        ALG_SHA512 => Hkdf::<Sha512>::new(Some(&normalized_algorithm.salt), key_derivation_key)
+            .expand(&normalized_algorithm.info, &mut result)
+            .map_err(|_| Error::Operation)?,
+        _ => return Err(Error::Operation),
+    }
 
     // Step 5. Return result.
     Ok(result)
@@ -116,7 +108,7 @@ pub(crate) fn import_key(
             extractable,
             KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
             usages,
-            Handle::Hkdf(key_data.to_vec()),
+            Handle::HkdfSecret(key_data.to_vec()),
             can_gc,
         );
 

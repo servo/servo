@@ -38,8 +38,8 @@ pub(crate) enum Handle {
     Aes128(Vec<u8>),
     Aes192(Vec<u8>),
     Aes256(Vec<u8>),
+    HkdfSecret(Vec<u8>),
     Pbkdf2(Vec<u8>),
-    Hkdf(Vec<u8>),
     Hmac(Vec<u8>),
     Ed25519(Vec<u8>),
 }
@@ -202,7 +202,6 @@ impl Handle {
             Self::Aes192(bytes) => bytes,
             Self::Aes256(bytes) => bytes,
             Self::Pbkdf2(bytes) => bytes,
-            Self::Hkdf(bytes) => bytes,
             Self::Hmac(bytes) => bytes,
             Self::Ed25519(bytes) => bytes,
             _ => unreachable!(),
@@ -224,8 +223,8 @@ impl MallocSizeOf for Handle {
             Handle::Aes128(bytes) => bytes.size_of(ops),
             Handle::Aes192(bytes) => bytes.size_of(ops),
             Handle::Aes256(bytes) => bytes.size_of(ops),
+            Handle::HkdfSecret(secret) => secret.size_of(ops),
             Handle::Pbkdf2(bytes) => bytes.size_of(ops),
-            Handle::Hkdf(bytes) => bytes.size_of(ops),
             Handle::Hmac(bytes) => bytes.size_of(ops),
             Handle::Ed25519(bytes) => bytes.size_of(ops),
         }
