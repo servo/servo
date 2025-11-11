@@ -7,12 +7,10 @@ from selenium.webdriver.common.by import By
 
 def operator():
     # Step 1. Open mossel
-    cmd_start_servo = [
-        f'hdc shell aa force-stop org.servo.servo',
-        f'hdc shell aa start -a EntryAbility -b org.servo.servo -U https://m.huaweimossel.com --psn --webdriver',
-    ]
-    for cmd in cmd_start_servo:
-        subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
+    subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    cmd = ["hdc", "shell", "aa start -a EntryAbility -b org.servo.servo -U https://m.huaweimossel.com --psn --webdriver"]
+    subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     time.sleep(10)
 
     driver = common_function_for_servo_test.setup_hdc_forward()
@@ -24,18 +22,18 @@ def operator():
         time.sleep(1)
 
         # Step 3. Click 'Categories'
-        cmd = 'hdc shell "uinput -T -c 380 2556"'
+        cmd = ["hdc", "shell", "uinput -T -c 380 2556"]
         subprocess.run(cmd, capture_output=True, text=True, timeout=10)
         time.sleep(5)
 
         # Step 4. Check sliding effect
         before = driver.get_screenshot_as_base64()
-        cmd = 'hdc shell "uinput -T -m 770 2000 770 930"'
+        cmd = ["hdc", "shell", "uinput -T -m 770 2000 770 930"]
         subprocess.run(cmd, capture_output=True, text=True, timeout=10)
         time.sleep(5)
         after = driver.get_screenshot_as_base64()
 
-        cmd = 'hdc shell aa force-stop org.servo.servo'
+        cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
         subprocess.run(cmd, capture_output=True, text=True, timeout=10)
 
         if before == after:

@@ -7,13 +7,10 @@ from selenium.webdriver.common.by import By
 
 def operator():
     # Step 1. Open mossel
-    cmd_start_servo = [
-        f'hdc shell aa force-stop org.servo.servo',
-        f'hdc shell aa start -a EntryAbility -b org.servo.servo -U https://m.huaweimossel.com --psn --webdriver',
-    ]
-
-    for cmd in cmd_start_servo:
-        subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
+    subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    cmd = ["hdc", "shell", "aa start -a EntryAbility -b org.servo.servo -U https://m.huaweimossel.com --psn --webdriver"]
+    subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     time.sleep(10)
 
     driver = common_function_for_servo_test.setup_hdc_forward()
@@ -30,11 +27,11 @@ def operator():
         try:
             driver.find_element(By.CSS_SELECTOR,
                                      "#app > uni-app > uni-page > uni-page-wrapper > uni-page-body > uni-view > uni-view.idx-swiper.m-bgWhite.m-main > uni-scroll-view:nth-child(1) > div > div > div > uni-view:nth-child(3)")
-            cmd = 'hdc shell aa force-stop org.servo.servo'
+            cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
             subprocess.run(cmd, capture_output=True, text=True, timeout=10)
             return True
         except:
-            cmd = 'hdc shell aa force-stop org.servo.servo'
+            cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
             subprocess.run(cmd, capture_output=True, text=True, timeout=10)
             return False
     else:
