@@ -19,7 +19,6 @@ use script_bindings::str::DOMString;
 use style::Atom;
 use style::dom::OpaqueNode;
 
-use crate::dom::node::PrecedingNodeIterator;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::XPathNSResolverBinding::XPathNSResolver;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -28,7 +27,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::comment::Comment;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
-use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
+use crate::dom::node::{Node, NodeTraits, PrecedingNodeIterator, ShadowIncluding};
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::text::Text;
 
@@ -336,11 +335,7 @@ fn previous_non_ancestor_node(node: &Node) -> Option<DomRoot<Node>> {
             return Some(previous_sibling);
         }
 
-        let Some(parent) = current.GetParentNode() else {
-            return None;
-        };
-
-        current = parent;
+        current = current.GetParentNode()?;
     }
 }
 
@@ -351,7 +346,10 @@ impl PrecedingNodeIteratorWithoutAncestors {
         };
 
         Self::NotDone {
-            subtree_iterator: current.descending_last_children().last().map(|node| node.preceding_nodes(&current)),
+            subtree_iterator: current
+                .descending_last_children()
+                .last()
+                .map(|node| node.preceding_nodes(&current)),
             current,
         }
     }
@@ -369,13 +367,16 @@ impl Iterator for PrecedingNodeIteratorWithoutAncestors {
             return None;
         };
 
-        if let Some(next_node) = subtree_iterator.as_mut().and_then(|iterator| iterator.next()) {
+        if let Some(next_node) = subtree_iterator
+            .as_mut()
+            .and_then(|iterator| iterator.next())
+        {
             return Some(next_node);
         }
 
         // Our current subtree is exhausted. Return the root of the subtree and move on to the next one
         // in inverse tree order.
-        let Some(next_subtree) = previous_non_ancestor_node(&current) else {
+        let Some(next_subtree) = previous_non_ancestor_node(current) else {
             let current = current.to_owned();
             *self = Self::Done;
             return Some(current);
@@ -383,7 +384,10 @@ impl Iterator for PrecedingNodeIteratorWithoutAncestors {
 
         let to_return = current.clone();
         *current = next_subtree;
-        *subtree_iterator = current.descending_last_children().last().map(|node| node.preceding_nodes(&current));
+        *subtree_iterator = current
+            .descending_last_children()
+            .last()
+            .map(|node| node.preceding_nodes(current));
 
         Some(to_return)
     }

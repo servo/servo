@@ -228,10 +228,10 @@ mod dummy_implementation {
         fn inclusive_ancestors(&self) -> impl Iterator<Item = Self> {
             iter::empty()
         }
-        fn preceding_nodes(&self, _: &Self) -> impl Iterator<Item = Self> {
+        fn preceding_nodes(&self) -> impl Iterator<Item = Self> {
             iter::empty()
         }
-        fn following_nodes(&self, _: &Self) -> impl Iterator<Item = Self> {
+        fn following_nodes(&self) -> impl Iterator<Item = Self> {
             iter::empty()
         }
         fn preceding_siblings(&self) -> impl Iterator<Item = Self> {
