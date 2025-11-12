@@ -1385,8 +1385,7 @@ impl IndependentFormattingContext {
         };
 
         let justify_self = resolve_justify_self(style, containing_block.style);
-        let automatic_inline_size =
-            automatic_inline_size(justify_self, is_table, self.is_replaced());
+        let automatic_inline_size = automatic_inline_size(justify_self, Some(self));
         let compute_inline_size = |stretch_size| {
             content_box_sizes.inline.resolve(
                 Direction::Inline,
@@ -1728,10 +1727,9 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         ))
     };
     let justify_self = resolve_justify_self(style, containing_block.style);
-    let is_replaced = context.is_some_and(|context| context.is_replaced());
     let inline_size = content_box_sizes.inline.resolve(
         Direction::Inline,
-        automatic_inline_size(justify_self, is_table, is_replaced),
+        automatic_inline_size(justify_self, context),
         Au::zero,
         Some(available_inline_size),
         get_inline_content_sizes,
@@ -1830,13 +1828,21 @@ fn resolve_justify_self(style: &ComputedValues, parent_style: &ComputedValues) -
 #[inline]
 fn automatic_inline_size<T>(
     justify_self: AlignFlags,
-    is_table: bool,
-    is_replaced: bool,
+    context: Option<&IndependentFormattingContext>,
 ) -> Size<T> {
-    // TODO: Normal alignment shouldn't stretch widgets.
+    let normal_stretches = || {
+        !context.is_some_and(|context| {
+            context
+                .base
+                .base_fragment_info
+                .flags
+                .intersects(FragmentFlags::IS_REPLACED | FragmentFlags::IS_WIDGET) ||
+                context.is_table()
+        })
+    };
     match justify_self {
         AlignFlags::STRETCH => Size::Stretch,
-        AlignFlags::NORMAL if !is_table && !is_replaced => Size::Stretch,
+        AlignFlags::NORMAL if normal_stretches() => Size::Stretch,
         _ => Size::FitContent,
     }
 }

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Box Alignment: justify-self on block-level widgets</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-align/#justify-block">
+<link rel="help" href="https://drafts.csswg.org/css-ui/#widget">
+<link rel="match" href="justify-self-widgets-ref.html">
+<meta name="assert" content="
+On block-level widgets:
+  - `justify-self: normal` behaves as `start` (not as `stretch`!).
+  - `justify-self: start` aligns to the start.
+  - `justify-self: end` aligns to the end.
+  - `justify-self: stretch` stretches the size to fill the containing block.
+">
+
+<style>
+.widget {
+  display: block;
+  width: auto;
+  box-sizing: border-box;
+}
+</style>
+
+<input class="widget" style="justify-self: normal">
+<input class="widget" style="justify-self: start">
+<input class="widget" style="justify-self: end">
+<input class="widget" style="justify-self: stretch">
+
+<select class="widget" style="justify-self: normal"></select>
+<select class="widget" style="justify-self: start"></select>
+<select class="widget" style="justify-self: end"></select>
+<select class="widget" style="justify-self: stretch"></select>
+
+<textarea class="widget" style="justify-self: normal"></textarea>
+<textarea class="widget" style="justify-self: start"></textarea>
+<textarea class="widget" style="justify-self: end"></textarea>
+<textarea class="widget" style="justify-self: stretch"></textarea>

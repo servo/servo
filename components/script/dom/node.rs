@@ -119,6 +119,7 @@ use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::range::WeakRangeVec;
 use crate::dom::raredata::NodeRareData;
+use crate::dom::servoparser::html::HtmlSerialize;
 use crate::dom::servoparser::{ServoParser, serialize_html_fragment};
 use crate::dom::shadowroot::{IsUserAgentWidget, LayoutShadowRootHelpers, ShadowRoot};
 use crate::dom::svg::svgsvgelement::{LayoutSVGSVGElementHelpers, SVGSVGElement};
@@ -952,6 +953,8 @@ impl Node {
         }
     }
 
+    /// Return an iterator that moves from `self` down the tree, choosing the last child
+    /// at each step of the way.
     pub(crate) fn descending_last_children(&self) -> impl Iterator<Item = DomRoot<Node>> + use<> {
         SimpleNodeIterator {
             current: self.GetLastChild(),
@@ -3241,7 +3244,7 @@ impl Node {
         let mut writer = vec![];
         xml_serialize::serialize(
             &mut writer,
-            &self,
+            &HtmlSerialize::new(self),
             xml_serialize::SerializeOpts { traversal_scope },
         )
         .map_err(|error| {

@@ -261,16 +261,8 @@ impl LocationStepExpression {
                 .flatten()
                 .collect(),
             Axis::Ancestor => context.context_node.inclusive_ancestors().skip(1).collect(),
-            Axis::Following => context
-                .context_node
-                .following_nodes(&context.context_node)
-                .skip(1)
-                .collect(),
-            Axis::Preceding => context
-                .context_node
-                .preceding_nodes(&context.context_node)
-                .skip(1)
-                .collect(),
+            Axis::Following => context.context_node.following_nodes().skip(1).collect(),
+            Axis::Preceding => context.context_node.preceding_nodes().skip(1).collect(),
             Axis::FollowingSibling => context.context_node.following_siblings().collect(),
             Axis::PrecedingSibling => context.context_node.preceding_siblings().collect(),
             Axis::Attribute => {
