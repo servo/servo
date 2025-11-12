@@ -28,7 +28,6 @@ use net_traits::{
     CoreResourceThread, FetchMetadata, FilteredMetadata, NetworkError, ResourceFetchTiming,
 };
 use pixels::RasterImage;
-use script_bindings::codegen::GenericBindings::TimeRangesBinding::TimeRangesMethods;
 use script_bindings::codegen::InheritTypes::{
     ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId, NodeTypeId,
 };
@@ -1769,7 +1768,7 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-seek>
-    fn seek(&self, time: f64, _approximate_for_speed: bool, can_gc: CanGc) {
+    fn seek(&self, time: f64, _approximate_for_speed: bool) {
         // Step 1.
         self.show_poster.set(false);
 
@@ -1797,17 +1796,17 @@ impl HTMLMediaElement {
         let time = f64::max(time, 0.);
 
         // Step 8.
-        let seekable = self.Seekable(can_gc);
-        if seekable.Length() == 0 {
+        let seekable = self.seekable();
+        if seekable.is_empty() {
             self.seeking.set(false);
             return;
         }
         let mut nearest_seekable_position = 0.0;
         let mut in_seekable_range = false;
         let mut nearest_seekable_distance = f64::MAX;
-        for i in 0..seekable.Length() {
-            let start = seekable.Start(i).unwrap().abs();
-            let end = seekable.End(i).unwrap().abs();
+        for i in 0..seekable.len() {
+            let start = seekable.start(i).unwrap().abs();
+            let end = seekable.end(i).unwrap().abs();
             if time >= start && time <= end {
                 nearest_seekable_position = time;
                 in_seekable_range = true;
@@ -2000,14 +1999,13 @@ impl HTMLMediaElement {
         }
     }
 
-    fn end_of_playback_in_forwards_direction(&self, can_gc: CanGc) {
+    fn end_of_playback_in_forwards_direction(&self) {
         // Step 1. If the media element has a loop attribute specified, then seek to the earliest
         // posible position of the media resource and return.
         if self.Loop() {
             self.seek(
                 self.earliest_possible_position(),
-                /* approximate_for_speed*/ false,
-                can_gc,
+                /* approximate_for_speed */ false,
             );
             return;
         }
@@ -2050,10 +2048,10 @@ impl HTMLMediaElement {
         self.change_ready_state(ReadyState::HaveCurrentData);
     }
 
-    fn playback_end(&self, can_gc: CanGc) {
+    fn playback_end(&self) {
         // https://html.spec.whatwg.org/multipage/#reaches-the-end
         match self.direction_of_playback() {
-            PlaybackDirection::Forwards => self.end_of_playback_in_forwards_direction(can_gc),
+            PlaybackDirection::Forwards => self.end_of_playback_in_forwards_direction(),
 
             PlaybackDirection::Backwards => {
                 if self.playback_position.get() <= self.earliest_possible_position() {
@@ -2248,8 +2246,7 @@ impl HTMLMediaElement {
         if self.default_playback_start_position.get() > 0. {
             self.seek(
                 self.default_playback_start_position.get(),
-                /* approximate_for_speed*/ false,
-                can_gc,
+                /* approximate_for_speed */ false,
             );
             jumped = true;
         }
@@ -2264,7 +2261,10 @@ impl HTMLMediaElement {
                 if start > 0. && start < self.duration.get() {
                     self.playback_position.set(start);
                     if !jumped {
-                        self.seek(self.playback_position.get(), false, can_gc)
+                        self.seek(
+                            self.playback_position.get(),
+                            /* approximate_for_speed */ false,
+                        )
                     }
                 }
             }
@@ -2291,7 +2291,7 @@ impl HTMLMediaElement {
         }
     }
 
-    fn playback_need_data(&self, can_gc: CanGc) {
+    fn playback_need_data(&self) {
         // The player needs more data.
         // If we already have a valid fetch request, we do nothing.
         // Otherwise, if we have no request and the previous request was
@@ -2305,7 +2305,10 @@ impl HTMLMediaElement {
                 // seeking to the current playback position for now which will create
                 // a new fetch request for the last rendered frame.
                 if *reason == CancelReason::Backoff {
-                    self.seek(self.playback_position.get(), false, can_gc);
+                    self.seek(
+                        self.playback_position.get(),
+                        /* approximate_for_speed */ false,
+                    );
                 }
                 return;
             }
@@ -2411,13 +2414,13 @@ impl HTMLMediaElement {
         }
 
         match *event {
-            PlayerEvent::EndOfStream => self.playback_end(can_gc),
+            PlayerEvent::EndOfStream => self.playback_end(),
             PlayerEvent::Error(ref error) => self.playback_error(error, can_gc),
             PlayerEvent::VideoFrameUpdated => self.playback_video_frame_updated(),
             PlayerEvent::MetadataUpdated(ref metadata) => {
                 self.playback_metadata_updated(metadata, can_gc)
             },
-            PlayerEvent::NeedData => self.playback_need_data(can_gc),
+            PlayerEvent::NeedData => self.playback_need_data(),
             PlayerEvent::EnoughData => self.playback_enough_data(),
             PlayerEvent::PositionChanged(position) => self.playback_position_changed(position),
             PlayerEvent::SeekData(p, ref seek_lock) => {
@@ -2428,10 +2431,21 @@ impl HTMLMediaElement {
         }
     }
 
+    fn seekable(&self) -> TimeRangesContainer {
+        let mut seekable = TimeRangesContainer::default();
+        if let Some(ref player) = *self.player.borrow() {
+            if let Ok(ranges) = player.lock().unwrap().seekable() {
+                for range in ranges {
+                    let _ = seekable.add(range.start, range.end);
+                }
+            }
+        }
+        seekable
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#earliest-possible-position>
     fn earliest_possible_position(&self) -> f64 {
-        self.played
-            .borrow()
+        self.seekable()
             .start(0)
             .unwrap_or_else(|_| self.playback_position.get())
     }
@@ -2776,7 +2790,6 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
             self.seek(
                 self.earliest_possible_position(),
                 /* approximate_for_speed */ false,
-                can_gc,
             );
         }
 
@@ -2913,12 +2926,12 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-currenttime>
-    fn SetCurrentTime(&self, time: Finite<f64>, can_gc: CanGc) {
+    fn SetCurrentTime(&self, time: Finite<f64>) {
         if self.ready_state.get() == ReadyState::HaveNothing {
             self.default_playback_start_position.set(*time);
         } else {
             self.playback_position.set(*time);
-            self.seek(*time, /* approximate_for_speed */ false, can_gc);
+            self.seek(*time, /* approximate_for_speed */ false);
         }
     }
 
@@ -2942,8 +2955,8 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-fastseek>
-    fn FastSeek(&self, time: Finite<f64>, can_gc: CanGc) {
-        self.seek(*time, /* approximate_for_speed */ true, can_gc);
+    fn FastSeek(&self, time: Finite<f64>) {
+        self.seek(*time, /* approximate_for_speed */ true);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-played>
@@ -2957,15 +2970,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-seekable>
     fn Seekable(&self, can_gc: CanGc) -> DomRoot<TimeRanges> {
-        let mut seekable = TimeRangesContainer::default();
-        if let Some(ref player) = *self.player.borrow() {
-            if let Ok(ranges) = player.lock().unwrap().seekable() {
-                for range in ranges {
-                    let _ = seekable.add(range.start, range.end);
-                }
-            }
-        }
-        TimeRanges::new(self.global().as_window(), seekable, can_gc)
+        TimeRanges::new(self.global().as_window(), self.seekable(), can_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-buffered>
