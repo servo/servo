@@ -21,33 +21,35 @@ from selenium.webdriver.common.options import ArgOptions
 WEBDRIVER_PORT = 7000
 SERVO_URL = f"http://127.0.0.1:{WEBDRIVER_PORT}"
 
+
 def calculate_frame_rate():
     """
     Pull trace from device and calculate frame rate through trace
     calculate frame rate: When there are elements moving on the page, H: EndCommands will be printed to indicate that the frame is being sent out. After capturing the trace, the frame rate can be obtained by calculating the number of frames printed per unit time (per second).
     :return: frame rate
     """
-    target_path = os.path.join(pathlib.Path(os.path.dirname(__file__)).parent.parent.parent, 'target')
+    target_path = os.path.join(pathlib.Path(os.path.dirname(__file__)).parent.parent.parent, "target")
     os.makedirs(target_path, exist_ok=True)
-    ci_testing_path = os.path.join(target_path, 'ci_testing')
+    ci_testing_path = os.path.join(target_path, "ci_testing")
     os.makedirs(ci_testing_path, exist_ok=True)
 
-    file_name = os.path.join(ci_testing_path, 'my_trace.html')
+    file_name = os.path.join(ci_testing_path, "my_trace.html")
     cmd = ["hdc", "file", "recv", "/data/local/tmp/my_trace.html", f"{file_name}"]
     subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     commands_list = []
-    with open(file_name, 'r') as f:
+    with open(file_name, "r") as f:
         for line in f.readlines():
-            if len(re.findall(r'org.servo.servo', line)) > 0 and len(re.findall(r'H:SendCommands', line)) > 0:
+            if len(re.findall(r"org.servo.servo", line)) > 0 and len(re.findall(r"H:SendCommands", line)) > 0:
                 commands_list.append(line)
-    start_time = commands_list[0].split()[5].split(':')[0]
-    end_time = commands_list[-1].split()[5].split(':')[0]
+    start_time = commands_list[0].split()[5].split(":")[0]
+    end_time = commands_list[-1].split()[5].split(":")[0]
     interval_time = Decimal(end_time) - Decimal(start_time)
     shutil.rmtree(target_path)
     if round(float(len(commands_list) / interval_time), 2) > 120.00:
         return 120.00
     else:
         return round(float(len(commands_list) / interval_time), 2)
+
 
 def setup_hdc_forward():
     """
