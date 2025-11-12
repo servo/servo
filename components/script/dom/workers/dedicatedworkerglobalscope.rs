@@ -402,13 +402,7 @@ impl DedicatedWorkerGlobalScope {
                 };
 
                 let runtime = unsafe {
-                    let task_source = SendableTaskSource {
-                        sender: event_loop_sender.clone(),
-                        pipeline_id,
-                        name: TaskSourceName::Networking,
-                        canceller: Default::default(),
-                    };
-                    Runtime::new_with_parent(Some(parent), Some(task_source))
+                    Runtime::new_with_parent(Some(parent), Some(event_loop_sender.clone()))
                 };
                 let debugger_global = DebuggerGlobalScope::new(
                     pipeline_id,
