@@ -42,7 +42,7 @@ use constellation_traits::{
     ScriptToConstellationChan, ScriptToConstellationMessage, StructuredSerializedData,
     WindowSizeType,
 };
-use crossbeam_channel::{Receiver, Sender, unbounded};
+use crossbeam_channel::unbounded;
 use data_url::mime::Mime;
 use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
@@ -425,7 +425,7 @@ impl ScriptThreadFactory for ScriptThread {
         layout_factory: Arc<dyn LayoutFactory>,
         image_cache_factory: Arc<dyn ImageCacheFactory>,
         background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
-    ) -> (Receiver<()>, JoinHandle<()>) {
+    ) -> JoinHandle<()> {
         // TODO: This should be replaced with some sort of per-ScriptThread id. It doesn't make
         // sense to associate a ScriptThread with an ephemeral Pipeline.
         let pipeline_id = new_pipeline_info.new_pipeline_id;
@@ -437,10 +437,7 @@ impl ScriptThreadFactory for ScriptThread {
         // Idempotent in single-process mode.
         PipelineNamespace::set_installer_sender(state.namespace_request_sender.clone());
 
-        // TOOD: Can this just be replaced with the `JoinHandle` that this function also returns?
-        let (content_process_shutdown_sender, content_process_shutdown_receiver) = unbounded();
-
-        let join_handle = thread::Builder::new()
+        thread::Builder::new()
             .name(format!("Script{:?}", pipeline_id))
             .spawn(move || {
                 thread_state::initialize(ThreadState::SCRIPT | ThreadState::LAYOUT);
@@ -465,7 +462,6 @@ impl ScriptThreadFactory for ScriptThread {
                     layout_factory,
                     image_cache_factory,
                     background_hang_monitor_register,
-                    content_process_shutdown_sender,
                     webview_id,
                     pipeline_id,
                 );
@@ -479,14 +475,7 @@ impl ScriptThreadFactory for ScriptThread {
                 script_thread.pre_page_load(in_progress_load);
 
                 memory_profiler_sender.run_with_memory_reporting(
-                    || {
-                        script_thread.start(CanGc::note());
-
-                        let _ = script_thread
-                            .senders
-                            .content_process_shutdown_sender
-                            .send(());
-                    },
+                    || script_thread.start(CanGc::note()),
                     reporter_name,
                     ScriptEventLoopSender::MainThread(script_thread.senders.self_sender.clone()),
                     CommonScriptMsg::CollectReports,
@@ -495,8 +484,7 @@ impl ScriptThreadFactory for ScriptThread {
                 // This must always be the very last operation performed before the thread completes
                 failsafe.neuter();
             })
-            .expect("Thread spawning failed");
-        (content_process_shutdown_receiver, join_handle)
+            .expect("Thread spawning failed")
     }
 }
 
@@ -879,7 +867,6 @@ impl ScriptThread {
         layout_factory: Arc<dyn LayoutFactory>,
         image_cache_factory: Arc<dyn ImageCacheFactory>,
         background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
-        content_process_shutdown_sender: Sender<()>,
         webview_id: WebViewId,
         pipeline_id: PipelineId,
     ) -> ScriptThread {
@@ -952,7 +939,6 @@ impl ScriptThread {
             memory_profiler_sender: state.memory_profiler_sender,
             devtools_server_sender,
             devtools_client_to_script_thread_sender: ipc_devtools_sender,
-            content_process_shutdown_sender,
         };
 
         let microtask_queue = runtime.microtask_queue.clone();

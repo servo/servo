@@ -25,7 +25,6 @@ use base::generic_channel::GenericSender;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use bitflags::bitflags;
 use compositing_traits::CrossProcessCompositorApi;
-use crossbeam_channel::Receiver;
 use embedder_traits::{Cursor, Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::Point2D;
 use euclid::default::{Point2D as UntypedPoint2D, Rect};
@@ -367,7 +366,7 @@ pub trait ScriptThreadFactory {
         layout_factory: Arc<dyn LayoutFactory>,
         image_cache_factory: Arc<dyn ImageCacheFactory>,
         background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
-    ) -> (Receiver<()>, JoinHandle<()>);
+    ) -> JoinHandle<()>;
 }
 
 /// Type of the area of CSS box for query.
