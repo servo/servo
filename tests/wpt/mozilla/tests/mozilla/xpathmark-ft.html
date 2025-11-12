@@ -301,6 +301,15 @@ function run_tests(xml_document) {
     {
       "query": "//*[boolean(@id) = true() and boolean(@idrefs) = false()]",
       "expected": [n[1], n[2], n[3], n[4], n[5], n[6], n[7], n[9], n[10], n[11], n[12], n[13], n[14], n[15], n[16], n[18], n[19], n[20], n[21], n[22], n[23], n[24], n[25]]
+    },
+    // Tests added by servo developers
+    {
+      "query": "(//L/preceding::*)[7]",
+      "expected": [n[9]]
+    },
+    {
+      "query": "//L/preceding::*[last()]",
+      "expected": [n[2]]
     }
   ];
 
