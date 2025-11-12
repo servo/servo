@@ -67,14 +67,18 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
         let (sender, receiver) =
             generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
 
-        self.send_storage_msg(WebStorageThreadMsg::Length(
-            sender,
-            self.storage_type,
-            self.webview_id(),
-            self.get_url(),
-        ))
-        .unwrap();
-        receiver.recv().unwrap() as u32
+        if self
+            .send_storage_msg(WebStorageThreadMsg::Length(
+                sender,
+                self.storage_type,
+                self.webview_id(),
+                self.get_url(),
+            ))
+            .is_err()
+        {
+            return 0;
+        }
+        receiver.recv().unwrap_or_default() as u32
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-storage-key>
@@ -89,8 +93,8 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
             self.get_url(),
             index,
         ))
-        .unwrap();
-        receiver.recv().unwrap().map(DOMString::from)
+        .ok()?;
+        receiver.recv().ok()?.map(DOMString::from)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-storage-getitem>
@@ -106,8 +110,8 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
             self.get_url(),
             name,
         );
-        self.send_storage_msg(msg).unwrap();
-        receiver.recv().unwrap().map(DOMString::from)
+        self.send_storage_msg(msg).ok()?;
+        receiver.recv().ok()?.map(DOMString::from)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-storage-setitem>
@@ -125,8 +129,8 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
             name.clone(),
             value.clone(),
         );
-        self.send_storage_msg(msg).unwrap();
-        match receiver.recv().unwrap() {
+        self.send_storage_msg(msg).map_err(|_| Error::Operation)?;
+        match receiver.recv().map_err(|_| Error::Operation)? {
             Err(_) => Err(Error::QuotaExceeded {
                 quota: None,
                 requested: None,
@@ -153,9 +157,10 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
             self.get_url(),
             name.clone(),
         );
-        self.send_storage_msg(msg).unwrap();
-        if let Some(old_value) = receiver.recv().unwrap() {
-            self.broadcast_change_notification(Some(name), Some(old_value), None);
+        if self.send_storage_msg(msg).is_ok() {
+            if let Ok(Some(old_value)) = receiver.recv() {
+                self.broadcast_change_notification(Some(name), Some(old_value), None);
+            }
         }
     }
 
@@ -181,16 +186,20 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
         let time_profiler = self.global().time_profiler_chan().clone();
         let (sender, receiver) = generic_channel::channel(time_profiler).unwrap();
 
-        self.send_storage_msg(WebStorageThreadMsg::Keys(
-            sender,
-            self.storage_type,
-            self.webview_id(),
-            self.get_url(),
-        ))
-        .unwrap();
+        if self
+            .send_storage_msg(WebStorageThreadMsg::Keys(
+                sender,
+                self.storage_type,
+                self.webview_id(),
+                self.get_url(),
+            ))
+            .is_err()
+        {
+            return vec![];
+        }
         receiver
             .recv()
-            .unwrap()
+            .unwrap_or_default()
             .into_iter()
             .map(DOMString::from)
             .collect()
@@ -223,10 +232,7 @@ impl Storage {
         let msg = ScriptToConstellationMessage::BroadcastStorageEvent(
             storage, url, key, old_value, new_value,
         );
-        self.global()
-            .script_to_constellation_chan()
-            .send(msg)
-            .unwrap();
+        let _ = self.global().script_to_constellation_chan().send(msg);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#send-a-storage-notification>
