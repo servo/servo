@@ -413,7 +413,6 @@ pub(crate) mod texttrack;
 pub(crate) mod texttrackcue;
 pub(crate) mod texttrackcuelist;
 pub(crate) mod texttracklist;
-#[expect(dead_code)]
 pub(crate) mod timeranges;
 pub(crate) mod toggleevent;
 pub(crate) mod touch;
