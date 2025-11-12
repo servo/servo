@@ -2354,6 +2354,15 @@ fn normalize_algorithm(
             // "subtle" binding structs.
             let normalized_algorithm = match (alg_name, op) {
                 // <https://w3c.github.io/webcrypto/#ecdsa-registration>
+                (ALG_ECDSA, Operation::Sign) => {
+                    let mut params = dictionary_from_jsval::<RootedTraceableBox<EcdsaParams>>(
+                        cx,
+                        value.handle(),
+                        can_gc,
+                    )?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::EcdsaParams(params.try_into()?)
+                },
                 (ALG_ECDSA, Operation::Verify) => {
                     let mut params = dictionary_from_jsval::<RootedTraceableBox<EcdsaParams>>(
                         cx,
@@ -2820,6 +2829,10 @@ impl NormalizedAlgorithm {
             NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
                 ALG_ED25519 => ed25519_operation::sign(key, message),
                 ALG_HMAC => hmac_operation::sign(key, message),
+                _ => Err(Error::NotSupported),
+            },
+            NormalizedAlgorithm::EcdsaParams(algo) => match algo.name.as_str() {
+                ALG_ECDSA => ecdsa_operation::sign(algo, key, message),
                 _ => Err(Error::NotSupported),
             },
             _ => Err(Error::NotSupported),
