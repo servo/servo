@@ -620,6 +620,7 @@ impl VirtualMethods for ShadowRoot {
 pub(crate) trait LayoutShadowRootHelpers<'dom> {
     fn get_host_for_layout(self) -> LayoutDom<'dom, Element>;
     fn get_style_data_for_layout(self) -> &'dom CascadeData;
+    fn is_ua_widget(self) -> bool;
     unsafe fn flush_stylesheets<E: TElement>(
         self,
         stylist: &mut Stylist,
@@ -640,6 +641,12 @@ impl<'dom> LayoutShadowRootHelpers<'dom> for LayoutDom<'dom, ShadowRoot> {
         fn is_sync<T: Sync>() {}
         let _ = is_sync::<CascadeData>;
         unsafe { &self.unsafe_get().author_styles.borrow_for_layout().data }
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    fn is_ua_widget(self) -> bool {
+        { self.unsafe_get().is_user_agent_widget() }
     }
 
     // FIXME(nox): This uses the dreaded borrow_mut_for_layout so this should

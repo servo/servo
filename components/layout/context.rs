@@ -26,6 +26,8 @@ use style::dom::OpaqueNode;
 use style::values::computed::image::{Gradient, Image};
 use webrender_api::units::{DeviceIntSize, DeviceSize};
 
+use crate::replaced::ReplacedContents;
+
 pub(crate) type CachedImageOrError = Result<CachedImage, ResolveImageError>;
 
 pub(crate) struct LayoutContext<'a> {
@@ -85,6 +87,9 @@ pub(crate) struct ImageResolver {
 
     /// A list of in-progress image loads to be shared with the script thread.
     pub pending_images: Mutex<Vec<PendingImage>>,
+
+    /// A list of Image Key with node id and size that would be used for fragment generation.
+    pub video_content: Mutex<HashMap<OpaqueNode, ReplacedContents>>,
 
     /// A list of fully loaded vector images that need to be rasterized to a specific
     /// size determined by layout. This will be shared with the script thread.

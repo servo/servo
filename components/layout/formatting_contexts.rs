@@ -94,6 +94,12 @@ impl IndependentFormattingContext {
                 non_replaced_contents
             },
             Contents::NonReplaced(non_replaced_contents) => non_replaced_contents,
+            Contents::ReplacedWithWidget(non_replaced_contents) => {
+                base_fragment_info
+                    .flags
+                    .insert(FragmentFlags::IS_WIDGET | FragmentFlags::IS_REPLACED);
+                non_replaced_contents
+            },
         };
         let contents = match display_inside {
             DisplayInside::Flow { is_list_item } | DisplayInside::FlowRoot { is_list_item } => {
@@ -269,6 +275,35 @@ impl IndependentFormattingContext {
         preferred_aspect_ratio: Option<AspectRatio>,
         lazy_block_size: &LazySize,
     ) -> CacheableLayoutResult {
+        if self
+            .base
+            .base_fragment_info
+            .flags
+            .contains(FragmentFlags::IS_REPLACED | FragmentFlags::IS_WIDGET)
+        {
+            let video_content_lock = layout_context.image_resolver.video_content.lock();
+            let replaced_contents =
+                video_content_lock.get(&self.base.base_fragment_info.tag.as_ref().unwrap().node);
+            if let Some(replaced) = replaced_contents {
+                let mut layout_result = replaced.layout(
+                    layout_context,
+                    containing_block_for_children,
+                    preferred_aspect_ratio,
+                    &self.base,
+                    lazy_block_size,
+                );
+                if let IndependentFormattingContextContents::Flow(bfc) = &self.contents {
+                    let mut flow_layout = bfc.layout(
+                        layout_context,
+                        positioning_context,
+                        containing_block_for_children,
+                    );
+                    layout_result.fragments.append(&mut flow_layout.fragments);
+                    return layout_result;
+                };
+                return layout_result;
+            }
+        }
         match &self.contents {
             IndependentFormattingContextContents::Replaced(replaced) => replaced.layout(
                 layout_context,

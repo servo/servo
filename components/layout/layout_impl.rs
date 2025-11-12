@@ -892,6 +892,7 @@ impl LayoutThread {
             image_cache: self.image_cache.clone(),
             resolved_images_cache: self.resolved_images_cache.clone(),
             pending_images: Mutex::default(),
+            video_content: Mutex::new(HashMap::new()),
             pending_rasterization_images: Mutex::default(),
             pending_svg_elements_for_serialization: Mutex::default(),
             animating_images: reflow_request.animating_images.clone(),
