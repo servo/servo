@@ -87,11 +87,12 @@ use crate::dom::promise::Promise;
 use crate::dom::promiserejectionevent::PromiseRejectionEvent;
 use crate::dom::response::Response;
 use crate::dom::trustedscript::TrustedScript;
+use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::microtask::{EnqueuedPromiseCallback, Microtask, MicrotaskQueue};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_module::EnsureModuleHooksInitialized;
 use crate::script_thread::trace_thread;
-use crate::task_source::SendableTaskSource;
+use crate::task_source::TaskSourceName;
 
 static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
     getHostDefinedData: Some(get_host_defined_data),
@@ -679,7 +680,7 @@ pub(crate) struct Runtime {
     pub(crate) microtask_queue: Rc<MicrotaskQueue>,
     #[ignore_malloc_size_of = "Type from mozjs"]
     job_queue: *mut JobQueue,
-    networking_task_src: Option<Box<SendableTaskSource>>,
+    script_event_loop_sender: Option<Box<ScriptEventLoopSender>>,
 }
 
 impl Runtime {
@@ -693,8 +694,8 @@ impl Runtime {
     ///
     /// This, like many calls to SpiderMoney API, is unsafe.
     #[expect(unsafe_code)]
-    pub(crate) fn new(networking_task_source: Option<SendableTaskSource>) -> Runtime {
-        unsafe { Self::new_with_parent(None, networking_task_source) }
+    pub(crate) fn new(main_thread_sender: Option<ScriptEventLoopSender>) -> Runtime {
+        unsafe { Self::new_with_parent(None, main_thread_sender) }
     }
 
     /// Create a new runtime, optionally with the given [`ParentRuntime`] and [`SendableTaskSource`]
@@ -712,7 +713,7 @@ impl Runtime {
     #[expect(unsafe_code)]
     pub(crate) unsafe fn new_with_parent(
         parent: Option<ParentRuntime>,
-        networking_task_source: Option<SendableTaskSource>,
+        script_event_looper_sender: Option<ScriptEventLoopSender>,
     ) -> Runtime {
         let mut runtime = if let Some(parent) = parent {
             unsafe { RustRuntime::create_with_parent(parent) }
@@ -759,11 +760,11 @@ impl Runtime {
         }
 
         unsafe extern "C" fn dispatch_to_event_loop(
-            closure: *mut c_void,
+            data: *mut c_void,
             dispatchable: *mut DispatchablePointer,
         ) -> bool {
-            let networking_task_src: &SendableTaskSource =
-                unsafe { &*(closure as *mut SendableTaskSource) };
+            let script_event_loop_sender: &ScriptEventLoopSender =
+                unsafe { &*(data as *mut ScriptEventLoopSender) };
             let runnable = Runnable(dispatchable);
             let task = task!(dispatch_to_event_loop_message: move || {
                 if let Some(cx) = RustRuntime::get() {
@@ -771,18 +772,24 @@ impl Runtime {
                 }
             });
 
-            networking_task_src.queue_unconditionally(task);
-            true
+            script_event_loop_sender
+                .send(CommonScriptMsg::Task(
+                    ScriptThreadEventCategory::NetworkEvent,
+                    Box::new(task),
+                    None, /* pipeline_id */
+                    TaskSourceName::Networking,
+                ))
+                .is_ok()
         }
 
-        let mut networking_task_src_ptr = std::ptr::null_mut();
-        if let Some(source) = networking_task_source {
-            networking_task_src_ptr = Box::into_raw(Box::new(source));
+        let mut script_event_loop_sender_pointer = std::ptr::null_mut();
+        if let Some(script_event_loop_sender) = script_event_looper_sender {
+            script_event_loop_sender_pointer = Box::into_raw(Box::new(script_event_loop_sender));
             unsafe {
                 SetUpEventLoopDispatch(
                     cx,
                     Some(dispatch_to_event_loop),
-                    networking_task_src_ptr as *mut c_void,
+                    script_event_loop_sender_pointer as *mut c_void,
                 );
             }
         }
@@ -959,8 +966,8 @@ impl Runtime {
             rt: runtime,
             microtask_queue,
             job_queue,
-            networking_task_src: (!networking_task_src_ptr.is_null())
-                .then(|| unsafe { Box::from_raw(networking_task_src_ptr) }),
+            script_event_loop_sender: (!script_event_loop_sender_pointer.is_null())
+                .then(|| unsafe { Box::from_raw(script_event_loop_sender_pointer) }),
         }
     }
 

@@ -154,7 +154,6 @@ use crate::script_runtime::{
 };
 use crate::script_window_proxies::ScriptWindowProxies;
 use crate::task_queue::TaskQueue;
-use crate::task_source::{SendableTaskSource, TaskSourceName};
 use crate::webdriver_handlers::jsval_to_webdriver;
 use crate::{devtools, webdriver_handlers};
 
@@ -871,14 +870,9 @@ impl ScriptThread {
         pipeline_id: PipelineId,
     ) -> ScriptThread {
         let (self_sender, self_receiver) = unbounded();
-        let mut runtime = Runtime::new(Some(SendableTaskSource {
-            sender: ScriptEventLoopSender::MainThread(self_sender.clone()),
-            // TODO: We shouldn't rely on this Pipeline as a ScriptThread can have multiple
-            // Pipelines and any of them might disappear at any time.
-            pipeline_id,
-            name: TaskSourceName::Networking,
-            canceller: Default::default(),
-        }));
+        let mut runtime =
+            Runtime::new(Some(ScriptEventLoopSender::MainThread(self_sender.clone())));
+
         let cx = runtime.cx();
 
         unsafe {
