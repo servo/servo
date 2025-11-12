@@ -66,4 +66,8 @@ impl Tokenizer {
     pub(crate) fn url(&self) -> &ServoUrl {
         &self.inner.sink.sink.base_url
     }
+
+    pub(crate) fn get_current_line(&self) -> u32 {
+        self.inner.sink.sink.current_line.get() as u32
+    }
 }

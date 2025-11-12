@@ -487,6 +487,10 @@ impl ServoParser {
         self.script_nesting_level() > 0 && !self.aborted.get()
     }
 
+    pub(crate) fn get_current_line(&self) -> u32 {
+        self.tokenizer.get_current_line()
+    }
+
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(document: &Document, tokenizer: Tokenizer, kind: ParserKind) -> Self {
         // Store the whole input for the devtools Sources panel, if the devtools server is running
@@ -847,6 +851,14 @@ impl Tokenizer {
             Tokenizer::Html(ref tokenizer) => tokenizer.set_plaintext_state(),
             Tokenizer::AsyncHtml(ref tokenizer) => tokenizer.set_plaintext_state(),
             Tokenizer::Xml(_) => unimplemented!(),
+        }
+    }
+
+    fn get_current_line(&self) -> u32 {
+        match *self {
+            Tokenizer::Html(ref tokenizer) => tokenizer.get_current_line(),
+            Tokenizer::AsyncHtml(ref tokenizer) => tokenizer.get_current_line(),
+            Tokenizer::Xml(ref tokenizer) => tokenizer.get_current_line(),
         }
     }
 }
