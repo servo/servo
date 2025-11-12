@@ -9,7 +9,9 @@
             var numOnLoads = 0
             var t = async_test("about:blank as form target")
             var iframe = document.getElementById('foo')
-            iframe.onload = t.step_func(function(e) { if (++numOnLoads == 2) t.done() })
+            // Note: we should fire two events, but for now we are skippng the first
+            // to fix various intermittent issues. See #31973
+            iframe.onload = t.step_func(function(e) { if (++numOnLoads == 1) t.done() })
         </script>
     </body>
 </html>

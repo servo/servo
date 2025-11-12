@@ -28,7 +28,6 @@ use net_traits::policy_container::PolicyContainer;
 use net_traits::request::RequestId;
 use net_traits::{
     FetchMetadata, LoadContext, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming,
-    ResourceTimingType,
 };
 use profile_traits::time::{
     ProfilerCategory, ProfilerChan, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
@@ -883,8 +882,6 @@ pub(crate) struct ParserContext {
     pipeline_id: PipelineId,
     /// The URL for this document.
     url: ServoUrl,
-    /// timing data for this resource
-    resource_timing: ResourceFetchTiming,
     /// pushed entry index
     pushed_entry_index: Option<usize>,
     /// params required in document load algorithms
@@ -905,7 +902,6 @@ impl ParserContext {
             webview_id,
             pipeline_id,
             url,
-            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Navigation),
             pushed_entry_index: None,
             navigation_params: NavigationParams {
                 policy_container: Default::default(),
@@ -1143,6 +1139,31 @@ impl ParserContext {
         parser.push_string_input_chunk(page);
         parser.parse_sync(CanGc::note());
     }
+
+    /// Store a PerformanceNavigationTiming entry in the globalscope's Performance buffer
+    fn submit_resource_timing(&mut self) {
+        let Some(parser) = self.parser.as_ref() else {
+            return;
+        };
+        let parser = parser.root();
+        if parser.aborted.get() {
+            return;
+        }
+
+        let document = &parser.document;
+
+        // TODO: Pass a proper fetch start time here.
+        let performance_entry = PerformanceNavigationTiming::new(
+            &document.global(),
+            CrossProcessInstant::now(),
+            document,
+            CanGc::note(),
+        );
+        self.pushed_entry_index = document.global().performance().queue_entry(
+            performance_entry.upcast::<PerformanceEntry>(),
+            CanGc::note(),
+        );
+    }
 }
 
 impl FetchResponseListener for ParserContext {
@@ -1296,7 +1317,7 @@ impl FetchResponseListener for ParserContext {
     // submit_resource_timing in this function
     // Resource listeners are called via net_traits::Action::process, which handles submission for them
     fn process_response_eof(
-        &mut self,
+        mut self,
         _: RequestId,
         status: Result<ResourceFetchTiming, NetworkError>,
     ) {
@@ -1308,11 +1329,9 @@ impl FetchResponseListener for ParserContext {
             return;
         }
 
-        match status {
-            // are we throwing this away or can we use it?
-            Ok(_) => (),
+        if let Err(error) = &status {
             // TODO(Savago): we should send a notification to callers #5463.
-            Err(err) => debug!("Failed to load page URL {}, error: {:?}", self.url, err),
+            debug!("Failed to load page URL {}, error: {error:?}", self.url);
         }
 
         // https://mimesniff.spec.whatwg.org/#read-the-resource-header
@@ -1324,9 +1343,11 @@ impl FetchResponseListener for ParserContext {
 
         let _realm = enter_realm(&*parser);
 
-        parser
-            .document
-            .set_redirect_count(self.resource_timing.redirect_count);
+        if let Ok(resource_timing) = &status {
+            parser
+                .document
+                .set_redirect_count(resource_timing.redirect_count);
+        }
 
         parser.last_chunk_received.set(true);
         if !parser.suspended.get() {
@@ -1348,39 +1369,6 @@ impl FetchResponseListener for ParserContext {
                 .performance()
                 .update_entry(pushed_index, performance_entry.upcast::<PerformanceEntry>());
         }
-    }
-
-    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-        &mut self.resource_timing
-    }
-
-    fn resource_timing(&self) -> &ResourceFetchTiming {
-        &self.resource_timing
-    }
-
-    // store a PerformanceNavigationTiming entry in the globalscope's Performance buffer
-    fn submit_resource_timing(&mut self) {
-        let parser = match self.parser.as_ref() {
-            Some(parser) => parser.root(),
-            None => return,
-        };
-        if parser.aborted.get() {
-            return;
-        }
-
-        let document = &parser.document;
-
-        // TODO: Pass a proper fetch start time here.
-        let performance_entry = PerformanceNavigationTiming::new(
-            &document.global(),
-            CrossProcessInstant::now(),
-            document,
-            CanGc::note(),
-        );
-        self.pushed_entry_index = document.global().performance().queue_entry(
-            performance_entry.upcast::<PerformanceEntry>(),
-            CanGc::note(),
-        );
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

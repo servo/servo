@@ -418,7 +418,7 @@ impl VirtualMethods for HTMLDetailsElement {
         // given element.
         if attr.local_name() == &local_name!("name") {
             let old_name: Option<DOMString> = match mutation {
-                AttributeMutation::Set(old) => old.map(|value| value.to_string().into()),
+                AttributeMutation::Set(old, _) => old.map(|value| value.to_string().into()),
                 AttributeMutation::Removed => Some(attr.value().to_string().into()),
             };
 
@@ -428,7 +428,7 @@ impl VirtualMethods for HTMLDetailsElement {
                         .details_name_groups()
                         .unregister_details_element(old_name, self);
                 }
-                if matches!(mutation, AttributeMutation::Set(_)) {
+                if matches!(mutation, AttributeMutation::Set(..)) {
                     shadow_root
                         .details_name_groups()
                         .register_details_element(self);
@@ -440,7 +440,7 @@ impl VirtualMethods for HTMLDetailsElement {
                         .details_name_groups()
                         .unregister_details_element(old_name, self);
                 }
-                if matches!(mutation, AttributeMutation::Set(_)) {
+                if matches!(mutation, AttributeMutation::Set(..)) {
                     document
                         .details_name_groups()
                         .register_details_element(self);
@@ -487,7 +487,7 @@ impl VirtualMethods for HTMLDetailsElement {
             // Step 3.2. If oldValue is null and value is not null, then ensure details exclusivity
             // by closing other elements if needed given element.
             let was_previously_closed = match mutation {
-                AttributeMutation::Set(old) => old.is_none(),
+                AttributeMutation::Set(old, _) => old.is_none(),
                 AttributeMutation::Removed => false,
             };
             if was_previously_closed && self.Open() {

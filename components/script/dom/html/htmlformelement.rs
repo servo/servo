@@ -54,7 +54,7 @@ use crate::dom::blob::Blob;
 use crate::dom::customelementregistry::CallbackReaction;
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
-use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::element::{AttributeMutation, AttributeMutationReason, Element};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
@@ -1671,7 +1671,7 @@ pub(crate) trait FormControl: DomObject {
     /// <https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms>
     fn form_attribute_mutated(&self, mutation: AttributeMutation, can_gc: CanGc) {
         match mutation {
-            AttributeMutation::Set(_) => {
+            AttributeMutation::Set(..) => {
                 self.register_if_necessary();
             },
             AttributeMutation::Removed => {
@@ -1717,7 +1717,10 @@ pub(crate) trait FormControl: DomObject {
         node.set_flag(NodeFlags::PARSER_ASSOCIATED_FORM_OWNER, false);
 
         if !must_skip_reset {
-            self.form_attribute_mutated(AttributeMutation::Set(None), can_gc);
+            self.form_attribute_mutated(
+                AttributeMutation::Set(None, AttributeMutationReason::Directly),
+                can_gc,
+            );
         }
     }
 

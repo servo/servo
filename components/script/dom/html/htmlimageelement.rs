@@ -24,7 +24,6 @@ use net_traits::image_cache::{
 use net_traits::request::{CorsSettings, Destination, Initiator, RequestId};
 use net_traits::{
     FetchMetadata, FetchResponseMsg, NetworkError, ReferrerPolicy, ResourceFetchTiming,
-    ResourceTimingType,
 };
 use num_traits::ToPrimitive;
 use pixels::{CorsStatus, ImageMetadata, Snapshot};
@@ -233,8 +232,6 @@ struct ImageContext {
     aborted: bool,
     /// The document associated with this request
     doc: Trusted<Document>,
-    /// timing data for this resource
-    resource_timing: ResourceFetchTiming,
     url: ServoUrl,
     element: Trusted<HTMLImageElement>,
 }
@@ -298,32 +295,23 @@ impl FetchResponseListener for ImageContext {
         if self.status.is_ok() {
             self.image_cache.notify_pending_response(
                 self.id,
-                FetchResponseMsg::ProcessResponseChunk(request_id, payload),
+                FetchResponseMsg::ProcessResponseChunk(request_id, payload.into()),
             );
         }
     }
 
     fn process_response_eof(
-        &mut self,
+        self,
         request_id: RequestId,
         response: Result<ResourceFetchTiming, NetworkError>,
     ) {
         self.image_cache.notify_pending_response(
             self.id,
-            FetchResponseMsg::ProcessResponseEOF(request_id, response),
+            FetchResponseMsg::ProcessResponseEOF(request_id, response.clone()),
         );
-    }
-
-    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-        &mut self.resource_timing
-    }
-
-    fn resource_timing(&self) -> &ResourceFetchTiming {
-        &self.resource_timing
-    }
-
-    fn submit_resource_timing(&mut self) {
-        network_listener::submit_timing(self, CanGc::note())
+        if let Ok(response) = response {
+            network_listener::submit_timing(&self, &response, CanGc::note());
+        }
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -438,7 +426,6 @@ impl HTMLImageElement {
             aborted: false,
             doc: Trusted::new(&document),
             element: Trusted::new(self),
-            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             url: img_url.clone(),
         };
 
@@ -1847,8 +1834,8 @@ impl VirtualMethods for HTMLImageElement {
                 // <https://html.spec.whatwg.org/multipage/#reacting-to-dom-mutations>
                 // The element's crossorigin attribute's state is changed.
                 let cross_origin_state_changed = match mutation {
-                    AttributeMutation::Removed | AttributeMutation::Set(None) => true,
-                    AttributeMutation::Set(Some(old_value)) => {
+                    AttributeMutation::Removed | AttributeMutation::Set(None, _) => true,
+                    AttributeMutation::Set(Some(old_value), _) => {
                         let new_cors_setting =
                             CorsSettings::from_enumerated_attribute(&attr.value());
                         let old_cors_setting = CorsSettings::from_enumerated_attribute(old_value);
@@ -1865,10 +1852,10 @@ impl VirtualMethods for HTMLImageElement {
                 // <https://html.spec.whatwg.org/multipage/#reacting-to-dom-mutations>
                 // The element's referrerpolicy attribute's state is changed.
                 let referrer_policy_state_changed = match mutation {
-                    AttributeMutation::Removed | AttributeMutation::Set(None) => {
+                    AttributeMutation::Removed | AttributeMutation::Set(None, _) => {
                         ReferrerPolicy::from(&**attr.value()) != ReferrerPolicy::EmptyString
                     },
-                    AttributeMutation::Set(Some(old_value)) => {
+                    AttributeMutation::Set(Some(old_value), _) => {
                         ReferrerPolicy::from(&**attr.value()) != ReferrerPolicy::from(&**old_value)
                     },
                 };

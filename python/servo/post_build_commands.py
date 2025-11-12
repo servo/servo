@@ -13,7 +13,7 @@ import os.path as path
 import subprocess
 from subprocess import CompletedProcess
 from shutil import copy2
-from typing import Any
+from typing import Any, Optional, List
 
 import mozdebug
 
@@ -32,6 +32,8 @@ from servo.command_base import (
     is_linux,
 )
 from servo.platform.build_target import is_android
+
+from python.servo.command_base import BuildType
 
 ANDROID_APP_NAME = "org.servo.servoshell"
 
@@ -191,6 +193,28 @@ class PostBuildCommands(CommandBase):
                 print("Servo Binary can't be found! Run './mach build' and try again!")
             else:
                 raise exception
+
+    @Command("coverage-report", description="Create Servo Code Coverage report.", category="post-build")
+    @CommandArgument("params", nargs="...", help="Command-line arguments to be passed through to cargo llvm-cov")
+    @CommandBase.common_command_arguments(binary_selection=True, build_type=True, coverage_report=True)
+    def coverage_report(self, build_type: BuildType, params: Optional[List[str]] = None, **kwargs: Any) -> int:
+        target_dir = servo.util.get_target_dir()
+        # See `cargo llvm-cov show-env`. We only export the values required at runtime.
+        os.environ["CARGO_LLVM_COV"] = "1"
+        os.environ["CARGO_LLVM_COV_SHOW_ENV"] = "1"
+        os.environ["CARGO_LLVM_COV_TARGET_DIR"] = target_dir
+        try:
+            cargo_llvm_cov_cmd = ["cargo", "llvm-cov", "report", "--target", self.target.triple()]
+            cargo_llvm_cov_cmd.extend(build_type.as_cargo_arg())
+            cargo_llvm_cov_cmd.extend(params or [])
+            subprocess.check_call(cargo_llvm_cov_cmd)
+        except subprocess.CalledProcessError as exception:
+            if exception.returncode < 0:
+                print(f"`cargo llvm-cov` was terminated by signal {-exception.returncode}")
+            else:
+                print(f"`cargo llvm-cov` exited with non-zero status {exception.returncode}")
+            return exception.returncode
+        return 0
 
     @Command("android-emulator", description="Run the Android emulator", category="post-build")
     @CommandArgument("args", nargs="...", help="Command-line arguments to be passed through to the emulator")

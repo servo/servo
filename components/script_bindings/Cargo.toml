@@ -33,7 +33,7 @@ malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 num-traits = { workspace = true }
 parking_lot = { workspace = true }
-phf = "0.11"
+phf = "0.13"
 regex = { workspace = true }
 servo_arc = { workspace = true }
 servo_config = { path = "../config" }
@@ -47,8 +47,8 @@ webxr-api = { workspace = true, optional = true }
 xml5ever = { workspace = true }
 
 [build-dependencies]
-phf_codegen = "0.11"
-phf_shared = "0.11"
+phf_codegen = "0.13"
+phf_shared = "0.13"
 serde_json = { workspace = true }
 
 [features]

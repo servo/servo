@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<title>Point mapping through 3D transforms with origins</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style type="text/css" media="screen">
+  body {
+    margin: 0;
+    border: 1px solid black;
+  }
+
+  .test {
+    display: inline-block;
+    height: 200px;
+    width: 200px;
+    border: 1px solid black;
+    margin: 20px;
+  }
+
+  .perspective-container {
+    height: 140px;
+    width: 140px;
+    margin: 20px;
+    border: 1px solid black;
+    box-sizing: border-box;
+    perspective: 400px;
+    perspective-origin: 20% 80%;
+  }
+
+  .transformed-parent {
+    position: relative;
+    height: 100px;
+    width: 100px;
+    padding: 20px;
+    margin: 20px;
+    border: 1px solid black;
+    box-sizing: border-box;
+    transform: translateZ(100px) rotateY(-40deg);
+    transform-origin: 20% 40%;
+  }
+
+  .light-gray-box {
+    background-color: #DDD;
+  }
+
+  .medium-gray-box {
+    background-color: #AAA;
+  }
+
+  .blue-box {
+    height: 100px;
+    width: 100px;
+    box-sizing: border-box;
+    background-color: blue;
+    border: 1px solid black;
+  }
+
+  .green-box {
+    height: 100px;
+    width: 100px;
+    padding: 20px;
+    box-sizing: border-box;
+    background-color: #C0D69E;
+    border: 1px solid black;
+  }
+
+  .layered {
+    position: relative;
+  }
+
+  div[id]:hover {
+    outline: 3px solid orange;
+  }
+</style>
+
+<body>
+  <div class="test">
+    <!-- Simple transformed div in perspective -->
+    <div class="perspective-container light-gray-box" id="top-left-light-gray">
+      <div class="transformed-parent medium-gray-box" id="top-left-medium-gray">
+      </div>
+    </div>
+  </div>
+
+  <div class="test">
+    <!-- Transformed div in perspective with non-layer child -->
+    <div class="perspective-container light-gray-box" id="top-right-light-gray">
+      <div class="transformed-parent medium-gray-box" id="top-right-medium-gray">
+        <div class="blue-box" id="top-right-blue">
+        </div>
+      </div>
+    </div>
+  </div>
+  <br>
+
+  <div class="test">
+    <!-- Transformed div in perspective with layer child -->
+    <div class="perspective-container light-gray-box" id="bottom-left-light-gray">
+      <div class="transformed-parent medium-gray-box" id="bottom-left-medium-gray">
+        <div class="blue-box layered" id="bottom-left-blue">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="test">
+    <!-- Transformed div in perspective with child having layer child -->
+    <div class="perspective-container light-gray-box" id="bottom-right-light-gray">
+      <div class="transformed-parent medium-gray-box" id="bottom-right-medium-gray">
+        <div class="green-box" id="bottom-right-green">
+          <div class="blue-box layered" id="bottom-right-blue">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+<script>
+  class Point {
+    constructor(x, y) {
+      this.x = x;
+      this.y = y;
+    }
+  };
+  // Each test case defines four test points near the corners of an element.
+  // - Point 1: Top-left
+  // - Point 2: Top-right
+  // - Point 3: Bottom-left
+  // - Point 4: Bottom-right
+  const tests = [{
+    expectedElemId: 'top-left-light-gray',
+    points: [
+      new Point(48, 48),
+      new Point(60, 48),
+      new Point(48, 172),
+      new Point(175, 172),
+    ]
+  },
+  {
+    expectedElemId: 'top-left-medium-gray',
+    points: [
+      new Point(70, 41),  // Inside top-left-light-gray without transform-origin.
+      new Point(182, 12), // Inside main document without transform-origin.
+      new Point(70, 158),
+      new Point(182, 158),
+    ]
+  },
+  {
+    expectedElemId: 'top-right-light-gray',
+    points: [
+      new Point(290, 45),
+      new Point(308, 45),
+      new Point(290, 175),
+      new Point(327, 175),
+    ]
+  },
+  {
+    expectedElemId: 'top-right-medium-gray',
+    points: [
+      new Point(315, 40), // Inside top-right-light-gray without transform-origin.
+      new Point(427, 12),
+      new Point(315, 158),
+      // The bottom-right area is overlapped by top-right-blue.
+    ]
+  },
+  {
+    expectedElemId: 'top-right-blue',
+    points: [
+      new Point(338, 64),
+      new Point(462, 36),
+      new Point(338, 186),
+      new Point(462, 197),
+    ]
+  },
+  {
+    expectedElemId: 'bottom-left-light-gray',
+    points: [
+      new Point(45, 290),
+      new Point(62, 290),
+      new Point(45, 420),
+      new Point(80, 420),
+    ]
+  },
+  {
+    expectedElemId: 'bottom-left-medium-gray',
+    points: [
+      new Point(70, 288), // Inside bottom-left-light-gray without transform-origin.
+      new Point(183, 256),
+      new Point(70, 404), // Inside bottom-left-light-gray without transform-origin.
+      // The bottom-right area is overlapped by bottom-left-blue.
+    ]
+  },
+  {
+    expectedElemId: 'bottom-left-blue',
+    points: [
+      new Point(92, 310),
+      new Point(216, 283),
+      new Point(90, 433),
+      new Point(216, 442),
+    ]
+  },
+  {
+    expectedElemId: 'bottom-right-light-gray',
+    points: [
+      new Point(290, 290),
+      new Point(307, 290),
+      new Point(290, 420),
+      new Point(325, 420),
+    ]
+  },
+  {
+    expectedElemId: 'bottom-right-medium-gray',
+    points: [
+      new Point(314, 288), // Inside bottom-right-light-gray without transform-origin.
+      new Point(430, 255),
+      new Point(314, 405), // Inside bottom-right-light-gray without transform-origin.
+      // The bottom-right area is overlapped by bottom-right-green.
+    ]
+  },
+  {
+    expectedElemId: 'bottom-right-green',
+    points: [
+      new Point(337, 309), // Inside bottom-right-medium-gray without transform-origin.
+      new Point(464, 284), // Inside main document without transform-origin.
+      new Point(337, 434), // Inside main document without transform-origin.
+      // The bottom-right area is overlapped by bottom-right-blue.
+    ]
+  },
+  {
+    expectedElemId: 'bottom-right-blue',
+    points: [
+      new Point(360, 334), // Inside bottom-right-green without transform-origin.
+      new Point(500, 316), // Inside main document without transform-origin.
+      new Point(360, 462), // Inside main document without transform-origin.
+      new Point(498, 480), // Inside main document without transform-origin.
+    ]
+  }
+  ];
+
+  tests.forEach(testcase => {
+    test(t => {
+      const expectedElem = document.getElementById(testcase.expectedElemId);
+      for (const point of testcase.points) {
+        const hitElem = document.elementFromPoint(point.x, point.y);
+        assert_equals(hitElem, expectedElem,
+          `point (${point.x}, ${point.y}) is inside element ${testcase.expectedElemId}`);
+      }
+    }, `${document.title}, hittesting ${testcase.expectedElemId})`);
+  });
+</script>
+
+</html>

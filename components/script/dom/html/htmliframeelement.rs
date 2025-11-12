@@ -20,7 +20,7 @@ use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
 use net_traits::request::Destination;
 use profile_traits::ipc as ProfiledIpc;
-use script_traits::{NewLayoutInfo, UpdatePipelineIdReason};
+use script_traits::{NewPipelineInfo, UpdatePipelineIdReason};
 use servo_url::ServoUrl;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use stylo_atoms::Atom;
@@ -216,7 +216,7 @@ impl HTMLIFrameElement {
                     .send(ScriptToConstellationMessage::ScriptNewIFrame(load_info))
                     .unwrap();
 
-                let new_layout_info = NewLayoutInfo {
+                let new_pipeline_info = NewPipelineInfo {
                     parent_info: Some(window.pipeline_id()),
                     new_pipeline_id,
                     browsing_context_id,
@@ -228,7 +228,10 @@ impl HTMLIFrameElement {
                 };
 
                 self.pipeline_id.set(Some(new_pipeline_id));
-                ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
+                ScriptThread::spawn_pipeline_in_current(
+                    new_pipeline_info,
+                    document.origin().clone(),
+                );
             },
             PipelineType::Navigation => {
                 let load_info = IFrameLoadInfoWithData {
@@ -576,12 +579,21 @@ impl HTMLIFrameElement {
         // for the initial blank document if we know that a navigation is ongoing,
         // which can be deducted from `pending_navigation` or the presence of an src.
         //
+        // Additionally, to prevent a race condition with navigations,
+        // in all cases, skip the load event if there is a pending navigation.
+        // See #40348
+        //
         // TODO: run these step synchronously as part of processing the iframe attributes.
         let should_fire_event = if self.is_initial_blank_document() {
+            // If this is the initial blank doc:
+            // do not fire if there is a pending navigation,
+            // or if the iframe has an src.
             !self.pending_navigation.get() &&
                 !self.upcast::<Element>().has_attribute(&local_name!("src"))
         } else {
-            true
+            // If this is not the initial blank doc:
+            // do not fire if there is a pending navigation.
+            !self.pending_navigation.get()
         };
         if should_fire_event {
             // Step 6. Fire an event named load at element.

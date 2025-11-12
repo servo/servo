@@ -651,7 +651,7 @@ impl<'dom> LayoutShadowRootHelpers<'dom> for LayoutDom<'dom, ShadowRoot> {
         stylist: &mut Stylist,
         guard: &SharedRwLockReadGuard,
     ) {
-        let author_styles = self.unsafe_get().author_styles.borrow_mut_for_layout();
+        let author_styles = unsafe { self.unsafe_get().author_styles.borrow_mut_for_layout() };
         if author_styles.stylesheets.dirty() {
             author_styles.flush::<E>(stylist, guard);
         }

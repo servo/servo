@@ -128,6 +128,7 @@ impl CSSRule {
             StyleCssRule::Scope(_) => unimplemented!(),             // TODO
             StyleCssRule::StartingStyle(_) => unimplemented!(),     // TODO
             StyleCssRule::PositionTry(_) => unimplemented!(),       // TODO
+            StyleCssRule::CustomMedia(_) => unimplemented!(),       // TODO
             StyleCssRule::NestedDeclarations(s) => DomRoot::upcast(CSSNestedDeclarations::new(
                 window,
                 parent_stylesheet,
@@ -218,6 +219,7 @@ impl CSSRule {
             StyleCssRule::Scope(_) => unimplemented!(),             // TODO
             StyleCssRule::StartingStyle(_) => unimplemented!(),     // TODO
             StyleCssRule::PositionTry(_) => unimplemented!(),       // TODO
+            StyleCssRule::CustomMedia(_) => unimplemented!(),       // TODO
             StyleCssRule::NestedDeclarations(s) => {
                 if let Some(rule) = self.downcast::<CSSNestedDeclarations>() {
                     rule.update_rule(s.clone(), guard);

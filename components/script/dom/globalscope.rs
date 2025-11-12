@@ -9,8 +9,8 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::ffi::CStr;
 use std::ops::Index;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use std::{mem, ptr};
@@ -3143,6 +3143,10 @@ impl GlobalScope {
         self.https_state.set(https_state);
     }
 
+    pub(crate) fn inherited_secure_context(&self) -> Option<bool> {
+        self.inherited_secure_context
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#secure-context>
     pub(crate) fn is_secure_context(&self) -> bool {
         // This differs from the specification, but it seems that
@@ -3322,13 +3326,10 @@ impl GlobalScope {
     pub(crate) fn fetch<Listener: FetchResponseListener>(
         &self,
         request_builder: RequestBuilder,
-        context: Arc<Mutex<Listener>>,
+        context: Listener,
         task_source: SendableTaskSource,
     ) {
-        let network_listener = NetworkListener {
-            context,
-            task_source,
-        };
+        let network_listener = NetworkListener::new(context, task_source);
         self.fetch_with_network_listener(request_builder, network_listener);
     }
 
@@ -3638,7 +3639,7 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
     }
 
     unsafe fn from_object(obj: *mut JSObject) -> DomRoot<Self> {
-        GlobalScope::from_object(obj)
+        unsafe { GlobalScope::from_object(obj) }
     }
 
     fn from_reflector(reflector: &impl DomObject, realm: InRealm) -> DomRoot<Self> {

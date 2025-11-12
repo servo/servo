@@ -153,7 +153,7 @@ impl IDBObjectStore {
         Ok(())
     }
 
-    /// Checks if the transation is active, throwing a "TransactionInactiveError" DOMException if not.
+    /// Checks if the transaction is active, throwing a "TransactionInactiveError" DOMException if not.
     fn check_transaction_active(&self) -> Fallible<()> {
         // Let transaction be this object store handle's transaction.
         let transaction = &self.transaction;
@@ -166,7 +166,7 @@ impl IDBObjectStore {
         Ok(())
     }
 
-    /// Checks if the transation is active, throwing a "TransactionInactiveError" DOMException if not.
+    /// Checks if the transaction is active, throwing a "TransactionInactiveError" DOMException if not.
     /// it then checks if the transaction is a read-only transaction, throwing a "ReadOnlyError" DOMException if so.
     fn check_readwrite_transaction_active(&self) -> Fallible<()> {
         // Let transaction be this object store handle's transaction.
@@ -233,7 +233,7 @@ impl IDBObjectStore {
                     if !self.has_key_generator() {
                         return Err(Error::Data);
                     }
-                    // Stept 11.4.2. Otherwise, if the steps to check that a key could
+                    // Step 11.4.2. Otherwise, if the steps to check that a key could
                     // be injected into a value with clone and store’s key path return
                     // false, throw a "DataError" DOMException.
                     // TODO
@@ -393,7 +393,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // TODO: Convert to key range instead
         let serialized_query = convert_value_to_key(cx, query, None)?.into_result();
         // Step 7. Let operation be an algorithm to run delete records from an object store with store and range.
-        // Stpe 8. Return the result (an IDBRequest) of running asynchronously execute a request with this and operation.
+        // Step 8. Return the result (an IDBRequest) of running asynchronously execute a request with this and operation.
         let (sender, receiver) = indexed_db::create_channel(self.global());
         serialized_query.and_then(|q| {
             IDBRequest::execute_async(
@@ -419,7 +419,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         self.check_readwrite_transaction_active()?;
 
         // Step 6. Let operation be an algorithm to run clear an object store with store.
-        // Stpe 7. Return the result (an IDBRequest) of running asynchronously execute a request with this and operation.
+        // Step 7. Return the result (an IDBRequest) of running asynchronously execute a request with this and operation.
         let (sender, receiver) = indexed_db::create_channel(self.global());
 
         IDBRequest::execute_async(

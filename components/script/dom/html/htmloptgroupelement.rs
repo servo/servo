@@ -104,8 +104,8 @@ impl VirtualMethods for HTMLOptGroupElement {
             .attribute_mutated(attr, mutation, can_gc);
         if attr.local_name() == &local_name!("disabled") {
             let disabled_state = match mutation {
-                AttributeMutation::Set(None) => true,
-                AttributeMutation::Set(Some(_)) => {
+                AttributeMutation::Set(None, _) => true,
+                AttributeMutation::Set(Some(_), _) => {
                     // Option group was already disabled.
                     return;
                 },

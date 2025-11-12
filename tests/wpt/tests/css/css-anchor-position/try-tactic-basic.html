@@ -33,7 +33,7 @@
       assert_equals(target.offsetTop, expected_offsets.top, 'offsetTop');
       assert_equals(target.offsetWidth, expected_offsets.width, 'offsetWidth');
       assert_equals(target.offsetHeight, expected_offsets.height, 'offsetHeight');
-    }, target.style.positionTryFallbacks);
+    }, try_tactic);
   }
 
   test_try_tactic('', {left:10, top:20, width:30, height:40});

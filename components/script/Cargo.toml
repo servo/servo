@@ -28,7 +28,6 @@ webxr = ["webxr-api", "script_bindings/webxr"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }
-unsafe_op_in_unsafe_fn = { level = "allow" }
 
 [dependencies]
 accountable-refcell = { workspace = true, optional = true }
@@ -61,8 +60,10 @@ ctr = { workspace = true }
 data-url = { workspace = true }
 deny_public_fields = { path = "../deny_public_fields" }
 devtools_traits = { workspace = true }
+digest = { workspace = true }
 dom_struct = { path = "../dom_struct" }
 domobject_derive = { path = "../domobject_derive" }
+ecdsa = { workspace = true }
 elliptic-curve = { workspace = true }
 embedder_traits = { workspace = true }
 encoding_rs = { workspace = true }
@@ -103,7 +104,7 @@ p384 = { workspace = true }
 p521 = { workspace = true }
 parking_lot = { workspace = true }
 percent-encoding = { workspace = true }
-phf = "0.11"
+phf = "0.13"
 pixels = { path = "../pixels" }
 pkcs8 = { workspace = true }
 profile_traits = { workspace = true }
@@ -122,6 +123,8 @@ servo_arc = { workspace = true }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
+sha1 = { workspace = true }
+sha2 = { workspace = true }
 smallvec = { workspace = true }
 storage_traits = { workspace = true }
 strum = { workspace = true }
@@ -142,7 +145,7 @@ unicode-script = { workspace = true }
 unicode-segmentation = { workspace = true }
 url = { workspace = true }
 urlpattern = { workspace = true }
-utf-8 = "0.7"
+utf-8 = { workspace = true }
 uuid = { workspace = true, features = ["serde"] }
 webdriver = { workspace = true }
 webgpu_traits = { workspace = true }

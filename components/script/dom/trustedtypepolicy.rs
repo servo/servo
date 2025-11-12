@@ -137,7 +137,7 @@ impl TrustedTypePolicy {
                     // rethrowing any exceptions.
                     callback
                         .Call__(input, arguments, ExceptionHandling::Rethrow, can_gc)
-                        .map(|result| result.map(|str| DOMString::from(str.as_ref())))
+                        .map(|result| result.map(DOMString::from))
                 },
             },
         }

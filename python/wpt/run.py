@@ -110,7 +110,10 @@ def run_tests(default_binary_path: str, **kwargs: Any) -> int:
         file_ext = os.path.splitext(kwargs["test_list"][0])[1].lower()
         if file_ext in [".htm", ".html", ".js", ".xhtml", ".xht", ".py"]:
             use_mach_logging = True
-    else:
+
+    # Enable headless mode by default, unless `--no-headless` is explicitly passed, in
+    # which case we do not run in headless mode.
+    if kwargs.get("headless", None) is None:
         kwargs["headless"] = True
 
     if use_mach_logging:

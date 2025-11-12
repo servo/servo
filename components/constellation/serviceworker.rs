@@ -18,8 +18,8 @@ use crate::sandboxing::{UnprivilegedContent, spawn_multiprocess};
 /// <https://html.spec.whatwg.org/multipage/#obtain-a-service-worker-agent>
 #[derive(Deserialize, Serialize)]
 pub struct ServiceWorkerUnprivilegedContent {
-    opts: Opts,
-    prefs: Box<Preferences>,
+    pub opts: Opts,
+    pub prefs: Box<Preferences>,
     senders: SWManagerSenders,
     origin: ImmutableOrigin,
     lifeline_sender: Option<IpcSender<()>>,
@@ -51,13 +51,5 @@ impl ServiceWorkerUnprivilegedContent {
     /// Start the agent-cluster in it's own process.
     pub fn spawn_multiprocess(self) -> Result<Process, Error> {
         spawn_multiprocess(UnprivilegedContent::ServiceWorker(self))
-    }
-
-    pub fn opts(&self) -> Opts {
-        self.opts.clone()
-    }
-
-    pub fn prefs(&self) -> &Preferences {
-        &self.prefs
     }
 }

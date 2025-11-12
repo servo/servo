@@ -1,4 +1,0 @@
-features:
-- name: mutation-events
-  files:
-  - mutation-events.window.js

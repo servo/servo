@@ -70,6 +70,7 @@
     const ANIMATION_DURATION_MS = 1;
 
     promise_test(async () => {
+      waitForAnimationFrames(2);
       setupAnimationAndTrigger(target, document.getElementById("subject"),
         ANIMATION_DURATION_MS);
       const animation = target.getAnimations()[0];

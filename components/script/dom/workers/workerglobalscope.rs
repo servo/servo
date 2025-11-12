@@ -32,9 +32,7 @@ use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata,
     RequestBuilder as NetRequestInit, RequestId,
 };
-use net_traits::{
-    FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceTimingType,
-};
+use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use profile_traits::mem::{ProcessReports, perform_memory_report};
 use servo_url::{MutableOrigin, ServoUrl};
 use timers::TimerScheduler;
@@ -120,7 +118,6 @@ pub(crate) fn prepare_workerscope_init(
 
 pub(crate) struct ScriptFetchContext {
     scope: Trusted<WorkerGlobalScope>,
-    resource_timing: ResourceFetchTiming,
     response: Option<Metadata>,
     body_bytes: Vec<u8>,
     url: ServoUrl,
@@ -139,7 +136,6 @@ impl ScriptFetchContext {
             scope,
             response: None,
             body_bytes: Vec::new(),
-            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             url,
             worker,
             policy_container,
@@ -168,13 +164,14 @@ impl FetchResponseListener for ScriptFetchContext {
     }
 
     fn process_response_eof(
-        &mut self,
+        mut self,
         _request_id: RequestId,
         response: Result<ResourceFetchTiming, NetworkError>,
     ) {
         let scope = self.scope.root();
 
         if response
+            .as_ref()
             .inspect_err(|e| error!("error loading script {} ({:?})", self.url, e))
             .is_err() ||
             self.response.is_none()
@@ -236,18 +233,10 @@ impl FetchResponseListener for ScriptFetchContext {
 
         // Step 6 Run onComplete given script.
         scope.on_complete(Some(source), self.worker.clone(), CanGc::note());
-    }
 
-    fn resource_timing(&self) -> &ResourceFetchTiming {
-        &self.resource_timing
-    }
-
-    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-        &mut self.resource_timing
-    }
-
-    fn submit_resource_timing(&mut self) {
-        submit_timing(self, CanGc::note());
+        if let Ok(response) = response {
+            submit_timing(&self, &response, CanGc::note());
+        }
     }
 
     fn process_csp_violations(
@@ -448,7 +437,7 @@ impl WorkerGlobalScope {
 
     #[expect(unsafe_code)]
     pub(crate) fn get_cx(&self) -> JSContext {
-        unsafe { JSContext::from_ptr(self.runtime.borrow().as_ref().unwrap().cx()) }
+        unsafe { JSContext::from_ptr(js::rust::Runtime::get().unwrap().as_ptr()) }
     }
 
     pub(crate) fn is_closing(&self) -> bool {
@@ -686,7 +675,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             };
         }
 
-        rooted!(in(self.runtime.borrow().as_ref().unwrap().cx()) let mut rval = UndefinedValue());
+        rooted!(in(*self.get_cx()) let mut rval = UndefinedValue());
         for url in urls {
             let global_scope = self.upcast::<GlobalScope>();
             let request = NetRequestInit::new(
@@ -743,7 +732,11 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                 .as_ref()
                 .unwrap()
                 .new_compile_options(url.as_str(), 1);
-            let result = self.runtime.borrow().as_ref().unwrap().evaluate_script(
+            #[allow(unsafe_code)]
+            let mut cx =
+                unsafe { js::context::JSContext::from_ptr(js::rust::Runtime::get().unwrap()) };
+            let result = js::rust::evaluate_script(
+                &mut cx,
                 self.reflector().get_jsobject(),
                 &source,
                 rval.handle_mut(),

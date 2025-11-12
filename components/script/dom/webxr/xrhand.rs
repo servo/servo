@@ -174,7 +174,7 @@ pub(crate) struct ValueWrapper(pub DomRoot<XRJointSpace>);
 impl ToJSValConvertible for ValueWrapper {
     #[expect(unsafe_code)]
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        self.0.to_jsval(cx, rval)
+        unsafe { self.0.to_jsval(cx, rval) }
     }
 }
 

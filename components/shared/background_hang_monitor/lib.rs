@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 /// The equivalent of script::script_runtime::ScriptEventCategory
 pub enum ScriptHangAnnotation {
-    AttachLayout,
+    SpawnPipeline,
     ConstellationMsg,
     DatabaseAccessEvent,
     DevtoolsMsg,

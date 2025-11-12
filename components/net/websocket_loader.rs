@@ -143,9 +143,13 @@ fn process_ws_response(
     let mut jar = http_state.cookie_jar.write().unwrap();
     // TODO(eijebong): Replace thise once typed headers settled on a cookie impl
     for cookie in response.headers().get_all(header::SET_COOKIE) {
-        if let Ok(s) = std::str::from_utf8(cookie.as_bytes()) {
+        let cookie_bytes = cookie.as_bytes();
+        if !ServoCookie::is_valid_name_or_value(cookie_bytes) {
+            continue;
+        }
+        if let Ok(s) = std::str::from_utf8(cookie_bytes) {
             if let Some(cookie) =
-                ServoCookie::from_cookie_string(s.into(), resource_url, CookieSource::HTTP)
+                ServoCookie::from_cookie_string(s, resource_url, CookieSource::HTTP)
             {
                 jar.push(cookie, resource_url, CookieSource::HTTP);
             }
@@ -341,12 +345,8 @@ pub(crate) async fn start_websocket(
     if original_url.scheme() == "ws" && url.scheme() == "https" {
         original_url.as_mut_url().set_scheme("wss").unwrap();
     }
-    let mut builder = ClientRequestBuilder::new(
-        original_url
-            .into_string()
-            .parse()
-            .expect("unable to parse URI"),
-    );
+    let mut builder =
+        ClientRequestBuilder::new(original_url.as_str().parse().expect("unable to parse URI"));
     for (key, value) in client.headers.iter() {
         builder = builder.with_header(
             key.as_str(),

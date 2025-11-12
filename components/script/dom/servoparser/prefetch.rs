@@ -49,14 +49,14 @@ impl Deref for TraceableTokenizer {
 #[expect(unsafe_code)]
 unsafe impl JSTraceable for TraceableTokenizer {
     unsafe fn trace(&self, trc: *mut JSTracer) {
-        CustomTraceable::trace(&self.0, trc)
+        unsafe { CustomTraceable::trace(&self.0, trc) }
     }
 }
 
 #[expect(unsafe_code)]
 unsafe impl CustomTraceable for PrefetchSink {
     unsafe fn trace(&self, trc: *mut JSTracer) {
-        <Self as JSTraceable>::trace(self, trc)
+        unsafe { <Self as JSTraceable>::trace(self, trc) }
     }
 }
 

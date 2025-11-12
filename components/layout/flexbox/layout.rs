@@ -311,7 +311,7 @@ impl FlexContainerConfig {
     fn resolve_align_self_for_child(&self, child_style: &ComputedValues) -> AlignFlags {
         self.resolve_reversable_flex_alignment(
             child_style
-                .resolve_align_self(self.align_items, AlignItems(AlignFlags::STRETCH))
+                .resolve_align_self(self.align_items, AlignFlags::STRETCH)
                 .0,
             self.flex_wrap_is_reversed,
         )
@@ -319,7 +319,7 @@ impl FlexContainerConfig {
 
     fn resolve_justify_content_for_child(&self) -> AlignFlags {
         self.resolve_reversable_flex_alignment(
-            self.justify_content.0.primary(),
+            self.justify_content.primary(),
             self.flex_direction_is_reversed,
         )
     }
@@ -718,7 +718,7 @@ impl FlexContainer {
         let num_lines = initial_line_layouts.len();
         let resolved_align_content: AlignFlags = {
             // Computed value from the style system
-            let align_content_style = flex_context.config.align_content.0.primary();
+            let align_content_style = flex_context.config.align_content.primary();
             let mut is_safe = align_content_style.flags() == AlignFlags::SAFE;
 
             // From https://drafts.csswg.org/css-align/#distribution-flex
@@ -1610,7 +1610,7 @@ impl InitialFlexLineLayout<'_> {
         // In addition to the spec at https://www.w3.org/TR/css-align-3/ this implementation follows
         // the resolution of https://github.com/w3c/csswg-drafts/issues/10154
         let resolved_justify_content: AlignFlags = {
-            let justify_content_style = flex_context.config.justify_content.0.primary();
+            let justify_content_style = flex_context.config.justify_content.primary();
 
             // Inital values from the style system
             let mut resolved_justify_content = justify_content_style.value();

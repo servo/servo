@@ -179,22 +179,28 @@ async def session(capabilities, configuration):
             configuration["port"],
             capabilities=caps)
 
-    _current_session.start()
+    try:
+        _current_session.start()
 
-    # Enforce a fixed default window size and position
-    if _current_session.capabilities.get("setWindowRect"):
-        _current_session.window.size = defaults.WINDOW_SIZE
-        _current_session.window.position = defaults.WINDOW_POSITION
+        # Enforce a fixed default window size and position
+        if _current_session.capabilities.get("setWindowRect"):
+            _current_session.window.size = defaults.WINDOW_SIZE
+            _current_session.window.position = defaults.WINDOW_POSITION
 
-    # Set default timeouts
-    multiplier = configuration["timeout_multiplier"]
-    _current_session.timeouts.implicit = IMPLICIT_WAIT_TIMEOUT * multiplier
-    _current_session.timeouts.page_load = PAGE_LOAD_TIMEOUT * multiplier
-    _current_session.timeouts.script = SCRIPT_TIMEOUT * multiplier
+        # Set default timeouts
+        multiplier = configuration["timeout_multiplier"]
+        _current_session.timeouts.implicit = IMPLICIT_WAIT_TIMEOUT * multiplier
+        _current_session.timeouts.page_load = PAGE_LOAD_TIMEOUT * multiplier
+        _current_session.timeouts.script = SCRIPT_TIMEOUT * multiplier
 
-    yield _current_session
+        yield _current_session
 
-    cleanup_session(_current_session)
+        cleanup_session(_current_session)
+
+    except Exception:
+        # Make sure we end up in a known state if something goes wrong.
+        _current_session.end()
+        raise
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -226,18 +232,27 @@ async def bidi_session(capabilities, configuration):
             capabilities=caps,
             enable_bidi=True)
 
-    _current_session.start()
-    await _current_session.bidi_session.start()
+    try:
+        _current_session.start()
 
-    # Enforce a fixed default window size and position
-    if _current_session.capabilities.get("setWindowRect"):
-        _current_session.window.size = defaults.WINDOW_SIZE
-        _current_session.window.position = defaults.WINDOW_POSITION
+        try:
+            await _current_session.bidi_session.start()
 
-    yield _current_session.bidi_session
+            # Enforce a fixed default window size and position
+            if _current_session.capabilities.get("setWindowRect"):
+                _current_session.window.size = defaults.WINDOW_SIZE
+                _current_session.window.position = defaults.WINDOW_POSITION
 
-    await _current_session.bidi_session.end()
-    cleanup_session(_current_session)
+            yield _current_session.bidi_session
+
+        finally:
+            await _current_session.bidi_session.end()
+
+        cleanup_session(_current_session)
+
+    except Exception:
+        # Make sure we end up in a known state if something goes wrong.
+        _current_session.end()
 
 
 @pytest.fixture(scope="function")

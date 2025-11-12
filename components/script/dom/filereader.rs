@@ -36,7 +36,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::progressevent::ProgressEvent;
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext};
 use crate::task::TaskOnce;
 
@@ -391,25 +391,19 @@ impl FileReaderMethods<crate::DomTypeHolder> for FileReader {
     // https://w3c.github.io/FileAPI/#dfn-onloadend
     event_handler!(loadend, GetOnloadend, SetOnloadend);
 
-    /// <https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer>
-    fn ReadAsArrayBuffer(&self, blob: &Blob, realm: InRealm, can_gc: CanGc) -> ErrorResult {
-        self.read(FileReaderFunction::ArrayBuffer, blob, None, realm, can_gc)
+    // https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer
+    fn ReadAsArrayBuffer(&self, blob: &Blob, can_gc: CanGc) -> ErrorResult {
+        self.read(FileReaderFunction::ArrayBuffer, blob, None, can_gc)
     }
 
-    /// <https://w3c.github.io/FileAPI/#dfn-readAsDataURL>
-    fn ReadAsDataURL(&self, blob: &Blob, realm: InRealm, can_gc: CanGc) -> ErrorResult {
-        self.read(FileReaderFunction::DataUrl, blob, None, realm, can_gc)
+    // https://w3c.github.io/FileAPI/#dfn-readAsDataURL
+    fn ReadAsDataURL(&self, blob: &Blob, can_gc: CanGc) -> ErrorResult {
+        self.read(FileReaderFunction::DataUrl, blob, None, can_gc)
     }
 
-    /// <https://w3c.github.io/FileAPI/#dfn-readAsText>
-    fn ReadAsText(
-        &self,
-        blob: &Blob,
-        label: Option<DOMString>,
-        realm: InRealm,
-        can_gc: CanGc,
-    ) -> ErrorResult {
-        self.read(FileReaderFunction::Text, blob, label, realm, can_gc)
+    // https://w3c.github.io/FileAPI/#dfn-readAsText
+    fn ReadAsText(&self, blob: &Blob, label: Option<DOMString>, can_gc: CanGc) -> ErrorResult {
+        self.read(FileReaderFunction::Text, blob, label, can_gc)
     }
 
     /// <https://w3c.github.io/FileAPI/#dfn-abort>
@@ -482,7 +476,6 @@ impl FileReader {
         function: FileReaderFunction,
         blob: &Blob,
         label: Option<DOMString>,
-        realm: InRealm,
         can_gc: CanGc,
     ) -> ErrorResult {
         let cx = GlobalScope::get_cx();
@@ -529,7 +522,6 @@ impl FileReader {
         // Read all bytes from stream with reader.
         reader.read_all_bytes(
             cx,
-            &self.global(),
             Rc::new(move |blob_contents| {
                 let global = filereader_success.global();
                 let task_manager = global.task_manager();
@@ -582,7 +574,6 @@ impl FileReader {
                     DOMErrorName::OperationError,
                 ));
             }),
-            realm,
             can_gc,
         );
         Ok(())

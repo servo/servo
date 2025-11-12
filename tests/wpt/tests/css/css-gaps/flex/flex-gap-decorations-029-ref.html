@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#outset">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+    .flex {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        left: 0px;
+        top: 0px;
+        width: 340px;
+    }
+    .item {
+        width: 100px;
+        height: 100px;
+        background: lightgray;
+    }
+    .row-decoration {
+        left: 1px;
+        top: 108.5px;
+        width: 334px;
+        height: 3px;
+        position: absolute;
+        background-color: gray;
+    }
+    .column-decoration {
+        position: absolute;
+        height: 105px;
+        width: 3px;
+        background-color: red;
+    }
+</style>
+<div class="row-decoration"></div>
+<div class="column-decoration" style="top: 1px; left: 208.5px; height: 104px;"></div>
+<div class="column-decoration" style="top: 120px; left: 108.5px; height: 110px;"></div>
+<div class="column-decoration" style="top: 120px; left: 228.5px; height: 110px;"></div>
+<div class="flex">
+    <div class="item" style="width: 200px;"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+</div>

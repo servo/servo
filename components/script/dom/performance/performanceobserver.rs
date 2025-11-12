@@ -28,12 +28,13 @@ use crate::script_runtime::{CanGc, JSContext};
 /// List of allowed performance entry types, in alphabetical order.
 pub(crate) const VALID_ENTRY_TYPES: &[&str] = &[
     // "frame", // TODO Frame Timing API
-    "mark",       // User Timing API
-    "measure",    // User Timing API
-    "navigation", // Navigation Timing API
-    "paint",      // Paint Timing API
-    "resource",   // Resource Timing API
-                  // "server", XXX Server Timing API
+    "largest-contentful-paint", // Largest Contentful Paint API
+    "mark",                     // User Timing API
+    "measure",                  // User Timing API
+    "navigation",               // Navigation Timing API
+    "paint",                    // Paint Timing API
+    "resource",                 // Resource Timing API
+                                // "server", XXX Server Timing API
 ];
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]

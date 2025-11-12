@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, Ref, RefCell, RefMut};
+use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::mem;
 use std::rc::Rc;
 
 use crossbeam_channel::Receiver;
-use image::{DynamicImage, ImageFormat};
 use log::{error, info};
 use servo::base::generic_channel::GenericSender;
 use servo::base::id::WebViewId;
@@ -17,7 +16,7 @@ use servo::config::pref;
 use servo::ipc_channel::ipc::IpcSender;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
-    AllowOrDenyRequest, AuthenticationRequest, EmbedderControl, EmbedderControlId,
+    AllowOrDenyRequest, AuthenticationRequest, Cursor, EmbedderControl, EmbedderControlId,
     GamepadHapticEffectType, InputEventId, InputEventResult, JSValue, LoadStatus,
     PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog, TraversalId,
     WebDriverCommandMsg, WebDriverLoadStatus, WebDriverUserPrompt, WebView, WebViewBuilder,
@@ -40,9 +39,6 @@ pub(crate) enum AppState {
 
 pub(crate) struct RunningAppState {
     base: RunningAppStateBase,
-    /// A [`Receiver`] for receiving commands from a running WebDriver server, if WebDriver
-    /// was enabled.
-    webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
     inner: RefCell<RunningAppStateInner>,
 }
 
@@ -83,10 +79,6 @@ pub struct RunningAppStateInner {
     /// to the GPU by egui.
     pending_favicon_loads: Vec<WebViewId>,
 
-    /// Whether or not the application has achieved stable image output. This is used
-    /// for the `exit_after_stable_image` option.
-    achieved_stable_image: Rc<Cell<bool>>,
-
     /// A list of showing [`InputMethod`] interfaces.
     visible_input_methods: Vec<EmbedderControlId>,
 }
@@ -125,8 +117,7 @@ impl RunningAppState {
             None
         };
         RunningAppState {
-            base: RunningAppStateBase::new(servoshell_preferences, servo),
-            webdriver_receiver,
+            base: RunningAppStateBase::new(servoshell_preferences, servo, webdriver_receiver),
             inner: RefCell::new(RunningAppStateInner {
                 webviews: HashMap::default(),
                 creation_order: Default::default(),
@@ -138,7 +129,6 @@ impl RunningAppState {
                 need_repaint: false,
                 dialog_amount_changed: false,
                 pending_favicon_loads: Default::default(),
-                achieved_stable_image: Default::default(),
                 visible_input_methods: Default::default(),
             }),
         }
@@ -167,10 +157,6 @@ impl RunningAppState {
 
     pub(crate) fn inner_mut(&self) -> RefMut<'_, RunningAppStateInner> {
         self.inner.borrow_mut()
-    }
-
-    pub(crate) fn webdriver_receiver(&self) -> Option<&Receiver<WebDriverCommandMsg>> {
-        self.webdriver_receiver.as_ref()
     }
 
     pub(crate) fn hidpi_scale_factor_changed(&self) {
@@ -222,7 +208,7 @@ impl RunningAppState {
         self.inner_mut().dialog_amount_changed = false;
 
         if self.servoshell_preferences().exit_after_stable_image &&
-            self.inner().achieved_stable_image.get()
+            self.base().achieved_stable_image.get()
         {
             self.servo().start_shutting_down();
         }
@@ -254,6 +240,18 @@ impl RunningAppState {
         };
 
         let mut inner = self.inner_mut();
+
+        // If a dialog is open, clear any Servo cursor. TODO: This should restore the
+        // cursor too, when all dialogs close. In general, we need a better cursor
+        // management strategy.
+        if inner
+            .dialogs
+            .get(&webview_id)
+            .is_some_and(|dialogs| !dialogs.is_empty())
+        {
+            inner.window.set_cursor(Cursor::Default);
+        }
+
         if let Some(dialogs) = inner.dialogs.get_mut(&webview_id) {
             let length = dialogs.len();
             dialogs.retain_mut(callback);
@@ -367,11 +365,13 @@ impl RunningAppState {
         &self,
         webview_id: WebViewId,
     ) -> Option<WebDriverUserPrompt> {
-        self.inner()
-            .dialogs
-            .get(&webview_id)
-            .and_then(|dialogs| dialogs.last())
-            .map(|dialog| dialog.webdriver_diaglog_type())
+        let inner = self.inner();
+        let dialogs = inner.dialogs.get(&webview_id)?;
+        dialogs
+            .iter()
+            .rev()
+            .filter_map(|dialog| dialog.webdriver_dialog_type())
+            .nth(0)
     }
 
     pub(crate) fn accept_active_dialogs(&self, webview_id: WebViewId) {
@@ -477,44 +477,6 @@ impl RunningAppState {
     /// Return a list of all webviews that have favicons that have not yet been loaded by egui.
     pub(crate) fn take_pending_favicon_loads(&self) -> Vec<WebViewId> {
         mem::take(&mut self.inner_mut().pending_favicon_loads)
-    }
-
-    /// If we are exiting after achieving a stable image or we want to save the display of the
-    /// [`WebView`] to an image file, request a screenshot of the [`WebView`].
-    fn maybe_request_screenshot(&self, webview: WebView) {
-        let output_path = self.servoshell_preferences().output_image_path.clone();
-        if !self.servoshell_preferences().exit_after_stable_image && output_path.is_none() {
-            return;
-        }
-
-        // Never request more than a single screenshot for now.
-        let achieved_stable_image = self.inner().achieved_stable_image.clone();
-        if achieved_stable_image.get() {
-            return;
-        }
-
-        webview.take_screenshot(None, move |image| {
-            achieved_stable_image.set(true);
-
-            let Some(output_path) = output_path else {
-                return;
-            };
-
-            let image = match image {
-                Ok(image) => image,
-                Err(error) => {
-                    error!("Could not take screenshot: {error:?}");
-                    return;
-                },
-            };
-
-            let image_format = ImageFormat::from_path(&output_path).unwrap_or(ImageFormat::Png);
-            if let Err(error) =
-                DynamicImage::ImageRgba8(image).save_with_format(output_path, image_format)
-            {
-                error!("Failed to save screenshot: {error}.");
-            }
-        });
     }
 }
 
@@ -762,7 +724,10 @@ impl WebViewDelegate for RunningAppState {
             EmbedderControl::SimpleDialog(simple_dialog) => {
                 self.show_simple_dialog(webview, simple_dialog);
             },
-            EmbedderControl::ContextMenu(..) => {},
+            EmbedderControl::ContextMenu(prompt) => {
+                let offset = self.inner().window.toolbar_height();
+                self.add_dialog(webview, Dialog::new_context_menu(prompt, offset));
+            },
         }
     }
 

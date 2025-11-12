@@ -167,7 +167,7 @@ impl VirtualMethods for HTMLBodyElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
         let do_super_mutate = match (attr.local_name(), mutation) {
-            (name, AttributeMutation::Set(_)) if name.starts_with("on") => {
+            (name, AttributeMutation::Set(..)) if name.starts_with("on") => {
                 let window = self.owner_window();
                 // https://html.spec.whatwg.org/multipage/
                 // #event-handlers-on-elements,-document-objects,-and-window-objects:event-handlers-6

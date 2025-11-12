@@ -531,12 +531,12 @@ impl TaffyContainer {
                             )),
                             LogicalVec2 {
                                 inline: resolve_alignment(
-                                    child.style.clone_align_self().0.0,
+                                    child.style.clone_align_self().0,
                                     align_items.0,
                                 ),
                                 block: resolve_alignment(
-                                    child.style.clone_justify_self().0.0,
-                                    justify_items.computed.0,
+                                    child.style.clone_justify_self().0,
+                                    justify_items.computed.0.0,
                                 ),
                             },
                             container_ctx.style.writing_mode,

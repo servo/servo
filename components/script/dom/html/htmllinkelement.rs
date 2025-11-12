@@ -8,6 +8,7 @@ use std::default::Default;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
+use ipc_channel::ipc::IpcSharedMemory;
 use js::rust::HandleObject;
 use net_traits::image_cache::{
     Image, ImageCache, ImageCacheResponseCallback, ImageCacheResult, ImageLoadListener,
@@ -16,7 +17,6 @@ use net_traits::image_cache::{
 use net_traits::request::{Destination, Initiator, RequestBuilder, RequestId};
 use net_traits::{
     FetchMetadata, FetchResponseMsg, NetworkError, ReferrerPolicy, ResourceFetchTiming,
-    ResourceTimingType,
 };
 use pixels::PixelFormat;
 use script_bindings::root::Dom;
@@ -297,7 +297,7 @@ impl VirtualMethods for HTMLLinkElement {
                 // When the as attribute of the link element of an external resource link
                 // that is already browsing-context connected is changed.
                 if self.relations.get().contains(LinkRelations::PRELOAD) {
-                    if let AttributeMutation::Set(Some(_)) = mutation {
+                    if let AttributeMutation::Set(Some(_), _) = mutation {
                         self.handle_preload_url();
                     }
                 }
@@ -334,7 +334,7 @@ impl VirtualMethods for HTMLLinkElement {
                     !self.previous_media_environment_matched.get()
                 {
                     match mutation {
-                        AttributeMutation::Removed | AttributeMutation::Set(Some(_)) => {
+                        AttributeMutation::Removed | AttributeMutation::Set(Some(_), _) => {
                             self.handle_preload_url()
                         },
                         _ => {},
@@ -537,7 +537,6 @@ impl HTMLLinkElement {
             link: Some(Trusted::new(self)),
             document: Trusted::new(&document),
             global: Trusted::new(&document.global()),
-            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             type_: LinkFetchContextType::Prefetch,
             response_body: vec![],
         };
@@ -670,7 +669,6 @@ impl HTMLLinkElement {
                     image_cache: window.image_cache(),
                     id,
                     link: Trusted::new(self),
-                    resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
                 };
                 document.fetch_background(request, fetch_context);
             },
@@ -735,7 +733,7 @@ impl HTMLLinkElement {
             let embedder_image = embedder_traits::Image::new(
                 frame.width,
                 frame.height,
-                raster_image.bytes.clone(),
+                std::sync::Arc::new(IpcSharedMemory::from_bytes(&raster_image.bytes)),
                 raster_image.frames[0].byte_range.clone(),
                 format,
             );
@@ -998,8 +996,6 @@ struct FaviconFetchContext {
 
     /// The base url of the document that the `<link>` element belongs to.
     url: ServoUrl,
-
-    resource_timing: ResourceFetchTiming,
 }
 
 impl FetchResponseListener for FaviconFetchContext {
@@ -1021,31 +1017,22 @@ impl FetchResponseListener for FaviconFetchContext {
     fn process_response_chunk(&mut self, request_id: RequestId, chunk: Vec<u8>) {
         self.image_cache.notify_pending_response(
             self.id,
-            FetchResponseMsg::ProcessResponseChunk(request_id, chunk),
+            FetchResponseMsg::ProcessResponseChunk(request_id, chunk.into()),
         );
     }
 
     fn process_response_eof(
-        &mut self,
+        self,
         request_id: RequestId,
         response: Result<ResourceFetchTiming, NetworkError>,
     ) {
         self.image_cache.notify_pending_response(
             self.id,
-            FetchResponseMsg::ProcessResponseEOF(request_id, response),
+            FetchResponseMsg::ProcessResponseEOF(request_id, response.clone()),
         );
-    }
-
-    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-        &mut self.resource_timing
-    }
-
-    fn resource_timing(&self) -> &ResourceFetchTiming {
-        &self.resource_timing
-    }
-
-    fn submit_resource_timing(&mut self) {
-        submit_timing(self, CanGc::note())
+        if let Ok(response) = response {
+            submit_timing(&self, &response, CanGc::note());
+        }
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

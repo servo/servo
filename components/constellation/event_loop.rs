@@ -11,9 +11,14 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use base::generic_channel::GenericSender;
+use background_hang_monitor_api::{BackgroundHangMonitorControlMsg, HangMonitorAlert};
+use base::generic_channel::{GenericReceiver, GenericSender};
 use ipc_channel::Error;
-use script_traits::ScriptThreadMessage;
+use ipc_channel::ipc::IpcSender;
+use script_traits::{InitialScriptState, NewPipelineInfo, ScriptThreadMessage};
+use serde::{Deserialize, Serialize};
+use servo_config::opts::Opts;
+use servo_config::prefs::Preferences;
 
 static CURRENT_EVENT_LOOP_ID: AtomicUsize = AtomicUsize::new(0);
 
@@ -61,4 +66,18 @@ impl EventLoop {
             .send(msg)
             .map_err(|_err| Box::new(ipc_channel::ErrorKind::Custom("SendError".into())))
     }
+}
+
+/// All of the information necessary to create a new script [`EventLoop`] in a new process.
+#[derive(Deserialize, Serialize)]
+pub struct NewScriptEventLoopProcessInfo {
+    pub new_pipeline_info: NewPipelineInfo,
+    pub initial_script_state: InitialScriptState,
+    pub constellation_to_bhm_receiver: GenericReceiver<BackgroundHangMonitorControlMsg>,
+    pub bhm_to_constellation_sender: GenericSender<HangMonitorAlert>,
+    pub lifeline_sender: IpcSender<()>,
+    pub opts: Opts,
+    pub prefs: Box<Preferences>,
+    /// The broken image icon data that is used to create an image to show in place of broken images.
+    pub broken_image_icon_data: Vec<u8>,
 }

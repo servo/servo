@@ -631,7 +631,7 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
             {
                 let alignment_establishes_new_block_formatting_context =
                     |style: &ComputedValues| {
-                        style.get_position().align_content.0.primary() != AlignFlags::NORMAL
+                        style.get_position().align_content.primary() != AlignFlags::NORMAL
                     };
 
                 let old_column = old.get_column();

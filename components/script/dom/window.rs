@@ -521,7 +521,7 @@ impl Window {
 
     #[expect(unsafe_code)]
     pub(crate) fn get_cx(&self) -> JSContext {
-        unsafe { JSContext::from_ptr(self.js_runtime.borrow().as_ref().unwrap().cx()) }
+        unsafe { JSContext::from_ptr(js::rust::Runtime::get().unwrap().as_ptr()) }
     }
 
     pub(crate) fn get_js_runtime(&self) -> Ref<'_, Option<Rc<Runtime>>> {
@@ -2347,7 +2347,8 @@ impl Window {
         let reflow_phases_run =
             self.reflow(ReflowGoal::UpdateScrollNode(scroll_id, Vector2D::new(x, y)));
         if reflow_phases_run.needs_frame() {
-            self.compositor_api().generate_frame();
+            self.compositor_api()
+                .generate_frame(vec![self.webview_id()]);
         }
 
         // > If the scroll position did not change as a result of the user interaction or programmatic
@@ -2600,7 +2601,8 @@ impl Window {
         //
         // See <https://github.com/servo/servo/issues/14719>
         if self.Document().update_the_rendering().needs_frame() {
-            self.compositor_api().generate_frame();
+            self.compositor_api()
+                .generate_frame(vec![self.webview_id()]);
         }
     }
 

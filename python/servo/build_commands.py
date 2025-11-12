@@ -127,6 +127,19 @@ class MachCommands(CommandBase):
         host = servo.platform.host_triple()
         target_triple = self.target.triple()
 
+        if self.enable_code_coverage:
+            print("Building with code coverage instrumentation...")
+            # We don't want coverage for build-scripts and proc macros.
+            kwargs["target_override"] = target_triple
+            this_dir = pathlib.Path(os.path.dirname(__file__))
+            servo_root_dir = this_dir.parent.parent
+            coverage_workspace_wrapper = servo_root_dir.joinpath("etc/coverage_workspace_wrapper.py")
+            if not coverage_workspace_wrapper.exists():
+                print(
+                    f"Could not find rustc workspace wrapper script at expected location: {coverage_workspace_wrapper}"
+                )
+            env["RUSTC_WORKSPACE_WRAPPER"] = str(coverage_workspace_wrapper)
+
         if sanitizer.is_some():
             self.build_sanitizer_env(env, opts, kwargs, target_triple, sanitizer)
 

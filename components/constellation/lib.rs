@@ -21,6 +21,6 @@ mod session_history;
 mod webview_manager;
 
 pub use crate::constellation::{Constellation, InitialConstellationState};
+pub use crate::event_loop::{EventLoop, NewScriptEventLoopProcessInfo};
 pub use crate::logging::{FromEmbedderLogger, FromScriptLogger};
-pub use crate::pipeline::UnprivilegedPipelineContent;
 pub use crate::sandboxing::{UnprivilegedContent, content_process_sandbox_profile};

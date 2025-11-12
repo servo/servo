@@ -44,6 +44,29 @@ const reduceMinTests = [
     }
   },
   {
+    'name': 'reduceMin float32 0D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceMinInput': {
+          'data': [-58.76195526123047],
+          'descriptor': {shape: [], dataType: 'float32'},
+          'constant': false
+        }
+      },
+      'operators': [{
+        'name': 'reduceMin',
+        'arguments': [{'input': 'reduceMinInput'}],
+        'outputs': 'reduceMinOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMinOutput': {
+          'data': -58.76195526123047,
+          'descriptor': {shape: [], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'reduceMin float32 0D constant tensor empty axes',
     'graph': {
       'inputs': {
@@ -51,6 +74,29 @@ const reduceMinTests = [
           'data': [-58.76195526123047],
           'descriptor': {shape: [], dataType: 'float32'},
           'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceMin',
+        'arguments': [{'input': 'reduceMinInput'}, {'options': {'axes': []}}],
+        'outputs': 'reduceMinOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMinOutput': {
+          'data': -58.76195526123047,
+          'descriptor': {shape: [], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceMin float32 0D tensor empty axes',
+    'graph': {
+      'inputs': {
+        'reduceMinInput': {
+          'data': [-58.76195526123047],
+          'descriptor': {shape: [], dataType: 'float32'},
+          'constant': false
         }
       },
       'operators': [{
@@ -577,6 +623,27 @@ const reduceMinTests = [
     }
   },
   {
+    'name': 'reduceMin float16 0D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceMinInput': {
+          'data': [-58.75],
+          'descriptor': {shape: [], dataType: 'float16'},
+          'constant': false
+        }
+      },
+      'operators': [{
+        'name': 'reduceMin',
+        'arguments': [{'input': 'reduceMinInput'}],
+        'outputs': 'reduceMinOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMinOutput':
+            {'data': [-58.75], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
     'name': 'reduceMin float16 0D constant tensor empty axes',
     'graph': {
       'inputs': {
@@ -584,6 +651,27 @@ const reduceMinTests = [
           'data': [-58.75],
           'descriptor': {shape: [], dataType: 'float16'},
           'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceMin',
+        'arguments': [{'input': 'reduceMinInput'}, {'options': {'axes': []}}],
+        'outputs': 'reduceMinOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMinOutput':
+            {'data': [-58.75], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceMin float16 0D tensor empty axes',
+    'graph': {
+      'inputs': {
+        'reduceMinInput': {
+          'data': [-58.75],
+          'descriptor': {shape: [], dataType: 'float16'},
+          'constant': false
         }
       },
       'operators': [{

@@ -91,10 +91,10 @@ pub(crate) unsafe fn byte_length_queuing_strategy_size(
     argc: u32,
     vp: *mut JSVal,
 ) -> bool {
-    let args = CallArgs::from_vp(vp, argc);
+    let args = unsafe { CallArgs::from_vp(vp, argc) };
 
     // Step 1.1: Return ? GetV(chunk, "byteLength").
-    let val = HandleValue::from_raw(args.get(0));
+    let val = unsafe { HandleValue::from_raw(args.get(0)) };
 
     // https://tc39.es/ecma262/multipage/abstract-operations.html#sec-getv
     // Let O be ? ToObject(V).
@@ -104,12 +104,14 @@ pub(crate) unsafe fn byte_length_queuing_strategy_size(
     rooted!(in(cx) let object = val.to_object());
 
     // Return ? O.[[Get]](P, V).
-    get_dictionary_property(
-        cx,
-        object.handle(),
-        "byteLength",
-        MutableHandleValue::from_raw(args.rval()),
-        CanGc::note(),
-    )
+    unsafe {
+        get_dictionary_property(
+            cx,
+            object.handle(),
+            "byteLength",
+            MutableHandleValue::from_raw(args.rval()),
+            CanGc::note(),
+        )
+    }
     .unwrap_or(false)
 }

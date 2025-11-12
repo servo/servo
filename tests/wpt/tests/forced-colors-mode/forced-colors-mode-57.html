@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode: this mode forces text-style emoji</title>
+<link rel="author" title="Sejal Anand" href="sejalanand@microsoft.com">
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<link rel=match href="forced-colors-mode-57-ref.html">
+<meta name="assert" content="In forced-colors mode, font-variant-emoji: normal and unicode should behave like text, rendering emoji in monochrome.">
+
+<style>
+  @media (forced-colors: active) {
+    .test {
+      font-variant-emoji: normal; /* overridden to text in forced-colors */
+    }
+
+    .unicode {
+      font-variant-emoji: unicode; /* also treated as text in forced-colors */
+    }
+
+    .text {
+      font-variant-emoji: text;
+    }
+  }
+</style>
+
+<p>All emoji should appear as monochrome (text-style) if forced-colors mode is active.</p>
+
+<div class="test">&#x1f600; 😀</div>
+<div class="text">&#x1f600; 😀</div>
+<div class="unicode">&#x1f600; 😀</div>

@@ -166,7 +166,7 @@ impl Sampler for LinuxSampler {
                 .wait_through_intr()
                 .expect("msg2 failed");
 
-            let mut native_stack = NativeStack::new();
+            let mut native_stack = NativeStack::default();
             unsafe {
                 backtrace::trace_unsynchronized(|frame| {
                     let ip = frame.ip();

@@ -147,8 +147,8 @@ impl LoadData {
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         has_trustworthy_ancestor_origin: bool,
         creation_sandboxing_flag_set: SandboxingFlagSet,
-    ) -> LoadData {
-        LoadData {
+    ) -> Self {
+        Self {
             load_origin,
             url,
             creator_pipeline_id,
@@ -167,6 +167,22 @@ impl LoadData {
             destination: Destination::Document,
             creation_sandboxing_flag_set,
         }
+    }
+
+    /// Create a new [`LoadData`] for a completely new top-level `WebView` that isn't created
+    /// via APIs like `window.open`. This is for `WebView`s completely unrelated to others.
+    pub fn new_for_new_unrelated_webview(url: ServoUrl) -> Self {
+        Self::new(
+            LoadOrigin::Constellation,
+            url,
+            None,
+            Referrer::NoReferrer,
+            ReferrerPolicy::EmptyString,
+            None,
+            None,
+            false,
+            SandboxingFlagSet::empty(),
+        )
     }
 }
 
