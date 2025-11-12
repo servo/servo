@@ -61,28 +61,21 @@ fn substring(source: &str, start: isize, length: Option<isize>) -> String {
 }
 
 /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#function-normalize-space>
-pub(crate) fn normalize_space(s: &str) -> String {
-    let mut result = String::with_capacity(s.len());
-    let mut last_was_whitespace = true; // Handles leading whitespace
+pub(crate) fn normalize_space(input: &str) -> String {
+    // Trim leading and trailing whitespace
+    let input = input.trim_ascii();
 
-    for c in s.chars() {
-        match c {
-            '\x20' | '\x09' | '\x0D' | '\x0A' => {
-                if !last_was_whitespace {
-                    result.push(' ');
-                    last_was_whitespace = true;
-                }
-            },
-            other => {
-                result.push(other);
-                last_was_whitespace = false;
-            },
-        }
-    }
+    let mut result = String::with_capacity(input.len());
+    input
+        .split([' ', '\x09', '\x0D', '\x0A'])
+        .filter(|segment| !segment.is_empty())
+        .for_each(|segment| {
+            if !result.is_empty() {
+                result.push(' ');
+            }
 
-    if last_was_whitespace {
-        result.pop();
-    }
+            result.push_str(segment);
+        });
 
     result
 }
@@ -110,6 +103,25 @@ fn lang_matches(context_lang: Option<&str>, target_lang: &str) -> bool {
     }
 
     false
+}
+
+/// <https://www.w3.org/TR/1999/REC-xpath-19991116/#function-translate>
+fn translate(input: &str, from: &str, to: &str) -> String {
+    let mut result = String::with_capacity(input.len());
+
+    for character in input.chars() {
+        let Some(replacement_index) = from.chars().position(|to_replace| to_replace == character)
+        else {
+            result.push(character);
+            continue;
+        };
+
+        if let Some(replace_with) = to.chars().nth(replacement_index) {
+            result.push(replace_with);
+        }
+    }
+
+    result
 }
 
 impl CoreFunction {
@@ -247,14 +259,7 @@ impl CoreFunction {
                 let string = str1.evaluate(context)?.convert_to_string();
                 let from = str2.evaluate(context)?.convert_to_string();
                 let to = str3.evaluate(context)?.convert_to_string();
-                let result = string
-                    .chars()
-                    .map(|c| match from.find(c) {
-                        Some(i) if i < to.chars().count() => to.chars().nth(i).unwrap(),
-                        _ => c,
-                    })
-                    .collect();
-                Ok(Value::String(result))
+                Ok(Value::String(translate(&string, &from, &to)))
             },
             CoreFunction::Number(expr_opt) => {
                 let val = match expr_opt {
@@ -302,6 +307,7 @@ impl CoreFunction {
 #[cfg(test)]
 mod tests {
     use super::{lang_matches, substring, substring_after, substring_before};
+    use crate::functions::{normalize_space, translate};
 
     #[test]
     fn test_substring_before() {
@@ -359,5 +365,32 @@ mod tests {
         assert!(!lang_matches(Some("fr"), "en"));
         assert!(!lang_matches(Some("fr-en"), "en"));
         assert!(!lang_matches(None, "en"));
+    }
+
+    #[test]
+    fn test_normalize_space() {
+        assert_eq!(normalize_space(" "), "");
+        assert_eq!(normalize_space("\n\t\r "), "");
+        assert_eq!(normalize_space("no-space"), "no-space");
+        assert_eq!(normalize_space("one space"), "one space");
+        assert_eq!(normalize_space("more    whitespace"), "more whitespace");
+        assert_eq!(
+            normalize_space("  \t leading  and trailing\n"),
+            "leading and trailing"
+        );
+    }
+
+    #[test]
+    fn test_translate() {
+        assert_eq!(translate("", "", ""), "");
+        assert_eq!(translate("", "abc", ""), "");
+        assert_eq!(translate("abcd", "abc", ""), "d");
+        assert_eq!(translate("abcd", "abc", "cba"), "cbad");
+        assert_eq!(translate("abc", "", "abc"), "abc");
+    }
+
+    #[test]
+    fn test_translate_with_multi_byte_characters() {
+        assert_eq!(translate("a🦞b😐c🦞d", "😐c", "🤨🤖"), "a🦞b🤨🤖🦞d");
     }
 }
