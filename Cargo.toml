@@ -149,7 +149,7 @@ servo-tracing = { path = "components/servo_tracing" }
 servo_arc = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
 sha1 = "0.10"
 sha2 = "0.10"
-skrifa = "0.37.0"
+skrifa = "0.39.0"
 smallvec = { version = "1.15", features = ["serde", "union"] }
 storage_traits = { path = "components/shared/storage" }
 string_cache = "0.9"
