@@ -167,10 +167,9 @@ impl CoreFunction {
                 // > of applying id to the string-value of each of the nodes in the argument node-set.
                 let mut extend_result_with_matching_nodes = |input: &str| {
                     result.extend(
-                        normalize_space(&input)
+                        normalize_space(input)
                             .split(' ')
-                            .map(|id| document.get_elements_with_id(id))
-                            .flatten()
+                            .flat_map(|id| document.get_elements_with_id(id))
                             .map(|element| element.as_node()),
                     );
                 };
