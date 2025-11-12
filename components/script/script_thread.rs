@@ -444,18 +444,6 @@ impl ScriptThreadFactory for ScriptThread {
                 PipelineNamespace::install(state.pipeline_namespace_id);
                 WebViewId::install(webview_id);
                 let memory_profiler_sender = state.memory_profiler_sender.clone();
-
-                let in_progress_load = InProgressLoad::new(
-                    new_pipeline_info.new_pipeline_id,
-                    new_pipeline_info.browsing_context_id,
-                    new_pipeline_info.webview_id,
-                    new_pipeline_info.parent_info,
-                    new_pipeline_info.opener,
-                    new_pipeline_info.viewport_details,
-                    new_pipeline_info.theme,
-                    MutableOrigin::new(new_pipeline_info.load_data.url.origin()),
-                    new_pipeline_info.load_data,
-                );
                 let reporter_name = format!("script-reporter-{pipeline_id:?}");
                 let script_thread = ScriptThread::new(
                     state,
@@ -472,7 +460,8 @@ impl ScriptThreadFactory for ScriptThread {
 
                 let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
 
-                script_thread.pre_page_load(in_progress_load);
+                // TODO: Eventually this should happen as a separate message to this new `ScriptThread`.
+                script_thread.spawn_pipeline(new_pipeline_info);
 
                 memory_profiler_sender.run_with_memory_reporting(
                     || script_thread.start(CanGc::note()),
@@ -672,22 +661,6 @@ impl ScriptThread {
         // url, initiatorOrigin, and userInvolvement.
         Self::eval_js_url(containing_global, load_data, can_gc);
         true
-    }
-
-    pub(crate) fn spawn_pipeline_in_current(
-        new_pipeline_info: NewPipelineInfo,
-        origin: MutableOrigin,
-    ) {
-        with_script_thread(|script_thread| {
-            let pipeline_id = Some(new_pipeline_info.new_pipeline_id);
-            script_thread.profile_event(
-                ScriptThreadEventCategory::SpawnPipeline,
-                pipeline_id,
-                || {
-                    script_thread.spawn_pipeline(new_pipeline_info, origin);
-                },
-            )
-        });
     }
 
     pub(crate) fn get_top_level_for_browsing_context(
@@ -1375,40 +1348,7 @@ impl ScriptThread {
                 MixedMessage::FromConstellation(ScriptThreadMessage::SpawnPipeline(
                     new_pipeline_info,
                 )) => {
-                    let pipeline_id = new_pipeline_info.new_pipeline_id;
-                    self.profile_event(
-                        ScriptThreadEventCategory::SpawnPipeline,
-                        Some(pipeline_id),
-                        || {
-                            // If this is an about:blank or about:srcdoc load, it must share the
-                            // creator's origin. This must match the logic in the constellation
-                            // when creating a new pipeline
-                            let not_an_about_blank_and_about_srcdoc_load =
-                                new_pipeline_info.load_data.url.as_str() != "about:blank" &&
-                                    new_pipeline_info.load_data.url.as_str() != "about:srcdoc";
-                            let origin = if not_an_about_blank_and_about_srcdoc_load {
-                                MutableOrigin::new(new_pipeline_info.load_data.url.origin())
-                            } else if let Some(parent) =
-                                new_pipeline_info.parent_info.and_then(|pipeline_id| {
-                                    self.documents.borrow().find_document(pipeline_id)
-                                })
-                            {
-                                parent.origin().clone()
-                            } else if let Some(creator) = new_pipeline_info
-                                .load_data
-                                .creator_pipeline_id
-                                .and_then(|pipeline_id| {
-                                    self.documents.borrow().find_document(pipeline_id)
-                                })
-                            {
-                                creator.origin().clone()
-                            } else {
-                                MutableOrigin::new(ImmutableOrigin::new_opaque())
-                            };
-
-                            self.spawn_pipeline(new_pipeline_info, origin);
-                        },
-                    )
+                    self.spawn_pipeline(new_pipeline_info);
                 },
                 MixedMessage::FromScript(MainThreadScriptMsg::Inactive) => {
                     // An event came-in from a document that is not fully-active, it has been stored by the task-queue.
@@ -2544,31 +2484,38 @@ impl ScriptThread {
         }
     }
 
-    fn spawn_pipeline(&self, new_pipeline_info: NewPipelineInfo, origin: MutableOrigin) {
-        let NewPipelineInfo {
-            parent_info,
-            new_pipeline_id,
-            browsing_context_id,
-            webview_id,
-            opener,
-            load_data,
-            viewport_details,
-            theme,
-        } = new_pipeline_info;
+    pub(crate) fn spawn_pipeline(&self, new_pipeline_info: NewPipelineInfo) {
+        self.profile_event(
+            ScriptThreadEventCategory::SpawnPipeline,
+            Some(new_pipeline_info.new_pipeline_id),
+            || {
+                // If this is an about:blank or about:srcdoc load, it must share the
+                // creator's origin. This must match the logic in the constellation
+                // when creating a new pipeline
+                let not_an_about_blank_and_about_srcdoc_load =
+                    new_pipeline_info.load_data.url.as_str() != "about:blank" &&
+                        new_pipeline_info.load_data.url.as_str() != "about:srcdoc";
+                let origin = if not_an_about_blank_and_about_srcdoc_load {
+                    MutableOrigin::new(new_pipeline_info.load_data.url.origin())
+                } else if let Some(parent) = new_pipeline_info
+                    .parent_info
+                    .and_then(|pipeline_id| self.documents.borrow().find_document(pipeline_id))
+                {
+                    parent.origin().clone()
+                } else if let Some(creator) = new_pipeline_info
+                    .load_data
+                    .creator_pipeline_id
+                    .and_then(|pipeline_id| self.documents.borrow().find_document(pipeline_id))
+                {
+                    creator.origin().clone()
+                } else {
+                    MutableOrigin::new(ImmutableOrigin::new_opaque())
+                };
 
-        // Kick off the fetch for the new resource.
-        let new_load = InProgressLoad::new(
-            new_pipeline_id,
-            browsing_context_id,
-            webview_id,
-            parent_info,
-            opener,
-            viewport_details,
-            theme,
-            origin,
-            load_data,
+                // Kick off the fetch for the new resource.
+                self.pre_page_load(InProgressLoad::new(new_pipeline_info, origin));
+            },
         );
-        self.pre_page_load(new_load);
     }
 
     fn collect_reports(&self, reports_chan: ReportsChan) {

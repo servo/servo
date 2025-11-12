@@ -60,7 +60,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
-use crate::script_thread::ScriptThread;
+use crate::script_thread::{ScriptThread, with_script_thread};
 use crate::script_window_proxies::ScriptWindowProxies;
 
 #[dom_struct]
@@ -316,7 +316,9 @@ impl WindowProxy {
         let load_data = LoadData::new(
             LoadOrigin::Script(document.origin().immutable().clone()),
             blank_url,
-            None,
+            // This has the effect of ensuring that the new `about:blank` URL has the
+            // same origin as the `Document` that is creating the new browsing context.
+            Some(window.pipeline_id()),
             document.global().get_referrer(),
             document.get_referrer_policy(),
             None, // Doesn't inherit secure context
@@ -348,7 +350,11 @@ impl WindowProxy {
             // change this later.
             theme: window.theme(),
         };
-        ScriptThread::spawn_pipeline_in_current(new_pipeline_info, document.origin().clone());
+
+        with_script_thread(|script_thread| {
+            script_thread.spawn_pipeline(new_pipeline_info);
+        });
+
         let new_window_proxy = ScriptThread::find_document(response.new_pipeline_id)
             .and_then(|doc| doc.browsing_context())?;
         if name.to_lowercase() != "_blank" {

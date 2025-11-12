@@ -49,7 +49,7 @@ use crate::dom::trustedhtml::TrustedHTML;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::windowproxy::WindowProxy;
 use crate::script_runtime::CanGc;
-use crate::script_thread::ScriptThread;
+use crate::script_thread::{ScriptThread, with_script_thread};
 use crate::script_window_proxies::ScriptWindowProxies;
 
 #[derive(PartialEq)]
@@ -228,10 +228,9 @@ impl HTMLIFrameElement {
                 };
 
                 self.pipeline_id.set(Some(new_pipeline_id));
-                ScriptThread::spawn_pipeline_in_current(
-                    new_pipeline_info,
-                    document.origin().clone(),
-                );
+                with_script_thread(|script_thread| {
+                    script_thread.spawn_pipeline(new_pipeline_info);
+                });
             },
             PipelineType::Navigation => {
                 let load_info = IFrameLoadInfoWithData {
