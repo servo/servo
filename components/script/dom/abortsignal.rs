@@ -8,8 +8,10 @@ use std::sync::{Arc, Mutex};
 
 use dom_struct::dom_struct;
 use indexmap::IndexSet;
-use js::jsapi::{ExceptionStackBehavior, Heap, JS_SetPendingException};
+use js::context::JSContext;
+use js::jsapi::{ExceptionStackBehavior, Heap};
 use js::jsval::{JSVal, UndefinedValue};
+use js::rust::wrappers2::JS_SetPendingException;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use script_bindings::inheritance::Castable;
 use script_bindings::trace::CustomTraceable;
@@ -400,14 +402,13 @@ impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
 
     /// <https://dom.spec.whatwg.org/#dom-abortsignal-throwifaborted>
     #[expect(unsafe_code)]
-    fn ThrowIfAborted(&self) -> Fallible<()> {
+    fn ThrowIfAborted(&self, cx: &mut JSContext) -> Fallible<()> {
         // The throwIfAborted() method steps are to throw this’s abort reason, if this is aborted.
         if self.aborted() {
-            let cx = GlobalScope::get_cx();
             unsafe {
                 JS_SetPendingException(
-                    *cx,
-                    self.abort_reason.handle(),
+                    cx,
+                    HandleValue::from_raw(self.abort_reason.handle()),
                     ExceptionStackBehavior::Capture,
                 )
             };
