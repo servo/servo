@@ -66,13 +66,16 @@ pub(crate) fn normalize_space(input: &str) -> String {
     let input = input.trim_ascii();
 
     let mut result = String::with_capacity(input.len());
-    input.split_ascii_whitespace().for_each(|segment| {
-        if !result.is_empty() {
-            result.push(' ');
-        }
+    input
+        .split([' ', '\x09', '\x0D', '\x0A'])
+        .filter(|segment| !segment.is_empty())
+        .for_each(|segment| {
+            if !result.is_empty() {
+                result.push(' ');
+            }
 
-        result.push_str(segment);
-    });
+            result.push_str(segment);
+        });
 
     result
 }
