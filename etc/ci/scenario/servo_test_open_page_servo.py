@@ -28,7 +28,9 @@ def operator():
     # Step 2. Check component
     if driver is not False:
         try:
-            driver.find_element(By.CSS_SELECTOR, "#homeHero > div.hero-body > div.container > div > a:nth-child(1)") and driver.find_element(By.CSS_SELECTOR, "#homeHero > div.hero-body > div.container > h1")
+            driver.find_element(
+                By.CSS_SELECTOR, "#homeHero > div.hero-body > div.container > div > a:nth-child(1)"
+            ) and driver.find_element(By.CSS_SELECTOR, "#homeHero > div.hero-body > div.container > h1")
             cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
             subprocess.run(cmd, capture_output=True, text=True, timeout=10)
             return True
@@ -39,7 +41,8 @@ def operator():
     else:
         return False
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     result = operator()
     print(result)
     if not result:
