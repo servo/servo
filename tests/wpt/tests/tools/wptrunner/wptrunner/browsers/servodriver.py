@@ -81,7 +81,7 @@ def write_hosts_file(config):
 
 class ServoWebDriverBrowser(WebDriverBrowser):
     init_timeout = 300  # Large timeout for cases where we're booting an Android emulator
-    shutdown_retry = 3
+    shutdown_retry_attempts = 3
 
     def __init__(self, logger, binary, debug_info=None, webdriver_host="127.0.0.1",
                  server_config=None, binary_args=None,
@@ -132,16 +132,18 @@ class ServoWebDriverBrowser(WebDriverBrowser):
         os.remove(self.hosts_path)
 
     def is_alive(self):
+        # This is broken. It is always True.
         if not super().is_alive():
             return False
         try:
             requests.get(f"http://{self.host}:{self.port}/status", timeout=3)    
         except requests.exceptions.Timeout:
             # FIXME: This indicates a hanged browser. Reasons need to be investigated further.
+            # It happens with ~0.1% probability in our CI runs.
             self.logger.debug("Servo webdriver status request timed out.")
             return True
-        except Exception as e:
-            self.logger.debug(f"Servo has shut down normally. {e}")
+        except Exception as exception:
+            self.logger.debug(f"Servo has shut down normally. {exception}")
             return False
 
         return True
@@ -158,16 +160,16 @@ class ServoWebDriverBrowser(WebDriverBrowser):
             except requests.exceptions.ConnectionError:
                 self.logger.debug("Browser already shut down (connection refused)")
                 break
-            except requests.exceptions.RequestException as e:
-                self.logger.debug(f"Request exception: {e}")
+            except requests.exceptions.RequestException as exeception:
+                self.logger.debug(f"Request exception: {exeception}")
                 break
             except requests.exceptions.Timeout:
                 self.logger.debug("Request timed out")
                 break
                 
             retry_cnt += 1
-            if retry_cnt >= self.shutdown_retry:
-                self.logger.debug("Max retry exceeded.")
+            if retry_cnt >= self.shutdown_retry_attempts:
+                self.logger.warn("Max retry exceeded to normally shut down. Killing instead.")
                 break
             time.sleep(1)
         super().stop(force)
