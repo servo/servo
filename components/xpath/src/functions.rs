@@ -158,19 +158,31 @@ impl CoreFunction {
                 Ok(Value::String(strings?.join("")))
             },
             CoreFunction::Id(expr) => {
-                let args_str = expr.evaluate(context)?.convert_to_string();
-                let args_normalized = normalize_space(&args_str);
-                let args = args_normalized.split(' ');
-
+                let argument = expr.evaluate(context)?;
                 let document = context.context_node.owner_document();
                 let mut result = NodeSet::default();
-                for arg in args {
-                    for element in document.get_elements_with_id(arg) {
-                        result.push(element.as_node());
-                    }
-                }
-                result.assume_sorted();
 
+                // https://www.w3.org/TR/1999/REC-xpath-19991116/#function-id
+                // > When the argument to id is of type node-set, then the result is the union of the result
+                // > of applying id to the string-value of each of the nodes in the argument node-set.
+                let mut extend_result_with_matching_nodes = |input: &str| {
+                    result.extend(
+                        normalize_space(&input)
+                            .split(' ')
+                            .map(|id| document.get_elements_with_id(id))
+                            .flatten()
+                            .map(|element| element.as_node()),
+                    );
+                };
+                if let Value::NodeSet(node_set) = argument {
+                    for node in node_set.iter() {
+                        extend_result_with_matching_nodes(&node.text_content())
+                    }
+                } else {
+                    extend_result_with_matching_nodes(&argument.convert_to_string())
+                }
+
+                result.sort();
                 Ok(Value::NodeSet(result))
             },
             CoreFunction::LocalName(expr_opt) => {

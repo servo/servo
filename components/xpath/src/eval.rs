@@ -134,7 +134,10 @@ impl PathExpression {
 
         for step_expression in &self.steps {
             let mut next_nodes = NodeSet::default();
+            println!("Evaluating {:?}", step_expression);
+            println!("Current nodes: {:?}", current_nodes);
             for node in current_nodes {
+                println!("Evaluating step for  {node:?}");
                 let step_context = context.subcontext_for_node(node.clone());
                 let step_result = step_expression.evaluate(&step_context)?;
                 match (have_multiple_steps, step_result) {
@@ -143,9 +146,11 @@ impl PathExpression {
                         next_nodes.extend(nodes);
                     },
                     (false, value) => {
+                        println!("OK BYE");
                         return Ok(value);
                     },
                     (true, value) => {
+                        println!("BIG ERROR");
                         log::debug!(
                             "Expected nodeset from step evaluation, got: {:?} node: {:?}, step: {:?}",
                             value,

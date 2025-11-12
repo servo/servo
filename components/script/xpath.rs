@@ -178,6 +178,7 @@ impl xpath::Document for XPathWrapper<DomRoot<Document>> {
         &self,
         id: &str,
     ) -> impl Iterator<Item = XPathWrapper<DomRoot<Element>>> {
+        println!("Get elements with id: {id:?}");
         struct ElementIterator<'a> {
             elements: Ref<'a, [Dom<Element>]>,
             position: usize,
