@@ -4,6 +4,7 @@
 
 mod aes_operation;
 mod ecdh_operation;
+mod ecdsa_operation;
 mod ed25519_operation;
 mod hkdf_operation;
 mod hmac_operation;
@@ -30,9 +31,9 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesGcmParams, AesKeyAlgorithm,
     AesKeyGenParams, Algorithm, AlgorithmIdentifier, EcKeyAlgorithm, EcKeyGenParams,
-    EcKeyImportParams, EcdhKeyDeriveParams, HkdfParams, HmacImportParams, HmacKeyAlgorithm,
-    HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params, RsaOtherPrimesInfo,
-    SubtleCryptoMethods,
+    EcKeyImportParams, EcdhKeyDeriveParams, EcdsaParams, HkdfParams, HmacImportParams,
+    HmacKeyAlgorithm, HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params,
+    RsaOtherPrimesInfo, SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey, ObjectOrString,
@@ -1641,6 +1642,29 @@ impl SafeToJSValConvertible for SubtleKeyAlgorithm {
     }
 }
 
+/// <https://w3c.github.io/webcrypto/#dfn-EcdsaParams>
+#[derive(Clone, Debug, MallocSizeOf)]
+struct SubtleEcdsaParams {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: String,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-EcdsaParams-hash>
+    hash: SubtleKeyAlgorithm,
+}
+
+impl TryFrom<RootedTraceableBox<EcdsaParams>> for SubtleEcdsaParams {
+    type Error = Error;
+
+    fn try_from(value: RootedTraceableBox<EcdsaParams>) -> Result<Self, Error> {
+        let cx = GlobalScope::get_cx();
+        let hash = normalize_algorithm(cx, &Operation::Digest, &value.hash, CanGc::note())?;
+        Ok(SubtleEcdsaParams {
+            name: value.parent.name.to_string(),
+            hash: hash.into(),
+        })
+    }
+}
+
 /// <https://w3c.github.io/webcrypto/#dfn-EcKeyGenParams>
 #[derive(Clone, Debug, MallocSizeOf)]
 struct SubtleEcKeyGenParams {
@@ -2230,6 +2254,7 @@ impl JsonWebKeyExt for JsonWebKey {
 #[derive(Clone, MallocSizeOf)]
 enum NormalizedAlgorithm {
     Algorithm(SubtleAlgorithm),
+    EcdsaParams(SubtleEcdsaParams),
     EcKeyGenParams(SubtleEcKeyGenParams),
     EcKeyImportParams(SubtleEcKeyImportParams),
     EcdhKeyDeriveParams(SubtleEcdhKeyDeriveParams),
@@ -2328,6 +2353,35 @@ fn normalize_algorithm(
             // NOTE: Step 10.1.3 is done by the `From` and `TryFrom` trait implementation of
             // "subtle" binding structs.
             let normalized_algorithm = match (alg_name, op) {
+                // <https://w3c.github.io/webcrypto/#ecdsa-registration>
+                (ALG_ECDSA, Operation::Verify) => {
+                    let mut params = dictionary_from_jsval::<RootedTraceableBox<EcdsaParams>>(
+                        cx,
+                        value.handle(),
+                        can_gc,
+                    )?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::EcdsaParams(params.try_into()?)
+                },
+                (ALG_ECDSA, Operation::GenerateKey) => {
+                    let mut params =
+                        dictionary_from_jsval::<EcKeyGenParams>(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::EcKeyGenParams(params.into())
+                },
+                (ALG_ECDSA, Operation::ImportKey) => {
+                    let mut params =
+                        dictionary_from_jsval::<EcKeyImportParams>(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::EcKeyImportParams(params.into())
+                },
+                (ALG_ECDSA, Operation::ExportKey) => {
+                    let mut params =
+                        dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+
                 // <https://w3c.github.io/webcrypto/#ecdh-registration>
                 (ALG_ECDH, Operation::GenerateKey) => {
                     let mut params =
@@ -2387,6 +2441,18 @@ fn normalize_algorithm(
                 },
 
                 // <https://w3c.github.io/webcrypto/#x25519-registration>
+                (ALG_X25519, Operation::DeriveBits) => {
+                    let mut params =
+                        dictionary_from_jsval::<EcdhKeyDeriveParams>(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::EcdhKeyDeriveParams(params.into())
+                },
+                (ALG_X25519, Operation::GenerateKey) => {
+                    let mut params =
+                        dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
                 (ALG_X25519, Operation::ImportKey) => {
                     let mut params =
                         dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
@@ -2703,6 +2769,7 @@ impl NormalizedAlgorithm {
     fn name(&self) -> &str {
         match self {
             NormalizedAlgorithm::Algorithm(algo) => &algo.name,
+            NormalizedAlgorithm::EcdsaParams(algo) => &algo.name,
             NormalizedAlgorithm::EcKeyGenParams(algo) => &algo.name,
             NormalizedAlgorithm::EcKeyImportParams(algo) => &algo.name,
             NormalizedAlgorithm::EcdhKeyDeriveParams(algo) => &algo.name,
@@ -2766,6 +2833,10 @@ impl NormalizedAlgorithm {
                 ALG_HMAC => hmac_operation::verify(key, message, signature),
                 _ => Err(Error::NotSupported),
             },
+            NormalizedAlgorithm::EcdsaParams(algo) => match algo.name.as_str() {
+                ALG_ECDSA => ecdsa_operation::verify(algo, key, message, signature),
+                _ => Err(Error::NotSupported),
+            },
             _ => Err(Error::NotSupported),
         }
     }
@@ -2793,9 +2864,15 @@ impl NormalizedAlgorithm {
             NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
                 ALG_ED25519 => ed25519_operation::generate_key(global, extractable, usages, can_gc)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair),
+                ALG_X25519 => x25519_operation::generate_key(global, extractable, usages, can_gc)
+                    .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair),
                 _ => Err(Error::NotSupported),
             },
             NormalizedAlgorithm::EcKeyGenParams(algo) => match algo.name.as_str() {
+                ALG_ECDSA => {
+                    ecdsa_operation::generate_key(global, algo, extractable, usages, can_gc)
+                        .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair)
+                },
                 ALG_ECDH => ecdh_operation::generate_key(global, algo, extractable, usages, can_gc)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair),
                 _ => Err(Error::NotSupported),
@@ -2831,6 +2908,7 @@ impl NormalizedAlgorithm {
         match self {
             NormalizedAlgorithm::EcdhKeyDeriveParams(algo) => match algo.name.as_str() {
                 ALG_ECDH => ecdh_operation::derive_bits(algo, key, length),
+                ALG_X25519 => x25519_operation::derive_bits(algo, key, length),
                 _ => Err(Error::NotSupported),
             },
             NormalizedAlgorithm::HkdfParams(algo) => hkdf_operation::derive_bits(algo, key, length),
@@ -2908,15 +2986,27 @@ impl NormalizedAlgorithm {
                 },
                 _ => Err(Error::NotSupported),
             },
-            NormalizedAlgorithm::EcKeyImportParams(algo) => ecdh_operation::import_key(
-                global,
-                algo,
-                format,
-                key_data,
-                extractable,
-                usages,
-                can_gc,
-            ),
+            NormalizedAlgorithm::EcKeyImportParams(algo) => match algo.name.as_str() {
+                ALG_ECDSA => ecdsa_operation::import_key(
+                    global,
+                    algo,
+                    format,
+                    key_data,
+                    extractable,
+                    usages,
+                    can_gc,
+                ),
+                ALG_ECDH => ecdh_operation::import_key(
+                    global,
+                    algo,
+                    format,
+                    key_data,
+                    extractable,
+                    usages,
+                    can_gc,
+                ),
+                _ => Err(Error::NotSupported),
+            },
             NormalizedAlgorithm::HmacImportParams(algo) => hmac_operation::import_key(
                 global,
                 algo,
@@ -2975,6 +3065,7 @@ impl NormalizedAlgorithm {
 /// for export key operation.
 fn perform_export_key_operation(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
     match key.algorithm().name() {
+        ALG_ECDSA => ecdsa_operation::export_key(format, key),
         ALG_ECDH => ecdh_operation::export_key(format, key),
         ALG_ED25519 => ed25519_operation::export_key(format, key),
         ALG_X25519 => x25519_operation::export_key(format, key),

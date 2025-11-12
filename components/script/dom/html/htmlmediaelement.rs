@@ -26,7 +26,6 @@ use media::{GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
 use net_traits::request::{Destination, RequestId};
 use net_traits::{
     CoreResourceThread, FetchMetadata, FilteredMetadata, NetworkError, ResourceFetchTiming,
-    ResourceTimingType,
 };
 use pixels::RasterImage;
 use script_bindings::codegen::GenericBindings::TimeRangesBinding::TimeRangesMethods;
@@ -40,6 +39,7 @@ use servo_media::player::{PlaybackState, Player, PlayerError, PlayerEvent, SeekL
 use servo_media::{ClientContextId, ServoMedia, SupportsMediaType};
 use servo_url::ServoUrl;
 use stylo_atoms::Atom;
+use uuid::Uuid;
 use webrender_api::{
     ExternalImageData, ExternalImageId, ExternalImageType, ImageBufferKind, ImageDescriptor,
     ImageDescriptorFlags, ImageFormat, ImageKey,
@@ -74,7 +74,7 @@ use crate::dom::blob::Blob;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
 use crate::dom::element::{
-    AttributeMutation, CustomElementCreationMode, Element, ElementCreator,
+    AttributeMutation, AttributeMutationReason, CustomElementCreationMode, Element, ElementCreator,
     cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute,
 };
 use crate::dom::event::Event;
@@ -2272,12 +2272,6 @@ impl HTMLMediaElement {
 
         // Step 12 & 13 are already handled by the earlier media track processing.
 
-        // We wait until we have metadata to render the controls, so we render them
-        // with the appropriate size.
-        if self.Controls() {
-            self.render_controls(can_gc);
-        }
-
         let global = self.global();
         let window = global.as_window();
 
@@ -2444,12 +2438,11 @@ impl HTMLMediaElement {
     }
 
     fn render_controls(&self, can_gc: CanGc) {
-        let element = self.htmlelement.upcast::<Element>();
-        if self.ready_state.get() < ReadyState::HaveMetadata || element.is_shadow_host() {
-            // Bail out if we have no metadata yet or
-            // if we are already showing the controls.
+        if self.upcast::<Element>().is_shadow_host() {
+            // Bail out if we are already showing the controls.
             return;
         }
+
         // FIXME(stevennovaryo): Recheck styling of media element to avoid
         //                       reparsing styles.
         let shadow_root = self
@@ -2470,7 +2463,8 @@ impl HTMLMediaElement {
         // The media controls UI accesses the document.servoGetMediaControls(id) API
         // to get an instance to the media controls ShadowRoot.
         // `id` needs to match the internally generated UUID assigned to a media element.
-        let id = document.register_media_controls(&shadow_root);
+        let id = Uuid::new_v4().to_string();
+        document.register_media_controls(&id, &shadow_root);
         let media_controls_script = MEDIA_CONTROL_JS.replace("@@@id@@@", &id);
         *self.media_controls_id.borrow_mut() = Some(id);
         script
@@ -3079,7 +3073,13 @@ impl VirtualMethods for HTMLMediaElement {
 
         match *attr.local_name() {
             local_name!("muted") => {
-                self.SetMuted(mutation.new_value(attr).is_some());
+                if let AttributeMutation::Set(
+                    _,
+                    AttributeMutationReason::ByCloning | AttributeMutationReason::ByParser,
+                ) = mutation
+                {
+                    self.SetMuted(true);
+                }
             },
             local_name!("src") => {
                 // <https://html.spec.whatwg.org/multipage/#location-of-the-media-resource>
@@ -3112,6 +3112,24 @@ impl VirtualMethods for HTMLMediaElement {
                 elem: DomRoot::from_ref(self),
             };
             ScriptThread::await_stable_state(Microtask::MediaElement(task));
+        }
+    }
+
+    fn adopting_steps(&self, old_doc: &Document, can_gc: CanGc) {
+        self.super_type().unwrap().adopting_steps(old_doc, can_gc);
+
+        // Note that media control id should be adopting between documents so "privileged"
+        // document.servoGetMediaControls(id) API is keeping access to the whitelist of media
+        // controls identifiers.
+        if let Some(id) = &*self.media_controls_id.borrow() {
+            let Some(shadow_root) = self.upcast::<Element>().shadow_root() else {
+                error!("Missing media controls shadow root");
+                return;
+            };
+
+            old_doc.unregister_media_controls(id);
+            self.owner_document()
+                .register_media_controls(id, &shadow_root);
         }
     }
 }
@@ -3367,8 +3385,6 @@ struct HTMLMediaElementFetchListener {
     request_id: RequestId,
     /// Time of last progress notification.
     next_progress_event: Instant,
-    /// Timing data for this resource.
-    resource_timing: ResourceFetchTiming,
     /// Url for the resource.
     url: ServoUrl,
     /// Expected content length of the media asset being fetched or played.
@@ -3521,11 +3537,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         }
     }
 
-    fn process_response_eof(
-        &mut self,
-        _: RequestId,
-        status: Result<ResourceFetchTiming, NetworkError>,
-    ) {
+    fn process_response_eof(self, _: RequestId, status: Result<ResourceFetchTiming, NetworkError>) {
         let element = self.element.root();
 
         // <https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list>
@@ -3583,18 +3595,10 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             // unsupported format, or can otherwise not be rendered at all"
             element.media_data_processing_failure_steps();
         }
-    }
 
-    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-        &mut self.resource_timing
-    }
-
-    fn resource_timing(&self) -> &ResourceFetchTiming {
-        &self.resource_timing
-    }
-
-    fn submit_resource_timing(&mut self) {
-        network_listener::submit_timing(self, CanGc::note())
+        if let Ok(response) = status {
+            network_listener::submit_timing(&self, &response, CanGc::note());
+        }
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -3654,7 +3658,6 @@ impl HTMLMediaElementFetchListener {
             generation_id: element.generation_id.get(),
             request_id,
             next_progress_event: Instant::now() + Duration::from_millis(350),
-            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             url,
             expected_content_length: None,
             fetched_content_length: 0,

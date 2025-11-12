@@ -29,8 +29,8 @@
 
   function test_try_tactic_wm(try_tactic, writing_mode, direction, expected_offsets) {
     target.style.positionTryFallbacks = `--pf ${try_tactic}`;
-    target.style.writingMode = writing_mode;
-    target.style.direction = direction;
+    cb.style.writingMode = writing_mode;
+    cb.style.direction = direction;
     test(() => {
       assert_equals(target.offsetLeft, expected_offsets.left, 'offsetLeft');
       assert_equals(target.offsetTop, expected_offsets.top, 'offsetTop');

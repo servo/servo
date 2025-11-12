@@ -44,6 +44,7 @@ promise_test(async t => {
     ["committed fulfilled", "", { from, navigationType: "reload" }],
     ["transition.committed fulfilled", "", { from, navigationType: "reload" }],
     ["promise microtask", "", { from, navigationType: "reload" }],
+    ["AbortSignal abort", "", { from, navigationType: "reload" }],
     ["navigateerror", "", { from, navigationType: "reload" }],
     ["finished rejected", "", null],
     ["transition.finished rejected", "", null],

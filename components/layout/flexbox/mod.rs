@@ -12,7 +12,7 @@ use style::properties::ComputedValues;
 use style::properties::longhands::align_items::computed_value::T as AlignItems;
 use style::properties::longhands::flex_direction::computed_value::T as FlexDirection;
 use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
-use style::values::computed::{AlignContent, JustifyContent};
+use style::values::computed::ContentDistribution;
 use style::values::specified::align::AlignFlags;
 
 use crate::PropagatedBoxTreeData;
@@ -41,9 +41,9 @@ pub(crate) struct FlexContainerConfig {
     flex_wrap: FlexWrap,
     flex_wrap_is_reversed: bool,
     main_start_cross_start_sides_are: MainStartCrossStart,
-    align_content: AlignContent,
+    align_content: ContentDistribution,
     align_items: AlignItems,
-    justify_content: JustifyContent,
+    justify_content: ContentDistribution,
 }
 
 impl FlexContainerConfig {

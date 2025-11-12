@@ -101,7 +101,6 @@ impl SystemFontService {
                     free_font_instance_keys: Default::default(),
                 };
 
-                cache.fetch_new_keys(PainterId::first_for_system_font_service());
                 cache.refresh_local_families();
 
                 memory_profiler_sender.run_with_memory_reporting(
@@ -145,7 +144,7 @@ impl SystemFontService {
                     );
                 },
                 SystemFontServiceMessage::GetFontKey(painter_id, result_sender) => {
-                    self.fetch_new_keys(painter_id);
+                    self.fetch_font_keys_if_needed(painter_id);
 
                     let _ = result_sender.send(
                         self.free_font_keys
@@ -156,7 +155,7 @@ impl SystemFontService {
                     );
                 },
                 SystemFontServiceMessage::GetFontInstanceKey(painter_id, result_sender) => {
-                    self.fetch_new_keys(painter_id);
+                    self.fetch_font_keys_if_needed(painter_id);
                     let _ = result_sender.send(
                         self.free_font_instance_keys
                             .get_mut(&painter_id)
@@ -164,6 +163,9 @@ impl SystemFontService {
                             .pop()
                             .unwrap(),
                     );
+                },
+                SystemFontServiceMessage::PrefetchFontKeys(painter_id) => {
+                    self.fetch_font_keys_if_needed(painter_id);
                 },
                 SystemFontServiceMessage::CollectMemoryReport(report_sender) => {
                     self.collect_memory_report(report_sender);
@@ -189,7 +191,7 @@ impl SystemFontService {
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn fetch_new_keys(&mut self, painter_id: PainterId) {
+    fn fetch_font_keys_if_needed(&mut self, painter_id: PainterId) {
         if !self
             .free_font_keys
             .get(&painter_id)
@@ -276,7 +278,7 @@ impl SystemFontService {
         flags: FontInstanceFlags,
         variations: Vec<FontVariation>,
     ) -> FontInstanceKey {
-        self.fetch_new_keys(painter_id);
+        self.fetch_font_keys_if_needed(painter_id);
 
         let compositor_api = &self.compositor_api;
         let webrender_fonts = &mut self.webrender_fonts;

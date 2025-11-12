@@ -17,6 +17,7 @@ enum MLPowerPreference {
 
 dictionary MLContextOptions {
   MLPowerPreference powerPreference = "default";
+  boolean accelerated = true;
 };
 
 [SecureContext, Exposed=(Window, Worker)]
@@ -48,6 +49,7 @@ interface MLContext {
 
   undefined destroy();
 
+  readonly attribute boolean accelerated;
   readonly attribute Promise<MLContextLostInfo> lost;
 };
 

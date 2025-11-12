@@ -224,7 +224,7 @@ impl InlineFormattingContextBuilder {
         if let Some(LayoutBox::InlineLevel(inline_level_box)) = old_layout_box {
             let old_block_in_inline_splits: Vec<ArcRefCell<InlineBox>> = inline_level_box
                 .iter()
-                .rev() // reverse to facilate the `Vec::pop` operation
+                .rev() // reverse to facilitate the `Vec::pop` operation
                 .filter_map(|inline_item| match &*inline_item.borrow() {
                     InlineItem::StartInlineBox(inline_box) => Some(inline_box.clone()),
                     _ => None,
@@ -686,7 +686,7 @@ impl PendingCaseConversionResult {
     }
 }
 
-/// This is an interator that consumes a char iterator and produces character transformed
+/// This is an iterator that consumes a char iterator and produces character transformed
 /// by the given CSS `text-transform` value. It currently does not support
 /// `text-transform: capitalize` because Unicode segmentation libraries do not support
 /// streaming input one character at a time.

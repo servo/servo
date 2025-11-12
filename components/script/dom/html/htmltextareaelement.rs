@@ -24,12 +24,12 @@ use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::clipboardevent::ClipboardEvent;
+use crate::dom::clipboardevent::{ClipboardEvent, ClipboardEventType};
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::document_embedder_controls::ControlElement;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
+use crate::dom::event::Event;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
@@ -46,7 +46,7 @@ use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 use crate::textinput::{
-    ClipboardEventReaction, Direction, KeyReaction, Lines, SelectionDirection, TextInput,
+    ClipboardEventFlags, Direction, IsComposing, KeyReaction, Lines, SelectionDirection, TextInput,
     UTF8Bytes, UTF16CodeUnits,
 };
 
@@ -223,6 +223,7 @@ impl HTMLTextAreaElement {
                     insertion_point: self.GetSelectionEnd(),
                     multiline: false,
                 }),
+                None,
             );
     }
 }
@@ -233,11 +234,20 @@ impl TextControlElement for HTMLTextAreaElement {
     }
 
     fn has_selectable_text(&self) -> bool {
-        true
+        !self.textinput.borrow().get_content().is_empty()
+    }
+
+    fn has_selection(&self) -> bool {
+        self.textinput.borrow().has_selection()
     }
 
     fn set_dirty_value_flag(&self, value: bool) {
         self.value_dirty.set(value)
+    }
+
+    fn select_all(&self) {
+        self.textinput.borrow_mut().select_all();
+        self.upcast::<Node>().dirty(NodeDamage::Other);
     }
 }
 
@@ -485,6 +495,31 @@ impl HTMLTextAreaElement {
     fn selection(&self) -> TextControlSelection<'_, Self> {
         TextControlSelection::new(self, &self.textinput)
     }
+
+    fn handle_key_reaction(&self, action: KeyReaction, event: &Event) {
+        match action {
+            KeyReaction::TriggerDefaultAction => (),
+            KeyReaction::DispatchInput(text, is_composing, input_type) => {
+                if event.IsTrusted() {
+                    self.textinput.borrow().queue_input_event(
+                        self.upcast(),
+                        text,
+                        is_composing,
+                        input_type,
+                    );
+                }
+                self.value_dirty.set(true);
+                self.update_placeholder_shown_state();
+                self.upcast::<Node>().dirty(NodeDamage::Other);
+                event.mark_as_handled();
+            },
+            KeyReaction::RedrawSelection => {
+                self.upcast::<Node>().dirty(NodeDamage::Other);
+                event.mark_as_handled();
+            },
+            KeyReaction::Nothing => (),
+        }
+    }
 }
 
 impl VirtualMethods for HTMLTextAreaElement {
@@ -500,7 +535,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             local_name!("disabled") => {
                 let el = self.upcast::<Element>();
                 match mutation {
-                    AttributeMutation::Set(_) => {
+                    AttributeMutation::Set(..) => {
                         el.set_disabled_state(true);
                         el.set_enabled_state(false);
 
@@ -546,7 +581,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                 {
                     let mut placeholder = self.placeholder.borrow_mut();
                     placeholder.clear();
-                    if let AttributeMutation::Set(_) = mutation {
+                    if let AttributeMutation::Set(..) = mutation {
                         placeholder.push_str(attr.value().as_ref());
                     }
                 }
@@ -555,7 +590,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             local_name!("readonly") => {
                 let el = self.upcast::<Element>();
                 match mutation {
-                    AttributeMutation::Set(_) => {
+                    AttributeMutation::Set(..) => {
                         el.set_read_write_state(false);
                     },
                     AttributeMutation::Removed => {
@@ -664,31 +699,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                 // This can't be inlined, as holding on to textinput.borrow_mut()
                 // during self.implicit_submission will cause a panic.
                 let action = self.textinput.borrow_mut().handle_keydown(kevent);
-                match action {
-                    KeyReaction::TriggerDefaultAction => (),
-                    KeyReaction::DispatchInput => {
-                        if event.IsTrusted() {
-                            self.owner_global()
-                                .task_manager()
-                                .user_interaction_task_source()
-                                .queue_event(
-                                    self.upcast(),
-                                    atom!("input"),
-                                    EventBubbles::Bubbles,
-                                    EventCancelable::NotCancelable,
-                                );
-                        }
-                        self.value_dirty.set(true);
-                        self.update_placeholder_shown_state();
-                        self.upcast::<Node>().dirty(NodeDamage::Other);
-                        event.mark_as_handled();
-                    },
-                    KeyReaction::RedrawSelection => {
-                        self.upcast::<Node>().dirty(NodeDamage::Other);
-                        event.mark_as_handled();
-                    },
-                    KeyReaction::Nothing => (),
-                }
+                self.handle_key_reaction(action, event);
             }
         } else if event.type_() == atom!("keypress") && !event.DefaultPrevented() {
             // keypress should be deprecated and replaced by beforeinput.
@@ -700,16 +711,18 @@ impl VirtualMethods for HTMLTextAreaElement {
         {
             if let Some(compositionevent) = event.downcast::<CompositionEvent>() {
                 if event.type_() == atom!("compositionend") {
-                    let _ = self
+                    let action = self
                         .textinput
                         .borrow_mut()
                         .handle_compositionend(compositionevent);
+                    self.handle_key_reaction(action, event);
                     self.upcast::<Node>().dirty(NodeDamage::Other);
                 } else if event.type_() == atom!("compositionupdate") {
-                    let _ = self
+                    let action = self
                         .textinput
                         .borrow_mut()
                         .handle_compositionupdate(compositionevent);
+                    self.handle_key_reaction(action, event);
                     self.upcast::<Node>().dirty(NodeDamage::Other);
                 }
                 event.mark_as_handled();
@@ -719,23 +732,24 @@ impl VirtualMethods for HTMLTextAreaElement {
                 .textinput
                 .borrow_mut()
                 .handle_clipboard_event(clipboard_event);
-            if reaction.contains(ClipboardEventReaction::FireClipboardChangedEvent) {
-                self.owner_document()
-                    .event_handler()
-                    .fire_clipboardchange_event(can_gc);
+
+            let flags = reaction.flags;
+            if flags.contains(ClipboardEventFlags::FireClipboardChangedEvent) {
+                self.owner_document().event_handler().fire_clipboard_event(
+                    None,
+                    ClipboardEventType::Change,
+                    can_gc,
+                );
             }
-            if reaction.contains(ClipboardEventReaction::QueueInputEvent) {
-                self.owner_global()
-                    .task_manager()
-                    .user_interaction_task_source()
-                    .queue_event(
-                        self.upcast(),
-                        atom!("input"),
-                        EventBubbles::Bubbles,
-                        EventCancelable::NotCancelable,
-                    );
+            if flags.contains(ClipboardEventFlags::QueueInputEvent) {
+                self.textinput.borrow().queue_input_event(
+                    self.upcast(),
+                    reaction.text,
+                    IsComposing::NotComposing,
+                    reaction.input_type,
+                );
             }
-            if !reaction.is_empty() {
+            if !flags.is_empty() {
                 self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
             }
         } else if let Some(event) = event.downcast::<FocusEvent>() {

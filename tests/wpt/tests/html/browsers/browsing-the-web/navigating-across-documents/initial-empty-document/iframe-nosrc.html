@@ -175,4 +175,39 @@ promise_test(async t => {
   assert_equals(history.length, startingHistoryLength + 1,
     "history.length increases after normal navigation from  non-initial empty document");
 }, "form submission");
+
+// This test is very similar to the `location.href` test a few cases above, but
+// the difference is that instead of navigating from:
+//   initial about:blank Document => HTTP => HTTP
+// ... we navigate from:
+//   initial about:blank Document => (non-initial) about:blank Document => HTTP
+//
+// We do this to ensure/assert that an explicit navigation to about:blank
+// *after* the iframe has finished initializing, is counted as a normal
+// navigation away from the initial about:blank Document, and the "initial-ness"
+// of the initial about:blank Document is not carried over to the next
+// about:blank Document.
+promise_test(async t => {
+  const startingHistoryLength = history.length;
+  // Create an iframe with src not set, which will stay on the initial empty
+  // document.
+  const iframe = insertIframe(t);
+  assert_equals(history.length, startingHistoryLength,
+    "Inserting iframe with no src must not change history.length");
+
+  // Navigate away from the initial empty document through setting location.href
+  // to `about:blank`. This should do a replacement TO ANOTHER about:blank
+  // Document, which is not the initial about:blank Document.
+  iframe.contentWindow.location.href = 'about:blank';
+  await waitForLoad(t, iframe, 'about:blank');
+  assert_equals(history.length, startingHistoryLength,
+    "history.length must not change after normal navigation on document loaded by iframe with no src");
+
+  // Navigate again using the same method, but this time it shouldn't do a
+  // replacement since it's no longer on the initial empty document.
+  iframe.contentWindow.location.href = url2;
+  await waitForLoad(t, iframe, url2);
+  assert_equals(history.length, startingHistoryLength + 1,
+    "history.length increases after normal navigation from  non-initial empty document");
+}, "initial about:blank => non-initial about:blank (via location.href) => normal HTTP navigation");
 </script>

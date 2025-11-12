@@ -169,6 +169,8 @@ jobs:
         timeout-minutes: 10
         run: |
           sudo apt update
+          echo "wireshark-common wireshark-common/install-setuid boolean true" | sudo debconf-set-selections
+          sudo apt install -qy tshark
           ./mach bootstrap --skip-lints
 
       # Always install crown, even on self-hosted runners, because it is tightly

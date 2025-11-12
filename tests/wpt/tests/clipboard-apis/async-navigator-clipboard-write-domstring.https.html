@@ -102,6 +102,21 @@
     const item = new ClipboardItem({
       'text/plain': nonLatinText
     });
+    const textBlob = await item.getType('text/plain');
+
+    // Read back the text and verify it matches
+    const readText = await textBlob.text();
+    assert_equals(readText, nonLatinText,
+      "Text read from ClipboardItem should match the non-Latin text that was written");
+  }, 'write non-Latin characters with DOMString and verify getType returns a Blob with the same string');
+
+  promise_test(async () => {
+    await getPermissions();
+    // Test string with various non-Latin characters: Chinese, Arabic, Cyrillic, emoji
+    const nonLatinText = "你好 مرحبا Привет 👋🌍";
+    const item = new ClipboardItem({
+      'text/plain': nonLatinText
+    });
     await navigator.clipboard.write([item]);
 
     // Read back the text and verify it matches

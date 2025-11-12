@@ -194,7 +194,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             .send(CoreResourceMsg::GetCookieDataForUrlAsync(
                 self.store_id,
                 creation_url.clone(),
-                Some(name.to_string()),
+                Some(name.into()),
             ));
         if res.is_err() {
             error!("Failed to send cookiestore message to resource threads");

@@ -54,7 +54,7 @@ use crate::style_ext::ComputedValuesExt;
 use crate::taffy::SpecificTaffyGridInfo;
 
 /// Get a scroll node that would represents this [`ServoLayoutNode`]'s transform and
-/// calculate its cumlative transform from its root scroll node to the scroll node.
+/// calculate its cumulative transform from its root scroll node to the scroll node.
 fn root_transform_for_layout_node(
     scroll_tree: &ScrollTree,
     node: ServoThreadSafeLayoutNode<'_>,
@@ -838,7 +838,7 @@ pub(crate) fn process_scroll_container_query(
 pub fn get_the_text_steps(node: ServoLayoutNode<'_>) -> String {
     // Step 1: If element is not being rendered or if the user agent is a non-CSS user agent, then
     // return element's descendant text content.
-    // This is taken care of in HTMLElemnent code
+    // This is taken care of in HTMLElement code
 
     // Step 2: Let results be a new empty list.
     let mut results = Vec::new();
@@ -1111,7 +1111,7 @@ fn rendered_text_collection_steps(
             let inherited_box = style.get_inherited_box();
 
             if inherited_box.visibility != Visibility::Visible {
-                // If the element is not visible then we'll immediatly render all children,
+                // If the element is not visible, then we'll immediately render all children,
                 // skipping all other processing.
                 // We can't just stop here since a child can override a parents visibility.
                 for child in node.dom_children() {

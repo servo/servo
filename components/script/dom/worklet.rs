@@ -22,7 +22,8 @@ use base::IpcSend;
 use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use dom_struct::dom_struct;
-use js::jsapi::{GCReason, JS_GC, JS_GetGCParameter, JSGCParamKey, JSTracer};
+use js::jsapi::{GCReason, JSGCParamKey, JSTracer};
+use js::rust::wrappers2::{JS_GC, JS_GetGCParameter};
 use malloc_size_of::malloc_size_of_is_0;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{Destination, RequestBuilder, RequestMode};
@@ -170,6 +171,7 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
                 options.credentials,
                 pending_tasks_struct,
                 &promise,
+                global_scope.inherited_secure_context(),
             );
 
         // Step 5.
@@ -329,6 +331,7 @@ impl WorkletThreadPool {
         credentials: RequestCredentials,
         pending_tasks_struct: PendingTasksStruct,
         promise: &Rc<Promise>,
+        inherited_secure_context: Option<bool>,
     ) {
         // Send each thread a control message asking it to load the script.
         for sender in &[
@@ -348,6 +351,7 @@ impl WorkletThreadPool {
                 credentials,
                 pending_tasks_struct: pending_tasks_struct.clone(),
                 promise: TrustedPromise::new(promise.clone()),
+                inherited_secure_context,
             });
         }
         self.wake_threads();
@@ -405,6 +409,7 @@ enum WorkletControl {
         credentials: RequestCredentials,
         pending_tasks_struct: PendingTasksStruct,
         promise: TrustedPromise,
+        inherited_secure_context: Option<bool>,
     },
 }
 
@@ -484,7 +489,7 @@ struct WorkletThread {
 unsafe impl JSTraceable for WorkletThread {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         debug!("Tracing worklet thread.");
-        self.global_scopes.trace(trc);
+        unsafe { self.global_scopes.trace(trc) };
     }
 }
 
@@ -601,7 +606,7 @@ impl WorkletThread {
     /// The current memory usage of the thread
     #[expect(unsafe_code)]
     fn current_memory_usage(&self) -> u32 {
-        unsafe { JS_GetGCParameter(self.runtime.cx(), JSGCParamKey::JSGC_BYTES) }
+        unsafe { JS_GetGCParameter(self.runtime.cx_no_gc(), JSGCParamKey::JSGC_BYTES) }
     }
 
     /// Perform a GC.
@@ -628,6 +633,7 @@ impl WorkletThread {
         webview_id: WebViewId,
         pipeline_id: PipelineId,
         worklet_id: WorkletId,
+        inherited_secure_context: Option<bool>,
         global_type: WorkletGlobalScopeType,
         base_url: ServoUrl,
     ) -> DomRoot<WorkletGlobalScope> {
@@ -641,6 +647,7 @@ impl WorkletThread {
                     webview_id,
                     pipeline_id,
                     base_url,
+                    inherited_secure_context,
                     executor,
                     &self.global_init,
                 );
@@ -749,11 +756,13 @@ impl WorkletThread {
                 credentials,
                 pending_tasks_struct,
                 promise,
+                inherited_secure_context,
             } => {
                 let global = self.get_worklet_global_scope(
                     webview_id,
                     pipeline_id,
                     worklet_id,
+                    inherited_secure_context,
                     global_type,
                     base_url,
                 );

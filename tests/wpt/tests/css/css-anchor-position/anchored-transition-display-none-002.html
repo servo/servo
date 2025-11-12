@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+
+<html class="reftest-wait">
+
+<title>When anchor-positioned elements transition from display: block to none, it should keep its position until transition end</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1">
+<link rel="author" href="mailto:kiet.ho@apple.com">
+<link rel="match" href="anchored-transition-display-none-002-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+
+<style>
+  #containing-block {
+    width: 300px;
+    height: 300px;
+    position: relative;
+    outline: 1px black solid;
+  }
+
+  #anchor {
+    width: 100px;
+    height: 100px;
+    position: absolute;
+    top: 100px;
+    left: 0px;
+    background: cyan;
+    anchor-name: --anchor;
+  }
+
+  .anchored {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    transition: display 99999s allow-discrete;
+  }
+
+  #anchored-anchor-function {
+    top: anchor(--anchor bottom);
+    left: anchor(--anchor right);
+    background: green;
+  }
+
+  #anchored-position-area {
+    position-anchor: --anchor;
+    position-area: top right;
+    background: blue;
+  }
+</style>
+
+<body onload="onLoad()">
+  <div id="containing-block">
+    <div id="anchor"></div>
+    <div class="anchored" id="anchored-anchor-function"></div>
+    <div class="anchored" id="anchored-position-area"></div>
+  </div>
+
+  <script>
+    function onLoad() {
+      document.getElementById("anchored-anchor-function").style.display = "none";
+      document.getElementById("anchored-position-area").style.display = "none";
+
+      waitForAtLeastOneFrame().then(takeScreenshot);
+    }
+  </script>
+</body>
+
+</html>

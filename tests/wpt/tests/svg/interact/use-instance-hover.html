@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>SVG Test: :hover effect on &lt;use&gt; element instance</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/struct.html#UseStyleInheritance">
+<link rel="match" href="/svg/linking/reftests/use-descendant-combinator-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  rect {
+    fill: red;
+    width: 100px;
+    height: 100px;
+  }
+  rect:hover { fill: green; }
+</style>
+<p>You should see a green square, and no red.</p>
+<svg>
+  <defs>
+    <rect id="r"></rect>
+  </defs>
+  <use href="#r"></use>
+</svg>
+<script type="module">
+  await waitForAtLeastOneFrame();
+  await new test_driver.Actions()
+    .pointerMove(50, 100)
+    .send();
+  takeScreenshot();
+</script>

@@ -14,9 +14,7 @@ fn run(set_location: &str, set_cookies: &[&str], final_location: &str) -> String
 
     // Add all cookies to the store
     for str_cookie in set_cookies {
-        if let Some(cookie) =
-            ServoCookie::from_cookie_string(str_cookie.to_owned().into(), &url, source)
-        {
+        if let Some(cookie) = ServoCookie::from_cookie_string(str_cookie, &url, source) {
             storage.push(cookie, &url, source);
         }
     }

@@ -201,7 +201,7 @@ impl DocumentEventHandler {
                     InputEventResult::default()
                 },
                 InputEvent::EditingAction(editing_action_event) => {
-                    self.handle_editing_action(editing_action_event, can_gc)
+                    self.handle_editing_action(None, editing_action_event, can_gc)
                 },
                 InputEvent::Scroll(scroll_event) => {
                     self.handle_embedder_scroll_event(scroll_event);
@@ -1296,7 +1296,12 @@ impl DocumentEventHandler {
     }
 
     /// <https://www.w3.org/TR/clipboard-apis/#clipboard-actions>
-    fn handle_editing_action(&self, action: EditingActionEvent, can_gc: CanGc) -> InputEventResult {
+    pub(crate) fn handle_editing_action(
+        &self,
+        element: Option<DomRoot<Element>>,
+        action: EditingActionEvent,
+        can_gc: CanGc,
+    ) -> InputEventResult {
         let clipboard_event_type = match action {
             EditingActionEvent::Copy => ClipboardEventType::Copy,
             EditingActionEvent::Cut => ClipboardEventType::Cut,
@@ -1317,16 +1322,8 @@ impl DocumentEventHandler {
         }
 
         // Step 2 Fire a clipboard event
-        let clipboard_event = ClipboardEvent::new(
-            &self.window,
-            None,
-            DOMString::from(clipboard_event_type.as_str()),
-            EventBubbles::Bubbles,
-            EventCancelable::Cancelable,
-            None,
-            can_gc,
-        );
-        self.fire_clipboard_event(&clipboard_event, clipboard_event_type, can_gc);
+        let clipboard_event =
+            self.fire_clipboard_event(element.clone(), clipboard_event_type, can_gc);
 
         // Step 3 If a script doesn't call preventDefault()
         // the event will be handled inside target's VirtualMethods::handle_event
@@ -1359,7 +1356,7 @@ impl DocumentEventHandler {
                     }
 
                     // Step 4.2 Fire a clipboard event named clipboardchange
-                    self.fire_clipboardchange_event(can_gc);
+                    self.fire_clipboard_event(element, ClipboardEventType::Change, can_gc);
                 },
                 // Step 4.1 Return false.
                 // Note: This function deviates from the specification a bit by returning
@@ -1375,12 +1372,22 @@ impl DocumentEventHandler {
     }
 
     /// <https://www.w3.org/TR/clipboard-apis/#fire-a-clipboard-event>
-    fn fire_clipboard_event(
+    pub(crate) fn fire_clipboard_event(
         &self,
-        event: &ClipboardEvent,
-        action: ClipboardEventType,
+        target: Option<DomRoot<Element>>,
+        clipboard_event_type: ClipboardEventType,
         can_gc: CanGc,
-    ) {
+    ) -> DomRoot<ClipboardEvent> {
+        let clipboard_event = ClipboardEvent::new(
+            &self.window,
+            None,
+            DOMString::from(clipboard_event_type.as_str()),
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            None,
+            can_gc,
+        );
+
         // Step 1 Let clear_was_called be false
         // Step 2 Let types_to_clear an empty list
         let mut drag_data_store = DragDataStore::new();
@@ -1392,18 +1399,19 @@ impl DocumentEventHandler {
 
         // Step 6 if the context is editable:
         let document = self.window.Document();
-        let focused = document.get_focused_element();
-        let body = document.GetBody();
+        let target = target.or(document.get_focused_element());
+        let target = target
+            .map(|target| DomRoot::from_ref(target.upcast()))
+            .or_else(|| {
+                document
+                    .GetBody()
+                    .map(|body| DomRoot::from_ref(body.upcast()))
+            })
+            .unwrap_or_else(|| DomRoot::from_ref(self.window.upcast()));
 
-        let target = match (&focused, &body) {
-            (Some(focused), _) => focused.upcast(),
-            (&None, Some(body)) => body.upcast(),
-            (&None, &None) => self.window.upcast(),
-        };
         // Step 6.2 else TODO require Selection see https://github.com/w3c/clipboard-apis/issues/70
-
         // Step 7
-        match action {
+        match clipboard_event_type {
             ClipboardEventType::Copy | ClipboardEventType::Cut => {
                 // Step 7.2.1
                 drag_data_store.set_mode(Mode::ReadWrite);
@@ -1448,27 +1456,19 @@ impl DocumentEventHandler {
         );
 
         // Step 8
-        event.set_clipboard_data(Some(&clipboard_event_data));
-        let event = event.upcast::<Event>();
+        clipboard_event.set_clipboard_data(Some(&clipboard_event_data));
+
         // Step 9
+        let event = clipboard_event.upcast::<Event>();
         event.set_trusted(trusted);
+
         // Step 10 Set event’s composed to true.
         event.set_composed(true);
-        // Step 11
-        event.dispatch(target, false, can_gc);
-    }
 
-    pub(crate) fn fire_clipboardchange_event(&self, can_gc: CanGc) {
-        let clipboardchange_event = ClipboardEvent::new(
-            &self.window,
-            None,
-            DOMString::from("clipboardchange"),
-            EventBubbles::Bubbles,
-            EventCancelable::Cancelable,
-            None,
-            can_gc,
-        );
-        self.fire_clipboard_event(&clipboardchange_event, ClipboardEventType::Change, can_gc);
+        // Step 11
+        event.dispatch(&target, false, can_gc);
+
+        DomRoot::from(clipboard_event)
     }
 
     /// <https://www.w3.org/TR/clipboard-apis/#write-content-to-the-clipboard>

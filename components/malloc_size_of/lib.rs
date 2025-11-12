@@ -885,6 +885,7 @@ malloc_size_of_is_0!(taffy::Layout);
 malloc_size_of_is_0!(unicode_bidi::Level);
 malloc_size_of_is_0!(unicode_script::Script);
 malloc_size_of_is_0!(urlpattern::UrlPattern);
+malloc_size_of_is_0!(utf8::Incomplete);
 
 macro_rules! malloc_size_of_is_webrender_malloc_size_of(
     ($($ty:ty),+) => (
@@ -997,13 +998,12 @@ malloc_size_of_is_stylo_malloc_size_of!(style::selector_parser::Snapshot);
 malloc_size_of_is_stylo_malloc_size_of!(style::shared_lock::SharedRwLock);
 malloc_size_of_is_stylo_malloc_size_of!(style::stylesheets::DocumentStyleSheet);
 malloc_size_of_is_stylo_malloc_size_of!(style::stylist::Stylist);
-malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::AlignContent);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::BorderStyle);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::ContentDistribution);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontStretch);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontStyle);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontWeight);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::font::SingleFontFamily);
-malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::JustifyContent);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::align::AlignFlags);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::box_::Overflow);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::font::FontSynthesis);

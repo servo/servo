@@ -125,10 +125,6 @@ jobs:
           echo CCACHE=ccache >> $GITHUB_ENV
 
       # Install missing tools in a GitHub-hosted runner.
-      # Workaround for https://github.com/actions/runner-images/issues/10001:
-      - name: Upgrade llvm
-        if: ${{ runner.environment != 'self-hosted' }}
-        run: choco upgrade llvm
       - name: Install wixtoolset
         if: ${{ runner.environment != 'self-hosted' }}
         run: |
@@ -246,9 +242,6 @@ jobs:
           fetch-depth: 1
       - name: Setup Python
         uses: ./.github/actions/setup-python
-      - name: Upgrade llvm
-        if: ${{ runner.environment != 'self-hosted' }}
-        run: choco upgrade llvm
       - name: Determine MSRV
         id: msrv
         uses: ./.github/actions/parse_msrv

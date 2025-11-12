@@ -161,7 +161,7 @@ pub(crate) fn compute_damage_and_repair_style_inner(
     // If we are going to potentially reuse this box tree node, then clear any cached
     // fragment layout.
     //
-    // TODO: If this node has `recollect_box_tree_children` damage, this is unecessary
+    // TODO: If this node has `recollect_box_tree_children` damage, this is unnecessary
     // unless it's entirely above the dirty root.
     if element_damage != RestyleDamage::reconstruct() &&
         damage_for_parent.contains(RestyleDamage::RELAYOUT)

@@ -1153,7 +1153,7 @@ impl VirtualMethods for HTMLElement {
                 let event_name = &name[2..];
                 match mutation {
                     // https://html.spec.whatwg.org/multipage/#activate-an-event-handler
-                    AttributeMutation::Set(_) => {
+                    AttributeMutation::Set(..) => {
                         let source = &**attr.value();
                         let source_line = 1; // TODO(#9604) get current JS execution line
                         evtarget.set_event_handler_uncompiled(
@@ -1174,7 +1174,7 @@ impl VirtualMethods for HTMLElement {
                 self.form_attribute_mutated(mutation, can_gc);
             },
             // Adding a "disabled" attribute disables an enabled form element.
-            (&local_name!("disabled"), AttributeMutation::Set(_))
+            (&local_name!("disabled"), AttributeMutation::Set(..))
                 if self.is_form_associated_custom_element() && element.enabled_state() =>
             {
                 element.set_disabled_state(true);
@@ -1203,7 +1203,7 @@ impl VirtualMethods for HTMLElement {
             },
             (&local_name!("readonly"), mutation) if self.is_form_associated_custom_element() => {
                 match mutation {
-                    AttributeMutation::Set(_) => {
+                    AttributeMutation::Set(..) => {
                         element.set_read_write_state(true);
                     },
                     AttributeMutation::Removed => {
@@ -1212,7 +1212,7 @@ impl VirtualMethods for HTMLElement {
                 }
             },
             (&local_name!("nonce"), mutation) => match mutation {
-                AttributeMutation::Set(_) => {
+                AttributeMutation::Set(..) => {
                     let nonce = &**attr.value();
                     element.update_nonce_internal_slot(nonce.to_owned());
                 },

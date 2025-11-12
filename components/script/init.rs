@@ -55,7 +55,7 @@ fn perform_platform_specific_initialization() {}
 
 #[expect(unsafe_code)]
 unsafe extern "C" fn is_dom_object(obj: *mut JSObject) -> bool {
-    !obj.is_null() && (is_platform_object_static(obj) || is_dom_proxy(obj))
+    !obj.is_null() && (is_platform_object_static(obj) || unsafe { is_dom_proxy(obj) })
 }
 
 /// Returns true if JIT is forbidden

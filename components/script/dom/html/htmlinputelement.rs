@@ -55,14 +55,14 @@ use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, FromInputValueString, ToInputValueString, USVString};
-use crate::dom::clipboardevent::ClipboardEvent;
+use crate::dom::clipboardevent::{ClipboardEvent, ClipboardEventType};
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::document_embedder_controls::ControlElement;
 use crate::dom::element::{
     AttributeMutation, CustomElementCreationMode, Element, ElementCreator, LayoutElementHelpers,
 };
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
+use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::filelist::{FileList, LayoutFileListHelpers};
@@ -88,12 +88,10 @@ use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
-use crate::textinput::KeyReaction::{
-    DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction,
-};
 use crate::textinput::Lines::Single;
 use crate::textinput::{
-    ClipboardEventReaction, Direction, SelectionDirection, TextInput, UTF8Bytes, UTF16CodeUnits,
+    ClipboardEventFlags, Direction, IsComposing, KeyReaction, SelectionDirection, TextInput,
+    UTF8Bytes, UTF16CodeUnits,
 };
 
 const DEFAULT_SUBMIT_VALUE: &str = "Submit";
@@ -1434,6 +1432,33 @@ impl HTMLInputElement {
         let el = self.upcast::<Element>();
         self.input_type() == InputType::Color && !el.disabled_state()
     }
+
+    fn handle_key_reaction(&self, action: KeyReaction, event: &Event, can_gc: CanGc) {
+        match action {
+            KeyReaction::TriggerDefaultAction => {
+                self.implicit_submission(can_gc);
+            },
+            KeyReaction::DispatchInput(text, is_composing, input_type) => {
+                if event.IsTrusted() {
+                    self.textinput.borrow().queue_input_event(
+                        self.upcast(),
+                        text,
+                        is_composing,
+                        input_type,
+                    );
+                }
+                self.value_dirty.set(true);
+                self.update_placeholder_shown_state();
+                self.upcast::<Node>().dirty(NodeDamage::Other);
+                event.mark_as_handled();
+            },
+            KeyReaction::RedrawSelection => {
+                self.upcast::<Node>().dirty(NodeDamage::Other);
+                event.mark_as_handled();
+            },
+            KeyReaction::Nothing => (),
+        }
+    }
 }
 
 pub(crate) trait LayoutHTMLInputElementHelpers<'dom> {
@@ -1594,7 +1619,7 @@ impl TextControlElement for HTMLInputElement {
             InputType::Week |
             InputType::Time |
             InputType::DatetimeLocal |
-            InputType::Number => true,
+            InputType::Number => !self.textinput.borrow().get_content().is_empty(),
 
             InputType::Button |
             InputType::Checkbox |
@@ -1609,8 +1634,17 @@ impl TextControlElement for HTMLInputElement {
         }
     }
 
+    fn has_selection(&self) -> bool {
+        self.textinput.borrow().has_selection()
+    }
+
     fn set_dirty_value_flag(&self, value: bool) {
         self.value_dirty.set(value)
+    }
+
+    fn select_all(&self) {
+        self.textinput.borrow_mut().select_all();
+        self.upcast::<Node>().dirty(NodeDamage::Other);
     }
 }
 
@@ -2428,6 +2462,7 @@ impl HTMLInputElement {
                     allow_select_multiple: self.Multiple(),
                     accept_current_paths_for_testing,
                 }),
+                None,
             );
     }
 
@@ -2810,6 +2845,7 @@ impl HTMLInputElement {
             document.embedder_controls().show_embedder_control(
                 ControlElement::ColorInput(DomRoot::from_ref(self)),
                 EmbedderControlRequest::ColorPicker(current_color),
+                None,
             );
         }
     }
@@ -2874,7 +2910,13 @@ impl HTMLInputElement {
             .set(Some(&FileList::new(&window, files, can_gc)));
 
         let target = self.upcast::<EventTarget>();
-        target.fire_bubbling_event(atom!("input"), can_gc);
+        target.fire_event_with_params(
+            atom!("input"),
+            EventBubbles::Bubbles,
+            EventCancelable::NotCancelable,
+            EventComposed::Composed,
+            can_gc,
+        );
         target.fire_bubbling_event(atom!("change"), can_gc);
     }
 
@@ -2893,6 +2935,7 @@ impl HTMLInputElement {
                     insertion_point: self.GetSelectionEnd(),
                     multiline: false,
                 }),
+                None,
             );
     }
 }
@@ -2912,8 +2955,8 @@ impl VirtualMethods for HTMLInputElement {
         match *attr.local_name() {
             local_name!("disabled") => {
                 let disabled_state = match mutation {
-                    AttributeMutation::Set(None) => true,
-                    AttributeMutation::Set(Some(_)) => {
+                    AttributeMutation::Set(None, _) => true,
+                    AttributeMutation::Set(Some(_), _) => {
                         // Input was already disabled before.
                         return;
                     },
@@ -2933,8 +2976,8 @@ impl VirtualMethods for HTMLInputElement {
             },
             local_name!("checked") if !self.checked_changed.get() => {
                 let checked_state = match mutation {
-                    AttributeMutation::Set(None) => true,
-                    AttributeMutation::Set(Some(_)) => {
+                    AttributeMutation::Set(None, _) => true,
+                    AttributeMutation::Set(Some(_), _) => {
                         // Input was already checked before.
                         return;
                     },
@@ -2949,7 +2992,7 @@ impl VirtualMethods for HTMLInputElement {
             local_name!("type") => {
                 let el = self.upcast::<Element>();
                 match mutation {
-                    AttributeMutation::Set(_) => {
+                    AttributeMutation::Set(..) => {
                         let new_type = InputType::from(attr.value().as_atom());
 
                         // https://html.spec.whatwg.org/multipage/#input-type-change
@@ -3084,7 +3127,7 @@ impl VirtualMethods for HTMLInputElement {
                 {
                     let mut placeholder = self.placeholder.borrow_mut();
                     placeholder.clear();
-                    if let AttributeMutation::Set(_) = mutation {
+                    if let AttributeMutation::Set(..) = mutation {
                         placeholder
                             .extend(attr.value().chars().filter(|&c| c != '\n' && c != '\r'));
                     }
@@ -3096,7 +3139,7 @@ impl VirtualMethods for HTMLInputElement {
                 if self.input_type().is_textual() {
                     let el = self.upcast::<Element>();
                     match mutation {
-                        AttributeMutation::Set(_) => {
+                        AttributeMutation::Set(..) => {
                             el.set_read_write_state(false);
                         },
                         AttributeMutation::Removed => {
@@ -3217,18 +3260,15 @@ impl VirtualMethods for HTMLInputElement {
                     // now.
                     if let Some(point_in_target) = mouse_event.point_in_target() {
                         let window = self.owner_window();
-                        let index = window
-                            .text_index_query(self.upcast::<Node>(), point_in_target.to_untyped());
-                        // Position the caret at the click position or at the end of the current
-                        // value.
-                        let edit_point_index = match index {
-                            Some(i) => i,
-                            None => self.textinput.borrow().char_count(),
-                        };
+
+                        // Position the caret at the click position or at the end of the current value.
+                        let edit_point_index = window
+                            .text_index_query(self.upcast::<Node>(), point_in_target.to_untyped())
+                            .unwrap_or_else(|| self.textinput.borrow().char_count());
+                        self.textinput.borrow_mut().clear_selection();
                         self.textinput
                             .borrow_mut()
                             .set_edit_point_index(edit_point_index);
-                        // trigger redraw
                         self.upcast::<Node>().dirty(NodeDamage::Other);
                         event.PreventDefault();
                     }
@@ -3242,33 +3282,7 @@ impl VirtualMethods for HTMLInputElement {
                 // This can't be inlined, as holding on to textinput.borrow_mut()
                 // during self.implicit_submission will cause a panic.
                 let action = self.textinput.borrow_mut().handle_keydown(keyevent);
-                match action {
-                    TriggerDefaultAction => {
-                        self.implicit_submission(can_gc);
-                    },
-                    DispatchInput => {
-                        if event.IsTrusted() {
-                            self.owner_global()
-                                .task_manager()
-                                .user_interaction_task_source()
-                                .queue_event(
-                                    self.upcast(),
-                                    atom!("input"),
-                                    EventBubbles::Bubbles,
-                                    EventCancelable::NotCancelable,
-                                );
-                        }
-                        self.value_dirty.set(true);
-                        self.update_placeholder_shown_state();
-                        self.upcast::<Node>().dirty(NodeDamage::Other);
-                        event.mark_as_handled();
-                    },
-                    RedrawSelection => {
-                        self.upcast::<Node>().dirty(NodeDamage::Other);
-                        event.mark_as_handled();
-                    },
-                    Nothing => (),
-                }
+                self.handle_key_reaction(action, event, can_gc);
             }
         } else if event.type_() == atom!("keypress") &&
             !event.DefaultPrevented() &&
@@ -3284,17 +3298,19 @@ impl VirtualMethods for HTMLInputElement {
         {
             if let Some(compositionevent) = event.downcast::<CompositionEvent>() {
                 if event.type_() == atom!("compositionend") {
-                    let _ = self
+                    let action = self
                         .textinput
                         .borrow_mut()
                         .handle_compositionend(compositionevent);
+                    self.handle_key_reaction(action, event, can_gc);
                     self.upcast::<Node>().dirty(NodeDamage::Other);
                     self.update_placeholder_shown_state();
                 } else if event.type_() == atom!("compositionupdate") {
-                    let _ = self
+                    let action = self
                         .textinput
                         .borrow_mut()
                         .handle_compositionupdate(compositionevent);
+                    self.handle_key_reaction(action, event, can_gc);
                     self.upcast::<Node>().dirty(NodeDamage::Other);
                     self.update_placeholder_shown_state();
                 } else if event.type_() == atom!("compositionstart") {
@@ -3308,23 +3324,23 @@ impl VirtualMethods for HTMLInputElement {
                 .textinput
                 .borrow_mut()
                 .handle_clipboard_event(clipboard_event);
-            if reaction.contains(ClipboardEventReaction::FireClipboardChangedEvent) {
-                self.owner_document()
-                    .event_handler()
-                    .fire_clipboardchange_event(can_gc);
+            let flags = reaction.flags;
+            if flags.contains(ClipboardEventFlags::FireClipboardChangedEvent) {
+                self.owner_document().event_handler().fire_clipboard_event(
+                    None,
+                    ClipboardEventType::Change,
+                    can_gc,
+                );
             }
-            if reaction.contains(ClipboardEventReaction::QueueInputEvent) {
-                self.owner_global()
-                    .task_manager()
-                    .user_interaction_task_source()
-                    .queue_event(
-                        self.upcast(),
-                        atom!("input"),
-                        EventBubbles::Bubbles,
-                        EventCancelable::NotCancelable,
-                    );
+            if flags.contains(ClipboardEventFlags::QueueInputEvent) {
+                self.textinput.borrow().queue_input_event(
+                    self.upcast(),
+                    reaction.text,
+                    IsComposing::NotComposing,
+                    reaction.input_type,
+                );
             }
-            if !reaction.is_empty() {
+            if !flags.is_empty() {
                 self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
             }
         } else if let Some(event) = event.downcast::<FocusEvent>() {
@@ -3629,7 +3645,13 @@ impl Activatable for HTMLInputElement {
 
                 // Step 2: Fire an event named input at the element with the bubbles and composed
                 // attributes initialized to true.
-                target.fire_bubbling_event(atom!("input"), can_gc);
+                target.fire_event_with_params(
+                    atom!("input"),
+                    EventBubbles::Bubbles,
+                    EventCancelable::NotCancelable,
+                    EventComposed::Composed,
+                    can_gc,
+                );
 
                 // Step 3: Fire an event named change at the element with the bubbles attribute
                 // initialized to true.

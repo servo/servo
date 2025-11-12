@@ -11,8 +11,12 @@ use std::rc::Rc;
 use servo_arc::Arc as ServoArc;
 use style::context::QuirksMode;
 use style::shared_lock::SharedRwLock;
-use style::stylesheets::{CssRule, StylesheetContents, UrlExtraData};
+use style::stylesheets::{AllowImportRules, CssRule, Origin, StylesheetContents, UrlExtraData};
 use stylo_atoms::Atom;
+
+use crate::dom::node::NodeTraits;
+use crate::dom::types::HTMLElement;
+use crate::stylesheet_loader::ElementStylesheetLoader;
 
 const MAX_LENGTH_OF_TEXT_INSERTED_INTO_TABLE: usize = 1024;
 const UNIQUE_OWNED: usize = 2;
@@ -81,7 +85,7 @@ impl StylesheetContentsCache {
         shared_lock: &SharedRwLock,
         url_data: UrlExtraData,
         quirks_mode: QuirksMode,
-        stylesheetcontents_create_callback: impl FnOnce() -> ServoArc<StylesheetContents>,
+        element: &HTMLElement,
     ) -> (
         Option<StylesheetContentsCacheKey>,
         ServoArc<StylesheetContents>,
@@ -100,7 +104,22 @@ impl StylesheetContentsCache {
                     )
                 },
                 Entry::Vacant(vacant_entry) => {
-                    let contents = stylesheetcontents_create_callback();
+                    let contents = {
+                        #[cfg(feature = "tracing")]
+                        let _span = tracing::trace_span!("ParseStylesheet", servo_profiling = true)
+                            .entered();
+                        StylesheetContents::from_str(
+                            stylesheet_text,
+                            url_data,
+                            Origin::Author,
+                            shared_lock,
+                            Some(&ElementStylesheetLoader::new(element)),
+                            element.owner_window().css_error_reporter(),
+                            quirks_mode,
+                            AllowImportRules::Yes,
+                            /* sanitized_output = */ None,
+                        )
+                    };
                     if Self::contents_can_be_cached(&contents, shared_lock) {
                         let occupied_entry = vacant_entry.insert_entry(contents.clone());
                         // Use a copy of the cache key from `Entry` instead of the newly created one above

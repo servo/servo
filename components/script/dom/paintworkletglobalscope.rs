@@ -89,6 +89,7 @@ impl PaintWorkletGlobalScope {
         webview_id: WebViewId,
         pipeline_id: PipelineId,
         base_url: ServoUrl,
+        inherited_secure_context: Option<bool>,
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
     ) -> DomRoot<PaintWorkletGlobalScope> {
@@ -101,6 +102,7 @@ impl PaintWorkletGlobalScope {
                 webview_id,
                 pipeline_id,
                 base_url,
+                inherited_secure_context,
                 executor,
                 init,
             ),

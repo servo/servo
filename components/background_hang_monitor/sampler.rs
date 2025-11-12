@@ -15,7 +15,7 @@ pub trait Sampler: Send {
 pub struct DummySampler;
 
 impl DummySampler {
-    #[expect(dead_code)]
+    #[allow(dead_code)]
     pub fn new_boxed() -> Box<dyn Sampler> {
         Box::new(DummySampler)
     }
@@ -31,7 +31,7 @@ impl Sampler for DummySampler {
 pub type Address = *const u8;
 
 /// The registers used for stack unwinding
-#[expect(dead_code)]
+#[allow(dead_code)]
 pub struct Registers {
     /// Instruction pointer.
     pub instruction_ptr: Address,
@@ -47,15 +47,17 @@ pub struct NativeStack {
     count: usize,
 }
 
-impl NativeStack {
-    pub fn new() -> Self {
+impl Default for NativeStack {
+    fn default() -> Self {
         NativeStack {
             instruction_ptrs: [ptr::null_mut(); MAX_NATIVE_FRAMES],
             stack_ptrs: [ptr::null_mut(); MAX_NATIVE_FRAMES],
             count: 0,
         }
     }
+}
 
+impl NativeStack {
     pub fn process_register(
         &mut self,
         instruction_ptr: *mut std::ffi::c_void,

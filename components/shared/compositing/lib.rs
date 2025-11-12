@@ -131,9 +131,9 @@ pub enum CompositorMsg {
         /// An [ipc::IpcBytesReceiver] used to send the raw data of the display list.
         display_list_receiver: ipc::IpcBytesReceiver,
     },
-    /// Ask the renderer to generate a frame for the current set of display lists that
-    /// have been sent to the renderer.
-    GenerateFrame,
+    /// Ask the renderer to generate a frame for the current set of display lists
+    /// from the given `WebViewId`s that have been sent to the renderer.
+    GenerateFrame(Vec<WebViewId>),
     /// Create a new image key. The result will be returned via the
     /// provided channel sender.
     GenerateImageKey(GenericSender<ImageKey>),
@@ -215,7 +215,22 @@ impl CrossProcessCompositorApi {
     /// Create a new [`CrossProcessCompositorApi`] struct that does not have a listener on the other
     /// end to use for unit testing.
     pub fn dummy() -> Self {
-        let callback = GenericCallback::new(|_msg| ()).unwrap();
+        Self::dummy_with_callback(None)
+    }
+
+    /// Create a new [`CrossProcessCompositorApi`] struct for unit testing with an optional callback
+    /// that can respond to compositor messages.
+    pub fn dummy_with_callback(
+        callback: Option<Box<dyn Fn(CompositorMsg) + Send + 'static>>,
+    ) -> Self {
+        let callback = GenericCallback::new(move |msg| {
+            if let Some(ref handler) = callback {
+                if let Ok(compositor_msg) = msg {
+                    handler(compositor_msg);
+                }
+            }
+        })
+        .unwrap();
         Self(callback)
     }
 
@@ -344,8 +359,8 @@ impl CrossProcessCompositorApi {
     }
 
     /// Ask the Servo renderer to generate a new frame after having new display lists.
-    pub fn generate_frame(&self) {
-        if let Err(error) = self.0.send(CompositorMsg::GenerateFrame) {
+    pub fn generate_frame(&self, webview_ids: Vec<WebViewId>) {
+        if let Err(error) = self.0.send(CompositorMsg::GenerateFrame(webview_ids)) {
             warn!("Error generating frame: {error}");
         }
     }

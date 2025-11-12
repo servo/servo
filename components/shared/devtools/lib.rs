@@ -24,6 +24,7 @@ use embedder_traits::Theme;
 use http::{HeaderMap, Method};
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
+use net_traits::DebugVec;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::Destination;
 use serde::{Deserialize, Serialize};
@@ -448,7 +449,7 @@ pub struct HttpRequest {
     pub url: ServoUrl,
     pub method: Method,
     pub headers: HeaderMap,
-    pub body: Option<Vec<u8>>,
+    pub body: Option<DebugVec>,
     pub pipeline_id: PipelineId,
     pub started_date_time: SystemTime,
     pub time_stamp: i64,
@@ -463,7 +464,7 @@ pub struct HttpRequest {
 pub struct HttpResponse {
     pub headers: Option<HeaderMap>,
     pub status: HttpStatus,
-    pub body: Option<Vec<u8>>,
+    pub body: Option<DebugVec>,
     pub from_cache: bool,
     pub pipeline_id: PipelineId,
     pub browsing_context_id: BrowsingContextId,

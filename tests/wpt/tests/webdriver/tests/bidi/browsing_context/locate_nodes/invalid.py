@@ -97,7 +97,7 @@ async def test_params_locator_context_value_invalid_type(bidi_session, inline,
         )
 
 
-@pytest.mark.parametrize("value", ["non_exiting_context"])
+@pytest.mark.parametrize("value", ["", "non_existing_context"])
 async def test_params_locator_context_value_invalid_context(bidi_session,
         inline, top_context, value):
     await navigate_to_page(bidi_session, inline, top_context)
@@ -114,8 +114,7 @@ async def test_params_locator_context_value_invalid_context(bidi_session,
     ("css", "a*b"),
     ("xpath", ""),
     ("innerText", ""),
-    ("accessibility", {}),
-    ("context", {"context": ""})
+    ("accessibility", {})
 ])
 async def test_params_locator_value_invalid_value(bidi_session, inline, top_context, type, value):
     await navigate_to_page(bidi_session, inline, top_context)

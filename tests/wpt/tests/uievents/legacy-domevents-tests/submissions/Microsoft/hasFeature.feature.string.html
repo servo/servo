@@ -3,6 +3,10 @@
     <head>
         <title id='desc'> DOMImplementation.hasFeature() and Extended Feature String </title>
         <script type="text/javascript">
+
+            // Note that in modern browsers, document.implementation.hasFeature()
+            // just always returns `true`. So this test doesn't really do anything.
+
             var PassTest = function()
             {
                 document.getElementById("testresult").firstChild.data = "PASS";
@@ -14,7 +18,7 @@
             }
 
             var szFeatures = ["Event", "UIEvent","FocusEvent","MouseEvent","WheelEvent","TextEvent",
-                              "KeyboardEvent","CompositionEvent","MutationEvent","CustomEvent"];
+                              "KeyboardEvent","CompositionEvent","CustomEvent"];
 
             var ExpectResult = [];
             var ActualResult = [];

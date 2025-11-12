@@ -372,7 +372,7 @@ fn add_retrieve_cookies(
 
     // Add all cookies to the store
     for str_cookie in set_cookies {
-        let cookie = ServoCookie::from_cookie_string(str_cookie.to_owned(), &url, source).unwrap();
+        let cookie = ServoCookie::from_cookie_string(str_cookie, &url, source).unwrap();
         storage.push(cookie, &url, source);
     }
 

@@ -66,7 +66,6 @@ use style::stylesheet_set::DocumentStylesheetSet;
 use style::stylesheets::{Origin, OriginSet, Stylesheet};
 use stylo_atoms::Atom;
 use url::Host;
-use uuid::Uuid;
 
 use crate::animation_timeline::AnimationTimeline;
 use crate::animations::Animations;
@@ -154,6 +153,7 @@ use crate::dom::html::htmltitleelement::HTMLTitleElement;
 use crate::dom::htmldetailselement::DetailsNameGroups;
 use crate::dom::intersectionobserver::IntersectionObserver;
 use crate::dom::keyboardevent::KeyboardEvent;
+use crate::dom::largestcontentfulpaint::LargestContentfulPaint;
 use crate::dom::location::{Location, NavigationType};
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::mouseevent::MouseEvent;
@@ -186,6 +186,7 @@ use crate::dom::websocket::WebSocket;
 use crate::dom::window::Window;
 use crate::dom::windowproxy::WindowProxy;
 use crate::dom::xpathevaluator::XPathEvaluator;
+use crate::dom::xpathexpression::XPathExpression;
 use crate::fetch::FetchCanceller;
 use crate::iframe_collection::IFrameCollection;
 use crate::image_animation::ImageAnimationManager;
@@ -199,6 +200,7 @@ use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::NonSendTaskBox;
 use crate::task_source::TaskSourceName;
 use crate::timers::OneshotTimerCallback;
+use crate::xpath::parse_expression;
 
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) enum FireMouseEventType {
@@ -1899,7 +1901,7 @@ impl Document {
             .insecure_requests_policy(self.insecure_requests_policy())
             .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_or_current_origin());
         let callback = NetworkListener {
-            context: std::sync::Arc::new(Mutex::new(listener)),
+            context: std::sync::Arc::new(Mutex::new(Some(listener))),
             task_source: self
                 .owner_global()
                 .task_manager()
@@ -1920,7 +1922,7 @@ impl Document {
             .insecure_requests_policy(self.insecure_requests_policy())
             .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_or_current_origin());
         let callback = NetworkListener {
-            context: std::sync::Arc::new(Mutex::new(listener)),
+            context: std::sync::Arc::new(Mutex::new(Some(listener))),
             task_source: self
                 .owner_global()
                 .task_manager()
@@ -2679,12 +2681,16 @@ impl Document {
         }
     }
 
-    pub(crate) fn register_media_controls(&self, controls: &ShadowRoot) -> String {
-        let id = Uuid::new_v4().to_string();
-        self.media_controls
+    pub(crate) fn register_media_controls(&self, id: &str, controls: &ShadowRoot) {
+        let did_have_these_media_controls = self
+            .media_controls
             .borrow_mut()
-            .insert(id.clone(), Dom::from_ref(controls));
-        id
+            .insert(id.to_string(), Dom::from_ref(controls))
+            .is_some();
+        debug_assert!(
+            !did_have_these_media_controls,
+            "Trying to register known media controls"
+        );
     }
 
     pub(crate) fn unregister_media_controls(&self, id: &str) {
@@ -3085,29 +3091,33 @@ impl Document {
     ) {
         let metrics = self.interactive_time.borrow();
         match metric_type {
-            ProgressiveWebMetricType::FirstPaint => {
-                metrics.set_first_paint(metric_value, first_reflow)
-            },
+            ProgressiveWebMetricType::FirstPaint |
             ProgressiveWebMetricType::FirstContentfulPaint => {
-                metrics.set_first_contentful_paint(metric_value, first_reflow)
+                let binding = PerformancePaintTiming::new(
+                    self.window.as_global_scope(),
+                    metric_type,
+                    metric_value,
+                    can_gc,
+                );
+                metrics.set_performance_paint_metric(metric_value, first_reflow, metric_type);
+                let entry = binding.upcast::<PerformanceEntry>();
+                self.window.Performance().queue_entry(entry, can_gc);
             },
             ProgressiveWebMetricType::LargestContentfulPaint { area, lcp_type } => {
-                metrics.set_largest_contentful_paint(metric_value, area, lcp_type)
+                let binding = LargestContentfulPaint::new(
+                    self.window.as_global_scope(),
+                    metric_type,
+                    metric_value,
+                    can_gc,
+                );
+                metrics.set_largest_contentful_paint(metric_value, area, lcp_type);
+                let entry = binding.upcast::<PerformanceEntry>();
+                self.window.Performance().queue_entry(entry, can_gc);
             },
             ProgressiveWebMetricType::TimeToInteractive => {
                 unreachable!("Unexpected non-paint metric.")
             },
         }
-
-        let entry = PerformancePaintTiming::new(
-            self.window.as_global_scope(),
-            metric_type,
-            metric_value,
-            can_gc,
-        );
-        self.window
-            .Performance()
-            .queue_entry(entry.upcast::<PerformanceEntry>(), can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#document-write-steps>
@@ -5546,6 +5556,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             return Err(Error::Security);
         }
 
+        if !cookie.is_valid_for_cookie() {
+            return Ok(());
+        }
+
         let cookies = if let Some(cookie) = Cookie::parse(cookie.to_string()).ok().map(Serde) {
             vec![cookie]
         } else {
@@ -6031,15 +6045,14 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         resolver: Option<Rc<XPathNSResolver>>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<super::types::XPathExpression>> {
-        let global = self.global();
-        let window = global.as_window();
-        let evaluator = XPathEvaluator::new(window, None, can_gc);
-        XPathEvaluatorMethods::<crate::DomTypeHolder>::CreateExpression(
-            &*evaluator,
-            expression,
-            resolver,
+        let parsed_expression =
+            parse_expression(&expression.str(), resolver, self.is_html_document())?;
+        Ok(XPathExpression::new(
+            &self.window,
+            None,
             can_gc,
-        )
+            parsed_expression,
+        ))
     }
 
     fn CreateNSResolver(&self, node_resolver: &Node, can_gc: CanGc) -> DomRoot<Node> {
@@ -6054,19 +6067,15 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         expression: DOMString,
         context_node: &Node,
         resolver: Option<Rc<XPathNSResolver>>,
-        type_: u16,
+        result_type: u16,
         result: Option<&super::types::XPathResult>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<super::types::XPathResult>> {
-        let global = self.global();
-        let window = global.as_window();
-        let evaluator = XPathEvaluator::new(window, None, can_gc);
-        XPathEvaluatorMethods::<crate::DomTypeHolder>::Evaluate(
-            &*evaluator,
-            expression,
+        let parsed_expression =
+            parse_expression(&expression.str(), resolver, self.is_html_document())?;
+        XPathExpression::new(&self.window, None, can_gc, parsed_expression).evaluate_internal(
             context_node,
-            resolver,
-            type_,
+            result_type,
             result,
             can_gc,
         )

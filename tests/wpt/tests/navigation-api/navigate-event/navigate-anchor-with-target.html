@@ -20,10 +20,10 @@ async_test(t => {
       assert_equals(new URL(e.destination.url).pathname,
                     "/navigation-api/navigate-event/foo.html");
       assert_false(e.destination.sameDocument);
-    assert_equals(e.destination.key, "");
-    assert_equals(e.destination.id, "");
+      assert_equals(e.destination.key, "");
+      assert_equals(e.destination.id, "");
       assert_equals(e.destination.index, -1);
-      assert_equals(e.sourceElement, null);
+      assert_equals(e.sourceElement, a);
       e.preventDefault();
     });
     a.click();

@@ -21,7 +21,9 @@ use crate::textinput::{SelectionDirection, SelectionState, TextInput, UTF8Bytes}
 pub(crate) trait TextControlElement: DerivedFrom<EventTarget> + DerivedFrom<Node> {
     fn selection_api_applies(&self) -> bool;
     fn has_selectable_text(&self) -> bool;
+    fn has_selection(&self) -> bool;
     fn set_dirty_value_flag(&self, value: bool);
+    fn select_all(&self);
 }
 
 pub(crate) struct TextControlSelection<'a, E: TextControlElement> {
@@ -37,9 +39,10 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         TextControlSelection { element, textinput }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-select
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-select>
     pub(crate) fn dom_select(&self) {
-        // Step 1
+        // Step 1: If this element is an input element, and either select() does not apply
+        // to this element or the corresponding control has no selectable text, return.
         if !self.element.has_selectable_text() {
             return;
         }

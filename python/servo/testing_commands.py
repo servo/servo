@@ -13,7 +13,6 @@ import json
 import logging
 import os
 import os.path as path
-import platform
 import re
 import shutil
 import subprocess
@@ -227,6 +226,7 @@ class MachCommands(CommandBase):
             "servo_config",
             "servoshell",
             "servo_url",
+            "storage",
             "xpath",
         ]
         if not packages:
@@ -365,11 +365,10 @@ class MachCommands(CommandBase):
         passed = wpt.run_tests() and passed
 
         print("Running devtools parser tests...")
-        # TODO: Enable these tests on other platforms once mach bootstrap installs tshark(1) for them
-        if platform.system() == "Linux":
+        if shutil.which("tshark"):
             try:
                 result = subprocess.run(
-                    ["etc/devtools_parser.py", "--json", "--use", "etc/devtools_parser_test.pcap"],
+                    ["etc/devtools_parser.py", "--json", "--read-file", "etc/devtools_parser_test.pcap"],
                     check=True,
                     capture_output=True,
                 )
@@ -383,7 +382,7 @@ class MachCommands(CommandBase):
                 print(f"stderr: {repr(e.stderr)}", file=sys.stderr)
                 raise e
         else:
-            print("SKIP")
+            print("SKIP: Install tshark manually")
 
         if all or tests:
             print("Running WebIDL tests...")
@@ -931,7 +930,19 @@ class MachCommands(CommandBase):
         commit_message = subprocess.check_output(["git", "show", "-s", "--format=%s"]).decode().strip()
         commit_message = f"{commit_message} ({try_string})"
 
-        result = call(["git", "commit", "--quiet", "--allow-empty", "-m", commit_message, "-m", f"{config.to_json()}"])
+        result = call(
+            [
+                "git",
+                "commit",
+                "--no-verify",
+                "--quiet",
+                "--allow-empty",
+                "-m",
+                commit_message,
+                "-m",
+                f"{config.to_json()}",
+            ]
+        )
         if result != 0:
             return result
 

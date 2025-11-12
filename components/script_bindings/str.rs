@@ -3,10 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! The `ByteString` struct.
-use std::borrow::{Borrow, ToOwned};
+use std::borrow::ToOwned;
 use std::default::Default;
 use std::hash::{Hash, Hasher};
-use std::ops::{Deref, DerefMut};
+use std::ops::Deref;
 use std::str::FromStr;
 use std::{fmt, ops, slice, str};
 
@@ -80,26 +80,12 @@ impl ops::Deref for ByteString {
 #[derive(Clone, Debug, Default, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd)]
 pub struct USVString(pub String);
 
-impl Borrow<str> for USVString {
-    #[inline]
-    fn borrow(&self) -> &str {
-        &self.0
-    }
-}
-
 impl Deref for USVString {
     type Target = str;
 
     #[inline]
     fn deref(&self) -> &str {
         &self.0
-    }
-}
-
-impl DerefMut for USVString {
-    #[inline]
-    fn deref_mut(&mut self) -> &mut str {
-        &mut self.0
     }
 }
 
@@ -112,25 +98,37 @@ impl AsRef<str> for USVString {
 impl fmt::Display for USVString {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Display::fmt(&**self, f)
+        fmt::Display::fmt(&self.0, f)
     }
 }
 
 impl PartialEq<str> for USVString {
     fn eq(&self, other: &str) -> bool {
-        &**self == other
+        self.0 == other
     }
 }
 
 impl<'a> PartialEq<&'a str> for USVString {
     fn eq(&self, other: &&'a str) -> bool {
-        &**self == *other
+        self.0 == *other
     }
 }
 
 impl From<String> for USVString {
     fn from(contents: String) -> USVString {
         USVString(contents)
+    }
+}
+
+impl From<USVString> for String {
+    fn from(value: USVString) -> Self {
+        value.0
+    }
+}
+
+impl From<USVString> for DOMString {
+    fn from(value: USVString) -> Self {
+        DOMString::from_string(value.0)
     }
 }
 

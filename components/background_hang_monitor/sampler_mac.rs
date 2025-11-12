@@ -116,7 +116,7 @@ unsafe fn frame_pointer_stack_walk(regs: Registers) -> NativeStack {
     // Note: this function will only work with code build with:
     // --dev,
     // or --with-frame-pointer.
-    let mut native_stack = NativeStack::new();
+    let mut native_stack = NativeStack::default();
     unsafe {
         let pthread_t = libc::pthread_self();
         let stackaddr = libc::pthread_get_stackaddr_np(pthread_t);

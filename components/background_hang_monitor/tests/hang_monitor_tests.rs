@@ -49,7 +49,7 @@ fn test_hang_monitoring() {
     );
 
     // Start an activity.
-    let hang_annotation = HangAnnotation::Script(ScriptHangAnnotation::AttachLayout);
+    let hang_annotation = HangAnnotation::Script(ScriptHangAnnotation::SpawnPipeline);
     background_hang_monitor.notify_activity(hang_annotation);
 
     // Sleep until the "transient" timeout has been reached.
@@ -166,7 +166,7 @@ fn test_hang_monitoring_unregister() {
     );
 
     // Start an activity.
-    let hang_annotation = HangAnnotation::Script(ScriptHangAnnotation::AttachLayout);
+    let hang_annotation = HangAnnotation::Script(ScriptHangAnnotation::SpawnPipeline);
     background_hang_monitor.notify_activity(hang_annotation);
 
     // Unregister the component.

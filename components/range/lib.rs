@@ -350,7 +350,7 @@ impl<I: RangeIndex> Range<I> {
 
 /// Methods for `Range`s with indices based on integer values
 impl<I: RangeIndex> Range<I> {
-    /// Returns an iterater that increments over `[begin, end)`.
+    /// Returns an iterator that increments over `[begin, end)`.
     #[inline]
     pub fn each_index(&self) -> EachIndex<I> {
         each_index(self.begin(), self.end())

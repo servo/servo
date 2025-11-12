@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Text Decoration 4: text-decoration-inset</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-inset-property">
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+
+<style>
+div > div {
+  font: 20px/2 sans-serif;
+  inline-size: fit-content;
+  margin-bottom: 10px;
+  border: 1px solid silver;
+  color: silver;
+  text-decoration: 3px blue overline;
+  text-decoration-inset: -0.5em;
+}
+u {
+  text-decoration: 3px green underline;
+  text-decoration-inset: 2em;
+}
+.p1 {
+  padding: 0 1em;
+}
+</style>
+
+<div>
+<p>Reference case:</p>
+<div class=p1>
+  <u>now testing text-decoration inset</u>
+</div>
+</div>
+
+<p>All the following lines should have the same shortened underline and extended overline:</p>
+
+<div style="columns: 2">
+
+<div class=p1>
+  <u>now testing text-decoration inset</u>
+</div>
+<div class=p1>
+  <u>now testing text-decoration inset</u>
+</div>
+<div class=p1>
+  <u>now testing text-decoration inset</u>
+</div>
+<div class=p1>
+  <u>now testing text-decoration inset</u>
+</div>
+<div class=p1>
+  <u>now testing text-decoration inset</u>
+</div>
+<div class=p1>
+  <u>now testing text-decoration inset</u>
+</div>
+<div class=p1>
+  <u>now testing text-decoration inset</u>
+</div>
+<div class=p1>
+  <u>now testing text-decoration inset</u>
+</div>
+<div class=p1>
+  <u>now testing text-decoration inset</u>
+</div>
+<div class=p1>
+  <u>now testing text-decoration inset</u>
+</div>
+<div class=p1>
+  <u>now testing text-decoration inset</u>
+</div>
+<div class=p1>
+  <u>now testing text-decoration inset</u>
+</div>
+
+</div>

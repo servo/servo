@@ -3,7 +3,7 @@
  * You can obtain one at https://mozilla.org/MPL/2.0/.
  *
  * The origin of this IDL file is
- * https://wicg.github.io/paint-timing/#sec-PerformancePaintTiming
+ * https://w3c.github.io/paint-timing/#sec-PerformancePaintTiming
  */
 
 [Exposed=(Window,Worker)]

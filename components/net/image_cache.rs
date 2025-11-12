@@ -13,7 +13,6 @@ use base::id::{PipelineId, WebViewId};
 use base::threadpool::ThreadPool;
 use compositing_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
 use imsz::imsz_from_reader;
-use ipc_channel::ipc::IpcSharedMemory;
 use log::{debug, warn};
 use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
@@ -935,7 +934,7 @@ impl ImageCache for ImageCacheImpl {
                 },
                 format: PixelFormat::RGBA8,
                 frames: vec![frame],
-                bytes: Arc::new(IpcSharedMemory::from_bytes(&bytes)),
+                bytes: Arc::new(bytes),
                 id: None,
                 cors_status: vector_image.cors_status,
                 is_opaque: false,

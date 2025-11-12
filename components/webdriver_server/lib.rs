@@ -137,7 +137,7 @@ pub fn start_server(
                 extension_routes(),
             ) {
                 Ok(listening) => info!("WebDriver server listening on {}", listening.socket),
-                Err(_) => panic!("Unable to start WebDriver HTTP server"),
+                Err(e) => panic!("Unable to start WebDriver HTTP server {e:?}"),
             }
         })
         .expect("Thread spawning failed");
@@ -2178,7 +2178,17 @@ impl Handler {
         }
 
         // Step 14. Remove an input source with input state and input id.
-        self.session_mut()?.input_state_table.remove(&id);
+        // It is possible that we only dispatched keydown.
+        // In that case, we cannot remove the id from input state table.
+        // This is a bug in spec: https://github.com/servo/servo/issues/37579#issuecomment-2990762713
+        if self
+            .session()?
+            .input_cancel_list
+            .iter()
+            .all(|(cancel_item_id, _)| &id != cancel_item_id)
+        {
+            self.session_mut()?.input_state_table.remove(&id);
+        }
 
         Ok(WebDriverResponse::Void)
     }

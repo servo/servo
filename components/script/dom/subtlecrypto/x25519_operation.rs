@@ -6,11 +6,12 @@ use base64ct::{Base64UrlUnpadded, Encoding};
 use pkcs8::PrivateKeyInfo;
 use pkcs8::der::asn1::{BitStringRef, OctetString, OctetStringRef};
 use pkcs8::der::{AnyRef, Decode, Encode};
+use pkcs8::rand_core::OsRng;
 use pkcs8::spki::{AlgorithmIdentifier, ObjectIdentifier, SubjectPublicKeyInfo};
 use x25519_dalek::{PublicKey, StaticSecret};
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
-    CryptoKeyMethods, KeyType, KeyUsage,
+    CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
 use crate::dom::bindings::error::Error;
@@ -19,7 +20,8 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_X25519, ExportedKey, JsonWebKeyExt, KeyAlgorithmAndDerivatives, SubtleKeyAlgorithm,
+    ALG_X25519, ExportedKey, JsonWebKeyExt, KeyAlgorithmAndDerivatives, SubtleEcdhKeyDeriveParams,
+    SubtleKeyAlgorithm,
 };
 use crate::script_runtime::CanGc;
 
@@ -28,6 +30,158 @@ const X25519_OID_STRING: &str = "1.3.101.110";
 
 const PRIVATE_KEY_LENGTH: usize = 32;
 const PUBLIC_KEY_LENGTH: usize = 32;
+
+/// <https://w3c.github.io/webcrypto/#x25519-operations-derive-bits>
+pub(crate) fn derive_bits(
+    normalized_algorithm: &SubtleEcdhKeyDeriveParams,
+    key: &CryptoKey,
+    length: Option<u32>,
+) -> Result<Vec<u8>, Error> {
+    // Step 1. If the [[type]] internal slot of key is not "private", then throw an
+    // InvalidAccessError.
+    if key.Type() != KeyType::Private {
+        return Err(Error::InvalidAccess);
+    }
+
+    // Step 2. Let publicKey be the public member of normalizedAlgorithm.
+    let public_key = normalized_algorithm.public.root();
+
+    // Step 3. If the [[type]] internal slot of publicKey is not "public", then throw an
+    // InvalidAccessError.
+    if public_key.Type() != KeyType::Public {
+        return Err(Error::InvalidAccess);
+    }
+
+    // Step 4. If the name attribute of the [[algorithm]] internal slot of publicKey is not equal
+    // to the name property of the [[algorithm]] internal slot of key, then throw an
+    // InvalidAccessError.
+    if public_key.algorithm().name() != key.algorithm().name() {
+        return Err(Error::InvalidAccess);
+    }
+
+    // Step 5. Let secret be the result of performing the X25519 function specified in [RFC7748]
+    // Section 5 with key as the X25519 private key k and the X25519 public key represented by the
+    // [[handle]] internal slot of publicKey as the X25519 public key u.
+    let Handle::X25519PrivateKey(private_key) = key.handle() else {
+        return Err(Error::Operation);
+    };
+    let Handle::X25519PublicKey(public_key) = public_key.handle() else {
+        return Err(Error::Operation);
+    };
+    let shared_key = private_key.diffie_hellman(public_key);
+    let secret = shared_key.as_bytes();
+
+    // Step 6. If secret is the all-zero value, then throw a OperationError. This check must be
+    // performed in constant-time, as per [RFC7748] Section 6.1.
+    let mut is_all_zero = true;
+    for byte in secret {
+        is_all_zero &= *byte == 0;
+    }
+    if is_all_zero {
+        return Err(Error::Operation);
+    }
+
+    // Step 7.
+    // If length is null:
+    //     Return secret
+    // Otherwise:
+    //     If the length of secret in bits is less than length:
+    //         throw an OperationError.
+    //     Otherwise:
+    //         Return a byte sequence containing the first length bits of secret.
+    match length {
+        None => Ok(secret.to_vec()),
+        Some(length) => {
+            if secret.len() * 8 < length as usize {
+                Err(Error::Operation)
+            } else {
+                let mut secret = secret[..length.div_ceil(8) as usize].to_vec();
+                if length % 8 != 0 {
+                    // Clean excess bits in last byte of secret.
+                    let mask = u8::MAX << (8 - length % 8);
+                    if let Some(last_byte) = secret.last_mut() {
+                        *last_byte &= mask;
+                    }
+                }
+                Ok(secret)
+            }
+        },
+    }
+}
+
+/// <https://w3c.github.io/webcrypto/#x25519-operations-generate-key>
+pub(crate) fn generate_key(
+    global: &GlobalScope,
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+    can_gc: CanGc,
+) -> Result<CryptoKeyPair, Error> {
+    // Step 1. If usages contains an entry which is not "deriveKey" or "deriveBits" then throw a
+    // SyntaxError.
+    if usages
+        .iter()
+        .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits))
+    {
+        return Err(Error::Syntax(None));
+    }
+
+    // Step 2. Generate an X25519 key pair, with the private key being 32 random bytes, and the
+    // public key being X25519(a, 9), as defined in [RFC7748], section 6.1.
+    let private_key = StaticSecret::random_from_rng(OsRng);
+    let public_key = PublicKey::from(&private_key);
+
+    // Step 3. Let algorithm be a new KeyAlgorithm object.
+    // Step 4. Set the name attribute of algorithm to "X25519".
+    let algorithm = SubtleKeyAlgorithm {
+        name: ALG_X25519.to_string(),
+    };
+
+    // Step 5. Let publicKey be a new CryptoKey representing the public key of the generated key pair.
+    // Step 6. Set the [[type]] internal slot of publicKey to "public"
+    // Step 7. Set the [[algorithm]] internal slot of publicKey to algorithm.
+    // Step 8. Set the [[extractable]] internal slot of publicKey to true.
+    // Step 9. Set the [[usages]] internal slot of publicKey to be the empty list.
+    let public_key = CryptoKey::new(
+        global,
+        KeyType::Public,
+        true,
+        KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm.clone()),
+        Vec::new(),
+        Handle::X25519PublicKey(public_key),
+        can_gc,
+    );
+
+    // Step 10. Let privateKey be a new CryptoKey representing the private key of the generated key pair.
+    // Step 11. Set the [[type]] internal slot of privateKey to "private"
+    // Step 12. Set the [[algorithm]] internal slot of privateKey to algorithm.
+    // Step 13. Set the [[extractable]] internal slot of privateKey to extractable.
+    // Step 14. Set the [[usages]] internal slot of privateKey to be the usage intersection of
+    // usages and [ "deriveKey", "deriveBits" ].
+    let private_key = CryptoKey::new(
+        global,
+        KeyType::Private,
+        extractable,
+        KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
+        usages
+            .iter()
+            .filter(|usage| matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits))
+            .cloned()
+            .collect(),
+        Handle::X25519PrivateKey(private_key),
+        can_gc,
+    );
+
+    // Step 15. Let result be a new CryptoKeyPair dictionary.
+    // Step 16. Set the publicKey attribute of result to be publicKey.
+    // Step 17. Set the privateKey attribute of result to be privateKey.
+    let result = CryptoKeyPair {
+        publicKey: Some(public_key),
+        privateKey: Some(private_key),
+    };
+
+    // Step 18. Return result.
+    Ok(result)
+}
 
 /// <https://w3c.github.io/webcrypto/#x25519-operations-import-key>
 pub(crate) fn import_key(

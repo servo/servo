@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Event srcElement should be nullable</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="target"></div>
+<script>
+test(() => {
+  const event = new Event('test');
+  assert_equals(event.srcElement, null);
+
+  const div = document.getElementById('target');
+  div.addEventListener('test', e => {
+    assert_not_equals(e.srcElement, null)
+  });
+  div.dispatchEvent(event);
+}, 'Event srcElement should be nullable');
+</script>
+</body>

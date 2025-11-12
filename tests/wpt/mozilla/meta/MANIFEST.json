@@ -10625,6 +10625,10 @@
      "182d72fa7fddab14222e4085b2cc498d79865709",
      []
     ],
+    "alphabet.xml": [
+     "aaf2e1a49542c1eee44d132d270ba1a7169cb873",
+     []
+    ],
     "blank.html": [
      "39654855a826184e75c4278434360ee0a6fb2a59",
      []
@@ -12876,6 +12880,26 @@
      ]
     ]
    },
+   "input-events": {
+    "input-events-textarea-cut-paste.html": [
+     "7e1151d222b5a5210921345a3e60434194cd1794",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
+    "input-events-textarea-typing.html": [
+     "19d8f6be9537f4a286471ddd483a75c01a34e912",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ]
+   },
    "mozilla": {
     "Channel_postMessage_with_second_transfer_in_timeout.window.js": [
      "4ee3f64beb095963f06fc53c1d53dad2244109f9",
@@ -13527,7 +13551,7 @@
      ]
     ],
     "form_submit_about.html": [
-     "ec572ab0bc608c8cf5dd43f4159d3a67fc31a0de",
+     "e620f72cfcff77174e7e856119fb7ad06ad9e4da",
      [
       null,
       {}
@@ -13802,7 +13826,7 @@
      ]
     ],
     "interfaces.https.html": [
-     "db30ab94fda4ccedf0ab26d98a2ec014ad9730f2",
+     "62690889fd4fc8eef443959a6e40bf03b1769e4e",
      [
       null,
       {}
@@ -14690,6 +14714,13 @@
     ],
     "xpath-reuse-result-iterator.html": [
      "5f97115a82dba24ae4ca807b1e60ee93b3a526ea",
+     [
+      null,
+      {}
+     ]
+    ],
+    "xpathmark-ft.html": [
+     "35e88ea487c18800a46f23de85bfa93cd53bef50",
      [
       null,
       {}

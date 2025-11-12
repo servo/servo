@@ -111,7 +111,7 @@ mod test {
 
         linebreaker.current_offset = 0;
 
-        // Sending a value out of range shoudn't break things.
+        // Sending a value out of range shouldn't break things.
         assert!(linebreaker.advance_to_linebreaks_in_range(0..999) == &[4, 6]);
 
         linebreaker.current_offset = 0;

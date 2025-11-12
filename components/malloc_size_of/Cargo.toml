@@ -38,6 +38,7 @@ unicode-bidi = { workspace = true }
 unicode-script = { workspace = true }
 url = { workspace = true }
 urlpattern = { workspace = true }
+utf-8 = { workspace = true }
 uuid = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }

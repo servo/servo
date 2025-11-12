@@ -135,6 +135,12 @@ self.ImageCaptureTest = (() => {
               BackgroundBlurMode.BLUR
           ],
           backgroundBlurMode: BackgroundBlurMode.OFF,
+
+          supportedFaceFramingModes: [],
+
+          supportedEyeGazeCorrectionModes: [],
+
+          supportedBackgroundSegmentationMaskStates: [],
         }
       };
       this.panTiltZoomPermissionStatus_ = null;

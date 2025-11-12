@@ -154,8 +154,6 @@ tasks:
         - vars:
             suite: testharness
         - vars:
-            suite: reftest
-        - vars:
             suite: wdspec
         - vars:
             suite: crashtest
@@ -262,6 +260,119 @@ tasks:
             - vars:
                 browser: firefox_android
                 channel: stable
+              use:
+                - trigger-daily
+                - trigger-push
+          do:
+            - ${vars.browser}-${vars.channel}-${vars.suite}:
+                use:
+                  - wpt-base
+                  - run-options
+                  - wpt-run
+                  - browser-${vars.browser}
+                  - wpt-${vars.suite}
+                description: >-
+                  A subset of WPT's "${vars.suite}" tests (chunk number ${chunks.id}
+                  of ${chunks.total}), run in the ${vars.channel} release of
+                  ${vars.browser}.
+
+  # Reftests are currently broken on firefox_android; this should otherwise be identical
+  # to the section above
+  - $map:
+      for:
+        - vars:
+            suite: reftest
+      do:
+        $map:
+          for:
+            - vars:
+                browser: firefox
+                channel: nightly
+              use:
+                - trigger-master
+                - trigger-push
+            - vars:
+                browser: firefox
+                channel: beta
+              use:
+                - trigger-weekly
+                - trigger-push
+            - vars:
+                browser: firefox
+                channel: stable
+              use:
+                - trigger-daily
+                - trigger-push
+            - vars:
+                # Chromium ToT
+                browser: chromium
+                channel: nightly
+              use:
+                - trigger-daily
+                - trigger-push
+            - vars:
+                browser: chrome
+                channel: canary
+              use:
+                - trigger-master
+                - trigger-push
+            - vars:
+                browser: chrome
+                channel: dev
+              use:
+                - trigger-weekly
+                - trigger-push
+            - vars:
+                browser: chrome
+                channel: beta
+              use:
+                - trigger-weekly
+                - trigger-push
+            - vars:
+                browser: chrome
+                channel: stable
+              use:
+                - trigger-daily
+                - trigger-push
+            - vars:
+                browser: webkitgtk_minibrowser
+                channel: nightly
+              use:
+                - trigger-daily
+                - trigger-push
+            - vars:
+                browser: webkitgtk_minibrowser
+                channel: stable
+              use:
+                - trigger-weekly
+                - trigger-push
+            - vars:
+                browser: webkitgtk_minibrowser
+                channel: beta
+              use:
+                - trigger-weekly
+                - trigger-push
+            - vars:
+                browser: wpewebkit_minibrowser
+                channel: nightly
+              use:
+                - trigger-daily
+                - trigger-push
+            - vars:
+                browser: wpewebkit_minibrowser
+                channel: stable
+              use:
+                - trigger-weekly
+                - trigger-push
+            - vars:
+                browser: wpewebkit_minibrowser
+                channel: beta
+              use:
+                - trigger-weekly
+                - trigger-push
+            - vars:
+                browser: servo
+                channel: nightly
               use:
                 - trigger-daily
                 - trigger-push

@@ -36,8 +36,7 @@
   </div>
 </div>
 <script>
-  test_computed_value("grid-template-rows", 'none', 'none');
-  test_computed_value("grid-template-columns", 'none', 'none'); // "none" without #child
+  test_computed_value("grid-template-columns", 'none', '300px'); // "none" without #child
 
   // track-size <fixed-breadth> = <length-percentage> | <flex> | min-content | max-content | auto
   test_computed_value("grid-template-columns", '20%', '60px'); // 20% * width
@@ -76,7 +75,7 @@
   // <auto-repeat> = repeat( [ auto-fill | auto-fit ] , [ <line-names>? <fixed-size> ]+ <line-names>? )
   test_computed_value("grid-template-columns", 'repeat(auto-fill, 200px)', '200px');
   test_computed_value("grid-template-columns", 'repeat(auto-fit, [one] 20%)',
-          '[one] 60px [one] 60px [one] 60px [one] 60px [one] 60px');
+          '[one] 60px [one] 0px [one] 0px [one] 0px [one] 0px');
   test_computed_value("grid-template-columns", 'repeat(auto-fill, minmax(100px, 5fr) [two])',
           '100px [two] 100px [two] 100px [two]');
   test_computed_value("grid-template-columns", 'repeat(auto-fit, [three] minmax(max-content, 6em) [four])',

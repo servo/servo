@@ -641,6 +641,17 @@ impl DOMString {
         }
         .is_ascii()
     }
+
+    /// Returns true if the slice only contains bytes that are safe to use in cookie strings.
+    /// <https://www.ietf.org/archive/id/draft-ietf-httpbis-rfc6265bis-15.html#section-5.6-6>
+    /// Not using ServoCookie::is_valid_name_or_value to prevent dependency on the net crate.
+    pub fn is_valid_for_cookie(&self) -> bool {
+        match self.view().encoded_bytes() {
+            EncodedBytes::Latin1Bytes(items) | EncodedBytes::Utf8Bytes(items) => !items
+                .iter()
+                .any(|c| *c == 0x7f || (*c <= 0x1f && *c != 0x09)),
+        }
+    }
 }
 
 /// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-floating-point-number-values>

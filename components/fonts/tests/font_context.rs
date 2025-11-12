@@ -140,6 +140,7 @@ mod font_context {
                         let _ = result_sender.send(());
                         break;
                     },
+                    SystemFontServiceMessage::PrefetchFontKeys(_) => {},
                     SystemFontServiceMessage::Ping => {},
                     SystemFontServiceMessage::CollectMemoryReport(..) => {},
                 }

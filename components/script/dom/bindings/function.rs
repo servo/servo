@@ -30,7 +30,7 @@ macro_rules! native_raw_obj_fn {
         #[expect(unsafe_code)]
         #[allow(clippy::macro_metavars_in_unsafe)]
         unsafe extern "C" fn wrapper(cx: *mut JSContext, argc: u32, vp: *mut JSVal) -> bool {
-            $call(cx, argc, vp)
+            unsafe { $call(cx, argc, vp) }
         }
         #[expect(unsafe_code)]
         #[allow(clippy::macro_metavars_in_unsafe)]

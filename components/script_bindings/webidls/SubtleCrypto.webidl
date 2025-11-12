@@ -68,6 +68,11 @@ interface SubtleCrypto {
                          sequence<KeyUsage> keyUsages );
 };
 
+// https://w3c.github.io/webcrypto/#dfn-EcdsaParams
+dictionary EcdsaParams : Algorithm {
+  required HashAlgorithmIdentifier hash;
+};
+
 // https://w3c.github.io/webcrypto/#dfn-NamedCurve
 typedef DOMString NamedCurve;
 

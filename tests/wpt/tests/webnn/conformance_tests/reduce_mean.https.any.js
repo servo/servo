@@ -44,6 +44,29 @@ const reduceMeanTests = [
     }
   },
   {
+    'name': 'reduceMean float32 0D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceMeanInput': {
+          'data': [95.84498596191406],
+          'descriptor': {shape: [], dataType: 'float32'},
+          'constant': false
+        }
+      },
+      'operators': [{
+        'name': 'reduceMean',
+        'arguments': [{'input': 'reduceMeanInput'}],
+        'outputs': 'reduceMeanOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMeanOutput': {
+          'data': 95.84498596191406,
+          'descriptor': {shape: [], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'reduceMean float32 0D constant tensor empty axes',
     'graph': {
       'inputs': {
@@ -51,6 +74,29 @@ const reduceMeanTests = [
           'data': [95.84498596191406],
           'descriptor': {shape: [], dataType: 'float32'},
           'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceMean',
+        'arguments': [{'input': 'reduceMeanInput'}, {'options': {'axes': []}}],
+        'outputs': 'reduceMeanOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMeanOutput': {
+          'data': 95.84498596191406,
+          'descriptor': {shape: [], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceMean float32 0D tensor empty axes',
+    'graph': {
+      'inputs': {
+        'reduceMeanInput': {
+          'data': [95.84498596191406],
+          'descriptor': {shape: [], dataType: 'float32'},
+          'constant': false
         }
       },
       'operators': [{
@@ -661,6 +707,27 @@ const reduceMeanTests = [
     }
   },
   {
+    'name': 'reduceMean float16 0D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceMeanInput': {
+          'data': [95.875],
+          'descriptor': {shape: [], dataType: 'float16'},
+          'constant': false
+        }
+      },
+      'operators': [{
+        'name': 'reduceMean',
+        'arguments': [{'input': 'reduceMeanInput'}],
+        'outputs': 'reduceMeanOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMeanOutput':
+            {'data': [95.875], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
     'name': 'reduceMean float16 0D constant tensor empty axes',
     'graph': {
       'inputs': {
@@ -668,6 +735,27 @@ const reduceMeanTests = [
           'data': [95.875],
           'descriptor': {shape: [], dataType: 'float16'},
           'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceMean',
+        'arguments': [{'input': 'reduceMeanInput'}, {'options': {'axes': []}}],
+        'outputs': 'reduceMeanOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMeanOutput':
+            {'data': [95.875], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceMean float16 0D tensor empty axes',
+    'graph': {
+      'inputs': {
+        'reduceMeanInput': {
+          'data': [95.875],
+          'descriptor': {shape: [], dataType: 'float16'},
+          'constant': false
         }
       },
       'operators': [{
