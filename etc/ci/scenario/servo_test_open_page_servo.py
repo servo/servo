@@ -32,7 +32,7 @@ def operator():
             cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
             subprocess.run(cmd, capture_output=True, text=True, timeout=10)
             return True
-        except:
+        except FileNotFoundError:
             cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
             subprocess.run(cmd, capture_output=True, text=True, timeout=10)
             return False
