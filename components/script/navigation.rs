@@ -22,7 +22,7 @@ use net_traits::{
     BoxedFetchCallback, CoreResourceThread, DOCUMENT_ACCEPT_HEADER_VALUE, FetchResponseMsg,
     Metadata, fetch_async, set_default_accept_language,
 };
-use script_traits::DocumentActivity;
+use script_traits::{DocumentActivity, NewPipelineInfo};
 use servo_url::{MutableOrigin, ServoUrl};
 
 use crate::fetch::FetchCanceller;
@@ -166,34 +166,23 @@ pub(crate) struct InProgressLoad {
 
 impl InProgressLoad {
     /// Create a new InProgressLoad object.
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
-        id: PipelineId,
-        browsing_context_id: BrowsingContextId,
-        webview_id: WebViewId,
-        parent_info: Option<PipelineId>,
-        opener: Option<BrowsingContextId>,
-        viewport_details: ViewportDetails,
-        theme: Theme,
-        origin: MutableOrigin,
-        load_data: LoadData,
-    ) -> InProgressLoad {
-        let url = load_data.url.clone();
+    pub(crate) fn new(new_pipeline_info: NewPipelineInfo, origin: MutableOrigin) -> InProgressLoad {
+        let url = new_pipeline_info.load_data.url.clone();
         InProgressLoad {
-            pipeline_id: id,
-            browsing_context_id,
-            webview_id,
-            parent_info,
-            opener,
-            viewport_details,
+            pipeline_id: new_pipeline_info.new_pipeline_id,
+            browsing_context_id: new_pipeline_info.browsing_context_id,
+            webview_id: new_pipeline_info.webview_id,
+            parent_info: new_pipeline_info.parent_info,
+            opener: new_pipeline_info.opener,
+            viewport_details: new_pipeline_info.viewport_details,
             activity: DocumentActivity::FullyActive,
             throttled: false,
             origin,
             navigation_start: CrossProcessInstant::now(),
             canceller: Default::default(),
-            load_data,
+            load_data: new_pipeline_info.load_data,
             url_list: vec![url],
-            theme,
+            theme: new_pipeline_info.theme,
         }
     }
 
