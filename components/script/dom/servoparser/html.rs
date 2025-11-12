@@ -365,15 +365,23 @@ pub(crate) fn serialize_html_fragment<S: Serializer>(
     Ok(())
 }
 
-// TODO: This trait confuses the concepts of XML serialization and HTML serialization and
-// the impl should go away eventually
-impl Serialize for &Node {
+pub(crate) struct HtmlSerialize<'a> {
+    node: &'a Node,
+}
+
+impl<'a> HtmlSerialize<'a> {
+    pub(crate) fn new(node: &'a Node) -> HtmlSerialize<'a> {
+        HtmlSerialize { node }
+    }
+}
+
+impl Serialize for HtmlSerialize<'_> {
     fn serialize<S>(&self, serializer: &mut S, traversal_scope: TraversalScope) -> io::Result<()>
     where
         S: Serializer,
     {
         serialize_html_fragment(
-            self,
+            self.node,
             serializer,
             traversal_scope,
             false,

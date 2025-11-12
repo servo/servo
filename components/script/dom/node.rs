@@ -119,6 +119,7 @@ use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::range::WeakRangeVec;
 use crate::dom::raredata::NodeRareData;
+use crate::dom::servoparser::html::HtmlSerialize;
 use crate::dom::servoparser::{ServoParser, serialize_html_fragment};
 use crate::dom::shadowroot::{IsUserAgentWidget, LayoutShadowRootHelpers, ShadowRoot};
 use crate::dom::svg::svgsvgelement::{LayoutSVGSVGElementHelpers, SVGSVGElement};
@@ -3241,7 +3242,7 @@ impl Node {
         let mut writer = vec![];
         xml_serialize::serialize(
             &mut writer,
-            &self,
+            &HtmlSerialize::new(self),
             xml_serialize::SerializeOpts { traversal_scope },
         )
         .map_err(|error| {

@@ -89,7 +89,7 @@ use crate::script_runtime::{CanGc, IntroductionType};
 use crate::script_thread::ScriptThread;
 
 mod async_html;
-mod html;
+pub(crate) mod html;
 mod prefetch;
 mod xml;
 
