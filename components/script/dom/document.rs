@@ -5105,7 +5105,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
         // Step 2.
         if node.is::<ShadowRoot>() {
-            return Err(Error::HierarchyRequest);
+            return Err(Error::HierarchyRequest(None));
         }
 
         // Step 3.
@@ -5321,7 +5321,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // Step 1.
         let new_body = match new_body {
             Some(new_body) => new_body,
-            None => return Err(Error::HierarchyRequest),
+            None => return Err(Error::HierarchyRequest(None)),
         };
 
         let node = new_body.upcast::<Node>();
@@ -5330,7 +5330,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLFrameSetElement,
             )) => {},
-            _ => return Err(Error::HierarchyRequest),
+            _ => return Err(Error::HierarchyRequest(None)),
         }
 
         // Step 2.
@@ -5348,7 +5348,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             },
 
             // Step 4.
-            (None, _) => return Err(Error::HierarchyRequest),
+            (None, _) => return Err(Error::HierarchyRequest(None)),
 
             // Step 5.
             (Some(ref root), &None) => {

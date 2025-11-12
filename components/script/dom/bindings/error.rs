@@ -120,7 +120,10 @@ pub(crate) fn create_dom_exception(
             return new_custom_exception(DOMErrorName::NotFoundError, custom_message);
         },
         Error::NotFound(None) => DOMErrorName::NotFoundError,
-        Error::HierarchyRequest => DOMErrorName::HierarchyRequestError,
+        Error::HierarchyRequest(Some(custom_message)) => {
+            return new_custom_exception(DOMErrorName::HierarchyRequestError, custom_message);
+        },
+        Error::HierarchyRequest(None) => DOMErrorName::HierarchyRequestError,
         Error::WrongDocument(Some(doc_err_custom_message)) => {
             return new_custom_exception(DOMErrorName::WrongDocumentError, doc_err_custom_message);
         },

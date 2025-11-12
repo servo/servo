@@ -193,7 +193,7 @@ impl Range {
 
         // Step 12.
         if contained_children.iter().any(|n| n.is_doctype()) {
-            return Err(Error::HierarchyRequest);
+            return Err(Error::HierarchyRequest(None));
         }
 
         Ok(ContainedChildren {
@@ -855,12 +855,12 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
 
         // Step 1.
         if &*start_node == node {
-            return Err(Error::HierarchyRequest);
+            return Err(Error::HierarchyRequest(None));
         }
         match start_node.type_id() {
             // Handled under step 2.
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => (),
-            NodeTypeId::CharacterData(_) => return Err(Error::HierarchyRequest),
+            NodeTypeId::CharacterData(_) => return Err(Error::HierarchyRequest(None)),
             _ => (),
         }
 
@@ -871,7 +871,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                 let parent = match start_node.GetParentNode() {
                     Some(parent) => parent,
                     // Step 1.
-                    None => return Err(Error::HierarchyRequest),
+                    None => return Err(Error::HierarchyRequest(None)),
                 };
                 // Step 5.
                 (Some(DomRoot::from_ref(&*start_node)), parent)

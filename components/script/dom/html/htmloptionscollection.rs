@@ -194,7 +194,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
 
         // Step 1
         if node.is_ancestor_of(&root) {
-            return Err(Error::HierarchyRequest);
+            return Err(Error::HierarchyRequest(None));
         }
 
         if let Some(HTMLElementOrLong::HTMLElement(ref before_element)) = before {

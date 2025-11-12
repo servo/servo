@@ -38,7 +38,7 @@ impl Convert<Error> for RulesMutateError {
         match self {
             RulesMutateError::Syntax => Error::Syntax(None),
             RulesMutateError::IndexSize => Error::IndexSize(None),
-            RulesMutateError::HierarchyRequest => Error::HierarchyRequest,
+            RulesMutateError::HierarchyRequest => Error::HierarchyRequest(None),
             RulesMutateError::InvalidState => Error::InvalidState(None),
         }
     }

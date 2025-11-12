@@ -2365,12 +2365,12 @@ impl Node {
         match parent.type_id() {
             NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
             },
-            _ => return Err(Error::HierarchyRequest),
+            _ => return Err(Error::HierarchyRequest(None)),
         }
 
         // Step 2.
         if node.is_inclusive_ancestor_of(parent) {
-            return Err(Error::HierarchyRequest);
+            return Err(Error::HierarchyRequest(None));
         }
 
         // Step 3.
@@ -2384,19 +2384,21 @@ impl Node {
         match node.type_id() {
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => {
                 if parent.is::<Document>() {
-                    return Err(Error::HierarchyRequest);
+                    return Err(Error::HierarchyRequest(None));
                 }
             },
             NodeTypeId::DocumentType => {
                 if !parent.is::<Document>() {
-                    return Err(Error::HierarchyRequest);
+                    return Err(Error::HierarchyRequest(None));
                 }
             },
             NodeTypeId::DocumentFragment(_) |
             NodeTypeId::Element(_) |
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => (),
-            NodeTypeId::Document(_) | NodeTypeId::Attr => return Err(Error::HierarchyRequest),
+            NodeTypeId::Document(_) | NodeTypeId::Attr => {
+                return Err(Error::HierarchyRequest(None));
+            },
         }
 
         // Step 6.
@@ -2406,46 +2408,46 @@ impl Node {
                 NodeTypeId::DocumentFragment(_) => {
                     // Step 6.1.1(b)
                     if node.children().any(|c| c.is::<Text>()) {
-                        return Err(Error::HierarchyRequest);
+                        return Err(Error::HierarchyRequest(None));
                     }
                     match node.child_elements().count() {
                         0 => (),
                         // Step 6.1.2
                         1 => {
                             if parent.child_elements().next().is_some() {
-                                return Err(Error::HierarchyRequest);
+                                return Err(Error::HierarchyRequest(None));
                             }
                             if let Some(child) = child {
                                 if child
                                     .inclusively_following_siblings()
                                     .any(|child| child.is_doctype())
                                 {
-                                    return Err(Error::HierarchyRequest);
+                                    return Err(Error::HierarchyRequest(None));
                                 }
                             }
                         },
                         // Step 6.1.1(a)
-                        _ => return Err(Error::HierarchyRequest),
+                        _ => return Err(Error::HierarchyRequest(None)),
                     }
                 },
                 // Step 6.2
                 NodeTypeId::Element(_) => {
                     if parent.child_elements().next().is_some() {
-                        return Err(Error::HierarchyRequest);
+                        return Err(Error::HierarchyRequest(None));
                     }
                     if let Some(child) = child {
                         if child
                             .inclusively_following_siblings()
                             .any(|child| child.is_doctype())
                         {
-                            return Err(Error::HierarchyRequest);
+                            return Err(Error::HierarchyRequest(None));
                         }
                     }
                 },
                 // Step 6.3
                 NodeTypeId::DocumentType => {
                     if parent.children().any(|c| c.is_doctype()) {
-                        return Err(Error::HierarchyRequest);
+                        return Err(Error::HierarchyRequest(None));
                     }
                     match child {
                         Some(child) => {
@@ -2454,12 +2456,12 @@ impl Node {
                                 .take_while(|c| &**c != child)
                                 .any(|c| c.is::<Element>())
                             {
-                                return Err(Error::HierarchyRequest);
+                                return Err(Error::HierarchyRequest(None));
                             }
                         },
                         None => {
                             if parent.child_elements().next().is_some() {
-                                return Err(Error::HierarchyRequest);
+                                return Err(Error::HierarchyRequest(None));
                             }
                         },
                     }
@@ -3516,13 +3518,13 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
         match self.type_id() {
             NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
             },
-            _ => return Err(Error::HierarchyRequest),
+            _ => return Err(Error::HierarchyRequest(None)),
         }
 
         // Step 2. If node is a host-including inclusive ancestor of parent,
         // then throw a "HierarchyRequestError" DOMException.
         if node.is_inclusive_ancestor_of(self) {
-            return Err(Error::HierarchyRequest);
+            return Err(Error::HierarchyRequest(None));
         }
 
         // Step 3. If child’s parent is not parent, then throw a "NotFoundError" DOMException.
@@ -3536,12 +3538,14 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
         // or node is a doctype and parent is not a document, then throw a "HierarchyRequestError" DOMException.
         match node.type_id() {
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) if self.is::<Document>() => {
-                return Err(Error::HierarchyRequest);
+                return Err(Error::HierarchyRequest(None));
             },
             NodeTypeId::DocumentType if !self.is::<Document>() => {
-                return Err(Error::HierarchyRequest);
+                return Err(Error::HierarchyRequest(None));
             },
-            NodeTypeId::Document(_) | NodeTypeId::Attr => return Err(Error::HierarchyRequest),
+            NodeTypeId::Document(_) | NodeTypeId::Attr => {
+                return Err(Error::HierarchyRequest(None));
+            },
             _ => (),
         }
 
@@ -3553,43 +3557,43 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                 NodeTypeId::DocumentFragment(_) => {
                     // Step 6.1.1(b)
                     if node.children().any(|c| c.is::<Text>()) {
-                        return Err(Error::HierarchyRequest);
+                        return Err(Error::HierarchyRequest(None));
                     }
                     match node.child_elements().count() {
                         0 => (),
                         // Step 6.1.2
                         1 => {
                             if self.child_elements().any(|c| c.upcast::<Node>() != child) {
-                                return Err(Error::HierarchyRequest);
+                                return Err(Error::HierarchyRequest(None));
                             }
                             if child.following_siblings().any(|child| child.is_doctype()) {
-                                return Err(Error::HierarchyRequest);
+                                return Err(Error::HierarchyRequest(None));
                             }
                         },
                         // Step 6.1.1(a)
-                        _ => return Err(Error::HierarchyRequest),
+                        _ => return Err(Error::HierarchyRequest(None)),
                     }
                 },
                 // Step 6.2
                 NodeTypeId::Element(..) => {
                     if self.child_elements().any(|c| c.upcast::<Node>() != child) {
-                        return Err(Error::HierarchyRequest);
+                        return Err(Error::HierarchyRequest(None));
                     }
                     if child.following_siblings().any(|child| child.is_doctype()) {
-                        return Err(Error::HierarchyRequest);
+                        return Err(Error::HierarchyRequest(None));
                     }
                 },
                 // Step 6.3
                 NodeTypeId::DocumentType => {
                     if self.children().any(|c| c.is_doctype() && &*c != child) {
-                        return Err(Error::HierarchyRequest);
+                        return Err(Error::HierarchyRequest(None));
                     }
                     if self
                         .children()
                         .take_while(|c| &**c != child)
                         .any(|c| c.is::<Element>())
                     {
-                        return Err(Error::HierarchyRequest);
+                        return Err(Error::HierarchyRequest(None));
                     }
                 },
                 NodeTypeId::CharacterData(..) => (),
