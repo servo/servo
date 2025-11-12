@@ -1,3 +1,9 @@
+#!/usr/bin/env python3
+
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 import re
 import os
 import shutil
@@ -23,7 +29,7 @@ def calculate_frame_rate():
 
     file_name = os.path.join(ci_testing_path, 'my_trace.html')
     cmd = ["hdc", "file", "recv", "/data/local/tmp/my_trace.html", f"{file_name}"]
-    res = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     commands_list = []
     with open(file_name, 'r') as f:
         for line in f.readlines():
@@ -46,7 +52,7 @@ def setup_hdc_forward():
     for v in ("HTTP_PROXY", "http_proxy", "HTTPS_PROXY", "https_proxy"):
         os.environ.pop(v, None)
     try:
-        cmd = ["hdc", "fport", f"tcp:{WEBDRIVER_PORT}", f"tcp:7000"]
+        cmd = ["hdc", "fport", f"tcp:{WEBDRIVER_PORT}", "tcp:7000"]
         print(f"Setting up HDC port forwarding: {' '.join(cmd)}")
         subprocess.run(cmd, capture_output=True, text=True, timeout=10)
         print(f"HDC port forwarding established on port {WEBDRIVER_PORT}")
