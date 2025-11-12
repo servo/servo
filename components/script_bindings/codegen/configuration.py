@@ -287,7 +287,11 @@ class Descriptor(DescriptorProvider):
         self.concreteType = "%s%s" % (prefix, typeName)
         self.register = desc.get('register', True)
         self.path = desc.get('path', pathDefault)
+
+        self.cx_no_gcMethods = [name for name in desc.get('cx_no_gc', [])]
+        self.cxMethods = [name for name in desc.get('cx', [])]
         self.realmMethods = [name for name in desc.get('realm', [])]
+
         self.inRealmMethods = [name for name in desc.get('inRealms', [])]
         self.canGcMethods = [name for name in desc.get('canGc', [])]
         self.additionalTraits = [name for name in desc.get('additionalTraits', [])]

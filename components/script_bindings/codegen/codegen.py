@@ -4135,7 +4135,17 @@ class CGCallGenerator(CGThing):
 
         # Build up our actual call
         self.cgRoot = CGList([], "\n")
-        if nativeMethodName in descriptor.realmMethods:
+        if nativeMethodName in descriptor.cx_no_gcMethods:
+            self.cgRoot.append(CGList([
+                CGGeneric("let safe_cx = JSContext::from_ptr(ptr::NonNull::new(*cx).unwrap());"),
+            ]))
+            args.prepend(CGGeneric("&safe_cx"))
+        elif nativeMethodName in descriptor.cxMethods:
+            self.cgRoot.append(CGList([
+                CGGeneric("let mut safe_cx = JSContext::from_ptr(ptr::NonNull::new(*cx).unwrap());"),
+            ]))
+            args.prepend(CGGeneric("&mut safe_cx"))
+        elif nativeMethodName in descriptor.realmMethods:
             self.cgRoot.append(CGList([
                 CGGeneric("let mut safe_cx = JSContext::from_ptr(ptr::NonNull::new(*cx).unwrap());"),
                 CGGeneric("let mut realm = CurrentRealm::assert(&mut safe_cx);")
@@ -6902,20 +6912,29 @@ class CGInterfaceTrait(CGThing):
 
         def attribute_arguments(attribute_type: IDLType,
                                 argument: IDLType | None = None,
+                                cx_no_gc: bool = False,
+                                cx: bool = False,
                                 realm: bool = False,
                                 inRealm: bool = False,
                                 canGc: bool = False,
                                 retval: bool = False
                                 ) -> Iterable[tuple[str, str]]:
-            if realm:
+            if cx_no_gc:
+                yield "cx", "&JSContext"
+            elif cx:
+                yield "cx", "&mut JSContext"
+            elif realm:
                 yield "realm", "&mut CurrentRealm"
-            if typeNeedsCx(attribute_type, retval) and not realm:
+
+            safe_cx = cx or cx_no_gc or realm
+
+            if typeNeedsCx(attribute_type, retval) and not safe_cx:
                 yield "cx", "SafeJSContext"
 
             if argument:
                 yield "value", argument_type(descriptor, argument)
 
-            if inRealm and not realm:
+            if inRealm and not safe_cx:
                 yield "_comp", "InRealm"
 
             if canGc:
@@ -6936,7 +6955,9 @@ class CGInterfaceTrait(CGThing):
                         rettype = cast(IDLType, rettype)
                         arguments = cast(list[IDLArgument], arguments)
                         arguments = method_arguments(descriptor, rettype, arguments,
-                                                     realm= name in descriptor.realmMethods,
+                                                     cx_no_gc=name in descriptor.cx_no_gcMethods,
+                                                     cx=name in descriptor.cxMethods,
+                                                     realm=name in descriptor.realmMethods,
                                                      inRealm=name in descriptor.inRealmMethods,
                                                      canGc=name in descriptor.canGcMethods)
                         rettype = return_type(descriptor, rettype, infallible)
@@ -6947,6 +6968,8 @@ class CGInterfaceTrait(CGThing):
                     yield (name,
                            attribute_arguments(
                                m.type,
+                               cx_no_gc=name in descriptor.cx_no_gcMethods,
+                               cx=name in descriptor.cxMethods,
                                realm=name in descriptor.realmMethods,
                                inRealm=name in descriptor.inRealmMethods,
                                canGc=name in descriptor.canGcMethods,
@@ -6966,6 +6989,8 @@ class CGInterfaceTrait(CGThing):
                                attribute_arguments(
                                    m.type,
                                    m.type,
+                                   cx_no_gc=name in descriptor.cx_no_gcMethods,
+                                   cx=name in descriptor.cxMethods,
                                    realm=name in descriptor.realmMethods,
                                    inRealm=name in descriptor.inRealmMethods,
                                    canGc=name in descriptor.canGcMethods,
@@ -6987,6 +7012,8 @@ class CGInterfaceTrait(CGThing):
                         if not rettype.nullable():
                             rettype = IDLNullableType(rettype.location, rettype)
                         arguments = method_arguments(descriptor, rettype, arguments,
+                                                     cx_no_gc=name in descriptor.cx_no_gcMethods,
+                                                     cx=name in descriptor.cxMethods,
                                                      realm=name in descriptor.realmMethods,
                                                      inRealm=name in descriptor.inRealmMethods,
                                                      canGc=name in descriptor.canGcMethods)
@@ -7000,6 +7027,8 @@ class CGInterfaceTrait(CGThing):
                             yield "SupportedPropertyNames", [], "Vec<DOMString>", False
                     else:
                         arguments = method_arguments(descriptor, rettype, arguments,
+                                                     cx_no_gc=name in descriptor.cx_no_gcMethods,
+                                                     cx=name in descriptor.cxMethods,
                                                      realm=name in descriptor.realmMethods,
                                                      inRealm=name in descriptor.inRealmMethods,
                                                      canGc=name in descriptor.canGcMethods)
@@ -8199,13 +8228,22 @@ def method_arguments(descriptorProvider: DescriptorProvider,
                      arguments: list[IDLArgument],
                      passJSBits: bool = True,
                      trailing: tuple[str, str] | None = None,
+                     cx_no_gc: bool = False,
+                     cx: bool = False,
                      realm: bool = False,
                      inRealm: bool = False,
                      canGc: bool = False
                      ) -> Iterator[tuple[str, str]]:
-    if realm:
+    if cx_no_gc:
+        yield "cx", "&JSContext"
+    elif cx:
+        yield "cx", "&mut JSContext"
+    elif realm:
         yield "realm", "&mut CurrentRealm"
-    if needCx(returnType, arguments, passJSBits) and not realm:
+
+    safe_cx = cx or cx_no_gc or realm
+
+    if needCx(returnType, arguments, passJSBits) and not safe_cx:
         yield "cx", "SafeJSContext"
 
     for argument in arguments:
@@ -8216,7 +8254,7 @@ def method_arguments(descriptorProvider: DescriptorProvider,
     if trailing:
         yield trailing
 
-    if inRealm and not realm:
+    if inRealm and not safe_cx:
         yield "_comp", "InRealm"
 
     if canGc:
