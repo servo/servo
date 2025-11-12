@@ -48,9 +48,17 @@ pub struct Minibrowser {
     /// Whether the location has been edited by the user without clicking Go.
     location_dirty: bool,
 
+    /// The [`LoadStatus`] of the active `WebView`.
     load_status: LoadStatus,
 
+    /// The text to display in the status bar on the bottom of the window.
     status_text: Option<String>,
+
+    /// Whether or not the current `WebView` can navigate backward.
+    can_go_back: bool,
+
+    /// Whether or not the current `WebView` can navigate forward.
+    can_go_forward: bool,
 
     /// Handle to the GPU texture of the favicon.
     ///
@@ -132,6 +140,8 @@ impl Minibrowser {
             location_dirty: false,
             load_status: LoadStatus::Complete,
             status_text: None,
+            can_go_back: false,
+            can_go_forward: false,
             favicon_textures: Default::default(),
             experimental_prefs_enabled: preferences.experimental_prefs_enabled,
         }
@@ -320,10 +330,17 @@ impl Minibrowser {
                         ui.available_size(),
                         egui::Layout::left_to_right(egui::Align::Center),
                         |ui| {
-                            if ui.add(Minibrowser::toolbar_button("⏴")).clicked() {
+                            if ui
+                                .add_enabled(self.can_go_back, Minibrowser::toolbar_button("⏴"))
+                                .clicked()
+                            {
                                 event_queue.push(MinibrowserEvent::Back);
                             }
-                            if ui.add(Minibrowser::toolbar_button("⏵")).clicked() {
+
+                            if ui
+                                .add_enabled(self.can_go_forward, Minibrowser::toolbar_button("⏵"))
+                                .clicked()
+                            {
                                 event_queue.push(MinibrowserEvent::Forward);
                             }
 
@@ -492,7 +509,7 @@ impl Minibrowser {
 
     /// Updates the location field from the given [WebViewManager], unless the user has started
     /// editing it without clicking Go, returning true iff it has changed (needing an egui update).
-    pub fn update_location_in_toolbar(&mut self, state: &RunningAppState) -> bool {
+    fn update_location_in_toolbar(&mut self, state: &RunningAppState) -> bool {
         // User edited without clicking Go?
         if self.location_dirty {
             return false;
@@ -510,11 +527,11 @@ impl Minibrowser {
         }
     }
 
-    pub fn update_location_dirty(&mut self, dirty: bool) {
+    pub(crate) fn update_location_dirty(&mut self, dirty: bool) {
         self.location_dirty = dirty;
     }
 
-    pub fn update_load_status(&mut self, state: &RunningAppState) -> bool {
+    fn update_load_status(&mut self, state: &RunningAppState) -> bool {
         let state_status = state
             .focused_webview()
             .map(|webview| webview.load_status())
@@ -523,12 +540,22 @@ impl Minibrowser {
         old_status != self.load_status
     }
 
-    pub fn update_status_text(&mut self, state: &RunningAppState) -> bool {
+    fn update_status_text(&mut self, state: &RunningAppState) -> bool {
         let state_status = state
             .focused_webview()
             .and_then(|webview| webview.status_text());
         let old_status = std::mem::replace(&mut self.status_text, state_status);
         old_status != self.status_text
+    }
+
+    fn update_can_go_back_and_forward(&mut self, state: &RunningAppState) -> bool {
+        let (can_go_back, can_go_forward) = state
+            .focused_webview()
+            .map(|webview| (webview.can_go_back(), webview.can_go_forward()))
+            .unwrap_or((false, false));
+        let old_can_go_back = std::mem::replace(&mut self.can_go_back, can_go_back);
+        let old_can_go_forward = std::mem::replace(&mut self.can_go_forward, can_go_forward);
+        old_can_go_back != self.can_go_back || old_can_go_forward != self.can_go_forward
     }
 
     fn update_title(
@@ -564,7 +591,8 @@ impl Minibrowser {
         self.update_location_in_toolbar(state) |
             self.update_load_status(state) |
             self.update_status_text(state) |
-            self.update_title(state, window)
+            self.update_title(state, window) |
+            self.update_can_go_back_and_forward(state)
     }
 
     /// Returns true if a redraw is required after handling the provided event.
