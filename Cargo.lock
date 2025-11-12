@@ -4048,9 +4048,9 @@ dependencies = [
 
 [[package]]
 name = "hyper"
-version = "1.7.0"
+version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb3aa54a13a0dfe7fbe3a59e0c76093041720fdc77b110cc0fc260fafb4dc51e"
+checksum = "1744436df46f0bde35af3eda22aeaba453aada65d8f1c171cd8a5f59030bd69f"
 dependencies = [
  "atomic-waker",
  "bytes",
@@ -4076,7 +4076,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3c93eb611681b207e1fe55d5a71ecf91572ec8a6705cdb6857f7d8d5242cf58"
 dependencies = [
  "http 1.3.1",
- "hyper 1.7.0",
+ "hyper 1.8.0",
  "hyper-util",
  "log",
  "rustls",
@@ -4099,7 +4099,7 @@ dependencies = [
  "futures-util",
  "http 1.3.1",
  "http-body 1.0.1",
- "hyper 1.7.0",
+ "hyper 1.8.0",
  "libc",
  "pin-project-lite",
  "socket2 0.6.1",
@@ -4115,7 +4115,7 @@ dependencies = [
  "cookie 0.18.1",
  "headers 0.4.1",
  "http 1.3.1",
- "hyper 1.7.0",
+ "hyper 1.8.0",
  "mime",
  "serde",
  "serde_bytes",
@@ -5606,7 +5606,7 @@ dependencies = [
  "headers 0.4.1",
  "http 1.3.1",
  "http-body-util",
- "hyper 1.7.0",
+ "hyper 1.8.0",
  "hyper-rustls",
  "hyper-util",
  "hyper_serde",
