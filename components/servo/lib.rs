@@ -106,7 +106,6 @@ use servo_geometry::{
 };
 use servo_media::ServoMedia;
 use servo_media::player::context::GlContext;
-use servo_url::ServoUrl;
 use storage::new_storage_threads;
 use style::global_style_data::StyleThreadPool;
 use webview::WebViewInner;
@@ -636,15 +635,9 @@ impl Servo {
                         .notify_traversal_complete(webview.clone(), traversal_id);
                 }
             },
-            EmbedderMsg::HistoryChanged(webview_id, urls, current_index) => {
+            EmbedderMsg::HistoryChanged(webview_id, new_back_forward_list, current_list_index) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    let urls: Vec<_> = urls.into_iter().map(ServoUrl::into_url).collect();
-                    let current_url = urls[current_index].clone();
-
-                    webview
-                        .delegate()
-                        .notify_history_changed(webview.clone(), urls, current_index);
-                    webview.set_url(current_url);
+                    webview.set_history(new_back_forward_list, current_list_index);
                 }
             },
             EmbedderMsg::NotifyFullscreenStateChanged(webview_id, fullscreen) => {
@@ -796,56 +789,9 @@ impl Servo {
                     None => self.delegate().show_notification(notification),
                 }
             },
-            EmbedderMsg::ShowEmbedderControl(control_id, position, embedder_control) => {
+            EmbedderMsg::ShowEmbedderControl(control_id, position, embedder_control_request) => {
                 if let Some(webview) = self.get_webview_handle(control_id.webview_id) {
-                    let constellation_proxy = self.constellation_proxy.clone();
-                    let embedder_control = match embedder_control {
-                        EmbedderControlRequest::SelectElement(options, selected_option) => {
-                            EmbedderControl::SelectElement(SelectElement {
-                                id: control_id,
-                                options,
-                                selected_option,
-                                position,
-                                constellation_proxy,
-                                response_sent: false,
-                            })
-                        },
-                        EmbedderControlRequest::ColorPicker(current_color) => {
-                            EmbedderControl::ColorPicker(ColorPicker {
-                                id: control_id,
-                                current_color: Some(current_color),
-                                position,
-                                constellation_proxy,
-                                response_sent: false,
-                            })
-                        },
-                        EmbedderControlRequest::InputMethod(input_method_request) => {
-                            EmbedderControl::InputMethod(InputMethodControl {
-                                id: control_id,
-                                input_method_type: input_method_request.input_method_type,
-                                text: input_method_request.text,
-                                insertion_point: input_method_request.insertion_point,
-                                position,
-                                multiline: input_method_request.multiline,
-                            })
-                        },
-                        EmbedderControlRequest::ContextMenu(context_menu_request) => {
-                            EmbedderControl::ContextMenu(ContextMenu {
-                                id: control_id,
-                                position,
-                                items: context_menu_request.items,
-                                constellation_proxy,
-                                response_sent: false,
-                            })
-                        },
-                        EmbedderControlRequest::FilePicker { .. } => unreachable!(
-                            "This message should be routed through the FileManagerThread"
-                        ),
-                    };
-
-                    webview
-                        .delegate()
-                        .show_embedder_control(webview, embedder_control);
+                    webview.show_embedder_control(control_id, position, embedder_control_request);
                 }
             },
             EmbedderMsg::HideEmbedderControl(control_id) => {

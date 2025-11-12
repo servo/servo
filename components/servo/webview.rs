@@ -13,21 +13,26 @@ use compositing_traits::WebViewTrait;
 use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
-    Cursor, Image, InputEvent, InputEventAndId, InputEventId, JSValue, JavaScriptEvaluationError,
-    LoadStatus, MediaSessionActionType, ScreenGeometry, ScreenshotCaptureError, Scroll, Theme,
-    TraversalId, ViewportDetails, WebViewPoint, WebViewRect,
+    ContextMenuAction, ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlRequest, Image,
+    InputEvent, InputEventAndId, InputEventId, JSValue, JavaScriptEvaluationError, LoadStatus,
+    MediaSessionActionType, ScreenGeometry, ScreenshotCaptureError, Scroll, Theme, TraversalId,
+    ViewportDetails, WebViewPoint, WebViewRect,
 };
 use euclid::{Point2D, Scale, Size2D};
 use image::RgbaImage;
 use servo_geometry::DeviceIndependentPixel;
+use servo_url::ServoUrl;
 use style_traits::CSSPixel;
 use url::Url;
-use webrender_api::units::{DevicePixel, DevicePoint, DeviceRect};
+use webrender_api::units::{DeviceIntRect, DevicePixel, DevicePoint, DeviceRect};
 
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 use crate::javascript_evaluator::JavaScriptEvaluator;
 use crate::webview_delegate::{DefaultWebViewDelegate, WebViewDelegate};
-use crate::{ConstellationProxy, Servo, WebRenderDebugOption};
+use crate::{
+    ColorPicker, ConstellationProxy, ContextMenu, EmbedderControl, InputMethodControl,
+    SelectElement, Servo, WebRenderDebugOption,
+};
 
 pub(crate) const MINIMUM_WEBVIEW_SIZE: Size2D<i32, DevicePixel> = Size2D::new(1, 1);
 
@@ -86,13 +91,18 @@ pub(crate) struct WebViewInner {
     rect: DeviceRect,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     load_status: LoadStatus,
-    url: Option<Url>,
     status_text: Option<String>,
     page_title: Option<String>,
     favicon: Option<Image>,
     focused: bool,
     animating: bool,
     cursor: Cursor,
+
+    /// The back / forward list of this WebView.
+    back_forward_list: Vec<Url>,
+
+    /// The current index in the back / forward list.
+    back_forward_list_index: usize,
 }
 
 impl Drop for WebViewInner {
@@ -130,13 +140,14 @@ impl WebView {
             rect: DeviceRect::from_origin_and_size(Point2D::origin(), size),
             hidpi_scale_factor: builder.hidpi_scale_factor,
             load_status: LoadStatus::Started,
-            url: None,
             status_text: None,
             page_title: None,
             favicon: None,
             focused: false,
             animating: false,
             cursor: Cursor::Pointer,
+            back_forward_list: Default::default(),
+            back_forward_list_index: 0,
         })));
 
         let viewport_details = webview.viewport_details();
@@ -229,20 +240,11 @@ impl WebView {
     }
 
     pub fn url(&self) -> Option<Url> {
-        self.inner().url.clone()
-    }
-
-    pub(crate) fn set_url(self, new_value: Url) {
-        if self
-            .inner()
-            .url
-            .as_ref()
-            .is_some_and(|url| url == &new_value)
-        {
-            return;
-        }
-        self.inner_mut().url = Some(new_value.clone());
-        self.delegate().notify_url_changed(self, new_value);
+        let inner = self.inner();
+        inner
+            .back_forward_list
+            .get(inner.back_forward_list_index)
+            .cloned()
     }
 
     pub fn status_text(&self) -> Option<String> {
@@ -436,6 +438,10 @@ impl WebView {
             .send(EmbedderToConstellationMessage::Reload(self.id()))
     }
 
+    pub fn can_go_back(&self) -> bool {
+        self.inner().back_forward_list_index != 0
+    }
+
     pub fn go_back(&self, amount: usize) -> TraversalId {
         let traversal_id = TraversalId::new();
         self.inner()
@@ -446,6 +452,11 @@ impl WebView {
                 traversal_id.clone(),
             ));
         traversal_id
+    }
+
+    pub fn can_go_forward(&self) -> bool {
+        let inner = self.inner();
+        inner.back_forward_list.len() > inner.back_forward_list_index + 1
     }
 
     pub fn go_forward(&self, amount: usize) -> TraversalId {
@@ -633,6 +644,99 @@ impl WebView {
             .compositor
             .borrow()
             .request_screenshot(self.id(), rect, Box::new(callback));
+    }
+
+    pub fn set_history(self, new_back_forward_list: Vec<ServoUrl>, new_index: usize) {
+        {
+            let mut inner_mut = self.inner_mut();
+            inner_mut.back_forward_list_index = new_index;
+            inner_mut.back_forward_list = new_back_forward_list
+                .into_iter()
+                .map(ServoUrl::into_url)
+                .collect();
+        }
+
+        let back_forward_list = self.inner().back_forward_list.clone();
+        let back_forward_list_index = self.inner().back_forward_list_index;
+        self.delegate().notify_url_changed(
+            self.clone(),
+            back_forward_list[back_forward_list_index].clone(),
+        );
+        self.delegate().notify_history_changed(
+            self.clone(),
+            back_forward_list,
+            back_forward_list_index,
+        );
+    }
+
+    pub(crate) fn show_embedder_control(
+        self,
+        control_id: EmbedderControlId,
+        position: DeviceIntRect,
+        embedder_control_request: EmbedderControlRequest,
+    ) {
+        let constellation_proxy = self.inner().constellation_proxy.clone();
+        let embedder_control = match embedder_control_request {
+            EmbedderControlRequest::SelectElement(options, selected_option) => {
+                EmbedderControl::SelectElement(SelectElement {
+                    id: control_id,
+                    options,
+                    selected_option,
+                    position,
+                    constellation_proxy,
+                    response_sent: false,
+                })
+            },
+            EmbedderControlRequest::ColorPicker(current_color) => {
+                EmbedderControl::ColorPicker(ColorPicker {
+                    id: control_id,
+                    current_color: Some(current_color),
+                    position,
+                    constellation_proxy,
+                    response_sent: false,
+                })
+            },
+            EmbedderControlRequest::InputMethod(input_method_request) => {
+                EmbedderControl::InputMethod(InputMethodControl {
+                    id: control_id,
+                    input_method_type: input_method_request.input_method_type,
+                    text: input_method_request.text,
+                    insertion_point: input_method_request.insertion_point,
+                    position,
+                    multiline: input_method_request.multiline,
+                })
+            },
+            EmbedderControlRequest::ContextMenu(mut context_menu_request) => {
+                for item in context_menu_request.items.iter_mut() {
+                    match item {
+                        ContextMenuItem::Item {
+                            action: ContextMenuAction::GoBack,
+                            enabled,
+                            ..
+                        } => *enabled = self.can_go_back(),
+                        ContextMenuItem::Item {
+                            action: ContextMenuAction::GoForward,
+                            enabled,
+                            ..
+                        } => *enabled = self.can_go_forward(),
+                        _ => {},
+                    }
+                }
+                EmbedderControl::ContextMenu(ContextMenu {
+                    id: control_id,
+                    position,
+                    items: context_menu_request.items,
+                    constellation_proxy,
+                    response_sent: false,
+                })
+            },
+            EmbedderControlRequest::FilePicker { .. } => {
+                unreachable!("This message should be routed through the FileManagerThread")
+            },
+        };
+
+        self.delegate()
+            .show_embedder_control(self.clone(), embedder_control);
     }
 }
 

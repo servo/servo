@@ -695,3 +695,37 @@ fn test_contextual_context_menu_items() {
 
     servo_test.spin(move || !delegate.load_status_changed.get());
 }
+
+#[test]
+fn test_can_go_forward_and_can_go_back() {
+    let servo_test = ServoTest::new();
+
+    let page_1_url = Url::parse("data:text/html,<!DOCTYPE html> page 1").unwrap();
+    let page_2_url = Url::parse("data:text/html,<!DOCTYPE html> page 2").unwrap();
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo())
+        .delegate(delegate.clone())
+        .url(page_1_url.clone())
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+
+    assert!(!webview.can_go_forward());
+    assert!(!webview.can_go_back());
+
+    let load_webview = webview.clone();
+    webview.load(page_2_url.clone());
+    servo_test.spin(move || load_webview.url() != Some(page_2_url.clone()));
+
+    assert!(!webview.can_go_forward());
+    assert!(webview.can_go_back());
+
+    webview.go_back(1);
+
+    let load_webview = webview.clone();
+    servo_test.spin(move || load_webview.url() != Some(page_1_url.clone()));
+
+    assert!(webview.can_go_forward());
+    assert!(!webview.can_go_back());
+}
