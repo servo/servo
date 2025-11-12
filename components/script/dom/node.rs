@@ -2394,7 +2394,9 @@ impl Node {
             NodeTypeId::Element(_) |
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => (),
-            NodeTypeId::Document(_) | NodeTypeId::Attr => return Err(Error::HierarchyRequest(None)),
+            NodeTypeId::Document(_) | NodeTypeId::Attr => {
+                return Err(Error::HierarchyRequest(None));
+            },
         }
 
         // Step 6.
@@ -3538,7 +3540,9 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             NodeTypeId::DocumentType if !self.is::<Document>() => {
                 return Err(Error::HierarchyRequest(None));
             },
-            NodeTypeId::Document(_) | NodeTypeId::Attr => return Err(Error::HierarchyRequest(None)),
+            NodeTypeId::Document(_) | NodeTypeId::Attr => {
+                return Err(Error::HierarchyRequest(None));
+            },
             _ => (),
         }
 
