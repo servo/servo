@@ -37,6 +37,7 @@ tokio-util = { version = "0.7.12", default-features = false, features = ["codec"
 uuid = { workspace = true }
 
 [dev-dependencies]
+profile = { path = "../profile" }
 url = { workspace = true }
 
 [[test]]
