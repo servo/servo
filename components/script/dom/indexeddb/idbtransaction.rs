@@ -10,7 +10,9 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use profile_traits::ipc;
 use script_bindings::codegen::GenericUnionTypes::StringOrStringSequence;
-use storage_traits::indexeddb_thread::{IndexedDBThreadMsg, KeyPath, SyncOperation};
+use storage_traits::indexeddb_thread::{
+    IndexedDBThreadMsg, IndexedDBTxnMode, KeyPath, SyncOperation,
+};
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -84,7 +86,7 @@ impl IDBTransaction {
         scope: &DOMStringList,
         can_gc: CanGc,
     ) -> DomRoot<IDBTransaction> {
-        let serial_number = IDBTransaction::register_new(global, connection.get_name());
+        let serial_number = IDBTransaction::register_new(global, connection.get_name(), mode);
         reflect_dom_object(
             Box::new(IDBTransaction::new_inherited(
                 connection,
@@ -102,7 +104,7 @@ impl IDBTransaction {
     // and allows us to commit/abort transactions running in our idb thread.
     // FIXME:(rasviitanen) We could probably replace this with a channel instead,
     // and queue requests directly to that channel.
-    fn register_new(global: &GlobalScope, db_name: DOMString) -> u64 {
+    fn register_new(global: &GlobalScope, db_name: DOMString, mode: IDBTransactionMode) -> u64 {
         let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
 
         global
@@ -111,6 +113,11 @@ impl IDBTransaction {
                 sender,
                 global.origin().immutable().clone(),
                 db_name.to_string(),
+                match mode {
+                    IDBTransactionMode::Readonly => IndexedDBTxnMode::Readonly,
+                    IDBTransactionMode::Readwrite => IndexedDBTxnMode::Readwrite,
+                    IDBTransactionMode::Versionchange => IndexedDBTxnMode::Versionchange,
+                },
             )))
             .unwrap();
 
