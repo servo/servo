@@ -11,11 +11,9 @@ use p384::NistP384;
 use p521::NistP521;
 use pkcs8::der::Decode;
 use pkcs8::spki::EncodePublicKey;
-use pkcs8::{
-    AssociatedOid, EncodePrivateKey, ObjectIdentifier, PrivateKeyInfo, SubjectPublicKeyInfo,
-};
+use pkcs8::{AssociatedOid, EncodePrivateKey, PrivateKeyInfo, SubjectPublicKeyInfo};
 use sec1::der::asn1::BitString;
-use sec1::{EcPrivateKey, EncodedPoint};
+use sec1::{EcParameters, EcPrivateKey, EncodedPoint};
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
@@ -310,7 +308,7 @@ pub(crate) fn import_key(
             // field of spki.
             // Step 2.7. If params is not an instance of the ECParameters ASN.1 type defined in
             // [RFC5480] that specifies a namedCurve, then throw a DataError.
-            let Some(params): Option<ObjectIdentifier> = spki.algorithm.parameters else {
+            let Some(params): Option<EcParameters> = spki.algorithm.parameters else {
                 return Err(Error::Data);
             };
 
@@ -323,9 +321,9 @@ pub(crate) fn import_key(
             // If params is equivalent to the secp521r1 object identifier defined in [RFC5480]:
             //     Set namedCurve "P-521".
             let named_curve = match params {
-                NistP256::OID => Some(NAMED_CURVE_P256),
-                NistP384::OID => Some(NAMED_CURVE_P384),
-                NistP521::OID => Some(NAMED_CURVE_P521),
+                EcParameters::NamedCurve(NistP256::OID) => Some(NAMED_CURVE_P256),
+                EcParameters::NamedCurve(NistP384::OID) => Some(NAMED_CURVE_P384),
+                EcParameters::NamedCurve(NistP521::OID) => Some(NAMED_CURVE_P521),
                 _ => None,
             };
 
@@ -435,12 +433,11 @@ pub(crate) fn import_key(
             // PrivateKeyAlgorithmIdentifier field of privateKeyInfo.
             // Step 2.7. If params is not an instance of the ECParameters ASN.1 type defined in
             // [RFC5480] that specifies a namedCurve, then throw a DataError.
-            let params: ObjectIdentifier =
-                if let Some(params) = private_key_info.algorithm.parameters {
-                    params.decode_as().map_err(|_| Error::Data)?
-                } else {
-                    return Err(Error::Data);
-                };
+            let params: EcParameters = if let Some(params) = private_key_info.algorithm.parameters {
+                params.decode_as().map_err(|_| Error::Data)?
+            } else {
+                return Err(Error::Data);
+            };
 
             // Step 2.8. Let namedCurve be a string whose initial value is undefined.
             // Step 2.9.
@@ -451,9 +448,9 @@ pub(crate) fn import_key(
             // If params is equivalent to the secp521r1 object identifier defined in [RFC5480]:
             //     Set namedCurve to "P-521".
             let named_curve = match params {
-                NistP256::OID => Some(NAMED_CURVE_P256),
-                NistP384::OID => Some(NAMED_CURVE_P384),
-                NistP521::OID => Some(NAMED_CURVE_P521),
+                EcParameters::NamedCurve(NistP256::OID) => Some(NAMED_CURVE_P256),
+                EcParameters::NamedCurve(NistP384::OID) => Some(NAMED_CURVE_P384),
+                EcParameters::NamedCurve(NistP521::OID) => Some(NAMED_CURVE_P521),
                 _ => None,
             };
 
@@ -474,11 +471,10 @@ pub(crate) fn import_key(
                     // contain the same object identifier as the parameters field of the
                     // privateKeyAlgorithm PrivateKeyAlgorithmIdentifier field of privateKeyInfo,
                     // throw a DataError.
-                    if ec_private_key.parameters.is_some_and(|parameters| {
-                        parameters
-                            .named_curve()
-                            .is_none_or(|parameters| parameters != params)
-                    }) {
+                    if ec_private_key
+                        .parameters
+                        .is_some_and(|parameters| parameters != params)
+                    {
                         return Err(Error::Data);
                     }
 
