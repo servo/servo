@@ -100,5 +100,6 @@ def operator():
 
 if __name__ == "__main__":
     result = operator()
+    print(result)
     if not result:
         sys.exit(1)
