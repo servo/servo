@@ -101,6 +101,10 @@ impl RunningAppStateTrait for RunningAppState {
     fn webview_by_id(&self, id: WebViewId) -> Option<WebView> {
         self.inner().webviews.get(&id).cloned()
     }
+
+    fn dismiss_embedder_controls_for_webview(&self, webview_id: WebViewId) {
+        let _ = self.inner_mut().dialogs.remove(&webview_id);
+    }
 }
 
 impl RunningAppState {

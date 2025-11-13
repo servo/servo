@@ -66,11 +66,10 @@ impl RunningAppStateBase {
 
 pub trait RunningAppStateTrait {
     fn base(&self) -> &RunningAppStateBase;
-
     #[allow(dead_code)]
     fn base_mut(&mut self) -> &mut RunningAppStateBase;
-
-    fn webview_by_id(&self, id: WebViewId) -> Option<WebView>;
+    fn webview_by_id(&self, _: WebViewId) -> Option<WebView>;
+    fn dismiss_embedder_controls_for_webview(&self, _webview_id: WebViewId) {}
 
     fn servoshell_preferences(&self) -> &ServoShellPreferences {
         &self.base().servoshell_preferences
@@ -189,11 +188,15 @@ pub trait RunningAppStateTrait {
         url: Url,
         load_status_sender: GenericSender<WebDriverLoadStatus>,
     ) {
-        if let Some(webview) = self.webview_by_id(webview_id) {
-            info!("Loading URL in webview {}: {}", webview_id, url);
-            self.set_load_status_sender(webview_id, load_status_sender);
-            webview.load(url);
-        }
+        let Some(webview) = self.webview_by_id(webview_id) else {
+            return;
+        };
+
+        self.dismiss_embedder_controls_for_webview(webview_id);
+
+        info!("Loading URL in webview {}: {}", webview_id, url);
+        self.set_load_status_sender(webview_id, load_status_sender);
+        webview.load(url);
     }
 
     /// If we are exiting after achieving a stable image or we want to save the display of the
