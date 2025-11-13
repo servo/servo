@@ -334,16 +334,9 @@ class PackageCommands(CommandBase):
             print("Creating MSI")
             try:
                 with cd(dir_to_msi):
-                    subprocess.check_call(["candle", wxs_path])
+                    subprocess.check_call(["wix", "build", wxs_path])
             except subprocess.CalledProcessError as e:
-                print("WiX candle exited with return value %d" % e.returncode)
-                return e.returncode
-            try:
-                wxsobj_path = "{}.wixobj".format(path.splitext(wxs_path)[0])
-                with cd(dir_to_msi):
-                    subprocess.check_call(["light", wxsobj_path])
-            except subprocess.CalledProcessError as e:
-                print("WiX light exited with return value %d" % e.returncode)
+                print("WiX build exited with return value %d" % e.returncode)
                 return e.returncode
             dir_to_installer = path.join(dir_to_msi, "Installer.msi")
             print("Packaged Servo into " + dir_to_installer)
@@ -354,16 +347,9 @@ class PackageCommands(CommandBase):
             bundle_wxs_path = path.join(dir_to_msi, "Servo.wxs")
             try:
                 with cd(dir_to_msi):
-                    subprocess.check_call(["candle", bundle_wxs_path, "-ext", "WixBalExtension"])
+                    subprocess.check_call(["wix", "build","-ext", "WixToolset.BootstrapperApplications.wixext", bundle_wxs_path])
             except subprocess.CalledProcessError as e:
-                print("WiX candle exited with return value %d" % e.returncode)
-                return e.returncode
-            try:
-                wxsobj_path = "{}.wixobj".format(path.splitext(bundle_wxs_path)[0])
-                with cd(dir_to_msi):
-                    subprocess.check_call(["light", wxsobj_path, "-ext", "WixBalExtension"])
-            except subprocess.CalledProcessError as e:
-                print("WiX light exited with return value %d" % e.returncode)
+                print("WiX build exited with return value %d" % e.returncode)
                 return e.returncode
             print("Packaged Servo into " + path.join(dir_to_msi, "Servo.exe"))
 
