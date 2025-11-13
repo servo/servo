@@ -588,9 +588,20 @@ class PackageCommands(CommandBase):
 
         return 0
 
-    @Command("bump-version", description="Bump Servo version", category="package")
+    @Command(
+        "release", description="Perform necessary updates before release a new servoshell version", category="package"
+    )
     @CommandArgument("target", type=str, help="Target version to bump to")
-    def bump_version(self, target: str) -> int:
+    @CommandArgument("--allow-dirty", action="store_true", help="Allow working directory to be dirty")
+    def bump_version(self, target: str, allow_dirty: bool) -> int:
+        if not allow_dirty:
+            # Check if the working directory is clean
+            status_output = check_output(["git", "status", "--porcelain"]).strip()
+            if status_output:
+                print("Working directory is dirty. Please commit or stash your changes before bumping version.")
+                print("To bypass this check, use --allow-dirty.")
+                return 1
+        print("\r ➤  Bumping version number...")
         # Todo: Also update assemblyIdentity.version in ports/servoshell/platform/windows/servo.exe.manifest
         #   Note: assemblyIdentity requires 4 version components, while we usually use 3.
         replacements = {
@@ -629,4 +640,23 @@ class PackageCommands(CommandBase):
                 file.write(new_content)
 
             print(f"Updated occurrence in {filename}.")
+        print("\r ➤  Updating license.html...")
+        # cargo about generate etc/about.hbs > resources/resource_protocol/license.html
+        try:
+            # Remove resources/resource_protocol/license.html before regenerating it
+            license_html_path = path.join("resources", "resource_protocol", "license.html")
+            if path.exists(license_html_path):
+                os.remove(license_html_path)
+            subprocess.check_call(
+                [
+                    "cargo",
+                    "about",
+                    "generate",
+                    "etc/about.hbs",
+                ],
+                stdout=open("resources/resource_protocol/license.html", "w"),
+            )
+        except subprocess.CalledProcessError as e:
+            print("Updating license.html exited with return value %d" % e.returncode)
+            return e.returncode
         return 0
