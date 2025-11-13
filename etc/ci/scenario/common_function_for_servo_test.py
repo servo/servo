@@ -36,19 +36,27 @@ def calculate_frame_rate():
     file_name = os.path.join(ci_testing_path, "my_trace.html")
     cmd = ["hdc", "file", "recv", "/data/local/tmp/my_trace.html", f"{file_name}"]
     subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-    commands_list = []
+
+    trace_key = "H:ReceiveVsync"
+    check_list = []
     with open(file_name, "r") as f:
-        for line in f.readlines():
-            if len(re.findall(r"org.servo.servo", line)) > 0 and len(re.findall(r"H:SendCommands", line)) > 0:
-                commands_list.append(line)
-    start_time = commands_list[0].split()[5].split(":")[0]
-    end_time = commands_list[-1].split()[5].split(":")[0]
+        lines = f.readlines()
+        for line in range(len(lines)):
+            if "ToucHandler::FlingStart" in lines[line]:
+                check_list = []
+            elif "ToucHandler::FlingEnd" in lines[line]:
+                break
+            else:
+                check_list.append(lines[line])
+    matching_lines = [check_list[line] for line in range(len(check_list)) if (trace_key in check_list[line]) and ("render_service" in check_list[line])]
+    start_time = matching_lines[0].split()[5].split(":")[0]
+    end_time = matching_lines[-1].split()[5].split(":")[0]
     interval_time = Decimal(end_time) - Decimal(start_time)
     shutil.rmtree(target_path)
-    if round(float((len(commands_list) - 1) / interval_time), 2) > 120.00:
+    if round(float((len(matching_lines) - 1) / interval_time), 2) > 120.00:
         return 120.00
     else:
-        return round(float((len(commands_list) - 1) / interval_time), 2)
+        return round(float((len(matching_lines) - 1) / interval_time), 2)
 
 
 def setup_hdc_forward():

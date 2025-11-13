@@ -17,28 +17,32 @@ from selenium.webdriver.common.by import By
 
 
 def operator():
-    # 1. Open Servo
-    cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
-    subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-    cmd = ["hdc", "shell", "aa start -a EntryAbility -b org.servo.servo --psn --webdriver"]
-    subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-    time.sleep(10)
+    try:
+        # 1. Open Servo
+        cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
+        subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        cmd = ["hdc", "shell", "aa start -a EntryAbility -b org.servo.servo --psn --webdriver"]
+        subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        time.sleep(10)
 
-    driver = common_function_for_servo_test.setup_hdc_forward()
-    # Step 2. Check component
-    if driver is not False:
-        try:
-            driver.find_element(
-                By.CSS_SELECTOR, "#homeHero > div.hero-body > div.container > div > a:nth-child(1)"
-            ) and driver.find_element(By.CSS_SELECTOR, "#homeHero > div.hero-body > div.container > h1")
-            cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
-            subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-            return True
-        except FileNotFoundError:
-            cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
-            subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        driver = common_function_for_servo_test.setup_hdc_forward()
+        # Step 2. Check component
+        if driver is not False:
+            try:
+                driver.find_element(
+                    By.CSS_SELECTOR, "#homeHero > div.hero-body > div.container > div > a:nth-child(1)"
+                ) and driver.find_element(By.CSS_SELECTOR, "#homeHero > div.hero-body > div.container > h1")
+                cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
+                subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+                return True
+            except FileNotFoundError:
+                cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
+                subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+                return False
+        else:
             return False
-    else:
+    except Exception as e:
+        print(f"something error:{e}")
         return False
 
 
