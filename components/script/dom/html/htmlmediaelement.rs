@@ -515,8 +515,10 @@ pub(crate) struct HTMLMediaElement {
     show_poster: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-duration>
     duration: Cell<f64>,
+    /// <https://html.spec.whatwg.org/multipage/#current-playback-position>
+    current_playback_position: Cell<f64>,
     /// <https://html.spec.whatwg.org/multipage/#official-playback-position>
-    playback_position: Cell<f64>,
+    official_playback_position: Cell<f64>,
     /// <https://html.spec.whatwg.org/multipage/#default-playback-start-position>
     default_playback_start_position: Cell<f64>,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-volume>
@@ -620,7 +622,8 @@ impl HTMLMediaElement {
             audio_renderer: Default::default(),
             show_poster: Cell::new(true),
             duration: Cell::new(f64::NAN),
-            playback_position: Cell::new(0.),
+            current_playback_position: Cell::new(0.),
+            official_playback_position: Cell::new(0.),
             default_playback_start_position: Cell::new(0.),
             volume: Cell::new(1.0),
             seeking: Cell::new(false),
@@ -817,7 +820,9 @@ impl HTMLMediaElement {
                     });
                 }));
 
-            // TODO Step 2.4. Set the official playback position to the current playback position.
+            // Step 2.4. Set the official playback position to the current playback position.
+            self.official_playback_position
+                .set(self.current_playback_position.get());
         }
     }
 
@@ -1694,10 +1699,11 @@ impl HTMLMediaElement {
             // Set the official playback position to 0.
             // If this changed the official playback position, then queue a media element task given
             // the media element to fire an event named timeupdate at the media element.
-            if self.playback_position.get() != 0. {
+            self.current_playback_position.set(0.);
+            if self.official_playback_position.get() != 0. {
                 self.queue_media_element_task_to_fire_event(atom!("timeupdate"));
             }
-            self.playback_position.set(0.);
+            self.official_playback_position.set(0.);
 
             // TODO Step 7.9. Set the timeline offset to Not-a-Number (NaN).
 
@@ -1882,38 +1888,44 @@ impl HTMLMediaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-seek>
     fn seek(&self, time: f64, _approximate_for_speed: bool) {
-        // Step 1.
+        // Step 1. Set the media element's show poster flag to false.
         self.show_poster.set(false);
 
-        // Step 2.
+        // Step 2. If the media element's readyState is HAVE_NOTHING, return.
         if self.ready_state.get() == ReadyState::HaveNothing {
             return;
         }
 
-        // Step 3.
-        // The fetch request associated with this seek already takes
-        // care of cancelling any previous requests.
+        // TODO Step 3. If the element's seeking IDL attribute is true, then another instance of
+        // this algorithm is already running. Abort that other instance of the algorithm without
+        // waiting for the step that it is running to complete.
 
-        // Step 4.
-        // The flag will be cleared when the media engine tells us the seek was done.
+        // Step 4. Set the seeking IDL attribute to true.
         self.seeking.set(true);
 
-        // Step 5.
-        // XXX(ferjm) The rest of the steps should be run in parallel, so seeking cancelation
-        //            can be done properly. No other browser does it yet anyway.
+        // Step 5. If the seek was in response to a DOM method call or setting of an IDL attribute,
+        // then continue the script. The remainder of these steps must be run in parallel.
 
-        // Step 6.
+        // Step 6. If the new playback position is later than the end of the media resource, then
+        // let it be the end of the media resource instead.
         let time = f64::min(time, self.Duration());
 
-        // Step 7.
-        let time = f64::max(time, 0.);
+        // Step 7. If the new playback position is less than the earliest possible position, let it
+        // be that position instead.
+        let time = f64::max(time, self.earliest_possible_position());
 
-        // Step 8.
+        // Step 8. If the (possibly now changed) new playback position is not in one of the ranges
+        // given in the seekable attribute, then let it be the position in one of the ranges given
+        // in the seekable attribute that is the nearest to the new playback position. If there are
+        // no ranges given in the seekable attribute, then set the seeking IDL attribute to false
+        // and return.
         let seekable = self.seekable();
+
         if seekable.is_empty() {
             self.seeking.set(false);
             return;
         }
+
         let mut nearest_seekable_position = 0.0;
         let mut in_seekable_range = false;
         let mut nearest_seekable_distance = f64::MAX;
@@ -1944,43 +1956,54 @@ impl HTMLMediaElement {
             nearest_seekable_position
         };
 
-        // Step 9.
-        // servo-media with gstreamer does not support inaccurate seeking for now.
+        // Step 9. If the approximate-for-speed flag is set, adjust the new playback position to a
+        // value that will allow for playback to resume promptly. If new playback position before
+        // this step is before current playback position, then the adjusted new playback position
+        // must also be before the current playback position. Similarly, if the new playback
+        // position before this step is after current playback position, then the adjusted new
+        // playback position must also be after the current playback position.
+        // TODO: Note that servo-media with gstreamer does not support inaccurate seeking for now.
 
-        // Step 10.
-        self.owner_global()
-            .task_manager()
-            .media_element_task_source()
-            .queue_simple_event(self.upcast(), atom!("seeking"));
+        // Step 10. Queue a media element task given the media element to fire an event named
+        // seeking at the element.
+        self.queue_media_element_task_to_fire_event(atom!("seeking"));
 
-        // Step 11.
+        // Step 11. Set the current playback position to the new playback position.
+        self.current_playback_position.set(time);
+
         if let Some(ref player) = *self.player.borrow() {
             if let Err(e) = player.lock().unwrap().seek(time) {
                 error!("Seek error {:?}", e);
             }
         }
 
-        // The rest of the steps are handled when the media engine signals a
-        // ready state change or otherwise satisfies seek completion and signals
-        // a position change.
+        // Step 12. Wait until the user agent has established whether or not the media data for the
+        // new playback position is available, and, if it is, until it has decoded enough data to
+        // play back that position.
+        // The rest of the steps are handled when the media engine signals a ready state change or
+        // otherwise satisfies seek completion and signals a position change.
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-seek>
     fn seek_end(&self) {
-        // Step 14.
+        // Any time the user agent provides a stable state, the official playback position must be
+        // set to the current playback position.
+        self.official_playback_position
+            .set(self.current_playback_position.get());
+
+        // Step 14. Set the seeking IDL attribute to false.
         self.seeking.set(false);
 
-        // Step 15.
+        // Step 15. Run the time marches on steps.
         self.time_marches_on();
 
-        // Step 16.
-        let global = self.owner_global();
-        let task_manager = global.task_manager();
-        let task_source = task_manager.media_element_task_source();
-        task_source.queue_simple_event(self.upcast(), atom!("timeupdate"));
+        // Step 16. Queue a media element task given the media element to fire an event named
+        // timeupdate at the element.
+        self.queue_media_element_task_to_fire_event(atom!("timeupdate"));
 
-        // Step 17.
-        task_source.queue_simple_event(self.upcast(), atom!("seeked"));
+        // Step 17. Queue a media element task given the media element to fire an event named seeked
+        // at the element.
+        self.queue_media_element_task_to_fire_event(atom!("seeked"));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
@@ -2132,7 +2155,7 @@ impl HTMLMediaElement {
             return false;
         }
 
-        let playback_position = self.playback_position.get();
+        let playback_position = self.current_playback_position.get();
 
         match self.direction_of_playback() {
             // Either: The current playback position is the end of the media resource, and the
@@ -2210,7 +2233,7 @@ impl HTMLMediaElement {
         // resource when the direction of playback is backwards, then the user agent must only queue
         // a media element task given the media element to fire an event named timeupdate at the
         // element.
-        if self.playback_position.get() <= self.earliest_possible_position() {
+        if self.current_playback_position.get() <= self.earliest_possible_position() {
             self.queue_media_element_task_to_fire_event(atom!("timeupdate"));
         }
     }
@@ -2368,16 +2391,27 @@ impl HTMLMediaElement {
         }
 
         // => "Once enough of the media data has been fetched to determine the duration..."
-        // Step 1.
-        // servo-media owns the media timeline.
+        // TODO Step 1. Establish the media timeline for the purposes of the current playback
+        // position and the earliest possible position, based on the media data.
 
-        // Step 2.
-        // XXX(ferjm) Update the timeline offset.
+        // TODO Step 2. Update the timeline offset to the date and time that corresponds to the zero
+        // time in the media timeline established in the previous step, if any. If no explicit time
+        // and date is given by the media resource, the timeline offset must be set to Not-a-Number
+        // (NaN).
 
-        // Step 3.
-        self.playback_position.set(0.);
+        // Step 3. Set the current playback position and the official playback position to the
+        // earliest possible position.
+        let earliest_possible_position = self.earliest_possible_position();
+        self.current_playback_position
+            .set(earliest_possible_position);
+        self.official_playback_position
+            .set(earliest_possible_position);
 
-        // Step 4.
+        // Step 4. Update the duration attribute with the time of the last frame of the resource, if
+        // known, on the media timeline established above. If it is not known (e.g. a stream that is
+        // in principle infinite), update the duration attribute to the value positive Infinity.
+        // Note: The user agent will queue a media element task given the media element to fire an
+        // event named durationchange at the element at this point.
         let previous_duration = self.duration.get();
         if let Some(duration) = metadata.duration {
             self.duration.set(duration.as_secs_f64());
@@ -2385,22 +2419,22 @@ impl HTMLMediaElement {
             self.duration.set(f64::INFINITY);
         }
         if previous_duration != self.duration.get() {
-            self.owner_global()
-                .task_manager()
-                .media_element_task_source()
-                .queue_simple_event(self.upcast(), atom!("durationchange"));
+            self.queue_media_element_task_to_fire_event(atom!("durationchange"));
         }
 
-        // Step 5.
+        // Step 5. For video elements, set the videoWidth and videoHeight attributes, and queue a
+        // media element task given the media element to fire an event named resize at the media
+        // element.
         self.handle_resize(Some(metadata.width), Some(metadata.height));
 
-        // Step 6.
+        // Step 6. Set the readyState attribute to HAVE_METADATA.
         self.change_ready_state(ReadyState::HaveMetadata);
 
-        // Step 7.
+        // Step 7. Let jumped be false.
         let mut jumped = false;
 
-        // Step 8.
+        // Step 8. If the media element's default playback start position is greater than zero, then
+        // seek to that time, and let jumped be true.
         if self.default_playback_start_position.get() > 0. {
             self.seek(
                 self.default_playback_start_position.get(),
@@ -2409,26 +2443,33 @@ impl HTMLMediaElement {
             jumped = true;
         }
 
-        // Step 9.
+        // Step 9. Set the media element's default playback start position to zero.
         self.default_playback_start_position.set(0.);
 
-        // Steps 10 and 11.
+        // Step 10. Let the initial playback position be 0.
+        // Step 11. If either the media resource or the URL of the current media resource indicate a
+        // particular start time, then set the initial playback position to that time and, if jumped
+        // is still false, seek to that time.
         if let Some(servo_url) = self.resource_url.borrow().as_ref() {
             let fragment = MediaFragmentParser::from(servo_url);
-            if let Some(start) = fragment.start() {
-                if start > 0. && start < self.duration.get() {
-                    self.playback_position.set(start);
-                    if !jumped {
-                        self.seek(
-                            self.playback_position.get(),
-                            /* approximate_for_speed */ false,
-                        )
-                    }
+            if let Some(initial_playback_position) = fragment.start() {
+                if initial_playback_position > 0. &&
+                    initial_playback_position < self.duration.get() &&
+                    !jumped
+                {
+                    self.seek(
+                        initial_playback_position,
+                        /* approximate_for_speed */ false,
+                    )
                 }
             }
         }
 
-        // Step 12 & 13 are already handled by the earlier media track processing.
+        // Step 12. If there is no enabled audio track, then enable an audio track. This will cause
+        // a change event to be fired.
+        // Step 13. If there is no selected video track, then select a video track. This will cause
+        // a change event to be fired.
+        // Note that these steps are already handled by the earlier media track processing.
 
         let global = self.global();
         let window = global.as_window();
@@ -2464,7 +2505,7 @@ impl HTMLMediaElement {
                 // a new fetch request for the last rendered frame.
                 if *reason == CancelReason::Backoff {
                     self.seek(
-                        self.playback_position.get(),
+                        self.current_playback_position.get(),
                         /* approximate_for_speed */ false,
                     );
                 }
@@ -2507,9 +2548,11 @@ impl HTMLMediaElement {
         let _ = self
             .played
             .borrow_mut()
-            .add(self.playback_position.get(), position);
-        self.playback_position.set(position);
+            .add(self.current_playback_position.get(), position);
+        self.current_playback_position.set(position);
+        self.official_playback_position.set(position);
         self.time_marches_on();
+
         let media_position_state =
             MediaPositionState::new(self.duration.get(), self.playbackRate.get(), position);
         debug!(
@@ -2520,14 +2563,13 @@ impl HTMLMediaElement {
     }
 
     fn playback_seek_done(&self) {
-        // Continuation of
-        // https://html.spec.whatwg.org/multipage/#dom-media-seek
-
-        // Step 13.
+        // <https://html.spec.whatwg.org/multipage/#dom-media-seek>
+        // Step 13. Await a stable state.
         let task = MediaElementMicrotask::Seeked {
             elem: DomRoot::from_ref(self),
             generation_id: self.generation_id.get(),
         };
+
         ScriptThread::await_stable_state(Microtask::MediaElement(task));
     }
 
@@ -2605,7 +2647,7 @@ impl HTMLMediaElement {
     fn earliest_possible_position(&self) -> f64 {
         self.seekable()
             .start(0)
-            .unwrap_or_else(|_| self.playback_position.get())
+            .unwrap_or_else(|_| self.current_playback_position.get())
     }
 
     fn render_controls(&self, can_gc: CanGc) {
@@ -3006,8 +3048,19 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     fn CurrentTime(&self) -> Finite<f64> {
         Finite::wrap(if self.default_playback_start_position.get() != 0. {
             self.default_playback_start_position.get()
+        } else if self.seeking.get() {
+            // Following the specification, any time the user agent provides a stable state, the
+            // official playback position must be set to the current playback position, and
+            // the `await a stable state` for `seek` (step 13) will be reached on receiving the
+            // `seek completion` signal from media engine, so the current playback position should
+            // be returned until the official playback position will be updated in `seek_end`.
+            // <https://html.spec.whatwg.org/multipage/#playing-the-media-resource:official-playback-position-2>
+            // <https://html.spec.whatwg.org/multipage/#dom-media-seek>
+            // Note that the other browsers do the similar (by checking `seeking` value or make no
+            // difference between `current` and `official` playback positions).
+            self.current_playback_position.get()
         } else {
-            self.playback_position.get()
+            self.official_playback_position.get()
         })
     }
 
@@ -3016,7 +3069,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         if self.ready_state.get() == ReadyState::HaveNothing {
             self.default_playback_start_position.set(*time);
         } else {
-            self.playback_position.set(*time);
+            self.official_playback_position.set(*time);
             self.seek(*time, /* approximate_for_speed */ false);
         }
     }
