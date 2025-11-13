@@ -1019,7 +1019,7 @@ impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> 
             Also as with regular child elements, the ::before and ::after pseudo-elements
             are suppressed when their parent, the originating element, is replaced.
         */
-        if self.has_local_name(&local_name!("video")) {
+        if self.has_local_name(&local_name!("video")) && pseudo_element.is_before_or_after() {
             return None;
         }
 
