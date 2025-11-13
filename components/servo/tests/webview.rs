@@ -11,10 +11,11 @@ use std::rc::Rc;
 use dpi::PhysicalSize;
 use euclid::{Point2D, Size2D};
 use servo::{
-    ContextMenuAction, ContextMenuItem, Cursor, EmbedderControl, InputEvent, InputMethodType,
-    JSValue, JavaScriptEvaluationError, LoadStatus, MouseButton, MouseButtonAction,
-    MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, Servo, SimpleDialog, Theme, WebView,
-    WebViewBuilder, WebViewDelegate,
+    ContextMenuAction, ContextMenuElementInformation, ContextMenuElementInformationFlags,
+    ContextMenuItem, Cursor, EmbedderControl, InputEvent, InputMethodType, JSValue,
+    JavaScriptEvaluationError, LoadStatus, MouseButton, MouseButtonAction, MouseButtonEvent,
+    MouseLeftViewportEvent, MouseMoveEvent, Servo, SimpleDialog, Theme, WebView, WebViewBuilder,
+    WebViewDelegate,
 };
 use servo_config::prefs::Preferences;
 use url::Url;
@@ -619,8 +620,9 @@ fn test_contextual_context_menu_items() {
             Url::parse(
                 "data:text/html,<!DOCTYPE html>\
                 <a href=\"https://servo.org\"><div style=\"width: 50px; height: 50px;\">Link</div></a> \
-                <div><img src=\"img.png\" style=\"width: 50px; height: 50px;\"></div> \
-                <div><input type=\"text\" style=\"width: 50px; height: 50px;\"></div>",
+                <div><img src=\"https://servo.org/img.png\" style=\"width: 50px; height: 50px;\"></div> \
+                <div><input type=\"text\" style=\"width: 50px; height: 50px;\"></div> \
+                <a href=\"https://nested.org\"><img src=\"https://servo.org/nested.png\" style=\"width: 50px; height: 50px;\"></a>"
             )
             .unwrap(),
         )
@@ -628,8 +630,10 @@ fn test_contextual_context_menu_items() {
 
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
 
-    let assert_context_menu_with_action =
-        |delegate: Rc<WebViewDelegateImpl>, expected_actions: &[ContextMenuAction]| {
+    let assert_context_menu =
+        |delegate: Rc<WebViewDelegateImpl>,
+         expected_actions: &[ContextMenuAction],
+         expected_info: ContextMenuElementInformation| {
             assert!(delegate.controls_shown.borrow().is_empty());
 
             // The form control should be shown.
@@ -648,8 +652,10 @@ fn test_contextual_context_menu_items() {
                 let EmbedderControl::ContextMenu(context_menu) = controls.remove(index) else {
                     unreachable!("Expected embedder control to be a ContextMenu");
                 };
-                let items = context_menu.items();
 
+                assert_eq!(context_menu.element_info(), &expected_info);
+
+                let items = context_menu.items();
                 for expected_action in expected_actions {
                     assert!(items.iter().any(|item| {
                         let ContextMenuItem::Item { action, .. } = item else {
@@ -665,25 +671,35 @@ fn test_contextual_context_menu_items() {
         };
 
     open_context_menu_at_point(&webview, DevicePoint::new(25.0, 25.0));
-    assert_context_menu_with_action(
+    assert_context_menu(
         delegate.clone(),
         &[
             ContextMenuAction::CopyLink,
             ContextMenuAction::OpenLinkInNewWebView,
         ],
+        ContextMenuElementInformation {
+            flags: ContextMenuElementInformationFlags::Link,
+            link_url: Url::parse("https://servo.org").ok(),
+            image_url: None,
+        },
     );
 
     open_context_menu_at_point(&webview, DevicePoint::new(25.0, 75.0));
-    assert_context_menu_with_action(
+    assert_context_menu(
         delegate.clone(),
         &[
             ContextMenuAction::CopyImageLink,
             ContextMenuAction::OpenImageInNewView,
         ],
+        ContextMenuElementInformation {
+            flags: ContextMenuElementInformationFlags::Image,
+            link_url: None,
+            image_url: Url::parse("https://servo.org/img.png").ok(),
+        },
     );
 
     open_context_menu_at_point(&webview, DevicePoint::new(25.0, 125.0));
-    assert_context_menu_with_action(
+    assert_context_menu(
         delegate.clone(),
         &[
             ContextMenuAction::SelectAll,
@@ -691,6 +707,28 @@ fn test_contextual_context_menu_items() {
             ContextMenuAction::Copy,
             ContextMenuAction::Paste,
         ],
+        ContextMenuElementInformation {
+            flags: ContextMenuElementInformationFlags::EditableText,
+            link_url: None,
+            image_url: None,
+        },
+    );
+
+    open_context_menu_at_point(&webview, DevicePoint::new(25.0, 175.0));
+    assert_context_menu(
+        delegate.clone(),
+        &[
+            ContextMenuAction::CopyLink,
+            ContextMenuAction::OpenLinkInNewWebView,
+            ContextMenuAction::CopyImageLink,
+            ContextMenuAction::OpenImageInNewView,
+        ],
+        ContextMenuElementInformation {
+            flags: ContextMenuElementInformationFlags::Link |
+                ContextMenuElementInformationFlags::Image,
+            link_url: Url::parse("https://nested.org").ok(),
+            image_url: Url::parse("https://servo.org/nested.png").ok(),
+        },
     );
 
     servo_test.spin(move || !delegate.load_status_changed.get());

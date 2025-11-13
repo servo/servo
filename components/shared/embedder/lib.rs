@@ -25,6 +25,7 @@ use std::time::SystemTime;
 use base::Epoch;
 use base::generic_channel::{GenericCallback, GenericSender, SendResult};
 use base::id::{PipelineId, WebViewId};
+use bitflags::bitflags;
 use crossbeam_channel::Sender;
 use euclid::{Box2D, Point2D, Scale, Size2D, Vector2D};
 use http::{HeaderMap, Method, StatusCode};
@@ -660,6 +661,7 @@ pub enum EmbedderControlRequest {
 /// right-clicking on web content.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ContextMenuRequest {
+    pub element_info: ContextMenuElementInformation,
     pub items: Vec<ContextMenuItem>,
 }
 
@@ -693,6 +695,34 @@ pub enum ContextMenuAction {
     Copy,
     Paste,
     SelectAll,
+}
+
+bitflags! {
+    #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize)]
+    pub struct ContextMenuElementInformationFlags: u8 {
+        /// Whether or not the element this context menu was activated for was a link.
+        const Link = 1 << 1;
+        /// Whether or not the element this context menu was activated for was an image.
+        const Image = 1 << 2;
+        /// Whether or not the element this context menu was activated for was editable
+        /// text.
+        const EditableText = 1 << 3;
+        /// Whether or not the element this context menu was activated for was covered by
+        /// a selection.
+        const Selection = 1 << 4;
+    }
+}
+
+/// Information about the element that a context menu was activated for. values which
+/// do not apply to this element will be `None`.
+///
+/// Note that an element might be both an image and a link, if the element is an `<img>`
+/// tag nested inside of a `<a>` tag.
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct ContextMenuElementInformation {
+    pub flags: ContextMenuElementInformationFlags,
+    pub link_url: Option<Url>,
+    pub image_url: Option<Url>,
 }
 
 /// Request to present an IME to the user when an editable element is focused. If `type` is
