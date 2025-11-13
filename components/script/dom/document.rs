@@ -2500,6 +2500,12 @@ impl Document {
         self.current_parser.get()
     }
 
+    pub(crate) fn get_current_parser_line(&self) -> u32 {
+        self.get_current_parser()
+            .map(|parser| parser.get_current_line())
+            .unwrap_or(0)
+    }
+
     /// A reference to the [`IFrameCollection`] of this [`Document`], holding information about
     /// `<iframe>`s found within it.
     pub(crate) fn iframes(&self) -> Ref<'_, IFrameCollection> {

@@ -232,6 +232,7 @@ pub(crate) struct Tokenizer {
     parsing_algorithm: ParsingAlgorithm,
     #[conditional_malloc_size_of]
     custom_element_reaction_stack: Rc<CustomElementReactionStack>,
+    current_line: Cell<u64>,
 }
 
 impl Tokenizer {
@@ -259,6 +260,7 @@ impl Tokenizer {
             url,
             parsing_algorithm: algorithm,
             custom_element_reaction_stack,
+            current_line: Cell::new(1),
         };
         tokenizer.insert_node(0, Dom::from_ref(document.upcast()));
 
@@ -381,6 +383,10 @@ impl Tokenizer {
             .unwrap();
     }
 
+    pub(crate) fn get_current_line(&self) -> u32 {
+        self.current_line.get() as u32
+    }
+
     fn insert_node(&self, id: ParseNodeId, node: Dom<Node>) {
         assert!(self.nodes.borrow_mut().insert(id, node).is_none());
     }
@@ -464,6 +470,7 @@ impl Tokenizer {
                 attrs,
                 current_line,
             } => {
+                self.current_line.set(current_line);
                 let attrs = attrs
                     .into_iter()
                     .map(|attr| ElementAttribute::new(attr.name, DOMString::from(attr.value)))

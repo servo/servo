@@ -47,6 +47,7 @@ pub(crate) trait CspReporting {
         el: &Element,
         type_: InlineCheckType,
         source: &str,
+        current_line: u32,
     ) -> bool;
     fn is_trusted_type_policy_creation_allowed(
         &self,
@@ -154,6 +155,7 @@ impl CspReporting for Option<CspList> {
         el: &Element,
         type_: InlineCheckType,
         source: &str,
+        current_line: u32,
     ) -> bool {
         let Some(csp_list) = self else {
             return false;
@@ -164,7 +166,9 @@ impl CspReporting for Option<CspList> {
         let (result, violations) =
             csp_list.should_elements_inline_type_behavior_be_blocked(&element, type_, source);
 
-        global.report_csp_violations(violations, Some(el), None);
+        let source_position = el.compute_source_position(current_line.saturating_sub(2).max(1));
+
+        global.report_csp_violations(violations, Some(el), Some(source_position));
 
         result == CheckResult::Blocked
     }
