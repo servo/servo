@@ -96,7 +96,9 @@ impl IndependentFormattingContext {
             },
             Contents::NonReplaced(non_replaced_contents) => non_replaced_contents,
             Contents::ReplacedWithWidget(replaced_contents, non_replaced_contents) => {
-                base_fragment_info.flags.insert(FragmentFlags::IS_REPLACED | FragmentFlags::IS_WIDGET);
+                base_fragment_info
+                    .flags
+                    .insert(FragmentFlags::IS_REPLACED | FragmentFlags::IS_WIDGET);
                 // Since the display insdie for video element is always flow, we can continue here.
                 let bfc = BlockFormattingContext::construct(
                     context,
@@ -435,8 +437,9 @@ impl ComputeInlineContentSizes for IndependentFormattingContextContents {
             Self::Replaced(inner) => {
                 inner.compute_inline_content_sizes(layout_context, constraint_space)
             },
-            Self::ReplacedWithWidget(_, inner) => inner.
-                contents.compute_inline_content_sizes(layout_context, constraint_space),
+            Self::ReplacedWithWidget(_, inner) => inner
+                .contents
+                .compute_inline_content_sizes(layout_context, constraint_space),
             Self::Flow(inner) => inner
                 .contents
                 .compute_inline_content_sizes(layout_context, constraint_space),
