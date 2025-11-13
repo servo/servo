@@ -9,6 +9,10 @@ mod cookie;
 mod cookie_http_state;
 mod data_loader;
 mod fetch;
+
+fn fetch(request: Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
+    fetch_with_context(request, &mut new_fetch_context(dc, None, None))
+}
 mod file_loader;
 mod filemanager_thread;
 mod hsts;
@@ -150,7 +154,7 @@ fn create_http_state(fc: Option<EmbedderProxy>) -> HttpState {
         auth_cache: RwLock::new(net::resource_thread::AuthCache::default()),
         history_states: RwLock::new(FxHashMap::default()),
         http_cache: net::http_cache::HttpCache::default(),
-        http_cache_state: Mutex::new(HashMap::new()),
+        http_cache_state: tokio::sync::Mutex::new(HashMap::new()),
         client: create_http_client(create_tls_config(
             net::connector::CACertificates::Default,
             false, /* ignore_certificate_errors */
@@ -200,10 +204,6 @@ impl FetchTaskTarget for FetchResponseCollector {
         let _ = self.sender.take().unwrap().send(response.clone());
     }
     fn process_csp_violations(&mut self, _: &Request, _: Vec<csp::Violation>) {}
-}
-
-fn fetch(request: Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
-    fetch_with_context(request, &mut new_fetch_context(dc, None, None))
 }
 
 fn fetch_with_context(request: Request, mut context: &mut FetchContext) -> Response {
