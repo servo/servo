@@ -375,6 +375,7 @@ jobs:
           ls -la
           /usr/bin/sign-hos.sh servoshell-default-unsigned.hap servoshell-hos-signed.hap
       - name: Install
+        id: install_hap
         run: |
           # Uninstall first. hdc is not very reliable in terms of exiting with an error, so we uninstall first
           # to make sure we don't use a previous version if installation failed for some reason.
@@ -386,29 +387,22 @@ jobs:
           sparse-checkout: |
             etc/ci/scenario
       - name: Test loading servo.org
-        continue-on-error: true
         run: uv run ./etc/ci/scenario/servo_test_open_page_servo.py
       - name: Test loading Mossel homepage
-        continue-on-error: true
+        if: ${{ steps.install_hap.outcome == 'success' && ! cancelled() }}
         run: uv run ./etc/ci/scenario/servo_test_open_page_base.py
       - name: Test Mossel Redirect
-        continue-on-error: true
+        if: ${{ steps.install_hap.outcome == 'success' && ! cancelled() }}
         run: uv run ./etc/ci/scenario/servo_test_redirection.py
       - name: Test Mossel Slide
-        continue-on-error: true
+        if: ${{ steps.install_hap.outcome == 'success' && ! cancelled() }}
         run: uv run ./etc/ci/scenario/servo_test_slide.py
       - name: Test Mossel homepage Framerate
-        continue-on-error: true
+        if: ${{ steps.install_hap.outcome == 'success' && ! cancelled() }}
         run: uv run ./etc/ci/scenario/servo_test_frame_rate_base_page.py
       - name: Test Mossel FrameRate With Carousel
-        continue-on-error: true
+        if: ${{ steps.install_hap.outcome == 'success' && ! cancelled() }}
         run: uv run ./etc/ci/scenario/servo_test_frame_rate_with_carousel.py
       - name: Test Mossel FrameRate With Video
-        continue-on-error: true
+        if: ${{ steps.install_hap.outcome == 'success' && ! cancelled() }}
         run: uv run ./etc/ci/scenario/servo_test_frame_rate_with_video.py
-      - name: Success
-        if: ${{ !contains(steps.*.outcome, 'failure') && !contains(steps.*.outcome, 'cancelled') }}
-        run: exit 0
-      - name: Failure
-        if: contains(steps.*.outcome, 'failure') || contains(steps.*.outcome, 'cancelled')
-        run: exit 1
