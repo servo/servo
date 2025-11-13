@@ -102,6 +102,7 @@ impl MixedMessage {
                 ScriptThreadMessage::ForwardKeyboardScroll(id, _) => Some(*id),
                 ScriptThreadMessage::RequestScreenshotReadiness(_, id) => Some(*id),
                 ScriptThreadMessage::EmbedderControlResponse(id, _) => Some(id.pipeline_id),
+                ScriptThreadMessage::SetUserContents(..) => None,
             },
             MixedMessage::FromScript(inner_msg) => match inner_msg {
                 MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id, _)) => {

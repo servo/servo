@@ -81,6 +81,7 @@ mod from_embedder {
                 },
                 Self::RequestScreenshotReadiness(..) => target!("RequestScreenshotReadiness"),
                 Self::EmbedderControlResponse(..) => target!("EmbedderControlResponse"),
+                Self::UserContentManagerAction(..) => target!("UserContentManagerAction"),
             }
         }
     }

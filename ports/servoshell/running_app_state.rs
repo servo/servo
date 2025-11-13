@@ -20,8 +20,9 @@ use servo::{
     DeviceIntPoint, DeviceIntSize, EmbedderControl, EmbedderControlId, EventLoopWaker,
     GenericSender, InputEvent, InputEventId, InputEventResult, IpcSender, JSValue, LoadStatus,
     MediaSessionEvent, PermissionRequest, PrefValue, ScreenshotCaptureError, Servo, ServoDelegate,
-    ServoError, TraversalId, WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus,
-    WebDriverScriptCommand, WebDriverSenders, WebView, WebViewDelegate, WebViewId, pref,
+    ServoError, TraversalId, UserContentManager, WebDriverCommandMsg, WebDriverJSResult,
+    WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView, WebViewDelegate,
+    WebViewId, pref,
 };
 use url::Url;
 
@@ -178,6 +179,9 @@ pub(crate) struct RunningAppState {
     /// for the `exit_after_stable_image` option.
     pub(crate) achieved_stable_image: Rc<Cell<bool>>,
 
+    /// The [`UserContentManager`] for all `WebView`s created.
+    pub(crate) user_content_manager: Rc<UserContentManager>,
+
     /// Whether or not program exit has been triggered. This means that all windows
     /// will be destroyed and shutdown will start at the end of the current event loop.
     exit_scheduled: Cell<bool>,
@@ -200,6 +204,7 @@ impl RunningAppState {
         servo: Servo,
         servoshell_preferences: ServoShellPreferences,
         event_loop_waker: Box<dyn EventLoopWaker>,
+        user_content_manager: Rc<UserContentManager>,
     ) -> Self {
         servo.set_delegate(Rc::new(ServoShellServoDelegate));
 
@@ -232,6 +237,7 @@ impl RunningAppState {
             servo,
             achieved_stable_image: Default::default(),
             exit_scheduled: Default::default(),
+            user_content_manager,
             experimental_preferences_enabled,
         }
     }

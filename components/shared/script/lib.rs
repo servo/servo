@@ -28,7 +28,7 @@ use constellation_traits::{
 };
 use crossbeam_channel::RecvTimeoutError;
 use devtools_traits::ScriptToDevtoolsControlMsg;
-use embedder_traits::user_content_manager::UserContentManager;
+use embedder_traits::user_contents::UserContents;
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, FocusSequenceNumber, InputEventAndId,
     JavaScriptEvaluationId, MediaSessionActionType, PaintHitTestResult, ScriptToEmbedderChan,
@@ -295,6 +295,10 @@ pub enum ScriptThreadMessage {
     RequestScreenshotReadiness(WebViewId, PipelineId),
     /// A response to a request to show an embedder user interface control.
     EmbedderControlResponse(EmbedderControlId, EmbedderControlResponse),
+    /// Set the `UserContents` for the given `WebView`s. A `ScriptThread` can host many
+    /// `WebView`s which all share the same `UserContents`. Only documents loaded after
+    /// the processing of this message will observe the new `UserContents`.
+    SetUserContents(UserContents, Vec<WebViewId>),
 }
 
 impl fmt::Debug for ScriptThreadMessage {
@@ -372,8 +376,6 @@ pub struct InitialScriptState {
     pub cross_process_paint_api: CrossProcessPaintApi,
     /// Application window's GL Context for Media player
     pub player_context: WindowGLContext,
-    /// User content manager
-    pub user_content_manager: UserContentManager,
     /// A list of URLs that can access privileged internal APIs.
     pub privileged_urls: Vec<ServoUrl>,
 }

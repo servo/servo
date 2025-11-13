@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use base::generic_channel::GenericSender;
-use base::id::{PipelineId, WebViewId};
+use base::id::PipelineId;
 use compositing_traits::rendering_context::RenderingContext;
 use constellation_traits::EmbedderToConstellationMessage;
 #[cfg(feature = "gamepad")]
@@ -15,9 +15,10 @@ use embedder_traits::{
     AlertResponse, AllowOrDeny, AuthenticationResponse, ConfirmResponse, ConsoleLogLevel,
     ContextMenuAction, ContextMenuElementInformation, ContextMenuItem, Cursor, EmbedderControlId,
     EmbedderControlResponse, FilePickerRequest, FilterPattern, InputEventId, InputEventResult,
-    InputMethodType, LoadStatus, MediaSessionEvent, Notification, PermissionFeature,
-    PromptResponse, RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup, SimpleDialogRequest,
-    TraversalId, ViewportDetails, WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
+    InputMethodType, LoadStatus, MediaSessionEvent, NewWebViewDetails, Notification,
+    PermissionFeature, PromptResponse, RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup,
+    SimpleDialogRequest, TraversalId, WebResourceRequest, WebResourceResponse,
+    WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
 use url::Url;
@@ -791,7 +792,7 @@ impl PromptDialog {
 
 pub struct CreateNewWebViewRequest {
     pub(crate) servo: Servo,
-    pub(crate) responder: IpcResponder<Option<(WebViewId, ViewportDetails)>>,
+    pub(crate) responder: IpcResponder<Option<NewWebViewDetails>>,
 }
 
 impl CreateNewWebViewRequest {

@@ -17,7 +17,7 @@
 //! a page runs its course and the script thread returns to processing events in the main event
 //! loop.
 
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, OnceCell, RefCell};
 use std::collections::HashSet;
 use std::default::Default;
 use std::option::Option;
@@ -52,7 +52,7 @@ use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg, WorkerId,
 };
-use embedder_traits::user_content_manager::UserContentManager;
+use embedder_traits::user_contents::UserContents;
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, EmbedderMsg, FocusSequenceNumber,
     JavaScriptEvaluationError, JavaScriptEvaluationId, MediaSessionActionType, Theme,
@@ -326,9 +326,15 @@ pub struct ScriptThread {
     /// Unminify Css.
     unminify_css: bool,
 
-    /// User content manager
+    /// The [`UserContents`] for each `WebView` hosted by this `ScriptThread`.
     #[no_trace]
-    user_content_manager: UserContentManager,
+    user_contents_for_webview: RefCell<FxHashMap<WebViewId, Rc<UserContents>>>,
+
+    // The default `UserContents` used when embedder has not set a `UserContentManager`
+    // on a `WebView`. This must be empty and should have no effect on the pages
+    // loaded in the `WebView`.
+    #[no_trace]
+    default_user_contents: OnceCell<Rc<UserContents>>,
 
     /// Application window's GL Context for Media player
     #[no_trace]
@@ -970,7 +976,8 @@ impl ScriptThread {
             unminify_js: opts.unminify_js,
             local_script_source: opts.local_script_source.clone(),
             unminify_css: opts.unminify_css,
-            user_content_manager: state.user_content_manager,
+            user_contents_for_webview: RefCell::new(Default::default()),
+            default_user_contents: Default::default(),
             player_context: state.player_context,
             pipeline_to_node_ids: Default::default(),
             is_user_interacting: Rc::new(Cell::new(false)),
@@ -1876,6 +1883,14 @@ impl ScriptThread {
             },
             ScriptThreadMessage::EmbedderControlResponse(id, response) => {
                 self.handle_embedder_control_response(id, response, can_gc);
+            },
+            ScriptThreadMessage::SetUserContents(user_contents, webview_ids) => {
+                let user_contents = Rc::new(user_contents);
+                for webview_id in webview_ids {
+                    self.user_contents_for_webview
+                        .borrow_mut()
+                        .insert(webview_id, user_contents.clone());
+                }
             },
         }
     }
@@ -3153,6 +3168,12 @@ impl ScriptThread {
             theme: incomplete.theme,
         };
 
+        let user_contents = self
+            .user_contents_for_webview
+            .borrow()
+            .get(&incomplete.webview_id)
+            .cloned();
+
         // Create the window and document objects.
         let window = Window::new(
             incomplete.webview_id,
@@ -3190,7 +3211,7 @@ impl ScriptThread {
             self.unminify_js,
             self.unminify_css,
             self.local_script_source.clone(),
-            self.user_content_manager.clone(),
+            user_contents,
             self.player_context.clone(),
             #[cfg(feature = "webgpu")]
             self.gpu_id_hub.clone(),

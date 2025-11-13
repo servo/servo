@@ -111,7 +111,6 @@ impl EventLoop {
                 .map(|threads| threads.pipeline()),
             webxr_registry: constellation.webxr_registry.clone(),
             player_context: WindowGLContext::get(),
-            user_content_manager: constellation.user_content_manager.clone(),
             privileged_urls: constellation.privileged_urls.clone(),
         };
 
