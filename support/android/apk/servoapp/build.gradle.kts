@@ -17,7 +17,7 @@ android {
         minSdk = 30
         targetSdk = 33
         versionCode = generatedVersionCode
-        versionName = "0.0.1" // TODO: Parse Servo"s TOML and add git SHA.
+        versionName = "0.0.2"
     }
 
     compileOptions {
