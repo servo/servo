@@ -206,8 +206,8 @@ class Config(object):
                 continue  # skip over keyword
             if word == "full":
                 words.extend(["linux-unit-tests", "linux-wpt", "linux-bencher"])
-                words.extend(["macos-arm-unit-tests", "windows-unit-tests", "android", "ohos", "lint"])
-                words.extend(["linux-build-libservo", "macos-arm-build-libservo", "windows-build-libservo"])
+                words.extend(["windows-unit-tests", "android", "ohos", "lint"])
+                words.extend(["linux-build-libservo", "windows-build-libservo"])
                 continue  # skip over keyword
             if word == "bencher":
                 words.extend(
@@ -303,19 +303,6 @@ class TestParser(unittest.TestCase):
                         "unit_tests": True,
                         "build_libservo": True,
                         "bencher": True,
-                        "build_args": "",
-                        "coverage": False,
-                        "wpt_args": "",
-                        "number_of_wpt_chunks": 20,
-                    },
-                    {
-                        "name": "MacOS Arm64 (Unit Tests, Build libservo)",
-                        "workflow": "macos-arm64",
-                        "wpt": False,
-                        "profile": "release",
-                        "unit_tests": True,
-                        "build_libservo": True,
-                        "bencher": False,
                         "build_args": "",
                         "coverage": False,
                         "wpt_args": "",
