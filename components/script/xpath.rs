@@ -377,18 +377,16 @@ impl Iterator for PrecedingNodeIteratorWithoutAncestors {
         // Our current subtree is exhausted. Return the root of the subtree and move on to the next one
         // in inverse tree order.
         let Some(next_subtree) = previous_non_ancestor_node(current) else {
-            let current = current.to_owned();
             *self = Self::Done;
-            return Some(current);
+            return None;
         };
 
-        let to_return = current.clone();
         *current = next_subtree;
         *subtree_iterator = current
             .descending_last_children()
             .last()
             .map(|node| node.preceding_nodes(current));
 
-        Some(to_return)
+        self.next()
     }
 }

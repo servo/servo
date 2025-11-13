@@ -130,8 +130,6 @@ impl PathExpression {
         }
         current_nodes.assume_sorted();
 
-        log::trace!("[PathExpr] Evaluating path expr: {:?}", self);
-
         let have_multiple_steps = self.steps.len() > 1;
 
         for step_expression in &self.steps {
@@ -145,11 +143,10 @@ impl PathExpression {
                         next_nodes.extend(nodes);
                     },
                     (false, value) => {
-                        log::trace!("[PathExpr] Got single primitive value: {:?}", value);
                         return Ok(value);
                     },
                     (true, value) => {
-                        log::error!(
+                        log::debug!(
                             "Expected nodeset from step evaluation, got: {:?} node: {:?}, step: {:?}",
                             value,
                             node,
@@ -161,8 +158,6 @@ impl PathExpression {
             }
             current_nodes = next_nodes;
         }
-
-        log::trace!("[PathExpr] Got nodes: {:?}", current_nodes);
 
         Ok(Value::NodeSet(current_nodes))
     }
@@ -253,7 +248,7 @@ fn apply_node_test<D: Dom>(test: &NodeTest, node: &D::Node) -> Result<bool, Erro
 
 impl LocationStepExpression {
     fn evaluate<D: Dom>(&self, context: &EvaluationCtx<D>) -> Result<Value<D::Node>, Error> {
-        let mut nodes: NodeSet<D::Node> = match self.axis {
+        let nodes: NodeSet<D::Node> = match self.axis {
             Axis::Child => context.context_node.children().collect(),
             Axis::Descendant => context.context_node.traverse_preorder().skip(1).collect(),
             Axis::Parent => vec![context.context_node.parent()]
@@ -281,27 +276,6 @@ impl LocationStepExpression {
             Axis::Namespace => Default::default(), // Namespace axis is not commonly implemented
         };
 
-        if matches!(
-            self.axis,
-            Axis::Child |
-                Axis::Descendant |
-                Axis::Parent |
-                Axis::Following |
-                Axis::FollowingSibling |
-                Axis::Attribute |
-                Axis::Self_ |
-                Axis::DescendantOrSelf
-        ) {
-            // The elements on these axis values are already in tree order
-            nodes.assume_sorted();
-        } else {
-            // The elements on these axis values are in inverse tree order
-            nodes.reverse();
-            nodes.assume_sorted();
-        }
-
-        log::trace!("[StepExpr] Axis {:?} got nodes {:?}", self.axis, nodes);
-
         // Filter nodes according to the step's node_test. Will error out if any NodeTest
         // application errors out.
         // FIXME: Invent something like try_retain and use it here
@@ -314,26 +288,39 @@ impl LocationStepExpression {
             })
             .collect::<Result<NodeSet<_>, _>>()?;
 
-        log::trace!("[StepExpr] Filtering got nodes {:?}", filtered_nodes);
-
-        if self.predicate_list.predicates.is_empty() {
-            log::trace!(
-                "[StepExpr] No predicates, returning nodes {:?}",
-                filtered_nodes
-            );
-            Ok(Value::NodeSet(filtered_nodes))
+        let mut filtered_nodes = if self.predicate_list.predicates.is_empty() {
+            filtered_nodes
         } else {
             // Apply predicates
-            self.predicate_list.evaluate::<D>(filtered_nodes)
-        }
+            self.predicate_list.apply::<D>(filtered_nodes)
+        };
+
+        // Enforce tree order between nodes in the list
+        if matches!(
+            self.axis,
+            Axis::Child |
+                Axis::Descendant |
+                Axis::Parent |
+                Axis::Following |
+                Axis::FollowingSibling |
+                Axis::Attribute |
+                Axis::Self_ |
+                Axis::DescendantOrSelf
+        ) {
+            // The elements on these axis values are already in tree order
+            filtered_nodes.assume_sorted();
+        } else {
+            // The elements on these axis values are in inverse tree order
+            filtered_nodes.reverse();
+            filtered_nodes.assume_sorted();
+        };
+
+        Ok(Value::NodeSet(filtered_nodes))
     }
 }
 
 impl PredicateListExpression {
-    fn evaluate<D: Dom>(
-        &self,
-        mut matched_nodes: NodeSet<D::Node>,
-    ) -> Result<Value<D::Node>, Error> {
+    fn apply<D: Dom>(&self, mut matched_nodes: NodeSet<D::Node>) -> NodeSet<D::Node> {
         for predicate_expr in &self.predicates {
             let size = matched_nodes.len();
 
@@ -359,14 +346,9 @@ impl PredicateListExpression {
 
                 keep
             });
-
-            log::trace!(
-                "[PredicateListExpr] Predicate {:?} matched nodes {:?}",
-                predicate_expr,
-                matched_nodes
-            );
         }
-        Ok(Value::NodeSet(matched_nodes))
+
+        matched_nodes
     }
 }
 
@@ -378,12 +360,7 @@ impl FilterExpression {
             // You can't use filtering expressions `[]` on other than node-sets
             return Err(Error::NotANodeset);
         };
-        let result_filtered_by_predicates = self.predicates.evaluate::<D>(node_set);
-        log::trace!(
-            "[FilterExpr] Result filtered by predicates: {:?}",
-            result_filtered_by_predicates
-        );
-        result_filtered_by_predicates
+        Ok(Value::NodeSet(self.predicates.apply::<D>(node_set)))
     }
 }
 
