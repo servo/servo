@@ -48,13 +48,13 @@ jobs:
     outputs:
       signed: ${{ steps.signing_config.outputs.signed }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         if: github.event_name != 'pull_request_target'
         with:
           fetch-depth: 2
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         if: github.event_name == 'pull_request_target'
         with:
           ref: ${{ github.event.pull_request.head.sha }}
@@ -266,13 +266,13 @@ jobs:
           # to make sure we don't use a previous version if installation failed for some reason.
           hdc uninstall org.servo.servo
           hdc install -r servoshell-hos-signed.hap
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         if: github.event_name != 'pull_request_target'
         with:
           fetch-depth: 0
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         if: github.event_name == 'pull_request_target'
         with:
           ref: ${{ github.event.pull_request.head.sha }}

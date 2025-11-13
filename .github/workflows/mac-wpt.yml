@@ -30,11 +30,11 @@ jobs:
       matrix:
         chunk_id: [1, 2, 3, 4, 5]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         if: github.event_name != 'pull_request_target'
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         if: github.event_name == 'pull_request_target'
         with:
           ref: refs/pull/${{ github.event.number }}/head
@@ -92,7 +92,7 @@ jobs:
           name: wpt-full-logs-${{ env.NAME }}
           pattern: wpt-full-logs-${{ env.NAME }}-*
           delete-merged: true
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
         if: ${{ !cancelled() }}
         with:
           fetch-depth: 2

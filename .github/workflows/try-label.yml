@@ -66,7 +66,7 @@ jobs:
             }
 
             return try_string;
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           sparse-checkout: |
             python/servo/try_parser.py
