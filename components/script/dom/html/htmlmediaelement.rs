@@ -578,6 +578,13 @@ pub(crate) enum ReadyState {
     HaveEnoughData = HTMLMediaElementConstants::HAVE_ENOUGH_DATA as u8,
 }
 
+/// <https://html.spec.whatwg.org/multipage/#direction-of-playback>
+#[derive(Clone, Copy, PartialEq)]
+enum PlaybackDirection {
+    Forwards,
+    Backwards,
+}
+
 impl HTMLMediaElement {
     pub(crate) fn new_inherited(
         tag_name: LocalName,
@@ -685,22 +692,103 @@ impl HTMLMediaElement {
         }
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#internal-pause-steps>
-    fn internal_pause_steps(&self) {
-        // Step 1.
-        self.autoplaying.set(false);
+    /// <https://html.spec.whatwg.org/multipage/#internal-play-steps>
+    fn internal_play_steps(&self, can_gc: CanGc) {
+        // Step 1. If the media element's networkState attribute has the value NETWORK_EMPTY, invoke
+        // the media element's resource selection algorithm.
+        if self.network_state.get() == NetworkState::Empty {
+            self.invoke_resource_selection_algorithm(can_gc);
+        }
 
-        // Step 2.
-        if !self.Paused() {
-            // Step 2.1.
-            self.paused.set(true);
+        // Step 2. If the playback has ended and the direction of playback is forwards, seek to the
+        // earliest possible position of the media resource.
+        if self.ended_playback() && self.direction_of_playback() == PlaybackDirection::Forwards {
+            self.seek(
+                self.earliest_possible_position(),
+                /* approximate_for_speed */ false,
+            );
+        }
 
-            // Step 2.2.
-            self.take_pending_play_promises(Err(Error::Abort));
+        let state = self.ready_state.get();
 
-            // Step 2.3.
+        // Step 3. If the media element's paused attribute is true, then:
+        if self.Paused() {
+            // Step 3.1. Change the value of paused to false.
+            self.paused.set(false);
+
+            // Step 3.2. If the show poster flag is true, set the element's show poster flag to
+            // false and run the time marches on steps.
+            if self.show_poster.get() {
+                self.show_poster.set(false);
+                self.time_marches_on();
+            }
+
+            // Step 3.3. Queue a media element task given the media element to fire an event named
+            // play at the element.
+            self.queue_media_element_task_to_fire_event(atom!("play"));
+
+            // Step 3.4. If the media element's readyState attribute has the value HAVE_NOTHING,
+            // HAVE_METADATA, or HAVE_CURRENT_DATA, queue a media element task given the media
+            // element to fire an event named waiting at the element. Otherwise, the media element's
+            // readyState attribute has the value HAVE_FUTURE_DATA or HAVE_ENOUGH_DATA: notify about
+            // playing for the element.
+            match state {
+                ReadyState::HaveNothing |
+                ReadyState::HaveMetadata |
+                ReadyState::HaveCurrentData => {
+                    self.queue_media_element_task_to_fire_event(atom!("waiting"));
+                },
+                ReadyState::HaveFutureData | ReadyState::HaveEnoughData => {
+                    self.notify_about_playing();
+                },
+            }
+        }
+        // Step 4. Otherwise, if the media element's readyState attribute has the value
+        // HAVE_FUTURE_DATA or HAVE_ENOUGH_DATA, take pending play promises and queue a media
+        // element task given the media element to resolve pending play promises with the
+        // result.
+        else if state == ReadyState::HaveFutureData || state == ReadyState::HaveEnoughData {
+            self.take_pending_play_promises(Ok(()));
+
             let this = Trusted::new(self);
             let generation_id = self.generation_id.get();
+
+            self.owner_global()
+                .task_manager()
+                .media_element_task_source()
+                .queue(task!(resolve_pending_play_promises: move || {
+                    let this = this.root();
+                    if generation_id != this.generation_id.get() {
+                        return;
+                    }
+
+                    this.fulfill_in_flight_play_promises(|| {
+                        this.play_media();
+                    });
+                }));
+        }
+
+        // Step 5. Set the media element's can autoplay flag to false.
+        self.autoplaying.set(false);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#internal-pause-steps>
+    fn internal_pause_steps(&self) {
+        // Step 1. Set the media element's can autoplay flag to false.
+        self.autoplaying.set(false);
+
+        // Step 2. If the media element's paused attribute is false, run the following steps:
+        if !self.Paused() {
+            // Step 2.1. Change the value of paused to true.
+            self.paused.set(true);
+
+            // Step 2.2. Take pending play promises and let promises be the result.
+            self.take_pending_play_promises(Err(Error::Abort));
+
+            // Step 2.3. Queue a media element task given the media element and the following steps:
+            let this = Trusted::new(self);
+            let generation_id = self.generation_id.get();
+
             self.owner_global()
                 .task_manager()
                 .media_element_task_source()
@@ -711,10 +799,10 @@ impl HTMLMediaElement {
                     }
 
                     this.fulfill_in_flight_play_promises(|| {
-                        // Step 2.3.1.
+                        // Step 2.3.1. Fire an event named timeupdate at the element.
                         this.upcast::<EventTarget>().fire_event(atom!("timeupdate"), CanGc::note());
 
-                        // Step 2.3.2.
+                        // Step 2.3.2. Fire an event named pause at the element.
                         this.upcast::<EventTarget>().fire_event(atom!("pause"), CanGc::note());
 
                         if let Some(ref player) = *this.player.borrow() {
@@ -723,17 +811,16 @@ impl HTMLMediaElement {
                             }
                         }
 
-                        // Step 2.3.3.
-                        // Done after running this closure in
-                        // `fulfill_in_flight_play_promises`.
+                        // Step 2.3.3. Reject pending play promises with promises and an
+                        // "AbortError" DOMException.
+                        // Done after running this closure in `fulfill_in_flight_play_promises`.
                     });
                 }));
 
-            // Step 2.4.
-            // FIXME(nox): Set the official playback position to the current
-            // playback position.
+            // TODO Step 2.4. Set the official playback position to the current playback position.
         }
     }
+
     /// <https://html.spec.whatwg.org/multipage/#allowed-to-play>
     fn is_allowed_to_play(&self) -> bool {
         true
@@ -741,12 +828,13 @@ impl HTMLMediaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#notify-about-playing>
     fn notify_about_playing(&self) {
-        // Step 1.
+        // Step 1. Take pending play promises and let promises be the result.
         self.take_pending_play_promises(Ok(()));
 
-        // Step 2.
+        // Step 2. Queue a media element task given the element and the following steps:
         let this = Trusted::new(self);
         let generation_id = self.generation_id.get();
+
         self.owner_global()
             .task_manager()
             .media_element_task_source()
@@ -757,15 +845,13 @@ impl HTMLMediaElement {
                 }
 
                 this.fulfill_in_flight_play_promises(|| {
-                    // Step 2.1.
+                    // Step 2.1. Fire an event named playing at the element.
                     this.upcast::<EventTarget>().fire_event(atom!("playing"), CanGc::note());
                     this.play_media();
 
-                    // Step 2.2.
-                    // Done after running this closure in
-                    // `fulfill_in_flight_play_promises`.
+                    // Step 2.2. Resolve pending play promises with promises.
+                    // Done after running this closure in `fulfill_in_flight_play_promises`.
                 });
-
             }));
     }
 
@@ -782,26 +868,44 @@ impl HTMLMediaElement {
             return;
         }
 
-        let owner_global = self.owner_global();
-        let task_manager = owner_global.task_manager();
-        let task_source = task_manager.media_element_task_source();
-
-        // Step 1.
+        // Step 1. Apply the first applicable set of substeps from the following list:
         match (old_ready_state, ready_state) {
+            // => "If the previous ready state was HAVE_NOTHING, and the new ready state is
+            // HAVE_METADATA"
             (ReadyState::HaveNothing, ReadyState::HaveMetadata) => {
-                task_source.queue_simple_event(self.upcast(), atom!("loadedmetadata"));
+                // Queue a media element task given the media element to fire an event named
+                // loadedmetadata at the element.
+                self.queue_media_element_task_to_fire_event(atom!("loadedmetadata"));
                 // No other steps are applicable in this case.
                 return;
             },
+            // => "If the previous ready state was HAVE_METADATA and the new ready state is
+            // HAVE_CURRENT_DATA or greater"
             (ReadyState::HaveMetadata, new) if new >= ReadyState::HaveCurrentData => {
+                // If this is the first time this occurs for this media element since the load()
+                // algorithm was last invoked, the user agent must queue a media element task given
+                // the media element to fire an event named loadeddata at the element.
                 if !self.fired_loadeddata_event.get() {
                     self.fired_loadeddata_event.set(true);
+
                     let this = Trusted::new(self);
-                    task_source.queue(task!(media_reached_current_data: move || {
-                        let this = this.root();
-                        this.upcast::<EventTarget>().fire_event(atom!("loadeddata"), CanGc::note());
-                        this.delay_load_event(false, CanGc::note());
-                    }));
+                    let generation_id = self.generation_id.get();
+
+                    self.owner_global()
+                        .task_manager()
+                        .media_element_task_source()
+                        .queue(task!(media_reached_current_data: move || {
+                            let this = this.root();
+                            if generation_id != this.generation_id.get() {
+                                return;
+                            }
+
+                            this.upcast::<EventTarget>().fire_event(atom!("loadeddata"), CanGc::note());
+                            // Once the readyState attribute reaches HAVE_CURRENT_DATA, after the
+                            // loadeddata event has been fired, set the element's
+                            // delaying-the-load-event flag to false.
+                            this.delay_load_event(false, CanGc::note());
+                        }));
                 }
 
                 // Steps for the transition from HaveMetadata to HaveCurrentData
@@ -819,37 +923,46 @@ impl HTMLMediaElement {
             _ => (),
         }
 
+        // => "If the previous ready state was HAVE_CURRENT_DATA or less, and the new ready state is
+        // HAVE_FUTURE_DATA or more"
         if old_ready_state <= ReadyState::HaveCurrentData &&
             ready_state >= ReadyState::HaveFutureData
         {
-            task_source.queue_simple_event(self.upcast(), atom!("canplay"));
+            // The user agent must queue a media element task given the media element to fire an
+            // event named canplay at the element.
+            self.queue_media_element_task_to_fire_event(atom!("canplay"));
 
+            // If the element's paused attribute is false, the user agent must notify about playing
+            // for the element.
             if !self.Paused() {
                 self.notify_about_playing();
             }
         }
 
+        // => "If the new ready state is HAVE_ENOUGH_DATA"
         if ready_state == ReadyState::HaveEnoughData {
-            // FIXME(nox): Review this block.
             if self.eligible_for_autoplay() {
-                // Step 1
+                // Step 1. Set the paused attribute to false.
                 self.paused.set(false);
-                // Step 2
+
+                // Step 2. If the element's show poster flag is true, set it to false and run the
+                // time marches on steps.
                 if self.show_poster.get() {
                     self.show_poster.set(false);
                     self.time_marches_on();
                 }
-                // Step 3
-                task_source.queue_simple_event(self.upcast(), atom!("play"));
-                // Step 4
+
+                // Step 3. Queue a media element task given the element to fire an event named play
+                // at the element.
+                self.queue_media_element_task_to_fire_event(atom!("play"));
+
+                // Step 4. Notify about playing for the element.
                 self.notify_about_playing();
-                // Step 5
-                self.autoplaying.set(false);
             }
 
             // FIXME(nox): According to the spec, this should come *before* the
             // "play" event.
-            task_source.queue_simple_event(self.upcast(), atom!("canplaythrough"));
+            self.queue_media_element_task_to_fire_event(atom!("canplaythrough"));
         }
     }
 
@@ -1471,7 +1584,7 @@ impl HTMLMediaElement {
     /// <https://html.spec.whatwg.org/multipage/#potentially-playing>
     fn is_potentially_playing(&self) -> bool {
         !self.paused.get() &&
-            !self.Ended() &&
+            !self.ended_playback() &&
             self.error.get().is_none() &&
             !self.is_blocked_media_element()
     }
@@ -1999,7 +2112,44 @@ impl HTMLMediaElement {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#direction-of-playback>
+    fn direction_of_playback(&self) -> PlaybackDirection {
+        // If the element's playbackRate is positive or zero, then the direction of playback is
+        // forwards. Otherwise, it is backwards.
+        if self.playbackRate.get() >= 0. {
+            PlaybackDirection::Forwards
+        } else {
+            PlaybackDirection::Backwards
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#ended-playback>
+    fn ended_playback(&self) -> bool {
+        // A media element is said to have ended playback when:
+
+        // The element's readyState attribute is HAVE_METADATA or greater, and
+        if self.ready_state.get() < ReadyState::HaveMetadata {
+            return false;
+        }
+
+        let playback_position = self.playback_position.get();
+
+        match self.direction_of_playback() {
+            // Either: The current playback position is the end of the media resource, and the
+            // direction of playback is forwards, and the media element does not have a loop
+            // attribute specified.
+            PlaybackDirection::Forwards => playback_position >= self.Duration() && !self.Loop(),
+            // Or: The current playback position is the earliest possible position, and the
+            // direction of playback is backwards.
+            PlaybackDirection::Backwards => playback_position <= self.earliest_possible_position(),
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#reaches-the-end>
     fn end_of_playback_in_forwards_direction(&self) {
+        // When the current playback position reaches the end of the media resource when the
+        // direction of playback is forwards, then the user agent must follow these steps:
+
         // Step 1. If the media element has a loop attribute specified, then seek to the earliest
         // posible position of the media resource and return.
         if self.Loop() {
@@ -2009,33 +2159,39 @@ impl HTMLMediaElement {
             );
             return;
         }
-        // Step 2. The ended IDL attribute starts returning true once the event loop returns to
-        // step 1.
-        // The **ended playback** condition is implemented inside of
-        // the HTMLMediaElementMethods::Ended method
+
+        // Step 2. As defined above, the ended IDL attribute starts returning true once the event
+        // loop returns to step 1.
 
         // Step 3. Queue a media element task given the media element and the following steps:
         let this = Trusted::new(self);
+        let generation_id = self.generation_id.get();
 
         self.owner_global()
             .task_manager()
             .media_element_task_source()
             .queue(task!(reaches_the_end_steps: move || {
                 let this = this.root();
-                // Step 3.1. Fire an event named timeupdate at the media element
+                if generation_id != this.generation_id.get() {
+                    return;
+                }
+
+                // Step 3.1. Fire an event named timeupdate at the media element.
                 this.upcast::<EventTarget>().fire_event(atom!("timeupdate"), CanGc::note());
 
                 // Step 3.2. If the media element has ended playback, the direction of playback is
                 // forwards, and paused is false, then:
-                if this.Ended() && !this.Paused() {
-                    // Step 3.2.1. Set the paused attribute to true
+                if this.ended_playback() &&
+                    this.direction_of_playback() == PlaybackDirection::Forwards &&
+                    !this.Paused() {
+                    // Step 3.2.1. Set the paused attribute to true.
                     this.paused.set(true);
 
-                    // Step 3.2.2. Fire an event named pause at the media element
+                    // Step 3.2.2. Fire an event named pause at the media element.
                     this.upcast::<EventTarget>().fire_event(atom!("pause"), CanGc::note());
 
                     // Step 3.2.3. Take pending play promises and reject pending play promises with
-                    // the result and an "AbortError" DOMException
+                    // the result and an "AbortError" DOMException.
                     this.take_pending_play_promises(Err(Error::Abort));
                     this.fulfill_in_flight_play_promises(|| ());
                 }
@@ -2044,23 +2200,25 @@ impl HTMLMediaElement {
                 this.upcast::<EventTarget>().fire_event(atom!("ended"), CanGc::note());
             }));
 
-        // https://html.spec.whatwg.org/multipage/#dom-media-have_current_data
+        // <https://html.spec.whatwg.org/multipage/#dom-media-have_current_data>
         self.change_ready_state(ReadyState::HaveCurrentData);
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#reaches-the-end>
+    fn end_of_playback_in_backwards_direction(&self) {
+        // When the current playback position reaches the earliest possible position of the media
+        // resource when the direction of playback is backwards, then the user agent must only queue
+        // a media element task given the media element to fire an event named timeupdate at the
+        // element.
+        if self.playback_position.get() <= self.earliest_possible_position() {
+            self.queue_media_element_task_to_fire_event(atom!("timeupdate"));
+        }
+    }
+
     fn playback_end(&self) {
-        // https://html.spec.whatwg.org/multipage/#reaches-the-end
         match self.direction_of_playback() {
             PlaybackDirection::Forwards => self.end_of_playback_in_forwards_direction(),
-
-            PlaybackDirection::Backwards => {
-                if self.playback_position.get() <= self.earliest_possible_position() {
-                    self.owner_global()
-                        .task_manager()
-                        .media_element_task_source()
-                        .queue_simple_event(self.upcast(), atom!("ended"));
-                }
-            },
+            PlaybackDirection::Backwards => self.end_of_playback_in_backwards_direction(),
         }
     }
 
@@ -2617,24 +2775,6 @@ impl HTMLMediaElement {
     }
 }
 
-// XXX Placeholder for [https://github.com/servo/servo/issues/22293]
-#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
-enum PlaybackDirection {
-    Forwards,
-    #[expect(dead_code)]
-    Backwards,
-}
-
-// XXX Placeholder implementations for:
-//
-// - https://github.com/servo/servo/issues/22293
-impl HTMLMediaElement {
-    /// <https://github.com/servo/servo/issues/22293>
-    fn direction_of_playback(&self) -> PlaybackDirection {
-        PlaybackDirection::Forwards
-    }
-}
-
 impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
     fn NetworkState(&self) -> u16 {
@@ -2764,10 +2904,13 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-media-play>
     fn Play(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        // Step 1.
-        // FIXME(nox): Reject promise if not allowed to play.
 
-        // Step 2.
+        // TODO Step 1. If the media element is not allowed to play, then return a promise rejected
+        // with a "NotAllowedError" DOMException.
+
+        // Step 2. If the media element's error attribute is not null and its code is
+        // MEDIA_ERR_SRC_NOT_SUPPORTED, then return a promise rejected with a "NotSupportedError"
+        // DOMException.
         if self
             .error
             .get()
@@ -2777,83 +2920,26 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
             return promise;
         }
 
-        // Step 3.
+        // Step 3. Let promise be a new promise and append promise to the list of pending play
+        // promises.
         self.push_pending_play_promise(&promise);
 
-        // Step 4.
-        if self.network_state.get() == NetworkState::Empty {
-            self.invoke_resource_selection_algorithm(can_gc);
-        }
+        // Step 4. Run the internal play steps for the media element.
+        self.internal_play_steps(can_gc);
 
-        // Step 5.
-        if self.Ended() && self.direction_of_playback() == PlaybackDirection::Forwards {
-            self.seek(
-                self.earliest_possible_position(),
-                /* approximate_for_speed */ false,
-            );
-        }
-
-        let state = self.ready_state.get();
-
-        let global = self.owner_global();
-        let task_manager = global.task_manager();
-        let task_source = task_manager.media_element_task_source();
-        if self.Paused() {
-            // Step 6.1.
-            self.paused.set(false);
-
-            // Step 6.2.
-            if self.show_poster.get() {
-                self.show_poster.set(false);
-                self.time_marches_on();
-            }
-
-            // Step 6.3.
-            task_source.queue_simple_event(self.upcast(), atom!("play"));
-
-            // Step 6.4.
-            match state {
-                ReadyState::HaveNothing |
-                ReadyState::HaveMetadata |
-                ReadyState::HaveCurrentData => {
-                    task_source.queue_simple_event(self.upcast(), atom!("waiting"));
-                },
-                ReadyState::HaveFutureData | ReadyState::HaveEnoughData => {
-                    self.notify_about_playing();
-                },
-            }
-        } else if state == ReadyState::HaveFutureData || state == ReadyState::HaveEnoughData {
-            // Step 7.
-            self.take_pending_play_promises(Ok(()));
-            let this = Trusted::new(self);
-            let generation_id = self.generation_id.get();
-            task_source.queue(task!(resolve_pending_play_promises: move || {
-                let this = this.root();
-                if generation_id != this.generation_id.get() {
-                    return;
-                }
-
-                this.fulfill_in_flight_play_promises(|| {
-                    this.play_media();
-                });
-            }));
-        }
-
-        // Step 8.
-        self.autoplaying.set(false);
-
-        // Step 9.
+        // Step 5. Return promise.
         promise
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-pause>
     fn Pause(&self, can_gc: CanGc) {
-        // Step 1
+        // Step 1. If the media element's networkState attribute has the value NETWORK_EMPTY, invoke
+        // the media element's resource selection algorithm.
         if self.network_state.get() == NetworkState::Empty {
             self.invoke_resource_selection_algorithm(can_gc);
         }
 
-        // Step 2
+        // Step 2. Run the internal pause steps for the media element.
         self.internal_pause_steps();
     }
 
@@ -2940,18 +3026,9 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         self.seeking.get()
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#ended-playback>
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-ended>
     fn Ended(&self) -> bool {
-        if self.ready_state.get() < ReadyState::HaveMetadata {
-            return false;
-        }
-
-        let playback_pos = self.playback_position.get();
-
-        match self.direction_of_playback() {
-            PlaybackDirection::Forwards => playback_pos >= self.Duration() && !self.Loop(),
-            PlaybackDirection::Backwards => playback_pos <= self.earliest_possible_position(),
-        }
+        self.ended_playback() && self.direction_of_playback() == PlaybackDirection::Forwards
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-fastseek>
