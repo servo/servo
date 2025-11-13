@@ -45,7 +45,7 @@ def calculate_frame_rate():
     end_time = commands_list[-1].split()[5].split(":")[0]
     interval_time = Decimal(end_time) - Decimal(start_time)
     shutil.rmtree(target_path)
-    if round(float(len(commands_list) / interval_time), 2) > 120.00:
+    if round(float((len(commands_list) - 1) / interval_time), 2) > 120.00:
         return 120.00
     else:
         return round(float(len(commands_list) / interval_time), 2)
