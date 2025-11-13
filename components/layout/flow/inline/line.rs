@@ -636,7 +636,7 @@ impl LineItemLayout<'_, '_> {
                     !is_last_textrun))
         {
             // create ellipsis text fragment & its bounding box
-            let Some((overflow_marker_textrun_segment, overflow_marker_font)) =
+            let Some((overflow_marker_textrun_segment, overflow_marker_font, overflow_font_instance_key)) =
                 self.form_overflow_marker(&"\u{2026}")
             else {
                 todo!()
@@ -692,7 +692,7 @@ impl LineItemLayout<'_, '_> {
                     inline_styles: self.layout.ifc.shared_inline_styles.clone(),
                     rect: PhysicalRect::zero(),
                     font_metrics: overflow_marker_font.metrics.clone(),
-                    font_key: self.layout.ifc.font_metrics[0].key,
+                    font_key: overflow_font_instance_key,
                     glyphs: vec![overflow_marker_textrun_segment.runs[0].glyph_store.clone()],
                     justification_adjustment: self.justification_adjustment,
                     selection_range: text_item.selection_range,
@@ -787,7 +787,7 @@ impl LineItemLayout<'_, '_> {
     fn form_overflow_marker(
         &mut self,
         overflow_marker_text: &str,
-    ) -> Option<(TextRunSegment, FontRef)> {
+    ) -> Option<(TextRunSegment, FontRef, FontInstanceKey)> {
         // CSS specs (for `text-overflow: ellipsis`):
         // 1. The ellipsis is styled and baseline-aligned according to the block.
         // 2. Render an ellipsis character (U+2026) to represent clipped inline content.
@@ -825,13 +825,13 @@ impl LineItemLayout<'_, '_> {
             return None;
         };
 
-        let font_instance_key = overflow_marker_font.key(
+        let overflow_font_instance_key = overflow_marker_font.key(
             overflow_marker_rendering_group_id,
             overflow_marker_font_context,
         );
         overflow_marker_font_cache.push(FontKeyAndMetrics {
             metrics: overflow_marker_font.metrics.clone(),
-            key: font_instance_key,
+            key: overflow_font_instance_key,
             pt_size: overflow_marker_font.descriptor.pt_size,
         });
         let overflow_marker_font_index = overflow_marker_font_cache.len() - 1;
@@ -866,7 +866,7 @@ impl LineItemLayout<'_, '_> {
         );
 
         // return
-        Some((overflow_marker_textrun_segment, overflow_marker_font))
+        Some((overflow_marker_textrun_segment, overflow_marker_font, overflow_font_instance_key))
     }
 
     fn layout_atomic(&mut self, atomic: AtomicLineItem) {
