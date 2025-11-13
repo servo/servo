@@ -12,7 +12,7 @@ use js::jsapi::{ExceptionStackBehavior, Heap, JS_SetPendingException};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use script_bindings::inheritance::Castable;
-use script_bindings::trace::CustomTraceable;
+use script_bindings::weakref::WeakRef;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AbortSignalBinding::AbortSignalMethods;
@@ -21,7 +21,7 @@ use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventListenerOp
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -81,10 +81,14 @@ pub(crate) struct AbortSignal {
     dependent: Cell<bool>,
 
     /// <https://dom.spec.whatwg.org/#abortsignal-source-signals>
-    source_signals: DomRefCell<IndexSet<Dom<AbortSignal>>>,
+    #[no_trace]
+    #[ignore_malloc_size_of = "WeakRef"]
+    source_signals: DomRefCell<IndexSet<WeakRef<AbortSignal>>>,
 
     /// <https://dom.spec.whatwg.org/#abortsignal-dependent-signals>
-    dependent_signals: DomRefCell<IndexSet<Dom<AbortSignal>>>,
+    #[no_trace]
+    #[ignore_malloc_size_of = "WeakRef"]
+    dependent_signals: DomRefCell<IndexSet<WeakRef<AbortSignal>>>,
 }
 
 impl AbortSignal {
@@ -141,14 +145,17 @@ impl AbortSignal {
 
         // Step 3. Let dependentSignalsToAbort be a new list.
         let mut dependent_signals_to_abort = vec![];
+
         // Step 4. For each dependentSignal of signal’s dependent signals:
-        for dependent_signal in self.dependent_signals.borrow().iter() {
-            // Step 4.1. If dependentSignal is not aborted:
-            if !dependent_signal.aborted() {
-                // Step 4.1.1. Set dependentSignal’s abort reason to signal’s abort reason.
-                dependent_signal.abort_reason.set(self.abort_reason.get());
-                // Step 4.1.2. Append dependentSignal to dependentSignalsToAbort.
-                dependent_signals_to_abort.push(dependent_signal.as_rooted());
+        for weak in self.dependent_signals.borrow().iter() {
+            if let Some(dependent_signal) = weak.root() {
+                // Step 4.1. If dependentSignal is not aborted:
+                if !dependent_signal.aborted() {
+                    // Step 4.1.1. Set dependentSignal’s abort reason to signal’s abort reason.
+                    dependent_signal.abort_reason.set(self.abort_reason.get());
+                    // Step 4.1.2. Append dependentSignal to dependentSignalsToAbort.
+                    dependent_signals_to_abort.push(dependent_signal);
+                }
             }
         }
 
@@ -170,6 +177,11 @@ impl AbortSignal {
 
         // Step 2. Append algorithm to signal’s abort algorithms.
         self.abort_algorithms.borrow_mut().push(algorithm.clone());
+
+        // if this is a dependent signal, it may now need to be kept alive.
+        if self.dependent.get() {
+            self.global().register_dependent_abort_signal(self);
+        }
     }
 
     /// Run a specific abort algorithm.
@@ -263,32 +275,77 @@ impl AbortSignal {
                 result_signal
                     .source_signals
                     .borrow_mut()
-                    .insert(Dom::from_ref(signal));
+                    .insert(WeakRef::new(signal));
                 // Step 4.1.2. Append resultSignal to signal’s dependent signals.
                 signal
                     .dependent_signals
                     .borrow_mut()
-                    .insert(Dom::from_ref(&result_signal));
+                    .insert(WeakRef::new(&*result_signal));
             } else {
                 // Step 4.2. Otherwise, for each sourceSignal of signal’s source signals:
-                for source_signal in signal.source_signals.borrow().iter() {
-                    // Step 4.2.1. Assert: sourceSignal is not aborted and not dependent.
-                    assert!(!source_signal.aborted() && !source_signal.dependent.get());
-                    // Step 4.2.2. Append sourceSignal to resultSignal’s source signals.
-                    result_signal
-                        .source_signals
-                        .borrow_mut()
-                        .insert(source_signal.clone());
-                    // Step 4.2.3. Append resultSignal to sourceSignal’s dependent signals.
-                    source_signal
-                        .dependent_signals
-                        .borrow_mut()
-                        .insert(Dom::from_ref(&result_signal));
+                for source_signal_weak in signal.source_signals.borrow().iter() {
+                    if let Some(source_signal) = source_signal_weak.root() {
+                        // Step 4.2.1. Assert: sourceSignal is not aborted and not dependent.
+                        assert!(!source_signal.aborted() && !source_signal.dependent.get());
+                        // Step 4.2.2. Append sourceSignal to resultSignal’s source signals.
+                        result_signal
+                            .source_signals
+                            .borrow_mut()
+                            .insert(WeakRef::new(&*source_signal));
+                        // Step 4.2.3. Append resultSignal to sourceSignal’s dependent signals.
+                        source_signal
+                            .dependent_signals
+                            .borrow_mut()
+                            .insert(WeakRef::new(&*result_signal));
+                    }
                 }
             }
         }
         // Step 5. Return resultSignal.
+        global.register_dependent_abort_signal(&result_signal);
         result_signal
+    }
+
+    /// Remove weak references whose target has been collected.
+    fn prune_dead_weak_refs(&self) {
+        self.source_signals.borrow_mut().retain(|w| w.is_alive());
+        self.dependent_signals.borrow_mut().retain(|w| w.is_alive());
+    }
+
+    /// Whether this signal still has abort algorithms registered.
+    fn has_abort_algorithms(&self) -> bool {
+        !self.abort_algorithms.borrow().is_empty()
+    }
+
+    /// Whether this signal has any listeners for its "abort" event.
+    fn has_abort_listeners(&self) -> bool {
+        self.upcast::<EventTarget>()
+            .has_listeners_for(&atom!("abort"))
+    }
+
+    /// <https://dom.spec.whatwg.org/#abort-signal-garbage-collection>
+    /// A non-aborted dependent AbortSignal object must not be garbage
+    /// collected while its source signals is non-empty and it has
+    /// registered event listeners for its abort event or its abort
+    /// algorithms is non-empty.
+    pub(crate) fn must_keep_alive_for_gc(&self) -> bool {
+        // Treat dead weak entries as removed.
+        self.prune_dead_weak_refs();
+
+        // Only care about non-aborted signals.
+        if self.aborted() {
+            return false;
+        }
+
+        // If it has no live source signals left, it doesn’t need to be kept.
+        if self.source_signals.borrow().is_empty() {
+            return false;
+        }
+
+        let has_algos = self.has_abort_algorithms();
+        let has_listeners = self.has_abort_listeners();
+
+        has_algos || has_listeners
     }
 }
 
