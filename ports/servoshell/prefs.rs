@@ -29,6 +29,7 @@ pub(crate) static EXPERIMENTAL_PREFS: &[&str] = &[
     "dom_fontface_enabled",
     "dom_intersection_observer_enabled",
     "dom_uievent_which_enabled",
+    "dom_navigator_protocol_handlers_enabled",
     "dom_navigator_sendbeacon_enabled",
     "dom_notification_enabled",
     "dom_offscreen_canvas_enabled",

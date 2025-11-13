@@ -10,7 +10,7 @@ interface Navigator {
 Navigator includes NavigatorID;
 Navigator includes NavigatorLanguage;
 Navigator includes NavigatorOnLine;
-//Navigator includes NavigatorContentUtils;
+Navigator includes NavigatorContentUtils;
 //Navigator includes NavigatorStorageUtils;
 Navigator includes NavigatorPlugins;
 Navigator includes NavigatorCookies;
@@ -86,4 +86,10 @@ partial interface Navigator {
 partial interface Navigator {
   [Throws, Pref="dom_navigator_sendbeacon_enabled"]
   boolean sendBeacon(USVString url, optional BodyInit? data = null);
+};
+
+// https://html.spec.whatwg.org/multipage/#custom-handlers
+interface mixin NavigatorContentUtils {
+  [Throws, SecureContext, Pref="dom_navigator_protocol_handlers_enabled"] undefined registerProtocolHandler(DOMString scheme, USVString url);
+  [Throws, SecureContext, Pref="dom_navigator_protocol_handlers_enabled"] undefined unregisterProtocolHandler(DOMString scheme, USVString url);
 };
