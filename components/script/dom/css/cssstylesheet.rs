@@ -300,7 +300,7 @@ impl CSSStyleSheet {
             Origin::Author,
             &self.style_shared_lock,
             None,
-            window.css_error_reporter(),
+            Some(window.css_error_reporter()),
             window.Document().quirks_mode(),
             AllowImportRules::No, // Step 3.If rules contains one or more @import rules, remove those rules from rules.
             /* sanitization_data = */ None,
@@ -345,7 +345,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
             media,
             shared_lock,
             None,
-            window.css_error_reporter(),
+            Some(window.css_error_reporter()),
             doc.quirks_mode(),
             AllowImportRules::No,
         ));

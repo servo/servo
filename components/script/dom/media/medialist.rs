@@ -82,7 +82,7 @@ impl MediaList {
             ParsingMode::DEFAULT,
             quirks_mode,
             /* namespaces = */ Default::default(),
-            window.css_error_reporter(),
+            Some(window.css_error_reporter()),
             None,
         );
         StyleMediaList::parse(&context, &mut parser)
@@ -104,7 +104,7 @@ impl MediaList {
             ParsingMode::DEFAULT,
             quirks_mode,
             /* namespaces = */ Default::default(),
-            window.css_error_reporter(),
+            Some(window.css_error_reporter()),
             None,
         );
         MediaQuery::parse(&context, &mut parser)

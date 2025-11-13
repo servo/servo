@@ -596,7 +596,8 @@ impl HTMLLinkElement {
 
         let loader = ElementStylesheetLoader::new(self.upcast());
         loader.load(
-            StylesheetContextSource::LinkElement { media },
+            StylesheetContextSource::LinkElement,
+            media,
             link_url,
             cors_setting,
             integrity_metadata.to_owned(),

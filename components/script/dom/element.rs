@@ -2409,7 +2409,7 @@ impl Element {
                     Arc::new(doc.style_shared_lock().wrap(parse_style_attribute(
                         source,
                         &UrlExtraData(doc.base_url().get_arc()),
-                        win.css_error_reporter(),
+                        Some(win.css_error_reporter()),
                         doc.quirks_mode(),
                         CssRuleType::Style,
                     )))

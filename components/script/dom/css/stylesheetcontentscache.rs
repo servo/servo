@@ -114,7 +114,7 @@ impl StylesheetContentsCache {
                             Origin::Author,
                             shared_lock,
                             Some(&ElementStylesheetLoader::new(element)),
-                            element.owner_window().css_error_reporter(),
+                            Some(element.owner_window().css_error_reporter()),
                             quirks_mode,
                             AllowImportRules::Yes,
                             /* sanitized_output = */ None,
