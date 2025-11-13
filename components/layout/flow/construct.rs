@@ -557,7 +557,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
                     contents: Contents::NonReplaced(contents),
                 },
             },
-            Contents::Replaced(_) | Contents::Widget(_) | Contents::ReplacedWithWidget(_) => {
+            Contents::Replaced(_) | Contents::Widget(_) | Contents::ReplacedWithWidget(_, _) => {
                 BlockLevelCreator::Independent {
                     display_inside,
                     contents,

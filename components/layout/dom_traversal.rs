@@ -85,7 +85,8 @@ pub(super) enum Contents {
     /// <https://drafts.csswg.org/css2/conform.html#replaced-element>
     Replaced(ReplacedContents),
     /// A video element with widget.
-    ReplacedWithWidget(NonReplacedContents),
+    /// Example: an `<video controls> element.`
+    ReplacedWithWidget(ReplacedContents, NonReplacedContents),
 }
 
 #[derive(Debug)]
@@ -289,13 +290,8 @@ impl Contents {
             if let Some(element) = node.as_element() {
                 if let Some(shadow_root) = element.shadow_root() {
                     if shadow_root.is_ua_widget() {
-                        context
-                            .image_resolver
-                            .video_content
-                            .lock()
-                            .insert(node.opaque(), replaced);
                         let non_replaced_contents = NonReplacedContents::OfElement;
-                        return Self::ReplacedWithWidget(non_replaced_contents);
+                        return Self::ReplacedWithWidget(replaced, non_replaced_contents);
                     }
                 }
             }
@@ -324,7 +320,7 @@ impl Contents {
         match self {
             Self::NonReplaced(contents) |
             Self::Widget(contents) |
-            Self::ReplacedWithWidget(contents) => Some(contents),
+            Self::ReplacedWithWidget(_, contents) => Some(contents),
             Self::Replaced(_) => None,
         }
     }

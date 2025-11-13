@@ -1014,6 +1014,15 @@ impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> 
     }
 
     fn with_pseudo(&self, pseudo_element: PseudoElement) -> Option<Self> {
+        /* 
+            https://drafts.csswg.org/css-pseudo/#generated-content:
+            Also as with regular child elements, the ::before and ::after pseudo-elements
+            are suppressed when their parent, the originating element, is replaced.
+        */
+        if self.has_local_name(&local_name!("video")) {
+            return None;
+        }
+
         if pseudo_element.is_eager() &&
             self.style_data()
                 .styles
