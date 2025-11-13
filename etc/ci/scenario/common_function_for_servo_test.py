@@ -48,7 +48,7 @@ def calculate_frame_rate():
     if round(float((len(commands_list) - 1) / interval_time), 2) > 120.00:
         return 120.00
     else:
-        return round(float(len(commands_list) / interval_time), 2)
+        return round(float((len(commands_list) - 1) / interval_time), 2)
 
 
 def setup_hdc_forward():
