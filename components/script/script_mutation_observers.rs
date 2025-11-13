@@ -55,7 +55,11 @@ impl ScriptMutationObservers {
             let record_queue = mo.record_queue();
 
             // Step 6.1 Let records be a clone of mo’s record queue.
-            let queue: Vec<DomRoot<MutationRecord>> = record_queue.borrow().clone();
+            let queue: Vec<DomRoot<MutationRecord>> = record_queue
+                .borrow()
+                .iter()
+                .map(|record| record.as_rooted())
+                .collect();
 
             // Step 6.2 Empty mo’s record queue.
             record_queue.borrow_mut().clear();

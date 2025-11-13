@@ -662,6 +662,7 @@ impl Node {
     }
 
     /// Add a new mutation observer for a given node.
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn add_mutation_observer(&self, observer: RegisteredObserver) {
         self.ensure_rare_data().mutation_observers.push(observer);
     }
