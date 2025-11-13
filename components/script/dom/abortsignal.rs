@@ -144,7 +144,7 @@ impl AbortSignal {
         }
 
         // Step 3. Let dependentSignalsToAbort be a new list.
-        let mut dependent_signals_to_abort: Vec<DomRoot<AbortSignal>> = vec![];
+        let mut dependent_signals_to_abort = vec![];
 
         // Step 4. For each dependentSignal of signal’s dependent signals:
         for weak in self.dependent_signals.borrow().iter() {
@@ -299,7 +299,6 @@ impl AbortSignal {
                             .borrow_mut()
                             .insert(WeakRef::new(&*result_signal));
                     }
-                    // else: underlying source signal was GC'd; we can just ignore this entry.
                 }
             }
         }
@@ -336,11 +335,6 @@ impl AbortSignal {
 
         // Only care about non-aborted signals.
         if self.aborted() {
-            return false;
-        }
-
-        // Only dependent signals must kept alive.
-        if !self.dependent.get() {
             return false;
         }
 
