@@ -47,7 +47,11 @@ def calculate_frame_rate():
                 break
             else:
                 check_list.append(lines[line])
-    matching_lines = [check_list[line] for line in range(len(check_list)) if (trace_key in check_list[line]) and ("render_service" in check_list[line])]
+    matching_lines = [
+        check_list[line]
+        for line in range(len(check_list))
+        if (trace_key in check_list[line]) and ("render_service" in check_list[line])
+    ]
     start_time = matching_lines[0].split()[5].split(":")[0]
     end_time = matching_lines[-1].split()[5].split(":")[0]
     interval_time = Decimal(end_time) - Decimal(start_time)
