@@ -7,7 +7,8 @@ use std::cell::Cell;
 use base::{Epoch, IpcSend};
 use constellation_traits::{LoadData, NavigationHistoryBehavior};
 use embedder_traits::{
-    ContextMenuAction, ContextMenuItem, ContextMenuRequest, EditingActionEvent, EmbedderControlId,
+    ContextMenuAction, ContextMenuElementInformation, ContextMenuElementInformationFlags,
+    ContextMenuItem, ContextMenuRequest, EditingActionEvent, EmbedderControlId,
     EmbedderControlRequest, EmbedderControlResponse, EmbedderMsg,
 };
 use euclid::{Point2D, Rect, Size2D};
@@ -22,7 +23,6 @@ use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::script_runtime::CanGc;
-use script_bindings::str::USVString;
 use servo_url::ServoUrl;
 use webrender_api::units::{DeviceIntRect, DevicePoint};
 
@@ -245,7 +245,7 @@ impl DocumentEmbedderControls {
             if anchor_element.is_none() {
                 if let Some(candidate_anchor_element) = node.downcast::<HTMLAnchorElement>() {
                     if candidate_anchor_element.is_instance_activatable() {
-                        anchor_element = Some(DomRoot::from_ref(candidate_anchor_element))
+                        anchor_element = Some(DomRoot::from_ref(candidate_anchor_element));
                     }
                 }
             }
@@ -263,8 +263,14 @@ impl DocumentEmbedderControls {
             }
         }
 
+        let mut info = ContextMenuElementInformation::default();
         let mut items = Vec::new();
-        if anchor_element.is_some() {
+        if let Some(anchor_element) = anchor_element.as_ref() {
+            info.flags.insert(ContextMenuElementInformationFlags::Link);
+            info.link_url = anchor_element
+                .full_href_url_for_user_interface()
+                .map(ServoUrl::into_url);
+
             items.extend(vec![
                 ContextMenuItem::Item {
                     label: "Open Link in New View".into(),
@@ -280,7 +286,12 @@ impl DocumentEmbedderControls {
             ]);
         }
 
-        if image_element.is_some() {
+        if let Some(image_element) = image_element.as_ref() {
+            info.flags.insert(ContextMenuElementInformationFlags::Image);
+            info.image_url = image_element
+                .full_image_url_for_user_interface()
+                .map(ServoUrl::into_url);
+
             items.extend(vec![
                 ContextMenuItem::Item {
                     label: "Open Image in New View".into(),
@@ -298,6 +309,14 @@ impl DocumentEmbedderControls {
 
         if let Some(text_input_element) = &text_input_element {
             let has_selection = text_input_element.has_selection();
+
+            info.flags
+                .insert(ContextMenuElementInformationFlags::EditableText);
+            if has_selection {
+                info.flags
+                    .insert(ContextMenuElementInformationFlags::Selection);
+            }
+
             items.extend(vec![
                 ContextMenuItem::Item {
                     label: "Cut".into(),
@@ -350,7 +369,10 @@ impl DocumentEmbedderControls {
 
         self.show_embedder_control(
             ControlElement::ContextMenu(context_menu_nodes),
-            EmbedderControlRequest::ContextMenu(ContextMenuRequest { items }),
+            EmbedderControlRequest::ContextMenu(ContextMenuRequest {
+                element_info: info,
+                items,
+            }),
             Some(hit_test_result.point_in_frame.cast_unit()),
         );
     }
@@ -375,21 +397,16 @@ impl ContextMenuNodes {
         };
 
         let window = self.node.owner_window();
-        let set_clipboard_text = |string: USVString| {
+        let document = window.Document();
+        let set_clipboard_text = |string: String| {
             if string.is_empty() {
                 return;
             }
-            window.send_to_embedder(EmbedderMsg::SetClipboardText(
-                window.webview_id(),
-                string.to_string(),
-            ));
+            window.send_to_embedder(EmbedderMsg::SetClipboardText(window.webview_id(), string));
         };
 
-        let open_url_in_new_webview = |url_string: USVString| {
-            let Ok(url) = ServoUrl::parse(&url_string) else {
-                return;
-            };
-            let Some(browsing_context) = window.Document().browsing_context() else {
+        let open_url_in_new_webview = |url: ServoUrl| {
+            let Some(browsing_context) = document.browsing_context() else {
                 return;
             };
             let (browsing_context, new) = browsing_context
@@ -429,25 +446,40 @@ impl ContextMenuNodes {
                 let Some(anchor_element) = &self.anchor_element else {
                     return;
                 };
-                set_clipboard_text(anchor_element.Href());
+
+                let url_string = anchor_element
+                    .full_href_url_for_user_interface()
+                    .as_ref()
+                    .map(ServoUrl::to_string)
+                    .unwrap_or_else(|| anchor_element.Href().to_string());
+                set_clipboard_text(url_string);
             },
             ContextMenuAction::OpenLinkInNewWebView => {
                 let Some(anchor_element) = &self.anchor_element else {
                     return;
                 };
-                open_url_in_new_webview(anchor_element.Href());
+                if let Some(url) = anchor_element.full_href_url_for_user_interface() {
+                    open_url_in_new_webview(url);
+                };
             },
             ContextMenuAction::CopyImageLink => {
                 let Some(image_element) = &self.image_element else {
                     return;
                 };
-                set_clipboard_text(image_element.Src());
+                let url_string = image_element
+                    .full_image_url_for_user_interface()
+                    .as_ref()
+                    .map(ServoUrl::to_string)
+                    .unwrap_or_else(|| image_element.CurrentSrc().to_string());
+                set_clipboard_text(url_string.to_string());
             },
             ContextMenuAction::OpenImageInNewView => {
                 let Some(image_element) = &self.image_element else {
                     return;
                 };
-                open_url_in_new_webview(image_element.Src());
+                if let Some(url) = image_element.full_image_url_for_user_interface() {
+                    open_url_in_new_webview(url);
+                }
             },
             ContextMenuAction::Cut => {
                 window.Document().event_handler().handle_editing_action(

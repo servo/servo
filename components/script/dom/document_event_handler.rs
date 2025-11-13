@@ -39,7 +39,6 @@ use script_bindings::str::DOMString;
 use script_traits::ConstellationInputEvent;
 use servo_config::pref;
 use style_traits::CSSPixel;
-use xml5ever::{local_name, ns};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::refcounted::Trusted;
@@ -506,13 +505,8 @@ impl DocumentEventHandler {
                 .next()
             {
                 let status = anchor
-                    .upcast::<Element>()
-                    .get_attribute(&ns!(), &local_name!("href"))
-                    .and_then(|href| {
-                        let value = href.value();
-                        let url = self.window.get_url();
-                        url.join(&value).map(|url| url.to_string()).ok()
-                    });
+                    .full_href_url_for_user_interface()
+                    .map(|url| url.to_string());
                 self.window
                     .send_to_embedder(EmbedderMsg::Status(self.window.webview_id(), status));
                 return;
