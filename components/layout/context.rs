@@ -26,8 +26,6 @@ use style::dom::OpaqueNode;
 use style::values::computed::image::{Gradient, Image};
 use webrender_api::units::{DeviceIntSize, DeviceSize};
 
-use crate::replaced::ReplacedContents;
-
 pub(crate) type CachedImageOrError = Result<CachedImage, ResolveImageError>;
 
 pub(crate) struct LayoutContext<'a> {
