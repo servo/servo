@@ -781,9 +781,9 @@ impl FontGroup {
 struct FontGroupFamilyMember {
     #[ignore_malloc_size_of = "This measured in the FontContext template cache."]
     template: FontTemplateRef,
+    /// The instantiated font or `None` if the font has not been loaded yet.
     #[ignore_malloc_size_of = "This measured in the FontContext font cache."]
     font: Option<FontRef>,
-    loaded: bool,
 }
 
 /// A `FontGroupFamily` is a single font family in a `FontGroup`. It corresponds to one of the
@@ -816,22 +816,22 @@ impl FontGroupFamily {
         FontPredicate: Fn(&FontRef) -> bool,
     {
         self.members(font_descriptor, font_context)
-            .filter_map(|member| {
+            .find_map(|member| {
                 if !template_predicate(member.template.clone()) {
                     return None;
                 }
 
-                if !member.loaded {
+                // Load the font if it has not been loaded yet.
+                if member.font.is_none() {
                     member.font = font_context.font(member.template.clone(), font_descriptor);
-                    member.loaded = true;
                 }
-                if matches!(&member.font, Some(font) if font_predicate(font)) {
+
+                if member.font.as_ref().is_some_and(font_predicate) {
                     return member.font.clone();
                 }
 
                 None
             })
-            .next()
     }
 
     fn members(
@@ -846,7 +846,6 @@ impl FontGroupFamily {
                 .into_iter()
                 .map(|template| FontGroupFamilyMember {
                     template,
-                    loaded: false,
                     font: None,
                 })
                 .collect()
