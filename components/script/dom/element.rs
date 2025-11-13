@@ -3687,16 +3687,14 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn GetPreviousElementSibling(&self) -> Option<DomRoot<Element>> {
         self.upcast::<Node>()
             .preceding_siblings()
-            .filter_map(DomRoot::downcast)
-            .next()
+            .find_map(DomRoot::downcast)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-nextelementsibling>
     fn GetNextElementSibling(&self) -> Option<DomRoot<Element>> {
         self.upcast::<Node>()
             .following_siblings()
-            .filter_map(DomRoot::downcast)
-            .next()
+            .find_map(DomRoot::downcast)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-children>
@@ -3714,8 +3712,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn GetLastElementChild(&self) -> Option<DomRoot<Element>> {
         self.upcast::<Node>()
             .rev_children()
-            .filter_map(DomRoot::downcast::<Element>)
-            .next()
+            .find_map(DomRoot::downcast::<Element>)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-childelementcount>
@@ -4700,16 +4697,14 @@ impl SelectorsElement for SelectorWrapper<'_> {
     fn prev_sibling_element(&self) -> Option<Self> {
         self.node
             .preceding_siblings()
-            .filter_map(DomRoot::downcast)
-            .next()
+            .find_map(DomRoot::downcast)
             .map(SelectorWrapper::Owned)
     }
 
     fn next_sibling_element(&self) -> Option<Self> {
         self.node
             .following_siblings()
-            .filter_map(DomRoot::downcast)
-            .next()
+            .find_map(DomRoot::downcast)
             .map(SelectorWrapper::Owned)
     }
 

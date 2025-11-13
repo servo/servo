@@ -1623,8 +1623,7 @@ pub(crate) trait FormControl: DomObject {
         let has_form_id = elem.has_attribute(&local_name!("form"));
         let nearest_form_ancestor = node
             .ancestors()
-            .filter_map(DomRoot::downcast::<HTMLFormElement>)
-            .next();
+            .find_map(DomRoot::downcast::<HTMLFormElement>);
 
         // Step 1
         if old_owner.is_some() &&

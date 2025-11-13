@@ -595,32 +595,26 @@ impl Iterator for QuerySelectorIterator {
     fn next(&mut self) -> Option<DomRoot<Node>> {
         let selectors = &self.selectors;
 
-        self.iterator
-            .by_ref()
-            .filter_map(|node| {
-                // TODO(cgaebel): Is it worth it to build a bloom filter here
-                // (instead of passing `None`)? Probably.
-                let mut nth_index_cache = Default::default();
-                let mut ctx = MatchingContext::new(
-                    MatchingMode::Normal,
-                    None,
-                    &mut nth_index_cache,
-                    node.owner_doc().quirks_mode(),
-                    NeedsSelectorFlags::No,
-                    MatchingForInvalidation::No,
-                );
-                if let Some(element) = DomRoot::downcast(node) {
-                    if matches_selector_list(
-                        selectors,
-                        &SelectorWrapper::Borrowed(&element),
-                        &mut ctx,
-                    ) {
-                        return Some(DomRoot::upcast(element));
-                    }
+        self.iterator.by_ref().find_map(|node| {
+            // TODO(cgaebel): Is it worth it to build a bloom filter here
+            // (instead of passing `None`)? Probably.
+            let mut nth_index_cache = Default::default();
+            let mut ctx = MatchingContext::new(
+                MatchingMode::Normal,
+                None,
+                &mut nth_index_cache,
+                node.owner_doc().quirks_mode(),
+                NeedsSelectorFlags::No,
+                MatchingForInvalidation::No,
+            );
+            if let Some(element) = DomRoot::downcast(node) {
+                if matches_selector_list(selectors, &SelectorWrapper::Borrowed(&element), &mut ctx)
+                {
+                    return Some(DomRoot::upcast(element));
                 }
-                None
-            })
-            .next()
+            }
+            None
+        })
     }
 }
 
@@ -1512,7 +1506,7 @@ impl Node {
     /// <https://html.spec.whatwg.org/multipage/#language>
     pub(crate) fn get_lang(&self) -> Option<String> {
         self.inclusive_ancestors(ShadowIncluding::Yes)
-            .filter_map(|node| {
+            .find_map(|node| {
                 node.downcast::<Element>().and_then(|el| {
                     el.get_attribute(&ns!(xml), &local_name!("lang"))
                         .or_else(|| el.get_attribute(&ns!(), &local_name!("lang")))
@@ -1521,7 +1515,6 @@ impl Node {
                 // TODO: Check meta tags for a pragma-set default language
                 // TODO: Check HTTP Content-Language header
             })
-            .next()
     }
 
     /// <https://dom.spec.whatwg.org/#assign-slotables-for-a-tree>

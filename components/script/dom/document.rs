@@ -4820,10 +4820,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     /// <https://dom.spec.whatwg.org/#dom-document-doctype>
     fn GetDoctype(&self) -> Option<DomRoot<DocumentType>> {
-        self.upcast::<Node>()
-            .children()
-            .filter_map(DomRoot::downcast)
-            .next()
+        self.upcast::<Node>().children().find_map(DomRoot::downcast)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-documentelement>
@@ -5290,12 +5287,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-head>
     fn GetHead(&self) -> Option<DomRoot<HTMLHeadElement>> {
-        self.get_html_element().and_then(|root| {
-            root.upcast::<Node>()
-                .children()
-                .filter_map(DomRoot::downcast)
-                .next()
-        })
+        self.get_html_element()
+            .and_then(|root| root.upcast::<Node>().children().find_map(DomRoot::downcast))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-currentscript>
@@ -5481,8 +5474,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn GetLastElementChild(&self) -> Option<DomRoot<Element>> {
         self.upcast::<Node>()
             .rev_children()
-            .filter_map(DomRoot::downcast)
-            .next()
+            .find_map(DomRoot::downcast)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-childelementcount>

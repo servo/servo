@@ -167,8 +167,7 @@ impl ValidityState {
             .element
             .upcast::<Node>()
             .ancestors()
-            .filter_map(DomRoot::downcast::<HTMLFieldSetElement>)
-            .next()
+            .find_map(DomRoot::downcast::<HTMLFieldSetElement>)
         {
             fieldset.update_validity(can_gc);
         }

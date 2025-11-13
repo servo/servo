@@ -102,8 +102,7 @@ impl DocumentFragmentMethods<crate::DomTypeHolder> for DocumentFragment {
     fn GetLastElementChild(&self) -> Option<DomRoot<Element>> {
         self.upcast::<Node>()
             .rev_children()
-            .filter_map(DomRoot::downcast::<Element>)
-            .next()
+            .find_map(DomRoot::downcast::<Element>)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-childelementcount>

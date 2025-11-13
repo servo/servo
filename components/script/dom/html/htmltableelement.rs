@@ -210,10 +210,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-table-caption>
     fn GetCaption(&self) -> Option<DomRoot<HTMLTableCaptionElement>> {
-        self.upcast::<Node>()
-            .children()
-            .filter_map(DomRoot::downcast)
-            .next()
+        self.upcast::<Node>().children().find_map(DomRoot::downcast)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-table-caption>

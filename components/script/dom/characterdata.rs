@@ -273,16 +273,14 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     fn GetPreviousElementSibling(&self) -> Option<DomRoot<Element>> {
         self.upcast::<Node>()
             .preceding_siblings()
-            .filter_map(DomRoot::downcast)
-            .next()
+            .find_map(DomRoot::downcast)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-nextelementsibling>
     fn GetNextElementSibling(&self) -> Option<DomRoot<Element>> {
         self.upcast::<Node>()
             .following_siblings()
-            .filter_map(DomRoot::downcast)
-            .next()
+            .find_map(DomRoot::downcast)
     }
 }
 

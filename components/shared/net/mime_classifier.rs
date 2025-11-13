@@ -640,8 +640,7 @@ impl MIMEChecker for GroupedClassifier {
     fn classify(&self, data: &[u8]) -> Option<Mime> {
         self.byte_matchers
             .iter()
-            .filter_map(|matcher| matcher.classify(data))
-            .next()
+            .find_map(|matcher| matcher.classify(data))
     }
 
     fn validate(&self) -> Result<(), String> {
