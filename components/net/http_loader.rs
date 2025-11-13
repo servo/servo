@@ -104,7 +104,7 @@ type HttpCacheState = Mutex<HashMap<CacheKey, Arc<(Mutex<HttpCacheEntryState>, C
 pub struct HttpState {
     pub hsts_list: RwLock<HstsList>,
     pub cookie_jar: RwLock<CookieStorage>,
-    pub http_cache: RwLock<HttpCache>,
+    pub http_cache: HttpCache,
     /// A map of cache key to entry state,
     /// reflecting whether the cache entry is ready to read from,
     /// or whether a concurrent pending store should be awaited.
@@ -122,7 +122,7 @@ impl HttpState {
             Report {
                 path: path!["memory-cache", suffix],
                 kind: ReportKind::ExplicitJemallocHeapSize,
-                size: self.http_cache.read().size_of(ops),
+                size: self.http_cache.size_of(ops),
             },
             Report {
                 path: path!["hsts-list", suffix],
@@ -1585,19 +1585,23 @@ async fn http_network_or_cache_fetch(
         // inclusive, invalidate appropriate stored responses in httpCache, as per the
         // "Invalidating Stored Responses" chapter of HTTP Caching, and set storedResponse to null.
         if forward_response.status.in_range(200..=399) && !http_request.method.is_safe() {
-            let mut http_cache = context.state.http_cache.write();
-            http_cache.invalidate(http_request, &forward_response);
+            context
+                .state
+                .http_cache
+                .invalidate(http_request, &forward_response);
         }
 
         // Step 10.4 If the revalidatingFlag is set and forwardResponse’s status is 304, then:
         if revalidating_flag && forward_response.status == StatusCode::NOT_MODIFIED {
             // Ensure done_chan is None,
             // since the network response will be replaced by the revalidated stored one.
+            response =
+                context
+                    .state
+                    .http_cache
+                    .refresh(http_request, forward_response.clone(), done_chan);
             *done_chan = None;
-            {
-                let mut http_cache = context.state.http_cache.write();
-                response = http_cache.refresh(http_request, forward_response.clone(), done_chan);
-            }
+
             wait_for_cached_response(done_chan, &mut response).await;
             if let Some(response) = &mut response {
                 response.cache_state = CacheState::Validated;
@@ -1614,8 +1618,10 @@ async fn http_network_or_cache_fetch(
             if http_request.cache_mode != CacheMode::NoStore {
                 // Step 10.5.2 Store httpRequest and forwardResponse in httpCache, as per the
                 //             "Storing Responses in Caches" chapter of HTTP Caching.
-                let mut http_cache = context.state.http_cache.write();
-                http_cache.store(http_request, forward_response);
+                context
+                    .state
+                    .http_cache
+                    .store(http_request, forward_response);
             }
         }
     }
@@ -1807,11 +1813,13 @@ fn block_for_cache_ready(
 
     // TODO(#33616): Step 8.23 Set httpCache to the result of determining the
     // HTTP cache partition, given httpRequest.
-    let http_cache = context.state.http_cache.read();
     // Step 8.25.1 Set storedResponse to the result of selecting a response from the httpCache,
     //              possibly needing validation, as per the "Constructing Responses from Caches"
     //              chapter of HTTP Caching, if any.
-    let stored_response = http_cache.construct_response(http_request, done_chan);
+    let stored_response = context
+        .state
+        .http_cache
+        .construct_response(http_request, done_chan);
 
     // Step 8.25.2 If storedResponse is non-null, then:
     if let Some(response_from_cache) = stored_response {

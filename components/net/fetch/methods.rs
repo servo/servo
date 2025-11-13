@@ -787,8 +787,10 @@ pub async fn main_fetch(
     // processed before sending the response to Devtools.
     send_response_to_devtools(request, context, &response, None);
 
-    let http_cache = context.state.http_cache.write();
-    http_cache.update_awaiting_consumers(request, &response);
+    context
+        .state
+        .http_cache
+        .update_awaiting_consumers(request, &response);
 
     // Steps 25-27.
     // TODO: remove this line when only asynchronous fetches are used
