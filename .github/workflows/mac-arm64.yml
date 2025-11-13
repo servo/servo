@@ -93,11 +93,11 @@ jobs:
       - name: Kill XProtectBehaviorService
         run: |
           echo Killing XProtect.; sudo pkill -9 XProtect >/dev/null || true;
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         if: runner.environment != 'self-hosted' && github.event_name != 'pull_request_target'
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         if: runner.environment != 'self-hosted' && github.event_name == 'pull_request_target'
         with:
           ref: ${{ github.event.pull_request.head.sha }}
@@ -219,13 +219,13 @@ jobs:
     name: Build libservo and MSRV check
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         if: github.event_name != 'pull_request_target'
         with:
           fetch-depth: 1
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         if: github.event_name == 'pull_request_target'
         with:
           ref: ${{ github.event.pull_request.head.sha }}

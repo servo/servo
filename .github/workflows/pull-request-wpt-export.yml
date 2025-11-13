@@ -22,7 +22,7 @@ jobs:
           cd servo
           git fetch origin pull/${{ github.event.pull_request.number}}/head:pr --depth ${{ env.PR_FETCH_DEPTH }}
       - name: Check out wpt
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: wpt
           repository: 'web-platform-tests/wpt'

@@ -35,7 +35,7 @@ jobs:
     outputs:
       configuration: ${{ steps.configuration.outputs.result }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 1
           sparse-checkout: |
