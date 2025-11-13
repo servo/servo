@@ -248,6 +248,9 @@ pub struct Preferences {
     pub network_http_cache_disabled: bool,
     /// A url for a http proxy. We treat an empty string as no proxy.
     pub network_http_proxy_uri: String,
+    /// The weight of the http memory cache
+    /// Notice that this is not equal to the number of different urls in the cache.
+    pub network_http_cache_size: u64,
     pub network_local_directory_listing_enabled: bool,
     pub network_mime_sniff: bool,
     /// Use the webpki roots if no root store path is given.
@@ -434,6 +437,7 @@ impl Preferences {
             network_enforce_tls_onion: false,
             network_http_cache_disabled: false,
             network_http_proxy_uri: String::new(),
+            network_http_cache_size: 5000,
             network_local_directory_listing_enabled: true,
             network_mime_sniff: false,
             network_webpki_roots: false,
