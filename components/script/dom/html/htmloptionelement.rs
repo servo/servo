@@ -367,8 +367,7 @@ impl VirtualMethods for HTMLOptionElement {
         if let Some(select) = context
             .parent
             .inclusive_ancestors(ShadowIncluding::No)
-            .filter_map(DomRoot::downcast::<HTMLSelectElement>)
-            .next()
+            .find_map(DomRoot::downcast::<HTMLSelectElement>)
         {
             select
                 .validity_state(can_gc)

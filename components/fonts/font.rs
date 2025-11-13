@@ -716,17 +716,14 @@ impl FontGroup {
         FontPredicate: Fn(&FontRef) -> bool,
     {
         let font_descriptor = self.descriptor.clone();
-        self.families
-            .iter_mut()
-            .filter_map(|font_group_family| {
-                font_group_family.find(
-                    &font_descriptor,
-                    font_context,
-                    &template_predicate,
-                    &font_predicate,
-                )
-            })
-            .next()
+        self.families.iter_mut().find_map(|font_group_family| {
+            font_group_family.find(
+                &font_descriptor,
+                font_context,
+                &template_predicate,
+                &font_predicate,
+            )
+        })
     }
 
     /// Attempts to find a suitable fallback font which matches the given `template_predicate` and
@@ -756,7 +753,7 @@ impl FontGroup {
                         FontFamilyDescriptor::new(family, FontSearchScope::Local)
                     }),
             )
-            .filter_map(|family_descriptor| {
+            .find_map(|family_descriptor| {
                 FontGroupFamily {
                     family_descriptor,
                     members: None,
@@ -768,7 +765,6 @@ impl FontGroup {
                     &font_predicate,
                 )
             })
-            .next()
     }
 }
 
@@ -816,7 +812,7 @@ impl FontGroupFamily {
         FontPredicate: Fn(&FontRef) -> bool,
     {
         self.members(font_descriptor, font_context)
-            .filter_map(|member| {
+            .find_map(|member| {
                 if !template_predicate(member.template.clone()) {
                     return None;
                 }
@@ -831,7 +827,6 @@ impl FontGroupFamily {
 
                 None
             })
-            .next()
     }
 
     fn members(

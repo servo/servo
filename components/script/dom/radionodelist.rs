@@ -87,7 +87,7 @@ impl RadioNodeListMethods<crate::DomTypeHolder> for RadioNodeList {
     fn Value(&self) -> DOMString {
         self.upcast::<NodeList>()
             .iter()
-            .filter_map(|node| {
+            .find_map(|node| {
                 // Step 1
                 node.downcast::<HTMLInputElement>().and_then(|input| {
                     if input.input_type() == InputType::Radio && input.Checked() {
@@ -103,7 +103,6 @@ impl RadioNodeListMethods<crate::DomTypeHolder> for RadioNodeList {
                     }
                 })
             })
-            .next()
             // Step 2
             .unwrap_or(DOMString::from(""))
     }

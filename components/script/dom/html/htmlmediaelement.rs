@@ -1030,8 +1030,7 @@ impl HTMLMediaElement {
         } else if let Some(source) = self
             .upcast::<Node>()
             .children()
-            .filter_map(DomRoot::downcast::<HTMLSourceElement>)
-            .next()
+            .find_map(DomRoot::downcast::<HTMLSourceElement>)
         {
             // Otherwise, if the media element does not have an assigned media provider object and
             // does not have a src attribute, but does have a source element child, then let mode be

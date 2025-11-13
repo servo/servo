@@ -373,8 +373,7 @@ impl DocumentEventHandler {
         let Some(new_target) = hit_test_result
             .node
             .inclusive_ancestors(ShadowIncluding::No)
-            .filter_map(DomRoot::downcast::<Element>)
-            .next()
+            .find_map(DomRoot::downcast::<Element>)
         else {
             return;
         };
@@ -502,8 +501,7 @@ impl DocumentEventHandler {
             if let Some(anchor) = target
                 .upcast::<Node>()
                 .inclusive_ancestors(ShadowIncluding::No)
-                .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
-                .next()
+                .find_map(DomRoot::downcast::<HTMLAnchorElement>)
             {
                 let status = anchor
                     .upcast::<Element>()
@@ -527,9 +525,7 @@ impl DocumentEventHandler {
             previous_hover_target
                 .upcast::<Node>()
                 .inclusive_ancestors(ShadowIncluding::No)
-                .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
-                .next()
-                .is_some()
+                .any(|node| node.is::<HTMLAnchorElement>())
         }) {
             self.window
                 .send_to_embedder(EmbedderMsg::Status(self.window.webview_id(), None));
@@ -572,8 +568,7 @@ impl DocumentEventHandler {
         let Some(element) = hit_test_result
             .node
             .inclusive_ancestors(ShadowIncluding::Yes)
-            .filter_map(DomRoot::downcast::<Element>)
-            .next()
+            .find_map(DomRoot::downcast::<Element>)
         else {
             return;
         };
@@ -850,8 +845,7 @@ impl DocumentEventHandler {
         let Some(el) = hit_test_result
             .node
             .inclusive_ancestors(ShadowIncluding::No)
-            .filter_map(DomRoot::downcast::<Element>)
-            .next()
+            .find_map(DomRoot::downcast::<Element>)
         else {
             self.update_active_touch_points_when_early_return(event);
             return Default::default();
@@ -1122,8 +1116,7 @@ impl DocumentEventHandler {
         let Some(el) = hit_test_result
             .node
             .inclusive_ancestors(ShadowIncluding::No)
-            .filter_map(DomRoot::downcast::<Element>)
-            .next()
+            .find_map(DomRoot::downcast::<Element>)
         else {
             return Default::default();
         };
@@ -1527,8 +1520,7 @@ impl DocumentEventHandler {
             };
             let Some(element) = node
                 .inclusive_ancestors(ShadowIncluding::No)
-                .filter_map(DomRoot::downcast::<Element>)
-                .next()
+                .find_map(DomRoot::downcast::<Element>)
             else {
                 return;
             };
