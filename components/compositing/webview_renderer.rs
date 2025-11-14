@@ -1003,7 +1003,7 @@ impl WebViewRenderer {
         let old_rect = std::mem::replace(&mut self.rect, new_rect);
         if old_rect.size() != self.rect.size() {
             self.send_window_size_message();
-            self.pinch_zoom.resize(new_rect);
+            self.pinch_zoom.resize_unscaled_viewport(new_rect);
         }
         old_rect != self.rect
     }

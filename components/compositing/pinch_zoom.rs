@@ -34,7 +34,7 @@ impl PinchZoom {
         Scale::new(self.zoom_factor)
     }
 
-    pub(crate) fn resize(&mut self, webview_rect: DeviceRect) {
+    pub(crate) fn resize_unscaled_viewport(&mut self, webview_rect: DeviceRect) {
         self.unscaled_viewport_size = webview_rect.size();
     }
 
