@@ -90,16 +90,11 @@ impl IndependentFormattingContext {
                     contents: IndependentFormattingContextContents::Replaced(contents),
                 };
             },
-            Contents::Widget(non_replaced_contents) => {
-                base_fragment_info.flags.insert(FragmentFlags::IS_WIDGET);
-                non_replaced_contents
-            },
-            Contents::NonReplaced(non_replaced_contents) => non_replaced_contents,
             Contents::ReplacedWithWidget(replaced_contents, non_replaced_contents) => {
                 base_fragment_info
                     .flags
                     .insert(FragmentFlags::IS_REPLACED | FragmentFlags::IS_WIDGET);
-                // Since the display insdie for video element is always flow, we can continue here.
+                // For replaced with widget, use block formatting context since the display inside is always flow.
                 let bfc = BlockFormattingContext::construct(
                     context,
                     node_and_style_info,
@@ -115,6 +110,11 @@ impl IndependentFormattingContext {
                     ),
                 };
             },
+            Contents::Widget(non_replaced_contents) => {
+                base_fragment_info.flags.insert(FragmentFlags::IS_WIDGET);
+                non_replaced_contents
+            },
+            Contents::NonReplaced(non_replaced_contents) => non_replaced_contents,
         };
         let contents = match display_inside {
             DisplayInside::Flow { is_list_item } | DisplayInside::FlowRoot { is_list_item } => {
@@ -305,7 +305,7 @@ impl IndependentFormattingContext {
                 lazy_block_size,
             ),
             IndependentFormattingContextContents::ReplacedWithWidget(replaced, bfc) => {
-                let mut layout_result = replaced.layout(
+                let mut replaced_layout = replaced.layout(
                     layout_context,
                     containing_block_for_children,
                     preferred_aspect_ratio,
@@ -317,8 +317,8 @@ impl IndependentFormattingContext {
                     positioning_context,
                     containing_block_for_children,
                 );
-                layout_result.fragments.append(&mut flow_layout.fragments);
-                layout_result
+                replaced_layout.fragments.append(&mut flow_layout.fragments);
+                replaced_layout
             },
             IndependentFormattingContextContents::Flow(bfc) => bfc.layout(
                 layout_context,
@@ -437,9 +437,9 @@ impl ComputeInlineContentSizes for IndependentFormattingContextContents {
             Self::Replaced(inner) => {
                 inner.compute_inline_content_sizes(layout_context, constraint_space)
             },
-            Self::ReplacedWithWidget(_, inner) => inner
-                .contents
-                .compute_inline_content_sizes(layout_context, constraint_space),
+            Self::ReplacedWithWidget(inner, _) => {
+                inner.compute_inline_content_sizes(layout_context, constraint_space)
+            },
             Self::Flow(inner) => inner
                 .contents
                 .compute_inline_content_sizes(layout_context, constraint_space),

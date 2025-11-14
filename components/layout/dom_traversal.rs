@@ -84,7 +84,6 @@ pub(super) enum Contents {
     /// Example: an `<img src=…>` element.
     /// <https://drafts.csswg.org/css2/conform.html#replaced-element>
     Replaced(ReplacedContents),
-    /// A video element with widget.
     /// Example: an `<video controls> element.`
     ReplacedWithWidget(ReplacedContents, NonReplacedContents),
 }
@@ -290,8 +289,7 @@ impl Contents {
             if let Some(element) = node.as_element() {
                 if let Some(shadow_root) = element.shadow_root() {
                     if shadow_root.is_ua_widget() {
-                        let non_replaced_contents = NonReplacedContents::OfElement;
-                        return Self::ReplacedWithWidget(replaced, non_replaced_contents);
+                        return Self::ReplacedWithWidget(replaced, NonReplacedContents::OfElement);
                     }
                 }
             }
