@@ -326,30 +326,18 @@ impl FetchResponseListener for StylesheetContext {
 
         let element = self.element.root();
         let document = self.document.root();
-        let mut is_css =
+        let is_css =
             metadata.content_type.clone().is_some_and(|content_type| {
                 MimeClassifier::is_css(&content_type.into_inner().into())
             }) || (
-                // Quirk: If the document has been set to quirks mode,
-                // has the same origin as the URL of the external resource,
-                // and the Content-Type metadata of the external resource
-                // is not a supported style sheet type, the user agent must
-                // instead assume it to be text/css.
-                // <https://html.spec.whatwg.org/multipage/#link-type-stylesheet>
+                // From <https://html.spec.whatwg.org/multipage/#link-type-stylesheet>:
+                // > Quirk: If the document has been set to quirks mode, has the same origin as
+                // > the URL of the external resource, and the Content-Type metadata of the
+                // > external resource is not a supported style sheet type, the user agent must
+                // > instead assume it to be text/css.
                 document.quirks_mode() == QuirksMode::Quirks &&
                     document.origin().immutable().clone() == metadata.final_url.origin()
             );
-
-        // From <https://html.spec.whatwg.org/multipage/#link-type-stylesheet>:
-        // > Quirk: If the document has been set to quirks mode, has the same origin as
-        // > the URL of the external resource, and the Content-Type metadata of the
-        // > external resource is not a supported style sheet type, the user agent must
-        // > instead assume it to be text/css.
-        if document.quirks_mode() == QuirksMode::Quirks &&
-            document.url().origin() == self.url.origin()
-        {
-            is_css = true;
-        }
 
         self.unminify_css(metadata.final_url.clone());
         if !is_css {
