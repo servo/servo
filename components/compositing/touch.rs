@@ -375,6 +375,8 @@ impl TouchHandler {
             return None;
         };
         if velocity.length().abs() < FLING_MIN_SCREEN_PX {
+            #[cfg(feature = "tracing")]
+            let _span = tracing::info_span!("TouchHandler::FlingEnd", servo_profiling = true,);
             touch_sequence.state = Finished;
             // If we were flinging previously, there could still be a touch_up event result
             // coming in after we stopped flinging
@@ -384,6 +386,12 @@ impl TouchHandler {
             // TODO: Probably we should multiply with the current refresh rate (and divide on each frame)
             // or save a timestamp to account for a potentially changing display refresh rate.
             *velocity *= FLING_SCALING_FACTOR;
+            #[cfg(feature = "tracing")]
+            let _span = tracing::info_span!(
+                "TouchHandler::Flinging",
+                velocity = ?velocity,
+                servo_profiling = true,
+            );
             debug_assert!(velocity.length() <= FLING_MAX_SCREEN_PX);
             Some(FlingAction {
                 delta: DeviceVector2D::new(velocity.x, velocity.y),
@@ -434,6 +442,12 @@ impl TouchHandler {
                 } else if delta.x.abs() > TOUCH_PAN_MIN_SCREEN_PX ||
                     delta.y.abs() > TOUCH_PAN_MIN_SCREEN_PX
                 {
+                    #[cfg(feature = "tracing")]
+                    let _span = tracing::info_span!(
+                        "TouchHandler::ScrollBegin",
+                        delta = ?delta,
+                        servo_profiling = true,
+                    );
                     touch_sequence.state = Panning {
                         velocity: Vector2D::new(delta.x, delta.y),
                     };
@@ -513,6 +527,12 @@ impl TouchHandler {
             },
             Panning { velocity } => {
                 if velocity.length().abs() >= FLING_MIN_SCREEN_PX {
+                    #[cfg(feature = "tracing")]
+                    let _span = tracing::info_span!(
+                        "TouchHandler::FlingStart",
+                        velocity = ?velocity,
+                        servo_profiling = true,
+                    );
                     // TODO: point != old. Not sure which one is better to take as cursor for flinging.
                     debug!(
                         "Transitioning to Fling. Cursor is {point:?}. Old cursor was {old:?}. \
@@ -534,6 +554,9 @@ impl TouchHandler {
                         TouchMoveAllowed::Prevented => touch_sequence.state = Finished,
                     }
                 } else {
+                    #[cfg(feature = "tracing")]
+                    let _span =
+                        tracing::info_span!("TouchHandler::ScrollEnd", servo_profiling = true,);
                     touch_sequence.state = Finished;
                 }
             },
