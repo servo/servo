@@ -16,6 +16,7 @@ use net_traits::request::{
     is_cors_safelisted_request_content_type,
 };
 use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming};
+use regex::Regex;
 use servo_config::pref;
 use servo_url::ServoUrl;
 
@@ -60,6 +61,42 @@ pub(super) fn hardware_concurrency() -> u64 {
     static CPUS: LazyLock<u64> = LazyLock::new(|| num_cpus::get().try_into().unwrap_or(1));
 
     *CPUS
+}
+
+/// <https://html.spec.whatwg.org/multipage/#safelisted-scheme>
+static SAFELISTED_SCHEMES: [&str; 24] = [
+    "bitcoin",
+    "ftp",
+    "ftps",
+    "geo",
+    "im",
+    "irc",
+    "ircs",
+    "magnet",
+    "mailto",
+    "matrix",
+    "mms",
+    "news",
+    "nntp",
+    "openpgp4fpr",
+    "sftp",
+    "sip",
+    "sms",
+    "smsto",
+    "ssh",
+    "tel",
+    "urn",
+    "webcal",
+    "wtai",
+    "xmpp",
+];
+
+/// Used in <https://html.spec.whatwg.org/multipage/#normalize-protocol-handler-parameters>
+fn matches_web_plus_protocol(scheme: &str) -> bool {
+    static WEB_PLUS_SCHEME_GRAMMAR: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r#"^web\+[a-z]+$"#).unwrap());
+
+    WEB_PLUS_SCHEME_GRAMMAR.is_match(scheme)
 }
 
 #[dom_struct]
@@ -171,6 +208,48 @@ impl Navigator {
 
     pub(crate) fn set_has_gamepad_gesture(&self, has_gamepad_gesture: bool) {
         self.has_gamepad_gesture.set(has_gamepad_gesture);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#normalize-protocol-handler-parameters>
+    fn normalize_protocol_handler_parameters(
+        &self,
+        scheme: DOMString,
+        url: USVString,
+    ) -> Fallible<(String, ServoUrl)> {
+        // Step 1. Set scheme to scheme, converted to ASCII lowercase.
+        let scheme = scheme.to_ascii_lowercase();
+        // Step 2. If scheme is neither a safelisted scheme nor
+        // a string starting with "web+" followed by one or more ASCII lower alphas, then throw a "SecurityError" DOMException.
+        if !SAFELISTED_SCHEMES.contains(&scheme.as_ref()) && !matches_web_plus_protocol(&scheme) {
+            return Err(Error::Security);
+        }
+        // Step 3. If url does not contain "%s", then throw a "SyntaxError" DOMException.
+        if !url.contains("%s") {
+            return Err(Error::Syntax(Some(
+                "Missing replacement string %s in URL".to_owned(),
+            )));
+        }
+        // Step 4. Let urlRecord be the result of encoding-parsing a URL given url, relative to environment.
+        let environment = self.global();
+        // Navigator is only exposed on Window, so this is safe to do
+        let window = environment.as_window();
+        let Ok(url) = window.Document().encoding_parse_a_url(&url) else {
+            // Step 5. If urlRecord is failure, then throw a "SyntaxError" DOMException.
+            return Err(Error::Syntax(Some("Cannot parse URL".to_owned())));
+        };
+        // Step 6. If urlRecord's scheme is not an HTTP(S) scheme or urlRecord's origin
+        // is not same origin with environment's origin, then throw a "SecurityError" DOMException.
+        if !matches!(url.scheme(), "http" | "https") {
+            return Err(Error::Security);
+        }
+        let environment_origin = environment.origin().immutable().clone();
+        if url.origin() != environment_origin {
+            return Err(Error::Security);
+        }
+        // Step 7. Assert: the result of Is url potentially trustworthy? given urlRecord is "Potentially Trustworthy".
+        assert!(url.is_potentially_trustworthy());
+        // Step 8. Return (scheme, urlRecord).
+        Ok((scheme, url))
     }
 }
 
@@ -436,6 +515,40 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     fn Servo(&self) -> DomRoot<ServoInternals> {
         self.servo_internals
             .or_init(|| ServoInternals::new(&self.global(), CanGc::note()))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-registerprotocolhandler>
+    fn RegisterProtocolHandler(&self, scheme: DOMString, url: USVString) -> Fallible<()> {
+        // Step 1. Let (normalizedScheme, normalizedURLString) be the result of
+        // running normalize protocol handler parameters with scheme, url, and this's relevant settings object.
+        let (_normalized_scheme, _normalized_url_string) =
+            self.normalize_protocol_handler_parameters(scheme, url)?;
+        // Step 2. In parallel: register a protocol handler for normalizedScheme and normalizedURLString.
+        // User agents may, within the constraints described, do whatever they like. A user agent could,
+        // for instance, prompt the user and offer the user the opportunity to add the site to a shortlist of handlers,
+        // or make the handlers their default, or cancel the request. User agents could also silently collect the information,
+        // providing it only when relevant to the user.
+        // User agents should keep track of which sites have registered handlers (even if the user has declined such registrations)
+        // so that the user is not repeatedly prompted with the same request.
+        // If the registerProtocolHandler() automation mode of this's relevant global object's associated Document is not "none",
+        // the user agent should first verify that it is in an automation context (see WebDriver's security considerations).
+        // The user agent should then bypass the above communication of information and gathering of user consent,
+        // and instead do the following based on the value of the registerProtocolHandler() automation mode:
+        //
+        // TODO
+        Ok(())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-unregisterprotocolhandler>
+    fn UnregisterProtocolHandler(&self, scheme: DOMString, url: USVString) -> Fallible<()> {
+        // Step 1. Let (normalizedScheme, normalizedURLString) be the result of
+        // running normalize protocol handler parameters with scheme, url, and this's relevant settings object.
+        let (_normalized_scheme, _normalized_url_string) =
+            self.normalize_protocol_handler_parameters(scheme, url)?;
+        // Step 2. In parallel: unregister the handler described by normalizedScheme and normalizedURLString.
+        //
+        // TODO
+        Ok(())
     }
 }
 
