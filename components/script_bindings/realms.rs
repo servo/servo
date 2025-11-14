@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use js::jsapi::{GetCurrentRealmOrNull, JSAutoRealm};
+use js::realm::CurrentRealm;
 
 use crate::DomTypes;
 use crate::interfaces::GlobalScopeHelpers;
@@ -24,6 +25,12 @@ impl AlreadyInRealm {
         unsafe {
             assert!(!GetCurrentRealmOrNull(*cx).is_null());
         }
+        AlreadyInRealm(())
+    }
+}
+
+impl<'a, 'b> From<&'a mut CurrentRealm<'b>> for AlreadyInRealm {
+    fn from(_: &'a mut CurrentRealm<'b>) -> AlreadyInRealm {
         AlreadyInRealm(())
     }
 }

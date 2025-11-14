@@ -25,7 +25,7 @@ use ipc_channel::ipc::IpcSender;
 use js::jsapi::JS_AddInterruptCallback;
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
-use js::rust::{HandleValue, MutableHandleValue, ParentRuntime};
+use js::rust::{CompileOptionsWrapper, HandleValue, MutableHandleValue, ParentRuntime};
 use mime::Mime;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
@@ -726,15 +726,10 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                 },
             };
 
-            let options = self
-                .runtime
-                .borrow()
-                .as_ref()
-                .unwrap()
-                .new_compile_options(url.as_str(), 1);
             #[allow(unsafe_code)]
             let mut cx =
                 unsafe { js::context::JSContext::from_ptr(js::rust::Runtime::get().unwrap()) };
+            let options = CompileOptionsWrapper::new(&cx, url.as_str(), 1);
             let result = js::rust::evaluate_script(
                 &mut cx,
                 self.reflector().get_jsobject(),

@@ -474,7 +474,7 @@ impl ModuleTree {
         let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
 
         let mut compile_options =
-            unsafe { CompileOptionsWrapper::new(*cx, url.as_str(), line_number as u32) };
+            unsafe { CompileOptionsWrapper::new_raw(*cx, url.as_str(), line_number as u32) };
         if let Some(introduction_type) = introduction_type {
             compile_options.set_introduction_type(introduction_type);
         }
