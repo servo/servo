@@ -121,6 +121,8 @@ impl Weighter<CacheKey, std::sync::Arc<Vec<CachedResource>>> for VectorWeighter 
 /// A simple memory cache.
 /// Elements will be evicted based on the cache heuristic. We weight elements
 /// by the number of entries per given url. We evict currently a whole url.
+/// The cache makes extensive use of `Arc::unwrap_or_clone or` and `Arc::into_inner`
+/// to modify the cached entries. This is ok because `CachedResource` are cheap to clone
 pub struct HttpCache {
     /// cached responses.
     entries:
@@ -784,7 +786,16 @@ impl HttpCache {
 
     fn invalidate_for_url(&self, url: &ServoUrl) {
         let entry_key = CacheKey::from_servo_url(url);
-        self.entries.remove(&entry_key);
+        if let Some(cached_resources_arc) = self.entries.peek(&entry_key) {
+            // We cannot take ownership of the element becasue we want to keep the cache lifetime of the element the same.
+            let mut cached_resources = std::sync::Arc::unwrap_or_clone(cached_resources_arc);
+            for cached_resource in cached_resources.iter_mut() {
+                cached_resource.expires = Duration::ZERO;
+            }
+            let _ = self
+                .entries
+                .replace(entry_key, std::sync::Arc::new(cached_resources), true);
+        }
     }
 
     /// Invalidation.
