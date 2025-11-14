@@ -13,9 +13,14 @@ import os
 import shutil
 import pathlib
 import subprocess
+import time
 from decimal import Decimal
+from http.client import RemoteDisconnected
+
 from selenium import webdriver
+from selenium.common import TimeoutException
 from selenium.webdriver.common.options import ArgOptions
+from urllib3.exceptions import ProtocolError
 
 WEBDRIVER_PORT = 7000
 SERVO_URL = f"http://127.0.0.1:{WEBDRIVER_PORT}"
@@ -41,9 +46,9 @@ def calculate_frame_rate():
     with open(file_name, "r") as f:
         lines = f.readlines()
         for line in range(len(lines)):
-            if "ToucHandler::FlingStart" in lines[line]:
+            if "TouchHandler::FlingStart" in lines[line]:
                 check_list = []
-            elif "ToucHandler::FlingEnd" in lines[line]:
+            elif "TouchHandler::FlingEnd" in lines[line]:
                 break
             else:
                 check_list.append(lines[line])
@@ -56,34 +61,63 @@ def calculate_frame_rate():
     end_time = matching_lines[-1].split()[5].split(":")[0]
     interval_time = Decimal(end_time) - Decimal(start_time)
     shutil.rmtree(target_path)
-    if round(float((len(matching_lines) - 1) / interval_time), 2) > 120.00:
-        return 120.00
-    else:
-        return round(float((len(matching_lines) - 1) / interval_time), 2)
+    framerate = round(float((len(matching_lines) - 1) / interval_time), 2)
+    if framerate > 120:
+        print(f"Framerate {framerate} is unexpectedly higher than 120")
+    return min(framerate, 120.00)
 
 
-def setup_hdc_forward():
+def create_driver(timeout: int = 10) -> webdriver.Remote:
+    print("Trying to create driver")
+    options = ArgOptions()
+    options.set_capability("browserName", "servo")
+    driver = None
+    start_time = time.time()
+    while driver is None and time.time() - start_time < timeout:
+        try:
+            driver = webdriver.Remote(command_executor=SERVO_URL, options=options)
+        except (ConnectionError, ProtocolError):
+            time.sleep(0.2)
+        except Exception as e:
+            print(f"Unexpected exception when creating webdriver: {e}, {type(e)}")
+            time.sleep(1)
+    print(f"Established Webdriver connection in {time.time() - start_time}s", )
+    return driver
+
+def setup_hdc_forward(timeout: int = 5):
     """
     set hdc forward
     :return: If successful, return driver; If failed, return False
     """
     for v in ("HTTP_PROXY", "http_proxy", "HTTPS_PROXY", "https_proxy"):
         os.environ.pop(v, None)
-    try:
-        cmd = ["hdc", "fport", f"tcp:{WEBDRIVER_PORT}", "tcp:7000"]
-        print(f"Setting up HDC port forwarding: {' '.join(cmd)}")
-        subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-        print(f"HDC port forwarding established on port {WEBDRIVER_PORT}")
-        options = ArgOptions()
-        options.set_capability("browserName", "servo")
-        driver = webdriver.Remote(command_executor=SERVO_URL, options=options)
-        return driver
-    except FileNotFoundError:
-        print("HDC command not found. Make sure OHOS SDK is installed and hdc is in PATH.")
-        return False
-    except subprocess.TimeoutExpired:
-        print(f"HDC port forwarding timed out on port {WEBDRIVER_PORT}")
-        return False
-    except Exception as e:
-        print(f"failed to setup HDC forwarding: {e}")
-        return False
+    cmd = ["hdc", "fport", "ls"]
+    output = subprocess.check_output(cmd, encoding="utf-8")
+    if f"tcp:{WEBDRIVER_PORT} tcp:7000" in output:
+        print("HDC port forwarding already established - skipping")
+        return
+
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        try:
+            cmd = ["hdc", "fport", f"tcp:{WEBDRIVER_PORT}", "tcp:7000"]
+            print(f"Setting up HDC port forwarding: {' '.join(cmd)}")
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            # The port forwarding can fail if servo didn't start yet.
+            if result.stdout.startswith("[Fail]TCP Port listen failed"):
+                time.sleep(0.2)
+                continue
+            elif result.stdout.startswith("[Fail]"):
+                raise RuntimeError(f"HDC port forwarding failed with: {result.stdout}")
+            print(f"HDC port forwarding established on port {WEBDRIVER_PORT}")
+            return
+        except FileNotFoundError:
+            print("HDC command not found. Make sure OHOS SDK is installed and hdc is in PATH.")
+            raise
+        except subprocess.TimeoutExpired:
+            print(f"HDC port forwarding timed out on port {WEBDRIVER_PORT}")
+            raise
+        except Exception as e:
+            print(f"failed to setup HDC forwarding: {e}")
+            raise
+    raise TimeoutError("HDC port forwarding timed out")

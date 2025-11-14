@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import os.path
 # Copyright 2025 The Servo Project Developers. See the COPYRIGHT
 # file at the top-level directory of this distribution.
 #
@@ -12,87 +12,105 @@
 import sys
 import time
 import subprocess
+
+from selenium.common import NoSuchWindowException, NoSuchElementException
+from selenium.webdriver.support import expected_conditions
+from selenium.webdriver.support.wait import WebDriverWait
+
 import common_function_for_servo_test
 from selenium.webdriver.common.by import By
 
 
 def operator():
-    try:
-        # Step 1. Open mossel
-        cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
-        subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-        cmd = [
-            "hdc",
-            "shell",
-            "aa start -a EntryAbility -b org.servo.servo -U https://m.huaweimossel.com --psn --webdriver",
-        ]
-        subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-        time.sleep(10)
+    # Step 1. Open mossel
+    cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
+    subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    cmd = [
+        "hdc",
+        "shell",
+        "aa start -a EntryAbility -b org.servo.servo -U https://m.huaweimossel.com --psn --webdriver",
+    ]
+    subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    common_function_for_servo_test.setup_hdc_forward()
+    driver = common_function_for_servo_test.create_driver()
+    popup_css_selector = "#app > uni-app > uni-page > uni-page-wrapper > uni-page-body > uni-view > uni-view:nth-child(5) > uni-view.m-popup.m-popup_transition.m-mask_show.m-mask_fade.m-popup_push.m-fixed_mid > uni-view > uni-view > uni-button:nth-child(1)"
+    print("Waiting for popup to appear ...")
+    # Wait for the pop-up
+    WebDriverWait(driver, 20, ignored_exceptions=[NoSuchWindowException, NoSuchElementException]).until(
+        expected_conditions.presence_of_element_located(
+           (By.CSS_SELECTOR, popup_css_selector)
+        )
+    )
+    time.sleep(1)
 
-        driver = common_function_for_servo_test.setup_hdc_forward()
-        if driver is not False:
-            # Step 2. Click to close the pop-up
-            birthday_ = driver.find_element(
-                By.CSS_SELECTOR,
-                "#app > uni-app > uni-page > uni-page-wrapper > uni-page-body > uni-view > uni-view:nth-child(5) > uni-view.m-popup.m-popup_transition.m-mask_show.m-mask_fade.m-popup_push.m-fixed_mid > uni-view > uni-view > uni-button:nth-child(1)",
-            )
-            birthday_.click()
-            time.sleep(1)
+    # Step 2. Click to close the pop-up
+    birthday_ = driver.find_element(
+        By.CSS_SELECTOR, popup_css_selector
+    )
+    birthday_.click()
+    print("Closed the popup")
 
-            # Step 3. Click on 'Birthday Benefits'
-            cmd = ["hdc", "shell", "uinput -T -m 770 2000 770 930"]
-            subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-            time.sleep(5)
-            birthday_ = driver.find_element(
-                By.CSS_SELECTOR,
-                "#app > uni-app > uni-page > uni-page-wrapper > uni-page-body > uni-view > uni-view.idx-swiper.m-bgWhite.m-main > uni-scroll-view:nth-child(1) > div > div > div > uni-view:nth-child(4) > uni-view:nth-child(2)",
-            )
-            birthday_.click()
-            time.sleep(10)
+    driver.implicitly_wait(10)
+    time.sleep(5)
+    # Step 3. Click on 'Birthday Benefits'
+    print("Scrolling down to 'Birthday Benefits'")
+    cmd = ["hdc", "shell", "uinput -T -m 770 2000 770 930"]
+    subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    time.sleep(5)
+    print("Searching for 'Birthday Benefits' element")
+    birthday_ = driver.find_element(
+        By.CSS_SELECTOR,
+        "#app > uni-app > uni-page > uni-page-wrapper > uni-page-body > uni-view > uni-view.idx-swiper.m-bgWhite.m-main > uni-scroll-view:nth-child(1) > div > div > div > uni-view:nth-child(4) > uni-view:nth-child(2)",
+    )
+    print("Clicking 'Birthday Benefits' ...")
+    birthday_.click()
 
-            # Step 4. Catch trace
-            cmd = [
-                "hdc",
-                "shell",
-                "hitrace -b 81920 -t 10 nweb ace app ohos zimage zmedia zcamera zaudio ability distributeddatamgr graphic sched freq irq sync mmc rpc workq idle disk pagecache memreclaim binder -o /data/local/tmp/my_trace.html",
-            ]
-            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            time.sleep(4)
+    print("Waiting for page to finish loading")
 
-            cmd = ["hdc", "shell", "uinput -T -m 770 2000 770 770 30"]
-            subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-            time.sleep(20)
+    WebDriverWait(driver, 10).until(
+        lambda driver: driver.execute_script("return document.readyState")
+                       == "complete"
+    )
+    print("document.readyState == complete")
+    # Todo: Inspect the webpage and find better mechanism of waiting for the page to be fully loaded.
+    print("Waiting another 10 seconds ...")
+    time.sleep(10)
 
-            if process.poll() is not None:
-                stdout, stderr = process.communicate()
-                print("The child process has completed, and the output is as follows")
-                print(stdout.decode())
-                if stderr:
-                    print("Error message:")
-                    print(stderr.decode())
-            else:
-                print("The child process is still running ..")
+    # Step 4. Trace
+    print("Starting hitrace!")
+    cmd = [
+        "hdc",
+        "shell",
+        "hitrace -b 81920 -t 10 ace app ohos ability graphic -o /data/local/tmp/my_trace.html",
+    ]
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    time.sleep(5)
 
-            frame_rate = common_function_for_servo_test.calculate_frame_rate()
-            print(f"framerate is {frame_rate}")
+    print("Swiping!")
+    cmd = ["hdc", "shell", "uinput -T -m 770 2000 770 770 30"]
+    subprocess.run(cmd, capture_output=True, text=True, timeout=2)
 
-            if frame_rate >= 115:
-                cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
-                subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-                return True
-            else:
-                cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
-                subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-                return False
-        else:
-            return False
-    except Exception as e:
-        print(f"something error:{e}")
-        return False
+    process.wait(timeout=15)
+    stdout, stderr = process.communicate()
+    print("hitrace command complete. Output:")
+    print(stdout.decode())
+    if stderr:
+        print("Error message:")
+        print(stderr.decode())
+
+    frame_rate = common_function_for_servo_test.calculate_frame_rate()
+    print(f"framerate is {frame_rate}")
+
+    cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
+    subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+
+    if frame_rate < 115:
+        raise RuntimeError(f"Actual frame rate is {frame_rate}, expected >= 115")
 
 
 if __name__ == "__main__":
-    result = operator()
-    print(result)
-    if not result:
+    try:
+        operator()
+    except Exception as e:
+        print(f"Scenario test {os.path.basename(__file__)} failed with error: {e} (exception: {type(e)})")
         sys.exit(1)
