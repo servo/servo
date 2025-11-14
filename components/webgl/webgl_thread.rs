@@ -6,7 +6,6 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::num::NonZeroU32;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
 use std::{slice, thread};
 
 use base::Epoch;
@@ -28,7 +27,7 @@ use canvas_traits::webgl::{
 };
 use compositing_traits::{
     CrossProcessCompositorApi, PainterSurfmanDetailsMap, SerializableImageData,
-    WebRenderExternalImageRegistry, WebRenderImageHandlerType,
+    WebRenderExternalImageIdManager, WebRenderImageHandlerType,
 };
 use euclid::default::Size2D;
 use glow::{
@@ -216,9 +215,9 @@ pub(crate) struct WebGLThread {
     cached_context_info: FxHashMap<WebGLContextId, WebGLContextInfo>,
     /// Current bound context.
     bound_context_id: Option<WebGLContextId>,
-    /// List of registered webrender external images.
-    /// We use it to get an unique ID for new WebGLContexts.
-    external_images: Arc<Mutex<WebRenderExternalImageRegistry>>,
+    /// A [`WebRenderExternalImageIdManager`] used to generate new [`ExternalImageId`]s for our
+    /// WebGL contexts.
+    external_image_id_manager: WebRenderExternalImageIdManager,
     /// The receiver that will be used for processing WebGL messages.
     receiver: RoutedReceiver<WebGLMsg>,
     /// The receiver that should be used to send WebGL messages for processing.
@@ -236,13 +235,13 @@ pub(crate) struct WebGLThread {
 /// The data required to initialize an instance of the WebGLThread type.
 pub(crate) struct WebGLThreadInit {
     pub compositor_api: CrossProcessCompositorApi,
-    pub external_images: Arc<Mutex<WebRenderExternalImageRegistry>>,
+    pub external_image_id_manager: WebRenderExternalImageIdManager,
     pub sender: WebGLSender<WebGLMsg>,
     pub receiver: WebGLReceiver<WebGLMsg>,
     pub webrender_swap_chains: SwapChains<WebGLContextId, Device>,
+    pub painter_surfman_details_map: PainterSurfmanDetailsMap,
     #[cfg(feature = "webxr")]
     pub webxr_init: WebXRBridgeInit,
-    pub painter_surfman_details_map: PainterSurfmanDetailsMap,
 }
 
 // A size at which it should be safe to create GL contexts
@@ -253,13 +252,13 @@ impl WebGLThread {
     pub(crate) fn new(
         WebGLThreadInit {
             compositor_api,
-            external_images,
+            external_image_id_manager: external_images,
             sender,
             receiver,
             webrender_swap_chains,
+            painter_surfman_details_map,
             #[cfg(feature = "webxr")]
             webxr_init,
-            painter_surfman_details_map,
         }: WebGLThreadInit,
     ) -> Self {
         WebGLThread {
@@ -268,7 +267,7 @@ impl WebGLThread {
             contexts: Default::default(),
             cached_context_info: Default::default(),
             bound_context_id: None,
-            external_images,
+            external_image_id_manager: external_images,
             sender,
             receiver: receiver.route_preserving_errors(),
             webrender_swap_chains,
@@ -551,26 +550,24 @@ impl WebGLThread {
             .make_context_current(&ctx)
             .map_err(|err| format!("Failed to make new context current: {:?}", err))?;
 
-        let id = WebGLContextId(
-            self.external_images
-                .lock()
-                .expect("Lock poisoned?")
+        let context_id = WebGLContextId(
+            self.external_image_id_manager
                 .next_id(WebRenderImageHandlerType::WebGl)
                 .0,
         );
 
         self.webrender_swap_chains
-            .create_attached_swap_chain(id, &*device, &mut ctx, surface_access)
+            .create_attached_swap_chain(context_id, &*device, &mut ctx, surface_access)
             .map_err(|err| format!("Failed to create swap chain: {:?}", err))?;
 
         let swap_chain = self
             .webrender_swap_chains
-            .get(id)
+            .get(context_id)
             .expect("Failed to get the swap chain");
 
         debug!(
             "Created webgl context {:?}/{:?}",
-            id,
+            context_id,
             device.context_id(&ctx),
         );
 
@@ -639,7 +636,7 @@ impl WebGLThread {
         debug_assert_eq!(unsafe { gl.get_error() }, gl::NO_ERROR);
 
         self.contexts.insert(
-            id,
+            context_id,
             GLContextData {
                 ctx,
                 device,
@@ -650,7 +647,7 @@ impl WebGLThread {
         );
 
         self.cached_context_info.insert(
-            id,
+            context_id,
             WebGLContextInfo {
                 image_key: None,
                 size: size.to_i32(),
@@ -658,7 +655,7 @@ impl WebGLThread {
             },
         );
 
-        Ok((id, limits))
+        Ok((context_id, limits))
     }
 
     /// Resizes a WebGLContext

@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex};
 
 use base::id::PipelineId;
 use compositing_traits::{
-    CrossProcessCompositorApi, WebRenderExternalImageRegistry, WebRenderImageHandlerType,
+    CrossProcessCompositorApi, WebRenderExternalImageIdManager, WebRenderImageHandlerType,
 };
 use ipc_channel::ipc::{IpcReceiver, IpcSender, IpcSharedMemory};
 use log::{info, warn};
@@ -105,7 +105,7 @@ pub(crate) struct WGPU {
     /// (this is also reused for invalidation of command buffers)
     error_command_encoders: FxHashMap<id::CommandEncoderId, String>,
     pub(crate) compositor_api: CrossProcessCompositorApi,
-    pub(crate) external_images: Arc<Mutex<WebRenderExternalImageRegistry>>,
+    pub(crate) webrender_external_image_id_manager: WebRenderExternalImageIdManager,
     pub(crate) wgpu_image_map: WGPUImageMap,
     /// Provides access to poller thread
     pub(crate) poller: Poller,
@@ -121,7 +121,7 @@ impl WGPU {
         sender: IpcSender<WebGPURequest>,
         script_sender: IpcSender<WebGPUMsg>,
         compositor_api: CrossProcessCompositorApi,
-        external_images: Arc<Mutex<WebRenderExternalImageRegistry>>,
+        webrender_external_image_id_manager: WebRenderExternalImageIdManager,
         wgpu_image_map: WGPUImageMap,
     ) -> Self {
         let backend_pref = pref!(dom_webgpu_wgpu_backend);
@@ -150,7 +150,7 @@ impl WGPU {
             devices: Arc::new(Mutex::new(FxHashMap::default())),
             error_command_encoders: FxHashMap::default(),
             compositor_api,
-            external_images,
+            webrender_external_image_id_manager,
             wgpu_image_map,
             compute_passes: FxHashMap::default(),
             render_passes: FxHashMap::default(),
@@ -498,9 +498,7 @@ impl WGPU {
                         sender,
                     } => {
                         let id = self
-                            .external_images
-                            .lock()
-                            .expect("Lock poisoned?")
+                            .webrender_external_image_id_manager
                             .next_id(WebRenderImageHandlerType::WebGpu);
                         let context_id = WebGPUContextId(id.0);
 
@@ -543,9 +541,7 @@ impl WGPU {
                     },
                     WebGPURequest::DestroyContext { context_id } => {
                         self.destroy_context(context_id);
-                        self.external_images
-                            .lock()
-                            .expect("Lock poisoned?")
+                        self.webrender_external_image_id_manager
                             .remove(&ExternalImageId(context_id.0));
                     },
                     WebGPURequest::CreateTexture {

@@ -91,7 +91,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::marker::PhantomData;
 use std::mem::replace;
 use std::rc::{Rc, Weak};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::{process, thread};
 
@@ -114,7 +114,7 @@ use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use canvas_traits::webgl::WebGLThreads;
 use compositing_traits::{
     CompositorMsg, CompositorProxy, PipelineExitSource, SendableFrameTree,
-    WebRenderExternalImageRegistry,
+    WebRenderExternalImageIdManager,
 };
 use constellation_traits::{
     AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, DocumentState,
@@ -231,7 +231,7 @@ struct MessagePortInfo {
 /// WebRender related objects required by WebGPU threads
 struct WebRenderWGPU {
     /// List of Webrender external images
-    webrender_external_images: Arc<Mutex<WebRenderExternalImageRegistry>>,
+    webrender_external_image_id_manager: WebRenderExternalImageIdManager,
 
     /// WebGPU data that supplied to Webrender for rendering
     wgpu_image_map: WGPUImageMap,
@@ -537,8 +537,8 @@ pub struct InitialConstellationState {
     /// A channel to the memory profiler thread.
     pub mem_profiler_chan: mem::ProfilerChan,
 
-    /// WebRender external images
-    pub webrender_external_images: Arc<Mutex<WebRenderExternalImageRegistry>>,
+    /// A [`WebRenderExternalImageIdManager`] used to lazily start up the WebGPU threads.
+    pub webrender_external_image_id_manager: WebRenderExternalImageIdManager,
 
     /// Entry point to create and get channels to a WebGLThread.
     pub webgl_threads: Option<WebGLThreads>,
@@ -657,7 +657,7 @@ where
 
                 #[cfg(feature = "webgpu")]
                 let webrender_wgpu = WebRenderWGPU {
-                    webrender_external_images: state.webrender_external_images,
+                    webrender_external_image_id_manager: state.webrender_external_image_id_manager,
                     wgpu_image_map: state.wgpu_image_map,
                 };
 
@@ -2009,7 +2009,9 @@ where
         let webgpu_chan = match browsing_context_group.webgpus.entry(host) {
             Entry::Vacant(v) => start_webgpu_thread(
                 self.compositor_proxy.cross_process_compositor_api.clone(),
-                self.webrender_wgpu.webrender_external_images.clone(),
+                self.webrender_wgpu
+                    .webrender_external_image_id_manager
+                    .clone(),
                 self.webrender_wgpu.wgpu_image_map.clone(),
             )
             .map(|webgpu| {

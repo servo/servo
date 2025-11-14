@@ -7,11 +7,11 @@
 
 mod media_thread;
 
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 use compositing_traits::{
     ExternalImageSource, WebRenderExternalImageApi, WebRenderExternalImageHandlers,
-    WebRenderExternalImageRegistry, WebRenderImageHandlerType,
+    WebRenderImageHandlerType,
 };
 use euclid::default::Size2D;
 use ipc_channel::ipc::{IpcReceiver, IpcSender, channel};
@@ -142,10 +142,7 @@ impl WindowGLContext {
         window_gl_context.api = api;
     }
 
-    pub fn initialize_image_handler(
-        external_image_handlers: &mut WebRenderExternalImageHandlers,
-        external_images: Arc<Mutex<WebRenderExternalImageRegistry>>,
-    ) {
+    pub fn initialize_image_handler(external_image_handlers: &mut WebRenderExternalImageHandlers) {
         if !pref!(media_glvideo_enabled) {
             return;
         }
@@ -162,7 +159,7 @@ impl WindowGLContext {
             return;
         }
 
-        let thread_sender = GLPlayerThread::start(external_images);
+        let thread_sender = GLPlayerThread::start(external_image_handlers.id_manager());
         let image_handler = Box::new(GLPlayerExternalImages::new(thread_sender.clone()));
         external_image_handlers.set_handler(image_handler, WebRenderImageHandlerType::Media);
         window_gl_context.glplayer_thread_sender = Some(thread_sender);

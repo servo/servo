@@ -13,6 +13,7 @@ use crossbeam_channel::Sender;
 use embedder_traits::{AnimationState, EventLoopWaker};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
+use parking_lot::RwLock;
 use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
 use strum_macros::IntoStaticStr;
@@ -522,6 +523,7 @@ pub trait WebRenderExternalImageApi {
 }
 
 /// Type of WebRender External Image Handler.
+#[derive(Clone, Copy)]
 pub enum WebRenderImageHandlerType {
     WebGl,
     Media,
@@ -532,27 +534,31 @@ pub enum WebRenderImageHandlerType {
 /// consumers (WebGL, Media, WebGPU).
 /// It ensures that external image identifiers are unique.
 #[derive(Default)]
-pub struct WebRenderExternalImageRegistry {
+struct WebRenderExternalImageIdManagerInner {
     /// Map of all generated external images.
     external_images: FxHashMap<ExternalImageId, WebRenderImageHandlerType>,
     /// Id generator for the next external image identifier.
     next_image_id: u64,
 }
 
-impl WebRenderExternalImageRegistry {
+#[derive(Default, Clone)]
+pub struct WebRenderExternalImageIdManager(Arc<RwLock<WebRenderExternalImageIdManagerInner>>);
+
+impl WebRenderExternalImageIdManager {
     pub fn next_id(&mut self, handler_type: WebRenderImageHandlerType) -> ExternalImageId {
-        self.next_image_id += 1;
-        let key = ExternalImageId(self.next_image_id);
-        self.external_images.insert(key, handler_type);
+        let mut inner = self.0.write();
+        inner.next_image_id += 1;
+        let key = ExternalImageId(inner.next_image_id);
+        inner.external_images.insert(key, handler_type);
         key
     }
 
     pub fn remove(&mut self, key: &ExternalImageId) {
-        self.external_images.remove(key);
+        self.0.write().external_images.remove(key);
     }
 
-    pub fn get(&self, key: &ExternalImageId) -> Option<&WebRenderImageHandlerType> {
-        self.external_images.get(key)
+    pub fn get(&self, key: &ExternalImageId) -> Option<WebRenderImageHandlerType> {
+        self.0.read().external_images.get(key).cloned()
     }
 }
 
@@ -564,22 +570,24 @@ pub struct WebRenderExternalImageHandlers {
     media_handler: Option<Box<dyn WebRenderExternalImageApi>>,
     /// WebGPU handler.
     webgpu_handler: Option<Box<dyn WebRenderExternalImageApi>>,
-    /// WebRender external images.
-    external_images: Arc<Mutex<WebRenderExternalImageRegistry>>,
+    /// A [`WebRenderExternalImageIdManager`] responsible for creating new [`ExternalImageId`]s.
+    /// This is shared with the WebGL, WebGPU, and hardware-accelerated media threads and
+    /// all other instances of [`WebRenderExternalImageHandlers`] -- one per WebRender instance.
+    id_manager: WebRenderExternalImageIdManager,
 }
 
 impl WebRenderExternalImageHandlers {
-    pub fn new() -> (Self, Arc<Mutex<WebRenderExternalImageRegistry>>) {
-        let external_images = Arc::new(Mutex::new(WebRenderExternalImageRegistry::default()));
-        (
-            Self {
-                webgl_handler: None,
-                media_handler: None,
-                webgpu_handler: None,
-                external_images: external_images.clone(),
-            },
-            external_images,
-        )
+    pub fn new(id_manager: WebRenderExternalImageIdManager) -> Self {
+        Self {
+            webgl_handler: Default::default(),
+            media_handler: Default::default(),
+            webgpu_handler: Default::default(),
+            id_manager,
+        }
+    }
+
+    pub fn id_manager(&self) -> WebRenderExternalImageIdManager {
+        self.id_manager.clone()
     }
 
     pub fn set_handler(
@@ -606,8 +614,8 @@ impl ExternalImageHandler for WebRenderExternalImageHandlers {
         _channel_index: u8,
         _is_composited: bool,
     ) -> ExternalImage<'_> {
-        let external_images = self.external_images.lock().unwrap();
-        let handler_type = external_images
+        let handler_type = self
+            .id_manager()
             .get(&key)
             .expect("Tried to get unknown external image");
         match handler_type {
@@ -646,8 +654,8 @@ impl ExternalImageHandler for WebRenderExternalImageHandlers {
     /// Unlock the external image. The WR should not read the image
     /// content after this call.
     fn unlock(&mut self, key: ExternalImageId, _channel_index: u8) {
-        let external_images = self.external_images.lock().unwrap();
-        let handler_type = external_images
+        let handler_type = self
+            .id_manager()
             .get(&key)
             .expect("Tried to get unknown external image");
         match handler_type {

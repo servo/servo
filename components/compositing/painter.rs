@@ -7,28 +7,25 @@ use std::collections::hash_map::Entry;
 use std::iter::once;
 use std::path::PathBuf;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PainterId, PipelineId, WebViewId};
-use canvas_traits::webgl::WebGLThreads;
 use compositing_traits::display_list::{CompositorDisplayListInfo, ScrollType};
 use compositing_traits::largest_contentful_paint_candidate::LCPCandidate;
 use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::viewport_description::ViewportDescription;
 use compositing_traits::{
-    CompositorProxy, ImageUpdate, PainterSurfmanDetailsMap, PipelineExitSource, SendableFrameTree,
-    WebRenderExternalImageHandlers, WebRenderExternalImageRegistry, WebRenderImageHandlerType,
-    WebViewTrait,
+    CompositorProxy, ImageUpdate, PipelineExitSource, SendableFrameTree,
+    WebRenderExternalImageHandlers, WebRenderImageHandlerType, WebViewTrait,
 };
 use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{
-    CompositorHitTestResult, EventLoopWaker, InputEvent, InputEventAndId, InputEventId,
-    InputEventResult, RefreshDriver, ScreenshotCaptureError, Scroll, ViewportDetails, WebViewPoint,
-    WebViewRect,
+    CompositorHitTestResult, InputEvent, InputEventAndId, InputEventId, InputEventResult,
+    RefreshDriver, ScreenshotCaptureError, Scroll, ViewportDetails, WebViewPoint, WebViewRect,
 };
 use euclid::{Point2D, Scale};
 use gleam::gl::RENDERER;
@@ -43,7 +40,6 @@ use servo_config::pref;
 use servo_geometry::DeviceIndependentPixel;
 use smallvec::SmallVec;
 use style_traits::CSSPixel;
-use webgl::WebGLComm;
 use webrender::{
     MemoryReport, ONE_TIME_USAGE_HINT, RenderApi, ShaderPrecacheFlags, Transaction, UploadMethod,
 };
@@ -60,11 +56,13 @@ use webrender_api::{
 };
 use wr_malloc_size_of::MallocSizeOfOps;
 
+use crate::IOCompositor;
 use crate::compositor::{RepaintReason, WebRenderDebugOption};
 use crate::largest_contentful_paint_calculator::LargestContentfulPaintCalculator;
 use crate::refresh_driver::{AnimationRefreshDriverObserver, BaseRefreshDriver};
 use crate::render_notifier::RenderNotifier;
 use crate::screenshot::ScreenshotTaker;
+use crate::webrender_external_images::WebGLExternalImages;
 use crate::webview_manager::WebViewManager;
 use crate::webview_renderer::{PinchZoomResult, ScrollResult, UnknownWebView, WebViewRenderer};
 
@@ -123,16 +121,6 @@ pub(crate) struct Painter {
     /// `ScriptThread` display list construction.
     pub(crate) frame_delayer: FrameDelayer,
 
-    /// The WebRender image registry from this renderer.
-    pub(crate) webrender_external_images: Arc<Mutex<WebRenderExternalImageRegistry>>,
-
-    #[cfg(feature = "webxr")]
-    /// Some XR devices want to run on the main thread.
-    pub(crate) webxr_main_thread: webxr::MainThreadRegistry,
-
-    /// The [`WebGLThreads`] for this renderer.
-    pub(crate) webgl_threads: WebGLThreads,
-
     #[cfg(feature = "webgpu")]
     /// The WebGPU image map for this renderer.
     pub(crate) webgpu_image_map: webgpu::canvas_context::WGPUImageMap,
@@ -156,12 +144,9 @@ impl Painter {
     pub(crate) fn new(
         rendering_context: Rc<dyn RenderingContext>,
         compositor_proxy: CompositorProxy,
-        event_loop_waker: Box<dyn EventLoopWaker>,
         refresh_driver: Option<Rc<dyn RefreshDriver>>,
         shader_path: Option<PathBuf>,
-        embedder_to_constellation_sender: Sender<EmbedderToConstellationMessage>,
-        painter_surfman_details_map: PainterSurfmanDetailsMap,
-        #[cfg(feature = "webxr")] webxr_registry: Box<dyn webxr::WebXrRegistry>,
+        compositor: &IOCompositor,
     ) -> Self {
         let webrender_gl = rendering_context.gleam_gl_api();
 
@@ -171,34 +156,15 @@ impl Painter {
         }
         debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR,);
 
-        let (external_image_handlers, webrender_external_images) =
-            WebRenderExternalImageHandlers::new();
-        let mut external_image_handlers = Box::new(external_image_handlers);
+        let id_manager = compositor.webrender_external_image_id_manager();
+        let mut external_image_handlers = Box::new(WebRenderExternalImageHandlers::new(id_manager));
 
-        let WebGLComm {
-            webgl_threads,
-            #[cfg(feature = "webxr")]
-            webxr_layer_grand_manager,
-            image_handler,
-        } = WebGLComm::new(
+        // Set WebRender external image handler for WebGL textures.
+        let image_handler = Box::new(WebGLExternalImages::new(
             rendering_context.clone(),
-            compositor_proxy.cross_process_compositor_api.clone(),
-            webrender_external_images.clone(),
-            painter_surfman_details_map,
-        );
-
-        // Set webrender external image handler for WebGL textures
+            compositor.swap_chains.clone(),
+        ));
         external_image_handlers.set_handler(image_handler, WebRenderImageHandlerType::WebGl);
-
-        // Create the WebXR main thread
-        #[cfg(feature = "webxr")]
-        let mut webxr_main_thread =
-            webxr::MainThreadRegistry::new(event_loop_waker.clone(), webxr_layer_grand_manager)
-                .expect("Failed to create WebXR device registry");
-        #[cfg(feature = "webxr")]
-        if pref!(dom_webxr_enabled) {
-            webxr_registry.register(&mut webxr_main_thread);
-        }
 
         #[cfg(feature = "webgpu")]
         let webgpu_image_map = {
@@ -211,12 +177,13 @@ impl Painter {
             webgpu_image_map
         };
 
-        WindowGLContext::initialize_image_handler(
-            &mut external_image_handlers,
-            webrender_external_images.clone(),
-        );
+        WindowGLContext::initialize_image_handler(&mut external_image_handlers);
 
-        let refresh_driver = Rc::new(BaseRefreshDriver::new(event_loop_waker, refresh_driver));
+        let embedder_to_constellation_sender = compositor.embedder_to_constellation_sender.clone();
+        let refresh_driver = Rc::new(BaseRefreshDriver::new(
+            compositor.event_loop_waker.clone_box(),
+            refresh_driver,
+        ));
         let animation_refresh_driver_observer = Rc::new(AnimationRefreshDriverObserver::new(
             embedder_to_constellation_sender.clone(),
         ));
@@ -308,10 +275,6 @@ impl Painter {
             webrender_gl,
             last_mouse_move_position: None,
             frame_delayer: Default::default(),
-            webrender_external_images,
-            webgl_threads,
-            #[cfg(feature = "webxr")]
-            webxr_main_thread,
             #[cfg(feature = "webgpu")]
             webgpu_image_map,
             lcp_calculator: LargestContentfulPaintCalculator::new(),
@@ -322,10 +285,6 @@ impl Painter {
     }
 
     pub(crate) fn perform_updates(&mut self) {
-        #[cfg(feature = "webxr")]
-        // Run the WebXR main thread
-        self.webxr_main_thread.run_one_frame();
-
         // The WebXR thread may make a different context current
         if let Err(err) = self.rendering_context.make_current() {
             warn!("Failed to make the rendering context current: {:?}", err);

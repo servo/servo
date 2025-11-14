@@ -7,23 +7,22 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::create_dir_all;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use base::generic_channel::RoutedReceiver;
 use base::id::{PainterId, WebViewId};
 use bitflags::bitflags;
-use canvas_traits::webgl::WebGLThreads;
+use canvas_traits::webgl::{WebGLContextId, WebGLThreads};
 use compositing_traits::{
-    CompositorMsg, PainterSurfmanDetails, PainterSurfmanDetailsMap, WebRenderExternalImageRegistry,
-    WebViewTrait,
+    CompositorMsg, PainterSurfmanDetails, PainterSurfmanDetailsMap,
+    WebRenderExternalImageIdManager, WebViewTrait,
 };
 use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{
-    InputEventAndId, InputEventId, InputEventResult, ScreenshotCaptureError, Scroll, ShutdownState,
-    ViewportDetails, WebViewPoint, WebViewRect,
+    EventLoopWaker, InputEventAndId, InputEventId, InputEventResult, ScreenshotCaptureError,
+    Scroll, ShutdownState, ViewportDetails, WebViewPoint, WebViewRect,
 };
 use euclid::{Scale, Size2D};
 use image::RgbaImage;
@@ -36,6 +35,9 @@ use profile_traits::path;
 use profile_traits::time::{self as profile_time};
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::CSSPixel;
+use surfman::Device;
+use surfman::chains::SwapChains;
+use webgl::WebGLComm;
 use webrender::{CaptureBits, MemoryReport};
 use webrender_api::units::{DevicePixel, DevicePoint, DeviceRect};
 
@@ -57,6 +59,10 @@ pub struct IOCompositor {
     /// a single [`RenderingContext`].
     painters: Vec<Rc<RefCell<Painter>>>,
 
+    /// An [`EventLoopWaker`] used to wake up the main embedder event loop when the renderer needs
+    /// to run.
+    pub(crate) event_loop_waker: Box<dyn EventLoopWaker>,
+
     /// Tracks whether we are in the process of shutting down, or have shut down and should close
     /// the compositor. This is shared with the `Servo` instance.
     shutdown_state: Rc<Cell<ShutdownState>>,
@@ -67,16 +73,29 @@ pub struct IOCompositor {
     /// The channel on which messages can be sent to the constellation.
     pub(crate) embedder_to_constellation_sender: Sender<EmbedderToConstellationMessage>,
 
+    /// The [`WebRenderExternalImageIdManager`] used to generate new `ExternalImageId`s.
+    webrender_external_image_id_manager: WebRenderExternalImageIdManager,
+
+    /// A hashmap of painter ids to the surfman types (like Device, Adapter) that
+    /// are specific to that painter.
+    pub(crate) painter_surfman_details_map: PainterSurfmanDetailsMap,
+
+    /// The [`WebGLThreads`] for this renderer.
+    webgl_threads: WebGLThreads,
+
+    /// The shared [`SwapChains`] used by [`WebGLThreads`] for this renderer.
+    pub(crate) swap_chains: SwapChains<WebGLContextId, Device>,
+
+    #[cfg(feature = "webxr")]
+    /// Some XR devices want to run on the main thread.
+    webxr_main_thread: RefCell<webxr::MainThreadRegistry>,
+
     /// The channel on which messages can be sent to the time profiler.
     time_profiler_chan: profile_time::ProfilerChan,
 
     /// A handle to the memory profiler which will automatically unregister
     /// when it's dropped.
     _mem_profiler_registration: ProfilerRegistration,
-
-    /// A hashmap of painter ids to the surfman types (like Device, Adapter) that
-    /// are specific to that painter.
-    _painter_surfman_details_map: PainterSurfmanDetailsMap,
 }
 
 /// Why we need to be repainted. This is used for debugging.
@@ -104,28 +123,57 @@ impl IOCompositor {
             CompositorMsg::CollectMemoryReport,
         );
 
-        let mut painter_surfman_details_map = PainterSurfmanDetailsMap::default();
+        let webrender_external_image_id_manager = WebRenderExternalImageIdManager::default();
+        let painter_surfman_details_map = PainterSurfmanDetailsMap::default();
+        let WebGLComm {
+            webgl_threads,
+            swap_chains,
+            #[cfg(feature = "webxr")]
+            webxr_layer_grand_manager,
+        } = WebGLComm::new(
+            state.compositor_proxy.cross_process_compositor_api.clone(),
+            webrender_external_image_id_manager.clone(),
+            painter_surfman_details_map.clone(),
+        );
 
-        let compositor = Rc::new(RefCell::new(IOCompositor {
+        // Create the WebXR main thread
+        #[cfg(feature = "webxr")]
+        let webxr_main_thread = {
+            use servo_config::pref;
+
+            let mut webxr_main_thread = webxr::MainThreadRegistry::new(
+                state.event_loop_waker.clone(),
+                webxr_layer_grand_manager,
+            )
+            .expect("Failed to create WebXR device registry");
+            if pref!(dom_webxr_enabled) {
+                state.webxr_registry.register(&mut webxr_main_thread);
+            }
+            webxr_main_thread
+        };
+
+        let mut compositor = IOCompositor {
             painters: Default::default(),
+            event_loop_waker: state.event_loop_waker,
             shutdown_state: state.shutdown_state,
             compositor_receiver: state.receiver,
             embedder_to_constellation_sender: state.embedder_to_constellation_sender.clone(),
+            webrender_external_image_id_manager,
+            webgl_threads,
+            swap_chains,
+            #[cfg(feature = "webxr")]
+            webxr_main_thread: RefCell::new(webxr_main_thread),
             time_profiler_chan: state.time_profiler_chan,
             _mem_profiler_registration: registration,
-            _painter_surfman_details_map: painter_surfman_details_map.clone(),
-        }));
+            painter_surfman_details_map,
+        };
 
         let painter = Painter::new(
             state.rendering_context.clone(),
             state.compositor_proxy,
-            state.event_loop_waker,
             state.refresh_driver,
             state.shaders_path,
-            compositor.borrow().embedder_to_constellation_sender.clone(),
-            painter_surfman_details_map.clone(),
-            #[cfg(feature = "webxr")]
-            state.webxr_registry,
+            &compositor,
         );
 
         let connection = state
@@ -140,14 +188,12 @@ impl IOCompositor {
             connection,
             adapter,
         };
-        painter_surfman_details_map.insert(painter.painter_id, painter_surfman_details);
-
         compositor
-            .borrow_mut()
-            .painters
-            .push(Rc::new(RefCell::new(painter)));
+            .painter_surfman_details_map
+            .insert(painter.painter_id, painter_surfman_details);
+        compositor.painters.push(Rc::new(RefCell::new(painter)));
 
-        compositor
+        Rc::new(RefCell::new(compositor))
     }
 
     pub(crate) fn painter<'a>(&'a self) -> Ref<'a, Painter> {
@@ -173,17 +219,17 @@ impl IOCompositor {
     }
 
     pub fn webgl_threads(&self) -> WebGLThreads {
-        self.painter().webgl_threads.clone()
+        self.webgl_threads.clone()
     }
 
-    pub fn webrender_external_images(&self) -> Arc<Mutex<WebRenderExternalImageRegistry>> {
-        self.painter().webrender_external_images.clone()
+    pub fn webrender_external_image_id_manager(&self) -> WebRenderExternalImageIdManager {
+        self.webrender_external_image_id_manager.clone()
     }
 
     pub fn webxr_running(&self) -> bool {
         #[cfg(feature = "webxr")]
         {
-            self.painter().webxr_main_thread.running()
+            self.webxr_main_thread.borrow().running()
         }
         #[cfg(not(feature = "webxr"))]
         {
@@ -193,7 +239,7 @@ impl IOCompositor {
 
     #[cfg(feature = "webxr")]
     pub fn webxr_main_thread_registry(&self) -> webxr_api::Registry {
-        self.painter().webxr_main_thread.registry()
+        self.webxr_main_thread.borrow().registry()
     }
 
     #[cfg(feature = "webgpu")]
@@ -570,6 +616,10 @@ impl IOCompositor {
         if self.shutdown_state() == ShutdownState::FinishedShuttingDown {
             return false;
         }
+
+        // Run the WebXR main thread
+        #[cfg(feature = "webxr")]
+        self.webxr_main_thread.borrow_mut().run_one_frame();
 
         for painter in &self.painters {
             painter.borrow_mut().perform_updates();
