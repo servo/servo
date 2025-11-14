@@ -11,7 +11,8 @@ use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_style::T as FontStyle;
-use style::stylesheets::DocumentStyleSheet;
+use style::servo_arc::Arc as ServoArc;
+use style::stylesheets::{DocumentStyleSheet, LockedFontFaceRule};
 use style::values::computed::font::FontWeight;
 
 use crate::{CSSFontFaceDescriptors, ComputedFontStyleDescriptor, FontDescriptor, FontIdentifier};
@@ -141,6 +142,14 @@ impl FontTemplateDescriptor {
     }
 }
 
+/// Data for a font load operation initiated by a `@font-face` rule.
+#[derive(Clone, MallocSizeOf)]
+pub struct FontFaceRuleInitiator {
+    pub stylesheet: DocumentStyleSheet,
+    #[ignore_malloc_size_of = "TODO"]
+    pub font_face_rule: ServoArc<LockedFontFaceRule>,
+}
+
 /// This describes all the information needed to create
 /// font instance handles. It contains a unique
 /// FontTemplateData structure that is platform specific.
@@ -155,7 +164,7 @@ pub struct FontTemplate {
     /// This is not serialized, as it's only useful in the [`super::FontContext`]
     /// that it is created in.
     #[serde(skip)]
-    pub stylesheet: Option<DocumentStyleSheet>,
+    pub font_face_rule: Option<FontFaceRuleInitiator>,
 }
 
 impl Debug for FontTemplate {
@@ -172,12 +181,12 @@ impl FontTemplate {
     pub fn new(
         identifier: FontIdentifier,
         descriptor: FontTemplateDescriptor,
-        stylesheet: Option<DocumentStyleSheet>,
+        font_face_rule: Option<FontFaceRuleInitiator>,
     ) -> FontTemplate {
         FontTemplate {
             identifier,
             descriptor,
-            stylesheet,
+            font_face_rule,
         }
     }
 
@@ -187,18 +196,22 @@ impl FontTemplate {
     pub fn new_for_local_web_font(
         local_template: FontTemplateRef,
         css_font_template_descriptors: &CSSFontFaceDescriptors,
-        stylesheet: Option<DocumentStyleSheet>,
+        font_face_rule: Option<FontFaceRuleInitiator>,
     ) -> Result<FontTemplate, &'static str> {
         let mut alias_template = local_template.borrow().clone();
         alias_template
             .descriptor
             .override_values_with_css_font_template_descriptors(css_font_template_descriptors);
-        alias_template.stylesheet = stylesheet;
+        alias_template.font_face_rule = font_face_rule;
         Ok(alias_template)
     }
 
     pub fn identifier(&self) -> &FontIdentifier {
         &self.identifier
+    }
+
+    pub fn stylesheet(&self) -> Option<&DocumentStyleSheet> {
+        self.font_face_rule.as_ref().map(|rule| &rule.stylesheet)
     }
 }
 
