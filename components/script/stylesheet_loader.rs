@@ -92,13 +92,12 @@ pub(crate) struct StylesheetContext {
 }
 
 impl StylesheetContext {
-    fn unminify_css(&self, data: Vec<u8>, file_url: ServoUrl) -> Vec<u8> {
+    fn unminify_css(&mut self, file_url: ServoUrl) {
         let Some(unminified_dir) = self.document.root().window().unminified_css_dir() else {
-            return data;
+            return;
         };
 
-        let mut style_content = data;
-
+        let mut style_content = std::mem::take(&mut self.data);
         if let Some((input, mut output)) = create_temp_files() {
             if execute_js_beautify(
                 input.path(),
@@ -118,7 +117,7 @@ impl StylesheetContext {
             },
         }
 
-        style_content
+        self.data = style_content;
     }
 }
 
@@ -156,13 +155,13 @@ impl FetchResponseListener for StylesheetContext {
         let mut successful = false;
 
         if let Ok(response) = &status {
-            let metadata = match self.metadata.take() {
-                Some(meta) => meta,
-                None => {
-                    network_listener::submit_timing(&self, response, CanGc::note());
-                    return;
-                },
+            network_listener::submit_timing(&self, response, CanGc::note());
+
+            let Some(metadata) = self.metadata.take() else {
+                return;
             };
+
+            let loader = ElementStylesheetLoader::new(&element);
 
             let mut is_css = metadata.content_type.is_some_and(|ct| {
                 let mime: Mime = ct.into_inner().into();
@@ -189,12 +188,11 @@ impl FetchResponseListener for StylesheetContext {
                 is_css = true;
             }
 
-            let data = if is_css {
-                let data = std::mem::take(&mut self.data);
-                self.unminify_css(data, metadata.final_url.clone())
-            } else {
-                vec![]
-            };
+            self.unminify_css(metadata.final_url.clone());
+            let mut data = std::mem::take(&mut self.data);
+            if !is_css {
+                data.clear();
+            }
 
             // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
             let environment_encoding = UTF_8;
@@ -203,7 +201,6 @@ impl FetchResponseListener for StylesheetContext {
 
             let win = element.owner_window();
 
-            let loader = ElementStylesheetLoader::new(&element);
             let shared_lock = document.style_shared_lock();
             let stylesheet = |media| {
                 #[cfg(feature = "tracing")]
@@ -290,10 +287,6 @@ impl FetchResponseListener for StylesheetContext {
             element
                 .upcast::<EventTarget>()
                 .fire_event(event, CanGc::note());
-        }
-
-        if let Ok(response) = status {
-            network_listener::submit_timing(&self, &response, CanGc::note());
         }
     }
 
